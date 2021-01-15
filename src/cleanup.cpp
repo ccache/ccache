@@ -101,26 +101,26 @@ clean_up_dir(const std::string& subdir,
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!file.lstat().is_regular()) {
+    if (!file.is_regular()) {
       // Not a file or missing file.
       continue;
     }
 
     // Delete any tmp files older than 1 hour right away.
-    if (file.lstat().mtime() + 3600 < current_time
+    if (file.mtime() + 3600 < current_time
         && Util::base_name(file.path()).find(".tmp.") != std::string::npos) {
       Util::unlink_tmp(file.path());
       continue;
     }
 
-    cache_size += file.lstat().size_on_disk();
+    cache_size += file.size_on_disk();
     files_in_cache += 1;
   }
 
   // Sort according to modification time, oldest first.
   std::sort(
     files.begin(), files.end(), [](const FileInfo& f1, const FileInfo& f2) {
-      return f1.lstat().mtime() < f2.lstat().mtime();
+      return f1.mtime() < f2.mtime();
     });
 
   LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
@@ -132,15 +132,14 @@ clean_up_dir(const std::string& subdir,
        ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!file.lstat() || file.lstat().is_directory()) {
+    if (!file.exists() || file.is_directory()) {
       continue;
     }
 
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
         && (max_age == 0
-            || file.lstat().mtime()
-                 > (current_time - static_cast<int64_t>(max_age)))) {
+            || file.mtime() > (current_time - static_cast<int64_t>(max_age)))) {
       break;
     }
 
@@ -162,8 +161,7 @@ clean_up_dir(const std::string& subdir,
       delete_file(o_file, 0, nullptr, nullptr);
     }
 
-    delete_file(
-      file.path(), file.lstat().size_on_disk(), &cache_size, &files_in_cache);
+    delete_file(file.path(), file.size_on_disk(), &cache_size, &files_in_cache);
     cleaned = true;
   }
 

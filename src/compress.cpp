@@ -223,15 +223,15 @@ compress_stats(const Config& config,
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& cache_file = files[i];
-        on_disk_size += cache_file.lstat().size_on_disk();
+        on_disk_size += cache_file.size_on_disk();
 
         try {
           auto file = open_file(cache_file.path(), "rb");
           auto reader = create_reader(CacheFile(cache_file.path()), file.get());
-          compr_size += cache_file.lstat().size();
+          compr_size += cache_file.size();
           content_size += reader->content_size();
         } catch (Error&) {
-          incompr_size += cache_file.lstat().size();
+          incompr_size += cache_file.size();
         }
 
         sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
@@ -305,7 +305,7 @@ compress_recompress(Context& ctx,
             }
           });
         } else {
-          statistics.update(0, 0, 0, file.lstat().size());
+          statistics.update(0, 0, 0, file.size());
         }
 
         sub_progress_receiver(0.1 + 0.9 * i / files.size());

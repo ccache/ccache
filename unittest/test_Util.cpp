@@ -403,13 +403,13 @@ TEST_CASE("Util::get_level_1_files")
       });
 
     CHECK(files[0].path() == os_path("0/1/file_b"));
-    CHECK(files[0].lstat().size() == 1);
+    CHECK(files[0].size() == 1);
     CHECK(files[1].path() == os_path("0/1/file_c"));
-    CHECK(files[1].lstat().size() == 2);
+    CHECK(files[1].size() == 2);
     CHECK(files[2].path() == os_path("0/f/c/file_d"));
-    CHECK(files[2].lstat().size() == 3);
+    CHECK(files[2].size() == 3);
     CHECK(files[3].path() == os_path("0/file_a"));
-    CHECK(files[3].lstat().size() == 0);
+    CHECK(files[3].size() == 0);
   }
 }
 

@@ -32,10 +32,18 @@ class FileInfo
 public:
   explicit FileInfo(const std::string& path);
 
-  const Stat& lstat() const;
   const std::string& path() const;
 
+  bool exists() const;
+  bool is_directory() const;
+  bool is_regular() const;
+  uint64_t size_on_disk() const;
+  uint64_t size() const;
+  time_t mtime() const;
+
 private:
+  const Stat& lstat() const;
+
   std::string m_path;
   mutable nonstd::optional<Stat> m_stat;
 };
@@ -48,4 +56,40 @@ inline const std::string&
 FileInfo::path() const
 {
   return m_path;
+}
+
+inline bool
+FileInfo::exists() const
+{
+  return lstat();
+}
+
+inline bool
+FileInfo::is_directory() const
+{
+  return lstat() && lstat().is_directory();
+}
+
+inline bool
+FileInfo::is_regular() const
+{
+  return lstat() && lstat().is_regular();
+}
+
+inline uint64_t
+FileInfo::size_on_disk() const
+{
+  return lstat().size_on_disk();
+}
+
+inline uint64_t
+FileInfo::size() const
+{
+  return lstat().size();
+}
+
+inline time_t
+FileInfo::mtime() const
+{
+  return lstat().mtime();
 }
