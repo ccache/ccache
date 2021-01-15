@@ -855,15 +855,27 @@ find_coverage_file(const Context& ctx)
   return {true, found_file, found_file == mangled_form};
 }
 
+static std::string
+to_absolute_path(const nonstd::string_view cwd, const nonstd::string_view path)
+{
+  return Util::is_absolute_path(path) ? std::string(path)
+                                      : FMT("{}{}{}", cwd, DIR_DELIM_CH, path);
+}
+
 static bool
-cache_file_although_compilation_failed(std::string input_file,
+cache_file_although_compilation_failed(const nonstd::string_view actual_cwd,
+                                       std::string input_file,
                                        std::string output_file)
 {
-  input_file = Util::real_path(input_file);
-  output_file = Util::real_path(output_file);
+  input_file = to_absolute_path(actual_cwd, input_file);
+  output_file = to_absolute_path(actual_cwd, output_file);
 
-  const bool cache = input_file.find("/CMakeFiles/") != std::string::npos
-                     || output_file.find("CMakeFiles/") != std::string::npos;
+  const auto dir_CMakeFiles = FMT("{}CMakeFiles{}", DIR_DELIM_CH, DIR_DELIM_CH);
+  const auto dir_Autoconf = FMT("{}conftest{}", DIR_DELIM_CH, DIR_DELIM_CH);
+
+  const bool cache = input_file.find(dir_CMakeFiles) != std::string::npos
+                     || output_file.find(dir_CMakeFiles) != std::string::npos
+                     || input_file.find(dir_Autoconf) != std::string::npos;
 
   LOG("cache_file_although_compilation_failed of {} \\ {}: {}",
       input_file,
@@ -972,8 +984,8 @@ to_cache(Context& ctx,
   }
 
   if (status != 0) {
-    if (cache_file_although_compilation_failed(ctx.args_info.input_file,
-                                               ctx.args_info.output_obj)) {
+    if (cache_file_although_compilation_failed(
+          ctx.actual_cwd, ctx.args_info.input_file, ctx.args_info.output_obj)) {
       LOG("Compiler gave exit status {}, caching anyway", status);
       ctx.args_info.expect_output_obj = false;
     } else {
@@ -1140,12 +1152,9 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   if (status != 0) {
-    if (cache_file_although_compilation_failed(ctx.args_info.input_file,
-                                               stdout_path)) {
+    if (cache_file_although_compilation_failed(
+          ctx.actual_cwd, ctx.args_info.input_file, stdout_path)) {
       LOG("Preprocessor gave exit status {}, caching anyway", status);
-
-      hash.hash_delimiter("errorcode");
-      hash.hash(fmt::format("{}", status));
       ctx.args_info.expect_output_obj = false;
     } else {
       LOG("Preprocessor gave exit status {}, not caching", status);
