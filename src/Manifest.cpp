@@ -28,7 +28,7 @@
 #include "File.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "SloppinessEnum.hpp"
+#include "Sloppiness.hpp"
 #include "StdMakeUnique.hpp"
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"

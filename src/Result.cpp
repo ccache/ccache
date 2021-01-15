@@ -27,7 +27,7 @@
 #include "File.hpp"
 #include "Logging.hpp"
 #include "Stat.hpp"
-#include "StatisticEnum.hpp"
+#include "Statistic.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"

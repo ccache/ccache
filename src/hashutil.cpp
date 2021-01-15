@@ -23,7 +23,7 @@
 #include "Context.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "SloppinessEnum.hpp"
+#include "Sloppiness.hpp"
 #include "Stat.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"

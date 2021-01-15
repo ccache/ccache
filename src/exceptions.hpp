@@ -21,7 +21,6 @@
 #include "system.hpp"
 
 #include "FormatNonstdStringView.hpp"
-#include "StatisticEnum.hpp"
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
@@ -79,39 +78,4 @@ template<typename... T>
 inline Fatal::Fatal(T&&... args)
   : ErrorBase(fmt::format(std::forward<T>(args)...))
 {
-}
-
-// Throw a Failure if ccache did not succeed in getting or putting a result in
-// the cache. If `exit_code` is set, just exit with that code directly,
-// otherwise execute the real compiler and exit with its exit code. Also updates
-// statistics counter `statistic` if it's not `Statistic::none`.
-class Failure : public std::exception
-{
-public:
-  Failure(Statistic statistic,
-          nonstd::optional<int> exit_code = nonstd::nullopt);
-
-  nonstd::optional<int> exit_code() const;
-  Statistic statistic() const;
-
-private:
-  Statistic m_statistic;
-  nonstd::optional<int> m_exit_code;
-};
-
-inline Failure::Failure(Statistic statistic, nonstd::optional<int> exit_code)
-  : m_statistic(statistic), m_exit_code(exit_code)
-{
-}
-
-inline nonstd::optional<int>
-Failure::exit_code() const
-{
-  return m_exit_code;
-}
-
-inline Statistic
-Failure::statistic() const
-{
-  return m_statistic;
 }

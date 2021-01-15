@@ -20,7 +20,7 @@
 
 #include "AtomicFile.hpp"
 #include "Compression.hpp"
-#include "SloppinessEnum.hpp"
+#include "Sloppiness.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
 #include "exceptions.hpp"
