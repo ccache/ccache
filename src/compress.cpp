@@ -21,6 +21,7 @@
 #include "AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
+#include "CacheFile.hpp"
 #include "Context.hpp"
 #include "File.hpp"
 #include "Logging.hpp"

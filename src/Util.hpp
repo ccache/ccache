@@ -20,7 +20,6 @@
 
 #include "system.hpp"
 
-#include "CacheFile.hpp"
 #include "FileInfo.hpp"
 
 #include "third_party/nonstd/optional.hpp"
