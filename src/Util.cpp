@@ -673,7 +673,7 @@ get_level_1_files(const std::string& dir,
     }
 
     if (!is_dir) {
-      files.push_back(FileInfo{path});
+      files.emplace_back(path);
     } else if (path != dir
                && path.find('/', dir.size() + 1) == std::string::npos) {
       ++level_2_directories;
