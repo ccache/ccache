@@ -20,38 +20,22 @@
 
 #include "system.hpp"
 
-#include "Stat.hpp"
-#include "exceptions.hpp"
+#include "FileInfo.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 
 #include <string>
 
-class CacheFile
+class CacheFile : public FileInfo
 {
 public:
   enum class Type { result, manifest, unknown };
 
   explicit CacheFile(const std::string& path);
 
-  CacheFile(const CacheFile&) = delete;
-  CacheFile& operator=(const CacheFile&) = delete;
-
-  const Stat& lstat() const;
-  const std::string& path() const;
   Type type() const;
-
-private:
-  const std::string m_path;
-  mutable nonstd::optional<Stat> m_stat;
 };
 
-inline CacheFile::CacheFile(const std::string& path) : m_path(path)
+inline CacheFile::CacheFile(const std::string& path) : FileInfo(path)
 {
-}
-
-inline const std::string&
-CacheFile::path() const
-{
-  return m_path;
 }

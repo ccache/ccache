@@ -22,22 +22,12 @@
 #include "Result.hpp"
 #include "Util.hpp"
 
-const Stat&
-CacheFile::lstat() const
-{
-  if (!m_stat) {
-    m_stat = Stat::lstat(m_path);
-  }
-
-  return *m_stat;
-}
-
 CacheFile::Type
 CacheFile::type() const
 {
-  if (Util::ends_with(m_path, Manifest::k_file_suffix)) {
+  if (Util::ends_with(path(), Manifest::k_file_suffix)) {
     return Type::manifest;
-  } else if (Util::ends_with(m_path, Result::k_file_suffix)) {
+  } else if (Util::ends_with(path(), Result::k_file_suffix)) {
     return Type::result;
   } else {
     return Type::unknown;
