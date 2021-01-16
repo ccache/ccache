@@ -48,7 +48,6 @@ struct ArgumentProcessingState
   bool found_rewrite_includes = false;
 
   std::string explicit_language;    // As specified with -x.
-  std::string file_language;        // As deduced from file extension.
   std::string input_charset_option; // -finput-charset=...
 
   // Is the dependency makefile name overridden with -MF?
@@ -993,7 +992,6 @@ process_args(Context& ctx)
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
     state.explicit_language.clear();
   }
-  state.file_language = language_for_file(args_info.input_file);
   if (!state.explicit_language.empty()) {
     if (!language_is_supported(state.explicit_language)) {
       LOG("Unsupported language: {}", state.explicit_language);
@@ -1001,7 +999,7 @@ process_args(Context& ctx)
     }
     args_info.actual_language = state.explicit_language;
   } else {
-    args_info.actual_language = state.file_language;
+    args_info.actual_language = language_for_file(args_info.input_file);
   }
 
   args_info.output_is_precompiled_header =
