@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,9 @@
 #include "system.hpp"
 
 #include <string>
+
+// Return whether a filename has a supported source code extension.
+bool supported_source_extension(const std::string& fname);
 
 // Guess the language of `fname` based on its extension. Returns the empty
 // string if the extension is unknown.

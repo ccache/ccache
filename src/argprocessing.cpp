@@ -853,7 +853,7 @@ process_arg(Context& ctx,
   }
 
   if (!args_info.input_file.empty()) {
-    if (!language_for_file(args[i]).empty()) {
+    if (supported_source_extension(args[i])) {
       LOG("Multiple input files: {} and {}", args_info.input_file, args[i]);
       return Statistic::multiple_source_files;
     } else if (!state.found_c_opt && !state.found_dc_opt) {
