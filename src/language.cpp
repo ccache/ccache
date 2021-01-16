@@ -67,7 +67,7 @@ const struct
   {".HXX", "c++-header"},
   {".tcc", "c++-header"},
   {".TCC", "c++-header"},
-  {".cu", "cu"},
+  {".cu", "cu"}, // Special case in language_for_file: "cuda" for Clang
   {".hip", "hip"},
   {nullptr, nullptr},
 };
@@ -84,7 +84,8 @@ const struct
   {"c++", "c++-cpp-output"},
   {"c++-cpp-output", "c++-cpp-output"},
   {"c++-header", "c++-cpp-output"},
-  {"cu", "cpp-output"},
+  {"cu", "cpp-output"},   // NVCC
+  {"cuda", "cpp-output"}, // Clang
   {"hip", "cpp-output"},
   {"objective-c", "objective-c-cpp-output"},
   {"objective-c-header", "objective-c-cpp-output"},
@@ -114,9 +115,13 @@ supported_source_extension(const std::string& fname)
 }
 
 std::string
-language_for_file(const std::string& fname)
+language_for_file(const std::string& fname, CompilerType compiler_type)
 {
   auto ext = Util::get_extension(fname);
+  if (ext == ".cu" && compiler_type == CompilerType::clang) {
+    // Special case: Clang maps .cu to cuda.
+    return "cuda";
+  }
   for (size_t i = 0; k_ext_lang_table[i].extension; ++i) {
     if (k_ext_lang_table[i].extension == ext) {
       return k_ext_lang_table[i].language;

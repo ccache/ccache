@@ -999,7 +999,8 @@ process_args(Context& ctx)
     }
     args_info.actual_language = state.explicit_language;
   } else {
-    args_info.actual_language = language_for_file(args_info.input_file);
+    args_info.actual_language =
+      language_for_file(args_info.input_file, config.compiler_type());
   }
 
   args_info.output_is_precompiled_header =
@@ -1032,8 +1033,11 @@ process_args(Context& ctx)
     return Statistic::unsupported_source_language;
   }
 
-  if (!config.run_second_cpp() && args_info.actual_language == "cu") {
-    LOG_RAW("Using CUDA compiler; not compiling preprocessed code");
+  if (!config.run_second_cpp()
+      && (args_info.actual_language == "cu"
+          || args_info.actual_language == "cuda")) {
+    LOG("Source language is \"{}\"; not compiling preprocessed code",
+        args_info.actual_language);
     config.set_run_second_cpp(true);
   }
 

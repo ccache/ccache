@@ -20,14 +20,17 @@
 
 #include "system.hpp"
 
+#include "Config.hpp"
+
 #include <string>
 
 // Return whether a filename has a supported source code extension.
 bool supported_source_extension(const std::string& fname);
 
-// Guess the language of `fname` based on its extension. Returns the empty
-// string if the extension is unknown.
-std::string language_for_file(const std::string& fname);
+// Guess the language of `fname` based on its extension and a compiler type.
+// Returns the empty string if the extension is unknown.
+std::string language_for_file(const std::string& fname,
+                              CompilerType compiler_type);
 
 // Return the preprocessed language for `language`, or the empty string if
 // unknown.
