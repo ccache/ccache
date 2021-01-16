@@ -1002,7 +1002,9 @@ No result was found.
 Current size of the cache.
 
 | called for link |
-The compiler was called for linking, not compiling.
+The compiler was called for linking, not compiling. Ccache only supports
+compilation of a single file, i.e. calling the compiler with the *-c* option to
+produce a single object file from a single source file.
 
 | called for preprocessing |
 The compiler was called for preprocessing, not compiling.
