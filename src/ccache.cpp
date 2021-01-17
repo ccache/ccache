@@ -314,8 +314,6 @@ do_remember_include_file(Context& ctx,
                          bool system,
                          Hash* depend_mode_hash)
 {
-  bool is_pch = false;
-
   if (path.length() >= 2 && path[0] == '<' && path[path.length() - 1] == '>') {
     // Typically <built-in> or <command-line>.
     return true;
@@ -391,7 +389,7 @@ do_remember_include_file(Context& ctx,
   // Let's hash the include file content.
   Hash fhash;
 
-  is_pch = Util::is_precompiled_header(path);
+  const bool is_pch = Util::is_precompiled_header(path);
   if (is_pch) {
     if (ctx.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
