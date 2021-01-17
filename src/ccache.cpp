@@ -462,20 +462,28 @@ do_remember_include_file(Context& ctx,
   return true;
 }
 
+enum class RememberIncludeFileResult { ok, cannot_use_pch };
+
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
-static void
+static RememberIncludeFileResult
 remember_include_file(Context& ctx,
                       const std::string& path,
                       Hash& cpp_hash,
                       bool system,
                       Hash* depend_mode_hash)
 {
-  if (!do_remember_include_file(ctx, path, cpp_hash, system, depend_mode_hash)
-      && ctx.config.direct_mode()) {
-    LOG_RAW("Disabling direct mode");
-    ctx.config.set_direct_mode(false);
+  if (!do_remember_include_file(
+        ctx, path, cpp_hash, system, depend_mode_hash)) {
+    if (Util::is_precompiled_header(path)) {
+      return RememberIncludeFileResult::cannot_use_pch;
+    } else if (ctx.config.direct_mode()) {
+      LOG_RAW("Disabling direct mode");
+      ctx.config.set_direct_mode(false);
+    }
   }
+
+  return RememberIncludeFileResult::ok;
 }
 
 static void
@@ -492,7 +500,10 @@ print_included_files(const Context& ctx, FILE* fp)
 // - Makes include file paths for which the base directory is a prefix relative
 //   when computing the hash sum.
 // - Stores the paths and hashes of included files in ctx.included_files.
-static bool
+//
+// Returns Statistic::none on success, otherwise a statistics counter to be
+// incremented.
+static Statistic
 process_preprocessed_file(Context& ctx,
                           Hash& hash,
                           const std::string& path,
@@ -502,7 +513,7 @@ process_preprocessed_file(Context& ctx,
   try {
     data = Util::read_file(path);
   } catch (Error&) {
-    return false;
+    return Statistic::internal_error;
   }
 
   // Bytes between p and q are pending to be hashed.
@@ -583,7 +594,7 @@ process_preprocessed_file(Context& ctx,
       q++;
       if (q >= end) {
         LOG_RAW("Failed to parse included file path");
-        return false;
+        return Statistic::internal_error;
       }
       // q points to the beginning of an include file path
       hash.hash(p, q - p);
@@ -625,7 +636,10 @@ process_preprocessed_file(Context& ctx,
         hash.hash(inc_path);
       }
 
-      remember_include_file(ctx, inc_path, hash, system, nullptr);
+      if (remember_include_file(ctx, inc_path, hash, system, nullptr)
+          == RememberIncludeFileResult::cannot_use_pch) {
+        return Statistic::could_not_use_precompiled_header;
+      }
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
                && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
@@ -670,7 +684,7 @@ process_preprocessed_file(Context& ctx,
     print_included_files(ctx, stdout);
   }
 
-  return true;
+  return Statistic::none;
 }
 
 // Extract the used includes from the dependency file. Note that we cannot
@@ -1163,9 +1177,11 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   hash.hash_delimiter("cpp");
-  bool is_pump = ctx.config.compiler_type() == CompilerType::pump;
-  if (!process_preprocessed_file(ctx, hash, stdout_path, is_pump)) {
-    throw Failure(Statistic::internal_error);
+  const bool is_pump = ctx.config.compiler_type() == CompilerType::pump;
+  const Statistic error =
+    process_preprocessed_file(ctx, hash, stdout_path, is_pump);
+  if (error != Statistic::none) {
+    throw Failure(error);
   }
 
   hash.hash_delimiter("cppstderr");

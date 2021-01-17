@@ -609,6 +609,29 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Too new PCH file"
+
+    # If the precompiled header is too new we shouldn't cache the result at all
+    # since:
+    #
+    # - the precompiled header content must be included in the hash, but
+    # - we don't trust the precompiled header content so we can't hash it
+    #   ourselves, and
+    # - the preprocessed output doesn't contain the preprocessed header content.
+
+    touch lib.h
+    touch main.c
+
+    $REAL_COMPILER $SYSROOT -c lib.h
+    touch -d "@$(($(date +%s) + 60))" lib.h.gch # 1 minute in the future
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines,time_macros" $CCACHE_COMPILE -include lib.h -c main.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 0
+    expect_stat "can't use precompiled header" 1
 }
 
 pch_suite_clang() {
