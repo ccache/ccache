@@ -60,6 +60,8 @@ else()
 endif()
 message(STATUS "Ccache dev mode: ${CCACHE_DEV_MODE}")
 
+include(UseCcache)
+include(UseFastestLinker)
 include(StandardSettings)
 include(StandardWarnings)
 include(CIBuildType)
