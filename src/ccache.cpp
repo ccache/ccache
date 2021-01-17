@@ -308,6 +308,33 @@ guess_compiler(string_view path)
 }
 
 static bool
+include_file_too_new(const Context& ctx,
+                     const std::string& path,
+                     const Stat& path_stat)
+{
+  // The comparison using >= is intentional, due to a possible race between
+  // starting compilation and writing the include file. See also the notes under
+  // "Performance" in doc/MANUAL.adoc.
+  if (!(ctx.config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
+      && path_stat.mtime() >= ctx.time_of_compilation) {
+    LOG("Include file {} too new", path);
+    return true;
+  }
+
+  // The same >= logic as above applies to the change time of the file.
+  if (!(ctx.config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
+      && path_stat.ctime() >= ctx.time_of_compilation) {
+    LOG("Include file {} ctime too new", path);
+    return true;
+  }
+
+  return false;
+}
+
+// Returns false if the include file was "too new" and therefore should disable
+// the direct mode (or, in the case of a preprocessed header, fall back to just
+// running the real compiler), otherwise true.
+static bool
 do_remember_include_file(Context& ctx,
                          std::string path,
                          Hash& cpp_hash,
@@ -370,26 +397,27 @@ do_remember_include_file(Context& ctx,
     }
   }
 
-  // The comparison using >= is intentional, due to a possible race between
-  // starting compilation and writing the include file. See also the notes
-  // under "Performance" in doc/MANUAL.adoc.
-  if (!(ctx.config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
-      && st.mtime() >= ctx.time_of_compilation) {
-    LOG("Include file {} too new", path);
-    return false;
-  }
+  const bool is_pch = Util::is_precompiled_header(path);
+  const bool too_new = include_file_too_new(ctx, path, st);
 
-  // The same >= logic as above applies to the change time of the file.
-  if (!(ctx.config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
-      && st.ctime() >= ctx.time_of_compilation) {
-    LOG("Include file {} ctime too new", path);
+  if (too_new) {
+    // Opt out of direct mode because of a race condition.
+    //
+    // The race condition consists of these events:
+    //
+    // - the preprocessor is run
+    // - an include file is modified by someone
+    // - the new include file is hashed by ccache
+    // - the real compiler is run on the preprocessor's output, which contains
+    //   data from the old header file
+    // - the wrong object file is stored in the cache.
+
     return false;
   }
 
   // Let's hash the include file content.
   Hash fhash;
 
-  const bool is_pch = Util::is_precompiled_header(path);
   if (is_pch) {
     if (ctx.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
