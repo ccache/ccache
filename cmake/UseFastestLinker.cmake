@@ -1,7 +1,7 @@
 # Calls `message(VERBOSE msg)` if and only if VERBOSE is available (since CMake 3.15).
 # Call CMake with --loglevel=VERBOSE to view those messages.
 function(message_verbose msg)
-  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.5")
+  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.15")
     message(VERBOSE ${msg})
   endif()
 endfunction()

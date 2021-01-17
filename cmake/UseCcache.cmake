@@ -5,7 +5,7 @@
 # Calls `message(VERBOSE msg)` if and only if VERBOSE is available (since CMake 3.15).
 # Call CMake with --loglevel=VERBOSE to view those messages.
 function(message_verbose msg)
-  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.5")
+  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.15")
     message(VERBOSE ${msg})
   endif()
 endfunction()
@@ -52,8 +52,7 @@ function(use_ccache)
         file(APPEND ${launcher} "export ${keyVal}\n")
       endforeach()
       file(APPEND ${launcher}
-        "exec \"${CCACHE_PROGRAM}\" "
-        "\"${CMAKE_${lang}_COMPILER}\" \"$@\"\n")
+        "exec \"${CCACHE_PROGRAM}\" \"${CMAKE_${lang}_COMPILER}\" \"$@\"\n")
       execute_process(COMMAND chmod a+rx ${launcher})
     endforeach()
     set(CMAKE_XCODE_ATTRIBUTE_CC ${CMAKE_BINARY_DIR}/launch-C PARENT_SCOPE)
