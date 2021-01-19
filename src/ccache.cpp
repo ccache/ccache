@@ -183,6 +183,7 @@ const uint8_t k_max_cache_levels = 4;
 const char HASH_PREFIX[] = "3";
 
 namespace {
+
 // Throw a Failure if ccache did not succeed in getting or putting a result in
 // the cache. If `exit_code` is set, just exit with that code directly,
 // otherwise execute the real compiler and exit with its exit code. Also updates
@@ -217,6 +218,7 @@ Failure::statistic() const
 {
   return m_statistic;
 }
+
 } // namespace
 
 static void

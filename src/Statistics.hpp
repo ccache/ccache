@@ -21,7 +21,7 @@
 #include "system.hpp"
 
 #include "Counters.hpp"
-#include "Statistic.hpp" // Any reasonable use of Statistics required Statistic enum.
+#include "Statistic.hpp" // Any reasonable use of Statistics requires the Statistic enum.
 
 #include "third_party/nonstd/optional.hpp"
 
