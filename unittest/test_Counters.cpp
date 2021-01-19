@@ -17,7 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Counters.hpp"
-#include "../src/Statistics.hpp"
+#include "../src/Statistic.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"

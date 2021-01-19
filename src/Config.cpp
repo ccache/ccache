@@ -20,9 +20,9 @@
 
 #include "AtomicFile.hpp"
 #include "Compression.hpp"
+#include "Sloppiness.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
-#include "ccache.hpp"
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 

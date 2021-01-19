@@ -18,7 +18,7 @@
 
 #include "Counters.hpp"
 
-#include "Statistics.hpp"
+#include "Statistic.hpp"
 #include "assertions.hpp"
 
 #include <algorithm>

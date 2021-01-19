@@ -40,6 +40,7 @@
 #include "ResultExtractor.hpp"
 #include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
+#include "Statistics.hpp"
 #include "StdMakeUnique.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
@@ -180,6 +181,45 @@ const uint8_t k_max_cache_levels = 4;
 // this string. A typical example would be if the format of one of the files
 // stored in the cache changes in a backwards-incompatible way.
 const char HASH_PREFIX[] = "3";
+
+namespace {
+
+// Throw a Failure if ccache did not succeed in getting or putting a result in
+// the cache. If `exit_code` is set, just exit with that code directly,
+// otherwise execute the real compiler and exit with its exit code. Also updates
+// statistics counter `statistic` if it's not `Statistic::none`.
+class Failure : public std::exception
+{
+public:
+  Failure(Statistic statistic,
+          nonstd::optional<int> exit_code = nonstd::nullopt);
+
+  nonstd::optional<int> exit_code() const;
+  Statistic statistic() const;
+
+private:
+  Statistic m_statistic;
+  nonstd::optional<int> m_exit_code;
+};
+
+inline Failure::Failure(Statistic statistic, nonstd::optional<int> exit_code)
+  : m_statistic(statistic), m_exit_code(exit_code)
+{
+}
+
+inline nonstd::optional<int>
+Failure::exit_code() const
+{
+  return m_exit_code;
+}
+
+inline Statistic
+Failure::statistic() const
+{
+  return m_statistic;
+}
+
+} // namespace
 
 static void
 add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
