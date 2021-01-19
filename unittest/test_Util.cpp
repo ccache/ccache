@@ -376,43 +376,40 @@ TEST_CASE("Util::get_level_1_files")
   Util::write_file("0/1/file_c", "12");
   Util::write_file("0/f/c/file_d", "123");
 
-  std::vector<std::shared_ptr<CacheFile>> files;
   auto null_receiver = [](double) {};
 
   SUBCASE("nonexistent subdirectory")
   {
-    Util::get_level_1_files("2", null_receiver, files);
+    const auto files = Util::get_level_1_files("2", null_receiver);
     CHECK(files.empty());
   }
 
   SUBCASE("empty subdirectory")
   {
-    Util::get_level_1_files("e", null_receiver, files);
+    const auto files = Util::get_level_1_files("e", null_receiver);
     CHECK(files.empty());
   }
 
   SUBCASE("simple case")
   {
-    Util::get_level_1_files("0", null_receiver, files);
+    auto files = Util::get_level_1_files("0", null_receiver);
     REQUIRE(files.size() == 4);
 
     // Files within a level are in arbitrary order, sort them to be able to
     // verify them.
-    std::sort(files.begin(),
-              files.end(),
-              [](const std::shared_ptr<CacheFile>& f1,
-                 const std::shared_ptr<CacheFile>& f2) {
-                return f1->path() < f2->path();
-              });
+    std::sort(
+      files.begin(), files.end(), [](const CacheFile& f1, const CacheFile& f2) {
+        return f1.path() < f2.path();
+      });
 
-    CHECK(files[0]->path() == os_path("0/1/file_b"));
-    CHECK(files[0]->lstat().size() == 1);
-    CHECK(files[1]->path() == os_path("0/1/file_c"));
-    CHECK(files[1]->lstat().size() == 2);
-    CHECK(files[2]->path() == os_path("0/f/c/file_d"));
-    CHECK(files[2]->lstat().size() == 3);
-    CHECK(files[3]->path() == os_path("0/file_a"));
-    CHECK(files[3]->lstat().size() == 0);
+    CHECK(files[0].path() == os_path("0/1/file_b"));
+    CHECK(files[0].lstat().size() == 1);
+    CHECK(files[1].path() == os_path("0/1/file_c"));
+    CHECK(files[1].lstat().size() == 2);
+    CHECK(files[2].path() == os_path("0/f/c/file_d"));
+    CHECK(files[2].lstat().size() == 3);
+    CHECK(files[3].path() == os_path("0/file_a"));
+    CHECK(files[3].lstat().size() == 0);
   }
 }
 

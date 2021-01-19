@@ -21,7 +21,6 @@
 #include "system.hpp"
 
 #include "Stat.hpp"
-#include "exceptions.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 
@@ -34,15 +33,12 @@ public:
 
   explicit CacheFile(const std::string& path);
 
-  CacheFile(const CacheFile&) = delete;
-  CacheFile& operator=(const CacheFile&) = delete;
-
   const Stat& lstat() const;
   const std::string& path() const;
   Type type() const;
 
 private:
-  const std::string m_path;
+  std::string m_path;
   mutable nonstd::optional<Stat> m_stat;
 };
 

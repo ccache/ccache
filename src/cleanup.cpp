@@ -91,9 +91,8 @@ clean_up_dir(const std::string& subdir,
 {
   LOG("Cleaning up cache directory {}", subdir);
 
-  std::vector<std::shared_ptr<CacheFile>> files;
-  Util::get_level_1_files(
-    subdir, [&](double progress) { progress_receiver(progress / 3); }, files);
+  std::vector<CacheFile> files = Util::get_level_1_files(
+    subdir, [&](double progress) { progress_receiver(progress / 3); });
 
   uint64_t cache_size = 0;
   uint64_t files_in_cache = 0;
@@ -103,29 +102,27 @@ clean_up_dir(const std::string& subdir,
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!file->lstat().is_regular()) {
+    if (!file.lstat().is_regular()) {
       // Not a file or missing file.
       continue;
     }
 
     // Delete any tmp files older than 1 hour right away.
-    if (file->lstat().mtime() + 3600 < current_time
-        && Util::base_name(file->path()).find(".tmp.") != std::string::npos) {
-      Util::unlink_tmp(file->path());
+    if (file.lstat().mtime() + 3600 < current_time
+        && Util::base_name(file.path()).find(".tmp.") != std::string::npos) {
+      Util::unlink_tmp(file.path());
       continue;
     }
 
-    cache_size += file->lstat().size_on_disk();
+    cache_size += file.lstat().size_on_disk();
     files_in_cache += 1;
   }
 
   // Sort according to modification time, oldest first.
-  std::sort(files.begin(),
-            files.end(),
-            [](const std::shared_ptr<CacheFile>& f1,
-               const std::shared_ptr<CacheFile>& f2) {
-              return f1->lstat().mtime() < f2->lstat().mtime();
-            });
+  std::sort(
+    files.begin(), files.end(), [](const CacheFile& f1, const CacheFile& f2) {
+      return f1.lstat().mtime() < f2.lstat().mtime();
+    });
 
   LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
       static_cast<double>(cache_size) / 1024,
@@ -136,27 +133,26 @@ clean_up_dir(const std::string& subdir,
        ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!file->lstat() || file->lstat().is_directory()) {
+    if (!file.lstat() || file.lstat().is_directory()) {
       continue;
     }
 
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
         && (max_age == 0
-            || file->lstat().mtime()
+            || file.lstat().mtime()
                  > (current_time - static_cast<int64_t>(max_age)))) {
       break;
     }
 
-    if (Util::ends_with(file->path(), ".stderr")) {
+    if (Util::ends_with(file.path(), ".stderr")) {
       // In order to be nice to legacy ccache versions, make sure that the .o
       // file is deleted before .stderr, because if the ccache process gets
       // killed after deleting the .stderr but before deleting the .o, the
       // cached result will be inconsistent. (.stderr is the only file that is
       // optional for legacy ccache versions; any other file missing from the
       // cache will be detected.)
-      std::string o_file =
-        file->path().substr(0, file->path().size() - 6) + "o";
+      std::string o_file = file.path().substr(0, file.path().size() - 6) + "o";
 
       // Don't subtract this extra deletion from the cache size; that
       // bookkeeping will be done when the loop reaches the .o file. If the
@@ -168,7 +164,7 @@ clean_up_dir(const std::string& subdir,
     }
 
     delete_file(
-      file->path(), file->lstat().size_on_disk(), &cache_size, &files_in_cache);
+      file.path(), file.lstat().size_on_disk(), &cache_size, &files_in_cache);
     cleaned = true;
   }
 
@@ -208,12 +204,11 @@ wipe_dir(const std::string& subdir,
 {
   LOG("Clearing out cache directory {}", subdir);
 
-  std::vector<std::shared_ptr<CacheFile>> files;
-  Util::get_level_1_files(
-    subdir, [&](double progress) { progress_receiver(progress / 2); }, files);
+  const std::vector<CacheFile> files = Util::get_level_1_files(
+    subdir, [&](double progress) { progress_receiver(progress / 2); });
 
   for (size_t i = 0; i < files.size(); ++i) {
-    Util::unlink_safe(files[i]->path());
+    Util::unlink_safe(files[i].path());
     progress_receiver(0.5 + 0.5 * i / files.size());
   }
 
