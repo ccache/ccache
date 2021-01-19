@@ -32,15 +32,15 @@ if [[ -t 1 ]]; then
 fi
 
 green() {
-    printf "$ansi_boldgreen$*$ansi_reset\n"
+    printf "$ansi_boldgreen%s$ansi_reset\n" "$*"
 }
 
 red() {
-    printf "$ansi_boldred$*$ansi_reset\n"
+    printf "$ansi_boldred%s$ansi_reset\n" "$*"
 }
 
 bold() {
-    printf "$ansi_bold$*$ansi_reset\n"
+    printf "$ansi_bold%s$ansi_reset\n" "$*"
 }
 
 test_failed() {
@@ -81,9 +81,10 @@ find_compiler() {
 generate_code() {
     local nlines=$1
     local outfile=$2
+    local i
 
     rm -f $outfile
-    for i in $(seq $nlines); do
+    for ((i = 1; i <= nlines; i++)); do
         echo "int foo_$i(int x) { return x; }" >>$outfile
     done
 }
@@ -116,7 +117,7 @@ backdate() {
     else
         m=0
     fi
-    touch -t 1999010100$(printf "%02u" $m) "$@"
+    touch -t $((199901010000 + m)) "$@"
 }
 
 file_size() {
@@ -148,7 +149,18 @@ objdump_grep_cmd() {
 expect_stat() {
     local stat="$1"
     local expected_value="$2"
-    local value="$(echo $($CCACHE -s | fgrep "$stat" | cut -c33-))"
+    local line
+    local value=""
+
+    while IFS= read -r line; do
+        if [[ $line = *"$stat"* ]]; then
+            value="${line:32}"
+            # remove leading & trailing whitespace
+            value="${value#${value%%[![:space:]]*}}"
+            value="${value%${value##*[![:space:]]}}"
+            break
+        fi
+    done < <($CCACHE -s)
 
     if [ "$expected_value" != "$value" ]; then
         test_failed "Expected \"$stat\" to be $expected_value, actual $value"
@@ -309,11 +321,12 @@ expect_perm() {
 }
 
 reset_environment() {
-    while read name; do
-        unset $name
-    done <<EOF
-$(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
-EOF
+    while IFS= read -r name; do
+        if [[ $name =~ ^CCACHE_[A-Z0-9_]*$ ]]; then
+            unset $name
+        fi
+    done < <(compgen -e)
+
     unset GCC_COLORS
     unset TERM
     unset XDG_CACHE_HOME
@@ -438,7 +451,7 @@ case $compiler_version in
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
-        CLANG_VERSION_SUFFIX=$(echo $COMPILER | sed 's/.*clang//')
+        CLANG_VERSION_SUFFIX=$(echo "${COMPILER%% *}" | sed 's/.*clang//')
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
@@ -477,6 +490,11 @@ if $HOST_OS_WINDOWS; then
     PATH_DELIM=";"
 else
     PATH_DELIM=":"
+fi
+
+if [[ $OSTYPE = msys* ]]; then
+    # Native symlink support for Windows.
+    export MSYS="${MSYS:-} winsymlinks:nativestrict"
 fi
 
 if $HOST_OS_APPLE; then

@@ -1,4 +1,9 @@
 SUITE_inode_cache_PROBE() {
+    if $HOST_OS_WINDOWS; then
+        echo "inode cache not available on Windows"
+        return
+    fi
+
     temp_dir=$(dirname $($CCACHE -k temporary_dir))
     fs=$(stat -fLc %T $temp_dir)
     if [ "$fs" = "nfs" ]; then

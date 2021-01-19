@@ -1,10 +1,11 @@
 prepare_cleanup_test_dir() {
     local dir=$1
+    local i
 
     rm -rf $dir
     mkdir -p $dir
-    for i in $(seq 0 9); do
-        printf '%4017s' '' | tr ' ' 'A' >$dir/result${i}R
+    for ((i = 0; i < 10; ++i)); do
+        printf 'A%.0s' {1..4017} >$dir/result${i}R
         backdate $((3 * i + 1)) $dir/result${i}R
     done
     # NUMFILES: 10, TOTALSIZE: 13 KiB, MAXFILES: 0, MAXSIZE: 0

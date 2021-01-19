@@ -46,7 +46,8 @@ base_tests() {
 
     # The exact output is not tested, but at least it's something human readable
     # and not random memory.
-    if [ $($CCACHE --version | grep -c '^ccache version [a-zA-Z0-9_./+-]*$') -ne 1 ]; then
+    local version_pattern=$'^ccache version [a-zA-Z0-9_./+-]*\r?$'
+    if [ $($CCACHE --version | grep -E -c "$version_pattern") -ne 1 ]; then
         test_failed "Unexpected output of --version"
     fi
 
@@ -212,6 +213,7 @@ base_tests() {
     rm -rf src
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST "Source file ending with dot"
 
     mkdir src
@@ -230,6 +232,7 @@ base_tests() {
     rm foo.o
 
     rm -rf src
+fi
 
     # -------------------------------------------------------------------------
     TEST "Multiple file extensions"
@@ -778,19 +781,23 @@ b"
     expect_stat 'files in cache' 1
     expect_equal_object_files reference_test1.o test1.o
 
-    CCACHE_COMPILER=$COMPILER $CCACHE non_existing_compiler_will_be_overridden_anyway -c test1.c
+    CCACHE_COMPILER=$COMPILER_BIN $CCACHE \
+        non_existing_compiler_will_be_overridden_anyway \
+        $COMPILER_ARGS -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     expect_equal_object_files reference_test1.o test1.o
 
-    CCACHE_COMPILER=$COMPILER $CCACHE same/for/relative -c test1.c
+    CCACHE_COMPILER=$COMPILER_BIN $CCACHE same/for/relative \
+        $COMPILER_ARGS -c test1.c
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     expect_equal_object_files reference_test1.o test1.o
 
-    CCACHE_COMPILER=$COMPILER $CCACHE /and/even/absolute/compilers -c test1.c
+    CCACHE_COMPILER=$COMPILER_BIN $CCACHE /and/even/absolute/compilers \
+        $COMPILER_ARGS -c test1.c
     expect_stat 'cache hit (preprocessed)' 3
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
@@ -988,6 +995,7 @@ EOF
 
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST "CCACHE_UMASK"
 
     saved_umask=$(umask)
@@ -1046,6 +1054,7 @@ EOF
     expect_perm "$stats_file" -rw-rw-r--
 
     umask $saved_umask
+fi
 
     # -------------------------------------------------------------------------
     TEST "No object file due to bad prefix"
@@ -1365,6 +1374,7 @@ EOF
 fi
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST "UNCACHED_ERR_FD"
 
     cat >compiler.sh <<'EOF'
@@ -1395,6 +1405,7 @@ EOF
     if [ "$stderr" != "2Pu1Cc" ]; then
         test_failed "Unexpected stderr: $stderr != 2Pu1Cc"
     fi
+fi
 
     # -------------------------------------------------------------------------
     TEST "Invalid boolean environment configuration options"
