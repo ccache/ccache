@@ -11,19 +11,20 @@ function(use_fastest_linker)
     message(WARNING "use_fastest_linker() disabled, as it is not called at the project top level")
     return()
   endif()
-
-  find_program(HAS_LD_LLD ld.lld)
-  if(HAS_LD_LLD)
-    link_libraries(-fuse-ld=lld)
-    message_verbose("Using lld linker for faster linking")
+ 
+  find_program(FASTER_LINKER ld.lld)
+  if(NOT FASTER_LINKER)
+    find_program(FASTER_LINKER ld.gold)
+  endif()
+ 
+  if(FASTER_LINKER)
+    # Note: Compiler flag -fuse-ld requires gcc 9 or clang 3.8.
+    #       Instead override CMAKE_CXX_LINK_EXECUTABLE directly.
+    #       By default CMake uses the compiler executable for linking.
+    set(CMAKE_CXX_LINK_EXECUTABLE "${FASTER_LINKER} <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+    message_verbose("Using ${FASTER_LINKER} linker for faster linking")
   else()
-    find_program(HAS_LD_GOLD ld.gold)
-    if(HAS_LD_GOLD)
-      link_libraries(-fuse-ld=gold)
-      message_verbose("Using gold linker for faster linking")
-    else()
-      message_verbose("Using default linker")
-    endif()
+    message_verbose("Using default linker")
   endif()
 endfunction()
 

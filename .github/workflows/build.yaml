@@ -91,10 +91,12 @@ jobs:
           if [ "${{ runner.os }}" = "Linux" ]; then
             sudo apt-get update
 
+            # Install ld.gold (binutils) and ld.lld on different runs.
+            # Binding to Ubuntu 20 has no special meaning.
             if [ "${{ matrix.config.os }}" = "ubuntu-20.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd-dev
+              sudo apt-get install -y ninja-build elfutils libzstd-dev lld
             else
-              sudo apt-get install -y ninja-build elfutils libzstd1-dev
+              sudo apt-get install -y ninja-build elfutils libzstd1-dev binutils
             fi
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
