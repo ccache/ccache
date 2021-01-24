@@ -31,6 +31,7 @@ set(functions
     getpwuid
     gettimeofday
     posix_fallocate
+    pthread_mutexattr_setpshared
     realpath
     setenv
     strndup
