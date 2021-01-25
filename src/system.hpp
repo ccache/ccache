@@ -171,7 +171,7 @@ DLLIMPORT extern char** environ;
 #  define O_BINARY 0
 #endif
 
-#ifdef HAVE_SYS_MMAN_H
+#if defined(HAVE_SYS_MMAN_H) && defined(HAVE_PTHREAD_MUTEXATTR_SETPSHARED)
 #  define INODE_CACHE_SUPPORTED
 #endif
 
