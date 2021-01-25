@@ -111,7 +111,9 @@ jobs:
               sudo apt install -y clang-${{ matrix.config.version }} g++-multilib
             fi
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            brew install ninja
+            HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+              brew install ninja
+
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
               brew install gcc@${{ matrix.config.version }}
               echo "CC=gcc-${{ matrix.config.version }}" >> $GITHUB_ENV
