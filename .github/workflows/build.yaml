@@ -206,8 +206,7 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
-            # -mno-incremental-linker-compatible: reproducible object files
-            TEST_CC: clang -target i686-pc-windows-msvc -mno-incremental-linker-compatible
+            TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2019 64-bit
             os: windows-2019
@@ -218,8 +217,7 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
-            # -mno-incremental-linker-compatible: reproducible object files
-            TEST_CC: clang -target x86_64-pc-windows-msvc -mno-incremental-linker-compatible
+            TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
             os: ubuntu-20.04

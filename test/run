@@ -226,6 +226,22 @@ is_equal_object_files() {
         elfdump -a -w "$2".dump "$2"
         # these were the elfdump fields that seemed to differ (empirically)
         diff -I e_shoff -I sh_size -I st_name "$1".dump "$2".dump > /dev/null
+    elif $HOST_OS_WINDOWS && command -v dumpbin.exe >/dev/null; then
+        # Filter out fields that are affected by compilation time or source
+        # filename.
+        local awk_filter='
+            skip {--skip; next}
+
+            /Dump of file/ {next}                 # dumbin header
+            /time date stamp/ {next}              # incremental linker timestamp
+            /number of symbols/ {next}            # symbol count
+            /Filename *\| \.file$/ {skip=1; next} # .file symbol
+
+            {print}
+        '
+        dumpbin.exe -all -nologo "$1" | awk "$awk_filter" > "$1".dump
+        dumpbin.exe -all -nologo "$2" | awk "$awk_filter" > "$2".dump
+        cmp -s "$1".dump "$2".dump
     else
         cmp -s "$1" "$2"
     fi
