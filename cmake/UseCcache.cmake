@@ -27,7 +27,7 @@ function(use_ccache)
 
   # This will override any config and environment settings.
   # Worst case it's overriding better suited user defined values.
-  set(ccacheEnv
+  set(ccache_env
     # Another option would be CMAKE_BINARY_DIR, however currently only one basedir is supported.
     CCACHE_BASEDIR=${CMAKE_SOURCE_DIR}
 
@@ -41,15 +41,15 @@ function(use_ccache)
   if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
     foreach(lang IN ITEMS C CXX OBJC OBJCXX CUDA)
       set(CMAKE_${lang}_COMPILER_LAUNCHER
-        ${CMAKE_COMMAND} -E env ${ccacheEnv} ${CCACHE_PROGRAM}
+        ${CMAKE_COMMAND} -E env ${ccache_env} ${CCACHE_PROGRAM}
         PARENT_SCOPE)
     endforeach()
   elseif(CMAKE_GENERATOR STREQUAL Xcode)
     foreach(lang IN ITEMS C CXX)
       set(launcher ${CMAKE_BINARY_DIR}/launch-${lang})
       file(WRITE ${launcher} "#!/bin/bash\n\n")
-      foreach(keyVal IN LISTS ccacheEnv)
-        file(APPEND ${launcher} "export ${keyVal}\n")
+      foreach(key_val IN LISTS ccache_env)
+        file(APPEND ${launcher} "export ${key_val}\n")
       endforeach()
       file(APPEND ${launcher}
         "exec \"${CCACHE_PROGRAM}\" \"${CMAKE_${lang}_COMPILER}\" \"$@\"\n")
