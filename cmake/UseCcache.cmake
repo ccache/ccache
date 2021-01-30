@@ -39,9 +39,15 @@ function(use_ccache)
   )
 
   if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
+    find_program(ENV_PROGRAM env)
+    if(ENV_PROGRAM)
+      set(env_program env) # faster than "cmake -E env"
+    else()
+      set(env_program ${CMAKE_COMMAND} -E env)
+    endif()
     foreach(lang IN ITEMS C CXX OBJC OBJCXX CUDA)
       set(CMAKE_${lang}_COMPILER_LAUNCHER
-        ${CMAKE_COMMAND} -E env ${ccache_env} ${CCACHE_PROGRAM}
+        ${env_program} ${ccache_env} ${CCACHE_PROGRAM}
         PARENT_SCOPE)
     endforeach()
   elseif(CMAKE_GENERATOR STREQUAL Xcode)
