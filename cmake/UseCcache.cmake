@@ -1,16 +1,14 @@
-# Note: Compiling ccache via ccache is fine, because this uses a stable version which
-# is installed on the system.
+# Note: Compiling ccache via ccache is fine because the ccache version installed
+# in the system is used.
 
-
-# Calls `message(VERBOSE msg)` if and only if VERBOSE is available (since CMake 3.15).
-# Call CMake with --loglevel=VERBOSE to view those messages.
+# Calls `message(VERBOSE msg)` if and only if VERBOSE is available (since CMake
+# 3.15). Call CMake with --log-level=VERBOSE to view verbose messages.
 function(message_verbose msg)
   if(NOT ${CMAKE_VERSION} VERSION_LESS "3.15")
     message(VERBOSE ${msg})
   endif()
 endfunction()
 
-# Modified version of Craig Scott's "Professional CMake: A Practical Guide", 8th Edition
 function(use_ccache)
   if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(WARNING "use_ccache() disabled, as it is not called from the project top level")
@@ -25,17 +23,14 @@ function(use_ccache)
 
   message_verbose("Ccache enabled for faster recompilation")
 
-  # This will override any config and environment settings.
-  # Worst case it's overriding better suited user defined values.
+  # Note: This will override any config and environment settings.
   set(ccache_env
-    # Another option would be CMAKE_BINARY_DIR, however currently only one basedir is supported.
+    # Another option would be CMAKE_BINARY_DIR, but currently only one base
+    # directory is supported.
     CCACHE_BASEDIR=${CMAKE_SOURCE_DIR}
 
-    # In case of very old ccache versions (pre 3.3)
+    # In case of very old ccache versions (pre 3.3).
     CCACHE_CPP2=true
-
-    # This has been turned on by default in ccache 4.0
-    # CCACHE_COMPRESS=1
   )
 
   if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
