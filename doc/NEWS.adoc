@@ -1,6 +1,116 @@
 Ccache news
 ===========
 
+Ccache 4.2
+----------
+Release date: not yet determined
+
+New features
+~~~~~~~~~~~~
+
+- Improved calculation of relative paths when using `base_dir` to also consider
+  canonical paths (i.e. paths with dereferenced symlinks) as candidates.
+
+- Added a `debug_dir` (`CCACHE_DEBUGDIR`) configuration setting for specifying a
+  directory for files written in debug mode.
+
+- Added support for compiler option `-x cuda`, understood by Clang.
+
+
+Bug fixes
+~~~~~~~~~
+
+- The value of the `SOURCE_DATE_EPOCH` variable is now only hashed if it
+  potentially affects the output from ccache. This means that ccache now (like
+  before version 4.0) will be able produce cache hits for source code that
+  doesn't contain `__DATE__` or `__TIME__` macros regardless of the value of
+  `SOURCE_DATE_EPOCH`.
+
+- Fixed a bug where a non-Clang compiler would silently accept the
+  Clang-specific `-f(no-)color-diagnostics` option when run via ccache. This
+  confused feature detection made by e.g. CMake.
+
+- Improved creation of temporary files on Windows. Previously, ccache would in
+  practice reuse temporary filenames on said platform resulting in various
+  problems with parallel builds.
+
+- Fixed creation of parent directories when creating a lock file on Windows.
+
+- Fixed a race condition related to removal of temporary files.
+
+- Improved calculation of directory name for a Windows-style path.
+
+- A compilation result is now not stored in the cache if an included
+  preprocessed header file is too new. This fixes a bug where the content of a
+  newly created preprocessed header file could be missing from the hash,
+  resulting in a false positive cache hit.
+
+- Fixed calculation of the split DWARF filename for an object filename with zero
+  or multiple dots.
+
+- Fixed retrieval of the object file the destination is `/dev/null`.
+
+
+Portability and build improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Additional compiler flags like `-Wextra -Werror` are now only added when
+  building ccache in developer mode.
+
+- The developer build mode no longer enables `-Weverything` for Clang.
+
+- `_XOPEN_SOURCE` is now defined appropriately on FreeBSD to fix missing
+  declaration of `isascii`.
+
+- Improved detection of buildability of BLAKE3 assembler files.
+
+- Disabled build of inode cache code on OSes without
+  `pthread_mutexattr_setpshared`, such as OpenBSD.
+
+- Made static linking the default for a Windows MinGW build.
+
+- Removed legacy fallback replacements of `mkstemp` and `realpath`.
+
+- Improved detection of SSE/AVX support.
+
+- Improved detection of support for the AVX2 target attribute.
+
+- Configuration scripts now try to detect and enable BLAKE3's Neon support.
+
+- Made it possible to run the integration test suite on macOS.
+
+- Fixed building of 32-bit unit tests on macOS.
+
+- Made it possible to compile ccache for C++17.
+
+- Fixed printing of 64-bit `time_t` on 32-bit architectures like RISCV32.
+
+- Made sure to only use ASCII characters in the manual's AsciiDoc source code to
+  make it possible to generate documentation in non-UTF8 locales.
+
+- Upgraded to optional-lite 3.4.0, fmt 7.1.3, doctest 2.4.4 and zstd 1.4.8.
+
+- Took steps towards being able to run the test suite on Windows.
+
+
+Documentation
+~~~~~~~~~~~~~
+
+- Improved wording of `compiler_check` string values.
+
+- Improved documentation of compression levels and the `-X/--recompress` option.
+
+- Improved consistency of terms in the manual.
+
+- HTML documentation is now built and installed by default if possible.
+
+- Fixed incorrect documentation of configuration option `cache_dir`.
+
+- Added hint on how to link statically with libzstd.
+
+- Mention that ccache requires the `-c` compiler option.
+
+
 Ccache 4.1
 ----------
 Release date: 2020-11-22
