@@ -1370,24 +1370,17 @@ hash_common_info(const Context& ctx,
   hash.hash(Util::base_name(args[0]));
 
   // Hash variables that may affect the compilation.
-  const struct
-  {
-    const char* name;
-    uint32_t sloppiness; // 0 for "always hash"
-  } hash_env_vars[] = {
+  const char* always_hash_env_vars[] = {
     // From <https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html>:
-    {"COMPILER_PATH", 0},
-    {"GCC_COMPARE_DEBUG", 0},
-    {"GCC_EXEC_PREFIX", 0},
-    {"SOURCE_DATE_EPOCH", SLOPPY_TIME_MACROS},
+    "COMPILER_PATH",
+    "GCC_COMPARE_DEBUG",
+    "GCC_EXEC_PREFIX",
+    // Note: SOURCE_DATE_EPOCH is handled in hash_source_code_string().
   };
-  for (const auto& env : hash_env_vars) {
-    if (env.sloppiness != 0 && (ctx.config.sloppiness() & env.sloppiness)) {
-      continue;
-    }
-    const char* value = getenv(env.name);
+  for (const char* name : always_hash_env_vars) {
+    const char* value = getenv(name);
     if (value) {
-      hash.hash_delimiter(env.name);
+      hash.hash_delimiter(name);
       hash.hash(value);
     }
   }

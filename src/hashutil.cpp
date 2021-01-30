@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -245,6 +245,15 @@ hash_source_code_string(const Context& ctx,
     hash.hash(now->tm_year);
     hash.hash(now->tm_mon);
     hash.hash(now->tm_mday);
+
+    // If the compiler has support for it, the expansion of __DATE__ will change
+    // according to the value of SOURCE_DATE_EPOCH. Note: We have to hash both
+    // SOURCE_DATE_EPOCH and the current date since we can't be sure that the
+    // compiler honors SOURCE_DATE_EPOCH.
+    const auto source_date_epoch = getenv("SOURCE_DATE_EPOCH");
+    if (source_date_epoch) {
+      hash.hash(source_date_epoch);
+    }
   }
   if (result & HASH_SOURCE_CODE_FOUND_TIME) {
     // We don't know for sure that the program actually uses the __TIME__ macro,
@@ -254,6 +263,7 @@ hash_source_code_string(const Context& ctx,
     // __TIME__ has been found so that the direct mode can be disabled.
     LOG("Found __TIME__ in {}", path);
   }
+
   if (result & HASH_SOURCE_CODE_FOUND_TIMESTAMP) {
     LOG("Found __TIMESTAMP__ in {}", path);
 
