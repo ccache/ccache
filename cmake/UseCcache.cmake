@@ -36,7 +36,7 @@ function(use_ccache)
   if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
     find_program(ENV_PROGRAM env)
     if(ENV_PROGRAM)
-      set(env_program env) # faster than "cmake -E env"
+      set(env_program ${ENV_PROGRAM}) # faster than "cmake -E env"
     else()
       set(env_program ${CMAKE_COMMAND} -E env)
     endif()
