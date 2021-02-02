@@ -18,7 +18,7 @@ New features
 
 - The value of the `SOURCE_DATE_EPOCH` variable is now only hashed if it
   potentially affects the output from ccache. This means that ccache now (like
-  before version 4.0) will be able produce cache hits for source code that
+  before version 4.0) will be able to produce cache hits for source code that
   doesn't contain `__DATE__` or `__TIME__` macros regardless of the value of
   `SOURCE_DATE_EPOCH`.
 
