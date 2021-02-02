@@ -16,15 +16,15 @@ New features
 
 - Added support for compiler option `-x cuda`, understood by Clang.
 
-
-Bug fixes
-~~~~~~~~~
-
 - The value of the `SOURCE_DATE_EPOCH` variable is now only hashed if it
   potentially affects the output from ccache. This means that ccache now (like
   before version 4.0) will be able produce cache hits for source code that
   doesn't contain `__DATE__` or `__TIME__` macros regardless of the value of
   `SOURCE_DATE_EPOCH`.
+
+
+Bug fixes
+~~~~~~~~~
 
 - Fixed a bug where a non-Clang compiler would silently accept the
   Clang-specific `-f(no-)color-diagnostics` option when run via ccache. This
