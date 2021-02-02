@@ -3,7 +3,7 @@ Ccache news
 
 Ccache 4.2
 ----------
-Release date: not yet determined
+Release date: 2021-02-02
 
 New features
 ~~~~~~~~~~~~
