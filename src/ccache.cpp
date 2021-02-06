@@ -237,6 +237,8 @@ guess_compiler(string_view path)
     return CompilerType::nvcc;
   } else if (name == "pump" || name == "distcc-pump") {
     return CompilerType::pump;
+  } else if (name.find("cl") != nonstd::string_view::npos) {
+    return CompilerType::cl;
   } else {
     return CompilerType::other;
   }
@@ -851,8 +853,12 @@ to_cache(Context& ctx,
          const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
-  args.push_back("-o");
-  args.push_back(ctx.args_info.output_obj);
+  if (ctx.config.compiler_type() == CompilerType::cl) {
+    args.push_back(fmt::format("-Fo{}", ctx.args_info.output_obj));
+  } else {
+    args.push_back("-o");
+    args.push_back(ctx.args_info.output_obj);
+  }
 
   if (ctx.config.hard_link() && ctx.args_info.output_obj != "/dev/null") {
     // Workaround for Clang bug where it overwrites an existing object file
@@ -931,9 +937,28 @@ to_cache(Context& ctx,
     return nonstd::make_unexpected(Statistic::missing_cache_file);
   }
 
+  // MSVC compiler always print the input file name to stdout,
+  // plus parts of the warnings/error messages.
+  // So we have to fusion that into stderr...
+  // Transform \r\n into \n. This way ninja won't produce empty newlines
+  // for the /showIncludes argument.
+  if (ctx.config.compiler_type() == CompilerType::cl) {
+    const std::string merged_output =
+      Util::read_file(tmp_stdout_path) + Util::read_file(tmp_stderr_path);
+    const std::string merged_output_with_unix_line_endings =
+      util::replace_all(merged_output, "\r\n", "\n");
+    try {
+      Util::write_file(tmp_stderr_path, merged_output_with_unix_line_endings);
+    } catch (const core::Error& e) {
+      LOG("Failed writing to {}: {}", tmp_stderr_path, e.what());
+      return nonstd::make_unexpected(Statistic::internal_error);
+    }
+  }
+
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
-  if (st.size() != 0 && ctx.config.compiler_type() != CompilerType::pump) {
+  if (st.size() != 0 && ctx.config.compiler_type() != CompilerType::pump
+      && ctx.config.compiler_type() != CompilerType::cl) {
     LOG_RAW("Compiler produced stdout");
     return nonstd::make_unexpected(Statistic::compiler_produced_stdout);
   }

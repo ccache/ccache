@@ -76,7 +76,7 @@ TEST_CASE("Args::from_string")
   CHECK(args[3] == "f");
 }
 
-TEST_CASE("Args::from_gcc_atfile")
+TEST_CASE("Args::from_atfile")
 {
   TestContext test_context;
 
@@ -84,20 +84,20 @@ TEST_CASE("Args::from_gcc_atfile")
 
   SUBCASE("Nonexistent file")
   {
-    CHECK(Args::from_gcc_atfile("at_file") == nonstd::nullopt);
+    CHECK(Args::from_atfile("at_file") == nonstd::nullopt);
   }
 
   SUBCASE("Empty")
   {
     Util::write_file("at_file", "");
-    args = *Args::from_gcc_atfile("at_file");
+    args = *Args::from_atfile("at_file");
     CHECK(args.size() == 0);
   }
 
   SUBCASE("One argument without newline")
   {
     Util::write_file("at_file", "foo");
-    args = *Args::from_gcc_atfile("at_file");
+    args = *Args::from_atfile("at_file");
     CHECK(args.size() == 1);
     CHECK(args[0] == "foo");
   }
@@ -105,7 +105,7 @@ TEST_CASE("Args::from_gcc_atfile")
   SUBCASE("One argument with newline")
   {
     Util::write_file("at_file", "foo\n");
-    args = *Args::from_gcc_atfile("at_file");
+    args = *Args::from_atfile("at_file");
     CHECK(args.size() == 1);
     CHECK(args[0] == "foo");
   }
@@ -113,7 +113,7 @@ TEST_CASE("Args::from_gcc_atfile")
   SUBCASE("Multiple simple arguments")
   {
     Util::write_file("at_file", "x y z\n");
-    args = *Args::from_gcc_atfile("at_file");
+    args = *Args::from_atfile("at_file");
     CHECK(args.size() == 3);
     CHECK(args[0] == "x");
     CHECK(args[1] == "y");
@@ -126,7 +126,7 @@ TEST_CASE("Args::from_gcc_atfile")
       "at_file",
       "first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
       " 'seve\nth'\\");
-    args = *Args::from_gcc_atfile("at_file");
+    args = *Args::from_atfile("at_file");
     CHECK(args.size() == 7);
     CHECK(args[0] == "first");
     CHECK(args[1] == "sec\tond");

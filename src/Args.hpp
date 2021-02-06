@@ -36,7 +36,8 @@ public:
 
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(const std::string& command);
-  static nonstd::optional<Args> from_gcc_atfile(const std::string& filename);
+  static nonstd::optional<Args> from_atfile(const std::string& filename,
+                                            bool ignore_backslash = false);
 
   Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;

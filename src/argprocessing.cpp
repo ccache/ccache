@@ -251,7 +251,7 @@ process_arg(Context& ctx,
   }
 
   // Special case for -E.
-  if (args[i] == "-E") {
+  if (args[i] == "-E" || args[i] == "/E") {
     return Statistic::called_for_preprocessing;
   }
 
@@ -262,7 +262,8 @@ process_arg(Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
-    auto file_args = Args::from_gcc_atfile(argpath);
+    auto file_args =
+      Args::from_atfile(argpath, config.compiler_type() == CompilerType::cl);
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -285,7 +286,7 @@ process_arg(Context& ctx,
     // Argument is a comma-separated list of files.
     auto paths = Util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args = Args::from_gcc_atfile(*it);
+      auto file_args = Args::from_atfile(*it);
       if (!file_args) {
         LOG("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;
@@ -299,7 +300,8 @@ process_arg(Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(args[i]) || util::starts_with(args[i], "-fdump-")
-      || util::starts_with(args[i], "-MJ")) {
+      || util::starts_with(args[i], "-MJ") || util::starts_with(args[i], "-Yc")
+      || util::starts_with(args[i], "/Yc")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
@@ -397,8 +399,16 @@ process_arg(Context& ctx,
   }
 
   // We must have -c.
-  if (args[i] == "-c") {
+  if (args[i] == "-c" || args[i] == "/c") {
     state.found_c_opt = true;
+    return nullopt;
+  }
+
+  // MSVC /Fo with no space.
+  if (util::starts_with(args[i], "/Fo")
+      && config.compiler_type() == CompilerType::cl) {
+    args_info.output_obj =
+      Util::make_relative_path(ctx, string_view(args[i]).substr(3));
     return nullopt;
   }
 
@@ -510,7 +520,8 @@ process_arg(Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if (args[i] == "-MD" || args[i] == "-MMD") {
+  if ((args[i] == "-MD" || args[i] == "-MMD")
+      && config.compiler_type() != CompilerType::cl) {
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
@@ -841,7 +852,8 @@ process_arg(Context& ctx,
 
   // Same as above but options with concatenated argument beginning with a
   // slash.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-'
+      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     size_t slash_pos = args[i].find('/');
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
@@ -879,7 +891,8 @@ process_arg(Context& ctx,
   }
 
   // Other options.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-'
+      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     if (compopt_affects_cpp_output(args[i])
         || compopt_prefix_affects_cpp_output(args[i])) {
       state.cpp_args.push_back(args[i]);

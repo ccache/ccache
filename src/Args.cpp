@@ -50,7 +50,7 @@ Args::from_string(const std::string& command)
 }
 
 optional<Args>
-Args::from_gcc_atfile(const std::string& filename)
+Args::from_atfile(const std::string& filename, bool ignore_backslash)
 {
   std::string argtext;
   try {
@@ -72,6 +72,9 @@ Args::from_gcc_atfile(const std::string& filename)
   while (true) {
     switch (*pos) {
     case '\\':
+      if (ignore_backslash) {
+        break;
+      }
       pos++;
       if (*pos == '\0') {
         continue;
