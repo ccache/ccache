@@ -140,6 +140,20 @@ const CompOpt compopts[] = {
   {"-stdlib=", AFFECTS_CPP | TAKES_CONCAT_ARG},
   {"-trigraphs", AFFECTS_CPP},
   {"-u", TAKES_ARG | TAKES_CONCAT_ARG},
+  {"/AI", TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},               // msvc
+  {"/D", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},               // msvc
+  {"/E", TOO_HARD},                                                 // msvc
+  {"/EP", TOO_HARD},                                                // msvc
+  {"/FI", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"/FU", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"/I", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},  // msvc
+  {"/L", TAKES_ARG},                                                // msvc
+  {"/P", TOO_HARD},                                                 // msvc
+  {"/U", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},               // msvc
+  {"/Yc", TAKES_ARG | TOO_HARD},                                    // msvc
+  {"/ZI", TOO_HARD},                                                // msvc
+  {"/Zi", TOO_HARD},                                                // msvc
+  {"/u", AFFECTS_CPP},                                              // msvc
 };
 
 static int

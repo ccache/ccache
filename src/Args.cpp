@@ -124,6 +124,19 @@ Args::from_gcc_atfile(const std::string& filename)
   }
 }
 
+optional<Args>
+Args::from_cl_atfile(const std::string& filename)
+{
+  std::string argtext;
+  try {
+    argtext = Util::read_file(filename);
+  } catch (core::Error&) {
+    return nullopt;
+  }
+
+  return from_string(argtext);
+}
+
 Args&
 Args::operator=(Args&& other) noexcept
 {
