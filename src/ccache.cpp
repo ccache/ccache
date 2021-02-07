@@ -2369,10 +2369,6 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     throw Failure(Statistic::cache_miss);
   }
 
-  MTR_BEGIN("main", "set_up_uncached_err");
-  set_up_uncached_err();
-  MTR_END("main", "set_up_uncached_err");
-
   LOG("Command line: {}", Util::format_argv_for_logging(argv));
   LOG("Hostname: {}", Util::get_hostname());
   LOG("Working directory: {}", ctx.actual_cwd);
@@ -2389,6 +2385,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   if (processed.error) {
     throw Failure(*processed.error);
   }
+
+  set_up_uncached_err();
 
   if (ctx.config.depend_mode()
       && (!ctx.args_info.generating_dependencies

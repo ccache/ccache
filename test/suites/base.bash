@@ -1357,7 +1357,7 @@ fi
 
     # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS; then
-    TEST "UNCACHED_ERR_FD"
+    TEST "UNCACHED_ERR_FD set when executing preprocessor and compiler"
 
     cat >compiler.sh <<'EOF'
 #!/bin/sh
@@ -1387,6 +1387,14 @@ EOF
     if [ "$stderr" != "2Pu1Cc" ]; then
         test_failed "Unexpected stderr: $stderr != 2Pu1Cc"
     fi
+fi
+
+if ! $HOST_OS_WINDOWS; then
+    TEST "UNCACHED_ERR_FD not set when falling back to the original command"
+    # -------------------------------------------------------------------------
+
+    $CCACHE bash -c 'echo $UNCACHED_ERR_FD' >uncached_err_fd.txt
+    expect_content uncached_err_fd.txt ""
 fi
 
     # -------------------------------------------------------------------------
