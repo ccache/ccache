@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -183,12 +183,10 @@ tokenize(nonstd::string_view file_content)
     case '$':
       if (p + 1 < length) {
         const char next = file_content[p + 1];
-        switch (next) {
-        // A dollar sign preceded by a dollar sign escapes the dollar sign.
-        case '$':
+        if (next == '$') {
+          // A dollar sign preceded by a dollar sign escapes the dollar sign.
           c = next;
           ++p;
-          break;
         }
       }
       break;
