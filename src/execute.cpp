@@ -108,11 +108,13 @@ win32execute(const char* path,
   std::string args = Win32Util::argv_to_string(argv, sh);
   std::string full_path = Win32Util::add_exe_suffix(path);
   std::string tmp_file_path;
-  if (args.length() > 8192) {
-    TemporaryFile tmp_file(path);
+  if (args.length() > 4*8192-5) {
+	  // FIXME skip 1st element of argv
+    TemporaryFile tmp_file(FMT("{}/cmd_args", "C:/Users/asalwa/AppData/Roaming/.ccache/tmp"));
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT("\"@{}\"", tmp_file.path);
+    args = FMT("@{}", tmp_file.path);
     tmp_file_path = tmp_file.path;
+    LOG("args from file option is {}", args);
   }
   BOOL ret = CreateProcess(full_path.c_str(),
                            const_cast<char*>(args.c_str()),
@@ -124,9 +126,6 @@ win32execute(const char* path,
                            nullptr,
                            &si,
                            &pi);
-  if (!tmp_file_path.empty()) {
-    Util::unlink_tmp(tmp_file_path);
-  }
   if (fd_stdout != -1) {
     close(fd_stdout);
     close(fd_stderr);
@@ -137,9 +136,16 @@ win32execute(const char* path,
         full_path,
         Win32Util::error_message(error),
         error);
+    if (!tmp_file_path.empty()) {
+      //Util::unlink_tmp(tmp_file_path);
+    }
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
+
+  if (!tmp_file_path.empty()) {
+    //Util::unlink_tmp(tmp_file_path);
+  }
 
   DWORD exitcode;
   GetExitCodeProcess(pi.hProcess, &exitcode);
