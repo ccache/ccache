@@ -37,9 +37,9 @@ using nonstd::string_view;
 
 #ifdef _WIN32
 int
-execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* /*pid*/)
+execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
-  return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release());
+  return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release(), ctx.config.temporary_dir());
 }
 
 std::string
@@ -70,7 +70,8 @@ win32execute(const char* path,
              const char* const* argv,
              int doreturn,
              int fd_stdout,
-             int fd_stderr)
+             int fd_stderr,
+             const std::string& temp_dir)
 {
   PROCESS_INFORMATION pi;
   memset(&pi, 0x00, sizeof(pi));
@@ -108,15 +109,16 @@ win32execute(const char* path,
   std::string args = Win32Util::argv_to_string(argv, sh);
   std::string full_path = Win32Util::add_exe_suffix(path);
   std::string tmp_file_path;
-  if (args.length() > 4*8192-5) {
-	  // FIXME skip 1st element of argv
-    TemporaryFile tmp_file(FMT("{}/cmd_args", "C:/Users/asalwa/AppData/Roaming/.ccache/tmp"));
+  const char* lpAppName = full_path.c_str();
+  if (args.length() > 8192) {
+    TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT("@{}", tmp_file.path);
     tmp_file_path = tmp_file.path;
+    lpAppName = NULL;
     LOG("args from file option is {}", args);
   }
-  BOOL ret = CreateProcess(full_path.c_str(),
+  BOOL ret = CreateProcess(lpAppName,
                            const_cast<char*>(args.c_str()),
                            nullptr,
                            nullptr,
@@ -137,14 +139,14 @@ win32execute(const char* path,
         Win32Util::error_message(error),
         error);
     if (!tmp_file_path.empty()) {
-      //Util::unlink_tmp(tmp_file_path);
+      Util::unlink_tmp(tmp_file_path);
     }
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
 
   if (!tmp_file_path.empty()) {
-    //Util::unlink_tmp(tmp_file_path);
+    Util::unlink_tmp(tmp_file_path);
   }
 
   DWORD exitcode;
@@ -162,13 +164,13 @@ win32execute(const char* path,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
+execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
   LOG("Executing {}", Util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;
-    *pid = fork();
+    *ctx.compiler_pid = fork();
   }
 
   if (*pid == -1) {

@@ -26,7 +26,7 @@
 
 class Context;
 
-int execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid);
+int execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err);
 
 // Find an executable named `name` in `$PATH`. Exclude any executables that are
 // links to `exclude_name`.
@@ -44,5 +44,6 @@ int win32execute(const char* path,
                  const char* const* argv,
                  int doreturn,
                  int fd_stdout,
-                 int fd_stderr);
+                 int fd_stderr,
+                 const std::string& temp_dir);
 #endif
