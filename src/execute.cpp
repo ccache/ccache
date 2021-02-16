@@ -170,7 +170,7 @@ execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 
   {
     SignalHandlerBlocker signal_handler_blocker;
-    *ctx.compiler_pid = fork();
+    ctx.compiler_pid = fork();
   }
 
   if (*pid == -1) {
