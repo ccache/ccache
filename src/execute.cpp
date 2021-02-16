@@ -37,7 +37,7 @@ using nonstd::string_view;
 
 #ifdef _WIN32
 int
-execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
+execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
   return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release(), ctx.config.temporary_dir());
 }
@@ -164,7 +164,7 @@ win32execute(const char* path,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
+execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
   LOG("Executing {}", Util::format_argv_for_logging(argv));
 
@@ -173,11 +173,11 @@ execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
     ctx.compiler_pid = fork();
   }
 
-  if (*pid == -1) {
+  if (ctx.compiler_pid == -1) {
     throw Fatal("Failed to fork: {}", strerror(errno));
   }
 
-  if (*pid == 0) {
+  if (ctx.compiler_pid == 0) {
     // Child.
     dup2(*fd_out, STDOUT_FILENO);
     fd_out.close();

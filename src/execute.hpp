@@ -26,7 +26,7 @@
 
 class Context;
 
-int execute(const Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err);
+int execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err);
 
 // Find an executable named `name` in `$PATH`. Exclude any executables that are
 // links to `exclude_name`.
