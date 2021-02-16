@@ -192,7 +192,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
   int status;
   int result;
 
-  while ((result = waitpid(*pid, &status, 0)) != *pid) {
+  while ((result = waitpid(ctx.compiler_pid, &status, 0)) != ctx.compiler_pid) {
     if (result == -1 && errno == EINTR) {
       continue;
     }
@@ -201,7 +201,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 
   {
     SignalHandlerBlocker signal_handler_blocker;
-    *pid = 0;
+    ctx.compiler_pid = 0;
   }
 
   if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
