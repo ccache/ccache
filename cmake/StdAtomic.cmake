@@ -10,6 +10,7 @@ set(
     int main()
     {
       std::atomic<long long> x;
+      ++x;
       (void)x.load();
       return 0;
     }
