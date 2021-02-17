@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,13 +36,13 @@ public:
   //
   // Parameters:
   // - stream: Stream to write header + payload to.
-  // - magic: File format magic bytes.
+  // - magic: File format magic (first four bytes of the file).
   // - version: File format version.
   // - compression_type: Compression type to use.
   // - compression_level: Compression level to use.
   // - payload_size: Payload size.
   CacheEntryWriter(FILE* stream,
-                   const uint8_t magic[4],
+                   const uint8_t* magic,
                    uint8_t version,
                    Compression::Type compression_type,
                    int8_t compression_level,

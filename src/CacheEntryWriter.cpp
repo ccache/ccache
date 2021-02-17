@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,7 @@
 #include "CacheEntryWriter.hpp"
 
 CacheEntryWriter::CacheEntryWriter(FILE* stream,
-                                   const uint8_t magic[4],
+                                   const uint8_t* magic,
                                    uint8_t version,
                                    Compression::Type compression_type,
                                    int8_t compression_level,

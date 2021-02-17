@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,7 +25,7 @@
 #include "third_party/fmt/core.h"
 
 CacheEntryReader::CacheEntryReader(FILE* stream,
-                                   const uint8_t expected_magic[4],
+                                   const uint8_t* expected_magic,
                                    uint8_t expected_version)
 {
   uint8_t header_bytes[15];

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,10 +36,11 @@ public:
   //
   // Parameters:
   // - stream: Stream to read header and payload from.
-  // - expected_magic: Expected magic bytes (first four bytes of the file).
+  // - expected_magic: Expected file format magic (first four bytes of the
+  //   file).
   // - expected_version: Expected file format version.
   CacheEntryReader(FILE* stream,
-                   const uint8_t expected_magic[4],
+                   const uint8_t* expected_magic,
                    uint8_t expected_version);
 
   // Dump header information in text format.
