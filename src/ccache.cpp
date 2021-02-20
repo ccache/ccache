@@ -64,7 +64,9 @@
 #elif defined(_WIN32)
 #  include "third_party/win32/getopt.h"
 #else
-#  include "third_party/getopt_long.h"
+  extern "C" {
+#    include "third_party/getopt_long.h"
+  }
 #endif
 
 #ifdef _WIN32

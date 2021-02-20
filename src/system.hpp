@@ -80,7 +80,7 @@
 // function is available in libc.a. This extern define ensures that it is
 // usable within the ccache code base.
 #ifdef _AIX
-extern int usleep(useconds_t);
+extern "C" int usleep(useconds_t);
 #endif
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
