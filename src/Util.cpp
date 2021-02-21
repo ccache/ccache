@@ -1180,7 +1180,7 @@ read_file(const std::string& path, size_t size_hint)
   result.resize(size_hint);
 
   while (true) {
-    if (pos > result.size()) {
+    if (pos == result.size()) {
       result.resize(2 * result.size());
     }
     const size_t max_read = result.size() - pos;
