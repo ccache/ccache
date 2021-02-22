@@ -64,7 +64,7 @@ base_tests() {
     expect_stat 'cache miss' 1
 
     $REAL_COMPILER -c -o reference_test1.o test1.c -g
-    expect_equal_object_files reference_test1.o reference_test1.o
+    expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
     TEST "Output option"
