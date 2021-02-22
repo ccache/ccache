@@ -478,7 +478,7 @@ wrappers>>_.
     GCC-based compiler.
 *nvcc*::
     NVCC (CUDA) compiler.
-*other::
+*other*::
     Any compiler other than the known types.
 *pump*::
     distcc's "pump" script.
