@@ -700,6 +700,14 @@ process_arg(Context& ctx,
     return Statistic::unsupported_compiler_option;
   }
 
+  // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
+  // -fcolor-diagnostics argument which is passed to cc1 is handled below.
+  if (args[i] == "-Xclang" && i < args.size() - 1
+      && args[i + 1] == "-fcolor-diagnostics") {
+    state.compiler_only_args_no_hash.push_back(args[i]);
+    ++i;
+  }
+
   if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
       || args[i] == "-fdiagnostics-color=always") {
     state.color_diagnostics = ColorDiagnostics::always;

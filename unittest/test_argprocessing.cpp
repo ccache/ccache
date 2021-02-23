@@ -570,6 +570,8 @@ TEST_CASE("-Xclang")
     "-Xclang -fno-pch-timestamp"
     " -Xclang unsupported";
 
+  const std::string color_diag = "-Xclang -fcolor-diagnostics";
+
   const std::string extra_args =
     "-Xclang -emit-pch"
     " -Xclang -emit-pth";
@@ -580,8 +582,9 @@ TEST_CASE("-Xclang")
     " -Xclang -include-pth pth_path1"
     " -Xclang -include-pth -Xclang pth_path2";
 
-  ctx.orig_args = Args::from_string("gcc -c foo.c " + common_args + " "
-                                    + extra_args + " " + pch_pth_variants);
+  ctx.orig_args =
+    Args::from_string("gcc -c foo.c " + common_args + " " + color_diag + " "
+                      + extra_args + " " + pch_pth_variants);
   Util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
@@ -589,8 +592,8 @@ TEST_CASE("-Xclang")
         == "gcc " + common_args + " " + pch_pth_variants);
   CHECK(result.extra_args_to_hash.to_string() == extra_args);
   CHECK(result.compiler_args.to_string()
-        == "gcc " + common_args + " " + extra_args + " " + pch_pth_variants
-             + " -c");
+        == "gcc " + common_args + " " + color_diag + " " + extra_args + " "
+             + pch_pth_variants + " -c");
 }
 
 TEST_CASE("-x")
