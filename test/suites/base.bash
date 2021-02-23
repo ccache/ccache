@@ -753,6 +753,27 @@ b"
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
+    TEST "-frecord-gcc-switches"
+
+    if $REAL_COMPILER -frecord-gcc-switches -c test1.c >&/dev/null; then
+        $CCACHE_COMPILE -frecord-gcc-switches -c test1.c
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+
+        $CCACHE_COMPILE -frecord-gcc-switches -c test1.c
+        expect_stat 'cache hit (preprocessed)' 1
+        expect_stat 'cache miss' 1
+
+        $CCACHE_COMPILE -frecord-gcc-switches -Wall -c test1.c
+        expect_stat 'cache hit (preprocessed)' 1
+        expect_stat 'cache miss' 2
+
+        $CCACHE_COMPILE -frecord-gcc-switches -Wall -c test1.c
+        expect_stat 'cache hit (preprocessed)' 2
+        expect_stat 'cache miss' 2
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_COMPILER"
 
     $REAL_COMPILER -c -o reference_test1.o test1.c

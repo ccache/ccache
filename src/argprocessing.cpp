@@ -84,6 +84,9 @@ struct ArgumentProcessingState
   // the compiler, not the preprocessor, and that also should not be part of the
   // hash identifying the result.
   Args compiler_only_args_no_hash;
+
+  // Whether to include the full command line in the hash.
+  bool hash_full_command_line = false;
 };
 
 bool
@@ -762,6 +765,10 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  if (args[i] == "-frecord-gcc-switches") {
+    state.hash_full_command_line = true;
+  }
+
   // Options taking an argument that we may want to rewrite to relative paths to
   // get better hit rate. A secondary effect is that paths in the standard error
   // output produced by the compiler will be normalized.
@@ -1227,6 +1234,9 @@ process_args(Context& ctx)
   Args extra_args_to_hash = state.compiler_only_args;
   if (config.run_second_cpp()) {
     extra_args_to_hash.push_back(state.dep_args);
+  }
+  if (state.hash_full_command_line) {
+    extra_args_to_hash.push_back(ctx.orig_args);
   }
 
   if (diagnostics_color_arg) {
