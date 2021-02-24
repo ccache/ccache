@@ -1080,6 +1080,8 @@ TEST_CASE("Util::wipe_path")
   {
 #ifdef _WIN32
     const char error[] = "failed to rmdir .: Permission denied";
+#elif defined(_AIX)
+    const char error[] = "failed to rmdir .: Device busy";
 #else
     const char error[] = "failed to rmdir .: Invalid argument";
 #endif
