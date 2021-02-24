@@ -820,6 +820,10 @@ TEST_CASE("Util::read_file and Util::write_file")
 #else
   CHECK(data == "carpet\n\n");
 #endif
+
+  Util::write_file("size_hint_test", std::string(8192, '\0'));
+  CHECK(Util::read_file("size_hint_test", 4096 /*size_hint*/).size() == 8192);
+
   CHECK_THROWS_WITH(Util::read_file("does/not/exist"),
                     "No such file or directory");
 
