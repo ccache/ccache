@@ -970,11 +970,33 @@ process_args(Context& ctx)
 
   state.common_args.push_back(args[0]); // Compiler
 
+  optional<Statistic> argument_error;
   for (size_t i = 1; i < args.size(); i++) {
-    auto error = process_arg(ctx, args, i, state);
-    if (error) {
-      return *error;
+    const auto error = process_arg(ctx, args, i, state);
+    if (error && !argument_error) {
+      argument_error = error;
     }
+  }
+
+  // Don't try to second guess the compiler's heuristics for stdout handling.
+  if (args_info.output_obj == "-") {
+    LOG_RAW("Output file is -");
+    return Statistic::output_to_stdout;
+  }
+
+  // Determine output object file.
+  const bool implicit_output_obj = args_info.output_obj.empty();
+  if (implicit_output_obj && !args_info.input_file.empty()) {
+    string_view extension = state.found_S_opt ? ".s" : ".o";
+    args_info.output_obj =
+      Util::change_extension(Util::base_name(args_info.input_file), extension);
+  }
+
+  // On argument processing error, return now since we have determined
+  // args_info.output_obj which is needed to determine the log filename in
+  // CCACHE_DEBUG mode.
+  if (argument_error) {
+    return *argument_error;
   }
 
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
@@ -1022,6 +1044,10 @@ process_args(Context& ctx)
     args_info.actual_language.find("-header") != std::string::npos
     || Util::is_precompiled_header(args_info.output_obj);
 
+  if (args_info.output_is_precompiled_header && implicit_output_obj) {
+    args_info.output_obj = args_info.input_file + ".gch";
+  }
+
   if (args_info.output_is_precompiled_header
       && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
     LOG_RAW(
@@ -1067,22 +1093,6 @@ process_args(Context& ctx)
   if (config.cpp_extension().empty()) {
     std::string p_language = p_language_for_language(args_info.actual_language);
     config.set_cpp_extension(extension_for_language(p_language).substr(1));
-  }
-
-  // Don't try to second guess the compilers heuristics for stdout handling.
-  if (args_info.output_obj == "-") {
-    LOG_RAW("Output file is -");
-    return Statistic::output_to_stdout;
-  }
-
-  if (args_info.output_obj.empty()) {
-    if (args_info.output_is_precompiled_header) {
-      args_info.output_obj = args_info.input_file + ".gch";
-    } else {
-      string_view extension = state.found_S_opt ? ".s" : ".o";
-      args_info.output_obj = Util::change_extension(
-        Util::base_name(args_info.input_file), extension);
-    }
   }
 
   if (args_info.seen_split_dwarf) {

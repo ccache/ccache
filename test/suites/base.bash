@@ -352,6 +352,13 @@ fi
     done
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DEBUG with too hard option"
+
+    CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c -save-temps
+    expect_stat 'unsupported compiler option' 1
+    expect_exists test1.o.ccache-log
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2>/dev/null
