@@ -1000,9 +1000,20 @@ process_args(Context& ctx)
   }
 
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
+    // Debug level 3 makes line number information incorrect when compiling
+    // preprocessed code.
     LOG_RAW("Generating debug info level 3; not compiling preprocessed code");
     config.set_run_second_cpp(true);
   }
+
+#ifdef __APPLE__
+  // Newer Clang versions on macOS are known to produce different debug
+  // information when compiling preprocessed code.
+  if (args_info.generating_debuginfo && !config.run_second_cpp()) {
+    LOG_RAW("Generating debug info; not compiling preprocessed code");
+    config.set_run_second_cpp(true);
+  }
+#endif
 
   handle_dependency_environment_variables(ctx, state);
 
