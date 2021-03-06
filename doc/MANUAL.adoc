@@ -558,10 +558,10 @@ See the http://zstd.net[Zstandard documentation] for more information.
     written with full absolute paths in that directory, creating it if needed.
     The default is the empty string.
 +
-    For example, if *debug_dir* is set to `/example`, the current working
-    directory is `/home/user` and the object file is `build/output.o` then the
-    debug log will be written to `/example/home/user/build/output.o.ccache-log`.
-    See also _<<_cache_debugging,Cache debugging>>_.
+For example, if *debug_dir* is set to `/example`, the current working directory
+is `/home/user` and the object file is `build/output.o` then the debug log will
+be written to `/example/home/user/build/output.o.ccache-log`. See also
+_<<_cache_debugging,Cache debugging>>_.
 
 [[config_depend_mode]] *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see _<<_boolean_values,Boolean values>>_ above)::
 
