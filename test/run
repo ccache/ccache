@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+# Copyright (C) 2009-2021 Joel Rosdahl and other contributors
 #
 # See doc/AUTHORS.adoc for a complete list of contributors.
 #
@@ -44,8 +44,8 @@ bold() {
 }
 
 test_failed_internal() {
-    # called from functions inside this file, so skip the first caller:
-    line="$(caller 1)"
+    # Called from functions inside this file, so skip the first caller:
+    local line="$(caller 1)"
     line=" (line ${line%% *})"
 
     echo
@@ -63,7 +63,7 @@ test_failed_internal() {
     exit 1
 }
 
-# indirection so the line returned by `caller` is correct
+# Indirection so the line returned by `caller` is correct.
 test_failed() {
     test_failed_internal "$@"
 }
