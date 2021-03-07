@@ -63,6 +63,11 @@ function(use_ccache)
   endif()
 endfunction()
 
+if(MSVC)
+  # Ccache does not support cl.exe-style arguments at this time.
+  return()
+endif()
+
 option(USE_CCACHE "Use ccache to speed up recompilation time" TRUE)
 if(USE_CCACHE)
   use_ccache()
