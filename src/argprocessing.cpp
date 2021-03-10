@@ -84,6 +84,9 @@ struct ArgumentProcessingState
   // the compiler, not the preprocessor, and that also should not be part of the
   // hash identifying the result.
   Args compiler_only_args_no_hash;
+
+  // Whether to include the full command line in the hash.
+  bool hash_full_command_line = false;
 };
 
 bool
@@ -700,6 +703,14 @@ process_arg(Context& ctx,
     return Statistic::unsupported_compiler_option;
   }
 
+  // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
+  // -fcolor-diagnostics argument which is passed to cc1 is handled below.
+  if (args[i] == "-Xclang" && i < args.size() - 1
+      && args[i + 1] == "-fcolor-diagnostics") {
+    state.compiler_only_args_no_hash.push_back(args[i]);
+    ++i;
+  }
+
   if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
       || args[i] == "-fdiagnostics-color=always") {
     state.color_diagnostics = ColorDiagnostics::always;
@@ -752,6 +763,10 @@ process_arg(Context& ctx,
       LOG("Skipping argument -index-store-path {}", args[i]);
     }
     return nullopt;
+  }
+
+  if (args[i] == "-frecord-gcc-switches") {
+    state.hash_full_command_line = true;
   }
 
   // Options taking an argument that we may want to rewrite to relative paths to
@@ -955,17 +970,50 @@ process_args(Context& ctx)
 
   state.common_args.push_back(args[0]); // Compiler
 
+  optional<Statistic> argument_error;
   for (size_t i = 1; i < args.size(); i++) {
-    auto error = process_arg(ctx, args, i, state);
-    if (error) {
-      return *error;
+    const auto error = process_arg(ctx, args, i, state);
+    if (error && !argument_error) {
+      argument_error = error;
     }
   }
 
+  // Don't try to second guess the compiler's heuristics for stdout handling.
+  if (args_info.output_obj == "-") {
+    LOG_RAW("Output file is -");
+    return Statistic::output_to_stdout;
+  }
+
+  // Determine output object file.
+  const bool implicit_output_obj = args_info.output_obj.empty();
+  if (implicit_output_obj && !args_info.input_file.empty()) {
+    string_view extension = state.found_S_opt ? ".s" : ".o";
+    args_info.output_obj =
+      Util::change_extension(Util::base_name(args_info.input_file), extension);
+  }
+
+  // On argument processing error, return now since we have determined
+  // args_info.output_obj which is needed to determine the log filename in
+  // CCACHE_DEBUG mode.
+  if (argument_error) {
+    return *argument_error;
+  }
+
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
+    // Debug level 3 makes line number information incorrect when compiling
+    // preprocessed code.
     LOG_RAW("Generating debug info level 3; not compiling preprocessed code");
     config.set_run_second_cpp(true);
   }
+
+#ifdef __APPLE__
+  // Newer Clang versions on macOS are known to produce different debug
+  // information when compiling preprocessed code.
+  if (args_info.generating_debuginfo && !config.run_second_cpp()) {
+    LOG_RAW("Generating debug info; not compiling preprocessed code");
+    config.set_run_second_cpp(true);
+  }
+#endif
 
   handle_dependency_environment_variables(ctx, state);
 
@@ -1006,6 +1054,10 @@ process_args(Context& ctx)
   args_info.output_is_precompiled_header =
     args_info.actual_language.find("-header") != std::string::npos
     || Util::is_precompiled_header(args_info.output_obj);
+
+  if (args_info.output_is_precompiled_header && implicit_output_obj) {
+    args_info.output_obj = args_info.input_file + ".gch";
+  }
 
   if (args_info.output_is_precompiled_header
       && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
@@ -1052,22 +1104,6 @@ process_args(Context& ctx)
   if (config.cpp_extension().empty()) {
     std::string p_language = p_language_for_language(args_info.actual_language);
     config.set_cpp_extension(extension_for_language(p_language).substr(1));
-  }
-
-  // Don't try to second guess the compilers heuristics for stdout handling.
-  if (args_info.output_obj == "-") {
-    LOG_RAW("Output file is -");
-    return Statistic::output_to_stdout;
-  }
-
-  if (args_info.output_obj.empty()) {
-    if (args_info.output_is_precompiled_header) {
-      args_info.output_obj = args_info.input_file + ".gch";
-    } else {
-      string_view extension = state.found_S_opt ? ".s" : ".o";
-      args_info.output_obj = Util::change_extension(
-        Util::base_name(args_info.input_file), extension);
-    }
   }
 
   if (args_info.seen_split_dwarf) {
@@ -1219,6 +1255,9 @@ process_args(Context& ctx)
   Args extra_args_to_hash = state.compiler_only_args;
   if (config.run_second_cpp()) {
     extra_args_to_hash.push_back(state.dep_args);
+  }
+  if (state.hash_full_command_line) {
+    extra_args_to_hash.push_back(ctx.orig_args);
   }
 
   if (diagnostics_color_arg) {

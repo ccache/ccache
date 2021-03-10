@@ -137,6 +137,15 @@ color_diagnostics_test() {
         fi
     fi
 
+    if $COMPILER_TYPE_CLANG; then
+        # ---------------------------------------------------------------------
+        TEST "-fcolor-diagnostics works when passed to cc1 with -Xclang"
+
+        color_diagnostics_generate_code test1.c
+        $CCACHE_COMPILE -Xclang -fcolor-diagnostics -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
+        color_diagnostics_expect_color test1.stderr
+    fi
+
     while read -r case; do
         # ---------------------------------------------------------------------
         TEST "Cache object shared across ${case} (run_second_cpp=$run_second_cpp)"

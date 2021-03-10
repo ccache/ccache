@@ -64,7 +64,7 @@ base_tests() {
     expect_stat 'cache miss' 1
 
     $REAL_COMPILER -c -o reference_test1.o test1.c -g
-    expect_equal_object_files reference_test1.o reference_test1.o
+    expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
     TEST "Output option"
@@ -350,6 +350,13 @@ fi
             test_failed "<obj>.ccache-input-$ext missing"
         fi
     done
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_DEBUG with too hard option"
+
+    CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c -save-temps
+    expect_stat 'unsupported compiler option' 1
+    expect_exists test1.o.ccache-log
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
@@ -751,6 +758,27 @@ b"
     $CCACHE_COMPILE -c test1.s
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "-frecord-gcc-switches"
+
+    if $REAL_COMPILER -frecord-gcc-switches -c test1.c >&/dev/null; then
+        $CCACHE_COMPILE -frecord-gcc-switches -c test1.c
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+
+        $CCACHE_COMPILE -frecord-gcc-switches -c test1.c
+        expect_stat 'cache hit (preprocessed)' 1
+        expect_stat 'cache miss' 1
+
+        $CCACHE_COMPILE -frecord-gcc-switches -Wall -c test1.c
+        expect_stat 'cache hit (preprocessed)' 1
+        expect_stat 'cache miss' 2
+
+        $CCACHE_COMPILE -frecord-gcc-switches -Wall -c test1.c
+        expect_stat 'cache hit (preprocessed)' 2
+        expect_stat 'cache miss' 2
+    fi
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMPILER"

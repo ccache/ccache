@@ -92,11 +92,10 @@ jobs:
             sudo apt-get update
 
             # Install ld.gold (binutils) and ld.lld on different runs.
-            # Binding to Ubuntu 20 has no special meaning.
-            if [ "${{ matrix.config.os }}" = "ubuntu-20.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd-dev lld
-            else
+            if [ "${{ matrix.config.os }}" = "ubuntu-16.04" ]; then
               sudo apt-get install -y ninja-build elfutils libzstd1-dev binutils
+            else
+              sudo apt-get install -y ninja-build elfutils libzstd-dev lld
             fi
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
@@ -160,7 +159,7 @@ jobs:
             BUILDDIR: .
             CCACHE_LOC: .
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1 -DCMAKE_CXX_STANDARD=14
-            apt_get: elfutils libzstd1-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Linux GCC 32-bit
             os: ubuntu-18.04
@@ -180,7 +179,7 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 10.1.243-1
-            apt_get: elfutils libzstd1-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Linux MinGW 32-bit
             os: ubuntu-18.04
@@ -258,13 +257,13 @@ jobs:
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
             RUN_TESTS: none
-            apt_get: libzstd1-dev asciidoc docbook-xml docbook-xsl
+            apt_get: libzstd-dev asciidoc docbook-xml docbook-xsl
 
           - name: Manual page
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
             RUN_TESTS: none
-            apt_get: libzstd1-dev asciidoc xsltproc docbook-xml docbook-xsl
+            apt_get: libzstd-dev asciidoc xsltproc docbook-xml docbook-xsl
 
           - name: Clang-Tidy
             os: ubuntu-18.04
