@@ -39,7 +39,12 @@ using nonstd::string_view;
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
-  return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release(), ctx.config.temporary_dir());
+  return win32execute(argv[0],
+                      argv,
+                      1,
+                      fd_out.release(),
+                      fd_err.release(),
+                      ctx.config.temporary_dir());
 }
 
 std::string
@@ -112,7 +117,7 @@ win32execute(const char* path,
   const char* lpAppName = full_path.c_str();
   if (args.length() > 8192) {
     TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
-    args = Win32Util::argv_to_string(argv+1, sh);
+    args = Win32Util::argv_to_string(argv + 1, sh);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT("{} @{}", lpAppName, tmp_file.path);
     tmp_file_path = tmp_file.path;

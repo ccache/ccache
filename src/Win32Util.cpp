@@ -68,7 +68,7 @@ argv_to_string(const char* const* argv, const std::string& prefix)
       switch (arg[j]) {
       case '\\':
         //++bs;
-        //break;
+        // break;
       // Fallthrough.
       case '"':
         bs = (bs << 1) + 1;
