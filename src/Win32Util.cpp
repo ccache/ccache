@@ -55,7 +55,9 @@ error_message(DWORD error_code)
 }
 
 std::string
-argv_to_string(const char* const* argv, const std::string& prefix, bool escape_backslashes)
+argv_to_string(const char* const* argv,
+               const std::string& prefix,
+               bool escape_backslashes)
 {
   std::string result;
   size_t i = 0;
@@ -67,10 +69,10 @@ argv_to_string(const char* const* argv, const std::string& prefix, bool escape_b
     for (size_t j = 0; arg[j]; ++j) {
       switch (arg[j]) {
       case '\\':
-    	if (!escape_backslashes) {
+        if (!escape_backslashes) {
           ++bs;
           break;
-    	}
+        }
         // Fallthrough.
       case '"':
         bs = (bs << 1) + 1;
