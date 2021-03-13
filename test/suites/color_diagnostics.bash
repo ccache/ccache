@@ -122,6 +122,7 @@ color_diagnostics_test() {
         if $CCACHE_COMPILE -fcolor-diagnostics -c test.c >&/dev/null; then
             test_failed "-fcolor-diagnostics unexpectedly accepted by GCC"
         fi
+        expect_stat 'unsupported compiler option' 1
 
         # ---------------------------------------------------------------------
         TEST "-fcolor-diagnostics not accepted for GCC for cached result"
@@ -135,6 +136,21 @@ color_diagnostics_test() {
         if $CCACHE_COMPILE -fcolor-diagnostics -c test.c >&/dev/null; then
             test_failed "-fcolor-diagnostics unexpectedly accepted by GCC"
         fi
+        expect_stat 'unsupported compiler option' 1
+
+        # ---------------------------------------------------------------------
+        TEST "-fcolor-diagnostics passed to underlying compiler for unknown compiler type"
+
+        generate_code 1 test.c
+
+        if CCACHE_COMPILERTYPE=other $CCACHE_COMPILE -fcolor-diagnostics -c test.c >&/dev/null; then
+            test_failed "-fcolor-diagnostics unexpectedly accepted by GCC"
+        fi
+
+        # Verify that -fcolor-diagnostics was passed to the compiler for the
+        # unknown compiler case, i.e. ccache did not exit early with
+        # "unsupported compiler option".
+        expect_stat 'compile failed' 1
     fi
 
     if $COMPILER_TYPE_CLANG; then
