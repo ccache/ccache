@@ -38,6 +38,29 @@ public:
     throw_error,
   };
 
+#if defined(_WIN32)
+  struct stat_t
+  {
+    uint64_t st_dev;
+    uint64_t st_ino;
+    uint16_t st_mode;
+    uint16_t st_nlink;
+    uint64_t st_size;
+    struct timespec st_atim;
+    struct timespec st_mtim;
+    struct timespec st_ctim;
+    uint32_t st_file_attributes;
+    uint32_t st_reparse_tag;
+  };
+#else
+  // Use of typedef needed to suppress a spurious 'declaration does not declare
+  // anything' warning in old GCC.
+  typedef struct ::stat stat_t; // NOLINT(modernize-use-using)
+#endif
+
+  using dev_t = decltype(stat_t{}.st_dev);
+  using ino_t = decltype(stat_t{}.st_ino);
+
   // Create an empty stat result. operator bool() will return false,
   // error_number() will return -1 and other accessors will return false or 0.
   Stat();
@@ -81,21 +104,21 @@ public:
   bool is_regular() const;
   bool is_symlink() const;
 
-#ifdef HAVE_STRUCT_STAT_ST_CTIM
-  timespec ctim() const;
+#ifdef _WIN32
+  uint32_t file_attributes() const;
+  uint32_t reparse_tag() const;
 #endif
 
-#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  timespec ctim() const;
   timespec mtim() const;
-#endif
 
 protected:
-  using StatFunction = int (*)(const char*, struct stat*);
+  using StatFunction = int (*)(const char*, stat_t*);
 
   Stat(StatFunction stat_function, const std::string& path, OnError on_error);
 
 private:
-  struct stat m_stat;
+  stat_t m_stat;
   int m_errno;
 
   bool operator==(const Stat&) const;
@@ -104,25 +127,6 @@ private:
 
 inline Stat::Stat() : m_stat{}, m_errno(-1)
 {
-}
-
-inline Stat
-Stat::stat(const std::string& path, OnError on_error)
-{
-  return Stat(::stat, path, on_error);
-}
-
-inline Stat
-Stat::lstat(const std::string& path, OnError on_error)
-{
-  return Stat(
-#ifdef _WIN32
-    ::stat,
-#else
-    ::lstat,
-#endif
-    path,
-    on_error);
 }
 
 inline Stat::operator bool() const
@@ -142,13 +146,13 @@ Stat::error_number() const
   return m_errno;
 }
 
-inline dev_t
+inline Stat::dev_t
 Stat::device() const
 {
   return m_stat.st_dev;
 }
 
-inline ino_t
+inline Stat::ino_t
 Stat::inode() const
 {
   return m_stat.st_ino;
@@ -163,13 +167,13 @@ Stat::mode() const
 inline time_t
 Stat::ctime() const
 {
-  return m_stat.st_ctime;
+  return ctim().tv_sec;
 }
 
 inline time_t
 Stat::mtime() const
 {
-  return m_stat.st_mtime;
+  return mtim().tv_sec;
 }
 
 inline uint64_t
@@ -197,11 +201,7 @@ Stat::is_directory() const
 inline bool
 Stat::is_symlink() const
 {
-#ifndef _WIN32
   return S_ISLNK(mode());
-#else
-  return false;
-#endif
 }
 
 inline bool
@@ -210,18 +210,36 @@ Stat::is_regular() const
   return S_ISREG(mode());
 }
 
-#ifdef HAVE_STRUCT_STAT_ST_CTIM
-inline timespec
-Stat::ctim() const
+#ifdef _WIN32
+inline uint32_t
+Stat::file_attributes() const
 {
-  return m_stat.st_ctim;
+  return m_stat.st_file_attributes;
+}
+
+inline uint32_t
+Stat::reparse_tag() const
+{
+  return m_stat.st_reparse_tag;
 }
 #endif
 
-#ifdef HAVE_STRUCT_STAT_ST_MTIM
+inline timespec
+Stat::ctim() const
+{
+#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_CTIM)
+  return m_stat.st_ctim;
+#else
+  return {m_stat.st_ctime, 0};
+#endif
+}
+
 inline timespec
 Stat::mtim() const
 {
+#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_MTIM)
   return m_stat.st_mtim;
-}
+#else
+  return {m_stat.st_mtime, 0};
 #endif
+}
