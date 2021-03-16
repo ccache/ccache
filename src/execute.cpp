@@ -114,16 +114,15 @@ win32execute(const char* path,
   std::string args = Win32Util::argv_to_string(argv, sh);
   std::string full_path = Win32Util::add_exe_suffix(path);
   std::string tmp_file_path;
-  const char* lpAppName = full_path.c_str();
   if (args.length() > 8192) {
     TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
     args = Win32Util::argv_to_string(argv + 1, sh, true);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT("{} @{}", lpAppName, tmp_file.path);
+    args = FMT("{} @{}", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;
     LOG("args from file {}", tmp_file.path);
   }
-  BOOL ret = CreateProcess(lpAppName,
+  BOOL ret = CreateProcess(full_path.c_str(),
                            const_cast<char*>(args.c_str()),
                            nullptr,
                            nullptr,
