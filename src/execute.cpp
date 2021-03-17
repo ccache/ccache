@@ -237,7 +237,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 void
 execute_noreturn(const char* const* argv, const std::string& temp_dir)
 {
-  execv(argv[0], argv);
+  execv(argv[0], const_cast<char* const*>(argv));
 }
 #endif
 
