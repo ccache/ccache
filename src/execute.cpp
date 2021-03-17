@@ -36,6 +36,14 @@
 using nonstd::string_view;
 
 #ifdef _WIN32
+static int
+win32execute(const char* path,
+             const char* const* argv,
+             int doreturn,
+             int fd_stdout,
+             int fd_stderr,
+             const std::string& temp_dir);
+
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
@@ -45,6 +53,17 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
                       fd_out.release(),
                       fd_err.release(),
                       ctx.config.temporary_dir());
+}
+
+void
+execute_noreturn(const char* const* argv, const std::string& temp_dir)
+{
+  win32execute(argv[0],
+                      argv,
+                      0,
+                      -1,
+                      -1,
+                      temp_dir);
 }
 
 std::string
@@ -213,6 +232,12 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
   }
 
   return WEXITSTATUS(status);
+}
+
+void
+execute_noreturn(const char* const* argv, const std::string& temp_dir)
+{
+  execv(argv[0], argv);
 }
 #endif
 

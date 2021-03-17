@@ -28,6 +28,8 @@ class Context;
 
 int execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err);
 
+void execute_noreturn(const char* const* argv, const std::string& temp_dir);
+
 // Find an executable named `name` in `$PATH`. Exclude any executables that are
 // links to `exclude_name`.
 std::string find_executable(const Context& ctx,
@@ -40,10 +42,4 @@ std::string find_executable_in_path(const std::string& name,
 
 #ifdef _WIN32
 std::string win32getshell(const std::string& path);
-int win32execute(const char* path,
-                 const char* const* argv,
-                 int doreturn,
-                 int fd_stdout,
-                 int fd_stderr,
-                 const std::string& temp_dir);
 #endif

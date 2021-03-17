@@ -139,7 +139,7 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 #  define NOMINMAX 1
 #  include <windows.h>
 #  define mkdir(a, b) _mkdir(a)
-#  define execv(a, b) win32execute(a, b, 0, -1, -1, saved_temp_dir)
+#  define execv(a, b) do_not_call_execv_on_windows // to protect against incidental use of MinGW execv
 #  define strncasecmp _strnicmp
 #  define strcasecmp _stricmp
 
