@@ -36,13 +36,12 @@
 using nonstd::string_view;
 
 #ifdef _WIN32
-static int
-win32execute(const char* path,
-             const char* const* argv,
-             int doreturn,
-             int fd_stdout,
-             int fd_stderr,
-             const std::string& temp_dir);
+static int win32execute(const char* path,
+                        const char* const* argv,
+                        int doreturn,
+                        int fd_stdout,
+                        int fd_stderr,
+                        const std::string& temp_dir);
 
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
@@ -58,12 +57,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 void
 execute_noreturn(const char* const* argv, const std::string& temp_dir)
 {
-  win32execute(argv[0],
-                      argv,
-                      0,
-                      -1,
-                      -1,
-                      temp_dir);
+  win32execute(argv[0], argv, 0, -1, -1, temp_dir);
 }
 
 std::string
