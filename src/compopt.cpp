@@ -102,6 +102,7 @@ const CompOpt compopts[] = {
   {"-frepo", TOO_HARD},
   {"-ftime-trace", TOO_HARD}, // Clang
   {"-fworking-directory", AFFECTS_CPP},
+  {"-gen-cdb-fragment-path", TAKES_ARG | TOO_HARD}, // Clang
   {"-gtoggle", TOO_HARD},
   {"-idirafter", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-iframework", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
