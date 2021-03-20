@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -30,6 +30,7 @@
 #include "fmtmacros.hpp"
 
 #ifdef _WIN32
+#  include "Finalizer.hpp"
 #  include "Win32Util.hpp"
 #endif
 
@@ -127,13 +128,20 @@ win32execute(const char* path,
   std::string args = Win32Util::argv_to_string(argv, sh);
   std::string full_path = Win32Util::add_exe_suffix(path);
   std::string tmp_file_path;
+
+  Finalizer tmp_file_remover([&tmp_file_path] {
+    if (!tmp_file_path.empty()) {
+      Util::unlink_tmp(tmp_file_path);
+    }
+  });
+
   if (args.length() > 8192) {
     TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
     args = Win32Util::argv_to_string(argv + 1, sh, true);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT("{} @{}", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;
-    LOG("args from file {}", tmp_file.path);
+    LOG("Arguments from {}", tmp_file.path);
   }
   BOOL ret = CreateProcess(full_path.c_str(),
                            const_cast<char*>(args.c_str()),
@@ -155,16 +163,9 @@ win32execute(const char* path,
         full_path,
         Win32Util::error_message(error),
         error);
-    if (!tmp_file_path.empty()) {
-      Util::unlink_tmp(tmp_file_path);
-    }
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
-
-  if (!tmp_file_path.empty()) {
-    Util::unlink_tmp(tmp_file_path);
-  }
 
   DWORD exitcode;
   GetExitCodeProcess(pi.hProcess, &exitcode);
@@ -229,7 +230,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 }
 
 void
-execute_noreturn(const char* const* argv, const std::string& /* unused */)
+execute_noreturn(const char* const* argv, const std::string& /*temp_dir*/)
 {
   execv(argv[0], const_cast<char* const*>(argv));
 }

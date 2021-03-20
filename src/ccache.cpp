@@ -2326,7 +2326,7 @@ cache_compilation(int argc, const char* const* argv)
       saved_orig_args = std::move(ctx.orig_args);
       auto execv_argv = saved_orig_args.to_argv();
       LOG("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
-      // Run execute_noreturn below after ctx and finalizer have been
+      // Execute the original command below after ctx and finalizer have been
       // destructed.
     }
   }
@@ -2336,8 +2336,7 @@ cache_compilation(int argc, const char* const* argv)
       umask(*original_umask);
     }
     auto execv_argv = saved_orig_args.to_argv();
-    execute_noreturn(const_cast<char* const*>(execv_argv.data()),
-                     saved_temp_dir);
+    execute_noreturn(execv_argv.data(), saved_temp_dir);
     throw Fatal(
       "execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno));
   }
