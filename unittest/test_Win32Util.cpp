@@ -38,6 +38,23 @@ TEST_CASE("Win32Util::argv_to_string")
     CHECK(Win32Util::argv_to_string(argv, "")
           == R"("a" "b c" "\"d\"" "'e'" "\\\"h")");
   }
+  {
+    const char* const argv[] = {"a\\b\\c", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "") == R"("a\b\c")");
+  }
+  {
+    const char* const argv[] = {"a\\b\\c", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "", true) == R"("a\\b\\c")");
+  }
+  {
+    const char* const argv[] = {R"(a\b \"c\" \)", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "") == R"("a\b \\\"c\\\" \\")");
+  }
+  {
+    const char* const argv[] = {R"(a\b \"c\" \)", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "", true)
+          == R"("a\\b \\\"c\\\" \\")");
+  }
 }
 
 TEST_SUITE_END();

@@ -783,10 +783,10 @@ do_execute(Context& ctx,
     DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
     args.erase_last("-fdiagnostics-color");
   }
-  int status = execute(args.to_argv().data(),
+  int status = execute(ctx,
+                       args.to_argv().data(),
                        std::move(tmp_stdout.fd),
-                       std::move(tmp_stderr.fd),
-                       &ctx.compiler_pid);
+                       std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.config.compiler_type() == CompilerType::gcc) {
     auto errors = Util::read_file(tmp_stderr.path);
@@ -2286,6 +2286,7 @@ cache_compilation(int argc, const char* const* argv)
   bool fall_back_to_original_compiler = false;
   Args saved_orig_args;
   nonstd::optional<mode_t> original_umask;
+  std::string saved_temp_dir;
 
   {
     Context ctx;
@@ -2321,10 +2322,12 @@ cache_compilation(int argc, const char* const* argv)
 
       LOG_RAW("Failed; falling back to running the real compiler");
 
+      saved_temp_dir = ctx.config.temporary_dir();
       saved_orig_args = std::move(ctx.orig_args);
       auto execv_argv = saved_orig_args.to_argv();
       LOG("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
-      // Run execv below after ctx and finalizer have been destructed.
+      // Run execute_noreturn below after ctx and finalizer have been
+      // destructed.
     }
   }
 
@@ -2333,8 +2336,10 @@ cache_compilation(int argc, const char* const* argv)
       umask(*original_umask);
     }
     auto execv_argv = saved_orig_args.to_argv();
-    execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
-    throw Fatal("execv of {} failed: {}", execv_argv[0], strerror(errno));
+    execute_noreturn(const_cast<char* const*>(execv_argv.data()),
+                     saved_temp_dir);
+    throw Fatal(
+      "execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno));
   }
 
   return EXIT_SUCCESS;

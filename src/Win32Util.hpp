@@ -30,7 +30,11 @@ std::string add_exe_suffix(const std::string& program);
 
 // Recreate a Windows command line string based on `argv`. If `prefix` is
 // non-empty, add it as the first argument.
-std::string argv_to_string(const char* const* argv, const std::string& prefix);
+// If escape_backslashes is true, emit additional backslash for each backslash
+// which is not preceding '"' and is not at the end of argv[i] either.
+std::string argv_to_string(const char* const* argv,
+                           const std::string& prefix,
+                           bool escape_backslashes = false);
 
 // Return the error message corresponding to `error_code`.
 std::string error_message(DWORD error_code);

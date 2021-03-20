@@ -36,10 +36,28 @@
 using nonstd::string_view;
 
 #ifdef _WIN32
+static int win32execute(const char* path,
+                        const char* const* argv,
+                        int doreturn,
+                        int fd_stdout,
+                        int fd_stderr,
+                        const std::string& temp_dir);
+
 int
-execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* /*pid*/)
+execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
-  return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release());
+  return win32execute(argv[0],
+                      argv,
+                      1,
+                      fd_out.release(),
+                      fd_err.release(),
+                      ctx.config.temporary_dir());
+}
+
+void
+execute_noreturn(const char* const* argv, const std::string& temp_dir)
+{
+  win32execute(argv[0], argv, 0, -1, -1, temp_dir);
 }
 
 std::string
@@ -70,7 +88,8 @@ win32execute(const char* path,
              const char* const* argv,
              int doreturn,
              int fd_stdout,
-             int fd_stderr)
+             int fd_stderr,
+             const std::string& temp_dir)
 {
   PROCESS_INFORMATION pi;
   memset(&pi, 0x00, sizeof(pi));
@@ -109,10 +128,12 @@ win32execute(const char* path,
   std::string full_path = Win32Util::add_exe_suffix(path);
   std::string tmp_file_path;
   if (args.length() > 8192) {
-    TemporaryFile tmp_file(path);
+    TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
+    args = Win32Util::argv_to_string(argv + 1, sh, true);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT("\"@{}\"", tmp_file.path);
+    args = FMT("{} @{}", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;
+    LOG("args from file {}", tmp_file.path);
   }
   BOOL ret = CreateProcess(full_path.c_str(),
                            const_cast<char*>(args.c_str()),
@@ -124,9 +145,6 @@ win32execute(const char* path,
                            nullptr,
                            &si,
                            &pi);
-  if (!tmp_file_path.empty()) {
-    Util::unlink_tmp(tmp_file_path);
-  }
   if (fd_stdout != -1) {
     close(fd_stdout);
     close(fd_stderr);
@@ -137,9 +155,16 @@ win32execute(const char* path,
         full_path,
         Win32Util::error_message(error),
         error);
+    if (!tmp_file_path.empty()) {
+      Util::unlink_tmp(tmp_file_path);
+    }
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
+
+  if (!tmp_file_path.empty()) {
+    Util::unlink_tmp(tmp_file_path);
+  }
 
   DWORD exitcode;
   GetExitCodeProcess(pi.hProcess, &exitcode);
@@ -156,20 +181,20 @@ win32execute(const char* path,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
+execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
   LOG("Executing {}", Util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;
-    *pid = fork();
+    ctx.compiler_pid = fork();
   }
 
-  if (*pid == -1) {
+  if (ctx.compiler_pid == -1) {
     throw Fatal("Failed to fork: {}", strerror(errno));
   }
 
-  if (*pid == 0) {
+  if (ctx.compiler_pid == 0) {
     // Child.
     dup2(*fd_out, STDOUT_FILENO);
     fd_out.close();
@@ -184,7 +209,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   int status;
   int result;
 
-  while ((result = waitpid(*pid, &status, 0)) != *pid) {
+  while ((result = waitpid(ctx.compiler_pid, &status, 0)) != ctx.compiler_pid) {
     if (result == -1 && errno == EINTR) {
       continue;
     }
@@ -193,7 +218,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 
   {
     SignalHandlerBlocker signal_handler_blocker;
-    *pid = 0;
+    ctx.compiler_pid = 0;
   }
 
   if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
@@ -201,6 +226,12 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   }
 
   return WEXITSTATUS(status);
+}
+
+void
+execute_noreturn(const char* const* argv, const std::string& /* unused */)
+{
+  execv(argv[0], const_cast<char* const*>(argv));
 }
 #endif
 
