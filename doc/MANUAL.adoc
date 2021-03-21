@@ -1049,7 +1049,7 @@ The compiler to execute could not be found.
 
 | error hashing extra file |
 Failure reading a file specified by
-<<config_extra_file_to_hash,*extra_files_to_hash*>> (*CCACHE_EXTRAFILES*).
+<<config_extra_files_to_hash,*extra_files_to_hash*>> (*CCACHE_EXTRAFILES*).
 
 | files in cache |
 Current number of files in the cache.
@@ -1134,7 +1134,7 @@ The following information is always included in the hash:
 * the name of the compiler
 * the current directory (if <<config_hash_dir,*hash_dir*>> is enabled)
 * contents of files specified by
-  <<config_extra_file_to_hash,*extra_files_to_hash*>> (if any)
+  <<config_extra_files_to_hash,*extra_files_to_hash*>> (if any)
 
 
 The preprocessor mode
