@@ -48,8 +48,8 @@
 
 #define DOCTEST_VERSION_MAJOR 2
 #define DOCTEST_VERSION_MINOR 4
-#define DOCTEST_VERSION_PATCH 5
-#define DOCTEST_VERSION_STR "2.4.5"
+#define DOCTEST_VERSION_PATCH 6
+#define DOCTEST_VERSION_STR "2.4.6"
 
 #define DOCTEST_VERSION                                                                            \
     (DOCTEST_VERSION_MAJOR * 10000 + DOCTEST_VERSION_MINOR * 100 + DOCTEST_VERSION_PATCH)
@@ -781,6 +781,29 @@ namespace detail {
     template<class T> struct remove_reference<T&>  { typedef T type; };
     template<class T> struct remove_reference<T&&> { typedef T type; };
 
+    template<typename T, typename U = T&&> U declval(int); 
+
+    template<typename T> T declval(long); 
+
+    template<typename T> auto declval() DOCTEST_NOEXCEPT -> decltype(declval<T>(0)) ;
+
+    template<class T> struct is_lvalue_reference { const static bool value=false; };
+    template<class T> struct is_lvalue_reference<T&> { const static bool value=true; };
+
+    template <class T>
+    inline T&& forward(typename remove_reference<T>::type& t) DOCTEST_NOEXCEPT
+    {
+        return static_cast<T&&>(t);
+    }
+
+    template <class T>
+    inline T&& forward(typename remove_reference<T>::type&& t) DOCTEST_NOEXCEPT
+    {
+        static_assert(!is_lvalue_reference<T>::value,
+                        "Can not forward an rvalue as an lvalue.");
+        return static_cast<T&&>(t);
+    }
+
     template<class T> struct remove_const          { typedef T type; };
     template<class T> struct remove_const<const T> { typedef T type; };
 #ifdef DOCTEST_CONFIG_INCLUDE_TYPE_TRAITS
@@ -1048,10 +1071,20 @@ namespace detail {
         return toString(lhs) + op + toString(rhs);
     }
 
+#if DOCTEST_CLANG && DOCTEST_CLANG < DOCTEST_COMPILER(3, 6, 0)
+DOCTEST_CLANG_SUPPRESS_WARNING_WITH_PUSH("-Wunused-comparison")
+#endif
+
+// This will check if there is any way it could find a operator like member or friend and uses it.
+// If not it doesn't find the operator or if the operator at global scope is defined after
+// this template, the template won't be instantiated due to SFINAE. Once the template is not
+// instantiated it can look for global operator using normal conversions.
+#define SFINAE_OP(ret,op) decltype(doctest::detail::declval<L>() op doctest::detail::declval<R>(),static_cast<ret>(0))
+
 #define DOCTEST_DO_BINARY_EXPRESSION_COMPARISON(op, op_str, op_macro)                              \
     template <typename R>                                                                          \
-    DOCTEST_NOINLINE Result operator op(const DOCTEST_REF_WRAP(R) rhs) {                           \
-        bool res = op_macro(lhs, rhs);                                                             \
+    DOCTEST_NOINLINE SFINAE_OP(Result,op) operator op(R&& rhs) {             \
+	    bool res = op_macro(doctest::detail::forward<L>(lhs), doctest::detail::forward<R>(rhs));                                                             \
         if(m_at & assertType::is_false)                                                            \
             res = !res;                                                                            \
         if(!res || doctest::getContextOptions()->success)                                          \
@@ -1179,12 +1212,16 @@ namespace detail {
         L                lhs;
         assertType::Enum m_at;
 
-        explicit Expression_lhs(L in, assertType::Enum at)
-                : lhs(in)
+        explicit Expression_lhs(L&& in, assertType::Enum at)
+                : lhs(doctest::detail::forward<L>(in))
                 , m_at(at) {}
 
         DOCTEST_NOINLINE operator Result() {
-            bool res = !!lhs;
+// this is needed only foc MSVC 2015:
+// https://ci.appveyor.com/project/onqtam/doctest/builds/38181202
+DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4800) // 'int': forcing value to bool
+            bool res = static_cast<bool>(lhs);
+DOCTEST_MSVC_SUPPRESS_WARNING_POP
             if(m_at & assertType::is_false) //!OCLINT bitwise operator in conditional
                 res = !res;
 
@@ -1192,6 +1229,10 @@ namespace detail {
                 return Result(res, toString(lhs));
             return Result(res);
         }
+
+	/* This is required for user-defined conversions from Expression_lhs to L */
+	//operator L() const { return lhs; }
+	operator L() const { return lhs; }
 
         // clang-format off
         DOCTEST_DO_BINARY_EXPRESSION_COMPARISON(==, " == ", DOCTEST_CMP_EQ) //!OCLINT bitwise operator in conditional
@@ -1233,6 +1274,10 @@ namespace detail {
 
 #endif // DOCTEST_CONFIG_NO_COMPARISON_WARNING_SUPPRESSION
 
+#if DOCTEST_CLANG && DOCTEST_CLANG < DOCTEST_COMPILER(3, 6, 0)
+DOCTEST_CLANG_SUPPRESS_WARNING_POP
+#endif
+
     struct DOCTEST_INTERFACE ExpressionDecomposer
     {
         assertType::Enum m_at;
@@ -1244,8 +1289,8 @@ namespace detail {
         // https://github.com/catchorg/Catch2/issues/870
         // https://github.com/catchorg/Catch2/issues/565
         template <typename L>
-        Expression_lhs<const DOCTEST_REF_WRAP(L)> operator<<(const DOCTEST_REF_WRAP(L) operand) {
-            return Expression_lhs<const DOCTEST_REF_WRAP(L)>(operand, m_at);
+	Expression_lhs<L> operator<<(L &&operand) {
+            return Expression_lhs<L>(doctest::detail::forward<L>(operand), m_at);
         }
     };
 
@@ -1534,7 +1579,7 @@ namespace detail {
 
     template <typename L> class ContextScope : public ContextScopeBase
     {
-        const L &lambda_;
+        const L lambda_;
 
     public:
         explicit ContextScope(const L &lambda) : lambda_(lambda) {}
@@ -1933,10 +1978,12 @@ int registerReporter(const char* name, int priority, bool isReporter) {
             static DOCTEST_NOINLINE doctest::detail::TestSuite& getCurrentTestSuite() {            \
                 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4640)                                      \
                 DOCTEST_CLANG_SUPPRESS_WARNING_WITH_PUSH("-Wexit-time-destructors")                \
-                static doctest::detail::TestSuite data;                                            \
+                DOCTEST_GCC_SUPPRESS_WARNING_WITH_PUSH("-Wmissing-field-initializers")             \
+                static doctest::detail::TestSuite data{};                                          \
                 static bool                       inited = false;                                  \
                 DOCTEST_MSVC_SUPPRESS_WARNING_POP                                                  \
                 DOCTEST_CLANG_SUPPRESS_WARNING_POP                                                 \
+                DOCTEST_GCC_SUPPRESS_WARNING_POP                                                   \
                 if(!inited) {                                                                      \
                     data* decorators;                                                              \
                     inited = true;                                                                 \
@@ -1991,17 +2038,15 @@ int registerReporter(const char* name, int priority, bool isReporter) {
 // for logging
 #define DOCTEST_INFO(...)                                                                          \
     DOCTEST_INFO_IMPL(DOCTEST_ANONYMOUS(_DOCTEST_CAPTURE_), DOCTEST_ANONYMOUS(_DOCTEST_CAPTURE_),  \
-                      DOCTEST_ANONYMOUS(_DOCTEST_CAPTURE_), __VA_ARGS__)
+                      __VA_ARGS__)
 
-#define DOCTEST_INFO_IMPL(lambda_name, mb_name, s_name, ...)                                       \
-    DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4626)                                                  \
-    auto lambda_name = [&](std::ostream* s_name) {                                                 \
+#define DOCTEST_INFO_IMPL(mb_name, s_name, ...)                                       \
+    auto DOCTEST_ANONYMOUS(_DOCTEST_CAPTURE_) = doctest::detail::MakeContextScope(                 \
+        [&](std::ostream* s_name) {                                                                \
         doctest::detail::MessageBuilder mb_name(__FILE__, __LINE__, doctest::assertType::is_warn); \
         mb_name.m_stream = s_name;                                                                 \
         mb_name * __VA_ARGS__;                                                                     \
-    };                                                                                             \
-    DOCTEST_MSVC_SUPPRESS_WARNING_POP                                                              \
-    auto DOCTEST_ANONYMOUS(_DOCTEST_CAPTURE_) = doctest::detail::MakeContextScope(lambda_name)
+    })
 
 #define DOCTEST_CAPTURE(x) DOCTEST_INFO(#x " := ", x)
 
@@ -2857,6 +2902,10 @@ DOCTEST_MAKE_STD_HEADERS_CLEAN_FROM_WARNINGS_ON_WALL_END
 #define DOCTEST_OPTIONS_PREFIX_DISPLAY ""
 #endif
 
+#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
+#define DOCTEST_CONFIG_NO_MULTI_LANE_ATOMICS
+#endif
+
 namespace doctest {
 
 bool is_running_in_test = false;
@@ -3017,21 +3066,21 @@ typedef timer_large_integer::type ticks_t;
                       "guarantee one atomic takes exactly one cache line");
 
     public:
-        T operator++() noexcept { return fetch_add(1) + 1; }
+        T operator++() DOCTEST_NOEXCEPT { return fetch_add(1) + 1; }
 
-        T operator++(int) noexcept { return fetch_add(1); }
+        T operator++(int) DOCTEST_NOEXCEPT { return fetch_add(1); }
 
-        T fetch_add(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
+        T fetch_add(T arg, std::memory_order order = std::memory_order_seq_cst) DOCTEST_NOEXCEPT {
             return myAtomic().fetch_add(arg, order);
         }
 
-        T fetch_sub(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
+        T fetch_sub(T arg, std::memory_order order = std::memory_order_seq_cst) DOCTEST_NOEXCEPT {
             return myAtomic().fetch_sub(arg, order);
         }
 
-        operator T() const noexcept { return load(); }
+        operator T() const DOCTEST_NOEXCEPT { return load(); }
 
-        T load(std::memory_order order = std::memory_order_seq_cst) const noexcept {
+        T load(std::memory_order order = std::memory_order_seq_cst) const DOCTEST_NOEXCEPT {
             auto result = T();
             for(auto const& c : m_atomics) {
                 result += c.atomic.load(order);
@@ -3039,12 +3088,12 @@ typedef timer_large_integer::type ticks_t;
             return result;
         }
 
-        T operator=(T desired) noexcept {
+        T operator=(T desired) DOCTEST_NOEXCEPT {
             store(desired);
             return desired;
         }
 
-        void store(T desired, std::memory_order order = std::memory_order_seq_cst) noexcept {
+        void store(T desired, std::memory_order order = std::memory_order_seq_cst) DOCTEST_NOEXCEPT {
             // first value becomes desired", all others become 0.
             for(auto& c : m_atomics) {
                 c.atomic.store(desired, order);
@@ -3065,7 +3114,7 @@ typedef timer_large_integer::type ticks_t;
         //    assigned in a round-robin fashion.
         // 3. This tlsLaneIdx is stored in the thread local data, so it is directly available with
         //    little overhead.
-        std::atomic<T>& myAtomic() noexcept {
+        std::atomic<T>& myAtomic() DOCTEST_NOEXCEPT {
             static std::atomic<size_t> laneCounter;
             DOCTEST_THREAD_LOCAL size_t tlsLaneIdx =
                     laneCounter++ % DOCTEST_MULTI_LANE_ATOMICS_THREAD_LANES;
@@ -3577,7 +3626,7 @@ int registerReporter(const char*, int, IReporter*) { return 0; }
 namespace doctest_detail_test_suite_ns {
 // holds the current test suite
 doctest::detail::TestSuite& getCurrentTestSuite() {
-    static doctest::detail::TestSuite data;
+    static doctest::detail::TestSuite data{};
     return data;
 }
 } // namespace doctest_detail_test_suite_ns
@@ -3731,7 +3780,7 @@ namespace detail {
                 g_cs->subcasesPassed.insert(g_cs->subcasesStack);
             g_cs->subcasesStack.pop_back();
 
-#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L
+#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200)
             if(std::uncaught_exceptions() > 0
 #else
             if(std::uncaught_exception()
@@ -3839,6 +3888,12 @@ namespace detail {
             return file_cmp < 0;
         return m_template_id < other.m_template_id;
     }
+
+    // all the registered tests
+    std::set<TestCase>& getRegisteredTests() {
+        static std::set<TestCase> data;
+        return data;
+    }
 } // namespace detail
 namespace {
     using namespace detail;
@@ -3868,12 +3923,6 @@ namespace {
         if(res != 0)
             return res < 0;
         return suiteOrderComparator(lhs, rhs);
-    }
-
-    // all the registered tests
-    std::set<TestCase>& getRegisteredTests() {
-        static std::set<TestCase> data;
-        return data;
     }
 
 #ifdef DOCTEST_CONFIG_COLORS_WINDOWS
@@ -4104,7 +4153,7 @@ namespace detail {
     // ContextScope has been destroyed (base class destructors run after derived class destructors).
     // Instead, ContextScope calls this method directly from its destructor.
     void ContextScopeBase::destroy() {
-#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L
+#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200)
         if(std::uncaught_exceptions() > 0) {
 #else
         if(std::uncaught_exception()) {
@@ -4126,7 +4175,9 @@ namespace {
 #if !defined(DOCTEST_CONFIG_POSIX_SIGNALS) && !defined(DOCTEST_CONFIG_WINDOWS_SEH)
     struct FatalConditionHandler
     {
-        void reset() {}
+        static void reset() {}
+        static void allocateAltStackMem() {}
+        static void freeAltStackMem() {}
     };
 #else // DOCTEST_CONFIG_POSIX_SIGNALS || DOCTEST_CONFIG_WINDOWS_SEH
 
@@ -4179,6 +4230,9 @@ namespace {
             std::exit(EXIT_FAILURE);
         }
 
+        static void allocateAltStackMem() {}
+        static void freeAltStackMem() {}
+
         FatalConditionHandler() {
             isSet = true;
             // 32k seems enough for doctest to handle stack overflow,
@@ -4196,7 +4250,7 @@ namespace {
             // - std::terminate is called FROM THE TEST RUNNER THREAD
             // - an exception is thrown from a destructor FROM THE TEST RUNNER THREAD
             original_terminate_handler = std::get_terminate();
-            std::set_terminate([]() noexcept {
+            std::set_terminate([]() DOCTEST_NOEXCEPT {
                 reportFatal("Terminate handler called");
                 if(isDebuggerActive() && !g_cs->no_breaks)
                     DOCTEST_BREAK_INTO_DEBUGGER();
@@ -4207,7 +4261,7 @@ namespace {
             // - std::terminate is called FROM A DIFFERENT THREAD
             // - an exception is thrown from a destructor FROM A DIFFERENT THREAD
             // - an uncaught exception is thrown FROM A DIFFERENT THREAD
-            prev_sigabrt_handler = std::signal(SIGABRT, [](int signal) noexcept {
+            prev_sigabrt_handler = std::signal(SIGABRT, [](int signal) DOCTEST_NOEXCEPT {
                 if(signal == SIGABRT) {
                     reportFatal("SIGABRT - Abort (abnormal termination) signal");
                     if(isDebuggerActive() && !g_cs->no_breaks)
@@ -4296,7 +4350,8 @@ namespace {
         static bool             isSet;
         static struct sigaction oldSigActions[DOCTEST_COUNTOF(signalDefs)];
         static stack_t          oldSigStack;
-        static char             altStackMem[4 * SIGSTKSZ];
+        static size_t           altStackSize;
+        static char*            altStackMem;
 
         static void handleSignal(int sig) {
             const char* name = "<unknown signal>";
@@ -4312,11 +4367,19 @@ namespace {
             raise(sig);
         }
 
+        static void allocateAltStackMem() {
+            altStackMem = new char[altStackSize];
+        }
+
+        static void freeAltStackMem() {
+            delete[] altStackMem;
+        }
+
         FatalConditionHandler() {
             isSet = true;
             stack_t sigStack;
             sigStack.ss_sp    = altStackMem;
-            sigStack.ss_size  = sizeof(altStackMem);
+            sigStack.ss_size  = altStackSize;
             sigStack.ss_flags = 0;
             sigaltstack(&sigStack, &oldSigStack);
             struct sigaction sa = {};
@@ -4341,10 +4404,11 @@ namespace {
         }
     };
 
-    bool             FatalConditionHandler::isSet                                      = false;
+    bool             FatalConditionHandler::isSet = false;
     struct sigaction FatalConditionHandler::oldSigActions[DOCTEST_COUNTOF(signalDefs)] = {};
-    stack_t          FatalConditionHandler::oldSigStack                                = {};
-    char             FatalConditionHandler::altStackMem[]                              = {};
+    stack_t          FatalConditionHandler::oldSigStack = {};
+    size_t           FatalConditionHandler::altStackSize = 4 * SIGSTKSZ;
+    char*            FatalConditionHandler::altStackMem = nullptr;
 
 #endif // DOCTEST_PLATFORM_WINDOWS
 #endif // DOCTEST_CONFIG_POSIX_SIGNALS || DOCTEST_CONFIG_WINDOWS_SEH
@@ -5902,8 +5966,10 @@ namespace {
         bool with_col = g_no_colors;                                                               \
         g_no_colors   = false;                                                                     \
         ConsoleReporter::func(arg);                                                                \
-        DOCTEST_OUTPUT_DEBUG_STRING(oss.str().c_str());                                            \
-        oss.str("");                                                                               \
+        if(oss.tellp() != std::streampos{}) {                                                      \
+            DOCTEST_OUTPUT_DEBUG_STRING(oss.str().c_str());                                        \
+            oss.str("");                                                                           \
+        }                                                                                          \
         g_no_colors = with_col;                                                                    \
     }
 
@@ -6090,7 +6156,7 @@ void Context::parseArgs(int argc, const char* const* argv, bool withDefaults) {
 #define DOCTEST_PARSE_AS_BOOL_OR_FLAG(name, sname, var, default)                                   \
     if(parseIntOption(argc, argv, DOCTEST_CONFIG_OPTIONS_PREFIX name "=", option_bool, intRes) ||  \
        parseIntOption(argc, argv, DOCTEST_CONFIG_OPTIONS_PREFIX sname "=", option_bool, intRes))   \
-        p->var = !!intRes;                                                                         \
+        p->var = static_cast<bool>(intRes);                                                        \
     else if(parseFlag(argc, argv, DOCTEST_CONFIG_OPTIONS_PREFIX name) ||                           \
             parseFlag(argc, argv, DOCTEST_CONFIG_OPTIONS_PREFIX sname))                            \
         p->var = true;                                                                             \
@@ -6235,7 +6301,11 @@ int Context::run() {
         p->cout = &fstr;
     }
 
+    FatalConditionHandler::allocateAltStackMem();
+
     auto cleanup_and_return = [&]() {
+        FatalConditionHandler::freeAltStackMem();
+
         if(fstr.is_open())
             fstr.close();
 
@@ -6409,10 +6479,13 @@ int Context::run() {
 #ifndef DOCTEST_CONFIG_NO_EXCEPTIONS
                 try {
 #endif // DOCTEST_CONFIG_NO_EXCEPTIONS
+// MSVC 2015 diagnoses fatalConditionHandler as unused (because reset() is a static method)
+DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4101) // unreferenced local variable
                     FatalConditionHandler fatalConditionHandler; // Handle signals
                     // execute the test
                     tc.m_test();
                     fatalConditionHandler.reset();
+DOCTEST_MSVC_SUPPRESS_WARNING_POP
 #ifndef DOCTEST_CONFIG_NO_EXCEPTIONS
                 } catch(const TestFailureException&) {
                     p->failure_flags |= TestCaseFailureReason::AssertFailure;
