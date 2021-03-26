@@ -11,7 +11,7 @@ To build ccache you need:
   languages](https://ccache.dev/platform-compiler-language-support.html) for
   details.
 - A C99 compiler.
-- [libzstd](https://www.zstd.net). If you don't have libzstd installed and
+- [libzstd](http://www.zstd.net). If you don't have libzstd installed and
   can't or don't want to install it in a standard system location, there are
   two options:
     1. Install zstd in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
