@@ -1,6 +1,71 @@
 Ccache news
 ===========
 
+Ccache 4.2.1
+------------
+Release date: TBD
+
+Bug fixes
+~~~~~~~~~
+
+- Ccache now only `dup2`s stderr into `$UNCACHED_ERR_FD` for calls to the
+  preprocessor/compiler. This works around a complex bug in interaction with GNU
+  Make, LTO linking and the Linux PTY driver.
+
+- Fixed detection of color diagnostics usage when using `-Xclang
+  -fcolordiagnostics` options.
+
+- The `-frecord-gcc-switches` compiler option is now handled correctly to avoid
+  false positive cache hits.
+
+- Made it possible for per-compilation debug log files to be written in most
+  argument processing error scenarios. Previously, ccache would only write debug
+  log files if the argument processing phase was successful.
+
+- Made ccache bail out on too hard Clang option `-gen-cdb-fragment-path`.
+
+- The `run_second_cpp` made is now enforced on macOS if `-g` is used since newer
+  Clang versions on macOS produce different debug information when compiling
+  preprocessed code.
+
+- Made ccache only reject `-f(no-)color-diagnostics` for a known GCC compiler.
+  This fixes a problem when using said option with `clang++` on macOS.
+
+- Implemented a better `stat`/`lstat` wrapper function for Windows.
+
+- Fixed a bug where ccache could return stale cache results on Windows.
+
+- Fixed handling of long command lines on Windows.
+
+
+Portability and build improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Build configuration scripts now probe for atomic increment as well. This fixes
+  a linking error on Sparc.
+
+- An existing CMake log message level is now used when warning about not finding
+  asciidoc.
+
+- Added support for building ccache with xlclang++ on AIX 7.2.
+
+- Fixed assertion in the "Debug option" test.
+
+- Made build configuration skip using ccache when building with MSVC.
+
+- Upgraded to doctest 2.4.6. This fixes a build error with glibc >= 2.34.
+
+
+Documentation
+~~~~~~~~~~~~~
+
+- Fixed markup of `compiler_type` value "other".
+
+- Fixed markup of `debug_dir` documentation.
+
+- Fixed references to the `extra_files_to_hash` configuration option.
+
+
 Ccache 4.2
 ----------
 Release date: 2021-02-02
