@@ -3,7 +3,7 @@ Ccache news
 
 Ccache 4.2.1
 ------------
-Release date: TBD
+Release date: 2021-03-27
 
 Bug fixes
 ~~~~~~~~~
@@ -13,7 +13,7 @@ Bug fixes
   Make, LTO linking and the Linux PTY driver.
 
 - Fixed detection of color diagnostics usage when using `-Xclang
-  -fcolordiagnostics` options.
+  -fcolor-diagnostics` options.
 
 - The `-frecord-gcc-switches` compiler option is now handled correctly to avoid
   false positive cache hits.
@@ -29,7 +29,7 @@ Bug fixes
   preprocessed code.
 
 - Made ccache only reject `-f(no-)color-diagnostics` for a known GCC compiler.
-  This fixes a problem when using said option with `clang++` on macOS.
+  This fixes a problem when using said option with Clang on macOS.
 
 - Implemented a better `stat`/`lstat` wrapper function for Windows.
 
