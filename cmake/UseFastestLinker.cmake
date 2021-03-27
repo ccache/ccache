@@ -1,6 +1,3 @@
-include(CMakePushCheckState)
-include(CheckCSourceRuns)
-
 # Calls `message(VERBOSE msg)` if and only if VERBOSE is available (since CMake 3.15).
 # Call CMake with --loglevel=VERBOSE to view those messages.
 function(message_verbose msg)
@@ -13,10 +10,14 @@ function(try_linker linker)
   string(TOUPPER ${linker} upper_linker)
   find_program(HAS_LD_${upper_linker} "ld.${linker}")
   if(HAS_LD_${upper_linker})
-    cmake_push_check_state(RESET)
     set(CMAKE_REQUIRED_LIBRARIES "-fuse-ld=${linker}")
-    check_c_source_runs("int main() { return 0; }" HAVE_LD_${upper_linker})
-    cmake_pop_check_state()
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/main.c" "int main() { return 0; }")
+    try_compile(
+      HAVE_LD_${upper_linker}
+      ${CMAKE_CURRENT_BINARY_DIR}
+      "${CMAKE_CURRENT_BINARY_DIR}/main.c"
+      LINK_LIBRARIES "-fuse-ld=${linker}"
+    )
   endif()
 endfunction()
 
