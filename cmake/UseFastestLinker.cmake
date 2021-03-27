@@ -1,24 +1,12 @@
-# Calls `message(VERBOSE msg)` if and only if VERBOSE is available (since CMake 3.15).
-# Call CMake with --loglevel=VERBOSE to view those messages.
-function(message_verbose msg)
-  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.15")
-    message(VERBOSE ${msg})
-  endif()
-endfunction()
-
-function(try_linker linker)
+function(check_linker linker)
   string(TOUPPER ${linker} upper_linker)
-  find_program(HAS_LD_${upper_linker} "ld.${linker}")
-  if(HAS_LD_${upper_linker})
-    set(CMAKE_REQUIRED_LIBRARIES "-fuse-ld=${linker}")
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/main.c" "int main() { return 0; }")
-    try_compile(
-      HAVE_LD_${upper_linker}
-      ${CMAKE_CURRENT_BINARY_DIR}
-      "${CMAKE_CURRENT_BINARY_DIR}/main.c"
-      LINK_LIBRARIES "-fuse-ld=${linker}"
-    )
-  endif()
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/CMakefiles/CMakeTmp/main.c" "int main() { return 0; }")
+  try_compile(
+    HAVE_LD_${upper_linker}
+    ${CMAKE_CURRENT_BINARY_DIR}
+    "${CMAKE_CURRENT_BINARY_DIR}/CMakefiles/CMakeTmp/main.c"
+    LINK_LIBRARIES "-fuse-ld=${linker}"
+  )
 endfunction()
 
 function(use_fastest_linker)
@@ -28,21 +16,21 @@ function(use_fastest_linker)
   endif()
 
   set(use_default_linker 1)
-  try_linker(lld)
-  if (HAVE_LD_LLD)
+  check_linker(lld)
+  if(HAVE_LD_LLD)
     link_libraries("-fuse-ld=lld")
     set(use_default_linker 0)
-    message_verbose("Using lld linker for faster linking")
+    message(STATUS "Using lld linker")
   else()
-    try_linker(gold)
+    check_linker(gold)
     if(HAVE_LD_GOLD)
       link_libraries("-fuse-ld=gold")
       set(use_default_linker 0)
-      message_verbose("Using gold linker for faster linking")
+      message(STATUS "Using gold linker")
     endif()
   endif()
   if(use_default_linker)
-    message_verbose("Using default linker")
+    message(STATUS "Using default linker")
   endif()
 endfunction()
 
