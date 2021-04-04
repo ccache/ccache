@@ -267,11 +267,11 @@ jobs:
 
           - name: Clang-Tidy
             os: ubuntu-18.04
-            CC: clang
-            CXX: clang++
+            CC: clang-9
+            CXX: clang++-9
             RUN_TESTS: none
-            CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON
-            apt_get: libzstd-dev clang-tidy
+            CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON -DCLANGTIDY=/usr/bin/clang-tidy-9
+            apt_get: libzstd-dev clang-9 clang-tidy-9
 
     steps:
       - name: Get source
