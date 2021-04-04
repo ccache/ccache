@@ -579,7 +579,7 @@ TEST_CASE("Win32 Pending Delete" * doctest::skip(running_under_wine()))
   // will persist until the handle is closed. Until the file is closed, new
   // handles cannot be created to the file; attempts to do so fail with
   // ERROR_ACCESS_DENIED/STATUS_DELETE_PENDING. Our stat implementation maps
-  // these to EACCES. (Should this be ENOENT?)
+  // these to ENOENT.
   FILE_DISPOSITION_INFO info{};
   info.DeleteFile = TRUE;
   REQUIRE_MESSAGE(SetFileInformationByHandle(
@@ -590,14 +590,14 @@ TEST_CASE("Win32 Pending Delete" * doctest::skip(running_under_wine()))
   {
     auto st = Stat::stat("file");
     CHECK(!st);
-    CHECK(st.error_number() == EACCES);
+    CHECK(st.error_number() == ENOENT);
   }
 
   SUBCASE("lstat file pending delete")
   {
     auto st = Stat::lstat("file");
     CHECK(!st);
-    CHECK(st.error_number() == EACCES);
+    CHECK(st.error_number() == ENOENT);
   }
 }
 
