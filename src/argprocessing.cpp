@@ -1107,7 +1107,14 @@ process_args(Context& ctx)
   }
 
   if (args_info.seen_split_dwarf) {
-    args_info.output_dwo = Util::change_extension(args_info.output_obj, ".dwo");
+    if (args_info.output_obj == "/dev/null") {
+      // Outputting to /dev/null -> compiler won't write a .dwo, so just pretend
+      // we haven't seen the -gsplit-dwarf option.
+      args_info.seen_split_dwarf = false;
+    } else {
+      args_info.output_dwo =
+        Util::change_extension(args_info.output_obj, ".dwo");
+    }
   }
 
   // Cope with -o /dev/null.
