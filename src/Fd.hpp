@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -72,10 +72,8 @@ Fd::get() const
   return m_fd;
 }
 
-// clang-format off
 inline int
 Fd::operator*() const
-// clang-format on
 {
   ASSERT(m_fd != -1);
   return m_fd;

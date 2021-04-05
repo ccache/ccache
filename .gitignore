@@ -1,6 +1,9 @@
 # Typical build directories
 /build*/
 
+# Downloaded tools
+misc/.clang-format-exe
+
 # Emacs save files
 *~
 

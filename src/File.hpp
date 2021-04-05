@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -89,10 +89,8 @@ inline File::operator bool() const
   return m_file;
 }
 
-// clang-format off
 inline FILE*
 File::operator*() const
-// clang-format on
 {
   return m_file;
 }

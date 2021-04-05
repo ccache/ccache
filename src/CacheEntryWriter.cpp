@@ -24,12 +24,9 @@ CacheEntryWriter::CacheEntryWriter(FILE* stream,
                                    Compression::Type compression_type,
                                    int8_t compression_level,
                                    uint64_t payload_size)
-  // clang-format off
   : m_compressor(
-      Compressor::create_from_type(compression_type, stream, compression_level)
-    )
+    Compressor::create_from_type(compression_type, stream, compression_level))
 {
-  // clang-format on
   uint8_t header_bytes[15];
   memcpy(header_bytes, magic, 4);
   header_bytes[4] = version;

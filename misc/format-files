@@ -27,7 +27,7 @@ if [ -n "$all" ]; then
     exec sh "$0" $check $(git ls-files '*.[ch]' '*.[ch]pp' ':!:src/third_party')
 fi
 
-clang_format=${CLANG_FORMAT:-clang-format}
+clang_format="$(dirname "$0")/clang-format"
 [ -t 1 ] && cf_color="--color=always" || cf_color=""
 
 if [ -n "${VERBOSE:-}" ]; then

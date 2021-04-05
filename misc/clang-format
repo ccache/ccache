@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# This script executes clang-format in the following order:
+#
+# 1. If environment variable CLANG_FORMAT is set, execute $CLANG_FORMAT.
+# 2. Otherwise, if <ccache-top-dir>/misc/.clang-format-exe exists, execute that
+#    program.
+# 3. Otherwise, download a statically linked clang-format executable, verify its
+#    integrity, place it in <ccache-top-dir>/misc/.clang-format-exe and execute
+#    it.
+
+set -eu
+
+if [ -n "${CLANG_FORMAT:-}" ]; then
+    exec "$CLANG_FORMAT" "$@"
+fi
+
+top_dir="$(dirname "$0")"
+clang_format_exe="$top_dir/.clang-format-exe"
+clang_format_version=10
+url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/master-22538c65/clang-format-${clang_format_version}_"
+
+if [ ! -x "$clang_format_exe" ]; then
+    case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
+        *mingw*|*cygwin*|*msys*)
+            url_suffix=windows-amd64.exe
+            checksum=0b21dfb9041437eebcc44032096e4dfba9ee7b668ee6867ada71ea3541f7b09657ea592a5b1cf659bc9f8072bdc477dfc9da07b3edacb7834b70e68d7a3fc887
+            ;;
+        *darwin*)
+            url_suffix=macosx-amd64
+            checksum=8458753e13d3cbb7949a302beab812bed6d9dd9001c6e9618e5ba2e438233633ae04704a4e150aa2abfbaf103f1df4bc4a77b306012f44b37e543964bd527951
+            ;;
+        *linux*)
+            url_suffix=linux-amd64
+            checksum=3c4aaa90ad83313a1d7b350b30f9ad62578be73241f00f7d6e92838289e0b734fab80dee9dfcbd1546135bdb4e3601cfb2cf6b47360fba0bfc961e5a7cab2015
+            ;;
+        *)
+            echo "Error: Please set CLANG_FORMAT to clang-format version $clang_format_version" >&2
+            exit 1
+            ;;
+    esac
+
+    url="$url_prefix$url_suffix"
+
+    if command -v wget >/dev/null; then
+        wget -qO "$clang_format_exe.tmp" "$url"
+    elif command -v curl >/dev/null; then
+        curl -so "$clang_format_exe.tmp" -L --retry 20 "$url"
+    else
+        echo "Error: Neither wget nor curl found" >&2
+        exit 1
+    fi
+
+    if ! command -v sha512sum >/dev/null; then
+        echo "Warning: sha512sum not found, not verifying clang-format integrity" >&2
+    elif [ "$(sha512sum "$clang_format_exe.tmp" | awk '{print $1}')" != "$checksum" ]; then
+        echo "Error: Bad checksum of downloaded clang-format" >&2
+        exit 1
+    fi
+
+    chmod +x "$clang_format_exe.tmp"
+    mv "$clang_format_exe.tmp" "$clang_format_exe"
+fi
+
+exec "$clang_format_exe" "$@"

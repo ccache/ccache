@@ -56,12 +56,12 @@ little.
 
 Source code formatting is defined by `.clang-format` in the root directory. The
 format is loosely based on [LLVM's code formatting
-style](https://llvm.org/docs/CodingStandards.html) with some exceptions. It's
-highly recommended to install
-[Clang-Format](https://clang.llvm.org/docs/ClangFormat.html) 6.0 or newer and
-run `make format` to format changes according to ccache's code style. Or even
-better: set up your editor to run Clang-Format automatically when saving. If you
-don't run Clang-Format then the ccache authors have to do it for you.
+style](https://llvm.org/docs/CodingStandards.html) with some exceptions. Run
+`make format` (or `ninja format` if you use Ninja) to format changes according
+to ccache's code style. Or even better: set up your editor to run
+`<ccache-top-dir>/misc/clang-format` (or any other Clang-Format version 10
+binary) automatically when saving. Newer Clang-Format versions likely also work
+fine.
 
 Please follow these conventions:
 
