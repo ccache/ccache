@@ -158,7 +158,10 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 #  include <io.h>
 #  include <process.h>
 #  define NOMINMAX 1
+#  define WIN32_NO_STATUS
 #  include <windows.h>
+#  undef WIN32_NO_STATUS
+#  include <ntstatus.h>
 #  define mkdir(a, b) _mkdir(a)
 #  define execv(a, b)                                                          \
     do_not_call_execv_on_windows // to protect against incidental use of MinGW

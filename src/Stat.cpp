@@ -19,6 +19,8 @@
 #include "Stat.hpp"
 
 #ifdef _WIN32
+#  include "Win32Util.hpp"
+
 #  include "third_party/win32/winerror_to_errno.h"
 #endif
 
@@ -124,6 +126,11 @@ win32_stat_impl(const char* path, bool traverse_links, Stat::stat_t* st)
   }
 
   if (handle == INVALID_HANDLE_VALUE) {
+    if (GetLastError() == ERROR_ACCESS_DENIED
+        && Win32Util::get_last_ntstatus() == STATUS_DELETE_PENDING) {
+      // Treat a 'pending delete' as a nonexistent file.
+      SetLastError(ERROR_FILE_NOT_FOUND);
+    }
     return false;
   }
 

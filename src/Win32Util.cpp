@@ -23,6 +23,26 @@
 #include <chrono>
 #include <thread>
 
+namespace {
+
+template<typename Proc>
+Proc*
+get_proc_address(HMODULE module, const char* proc_name)
+{
+#if defined __GNUC__
+#  pragma GCC diagnostic push
+#  if __GNUC__ >= 8
+#    pragma GCC diagnostic ignored "-Wcast-function-type"
+#  endif
+#endif
+  return reinterpret_cast<Proc*>(GetProcAddress(module, proc_name));
+#if defined __GNUC__
+#  pragma GCC diagnostic pop
+#endif
+}
+
+} // namespace
+
 namespace Win32Util {
 
 std::string
@@ -95,6 +115,14 @@ argv_to_string(const char* const* argv,
 
   result.resize(result.length() - 1);
   return result;
+}
+
+NTSTATUS
+get_last_ntstatus()
+{
+  static auto* get_last_ntstatus_fn = get_proc_address<NTSTATUS NTAPI()>(
+    GetModuleHandleA("ntdll.dll"), "RtlGetLastNtStatus");
+  return get_last_ntstatus_fn();
 }
 
 } // namespace Win32Util
