@@ -1224,43 +1224,59 @@ EOF
     expect_stat 'files in cache' 0
 
     # -------------------------------------------------------------------------
-    TEST "-P"
+    TEST "-P -c"
 
-    # Check that -P disables ccache. (-P removes preprocessor information in
-    # such a way that the object file from compiling the preprocessed file will
-    # not be equal to the object file produced when compiling without ccache.)
+    $CCACHE_COMPILE -P -c test1.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -c -P test1.c
+    $CCACHE_COMPILE -P -c test1.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "-P -E"
+
+    $CCACHE_COMPILE -P -E test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 1
+    expect_stat 'called for preprocessing' 1
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-P"
 
-    # Check that -Wp,-P disables ccache. (-P removes preprocessor information
-    # in such a way that the object file from compiling the preprocessed file
-    # will not be equal to the object file produced when compiling without
-    # ccache.)
-
     $CCACHE_COMPILE -c -Wp,-P test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 1
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -c -Wp,-P test1.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "-Wp,-P,-DFOO"
+
+    # Check that -P disables ccache when used in combination with other -Wp,
+    # options. (-P removes preprocessor information in such a way that the
+    # object file from compiling the preprocessed file will not be equal to the
+    # object file produced when compiling without ccache.)
 
     $CCACHE_COMPILE -c -Wp,-P,-DFOO test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 2
+    expect_stat 'unsupported compiler option' 1
 
     $CCACHE_COMPILE -c -Wp,-DFOO,-P test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 3
+    expect_stat 'unsupported compiler option' 2
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-D"

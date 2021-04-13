@@ -618,13 +618,19 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  if (args[i] == "-P" || args[i] == "-Wp,-P") {
+    // Avoid passing -P to the preprocessor since it removes preprocessor
+    // information we need.
+    state.compiler_only_args.push_back(args[i]);
+    LOG("{} used; not compiling preprocessed code", args[i]);
+    config.set_run_second_cpp(true);
+    return nullopt;
+  }
+
   if (Util::starts_with(args[i], "-Wp,")) {
-    if (args[i] == "-Wp,-P" || args[i].find(",-P,") != std::string::npos
+    if (args[i].find(",-P,") != std::string::npos
         || Util::ends_with(args[i], ",-P")) {
-      // -P removes preprocessor information in such a way that the object file
-      // from compiling the preprocessed file will not be equal to the object
-      // file produced when compiling without ccache.
-      LOG_RAW("Too hard option -Wp,-P detected");
+      // -P together with other preprocessor options is just too hard.
       return Statistic::unsupported_compiler_option;
     } else if (Util::starts_with(args[i], "-Wp,-MD,")
                && args[i].find(',', 8) == std::string::npos) {
