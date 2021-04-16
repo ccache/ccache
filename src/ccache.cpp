@@ -398,14 +398,14 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
-  if (ctx.included_files.find(path) != ctx.included_files.end()) {
-    // Already known include file.
-    return true;
-  }
-
   // Canonicalize path for comparison; Clang uses ./header.h.
   if (Util::starts_with(path, "./")) {
     path.erase(0, 2);
+  }
+
+  if (ctx.included_files.find(path) != ctx.included_files.end()) {
+    // Already known include file.
+    return true;
   }
 
 #ifdef _WIN32
