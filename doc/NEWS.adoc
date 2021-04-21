@@ -8,9 +8,9 @@ Release date: 2021-03-27
 Bug fixes
 ~~~~~~~~~
 
-- Ccache now only `dup2`s stderr into `$UNCACHED_ERR_FD` for calls to the
-  preprocessor/compiler. This works around a complex bug in interaction with GNU
-  Make, LTO linking and the Linux PTY driver.
+- Ccache now only duplicates the stderr file descriptor into `$UNCACHED_ERR_FD`
+  for calls to the preprocessor/compiler. This works around a complex bug in
+  interaction with GNU Make, LTO linking and the Linux PTY driver.
 
 - Fixed detection of color diagnostics usage when using `-Xclang
   -fcolor-diagnostics` options.
