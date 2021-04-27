@@ -93,7 +93,7 @@ jobs:
 
             # Install ld.gold (binutils) and ld.lld on different runs.
             if [ "${{ matrix.config.os }}" = "ubuntu-16.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd1-dev binutils
+              sudo apt-get install -y ninja-build elfutils libzstd-dev binutils
             else
               sudo apt-get install -y ninja-build elfutils libzstd-dev lld
             fi
