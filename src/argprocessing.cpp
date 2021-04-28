@@ -232,6 +232,15 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  // Ignore clang -ivfsoverlay <arg> to not detect multiple input files.
+  if (args[i] == "-ivfsoverlay"
+      && !(config.sloppiness() & SLOPPY_IVFSOVERLAY)) {
+    LOG_RAW(
+      "You have to specify \"ivfsoverlay\" sloppiness when using"
+      " -ivfsoverlay to get hits");
+    return Statistic::unsupported_compiler_option;
+  }
+
   // Special case for -E.
   if (args[i] == "-E") {
     return Statistic::called_for_preprocessing;

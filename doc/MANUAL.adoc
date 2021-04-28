@@ -824,6 +824,10 @@ still has to do _some_ preprocessing (like macros).
     mtime is too new. This sloppiness disables that check. See also
     _<<_handling_of_newly_created_header_files,Handling of newly created header
     files>>_.
+*ivsfsoverlay*::
+    Ignore the Clang compiler option *-ivfsoverlay* and its argument. This is
+    useful if you use Xcode, which uses virtual file system (VFS) for
+    combining Objective-C and Swift code for example.
 *locale*::
     Ccache includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE* and
     *LC_MESSAGES* in the hash by default since they may affect localization of

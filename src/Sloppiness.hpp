@@ -38,4 +38,6 @@ enum Sloppiness {
   SLOPPY_LOCALE = 1 << 8,
   // Allow caching even if -fmodules is used.
   SLOPPY_MODULES = 1 << 9,
+  // Ignore virtual file system (VFS) overlay file.
+  SLOPPY_IVFSOVERLAY = 1 << 10,
 };
