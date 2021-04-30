@@ -133,7 +133,10 @@ target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_
 #
 # Documentation
 #
-add_subdirectory(doc)
+option(ENABLE_DOCUMENTATION "Enable documentation" ON)
+if(ENABLE_DOCUMENTATION)
+  add_subdirectory(doc)
+endif()
 
 #
 # Installation
