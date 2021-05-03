@@ -65,7 +65,8 @@ time_seconds()
 } // namespace
 
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
-  : m_args_info(args_info), m_trace_id(reinterpret_cast<void*>(getpid()))
+  : m_args_info(args_info),
+    m_trace_id(reinterpret_cast<void*>(getpid()))
 {
   TemporaryFile tmp_file(get_system_tmp_dir() + "/ccache-trace");
   m_tmp_trace_file = tmp_file.path;

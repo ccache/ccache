@@ -25,7 +25,8 @@
 #include <algorithm>
 
 ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
-  : m_stream(stream), m_zstd_stream(ZSTD_createCStream())
+  : m_stream(stream),
+    m_zstd_stream(ZSTD_createCStream())
 {
   if (compression_level == 0) {
     compression_level = default_compression_level;

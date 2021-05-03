@@ -3,6 +3,7 @@
 Language: Cpp
 BasedOnStyle: LLVM
 
+AllowAllConstructorInitializersOnNextLine: false
 AllowShortFunctionsOnASingleLine: None
 AlwaysBreakAfterReturnType: AllDefinitions
 AlwaysBreakBeforeMultilineStrings: true

@@ -300,7 +300,8 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
 }
 
 Writer::Writer(Context& ctx, const std::string& result_path)
-  : m_ctx(ctx), m_result_path(result_path)
+  : m_ctx(ctx),
+    m_result_path(result_path)
 {
 }
 

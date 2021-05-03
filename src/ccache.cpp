@@ -205,7 +205,8 @@ private:
 };
 
 inline Failure::Failure(Statistic statistic, nonstd::optional<int> exit_code)
-  : m_statistic(statistic), m_exit_code(exit_code)
+  : m_statistic(statistic),
+    m_exit_code(exit_code)
 {
 }
 

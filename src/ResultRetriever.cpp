@@ -25,7 +25,8 @@
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
-  : m_ctx(ctx), m_rewrite_dependency_target(rewrite_dependency_target)
+  : m_ctx(ctx),
+    m_rewrite_dependency_target(rewrite_dependency_target)
 {
 }
 
