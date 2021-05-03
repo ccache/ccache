@@ -1653,8 +1653,7 @@ calculate_result_name(Context& ctx,
 
     if (Util::starts_with(args[i], "-specs=")
         || Util::starts_with(args[i], "--specs=")
-        || args[i] == "-specs"
-        || args[i] == "--specs") {
+        || (args[i] == "-specs" || args[i] == "--specs")) {
       std::string path;
       size_t eq_pos = args[i].find('=');
       if (eq_pos == std::string::npos) {
