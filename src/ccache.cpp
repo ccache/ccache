@@ -1652,8 +1652,20 @@ calculate_result_name(Context& ctx,
     }
 
     if (Util::starts_with(args[i], "-specs=")
-        || Util::starts_with(args[i], "--specs=")) {
-      std::string path = args[i].substr(args[i].find('=') + 1);
+        || Util::starts_with(args[i], "--specs=")
+        || (args[i] == "-specs" || args[i] == "--specs")) {
+      std::string path;
+      size_t eq_pos = args[i].find('=');
+      if (eq_pos == std::string::npos) {
+        if (i + 1 >= args.size()) {
+          LOG("missing argument for \"{}\"", args[i]);
+          throw Failure(Statistic::bad_compiler_arguments);
+        }
+        path = args[i + 1];
+        i++;
+      } else {
+        path = args[i].substr(eq_pos + 1);
+      }
       auto st = Stat::stat(path, Stat::OnError::log);
       if (st) {
         // If given an explicit specs file, then hash that file, but don't
