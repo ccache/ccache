@@ -128,6 +128,29 @@ SUITE_profiling() {
             rm "$gcno_name"
         done
     done
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-arcs for different object file paths"
+
+    mkdir obj1 obj2
+
+    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj1/test.o
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj1/test.o
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj2/test.o
+    expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 2
+
+    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj2/test.o
+    expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 2
 }
 
 merge_profiling_data() {

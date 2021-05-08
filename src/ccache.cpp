@@ -1426,7 +1426,7 @@ hash_common_info(const Context& ctx,
 
   if ((!should_rewrite_dependency_target(ctx.args_info)
        && ctx.args_info.generating_dependencies)
-      || ctx.args_info.seen_split_dwarf) {
+      || ctx.args_info.seen_split_dwarf || ctx.args_info.profile_arcs) {
     // If generating dependencies: The output object file name is part of the .d
     // file, so include the path in the hash.
     //
@@ -1434,6 +1434,9 @@ hash_common_info(const Context& ctx,
     // corresponding .dwo file based on the target object filename, so hashing
     // the object file path will do it, although just hashing the object file
     // base name would be enough.
+    //
+    // When using -fprofile-arcs (including implicitly via --coverage), the
+    // object file contains a .gcda path based on the object file path.
     hash.hash_delimiter("object file");
     hash.hash(ctx.args_info.output_obj);
   }
