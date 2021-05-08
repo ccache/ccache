@@ -1435,7 +1435,7 @@ hash_common_info(const Context& ctx,
     // the object file path will do it, although just hashing the object file
     // base name would be enough.
     //
-    // When using -fprofile-arcs (including implicitly via --coverage), the
+    // When using -fprofile-arcs (including implicitly via --coverage): the
     // object file contains a .gcda path based on the object file path.
     hash.hash_delimiter("object file");
     hash.hash(ctx.args_info.output_obj);
