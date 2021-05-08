@@ -1427,13 +1427,13 @@ hash_common_info(const Context& ctx,
   if ((!should_rewrite_dependency_target(ctx.args_info)
        && ctx.args_info.generating_dependencies)
       || ctx.args_info.seen_split_dwarf) {
-    // The output object file name is part of the .d file, so include the path
-    // in the hash if generating dependencies.
+    // If generating dependencies: The output object file name is part of the .d
+    // file, so include the path in the hash.
     //
-    // Object files include a link to the corresponding .dwo file based on the
-    // target object filename when using -gsplit-dwarf, so hashing the object
-    // file path will do it, although just hashing the object file base name
-    // would be enough.
+    // When using -gsplit-dwarf: Object files include a link to the
+    // corresponding .dwo file based on the target object filename, so hashing
+    // the object file path will do it, although just hashing the object file
+    // base name would be enough.
     hash.hash_delimiter("object file");
     hash.hash(ctx.args_info.output_obj);
   }
