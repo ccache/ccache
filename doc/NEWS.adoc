@@ -32,7 +32,7 @@ Bug fixes
 - Fixed a bug that made ccache process header files redundantly for some
   relative headers when using Clang.
 
-- The object path in now included in the input hash when using `-fprofile-arcs`
+- The object path is now included in the input hash when using `-fprofile-arcs`
   (or `--coverage`) since the object file embeds a `.gcda` path based on the
   object file path.
 
