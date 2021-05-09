@@ -1986,7 +1986,7 @@ Bug fixes
 
 - ccache now copes with file systems that don’t know about symbolic links.
 
-- The file handle in now correctly closed on write error when trying to create
+- The file handle is now correctly closed on write error when trying to create
   a cache dir tag.
 
 
