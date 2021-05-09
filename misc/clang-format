@@ -53,7 +53,7 @@ if [ ! -x "$clang_format_exe" ]; then
 
     if ! command -v sha512sum >/dev/null; then
         echo "Warning: sha512sum not found, not verifying clang-format integrity" >&2
-    elif [ "$(sha512sum "$clang_format_exe.tmp" | awk '{print $1}')" != "$checksum" ]; then
+    elif ! echo "$checksum $clang_format_exe.tmp" | sha512sum --status -c; then
         echo "Error: Bad checksum of downloaded clang-format" >&2
         exit 1
     fi
