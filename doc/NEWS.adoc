@@ -1,6 +1,55 @@
 Ccache news
 ===========
 
+Ccache 4.3
+----------
+Release date: 2021-05-09
+
+New features
+~~~~~~~~~~~~
+
+- Ccache now ignores the Clang compiler option `-ivfsoverlay` and its argument
+  if you opt in to ``ivfsoverlay sloppiness''. This is useful if you use Xcode,
+  which uses a virtual file system (VFS) for things like combining Objective-C
+  and Swift code.
+
+- When using `-P` in combination with `-E`, ccache now reports this as ``called
+  for preprocessing'' instead of ``unsupported compiler option''.
+
+- Added support for `-specs file.specs` and `--specs file.specs` without an
+  equal sign between the arguments.
+
+
+Bug fixes
+~~~~~~~~~
+
+- "Split dwarf" code paths are now disabled when outputting to `/dev/null`. This
+  avoids an attempt to delete `/dev/null.dwo`.
+
+- Made the `stat`/`lstat` wrapper function for Windows treat pending deletes as
+  missing files.
+
+- Fixed a bug that made ccache process header files redundantly for some
+  relative headers when using Clang.
+
+- The object path in now included in the input hash when using `-fprofile-arcs`
+  (or `--coverage`) since the object file embeds a `.gcda` path based on the
+  object file path.
+
+
+Build improvements
+~~~~~~~~~~~~~~~~~~
+
+- Added an `ENABLE_DOCUMENTATION` build option (default: true) that can be used
+  to disable the build of documentation.
+
+- Fixed detection of pthread features.
+
+- Quote CMake variables expansions to avoid errors when
+  `${CMAKE_C_FLAGS_RELWITHDEBINFO}` or `${CMAKE_CXX_FLAGS_RELWITHDEBINFO}`
+  expands to the empty string.
+
+
 Ccache 4.2.1
 ------------
 Release date: 2021-03-27
