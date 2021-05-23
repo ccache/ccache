@@ -55,6 +55,7 @@ const CompOpt compopts[] = {
   {"--Werror", TAKES_ARG},                            // nvcc
   {"--analyze", TOO_HARD},                            // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},     // nvcc
+  {"--config", TAKES_ARG},                            // Clang
   {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
   {"--output-directory", AFFECTS_CPP | TAKES_ARG},    // nvcc
   {"--param", TAKES_ARG},
