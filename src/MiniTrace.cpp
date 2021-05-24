@@ -72,7 +72,8 @@ MiniTrace::MiniTrace(const ArgsInfo& args_info)
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
-  MTR_INSTANT_C("", "", "time", FMT("{:f}", time_seconds()).c_str());
+  m_start_time = FMT("{:f}", time_seconds());
+  MTR_INSTANT_C("", "", "time", m_start_time.c_str());
   MTR_META_PROCESS_NAME("ccache");
   MTR_START("program", "ccache", m_trace_id);
 }

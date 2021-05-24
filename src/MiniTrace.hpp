@@ -38,6 +38,7 @@ private:
   const ArgsInfo& m_args_info;
   const void* const m_trace_id;
   std::string m_tmp_trace_file;
+  std::string m_start_time;
 };
 
 #endif
