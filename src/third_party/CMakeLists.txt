@@ -10,12 +10,6 @@ if(WIN32)
   target_sources(third_party_lib PRIVATE win32/mktemp.c)
 endif ()
 
-if(MSVC)
-  target_compile_options(third_party_lib PRIVATE /FI ${CMAKE_BINARY_DIR}/config.h)
-else()
-  target_compile_options(third_party_lib PRIVATE -include ${CMAKE_BINARY_DIR}/config.h)
-endif()
-
 if(ENABLE_TRACING)
   target_sources(third_party_lib PRIVATE minitrace.c)
 endif()

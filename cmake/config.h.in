@@ -6,6 +6,11 @@
 #  endif
 #endif
 
+#ifdef __MINGW32__
+#  define __USE_MINGW_ANSI_STDIO 1
+#  define __STDC_FORMAT_MACROS 1
+#endif
+
 // For example for vasprintf under i686-w64-mingw32-g++-posix. The later
 // definition of _XOPEN_SOURCE disables certain features on Linux, so we need
 // _GNU_SOURCE to re-enable them (makedev, tm_zone).

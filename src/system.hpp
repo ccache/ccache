@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,13 +17,6 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #pragma once
-
-#ifdef __MINGW32__
-#  define __USE_MINGW_ANSI_STDIO 1
-#  define __STDC_FORMAT_MACROS 1
-#endif
-
-#include "config.h"
 
 #ifdef HAVE_SYS_FILE_H
 #  include <sys/file.h>
