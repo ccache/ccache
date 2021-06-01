@@ -49,10 +49,21 @@ nonstd::optional<std::string> get_result(const Counters& counters);
 // files in the cache.
 void zero_all_counters(const Config& config);
 
+// Collect cache statistics from all statistics counters.
+std::pair<Counters, time_t> collect_counters(const Config& config);
+
+// Format config header in human-readable format.
+std::string format_config_header(const Config& config);
+
 // Format cache statistics in human-readable format.
-std::string format_human_readable(const Config& config);
+std::string format_human_readable(const Counters& counters,
+                                  time_t last_updated);
+
+// Format config footer in human-readable format.
+std::string format_config_footer(const Config& config);
 
 // Format cache statistics in machine-readable format.
-std::string format_machine_readable(const Config& config);
+std::string format_machine_readable(const Counters& counters,
+                                    time_t last_updated);
 
 } // namespace Statistics

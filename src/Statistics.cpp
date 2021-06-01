@@ -88,8 +88,8 @@ for_each_level_1_and_2_stats_file(
   }
 }
 
-static std::pair<Counters, time_t>
-collect_counters(const Config& config)
+std::pair<Counters, time_t>
+Statistics::collect_counters(const Config& config)
 {
   Counters counters;
   uint64_t zero_timestamp = 0;
@@ -274,17 +274,23 @@ zero_all_counters(const Config& config)
 }
 
 std::string
-format_human_readable(const Config& config)
+format_config_header(const Config& config)
 {
-  Counters counters;
-  time_t last_updated;
-  std::tie(counters, last_updated) = collect_counters(config);
   std::string result;
 
   result += FMT("{:36}{}\n", "cache directory", config.cache_dir());
   result += FMT("{:36}{}\n", "primary config", config.primary_config_path());
   result += FMT(
     "{:36}{}\n", "secondary config (readonly)", config.secondary_config_path());
+
+  return result;
+}
+
+std::string
+format_human_readable(const Counters& counters, time_t last_updated)
+{
+  std::string result;
+
   if (last_updated > 0) {
     const auto tm = Util::localtime(last_updated);
     char timestamp[100] = "?";
@@ -320,6 +326,14 @@ format_human_readable(const Config& config)
     }
   }
 
+  return result;
+}
+
+std::string
+format_config_footer(const Config& config)
+{
+  std::string result;
+
   if (config.max_files() != 0) {
     result += FMT("{:32}{:8}\n", "max files", config.max_files());
   }
@@ -332,11 +346,8 @@ format_human_readable(const Config& config)
 }
 
 std::string
-format_machine_readable(const Config& config)
+format_machine_readable(const Counters& counters, time_t last_updated)
 {
-  Counters counters;
-  time_t last_updated;
-  std::tie(counters, last_updated) = collect_counters(config);
   std::string result;
 
   result += FMT("stats_updated_timestamp\t{}\n", last_updated);
