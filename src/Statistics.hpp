@@ -41,9 +41,18 @@ Counters read(const std::string& path);
 nonstd::optional<Counters> update(const std::string& path,
                                   std::function<void(Counters& counters)>);
 
+// Write input and result to the file in `path`.
+void log_result(const std::string& path,
+                const std::string& input,
+                const std::string& result);
+
 // Return a human-readable string representing the final ccache result, or
 // nullopt if there was no result.
-nonstd::optional<std::string> get_result(const Counters& counters);
+nonstd::optional<std::string> get_result_message(const Counters& counters);
+
+// Return a machine-readable string representing the final ccache result, or
+// nullopt if there was no result.
+nonstd::optional<std::string> get_result_id(const Counters& counters);
 
 // Zero all statistics counters except those tracking cache size and number of
 // files in the cache.

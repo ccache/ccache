@@ -20,9 +20,11 @@
 
 #include "AtomicFile.hpp"
 #include "Config.hpp"
+#include "File.hpp"
 #include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
+#include "assertions.hpp"
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
@@ -244,13 +246,47 @@ update(const std::string& path,
   return counters;
 }
 
-optional<std::string>
+void
+log_result(const std::string& path,
+           const std::string& input,
+           const std::string& result)
+{
+  File file(path, "ab");
+  if (file) {
+    PRINT(*file, "# {}\n", input);
+    PRINT(*file, "{}\n", result);
+  } else {
+    LOG("Failed to open {}: {}", path, strerror(errno));
+  }
+}
+
+static const StatisticsField*
 get_result(const Counters& counters)
 {
   for (const auto& field : k_statistics_fields) {
     if (counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-      return field.message;
+      return &field;
     }
+  }
+  return nullptr;
+}
+
+optional<std::string>
+get_result_id(const Counters& counters)
+{
+  const auto result = get_result(counters);
+  if (result) {
+    return result->id;
+  }
+  return nullopt;
+}
+
+optional<std::string>
+get_result_message(const Counters& counters)
+{
+  const auto result = get_result(counters);
+  if (result) {
+    return result->message;
   }
   return nullopt;
 }

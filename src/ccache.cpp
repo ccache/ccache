@@ -2205,9 +2205,17 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    const auto result = Statistics::get_result(ctx.counter_updates);
+    const auto result = Statistics::get_result_message(ctx.counter_updates);
     if (result) {
       LOG("Result: {}", *result);
+    }
+  }
+
+  if (!config.stats_log().empty()) {
+    const auto result_id = Statistics::get_result_id(ctx.counter_updates);
+    if (result_id) {
+      Statistics::log_result(
+        config.stats_log(), ctx.args_info.input_file, *result_id);
     }
   }
 
