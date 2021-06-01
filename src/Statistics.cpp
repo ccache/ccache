@@ -28,9 +28,13 @@
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
-const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
-const unsigned FLAG_ALWAYS = 2; // always show, even if zero
-const unsigned FLAG_NEVER = 4;  // never show
+#include <fstream>
+#include <unordered_map>
+
+const unsigned FLAG_NOZERO = 1;     // don't zero with the -z option
+const unsigned FLAG_ALWAYS = 2;     // always show, even if zero
+const unsigned FLAG_NEVER = 4;      // never show
+const unsigned FLAG_NOSTATSLOG = 8; // don't show for statslog
 
 using nonstd::nullopt;
 using nonstd::optional;
@@ -175,11 +179,14 @@ const StatisticsField k_statistics_fields[] = {
   STATISTICS_FIELD(bad_output_file, "could not write to output file"),
   STATISTICS_FIELD(no_input_file, "no input file"),
   STATISTICS_FIELD(error_hashing_extra_file, "error hashing extra file"),
-  STATISTICS_FIELD(cleanups_performed, "cleanups performed", FLAG_ALWAYS),
-  STATISTICS_FIELD(files_in_cache, "files in cache", FLAG_NOZERO | FLAG_ALWAYS),
+  STATISTICS_FIELD(
+    cleanups_performed, "cleanups performed", FLAG_NOSTATSLOG | FLAG_ALWAYS),
+  STATISTICS_FIELD(files_in_cache,
+                   "files in cache",
+                   FLAG_NOZERO | FLAG_NOSTATSLOG | FLAG_ALWAYS),
   STATISTICS_FIELD(cache_size_kibibyte,
                    "cache size",
-                   FLAG_NOZERO | FLAG_ALWAYS,
+                   FLAG_NOZERO | FLAG_NOSTATSLOG | FLAG_ALWAYS,
                    format_size_times_1024),
   STATISTICS_FIELD(obsolete_max_files, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
   STATISTICS_FIELD(obsolete_max_size, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
@@ -212,6 +219,34 @@ read(const std::string& path)
     counters.set_raw(i, value);
     ++i;
     str = end;
+  }
+
+  return counters;
+}
+
+Counters
+read_log(const std::string& path)
+{
+  Counters counters;
+
+  std::unordered_map<std::string, Statistic> m;
+  for (const auto& field : k_statistics_fields) {
+    m[field.id] = field.statistic;
+  }
+
+  std::ifstream in(path);
+  std::string line;
+  while (std::getline(in, line, '\n')) {
+    if (line[0] == '#') {
+      continue;
+    }
+    auto search = m.find(line);
+    if (search != m.end()) {
+      Statistic statistic = search->second;
+      counters.increment(statistic, 1);
+    } else {
+      LOG("Unknown statistic: {}", line);
+    }
   }
 
   return counters;
@@ -310,6 +345,16 @@ zero_all_counters(const Config& config)
 }
 
 std::string
+format_stats_log(const Config& config)
+{
+  std::string result;
+
+  result += FMT("{:36}{}\n", "stats log", config.stats_log());
+
+  return result;
+}
+
+std::string
 format_config_header(const Config& config)
 {
   std::string result;
@@ -323,7 +368,9 @@ format_config_header(const Config& config)
 }
 
 std::string
-format_human_readable(const Counters& counters, time_t last_updated)
+format_human_readable(const Counters& counters,
+                      time_t last_updated,
+                      bool from_log)
 {
   std::string result;
 
@@ -345,6 +392,11 @@ format_human_readable(const Counters& counters, time_t last_updated)
     }
     if (counters.get(statistic) == 0
         && !(k_statistics_fields[i].flags & FLAG_ALWAYS)) {
+      continue;
+    }
+
+    // don't show cache directory info if reading from a log
+    if (from_log && (k_statistics_fields[i].flags & FLAG_NOSTATSLOG)) {
       continue;
     }
 

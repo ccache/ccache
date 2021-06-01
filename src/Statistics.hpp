@@ -26,6 +26,7 @@
 #include "third_party/nonstd/optional.hpp"
 
 #include <functional>
+#include <sstream>
 #include <string>
 
 class Config;
@@ -34,6 +35,9 @@ namespace Statistics {
 
 // Read counters from `path`. No lock is acquired.
 Counters read(const std::string& path);
+
+// Read counters from lines of text in `path`.
+Counters read_log(const std::string& path);
 
 // Acquire a lock, read counters from `path`, call `function` with the counters,
 // write the counters to `path` and release the lock. Returns the resulting
@@ -61,12 +65,16 @@ void zero_all_counters(const Config& config);
 // Collect cache statistics from all statistics counters.
 std::pair<Counters, time_t> collect_counters(const Config& config);
 
+// Format stats log in human-readable format.
+std::string format_stats_log(const Config& config);
+
 // Format config header in human-readable format.
 std::string format_config_header(const Config& config);
 
 // Format cache statistics in human-readable format.
 std::string format_human_readable(const Counters& counters,
-                                  time_t last_updated);
+                                  time_t last_updated,
+                                  bool from_log);
 
 // Format config footer in human-readable format.
 std::string format_config_footer(const Config& config);
