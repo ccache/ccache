@@ -80,6 +80,17 @@ TEST_CASE("Read future counters")
   }
 }
 
+TEST_CASE("Read log")
+{
+  TestContext test_context;
+
+  Util::write_file("stats.log", "# comment\ndirect_cache_hit\n");
+  Counters counters = Statistics::read_log("stats.log");
+
+  CHECK(counters.get(Statistic::direct_cache_hit) == 1);
+  CHECK(counters.get(Statistic::cache_miss) == 0);
+}
+
 TEST_CASE("Update")
 {
   TestContext test_context;
@@ -98,6 +109,34 @@ TEST_CASE("Update")
   counters = Statistics::read("test");
   CHECK(counters->get(Statistic::internal_error) == 4);
   CHECK(counters->get(Statistic::cache_miss) == 33);
+}
+
+TEST_CASE("Get result")
+{
+  TestContext test_context;
+
+  auto counters = Statistics::update(
+    "test", [](Counters& cs) { cs.increment(Statistic::cache_miss, 1); });
+  REQUIRE(counters);
+
+  auto result = Statistics::get_result_message(*counters);
+  REQUIRE(result);
+}
+
+TEST_CASE("Log result")
+{
+  TestContext test_context;
+
+  auto counters = Statistics::update(
+    "test", [](Counters& cs) { cs.increment(Statistic::cache_miss, 1); });
+  REQUIRE(counters);
+
+  auto result_id = Statistics::get_result_id(*counters);
+  REQUIRE(result_id);
+  Statistics::log_result("stats.log", "test.c", *result_id);
+
+  auto statslog = Util::read_file("stats.log");
+  REQUIRE(statslog.find(*result_id + "\n") != std::string::npos);
 }
 
 TEST_SUITE_END();
