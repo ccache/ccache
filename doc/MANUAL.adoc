@@ -1,18 +1,15 @@
-CCACHE(1)
-=========
+= CCACHE(1)
 :man source:  ccache
 :man version: {revnumber}
 :man manual:  ccache Manual
 
 
-Name
-----
+== Name
 
 ccache - a fast C/C++ compiler cache
 
 
-Synopsis
---------
+== Synopsis
 
 [verse]
 *ccache* [_options_]
@@ -20,8 +17,7 @@ Synopsis
 _compiler_ [_compiler options_]                   (via symbolic link)
 
 
-Description
------------
+== Description
 
 Ccache is a compiler cache. It speeds up recompilation by caching the result of
 previous compilations and detecting when the same compilation is being done
@@ -34,8 +30,7 @@ goal are listed under <<_caveats,CAVEATS>>. If you discover an undocumented case
 where ccache changes the output of your compiler, please let us know.
 
 
-Run modes
----------
+== Run modes
 
 There are two ways to use ccache. You can either prefix your compilation
 commands with *ccache* or you can let ccache masquerade as the compiler by
@@ -68,8 +63,7 @@ compiler wrappers>>_.
 
 WARNING: Use a symbolic links for masquerading, not hard links.
 
-Command line options
---------------------
+== Command line options
 
 These command line options only apply when you invoke ccache as ``ccache''.
 When invoked as a compiler (via a symlink as described in the previous
@@ -77,8 +71,7 @@ section), the normal compiler options apply and you should refer to the
 compiler's documentation.
 
 
-Common options
-~~~~~~~~~~~~~~
+=== Common options
 
 *`-c`*, *`--cleanup`*::
 
@@ -174,8 +167,7 @@ Common options
     Zero the cache statistics (but not the configuration options).
 
 
-Options for scripting or debugging
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Options for scripting or debugging
 
 *`--checksum-file`* _PATH_::
 
@@ -214,8 +206,7 @@ Options for scripting or debugging
 
 
 
-Extra options
-~~~~~~~~~~~~~
+=== Extra options
 
 When run as a compiler, ccache usually just takes the same command line options
 as the compiler you are using. The only exception to this is the option
@@ -239,8 +230,7 @@ option specially but shouldn't, since the option has another meaning for your
 compiler than what ccache thinks.
 
 
-Configuration
--------------
+== Configuration
 
 ccache's default behavior can be overridden by options in configuration files,
 which in turn can be overridden by environment variables with names starting
@@ -261,8 +251,7 @@ it specifies the primary configuration file and the secondary (system-wide)
 configuration file won't be read.
 
 
-Location of the primary configuration file
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Location of the primary configuration file
 
 The location of the primary (cache-specific) configuration is determined like
 this:
@@ -281,8 +270,7 @@ this:
    *$HOME/.config/ccache/ccache.conf* (other systems).
 
 
-Configuration file syntax
-~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Configuration file syntax
 
 Configuration files are in a simple ``key = value'' format, one option per
 line. Lines starting with a hash sign are comments. Blank lines are ignored, as
@@ -293,8 +281,7 @@ is whitespace surrounding keys and values. Example:
 max_size = 10G
 -------------------------------------------------------------------------------
 
-Boolean values
-~~~~~~~~~~~~~~
+=== Boolean values
 
 Some configuration options are boolean values (i.e. truth values). In a
 configuration file, such values must be set to the string *true* or *false*.
@@ -310,8 +297,7 @@ Each boolean environment variable also has a negated form starting with
 *CCACHE_NOCOMPRESS* can be set to force no compression.
 
 
-Configuration options
-~~~~~~~~~~~~~~~~~~~~~~
+=== Configuration options
 
 Below is a list of available configuration options. The corresponding
 environment variable name is indicated in parentheses after each configuration
@@ -874,8 +860,7 @@ filesystem as the *CCACHE_DIR* path, but this requirement has been relaxed.)
     other users.
 
 
-Cache size management
----------------------
+== Cache size management
 
 By default, ccache has a 5 GB limit on the total size of files in the cache and
 no limit on the number of files. You can set different limits using the command
@@ -886,8 +871,7 @@ addition to other various statistics).
 Cleanup can be triggered in two different ways: automatic and manual.
 
 
-Automatic cleanup
-~~~~~~~~~~~~~~~~~
+=== Automatic cleanup
 
 Ccache maintains counters for various statistics about the cache, including the
 size and number of all cached files. In order to improve performance and reduce
@@ -916,8 +900,7 @@ limits is that a cleanup is a fairly slow operation, so it would not be a good
 idea to trigger it often, like after each cache miss.
 
 
-Manual cleanup
-~~~~~~~~~~~~~~
+=== Manual cleanup
 
 You can run *ccache -c/--cleanup* to force cleanup of the whole cache, i.e. all
 of the sixteen subdirectories. This will recalculate the statistics counters
@@ -927,8 +910,7 @@ and make sure that the configuration options *max_size* and
 cleanup.
 
 
-Cache compression
------------------
+== Cache compression
 
 Ccache will by default compress all data it puts into the cache using the
 compression algorithm http://zstd.net[Zstandard] (zstd) using compression level
@@ -973,8 +955,7 @@ are currently compressed with a different level than the target level will be
 recompressed.
 
 
-Cache statistics
-----------------
+== Cache statistics
 
 *ccache -s/--show-stats* can show the following statistics:
 
@@ -1095,8 +1076,7 @@ A source language e.g. specified with *-x* was unsupported by ccache.
 |==============================================================================
 
 
-How ccache works
-----------------
+== How ccache works
 
 The basic idea is to detect when you are compiling exactly the same code a
 second time and reuse the previously produced output. The detection is done by
@@ -1126,8 +1106,7 @@ even on cache misses. Read more in _<<_the_depend_mode,The depend mode>>_
 below.
 
 
-Common hashed information
-~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Common hashed information
 
 The following information is always included in the hash:
 
@@ -1141,8 +1120,7 @@ The following information is always included in the hash:
   <<config_extra_files_to_hash,*extra_files_to_hash*>> (if any)
 
 
-The preprocessor mode
-~~~~~~~~~~~~~~~~~~~~~
+=== The preprocessor mode
 
 In the preprocessor mode, the hash is formed of the common information and:
 
@@ -1156,8 +1134,7 @@ Based on the hash, the cached compilation result can be looked up directly in
 the cache.
 
 
-The direct mode
-~~~~~~~~~~~~~~~
+=== The direct mode
 
 In the direct mode, the hash is formed of the common information and:
 
@@ -1201,8 +1178,7 @@ The direct mode will be disabled if any of the following holds:
 * the string `__TIME__` is present in the source code
 
 
-The depend mode
-~~~~~~~~~~~~~~~
+=== The depend mode
 
 If the depend mode is enabled, ccache will not use the preprocessor at all. The
 hash used to identify results in the cache will be based on the direct mode
@@ -1235,8 +1211,7 @@ The depend mode will be disabled if any of the following holds:
 * The compiler is not generating dependencies using *-MD* or *-MMD*.
 
 
-Handling of newly created header files
---------------------------------------
+== Handling of newly created header files
 
 If modification time (mtime) or status change time (ctime) of one of the include
 files is the same second as the time compilation is being done, ccache disables
@@ -1263,8 +1238,7 @@ For reference, the race condition mentioned above consists of these events:
 5. The wrong object file is stored in the cache.
 
 
-Cache debugging
----------------
+== Cache debugging
 
 To find out what information ccache actually is hashing, you can enable the
 debug mode via the configuration option <<config_debug,*debug*>> or by setting
@@ -1318,8 +1292,7 @@ something like this:
    what is happening.
 
 
-Compiling in different directories
-----------------------------------
+== Compiling in different directories
 
 Some information included in the hash that identifies a unique compilation can
 contain absolute paths:
@@ -1356,8 +1329,7 @@ directories:
   relative before computing the hash.
 
 
-Precompiled headers
--------------------
+== Precompiled headers
 
 Ccache has support for GCC's precompiled headers. However, you have to do some
 things to make it work properly:
@@ -1390,8 +1362,7 @@ non-precompiled header file is not available).
 --
 
 
-C++ modules
------------
+== C++ modules
 
 Ccache has support for Clang's *-fmodules* option. In practice ccache only
 additionally hashes *module.modulemap* files; it does not know how Clang
@@ -1406,8 +1377,7 @@ preprocessor mode>> Clang does not provide enough information to allow hashing
 of *module.modulemap* files.
 
 
-Sharing a cache
----------------
+== Sharing a cache
 
 A group of developers can increase the cache hit rate by sharing a cache
 directory. To share a cache without unpleasant side effects, the following
@@ -1442,8 +1412,7 @@ You may also want to make sure that a base directory is set appropriately, as
 discussed in a previous section.
 
 
-Sharing a cache on NFS
-----------------------
+== Sharing a cache on NFS
 
 It is possible to put the cache directory on an NFS filesystem (or similar
 filesystems), but keep in mind that:
@@ -1463,8 +1432,7 @@ systems. One way of improving cache hit rate in that case is to set
 headers.
 
 
-Using ccache with other compiler wrappers
------------------------------------------
+== Using ccache with other compiler wrappers
 
 The recommended way of combining ccache with another compiler wrapper (such as
 ``distcc'') is by letting ccache execute the compiler wrapper. This is
@@ -1494,18 +1462,15 @@ which increases performance. You can use
 the other wrapper when doing preprocessing (normally by adding *-E*).
 
 
-Caveats
--------
+== Caveats
 
 * The direct mode fails to pick up new header files in some rare scenarios. See
   _<<_the_direct_mode,The direct mode>>_ above.
 
 
-Troubleshooting
----------------
+== Troubleshooting
 
-General
-~~~~~~~
+=== General
 
 A general tip for getting information about what ccache is doing is to enable
 debug logging by setting the configuration option <<config_debug,*debug*>> (or
@@ -1514,8 +1479,7 @@ debugging>>_ for more information. Another way of keeping track of what is
 happening is to check the output of *ccache -s*.
 
 
-Performance
-~~~~~~~~~~~
+=== Performance
 
 Ccache has been written to perform well out of the box, but sometimes you may
 have to do some adjustments of how you use the compiler and ccache in order to
@@ -1594,8 +1558,7 @@ problems and what may be done to increase the hit rate:
   modules>>_.
 
 
-Corrupt object files
-~~~~~~~~~~~~~~~~~~~~
+=== Corrupt object files
 
 It should be noted that ccache is susceptible to general storage problems. If a
 bad object file sneaks into the cache for some reason, it will of course stay
@@ -1616,15 +1579,13 @@ reproducibly. That doesn't mean it can't happen, so if you find a repeatable
 case, please report it.
 
 
-More information
-----------------
+== More information
 
 Credits, mailing list information, bug reporting instructions, source code,
 etc, can be found on ccache's web site: <https://ccache.dev>.
 
 
-Author
-------
+== Author
 
 Ccache was originally written by Andrew Tridgell and is currently developed and
 maintained by Joel Rosdahl. See AUTHORS.txt or AUTHORS.html and
