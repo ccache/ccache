@@ -1095,6 +1095,8 @@ to_cache(Context& ctx,
     throw Failure(Statistic::internal_error);
   }
 
+  MTR_BEGIN("file", "file_put");
+
   const auto result_file = look_up_cache_file(
     ctx.config.cache_dir(), *ctx.result_name(), Result::k_file_suffix);
   ctx.set_result_path(result_file.path);
