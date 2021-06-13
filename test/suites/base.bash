@@ -1239,7 +1239,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "-P -E"
 
-    $CCACHE_COMPILE -P -E test1.c
+    $CCACHE_COMPILE -P -E test1.c >/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
