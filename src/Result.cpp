@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -196,6 +196,14 @@ gcno_file_in_unmangled_form(const Context& ctx)
   return Util::change_extension(ctx.args_info.output_obj, ".gcno");
 }
 
+FileSizeAndCountDiff&
+FileSizeAndCountDiff::operator+=(const FileSizeAndCountDiff& other)
+{
+  size_kibibyte += other.size_kibibyte;
+  count += other.count;
+  return *this;
+}
+
 Result::Reader::Reader(const std::string& result_path)
   : m_result_path(result_path)
 {
@@ -311,20 +319,20 @@ Writer::write(FileType file_type, const std::string& file_path)
   m_entries_to_write.emplace_back(file_type, file_path);
 }
 
-optional<std::string>
+nonstd::expected<FileSizeAndCountDiff, std::string>
 Writer::finalize()
 {
   try {
-    do_finalize();
-    return nullopt;
+    return do_finalize();
   } catch (const Error& e) {
-    return e.what();
+    return nonstd::make_unexpected(e.what());
   }
 }
 
-void
+FileSizeAndCountDiff
 Writer::do_finalize()
 {
+  FileSizeAndCountDiff file_size_and_count_diff{0, 0};
   uint64_t payload_size = 0;
   payload_size += 1; // n_entries
   for (const auto& pair : m_entries_to_write) {
@@ -369,7 +377,7 @@ Writer::do_finalize()
     writer.write(file_size);
 
     if (store_raw) {
-      write_raw_file_entry(path, entry_number);
+      file_size_and_count_diff += write_raw_file_entry(path, entry_number);
     } else {
       write_embedded_file_entry(writer, path, file_size);
     }
@@ -379,6 +387,8 @@ Writer::do_finalize()
 
   writer.finalize();
   atomic_result_file.commit();
+
+  return file_size_and_count_diff;
 }
 
 void
@@ -410,7 +420,7 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
   }
 }
 
-void
+FileSizeAndCountDiff
 Result::Writer::write_raw_file_entry(const std::string& path,
                                      uint32_t entry_number)
 {
@@ -423,11 +433,10 @@ Result::Writer::write_raw_file_entry(const std::string& path,
       "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
   }
   const auto new_stat = Stat::stat(raw_file);
-  m_ctx.counter_updates.increment(
-    Statistic::cache_size_kibibyte,
-    Util::size_change_kibibyte(old_stat, new_stat));
-  m_ctx.counter_updates.increment(Statistic::files_in_cache,
-                                  (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
+  return {
+    Util::size_change_kibibyte(old_stat, new_stat),
+    (new_stat ? 1 : 0) - (old_stat ? 1 : 0),
+  };
 }
 
 } // namespace Result

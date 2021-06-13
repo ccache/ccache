@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include "system.hpp"
 
+#include "third_party/nonstd/expected.hpp"
 #include "third_party/nonstd/optional.hpp"
 
 #include <map>
@@ -79,6 +80,14 @@ const char* file_type_to_string(FileType type);
 std::string gcno_file_in_mangled_form(const Context& ctx);
 std::string gcno_file_in_unmangled_form(const Context& ctx);
 
+struct FileSizeAndCountDiff
+{
+  int64_t size_kibibyte;
+  int64_t count;
+
+  FileSizeAndCountDiff& operator+=(const FileSizeAndCountDiff& other);
+};
+
 // This class knows how to read a result cache entry.
 class Reader
 {
@@ -121,18 +130,19 @@ public:
   void write(FileType file_type, const std::string& file_path);
 
   // Write registered files to the result. Returns an error message on error.
-  nonstd::optional<std::string> finalize();
+  nonstd::expected<FileSizeAndCountDiff, std::string> finalize();
 
 private:
   Context& m_ctx;
   const std::string m_result_path;
   std::vector<std::pair<FileType, std::string>> m_entries_to_write;
 
-  void do_finalize();
+  FileSizeAndCountDiff do_finalize();
   static void write_embedded_file_entry(CacheEntryWriter& writer,
                                         const std::string& path,
                                         uint64_t file_size);
-  void write_raw_file_entry(const std::string& path, uint32_t entry_number);
+  FileSizeAndCountDiff write_raw_file_entry(const std::string& path,
+                                            uint32_t entry_number);
 };
 
 } // namespace Result

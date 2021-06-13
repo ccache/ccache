@@ -1134,11 +1134,15 @@ to_cache(Context& ctx,
                         ctx.args_info.output_dwo);
   }
 
-  auto error = result_writer.finalize();
-  if (error) {
-    LOG("Error: {}", *error);
-  } else {
+  const auto file_size_and_count_diff = result_writer.finalize();
+  if (file_size_and_count_diff) {
     LOG("Stored in cache: {}", result_file.path);
+    ctx.counter_updates.increment(Statistic::cache_size_kibibyte,
+                                  file_size_and_count_diff->size_kibibyte);
+    ctx.counter_updates.increment(Statistic::files_in_cache,
+                                  file_size_and_count_diff->count);
+  } else {
+    LOG("Error: {}", file_size_and_count_diff.error());
   }
 
   auto new_result_stat = Stat::stat(result_file.path, Stat::OnError::log);
