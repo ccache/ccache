@@ -61,10 +61,11 @@ fine.
 
 Please follow these conventions:
 
-* Use `UpperCamelCase` for types (e.g. classes and structs) and namespaces.
-* Use `UPPER_CASE` names for macros and (non-class )enum values.
-* Use `snake_case` for other names (functions, variables, enum class values,
-  etc.).
+* Use `UpperCamelCase` for types (e.g. classes and structs).
+* Use `UPPER_CASE` names for macros and (non-class) enum values.
+* Use `snake_case` for other names (namespaces, functions, variables, enum class
+  values, etc.). (Namespaces used to be in `UpperCamelCase`; transition is work
+  in progress.)
 * Use an `m_` prefix for non-public member variables.
 * Use a `g_` prefix for global mutable variables.
 * Use a `k_` prefix for global constants.
