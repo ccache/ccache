@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,7 +32,8 @@ using nonstd::string_view;
 
 Context::Context()
   : actual_cwd(Util::get_actual_cwd()),
-    apparent_cwd(Util::get_apparent_cwd(actual_cwd))
+    apparent_cwd(Util::get_apparent_cwd(actual_cwd)),
+    storage(config)
 #ifdef INODE_CACHE_SUPPORTED
     ,
     inode_cache(config)

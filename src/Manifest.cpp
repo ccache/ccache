@@ -164,14 +164,14 @@ struct ResultEntry
   // Indexes to file_infos.
   std::vector<uint32_t> file_info_indexes;
 
-  // Name of the result.
-  Digest name;
+  // Key of the result.
+  Digest key;
 };
 
 bool
 operator==(const ResultEntry& lhs, const ResultEntry& rhs)
 {
-  return lhs.file_info_indexes == rhs.file_info_indexes && lhs.name == rhs.name;
+  return lhs.file_info_indexes == rhs.file_info_indexes && lhs.key == rhs.key;
 }
 
 struct ManifestData
@@ -182,12 +182,12 @@ struct ManifestData
   // Information about referenced include files.
   std::vector<FileInfo> file_infos;
 
-  // Result names plus references to include file infos.
+  // Result keys plus references to include file infos.
   std::vector<ResultEntry> results;
 
   bool
   add_result_entry(
-    const Digest& result_digest,
+    const Digest& result_key,
     const std::unordered_map<std::string, Digest>& included_files,
     time_t time_of_compilation,
     bool save_timestamp)
@@ -214,7 +214,7 @@ struct ManifestData
                                                       save_timestamp));
     }
 
-    ResultEntry entry{std::move(file_info_indexes), result_digest};
+    ResultEntry entry{std::move(file_info_indexes), result_key};
     if (std::find(results.begin(), results.end(), entry) == results.end()) {
       results.push_back(std::move(entry));
       return true;
@@ -343,7 +343,7 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
       reader.read(file_info_index);
       entry.file_info_indexes.push_back(file_info_index);
     }
-    reader.read(entry.name.bytes(), Digest::size());
+    reader.read(entry.key.bytes(), Digest::size());
   }
 
   reader.finalize();
@@ -397,7 +397,7 @@ write_manifest(const Config& config,
     for (auto index : result.file_info_indexes) {
       writer.write(index);
     }
-    writer.write(result.name.bytes(), Digest::size());
+    writer.write(result.key.bytes(), Digest::size());
   }
 
   writer.finalize();
@@ -494,17 +494,14 @@ const std::string k_file_suffix = "M";
 const uint8_t k_magic[4] = {'c', 'C', 'm', 'F'};
 const uint8_t k_version = 2;
 
-// Try to get the result name from a manifest file. Returns nullopt on failure.
+// Try to get the result key from a manifest file. Returns nullopt on failure.
 optional<Digest>
 get(const Context& ctx, const std::string& path)
 {
   std::unique_ptr<ManifestData> mf;
   try {
     mf = read_manifest(path);
-    if (mf) {
-      // Update modification timestamp to save files from LRU cleanup.
-      Util::update_mtime(path);
-    } else {
+    if (!mf) {
       LOG_RAW("No such manifest file");
       return nullopt;
     }
@@ -520,19 +517,19 @@ get(const Context& ctx, const std::string& path)
   for (uint32_t i = mf->results.size(); i > 0; i--) {
     if (verify_result(
           ctx, *mf, mf->results[i - 1], stated_files, hashed_files)) {
-      return mf->results[i - 1].name;
+      return mf->results[i - 1].key;
     }
   }
 
   return nullopt;
 }
 
-// Put the result name into a manifest file given a set of included files.
+// Put the result key into a manifest file given a set of included files.
 // Returns true on success, otherwise false.
 bool
 put(const Config& config,
     const std::string& path,
-    const Digest& result_name,
+    const Digest& result_key,
     const std::unordered_map<std::string, Digest>& included_files,
 
     time_t time_of_compilation,
@@ -579,7 +576,7 @@ put(const Config& config,
   }
 
   bool added = mf->add_result_entry(
-    result_name, included_files, time_of_compilation, save_timestamp);
+    result_key, included_files, time_of_compilation, save_timestamp);
 
   if (added) {
     try {
@@ -631,7 +628,7 @@ dump(const std::string& path, FILE* stream)
       PRINT(stream, " {}", file_info_index);
     }
     PRINT_RAW(stream, "\n");
-    PRINT(stream, "    Name: {}\n", mf->results[i].name.to_string());
+    PRINT(stream, "    Key: {}\n", mf->results[i].key.to_string());
   }
 
   return true;

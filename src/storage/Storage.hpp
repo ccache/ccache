@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,32 +18,44 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "types.hpp"
 
-#include "third_party/nonstd/optional.hpp"
+#include <core/types.hpp>
+#include <storage/primary/PrimaryStorage.hpp>
+
+#include <third_party/nonstd/optional.hpp>
 
 // System headers
+#include <functional>
 #include <string>
-#include <unordered_map>
 // End of system headers
 
-class Config;
-class Context;
 class Digest;
 
-namespace Manifest {
+namespace storage {
 
-extern const std::string k_file_suffix;
-extern const uint8_t k_magic[4];
-extern const uint8_t k_version;
+class Storage
+{
+public:
+  Storage(const Config& config);
 
-nonstd::optional<Digest> get(const Context& ctx, const std::string& path);
-bool put(const Config& config,
-         const std::string& path,
-         const Digest& result_key,
-         const std::unordered_map<std::string, Digest>& included_files,
-         time_t time_of_compilation,
-         bool save_timestamp);
-bool dump(const std::string& path, FILE* stream);
+  void initialize();
+  void finalize();
 
-} // namespace Manifest
+  primary::PrimaryStorage& primary();
+
+  // Returns a path to a file containing the value.
+  nonstd::optional<std::string> get(const Digest& key,
+                                    core::CacheEntryType type);
+
+  bool put(const Digest& key,
+           core::CacheEntryType type,
+           const storage::CacheEntryWriter& entry_writer);
+
+  void remove(const Digest& key, core::CacheEntryType type);
+
+private:
+  primary::PrimaryStorage m_primary_storage;
+};
+
+} // namespace storage

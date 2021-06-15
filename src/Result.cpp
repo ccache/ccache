@@ -359,7 +359,7 @@ Writer::do_finalize()
   for (const auto& pair : m_entries_to_write) {
     const auto file_type = pair.first;
     const auto& path = pair.second;
-    LOG("Storing result {}", path);
+    LOG("Storing result file {}", path);
 
     const bool store_raw = should_store_raw_file(m_ctx.config, file_type);
     uint64_t file_size = Stat::stat(path, Stat::OnError::throw_error).size();

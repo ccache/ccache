@@ -34,6 +34,8 @@
 #  include "InodeCache.hpp"
 #endif
 
+#include <storage/Storage.hpp>
+
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
@@ -63,20 +65,6 @@ public:
   // The original argument list.
   Args orig_args;
 
-  // Name (represented as a hash) of the file containing the manifest for the
-  // cached result.
-  const nonstd::optional<Digest>& manifest_name() const;
-
-  // Full path to the file containing the manifest (cachedir/a/b/cdef[...]M), if
-  // any.
-  const nonstd::optional<std::string>& manifest_path() const;
-
-  // Name (represented as a hash) of the file containing the cached result.
-  const nonstd::optional<Digest>& result_name() const;
-
-  // Full path to the file containing the result (cachedir/a/b/cdef[...]R).
-  const nonstd::optional<std::string>& result_path() const;
-
   // Time of compilation. Used to see if include files have changed after
   // compilation.
   time_t time_of_compilation = 0;
@@ -102,18 +90,13 @@ public:
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;
 
+  // Storage (fronting primary and secondary storage backends).
+  storage::Storage storage;
+
 #ifdef INODE_CACHE_SUPPORTED
   // InodeCache that caches source file hashes when enabled.
   mutable InodeCache inode_cache;
 #endif
-
-  // Statistics updates which get written into the statistics file belonging to
-  // the result.
-  Counters counter_updates;
-
-  // Statistics updates which get written into the statistics file belonging to
-  // the manifest.
-  Counters manifest_counter_updates;
 
   // PID of currently executing compiler that we have started, if any. 0 means
   // no ongoing compilation.
@@ -135,21 +118,10 @@ public:
   std::unique_ptr<MiniTrace> mini_trace;
 #endif
 
-  void set_manifest_name(const Digest& name);
-  void set_manifest_path(const std::string& path);
-  void set_result_name(const Digest& name);
-  void set_result_path(const std::string& path);
-
   // Register a temporary file to remove at program exit.
   void register_pending_tmp_file(const std::string& path);
 
 private:
-  nonstd::optional<Digest> m_manifest_name;
-  nonstd::optional<std::string> m_manifest_path;
-
-  nonstd::optional<Digest> m_result_name;
-  nonstd::optional<std::string> m_result_path;
-
   // Options to ignore for the hash.
   std::vector<std::string> m_ignore_options;
 
@@ -165,56 +137,8 @@ private:
   void unlink_pending_tmp_files_signal_safe(); // called from signal handler
 };
 
-inline const nonstd::optional<Digest>&
-Context::manifest_name() const
-{
-  return m_manifest_name;
-}
-
-inline const nonstd::optional<std::string>&
-Context::manifest_path() const
-{
-  return m_manifest_path;
-}
-
-inline const nonstd::optional<Digest>&
-Context::result_name() const
-{
-  return m_result_name;
-}
-
-inline const nonstd::optional<std::string>&
-Context::result_path() const
-{
-  return m_result_path;
-}
-
 inline const std::vector<std::string>&
 Context::ignore_options() const
 {
   return m_ignore_options;
-}
-
-inline void
-Context::set_manifest_name(const Digest& name)
-{
-  m_manifest_name = name;
-}
-
-inline void
-Context::set_manifest_path(const std::string& path)
-{
-  m_manifest_path = path;
-}
-
-inline void
-Context::set_result_name(const Digest& name)
-{
-  m_result_name = name;
-}
-
-inline void
-Context::set_result_path(const std::string& path)
-{
-  m_result_path = path;
 }

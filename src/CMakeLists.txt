@@ -41,7 +41,8 @@ set(
   execute.cpp
   hashutil.cpp
   language.cpp
-  version.cpp)
+  version.cpp
+)
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files InodeCache.cpp)
@@ -79,5 +80,7 @@ target_link_libraries(
 
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_subdirectory(core)
+add_subdirectory(storage)
 add_subdirectory(third_party)
 add_subdirectory(util)

@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,32 +18,12 @@
 
 #pragma once
 
-#include "system.hpp"
-
-#include "third_party/nonstd/optional.hpp"
-
 // System headers
 #include <string>
-#include <unordered_map>
 // End of system headers
 
-class Config;
-class Context;
-class Digest;
+namespace core {
 
-namespace Manifest {
+enum class CacheEntryType { result, manifest };
 
-extern const std::string k_file_suffix;
-extern const uint8_t k_magic[4];
-extern const uint8_t k_version;
-
-nonstd::optional<Digest> get(const Context& ctx, const std::string& path);
-bool put(const Config& config,
-         const std::string& path,
-         const Digest& result_key,
-         const std::unordered_map<std::string, Digest>& included_files,
-         time_t time_of_compilation,
-         bool save_timestamp);
-bool dump(const std::string& path, FILE* stream);
-
-} // namespace Manifest
+} // namespace core
