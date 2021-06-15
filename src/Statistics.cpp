@@ -20,15 +20,21 @@
 
 #include "AtomicFile.hpp"
 #include "Config.hpp"
+#include "File.hpp"
 #include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
+#include "assertions.hpp"
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
-const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
-const unsigned FLAG_ALWAYS = 2; // always show, even if zero
-const unsigned FLAG_NEVER = 4;  // never show
+#include <fstream>
+#include <unordered_map>
+
+const unsigned FLAG_NOZERO = 1;     // don't zero with the -z option
+const unsigned FLAG_ALWAYS = 2;     // always show, even if zero
+const unsigned FLAG_NEVER = 4;      // never show
+const unsigned FLAG_NOSTATSLOG = 8; // don't show for statslog
 
 using nonstd::nullopt;
 using nonstd::optional;
@@ -88,8 +94,8 @@ for_each_level_1_and_2_stats_file(
   }
 }
 
-static std::pair<Counters, time_t>
-collect_counters(const Config& config)
+std::pair<Counters, time_t>
+Statistics::collect_counters(const Config& config)
 {
   Counters counters;
   uint64_t zero_timestamp = 0;
@@ -173,11 +179,14 @@ const StatisticsField k_statistics_fields[] = {
   STATISTICS_FIELD(bad_output_file, "could not write to output file"),
   STATISTICS_FIELD(no_input_file, "no input file"),
   STATISTICS_FIELD(error_hashing_extra_file, "error hashing extra file"),
-  STATISTICS_FIELD(cleanups_performed, "cleanups performed", FLAG_ALWAYS),
-  STATISTICS_FIELD(files_in_cache, "files in cache", FLAG_NOZERO | FLAG_ALWAYS),
+  STATISTICS_FIELD(
+    cleanups_performed, "cleanups performed", FLAG_NOSTATSLOG | FLAG_ALWAYS),
+  STATISTICS_FIELD(files_in_cache,
+                   "files in cache",
+                   FLAG_NOZERO | FLAG_NOSTATSLOG | FLAG_ALWAYS),
   STATISTICS_FIELD(cache_size_kibibyte,
                    "cache size",
-                   FLAG_NOZERO | FLAG_ALWAYS,
+                   FLAG_NOZERO | FLAG_NOSTATSLOG | FLAG_ALWAYS,
                    format_size_times_1024),
   STATISTICS_FIELD(obsolete_max_files, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
   STATISTICS_FIELD(obsolete_max_size, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
@@ -215,6 +224,34 @@ read(const std::string& path)
   return counters;
 }
 
+Counters
+read_log(const std::string& path)
+{
+  Counters counters;
+
+  std::unordered_map<std::string, Statistic> m;
+  for (const auto& field : k_statistics_fields) {
+    m[field.id] = field.statistic;
+  }
+
+  std::ifstream in(path);
+  std::string line;
+  while (std::getline(in, line, '\n')) {
+    if (line[0] == '#') {
+      continue;
+    }
+    auto search = m.find(line);
+    if (search != m.end()) {
+      Statistic statistic = search->second;
+      counters.increment(statistic, 1);
+    } else {
+      LOG("Unknown statistic: {}", line);
+    }
+  }
+
+  return counters;
+}
+
 optional<Counters>
 update(const std::string& path,
        std::function<void(Counters& counters)> function)
@@ -244,13 +281,47 @@ update(const std::string& path,
   return counters;
 }
 
-optional<std::string>
+void
+log_result(const std::string& path,
+           const std::string& input,
+           const std::string& result)
+{
+  File file(path, "ab");
+  if (file) {
+    PRINT(*file, "# {}\n", input);
+    PRINT(*file, "{}\n", result);
+  } else {
+    LOG("Failed to open {}: {}", path, strerror(errno));
+  }
+}
+
+static const StatisticsField*
 get_result(const Counters& counters)
 {
   for (const auto& field : k_statistics_fields) {
     if (counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-      return field.message;
+      return &field;
     }
+  }
+  return nullptr;
+}
+
+optional<std::string>
+get_result_id(const Counters& counters)
+{
+  const auto result = get_result(counters);
+  if (result) {
+    return result->id;
+  }
+  return nullopt;
+}
+
+optional<std::string>
+get_result_message(const Counters& counters)
+{
+  const auto result = get_result(counters);
+  if (result) {
+    return result->message;
   }
   return nullopt;
 }
@@ -274,17 +345,35 @@ zero_all_counters(const Config& config)
 }
 
 std::string
-format_human_readable(const Config& config)
+format_stats_log(const Config& config)
 {
-  Counters counters;
-  time_t last_updated;
-  std::tie(counters, last_updated) = collect_counters(config);
+  std::string result;
+
+  result += FMT("{:36}{}\n", "stats log", config.stats_log());
+
+  return result;
+}
+
+std::string
+format_config_header(const Config& config)
+{
   std::string result;
 
   result += FMT("{:36}{}\n", "cache directory", config.cache_dir());
   result += FMT("{:36}{}\n", "primary config", config.primary_config_path());
   result += FMT(
     "{:36}{}\n", "secondary config (readonly)", config.secondary_config_path());
+
+  return result;
+}
+
+std::string
+format_human_readable(const Counters& counters,
+                      time_t last_updated,
+                      bool from_log)
+{
+  std::string result;
+
   if (last_updated > 0) {
     const auto tm = Util::localtime(last_updated);
     char timestamp[100] = "?";
@@ -306,6 +395,11 @@ format_human_readable(const Config& config)
       continue;
     }
 
+    // don't show cache directory info if reading from a log
+    if (from_log && (k_statistics_fields[i].flags & FLAG_NOSTATSLOG)) {
+      continue;
+    }
+
     const std::string value =
       k_statistics_fields[i].format
         ? k_statistics_fields[i].format(counters.get(statistic))
@@ -320,6 +414,14 @@ format_human_readable(const Config& config)
     }
   }
 
+  return result;
+}
+
+std::string
+format_config_footer(const Config& config)
+{
+  std::string result;
+
   if (config.max_files() != 0) {
     result += FMT("{:32}{:8}\n", "max files", config.max_files());
   }
@@ -332,11 +434,8 @@ format_human_readable(const Config& config)
 }
 
 std::string
-format_machine_readable(const Config& config)
+format_machine_readable(const Counters& counters, time_t last_updated)
 {
-  Counters counters;
-  time_t last_updated;
-  std::tie(counters, last_updated) = collect_counters(config);
   std::string result;
 
   result += FMT("stats_updated_timestamp\t{}\n", last_updated);

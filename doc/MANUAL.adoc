@@ -153,6 +153,11 @@ compiler's documentation.
     (environment variable, configuration file or compile-time default) in
     human-readable format.
 
+*`--show-log-stats`*::
+
+    Print statistics counters from the stats log in human-readable format.
+    See <<config_stats_log,*stats_log*>>.
+
 *`-s`*, *`--show-stats`*::
 
     Print a summary of configuration and statistics counters in human-readable
@@ -843,6 +848,14 @@ information.
 
     If true, ccache will update the statistics counters on each compilation.
     The default is true.
+
+[[config_stats_log]] *stats_log* (*CCACHE_STATSLOG*)::
+
+    If set to a file path, ccache will write statistics counter updates to the
+    specified file. This is useful for getting statistics for individual builds.
+    To show a summary of the current stats log, use: `ccache --show-log-stats`.
++
+NOTE: Lines in the stats log starting with a hash sign (`#`) are comments.
 
 [[config_temporary_dir]] *temporary_dir* (*CCACHE_TEMPDIR*)::
 

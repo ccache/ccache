@@ -405,6 +405,7 @@ TEST_CASE("Config::visit_items")
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
     " clang_index_store, ivfsoverlay\n"
     "stats = false\n"
+    "stats_log = sl\n"
     "temporary_dir = td\n"
     "umask = 022\n");
 
@@ -462,6 +463,7 @@ TEST_CASE("Config::visit_items")
     " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
     " system_headers, clang_index_store, ivfsoverlay",
     "(test.conf) stats = false",
+    "(test.conf) stats_log = sl",
     "(test.conf) temporary_dir = td",
     "(test.conf) umask = 022",
   };

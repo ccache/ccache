@@ -77,6 +77,7 @@ public:
   bool run_second_cpp() const;
   uint32_t sloppiness() const;
   bool stats() const;
+  const std::string& stats_log() const;
   const std::string& temporary_dir() const;
   uint32_t umask() const;
 
@@ -169,6 +170,7 @@ private:
   bool m_run_second_cpp = true;
   uint32_t m_sloppiness = 0;
   bool m_stats = true;
+  std::string m_stats_log;
   std::string m_temporary_dir;
   uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
 
@@ -399,6 +401,12 @@ inline bool
 Config::stats() const
 {
   return m_stats;
+}
+
+inline const std::string&
+Config::stats_log() const
+{
+  return m_stats_log;
 }
 
 inline const std::string&

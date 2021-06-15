@@ -129,6 +129,8 @@ Common options:
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
                                human-readable format
+        --show-log-stats       print statistics counters from the stats log
+                               in human-readable format
     -s, --show-stats           show summary of configuration and statistics
                                counters in human-readable format
     -z, --zero-stats           zero statistics counters
@@ -2209,9 +2211,17 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    const auto result = Statistics::get_result(ctx.counter_updates);
+    const auto result = Statistics::get_result_message(ctx.counter_updates);
     if (result) {
       LOG("Result: {}", *result);
+    }
+  }
+
+  if (!config.stats_log().empty()) {
+    const auto result_id = Statistics::get_result_id(ctx.counter_updates);
+    if (result_id) {
+      Statistics::log_result(
+        config.stats_log(), ctx.args_info.input_file, *result_id);
     }
   }
 
@@ -2597,6 +2607,7 @@ handle_main_options(int argc, const char* const* argv)
     EXTRACT_RESULT,
     HASH_FILE,
     PRINT_STATS,
+    SHOW_LOG_STATS,
   };
   static const struct option options[] = {
     {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
@@ -2618,6 +2629,7 @@ handle_main_options(int argc, const char* const* argv)
     {"set-config", required_argument, nullptr, 'o'},
     {"show-compression", no_argument, nullptr, 'x'},
     {"show-config", no_argument, nullptr, 'p'},
+    {"show-log-stats", no_argument, nullptr, SHOW_LOG_STATS},
     {"show-stats", no_argument, nullptr, 's'},
     {"version", no_argument, nullptr, 'V'},
     {"zero-stats", no_argument, nullptr, 'z'},
@@ -2695,9 +2707,15 @@ handle_main_options(int argc, const char* const* argv)
       break;
     }
 
-    case PRINT_STATS:
-      PRINT_RAW(stdout, Statistics::format_machine_readable(ctx.config));
+    case PRINT_STATS: {
+      Counters counters;
+      time_t last_updated;
+      std::tie(counters, last_updated) =
+        Statistics::collect_counters(ctx.config);
+      PRINT_RAW(stdout,
+                Statistics::format_machine_readable(counters, last_updated));
       break;
+    }
 
     case 'c': // --cleanup
     {
@@ -2775,9 +2793,30 @@ handle_main_options(int argc, const char* const* argv)
       ctx.config.visit_items(configuration_printer);
       break;
 
-    case 's': // --show-stats
-      PRINT_RAW(stdout, Statistics::format_human_readable(ctx.config));
+    case SHOW_LOG_STATS: {
+      if (ctx.config.stats_log().empty()) {
+        throw Fatal("No stats log has been configured");
+      }
+      PRINT_RAW(stdout, Statistics::format_stats_log(ctx.config));
+      Counters counters = Statistics::read_log(ctx.config.stats_log());
+      auto st = Stat::stat(ctx.config.stats_log(), Stat::OnError::log);
+      PRINT_RAW(stdout,
+                Statistics::format_human_readable(counters, st.mtime(), true));
       break;
+    }
+
+    case 's': { // --show-stats
+      PRINT_RAW(stdout, Statistics::format_config_header(ctx.config));
+      Counters counters;
+      time_t last_updated;
+      std::tie(counters, last_updated) =
+        Statistics::collect_counters(ctx.config);
+      PRINT_RAW(
+        stdout,
+        Statistics::format_human_readable(counters, last_updated, false));
+      PRINT_RAW(stdout, Statistics::format_config_footer(ctx.config));
+      break;
+    }
 
     case 'V': // --version
       PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);
