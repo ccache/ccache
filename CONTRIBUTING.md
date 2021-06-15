@@ -33,6 +33,7 @@ proposal(s) on [GitHub](https://github.com/ccache/ccache).
 
 Here are some hints to make the process smoother:
 
+* Have a look in `ARCHITECTURE.md` for an overview of the source code tree.
 * If you plan to implement major changes it is wise to open an issue on GitHub
   (or ask in the Gitter room, or send a mail to the mailing list) asking for
   comments on your plans before doing the bulk of the work. That way you can
