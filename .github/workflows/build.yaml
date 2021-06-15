@@ -22,11 +22,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             compiler: gcc
             version: "4.8" # results in 4.8.5
 
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             compiler: gcc
             version: "5"
 
@@ -50,11 +50,11 @@ jobs:
             compiler: gcc
             version: "10"
 
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             compiler: clang
             version: "5.0"
 
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             compiler: clang
             version: "6.0"
 
@@ -92,8 +92,8 @@ jobs:
             sudo apt-get update
 
             # Install ld.gold (binutils) and ld.lld on different runs.
-            if [ "${{ matrix.config.os }}" = "ubuntu-16.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd1-dev binutils
+            if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
+              sudo apt-get install -y ninja-build elfutils libzstd-dev binutils
             else
               sudo apt-get install -y ninja-build elfutils libzstd-dev lld
             fi
