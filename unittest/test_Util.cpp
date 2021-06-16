@@ -590,7 +590,7 @@ TEST_CASE("Util::make_relative_path")
   SUBCASE("Path matches neither actual nor apparent CWD")
   {
 #ifdef _WIN32
-    CHECK(make_relative_path("C:/", "C:/a", "C:/b", "C:/x") == "C:/x");
+    CHECK(make_relative_path("C:/", "C:/a", "C:/b", "C:/x") == "../x");
 #else
     CHECK(make_relative_path("/", "/a", "/b", "/x") == "/x");
 #endif

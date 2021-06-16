@@ -743,8 +743,12 @@ get_relative_path(string_view dir, string_view path)
     // Drive letters differ.
     return std::string(path);
   }
-  dir = dir.substr(2);
-  path = path.substr(2);
+  if (dir.length() >= 2 && dir[0] != '/' && dir[1] == ':') {
+    dir = dir.substr(2);
+  }
+  if (path.length() >= 2 && path[0] != '/' && path[1] == ':') {
+    path = path.substr(2);
+  }
 #endif
 
   std::string result;
@@ -904,8 +908,22 @@ make_relative_path(const std::string& base_dir,
   while (!(path_stat = Stat::stat(std::string(path)))) {
     path = Util::dir_name(path);
   }
-  const auto path_suffix = std::string(original_path.substr(path.length()));
-  const auto real_path = Util::real_path(std::string(path));
+  std::string path_suffix;
+  std::string real_path;
+  if (path == "/") {
+    // The only existing directory is root. Cannot remove the leading slash from
+    // the path.
+    path_suffix = std::string(original_path.substr(1));
+    real_path = "/";
+#ifdef _WIN32
+  } else if (path.length() == 3 && path[1] == ':' && path[2] == '/') {
+    path_suffix = std::string(original_path.substr(2));
+    real_path = std::string(path);
+#endif
+  } else {
+    path_suffix = std::string(original_path.substr(path.length()));
+    real_path = Util::real_path(std::string(path));
+  }
 
   const auto add_relpath_candidates = [&](nonstd::string_view path) {
     const std::string normalized_path = Util::normalize_absolute_path(path);
@@ -928,6 +946,8 @@ make_relative_path(const std::string& base_dir,
               return path1.length() < path2.length();
             });
   for (const auto& relpath : relpath_candidates) {
+    // FIXME: WIN32 (if not using cygwin1.dll compatibility layer) does not have
+    // the same concept of inode, so same_inode_as always returns true.
     if (Stat::stat(relpath).same_inode_as(path_stat)) {
       return relpath + path_suffix;
     }
@@ -969,8 +989,11 @@ normalize_absolute_path(string_view path)
     return normalize_absolute_path(new_path);
   }
 
-  std::string drive(path.substr(0, 2));
-  path = path.substr(2);
+  std::string drive;
+  if (path.length() >= 2 && path[0] != '/' && path[1] == ':') {
+    drive = std::string(path.substr(0, 2));
+    path = path.substr(2);
+  }
 #endif
 
   std::string result = "/";
