@@ -356,6 +356,7 @@ reset_environment() {
     unset TERM
     unset XDG_CACHE_HOME
     unset XDG_CONFIG_HOME
+    export PWD=$(pwd)
 
     export CCACHE_DETECT_SHEBANG=1
     export CCACHE_DIR=$ABS_TESTDIR/.ccache

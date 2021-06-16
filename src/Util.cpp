@@ -617,7 +617,7 @@ get_apparent_cwd(const std::string& actual_cwd)
   return actual_cwd;
 #else
   auto pwd = getenv("PWD");
-  if (!pwd) {
+  if (!pwd || !Util::is_absolute_path(pwd)) {
     return actual_cwd;
   }
 

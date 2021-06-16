@@ -311,4 +311,36 @@ EOF
         expect_stat 'cache miss' 1
         expect_equal_content reference.stderr ccache.stderr
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Relative PWD"
+
+    cd dir1
+    CCACHE_BASEDIR="$(pwd)" PWD=. $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    cd ../dir2
+    CCACHE_BASEDIR="$(pwd)" PWD=. $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Unset PWD"
+
+    unset PWD
+
+    cd dir1
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    cd ../dir2
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
 }
