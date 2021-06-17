@@ -34,10 +34,10 @@ SUITE_modules() {
     # -------------------------------------------------------------------------
     TEST "fall back to real compiler, no sloppiness"
 
-    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp -MD
+    $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat "can't use modules" 1
 
-    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp -MD
+    $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat "can't use modules" 2
 
     # -------------------------------------------------------------------------
@@ -45,27 +45,27 @@ SUITE_modules() {
 
     unset CCACHE_DEPEND
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat "can't use modules" 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat "can't use modules" 2
 
     # -------------------------------------------------------------------------
     TEST "cache hit"
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
     TEST "cache miss"
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache miss' 1
 
     cat <<EOF >test1.h
@@ -74,12 +74,12 @@ void f();
 EOF
     backdate test1.h
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache miss' 2
 
     echo >>module.modulemap
     backdate test1.h
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache miss' 3
 }
