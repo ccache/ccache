@@ -1,6 +1,10 @@
 # Typical build directories
 /build*/
 
+# CLion
+/.idea/
+/cmake-build-*/
+
 # Downloaded tools
 misc/.clang-format-exe
 
