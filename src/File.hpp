@@ -37,6 +37,15 @@ public:
   void open(const std::string& path, const char* mode);
   void close();
 
+  enum class Seek {
+    Set = SEEK_SET,
+    Cur = SEEK_CUR,
+    End = SEEK_END,
+  };
+
+  int seek(int64_t offset, Seek origin);
+  int64_t size() const;
+
   operator bool() const;
   FILE* operator*() const;
   FILE* get();
@@ -82,6 +91,36 @@ File::close()
     fclose(m_file);
     m_file = nullptr;
   }
+}
+
+inline int
+File::seek(int64_t offset, Seek origin)
+{
+  if (!m_file) {
+    return -1;
+  }
+#ifdef _WIN32
+  return ::_fseeki64(m_file, offset, static_cast<int>(origin));
+#else
+  return ::fseeko(m_file, offset, static_cast<int>(origin));
+#endif
+}
+
+inline int64_t
+File::size() const
+{
+  if (!m_file) {
+    return -1;
+  }
+#ifdef _WIN32
+  return ::_filelengthi64(::fileno(m_file));
+#else
+  struct stat st;
+  if (::fstat(::fileno(m_file), &st)) {
+    return -1;
+  }
+  return st.st_size;
+#endif
 }
 
 inline File::operator bool() const
