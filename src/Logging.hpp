@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -39,13 +39,12 @@
   } while (false)
 
 // Log a message (plus a newline character) described by a format string with at
-// least one placeholder. `format` is compile-time checked if CMAKE_CXX_STANDARD
-// >= 14.
+// least one placeholder. `format` is checked at compile time.
 #define LOG(format_, ...) LOG_RAW(fmt::format(FMT_STRING(format_), __VA_ARGS__))
 
 // Log a message (plus a newline character) described by a format string with at
 // least one placeholder without flushing and with a reused timestamp. `format`
-// is compile-time checked if CMAKE_CXX_STANDARD >= 14.
+// is checked at compile time.
 #define BULK_LOG(format_, ...)                                                 \
   do {                                                                         \
     if (Logging::enabled()) {                                                  \

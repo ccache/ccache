@@ -24,10 +24,6 @@ jobs:
         config:
           - os: ubuntu-18.04
             compiler: gcc
-            version: "4.8" # results in 4.8.5
-
-          - os: ubuntu-18.04
-            compiler: gcc
             version: "5"
 
           - os: ubuntu-18.04
@@ -155,14 +151,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Linux GCC debug + C++14 + in source + tracing
+          - name: Linux GCC debug + in source + tracing
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
             ENABLE_CACHE_CLEANUP_TESTS: 1
             BUILDDIR: .
             CCACHE_LOC: .
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1 -DCMAKE_CXX_STANDARD=14
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
             apt_get: elfutils libzstd-dev
 
           - name: Linux GCC 32-bit

@@ -82,8 +82,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     CCACHE_COMPILER_WARNINGS "-Wno-zero-as-null-pointer-constant")
   add_compile_flag_if_supported(
     CCACHE_COMPILER_WARNINGS "-Wno-undefined-func-template")
-  add_compile_flag_if_supported(
-    CCACHE_COMPILER_WARNINGS "-Wno-return-std-move-in-c++11")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(
     APPEND

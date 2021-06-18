@@ -26,9 +26,6 @@ build debian-9     clang clang++ clang
 build debian-10    gcc   g++     gcc
 build debian-10    clang clang++ clang
 
-build ubuntu-14.04 gcc   g++     gcc     -DZSTD_FROM_INTERNET=ON
-build ubuntu-14.04 gcc   g++     clang   -DZSTD_FROM_INTERNET=ON
-
 build ubuntu-16.04 gcc   g++     gcc
 build ubuntu-16.04 gcc   g++     clang
 
