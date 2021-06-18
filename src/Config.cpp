@@ -472,14 +472,12 @@ Config::set_secondary_config_path(std::string path)
 bool
 Config::update_from_file(const std::string& path)
 {
-  return parse_config_file(path,
-                           [&](const std::string& /*line*/,
-                               const std::string& key,
-                               const std::string& value) {
-                             if (!key.empty()) {
-                               set_item(key, value, nullopt, false, path);
-                             }
-                           });
+  return parse_config_file(
+    path, [&](const auto& /*line*/, const auto& key, const auto& value) {
+      if (!key.empty()) {
+        this->set_item(key, value, nullopt, false, path);
+      }
+    });
 }
 
 void
@@ -675,17 +673,16 @@ Config::set_value_in_file(const std::string& path,
   AtomicFile output(resolved_path, AtomicFile::Mode::text);
   bool found = false;
 
-  if (!parse_config_file(path,
-                         [&](const std::string& c_line,
-                             const std::string& c_key,
-                             const std::string& /*c_value*/) {
-                           if (c_key == key) {
-                             output.write(FMT("{} = {}\n", key, value));
-                             found = true;
-                           } else {
-                             output.write(FMT("{}\n", c_line));
-                           }
-                         })) {
+  if (!parse_config_file(
+        path,
+        [&](const auto& c_line, const auto& c_key, const auto& /*c_value*/) {
+          if (c_key == key) {
+            output.write(FMT("{} = {}\n", key, value));
+            found = true;
+          } else {
+            output.write(FMT("{}\n", c_line));
+          }
+        })) {
     throw Error("failed to open {}: {}", path, strerror(errno));
   }
 

@@ -907,7 +907,7 @@ make_relative_path(const std::string& base_dir,
   const auto path_suffix = std::string(original_path.substr(path.length()));
   const auto real_path = Util::real_path(std::string(path));
 
-  const auto add_relpath_candidates = [&](nonstd::string_view path) {
+  const auto add_relpath_candidates = [&](auto path) {
     const std::string normalized_path = Util::normalize_absolute_path(path);
     relpath_candidates.push_back(
       Util::get_relative_path(actual_cwd, normalized_path));
@@ -924,7 +924,7 @@ make_relative_path(const std::string& base_dir,
   // Find best (i.e. shortest existing) match:
   std::sort(relpath_candidates.begin(),
             relpath_candidates.end(),
-            [](const std::string& path1, const std::string& path2) {
+            [](const auto& path1, const auto& path2) {
               return path1.length() < path2.length();
             });
   for (const auto& relpath : relpath_candidates) {

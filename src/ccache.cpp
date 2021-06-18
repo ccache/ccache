@@ -2169,10 +2169,9 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
   const auto stats_file =
     FMT("{}/{}/stats", ctx.config.cache_dir(), level_string);
 
-  auto counters =
-    Statistics::update(stats_file, [&counter_updates](Counters& cs) {
-      cs.increment(counter_updates);
-    });
+  auto counters = Statistics::update(stats_file, [&counter_updates](auto& cs) {
+    cs.increment(counter_updates);
+  });
   if (!counters) {
     return nullopt;
   }
@@ -2238,8 +2237,8 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
     const auto bucket = getpid() % 256;
     const auto stats_file =
       FMT("{}/{:x}/{:x}/stats", config.cache_dir(), bucket / 16, bucket % 16);
-    Statistics::update(
-      stats_file, [&ctx](Counters& cs) { cs.increment(ctx.counter_updates); });
+    Statistics::update(stats_file,
+                       [&ctx](auto& cs) { cs.increment(ctx.counter_updates); });
     return;
   }
 

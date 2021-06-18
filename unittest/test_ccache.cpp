@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -42,11 +42,10 @@ helper(const char* args,
        const char* find_executable_return_string = nullptr)
 {
   const auto find_executable_stub =
-    [&find_executable_return_string](
-      const Context&, const std::string& s, const std::string&) -> std::string {
-    return find_executable_return_string ? find_executable_return_string
-                                         : "resolved_" + s;
-  };
+    [&find_executable_return_string](const auto&, const auto& s, const auto&) {
+      return find_executable_return_string ? find_executable_return_string
+                                           : "resolved_" + s;
+    };
 
   Context ctx;
   ctx.config.set_compiler(config_compiler);

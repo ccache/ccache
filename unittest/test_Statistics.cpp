@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -97,7 +97,7 @@ TEST_CASE("Update")
 
   Util::write_file("test", "0 1 2 3 27 5\n");
 
-  auto counters = Statistics::update("test", [](Counters& cs) {
+  auto counters = Statistics::update("test", [](auto& cs) {
     cs.increment(Statistic::internal_error, 1);
     cs.increment(Statistic::cache_miss, 6);
   });
@@ -116,7 +116,7 @@ TEST_CASE("Get result")
   TestContext test_context;
 
   auto counters = Statistics::update(
-    "test", [](Counters& cs) { cs.increment(Statistic::cache_miss, 1); });
+    "test", [](auto& cs) { cs.increment(Statistic::cache_miss, 1); });
   REQUIRE(counters);
 
   auto result = Statistics::get_result_message(*counters);
@@ -128,7 +128,7 @@ TEST_CASE("Log result")
   TestContext test_context;
 
   auto counters = Statistics::update(
-    "test", [](Counters& cs) { cs.increment(Statistic::cache_miss, 1); });
+    "test", [](auto& cs) { cs.increment(Statistic::cache_miss, 1); });
   REQUIRE(counters);
 
   auto result_id = Statistics::get_result_id(*counters);

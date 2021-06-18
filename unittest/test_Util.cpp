@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -249,9 +249,7 @@ TEST_CASE("Util::for_each_level_1_subdir")
   std::vector<std::string> actual;
   Util::for_each_level_1_subdir(
     "cache_dir",
-    [&](const std::string& subdir, const Util::ProgressReceiver&) {
-      actual.push_back(subdir);
-    },
+    [&](const auto& subdir, const auto&) { actual.push_back(subdir); },
     [](double) {});
 
   std::vector<std::string> expected = {
@@ -397,10 +395,9 @@ TEST_CASE("Util::get_level_1_files")
 
     // Files within a level are in arbitrary order, sort them to be able to
     // verify them.
-    std::sort(
-      files.begin(), files.end(), [](const CacheFile& f1, const CacheFile& f2) {
-        return f1.path() < f2.path();
-      });
+    std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
+      return f1.path() < f2.path();
+    });
 
     CHECK(files[0].path() == os_path("0/1/file_b"));
     CHECK(files[0].lstat().size() == 1);

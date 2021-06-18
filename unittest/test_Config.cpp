@@ -414,11 +414,10 @@ TEST_CASE("Config::visit_items")
 
   std::vector<std::string> received_items;
 
-  config.visit_items([&](const std::string& key,
-                         const std::string& value,
-                         const std::string& origin) {
-    received_items.push_back(FMT("({}) {} = {}", origin, key, value));
-  });
+  config.visit_items(
+    [&](const auto& key, const auto& value, const auto& origin) {
+      received_items.push_back(FMT("({}) {} = {}", origin, key, value));
+    });
 
   std::vector<std::string> expected = {
     "(test.conf) absolute_paths_in_stderr = true",

@@ -369,7 +369,7 @@ InodeCache::get(const std::string& path,
   }
 
   bool found = false;
-  const bool success = with_bucket(key_digest, [&](Bucket* const bucket) {
+  const bool success = with_bucket(key_digest, [&](const auto bucket) {
     for (uint32_t i = 0; i < k_num_entries; ++i) {
       if (bucket->entries[i].key_digest == key_digest) {
         if (i > 0) {
@@ -422,7 +422,7 @@ InodeCache::put(const std::string& path,
     return false;
   }
 
-  const bool success = with_bucket(key_digest, [&](Bucket* const bucket) {
+  const bool success = with_bucket(key_digest, [&](const auto bucket) {
     memmove(&bucket->entries[1],
             &bucket->entries[0],
             sizeof(Entry) * (k_num_entries - 1));

@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -102,14 +102,13 @@ Statistics::collect_counters(const Config& config)
   time_t last_updated = 0;
 
   // Add up the stats in each directory.
-  for_each_level_1_and_2_stats_file(
-    config.cache_dir(), [&](const std::string& path) {
-      counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
-      counters.increment(Statistics::read(path));
-      zero_timestamp = std::max(counters.get(Statistic::stats_zeroed_timestamp),
-                                zero_timestamp);
-      last_updated = std::max(last_updated, Stat::stat(path).mtime());
-    });
+  for_each_level_1_and_2_stats_file(config.cache_dir(), [&](const auto& path) {
+    counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
+    counters.increment(Statistics::read(path));
+    zero_timestamp =
+      std::max(counters.get(Statistic::stats_zeroed_timestamp), zero_timestamp);
+    last_updated = std::max(last_updated, Stat::stat(path).mtime());
+  });
 
   counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
   return std::make_pair(counters, last_updated);
