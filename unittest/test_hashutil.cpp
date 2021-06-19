@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,7 +16,6 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Context.hpp"
 #include "../src/Hash.hpp"
 #include "../src/hashutil.hpp"
 #include "TestUtil.hpp"
@@ -108,8 +107,6 @@ TEST_CASE("hash_multicommand_output")
 
 TEST_CASE("hash_multicommand_output_error_handling")
 {
-  Context ctx;
-
   Hash h1;
   Hash h2;
 
