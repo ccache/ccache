@@ -22,6 +22,11 @@ SUITE_nvcc_ldir_PROBE() {
     elif [ ! -d $nvcc_idir ]; then
         echo "include directory $nvcc_idir not found"
     fi
+
+    echo "int main() { return 0; }" | $REAL_NVCC -Wno-deprecated-gpu-targets -ccbin $REAL_COMPILER_BIN -c -x cu - 
+    if [ $? -ne 0 ]; then
+        echo "nvcc of a canary failed; Is CUDA compatible with the host compiler ($REAL_COMPILER_BIN)?"
+    fi
 }
 
 SUITE_nvcc_ldir_SETUP() {
