@@ -52,7 +52,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
   include(StdAtomic)
 
 elseif(MSVC)
-  target_compile_options(standard_settings INTERFACE /FI ${CMAKE_BINARY_DIR}/config.h)
+  target_compile_options(standard_settings INTERFACE "/FI${CMAKE_BINARY_DIR}/config.h")
 
   target_compile_options(
     standard_settings
