@@ -34,11 +34,11 @@ SUITE_ivfsoverlay() {
     # -------------------------------------------------------------------------
     TEST "with sloppy ivfsoverlay"
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS ivfsoverlay" $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime ivfsoverlay" $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS ivfsoverlay" $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime ivfsoverlay" $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
 }
