@@ -67,6 +67,9 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.pch_external_checksum());
   CHECK(config.prefix_command().empty());
   CHECK(config.prefix_command_cpp().empty());
+  CHECK(config.preprocessor().empty());
+  CHECK(config.preprocessor_check() == "mtime");
+  CHECK(config.preprocessor_type() == CompilerType::auto_guess);
   CHECK_FALSE(config.read_only());
   CHECK_FALSE(config.read_only_direct());
   CHECK_FALSE(config.recache());
@@ -75,6 +78,7 @@ TEST_CASE("Config: default values")
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
+  CHECK(!config.unify_mode());
 }
 
 TEST_CASE("Config::update_from_file")
@@ -122,16 +126,21 @@ TEST_CASE("Config::update_from_file")
     "pch_external_checksum = true\n"
     "prefix_command = x$USER\n"
     "prefix_command_cpp = y\n"
+    "preprocessor = bar\n"
+    "preprocessor_check = none\n"
+    "preprocessor_type = clang_normalize_whitespace\n"
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay\n"
+    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,"
+    "incbin,unify_with_debug,unify_with_output\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
-    "umask = 777"); // Note: no newline.
+    "umask = 777\n"
+    "unify_mode = true"); // Note: no newline.
 
   Config config;
   REQUIRE(config.update_from_file("ccache.conf"));
@@ -161,6 +170,9 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.pch_external_checksum());
   CHECK(config.prefix_command() == FMT("x{}", user));
   CHECK(config.prefix_command_cpp() == "y");
+  CHECK(config.preprocessor() == "bar");
+  CHECK(config.preprocessor_check() == "none");
+  CHECK(config.preprocessor_type() == CompilerType::clang_normalize_whitespace);
   CHECK(config.read_only());
   CHECK(config.read_only_direct());
   CHECK(config.recache());
@@ -169,11 +181,13 @@ TEST_CASE("Config::update_from_file")
         == (SLOPPY_INCLUDE_FILE_MTIME | SLOPPY_INCLUDE_FILE_CTIME
             | SLOPPY_TIME_MACROS | SLOPPY_FILE_STAT_MATCHES
             | SLOPPY_FILE_STAT_MATCHES_CTIME | SLOPPY_SYSTEM_HEADERS
-            | SLOPPY_PCH_DEFINES | SLOPPY_CLANG_INDEX_STORE
-            | SLOPPY_IVFSOVERLAY));
+            | SLOPPY_PCH_DEFINES | SLOPPY_CLANG_INDEX_STORE | SLOPPY_IVFSOVERLAY
+            | SLOPPY_INCBIN | SLOPPY_UNIFY_WITH_DEBUG
+            | SLOPPY_UNIFY_WITH_OUTPUT));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
   CHECK(config.umask() == 0777);
+  CHECK(config.unify_mode());
 }
 
 TEST_CASE("Config::update_from_file, error handling")
@@ -397,17 +411,22 @@ TEST_CASE("Config::visit_items")
     "pch_external_checksum = true\n"
     "prefix_command = pc\n"
     "prefix_command_cpp = pcc\n"
+    "preprocessor = clang-13\n"
+    "preprocessor_check = mtime\n"
+    "preprocessor_type = clang_normalize_whitespace\n"
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
     "run_second_cpp = false\n"
-    "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
-    " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
-    " clang_index_store, ivfsoverlay\n"
+    "sloppiness = include_file_mtime, include_file_ctime,"
+    " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
+    " system_headers, clang_index_store, ivfsoverlay, incbin, unify_with_debug,"
+    " unify_with_output\n"
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"
-    "umask = 022\n");
+    "umask = 022\n"
+    "unify_mode = false\n");
 
   Config config;
   config.update_from_file("test.conf");
@@ -454,17 +473,22 @@ TEST_CASE("Config::visit_items")
     "(test.conf) pch_external_checksum = true",
     "(test.conf) prefix_command = pc",
     "(test.conf) prefix_command_cpp = pcc",
+    "(test.conf) preprocessor = clang-13",
+    "(test.conf) preprocessor_check = mtime",
+    "(test.conf) preprocessor_type = clang_normalize_whitespace",
     "(test.conf) read_only = true",
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
     "(test.conf) run_second_cpp = false",
     "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"
     " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
-    " system_headers, clang_index_store, ivfsoverlay",
+    " system_headers, clang_index_store, ivfsoverlay, incbin, unify_with_debug,"
+    " unify_with_output",
     "(test.conf) stats = false",
     "(test.conf) stats_log = sl",
     "(test.conf) temporary_dir = td",
     "(test.conf) umask = 022",
+    "(test.conf) unify_mode = false",
   };
 
   REQUIRE(received_items.size() == expected.size());

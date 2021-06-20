@@ -118,7 +118,9 @@ std::string
 language_for_file(const std::string& fname, CompilerType compiler_type)
 {
   auto ext = Util::get_extension(fname);
-  if (ext == ".cu" && compiler_type == CompilerType::clang) {
+  if (ext == ".cu"
+      && (compiler_type == CompilerType::clang
+          || compiler_type == CompilerType::clang_normalize_whitespace)) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";
   }

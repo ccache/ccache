@@ -176,6 +176,27 @@ expect_stat() {
     fi
 }
 
+expect_print_stats() {
+    local stat="$1"
+    local expected_value="$2"
+    local line
+    local value=""
+
+    while IFS=$'\t' read -r name value; do
+        if [[ "$name" = "$stat" ]]; then
+            #value="${line:32}"
+            # remove leading & trailing whitespace
+            #value="${value#${value%%[![:space:]]*}}"
+            #value="${value%${value##*[![:space:]]}}"
+            break
+        fi
+    done < <($CCACHE --print-stats)
+
+    if [ "$expected_value" != "$value" ]; then
+        test_failed_internal "Expected \"$stat\" to be $expected_value, actual $value"
+    fi
+}
+
 expect_exists() {
     if [ ! -e "$1" ]; then
         test_failed_internal "Expected $1 to exist, but it's missing"
@@ -225,12 +246,12 @@ expect_different_content() {
 }
 
 is_equal_object_files() {
-    if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
+    if $HOST_OS_LINUX; then
         if ! command -v eu-elfcmp >/dev/null; then
             test_failed_internal "Please install elfutils to get eu-elfcmp"
         fi
         eu-elfcmp -q "$1" "$2"
-    elif $HOST_OS_FREEBSD && $COMPILER_TYPE_CLANG; then
+    elif $HOST_OS_FREEBSD; then
         elfdump -a -w "$1".dump "$1"
         elfdump -a -w "$2".dump "$2"
         # these were the elfdump fields that seemed to differ (empirically)

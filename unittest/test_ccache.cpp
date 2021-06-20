@@ -167,6 +167,8 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler("/test/prefix/clang-3.8") == CompilerType::clang);
     CHECK(guess_compiler("/test/prefix/clang++") == CompilerType::clang);
     CHECK(guess_compiler("/test/prefix/clang++-10") == CompilerType::clang);
+    CHECK(guess_compiler("/test/prefix/clang-13")
+          == CompilerType::clang_normalize_whitespace);
 
     CHECK(guess_compiler("/test/prefix/gcc") == CompilerType::gcc);
     CHECK(guess_compiler("/test/prefix/gcc-4.8") == CompilerType::gcc);

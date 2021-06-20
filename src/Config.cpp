@@ -72,6 +72,9 @@ enum class ConfigItem {
   pch_external_checksum,
   prefix_command,
   prefix_command_cpp,
+  preprocessor,
+  preprocessor_check,
+  preprocessor_type,
   read_only,
   read_only_direct,
   recache,
@@ -81,6 +84,7 @@ enum class ConfigItem {
   stats_log,
   temporary_dir,
   umask,
+  unify_mode,
 };
 
 const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
@@ -114,6 +118,9 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"pch_external_checksum", ConfigItem::pch_external_checksum},
   {"prefix_command", ConfigItem::prefix_command},
   {"prefix_command_cpp", ConfigItem::prefix_command_cpp},
+  {"preprocessor", ConfigItem::preprocessor},
+  {"preprocessor_check", ConfigItem::preprocessor_check},
+  {"preprocessor_type", ConfigItem::preprocessor_type},
   {"read_only", ConfigItem::read_only},
   {"read_only_direct", ConfigItem::read_only_direct},
   {"recache", ConfigItem::recache},
@@ -123,6 +130,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"stats_log", ConfigItem::stats_log},
   {"temporary_dir", ConfigItem::temporary_dir},
   {"umask", ConfigItem::umask},
+  {"unify_mode", ConfigItem::unify_mode},
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
@@ -158,6 +166,9 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"PCH_EXTSUM", "pch_external_checksum"},
   {"PREFIX", "prefix_command"},
   {"PREFIX_CPP", "prefix_command_cpp"},
+  {"PREPROCESSOR", "preprocessor"},
+  {"PREPROCESSORCHECK", "preprocessor_check"},
+  {"PREPROCESSORTYPE", "preprocessor_type"},
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
@@ -166,6 +177,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"STATSLOG", "stats_log"},
   {"TEMPDIR", "temporary_dir"},
   {"UMASK", "umask"},
+  {"UNIFY", "unify_mode"},
 };
 
 bool
@@ -234,6 +246,8 @@ parse_compiler_type(const std::string& value)
 {
   if (value == "clang") {
     return CompilerType::clang;
+  } else if (value == "clang_normalize_whitespace") {
+    return CompilerType::clang_normalize_whitespace;
   } else if (value == "gcc") {
     return CompilerType::gcc;
   } else if (value == "nvcc") {
@@ -280,6 +294,12 @@ parse_sloppiness(const std::string& value)
       result |= SLOPPY_MODULES;
     } else if (token == "ivfsoverlay") {
       result |= SLOPPY_IVFSOVERLAY;
+    } else if (token == "incbin") {
+      result |= SLOPPY_INCBIN;
+    } else if (token == "unify_with_debug") {
+      result |= SLOPPY_UNIFY_WITH_DEBUG;
+    } else if (token == "unify_with_output") {
+      result |= SLOPPY_UNIFY_WITH_OUTPUT;
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
@@ -322,6 +342,15 @@ format_sloppiness(uint32_t sloppiness)
   }
   if (sloppiness & SLOPPY_IVFSOVERLAY) {
     result += "ivfsoverlay, ";
+  }
+  if (sloppiness & SLOPPY_INCBIN) {
+    result += "incbin, ";
+  }
+  if (sloppiness & SLOPPY_UNIFY_WITH_DEBUG) {
+    result += "unify_with_debug, ";
+  }
+  if (sloppiness & SLOPPY_UNIFY_WITH_OUTPUT) {
+    result += "unify_with_output, ";
   }
   if (!result.empty()) {
     // Strip last ", ".
@@ -435,6 +464,7 @@ compiler_type_to_string(CompilerType compiler_type)
     return "auto";
 
     CASE(clang);
+    CASE(clang_normalize_whitespace);
     CASE(gcc);
     CASE(nvcc);
     CASE(other);
@@ -615,6 +645,15 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::prefix_command_cpp:
     return m_prefix_command_cpp;
 
+  case ConfigItem::preprocessor:
+    return m_preprocessor;
+
+  case ConfigItem::preprocessor_check:
+    return m_preprocessor_check;
+
+  case ConfigItem::preprocessor_type:
+    return compiler_type_to_string(m_preprocessor_type);
+
   case ConfigItem::read_only:
     return format_bool(m_read_only);
 
@@ -641,6 +680,9 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::umask:
     return format_umask(m_umask);
+
+  case ConfigItem::unify_mode:
+    return format_bool(m_unify_mode);
   }
 
   ASSERT(false); // Never reached
@@ -850,6 +892,18 @@ Config::set_item(const std::string& key,
     m_prefix_command_cpp = Util::expand_environment_variables(value);
     break;
 
+  case ConfigItem::preprocessor:
+    m_preprocessor = value;
+    break;
+
+  case ConfigItem::preprocessor_check:
+    m_preprocessor_check = value;
+    break;
+
+  case ConfigItem::preprocessor_type:
+    m_preprocessor_type = parse_compiler_type(value);
+    break;
+
   case ConfigItem::read_only:
     m_read_only = parse_bool(value, env_var_key, negate);
     break;
@@ -885,6 +939,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::umask:
     m_umask = parse_umask(value);
+    break;
+
+  case ConfigItem::unify_mode:
+    m_unify_mode = parse_bool(value, env_var_key, negate);
     break;
   }
 

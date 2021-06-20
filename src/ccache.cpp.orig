@@ -129,8 +129,6 @@ Common options:
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
                                human-readable format
-        --show-log-stats       print statistics counters from the stats log
-                               in human-readable format
     -s, --show-stats           show summary of configuration and statistics
                                counters in human-readable format
     -z, --zero-stats           zero statistics counters
@@ -338,15 +336,17 @@ guess_compiler(string_view path)
 #endif
 
   const string_view name = Util::base_name(compiler_path);
-  size_t clangdashpos = name.find("clang-");
+  auto clangdashpos = name.find("clang-");
   if (clangdashpos != nonstd::string_view::npos) {
-    // Clang version 13 or later support the -fnormalize-whitespace flag.
-    char* EndPtr = nullptr;
-    long clangversion = strtol(name.data() + 6, &EndPtr, 10);
+    printf("clang executable: %s\n", name.data());
+    char* EndPtr = 0;
+   auto clangversion = strtol(name.data()+6,& EndPtr, 10);
+    //auto clangversion = std::stoi(name.substr(clangdashpos+6).to_string());
+    printf("clang version: %ld\n", clangversion);
     if (clangversion >= 13) {
+      printf("assuming -fnormalize-whitespace support\n");
       return CompilerType::clang_normalize_whitespace;
     }
-
     return CompilerType::clang;
   } else if (name.find("clang") != nonstd::string_view::npos) {
     return CompilerType::clang;
@@ -551,6 +551,27 @@ print_included_files(const Context& ctx, FILE* fp)
   }
 }
 
+
+static Statistic
+process_unified_file(Context& ctx, Hash& hash, const std::string& path, bool pump) {
+  std::string data;
+  try {
+    data = Util::read_file(path);
+  } catch (Error&) {
+    return Statistic::internal_error;
+  }
+
+  hash.hash(data);
+
+  if (data.find(".incbin") != std::string::npos) {
+    LOG_RAW("Found unsupported .incbin directive in source code");
+    throw Failure(Statistic::unsupported_code_directive);
+ }
+
+  return Statistic::none;
+}
+
+
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
@@ -560,14 +581,13 @@ print_included_files(const Context& ctx, FILE* fp)
 //
 // Returns Statistic::none on success, otherwise a statistics counter to be
 // incremented.
+template<bool parse_includes>
 static Statistic
 process_preprocessed_file(Context& ctx,
                           Hash& hash,
                           const std::string& path,
                           bool pump)
 {
-  bool detect_incbin = !(ctx.config.sloppiness() & SLOPPY_INCBIN);
-
   std::string data;
   try {
     data = Util::read_file(path);
@@ -610,7 +630,7 @@ process_preprocessed_file(Context& ctx,
     //
     // Note that there may be other lines starting with '#' left after
     // preprocessing as well, for instance "#    pragma".
-    if (q[0] == '#'
+    if (parse_includes && q[0] == '#'
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
@@ -700,8 +720,9 @@ process_preprocessed_file(Context& ctx,
         return Statistic::could_not_use_precompiled_header;
       }
       p = q; // Everything of interest between p and q has been hashed now.
-    } else if (detect_incbin && q[0] == '.' && q[1] == 'i' && q[2] == 'n'
-               && q[3] == 'c' && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
+    }
+    else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
+               && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
       // An assembler .inc bin (without the space) statement, which could be
       // part of inline assembly, refers to an external file. If the file
       // changes, the hash should change as well, but finding out what file to
@@ -710,7 +731,7 @@ process_preprocessed_file(Context& ctx,
         "Found unsupported .inc"
         "bin directive in source code");
       throw Failure(Statistic::unsupported_code_directive);
-    } else if (pump && strncmp(q, "_________", 9) == 0) {
+    } else if (parse_includes && pump && strncmp(q, "_________", 9) == 0) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
       // __________Using # distcc servers in pump mode
@@ -774,24 +795,17 @@ hash_deps_from_depfiles(Context& ctx, Hash* hash, const std::string& depfile)
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static bool
-hash_depfiles(Context& ctx,
-              Hash* direct_hash,
-              Hash* pch_hash,
-              const std::string& depfile)
+hash_depfiles(Context& ctx, Hash  *hash, const std::string& depfile)
 {
-  if (ctx.config.direct_mode() && !depfile.empty()
-      && !hash_deps_from_depfiles(ctx, direct_hash, depfile)) {
+  if (!hash_deps_from_depfiles(ctx, hash, depfile))
     return false;
-  }
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
   if (!ctx.included_pch_file.empty()) {
     std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
-    if (pch_hash) {
-      pch_hash->hash(pch_path);
-    }
-    remember_include_file(ctx, pch_path, pch_hash, false, nullptr);
+   if (hash) hash->hash(pch_path);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -805,59 +819,11 @@ hash_depfiles(Context& ctx,
 static optional<Digest>
 result_name_from_depfile(Context& ctx, Hash& hash)
 {
-  if (!hash_depfiles(ctx, &hash, &hash, ctx.args_info.output_dep)) {
+  if (!hash_depfiles(ctx, &hash, ctx.args_info.output_dep)) {
     return nullopt;
   }
 
   return hash.digest();
-}
-
-// Process the output of the preprocessor output in unify mode.
-static Statistic
-process_unified_file(Context& ctx,
-                     Hash& hash,
-                     const std::string& stdout_path,
-                     const std::string& deps_path)
-{
-  // Include the dependency file into the hash. There may be no dependency file
-  // if directly processing an .i file, in which case the input file is the only
-  // dependency.
-  if (!deps_path.empty() && !hash.hash_file(deps_path)) {
-    LOG("Failed to open {}: {}", stdout_path, strerror(errno));
-    return Statistic::internal_error;
-  }
-
-  // The preprocessed file already contains all the content, so throw away the
-  // included files' hashes, but still record them for direct mode.
-  if (!hash_depfiles(ctx, nullptr, &hash, deps_path)) {
-    throw Failure(Statistic::internal_error);
-  }
-
-  // With sloppy_incbin, only hash the preprocessor output. Otherwise, read-in
-  // the entire file to hash and scan for .incbin directives.
-  if (ctx.config.sloppiness() & SLOPPY_INCBIN) {
-    if (!hash.hash_file(stdout_path)) {
-      LOG("Failed to open {}: {}", stdout_path, strerror(errno));
-      throw Failure(Statistic::internal_error);
-    }
-  } else {
-    std::string data;
-    try {
-      data = Util::read_file(stdout_path);
-    } catch (Error& err) {
-      LOG("Failed to open {}: {}", stdout_path, err.what());
-      return Statistic::internal_error;
-    }
-
-    hash.hash(data);
-
-    if (data.find(".incbin") != std::string::npos) {
-      LOG_RAW("Found unsupported .incbin directive in source code");
-      throw Failure(Statistic::unsupported_code_directive);
-    }
-  }
-
-  return Statistic::none;
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -866,20 +832,24 @@ static int
 do_execute(Context& ctx,
            Args& args,
            TemporaryFile&& tmp_stdout,
-           TemporaryFile&& tmp_stderr,
-           bool is_preprocessor = false)
+           TemporaryFile&& tmp_stderr, bool is_preprocessor=false)
 {
   UmaskScope umask_scope(ctx.original_umask);
-  CompilerType type = is_preprocessor
-                        ? ctx.config.compiler_type()
-                        : ctx.config.effective_preprocessor_type();
+  CompilerType type = is_preprocessor ? ctx.config.compiler_type() : ctx.config.effective_preprocessor_type();
 
   if (ctx.diagnostics_color_failed) {
     DEBUG_ASSERT(type == CompilerType::gcc);
     args.erase_last("-fdiagnostics-color");
   }
+<<<<<<< HEAD
+ // printf("executing: %s\n", args.to_argv()[0]);
+  int status = execute(args.to_argv().data(),
+||||||| 3c96cee6
+  int status = execute(args.to_argv().data(),
+=======
   int status = execute(ctx,
                        args.to_argv().data(),
+>>>>>>> official/master
                        std::move(tmp_stdout.fd),
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
@@ -1106,10 +1076,12 @@ to_cache(Context& ctx,
   ctx.register_pending_tmp_file(tmp_stderr.path);
   std::string tmp_stderr_path = tmp_stderr.path;
 
+  system("pwd");
+  system("ls");
+
   int status;
   if (!ctx.config.depend_mode()) {
-    status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
+    status = do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
     args.pop_back(3);
   } else {
     // Use the original arguments (including dependency options) in depend
@@ -1120,8 +1092,7 @@ to_cache(Context& ctx,
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
-    status = do_execute(
-      ctx, depend_mode_args, std::move(tmp_stdout), std::move(tmp_stderr));
+    status = do_execute(ctx, depend_mode_args, std::move(tmp_stdout), std::move(tmp_stderr));
   }
   MTR_END("execute", "compiler");
 
@@ -1130,6 +1101,8 @@ to_cache(Context& ctx,
     // The stdout file was removed - cleanup in progress? Better bail out.
     throw Failure(Statistic::missing_cache_file);
   }
+ // Util::send_to_stderr(ctx, Util::read_file(tmp_stdout_path));
+
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
@@ -1138,34 +1111,18 @@ to_cache(Context& ctx,
     throw Failure(Statistic::compiler_produced_stdout);
   }
 
-  if (ctx.config.unify_mode()
-      && !(ctx.config.sloppiness() & SLOPPY_UNIFY_WITH_OUTPUT)) {
-    Stat se = Stat::stat(tmp_stderr_path, Stat::OnError::log);
+  if (ctx.config.use_unify_mode() && !(ctx.config.sloppiness() & SLOPPY_UNIFY_WITH_OUTPUT)) {
+    auto se = Stat::stat(tmp_stderr_path, Stat::OnError::log);
     if (!se) {
       // The stderr file was removed - cleanup in progress? Better bail out.
       throw Failure(Statistic::missing_cache_file);
     }
     if (se.size() != 0) {
-      LOG_RAW("Compiler emitted diagnostics in unify mode");
-
-      // Without run_second_cpp, diagnostics refer to the temporary file; fail
-      // and run again using the original input to get usable diagnostics.
-      if (!ctx.config.run_second_cpp()) {
-        throw Failure(Statistic::compiler_produced_stderr);
-      }
-
-      // With run_second_cpp, the compiler diagnostic output is good for this
-      // exact input, but imprecise for other unify mode matches. Include the
-      // compiler messages in the hash. This will guarantee that there will
-      // never be a match in preprocessor mode, but the file can still be
-      // referred to from the manifest, and thus, by direct mode.
-      LOG_RAW("Invalidate preprocessed output hash");
-      depend_mode_hash->hash_delimiter("diag");
-      std::string stderr_content = Util::read_file(tmp_stderr_path);
-      depend_mode_hash->hash(stderr_content);
-      ctx.set_result_name(depend_mode_hash->digest());
+      LOG_RAW("Compiler emits diagnostics in unify mode (may refer to wrong line numbers)");
+      throw Failure(Statistic::compiler_produced_stderr);
     }
   }
+ //Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
   // compiler into tmp_stderr.
@@ -1218,8 +1175,6 @@ to_cache(Context& ctx,
     throw Failure(Statistic::internal_error);
   }
 
-  MTR_BEGIN("file", "file_put");
-
   const auto result_file = look_up_cache_file(
     ctx.config.cache_dir(), *ctx.result_name(), Result::k_file_suffix);
   ctx.set_result_path(result_file.path);
@@ -1257,15 +1212,11 @@ to_cache(Context& ctx,
                         ctx.args_info.output_dwo);
   }
 
-  const auto file_size_and_count_diff = result_writer.finalize();
-  if (file_size_and_count_diff) {
-    LOG("Stored in cache: {}", result_file.path);
-    ctx.counter_updates.increment(Statistic::cache_size_kibibyte,
-                                  file_size_and_count_diff->size_kibibyte);
-    ctx.counter_updates.increment(Statistic::files_in_cache,
-                                  file_size_and_count_diff->count);
+  auto error = result_writer.finalize();
+  if (error) {
+    LOG("Error: {}", *error);
   } else {
-    LOG("Error: {}", file_size_and_count_diff.error());
+    LOG("Stored in cache: {}", result_file.path);
   }
 
   auto new_result_stat = Stat::stat(result_file.path, Stat::OnError::log);
@@ -1324,44 +1275,33 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
     ctx.register_pending_tmp_file(stderr_path);
 
     TemporaryFile tmp_deps(FMT("{}/tmp.cpp_deps", ctx.config.temporary_dir()));
-    ctx.register_pending_tmp_file(tmp_deps.path);
+
+
 
     size_t args_added = 2;
     args.push_back("-E");
 
-    // Use -fnormalize-whitespace if available. Outside unify mode, this will
-    // still normalize tokens on this same line.
-    if (ctx.config.compiler_type()
-        == CompilerType::clang_normalize_whitespace) {
+    if (ctx.config.compiler_type() == CompilerType::clang_normalize_whitespace) {
       args.push_back("-fnormalize-whitespace");
       args_added += 1;
     }
 
-    if (ctx.config.unify_mode()) {
-      // -P suppresses line directives in the preprocessed output, hence cannot
-      // be used to track dependencies anymore.
-      args.push_back("-P");
-      args_added += 1;
+    if (ctx.config.use_unify_mode()) {
+      args.push_back("-P");  args_added += 1;
 
-      if (ctx.args_info.generating_dependencies
-          && !ctx.config.run_second_cpp()) {
-        // User already specified they want to generate dependencies; Since
-        // without run_second_cpp only the preprocessor run can generate a
-        // dependency file, use the same for both purposes.
+      if (ctx.args_info.generating_dependencies && !ctx.config.run_second_cpp()) {
+        // User already specified they want to generate dependencies; use that output
         deps_path = ctx.args_info.output_dep;
-        LOG("Unify mode: Using user dependency file {}", deps_path);
       } else {
-        // Add our own dependency output file for dependency tracking
+        // Add our own dependency file
         deps_path = tmp_deps.path;
-        LOG("Unify mode: Using temporary dependency file {}", deps_path);
-        args.push_back(
-          (ctx.config.sloppiness() & SLOPPY_SYSTEM_HEADERS) ? "-MMD" : "-MD");
+        args.push_back(ctx.config.sloppiness() & SLOPPY_SYSTEM_HEADERS ? "-MMD" : "-MD");
         args.push_back("-MF");
         args.push_back(deps_path);
         args_added += 3;
+        ctx.register_pending_tmp_file(deps_path);
       }
     }
-
     if (ctx.args_info.actual_language == "hip") {
       args.push_back("-o");
       args.push_back("-");
@@ -1375,8 +1315,9 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
+    bool is_preprocessor = true;
     status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr), true);
+      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr), is_preprocessor);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
   }
@@ -1388,16 +1329,64 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 
   hash.hash_delimiter("cpp");
 
-  if (ctx.config.unify_mode()) {
-    const Statistic error =
-      process_unified_file(ctx, hash, stdout_path, deps_path);
-    if (error != Statistic::none) {
-      throw Failure(error);
-    }
+  const bool is_pump = ctx.config.compiler_type() == CompilerType::pump;
+  if (ctx.config.use_unify_mode()) {
+      if (ctx.config.sloppiness() & SLOPPY_INCBIN) {
+        if (!hash.hash_file(stdout_path)) {
+          LOG("Failed to open {}: {}", stdout_path, strerror(errno));
+          throw Failure(Statistic::internal_error);
+        }
+      } else {
+        const Statistic error = process_unified_file(ctx, hash, stdout_path, is_pump);
+        if (error != Statistic::none) {
+          throw Failure(error);
+        }
+      }
+
+      // Explicitly check the .gch/.pch/.pth file as Clang does not include any
+      // mention of it in the preprocessed output.
+      if (!ctx.included_pch_file.empty()) {
+        std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
+        hash.hash(pch_path);
+        remember_include_file(ctx, pch_path, &hash, false, nullptr);
+      }
+
+      // The preprocessed file already contains all the content, so throw away the
+      // included files' hashes, but still record them for direct mode.
+      if (ctx.config.direct_mode()) { // TODO: merge back into hash_depfiles
+        if (!hash_deps_from_depfiles(ctx, nullptr, deps_path)) {
+          throw Failure(Statistic::internal_error);
+        }
+      }
+
+        // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
+        // dependencies output.
+        if (!ctx.included_pch_file.empty()) {
+          std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
+          hash.hash(pch_path);
+          remember_include_file(ctx, pch_path, &hash, false, nullptr);
+        }
+
+        bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+        if (debug_included) {
+          print_included_files(ctx, stdout);
+        }
+
+
+#if 0
+      // Preproc output may
+      if (!(ctx.config.sloppiness() & SLOPPY_UNIFY_WITH_OUTPUT)) {
+        std::string data;
+        try {
+          data = Util::read_file(stderr_path);
+        }
+        catch (Error&) {
+          throw Failure(Statistic::internal_error);
+        }
+      }
+#endif
   } else {
-    const bool is_pump = (ctx.config.compiler_type() == CompilerType::pump);
-    const Statistic error =
-      process_preprocessed_file(ctx, hash, stdout_path, is_pump);
+    const Statistic error = process_preprocessed_file<true>(ctx, hash, stdout_path, is_pump);
     if (error != Statistic::none) {
       throw Failure(error);
     }
@@ -1458,36 +1447,6 @@ hash_compiler(const Context& ctx,
   }
 }
 
-// Hash mtime or content of a file, or the output of a command, according to
-// the CCACHE_PREPROCESSORCHECK setting.
-static void
-hash_preprocessor(const Context& ctx,
-                  Hash& hash,
-                  const Stat& st,
-                  const std::string& path,
-                  bool allow_command)
-{
-  const std::string& checkmethod = ctx.config.preprocessor_check();
-  if (checkmethod == "none") {
-    // Do nothing.
-  } else if (checkmethod == "mtime") {
-    hash.hash_delimiter("cpp_mtime");
-    hash.hash(st.size());
-    hash.hash(st.mtime());
-  } else if (Util::starts_with(checkmethod, "string:")) {
-    hash.hash_delimiter("cpp_hash");
-    hash.hash(&checkmethod[7]);
-  } else if (checkmethod == "content" || !allow_command) {
-    hash.hash_delimiter("cpp_content");
-    hash_binary_file(ctx, hash, path);
-  } else { // command string
-    if (!hash_multicommand_output(hash, checkmethod, ctx.orig_args[0])) {
-      LOG("Failure running preprocessor check command: {}", checkmethod);
-      throw Failure(Statistic::preprocessor_check_failed);
-    }
-  }
-}
-
 // Hash the host compiler(s) invoked by nvcc.
 //
 // If `ccbin_st` and `ccbin` are set, they refer to a directory or compiler set
@@ -1542,8 +1501,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 static bool
 should_rewrite_dependency_target(const ArgsInfo& args_info)
 {
-  return !args_info.dependency_target_specified
-         && (args_info.seen_MD || args_info.seen_MMD);
+  return !args_info.dependency_target_specified &&( args_info.seen_MD ||  args_info.seen_MMD);
 }
 
 // update a hash with information common for the direct and preprocessor modes.
@@ -1573,13 +1531,6 @@ hash_common_info(const Context& ctx,
 
   // Hash information about the compiler.
   hash_compiler(ctx, hash, st, compiler_path, true);
-  if (!ctx.config.preprocessor().empty() && !ctx.config.depend_mode()) {
-    std::string preprocessor_path = ctx.config.preprocessor();
-#ifdef _WIN32
-    preprocessor_path = Win32Util::add_exe_suffix(preprocessor_path);
-#endif
-    hash_preprocessor(ctx, hash, st, preprocessor_path, true);
-  }
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -1871,8 +1822,7 @@ calculate_result_name(Context& ctx,
 
     if (Util::starts_with(args[i], "-specs=")
         || Util::starts_with(args[i], "--specs=")
-        || (args[i] == "-specs" || args[i] == "--specs")
-        || args[i] == "--config") {
+        || (args[i] == "-specs" || args[i] == "--specs")) {
       std::string path;
       size_t eq_pos = args[i].find('=');
       if (eq_pos == std::string::npos) {
@@ -2375,9 +2325,10 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
   const auto stats_file =
     FMT("{}/{}/stats", ctx.config.cache_dir(), level_string);
 
-  auto counters = Statistics::update(stats_file, [&counter_updates](auto& cs) {
-    cs.increment(counter_updates);
-  });
+  auto counters =
+    Statistics::update(stats_file, [&counter_updates](Counters& cs) {
+      cs.increment(counter_updates);
+    });
   if (!counters) {
     return nullopt;
   }
@@ -2416,17 +2367,9 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    const auto result = Statistics::get_result_message(ctx.counter_updates);
+    const auto result = Statistics::get_result(ctx.counter_updates);
     if (result) {
       LOG("Result: {}", *result);
-    }
-  }
-
-  if (!config.stats_log().empty()) {
-    const auto result_id = Statistics::get_result_id(ctx.counter_updates);
-    if (result_id) {
-      Statistics::log_result(
-        config.stats_log(), ctx.args_info.input_file, *result_id);
     }
   }
 
@@ -2443,8 +2386,8 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
     const auto bucket = getpid() % 256;
     const auto stats_file =
       FMT("{}/{:x}/{:x}/stats", config.cache_dir(), bucket / 16, bucket % 16);
-    Statistics::update(stats_file,
-                       [&ctx](auto& cs) { cs.increment(ctx.counter_updates); });
+    Statistics::update(
+      stats_file, [&ctx](Counters& cs) { cs.increment(ctx.counter_updates); });
     return;
   }
 
@@ -2537,21 +2480,25 @@ cache_compilation(int argc, const char* const* argv)
     find_compiler(ctx, &find_executable);
     MTR_END("main", "find_compiler");
 
-    const std ::string& preprocessor = ctx.config.preprocessor();
+
+
+    const std :: string & preprocessor = ctx.config.preprocessor();
     if (!preprocessor.empty()) {
       if (!Util::is_full_path(preprocessor)) {
-        std::string resolved_compiler =
-          find_executable(ctx, preprocessor, CCACHE_NAME);
+        std::string resolved_compiler = find_executable(ctx, preprocessor, CCACHE_NAME);
         if (resolved_compiler.empty()) {
-          throw Fatal("Could not find preprocessor \"{}\" in PATH",
-                      preprocessor);
+          throw Fatal("Could not find preprocessor \"{}\" in PATH", preprocessor);
         }
       }
     }
 
+
+#if 1
     try {
+#endif
       Statistic statistic = do_cache_compilation(ctx, argv);
       ctx.counter_updates.increment(statistic);
+#if 1
     } catch (const Failure& e) {
       if (e.statistic() != Statistic::none) {
         ctx.counter_updates.increment(e.statistic());
@@ -2579,7 +2526,9 @@ cache_compilation(int argc, const char* const* argv)
       // Execute the original command below after ctx and finalizer have been
       // destructed.
     }
+#endif
   }
+
 
   if (fall_back_to_original_compiler) {
     if (original_umask) {
@@ -2619,15 +2568,13 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
   DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
 
-  const std ::string& preprocessor = ctx.config.preprocessor();
-  if (!preprocessor.empty() && !ctx.config.depend_mode()) {
+  const std :: string & preprocessor = ctx.config.preprocessor();
+  if (!preprocessor.empty()) {
     if (ctx.config.preprocessor_type() == CompilerType::auto_guess) {
       ctx.config.set_preprocessor_type(guess_compiler(preprocessor));
     }
     DEBUG_ASSERT(ctx.config.preprocessor_type() != CompilerType::auto_guess);
   }
-  DEBUG_ASSERT(ctx.config.effective_preprocessor_type()
-               != CompilerType::auto_guess);
 
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
@@ -2643,10 +2590,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
-  if (!preprocessor.empty() && !ctx.config.depend_mode()) {
-    LOG("Preprocessor type: {}",
-        compiler_type_to_string(ctx.config.preprocessor_type()));
-  }
+  LOG("Preprocessor type: {}", compiler_type_to_string(ctx.config.preprocessor_type()));
 
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);
@@ -2664,6 +2608,16 @@ do_cache_compilation(Context& ctx, const char* const* argv)
           || !ctx.config.run_second_cpp())) {
     LOG_RAW("Disabling depend mode");
     ctx.config.set_depend_mode(false);
+  }
+
+  if (ctx.config.unify_mode() && ctx.args_info.generating_debuginfo && !(ctx.config.sloppiness() & SLOPPY_UNIFY_WITH_DEBUG)) {
+    LOG_RAW("Disabling unify mode: debug info requested");
+    ctx.config.set_unify_mode(false);
+  }
+
+  if (ctx.config.unify_mode() && !ctx.config.run_second_cpp() && ctx.args_info.seen_MMD && !(ctx.config.sloppiness() & SLOPPY_SYSTEM_HEADERS)) {
+    LOG_RAW("Disabling unify mode: -MMD output requested, but -MD output needed to track system headers. Either enable SLOPPY_SYSTEM_HEADERS or use run_second_cpp");
+    ctx.config.set_unify_mode(false);
   }
 
   LOG("Source file: {}", ctx.args_info.input_file);
@@ -2810,10 +2764,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   add_prefix(ctx, processed.compiler_args, ctx.config.prefix_command());
 
-  // In depend_ and unify mode, extend the direct hash.
-  Hash* depend_mode_hash = (ctx.config.depend_mode() || ctx.config.unify_mode())
-                             ? &direct_hash
-                             : nullptr;
+  // In depend_mode, extend the direct hash.
+  Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
@@ -2840,7 +2792,6 @@ handle_main_options(int argc, const char* const* argv)
     EXTRACT_RESULT,
     HASH_FILE,
     PRINT_STATS,
-    SHOW_LOG_STATS,
   };
   static const struct option options[] = {
     {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
@@ -2862,7 +2813,6 @@ handle_main_options(int argc, const char* const* argv)
     {"set-config", required_argument, nullptr, 'o'},
     {"show-compression", no_argument, nullptr, 'x'},
     {"show-config", no_argument, nullptr, 'p'},
-    {"show-log-stats", no_argument, nullptr, SHOW_LOG_STATS},
     {"show-stats", no_argument, nullptr, 's'},
     {"version", no_argument, nullptr, 'V'},
     {"zero-stats", no_argument, nullptr, 'z'},
@@ -2940,15 +2890,9 @@ handle_main_options(int argc, const char* const* argv)
       break;
     }
 
-    case PRINT_STATS: {
-      Counters counters;
-      time_t last_updated;
-      std::tie(counters, last_updated) =
-        Statistics::collect_counters(ctx.config);
-      PRINT_RAW(stdout,
-                Statistics::format_machine_readable(counters, last_updated));
+    case PRINT_STATS:
+      PRINT_RAW(stdout, Statistics::format_machine_readable(ctx.config));
       break;
-    }
 
     case 'c': // --cleanup
     {
@@ -3026,30 +2970,9 @@ handle_main_options(int argc, const char* const* argv)
       ctx.config.visit_items(configuration_printer);
       break;
 
-    case SHOW_LOG_STATS: {
-      if (ctx.config.stats_log().empty()) {
-        throw Fatal("No stats log has been configured");
-      }
-      PRINT_RAW(stdout, Statistics::format_stats_log(ctx.config));
-      Counters counters = Statistics::read_log(ctx.config.stats_log());
-      auto st = Stat::stat(ctx.config.stats_log(), Stat::OnError::log);
-      PRINT_RAW(stdout,
-                Statistics::format_human_readable(counters, st.mtime(), true));
+    case 's': // --show-stats
+      PRINT_RAW(stdout, Statistics::format_human_readable(ctx.config));
       break;
-    }
-
-    case 's': { // --show-stats
-      PRINT_RAW(stdout, Statistics::format_config_header(ctx.config));
-      Counters counters;
-      time_t last_updated;
-      std::tie(counters, last_updated) =
-        Statistics::collect_counters(ctx.config);
-      PRINT_RAW(
-        stdout,
-        Statistics::format_human_readable(counters, last_updated, false));
-      PRINT_RAW(stdout, Statistics::format_config_footer(ctx.config));
-      break;
-    }
 
     case 'V': // --version
       PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);

@@ -40,4 +40,14 @@ enum Sloppiness {
   SLOPPY_MODULES = 1 << 9,
   // Ignore virtual file system (VFS) overlay file.
   SLOPPY_IVFSOVERLAY = 1 << 10,
+  // Unify mode: Skip scanning for .incbin dependencies.
+  SLOPPY_INCBIN = 1 << 11,
+  // Unify mode: Allow unify mode even with -g flag. Debug info (used be
+  // debuggers) line location may be approximate due to the reuse of compiler
+  // output after adding or removing whitespace.
+  SLOPPY_UNIFY_WITH_DEBUG = 1 << 12,
+  // Unify mode: Allow caching even if there was compiler output. Diagnosed
+  // error/warning locations may be approximate due to the reuse of compiler
+  // output after whitespace change.
+  SLOPPY_UNIFY_WITH_OUTPUT = 1 << 13,
 };
