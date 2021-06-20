@@ -38,6 +38,22 @@ Context::Context()
     inode_cache(config)
 #endif
 {
+  config.read();
+  Logging::init(config);
+
+  ignore_header_paths =
+    Util::split_into_strings(config.ignore_headers_in_manifest(), PATH_DELIM);
+  set_ignore_options(Util::split_into_strings(config.ignore_options(), " "));
+
+  // Set default umask for all files created by ccache from now on (if
+  // configured to). This is intentionally done after calling Logging::init so
+  // that the log file won't be affected by the umask but before creating the
+  // initial configuration file. The intention is that all files and directories
+  // in the cache directory should be affected by the configured umask and that
+  // no other files and directories should.
+  if (config.umask() != std::numeric_limits<uint32_t>::max()) {
+    original_umask = umask(config.umask());
+  }
 }
 
 Context::~Context()

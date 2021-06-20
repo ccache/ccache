@@ -1962,129 +1962,11 @@ find_compiler(Context& ctx,
   ctx.orig_args[0] = resolved_compiler;
 }
 
-static std::string
-default_cache_dir(const std::string& home_dir)
-{
-#ifdef _WIN32
-  return home_dir + "/ccache";
-#elif defined(__APPLE__)
-  return home_dir + "/Library/Caches/ccache";
-#else
-  return home_dir + "/.cache/ccache";
-#endif
-}
-
-static std::string
-default_config_dir(const std::string& home_dir)
-{
-#ifdef _WIN32
-  return home_dir + "/ccache";
-#elif defined(__APPLE__)
-  return home_dir + "/Library/Preferences/ccache";
-#else
-  return home_dir + "/.config/ccache";
-#endif
-}
-
-// Read config file(s), populate variables, create configuration file in cache
-// directory if missing, etc.
-static void
-set_up_config(Config& config)
-{
-  const std::string home_dir = Util::get_home_directory();
-  const std::string legacy_ccache_dir = home_dir + "/.ccache";
-  const bool legacy_ccache_dir_exists =
-    Stat::stat(legacy_ccache_dir).is_directory();
-  const char* const env_xdg_cache_home = getenv("XDG_CACHE_HOME");
-  const char* const env_xdg_config_home = getenv("XDG_CONFIG_HOME");
-
-  const char* env_ccache_configpath = getenv("CCACHE_CONFIGPATH");
-  if (env_ccache_configpath) {
-    config.set_primary_config_path(env_ccache_configpath);
-  } else {
-    // Only used for ccache tests:
-    const char* const env_ccache_configpath2 = getenv("CCACHE_CONFIGPATH2");
-
-    config.set_secondary_config_path(env_ccache_configpath2
-                                       ? env_ccache_configpath2
-                                       : FMT("{}/ccache.conf", SYSCONFDIR));
-    MTR_BEGIN("config", "conf_read_secondary");
-    // A missing config file in SYSCONFDIR is OK so don't check return value.
-    config.update_from_file(config.secondary_config_path());
-    MTR_END("config", "conf_read_secondary");
-
-    const char* const env_ccache_dir = getenv("CCACHE_DIR");
-    std::string primary_config_dir;
-    if (env_ccache_dir && *env_ccache_dir) {
-      primary_config_dir = env_ccache_dir;
-    } else if (!config.cache_dir().empty() && !env_ccache_dir) {
-      primary_config_dir = config.cache_dir();
-    } else if (legacy_ccache_dir_exists) {
-      primary_config_dir = legacy_ccache_dir;
-    } else if (env_xdg_config_home) {
-      primary_config_dir = FMT("{}/ccache", env_xdg_config_home);
-    } else {
-      primary_config_dir = default_config_dir(home_dir);
-    }
-    config.set_primary_config_path(primary_config_dir + "/ccache.conf");
-  }
-
-  const std::string& cache_dir_before_primary_config = config.cache_dir();
-
-  MTR_BEGIN("config", "conf_read_primary");
-  config.update_from_file(config.primary_config_path());
-  MTR_END("config", "conf_read_primary");
-
-  // Ignore cache_dir set in primary config.
-  config.set_cache_dir(cache_dir_before_primary_config);
-
-  MTR_BEGIN("config", "conf_update_from_environment");
-  config.update_from_environment();
-  // (config.cache_dir is set above if CCACHE_DIR is set.)
-  MTR_END("config", "conf_update_from_environment");
-
-  if (config.cache_dir().empty()) {
-    if (legacy_ccache_dir_exists) {
-      config.set_cache_dir(legacy_ccache_dir);
-    } else if (env_xdg_cache_home) {
-      config.set_cache_dir(FMT("{}/ccache", env_xdg_cache_home));
-    } else {
-      config.set_cache_dir(default_cache_dir(home_dir));
-    }
-  }
-  // else: cache_dir was set explicitly via environment or via secondary config.
-
-  // We have now determined config.cache_dir and populated the rest of config in
-  // prio order (1. environment, 2. primary config, 3. secondary config).
-}
-
-static void
-set_up_context(Context& ctx, int argc, const char* const* argv)
-{
-  ctx.orig_args = Args::from_argv(argc, argv);
-  ctx.ignore_header_paths = Util::split_into_strings(
-    ctx.config.ignore_headers_in_manifest(), PATH_DELIM);
-  ctx.set_ignore_options(
-    Util::split_into_strings(ctx.config.ignore_options(), " "));
-}
-
-// Initialize ccache, must be called once before anything else is run.
+// Initialize ccache. Must be called once before anything else is run.
 static void
 initialize(Context& ctx, int argc, const char* const* argv)
 {
-  set_up_config(ctx.config);
-  set_up_context(ctx, argc, argv);
-  Logging::init(ctx.config);
-
-  // Set default umask for all files created by ccache from now on (if
-  // configured to). This is intentionally done after calling init_log so that
-  // the log file won't be affected by the umask but before creating the initial
-  // configuration file. The intention is that all files and directories in the
-  // cache directory should be affected by the configured umask and that no
-  // other files and directories should.
-  if (ctx.config.umask() != std::numeric_limits<uint32_t>::max()) {
-    ctx.original_umask = umask(ctx.config.umask());
-  }
+  ctx.orig_args = Args::from_argv(argc, argv);
 
   LOG("=== CCACHE {} STARTED =========================================",
       CCACHE_VERSION);
@@ -2634,9 +2516,6 @@ handle_main_options(int argc, const char* const* argv)
     {"zero-stats", no_argument, nullptr, 'z'},
     {nullptr, 0, nullptr, 0}};
 
-  Context ctx;
-  initialize(ctx, argc, argv);
-
   int c;
   while ((c = getopt_long(argc,
                           const_cast<char* const*>(argv),
@@ -2644,6 +2523,8 @@ handle_main_options(int argc, const char* const* argv)
                           options,
                           nullptr))
          != -1) {
+    Context ctx;
+
     std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
@@ -2855,11 +2736,6 @@ handle_main_options(int argc, const char* const* argv)
       PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_FAILURE);
     }
-
-    // Some of the above switches might have changed config settings, so run the
-    // setup again.
-    ctx.config = Config();
-    set_up_config(ctx.config);
   }
 
   return 0;

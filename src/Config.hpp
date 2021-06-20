@@ -36,12 +36,12 @@ enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump };
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
-class Config
+class Config : NonCopyable
 {
 public:
   Config() = default;
-  Config(Config&) = default;
-  Config& operator=(const Config&) = default;
+
+  void read();
 
   bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;

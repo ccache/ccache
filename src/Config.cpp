@@ -20,6 +20,7 @@
 
 #include "AtomicFile.hpp"
 #include "Compression.hpp"
+#include "MiniTrace.hpp"
 #include "Sloppiness.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
@@ -425,6 +426,30 @@ parse_config_file(const std::string& path,
 
 } // namespace
 
+static std::string
+default_cache_dir(const std::string& home_dir)
+{
+#ifdef _WIN32
+  return home_dir + "/ccache";
+#elif defined(__APPLE__)
+  return home_dir + "/Library/Caches/ccache";
+#else
+  return home_dir + "/.cache/ccache";
+#endif
+}
+
+static std::string
+default_config_dir(const std::string& home_dir)
+{
+#ifdef _WIN32
+  return home_dir + "/ccache";
+#elif defined(__APPLE__)
+  return home_dir + "/Library/Preferences/ccache";
+#else
+  return home_dir + "/.config/ccache";
+#endif
+}
+
 std::string
 compiler_type_to_string(CompilerType compiler_type)
 {
@@ -445,6 +470,77 @@ compiler_type_to_string(CompilerType compiler_type)
 #undef CASE
 
   ASSERT(false);
+}
+
+void
+Config::read()
+{
+  const std::string home_dir = Util::get_home_directory();
+  const std::string legacy_ccache_dir = home_dir + "/.ccache";
+  const bool legacy_ccache_dir_exists =
+    Stat::stat(legacy_ccache_dir).is_directory();
+  const char* const env_xdg_cache_home = getenv("XDG_CACHE_HOME");
+  const char* const env_xdg_config_home = getenv("XDG_CONFIG_HOME");
+
+  const char* env_ccache_configpath = getenv("CCACHE_CONFIGPATH");
+  if (env_ccache_configpath) {
+    set_primary_config_path(env_ccache_configpath);
+  } else {
+    // Only used for ccache tests:
+    const char* const env_ccache_configpath2 = getenv("CCACHE_CONFIGPATH2");
+
+    set_secondary_config_path(env_ccache_configpath2
+                                ? env_ccache_configpath2
+                                : FMT("{}/ccache.conf", SYSCONFDIR));
+    MTR_BEGIN("config", "conf_read_secondary");
+    // A missing config file in SYSCONFDIR is OK so don't check return value.
+    update_from_file(secondary_config_path());
+    MTR_END("config", "conf_read_secondary");
+
+    const char* const env_ccache_dir = getenv("CCACHE_DIR");
+    std::string primary_config_dir;
+    if (env_ccache_dir && *env_ccache_dir) {
+      primary_config_dir = env_ccache_dir;
+    } else if (!cache_dir().empty() && !env_ccache_dir) {
+      primary_config_dir = cache_dir();
+    } else if (legacy_ccache_dir_exists) {
+      primary_config_dir = legacy_ccache_dir;
+    } else if (env_xdg_config_home) {
+      primary_config_dir = FMT("{}/ccache", env_xdg_config_home);
+    } else {
+      primary_config_dir = default_config_dir(home_dir);
+    }
+    set_primary_config_path(primary_config_dir + "/ccache.conf");
+  }
+
+  const std::string& cache_dir_before_primary_config = cache_dir();
+
+  MTR_BEGIN("config", "conf_read_primary");
+  update_from_file(primary_config_path());
+  MTR_END("config", "conf_read_primary");
+
+  // Ignore cache_dir set in primary
+  set_cache_dir(cache_dir_before_primary_config);
+
+  MTR_BEGIN("config", "conf_update_from_environment");
+  update_from_environment();
+  // (cache_dir is set above if CCACHE_DIR is set.)
+  MTR_END("config", "conf_update_from_environment");
+
+  if (cache_dir().empty()) {
+    if (legacy_ccache_dir_exists) {
+      set_cache_dir(legacy_ccache_dir);
+    } else if (env_xdg_cache_home) {
+      set_cache_dir(FMT("{}/ccache", env_xdg_cache_home));
+    } else {
+      set_cache_dir(default_cache_dir(home_dir));
+    }
+  }
+  // else: cache_dir was set explicitly via environment or via secondary
+  // config.
+
+  // We have now determined config.cache_dir and populated the rest of config
+  // in prio order (1. environment, 2. primary config, 3. secondary config).
 }
 
 const std::string&
