@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,6 @@
 #include "Decompressor.hpp"
 
 #include "NullDecompressor.hpp"
-#include "StdMakeUnique.hpp"
 #include "ZstdDecompressor.hpp"
 #include "assertions.hpp"
 

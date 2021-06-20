@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,9 +19,10 @@
 #include "Compressor.hpp"
 
 #include "NullCompressor.hpp"
-#include "StdMakeUnique.hpp"
 #include "ZstdCompressor.hpp"
 #include "assertions.hpp"
+
+#include <memory>
 
 std::unique_ptr<Compressor>
 Compressor::create_from_type(Compression::Type type,

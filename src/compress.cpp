@@ -27,7 +27,6 @@
 #include "Manifest.hpp"
 #include "Result.hpp"
 #include "Statistics.hpp"
-#include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
 #include "assertions.hpp"
@@ -36,6 +35,7 @@
 #include "third_party/fmt/core.h"
 
 // System headers
+#include <memory>
 #include <string>
 #include <thread>
 // End of system headers

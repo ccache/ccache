@@ -41,7 +41,6 @@
 #include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
 #include "Statistics.hpp"
-#include "StdMakeUnique.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
 #include "Util.hpp"
@@ -76,6 +75,7 @@ extern "C" {
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 
 #ifndef MYNAME
 #  define MYNAME "ccache"

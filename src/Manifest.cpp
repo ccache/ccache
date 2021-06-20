@@ -29,9 +29,10 @@
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "Sloppiness.hpp"
-#include "StdMakeUnique.hpp"
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"
+
+#include <memory>
 
 // Manifest data format
 // ====================
