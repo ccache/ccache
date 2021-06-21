@@ -28,6 +28,27 @@ operator==(
   return left.first == right.first && left.second == right.second;
 }
 
+TEST_CASE("util::percent_decode")
+{
+  CHECK(util::percent_decode("") == "");
+  CHECK(util::percent_decode("a") == "a");
+  CHECK(util::percent_decode("%61") == "a");
+  CHECK(util::percent_decode("%ab") == "\xab");
+  CHECK(util::percent_decode("%aB") == "\xab");
+  CHECK(util::percent_decode("%Ab") == "\xab");
+  CHECK(util::percent_decode("%AB") == "\xab");
+  CHECK(util::percent_decode("a%25b%7cc") == "a%b|c");
+
+  CHECK(util::percent_decode("%").error()
+        == "invalid percent-encoded string at position 0: %");
+  CHECK(util::percent_decode("%6").error()
+        == "invalid percent-encoded string at position 0: %6");
+  CHECK(util::percent_decode("%%").error()
+        == "invalid percent-encoded string at position 0: %%");
+  CHECK(util::percent_decode("a%0g").error()
+        == "invalid percent-encoded string at position 1: a%0g");
+}
+
 TEST_CASE("util::split_once")
 {
   using nonstd::nullopt;

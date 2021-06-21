@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/optional.hpp>
 #include <third_party/nonstd/string_view.hpp>
 
@@ -26,6 +27,12 @@
 // End of system headers
 
 namespace util {
+
+// Percent-decode[1] `string`.
+//
+// [1]: https://en.wikipedia.org/wiki/Percent-encoding
+nonstd::expected<std::string, std::string>
+percent_decode(nonstd::string_view string);
 
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`

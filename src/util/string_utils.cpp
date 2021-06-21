@@ -18,7 +18,42 @@
 
 #include "string_utils.hpp"
 
+#include <FormatNonstdStringView.hpp>
+#include <fmtmacros.hpp>
+
+// System headers
+#include <cctype>
+// End of system headers
+
 namespace util {
+
+nonstd::expected<std::string, std::string>
+percent_decode(nonstd::string_view string)
+{
+  const auto from_hex = [](const char digit) {
+    return static_cast<uint8_t>(
+      std::isdigit(digit) ? digit - '0' : std::tolower(digit) - 'a' + 10);
+  };
+
+  std::string result;
+  result.reserve(string.size());
+  for (size_t i = 0; i < string.size(); ++i) {
+    if (string[i] != '%') {
+      result += string[i];
+    } else if (i + 2 >= string.size() || !std::isxdigit(string[i + 1])
+               || !std::isxdigit(string[i + 2])) {
+      return nonstd::make_unexpected(
+        FMT("invalid percent-encoded string at position {}: {}", i, string));
+    } else {
+      const char ch = static_cast<char>(from_hex(string[i + 1]) << 4
+                                        | from_hex(string[i + 2]));
+      result += ch;
+      i += 2;
+    }
+  }
+
+  return result;
+}
 
 std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
 split_once(const nonstd::string_view string, const char split_char)
