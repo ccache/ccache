@@ -439,6 +439,7 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(nvcc);
     CASE(other);
     CASE(pump);
+    CASE(cl);
   }
 #undef CASE
 

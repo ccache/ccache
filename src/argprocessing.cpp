@@ -242,7 +242,7 @@ process_arg(Context& ctx,
   }
 
   // Special case for -E.
-  if (args[i] == "-E") {
+  if (args[i] == "-E" || args[i] == "/E") {
     return Statistic::called_for_preprocessing;
   }
 
@@ -376,8 +376,14 @@ process_arg(Context& ctx,
   }
 
   // We must have -c.
-  if (args[i] == "-c") {
+  if (args[i] == "-c" || args[i] == "/c") {
     state.found_c_opt = true;
+    return nullopt;
+  }
+
+  // MSVC /Fo with no space.
+  if (Util::starts_with(args[i], "/Fo") && config.compiler_type() == CompilerType::cl) {
+    args_info.output_obj = Util::make_relative_path(ctx, string_view(args[i]).substr(3));
     return nullopt;
   }
 
@@ -489,7 +495,8 @@ process_arg(Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if (args[i] == "-MD" || args[i] == "-MMD") {
+  if ((args[i] == "-MD" || args[i] == "-MMD") &&
+       config.compiler_type() != CompilerType::cl) {
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
@@ -820,7 +827,8 @@ process_arg(Context& ctx,
 
   // Same as above but options with concatenated argument beginning with a
   // slash.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-' ||
+     (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     size_t slash_pos = args[i].find('/');
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
@@ -858,7 +866,8 @@ process_arg(Context& ctx,
   }
 
   // Other options.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-' ||
+     (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     if (compopt_affects_cpp_output(args[i])
         || compopt_prefix_affects_cpp_output(args[i])) {
       state.cpp_args.push_back(args[i]);
