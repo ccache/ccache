@@ -465,8 +465,8 @@ void traverse(const std::string& path, const TraverseVisitor& visitor);
 
 // Remove `path` (non-directory), NFS safe. Logs according to `unlink_log`.
 //
-// Returns whether removal was successful. A nonexistent `path` is considered
-// successful.
+// Returns whether removal was successful. A nonexistent `path` is considered a
+// failure.
 bool unlink_safe(const std::string& path,
                  UnlinkLog unlink_log = UnlinkLog::log_failure);
 
