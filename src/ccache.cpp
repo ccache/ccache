@@ -798,16 +798,12 @@ update_manifest_file(Context& ctx,
   ctx.storage.put(
     manifest_key, core::CacheEntryType::manifest, [&](const std::string& path) {
       LOG("Adding result key to {}", path);
-      if (!Manifest::put(ctx.config,
-                         path,
-                         result_key,
-                         ctx.included_files,
-                         ctx.time_of_compilation,
-                         save_timestamp)) {
-        LOG("Failed to add result key to {}", path);
-        return false;
-      }
-      return true;
+      return Manifest::put(ctx.config,
+                           path,
+                           result_key,
+                           ctx.included_files,
+                           ctx.time_of_compilation,
+                           save_timestamp);
     });
 
   MTR_END("manifest", "manifest_put");
@@ -1047,14 +1043,12 @@ to_cache(Context& ctx,
   }
 
   MTR_BEGIN("result", "result_put");
-  try {
-    ctx.storage.put(
-      *result_key, core::CacheEntryType::result, [&](const std::string& path) {
-        write_result(ctx, path, obj_stat, tmp_stderr_path);
-        return true;
-      });
-  } catch (const Error& e) {
-    LOG("Error: {}", e.what());
+  const bool added = ctx.storage.put(
+    *result_key, core::CacheEntryType::result, [&](const std::string& path) {
+      write_result(ctx, path, obj_stat, tmp_stderr_path);
+      return true;
+    });
+  if (!added) {
     throw Failure(Statistic::internal_error);
   }
   MTR_END("result", "result_put");

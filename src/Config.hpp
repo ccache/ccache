@@ -77,6 +77,7 @@ public:
   bool read_only_direct() const;
   bool recache() const;
   bool run_second_cpp() const;
+  const std::string& secondary_storage() const;
   uint32_t sloppiness() const;
   bool stats() const;
   const std::string& stats_log() const;
@@ -170,6 +171,7 @@ private:
   bool m_read_only_direct = false;
   bool m_recache = false;
   bool m_run_second_cpp = true;
+  std::string m_secondary_storage;
   uint32_t m_sloppiness = 0;
   bool m_stats = true;
   std::string m_stats_log;
@@ -391,6 +393,12 @@ inline bool
 Config::run_second_cpp() const
 {
   return m_run_second_cpp;
+}
+
+inline const std::string&
+Config::secondary_storage() const
+{
+  return m_secondary_storage;
 }
 
 inline uint32_t

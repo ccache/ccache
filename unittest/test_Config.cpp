@@ -403,6 +403,7 @@ TEST_CASE("Config::visit_items")
     "read_only_direct = true\n"
     "recache = true\n"
     "run_second_cpp = false\n"
+    "secondary_storage = ss\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
     " clang_index_store, ivfsoverlay\n"
@@ -460,6 +461,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
     "(test.conf) run_second_cpp = false",
+    "(test.conf) secondary_storage = ss",
     "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"
     " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
     " system_headers, clang_index_store, ivfsoverlay",

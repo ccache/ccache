@@ -741,8 +741,9 @@ file in `/etc/rsyslog.d`:
 [[config_read_only]] *read_only* (*CCACHE_READONLY* or *CCACHE_NOREADONLY*, see _<<_boolean_values,Boolean values>>_ above)::
 
     If true, ccache will attempt to use existing cached results, but it will not
-    add new results to the cache. Statistics counters will still be updated,
-    though, unless the <<config_stats,*stats*>> option is set to *false*.
+    add new results to any cache backend. Statistics counters will still be
+    updated, though, unless the <<config_stats,*stats*>> option is set to
+    *false*.
 +
 If you are using this because your ccache directory is read-only, you need to
 set <<config_temporary_dir,*temporary_dir*>> since ccache will fail to create
@@ -782,6 +783,12 @@ preprocessor information, and only process the *#include* directives. When run
 in this way, the preprocessor arguments will be passed to the compiler since it
 still has to do _some_ preprocessing (like macros).
 
+[[config_secondary_storage]] *secondary_storage* (*CCACHE_SECONDARY_STORAGE*)::
+
+    This option specifies one or several storage backends (separated by space)
+    to query after the primary cache storage. See
+    _<<_secondary_storage_backends,Secondary storage backends>>_ for
+    documentation of syntax and available backends.
 [[config_sloppiness]] *sloppiness* (*CCACHE_SLOPPINESS*)::
 
     By default, ccache tries to give as few false cache hits as possible.
@@ -872,6 +879,25 @@ filesystem as the *CCACHE_DIR* path, but this requirement has been relaxed.)
     in the cache directory. This is mostly useful when you wish to share your
     cache with other users.
 
+
+== Secondary storage backends
+
+The <<config_secondary_storage,*secondary_storage*>> option lets you configure
+ccache to use one or several other storage backends in addition to the primary
+cache storage located in <<config_cache_dir,*cache_dir*>>. Note that cache
+statistics counters will still be kept in the primary cache directory --
+secondary storage backends only store cache results and manifests.
+
+A secondary storage backend is specified with a URL, optionally followed by a
+pipe (`|`) and a pipe-separated list of attributes. An attribute is
+_key_=_value_ or just _key_ as a short form of _key_=*true*. Attribute values
+must be https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they
+contain percent, pipe or space characters.
+
+Optional attributes available for all secondary storage backends:
+
+* *read-only*: If *true*, only read from this backend, don't write. The default
+  is *false*.
 
 == Cache size management
 

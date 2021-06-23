@@ -81,6 +81,7 @@ enum class ConfigItem {
   read_only_direct,
   recache,
   run_second_cpp,
+  secondary_storage,
   sloppiness,
   stats,
   stats_log,
@@ -123,6 +124,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"read_only_direct", ConfigItem::read_only_direct},
   {"recache", ConfigItem::recache},
   {"run_second_cpp", ConfigItem::run_second_cpp},
+  {"secondary_storage", ConfigItem::secondary_storage},
   {"sloppiness", ConfigItem::sloppiness},
   {"stats", ConfigItem::stats},
   {"stats_log", ConfigItem::stats_log},
@@ -166,6 +168,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
+  {"SECONDARY_STORAGE", "secondary_storage"},
   {"SLOPPINESS", "sloppiness"},
   {"STATS", "stats"},
   {"STATSLOG", "stats_log"},
@@ -712,6 +715,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
 
+  case ConfigItem::secondary_storage:
+    return m_secondary_storage;
+
   case ConfigItem::sloppiness:
     return format_sloppiness(m_sloppiness);
 
@@ -949,6 +955,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::run_second_cpp:
     m_run_second_cpp = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::secondary_storage:
+    m_secondary_storage = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::sloppiness:

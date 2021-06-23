@@ -21,6 +21,7 @@
 #include "types.hpp"
 
 #include <core/types.hpp>
+#include <storage/SecondaryStorage.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
 
 #include <third_party/nonstd/optional.hpp>
@@ -28,6 +29,7 @@
 // System headers
 #include <functional>
 #include <string>
+#include <vector>
 // End of system headers
 
 class Digest;
@@ -38,6 +40,7 @@ class Storage
 {
 public:
   Storage(const Config& config);
+  ~Storage();
 
   void initialize();
   void finalize();
@@ -55,7 +58,19 @@ public:
   void remove(const Digest& key, core::CacheEntryType type);
 
 private:
+  struct SecondaryStorageEntry
+  {
+    std::unique_ptr<storage::SecondaryStorage> backend;
+    std::string url;
+    bool read_only = false;
+  };
+
+  const Config& m_config;
   primary::PrimaryStorage m_primary_storage;
+  std::vector<SecondaryStorageEntry> m_secondary_storages;
+  std::vector<std::string> m_tmp_files;
+
+  void add_secondary_storages();
 };
 
 } // namespace storage
