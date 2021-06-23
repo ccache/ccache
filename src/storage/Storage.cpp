@@ -24,6 +24,7 @@
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
+#include <storage/secondary/FileStorage.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/string_utils.hpp>
 
@@ -219,8 +220,13 @@ parse_storage_entry(const nonstd::string_view& entry)
 }
 
 static std::unique_ptr<SecondaryStorage>
-create_storage(const ParseStorageEntryResult& /*storage_entry*/)
+create_storage(const ParseStorageEntryResult& storage_entry)
 {
+  if (storage_entry.scheme == "file") {
+    return std::make_unique<secondary::FileStorage>(storage_entry.url,
+                                                    storage_entry.attributes);
+  }
+
   return {};
 }
 

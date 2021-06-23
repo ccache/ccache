@@ -1,4 +1,5 @@
 add_subdirectory(primary)
+add_subdirectory(secondary)
 
 set(
   sources
