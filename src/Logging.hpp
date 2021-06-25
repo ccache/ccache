@@ -27,8 +27,10 @@
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
+// System headers
 #include <string>
 #include <utility>
+// End of system headers
 
 // Log a raw message (plus a newline character).
 #define LOG_RAW(message_)                                                      \

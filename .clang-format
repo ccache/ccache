@@ -26,12 +26,12 @@ IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^"system.hpp"$'
     Priority: 1
-  - Regex: '^"third_party/'
-    Priority: 3
+  - Regex: '^["<]third_party/'
+    Priority: 4
   - Regex: '^"'
     Priority: 2
   - Regex: '.*'
-    Priority: 4
+    Priority: 3
 IndentPPDirectives: AfterHash
 KeepEmptyLinesAtTheStartOfBlocks: false
 PointerAlignment: Left

@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -37,9 +37,11 @@
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
+// System headers
 #include <string>
 #include <unordered_map>
 #include <vector>
+// End of system headers
 
 class SignalHandler;
 

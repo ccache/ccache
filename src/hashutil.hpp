@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,7 +22,9 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
+// System headers
 #include <string>
+// End of system headers
 
 class Config;
 class Context;

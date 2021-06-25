@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,8 +22,10 @@
 
 #include "third_party/nonstd/optional.hpp"
 
+// System headers
 #include <string>
 #include <unordered_map>
+// End of system headers
 
 class Config;
 class Context;

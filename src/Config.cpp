@@ -28,6 +28,7 @@
 
 #include "third_party/fmt/core.h"
 
+// System headers
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -35,6 +36,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+// End of system headers
 
 using nonstd::nullopt;
 using nonstd::optional;

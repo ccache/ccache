@@ -35,8 +35,10 @@
 
 #include "third_party/fmt/core.h"
 
+// System headers
 #include <string>
 #include <thread>
+// End of system headers
 
 using nonstd::optional;
 

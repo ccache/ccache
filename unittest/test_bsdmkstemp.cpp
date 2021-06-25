@@ -23,11 +23,13 @@
 #include "third_party/doctest.h"
 #include "third_party/win32/mktemp.h"
 
+// System headers
 #include <algorithm>
 #include <memory>
 #include <ostream>
 #include <sddl.h>
 #include <utility>
+// End of system headers
 
 using TestUtil::TestContext;
 

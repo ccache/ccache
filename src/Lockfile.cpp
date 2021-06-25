@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,9 +28,11 @@
 
 #include "third_party/fmt/core.h"
 
+// System headers
 #include <algorithm>
 #include <sstream>
 #include <thread>
+// End of system headers
 
 namespace {
 

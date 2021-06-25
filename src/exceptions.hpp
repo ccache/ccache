@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,9 +25,11 @@
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
+// System headers
 #include <stdexcept>
 #include <string>
 #include <utility>
+// End of system headers
 
 // Don't throw or catch ErrorBase directly, use a subclass.
 class ErrorBase : public std::runtime_error

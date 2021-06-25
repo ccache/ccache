@@ -26,9 +26,11 @@
 #include "third_party/doctest.h"
 #include "third_party/fmt/core.h"
 
+// System headers
 #include <limits>
 #include <string>
 #include <vector>
+// End of system headers
 
 using doctest::Approx;
 using TestUtil::TestContext;

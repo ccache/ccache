@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,9 +25,11 @@
 
 #include "third_party/nonstd/optional.hpp"
 
+// System headers
 #include <functional>
 #include <sstream>
 #include <string>
+// End of system headers
 
 class Config;
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -27,7 +27,9 @@
 
 #include "third_party/doctest.h"
 
+// System headers
 #include <algorithm>
+// End of system headers
 
 using TestUtil::TestContext;
 
