@@ -1097,7 +1097,8 @@ uint64_t
 parse_unsigned(const std::string& value,
                optional<uint64_t> min_value,
                optional<uint64_t> max_value,
-               string_view description)
+               string_view description,
+               int base)
 {
   std::string stripped_value = strip_whitespace(value);
 
@@ -1110,13 +1111,15 @@ parse_unsigned(const std::string& value,
     try {
       // Note: sizeof(unsigned long long) is guaranteed to be >=
       // sizeof(uint64_t)
-      result = std::stoull(stripped_value, &end, 10);
+      result = std::stoull(stripped_value, &end, base);
     } catch (std::exception&) {
       failed = true;
     }
   }
   if (failed || end != stripped_value.size()) {
-    throw Error("invalid unsigned integer: \"{}\"", stripped_value);
+    const auto base_info = base == 8 ? "octal " : "";
+    throw Error(
+      "invalid unsigned {}integer: \"{}\"", base_info, stripped_value);
   }
 
   uint64_t min = min_value ? *min_value : 0;

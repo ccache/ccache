@@ -790,6 +790,11 @@ TEST_CASE("Util::parse_unsigned")
   CHECK(Util::parse_unsigned("18446744073709551615") == UINT64_MAX);
   CHECK_THROWS_WITH(Util::parse_unsigned("18446744073709551616"),
                     "invalid unsigned integer: \"18446744073709551616\"");
+
+  // Base
+  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 8) == 0666);
+  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 10) == 666);
+  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 16) == 0x666);
 }
 
 TEST_CASE("Util::read_file and Util::write_file")

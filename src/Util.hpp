@@ -356,14 +356,15 @@ uint64_t parse_size(const std::string& value);
 
 // Parse a string into an unsigned integer.
 //
-// Throws `Error` if `value` cannot be parsed as an uint64_t or if the value
-// falls out of the range [`min_value`, `max_value`]. `min_value` and
-// `max_value` default to min and max values of uint64_t. `description` is
-// included in the error message for range violations.
+// Throws `Error` if `value` cannot be parsed as an uint64_t with base `base`,
+// or if the value falls out of the range [`min_value`, `max_value`].
+// `min_value` and `max_value` default to min and max values of uint64_t.
+// `description` is included in the error message for range violations.
 uint64_t parse_unsigned(const std::string& value,
                         nonstd::optional<uint64_t> min_value = nonstd::nullopt,
                         nonstd::optional<uint64_t> max_value = nonstd::nullopt,
-                        nonstd::string_view description = "integer");
+                        nonstd::string_view description = "integer",
+                        int base = 10);
 
 // Read data from `fd` until end of file and call `data_receiver` with the read
 // data. Returns whether reading was successful, i.e. whether the read(2) call
