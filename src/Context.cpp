@@ -52,8 +52,8 @@ Context::Context()
   // initial configuration file. The intention is that all files and directories
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
-  if (config.umask() != std::numeric_limits<uint32_t>::max()) {
-    original_umask = umask(config.umask());
+  if (config.umask()) {
+    original_umask = umask(*config.umask());
   }
 }
 

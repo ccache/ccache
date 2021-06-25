@@ -1952,7 +1952,7 @@ cache_compilation(int argc, const char* const* argv)
 
   bool fall_back_to_original_compiler = false;
   Args saved_orig_args;
-  nonstd::optional<mode_t> original_umask;
+  nonstd::optional<uint32_t> original_umask;
   std::string saved_temp_dir;
 
   {

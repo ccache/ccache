@@ -27,6 +27,8 @@
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/string_utils.hpp>
+
 #include "third_party/fmt/core.h"
 
 // System headers
@@ -333,28 +335,13 @@ format_sloppiness(uint32_t sloppiness)
   return result;
 }
 
-uint32_t
-parse_umask(const std::string& value)
-{
-  if (value.empty()) {
-    return std::numeric_limits<uint32_t>::max();
-  }
-
-  size_t end;
-  uint32_t result = std::stoul(value, &end, 8);
-  if (end != value.size()) {
-    throw Error("not an octal integer: \"{}\"", value);
-  }
-  return result;
-}
-
 std::string
-format_umask(uint32_t umask)
+format_umask(nonstd::optional<mode_t> umask)
 {
-  if (umask == std::numeric_limits<uint32_t>::max()) {
-    return {};
+  if (umask) {
+    return FMT("{:03o}", *umask);
   } else {
-    return FMT("{:03o}", umask);
+    return {};
   }
 }
 
@@ -982,7 +969,13 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::umask:
-    m_umask = parse_umask(value);
+    if (!value.empty()) {
+      const auto umask = util::parse_umask(value);
+      if (!umask) {
+        throw Error(umask.error());
+      }
+      m_umask = *umask;
+    }
     break;
   }
 

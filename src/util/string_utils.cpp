@@ -19,6 +19,7 @@
 #include "string_utils.hpp"
 
 #include <FormatNonstdStringView.hpp>
+#include <Util.hpp>
 #include <fmtmacros.hpp>
 
 // System headers
@@ -26,6 +27,16 @@
 // End of system headers
 
 namespace util {
+
+nonstd::expected<mode_t, std::string>
+parse_umask(const std::string& value)
+{
+  try {
+    return Util::parse_unsigned(value, 0, 0777, "umask", 8);
+  } catch (const Error& e) {
+    return nonstd::make_unexpected(e.what());
+  }
+}
 
 nonstd::expected<std::string, std::string>
 percent_decode(nonstd::string_view string)

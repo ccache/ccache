@@ -28,6 +28,21 @@ operator==(
   return left.first == right.first && left.second == right.second;
 }
 
+TEST_CASE("util::parse_umask")
+{
+  CHECK(util::parse_umask("1") == 01u);
+  CHECK(util::parse_umask("002") == 2u);
+  CHECK(util::parse_umask("777") == 0777u);
+  CHECK(util::parse_umask("0777") == 0777u);
+
+  CHECK(util::parse_umask("").error()
+        == "invalid unsigned octal integer: \"\"");
+  CHECK(util::parse_umask(" ").error()
+        == "invalid unsigned octal integer: \"\"");
+  CHECK(util::parse_umask("088").error()
+        == "invalid unsigned octal integer: \"088\"");
+}
+
 TEST_CASE("util::percent_decode")
 {
   CHECK(util::percent_decode("") == "");

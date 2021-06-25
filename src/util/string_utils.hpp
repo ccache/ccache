@@ -23,10 +23,14 @@
 #include <third_party/nonstd/string_view.hpp>
 
 // System headers
+#include <string>
 #include <utility>
 // End of system headers
 
 namespace util {
+
+// Parse `value` (an octal integer).
+nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
 
 // Percent-decode[1] `string`.
 //

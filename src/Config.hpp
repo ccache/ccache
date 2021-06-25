@@ -81,7 +81,7 @@ public:
   bool stats() const;
   const std::string& stats_log() const;
   const std::string& temporary_dir() const;
-  uint32_t umask() const;
+  nonstd::optional<mode_t> umask() const;
 
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
@@ -174,7 +174,7 @@ private:
   bool m_stats = true;
   std::string m_stats_log;
   std::string m_temporary_dir;
-  uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
+  nonstd::optional<mode_t> m_umask;
 
   bool m_temporary_dir_configured_explicitly = false;
 
@@ -417,7 +417,7 @@ Config::temporary_dir() const
   return m_temporary_dir;
 }
 
-inline uint32_t
+inline nonstd::optional<mode_t>
 Config::umask() const
 {
   return m_umask;

@@ -868,9 +868,9 @@ filesystem as the *CCACHE_DIR* path, but this requirement has been relaxed.)
 
 [[config_umask]] *umask* (*CCACHE_UMASK*)::
 
-    This option specifies the umask for files and directories in the cache
-    directory. This is mostly useful when you wish to share your cache with
-    other users.
+    This option (an octal integer) specifies the umask for files and directories
+    in the cache directory. This is mostly useful when you wish to share your
+    cache with other users.
 
 
 == Cache size management
