@@ -93,9 +93,9 @@ jobs:
 
             # Install ld.gold (binutils) and ld.lld on different runs.
             if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd-dev binutils
+              sudo apt-get install -y ninja-build elfutils libzstd-dev libhiredis-dev redis-server redis-tools binutils
             else
-              sudo apt-get install -y ninja-build elfutils libzstd-dev lld
+              sudo apt-get install -y ninja-build elfutils libzstd-dev libhiredis-dev redis-server redis-tools lld
             fi
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
@@ -111,7 +111,7 @@ jobs:
             fi
           elif [ "${{ runner.os }}" = "macOS" ]; then
             HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-              brew install ninja
+              brew install ninja hiredis redis
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
               brew install gcc@${{ matrix.config.version }}
@@ -131,7 +131,7 @@ jobs:
         run: ci/build
         env:
           ENABLE_CACHE_CLEANUP_TESTS: true
-          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DREDIS_STORAGE_BACKEND=ON
 
       - name: Collect testdir from failed tests
         if: failure()

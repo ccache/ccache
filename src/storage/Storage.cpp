@@ -25,6 +25,9 @@
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/secondary/FileStorage.hpp>
+#ifdef HAVE_REDIS_STORAGE_BACKEND
+#  include <storage/secondary/RedisStorage.hpp>
+#endif
 #include <util/Tokenizer.hpp>
 #include <util/string_utils.hpp>
 
@@ -226,6 +229,13 @@ create_storage(const ParseStorageEntryResult& storage_entry)
     return std::make_unique<secondary::FileStorage>(storage_entry.url,
                                                     storage_entry.attributes);
   }
+
+#ifdef HAVE_REDIS_STORAGE_BACKEND
+  if (storage_entry.scheme == "redis") {
+    return std::make_unique<secondary::RedisStorage>(storage_entry.url,
+                                                     storage_entry.attributes);
+  }
+#endif
 
   return {};
 }

@@ -104,6 +104,11 @@ endif()
 option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 REQUIRED)
 
+option(REDIS_STORAGE_BACKEND "Enable redis secondary storage")
+if(REDIS_STORAGE_BACKEND)
+  find_package(Hiredis 0.13.3 REQUIRED)
+endif()
+
 #
 # Special flags
 #
