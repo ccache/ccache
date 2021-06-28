@@ -40,20 +40,20 @@ public:
 
   virtual ~SecondaryStorage() = default;
 
-  // Get value associated with `key`. Returns the value on success,
-  // nonstd::nullopt if entry is not present.
+  // Get the value associated with `key`. Returns the value on success or
+  // nonstd::nullopt if the entry is not present.
   virtual nonstd::expected<nonstd::optional<std::string>, Error>
   get(const Digest& key) = 0;
 
   // Put `value` associated to `key` in the storage. A true `only_if_missing` is
   // a hint that the value does not have to be set if already present. Returns
-  // true if the entry was stored or false if the entry wasn't stored.
+  // true if the entry was stored, otherwise false.
   virtual nonstd::expected<bool, Error> put(const Digest& key,
                                             const std::string& value,
                                             bool only_if_missing = false) = 0;
 
-  // Remove `key` and its associated value. Return true if the entry was
-  // removed.
+  // Remove `key` and its associated value. Returns true if the entry was
+  // removed, otherwise false.
   virtual nonstd::expected<bool, Error> remove(const Digest& key) = 0;
 };
 
