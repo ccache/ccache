@@ -36,6 +36,15 @@ SUITE_multi_arch() {
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 3
 
+    # A single -Xarch_* matching -arch is supported.
+    $CCACHE_COMPILE -arch x86_64 -Xarch_x86_64 -I. -c test1.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 4
+
+    $CCACHE_COMPILE -arch x86_64 -Xarch_x86_64 -I. -c test1.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache miss' 4
+
     # -------------------------------------------------------------------------
     TEST "cache hit, preprocessor mode"
 

@@ -46,6 +46,7 @@ struct ArgumentProcessingState
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
+  nonstd::optional<std::string> found_xarch_arch;
 
   std::string explicit_language;    // As specified with -x.
   std::string input_charset_option; // -finput-charset=...
@@ -303,8 +304,20 @@ process_arg(Context& ctx,
 
   // -Xarch_* options are too hard.
   if (Util::starts_with(args[i], "-Xarch_")) {
-    LOG("Unsupported compiler option: {}", args[i]);
-    return Statistic::unsupported_compiler_option;
+    if (i == args.size() - 1) {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
+    }
+    const auto arch = args[i].substr(7);
+    if (!state.found_xarch_arch) {
+      state.found_xarch_arch = arch;
+    } else if (*state.found_xarch_arch != arch) {
+      LOG_RAW("Multiple different -Xarch_* options not supported");
+      return Statistic::unsupported_compiler_option;
+    }
+    state.common_args.push_back(args[i]);
+    state.common_args.push_back(args[i + 1]);
+    return nullopt;
   }
 
   // Handle -arch options.
@@ -1252,6 +1265,17 @@ process_args(Context& ctx)
 
   if (state.found_dc_opt) {
     compiler_args.push_back("-dc");
+  }
+
+  if (state.found_xarch_arch && !args_info.arch_args.empty()) {
+    if (args_info.arch_args.size() > 1) {
+      LOG_RAW(
+        "Multiple -arch options in combination with -Xarch_* not supported");
+      return Statistic::unsupported_compiler_option;
+    } else if (args_info.arch_args[0] != *state.found_xarch_arch) {
+      LOG_RAW("-arch option not matching -Xarch_* option not supported");
+      return Statistic::unsupported_compiler_option;
+    }
   }
 
   for (const auto& arch : args_info.arch_args) {
