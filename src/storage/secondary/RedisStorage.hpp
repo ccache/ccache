@@ -18,9 +18,14 @@
 
 #pragma once
 
-#include <hiredis/hiredis.h>
 #include <storage/SecondaryStorage.hpp>
 #include <storage/types.hpp>
+
+#pragma GCC diagnostic push
+// ISO C++ forbids flexible array member ‘buf’
+#pragma GCC diagnostic ignored "-Wpedantic"
+#include <hiredis.h>
+#pragma GCC diagnostic pop
 
 namespace storage {
 namespace secondary {
