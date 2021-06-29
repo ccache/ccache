@@ -27,9 +27,10 @@ if(HIREDIS_FROM_INTERNET)
   if(NOT tar_error EQUAL 0)
     message(FATAL "extracting ${hiredis_dir}.tar.gz failed")
   endif()
-  make_directory("${hiredis_dir}/hiredis")
+  make_directory("${hiredis_dir}/include")
+  make_directory("${hiredis_dir}/include/hiredis")
   file(GLOB HIREDIS_HEADERS "${hiredis_dir}/*.h")
-  file(COPY ${HIREDIS_HEADERS} DESTINATION "${hiredis_dir}/hiredis")
+  file(COPY ${HIREDIS_HEADERS} DESTINATION "${hiredis_dir}/include/hiredis")
 
   add_subdirectory("${hiredis_dir}" "${hiredis_build}" EXCLUDE_FROM_ALL)
 
@@ -37,7 +38,7 @@ if(HIREDIS_FROM_INTERNET)
   set_target_properties(
     hiredis
     PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}>")
+    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/include>")
 
   set(hiredis_FOUND TRUE)
 else()
