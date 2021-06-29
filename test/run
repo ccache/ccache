@@ -451,6 +451,8 @@ export PATH
 
 if [ -n "$CC" ]; then
     COMPILER="$CC"
+elif [[ "$OSTYPE" == "darwin"* && -x "$(command -v clang)" ]]; then
+    COMPILER=clang
 else
     COMPILER=gcc
 fi
