@@ -470,7 +470,7 @@ HOST_OS_FREEBSD=false
 HOST_OS_WINDOWS=false
 HOST_OS_CYGWIN=false
 
-compiler_version="`$COMPILER --version 2>&1 | head -1`"
+compiler_version="`$COMPILER --version 2>/dev/null | head -1`"
 case $compiler_version in
     *gcc*|*g++*|2.95*)
         COMPILER_TYPE_GCC=true
@@ -571,7 +571,7 @@ if [ "$REAL_COMPILER" = "$COMPILER" ]; then
 else
     echo "Compiler:         $COMPILER ($REAL_COMPILER)"
 fi
-echo "Compiler version: $($COMPILER --version | head -n 1)"
+echo "Compiler version: $($COMPILER --version 2>/dev/null | head -n 1)"
 
 REAL_NVCC=$(find_compiler nvcc)
 REAL_CUOBJDUMP=$(find_compiler cuobjdump)
