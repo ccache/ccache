@@ -22,10 +22,8 @@
 
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <string>
 #include <unordered_map>
-// End of system headers
 
 class Config;
 class Context;

@@ -24,9 +24,7 @@
 
 #include "third_party/fmt/core.h"
 
-// System headers
 #include <string>
-// End of system headers
 
 // Digest represents the binary form of the final digest (AKA hash or checksum)
 // produced by the hash algorithm.

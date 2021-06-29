@@ -21,9 +21,7 @@
 #include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/optional.hpp>
 
-// System headers
 #include <string>
-// End of system headers
 
 class Digest;
 

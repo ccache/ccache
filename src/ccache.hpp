@@ -25,10 +25,8 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
-// System headers
 #include <functional>
 #include <string>
-// End of system headers
 
 class Context;
 

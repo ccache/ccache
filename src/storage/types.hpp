@@ -18,11 +18,9 @@
 
 #pragma once
 
-// System headers
 #include <functional>
 #include <string>
 #include <unordered_map>
-// End of system headers
 
 namespace storage {
 

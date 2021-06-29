@@ -27,9 +27,7 @@
 
 #include "third_party/doctest.h"
 
-// System headers
 #include <algorithm>
-// End of system headers
 
 using TestUtil::TestContext;
 

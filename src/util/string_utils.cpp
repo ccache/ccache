@@ -22,9 +22,7 @@
 #include <Util.hpp>
 #include <fmtmacros.hpp>
 
-// System headers
 #include <cctype>
-// End of system headers
 
 namespace util {
 

@@ -23,11 +23,9 @@
 #include "third_party/nonstd/expected.hpp"
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <map>
 #include <string>
 #include <vector>
-// End of system headers
 
 class CacheEntryReader;
 class CacheEntryWriter;

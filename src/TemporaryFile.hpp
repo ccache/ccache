@@ -22,9 +22,7 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
-// System headers
 #include <string>
-// End of system headers
 
 // This class represents a unique temporary file created by mkstemp. The file is
 // not deleted by the destructor.

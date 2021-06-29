@@ -74,12 +74,10 @@ extern "C" {
 #  include "Win32Util.hpp"
 #endif
 
-// System headers
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
-// End of system headers
 
 #ifndef MYNAME
 #  define MYNAME "ccache"

@@ -25,11 +25,9 @@
 
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <functional>
 #include <sstream>
 #include <string>
-// End of system headers
 
 class Config;
 

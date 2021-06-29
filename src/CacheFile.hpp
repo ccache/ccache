@@ -24,9 +24,7 @@
 
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <string>
-// End of system headers
 
 class CacheFile
 {

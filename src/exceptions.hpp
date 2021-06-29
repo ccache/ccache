@@ -25,11 +25,9 @@
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <stdexcept>
 #include <string>
 #include <utility>
-// End of system headers
 
 // Don't throw or catch ErrorBase directly, use a subclass.
 class ErrorBase : public std::runtime_error
