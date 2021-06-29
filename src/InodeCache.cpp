@@ -28,9 +28,10 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
-#include <atomic>
 #include <libgen.h>
 #include <sys/mman.h>
+
+#include <atomic>
 #include <type_traits>
 
 // The inode cache resides on a file that is mapped into shared memory by

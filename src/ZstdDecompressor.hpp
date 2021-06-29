@@ -22,8 +22,9 @@
 
 #include "Decompressor.hpp"
 
-#include <fstream>
 #include <zstd.h>
+
+#include <fstream>
 
 // A decompressor of a Zstandard stream.
 class ZstdDecompressor : public Decompressor
