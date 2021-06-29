@@ -480,8 +480,8 @@ case $compiler_version in
         CLANG_VERSION_SUFFIX=$(echo "${COMPILER%% *}" | sed 's/.*clang//')
         ;;
     *)
-        echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
-        exit 0
+        echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- Skipped running tests" >&2
+        exit $skip_code
         ;;
 esac
 
