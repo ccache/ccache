@@ -82,9 +82,8 @@ target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURREN
 
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
-  # HiredisConfig.cmake
+  target_link_directories(ccache_lib PRIVATE ${HIREDIS_LIBDIR})
   target_link_libraries(ccache_lib PRIVATE ${HIREDIS_LIBRARIES})
-  target_include_directories(ccache_lib PRIVATE ${HIREDIS_INCLUDE_DIRS})
 endif()
 
 add_subdirectory(core)
