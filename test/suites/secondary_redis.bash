@@ -29,8 +29,12 @@ expect_number_of_cache_entries() {
 }
 
 SUITE_secondary_redis() {
-    timeout 10s redis-server --bind localhost --port 7777 &
-    sleep 0.1s # wait for boot
+    if $HOST_OS_APPLE; then
+         # no coreutils on darwin by default, perl rather than gtimeout
+         function timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+    fi
+    timeout 10 redis-server --bind localhost --port 7777 &
+    sleep 0.1 # wait for boot
     redis-cli -p 7777 ping
     trap "kill $!" EXIT
 
