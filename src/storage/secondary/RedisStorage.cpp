@@ -118,10 +118,12 @@ RedisStorage::connect()
 void
 RedisStorage::disconnect()
 {
-  // Note: only the async API actually disconnects from the server
-  //       the connection is eventually cleaned up in redisFree()
-  LOG_RAW("Redis disconnect");
-  m_connected = false;
+  if (m_connected) {
+    // Note: only the async API actually disconnects from the server
+    //       the connection is eventually cleaned up in redisFree()
+    LOG_RAW("Redis disconnect");
+    m_connected = false;
+  }
 }
 
 nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
