@@ -25,6 +25,8 @@
 #pragma GCC diagnostic push
 // ISO C++ forbids flexible array member ‘buf’
 #pragma GCC diagnostic ignored "-Wpedantic"
+// cast increases required alignment from 1 to 4
+#pragma GCC diagnostic ignored "-Wcast-align"
 #include <hiredis/hiredis.h>
 #pragma GCC diagnostic pop
 
