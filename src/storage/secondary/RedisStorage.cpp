@@ -33,9 +33,69 @@
 namespace storage {
 namespace secondary {
 
+static struct timeval
+milliseconds_to_timeval(const std::string& msec)
+{
+  int ms = std::stoi(msec);
+  struct timeval tv;
+  tv.tv_sec = ms / 1000;
+  tv.tv_usec = (ms % 1000) * 1000;
+  return tv;
+}
+
+static std::string
+timeval_to_string(struct timeval tv)
+{
+  return FMT("{:.3f}s", tv.tv_sec + tv.tv_usec / 1000000.0);
+}
+
+static nonstd::optional<struct timeval>
+parse_connect_timeout(const AttributeMap& attributes)
+{
+  const auto it = attributes.find("connect-timeout");
+  if (it == attributes.end()) {
+    return nonstd::nullopt;
+  }
+  return milliseconds_to_timeval(it->second);
+}
+
+static nonstd::optional<struct timeval>
+parse_operation_timeout(const AttributeMap& attributes)
+{
+  const auto it = attributes.find("operation-timeout");
+  if (it == attributes.end()) {
+    return nonstd::nullopt;
+  }
+  return milliseconds_to_timeval(it->second);
+}
+
+static nonstd::optional<std::string>
+parse_username(const AttributeMap& attributes)
+{
+  const auto it = attributes.find("username");
+  if (it == attributes.end()) {
+    return nonstd::nullopt;
+  }
+  return it->second;
+}
+
+static nonstd::optional<std::string>
+parse_password(const AttributeMap& attributes)
+{
+  const auto it = attributes.find("password");
+  if (it == attributes.end()) {
+    return nonstd::nullopt;
+  }
+  return it->second;
+}
+
 RedisStorage::RedisStorage(const std::string& url,
-                           const AttributeMap& /*attributes*/)
-  : m_url(url)
+                           const AttributeMap& attributes)
+  : m_url(url),
+    m_connect_timeout(parse_connect_timeout(attributes)),
+    m_operation_timeout(parse_operation_timeout(attributes)),
+    m_username(parse_username(attributes)),
+    m_password(parse_password(attributes))
 {
   m_context = nullptr;
   m_connected = false;
@@ -87,11 +147,22 @@ RedisStorage::connect()
     host.assign(suffix.begin(), si - 1);
     port.assign(si, suffix.end());
   }
+  if (m_connect_timeout) {
+    LOG("Redis connect timeout {}", timeval_to_string(*m_connect_timeout));
+  }
   if (!host.empty()) {
     int p = port.empty() ? 6379 : std::stoi(port);
-    m_context = redisConnect(host.c_str(), p);
+    if (m_connect_timeout) {
+      m_context = redisConnectWithTimeout(host.c_str(), p, *m_connect_timeout);
+    } else {
+      m_context = redisConnect(host.c_str(), p);
+    }
   } else if (!sock.empty()) {
-    m_context = redisConnectUnix(sock.c_str());
+    if (m_connect_timeout) {
+      m_context = redisConnectUnixWithTimeout(sock.c_str(), *m_connect_timeout);
+    } else {
+      m_context = redisConnectUnix(sock.c_str());
+    }
   } else {
     LOG("Redis invalid url: {}", m_url);
     m_invalid = true;
@@ -111,6 +182,38 @@ RedisStorage::connect()
       LOG("Redis connect unix {} OK", m_context->unix_sock.path);
     }
     m_connected = true;
+
+    if (m_operation_timeout) {
+      LOG("Redis timeout {}", timeval_to_string(*m_operation_timeout));
+      if (redisSetTimeout(m_context, *m_operation_timeout) != REDIS_OK) {
+        LOG_RAW("Failed to set timeout");
+      }
+    }
+
+    if (m_password) {
+      std::string username = m_username ? *m_username : "default";
+      LOG("Redis AUTH {} {}", username, "*****"); // don't log m_password !!!
+      redisReply* reply;
+      if (m_username) {
+        reply = static_cast<redisReply*>(redisCommand(
+          m_context, "AUTH %s %s", m_username->c_str(), m_password->c_str()));
+      } else {
+        reply = static_cast<redisReply*>(
+          redisCommand(m_context, "AUTH %s", m_password->c_str()));
+      }
+      if (!reply) {
+        LOG("Failed to auth {} in redis", username);
+        m_invalid = true;
+      } else if (reply->type == REDIS_REPLY_ERROR) {
+        LOG("Failed to auth {} in redis: {}", username, reply->str);
+        m_invalid = true;
+      }
+      freeReplyObject(reply);
+      if (m_invalid) {
+        return false;
+      }
+    }
+
     return true;
   }
 }

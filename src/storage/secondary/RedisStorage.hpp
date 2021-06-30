@@ -48,6 +48,10 @@ public:
 private:
   std::string m_url;
   redisContext* m_context;
+  const nonstd::optional<struct timeval> m_connect_timeout;
+  const nonstd::optional<struct timeval> m_operation_timeout;
+  const nonstd::optional<std::string> m_username;
+  const nonstd::optional<std::string> m_password;
   bool m_connected;
   bool m_invalid;
 

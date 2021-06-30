@@ -950,6 +950,13 @@ Examples:
 * `redis://localhost:6379`
 * `redis:///var/run/redis/redis-server.sock`
 
+Optional attributes:
+
+* *connect-timeout*: Timeout (in ms) for network connection.
+* *operation-timeout*: Timeout (in ms) for Redis commands.
+* *username*: Username for the Redis AUTH command. (Requires ACL)
+* *password*: Password for the Redis AUTH command.
+
 == Cache size management
 
 By default, ccache has a 5 GB limit on the total size of files in the cache and
