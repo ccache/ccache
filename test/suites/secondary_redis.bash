@@ -1,10 +1,10 @@
 SUITE_secondary_redis_PROBE() {
-     if [ "`which redis-server`" = "" ]; then
-        echo "no redis-server"
+    if ! command -v redis-server &> /dev/null; then
+        echo "redis-server not found"
         return
     fi
-    if [ "`which redis-cli`" = "" ]; then
-        echo "no redis-cli"
+    if ! command -v redis-cli &> /dev/null; then
+        echo "redis-cli not found"
         return
     fi
 }
@@ -22,7 +22,7 @@ expect_number_of_cache_entries() {
     local port=$3
     local actual
 
-    actual=$(redis-cli -h $host -p $port keys "ccache:*" | wc -l)
+    actual=$(redis-cli -h "$host" -p "$port" keys "ccache:*" | wc -l)
     if [ "$actual" -ne "$expected" ]; then
         test_failed_internal "Found $actual (expected $expected) entries in $host:$port"
     fi
@@ -36,6 +36,7 @@ SUITE_secondary_redis() {
     timeout 10 redis-server --bind localhost --port 7777 &
     sleep 0.1 # wait for boot
     redis-cli -p 7777 ping
+    # shellcheck disable=SC2064
     trap "kill $!" EXIT
 
     # -------------------------------------------------------------------------
