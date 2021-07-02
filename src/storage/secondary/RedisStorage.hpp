@@ -18,9 +18,10 @@
 
 #pragma once
 
+#include "storage/SecondaryStorage.hpp"
+#include "storage/types.hpp"
+
 #include <hiredis/hiredis.h>
-#include <storage/SecondaryStorage.hpp>
-#include <storage/types.hpp>
 
 namespace storage {
 namespace secondary {
