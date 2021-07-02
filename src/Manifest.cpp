@@ -294,12 +294,19 @@ struct FileStats
 std::unique_ptr<ManifestData>
 read_manifest(const std::string& path, FILE* dump_stream = nullptr)
 {
-  File file(path, "rb");
-  if (!file) {
-    return {};
+  FILE* file_stream;
+  File file;
+  if (path == "-") {
+    file_stream = stdin;
+  } else {
+    file = File(path, "rb");
+    if (!file) {
+      return {};
+    }
+    file_stream = file.get();
   }
 
-  CacheEntryReader reader(file.get(), Manifest::k_magic, Manifest::k_version);
+  CacheEntryReader reader(file_stream, Manifest::k_magic, Manifest::k_version);
 
   if (dump_stream) {
     reader.dump_header(dump_stream);
