@@ -868,7 +868,7 @@ information.
 
     If set to a file path, ccache will write statistics counter updates to the
     specified file. This is useful for getting statistics for individual builds.
-    To show a summary of the current stats log, use: `ccache --show-log-stats`.
+    To show a summary of the current stats log, use `ccache --show-log-stats`.
 +
 NOTE: Lines in the stats log starting with a hash sign (`#`) are comments.
 
