@@ -182,11 +182,13 @@ compiler's documentation.
 
     Dump manifest file at _PATH_ in text format to standard output. This is
     only useful when debugging ccache and its behavior.
+    A path of `-` means to read from standard input.
 
 *`--dump-result`* _PATH_::
 
     Dump result file at _PATH_ in text format to standard output. This is only
     useful when debugging ccache and its behavior.
+    A path of `-` means to read from standard input.
 
 *`--extract-result`* _PATH_::
 

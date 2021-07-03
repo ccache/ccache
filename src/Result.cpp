@@ -228,13 +228,20 @@ Result::Reader::read(Consumer& consumer)
 bool
 Reader::read_result(Consumer& consumer)
 {
-  File file(m_result_path, "rb");
-  if (!file) {
-    // Cache miss.
-    return false;
+  FILE* file_stream;
+  File file;
+  if (m_result_path == "-") {
+    file_stream = stdin;
+  } else {
+    file = File(m_result_path, "rb");
+    if (!file) {
+      // Cache miss.
+      return false;
+    }
+    file_stream = file.get();
   }
 
-  CacheEntryReader cache_entry_reader(file.get(), k_magic, k_version);
+  CacheEntryReader cache_entry_reader(file_stream, k_magic, k_version);
 
   consumer.on_header(cache_entry_reader);
 
