@@ -7,7 +7,7 @@ function(addtest name)
   set_tests_properties(
     "test.${name}"
     PROPERTIES
-    ENVIRONMENT "CCACHE=${CMAKE_BINARY_DIR}/ccache;EXIT_IF_SKIPPED=true")
+    ENVIRONMENT "CCACHE=$<TARGET_FILE:ccache>;EXIT_IF_SKIPPED=true")
 
   if(${CMAKE_VERSION} VERSION_LESS "3.9")
     # Older CMake versions treat skipped tests as errors. Therefore, resort to
