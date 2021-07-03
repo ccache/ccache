@@ -1,0 +1,7 @@
+# ccache manifest
+0       string          cCmF            ccache manifest
+>4      ubyte           x               \b, version %d
+
+# ccache result
+0       string          cCrS            ccache result
+>4      ubyte           x               \b, version %d
