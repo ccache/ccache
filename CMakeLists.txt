@@ -108,8 +108,6 @@ option(REDIS_STORAGE_BACKEND "Enable redis secondary storage")
 if(REDIS_STORAGE_BACKEND)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(HIREDIS REQUIRED hiredis>=0.13.3)
-  include_directories(${HIREDIS_PREFIX}/include)
-  add_definitions(${HIREDIS_CFLAGS_OTHER})
 endif()
 
 #

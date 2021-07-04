@@ -21,7 +21,7 @@
 #include "storage/SecondaryStorage.hpp"
 #include "storage/types.hpp"
 
-#include <hiredis/hiredis.h>
+typedef struct redisContext redisContext;
 
 namespace storage {
 namespace secondary {

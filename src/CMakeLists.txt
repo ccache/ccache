@@ -81,7 +81,8 @@ target_link_libraries(
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(REDIS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
+  target_include_directories(ccache_lib PRIVATE ${HIREDIS_PREFIX}/include)
+  target_compile_definitions(ccache_lib PRIVATE ${HIREDIS_CFLAGS_OTHER} -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_directories(ccache_lib PUBLIC ${HIREDIS_LIBDIR})
   target_link_libraries(ccache_lib PUBLIC ${HIREDIS_LIBRARIES})
 endif()

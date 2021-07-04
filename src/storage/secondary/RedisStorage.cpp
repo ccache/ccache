@@ -30,6 +30,8 @@
 
 #include <third_party/nonstd/string_view.hpp>
 
+#include <hiredis/hiredis.h>
+
 namespace storage {
 namespace secondary {
 
