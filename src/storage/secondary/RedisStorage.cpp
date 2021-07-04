@@ -111,20 +111,20 @@ RedisStorage::~RedisStorage()
   }
 }
 
-bool
+int
 RedisStorage::connect()
 {
   if (m_connected) {
-    return true;
+    return REDIS_OK;
   }
   if (m_invalid) {
-    return false;
+    return REDIS_ERR;
   }
 
   if (m_context) {
     if (redisReconnect(m_context) == REDIS_OK) {
       m_connected = true;
-      return true;
+      return REDIS_OK;
     }
     LOG("Redis reconnect err: {}", m_context->errstr);
     redisFree(m_context);
@@ -166,13 +166,17 @@ RedisStorage::connect()
   } else {
     LOG("Redis invalid url: {}", m_url);
     m_invalid = true;
-    return false;
+    return REDIS_ERR;
   }
 
-  if (!m_context || m_context->err) {
+  if (!m_context) {
+    LOG("Redis connect {} err NULL", m_url);
+    m_invalid = true;
+    return REDIS_ERR;
+  } else if (m_context->err) {
     LOG("Redis connect {} err: {}", m_url, m_context->errstr);
     m_invalid = true;
-    return false;
+    return m_context->err;
   } else {
     if (m_context->connection_type == REDIS_CONN_TCP) {
       LOG(
@@ -210,11 +214,11 @@ RedisStorage::connect()
       }
       freeReplyObject(reply);
       if (m_invalid) {
-        return false;
+        return REDIS_ERR;
       }
     }
 
-    return true;
+    return REDIS_OK;
   }
 }
 
@@ -232,7 +236,7 @@ RedisStorage::disconnect()
 nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
 RedisStorage::get(const Digest& digest)
 {
-  if (!connect()) {
+  if (connect() != REDIS_OK) {
     return nonstd::make_unexpected(Error::error);
   }
   const std::string key = get_key_string(digest);
@@ -267,7 +271,7 @@ RedisStorage::put(const Digest& digest,
                   const std::string& value,
                   bool only_if_missing)
 {
-  if (!connect()) {
+  if (connect() != REDIS_OK) {
     return nonstd::make_unexpected(Error::error);
   }
   const std::string key = get_key_string(digest);
@@ -312,7 +316,7 @@ RedisStorage::put(const Digest& digest,
 nonstd::expected<bool, SecondaryStorage::Error>
 RedisStorage::remove(const Digest& digest)
 {
-  if (!connect()) {
+  if (connect() != REDIS_OK) {
     return nonstd::make_unexpected(Error::error);
   }
   const std::string key = get_key_string(digest);

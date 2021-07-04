@@ -49,7 +49,7 @@ private:
   bool m_connected;
   bool m_invalid;
 
-  bool connect();
+  int connect();
   void disconnect();
   std::string get_key_string(const Digest& digest) const;
 };
