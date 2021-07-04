@@ -232,8 +232,12 @@ prepare_debug_path(const std::string& debug_dir,
                    const std::string& output_obj,
                    string_view suffix)
 {
-  const std::string prefix =
-    debug_dir.empty() ? output_obj : debug_dir + Util::real_path(output_obj);
+  auto prefix = debug_dir.empty()
+                  ? output_obj
+                  : debug_dir + util::to_absolute_path(output_obj);
+#ifdef _WIN32
+  prefix.erase(std::remove(prefix.begin(), prefix.end(), ':'), prefix.end());
+#endif
   try {
     Util::ensure_dir_exists(Util::dir_name(prefix));
   } catch (Error&) {
