@@ -27,4 +27,7 @@ namespace util {
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
 
+// Make `path` an absolute path.
+std::string to_absolute_path(nonstd::string_view path);
+
 } // namespace util

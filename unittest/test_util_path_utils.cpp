@@ -16,6 +16,8 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include <Util.hpp>
+#include <fmtmacros.hpp>
 #include <util/path_utils.hpp>
 
 #include <third_party/doctest.h>
@@ -34,4 +36,22 @@ TEST_CASE("util::is_absolute_path")
   CHECK(util::is_absolute_path("/foo/fie"));
   CHECK(!util::is_absolute_path(""));
   CHECK(!util::is_absolute_path("foo/fie"));
+}
+
+TEST_CASE("util::to_absolute_path")
+{
+  CHECK(util::to_absolute_path("/foo/bar") == "/foo/bar");
+
+#ifdef _WIN32
+  CHECK(util::to_absolute_path("C:\\foo\\bar") == "C:\\foo\\bar");
+#endif
+
+  const auto cwd = Util::get_actual_cwd();
+
+  CHECK(util::to_absolute_path("") == cwd);
+  CHECK(util::to_absolute_path(".") == cwd);
+  CHECK(util::to_absolute_path("..") == Util::dir_name(cwd));
+  CHECK(util::to_absolute_path("foo") == FMT("{}/foo", cwd));
+  CHECK(util::to_absolute_path("../foo/bar")
+        == FMT("{}/foo/bar", Util::dir_name(cwd)));
 }

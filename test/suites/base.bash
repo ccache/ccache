@@ -359,6 +359,12 @@ fi
     expect_exists test1.o.ccache-log
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DEBUGDIR"
+
+    CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
+    expect_contains debugdir"$(pwd -P)"/test1.o.ccache-log "Result: cache miss"
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2>/dev/null

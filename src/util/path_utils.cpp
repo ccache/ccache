@@ -36,4 +36,15 @@ is_absolute_path(nonstd::string_view path)
   return !path.empty() && path[0] == '/';
 }
 
+std::string
+to_absolute_path(nonstd::string_view path)
+{
+  if (util::is_absolute_path(path)) {
+    return to_string(path);
+  } else {
+    return Util::normalize_absolute_path(
+      FMT("{}/{}", Util::get_actual_cwd(), path));
+  }
+}
+
 } // namespace util
