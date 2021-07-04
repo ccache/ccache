@@ -419,7 +419,7 @@ size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)
 }
 
 // Split `input` into words at any of the characters listed in `separators`.
-// These words are a view into `input`; empty words are omitted. `separators2`
+// These words are a view into `input`; empty words are omitted. `separators`
 // must neither be the empty string nor a nullptr.
 std::vector<nonstd::string_view> split_into_views(nonstd::string_view input,
                                                   const char* separators);
