@@ -159,7 +159,7 @@ jobs:
             BUILDDIR: .
             CCACHE_LOC: .
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
-            apt_get: elfutils libzstd-dev
+            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
 
           - name: Linux GCC 32-bit
             os: ubuntu-18.04
@@ -168,7 +168,7 @@ jobs:
             CFLAGS: -m32 -g -O2
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
 
@@ -176,16 +176,16 @@ jobs:
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 10.1.243-1
-            apt_get: elfutils libzstd-dev
+            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
 
           - name: Linux MinGW 32-bit
             os: ubuntu-18.04
             CC: i686-w64-mingw32-gcc-posix
             CXX: i686-w64-mingw32-g++-posix
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             RUN_TESTS: none
             apt_get: elfutils mingw-w64
 
@@ -194,7 +194,7 @@ jobs:
             CC: x86_64-w64-mingw32-gcc-posix
             CXX: x86_64-w64-mingw32-g++-posix
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
@@ -206,7 +206,7 @@ jobs:
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2019 64-bit
@@ -217,7 +217,7 @@ jobs:
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
@@ -227,7 +227,7 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_ADDRESS=ON -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
             ASAN_OPTIONS: detect_leaks=0
-            apt_get: elfutils libzstd-dev
+            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
 
           - name: Clang static analyzer
             os: ubuntu-20.04
@@ -236,7 +236,7 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
-            apt_get: libzstd-dev
+            apt_get: libzstd-dev pkg-config libhiredis-dev
 
           - name: Linux binary
             os: ubuntu-20.04
@@ -244,26 +244,26 @@ jobs:
             CXX: g++
             SPECIAL: build-and-verify-package
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
-            apt_get: elfutils libzstd-dev ninja-build
+            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build
 
           - name: Source package
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev ninja-build asciidoc xsltproc docbook-xml docbook-xsl
+            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build asciidoc xsltproc docbook-xml docbook-xsl
 
           - name: HTML documentation
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
             RUN_TESTS: none
-            apt_get: libzstd-dev asciidoc docbook-xml docbook-xsl
+            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoc docbook-xml docbook-xsl
 
           - name: Manual page
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
             RUN_TESTS: none
-            apt_get: libzstd-dev asciidoc xsltproc docbook-xml docbook-xsl
+            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoc xsltproc docbook-xml docbook-xsl
 
           - name: Clang-Tidy
             os: ubuntu-18.04
@@ -271,7 +271,7 @@ jobs:
             CXX: clang++-9
             RUN_TESTS: none
             CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON -DCLANGTIDY=/usr/bin/clang-tidy-9
-            apt_get: libzstd-dev clang-9 clang-tidy-9
+            apt_get: libzstd-dev pkg-config libhiredis-dev clang-9 clang-tidy-9
 
     steps:
       - name: Get source
