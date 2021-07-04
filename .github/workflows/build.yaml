@@ -131,7 +131,7 @@ jobs:
         run: ci/build
         env:
           ENABLE_CACHE_CLEANUP_TESTS: true
-          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DREDIS_STORAGE_BACKEND=ON
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
 
       - name: Collect testdir from failed tests
         if: failure()
