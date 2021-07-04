@@ -176,23 +176,25 @@ compiler's documentation.
 
 *`--checksum-file`* _PATH_::
 
-    Print the checksum (64 bit XXH3) of the file at _PATH_.
+    Print the checksum (64 bit XXH3) of the file at _PATH_ (`-` for standard
+    input).
 
 *`--dump-manifest`* _PATH_::
 
-    Dump manifest file at _PATH_ in text format to standard output. This is
-    only useful when debugging ccache and its behavior.
+    Dump manifest file at _PATH_ (`-` for standard input) in text format to
+    standard output. This is only useful when debugging ccache and its behavior.
 
 *`--dump-result`* _PATH_::
 
-    Dump result file at _PATH_ in text format to standard output. This is only
-    useful when debugging ccache and its behavior.
+    Dump result file at _PATH_ (`-` for standard input) in text format to
+    standard output. This is only useful when debugging ccache and its behavior.
 
 *`--extract-result`* _PATH_::
 
-    Extract data stored in the result file at _PATH_. The data will be written
-    to *ccache-result.** files in to the current working directory. This is
-    only useful when debugging ccache and its behavior.
+    Extract data stored in the result file at _PATH_ (`-` for standard input).
+    The data will be written to *ccache-result.** files in to the current
+    working directory. This is only useful when debugging ccache and its
+    behavior.
 
 *`-k`* _KEY_, *`--get-config`* _KEY_::
 
@@ -201,8 +203,8 @@ compiler's documentation.
 
 *`--hash-file`* _PATH_::
 
-    Print the hash (160 bit BLAKE3) of the file at _PATH_. This is only useful
-    when debugging ccache and its behavior.
+    Print the hash (160 bit BLAKE3) of the file at _PATH_ (`-` for standard
+    input). This is only useful when debugging ccache and its behavior.
 
 *`--print-stats`*::
 
@@ -867,7 +869,7 @@ information.
 
     If set to a file path, ccache will write statistics counter updates to the
     specified file. This is useful for getting statistics for individual builds.
-    To show a summary of the current stats log, use: `ccache --show-log-stats`.
+    To show a summary of the current stats log, use `ccache --show-log-stats`.
 +
 NOTE: Lines in the stats log starting with a hash sign (`#`) are comments.
 

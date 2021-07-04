@@ -346,11 +346,7 @@ zero_all_counters(const Config& config)
 std::string
 format_stats_log(const Config& config)
 {
-  std::string result;
-
-  result += FMT("{:36}{}\n", "stats log", config.stats_log());
-
-  return result;
+  return FMT("{:36}{}\n", "stats log", config.stats_log());
 }
 
 std::string
