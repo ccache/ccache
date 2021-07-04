@@ -147,7 +147,11 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 #  include <process.h>
 #  define NOMINMAX 1
 #  define WIN32_NO_STATUS
+// clang-format off
 #  include <windows.h>
+#  include <bcrypt.h> // NTSTATUS
+#  include <winsock2.h> // struct timeval
+// clang-format on
 #  undef WIN32_NO_STATUS
 #  include <ntstatus.h>
 #  define mkdir(a, b) _mkdir(a)

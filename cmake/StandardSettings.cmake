@@ -59,3 +59,10 @@ elseif(MSVC)
     INTERFACE /Zc:preprocessor /Zc:__cplusplus /D_CRT_SECURE_NO_WARNINGS
   )
 endif()
+
+if(WIN32)
+  target_compile_definitions(
+    standard_settings
+    INTERFACE WIN32_LEAN_AND_MEAN
+  )
+endif()
