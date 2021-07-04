@@ -99,6 +99,7 @@ RedisStorage::RedisStorage(const std::string& url,
     m_username(parse_username(attributes)),
     m_password(parse_password(attributes))
 {
+  m_prefix = "ccache"; // TODO: attribute
   m_context = nullptr;
   m_connected = false;
   m_invalid = false;
@@ -136,7 +137,9 @@ RedisStorage::connect()
   const nonstd::string_view prefix = "redis://";
   ASSERT(Util::starts_with(m_url, prefix));
   const auto suffix = m_url.substr(prefix.size());
-  std::string host, port, sock;
+  std::string host;
+  std::string port;
+  std::string sock;
   std::string::const_iterator si =
     std::find(suffix.rbegin(), suffix.rend(), ':').base();
   if (si == suffix.begin()) {
@@ -196,6 +199,7 @@ RedisStorage::connect()
       }
     }
 
+    // TODO: break out AUTH to separate function
     if (m_password) {
       std::string username = m_username ? *m_username : "default";
       LOG("Redis AUTH {} {}", username, "*****"); // don't log m_password !!!
@@ -267,7 +271,7 @@ RedisStorage::get(const Digest& digest)
   redisReply* reply =
     static_cast<redisReply*>(redisCommand(m_context, "GET %s", key.c_str()));
   bool found = false;
-  bool missing;
+  bool missing = false;
   std::string value;
   if (!reply) {
     LOG("Failed to get {} from redis", key);
@@ -353,7 +357,7 @@ RedisStorage::remove(const Digest& digest)
   redisReply* reply =
     static_cast<redisReply*>(redisCommand(m_context, "DEL %s", key.c_str()));
   bool removed = false;
-  bool missing;
+  bool missing = false;
   if (!reply) {
     LOG("Failed to del {} in redis", key);
   } else if (reply->type == REDIS_REPLY_ERROR) {
@@ -378,8 +382,7 @@ RedisStorage::remove(const Digest& digest)
 std::string
 RedisStorage::get_key_string(const Digest& digest) const
 {
-  std::string prefix = "ccache"; // TODO: attribute
-  return FMT("{}:{}", prefix, digest.to_string());
+  return FMT("{}:{}", m_prefix, digest.to_string());
 }
 
 } // namespace secondary

@@ -41,6 +41,7 @@ public:
 
 private:
   std::string m_url;
+  std::string m_prefix;
   redisContext* m_context;
   const nonstd::optional<struct timeval> m_connect_timeout;
   const nonstd::optional<struct timeval> m_operation_timeout;
