@@ -224,6 +224,24 @@ RedisStorage::connect()
   }
 }
 
+inline bool
+is_error(int err)
+{
+  return (err != REDIS_OK);
+}
+
+inline bool
+is_timeout(int err)
+{
+#ifdef REDIS_ERR_TIMEOUT
+  // Only returned for hiredis version 1.0.0 and above
+  return (err == REDIS_ERR_TIMEOUT);
+#else
+  (void)err;
+  return false;
+#endif
+}
+
 void
 RedisStorage::disconnect()
 {
@@ -238,7 +256,10 @@ RedisStorage::disconnect()
 nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
 RedisStorage::get(const Digest& digest)
 {
-  if (connect() != REDIS_OK) {
+  int err = connect();
+  if (is_timeout(err)) {
+    return nonstd::make_unexpected(Error::timeout);
+  } else if (is_error(err)) {
     return nonstd::make_unexpected(Error::error);
   }
   const std::string key = get_key_string(digest);
@@ -273,7 +294,10 @@ RedisStorage::put(const Digest& digest,
                   const std::string& value,
                   bool only_if_missing)
 {
-  if (connect() != REDIS_OK) {
+  int err = connect();
+  if (is_timeout(err)) {
+    return nonstd::make_unexpected(Error::timeout);
+  } else if (is_error(err)) {
     return nonstd::make_unexpected(Error::error);
   }
   const std::string key = get_key_string(digest);
@@ -318,7 +342,10 @@ RedisStorage::put(const Digest& digest,
 nonstd::expected<bool, SecondaryStorage::Error>
 RedisStorage::remove(const Digest& digest)
 {
-  if (connect() != REDIS_OK) {
+  int err = connect();
+  if (is_timeout(err)) {
+    return nonstd::make_unexpected(Error::timeout);
+  } else if (is_error(err)) {
     return nonstd::make_unexpected(Error::error);
   }
   const std::string key = get_key_string(digest);
