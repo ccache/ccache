@@ -28,6 +28,12 @@ IncludeCategories:
     Priority: 1
   - Regex: '^["<]third_party/'
     Priority: 4
+  # System headers:
+  - Regex: '\.h>$'
+    Priority: 5
+  # C++ headers:
+  - Regex: '^<[^.]+>$'
+    Priority: 6
   - Regex: '^"'
     Priority: 2
   - Regex: '.*'

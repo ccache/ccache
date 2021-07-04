@@ -18,9 +18,7 @@
 
 #pragma once
 
-// System headers
 #include <string>
-// End of system headers
 
 namespace core {
 

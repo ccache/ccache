@@ -28,11 +28,9 @@
 
 #include "third_party/fmt/core.h"
 
-// System headers
 #include <algorithm>
 #include <sstream>
 #include <thread>
-// End of system headers
 
 namespace {
 

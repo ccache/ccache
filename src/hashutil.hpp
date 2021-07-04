@@ -22,9 +22,7 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
-// System headers
 #include <string>
-// End of system headers
 
 class Config;
 class Context;

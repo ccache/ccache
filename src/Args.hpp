@@ -26,10 +26,8 @@
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
-// System headers
 #include <deque>
 #include <string>
-// End of system headers
 
 class Args
 {

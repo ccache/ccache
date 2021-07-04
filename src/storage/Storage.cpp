@@ -31,9 +31,7 @@
 #include <util/Tokenizer.hpp>
 #include <util/string_utils.hpp>
 
-// System headers
 #include <memory>
-// End of system headers
 
 namespace storage {
 

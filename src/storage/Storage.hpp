@@ -26,11 +26,9 @@
 
 #include <third_party/nonstd/optional.hpp>
 
-// System headers
 #include <functional>
 #include <string>
 #include <vector>
-// End of system headers
 
 class Digest;
 

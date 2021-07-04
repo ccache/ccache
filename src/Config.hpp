@@ -25,12 +25,10 @@
 
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <functional>
 #include <limits>
 #include <string>
 #include <unordered_map>
-// End of system headers
 
 enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump };
 

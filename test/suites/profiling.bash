@@ -98,6 +98,57 @@ SUITE_profiling() {
     expect_stat 'cache miss' 3
 
     # -------------------------------------------------------------------------
+    TEST "-fprofile-generate=dir in different directories"
+
+    mkdir -p dir1/data dir2/data
+
+    cd dir1
+
+    $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
+        || test_failed "compilation error"
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
+        || test_failed "compilation error"
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+
+    $COMPILER -Werror -fprofile-generate test.o -o test \
+        || test_failed "compilation error"
+
+    ./test || test_failed "execution error"
+    merge_profiling_data data
+
+    $CCACHE_COMPILE -Werror -fprofile-use=data -c ../test.c \
+        || test_failed "compilation error"
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 2
+
+    cd ../dir2
+
+    $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
+        || test_failed "compilation error"
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 3
+
+    $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
+        || test_failed "compilation error"
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 3
+
+    $COMPILER -Werror -fprofile-generate test.o -o test \
+        || test_failed "compilation error"
+
+    ./test || test_failed "execution error"
+    merge_profiling_data data
+
+    $CCACHE_COMPILE -Werror -fprofile-use=data -c ../test.c \
+        || test_failed "compilation error"
+    # Note: No expect_stat here since GCC and Clang behave differently – just
+    # check that the compiler doesn't warn about not finding the profile data.
+
+    # -------------------------------------------------------------------------
     TEST "-ftest-coverage with -fprofile-dir"
 
     # GCC 9 and newer creates a mangled .gcno filename (still in the current

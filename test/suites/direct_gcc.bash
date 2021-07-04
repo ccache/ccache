@@ -1,5 +1,5 @@
 SUITE_direct_gcc_PROBE() {
-    if [[ $REAL_COMPILER != *"gcc"* ]]; then
+    if [[ "${COMPILER_TYPE_GCC}" != "true" ]]; then
         echo "Skipping GCC only test cases"
     fi
 }

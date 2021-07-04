@@ -25,9 +25,7 @@
 #include "third_party/doctest.h"
 #include "third_party/nonstd/optional.hpp"
 
-// System headers
 #include <algorithm>
-// End of system headers
 
 using doctest::Approx;
 using nonstd::nullopt;

@@ -74,12 +74,10 @@ extern "C" {
 #  include "Win32Util.hpp"
 #endif
 
-// System headers
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
-// End of system headers
 
 #ifndef MYNAME
 #  define MYNAME "ccache"
@@ -1648,9 +1646,17 @@ calculate_result_and_manifest_key(Context& ctx,
 
   if (ctx.args_info.profile_generate) {
     ASSERT(!ctx.args_info.profile_path.empty());
-    LOG("Adding profile directory {} to our hash", ctx.args_info.profile_path);
+
+    // For a relative profile directory D the compiler stores $PWD/D as part of
+    // the profile filename so we need to include the same information in the
+    // hash.
+    const std::string profile_path =
+      Util::is_absolute_path(ctx.args_info.profile_path)
+        ? ctx.args_info.profile_path
+        : FMT("{}/{}", ctx.apparent_cwd, ctx.args_info.profile_path);
+    LOG("Adding profile directory {} to our hash", profile_path);
     hash.hash_delimiter("-fprofile-dir");
-    hash.hash(ctx.args_info.profile_path);
+    hash.hash(profile_path);
   }
 
   if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {

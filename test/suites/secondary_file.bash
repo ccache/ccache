@@ -5,17 +5,6 @@ SUITE_secondary_file_SETUP() {
     generate_code 1 test.c
 }
 
-expect_number_of_cache_entries() {
-    local expected=$1
-    local dir=$2
-    local actual
-
-    actual=$(find "$dir" -type f ! -name stats ! -name CACHEDIR.TAG | wc -l)
-    if [ "$actual" -ne "$expected" ]; then
-        test_failed_internal "Found $actual (expected $expected) entries in $dir"
-    fi
-}
-
 SUITE_secondary_file() {
     # -------------------------------------------------------------------------
     TEST "Base case"
