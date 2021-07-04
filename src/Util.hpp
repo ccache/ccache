@@ -265,9 +265,6 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
   buffer[0] = value;
 }
 
-// Return whether `path` is absolute.
-bool is_absolute_path(nonstd::string_view path);
-
 // Test if a file is on nfs.
 //
 // Sets is_nfs to the result if fstatfs is available and no error occurred.

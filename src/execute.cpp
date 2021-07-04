@@ -29,6 +29,8 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/path_utils.hpp>
+
 #ifdef _WIN32
 #  include "Finalizer.hpp"
 #  include "Win32Util.hpp"
@@ -241,7 +243,7 @@ find_executable(const Context& ctx,
                 const std::string& name,
                 const std::string& exclude_name)
 {
-  if (Util::is_absolute_path(name)) {
+  if (util::is_absolute_path(name)) {
     return name;
   }
 

@@ -531,22 +531,6 @@ TEST_CASE("Util::int_to_big_endian")
   CHECK(bytes[7] == 0xca);
 }
 
-TEST_CASE("Util::is_absolute_path")
-{
-#ifdef _WIN32
-  CHECK(Util::is_absolute_path("C:/"));
-  CHECK(Util::is_absolute_path("C:\\foo/fie"));
-  CHECK(Util::is_absolute_path("/C:\\foo/fie")); // MSYS/Cygwin path
-  CHECK(!Util::is_absolute_path(""));
-  CHECK(!Util::is_absolute_path("foo\\fie/fum"));
-  CHECK(!Util::is_absolute_path("C:foo/fie"));
-#endif
-  CHECK(Util::is_absolute_path("/"));
-  CHECK(Util::is_absolute_path("/foo/fie"));
-  CHECK(!Util::is_absolute_path(""));
-  CHECK(!Util::is_absolute_path("foo/fie"));
-}
-
 TEST_CASE("Util::is_dir_separator")
 {
   CHECK(!Util::is_dir_separator('x'));

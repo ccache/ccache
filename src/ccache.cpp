@@ -55,6 +55,7 @@
 #include "language.hpp"
 
 #include <core/types.hpp>
+#include <util/path_utils.hpp>
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
@@ -277,7 +278,7 @@ guess_compiler(string_view path)
     if (symlink_value.empty()) {
       break;
     }
-    if (Util::is_absolute_path(symlink_value)) {
+    if (util::is_absolute_path(symlink_value)) {
       compiler_path = symlink_value;
     } else {
       compiler_path =
@@ -608,7 +609,7 @@ process_preprocessed_file(Context& ctx,
       // p and q span the include file path.
       std::string inc_path(p, q - p);
       if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = Util::is_absolute_path(inc_path);
+        ctx.has_absolute_include_headers = util::is_absolute_path(inc_path);
       }
       inc_path = Util::make_relative_path(ctx, inc_path);
 
@@ -700,7 +701,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
       continue;
     }
     if (!ctx.has_absolute_include_headers) {
-      ctx.has_absolute_include_headers = Util::is_absolute_path(token);
+      ctx.has_absolute_include_headers = util::is_absolute_path(token);
     }
     std::string path = Util::make_relative_path(ctx, token);
     remember_include_file(ctx, path, hash, false, &hash);
@@ -1651,7 +1652,7 @@ calculate_result_and_manifest_key(Context& ctx,
     // the profile filename so we need to include the same information in the
     // hash.
     const std::string profile_path =
-      Util::is_absolute_path(ctx.args_info.profile_path)
+      util::is_absolute_path(ctx.args_info.profile_path)
         ? ctx.args_info.profile_path
         : FMT("{}/{}", ctx.apparent_cwd, ctx.args_info.profile_path);
     LOG("Adding profile directory {} to our hash", profile_path);

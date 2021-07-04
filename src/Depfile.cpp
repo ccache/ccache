@@ -23,6 +23,8 @@
 #include "Logging.hpp"
 #include "assertions.hpp"
 
+#include <util/path_utils.hpp>
+
 static inline bool
 is_blank(const std::string& s)
 {
@@ -79,7 +81,7 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
 
       const auto& token = tokens[i];
       bool token_rewritten = false;
-      if (Util::is_absolute_path(token)) {
+      if (util::is_absolute_path(token)) {
         const auto new_path = Util::make_relative_path(ctx, token);
         if (new_path != token) {
           adjusted_file_content.append(new_path);

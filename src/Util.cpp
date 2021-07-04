@@ -27,6 +27,7 @@
 #include "fmtmacros.hpp"
 
 #include <util/Tokenizer.hpp>
+#include <util/path_utils.hpp>
 
 extern "C" {
 #include "third_party/base32hex.h"
@@ -605,7 +606,7 @@ get_apparent_cwd(const std::string& actual_cwd)
   return actual_cwd;
 #else
   auto pwd = getenv("PWD");
-  if (!pwd || !Util::is_absolute_path(pwd)) {
+  if (!pwd || !util::is_absolute_path(pwd)) {
     return actual_cwd;
   }
 
@@ -716,8 +717,8 @@ get_hostname()
 std::string
 get_relative_path(string_view dir, string_view path)
 {
-  ASSERT(Util::is_absolute_path(dir));
-  ASSERT(Util::is_absolute_path(path));
+  ASSERT(util::is_absolute_path(dir));
+  ASSERT(util::is_absolute_path(path));
 
 #ifdef _WIN32
   // Paths can be escaped by a slash for use with e.g. -isystem.
@@ -800,18 +801,6 @@ hard_link(const std::string& oldpath, const std::string& newpath)
                 Win32Util::error_message(error));
   }
 #endif
-}
-
-bool
-is_absolute_path(string_view path)
-{
-#ifdef _WIN32
-  if (path.length() >= 2 && path[1] == ':'
-      && (path[2] == '/' || path[2] == '\\')) {
-    return true;
-  }
-#endif
-  return !path.empty() && path[0] == '/';
 }
 
 #if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
@@ -946,7 +935,7 @@ matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
 std::string
 normalize_absolute_path(string_view path)
 {
-  if (!is_absolute_path(path)) {
+  if (!util::is_absolute_path(path)) {
     return std::string(path);
   }
 
