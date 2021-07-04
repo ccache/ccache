@@ -258,7 +258,7 @@ RedisStorage::disconnect()
 }
 
 nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
-RedisStorage::get(const Digest& digest)
+RedisStorage::get(const Digest& key)
 {
   int err = connect();
   if (is_timeout(err)) {
@@ -266,17 +266,17 @@ RedisStorage::get(const Digest& digest)
   } else if (is_error(err)) {
     return nonstd::make_unexpected(Error::error);
   }
-  const std::string key = get_key_string(digest);
-  LOG("Redis GET {}", key);
-  redisReply* reply =
-    static_cast<redisReply*>(redisCommand(m_context, "GET %s", key.c_str()));
+  const std::string key_string = get_key_string(key);
+  LOG("Redis GET {}", key_string);
+  redisReply* reply = static_cast<redisReply*>(
+    redisCommand(m_context, "GET %s", key_string.c_str()));
   bool found = false;
   bool missing = false;
   std::string value;
   if (!reply) {
-    LOG("Failed to get {} from redis", key);
+    LOG("Failed to get {} from redis", key_string);
   } else if (reply->type == REDIS_REPLY_ERROR) {
-    LOG("Failed to get {} from redis: {}", key, reply->str);
+    LOG("Failed to get {} from redis: {}", key_string, reply->str);
   } else if (reply->type == REDIS_REPLY_STRING) {
     value = std::string(reply->str, reply->len);
     found = true;
@@ -294,7 +294,7 @@ RedisStorage::get(const Digest& digest)
 }
 
 nonstd::expected<bool, SecondaryStorage::Error>
-RedisStorage::put(const Digest& digest,
+RedisStorage::put(const Digest& key,
                   const std::string& value,
                   bool only_if_missing)
 {
@@ -304,16 +304,16 @@ RedisStorage::put(const Digest& digest,
   } else if (is_error(err)) {
     return nonstd::make_unexpected(Error::error);
   }
-  const std::string key = get_key_string(digest);
+  const std::string key_string = get_key_string(key);
   if (only_if_missing) {
-    LOG("Redis EXISTS {}", key);
+    LOG("Redis EXISTS {}", key_string);
     redisReply* reply = static_cast<redisReply*>(
-      redisCommand(m_context, "EXISTS %s", key.c_str()));
+      redisCommand(m_context, "EXISTS %s", key_string.c_str()));
     int count = 0;
     if (!reply) {
-      LOG("Failed to check {} in redis", key);
+      LOG("Failed to check {} in redis", key_string);
     } else if (reply->type == REDIS_REPLY_ERROR) {
-      LOG("Failed to check {} in redis: {}", key, reply->str);
+      LOG("Failed to check {} in redis: {}", key_string, reply->str);
     } else if (reply->type == REDIS_REPLY_INTEGER) {
       count = reply->integer;
     }
@@ -322,18 +322,18 @@ RedisStorage::put(const Digest& digest,
       return false;
     }
   }
-  LOG("Redis SET {}", key);
+  LOG("Redis SET {}", key_string);
   redisReply* reply = static_cast<redisReply*>(redisCommand(
-    m_context, "SET %s %b", key.c_str(), value.data(), value.size()));
+    m_context, "SET %s %b", key_string.c_str(), value.data(), value.size()));
   bool stored = false;
   if (!reply) {
-    LOG("Failed to set {} to redis", key);
+    LOG("Failed to set {} to redis", key_string);
   } else if (reply->type == REDIS_REPLY_ERROR) {
-    LOG("Failed to set {} to redis: {}", key, reply->str);
+    LOG("Failed to set {} to redis: {}", key_string, reply->str);
   } else if (reply->type == REDIS_REPLY_STATUS) {
     stored = true;
   } else {
-    LOG("Failed to set {} to redis: {}", key, reply->type);
+    LOG("Failed to set {} to redis: {}", key_string, reply->type);
   }
   freeReplyObject(reply);
   if (stored) {
@@ -344,7 +344,7 @@ RedisStorage::put(const Digest& digest,
 }
 
 nonstd::expected<bool, SecondaryStorage::Error>
-RedisStorage::remove(const Digest& digest)
+RedisStorage::remove(const Digest& key)
 {
   int err = connect();
   if (is_timeout(err)) {
@@ -352,16 +352,16 @@ RedisStorage::remove(const Digest& digest)
   } else if (is_error(err)) {
     return nonstd::make_unexpected(Error::error);
   }
-  const std::string key = get_key_string(digest);
-  LOG("Redis DEL {}", key);
-  redisReply* reply =
-    static_cast<redisReply*>(redisCommand(m_context, "DEL %s", key.c_str()));
+  const std::string key_string = get_key_string(key);
+  LOG("Redis DEL {}", key_string);
+  redisReply* reply = static_cast<redisReply*>(
+    redisCommand(m_context, "DEL %s", key_string.c_str()));
   bool removed = false;
   bool missing = false;
   if (!reply) {
-    LOG("Failed to del {} in redis", key);
+    LOG("Failed to del {} in redis", key_string);
   } else if (reply->type == REDIS_REPLY_ERROR) {
-    LOG("Failed to del {} in redis: {}", key, reply->str);
+    LOG("Failed to del {} in redis: {}", key_string, reply->str);
   } else if (reply->type == REDIS_REPLY_INTEGER) {
     if (reply->integer > 0) {
       removed = true;
