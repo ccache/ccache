@@ -155,7 +155,8 @@ rewrite_stderr_to_absolute_paths(string_view text)
   static const std::string in_file_included_from = "In file included from ";
 
   std::string result;
-  for (auto line : Util::split_into_views(text, "\n")) {
+  for (auto line :
+       util::Tokenizer(text, "\n", util::Tokenizer::Mode::skip_last_empty)) {
     // Rewrite <path> to <absolute path> in the following two cases, where X may
     // be optional ANSI CSI sequences:
     //
