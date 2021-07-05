@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.4.3)
 
+if(POLICY CMP0067)
+  cmake_policy(SET CMP0067 NEW)
+endif()
+
 project(ccache LANGUAGES C CXX)
 if(MSVC)
   enable_language(ASM_MASM)
