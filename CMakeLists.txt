@@ -1,8 +1,4 @@
-cmake_minimum_required(VERSION 3.4.3)
-
-if(POLICY CMP0067)
-  cmake_policy(SET CMP0067 NEW)
-endif()
+cmake_minimum_required(VERSION 3.10)
 
 project(ccache LANGUAGES C CXX)
 if(MSVC)
@@ -76,12 +72,9 @@ include(StandardWarnings)
 include(CIBuildType)
 include(DefaultBuildType)
 
-if(NOT ${CMAKE_VERSION} VERSION_LESS "3.9")
-  cmake_policy(SET CMP0069 NEW)
-  option(ENABLE_IPO "Enable interprocedural (link time, LTO) optimization" OFF)
-  if(ENABLE_IPO)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-  endif()
+option(ENABLE_IPO "Enable interprocedural (link time, LTO) optimization" OFF)
+if(ENABLE_IPO)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
 #
