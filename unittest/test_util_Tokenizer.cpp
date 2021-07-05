@@ -22,38 +22,117 @@
 
 TEST_CASE("util::Tokenizer")
 {
-  CHECK(Util::split_into_views("", "/").empty());
-  CHECK(Util::split_into_views("///", "/").empty());
+  using Mode = util::Tokenizer::Mode;
+
+  SUBCASE("include empty tokens")
   {
-    const auto s = Util::split_into_views("a/b", "/");
-    REQUIRE(s.size() == 2);
-    CHECK(s[0] == "a");
-    CHECK(s[1] == "b");
+    {
+      const auto s = Util::split_into_views("", "/", Mode::include_empty);
+      REQUIRE(s.size() == 1);
+      CHECK(s[0] == "");
+    }
+    {
+      const auto s = Util::split_into_views("/", "/", Mode::include_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "");
+      CHECK(s[1] == "");
+    }
+    {
+      const auto s = Util::split_into_views("a/", "/", Mode::include_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "a");
+      CHECK(s[1] == "");
+    }
+    {
+      const auto s = Util::split_into_views("/b", "/", Mode::include_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "");
+      CHECK(s[1] == "b");
+    }
+    {
+      const auto s = Util::split_into_views("a/b", "/", Mode::include_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "a");
+      CHECK(s[1] == "b");
+    }
+    {
+      const auto s = Util::split_into_views("/a:", "/:", Mode::include_empty);
+      REQUIRE(s.size() == 3);
+      CHECK(s[0] == "");
+      CHECK(s[1] == "a");
+      CHECK(s[2] == "");
+    }
   }
+
+  SUBCASE("skip empty")
   {
-    const auto s = Util::split_into_views("a/b", "x");
-    REQUIRE(s.size() == 1);
-    CHECK(s[0] == "a/b");
+    CHECK(Util::split_into_views("", "/", Mode::skip_empty).empty());
+    CHECK(Util::split_into_views("///", "/", Mode::skip_empty).empty());
+    {
+      const auto s = Util::split_into_views("a/b", "/", Mode::skip_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "a");
+      CHECK(s[1] == "b");
+    }
+    {
+      const auto s = Util::split_into_views("a/b", "x", Mode::skip_empty);
+      REQUIRE(s.size() == 1);
+      CHECK(s[0] == "a/b");
+    }
+    {
+      const auto s = Util::split_into_views("a/b:c", "/:", Mode::skip_empty);
+      REQUIRE(s.size() == 3);
+      CHECK(s[0] == "a");
+      CHECK(s[1] == "b");
+      CHECK(s[2] == "c");
+    }
+    {
+      const auto s =
+        Util::split_into_views(":a//b..:.c/:/.", "/:.", Mode::skip_empty);
+      REQUIRE(s.size() == 3);
+      CHECK(s[0] == "a");
+      CHECK(s[1] == "b");
+      CHECK(s[2] == "c");
+    }
+    {
+      const auto s = Util::split_into_views(
+        ".0.1.2.3.4.5.6.7.8.9.", "/:.+_abcdef", Mode::skip_empty);
+      REQUIRE(s.size() == 10);
+      CHECK(s[0] == "0");
+      CHECK(s[9] == "9");
+    }
   }
+
+  SUBCASE("skip last empty token")
   {
-    const auto s = Util::split_into_views("a/b:c", "/:");
-    REQUIRE(s.size() == 3);
-    CHECK(s[0] == "a");
-    CHECK(s[1] == "b");
-    CHECK(s[2] == "c");
-  }
-  {
-    const auto s = Util::split_into_views(":a//b..:.c/:/.", "/:.");
-    REQUIRE(s.size() == 3);
-    CHECK(s[0] == "a");
-    CHECK(s[1] == "b");
-    CHECK(s[2] == "c");
-  }
-  {
-    const auto s =
-      Util::split_into_views(".0.1.2.3.4.5.6.7.8.9.", "/:.+_abcdef");
-    REQUIRE(s.size() == 10);
-    CHECK(s[0] == "0");
-    CHECK(s[9] == "9");
+    CHECK(Util::split_into_views("", "/", Mode::skip_last_empty).empty());
+    {
+      const auto s = Util::split_into_views("/", "/", Mode::skip_last_empty);
+      REQUIRE(s.size() == 1);
+      CHECK(s[0] == "");
+    }
+    {
+      const auto s = Util::split_into_views("a/", "/", Mode::skip_last_empty);
+      REQUIRE(s.size() == 1);
+      CHECK(s[0] == "a");
+    }
+    {
+      const auto s = Util::split_into_views("/b", "/", Mode::skip_last_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "");
+      CHECK(s[1] == "b");
+    }
+    {
+      const auto s = Util::split_into_views("a/b", "/", Mode::skip_last_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "a");
+      CHECK(s[1] == "b");
+    }
+    {
+      const auto s = Util::split_into_views("/a:", "/:", Mode::skip_last_empty);
+      REQUIRE(s.size() == 2);
+      CHECK(s[0] == "");
+      CHECK(s[1] == "a");
+    }
   }
 }

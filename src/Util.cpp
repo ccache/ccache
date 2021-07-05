@@ -26,7 +26,6 @@
 #include "TemporaryFile.hpp"
 #include "fmtmacros.hpp"
 
-#include <util/Tokenizer.hpp>
 #include <util/path_utils.hpp>
 
 extern "C" {
@@ -139,10 +138,12 @@ path_max(const std::string& path)
 
 template<typename T>
 std::vector<T>
-split_into(string_view input, const char* separators)
+split_into(string_view string,
+           const char* separators,
+           util::Tokenizer::Mode mode)
 {
   std::vector<T> result;
-  for (const auto token : util::Tokenizer(input, separators)) {
+  for (const auto token : util::Tokenizer(string, separators, mode)) {
     result.emplace_back(token);
   }
   return result;
@@ -1335,15 +1336,19 @@ setenv(const std::string& name, const std::string& value)
 }
 
 std::vector<string_view>
-split_into_views(string_view input, const char* separators)
+split_into_views(string_view string,
+                 const char* separators,
+                 util::Tokenizer::Mode mode)
 {
-  return split_into<string_view>(input, separators);
+  return split_into<string_view>(string, separators, mode);
 }
 
 std::vector<std::string>
-split_into_strings(string_view input, const char* separators)
+split_into_strings(string_view string,
+                   const char* separators,
+                   util::Tokenizer::Mode mode)
 {
-  return split_into<std::string>(input, separators);
+  return split_into<std::string>(string, separators, mode);
 }
 
 std::string

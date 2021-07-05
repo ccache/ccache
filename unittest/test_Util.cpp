@@ -848,7 +848,7 @@ TEST_CASE("Util::same_program_name")
 }
 
 // Util::split_into_strings and Util::split_into_views are tested implicitly in
-// test_Tokenizer.cpp.
+// test_util_Tokenizer.cpp.
 
 TEST_CASE("Util::starts_with")
 {

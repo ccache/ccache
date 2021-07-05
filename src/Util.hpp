@@ -22,6 +22,8 @@
 
 #include "CacheFile.hpp"
 
+#include <util/Tokenizer.hpp>
+
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
@@ -418,15 +420,19 @@ size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)
          / 1024;
 }
 
-// Split `input` into words at any of the characters listed in `separators`.
-// These words are a view into `input`; empty words are omitted. `separators`
-// must neither be the empty string nor a nullptr.
-std::vector<nonstd::string_view> split_into_views(nonstd::string_view input,
-                                                  const char* separators);
+// Split `string` into tokens at any of the characters in `separators`. These
+// tokens are views into `string`. `separators` must neither be the empty string
+// nor a nullptr.
+std::vector<nonstd::string_view> split_into_views(
+  nonstd::string_view string,
+  const char* separators,
+  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty);
 
-// Same as `split_into_views` but the words are copied from `input`.
-std::vector<std::string> split_into_strings(nonstd::string_view input,
-                                            const char* separators);
+// Same as `split_into_views` but the tokens are copied from `string`.
+std::vector<std::string> split_into_strings(
+  nonstd::string_view string,
+  const char* separators,
+  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty);
 
 // Return true if `prefix` is a prefix of `string`.
 inline bool
