@@ -1,18 +1,15 @@
-FROM ubuntu:16.04
+FROM debian:bullseye
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-        asciidoc \
         bash \
         build-essential \
         ccache \
         clang \
         cmake \
-        docbook-xml \
-        docbook-xsl \
         elfutils \
         gcc-multilib \
-        libzstd1-dev \
+        libzstd-dev \
         xsltproc \
  && rm -rf /var/lib/apt/lists/*
 
