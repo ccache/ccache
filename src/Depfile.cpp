@@ -71,10 +71,11 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
   adjusted_file_content.reserve(file_content.size());
 
   bool content_rewritten = false;
-  for (const auto& line : Util::split_into_views(file_content, "\n")) {
+  for (const auto line : util::Tokenizer(
+         file_content, "\n", util::Tokenizer::Mode::skip_last_empty)) {
     const auto tokens = Util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
-      DEBUG_ASSERT(line.length() > 0); // line.empty() -> no tokens
+      DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
       if (i > 0 || line[0] == ' ' || line[0] == '\t') {
         adjusted_file_content.push_back(' ');
       }

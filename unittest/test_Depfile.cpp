@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,9 +45,10 @@ TEST_CASE("Depfile::rewrite_paths")
   const auto cwd = ctx.actual_cwd;
   ctx.has_absolute_include_headers = true;
 
-  const auto content = FMT("foo.o: bar.c {0}/bar.h \\\n {1}/fie.h {0}/fum.h\n",
-                           cwd,
-                           Util::dir_name(cwd));
+  const auto content =
+    FMT("foo.o: bar.c {0}/bar.h \\\n\n {1}/fie.h {0}/fum.h\n",
+        cwd,
+        Util::dir_name(cwd));
 
   SUBCASE("Base directory not in dep file content")
   {
@@ -67,8 +68,8 @@ TEST_CASE("Depfile::rewrite_paths")
   {
     ctx.config.set_base_dir(cwd);
     const auto actual = Depfile::rewrite_paths(ctx, content);
-    const auto expected =
-      FMT("foo.o: bar.c ./bar.h \\\n {}/fie.h ./fum.h\n", Util::dir_name(cwd));
+    const auto expected = FMT("foo.o: bar.c ./bar.h \\\n\n {}/fie.h ./fum.h\n",
+                              Util::dir_name(cwd));
     REQUIRE(actual);
     CHECK(*actual == expected);
   }
