@@ -6,7 +6,7 @@ elif [ -d build/testdir ]; then
     testdir=build/testdir
 else
     echo "No testdir found" >&2
-    exit 1
+    exit 0
 fi
 
 tar -caf testdir.tar.xz $testdir
