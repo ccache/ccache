@@ -24,6 +24,8 @@
 #include "Util.hpp"
 #include "hashutil.hpp"
 
+#include <util/path_utils.hpp>
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -43,7 +45,7 @@ Context::Context()
   Logging::init(config);
 
   ignore_header_paths =
-    Util::split_into_strings(config.ignore_headers_in_manifest(), PATH_DELIM);
+    util::split_path_list(config.ignore_headers_in_manifest());
   set_ignore_options(Util::split_into_strings(config.ignore_options(), " "));
 
   // Set default umask for all files created by ccache from now on (if

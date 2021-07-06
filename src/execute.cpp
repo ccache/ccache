@@ -270,7 +270,7 @@ find_executable_in_path(const std::string& name,
 
   // Search the path looking for the first compiler of the right name that isn't
   // us.
-  for (const std::string& dir : Util::split_into_strings(path, PATH_DELIM)) {
+  for (const std::string& dir : util::split_path_list(path)) {
 #ifdef _WIN32
     char namebuf[MAX_PATH];
     int ret = SearchPath(

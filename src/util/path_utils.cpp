@@ -18,9 +18,14 @@
 
 #include "path_utils.hpp"
 
-#include <Logging.hpp>
 #include <Util.hpp>
 #include <fmtmacros.hpp>
+
+#ifdef _WIN32
+const char k_path_delimiter[] = ";";
+#else
+const char k_path_delimiter[] = ":";
+#endif
 
 namespace util {
 
@@ -34,6 +39,12 @@ is_absolute_path(nonstd::string_view path)
   }
 #endif
   return !path.empty() && path[0] == '/';
+}
+
+std::vector<std::string>
+split_path_list(nonstd::string_view path_list)
+{
+  return Util::split_into_strings(path_list, k_path_delimiter);
 }
 
 std::string
