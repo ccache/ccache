@@ -796,6 +796,7 @@ Examples:
 +
 * `file:///shared/nfs/directory`
 * `file:///shared/nfs/one|read-only file:///shared/nfs/two`
+* `http://example.org/cache`
 
 [[config_sloppiness]] *sloppiness* (*CCACHE_SLOPPINESS*)::
 
@@ -930,6 +931,27 @@ Optional attributes:
   files and directories in the cache directory.
 * *update-mtime*: If *true*, update the modification time (mtime) of cache
   entries that are read. The default is *false*.
+
+=== HTTP storage backend
+
+URL format: `http://HOST[:PORT][/PATH]`
+
+This backend stores data in an HTTP compatible server. The required HTTP
+methods are `GET`, `PUT` and `DELETE`.
+
+Note that ccache will not perform any cleanup of the HTTP storage.
+
+Examples:
+
+* `http://localhost:8080/`
+* `http://example.org/cache`
+
+Known issues and limitations:
+
+* URLs containing IPv6 addresses like `http://[::1]/` are not supported
+* There are no HTTP timeouts implemented or configured
+* Authentication is not yet supported
+* HTTPS is not yet supported
 
 == Cache size management
 

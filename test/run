@@ -399,7 +399,17 @@ run_suite() {
     SUITE_$suite_name
     echo
 
+    terminate_all_children
+
     return 0
+}
+
+terminate_all_children() {
+    local pids="$(jobs -p)"
+    if [[ -n "$pids" ]]; then
+        kill $pids >/dev/null 2>&1
+        wait >/dev/null 2>&1
+    fi
 }
 
 TEST() {
@@ -433,6 +443,8 @@ TEST() {
 
 export LC_ALL=C
 
+trap 'terminate_all_children' EXIT # also cleanup after exceptional code flow
+
 if pwd | grep '[^A-Za-z0-9/.,=_%+-]' >/dev/null 2>&1; then
     cat <<EOF
 Error: The test suite doesn't work in directories with whitespace or other
@@ -465,6 +477,9 @@ COMPILER_TYPE_GCC=false
 
 COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
+
+readonly HTTP_CLIENT="$(dirname $0)/http-client"
+readonly HTTP_SERVER="$(dirname $0)/http-server"
 
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false

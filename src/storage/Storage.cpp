@@ -25,6 +25,7 @@
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/secondary/FileStorage.hpp>
+#include <storage/secondary/HttpStorage.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/string_utils.hpp>
 
@@ -238,6 +239,9 @@ create_storage(const ParseStorageEntryResult& storage_entry)
 {
   if (storage_entry.url.scheme() == "file") {
     return std::make_unique<secondary::FileStorage>(storage_entry.url,
+                                                    storage_entry.attributes);
+  } else if (storage_entry.url.scheme() == "http") {
+    return std::make_unique<secondary::HttpStorage>(storage_entry.url,
                                                     storage_entry.attributes);
   }
 
