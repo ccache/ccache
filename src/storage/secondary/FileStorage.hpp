@@ -23,6 +23,8 @@
 
 #include <third_party/url.hpp>
 
+#include <sys/stat.h> // for mode_t
+
 namespace storage {
 namespace secondary {
 
