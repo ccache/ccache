@@ -1,10 +1,6 @@
 # Note: This is part of CMakeLists.txt file, not to be confused with
 # CPackConfig.cmake.
 
-if(${CMAKE_VERSION} VERSION_LESS "3.9")
-  set(CPACK_PACKAGE_DESCRIPTION "${CMAKE_PROJECT_DESCRIPTION}")
-endif()
-
 # From CcacheVersion.cmake.
 set(CPACK_PACKAGE_VERSION ${CCACHE_VERSION})
 
