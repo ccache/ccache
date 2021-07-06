@@ -354,8 +354,8 @@ TEST_CASE("Util::get_extension")
 static inline std::string
 os_path(std::string path)
 {
-#if !defined(HAVE_DIRENT_H) && DIR_DELIM_CH != '/'
-  std::replace(path.begin(), path.end(), '/', DIR_DELIM_CH);
+#if defined(_WIN32) && !defined(HAVE_DIRENT_H)
+  std::replace(path.begin(), path.end(), '/', '\\');
 #endif
 
   return path;
