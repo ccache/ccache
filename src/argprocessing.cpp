@@ -26,6 +26,12 @@
 #include "fmtmacros.hpp"
 #include "language.hpp"
 
+#include <core/wincompat.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 #include <cassert>
 
 using nonstd::nullopt;
@@ -94,7 +100,8 @@ bool
 color_output_possible()
 {
   const char* term_env = getenv("TERM");
-  return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
+  return isatty(STDERR_FILENO) && term_env
+         && Util::to_lowercase(term_env) != "dumb";
 }
 
 bool

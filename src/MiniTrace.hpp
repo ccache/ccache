@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,13 +18,9 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "third_party/minitrace.h"
 
-#ifdef MTR_ENABLED
-
-#  include <string>
+#include <string>
 
 struct ArgsInfo;
 
@@ -40,5 +36,3 @@ private:
   std::string m_tmp_trace_file;
   std::string m_start_time;
 };
-
-#endif

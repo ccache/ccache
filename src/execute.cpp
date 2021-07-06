@@ -27,13 +27,22 @@
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
+#include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
 #include <util/path_utils.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+#ifdef HAVE_SYS_WAIT_H
+#  include <sys/wait.h>
+#endif
 
 #ifdef _WIN32
 #  include "Finalizer.hpp"
-#  include "Win32Util.hpp"
 #endif
 
 using nonstd::string_view;

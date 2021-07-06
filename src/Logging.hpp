@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "FormatNonstdStringView.hpp"
 
 #include "third_party/fmt/core.h"

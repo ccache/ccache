@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,14 +20,21 @@
 
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
+
 #include "third_party/fmt/core.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#else
 #  include <sys/ioctl.h>
 #endif
 
 #ifdef __sun
 #  include <termios.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
 #endif
 
 #include <algorithm>

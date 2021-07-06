@@ -18,15 +18,12 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Counters.hpp"
-#include "Statistic.hpp" // Any reasonable use of Statistics requires the Statistic enum.
 
 #include "third_party/nonstd/optional.hpp"
 
+#include <ctime>
 #include <functional>
-#include <sstream>
 #include <string>
 
 class Config;

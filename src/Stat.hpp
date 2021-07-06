@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,11 +18,42 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "exceptions.hpp"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <string>
+
+#ifdef _WIN32
+#  ifndef S_IFIFO
+#    define S_IFIFO 0x1000
+#  endif
+#  ifndef S_IFBLK
+#    define S_IFBLK 0x6000
+#  endif
+#  ifndef S_IFLNK
+#    define S_IFLNK 0xA000
+#  endif
+#  ifndef S_ISREG
+#    define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#  endif
+#  ifndef S_ISDIR
+#    define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
+#  endif
+#  ifndef S_ISFIFO
+#    define S_ISFIFO(m) (((m)&S_IFMT) == S_IFIFO)
+#  endif
+#  ifndef S_ISCHR
+#    define S_ISCHR(m) (((m)&S_IFMT) == S_IFCHR)
+#  endif
+#  ifndef S_ISLNK
+#    define S_ISLNK(m) (((m)&S_IFMT) == S_IFLNK)
+#  endif
+#  ifndef S_ISBLK
+#    define S_ISBLK(m) (((m)&S_IFMT) == S_IFBLK)
+#  endif
+#endif
 
 class Stat
 {

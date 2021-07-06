@@ -18,9 +18,19 @@
 
 #pragma once
 
-#include "system.hpp"
+#ifdef _WIN32
 
-#include <string>
+#  include <core/wincompat.hpp>
+
+#  include <string>
+
+void usleep(int64_t usec);
+struct tm* localtime_r(time_t* _clock, struct tm* _result);
+
+#  ifdef _MSC_VER
+int gettimeofday(struct timeval* tp, struct timezone* tzp);
+int asprintf(char** strp, const char* fmt, ...);
+#  endif
 
 namespace Win32Util {
 
@@ -44,3 +54,5 @@ std::string error_message(DWORD error_code);
 NTSTATUS get_last_ntstatus();
 
 } // namespace Win32Util
+
+#endif

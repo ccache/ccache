@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
+#include <cstdint>
 
 // A Boyer-Moore-Horspool skip table used for searching for the strings
 // "__TIME__", "__DATE__" and "__TIMESTAMP__".

@@ -84,10 +84,6 @@ include(GNUInstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 
-if(HAVE_SYS_MMAN_H AND HAVE_PTHREAD_MUTEXATTR_SETPSHARED)
-  set(INODE_CACHE_SUPPORTED 1)
-endif()
-
 #
 # Third party
 #

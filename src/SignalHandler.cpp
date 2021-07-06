@@ -24,6 +24,9 @@
 #  include "assertions.hpp"
 
 #  include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
+#  include <sys/types.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
 
 namespace {
 

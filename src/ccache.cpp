@@ -44,6 +44,7 @@
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
 #include "Util.hpp"
+#include "Win32Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"
 #include "compopt.hpp"
@@ -55,6 +56,7 @@
 #include "language.hpp"
 
 #include <core/types.hpp>
+#include <core/wincompat.hpp>
 #include <util/path_utils.hpp>
 
 #include "third_party/fmt/core.h"
@@ -71,8 +73,10 @@ extern "C" {
 }
 #endif
 
-#ifdef _WIN32
-#  include "Win32Util.hpp"
+#include <fcntl.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
 #endif
 
 #include <algorithm>

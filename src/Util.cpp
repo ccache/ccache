@@ -24,13 +24,25 @@
 #include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
+#include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
 #include <util/path_utils.hpp>
 
 extern "C" {
 #include "third_party/base32hex.h"
 }
+
+#ifdef HAVE_DIRENT_H
+#  include <dirent.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+#include <fcntl.h>
 
 #include <algorithm>
 #include <fstream>
@@ -47,16 +59,18 @@ extern "C" {
 #  include <sys/time.h>
 #endif
 
+#ifdef HAVE_UTIME_H
+#  include <utime.h>
+#elif defined(HAVE_SYS_UTIME_H)
+#  include <sys/utime.h>
+#endif
+
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
 #elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
 #  include <sys/mount.h>
 #  include <sys/param.h>
-#endif
-
-#ifdef _WIN32
-#  include "Win32Util.hpp"
 #endif
 
 #ifdef __linux__

@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
@@ -39,6 +37,7 @@
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
+#include <ctime>
 #include <string>
 #include <unordered_map>
 #include <vector>

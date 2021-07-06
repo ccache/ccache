@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,50 +16,53 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "system.hpp"
+#include "MiniTrace.hpp"
 
-#ifdef MTR_ENABLED
+#include "ArgsInfo.hpp"
+#include "TemporaryFile.hpp"
+#include "Util.hpp"
+#include "fmtmacros.hpp"
 
-#  include "ArgsInfo.hpp"
-#  include "MiniTrace.hpp"
-#  include "TemporaryFile.hpp"
-#  include "Util.hpp"
-#  include "fmtmacros.hpp"
+#include <core/wincompat.hpp>
 
-#  ifdef HAVE_SYS_TIME_H
-#    include <sys/time.h>
-#  endif
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 namespace {
 
 std::string
 get_system_tmp_dir()
 {
-#  ifndef _WIN32
+#ifndef _WIN32
   const char* tmpdir = getenv("TMPDIR");
   if (tmpdir) {
     return tmpdir;
   }
-#  else
+#else
   static char dirbuf[PATH_MAX];
   DWORD retval = GetTempPath(PATH_MAX, dirbuf);
   if (retval > 0 && retval < PATH_MAX) {
     return dirbuf;
   }
-#  endif
+#endif
   return "/tmp";
 }
 
 double
 time_seconds()
 {
-#  ifdef HAVE_GETTIMEOFDAY
+#ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;
   gettimeofday(&tv, nullptr);
   return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
-#  else
+#else
   return (double)time(nullptr);
-#  endif
+#endif
 }
 
 } // namespace
@@ -89,5 +92,3 @@ MiniTrace::~MiniTrace()
   }
   Util::unlink_tmp(m_tmp_trace_file);
 }
-
-#endif

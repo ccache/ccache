@@ -98,5 +98,9 @@ endif()
 # alias
 set(MTR_ENABLED "${ENABLE_TRACING}")
 
+if(HAVE_SYS_MMAN_H AND HAVE_PTHREAD_MUTEXATTR_SETPSHARED)
+  set(INODE_CACHE_SUPPORTED 1)
+endif()
+
 configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.in
                ${CMAKE_BINARY_DIR}/config.h @ONLY)

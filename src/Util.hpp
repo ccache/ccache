@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "CacheFile.hpp"
 
 #include <util/Tokenizer.hpp>
@@ -28,6 +26,7 @@
 #include "third_party/nonstd/string_view.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <ios>
 #include <memory>

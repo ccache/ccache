@@ -45,6 +45,8 @@
 // The option only affects compilation; not passed to the preprocessor.
 #define AFFECTS_COMP (1 << 6)
 
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+
 struct CompOpt
 {
   const char* name;

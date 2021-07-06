@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,33 +16,16 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "Fd.hpp"
 
-#include "third_party/nonstd/optional.hpp"
+#include <core/wincompat.hpp>
 
-#include <cstdint>
-#include <cstdio>
-#include <ctime>
-#include <string>
-#include <unordered_map>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
-class Config;
-class Context;
-class Digest;
-
-namespace Manifest {
-
-extern const std::string k_file_suffix;
-extern const uint8_t k_magic[4];
-extern const uint8_t k_version;
-
-nonstd::optional<Digest> get(const Context& ctx, const std::string& path);
-bool put(const Config& config,
-         const std::string& path,
-         const Digest& result_key,
-         const std::unordered_map<std::string, Digest>& included_files,
-         time_t time_of_compilation,
-         bool save_timestamp);
-bool dump(const std::string& path, FILE* stream);
-
-} // namespace Manifest
+bool
+Fd::close()
+{
+  return m_fd != -1 && ::close(release()) == 0;
+}

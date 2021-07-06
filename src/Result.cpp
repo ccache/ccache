@@ -32,7 +32,16 @@
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
 #include <util/path_utils.hpp>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <algorithm>
 

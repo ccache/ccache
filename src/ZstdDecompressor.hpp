@@ -18,13 +18,11 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Decompressor.hpp"
 
 #include <zstd.h>
 
-#include <fstream>
+#include <cstdint>
 
 // A decompressor of a Zstandard stream.
 class ZstdDecompressor : public Decompressor

@@ -22,9 +22,16 @@
 #include "Config.hpp"
 #include "File.hpp"
 #include "Util.hpp"
+#include "Win32Util.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
+
+#include <core/wincompat.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>
@@ -37,12 +44,6 @@
 #  ifdef HAVE_SYS_IOCTL_H
 #    include <sys/ioctl.h>
 #  endif
-#endif
-
-#ifdef _WIN32
-#  include <psapi.h>
-#  include <sys/locking.h>
-#  include <tchar.h>
 #endif
 
 using nonstd::string_view;

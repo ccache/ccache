@@ -18,12 +18,11 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Util.hpp"
 
 #include "third_party/fmt/core.h"
 
+#include <cstdint>
 #include <string>
 
 // Digest represents the binary form of the final digest (AKA hash or checksum)

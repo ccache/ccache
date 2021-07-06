@@ -18,11 +18,10 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "third_party/nonstd/expected.hpp"
 #include "third_party/nonstd/optional.hpp"
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>

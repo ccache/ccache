@@ -32,7 +32,13 @@
 #include "assertions.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
+
 #include "third_party/fmt/core.h"
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <memory>
 #include <string>

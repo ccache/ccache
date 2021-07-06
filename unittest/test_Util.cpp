@@ -22,8 +22,16 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
+#include <core/wincompat.hpp>
+
 #include "third_party/doctest.h"
 #include "third_party/nonstd/optional.hpp"
+
+#include <fcntl.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <algorithm>
 

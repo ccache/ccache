@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
-
+#include <cstdint>
 #include <string>
 
 class Lockfile
@@ -40,16 +39,6 @@ private:
 #ifndef _WIN32
   bool m_acquired = false;
 #else
-  HANDLE m_handle = nullptr;
+  void* m_handle = nullptr;
 #endif
 };
-
-inline bool
-Lockfile::acquired() const
-{
-#ifndef _WIN32
-  return m_acquired;
-#else
-  return m_handle != INVALID_HANDLE_VALUE;
-#endif
-}

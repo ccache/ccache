@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Checksum.hpp"
 #include "Compressor.hpp"
 #include "Util.hpp"
 
+#include <cstdint>
+#include <cstdio>
 #include <memory>
 
 // This class knows how to write a cache entry with a common header and a

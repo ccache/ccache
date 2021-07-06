@@ -25,18 +25,25 @@
 #include "Logging.hpp"
 #include "Sloppiness.hpp"
 #include "Stat.hpp"
+#include "Win32Util.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
-#include "third_party/blake3/blake3_cpu_supports_avx2.h"
+#include <core/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
 #endif
 
-#ifdef _WIN32
-#  include "Win32Util.hpp"
+#include "third_party/blake3/blake3_cpu_supports_avx2.h"
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+#ifdef HAVE_SYS_WAIT_H
+#  include <sys/wait.h>
 #endif
 
 #ifdef HAVE_AVX2

@@ -18,10 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
-
-#include "config.h"
-
+#include <cstdint>
 #include <functional>
 #include <string>
 

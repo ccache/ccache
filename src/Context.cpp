@@ -24,7 +24,12 @@
 #include "Util.hpp"
 #include "hashutil.hpp"
 
+#include <core/wincompat.hpp>
 #include <util/path_utils.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <algorithm>
 #include <string>

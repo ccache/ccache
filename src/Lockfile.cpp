@@ -20,17 +20,26 @@
 
 #include "Logging.hpp"
 #include "Util.hpp"
+#include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
-#ifdef _WIN32
-#  include "Win32Util.hpp"
-#endif
+#include <core/wincompat.hpp>
 
 #include "third_party/fmt/core.h"
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <algorithm>
 #include <sstream>
 #include <thread>
+
+// AIX/PASE does not properly define usleep within its headers. However, the
+// function is available in libc.a.
+#ifdef _AIX
+extern "C" int usleep(useconds_t);
+#endif
 
 namespace {
 
@@ -220,4 +229,14 @@ Lockfile::~Lockfile()
     CloseHandle(m_handle);
 #endif
   }
+}
+
+bool
+Lockfile::acquired() const
+{
+#ifndef _WIN32
+  return m_acquired;
+#else
+  return m_handle != INVALID_HANDLE_VALUE;
+#endif
 }

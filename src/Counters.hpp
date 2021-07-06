@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,11 +18,11 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Statistic.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
-
-enum class Statistic;
 
 // A simple wrapper around a vector of integers used for the statistics
 // counters.

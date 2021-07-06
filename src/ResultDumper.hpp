@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,10 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Result.hpp"
+
+#include <cstdint>
+#include <cstdio>
 
 // This class dumps information about the result entry to `stream`.
 class ResultDumper : public Result::Reader::Consumer

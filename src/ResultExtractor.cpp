@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,12 @@
 
 #include "Util.hpp"
 #include "fmtmacros.hpp"
+
+#include <core/wincompat.hpp>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 ResultExtractor::ResultExtractor(const std::string& directory)
   : m_directory(directory)
