@@ -1125,7 +1125,7 @@ bool
 read_fd(int fd, DataReceiver data_receiver)
 {
   ssize_t n;
-  char buffer[READ_BUFFER_SIZE];
+  char buffer[CCACHE_READ_BUFFER_SIZE];
   while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
     if (n == -1 && errno != EINTR) {
       break;

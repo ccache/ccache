@@ -180,7 +180,7 @@ recompress_file(RecompressionStatistics& statistics,
                   level ? Compression::Type::zstd : Compression::Type::none,
                   wanted_level);
 
-  char buffer[READ_BUFFER_SIZE];
+  char buffer[CCACHE_READ_BUFFER_SIZE];
   size_t bytes_left = reader->payload_size();
   while (bytes_left > 0) {
     size_t bytes_to_read = std::min(bytes_left, sizeof(buffer));

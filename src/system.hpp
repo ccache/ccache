@@ -78,9 +78,6 @@ extern "C" int usleep(useconds_t);
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
-// Buffer size for I/O operations. Should be a multiple of 4 KiB.
-const size_t READ_BUFFER_SIZE = 65536;
-
 #ifndef ESTALE
 #  define ESTALE -1
 #endif

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -80,7 +80,7 @@ ZstdCompressor::write(const void* data, size_t count)
 
   size_t ret;
   while (m_zstd_in.pos < m_zstd_in.size) {
-    uint8_t buffer[READ_BUFFER_SIZE];
+    uint8_t buffer[CCACHE_READ_BUFFER_SIZE];
     m_zstd_out.dst = buffer;
     m_zstd_out.size = sizeof(buffer);
     m_zstd_out.pos = 0;
@@ -94,7 +94,7 @@ ZstdCompressor::write(const void* data, size_t count)
   }
   ret = flush;
   while (ret > 0) {
-    uint8_t buffer[READ_BUFFER_SIZE];
+    uint8_t buffer[CCACHE_READ_BUFFER_SIZE];
     m_zstd_out.dst = buffer;
     m_zstd_out.size = sizeof(buffer);
     m_zstd_out.pos = 0;

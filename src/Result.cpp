@@ -290,7 +290,7 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
   if (marker == k_embedded_file_marker) {
     consumer.on_entry_start(entry_number, file_type, file_len, nullopt);
 
-    uint8_t buf[READ_BUFFER_SIZE];
+    uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t remain = file_len;
     while (remain > 0) {
       size_t n = std::min(remain, sizeof(buf));
@@ -412,7 +412,7 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
 
   uint64_t remain = file_size;
   while (remain > 0) {
-    uint8_t buf[READ_BUFFER_SIZE];
+    uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
     ssize_t bytes_read = read(*file, buf, n);
     if (bytes_read == -1) {
