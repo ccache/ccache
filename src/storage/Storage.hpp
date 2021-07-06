@@ -59,7 +59,7 @@ private:
   struct SecondaryStorageEntry
   {
     std::unique_ptr<storage::SecondaryStorage> backend;
-    std::string url;
+    std::string url; // the Url class has a too-chatty stream operator
     bool read_only = false;
   };
 

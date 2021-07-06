@@ -34,14 +34,13 @@ namespace storage {
 namespace secondary {
 
 static std::string
-parse_url(const std::string& url)
+parse_url(const Url& url)
 {
-  const nonstd::string_view prefix = "file://";
-  ASSERT(Util::starts_with(url, prefix));
-  const auto dir = url.substr(prefix.size());
+  ASSERT(url.scheme() == "file");
+  const auto& dir = url.path();
   if (!Util::starts_with(dir, "/")) {
-    throw Error("invalid file URL \"{}\" - directory must start with a slash",
-                url);
+    throw Error("invalid file path \"{}\" - directory must start with a slash",
+                dir);
   }
   return dir;
 }
@@ -70,7 +69,7 @@ parse_update_mtime(const AttributeMap& attributes)
   return it != attributes.end() && it->second == "true";
 }
 
-FileStorage::FileStorage(const std::string& url, const AttributeMap& attributes)
+FileStorage::FileStorage(const Url& url, const AttributeMap& attributes)
   : m_dir(parse_url(url)),
     m_umask(parse_umask(attributes)),
     m_update_mtime(parse_update_mtime(attributes))
