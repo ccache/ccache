@@ -19,12 +19,16 @@
 #pragma once
 
 #ifdef _WIN32
-
 #  include <sys/stat.h>
 
-#  ifndef __MINGW32__
-typedef __int64 ssize_t;
-#  endif
+#  define NOMINMAX 1
+#  define STDIN_FILENO 0
+#  define STDOUT_FILENO 1
+#  define STDERR_FILENO 2
+
+#  ifdef _MSC_VER
+#    define PATH_MAX MAX_PATH
+#  endif // _MSC_VER
 
 // From:
 // http://mesos.apache.org/api/latest/c++/3rdparty_2stout_2include_2stout_2windows_8hpp_source.html
