@@ -27,9 +27,14 @@
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <cleanup.hpp>
+#include <core/wincompat.hpp>
 #include <exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/file_utils.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 namespace storage {
 namespace primary {

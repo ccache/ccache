@@ -25,6 +25,8 @@
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
+#include <core/wincompat.hpp>
+
 #include "third_party/doctest.h"
 
 #include <algorithm>

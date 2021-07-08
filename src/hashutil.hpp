@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "third_party/nonstd/string_view.hpp"
 
+#include <cstddef>
 #include <string>
 
 class Config;

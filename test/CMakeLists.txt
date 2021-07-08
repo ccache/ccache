@@ -7,21 +7,8 @@ function(addtest name)
   set_tests_properties(
     "test.${name}"
     PROPERTIES
-    ENVIRONMENT "CCACHE=$<TARGET_FILE:ccache>;EXIT_IF_SKIPPED=true")
-
-  if(${CMAKE_VERSION} VERSION_LESS "3.9")
-    # Older CMake versions treat skipped tests as errors. Therefore, resort to
-    # parsing output for those cases (exit code is not considered). Skipped
-    # tests will appear as "Passed".
-    set_tests_properties(
-      "test.${name}"
-      PROPERTIES
-      PASS_REGULAR_EXPRESSION "PASSED|Passed|Skipped"
-      FAIL_REGULAR_EXPRESSION "[Ww]arning|[Ff]ail|[Er]rror")
-  else()
-    set_tests_properties("test.${name}" PROPERTIES SKIP_RETURN_CODE 125)
-  endif()
-
+    ENVIRONMENT "CCACHE=$<TARGET_FILE:ccache>;EXIT_IF_SKIPPED=true"
+    SKIP_RETURN_CODE 125)
 endfunction()
 
 if(${CMAKE_VERSION} VERSION_LESS "3.15")
@@ -67,6 +54,7 @@ addtest(readonly_direct)
 addtest(sanitize_blacklist)
 addtest(secondary_file)
 addtest(secondary_redis)
+addtest(secondary_url)
 addtest(serialize_diagnostics)
 addtest(source_date_epoch)
 addtest(split_dwarf)

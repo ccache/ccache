@@ -44,6 +44,7 @@
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
 #include "Util.hpp"
+#include "Win32Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"
 #include "compopt.hpp"
@@ -55,6 +56,8 @@
 #include "language.hpp"
 
 #include <core/types.hpp>
+#include <core/wincompat.hpp>
+#include <util/path_utils.hpp>
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
@@ -70,8 +73,10 @@ extern "C" {
 }
 #endif
 
-#ifdef _WIN32
-#  include "Win32Util.hpp"
+#include <fcntl.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
 #endif
 
 #include <algorithm>
@@ -231,8 +236,12 @@ prepare_debug_path(const std::string& debug_dir,
                    const std::string& output_obj,
                    string_view suffix)
 {
-  const std::string prefix =
-    debug_dir.empty() ? output_obj : debug_dir + Util::real_path(output_obj);
+  auto prefix = debug_dir.empty()
+                  ? output_obj
+                  : debug_dir + util::to_absolute_path(output_obj);
+#ifdef _WIN32
+  prefix.erase(std::remove(prefix.begin(), prefix.end(), ':'), prefix.end());
+#endif
   try {
     Util::ensure_dir_exists(Util::dir_name(prefix));
   } catch (Error&) {
@@ -277,7 +286,7 @@ guess_compiler(string_view path)
     if (symlink_value.empty()) {
       break;
     }
-    if (Util::is_absolute_path(symlink_value)) {
+    if (util::is_absolute_path(symlink_value)) {
       compiler_path = symlink_value;
     } else {
       compiler_path =
@@ -608,7 +617,7 @@ process_preprocessed_file(Context& ctx,
       // p and q span the include file path.
       std::string inc_path(p, q - p);
       if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = Util::is_absolute_path(inc_path);
+        ctx.has_absolute_include_headers = util::is_absolute_path(inc_path);
       }
       inc_path = Util::make_relative_path(ctx, inc_path);
 
@@ -700,7 +709,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
       continue;
     }
     if (!ctx.has_absolute_include_headers) {
-      ctx.has_absolute_include_headers = Util::is_absolute_path(token);
+      ctx.has_absolute_include_headers = util::is_absolute_path(token);
     }
     std::string path = Util::make_relative_path(ctx, token);
     remember_include_file(ctx, path, hash, false, &hash);
@@ -1365,8 +1374,8 @@ hash_common_info(const Context& ctx,
   }
 
   if (!ctx.config.extra_files_to_hash().empty()) {
-    for (const std::string& path : Util::split_into_strings(
-           ctx.config.extra_files_to_hash(), PATH_DELIM)) {
+    for (const std::string& path :
+         util::split_path_list(ctx.config.extra_files_to_hash())) {
       LOG("Hashing extra file {}", path);
       hash.hash_delimiter("extrafile");
       if (!hash_binary_file(ctx, hash, path)) {
@@ -1651,7 +1660,7 @@ calculate_result_and_manifest_key(Context& ctx,
     // the profile filename so we need to include the same information in the
     // hash.
     const std::string profile_path =
-      Util::is_absolute_path(ctx.args_info.profile_path)
+      util::is_absolute_path(ctx.args_info.profile_path)
         ? ctx.args_info.profile_path
         : FMT("{}/{}", ctx.apparent_cwd, ctx.args_info.profile_path);
     LOG("Adding profile directory {} to our hash", profile_path);

@@ -12,11 +12,11 @@ set(
   Counters.cpp
   Decompressor.cpp
   Depfile.cpp
+  Fd.cpp
   Hash.cpp
   Lockfile.cpp
   Logging.cpp
   Manifest.cpp
-  MiniTrace.cpp
   NullCompressor.cpp
   NullDecompressor.cpp
   ProgressBar.cpp
@@ -46,6 +46,10 @@ set(
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files InodeCache.cpp)
+endif()
+
+if(MTR_ENABLED)
+  list(APPEND source_files MiniTrace.cpp)
 endif()
 
 if(WIN32)

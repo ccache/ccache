@@ -1,3 +1,6 @@
+// This file is included by all compilation units, including those in
+// src/third_party. It should only contain macros and typedefs.
+
 #pragma once
 #ifdef __clang__
 #  pragma clang diagnostic push
@@ -60,8 +63,6 @@
 // clang-format off
 #cmakedefine _WIN32_WINNT @_WIN32_WINNT@
 // clang-format on
-
-#define SYSCONFDIR "@CMAKE_INSTALL_FULL_SYSCONFDIR@"
 
 #ifdef __clang__
 #  pragma clang diagnostic pop
@@ -180,9 +181,41 @@
 #  undef HAVE_STRUCT_STAT_ST_MTIM
 #endif
 
+// Typedefs that make it possible to use common types in ccache header files
+// without including core/wincompat.hpp.
 #ifdef _WIN32
 #  ifdef _MSC_VER
 typedef unsigned __int32 mode_t;
 typedef int pid_t;
-#  endif
-#endif // _WIN32
+#    ifdef _WIN64
+typedef __int64 ssize_t;
+#    else
+typedef int ssize_t;
+#    endif
+#  elif !defined(__MINGW32__)
+typedef __int64 ssize_t;
+#  endif // _MSC_VER
+#endif   // _WIN32
+
+// GCC version of a couple of standard C++ attributes.
+#ifdef __GNUC__
+#  define nodiscard gnu::warn_unused_result
+#  define maybe_unused gnu::unused
+#endif
+
+// O_BINARY is needed when reading binary data on Windows, so use it everywhere
+// with a compatibility define for Unix platforms.
+#if !defined(_WIN32) && !defined(O_BINARY)
+#  define O_BINARY 0
+#endif
+
+#ifndef ESTALE
+#  define ESTALE -1
+#endif
+
+#define SYSCONFDIR "@CMAKE_INSTALL_FULL_SYSCONFDIR@"
+
+#cmakedefine INODE_CACHE_SUPPORTED
+
+// Buffer size for I/O operations. Should be a multiple of 4 KiB.
+#define CCACHE_READ_BUFFER_SIZE 65536

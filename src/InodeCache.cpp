@@ -19,6 +19,7 @@
 #include "InodeCache.hpp"
 
 #include "Config.hpp"
+#include "Digest.hpp"
 #include "Fd.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
@@ -28,8 +29,10 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <fcntl.h>
 #include <libgen.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include <atomic>
 #include <type_traits>
@@ -63,7 +66,7 @@ const uint32_t k_num_entries = 4;
 
 static_assert(Digest::size() == 20,
               "Increment version number if size of digest is changed.");
-static_assert(IS_TRIVIALLY_COPYABLE(Digest),
+static_assert(std::is_trivially_copyable<Digest>::value,
               "Digest is expected to be trivially copyable.");
 
 static_assert(

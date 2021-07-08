@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,13 +18,13 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #ifdef USE_XXH_DISPATCH
 #  include "third_party/xxh_x86dispatch.h"
 #else
 #  include "third_party/xxhash.h"
 #endif
+
+#include <cstdint>
 
 class Checksum
 {

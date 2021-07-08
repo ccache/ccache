@@ -45,7 +45,6 @@
 #include <direct.h>
 #include <io.h>
 
-#define WIN32_LEAN_AND_MEAN
 #define NOMINMAX 1
 #define WIN32_NO_STATUS
 #include <windows.h>

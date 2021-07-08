@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Stat.hpp"
 
 #include "third_party/nonstd/optional.hpp"

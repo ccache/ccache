@@ -20,14 +20,11 @@ build() {
 
 #     NAME         CC    CXX     TEST_CC CMAKE_PARAMS
 
-build debian-9     gcc   g++     gcc
-build debian-9     clang clang++ clang
-
 build debian-10    gcc   g++     gcc
 build debian-10    clang clang++ clang
 
-build ubuntu-16.04 gcc   g++     gcc
-build ubuntu-16.04 gcc   g++     clang
+build debian-11    gcc   g++     gcc
+build debian-11    clang clang++ clang
 
 build ubuntu-18.04 gcc   g++     gcc
 build ubuntu-18.04 clang clang++ clang
@@ -44,8 +41,8 @@ build centos-8     clang clang++ clang
 build fedora-32    gcc   g++     gcc
 build fedora-32    clang clang++ clang
 
-build alpine-3.4   gcc   g++     gcc     -DZSTD_FROM_INTERNET=ON
-build alpine-3.4   gcc   g++     clang   -DZSTD_FROM_INTERNET=ON
+build alpine-3.8   gcc   g++     gcc
+build alpine-3.8   gcc   g++     clang
 
-build alpine-3.12  gcc   g++     gcc
-build alpine-3.12  clang clang++ clang
+build alpine-3.14  gcc   g++     gcc
+build alpine-3.14  clang clang++ clang

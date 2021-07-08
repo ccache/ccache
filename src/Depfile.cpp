@@ -23,6 +23,8 @@
 #include "Logging.hpp"
 #include "assertions.hpp"
 
+#include <util/path_utils.hpp>
+
 static inline bool
 is_blank(const std::string& s)
 {
@@ -69,17 +71,18 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
   adjusted_file_content.reserve(file_content.size());
 
   bool content_rewritten = false;
-  for (const auto& line : Util::split_into_views(file_content, "\n")) {
+  for (const auto line : util::Tokenizer(
+         file_content, "\n", util::Tokenizer::Mode::skip_last_empty)) {
     const auto tokens = Util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
-      DEBUG_ASSERT(line.length() > 0); // line.empty() -> no tokens
+      DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
       if (i > 0 || line[0] == ' ' || line[0] == '\t') {
         adjusted_file_content.push_back(' ');
       }
 
       const auto& token = tokens[i];
       bool token_rewritten = false;
-      if (Util::is_absolute_path(token)) {
+      if (util::is_absolute_path(token)) {
         const auto new_path = Util::make_relative_path(ctx, token);
         if (new_path != token) {
           adjusted_file_content.append(new_path);

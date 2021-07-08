@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "third_party/nonstd/optional.hpp"
 
+#include <cstdint>
+#include <cstdio>
+#include <ctime>
 #include <string>
 #include <unordered_map>
 

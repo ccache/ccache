@@ -21,13 +21,17 @@
 #include <storage/SecondaryStorage.hpp>
 #include <storage/types.hpp>
 
+#include <third_party/url.hpp>
+
+#include <sys/stat.h> // for mode_t
+
 namespace storage {
 namespace secondary {
 
 class FileStorage : public storage::SecondaryStorage
 {
 public:
-  FileStorage(const std::string& url, const AttributeMap& attributes);
+  FileStorage(const Url& url, const AttributeMap& attributes);
 
   nonstd::expected<nonstd::optional<std::string>, Error>
   get(const Digest& key) override;

@@ -32,6 +32,17 @@
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
+#include <util/path_utils.hpp>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 #include <algorithm>
 
 // Result data format
@@ -182,7 +193,7 @@ gcno_file_in_mangled_form(const Context& ctx)
 {
   const auto& output_obj = ctx.args_info.output_obj;
   const std::string abs_output_obj =
-    Util::is_absolute_path(output_obj)
+    util::is_absolute_path(output_obj)
       ? output_obj
       : FMT("{}/{}", ctx.apparent_cwd, output_obj);
   std::string hashified_obj = abs_output_obj;
@@ -288,7 +299,7 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
   if (marker == k_embedded_file_marker) {
     consumer.on_entry_start(entry_number, file_type, file_len, nullopt);
 
-    uint8_t buf[READ_BUFFER_SIZE];
+    uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t remain = file_len;
     while (remain > 0) {
       size_t n = std::min(remain, sizeof(buf));
@@ -410,7 +421,7 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
 
   uint64_t remain = file_size;
   while (remain > 0) {
-    uint8_t buf[READ_BUFFER_SIZE];
+    uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
     ssize_t bytes_read = read(*file, buf, n);
     if (bytes_read == -1) {

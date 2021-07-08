@@ -18,13 +18,12 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "NonCopyable.hpp"
 #include "Util.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <string>

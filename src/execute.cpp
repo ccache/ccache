@@ -27,11 +27,22 @@
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
+#include "Win32Util.hpp"
 #include "fmtmacros.hpp"
+
+#include <core/wincompat.hpp>
+#include <util/path_utils.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+#ifdef HAVE_SYS_WAIT_H
+#  include <sys/wait.h>
+#endif
 
 #ifdef _WIN32
 #  include "Finalizer.hpp"
-#  include "Win32Util.hpp"
 #endif
 
 using nonstd::string_view;
@@ -241,7 +252,7 @@ find_executable(const Context& ctx,
                 const std::string& name,
                 const std::string& exclude_name)
 {
-  if (Util::is_absolute_path(name)) {
+  if (util::is_absolute_path(name)) {
     return name;
   }
 
@@ -268,7 +279,7 @@ find_executable_in_path(const std::string& name,
 
   // Search the path looking for the first compiler of the right name that isn't
   // us.
-  for (const std::string& dir : Util::split_into_strings(path, PATH_DELIM)) {
+  for (const std::string& dir : util::split_path_list(path)) {
 #ifdef _WIN32
     char namebuf[MAX_PATH];
     int ret = SearchPath(

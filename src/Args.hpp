@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "NonCopyable.hpp"
 #include "Util.hpp"
 

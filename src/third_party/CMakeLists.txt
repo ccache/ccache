@@ -1,4 +1,4 @@
-add_library(third_party_lib STATIC base32hex.c format.cpp xxhash.c)
+add_library(third_party_lib STATIC base32hex.c format.cpp url.cpp xxhash.c)
 if(NOT MSVC)
   target_sources(third_party_lib PRIVATE getopt_long.c)
 else()

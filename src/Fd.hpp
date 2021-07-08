@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "NonCopyable.hpp"
 #include "assertions.hpp"
 
@@ -85,12 +83,6 @@ Fd::operator=(Fd&& other_fd) noexcept
   close();
   m_fd = other_fd.release();
   return *this;
-}
-
-inline bool
-Fd::close()
-{
-  return m_fd != -1 && ::close(release()) == 0;
 }
 
 inline int

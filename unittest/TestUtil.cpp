@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,12 @@
 #include "../src/Util.hpp"
 #include "../src/exceptions.hpp"
 #include "../src/fmtmacros.hpp"
+
+#include <core/wincompat.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 namespace TestUtil {
 

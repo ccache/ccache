@@ -22,6 +22,16 @@
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 using nonstd::string_view;
 
 const string_view HASH_DELIMITER("\000cCaChE\000", 8);

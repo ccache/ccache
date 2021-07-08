@@ -43,9 +43,9 @@ foreach(func IN ITEMS ${functions})
   check_function_exists(${func} ${func_var})
 endforeach()
 
-include(CheckCSourceCompiles)
+include(CheckCXXSourceCompiles)
 set(CMAKE_REQUIRED_FLAGS -pthread)
-check_c_source_compiles(
+check_cxx_source_compiles(
   [=[
     #include <pthread.h>
     int main()
@@ -61,11 +61,11 @@ set(CMAKE_REQUIRED_FLAGS)
 
 include(CheckStructHasMember)
 check_struct_has_member("struct stat" st_ctim sys/stat.h
-                        HAVE_STRUCT_STAT_ST_CTIM)
+                        HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_mtim sys/stat.h
-                        HAVE_STRUCT_STAT_ST_MTIM)
+                        HAVE_STRUCT_STAT_ST_MTIM LANGUAGE CXX)
 check_struct_has_member("struct statfs" f_fstypename sys/mount.h
-                        HAVE_STRUCT_STATFS_F_FSTYPENAME)
+                        HAVE_STRUCT_STATFS_F_FSTYPENAME LANGUAGE CXX)
 
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles(
@@ -97,6 +97,10 @@ endif()
 
 # alias
 set(MTR_ENABLED "${ENABLE_TRACING}")
+
+if(HAVE_SYS_MMAN_H AND HAVE_PTHREAD_MUTEXATTR_SETPSHARED)
+  set(INODE_CACHE_SUPPORTED 1)
+endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.in
                ${CMAKE_BINARY_DIR}/config.h @ONLY)

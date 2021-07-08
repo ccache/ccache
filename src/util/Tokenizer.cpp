@@ -20,24 +20,34 @@
 
 namespace util {
 
-Tokenizer::Iterator
-Tokenizer::Iterator::operator++()
+void
+Tokenizer::Iterator::advance(bool initial)
 {
-  if (m_pos >= m_string.size()) {
-    return *this;
-  }
+  constexpr auto npos = nonstd::string_view::npos;
+  const auto string = m_tokenizer.m_string;
+  const auto delimiters = m_tokenizer.m_delimiters;
+  const auto mode = m_tokenizer.m_mode;
 
-  m_pos = m_string.find_first_not_of(m_delimiters, m_pos + m_count);
-  if (m_pos == nonstd::string_view::npos) {
-    m_pos = m_string.size();
-    m_count = 0;
-  } else {
-    m_count = m_string.substr(m_pos).find_first_of(m_delimiters);
-    if (m_count == nonstd::string_view::npos) {
-      m_count = m_string.size() - m_pos;
+  DEBUG_ASSERT(m_left <= m_right);
+  DEBUG_ASSERT(m_right <= string.length());
+
+  do {
+    if (initial) {
+      initial = false;
+    } else if (m_right == string.length()) {
+      m_left = npos;
+    } else {
+      m_left = m_right + 1;
     }
+    if (m_left != npos) {
+      const auto delim_pos = string.find_first_of(delimiters, m_left);
+      m_right = delim_pos == npos ? string.length() : delim_pos;
+    }
+  } while (mode == Mode::skip_empty && m_left == m_right);
+
+  if (mode == Mode::skip_last_empty && m_left == string.length()) {
+    m_left = npos;
   }
-  return *this;
 }
 
 } // namespace util

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Compression.hpp"
 
+#include <cstdio>
 #include <memory>
 
 class Decompressor

@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,13 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Digest.hpp"
 
 #include "third_party/blake3/blake3.h"
 #include "third_party/nonstd/string_view.hpp"
+
+#include <cstdint>
+#include <cstdio>
 
 // This class represents a hash state.
 class Hash

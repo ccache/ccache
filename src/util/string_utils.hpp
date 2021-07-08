@@ -22,6 +22,8 @@
 #include <third_party/nonstd/optional.hpp>
 #include <third_party/nonstd/string_view.hpp>
 
+#include <sys/stat.h> // for mode_t
+
 #include <string>
 #include <utility>
 

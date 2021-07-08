@@ -27,9 +27,15 @@
 #include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/wincompat.hpp>
+#include <util/path_utils.hpp>
 #include <util/string_utils.hpp>
 
 #include "third_party/fmt/core.h"
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <algorithm>
 #include <cassert>
@@ -41,6 +47,14 @@
 
 using nonstd::nullopt;
 using nonstd::optional;
+
+#if defined(_MSC_VER)
+#  define DLLIMPORT __declspec(dllimport)
+#else
+#  define DLLIMPORT
+#endif
+
+DLLIMPORT extern char** environ;
 
 namespace {
 
@@ -349,7 +363,7 @@ format_umask(nonstd::optional<mode_t> umask)
 void
 verify_absolute_path(const std::string& value)
 {
-  if (!Util::is_absolute_path(value)) {
+  if (!util::is_absolute_path(value)) {
     throw Error("not an absolute path: \"{}\"", value);
   }
 }

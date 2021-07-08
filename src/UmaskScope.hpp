@@ -18,9 +18,10 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "third_party/nonstd/optional.hpp"
+
+#include <sys/stat.h>
+#include <sys/types.h>
 
 // This class sets a new (process-global) umask and restores the previous umask
 // when destructed.

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,13 +18,11 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Decompressor.hpp"
 
 #include <zstd.h>
 
-#include <fstream>
+#include <cstdint>
 
 // A decompressor of a Zstandard stream.
 class ZstdDecompressor : public Decompressor
@@ -41,7 +39,7 @@ public:
 
 private:
   FILE* m_stream;
-  char m_input_buffer[READ_BUFFER_SIZE];
+  char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
   size_t m_input_size;
   size_t m_input_consumed;
   ZSTD_DStream* m_zstd_stream;

@@ -22,6 +22,16 @@
 #include "Depfile.hpp"
 #include "Logging.hpp"
 
+#include <core/wincompat.hpp>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)

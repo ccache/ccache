@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "system.hpp"
-
 class Context;
 
 class SignalHandler

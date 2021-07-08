@@ -22,8 +22,16 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
+#include <core/wincompat.hpp>
+
 #include "third_party/doctest.h"
 #include "third_party/nonstd/optional.hpp"
+
+#include <fcntl.h>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include <algorithm>
 
@@ -354,8 +362,8 @@ TEST_CASE("Util::get_extension")
 static inline std::string
 os_path(std::string path)
 {
-#if !defined(HAVE_DIRENT_H) && DIR_DELIM_CH != '/'
-  std::replace(path.begin(), path.end(), '/', DIR_DELIM_CH);
+#if defined(_WIN32) && !defined(HAVE_DIRENT_H)
+  std::replace(path.begin(), path.end(), '/', '\\');
 #endif
 
   return path;
@@ -529,22 +537,6 @@ TEST_CASE("Util::int_to_big_endian")
   CHECK(bytes[5] == 0x54);
   CHECK(bytes[6] == 0x4b);
   CHECK(bytes[7] == 0xca);
-}
-
-TEST_CASE("Util::is_absolute_path")
-{
-#ifdef _WIN32
-  CHECK(Util::is_absolute_path("C:/"));
-  CHECK(Util::is_absolute_path("C:\\foo/fie"));
-  CHECK(Util::is_absolute_path("/C:\\foo/fie")); // MSYS/Cygwin path
-  CHECK(!Util::is_absolute_path(""));
-  CHECK(!Util::is_absolute_path("foo\\fie/fum"));
-  CHECK(!Util::is_absolute_path("C:foo/fie"));
-#endif
-  CHECK(Util::is_absolute_path("/"));
-  CHECK(Util::is_absolute_path("/foo/fie"));
-  CHECK(!Util::is_absolute_path(""));
-  CHECK(!Util::is_absolute_path("foo/fie"));
 }
 
 TEST_CASE("Util::is_dir_separator")
@@ -864,7 +856,7 @@ TEST_CASE("Util::same_program_name")
 }
 
 // Util::split_into_strings and Util::split_into_views are tested implicitly in
-// test_Tokenizer.cpp.
+// test_util_Tokenizer.cpp.
 
 TEST_CASE("Util::starts_with")
 {

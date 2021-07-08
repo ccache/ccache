@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,14 +18,15 @@
 
 #include "Stat.hpp"
 
-#ifdef _WIN32
-#  include "Win32Util.hpp"
-
-#  include "third_party/win32/winerror_to_errno.h"
-#endif
-
 #include "Finalizer.hpp"
 #include "Logging.hpp"
+#include "Win32Util.hpp"
+
+#include <core/wincompat.hpp>
+
+#ifdef _WIN32
+#  include <third_party/win32/winerror_to_errno.h>
+#endif
 
 namespace {
 

@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include "system.hpp"
-
 #include "Checksum.hpp"
 #include "Decompressor.hpp"
 #include "Util.hpp"
 
+#include <cstdint>
+#include <cstdio>
 #include <memory>
 
 // This class knows how to read a cache entry with a common header and a

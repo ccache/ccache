@@ -31,7 +31,10 @@
 #include <util/Tokenizer.hpp>
 #include <util/string_utils.hpp>
 
+#include <third_party/url.hpp>
+
 #include <memory>
+#include <tuple>
 
 namespace storage {
 
@@ -182,8 +185,7 @@ namespace {
 
 struct ParseStorageEntryResult
 {
-  std::string scheme;
-  std::string url;
+  Url url;
   storage::AttributeMap attributes;
   bool read_only = false;
 };
@@ -193,16 +195,30 @@ struct ParseStorageEntryResult
 static ParseStorageEntryResult
 parse_storage_entry(const nonstd::string_view& entry)
 {
-  const auto parts = Util::split_into_views(entry, "|");
+  const auto parts =
+    Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
+
+  if (parts.empty() || parts.front().empty()) {
+    throw Error("secondary storage config must provide a URL: {}", entry);
+  }
 
   ParseStorageEntryResult result;
-  result.url = parts.empty() ? "" : std::string(parts[0]);
-  const auto colon_slash_slash_pos = result.url.find("://");
-  if (colon_slash_slash_pos != std::string::npos) {
-    result.scheme = result.url.substr(0, colon_slash_slash_pos);
+  result.url = std::string(parts[0]);
+  // Url class is parsing the URL object lazily; check if successful
+  try {
+    std::ignore = result.url.host();
+  } catch (Url::parse_error& e) {
+    throw Error("Cannot parse URL: {}", e.what());
+  }
+
+  if (result.url.scheme().empty()) {
+    throw Error("URL scheme must not be empty: {}", entry);
   }
 
   for (size_t i = 1; i < parts.size(); ++i) {
+    if (parts[i].empty()) {
+      continue;
+    }
     const auto kv_pair = util::split_once(parts[i], '=');
     const auto& key = kv_pair.first;
     const auto& value = kv_pair.second ? *kv_pair.second : "true";
@@ -223,7 +239,7 @@ parse_storage_entry(const nonstd::string_view& entry)
 static std::unique_ptr<SecondaryStorage>
 create_storage(const ParseStorageEntryResult& storage_entry)
 {
-  if (storage_entry.scheme == "file") {
+  if (storage_entry.url.scheme() == "file") {
     return std::make_unique<secondary::FileStorage>(storage_entry.url,
                                                     storage_entry.attributes);
   }
@@ -244,11 +260,12 @@ Storage::add_secondary_storages()
   for (const auto& entry : util::Tokenizer(m_config.secondary_storage(), " ")) {
     const auto storage_entry = parse_storage_entry(entry);
     auto storage = create_storage(storage_entry);
+    auto url_for_logging = storage_entry.url.str();
     if (!storage) {
-      throw Error("unknown secondary storage URL: {}", storage_entry.url);
+      throw Error("unknown secondary storage URL: {}", url_for_logging);
     }
     m_secondary_storages.push_back(SecondaryStorageEntry{
-      std::move(storage), storage_entry.url, storage_entry.read_only});
+      std::move(storage), url_for_logging, storage_entry.read_only});
   }
 }
 

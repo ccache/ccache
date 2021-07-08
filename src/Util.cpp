@@ -24,13 +24,25 @@
 #include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
+#include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
-#include <util/Tokenizer.hpp>
+#include <core/wincompat.hpp>
+#include <util/path_utils.hpp>
 
 extern "C" {
 #include "third_party/base32hex.h"
 }
+
+#ifdef HAVE_DIRENT_H
+#  include <dirent.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+#include <fcntl.h>
 
 #include <algorithm>
 #include <fstream>
@@ -47,16 +59,18 @@ extern "C" {
 #  include <sys/time.h>
 #endif
 
+#ifdef HAVE_UTIME_H
+#  include <utime.h>
+#elif defined(HAVE_SYS_UTIME_H)
+#  include <sys/utime.h>
+#endif
+
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
 #elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
 #  include <sys/mount.h>
 #  include <sys/param.h>
-#endif
-
-#ifdef _WIN32
-#  include "Win32Util.hpp"
 #endif
 
 #ifdef __linux__
@@ -138,10 +152,12 @@ path_max(const std::string& path)
 
 template<typename T>
 std::vector<T>
-split_into(string_view input, const char* separators)
+split_into(string_view string,
+           const char* separators,
+           util::Tokenizer::Mode mode)
 {
   std::vector<T> result;
-  for (const auto token : util::Tokenizer(input, separators)) {
+  for (const auto token : util::Tokenizer(string, separators, mode)) {
     result.emplace_back(token);
   }
   return result;
@@ -153,7 +169,8 @@ rewrite_stderr_to_absolute_paths(string_view text)
   static const std::string in_file_included_from = "In file included from ";
 
   std::string result;
-  for (auto line : Util::split_into_views(text, "\n")) {
+  for (auto line :
+       util::Tokenizer(text, "\n", util::Tokenizer::Mode::skip_last_empty)) {
     // Rewrite <path> to <absolute path> in the following two cases, where X may
     // be optional ANSI CSI sequences:
     //
@@ -605,7 +622,7 @@ get_apparent_cwd(const std::string& actual_cwd)
   return actual_cwd;
 #else
   auto pwd = getenv("PWD");
-  if (!pwd || !Util::is_absolute_path(pwd)) {
+  if (!pwd || !util::is_absolute_path(pwd)) {
     return actual_cwd;
   }
 
@@ -716,8 +733,8 @@ get_hostname()
 std::string
 get_relative_path(string_view dir, string_view path)
 {
-  ASSERT(Util::is_absolute_path(dir));
-  ASSERT(Util::is_absolute_path(path));
+  ASSERT(util::is_absolute_path(dir));
+  ASSERT(util::is_absolute_path(path));
 
 #ifdef _WIN32
   // Paths can be escaped by a slash for use with e.g. -isystem.
@@ -800,18 +817,6 @@ hard_link(const std::string& oldpath, const std::string& newpath)
                 Win32Util::error_message(error));
   }
 #endif
-}
-
-bool
-is_absolute_path(string_view path)
-{
-#ifdef _WIN32
-  if (path.length() >= 2 && path[1] == ':'
-      && (path[2] == '/' || path[2] == '\\')) {
-    return true;
-  }
-#endif
-  return !path.empty() && path[0] == '/';
 }
 
 #if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
@@ -946,7 +951,7 @@ matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
 std::string
 normalize_absolute_path(string_view path)
 {
-  if (!is_absolute_path(path)) {
+  if (!util::is_absolute_path(path)) {
     return std::string(path);
   }
 
@@ -1134,7 +1139,7 @@ bool
 read_fd(int fd, DataReceiver data_receiver)
 {
   ssize_t n;
-  char buffer[READ_BUFFER_SIZE];
+  char buffer[CCACHE_READ_BUFFER_SIZE];
   while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
     if (n == -1 && errno != EINTR) {
       break;
@@ -1346,15 +1351,19 @@ setenv(const std::string& name, const std::string& value)
 }
 
 std::vector<string_view>
-split_into_views(string_view input, const char* separators)
+split_into_views(string_view string,
+                 const char* separators,
+                 util::Tokenizer::Mode mode)
 {
-  return split_into<string_view>(input, separators);
+  return split_into<string_view>(string, separators, mode);
 }
 
 std::vector<std::string>
-split_into_strings(string_view input, const char* separators)
+split_into_strings(string_view string,
+                   const char* separators,
+                   util::Tokenizer::Mode mode)
 {
-  return split_into<std::string>(input, separators);
+  return split_into<std::string>(string, separators, mode);
 }
 
 std::string
