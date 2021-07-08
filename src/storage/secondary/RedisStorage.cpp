@@ -91,8 +91,7 @@ parse_password(const AttributeMap& attributes)
   return it->second;
 }
 
-RedisStorage::RedisStorage(const std::string& url,
-                           const AttributeMap& attributes)
+RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
   : m_url(url),
     m_connect_timeout(parse_connect_timeout(attributes)),
     m_operation_timeout(parse_operation_timeout(attributes)),
@@ -134,24 +133,10 @@ RedisStorage::connect()
     m_context = nullptr;
   }
 
-  const nonstd::string_view prefix = "redis://";
-  ASSERT(Util::starts_with(m_url, prefix));
-  const auto suffix = m_url.substr(prefix.size());
-  std::string host;
-  std::string port;
-  std::string sock;
-  std::string::const_iterator si =
-    std::find(suffix.rbegin(), suffix.rend(), ':').base();
-  if (si == suffix.begin()) {
-    if (suffix[0] == '/') {
-      sock = suffix;
-    } else {
-      host = suffix;
-    }
-  } else {
-    host.assign(suffix.begin(), si - 1);
-    port.assign(si, suffix.end());
-  }
+  ASSERT(m_url.scheme() == "redis");
+  std::string host = m_url.host();
+  std::string port = m_url.port();
+  std::string sock = m_url.path();
   if (m_connect_timeout) {
     LOG("Redis connect timeout {}", timeval_to_string(*m_connect_timeout));
   }
@@ -169,17 +154,17 @@ RedisStorage::connect()
       m_context = redisConnectUnix(sock.c_str());
     }
   } else {
-    LOG("Redis invalid url: {}", m_url);
+    LOG("Redis invalid url: {}", m_url.str());
     m_invalid = true;
     return REDIS_ERR;
   }
 
   if (!m_context) {
-    LOG("Redis connect {} err NULL", m_url);
+    LOG("Redis connect {} err NULL", m_url.str());
     m_invalid = true;
     return REDIS_ERR;
   } else if (m_context->err) {
-    LOG("Redis connect {} err: {}", m_url, m_context->errstr);
+    LOG("Redis connect {} err: {}", m_url.str(), m_context->errstr);
     m_invalid = true;
     return m_context->err;
   } else {

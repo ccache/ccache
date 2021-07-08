@@ -245,7 +245,7 @@ create_storage(const ParseStorageEntryResult& storage_entry)
   }
 
 #ifdef HAVE_REDIS_STORAGE_BACKEND
-  if (storage_entry.scheme == "redis") {
+  if (storage_entry.url.scheme() == "redis") {
     return std::make_unique<secondary::RedisStorage>(storage_entry.url,
                                                      storage_entry.attributes);
   }

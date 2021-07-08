@@ -21,6 +21,8 @@
 #include "storage/SecondaryStorage.hpp"
 #include "storage/types.hpp"
 
+#include <third_party/url.hpp>
+
 typedef struct redisContext redisContext;
 
 namespace storage {
@@ -29,7 +31,7 @@ namespace secondary {
 class RedisStorage : public storage::SecondaryStorage
 {
 public:
-  RedisStorage(const std::string& url, const AttributeMap& attributes);
+  RedisStorage(const Url& url, const AttributeMap& attributes);
   ~RedisStorage();
 
   nonstd::expected<nonstd::optional<std::string>, Error>
@@ -40,7 +42,7 @@ public:
   nonstd::expected<bool, Error> remove(const Digest& key) override;
 
 private:
-  std::string m_url;
+  Url m_url;
   std::string m_prefix;
   redisContext* m_context;
   const nonstd::optional<struct timeval> m_connect_timeout;
