@@ -1843,7 +1843,7 @@ find_compiler(Context& ctx,
                            : ctx.orig_args[compiler_pos]);
 
   const std::string resolved_compiler =
-    Util::is_full_path(compiler)
+    util::is_full_path(compiler)
       ? compiler
       : find_executable_function(ctx, compiler, CCACHE_NAME);
 

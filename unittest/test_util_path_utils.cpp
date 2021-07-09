@@ -38,6 +38,20 @@ TEST_CASE("util::is_absolute_path")
   CHECK(!util::is_absolute_path("foo/fie"));
 }
 
+TEST_CASE("util::is_absolute_path")
+{
+  CHECK(!util::is_full_path(""));
+  CHECK(!util::is_full_path("foo"));
+  CHECK(util::is_full_path("/foo"));
+  CHECK(util::is_full_path("foo/"));
+  CHECK(util::is_full_path("foo/bar"));
+#ifdef _WIN32
+  CHECK(util::is_full_path("foo\\bar"));
+#else
+  CHECK(!util::is_full_path("foo\\bar"));
+#endif
+}
+
 TEST_CASE("util::split_path_list")
 {
   CHECK(util::split_path_list("").empty());

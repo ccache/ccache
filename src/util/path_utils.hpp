@@ -28,6 +28,18 @@ namespace util {
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
 
+// Return whether `path` includes at least one directory separator.
+inline bool
+is_full_path(nonstd::string_view path)
+{
+#ifdef _WIN32
+  if (path.find('\\') != nonstd::string_view::npos) {
+    return true;
+  }
+#endif
+  return path.find('/') != nonstd::string_view::npos;
+}
+
 // Split a list of paths (such as the content of $PATH on Unix platforms or
 // %PATH% on Windows platforms) into paths.
 std::vector<std::string> split_path_list(nonstd::string_view path_list);
