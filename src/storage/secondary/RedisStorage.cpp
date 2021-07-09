@@ -28,10 +28,10 @@
 // cast increases required alignment from 1 to 4
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include <hiredis/hiredis.h>
-#ifdef _WIN32
-#  include <hiredis/win32.h>
-#endif
 #pragma GCC diagnostic pop
+#ifdef _WIN32
+#include <winsock2.h> /* for struct timeval */
+#endif
 
 namespace storage {
 namespace secondary {
