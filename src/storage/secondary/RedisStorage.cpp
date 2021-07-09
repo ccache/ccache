@@ -44,19 +44,9 @@ timeval_to_string(struct timeval tv)
 }
 
 static nonstd::optional<struct timeval>
-parse_connect_timeout(const AttributeMap& attributes)
+parse_timeout_attribute(const AttributeMap& attributes, const std::string& name)
 {
-  const auto it = attributes.find("connect-timeout");
-  if (it == attributes.end()) {
-    return nonstd::nullopt;
-  }
-  return milliseconds_to_timeval(it->second);
-}
-
-static nonstd::optional<struct timeval>
-parse_operation_timeout(const AttributeMap& attributes)
-{
-  const auto it = attributes.find("operation-timeout");
+  const auto it = attributes.find(name);
   if (it == attributes.end()) {
     return nonstd::nullopt;
   }
@@ -64,19 +54,9 @@ parse_operation_timeout(const AttributeMap& attributes)
 }
 
 static nonstd::optional<std::string>
-parse_username(const AttributeMap& attributes)
+parse_string_attribute(const AttributeMap& attributes, const std::string& name)
 {
-  const auto it = attributes.find("username");
-  if (it == attributes.end()) {
-    return nonstd::nullopt;
-  }
-  return it->second;
-}
-
-static nonstd::optional<std::string>
-parse_password(const AttributeMap& attributes)
-{
-  const auto it = attributes.find("password");
+  const auto it = attributes.find(name);
   if (it == attributes.end()) {
     return nonstd::nullopt;
   }
@@ -85,10 +65,11 @@ parse_password(const AttributeMap& attributes)
 
 RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
   : m_url(url),
-    m_connect_timeout(parse_connect_timeout(attributes)),
-    m_operation_timeout(parse_operation_timeout(attributes)),
-    m_username(parse_username(attributes)),
-    m_password(parse_password(attributes))
+    m_connect_timeout(parse_timeout_attribute(attributes, "connect-timeout")),
+    m_operation_timeout(
+      parse_timeout_attribute(attributes, "operation-timeout")),
+    m_username(parse_string_attribute(attributes, "username")),
+    m_password(parse_string_attribute(attributes, "password"))
 {
   m_prefix = "ccache"; // TODO: attribute
   m_context = nullptr;
