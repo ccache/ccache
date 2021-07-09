@@ -159,8 +159,10 @@ RedisStorage::connect()
 
     // TODO: break out AUTH to separate function
     if (m_password) {
+      bool log_password = false;
       std::string username = m_username ? *m_username : "default";
-      LOG("Redis AUTH {} {}", username, "*****"); // don't log m_password !!!
+      std::string password = log_password ? *m_password : "*******";
+      LOG("Redis AUTH {} {}", username, password);
       redisReply* reply;
       if (m_username) {
         reply = static_cast<redisReply*>(redisCommand(
