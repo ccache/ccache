@@ -934,7 +934,7 @@ Optional attributes:
 
 === Redis storage backend
 
-URL format: `redis://HOST:PORT` or `redis://UNIX_SOCK`
+URL format: `redis://HOST[:PORT]` or `redis://UNIX_SOCKET_PATH`
 
 This backend stores data in a Redis (or Redis-compatible) server.
 There are implementations for both memory and disk based storage.
