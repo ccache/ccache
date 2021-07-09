@@ -93,9 +93,9 @@ jobs:
 
             # Install ld.gold (binutils) and ld.lld on different runs.
             if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd-dev pkg-config libhiredis-dev redis-server redis-tools binutils
+              sudo apt-get install -y ninja-build elfutils libzstd-dev pkg-config libhiredis-dev redis-server redis-tools binutils python3
             else
-              sudo apt-get install -y ninja-build elfutils libzstd-dev pkg-config libhiredis-dev redis-server redis-tools lld
+              sudo apt-get install -y ninja-build elfutils libzstd-dev pkg-config libhiredis-dev redis-server redis-tools lld python3
             fi
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
