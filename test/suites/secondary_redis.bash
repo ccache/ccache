@@ -36,8 +36,6 @@ SUITE_secondary_redis() {
     timeout 10 redis-server --bind localhost --port 7777 &
     sleep 0.1 # wait for boot
     redis-cli -p 7777 ping
-    # shellcheck disable=SC2064
-    trap "kill $!" EXIT
 
     # -------------------------------------------------------------------------
     TEST "Base case"
