@@ -53,6 +53,7 @@ private:
   bool m_invalid;
 
   int connect();
+  int auth();
   void disconnect();
   std::string get_key_string(const Digest& digest) const;
 };

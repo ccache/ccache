@@ -157,35 +157,39 @@ RedisStorage::connect()
       }
     }
 
-    // TODO: break out AUTH to separate function
-    if (m_password) {
-      bool log_password = false;
-      std::string username = m_username ? *m_username : "default";
-      std::string password = log_password ? *m_password : "*******";
-      LOG("Redis AUTH {} {}", username, password);
-      redisReply* reply;
-      if (m_username) {
-        reply = static_cast<redisReply*>(redisCommand(
-          m_context, "AUTH %s %s", m_username->c_str(), m_password->c_str()));
-      } else {
-        reply = static_cast<redisReply*>(
-          redisCommand(m_context, "AUTH %s", m_password->c_str()));
-      }
-      if (!reply) {
-        LOG("Failed to auth {} in redis", username);
-        m_invalid = true;
-      } else if (reply->type == REDIS_REPLY_ERROR) {
-        LOG("Failed to auth {} in redis: {}", username, reply->str);
-        m_invalid = true;
-      }
-      freeReplyObject(reply);
-      if (m_invalid) {
-        return REDIS_ERR;
-      }
-    }
-
-    return REDIS_OK;
+    return auth();
   }
+}
+
+int
+RedisStorage::auth()
+{
+  if (m_password) {
+    bool log_password = false;
+    std::string username = m_username ? *m_username : "default";
+    std::string password = log_password ? *m_password : "*******";
+    LOG("Redis AUTH {} {}", username, password);
+    redisReply* reply;
+    if (m_username) {
+      reply = static_cast<redisReply*>(redisCommand(
+        m_context, "AUTH %s %s", m_username->c_str(), m_password->c_str()));
+    } else {
+      reply = static_cast<redisReply*>(
+        redisCommand(m_context, "AUTH %s", m_password->c_str()));
+    }
+    if (!reply) {
+      LOG("Failed to auth {} in redis", username);
+      m_invalid = true;
+    } else if (reply->type == REDIS_REPLY_ERROR) {
+      LOG("Failed to auth {} in redis: {}", username, reply->str);
+      m_invalid = true;
+    }
+    freeReplyObject(reply);
+    if (m_invalid) {
+      return REDIS_ERR;
+    }
+  }
+  return REDIS_OK;
 }
 
 inline bool
