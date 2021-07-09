@@ -27,6 +27,9 @@ if(HIREDIS_FROM_INTERNET)
   if(NOT tar_error EQUAL 0)
     message(FATAL "extracting ${hiredis_dir}.tar.gz failed")
   endif()
+  make_directory("${hiredis_dir}/hiredis")
+  file(GLOB HIREDIS_HEADERS "${hiredis_dir}/*.h")
+  file(COPY ${HIREDIS_HEADERS} DESTINATION "${hiredis_dir}/hiredis")
 
   add_subdirectory("${hiredis_dir}" "${hiredis_build}" EXCLUDE_FROM_ALL)
 
