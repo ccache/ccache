@@ -29,7 +29,7 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include <hiredis/hiredis.h>
 #ifdef _WIN32
-#include <hiredis/win32.h>
+#  include <hiredis/win32.h>
 #endif
 #pragma GCC diagnostic pop
 
