@@ -97,7 +97,7 @@ endif()
 option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 REQUIRED)
 
-option(REDIS_STORAGE_BACKEND "Enable redis secondary storage" ON)
+option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(HIREDIS REQUIRED hiredis>=0.13.3)
