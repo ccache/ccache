@@ -88,10 +88,12 @@ include(GenerateVersionFile)
 # Third party
 #
 set(ZSTD_FROM_INTERNET_DEFAULT OFF)
+set(HIREDIS_FROM_INTERNET_DEFAULT OFF)
 
 # Default to downloading deps for Visual Studio, unless using a package manager.
 if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg|conan")
   set(ZSTD_FROM_INTERNET_DEFAULT ON)
+  set(HIREDIS_FROM_INTERNET_DEFAULT ON)
 endif()
 
 option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
@@ -99,8 +101,8 @@ find_package(zstd 1.1.2 REQUIRED)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
-  find_package(PkgConfig REQUIRED)
-  pkg_check_modules(HIREDIS REQUIRED hiredis>=0.13.3)
+  option(HIREDIS_FROM_INTERNET "Download and use libhiredis from the Internet" ${HIREDIS_FROM_INTERNET_DEFAULT})
+  find_package(hiredis 0.13.3 REQUIRED)
 endif()
 
 #
@@ -126,6 +128,12 @@ add_subdirectory(src)
 #
 add_executable(ccache src/main.cpp)
 target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_lib)
+if(HIREDIS_FROM_INTERNET)
+  set_target_properties(
+    ccache
+    PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+endif()
 
 #
 # Documentation
@@ -139,6 +147,11 @@ endif()
 # Installation
 #
 install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(HIREDIS_FROM_INTERNET)
+  install(TARGETS hiredis
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_SKIP)
+endif()
 
 #
 # Packaging
