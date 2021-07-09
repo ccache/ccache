@@ -23,7 +23,7 @@
 
 #include <third_party/url.hpp>
 
-typedef struct redisContext redisContext;
+struct redisContext;
 
 namespace storage {
 namespace secondary {
