@@ -34,7 +34,7 @@ if(HIREDIS_FROM_INTERNET)
   set_target_properties(
     hiredis
     PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/lib>")
+    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}>")
 
   set(hiredis_FOUND TRUE)
 else()
