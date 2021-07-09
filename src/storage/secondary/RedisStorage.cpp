@@ -28,6 +28,7 @@
 // cast increases required alignment from 1 to 4
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include <hiredis/hiredis.h>
+#include <hiredis/win32.h>
 #pragma GCC diagnostic pop
 
 namespace storage {
