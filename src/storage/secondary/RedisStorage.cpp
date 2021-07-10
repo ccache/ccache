@@ -22,11 +22,7 @@
 #include <Logging.hpp>
 #include <fmtmacros.hpp>
 
-#pragma GCC diagnostic push
-// ISO C++ forbids flexible array member ‘buf’
-#pragma GCC diagnostic ignored "-Wpedantic"
 #include <hiredis/hiredis.h>
-#pragma GCC diagnostic pop
 
 namespace storage {
 namespace secondary {
