@@ -91,11 +91,12 @@ jobs:
           if [ "${{ runner.os }}" = "Linux" ]; then
             sudo apt-get update
 
-            # Install ld.gold (binutils) and ld.lld on different runs.
+            packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools"
+            # Install ld.gold (binutils) and ld.lld (lld) on different runs.
             if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
-              sudo apt-get install -y ninja-build elfutils libzstd-dev pkg-config libhiredis-dev redis-server redis-tools binutils python3
+              sudo apt-get install -y $packages binutils
             else
-              sudo apt-get install -y ninja-build elfutils libzstd-dev pkg-config libhiredis-dev redis-server redis-tools lld python3
+              sudo apt-get install -y $packages lld
             fi
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
