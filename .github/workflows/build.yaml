@@ -168,7 +168,7 @@ jobs:
             CFLAGS: -m32 -g -O2
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
 
@@ -176,16 +176,16 @@ jobs:
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 10.1.243-1
-            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Linux MinGW 32-bit
             os: ubuntu-18.04
             CC: i686-w64-mingw32-gcc-posix
             CXX: i686-w64-mingw32-g++-posix
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             RUN_TESTS: none
             apt_get: elfutils mingw-w64
 
@@ -194,7 +194,7 @@ jobs:
             CC: x86_64-w64-mingw32-gcc-posix
             CXX: x86_64-w64-mingw32-g++-posix
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
@@ -206,7 +206,7 @@ jobs:
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2019 64-bit
@@ -217,7 +217,7 @@ jobs:
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
