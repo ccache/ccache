@@ -27,6 +27,9 @@
 namespace storage {
 namespace secondary {
 
+const struct timeval DEFAULT_CONNECT_TIMEOUT = {0, 100 * 1000};  // 100 ms
+const struct timeval DEFAULT_OPERATION_TIMEOUT = {10, 0 * 1000}; // 10 sec
+
 static struct timeval
 milliseconds_to_timeval(const std::string& msec)
 {
@@ -113,19 +116,13 @@ RedisStorage::connect()
   if (m_connect_timeout) {
     LOG("Redis connect timeout {}", timeval_to_string(*m_connect_timeout));
   }
+  struct timeval connect_timeout =
+    m_connect_timeout ? *m_connect_timeout : DEFAULT_CONNECT_TIMEOUT;
   if (!host.empty()) {
     int p = port.empty() ? 6379 : std::stoi(port);
-    if (m_connect_timeout) {
-      m_context = redisConnectWithTimeout(host.c_str(), p, *m_connect_timeout);
-    } else {
-      m_context = redisConnect(host.c_str(), p);
-    }
+    m_context = redisConnectWithTimeout(host.c_str(), p, connect_timeout);
   } else if (!sock.empty()) {
-    if (m_connect_timeout) {
-      m_context = redisConnectUnixWithTimeout(sock.c_str(), *m_connect_timeout);
-    } else {
-      m_context = redisConnectUnix(sock.c_str());
-    }
+    m_context = redisConnectUnixWithTimeout(sock.c_str(), connect_timeout);
   } else {
     LOG("Redis invalid url: {}", m_url.str());
     m_invalid = true;
@@ -152,9 +149,11 @@ RedisStorage::connect()
 
     if (m_operation_timeout) {
       LOG("Redis timeout {}", timeval_to_string(*m_operation_timeout));
-      if (redisSetTimeout(m_context, *m_operation_timeout) != REDIS_OK) {
-        LOG_RAW("Failed to set timeout");
-      }
+    }
+    struct timeval operation_timeout =
+      m_operation_timeout ? *m_operation_timeout : DEFAULT_OPERATION_TIMEOUT;
+    if (redisSetTimeout(m_context, operation_timeout) != REDIS_OK) {
+      LOG_RAW("Failed to set timeout");
     }
 
     return auth();
