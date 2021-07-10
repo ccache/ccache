@@ -24,36 +24,37 @@
 
 #include <hiredis/hiredis.h>
 
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
+
 namespace storage {
 namespace secondary {
 
-const struct timeval DEFAULT_CONNECT_TIMEOUT = {0, 100 * 1000};  // 100 ms
-const struct timeval DEFAULT_OPERATION_TIMEOUT = {10, 0 * 1000}; // 10 sec
+const uint64_t DEFAULT_CONNECT_TIMEOUT_MS = 100;
+const uint64_t DEFAULT_OPERATION_TIMEOUT_MS = 10000;
+const int DEFAULT_PORT = 6379;
 
 static struct timeval
-milliseconds_to_timeval(const std::string& msec)
+milliseconds_to_timeval(const uint64_t ms)
 {
-  int ms = std::stoi(msec);
   struct timeval tv;
   tv.tv_sec = ms / 1000;
   tv.tv_usec = (ms % 1000) * 1000;
   return tv;
 }
 
-static std::string
-timeval_to_string(struct timeval tv)
-{
-  return FMT("{:.3f}s", tv.tv_sec + tv.tv_usec / 1000000.0);
-}
-
-static nonstd::optional<struct timeval>
-parse_timeout_attribute(const AttributeMap& attributes, const std::string& name)
+static uint64_t
+parse_timeout_attribute(const AttributeMap& attributes,
+                        const std::string& name,
+                        const uint64_t default_value)
 {
   const auto it = attributes.find(name);
   if (it == attributes.end()) {
-    return nonstd::nullopt;
+    return default_value;
+  } else {
+    return Util::parse_unsigned(it->second, 1, 1000 * 3600, "timeout");
   }
-  return milliseconds_to_timeval(it->second);
 }
 
 static nonstd::optional<std::string>
@@ -68,22 +69,23 @@ parse_string_attribute(const AttributeMap& attributes, const std::string& name)
 
 RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
   : m_url(url),
-    m_connect_timeout(parse_timeout_attribute(attributes, "connect-timeout")),
-    m_operation_timeout(
-      parse_timeout_attribute(attributes, "operation-timeout")),
+    m_prefix("ccache"), // TODO: attribute
+    m_context(nullptr),
+    m_connect_timeout(parse_timeout_attribute(
+      attributes, "connect-timeout", DEFAULT_CONNECT_TIMEOUT_MS)),
+    m_operation_timeout(parse_timeout_attribute(
+      attributes, "operation-timeout", DEFAULT_OPERATION_TIMEOUT_MS)),
     m_username(parse_string_attribute(attributes, "username")),
-    m_password(parse_string_attribute(attributes, "password"))
+    m_password(parse_string_attribute(attributes, "password")),
+    m_connected(false),
+    m_invalid(false)
 {
-  m_prefix = "ccache"; // TODO: attribute
-  m_context = nullptr;
-  m_connected = false;
-  m_invalid = false;
 }
 
 RedisStorage::~RedisStorage()
 {
-  disconnect();
   if (m_context) {
+    LOG_RAW("Redis disconnect");
     redisFree(m_context);
     m_context = nullptr;
   }
@@ -104,56 +106,57 @@ RedisStorage::connect()
       m_connected = true;
       return REDIS_OK;
     }
-    LOG("Redis reconnect err: {}", m_context->errstr);
+    LOG("Redis reconnection error: {}", m_context->errstr);
     redisFree(m_context);
     m_context = nullptr;
   }
 
   ASSERT(m_url.scheme() == "redis");
-  std::string host = m_url.host();
-  std::string port = m_url.port();
-  std::string sock = m_url.path();
-  if (m_connect_timeout) {
-    LOG("Redis connect timeout {}", timeval_to_string(*m_connect_timeout));
-  }
-  struct timeval connect_timeout =
-    m_connect_timeout ? *m_connect_timeout : DEFAULT_CONNECT_TIMEOUT;
+  const auto& host = m_url.host();
+  const auto& port = m_url.port();
+  const auto& sock = m_url.path();
+  const auto connect_timeout = milliseconds_to_timeval(m_connect_timeout);
   if (!host.empty()) {
-    int p = port.empty() ? 6379 : std::stoi(port);
+    const int p = port.empty() ? DEFAULT_PORT
+                               : Util::parse_unsigned(port, 1, 65535, "port");
+    LOG("Redis connecting to {}:{} (timeout {} ms)",
+        host.c_str(),
+        p,
+        m_connect_timeout);
     m_context = redisConnectWithTimeout(host.c_str(), p, connect_timeout);
   } else if (!sock.empty()) {
+    LOG("Redis connecting to {} (timeout {} ms)",
+        sock.c_str(),
+        m_connect_timeout);
     m_context = redisConnectUnixWithTimeout(sock.c_str(), connect_timeout);
   } else {
-    LOG("Redis invalid url: {}", m_url.str());
+    LOG("Invalid Redis URL: {}", m_url.str());
     m_invalid = true;
     return REDIS_ERR;
   }
 
   if (!m_context) {
-    LOG("Redis connect {} err NULL", m_url.str());
+    LOG_RAW("Redis connection error (NULL context)");
     m_invalid = true;
     return REDIS_ERR;
   } else if (m_context->err) {
-    LOG("Redis connect {} err: {}", m_url.str(), m_context->errstr);
+    LOG("Redis connection error: {}", m_context->errstr);
     m_invalid = true;
     return m_context->err;
   } else {
     if (m_context->connection_type == REDIS_CONN_TCP) {
-      LOG(
-        "Redis connect tcp {}:{} OK", m_context->tcp.host, m_context->tcp.port);
+      LOG("Redis connection to {}:{} OK",
+          m_context->tcp.host,
+          m_context->tcp.port);
     }
     if (m_context->connection_type == REDIS_CONN_UNIX) {
-      LOG("Redis connect unix {} OK", m_context->unix_sock.path);
+      LOG("Redis connection to {} OK", m_context->unix_sock.path);
     }
     m_connected = true;
 
-    if (m_operation_timeout) {
-      LOG("Redis timeout {}", timeval_to_string(*m_operation_timeout));
-    }
-    struct timeval operation_timeout =
-      m_operation_timeout ? *m_operation_timeout : DEFAULT_OPERATION_TIMEOUT;
-    if (redisSetTimeout(m_context, operation_timeout) != REDIS_OK) {
-      LOG_RAW("Failed to set timeout");
+    if (redisSetTimeout(m_context, milliseconds_to_timeval(m_operation_timeout))
+        != REDIS_OK) {
+      LOG_RAW("Failed to set operation timeout");
     }
 
     return auth();
@@ -194,7 +197,7 @@ RedisStorage::auth()
 inline bool
 is_error(int err)
 {
-  return (err != REDIS_OK);
+  return err != REDIS_OK;
 }
 
 inline bool
@@ -202,22 +205,11 @@ is_timeout(int err)
 {
 #ifdef REDIS_ERR_TIMEOUT
   // Only returned for hiredis version 1.0.0 and above
-  return (err == REDIS_ERR_TIMEOUT);
+  return err == REDIS_ERR_TIMEOUT;
 #else
   (void)err;
   return false;
 #endif
-}
-
-void
-RedisStorage::disconnect()
-{
-  if (m_connected) {
-    // Note: only the async API actually disconnects from the server
-    //       the connection is eventually cleaned up in redisFree()
-    LOG_RAW("Redis disconnect");
-    m_connected = false;
-  }
 }
 
 nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>

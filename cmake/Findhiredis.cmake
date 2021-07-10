@@ -10,7 +10,8 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-  hiredis "please install libhiredis"
+  hiredis
+  "please install libhiredis or disable with -DREDIS_STORAGE_BACKEND=OFF"
   HIREDIS_INCLUDE_DIR HIREDIS_LIBRARY)
 mark_as_advanced(HIREDIS_INCLUDE_DIR HIREDIS_LIBRARY)
 

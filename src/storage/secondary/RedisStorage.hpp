@@ -23,10 +23,6 @@
 
 #include <third_party/url.hpp>
 
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-#endif
-
 struct redisContext;
 
 namespace storage {
@@ -49,8 +45,8 @@ private:
   Url m_url;
   std::string m_prefix;
   redisContext* m_context;
-  const nonstd::optional<struct timeval> m_connect_timeout;
-  const nonstd::optional<struct timeval> m_operation_timeout;
+  const uint64_t m_connect_timeout;
+  const uint64_t m_operation_timeout;
   const nonstd::optional<std::string> m_username;
   const nonstd::optional<std::string> m_password;
   bool m_connected;
@@ -58,7 +54,6 @@ private:
 
   int connect();
   int auth();
-  void disconnect();
   std::string get_key_string(const Digest& digest) const;
 };
 

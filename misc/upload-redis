@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# this script will upload the contents of the cache,
-# from primary storage to the redis secondary storage
+# This script uploads the contents of the cache from primary storage to a Redis
+# secondary storage.
 
 import redis
 import os
@@ -16,7 +16,9 @@ else:
     host, port, sock = config, 6379, None
 username = os.getenv("REDIS_USERNAME")
 password = os.getenv("REDIS_PASSWORD")
-context = redis.Redis(host=host, port=port, unix_socket_path=sock, password=password)
+context = redis.Redis(
+    host=host, port=port, unix_socket_path=sock, password=password
+)
 
 CCACHE_MANIFEST = b"cCmF"
 CCACHE_RESULT = b"cCrS"
