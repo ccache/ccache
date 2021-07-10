@@ -18,13 +18,12 @@ SUITE_secondary_redis_SETUP() {
 
 expect_number_of_cache_entries() {
     local expected=$1
-    local host=$2
-    local port=$3
+    local url=$2
     local actual
 
-    actual=$(redis-cli -h "$host" -p "$port" keys "ccache:*" | wc -l)
+    actual=$(redis-cli -u "$url" keys "ccache:*" | wc -l)
     if [ "$actual" -ne "$expected" ]; then
-        test_failed_internal "Found $actual (expected $expected) entries in $host:$port"
+        test_failed_internal "Found $actual (expected $expected) entries in $url"
     fi
 }
 
@@ -37,6 +36,8 @@ SUITE_secondary_redis() {
     sleep 0.1 # wait for boot
     redis-cli -p 7777 ping
 
+    secondary="redis://localhost:7777"
+
     # -------------------------------------------------------------------------
     TEST "Base case"
 
@@ -44,23 +45,23 @@ SUITE_secondary_redis() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     $CCACHE -C >/dev/null
     expect_stat 'files in cache' 0
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 0
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     redis-cli -p 7777 flushdb
 
@@ -71,11 +72,11 @@ SUITE_secondary_redis() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     $CCACHE -C >/dev/null
     expect_stat 'files in cache' 0
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     CCACHE_SECONDARY_STORAGE+="|read-only"
 
@@ -83,12 +84,12 @@ SUITE_secondary_redis() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 0
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 
     echo 'int x;' >> test.c
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 2
-    expect_number_of_cache_entries 2 localhost 7777 # result + manifest
+    expect_number_of_cache_entries 2 "$secondary" # result + manifest
 }
