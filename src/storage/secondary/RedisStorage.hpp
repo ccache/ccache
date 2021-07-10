@@ -23,6 +23,10 @@
 
 #include <third_party/url.hpp>
 
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
+
 struct redisContext;
 
 namespace storage {

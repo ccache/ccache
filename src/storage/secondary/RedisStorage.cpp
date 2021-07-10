@@ -29,9 +29,6 @@
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include <hiredis/hiredis.h>
 #pragma GCC diagnostic pop
-#ifdef _WIN32
-#  include <winsock2.h> /* for struct timeval */
-#endif
 
 namespace storage {
 namespace secondary {
