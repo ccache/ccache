@@ -936,8 +936,8 @@ Optional attributes:
 
 URL format: `http://HOST[:PORT][/PATH]`
 
-This backend stores data in an HTTP compatible server. The required HTTP
-methods are `GET`, `PUT` and `DELETE`.
+This backend stores data in an HTTP-compatible server. The required HTTP methods
+are `GET`, `PUT` and `DELETE`.
 
 Note that ccache will not perform any cleanup of the HTTP storage.
 
@@ -948,10 +948,10 @@ Examples:
 
 Known issues and limitations:
 
-* URLs containing IPv6 addresses like `http://[::1]/` are not supported
-* There are no HTTP timeouts implemented or configured
-* Authentication is not yet supported
-* HTTPS is not yet supported
+* There are no HTTP timeouts implemented or configured.
+* Authentication is not yet supported.
+* HTTPS is not yet supported.
+* URLs containing IPv6 addresses like `http://[::1]/` are not supported.
 
 == Cache size management
 

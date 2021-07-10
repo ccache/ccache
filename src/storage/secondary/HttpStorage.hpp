@@ -25,6 +25,7 @@
 #include <string>
 
 class Url;
+
 namespace httplib {
 class Client;
 }
@@ -32,7 +33,7 @@ class Client;
 namespace storage {
 namespace secondary {
 
-class HttpStorage : public storage::SecondaryStorage
+class HttpStorage : public SecondaryStorage
 {
 public:
   HttpStorage(const Url& url, const AttributeMap& attributes);

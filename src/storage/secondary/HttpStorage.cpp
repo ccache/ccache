@@ -35,7 +35,7 @@ namespace secondary {
 namespace {
 
 nonstd::string_view
-to_string(httplib::Error error)
+to_string(const httplib::Error error)
 {
   using httplib::Error;
 
@@ -76,8 +76,7 @@ get_url_port(const Url& url)
 {
   if (!url.port().empty()) {
     return Util::parse_unsigned(url.port(), 1, 65535, "port");
-  }
-  if (url.scheme() == "http") {
+  } else if (url.scheme() == "http") {
     return 80;
   } else {
     throw Error("Unknown scheme: {}", url.scheme());
@@ -112,7 +111,6 @@ nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
 HttpStorage::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
-
   const auto result = m_http_client->Get(url_path.c_str());
 
   if (result.error() != httplib::Error::Success || !result) {
@@ -134,7 +132,7 @@ HttpStorage::get(const Digest& key)
 nonstd::expected<bool, SecondaryStorage::Error>
 HttpStorage::put(const Digest& key,
                  const std::string& value,
-                 bool only_if_missing)
+                 const bool only_if_missing)
 {
   const auto url_path = get_entry_path(key);
 
@@ -157,8 +155,7 @@ HttpStorage::put(const Digest& key,
     }
   }
 
-  const auto content_type = "application/octet-stream";
-
+  static const auto content_type = "application/octet-stream";
   const auto result = m_http_client->Put(
     url_path.c_str(), value.data(), value.size(), content_type);
 
@@ -184,7 +181,6 @@ nonstd::expected<bool, SecondaryStorage::Error>
 HttpStorage::remove(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
-
   const auto result = m_http_client->Delete(url_path.c_str());
 
   if (result.error() != httplib::Error::Success || !result) {

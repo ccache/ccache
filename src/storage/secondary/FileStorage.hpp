@@ -28,7 +28,7 @@
 namespace storage {
 namespace secondary {
 
-class FileStorage : public storage::SecondaryStorage
+class FileStorage : public SecondaryStorage
 {
 public:
   FileStorage(const Url& url, const AttributeMap& attributes);

@@ -105,7 +105,7 @@ FileStorage::get(const Digest& key)
 nonstd::expected<bool, SecondaryStorage::Error>
 FileStorage::put(const Digest& key,
                  const std::string& value,
-                 bool only_if_missing)
+                 const bool only_if_missing)
 {
   const auto path = get_entry_path(key);
 
