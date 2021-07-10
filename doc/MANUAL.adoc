@@ -797,6 +797,7 @@ Examples:
 * `file:///shared/nfs/directory`
 * `file:///shared/nfs/one|read-only file:///shared/nfs/two`
 * `http://example.org/cache`
+* `redis://server.example.com`
 
 [[config_sloppiness]] *sloppiness* (*CCACHE_SLOPPINESS*)::
 
@@ -952,6 +953,30 @@ Known issues and limitations:
 * Authentication is not yet supported.
 * HTTPS is not yet supported.
 * URLs containing IPv6 addresses like `http://[::1]/` are not supported.
+
+=== Redis storage backend
+
+URL format: `redis://HOST[:PORT]` or `redis://UNIX_SOCKET_PATH`
+
+This backend stores data in a Redis (or Redis-compatible) server.
+There are implementations for both memory and disk based storage.
+
+See <https://redis.io>
+
+Note that ccache will not perform any cleanup of the Redis storage.
+But you can configure LRU eviction: <https://redis.io/topics/lru-cache>
+
+Examples:
+
+* `redis://localhost:6379`
+* `redis:///var/run/redis/redis-server.sock`
+
+Optional attributes:
+
+* *connect-timeout*: Timeout (in ms) for network connection.
+* *operation-timeout*: Timeout (in ms) for Redis commands.
+* *username*: Username for the Redis AUTH command. (Requires ACL)
+* *password*: Password for the Redis AUTH command.
 
 == Cache size management
 
