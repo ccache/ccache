@@ -21,6 +21,7 @@
 #include <Digest.hpp>
 #include <Logging.hpp>
 #include <fmtmacros.hpp>
+#include <util/string_utils.hpp>
 
 #include <hiredis/hiredis.h>
 
@@ -32,7 +33,7 @@ namespace secondary {
 
 const uint64_t DEFAULT_CONNECT_TIMEOUT_MS = 100;
 const uint64_t DEFAULT_OPERATION_TIMEOUT_MS = 10000;
-const int DEFAULT_PORT = 6379;
+const uint32_t DEFAULT_PORT = 6379;
 
 using RedisReply = std::unique_ptr<redisReply, decltype(&freeReplyObject)>;
 
@@ -68,14 +69,20 @@ parse_timeout_attribute(const AttributeMap& attributes,
   }
 }
 
-static nonstd::optional<std::string>
-parse_string_attribute(const AttributeMap& attributes, const std::string& name)
+static std::pair<nonstd::optional<std::string>, nonstd::optional<std::string>>
+split_user_info(const std::string& user_info)
 {
-  const auto it = attributes.find(name);
-  if (it == attributes.end()) {
-    return nonstd::nullopt;
+  const auto pair = util::split_once(user_info, ':');
+  if (pair.first.empty()) {
+    // redis://HOST
+    return {nonstd::nullopt, nonstd::nullopt};
+  } else if (pair.second) {
+    // redis://USERNAME:PASSWORD@HOST
+    return {to_string(*pair.second), to_string(pair.first)};
+  } else {
+    // redis://PASSWORD@HOST
+    return {to_string(pair.first), nonstd::nullopt};
   }
-  return it->second;
 }
 
 RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
@@ -86,8 +93,6 @@ RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
       attributes, "connect-timeout", DEFAULT_CONNECT_TIMEOUT_MS)),
     m_operation_timeout(parse_timeout_attribute(
       attributes, "operation-timeout", DEFAULT_OPERATION_TIMEOUT_MS)),
-    m_username(parse_string_attribute(attributes, "username")),
-    m_password(parse_string_attribute(attributes, "password")),
     m_connected(false),
     m_invalid(false)
 {
@@ -123,28 +128,26 @@ RedisStorage::connect()
   }
 
   ASSERT(m_url.scheme() == "redis");
-  const auto& host = m_url.host();
-  const auto& port = m_url.port();
-  const auto& sock = m_url.path();
+  const std::string host = m_url.host().empty() ? "localhost" : m_url.host();
+  const uint32_t port =
+    m_url.port().empty() ? DEFAULT_PORT
+                         : Util::parse_unsigned(m_url.port(), 1, 65535, "port");
+  ASSERT(m_url.path().empty() || m_url.path()[0] == '/');
+  const uint32_t db_number =
+    m_url.path().empty()
+      ? 0
+      : Util::parse_unsigned(m_url.path().substr(1),
+                             0,
+                             std::numeric_limits<uint32_t>::max(),
+                             "db number");
+
   const auto connect_timeout = milliseconds_to_timeval(m_connect_timeout);
-  if (!host.empty()) {
-    const int p = port.empty() ? DEFAULT_PORT
-                               : Util::parse_unsigned(port, 1, 65535, "port");
-    LOG("Redis connecting to {}:{} (timeout {} ms)",
-        host.c_str(),
-        p,
-        m_connect_timeout);
-    m_context = redisConnectWithTimeout(host.c_str(), p, connect_timeout);
-  } else if (!sock.empty()) {
-    LOG("Redis connecting to {} (timeout {} ms)",
-        sock.c_str(),
-        m_connect_timeout);
-    m_context = redisConnectUnixWithTimeout(sock.c_str(), connect_timeout);
-  } else {
-    LOG("Invalid Redis URL: {}", m_url.str());
-    m_invalid = true;
-    return REDIS_ERR;
-  }
+
+  LOG("Redis connecting to {}:{} (timeout {} ms)",
+      host.c_str(),
+      port,
+      m_connect_timeout);
+  m_context = redisConnectWithTimeout(host.c_str(), port, connect_timeout);
 
   if (!m_context) {
     LOG_RAW("Redis connection error (NULL context)");
@@ -154,48 +157,55 @@ RedisStorage::connect()
     LOG("Redis connection error: {}", m_context->errstr);
     m_invalid = true;
     return m_context->err;
-  } else {
-    if (m_context->connection_type == REDIS_CONN_TCP) {
-      LOG("Redis connection to {}:{} OK",
-          m_context->tcp.host,
-          m_context->tcp.port);
-    }
-    if (m_context->connection_type == REDIS_CONN_UNIX) {
-      LOG("Redis connection to {} OK", m_context->unix_sock.path);
-    }
-    m_connected = true;
-
-    if (redisSetTimeout(m_context, milliseconds_to_timeval(m_operation_timeout))
-        != REDIS_OK) {
-      LOG_RAW("Failed to set operation timeout");
-    }
-
-    return auth();
   }
+
+  LOG("Redis connection to {}:{} OK", m_context->tcp.host, m_context->tcp.port);
+  m_connected = true;
+
+  if (redisSetTimeout(m_context, milliseconds_to_timeval(m_operation_timeout))
+      != REDIS_OK) {
+    LOG_RAW("Failed to set operation timeout");
+  }
+
+  if (db_number != 0) {
+    LOG("Redis SELECT {}", db_number);
+    const auto reply = redis_command(m_context, "SELECT %d", db_number);
+    if (!reply) {
+      LOG_RAW("Redis SELECT failed (NULL)");
+      m_invalid = true;
+      return REDIS_ERR;
+    } else if (reply->type == REDIS_REPLY_ERROR) {
+      LOG("Redis SELECT error: {}", reply->str);
+      m_invalid = true;
+      return REDIS_ERR;
+    }
+  }
+
+  return auth();
 }
 
 int
 RedisStorage::auth()
 {
-  if (m_password) {
-    bool log_password = false;
-    std::string username = m_username ? *m_username : "default";
-    std::string password = log_password ? *m_password : "*******";
-    LOG("Redis AUTH {} {}", username, password);
-
+  const auto password_username_pair = split_user_info(m_url.user_info());
+  const auto& password = password_username_pair.first;
+  if (password) {
     RedisReply reply(nullptr, freeReplyObject);
-    if (m_username) {
+    const auto& username = password_username_pair.second;
+    if (username) {
+      LOG("Redis AUTH {} {}", *username, storage::k_masked_password);
       reply = redis_command(
-        m_context, "AUTH %s %s", m_username->c_str(), m_password->c_str());
+        m_context, "AUTH %s %s", username->c_str(), password->c_str());
     } else {
-      reply = redis_command(m_context, "AUTH %s", m_password->c_str());
+      LOG("Redis AUTH {}", storage::k_masked_password);
+      reply = redis_command(m_context, "AUTH %s", password->c_str());
     }
     if (!reply) {
-      LOG_RAW("Failed to authenticate to Redis (NULL)");
+      LOG_RAW("Redis AUTH failed (NULL)");
       m_invalid = true;
       return REDIS_ERR;
     } else if (reply->type == REDIS_REPLY_ERROR) {
-      LOG("Failed to authenticate to Redis: {}", reply->str);
+      LOG("Redis AUTH error: {}", reply->str);
       m_invalid = true;
       return REDIS_ERR;
     }

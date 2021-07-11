@@ -956,25 +956,24 @@ Known issues and limitations:
 
 === Redis storage backend
 
-URL format: `redis://HOST[:PORT]` or `redis://UNIX_SOCKET_PATH`
+URL format: `redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]`
 
 This backend stores data in a https://redis.io[Redis] (or Redis-compatible)
 server. There are implementations for both memory-based and disk-based storage.
+*PORT* defaults to *6379* and *DBNUMBER* defaults to *0*.
 
 Note that ccache will not perform any cleanup of the Redis storage, but you can
 https://redis.io/topics/lru-cache[configure LRU eviction].
 
 Examples:
 
-* `redis://localhost:6379|connect-timeout=50`
-* `redis:///var/run/redis/redis-server.sock`
+* `redis://localhost`
+* `redis://p4ssw0rd@cache.example.com:6379/0|connect-timeout=50`
 
 Optional attributes:
 
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
-* *username*: Username for the Redis AUTH command (requires Redis 6 or newer).
-* *password*: Password for the Redis AUTH command.
 
 == Cache size management
 

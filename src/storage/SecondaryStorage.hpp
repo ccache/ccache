@@ -27,6 +27,8 @@ class Digest;
 
 namespace storage {
 
+constexpr auto k_masked_password = "********";
+
 // This class defines the API that a secondary storage backend must implement.
 class SecondaryStorage
 {

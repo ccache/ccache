@@ -47,8 +47,6 @@ private:
   redisContext* m_context;
   const uint64_t m_connect_timeout;
   const uint64_t m_operation_timeout;
-  const nonstd::optional<std::string> m_username;
-  const nonstd::optional<std::string> m_password;
   bool m_connected;
   bool m_invalid;
 
