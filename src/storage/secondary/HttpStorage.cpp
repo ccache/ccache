@@ -131,6 +131,12 @@ HttpStorage::HttpStorage(const Url& url, const AttributeMap& attributes)
   : m_url_path(get_url_path(url)),
     m_http_client(make_client(url))
 {
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  const auto it = attributes.find("cacert");
+  if (it != attributes.end()) {
+    m_http_client->set_ca_cert_path(it->second.c_str());
+  }
+#endif
   m_http_client->set_default_headers(
     {{"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)}});
   m_http_client->set_keep_alive(true);

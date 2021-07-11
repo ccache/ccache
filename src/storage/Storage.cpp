@@ -248,6 +248,12 @@ create_storage(const ParseStorageEntryResult& storage_entry)
                                                     storage_entry.attributes);
   }
 
+#ifdef HAVE_HTTPS_STORAGE_BACKEND
+  if (storage_entry.url.scheme() == "https") {
+    return std::make_unique<secondary::HttpStorage>(storage_entry.url,
+                                                    storage_entry.attributes);
+  }
+#endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
   if (storage_entry.url.scheme() == "redis") {
     return std::make_unique<secondary::RedisStorage>(storage_entry.url,

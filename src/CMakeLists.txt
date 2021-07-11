@@ -84,6 +84,12 @@ target_link_libraries(
 
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
+if(HTTPS_STORAGE_BACKEND)
+  target_compile_definitions(ccache_lib PRIVATE -DCPPHTTPLIB_OPENSSL_SUPPORT)
+  target_compile_definitions(ccache_lib PRIVATE -DHAVE_HTTPS_STORAGE_BACKEND)
+  target_link_libraries(ccache_lib PRIVATE OpenSSL::SSL)
+endif()
+
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(
