@@ -478,8 +478,9 @@ COMPILER_TYPE_GCC=false
 COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
 
-readonly HTTP_CLIENT="$(dirname $0)/http-client"
-readonly HTTP_SERVER="$(dirname $0)/http-server"
+ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
+readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
+readonly HTTP_SERVER="${ABS_ROOT_DIR}/http-server"
 
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false
