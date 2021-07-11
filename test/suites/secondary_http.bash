@@ -50,32 +50,4 @@ SUITE_secondary_http() {
     expect_stat 'files in cache' 0
     expect_stat 'files in cache' 0
     expect_file_count 2 '*' secondary # result + manifest
-
-    # -------------------------------------------------------------------------
-    TEST "Read-only"
-
-    $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
-    expect_file_count 2 '*' secondary # result + manifest
-
-    $CCACHE -C >/dev/null
-    expect_stat 'files in cache' 0
-    expect_file_count 2 '*' secondary # result + manifest
-
-    CCACHE_SECONDARY_STORAGE+="|read-only"
-
-    $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
-    expect_file_count 2 '*' secondary # result + manifest
-
-    echo 'int x;' >> test.c
-    $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 2
-    expect_file_count 2 '*' secondary # result + manifest
 }
