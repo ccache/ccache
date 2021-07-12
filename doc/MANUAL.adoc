@@ -945,12 +945,11 @@ Note that ccache will not perform any cleanup of the HTTP storage.
 Examples:
 
 * `http://localhost:8080/`
-* `http://example.com/cache`
+* `http://someusername:p4ssw0rd@example.com/cache`
 
 Known issues and limitations:
 
 * There are no HTTP timeouts implemented or configured.
-* Authentication is not yet supported.
 * HTTPS is not yet supported.
 * URLs containing IPv6 addresses like `http://[::1]/` are not supported.
 
