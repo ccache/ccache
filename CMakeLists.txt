@@ -102,6 +102,12 @@ if(REDIS_STORAGE_BACKEND)
   find_package(hiredis 0.13.3 REQUIRED)
 endif()
 
+option(KYOTO_STORAGE_BACKEND "Enable Kyoto Tycoon secondary storage" OFF)
+if(KYOTO_STORAGE_BACKEND)
+  find_library(KYOTO_LIBRARY kyototycoon)
+  find_path(KYOTO_INCLUDE_DIR ktremotedb.h)
+endif()
+
 #
 # Special flags
 #

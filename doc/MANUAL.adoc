@@ -978,6 +978,16 @@ Optional attributes:
 * *username*: Username for the Redis AUTH command. (Requires ACL)
 * *password*: Password for the Redis AUTH command.
 
+=== Kyoto Tycoon storage backend
+
+URL format: `kt://HOST[:PORT]`
+
+This backend stores data in a Kyoto Tycoon database server.
+
+Examples:
+
+* `kt://localhost:1978`
+
 == Cache size management
 
 By default, ccache has a 5 GB limit on the total size of files in the cache and
