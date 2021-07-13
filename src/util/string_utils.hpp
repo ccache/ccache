@@ -43,4 +43,7 @@ percent_decode(nonstd::string_view string);
 std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
 split_once(nonstd::string_view string, char split_char);
 
+// Strip whitespace from left and right side of a string.
+[[nodiscard]] std::string strip_whitespace(nonstd::string_view string);
+
 } // namespace util

@@ -277,7 +277,7 @@ parse_sloppiness(const std::string& value)
   while (end != std::string::npos) {
     end = value.find_first_of(", ", start);
     std::string token =
-      Util::strip_whitespace(value.substr(start, end - start));
+      util::strip_whitespace(value.substr(start, end - start));
     if (token == "file_stat_matches") {
       result |= SLOPPY_FILE_STAT_MATCHES;
     } else if (token == "file_stat_matches_ctime") {
@@ -374,7 +374,7 @@ parse_line(const std::string& line,
            std::string* value,
            std::string* error_message)
 {
-  std::string stripped_line = Util::strip_whitespace(line);
+  std::string stripped_line = util::strip_whitespace(line);
   if (stripped_line.empty() || stripped_line[0] == '#') {
     return true;
   }
@@ -385,8 +385,8 @@ parse_line(const std::string& line,
   }
   *key = stripped_line.substr(0, equal_pos);
   *value = stripped_line.substr(equal_pos + 1);
-  *key = Util::strip_whitespace(*key);
-  *value = Util::strip_whitespace(*value);
+  *key = util::strip_whitespace(*key);
+  *value = util::strip_whitespace(*value);
   return true;
 }
 

@@ -76,4 +76,14 @@ split_once(const nonstd::string_view string, const char split_char)
   }
 }
 
+std::string
+strip_whitespace(const nonstd::string_view string)
+{
+  const auto is_space = [](const int ch) { return std::isspace(ch); };
+  const auto start = std::find_if_not(string.begin(), string.end(), is_space);
+  const auto end =
+    std::find_if_not(string.rbegin(), string.rend(), is_space).base();
+  return start < end ? std::string(start, end) : std::string();
+}
+
 } // namespace util

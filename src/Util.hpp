@@ -440,9 +440,6 @@ starts_with(nonstd::string_view string, nonstd::string_view prefix)
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(nonstd::string_view string);
 
-// Strip whitespace from left and right side of a string.
-[[nodiscard]] std::string strip_whitespace(nonstd::string_view string);
-
 // Convert a string to lowercase.
 [[nodiscard]] std::string to_lowercase(nonstd::string_view string);
 

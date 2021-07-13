@@ -29,6 +29,7 @@
 
 #include <core/wincompat.hpp>
 #include <util/path_utils.hpp>
+#include <util/string_utils.hpp>
 
 extern "C" {
 #include "third_party/base32hex.h"
@@ -1035,7 +1036,7 @@ parse_signed(const std::string& value,
              optional<int64_t> max_value,
              string_view description)
 {
-  std::string stripped_value = strip_whitespace(value);
+  std::string stripped_value = util::strip_whitespace(value);
 
   size_t end = 0;
   long long result = 0;
@@ -1106,7 +1107,7 @@ parse_unsigned(const std::string& value,
                string_view description,
                int base)
 {
-  std::string stripped_value = strip_whitespace(value);
+  std::string stripped_value = util::strip_whitespace(value);
 
   size_t end = 0;
   unsigned long long result = 0;
@@ -1387,15 +1388,6 @@ strip_ansi_csi_seqs(string_view string)
   }
 
   return result;
-}
-
-std::string
-strip_whitespace(string_view string)
-{
-  auto is_space = [](int ch) { return std::isspace(ch); };
-  auto start = std::find_if_not(string.begin(), string.end(), is_space);
-  auto end = std::find_if_not(string.rbegin(), string.rend(), is_space).base();
-  return start < end ? std::string(start, end) : std::string();
 }
 
 std::string

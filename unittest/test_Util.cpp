@@ -893,17 +893,6 @@ TEST_CASE("Util::starts_with")
   CHECK_FALSE(Util::starts_with(std::string("x"), "xy"));
 }
 
-TEST_CASE("Util::strip_whitespace")
-{
-  CHECK(Util::strip_whitespace("") == "");
-  CHECK(Util::strip_whitespace("x") == "x");
-  CHECK(Util::strip_whitespace(" x") == "x");
-  CHECK(Util::strip_whitespace("x ") == "x");
-  CHECK(Util::strip_whitespace(" x ") == "x");
-  CHECK(Util::strip_whitespace(" \n\tx \n\t") == "x");
-  CHECK(Util::strip_whitespace("  x  y  ") == "x  y");
-}
-
 TEST_CASE("Util::to_lowercase")
 {
   CHECK(Util::to_lowercase("") == "");

@@ -28,6 +28,8 @@ operator==(
   return left.first == right.first && left.second == right.second;
 }
 
+TEST_SUITE_BEGIN("util");
+
 TEST_CASE("util::parse_umask")
 {
   CHECK(util::parse_umask("1") == 01u);
@@ -80,3 +82,16 @@ TEST_CASE("util::split_once")
   CHECK(split_once("a=b=c", '=') == make_pair("a", "b=c"));
   CHECK(split_once("x y", ' ') == make_pair("x", "y"));
 }
+
+TEST_CASE("util::strip_whitespace")
+{
+  CHECK(util::strip_whitespace("") == "");
+  CHECK(util::strip_whitespace("x") == "x");
+  CHECK(util::strip_whitespace(" x") == "x");
+  CHECK(util::strip_whitespace("x ") == "x");
+  CHECK(util::strip_whitespace(" x ") == "x");
+  CHECK(util::strip_whitespace(" \n\tx \n\t") == "x");
+  CHECK(util::strip_whitespace("  x  y  ") == "x  y");
+}
+
+TEST_SUITE_END();
