@@ -27,6 +27,8 @@
 
 #include "third_party/fmt/core.h"
 
+#include <thread>
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -34,12 +36,6 @@
 #include <algorithm>
 #include <sstream>
 #include <thread>
-
-// AIX/PASE does not properly define usleep within its headers. However, the
-// function is available in libc.a.
-#ifdef _AIX
-extern "C" int usleep(useconds_t);
-#endif
 
 namespace {
 
@@ -118,7 +114,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
       LOG("lockfile_acquire: failed to acquire {}; sleeping {} microseconds",
           lockfile,
           to_sleep);
-      usleep(to_sleep);
+      std::this_thread::sleep_for(std::chrono::microseconds(to_sleep));
       slept += to_sleep;
       to_sleep = std::min(max_to_sleep, 2 * to_sleep);
     } else if (content != initial_content) {
@@ -143,9 +139,9 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
 HANDLE
 do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
 {
-  unsigned to_sleep = 1000;      // Microseconds.
-  unsigned max_to_sleep = 10000; // Microseconds.
-  unsigned slept = 0;            // Microseconds.
+  const uint32_t max_to_sleep = 10000; // Microseconds.
+  uint32_t to_sleep = 1000;            // Microseconds.
+  uint32_t slept = 0;                  // Microseconds.
   HANDLE handle;
 
   while (true) {
@@ -190,7 +186,7 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
     LOG("lockfile_acquire: failed to acquire {}; sleeping {} microseconds",
         lockfile,
         to_sleep);
-    usleep(to_sleep);
+    std::this_thread::sleep_for(std::chrono::microseconds(to_sleep));
     slept += to_sleep;
     to_sleep = std::min(max_to_sleep, 2 * to_sleep);
   }

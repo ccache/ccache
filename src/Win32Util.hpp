@@ -24,7 +24,6 @@
 
 #  include <string>
 
-void usleep(int64_t usec);
 struct tm* localtime_r(time_t* _clock, struct tm* _result);
 
 #  ifdef _MSC_VER
