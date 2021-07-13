@@ -24,10 +24,18 @@
 
 #include <sys/stat.h> // for mode_t
 
+#include <cstring>
 #include <string>
 #include <utility>
 
 namespace util {
+
+// Return true if `suffix` is a suffix of `string`.
+inline bool
+ends_with(const nonstd::string_view string, const nonstd::string_view suffix)
+{
+  return string.ends_with(suffix);
+}
 
 // Parse `value` (an octal integer).
 nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
@@ -42,6 +50,22 @@ percent_decode(nonstd::string_view string);
 // part will be `nullopt` if there is no `split_char` in `string.`
 std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
 split_once(nonstd::string_view string, char split_char);
+
+// Return true if `prefix` is a prefix of `string`.
+inline bool
+starts_with(const char* string, const nonstd::string_view prefix)
+{
+  // Optimized version of starts_with(string_view, string_view): avoid computing
+  // the length of the string argument.
+  return std::strncmp(string, prefix.data(), prefix.length()) == 0;
+}
+
+// Return true if `prefix` is a prefix of `string`.
+inline bool
+starts_with(const nonstd::string_view string, const nonstd::string_view prefix)
+{
+  return string.starts_with(prefix);
+}
 
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(nonstd::string_view string);

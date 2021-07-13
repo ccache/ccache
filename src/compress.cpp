@@ -33,6 +33,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
+#include <util/string_utils.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -316,7 +317,7 @@ compress_recompress(Context& ctx,
         sub_progress_receiver(0.1 + 0.9 * i / files.size());
       }
 
-      if (Util::ends_with(subdir, "f")) {
+      if (util::ends_with(subdir, "f")) {
         // Wait here instead of after Util::for_each_level_1_subdir to avoid
         // updating the progress bar to 100% before all work is done.
         thread_pool.shut_down();

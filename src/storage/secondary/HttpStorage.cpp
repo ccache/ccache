@@ -99,7 +99,7 @@ get_host_header_value(const Url& url)
   // slashes must be stripped.
   const auto rendered_value = host_and_port_only.str();
   const auto prefix = nonstd::string_view{"//"};
-  if (!Util::starts_with(rendered_value, prefix)) {
+  if (!util::starts_with(rendered_value, prefix)) {
     throw Error(
       "Expected partial URL to start with '{}': '{}'", prefix, rendered_value);
   }

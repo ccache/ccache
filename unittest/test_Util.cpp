@@ -177,24 +177,6 @@ TEST_CASE("Util::strip_ansi_csi_seqs")
   CHECK(Util::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
 }
 
-TEST_CASE("Util::ends_with")
-{
-  CHECK(Util::ends_with("", ""));
-  CHECK(Util::ends_with("x", ""));
-  CHECK(Util::ends_with("x", "x"));
-  CHECK(Util::ends_with("xy", ""));
-  CHECK(Util::ends_with("xy", "y"));
-  CHECK(Util::ends_with("xy", "xy"));
-  CHECK(Util::ends_with("xyz", ""));
-  CHECK(Util::ends_with("xyz", "z"));
-  CHECK(Util::ends_with("xyz", "yz"));
-  CHECK(Util::ends_with("xyz", "xyz"));
-
-  CHECK_FALSE(Util::ends_with("", "x"));
-  CHECK_FALSE(Util::ends_with("x", "y"));
-  CHECK_FALSE(Util::ends_with("x", "xy"));
-}
-
 TEST_CASE("Util::ensure_dir_exists")
 {
   TestContext test_context;
@@ -857,41 +839,6 @@ TEST_CASE("Util::same_program_name")
 
 // Util::split_into_strings and Util::split_into_views are tested implicitly in
 // test_util_Tokenizer.cpp.
-
-TEST_CASE("Util::starts_with")
-{
-  // starts_with(const char*, string_view)
-  CHECK(Util::starts_with("", ""));
-  CHECK(Util::starts_with("x", ""));
-  CHECK(Util::starts_with("x", "x"));
-  CHECK(Util::starts_with("xy", ""));
-  CHECK(Util::starts_with("xy", "x"));
-  CHECK(Util::starts_with("xy", "xy"));
-  CHECK(Util::starts_with("xyz", ""));
-  CHECK(Util::starts_with("xyz", "x"));
-  CHECK(Util::starts_with("xyz", "xy"));
-  CHECK(Util::starts_with("xyz", "xyz"));
-
-  CHECK_FALSE(Util::starts_with("", "x"));
-  CHECK_FALSE(Util::starts_with("x", "y"));
-  CHECK_FALSE(Util::starts_with("x", "xy"));
-
-  // starts_with(string_view, string_view)
-  CHECK(Util::starts_with(std::string(""), ""));
-  CHECK(Util::starts_with(std::string("x"), ""));
-  CHECK(Util::starts_with(std::string("x"), "x"));
-  CHECK(Util::starts_with(std::string("xy"), ""));
-  CHECK(Util::starts_with(std::string("xy"), "x"));
-  CHECK(Util::starts_with(std::string("xy"), "xy"));
-  CHECK(Util::starts_with(std::string("xyz"), ""));
-  CHECK(Util::starts_with(std::string("xyz"), "x"));
-  CHECK(Util::starts_with(std::string("xyz"), "xy"));
-  CHECK(Util::starts_with(std::string("xyz"), "xyz"));
-
-  CHECK_FALSE(Util::starts_with(std::string(""), "x"));
-  CHECK_FALSE(Util::starts_with(std::string("x"), "y"));
-  CHECK_FALSE(Util::starts_with(std::string("x"), "xy"));
-}
 
 TEST_CASE("Util::to_lowercase")
 {

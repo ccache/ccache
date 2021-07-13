@@ -20,6 +20,8 @@
 
 #include "Util.hpp"
 
+#include <util/string_utils.hpp>
+
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -170,7 +172,7 @@ Args::erase_with_prefix(string_view prefix)
   m_args.erase(std::remove_if(m_args.begin(),
                               m_args.end(),
                               [&prefix](const auto& s) {
-                                return Util::starts_with(s, prefix);
+                                return util::starts_with(s, prefix);
                               }),
                m_args.end());
 }

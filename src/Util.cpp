@@ -179,7 +179,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
     // In file included from X<path>X:1:
     // X<path>X:1:2: ...
 
-    if (Util::starts_with(line, in_file_included_from)) {
+    if (util::starts_with(line, in_file_included_from)) {
       result += in_file_included_from;
       line = line.substr(in_file_included_from.length());
     }
@@ -870,7 +870,7 @@ make_relative_path(const std::string& base_dir,
                    const std::string& apparent_cwd,
                    nonstd::string_view path)
 {
-  if (base_dir.empty() || !Util::starts_with(path, base_dir)) {
+  if (base_dir.empty() || !util::starts_with(path, base_dir)) {
     return std::string(path);
   }
 
@@ -1112,7 +1112,7 @@ parse_unsigned(const std::string& value,
   size_t end = 0;
   unsigned long long result = 0;
   bool failed = false;
-  if (Util::starts_with(stripped_value, "-")) {
+  if (util::starts_with(stripped_value, "-")) {
     failed = true;
   } else {
     try {

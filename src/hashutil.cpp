@@ -380,10 +380,10 @@ hash_command_output(Hash& hash,
 
   // Add "echo" command.
   bool using_cmd_exe;
-  if (Util::starts_with(adjusted_command, "echo")) {
+  if (util::starts_with(adjusted_command, "echo")) {
     adjusted_command = FMT("cmd.exe /c \"{}\"", adjusted_command);
     using_cmd_exe = true;
-  } else if (Util::starts_with(adjusted_command, "%compiler%")
+  } else if (util::starts_with(adjusted_command, "%compiler%")
              && compiler == "echo") {
     adjusted_command =
       FMT("cmd.exe /c \"{}{}\"", compiler, adjusted_command.substr(10));

@@ -26,6 +26,8 @@
 #include "Statistics.hpp"
 #include "Util.hpp"
 
+#include <util/string_utils.hpp>
+
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
 #endif
@@ -143,7 +145,7 @@ clean_up_dir(const std::string& subdir,
       break;
     }
 
-    if (Util::ends_with(file.path(), ".stderr")) {
+    if (util::ends_with(file.path(), ".stderr")) {
       // In order to be nice to legacy ccache versions, make sure that the .o
       // file is deleted before .stderr, because if the ccache process gets
       // killed after deleting the .stderr but before deleting the .o, the

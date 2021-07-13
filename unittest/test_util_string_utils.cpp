@@ -30,6 +30,24 @@ operator==(
 
 TEST_SUITE_BEGIN("util");
 
+TEST_CASE("util::ends_with")
+{
+  CHECK(util::ends_with("", ""));
+  CHECK(util::ends_with("x", ""));
+  CHECK(util::ends_with("x", "x"));
+  CHECK(util::ends_with("xy", ""));
+  CHECK(util::ends_with("xy", "y"));
+  CHECK(util::ends_with("xy", "xy"));
+  CHECK(util::ends_with("xyz", ""));
+  CHECK(util::ends_with("xyz", "z"));
+  CHECK(util::ends_with("xyz", "yz"));
+  CHECK(util::ends_with("xyz", "xyz"));
+
+  CHECK_FALSE(util::ends_with("", "x"));
+  CHECK_FALSE(util::ends_with("x", "y"));
+  CHECK_FALSE(util::ends_with("x", "xy"));
+}
+
 TEST_CASE("util::parse_umask")
 {
   CHECK(util::parse_umask("1") == 01u);
@@ -81,6 +99,41 @@ TEST_CASE("util::split_once")
   CHECK(split_once("a=b=", '=') == make_pair("a", "b="));
   CHECK(split_once("a=b=c", '=') == make_pair("a", "b=c"));
   CHECK(split_once("x y", ' ') == make_pair("x", "y"));
+}
+
+TEST_CASE("util::starts_with")
+{
+  // starts_with(const char*, string_view)
+  CHECK(util::starts_with("", ""));
+  CHECK(util::starts_with("x", ""));
+  CHECK(util::starts_with("x", "x"));
+  CHECK(util::starts_with("xy", ""));
+  CHECK(util::starts_with("xy", "x"));
+  CHECK(util::starts_with("xy", "xy"));
+  CHECK(util::starts_with("xyz", ""));
+  CHECK(util::starts_with("xyz", "x"));
+  CHECK(util::starts_with("xyz", "xy"));
+  CHECK(util::starts_with("xyz", "xyz"));
+
+  CHECK_FALSE(util::starts_with("", "x"));
+  CHECK_FALSE(util::starts_with("x", "y"));
+  CHECK_FALSE(util::starts_with("x", "xy"));
+
+  // starts_with(string_view, string_view)
+  CHECK(util::starts_with(std::string(""), ""));
+  CHECK(util::starts_with(std::string("x"), ""));
+  CHECK(util::starts_with(std::string("x"), "x"));
+  CHECK(util::starts_with(std::string("xy"), ""));
+  CHECK(util::starts_with(std::string("xy"), "x"));
+  CHECK(util::starts_with(std::string("xy"), "xy"));
+  CHECK(util::starts_with(std::string("xyz"), ""));
+  CHECK(util::starts_with(std::string("xyz"), "x"));
+  CHECK(util::starts_with(std::string("xyz"), "xy"));
+  CHECK(util::starts_with(std::string("xyz"), "xyz"));
+
+  CHECK_FALSE(util::starts_with(std::string(""), "x"));
+  CHECK_FALSE(util::starts_with(std::string("x"), "y"));
+  CHECK_FALSE(util::starts_with(std::string("x"), "xy"));
 }
 
 TEST_CASE("util::strip_whitespace")

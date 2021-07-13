@@ -586,7 +586,7 @@ Config::update_from_environment()
   for (char** env = environ; *env; ++env) {
     std::string setting = *env;
     const std::string prefix = "CCACHE_";
-    if (!Util::starts_with(setting, prefix)) {
+    if (!util::starts_with(setting, prefix)) {
       continue;
     }
     size_t equal_pos = setting.find('=');
@@ -596,7 +596,7 @@ Config::update_from_environment()
 
     std::string key = setting.substr(prefix.size(), equal_pos - prefix.size());
     std::string value = setting.substr(equal_pos + 1);
-    bool negate = Util::starts_with(key, "NO");
+    bool negate = util::starts_with(key, "NO");
     if (negate) {
       key = key.substr(2);
     }

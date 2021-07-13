@@ -129,13 +129,6 @@ bool create_dir(nonstd::string_view dir);
 // Get directory name of path.
 nonstd::string_view dir_name(nonstd::string_view path);
 
-// Return true if `suffix` is a suffix of `string`.
-inline bool
-ends_with(nonstd::string_view string, nonstd::string_view suffix)
-{
-  return string.ends_with(suffix);
-}
-
 // Like create_dir but throws Fatal on error.
 void ensure_dir_exists(nonstd::string_view dir);
 
@@ -420,22 +413,6 @@ std::vector<std::string> split_into_strings(
   nonstd::string_view string,
   const char* separators,
   util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty);
-
-// Return true if `prefix` is a prefix of `string`.
-inline bool
-starts_with(const char* string, nonstd::string_view prefix)
-{
-  // Optimized version of starts_with(string_view, string_view): avoid computing
-  // the length of the string argument.
-  return strncmp(string, prefix.data(), prefix.length()) == 0;
-}
-
-// Return true if `prefix` is a prefix of `string`.
-inline bool
-starts_with(nonstd::string_view string, nonstd::string_view prefix)
-{
-  return string.starts_with(prefix);
-}
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(nonstd::string_view string);

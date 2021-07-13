@@ -38,7 +38,7 @@ parse_url(const Url& url)
 {
   ASSERT(url.scheme() == "file");
   const auto& dir = url.path();
-  if (!Util::starts_with(dir, "/")) {
+  if (!util::starts_with(dir, "/")) {
     throw Error("invalid file path \"{}\" - directory must start with a slash",
                 dir);
   }
