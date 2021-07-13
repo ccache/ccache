@@ -35,6 +35,18 @@ namespace util {
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
+// Join stringified elements of `container` delimited by `delimiter` into a
+// string. There must exist an `std::string to_string(T::value_type)` function.
+template<typename T>
+std::string join(const T& container, const nonstd::string_view delimiter);
+
+// Join stringified elements between input iterators `begin` and `end` delimited
+// by `delimiter` into a string. There must exist an `std::string
+// to_string(T::value_type)` function.
+template<typename T>
+std::string
+join(const T& begin, const T& end, const nonstd::string_view delimiter);
+
 // Parse a string into a signed integer.
 //
 // Return an error string if `value` cannot be parsed as an int64_t or if the
@@ -83,6 +95,10 @@ bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(nonstd::string_view string);
 
+// Convert `string` to a string. This function is used when joining
+// `std::string`s with `util::join`.
+std::string to_string(const std::string& string);
+
 // --- Inline implementations ---
 
 inline bool
@@ -90,6 +106,28 @@ ends_with(const nonstd::string_view string, const nonstd::string_view suffix)
 {
   return string.ends_with(suffix);
 }
+
+template<typename T>
+inline std::string
+join(const T& container, const nonstd::string_view delimiter)
+{
+  return join(container.begin(), container.end(), delimiter);
+}
+
+template<typename T>
+inline std::string
+join(const T& begin, const T& end, const nonstd::string_view delimiter)
+{
+  std::string result;
+  for (auto it = begin; it != end; ++it) {
+    if (it != begin) {
+      result.append(delimiter.data(), delimiter.length());
+    }
+    result += to_string(*it);
+  }
+  return result;
+}
+
 inline bool
 starts_with(const char* const string, const nonstd::string_view prefix)
 {
@@ -102,6 +140,13 @@ inline bool
 starts_with(const nonstd::string_view string, const nonstd::string_view prefix)
 {
   return string.starts_with(prefix);
+}
+
+// Convert `string` to `string`. This is used by util::join.
+inline std::string
+to_string(const std::string& string)
+{
+  return string;
 }
 
 } // namespace util

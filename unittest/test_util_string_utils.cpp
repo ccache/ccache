@@ -20,6 +20,8 @@
 
 #include <third_party/doctest.h>
 
+#include <vector>
+
 static bool
 operator==(
   std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>> left,
@@ -46,6 +48,28 @@ TEST_CASE("util::ends_with")
   CHECK_FALSE(util::ends_with("", "x"));
   CHECK_FALSE(util::ends_with("x", "y"));
   CHECK_FALSE(util::ends_with("x", "xy"));
+}
+
+TEST_CASE("util::join")
+{
+  {
+    std::vector<std::string> v;
+    CHECK(util::join(v, "|") == "");
+  }
+  {
+    std::vector<std::string> v{"a"};
+    CHECK(util::join(v, "|") == "a");
+  }
+  {
+    std::vector<std::string> v{"a", " b ", "c|"};
+    CHECK(util::join(v, "|") == "a| b |c|");
+    CHECK(util::join(v.begin(), v.end(), "|") == "a| b |c|");
+    CHECK(util::join(v.begin() + 1, v.end(), "|") == " b |c|");
+  }
+  {
+    std::vector<nonstd::string_view> v{"1", "2"};
+    CHECK(util::join(v, " ") == "1 2");
+  }
 }
 
 TEST_CASE("util::parse_signed")
