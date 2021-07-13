@@ -37,8 +37,33 @@ ends_with(const nonstd::string_view string, const nonstd::string_view suffix)
   return string.ends_with(suffix);
 }
 
+// Parse a string into a signed integer.
+//
+// Return an error string if `value` cannot be parsed as an int64_t or if the
+// value falls out of the range [`min_value`, `max_value`]. `min_value` and
+// `max_value` default to min and max values of int64_t. `description` is
+// included in the error message for range violations.
+nonstd::expected<int64_t, std::string>
+parse_signed(const std::string& value,
+             nonstd::optional<int64_t> min_value = nonstd::nullopt,
+             nonstd::optional<int64_t> max_value = nonstd::nullopt,
+             nonstd::string_view description = "integer");
+
 // Parse `value` (an octal integer).
 nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
+
+// Parse a string into an unsigned integer.
+//
+// Returns an error string if `value` cannot be parsed as an uint64_t with base
+// `base`, or if the value falls out of the range [`min_value`, `max_value`].
+// `min_value` and `max_value` default to min and max values of uint64_t.
+// `description` is included in the error message for range violations.
+nonstd::expected<uint64_t, std::string>
+parse_unsigned(const std::string& value,
+               nonstd::optional<uint64_t> min_value = nonstd::nullopt,
+               nonstd::optional<uint64_t> max_value = nonstd::nullopt,
+               nonstd::string_view description = "integer",
+               int base = 10);
 
 // Percent-decode[1] `string`.
 //

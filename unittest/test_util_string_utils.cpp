@@ -48,6 +48,47 @@ TEST_CASE("util::ends_with")
   CHECK_FALSE(util::ends_with("x", "xy"));
 }
 
+TEST_CASE("util::parse_signed")
+{
+  CHECK(*util::parse_signed("0") == 0);
+  CHECK(*util::parse_signed("2") == 2);
+  CHECK(*util::parse_signed("-17") == -17);
+  CHECK(*util::parse_signed("42") == 42);
+  CHECK(*util::parse_signed("0666") == 666);
+  CHECK(*util::parse_signed(" 777 ") == 777);
+
+  CHECK(util::parse_signed("").error() == "invalid integer: \"\"");
+  CHECK(util::parse_signed("x").error() == "invalid integer: \"x\"");
+  CHECK(util::parse_signed("0x").error() == "invalid integer: \"0x\"");
+  CHECK(util::parse_signed("0x4").error() == "invalid integer: \"0x4\"");
+
+  // Custom description not used for invalid value.
+  CHECK(util::parse_signed("apple", nonstd::nullopt, nonstd::nullopt, "banana")
+          .error()
+        == "invalid integer: \"apple\"");
+
+  // Boundary values.
+  CHECK(util::parse_signed("-9223372036854775809").error()
+        == "invalid integer: \"-9223372036854775809\"");
+  CHECK(*util::parse_signed("-9223372036854775808") == INT64_MIN);
+  CHECK(*util::parse_signed("9223372036854775807") == INT64_MAX);
+  CHECK(util::parse_signed("9223372036854775808").error()
+        == "invalid integer: \"9223372036854775808\"");
+
+  // Min and max values.
+  CHECK(util::parse_signed("-2", -1, 1).error()
+        == "integer must be between -1 and 1");
+  CHECK(*util::parse_signed("-1", -1, 1) == -1);
+  CHECK(*util::parse_signed("0", -1, 1) == 0);
+  CHECK(*util::parse_signed("1", -1, 1) == 1);
+  CHECK(util::parse_signed("2", -1, 1).error()
+        == "integer must be between -1 and 1");
+
+  // Custom description used for boundary violation.
+  CHECK(util::parse_signed("0", 1, 2, "banana").error()
+        == "banana must be between 1 and 2");
+}
+
 TEST_CASE("util::parse_umask")
 {
   CHECK(util::parse_umask("1") == 01u);
@@ -61,6 +102,44 @@ TEST_CASE("util::parse_umask")
         == "invalid unsigned octal integer: \"\"");
   CHECK(util::parse_umask("088").error()
         == "invalid unsigned octal integer: \"088\"");
+}
+
+TEST_CASE("util::parse_unsigned")
+{
+  CHECK(*util::parse_unsigned("0") == 0);
+  CHECK(*util::parse_unsigned("2") == 2);
+  CHECK(*util::parse_unsigned("42") == 42);
+  CHECK(*util::parse_unsigned("0666") == 666);
+  CHECK(*util::parse_unsigned(" 777 ") == 777);
+
+  CHECK(util::parse_unsigned("").error() == "invalid unsigned integer: \"\"");
+  CHECK(util::parse_unsigned("x").error() == "invalid unsigned integer: \"x\"");
+  CHECK(util::parse_unsigned("0x").error()
+        == "invalid unsigned integer: \"0x\"");
+  CHECK(util::parse_unsigned("0x4").error()
+        == "invalid unsigned integer: \"0x4\"");
+
+  // Custom description not used for invalid value.
+  CHECK(
+    util::parse_unsigned("apple", nonstd::nullopt, nonstd::nullopt, "banana")
+      .error()
+    == "invalid unsigned integer: \"apple\"");
+
+  // Boundary values.
+  CHECK(util::parse_unsigned("-1").error()
+        == "invalid unsigned integer: \"-1\"");
+  CHECK(*util::parse_unsigned("0") == 0);
+  CHECK(*util::parse_unsigned("18446744073709551615") == UINT64_MAX);
+  CHECK(util::parse_unsigned("18446744073709551616").error()
+        == "invalid unsigned integer: \"18446744073709551616\"");
+
+  // Base
+  CHECK(*util::parse_unsigned("0666", nonstd::nullopt, nonstd::nullopt, "", 8)
+        == 0666);
+  CHECK(*util::parse_unsigned("0666", nonstd::nullopt, nonstd::nullopt, "", 10)
+        == 666);
+  CHECK(*util::parse_unsigned("0666", nonstd::nullopt, nonstd::nullopt, "", 16)
+        == 0x666);
 }
 
 TEST_CASE("util::percent_decode")

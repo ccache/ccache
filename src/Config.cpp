@@ -28,6 +28,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
+#include <util/expected_utils.hpp>
 #include <util/path_utils.hpp>
 #include <util/string_utils.hpp>
 
@@ -859,11 +860,10 @@ Config::set_item(const std::string& key,
     m_compression = parse_bool(value, env_var_key, negate);
     break;
 
-  case ConfigItem::compression_level: {
-    m_compression_level =
-      Util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level");
+  case ConfigItem::compression_level:
+    m_compression_level = util::value_or_throw<Error>(
+      util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level"));
     break;
-  }
 
   case ConfigItem::cpp_extension:
     m_cpp_extension = value;
@@ -930,7 +930,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = Util::parse_unsigned(value, nullopt, nullopt, "max_files");
+    m_max_files = util::value_or_throw<Error>(
+      util::parse_unsigned(value, nullopt, nullopt, "max_files"));
     break;
 
   case ConfigItem::max_size:

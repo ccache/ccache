@@ -1027,36 +1027,13 @@ parse_duration(const std::string& duration)
                 duration);
   }
 
-  return factor * parse_unsigned(duration.substr(0, duration.length() - 1));
-}
-
-int64_t
-parse_signed(const std::string& value,
-             optional<int64_t> min_value,
-             optional<int64_t> max_value,
-             string_view description)
-{
-  std::string stripped_value = util::strip_whitespace(value);
-
-  size_t end = 0;
-  long long result = 0;
-  bool failed = false;
-  try {
-    // Note: sizeof(long long) is guaranteed to be >= sizeof(int64_t)
-    result = std::stoll(stripped_value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
+  const auto value =
+    util::parse_unsigned(duration.substr(0, duration.length() - 1));
+  if (value) {
+    return factor * *value;
+  } else {
+    throw Error(value.error());
   }
-  if (failed || end != stripped_value.size()) {
-    throw Error("invalid integer: \"{}\"", stripped_value);
-  }
-
-  int64_t min = min_value ? *min_value : INT64_MIN;
-  int64_t max = max_value ? *max_value : INT64_MAX;
-  if (result < min || result > max) {
-    throw Error("{} must be between {} and {}", description, min, max);
-  }
-  return result;
 }
 
 uint64_t
@@ -1098,43 +1075,6 @@ parse_size(const std::string& value)
     result *= 1000 * 1000 * 1000;
   }
   return static_cast<uint64_t>(result);
-}
-
-uint64_t
-parse_unsigned(const std::string& value,
-               optional<uint64_t> min_value,
-               optional<uint64_t> max_value,
-               string_view description,
-               int base)
-{
-  std::string stripped_value = util::strip_whitespace(value);
-
-  size_t end = 0;
-  unsigned long long result = 0;
-  bool failed = false;
-  if (util::starts_with(stripped_value, "-")) {
-    failed = true;
-  } else {
-    try {
-      // Note: sizeof(unsigned long long) is guaranteed to be >=
-      // sizeof(uint64_t)
-      result = std::stoull(stripped_value, &end, base);
-    } catch (std::exception&) {
-      failed = true;
-    }
-  }
-  if (failed || end != stripped_value.size()) {
-    const auto base_info = base == 8 ? "octal " : "";
-    throw Error(
-      "invalid unsigned {}integer: \"{}\"", base_info, stripped_value);
-  }
-
-  uint64_t min = min_value ? *min_value : 0;
-  uint64_t max = max_value ? *max_value : UINT64_MAX;
-  if (result < min || result > max) {
-    throw Error("{} must be between {} and {}", description, min, max);
-  }
-  return result;
 }
 
 bool

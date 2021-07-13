@@ -21,6 +21,7 @@
 #include <Digest.hpp>
 #include <Logging.hpp>
 #include <fmtmacros.hpp>
+#include <util/expected_utils.hpp>
 #include <util/string_utils.hpp>
 
 #include <hiredis/hiredis.h>
@@ -65,7 +66,8 @@ parse_timeout_attribute(const AttributeMap& attributes,
   if (it == attributes.end()) {
     return default_value;
   } else {
-    return Util::parse_unsigned(it->second, 1, 1000 * 3600, "timeout");
+    return util::value_or_throw<Error>(
+      util::parse_unsigned(it->second, 1, 1000 * 3600, "timeout"));
   }
 }
 
@@ -129,17 +131,18 @@ RedisStorage::connect()
 
   ASSERT(m_url.scheme() == "redis");
   const std::string host = m_url.host().empty() ? "localhost" : m_url.host();
-  const uint32_t port =
-    m_url.port().empty() ? DEFAULT_PORT
-                         : Util::parse_unsigned(m_url.port(), 1, 65535, "port");
+  const uint32_t port = m_url.port().empty()
+                          ? DEFAULT_PORT
+                          : util::value_or_throw<::Error>(util::parse_unsigned(
+                            m_url.port(), 1, 65535, "port"));
   ASSERT(m_url.path().empty() || m_url.path()[0] == '/');
   const uint32_t db_number =
-    m_url.path().empty()
-      ? 0
-      : Util::parse_unsigned(m_url.path().substr(1),
-                             0,
-                             std::numeric_limits<uint32_t>::max(),
-                             "db number");
+    m_url.path().empty() ? 0
+                         : util::value_or_throw<::Error>(util::parse_unsigned(
+                           m_url.path().substr(1),
+                           0,
+                           std::numeric_limits<uint32_t>::max(),
+                           "db number"));
 
   const auto connect_timeout = milliseconds_to_timeval(m_connect_timeout);
 

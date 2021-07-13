@@ -20,10 +20,10 @@
 
 #include <Digest.hpp>
 #include <Logging.hpp>
-#include <Util.hpp>
 #include <ccache.hpp>
 #include <exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/expected_utils.hpp>
 #include <util/string_utils.hpp>
 
 #include <third_party/httplib.h>
@@ -142,8 +142,8 @@ parse_timeout_attribute(const AttributeMap& attributes,
   if (it == attributes.end()) {
     return default_value;
   } else {
-    auto timeout_in_ms =
-      Util::parse_unsigned(it->second, 1, 1000 * 3600, "timeout");
+    const auto timeout_in_ms = util::value_or_throw<Error>(
+      util::parse_unsigned(it->second, 1, 1000 * 3600, "timeout"));
     return std::chrono::milliseconds{timeout_in_ms};
   }
 }

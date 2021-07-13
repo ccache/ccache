@@ -671,46 +671,6 @@ TEST_CASE("Util::parse_duration")
     "invalid suffix (supported: d (day) and s (second)): \"2\"");
 }
 
-TEST_CASE("Util::parse_signed")
-{
-  CHECK(Util::parse_signed("0") == 0);
-  CHECK(Util::parse_signed("2") == 2);
-  CHECK(Util::parse_signed("-17") == -17);
-  CHECK(Util::parse_signed("42") == 42);
-  CHECK(Util::parse_signed("0666") == 666);
-  CHECK(Util::parse_signed(" 777 ") == 777);
-
-  CHECK_THROWS_WITH(Util::parse_signed(""), "invalid integer: \"\"");
-  CHECK_THROWS_WITH(Util::parse_signed("x"), "invalid integer: \"x\"");
-  CHECK_THROWS_WITH(Util::parse_signed("0x"), "invalid integer: \"0x\"");
-  CHECK_THROWS_WITH(Util::parse_signed("0x4"), "invalid integer: \"0x4\"");
-
-  // Custom description not used for invalid value.
-  CHECK_THROWS_WITH(Util::parse_signed("apple", nullopt, nullopt, "banana"),
-                    "invalid integer: \"apple\"");
-
-  // Boundary values.
-  CHECK_THROWS_WITH(Util::parse_signed("-9223372036854775809"),
-                    "invalid integer: \"-9223372036854775809\"");
-  CHECK(Util::parse_signed("-9223372036854775808") == INT64_MIN);
-  CHECK(Util::parse_signed("9223372036854775807") == INT64_MAX);
-  CHECK_THROWS_WITH(Util::parse_signed("9223372036854775808"),
-                    "invalid integer: \"9223372036854775808\"");
-
-  // Min and max values.
-  CHECK_THROWS_WITH(Util::parse_signed("-2", -1, 1),
-                    "integer must be between -1 and 1");
-  CHECK(Util::parse_signed("-1", -1, 1) == -1);
-  CHECK(Util::parse_signed("0", -1, 1) == 0);
-  CHECK(Util::parse_signed("1", -1, 1) == 1);
-  CHECK_THROWS_WITH(Util::parse_signed("2", -1, 1),
-                    "integer must be between -1 and 1");
-
-  // Custom description used for boundary violation.
-  CHECK_THROWS_WITH(Util::parse_signed("0", 1, 2, "banana"),
-                    "banana must be between 1 and 2");
-}
-
 TEST_CASE("Util::parse_size")
 {
   CHECK(Util::parse_size("0") == 0);
@@ -733,40 +693,6 @@ TEST_CASE("Util::parse_size")
   CHECK_THROWS_WITH(Util::parse_size(""), "invalid size: \"\"");
   CHECK_THROWS_WITH(Util::parse_size("x"), "invalid size: \"x\"");
   CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
-}
-
-TEST_CASE("Util::parse_unsigned")
-{
-  CHECK(Util::parse_unsigned("0") == 0);
-  CHECK(Util::parse_unsigned("2") == 2);
-  CHECK(Util::parse_unsigned("42") == 42);
-  CHECK(Util::parse_unsigned("0666") == 666);
-  CHECK(Util::parse_unsigned(" 777 ") == 777);
-
-  CHECK_THROWS_WITH(Util::parse_unsigned(""), "invalid unsigned integer: \"\"");
-  CHECK_THROWS_WITH(Util::parse_unsigned("x"),
-                    "invalid unsigned integer: \"x\"");
-  CHECK_THROWS_WITH(Util::parse_unsigned("0x"),
-                    "invalid unsigned integer: \"0x\"");
-  CHECK_THROWS_WITH(Util::parse_unsigned("0x4"),
-                    "invalid unsigned integer: \"0x4\"");
-
-  // Custom description not used for invalid value.
-  CHECK_THROWS_WITH(Util::parse_unsigned("apple", nullopt, nullopt, "banana"),
-                    "invalid unsigned integer: \"apple\"");
-
-  // Boundary values.
-  CHECK_THROWS_WITH(Util::parse_unsigned("-1"),
-                    "invalid unsigned integer: \"-1\"");
-  CHECK(Util::parse_unsigned("0") == 0);
-  CHECK(Util::parse_unsigned("18446744073709551615") == UINT64_MAX);
-  CHECK_THROWS_WITH(Util::parse_unsigned("18446744073709551616"),
-                    "invalid unsigned integer: \"18446744073709551616\"");
-
-  // Base
-  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 8) == 0666);
-  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 10) == 666);
-  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 16) == 0x666);
 }
 
 TEST_CASE("Util::read_file and Util::write_file")

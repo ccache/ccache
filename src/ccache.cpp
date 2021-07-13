@@ -57,6 +57,7 @@
 
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
+#include <util/expected_utils.hpp>
 #include <util/path_utils.hpp>
 #include <util/string_utils.hpp>
 
@@ -2397,7 +2398,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'F': { // --max-files
-      auto files = Util::parse_unsigned(arg);
+      auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
@@ -2482,8 +2483,8 @@ handle_main_options(int argc, const char* const* argv)
       if (arg == "uncompressed") {
         wanted_level = nullopt;
       } else {
-        wanted_level =
-          Util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level");
+        wanted_level = util::value_or_throw<Error>(
+          util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));
       }
 
       ProgressBar progress_bar("Recompressing...");
