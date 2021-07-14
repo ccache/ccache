@@ -33,7 +33,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
-#include <util/string_utils.hpp>
+#include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
 

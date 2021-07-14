@@ -31,7 +31,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
-#include <util/path_utils.hpp>
+#include <util/path.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

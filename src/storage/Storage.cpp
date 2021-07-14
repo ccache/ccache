@@ -30,7 +30,7 @@
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
 #include <util/Tokenizer.hpp>
-#include <util/string_utils.hpp>
+#include <util/string.hpp>
 
 #include <third_party/url.hpp>
 

@@ -30,7 +30,7 @@
 #include <core/wincompat.hpp>
 #include <exceptions.hpp>
 #include <fmtmacros.hpp>
-#include <util/file_utils.hpp>
+#include <util/file.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

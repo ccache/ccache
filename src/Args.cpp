@@ -20,7 +20,7 @@
 
 #include "Util.hpp"
 
-#include <util/string_utils.hpp>
+#include <util/string.hpp>
 
 using nonstd::nullopt;
 using nonstd::optional;

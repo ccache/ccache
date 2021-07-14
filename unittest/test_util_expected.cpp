@@ -16,7 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <util/expected_utils.hpp>
+#include <util/expected.hpp>
 
 #include <third_party/doctest.h>
 #include <third_party/nonstd/expected.hpp>

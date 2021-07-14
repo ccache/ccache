@@ -18,7 +18,7 @@
 
 #include <Util.hpp>
 #include <fmtmacros.hpp>
-#include <util/path_utils.hpp>
+#include <util/path.hpp>
 
 #include <third_party/doctest.h>
 

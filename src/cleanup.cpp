@@ -26,7 +26,7 @@
 #include "Statistics.hpp"
 #include "Util.hpp"
 
-#include <util/string_utils.hpp>
+#include <util/string.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"

@@ -21,7 +21,7 @@
 #include "Manifest.hpp"
 #include "Result.hpp"
 
-#include <util/string_utils.hpp>
+#include <util/string.hpp>
 
 const Stat&
 CacheFile::lstat() const

@@ -25,8 +25,8 @@
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
-#include <util/file_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/file.hpp>
+#include <util/string.hpp>
 
 #include <third_party/nonstd/string_view.hpp>
 

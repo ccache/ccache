@@ -27,7 +27,7 @@
 #include "language.hpp"
 
 #include <core/wincompat.hpp>
-#include <util/string_utils.hpp>
+#include <util/string.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

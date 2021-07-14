@@ -33,7 +33,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
-#include <util/path_utils.hpp>
+#include <util/path.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>

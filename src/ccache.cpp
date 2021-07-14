@@ -57,9 +57,9 @@
 
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
-#include <util/expected_utils.hpp>
-#include <util/path_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/expected.hpp>
+#include <util/path.hpp>
+#include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"

@@ -28,8 +28,8 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
-#include <util/path_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/path.hpp>
+#include <util/string.hpp>
 
 extern "C" {
 #include "third_party/base32hex.h"

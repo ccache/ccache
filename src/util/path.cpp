@@ -16,32 +16,45 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "file_utils.hpp"
+#include "path.hpp"
 
-#include <Logging.hpp>
 #include <Util.hpp>
 #include <fmtmacros.hpp>
 
+#ifdef _WIN32
+const char k_path_delimiter[] = ";";
+#else
+const char k_path_delimiter[] = ":";
+#endif
+
 namespace util {
 
-void
-create_cachedir_tag(const std::string& dir)
+bool
+is_absolute_path(nonstd::string_view path)
 {
-  constexpr char cachedir_tag[] =
-    "Signature: 8a477f597d28d172789f06886806bc55\n"
-    "# This file is a cache directory tag created by ccache.\n"
-    "# For information about cache directory tags, see:\n"
-    "#\thttp://www.brynosaurus.com/cachedir/\n";
-
-  const std::string path = FMT("{}/CACHEDIR.TAG", dir);
-  const auto stat = Stat::stat(path);
-  if (stat) {
-    return;
+#ifdef _WIN32
+  if (path.length() >= 2 && path[1] == ':'
+      && (path[2] == '/' || path[2] == '\\')) {
+    return true;
   }
-  try {
-    Util::write_file(path, cachedir_tag);
-  } catch (const Error& e) {
-    LOG("Failed to create {}: {}", path, e.what());
+#endif
+  return !path.empty() && path[0] == '/';
+}
+
+std::vector<std::string>
+split_path_list(nonstd::string_view path_list)
+{
+  return Util::split_into_strings(path_list, k_path_delimiter);
+}
+
+std::string
+to_absolute_path(nonstd::string_view path)
+{
+  if (util::is_absolute_path(path)) {
+    return to_string(path);
+  } else {
+    return Util::normalize_absolute_path(
+      FMT("{}/{}", Util::get_actual_cwd(), path));
   }
 }
 

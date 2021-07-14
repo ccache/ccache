@@ -23,8 +23,8 @@
 #include <ccache.hpp>
 #include <exceptions.hpp>
 #include <fmtmacros.hpp>
-#include <util/expected_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/expected.hpp>
+#include <util/string.hpp>
 
 #include <third_party/httplib.h>
 #include <third_party/nonstd/string_view.hpp>

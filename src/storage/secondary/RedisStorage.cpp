@@ -21,8 +21,8 @@
 #include <Digest.hpp>
 #include <Logging.hpp>
 #include <fmtmacros.hpp>
-#include <util/expected_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/expected.hpp>
+#include <util/string.hpp>
 
 #include <hiredis/hiredis.h>
 
