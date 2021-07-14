@@ -35,6 +35,9 @@ namespace secondary {
 
 namespace {
 
+const auto DEFAULT_CONNECT_TIMEOUT = std::chrono::milliseconds{100};
+const auto DEFAULT_OPERATION_TIMEOUT = std::chrono::milliseconds{10000};
+
 nonstd::string_view
 to_string(const httplib::Error error)
 {
@@ -107,18 +110,47 @@ make_client(const Url& url)
   return client;
 }
 
+std::chrono::milliseconds
+parse_timeout_attribute(const AttributeMap& attributes,
+                        const std::string& name,
+                        const std::chrono::milliseconds default_value)
+{
+  const auto it = attributes.find(name);
+  if (it == attributes.end()) {
+    return default_value;
+  } else {
+    auto timeout_in_ms =
+      Util::parse_unsigned(it->second, 1, 1000 * 3600, "timeout");
+    return std::chrono::milliseconds{timeout_in_ms};
+  }
+}
+
 } // namespace
 
-HttpStorage::HttpStorage(const Url& url, const AttributeMap&)
+HttpStorage::HttpStorage(const Url& url, const AttributeMap& attributes)
   : m_url_path(get_url_path(url)),
     m_http_client(make_client(url))
 {
   m_http_client->set_default_headers(
     {{"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)}});
   m_http_client->set_keep_alive(true);
+  configure_timeouts(attributes);
 }
 
 HttpStorage::~HttpStorage() = default;
+
+void
+HttpStorage::configure_timeouts(const AttributeMap& attributes)
+{
+  const auto connection_timeout = parse_timeout_attribute(
+    attributes, "connect-timeout", DEFAULT_CONNECT_TIMEOUT);
+  const auto operation_timeout = parse_timeout_attribute(
+    attributes, "operation-timeout", DEFAULT_OPERATION_TIMEOUT);
+
+  m_http_client->set_connection_timeout(connection_timeout);
+  m_http_client->set_read_timeout(operation_timeout);
+  m_http_client->set_write_timeout(operation_timeout);
+}
 
 nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
 HttpStorage::get(const Digest& key)

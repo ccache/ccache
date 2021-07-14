@@ -947,9 +947,13 @@ Examples:
 * `http://localhost:8080/`
 * `http://someusername:p4ssw0rd@example.com/cache`
 
+Optional attributes:
+
+* *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
+* *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
+
 Known issues and limitations:
 
-* There are no HTTP timeouts implemented or configured.
 * HTTPS is not yet supported.
 * URLs containing IPv6 addresses like `http://[::1]/` are not supported.
 

@@ -50,6 +50,7 @@ private:
   const std::string m_url_path;
   std::unique_ptr<httplib::Client> m_http_client;
 
+  void configure_timeouts(const AttributeMap& attributes);
   std::string get_entry_path(const Digest& key) const;
 };
 
