@@ -95,6 +95,7 @@ using nonstd::string_view;
 
 constexpr const char VERSION_TEXT[] =
   R"({} version {}
+Features: {}
 
 Copyright (C) 2002-2007 Andrew Tridgell
 Copyright (C) 2009-2021 Joel Rosdahl and other contributors
@@ -160,6 +161,13 @@ Options for scripting or debugging:
 
 See also the manual on <https://ccache.dev/documentation.html>.
 )";
+
+constexpr const char FEATURE_TEXT[] =
+  "http-storage"
+#ifdef HAVE_REDIS_STORAGE_BACKEND
+  " redis-storage"
+#endif
+  ;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -2456,7 +2464,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'V': // --version
-      PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);
+      PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION, FEATURE_TEXT);
       exit(EXIT_SUCCESS);
 
     case 'x': // --show-compression

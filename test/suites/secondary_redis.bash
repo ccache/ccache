@@ -1,4 +1,8 @@
 SUITE_secondary_redis_PROBE() {
+    if ! $CCACHE --version | fgrep -q -- redis-storage &> /dev/null; then
+        echo "redis-storage not available"
+        return
+    fi
     if ! command -v redis-server &> /dev/null; then
         echo "redis-server not found"
         return
