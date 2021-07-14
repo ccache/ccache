@@ -43,6 +43,7 @@ Here are some hints to make the process smoother:
   for merging yet but you want early comments and CI test results? Then create a
   draft pull request as described in [this Github blog
   post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
+* Please add test cases for your new changes if applicable.
 * Please follow the ccache's code style (see the section below).
 * Consider [A Note About Git Commit
   Messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
