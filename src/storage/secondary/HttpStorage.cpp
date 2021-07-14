@@ -24,6 +24,7 @@
 #include <ccache.hpp>
 #include <exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/string_utils.hpp>
 
 #include <third_party/httplib.h>
 #include <third_party/nonstd/string_view.hpp>
@@ -71,18 +72,6 @@ to_string(const httplib::Error error)
   return "Unknown";
 }
 
-int
-get_url_port(const Url& url)
-{
-  if (!url.port().empty()) {
-    return Util::parse_unsigned(url.port(), 1, 65535, "port");
-  } else if (url.scheme() == "http") {
-    return 80;
-  } else {
-    throw Error("Unknown scheme: {}", url.scheme());
-  }
-}
-
 std::string
 get_url_path(const Url& url)
 {
@@ -93,12 +82,36 @@ get_url_path(const Url& url)
   return path;
 }
 
+std::unique_ptr<httplib::Client>
+make_client(const Url& url)
+{
+  std::string scheme_host_port;
+
+  if (url.port().empty()) {
+    scheme_host_port = FMT("{}://{}", url.scheme(), url.host());
+  } else {
+    scheme_host_port = FMT("{}://{}:{}", url.scheme(), url.host(), url.port());
+  }
+
+  auto client = std::make_unique<httplib::Client>(scheme_host_port.c_str());
+  if (!url.user_info().empty()) {
+    const auto pair = util::split_once(url.user_info(), ':');
+    if (!pair.second) {
+      throw Error("Expected username:password in URL but got: '{}'",
+                  url.user_info());
+    }
+    client->set_basic_auth(nonstd::sv_lite::to_string(pair.first).c_str(),
+                           nonstd::sv_lite::to_string(*pair.second).c_str());
+  }
+
+  return client;
+}
+
 } // namespace
 
 HttpStorage::HttpStorage(const Url& url, const AttributeMap&)
   : m_url_path(get_url_path(url)),
-    m_http_client(
-      std::make_unique<httplib::Client>(url.host(), get_url_port(url)))
+    m_http_client(make_client(url))
 {
   m_http_client->set_default_headers(
     {{"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)}});

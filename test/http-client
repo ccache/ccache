@@ -7,9 +7,13 @@ import sys
 import time
 import urllib.request
 
-def run(url, timeout):
+def run(url, timeout, basic_auth):
     deadline = time.time() + timeout
     req = urllib.request.Request(url, method="HEAD")
+    if basic_auth:
+        import base64
+        encoded_credentials = base64.b64encode(basic_auth.encode("ascii")).decode("ascii")
+        req.add_header("Authorization", f"Basic {encoded_credentials}")
     while True:
         try:
             response = urllib.request.urlopen(req)
@@ -26,6 +30,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--basic-auth', '-B',
+                        help='Basic auth tuple like user:pass')
     parser.add_argument('--timeout', '-t', metavar='TIMEOUT',
                         default=10, type=int,
                         help='Maximum seconds to wait for successful connection attempt '
@@ -38,4 +44,5 @@ if __name__ == "__main__":
     run(
         url=args.url,
         timeout=args.timeout,
+        basic_auth=args.basic_auth,
     )
