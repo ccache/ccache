@@ -30,12 +30,10 @@
 
 namespace util {
 
+// --- Interface ---
+
 // Return true if `suffix` is a suffix of `string`.
-inline bool
-ends_with(const nonstd::string_view string, const nonstd::string_view suffix)
-{
-  return string.ends_with(suffix);
-}
+bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
 // Parse a string into a signed integer.
 //
@@ -77,22 +75,33 @@ std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
 split_once(nonstd::string_view string, char split_char);
 
 // Return true if `prefix` is a prefix of `string`.
+bool starts_with(const char* string, nonstd::string_view prefix);
+
+// Return true if `prefix` is a prefix of `string`.
+bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
+
+// Strip whitespace from left and right side of a string.
+[[nodiscard]] std::string strip_whitespace(nonstd::string_view string);
+
+// --- Inline implementations ---
+
 inline bool
-starts_with(const char* string, const nonstd::string_view prefix)
+ends_with(const nonstd::string_view string, const nonstd::string_view suffix)
+{
+  return string.ends_with(suffix);
+}
+inline bool
+starts_with(const char* const string, const nonstd::string_view prefix)
 {
   // Optimized version of starts_with(string_view, string_view): avoid computing
   // the length of the string argument.
   return std::strncmp(string, prefix.data(), prefix.length()) == 0;
 }
 
-// Return true if `prefix` is a prefix of `string`.
 inline bool
 starts_with(const nonstd::string_view string, const nonstd::string_view prefix)
 {
   return string.starts_with(prefix);
 }
-
-// Strip whitespace from left and right side of a string.
-[[nodiscard]] std::string strip_whitespace(nonstd::string_view string);
 
 } // namespace util

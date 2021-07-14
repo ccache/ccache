@@ -22,6 +22,8 @@
 
 namespace util {
 
+// --- Interface ---
+
 void create_cachedir_tag(const std::string& dir);
 
-}
+} // namespace util
