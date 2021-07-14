@@ -22,8 +22,9 @@ set(
   test_compopt.cpp
   test_hashutil.cpp
   test_util_Tokenizer.cpp
-  test_util_string_utils.cpp
+  test_util_expected_utils.cpp
   test_util_path_utils.cpp
+  test_util_string_utils.cpp
 )
 
 if(INODE_CACHE_SUPPORTED)
