@@ -92,6 +92,13 @@ if(REDIS_STORAGE_BACKEND)
            third_party_lib)
 endif()
 
+if(KYOTO_STORAGE_BACKEND)
+  target_compile_definitions(ccache_lib PRIVATE -DHAVE_KYOTO_STORAGE_BACKEND)
+
+  target_include_directories(ccache_lib PRIVATE ${KYOTO_INCLUDE_DIR} )
+  target_link_libraries(ccache_lib PUBLIC ${KYOTO_LIBRARY})
+endif()
+
 add_subdirectory(core)
 add_subdirectory(storage)
 add_subdirectory(third_party)

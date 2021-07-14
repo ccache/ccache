@@ -29,6 +29,9 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
+#ifdef HAVE_KYOTO_STORAGE_BACKEND
+#  include <storage/secondary/KyotoStorage.hpp>
+#endif
 #include <util/Tokenizer.hpp>
 #include <util/string_utils.hpp>
 
@@ -251,6 +254,13 @@ create_storage(const ParseStorageEntryResult& storage_entry)
 #ifdef HAVE_REDIS_STORAGE_BACKEND
   if (storage_entry.url.scheme() == "redis") {
     return std::make_unique<secondary::RedisStorage>(storage_entry.url,
+                                                     storage_entry.attributes);
+  }
+#endif
+
+#ifdef HAVE_KYOTO_STORAGE_BACKEND
+  if (storage_entry.url.scheme() == "kt") {
+    return std::make_unique<secondary::KyotoStorage>(storage_entry.url,
                                                      storage_entry.attributes);
   }
 #endif
