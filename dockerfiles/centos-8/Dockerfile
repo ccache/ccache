@@ -14,6 +14,9 @@ RUN dnf install -y epel-release \
         elfutils \
         gcc \
         gcc-c++ \
+        hiredis-devel \
         libzstd-devel \
         make \
+        python3 \
+        redis \
  && dnf clean all

@@ -9,7 +9,11 @@ RUN apt-get update \
         cmake \
         elfutils \
         gcc-multilib \
+        libhiredis-dev \
         libzstd-dev \
+        python3 \
+        redis-server \
+        redis-tools \
         xsltproc \
  && rm -rf /var/lib/apt/lists/*
 
