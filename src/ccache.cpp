@@ -1907,14 +1907,6 @@ set_up_uncached_err()
 }
 
 static void
-configuration_logger(const std::string& key,
-                     const std::string& value,
-                     const std::string& origin)
-{
-  BULK_LOG("Config: ({}) {} = {}", origin, key, value);
-}
-
-static void
 configuration_printer(const std::string& key,
                       const std::string& value,
                       const std::string& origin)
@@ -2039,7 +2031,15 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   if (!ctx.config.log_file().empty() || ctx.config.debug()) {
-    ctx.config.visit_items(configuration_logger);
+    ctx.config.visit_items([&ctx](const std::string& key,
+                                  const std::string& value,
+                                  const std::string& origin) {
+      const auto& log_value =
+        key == "secondary_storage"
+          ? ctx.storage.get_secondary_storage_config_for_logging()
+          : value;
+      BULK_LOG("Config: ({}) {} = {}", origin, key, log_value);
+    });
   }
 
   // Guess compiler after logging the config value in order to be able to

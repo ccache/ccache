@@ -71,19 +71,20 @@ SUITE_secondary_http() {
     # -------------------------------------------------------------------------
     TEST "Basic auth"
 
-    start_http_server 12780 secondary "somebody:secret"
-    export CCACHE_SECONDARY_STORAGE="http://somebody:secret@localhost:12780"
+    start_http_server 12780 secondary "somebody:secret123"
+    export CCACHE_SECONDARY_STORAGE="http://somebody:secret123@localhost:12780"
 
-    $CCACHE_COMPILE -c test.c
+    CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_file_count 2 '*' secondary # result + manifest
+    expect_not_contains test.o.ccache-log secret123
 
     # -------------------------------------------------------------------------
     TEST "Basic auth required"
 
-    start_http_server 12780 secondary "somebody:secret"
+    start_http_server 12780 secondary "somebody:secret123"
     # no authentication configured on client
     export CCACHE_SECONDARY_STORAGE="http://localhost:12780"
 
@@ -97,7 +98,7 @@ SUITE_secondary_http() {
     # -------------------------------------------------------------------------
     TEST "Basic auth failed"
 
-    start_http_server 12780 secondary "somebody:secret"
+    start_http_server 12780 secondary "somebody:secret123"
     export CCACHE_SECONDARY_STORAGE="http://somebody:wrong@localhost:12780"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
@@ -105,6 +106,7 @@ SUITE_secondary_http() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_file_count 0 '*' secondary # result + manifest
+    expect_not_contains test.o.ccache-log secret123
     expect_contains test.o.ccache-log "status code: 401"
 
      # -------------------------------------------------------------------------

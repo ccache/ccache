@@ -16,21 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
-
 #include "SecondaryStorage.hpp"
+
+#include <util/expected.hpp>
+#include <util/string.hpp>
 
 namespace storage {
 namespace secondary {
 
-class RedisStorage : public SecondaryStorage
+bool
+SecondaryStorage::Backend::is_framework_attribute(const std::string& name)
 {
-public:
-  std::unique_ptr<Backend>
-  create_backend(const Backend::Params& params) const override;
+  return name == "read-only";
+}
 
-  void redact_secrets(Backend::Params& params) const override;
-};
+std::chrono::milliseconds
+SecondaryStorage::Backend::parse_timeout_attribute(const std::string& value)
+{
+  return std::chrono::milliseconds(util::value_or_throw<Failed>(
+    util::parse_unsigned(value, 1, 60 * 1000, "timeout")));
+}
 
 } // namespace secondary
 } // namespace storage
