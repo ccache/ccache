@@ -11,6 +11,9 @@ RUN dnf install -y \
         findutils \
         gcc \
         gcc-c++ \
+        hiredis-devel \
         libzstd-devel \
         make \
+        python3 \
+        redis \
  && dnf clean all

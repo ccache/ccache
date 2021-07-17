@@ -32,8 +32,8 @@ build ubuntu-18.04 clang clang++ clang
 build ubuntu-20.04 gcc   g++     gcc
 build ubuntu-20.04 clang clang++ clang
 
-build centos-7     gcc   g++     gcc     -DWARNINGS_AS_ERRORS=false
-build centos-7     gcc   g++     clang   -DWARNINGS_AS_ERRORS=false
+build centos-7     gcc   g++     gcc     -DWARNINGS_AS_ERRORS=false -DREDIS_STORAGE_BACKEND=OFF
+build centos-7     gcc   g++     clang   -DWARNINGS_AS_ERRORS=false -DREDIS_STORAGE_BACKEND=OFF
 
 build centos-8     gcc   g++     gcc
 build centos-8     clang clang++ clang

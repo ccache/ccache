@@ -8,9 +8,12 @@ RUN apk add --no-cache \
         elfutils \
         g++ \
         gcc \
+        hiredis-dev \
         libc-dev \
         make \
         perl \
+        python3 \
+        redis \
         zstd-dev
 
 # Redirect all compilers to ccache.

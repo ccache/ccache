@@ -45,6 +45,7 @@ extern "C" {
 #include <fcntl.h>
 
 #include <algorithm>
+#include <climits>
 #include <fstream>
 
 #ifndef HAVE_DIRENT_H
