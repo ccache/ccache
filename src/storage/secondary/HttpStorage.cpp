@@ -85,18 +85,41 @@ get_url_path(const Url& url)
   return path;
 }
 
+std::string
+get_host_header_value(const Url& url)
+{
+  // We need to construct an HTTP Host header that follows the same IPv6
+  // escaping rules like a URL. To avoid code duplication we re-use the
+  // Url class to render that string.
+
+  Url host_and_port_only;
+  host_and_port_only.host(url.host(), url.ip_version()).port(url.port());
+
+  // The rendered_value now contains a string like '//[::1]:8080'. The trailing
+  // slashes must be stripped.
+  const auto rendered_value = host_and_port_only.str();
+  const auto prefix = nonstd::string_view{"//"};
+  if (!Util::starts_with(rendered_value, prefix)) {
+    throw Error(
+      "Expected partial URL to start with '{}': '{}'", prefix, rendered_value);
+  }
+  return rendered_value.substr(prefix.size());
+}
+
 std::unique_ptr<httplib::Client>
 make_client(const Url& url)
 {
-  std::string scheme_host_port;
-
-  if (url.port().empty()) {
-    scheme_host_port = FMT("{}://{}", url.scheme(), url.host());
-  } else {
-    scheme_host_port = FMT("{}://{}:{}", url.scheme(), url.host(), url.port());
+  if (url.host().empty()) {
+    throw Error("A host is required in HTTP storage URL: '{}'", url.str());
   }
 
-  auto client = std::make_unique<httplib::Client>(scheme_host_port.c_str());
+  // the httplib requires a partial URL with just scheme, host and port
+  Url destination;
+  destination.scheme(url.scheme())
+    .host(url.host(), url.ip_version())
+    .port(url.port());
+
+  auto client = std::make_unique<httplib::Client>(destination.str().c_str());
   if (!url.user_info().empty()) {
     const auto pair = util::split_once(url.user_info(), ':');
     if (!pair.second) {
@@ -132,7 +155,10 @@ HttpStorage::HttpStorage(const Url& url, const AttributeMap& attributes)
     m_http_client(make_client(url))
 {
   m_http_client->set_default_headers(
-    {{"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)}});
+    {// explicit setting of the Host header is required due to IPv6 address
+     // handling issues in httplib
+     {"Host", get_host_header_value(url)},
+     {"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)}});
   m_http_client->set_keep_alive(true);
   configure_timeouts(attributes);
 }
