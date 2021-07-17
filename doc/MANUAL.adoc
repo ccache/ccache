@@ -955,7 +955,6 @@ Optional attributes:
 Known issues and limitations:
 
 * HTTPS is not yet supported.
-* URLs containing IPv6 addresses like `http://[::1]/` are not supported.
 
 === Redis storage backend
 
