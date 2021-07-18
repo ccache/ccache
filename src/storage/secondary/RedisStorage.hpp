@@ -24,6 +24,7 @@
 #include <third_party/url.hpp>
 
 struct redisContext;
+struct redisSSLContext;
 
 namespace storage {
 namespace secondary {
@@ -45,6 +46,8 @@ private:
   Url m_url;
   std::string m_prefix;
   redisContext* m_context;
+  std::string m_ca_cert;
+  redisSSLContext* m_ssl_context;
   const uint64_t m_connect_timeout;
   const uint64_t m_operation_timeout;
   bool m_connected;

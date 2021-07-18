@@ -958,7 +958,7 @@ Known issues and limitations:
 
 === Redis storage backend
 
-URL format: `redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]`
+URL format: `redis[s]://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]`
 
 This backend stores data in a https://redis.io[Redis] (or Redis-compatible)
 server. There are implementations for both memory-based and disk-based storage.
@@ -974,6 +974,7 @@ Examples:
 
 Optional attributes:
 
+* *cacert*: Path to a SSL Root CA file.
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
 

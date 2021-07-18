@@ -102,6 +102,18 @@ if(REDIS_STORAGE_BACKEND)
   find_package(hiredis 0.13.3 REQUIRED)
 endif()
 
+option(REDISS_STORAGE_BACKEND "Enable Redis SSL secondary storage" OFF)
+if(REDISS_STORAGE_BACKEND)
+  message(WARNING
+    "Linking against OpenSSL doubles ccache startup time. Distributions are "
+    "encouraged to provide two ccache binaries: one without any extra "
+    "backends and one with the all the desired backends enabled.")
+  find_package(hiredis 1.0.0 REQUIRED)
+  if(NOT hiredis_ssl_FOUND)
+    message(FATAL_ERROR "hiredis_ssl not found")
+  endif()
+endif()
+
 #
 # Special flags
 #

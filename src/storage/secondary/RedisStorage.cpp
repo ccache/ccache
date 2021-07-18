@@ -24,6 +24,9 @@
 #include <util/string_utils.hpp>
 
 #include <hiredis/hiredis.h>
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+#  include <hiredis/hiredis_ssl.h>
+#endif
 
 #include <cstdarg>
 #include <memory>
@@ -54,6 +57,16 @@ milliseconds_to_timeval(const uint64_t ms)
   tv.tv_sec = ms / 1000;
   tv.tv_usec = (ms % 1000) * 1000;
   return tv;
+}
+
+static nonstd::optional<std::string>
+parse_string_attribute(const AttributeMap& attributes, const std::string& name)
+{
+  const auto it = attributes.find(name);
+  if (it == attributes.end()) {
+    return nonstd::nullopt;
+  }
+  return it->second;
 }
 
 static uint64_t
@@ -89,6 +102,8 @@ RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
   : m_url(url),
     m_prefix("ccache"), // TODO: attribute
     m_context(nullptr),
+    m_ca_cert(parse_string_attribute(attributes, "cacert").value_or("")),
+    m_ssl_context(nullptr),
     m_connect_timeout(parse_timeout_attribute(
       attributes, "connect-timeout", DEFAULT_CONNECT_TIMEOUT_MS)),
     m_operation_timeout(parse_timeout_attribute(
@@ -100,6 +115,15 @@ RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
 
 RedisStorage::~RedisStorage()
 {
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  if (m_ssl_context) {
+    redisFreeSSLContext(m_ssl_context);
+    m_ssl_context = nullptr;
+  }
+#else
+  // avoid unused-private-field warning
+  (void)m_ssl_context;
+#endif
   if (m_context) {
     LOG_RAW("Redis disconnect");
     redisFree(m_context);
@@ -127,7 +151,12 @@ RedisStorage::connect()
     m_context = nullptr;
   }
 
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  ASSERT(m_url.scheme() == "redis" || m_url.scheme() == "rediss");
+  bool secure = (m_url.scheme() == "rediss");
+#else
   ASSERT(m_url.scheme() == "redis");
+#endif
   const std::string host = m_url.host().empty() ? "localhost" : m_url.host();
   const uint32_t port =
     m_url.port().empty() ? DEFAULT_PORT
@@ -140,6 +169,25 @@ RedisStorage::connect()
                              0,
                              std::numeric_limits<uint32_t>::max(),
                              "db number");
+
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  if (secure) {
+    if (redisInitOpenSSL() != REDIS_OK) {
+      LOG_RAW("Redis SSL init OpenSSL failed");
+      m_invalid = true;
+      return REDIS_ERR;
+    }
+    const char* cacert = m_ca_cert.empty() ? NULL : m_ca_cert.c_str();
+    redisSSLContextError ssl_error;
+    m_ssl_context =
+      redisCreateSSLContext(cacert, NULL, NULL, NULL, NULL, &ssl_error);
+    if (!m_ssl_context) {
+      LOG("Redis SSL create error: {}", redisSSLContextGetError(ssl_error));
+      m_invalid = true;
+      return REDIS_ERR;
+    }
+  }
+#endif
 
   const auto connect_timeout = milliseconds_to_timeval(m_connect_timeout);
 
@@ -166,6 +214,16 @@ RedisStorage::connect()
       != REDIS_OK) {
     LOG_RAW("Failed to set operation timeout");
   }
+
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  if (secure) {
+    if (redisInitiateSSLWithContext(m_context, m_ssl_context) != REDIS_OK) {
+      LOG("Redis SSL init error: {}", m_context->errstr);
+      m_invalid = true;
+      return REDIS_ERR;
+    }
+  }
+#endif
 
   if (db_number != 0) {
     LOG("Redis SELECT {}", db_number);
