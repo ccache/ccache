@@ -290,16 +290,15 @@ PrimaryStorage::look_up_cache_file(const Digest& key,
 
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
        ++level) {
-    const auto path =
-      Util::get_path_in_cache(m_config.cache_dir(), level, key_string);
+    const auto path = get_path_in_cache(level, key_string);
     const auto stat = Stat::stat(path);
     if (stat) {
       return {path, stat, level};
     }
   }
 
-  const auto shallowest_path = Util::get_path_in_cache(
-    m_config.cache_dir(), k_min_cache_levels, key_string);
+  const auto shallowest_path =
+    get_path_in_cache(k_min_cache_levels, key_string);
   return {shallowest_path, Stat(), k_min_cache_levels};
 }
 
@@ -370,9 +369,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
     const auto wanted_level =
       calculate_wanted_cache_level(counters->get(Statistic::files_in_cache));
     const auto wanted_path =
-      Util::get_path_in_cache(m_config.cache_dir(),
-                              wanted_level,
-                              key.to_string() + suffix_from_type(type));
+      get_path_in_cache(wanted_level, key.to_string() + suffix_from_type(type));
     if (current_path != wanted_path) {
       Util::ensure_dir_exists(Util::dir_name(wanted_path));
       LOG("Moving {} to {}", current_path, wanted_path);
@@ -385,6 +382,28 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
     }
   }
   return counters;
+}
+
+std::string
+PrimaryStorage::get_path_in_cache(const uint8_t level,
+                                  const nonstd::string_view name) const
+{
+  ASSERT(level >= 1 && level <= 8);
+  ASSERT(name.length() >= level);
+
+  std::string path(m_config.cache_dir());
+  path.reserve(path.size() + level * 2 + 1 + name.length() - level);
+
+  for (uint8_t i = 0; i < level; ++i) {
+    path.push_back('/');
+    path.push_back(name.at(i));
+  }
+
+  path.push_back('/');
+  const nonstd::string_view name_remaining = name.substr(level);
+  path.append(name_remaining.data(), name_remaining.length());
+
+  return path;
 }
 
 } // namespace primary

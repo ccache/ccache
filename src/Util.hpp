@@ -220,13 +220,6 @@ const char* get_hostname();
 std::string get_relative_path(nonstd::string_view dir,
                               nonstd::string_view path);
 
-// Join `cache_dir`, a '/' and `name` into a single path and return it.
-// Additionally, `level` single-character, '/'-separated subpaths are split from
-// the beginning of `name` before joining them all.
-std::string get_path_in_cache(nonstd::string_view cache_dir,
-                              uint8_t level,
-                              nonstd::string_view name);
-
 // Hard-link `oldpath` to `newpath`. Throws `Error` on error.
 void hard_link(const std::string& oldpath, const std::string& newpath);
 

@@ -429,14 +429,6 @@ TEST_CASE("Util::get_relative_path")
 #endif
 }
 
-TEST_CASE("Util::get_path_in_cache")
-{
-  CHECK(Util::get_path_in_cache("/zz/ccache", 1, "ABCDEF.suffix")
-        == "/zz/ccache/A/BCDEF.suffix");
-  CHECK(Util::get_path_in_cache("/zz/ccache", 4, "ABCDEF.suffix")
-        == "/zz/ccache/A/B/C/D/EF.suffix");
-}
-
 TEST_CASE("Util::hard_link")
 {
   TestContext test_context;

@@ -776,27 +776,6 @@ get_relative_path(string_view dir, string_view path)
   return result.empty() ? "." : result;
 }
 
-std::string
-get_path_in_cache(string_view cache_dir, uint8_t level, string_view name)
-{
-  ASSERT(level >= 1 && level <= 8);
-  ASSERT(name.length() >= level);
-
-  std::string path(cache_dir);
-  path.reserve(path.size() + level * 2 + 1 + name.length() - level);
-
-  for (uint8_t i = 0; i < level; ++i) {
-    path.push_back('/');
-    path.push_back(name.at(i));
-  }
-
-  path.push_back('/');
-  string_view name_remaining = name.substr(level);
-  path.append(name_remaining.data(), name_remaining.length());
-
-  return path;
-}
-
 void
 hard_link(const std::string& oldpath, const std::string& newpath)
 {
