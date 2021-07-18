@@ -76,7 +76,7 @@ SUITE_secondary_redis() {
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
+    expect_stat 'files in cache' 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     # -------------------------------------------------------------------------
@@ -109,6 +109,6 @@ SUITE_secondary_redis() {
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
+    expect_stat 'files in cache' 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 }

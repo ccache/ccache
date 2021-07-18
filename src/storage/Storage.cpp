@@ -186,6 +186,17 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
   } catch (const Error& e) {
     throw Fatal("Error writing to {}: {}", tmp_file.path, e.what());
   }
+
+  m_primary_storage.put(key, type, [&](const std::string& path) {
+    try {
+      Util::copy_file(tmp_file.path, path);
+    } catch (const Error& e) {
+      LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
+      // Don't indicate failure since get from primary storage was OK.
+    }
+    return true;
+  });
+
   return tmp_file.path;
 }
 

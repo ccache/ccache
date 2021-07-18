@@ -64,8 +64,7 @@ SUITE_secondary_http() {
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
-    expect_stat 'files in cache' 0
+    expect_stat 'files in cache' 2 # fetched from secondary
     expect_file_count 2 '*' secondary # result + manifest
 
     # -------------------------------------------------------------------------
@@ -134,8 +133,7 @@ SUITE_secondary_http() {
         $CCACHE_COMPILE -c test.c
         expect_stat 'cache hit (direct)' 2
         expect_stat 'cache miss' 1
-        expect_stat 'files in cache' 0
-        expect_stat 'files in cache' 0
+        expect_stat 'files in cache' 2 # fetched from secondary
         expect_file_count 2 '*' secondary # result + manifest
     fi
 }
