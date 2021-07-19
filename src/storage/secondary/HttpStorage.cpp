@@ -103,19 +103,26 @@ get_url_path(const Url& url)
   return path;
 }
 
+Url
+get_partial_url(const Url& from_url)
+{
+  Url url;
+  url.host(from_url.host(), from_url.ip_version());
+  if (!from_url.port().empty()) {
+    url.port(from_url.port());
+  }
+  return url;
+}
+
 std::string
 get_host_header_value(const Url& url)
 {
   // We need to construct an HTTP Host header that follows the same IPv6
-  // escaping rules like a URL. To avoid code duplication we re-use the
-  // Url class to render that string.
+  // escaping rules like a URL.
+  const auto rendered_value = get_partial_url(url).str();
 
-  Url host_and_port_only;
-  host_and_port_only.host(url.host(), url.ip_version()).port(url.port());
-
-  // The rendered_value now contains a string like '//[::1]:8080'. The trailing
+  // The rendered_value now contains a string like "//[::1]:8080". The leading
   // slashes must be stripped.
-  const auto rendered_value = host_and_port_only.str();
   const auto prefix = nonstd::string_view{"//"};
   if (!util::starts_with(rendered_value, prefix)) {
     throw Fatal(R"(Expected partial URL "{}" to start with "{}")",
@@ -132,12 +139,8 @@ get_url(const Url& url)
     throw Fatal("A host is required in HTTP storage URL \"{}\"", url.str());
   }
 
-  //  httplib requires a partial URL with just scheme, host and port.
-  Url destination;
-  destination.scheme(url.scheme())
-    .host(url.host(), url.ip_version())
-    .port(url.port());
-  return destination.str();
+  // httplib requires a partial URL with just scheme, host and port.
+  return get_partial_url(url).scheme(url.scheme()).str();
 }
 
 HttpStorageBackend::HttpStorageBackend(const Params& params)
