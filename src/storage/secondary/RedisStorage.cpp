@@ -102,7 +102,9 @@ RedisStorage::RedisStorage(const Url& url, const AttributeMap& attributes)
   : m_url(url),
     m_prefix("ccache"), // TODO: attribute
     m_context(nullptr),
-    m_ca_cert(parse_string_attribute(attributes, "cacert").value_or("")),
+    m_ca_cert(parse_string_attribute(attributes, "cacert")),
+    m_cert(parse_string_attribute(attributes, "cert")),
+    m_key(parse_string_attribute(attributes, "key")),
     m_ssl_context(nullptr),
     m_connect_timeout(parse_timeout_attribute(
       attributes, "connect-timeout", DEFAULT_CONNECT_TIMEOUT_MS)),
@@ -177,10 +179,12 @@ RedisStorage::connect()
       m_invalid = true;
       return REDIS_ERR;
     }
-    const char* cacert = m_ca_cert.empty() ? NULL : m_ca_cert.c_str();
+    const char* cacert = m_ca_cert ? m_ca_cert->c_str() : NULL;
+    const char* cert = m_cert ? m_cert->c_str() : NULL;
+    const char* key = m_key ? m_key->c_str() : NULL;
     redisSSLContextError ssl_error;
     m_ssl_context =
-      redisCreateSSLContext(cacert, NULL, NULL, NULL, NULL, &ssl_error);
+      redisCreateSSLContext(cacert, NULL, cert, key, NULL, &ssl_error);
     if (!m_ssl_context) {
       LOG("Redis SSL create error: {}", redisSSLContextGetError(ssl_error));
       m_invalid = true;

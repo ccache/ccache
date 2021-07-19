@@ -46,7 +46,9 @@ private:
   Url m_url;
   std::string m_prefix;
   redisContext* m_context;
-  std::string m_ca_cert;
+  nonstd::optional<std::string> m_ca_cert;
+  nonstd::optional<std::string> m_cert;
+  nonstd::optional<std::string> m_key;
   redisSSLContext* m_ssl_context;
   const uint64_t m_connect_timeout;
   const uint64_t m_operation_timeout;
