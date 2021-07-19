@@ -20,7 +20,8 @@
 
 #include "Logging.hpp"
 #include "assertions.hpp"
-#include "exceptions.hpp"
+
+#include <core/exceptions.hpp>
 
 #include <algorithm>
 
@@ -54,7 +55,7 @@ ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
   size_t ret = ZSTD_initCStream(m_zstd_stream, m_compression_level);
   if (ZSTD_isError(ret)) {
     ZSTD_freeCStream(m_zstd_stream);
-    throw Error("error initializing zstd compression stream");
+    throw core::Error("error initializing zstd compression stream");
   }
 }
 
@@ -89,7 +90,7 @@ ZstdCompressor::write(const void* data, size_t count)
     size_t compressed_bytes = m_zstd_out.pos;
     if (fwrite(buffer, 1, compressed_bytes, m_stream) != compressed_bytes
         || ferror(m_stream)) {
-      throw Error("failed to write to zstd output stream ");
+      throw core::Error("failed to write to zstd output stream ");
     }
   }
   ret = flush;
@@ -102,7 +103,7 @@ ZstdCompressor::write(const void* data, size_t count)
     size_t compressed_bytes = m_zstd_out.pos;
     if (fwrite(buffer, 1, compressed_bytes, m_stream) != compressed_bytes
         || ferror(m_stream)) {
-      throw Error("failed to write to zstd output stream");
+      throw core::Error("failed to write to zstd output stream");
     }
   }
 }

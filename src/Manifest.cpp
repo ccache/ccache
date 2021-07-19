@@ -32,6 +32,8 @@
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"
 
+#include <core/exceptions.hpp>
+
 #include <memory>
 
 // Manifest data format
@@ -512,7 +514,7 @@ get(const Context& ctx, const std::string& path)
       LOG_RAW("No such manifest file");
       return nullopt;
     }
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     LOG("Error: {}", e.what());
     return nullopt;
   }
@@ -553,7 +555,7 @@ put(const Config& config,
       // Manifest file didn't exist.
       mf = std::make_unique<ManifestData>();
     }
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     LOG("Error: {}", e.what());
     // Manifest file was corrupt, ignore.
     mf = std::make_unique<ManifestData>();
@@ -589,7 +591,7 @@ put(const Config& config,
     try {
       write_manifest(config, path, *mf);
       return true;
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       LOG("Error: {}", e.what());
     }
   } else {
@@ -604,7 +606,7 @@ dump(const std::string& path, FILE* stream)
   std::unique_ptr<ManifestData> mf;
   try {
     mf = read_manifest(path, stream);
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     PRINT(stream, "Error: {}\n", e.what());
     return false;
   }

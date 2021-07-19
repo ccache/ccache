@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #include "NullCompressor.hpp"
 
-#include "exceptions.hpp"
+#include <core/exceptions.hpp>
 
 NullCompressor::NullCompressor(FILE* stream) : m_stream(stream)
 {
@@ -34,7 +34,7 @@ void
 NullCompressor::write(const void* data, size_t count)
 {
   if (fwrite(data, 1, count, m_stream) != count) {
-    throw Error("failed to write to uncompressed stream");
+    throw core::Error("failed to write to uncompressed stream");
   }
 }
 
@@ -42,6 +42,6 @@ void
 NullCompressor::finalize()
 {
   if (fflush(m_stream) != 0) {
-    throw Error("failed to finalize uncompressed stream");
+    throw core::Error("failed to finalize uncompressed stream");
   }
 }

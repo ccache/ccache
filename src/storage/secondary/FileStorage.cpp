@@ -24,7 +24,7 @@
 #include <UmaskScope.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
-#include <exceptions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -66,7 +66,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
 {
   ASSERT(params.url.scheme() == "file");
   if (!params.url.host().empty()) {
-    throw Fatal(FMT(
+    throw core::Fatal(FMT(
       "invalid file path \"{}\":  specifying a host (\"{}\") is not supported",
       params.url.str(),
       params.url.host()));
@@ -74,7 +74,8 @@ FileStorageBackend::FileStorageBackend(const Params& params)
 
   for (const auto& attr : params.attributes) {
     if (attr.key == "umask") {
-      m_umask = util::value_or_throw<Fatal>(util::parse_umask(attr.value));
+      m_umask =
+        util::value_or_throw<core::Fatal>(util::parse_umask(attr.value));
     } else if (attr.key == "update-mtime") {
       m_update_mtime = attr.value == "true";
     } else if (!is_framework_attribute(attr.key)) {
@@ -104,7 +105,7 @@ FileStorageBackend::get(const Digest& key)
   try {
     LOG("Reading {}", path);
     return Util::read_file(path);
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     LOG("Failed to read {}: {}", path, e.what());
     return nonstd::make_unexpected(Failure::error);
   }
@@ -139,7 +140,7 @@ FileStorageBackend::put(const Digest& key,
       file.write(value);
       file.commit();
       return true;
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       LOG("Failed to write {}: {}", path, e.what());
       return nonstd::make_unexpected(Failure::error);
     }

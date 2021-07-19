@@ -20,6 +20,7 @@
 
 #include <Logging.hpp>
 #include <Util.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 
 namespace util {
@@ -40,7 +41,7 @@ create_cachedir_tag(const std::string& dir)
   }
   try {
     Util::write_file(path, cachedir_tag);
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     LOG("Failed to create {}: {}", path, e.what());
   }
 }

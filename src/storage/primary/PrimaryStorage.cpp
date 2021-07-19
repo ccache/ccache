@@ -27,8 +27,8 @@
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <cleanup.hpp>
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
-#include <exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
 
@@ -375,7 +375,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
       LOG("Moving {} to {}", current_path, wanted_path);
       try {
         Util::rename(current_path, wanted_path);
-      } catch (const Error&) {
+      } catch (const core::Error&) {
         // Two ccache processes may move the file at the same time, so failure
         // to rename is OK.
       }

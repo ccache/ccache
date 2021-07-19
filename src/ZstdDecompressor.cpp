@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,8 @@
 #include "ZstdDecompressor.hpp"
 
 #include "assertions.hpp"
-#include "exceptions.hpp"
+
+#include <core/exceptions.hpp>
 
 ZstdDecompressor::ZstdDecompressor(FILE* stream)
   : m_stream(stream),
@@ -31,7 +32,7 @@ ZstdDecompressor::ZstdDecompressor(FILE* stream)
   size_t ret = ZSTD_initDStream(m_zstd_stream);
   if (ZSTD_isError(ret)) {
     ZSTD_freeDStream(m_zstd_stream);
-    throw Error("failed to initialize zstd decompression stream");
+    throw core::Error("failed to initialize zstd decompression stream");
   }
 }
 
@@ -49,7 +50,7 @@ ZstdDecompressor::read(void* data, size_t count)
     if (m_input_size == m_input_consumed) {
       m_input_size = fread(m_input_buffer, 1, sizeof(m_input_buffer), m_stream);
       if (m_input_size == 0) {
-        throw Error("failed to read from zstd input stream");
+        throw core::Error("failed to read from zstd input stream");
       }
       m_input_consumed = 0;
     }
@@ -63,7 +64,7 @@ ZstdDecompressor::read(void* data, size_t count)
     m_zstd_out.pos = 0;
     size_t ret = ZSTD_decompressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
     if (ZSTD_isError(ret)) {
-      throw Error("failed to read from zstd input stream");
+      throw core::Error("failed to read from zstd input stream");
     }
     if (ret == 0) {
       m_reached_stream_end = true;
@@ -78,6 +79,6 @@ void
 ZstdDecompressor::finalize()
 {
   if (!m_reached_stream_end) {
-    throw Error("garbage data at end of zstd input stream");
+    throw core::Error("garbage data at end of zstd input stream");
   }
 }

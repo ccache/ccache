@@ -23,6 +23,7 @@
 #include <TemporaryFile.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/secondary/FileStorage.hpp>
 #include <storage/secondary/HttpStorage.hpp>
@@ -97,7 +98,7 @@ parse_storage_config(const nonstd::string_view entry)
     Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
 
   if (parts.empty() || parts.front().empty()) {
-    throw Error("secondary storage config must provide a URL: {}", entry);
+    throw core::Error("secondary storage config must provide a URL: {}", entry);
   }
 
   SecondaryStorageConfig result;
@@ -106,11 +107,11 @@ parse_storage_config(const nonstd::string_view entry)
   try {
     std::ignore = result.params.url.host();
   } catch (const Url::parse_error& e) {
-    throw Error("Cannot parse URL: {}", e.what());
+    throw core::Error("Cannot parse URL: {}", e.what());
   }
 
   if (result.params.url.scheme().empty()) {
-    throw Error("URL scheme must not be empty: {}", entry);
+    throw core::Error("URL scheme must not be empty: {}", entry);
   }
 
   for (size_t i = 1; i < parts.size(); ++i) {
@@ -121,7 +122,7 @@ parse_storage_config(const nonstd::string_view entry)
     const auto& key = kv_pair.first;
     const auto& raw_value = kv_pair.second.value_or("true");
     const auto value =
-      util::value_or_throw<Error>(util::percent_decode(raw_value));
+      util::value_or_throw<core::Error>(util::percent_decode(raw_value));
     if (key == "read-only" && value == "true") {
       result.read_only = true;
     }
@@ -197,14 +198,14 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
   m_tmp_files.push_back(tmp_file.path);
   try {
     Util::write_file(tmp_file.path, *value);
-  } catch (const Error& e) {
-    throw Fatal("Error writing to {}: {}", tmp_file.path, e.what());
+  } catch (const core::Error& e) {
+    throw core::Fatal("Error writing to {}: {}", tmp_file.path, e.what());
   }
 
   m_primary_storage.put(key, type, [&](const std::string& path) {
     try {
       Util::copy_file(tmp_file.path, path);
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
       // Don't indicate failure since get from primary storage was OK.
     }
@@ -236,7 +237,7 @@ Storage::put(const Digest& key,
     std::string value;
     try {
       value = Util::read_file(*path);
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       LOG("Failed to read {}: {}", *path, e.what());
       return true; // Don't indicate failure since primary storage was OK.
     }
@@ -275,7 +276,8 @@ Storage::add_secondary_storages()
     url_for_logging.user_info("");
     const auto storage = get_storage(config.params.url);
     if (!storage) {
-      throw Error("unknown secondary storage URL: {}", url_for_logging.str());
+      throw core::Error("unknown secondary storage URL: {}",
+                        url_for_logging.str());
     }
     m_secondary_storages.emplace_back(
       std::make_unique<SecondaryStorageEntry>(SecondaryStorageEntry{

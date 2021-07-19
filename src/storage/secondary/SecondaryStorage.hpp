@@ -107,9 +107,9 @@ public:
 
   // Create an instance of the backend. The instance is created just before the
   // first call to a backend method, so the backend constructor can open a
-  // connection or similar right away if wanted. The method should throw `Fatal`
-  // on fatal configuration error or `Backend::Failed` on connection error or
-  // timeout.
+  // connection or similar right away if wanted. The method should throw
+  // `core::Fatal` on fatal configuration error or `Backend::Failed` on
+  // connection error or timeout.
   virtual std::unique_ptr<Backend>
   create_backend(const Backend::Params& parameters) const = 0;
 

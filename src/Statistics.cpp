@@ -25,8 +25,9 @@
 #include "Logging.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
-#include "exceptions.hpp"
 #include "fmtmacros.hpp"
+
+#include <core/exceptions.hpp>
 
 #include <fstream>
 #include <unordered_map>
@@ -202,7 +203,7 @@ read(const std::string& path)
   std::string data;
   try {
     data = Util::read_file(path);
-  } catch (const Error&) {
+  } catch (const core::Error&) {
     // Ignore.
     return counters;
   }
@@ -270,7 +271,7 @@ update(const std::string& path,
   }
   try {
     file.commit();
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     // Make failure to write a stats file a soft error since it's not
     // important enough to fail whole the process and also because it is
     // called in the Context destructor.

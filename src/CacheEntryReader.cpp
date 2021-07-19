@@ -19,8 +19,9 @@
 #include "CacheEntryReader.hpp"
 
 #include "Compressor.hpp"
-#include "exceptions.hpp"
 #include "fmtmacros.hpp"
+
+#include <core/exceptions.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -30,7 +31,7 @@ CacheEntryReader::CacheEntryReader(FILE* stream,
 {
   uint8_t header_bytes[15];
   if (fread(header_bytes, sizeof(header_bytes), 1, stream) != 1) {
-    throw Error("Error reading header");
+    throw core::Error("Error reading header");
   }
 
   memcpy(m_magic, header_bytes, sizeof(m_magic));
@@ -40,14 +41,14 @@ CacheEntryReader::CacheEntryReader(FILE* stream,
   Util::big_endian_to_int(header_bytes + 7, m_content_size);
 
   if (memcmp(m_magic, expected_magic, sizeof(m_magic)) != 0) {
-    throw Error("Bad magic value 0x{:02x}{:02x}{:02x}{:02x}",
-                m_magic[0],
-                m_magic[1],
-                m_magic[2],
-                m_magic[3]);
+    throw core::Error("Bad magic value 0x{:02x}{:02x}{:02x}{:02x}",
+                      m_magic[0],
+                      m_magic[1],
+                      m_magic[2],
+                      m_magic[3]);
   }
   if (m_version != expected_version) {
-    throw Error(
+    throw core::Error(
       "Unknown version (actual {}, expected {})", m_version, expected_version);
   }
 
@@ -85,9 +86,10 @@ CacheEntryReader::finalize()
   Util::big_endian_to_int(buffer, expected_digest);
 
   if (actual_digest != expected_digest) {
-    throw Error("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
-                actual_digest,
-                expected_digest);
+    throw core::Error(
+      "Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
+      actual_digest,
+      expected_digest);
   }
 
   m_decompressor->finalize();

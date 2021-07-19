@@ -20,6 +20,7 @@
 
 #include "Util.hpp"
 
+#include <core/exceptions.hpp>
 #include <util/string.hpp>
 
 using nonstd::nullopt;
@@ -54,7 +55,7 @@ Args::from_gcc_atfile(const std::string& filename)
   std::string argtext;
   try {
     argtext = Util::read_file(filename);
-  } catch (Error&) {
+  } catch (core::Error&) {
     return nullopt;
   }
 

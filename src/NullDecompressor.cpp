@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #include "NullDecompressor.hpp"
 
-#include "exceptions.hpp"
+#include <core/exceptions.hpp>
 
 NullDecompressor::NullDecompressor(FILE* stream) : m_stream(stream)
 {
@@ -28,7 +28,7 @@ void
 NullDecompressor::read(void* data, size_t count)
 {
   if (fread(data, count, 1, m_stream) != 1) {
-    throw Error("failed to read from uncompressed stream");
+    throw core::Error("failed to read from uncompressed stream");
   }
 }
 
@@ -36,6 +36,6 @@ void
 NullDecompressor::finalize()
 {
   if (fgetc(m_stream) != EOF) {
-    throw Error("garbage data at end of uncompressed stream");
+    throw core::Error("garbage data at end of uncompressed stream");
   }
 }

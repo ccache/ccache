@@ -19,9 +19,9 @@
 #include "TestUtil.hpp"
 
 #include "../src/Util.hpp"
-#include "../src/exceptions.hpp"
 #include "../src/fmtmacros.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
@@ -35,7 +35,7 @@ size_t TestContext::m_subdir_counter = 0;
 TestContext::TestContext() : m_test_dir(Util::get_actual_cwd())
 {
   if (Util::base_name(Util::dir_name(m_test_dir)) != "testdir") {
-    throw Error("TestContext instantiated outside test directory");
+    throw core::Error("TestContext instantiated outside test directory");
   }
   ++m_subdir_counter;
   std::string subtest_dir = FMT("{}/test_{}", m_test_dir, m_subdir_counter);
@@ -56,7 +56,8 @@ void
 check_chdir(const std::string& dir)
 {
   if (chdir(dir.c_str()) != 0) {
-    throw Error("failed to change directory to {}: {}", dir, strerror(errno));
+    throw core::Error(
+      "failed to change directory to {}: {}", dir, strerror(errno));
   }
 }
 

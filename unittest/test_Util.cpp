@@ -22,6 +22,7 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 
 #include "third_party/doctest.h"
@@ -450,7 +451,7 @@ TEST_CASE("Util::hard_link")
 
   SUBCASE("Link nonexistent file")
   {
-    CHECK_THROWS_AS(Util::hard_link("old", "new"), Error);
+    CHECK_THROWS_AS(Util::hard_link("old", "new"), core::Error);
   }
 }
 

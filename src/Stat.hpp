@@ -18,11 +18,12 @@
 
 #pragma once
 
-#include "exceptions.hpp"
+#include <core/wincompat.hpp>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <ctime>
 #include <string>
 
 #ifdef _WIN32

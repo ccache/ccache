@@ -49,12 +49,12 @@
 #include "cleanup.hpp"
 #include "compopt.hpp"
 #include "compress.hpp"
-#include "exceptions.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
 #include <storage/Storage.hpp>
@@ -223,7 +223,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
     std::string path = find_executable(ctx, word, CCACHE_NAME);
     if (path.empty()) {
-      throw Fatal("{}: {}", word, strerror(errno));
+      throw core::Fatal("{}: {}", word, strerror(errno));
     }
 
     prefix.push_back(path);
@@ -248,7 +248,7 @@ prepare_debug_path(const std::string& debug_dir,
 #endif
   try {
     Util::ensure_dir_exists(Util::dir_name(prefix));
-  } catch (Error&) {
+  } catch (core::Error&) {
     // Ignore since we can't handle an error in another way in this context. The
     // caller takes care of logging when trying to open the path for writing.
   }
@@ -519,7 +519,7 @@ process_preprocessed_file(Context& ctx,
   std::string data;
   try {
     data = Util::read_file(path);
-  } catch (Error&) {
+  } catch (core::Error&) {
     return Statistic::internal_error;
   }
 
@@ -702,7 +702,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   std::string file_content;
   try {
     file_content = Util::read_file(ctx.args_info.output_dep);
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     LOG(
       "Cannot open dependency file {}: {}", ctx.args_info.output_dep, e.what());
     return nullopt;
@@ -1852,12 +1852,12 @@ find_compiler(Context& ctx,
       : find_executable_function(ctx, compiler, CCACHE_NAME);
 
   if (resolved_compiler.empty()) {
-    throw Fatal("Could not find compiler \"{}\" in PATH", compiler);
+    throw core::Fatal("Could not find compiler \"{}\" in PATH", compiler);
   }
 
   if (Util::same_program_name(Util::base_name(resolved_compiler),
                               CCACHE_NAME)) {
-    throw Fatal(
+    throw core::Fatal(
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
       CCACHE_NAME);
   }
@@ -1937,7 +1937,7 @@ finalize_at_exit(Context& ctx)
     }
 
     ctx.storage.finalize();
-  } catch (const ErrorBase& e) {
+  } catch (const core::ErrorBase& e) {
     // finalize_at_exit must not throw since it's called by a destructor.
     LOG("Error while finalizing stats: {}", e.what());
   }
@@ -2009,7 +2009,7 @@ cache_compilation(int argc, const char* const* argv)
     }
     auto execv_argv = saved_orig_args.to_argv();
     execute_noreturn(execv_argv.data(), saved_temp_dir);
-    throw Fatal(
+    throw core::Fatal(
       "execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno));
   }
 
@@ -2392,7 +2392,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'F': { // --max-files
-      auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
+      auto files = util::value_or_throw<core::Error>(util::parse_unsigned(arg));
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
@@ -2422,7 +2422,7 @@ handle_main_options(int argc, const char* const* argv)
       // for the -o=K=V case (key "=K" and value "V").
       size_t eq_pos = arg.find('=', 1);
       if (eq_pos == std::string::npos) {
-        throw Error("missing equal sign in \"{}\"", arg);
+        throw core::Error("missing equal sign in \"{}\"", arg);
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);
@@ -2436,7 +2436,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case SHOW_LOG_STATS: {
       if (ctx.config.stats_log().empty()) {
-        throw Fatal("No stats log has been configured");
+        throw core::Fatal("No stats log has been configured");
       }
       PRINT_RAW(stdout, Statistics::format_stats_log(ctx.config));
       Counters counters = Statistics::read_log(ctx.config.stats_log());
@@ -2477,7 +2477,7 @@ handle_main_options(int argc, const char* const* argv)
       if (arg == "uncompressed") {
         wanted_level = nullopt;
       } else {
-        wanted_level = util::value_or_throw<Error>(
+        wanted_level = util::value_or_throw<core::Error>(
           util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));
       }
 
@@ -2523,7 +2523,7 @@ ccache_main(int argc, const char* const* argv)
     }
 
     return cache_compilation(argc, argv);
-  } catch (const ErrorBase& e) {
+  } catch (const core::ErrorBase& e) {
     PRINT(stderr, "ccache: error: {}\n", e.what());
     return EXIT_FAILURE;
   }

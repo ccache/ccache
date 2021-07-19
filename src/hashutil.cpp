@@ -31,6 +31,7 @@
 #include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/string.hpp>
 
@@ -189,7 +190,7 @@ hash_source_code_file_nocache(const Context& ctx,
     std::string data;
     try {
       data = Util::read_file(path, size_hint);
-    } catch (Error&) {
+    } catch (core::Error&) {
       return HASH_SOURCE_CODE_ERROR;
     }
     int result = hash_source_code_string(ctx, hash, data, path);
@@ -471,12 +472,12 @@ hash_command_output(Hash& hash,
 #else
   int pipefd[2];
   if (pipe(pipefd) == -1) {
-    throw Fatal("pipe failed: {}", strerror(errno));
+    throw core::Fatal("pipe failed: {}", strerror(errno));
   }
 
   pid_t pid = fork();
   if (pid == -1) {
-    throw Fatal("fork failed: {}", strerror(errno));
+    throw core::Fatal("fork failed: {}", strerror(errno));
   }
 
   if (pid == 0) {

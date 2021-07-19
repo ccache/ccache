@@ -18,7 +18,6 @@
 
 #include "string.hpp"
 
-#include <FormatNonstdStringView.hpp>
 #include <fmtmacros.hpp>
 
 #include <cctype>

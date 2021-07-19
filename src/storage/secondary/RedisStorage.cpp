@@ -20,7 +20,7 @@
 
 #include <Digest.hpp>
 #include <Logging.hpp>
-#include <exceptions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
@@ -210,7 +210,7 @@ RedisStorageBackend::connect(const Url& url,
   const std::string host = url.host().empty() ? "localhost" : url.host();
   const uint32_t port = url.port().empty()
                           ? DEFAULT_PORT
-                          : util::value_or_throw<Fatal>(
+                          : util::value_or_throw<core::Fatal>(
                             util::parse_unsigned(url.port(), 1, 65535, "port"));
   ASSERT(url.path().empty() || url.path()[0] == '/');
 
@@ -246,7 +246,7 @@ RedisStorageBackend::select_database(const Url& url)
 {
   const uint32_t db_number =
     url.path().empty() ? 0
-                       : util::value_or_throw<Fatal>(util::parse_unsigned(
+                       : util::value_or_throw<core::Fatal>(util::parse_unsigned(
                          url.path().substr(1),
                          0,
                          std::numeric_limits<uint32_t>::max(),

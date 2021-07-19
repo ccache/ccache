@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,7 +21,8 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "assertions.hpp"
-#include "exceptions.hpp"
+
+#include <core/exceptions.hpp>
 
 namespace Compression {
 
@@ -48,7 +49,7 @@ type_from_int(uint8_t type)
     return Type::zstd;
   }
 
-  throw Error("Unknown type: {}", type);
+  throw core::Error("Unknown type: {}", type);
 }
 
 std::string

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,10 @@
 
 #pragma once
 
-#include "third_party/fmt/core.h"
-#include "third_party/fmt/format.h"
+#include <FormatNonstdStringView.hpp>
+
+#include <third_party/fmt/core.h>
+#include <third_party/fmt/format.h>
 
 // Convenience macro for calling `fmt::format` with `FMT_STRING` around the
 // format string literal.

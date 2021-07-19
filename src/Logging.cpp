@@ -23,7 +23,6 @@
 #include "File.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
-#include "exceptions.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
 

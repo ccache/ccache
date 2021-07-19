@@ -18,14 +18,16 @@
 
 #pragma once
 
-#include "FormatNonstdStringView.hpp"
+#include <FormatNonstdStringView.hpp>
 
-#include "third_party/fmt/core.h"
-#include "third_party/nonstd/optional.hpp"
+#include <third_party/fmt/core.h>
+#include <third_party/nonstd/optional.hpp>
 
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+namespace core {
 
 // Don't throw or catch ErrorBase directly, use a subclass.
 class ErrorBase : public std::runtime_error
@@ -77,3 +79,5 @@ inline Fatal::Fatal(T&&... args)
   : ErrorBase(fmt::format(std::forward<T>(args)...))
 {
 }
+
+} // namespace core

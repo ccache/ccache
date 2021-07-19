@@ -21,7 +21,7 @@
 #include <Digest.hpp>
 #include <Logging.hpp>
 #include <ccache.hpp>
-#include <exceptions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
@@ -125,9 +125,9 @@ get_host_header_value(const Url& url)
   // slashes must be stripped.
   const auto prefix = nonstd::string_view{"//"};
   if (!util::starts_with(rendered_value, prefix)) {
-    throw Fatal(R"(Expected partial URL "{}" to start with "{}")",
-                rendered_value,
-                prefix);
+    throw core::Fatal(R"(Expected partial URL "{}" to start with "{}")",
+                      rendered_value,
+                      prefix);
   }
   return rendered_value.substr(prefix.size());
 }
@@ -136,7 +136,8 @@ std::string
 get_url(const Url& url)
 {
   if (url.host().empty()) {
-    throw Fatal("A host is required in HTTP storage URL \"{}\"", url.str());
+    throw core::Fatal("A host is required in HTTP storage URL \"{}\"",
+                      url.str());
   }
 
   // httplib requires a partial URL with just scheme, host and port.
@@ -150,8 +151,8 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   if (!params.url.user_info().empty()) {
     const auto pair = util::split_once(params.url.user_info(), ':');
     if (!pair.second) {
-      throw Fatal("Expected username:password in URL but got \"{}\"",
-                  params.url.user_info());
+      throw core::Fatal("Expected username:password in URL but got \"{}\"",
+                        params.url.user_info());
     }
     m_http_client.set_basic_auth(to_string(pair.first).c_str(),
                                  to_string(*pair.second).c_str());

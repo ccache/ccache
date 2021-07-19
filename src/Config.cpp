@@ -24,9 +24,9 @@
 #include "Sloppiness.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
-#include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/expected.hpp>
 #include <util/path.hpp>
@@ -205,7 +205,7 @@ parse_bool(const std::string& value,
     std::string lower_value = Util::to_lowercase(value);
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
-      throw Error(
+      throw core::Error(
         "invalid boolean environment variable value \"{}\" (did you mean to"
         " set \"CCACHE_{}{}=true\"?)",
         value,
@@ -218,7 +218,7 @@ parse_bool(const std::string& value,
   } else if (value == "false") {
     return false;
   } else {
-    throw Error("not a boolean value: \"{}\"", value);
+    throw core::Error("not a boolean value: \"{}\"", value);
   }
 }
 
@@ -236,10 +236,10 @@ parse_double(const std::string& value)
   try {
     result = std::stod(value, &end);
   } catch (std::exception& e) {
-    throw Error(e.what());
+    throw core::Error(e.what());
   }
   if (end != value.size()) {
-    throw Error("invalid floating point: \"{}\"", value);
+    throw core::Error("invalid floating point: \"{}\"", value);
   }
   return result;
 }
@@ -365,7 +365,7 @@ void
 verify_absolute_path(const std::string& value)
 {
   if (!util::is_absolute_path(value)) {
-    throw Error("not an absolute path: \"{}\"", value);
+    throw core::Error("not an absolute path: \"{}\"", value);
   }
 }
 
@@ -417,11 +417,11 @@ parse_config_file(const std::string& path,
       std::string value;
       std::string error_message;
       if (!parse_line(line, &key, &value, &error_message)) {
-        throw Error(error_message);
+        throw core::Error(error_message);
       }
       config_line_handler(line, key, value);
-    } catch (const Error& e) {
-      throw Error("{}:{}: {}", path, line_number, e.what());
+    } catch (const core::Error& e) {
+      throw core::Error("{}:{}: {}", path, line_number, e.what());
     }
   }
   return true;
@@ -611,8 +611,8 @@ Config::update_from_environment()
 
     try {
       set_item(config_key, value, key, negate, "environment");
-    } catch (const Error& e) {
-      throw Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
+    } catch (const core::Error& e) {
+      throw core::Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
     }
   }
 }
@@ -622,7 +622,7 @@ Config::get_string_value(const std::string& key) const
 {
   auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
-    throw Error("unknown configuration option \"{}\"", key);
+    throw core::Error("unknown configuration option \"{}\"", key);
   }
 
   switch (it->second) {
@@ -756,7 +756,7 @@ Config::set_value_in_file(const std::string& path,
                           const std::string& value)
 {
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
-    throw Error("unknown configuration option \"{}\"", key);
+    throw core::Error("unknown configuration option \"{}\"", key);
   }
 
   // Verify that the value is valid; set_item will throw if not.
@@ -769,8 +769,8 @@ Config::set_value_in_file(const std::string& path,
     Util::ensure_dir_exists(Util::dir_name(resolved_path));
     try {
       Util::write_file(resolved_path, "");
-    } catch (const Error& e) {
-      throw Error("failed to write to {}: {}", resolved_path, e.what());
+    } catch (const core::Error& e) {
+      throw core::Error("failed to write to {}: {}", resolved_path, e.what());
     }
   }
 
@@ -787,7 +787,7 @@ Config::set_value_in_file(const std::string& path,
             output.write(FMT("{}\n", c_line));
           }
         })) {
-    throw Error("failed to open {}: {}", path, strerror(errno));
+    throw core::Error("failed to open {}: {}", path, strerror(errno));
   }
 
   if (!found) {
@@ -861,7 +861,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level:
-    m_compression_level = util::value_or_throw<Error>(
+    m_compression_level = util::value_or_throw<core::Error>(
       util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level"));
     break;
 
@@ -930,7 +930,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = util::value_or_throw<Error>(
+    m_max_files = util::value_or_throw<core::Error>(
       util::parse_unsigned(value, nullopt, nullopt, "max_files"));
     break;
 
@@ -995,7 +995,7 @@ Config::set_item(const std::string& key,
     if (!value.empty()) {
       const auto umask = util::parse_umask(value);
       if (!umask) {
-        throw Error(umask.error());
+        throw core::Error(umask.error());
       }
       m_umask = *umask;
     }
@@ -1010,7 +1010,7 @@ Config::check_key_tables_consistency()
 {
   for (const auto& item : k_env_variable_table) {
     if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
-      throw Error(
+      throw core::Error(
         "env var {} mapped to {} which is missing from k_config_key_table",
         item.first,
         item.second);

@@ -32,6 +32,7 @@
 #include "assertions.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/string.hpp>
 
@@ -115,7 +116,8 @@ open_file(const std::string& path, const char* mode)
 {
   File f(path, mode);
   if (!f) {
-    throw Error("failed to open {} for reading: {}", path, strerror(errno));
+    throw core::Error(
+      "failed to open {} for reading: {}", path, strerror(errno));
   }
   return f;
 }
@@ -124,7 +126,7 @@ std::unique_ptr<CacheEntryReader>
 create_reader(const CacheFile& cache_file, FILE* stream)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
-    throw Error("unknown file type for {}", cache_file.path());
+    throw core::Error("unknown file type for {}", cache_file.path());
   }
 
   switch (cache_file.type()) {
@@ -239,7 +241,7 @@ compress_stats(const Config& config,
           auto reader = create_reader(cache_file, file.get());
           compr_size += cache_file.lstat().size();
           content_size += reader->content_size();
-        } catch (Error&) {
+        } catch (core::Error&) {
           incompr_size += cache_file.lstat().size();
         }
 
@@ -306,7 +308,7 @@ compress_recompress(Context& ctx,
           thread_pool.enqueue([&statistics, stats_file, file, level] {
             try {
               recompress_file(statistics, stats_file, file, level);
-            } catch (Error&) {
+            } catch (core::Error&) {
               // Ignore for now.
             }
           });

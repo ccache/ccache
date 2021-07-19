@@ -19,9 +19,10 @@
 #include "../src/Config.hpp"
 #include "../src/Sloppiness.hpp"
 #include "../src/Util.hpp"
-#include "../src/exceptions.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
+
+#include <core/exceptions.hpp>
 
 #include "third_party/doctest.h"
 #include "third_party/fmt/core.h"
@@ -310,7 +311,7 @@ TEST_CASE("Config::set_value_in_file")
     try {
       Config::set_value_in_file("ccache.conf", "foo", "bar");
       CHECK(false);
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
     }
 
@@ -351,7 +352,7 @@ TEST_CASE("Config::get_string_value")
     try {
       config.get_string_value("foo");
       CHECK(false);
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
     }
   }
