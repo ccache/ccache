@@ -78,9 +78,9 @@ inode_cache_tests() {
     expect_inode_cache 1 0 0 test2.c
 
     # -------------------------------------------------------------------------
-    TEST "Soft link"
+    TEST "Symbolic link"
 
-    echo "// soft linked" > test1.c
+    echo "// symbolically linked" > test1.c
     ln -fs test1.c test2.c
     $CCACHE_COMPILE -c test1.c
     $CCACHE_COMPILE -c test2.c
