@@ -110,11 +110,13 @@ split_user_info(const std::string& user_info)
   }
 }
 
+#ifdef HAVE_REDISS_STORAGE_BACKEND
 inline bool
 is_secure(const Url& url)
 {
   return url.scheme() == "rediss";
 }
+#endif
 
 RedisStorageBackend::RedisStorageBackend(const Params& params)
   : m_prefix("ccache"), // TODO: attribute
