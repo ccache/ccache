@@ -93,10 +93,7 @@ if(REDIS_STORAGE_BACKEND)
 endif()
 if(REDISS_STORAGE_BACKEND)
   target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDISS_STORAGE_BACKEND)
-  target_link_libraries(
-    ccache_lib
-    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS HIREDIS::HIREDIS_SSL
-           third_party_lib)
+  target_link_libraries(ccache_lib PUBLIC HIREDIS::HIREDIS HIREDIS::HIREDIS_SSL)
 endif()
 
 add_subdirectory(core)
