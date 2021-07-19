@@ -16,33 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "file_utils.hpp"
+#include "SecondaryStorage.hpp"
 
-#include <Logging.hpp>
-#include <Util.hpp>
-#include <fmtmacros.hpp>
+#include <util/expected.hpp>
+#include <util/string.hpp>
 
-namespace util {
+namespace storage {
+namespace secondary {
 
-void
-create_cachedir_tag(const std::string& dir)
+bool
+SecondaryStorage::Backend::is_framework_attribute(const std::string& name)
 {
-  constexpr char cachedir_tag[] =
-    "Signature: 8a477f597d28d172789f06886806bc55\n"
-    "# This file is a cache directory tag created by ccache.\n"
-    "# For information about cache directory tags, see:\n"
-    "#\thttp://www.brynosaurus.com/cachedir/\n";
-
-  const std::string path = FMT("{}/CACHEDIR.TAG", dir);
-  const auto stat = Stat::stat(path);
-  if (stat) {
-    return;
-  }
-  try {
-    Util::write_file(path, cachedir_tag);
-  } catch (const Error& e) {
-    LOG("Failed to create {}: {}", path, e.what());
-  }
+  return name == "read-only";
 }
 
-} // namespace util
+std::chrono::milliseconds
+SecondaryStorage::Backend::parse_timeout_attribute(const std::string& value)
+{
+  return std::chrono::milliseconds(util::value_or_throw<Failed>(
+    util::parse_unsigned(value, 1, 60 * 1000, "timeout")));
+}
+
+} // namespace secondary
+} // namespace storage

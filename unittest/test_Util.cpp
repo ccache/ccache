@@ -177,24 +177,6 @@ TEST_CASE("Util::strip_ansi_csi_seqs")
   CHECK(Util::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
 }
 
-TEST_CASE("Util::ends_with")
-{
-  CHECK(Util::ends_with("", ""));
-  CHECK(Util::ends_with("x", ""));
-  CHECK(Util::ends_with("x", "x"));
-  CHECK(Util::ends_with("xy", ""));
-  CHECK(Util::ends_with("xy", "y"));
-  CHECK(Util::ends_with("xy", "xy"));
-  CHECK(Util::ends_with("xyz", ""));
-  CHECK(Util::ends_with("xyz", "z"));
-  CHECK(Util::ends_with("xyz", "yz"));
-  CHECK(Util::ends_with("xyz", "xyz"));
-
-  CHECK_FALSE(Util::ends_with("", "x"));
-  CHECK_FALSE(Util::ends_with("x", "y"));
-  CHECK_FALSE(Util::ends_with("x", "xy"));
-}
-
 TEST_CASE("Util::ensure_dir_exists")
 {
   TestContext test_context;
@@ -447,14 +429,6 @@ TEST_CASE("Util::get_relative_path")
 #endif
 }
 
-TEST_CASE("Util::get_path_in_cache")
-{
-  CHECK(Util::get_path_in_cache("/zz/ccache", 1, "ABCDEF.suffix")
-        == "/zz/ccache/A/BCDEF.suffix");
-  CHECK(Util::get_path_in_cache("/zz/ccache", 4, "ABCDEF.suffix")
-        == "/zz/ccache/A/B/C/D/EF.suffix");
-}
-
 TEST_CASE("Util::hard_link")
 {
   TestContext test_context;
@@ -689,46 +663,6 @@ TEST_CASE("Util::parse_duration")
     "invalid suffix (supported: d (day) and s (second)): \"2\"");
 }
 
-TEST_CASE("Util::parse_signed")
-{
-  CHECK(Util::parse_signed("0") == 0);
-  CHECK(Util::parse_signed("2") == 2);
-  CHECK(Util::parse_signed("-17") == -17);
-  CHECK(Util::parse_signed("42") == 42);
-  CHECK(Util::parse_signed("0666") == 666);
-  CHECK(Util::parse_signed(" 777 ") == 777);
-
-  CHECK_THROWS_WITH(Util::parse_signed(""), "invalid integer: \"\"");
-  CHECK_THROWS_WITH(Util::parse_signed("x"), "invalid integer: \"x\"");
-  CHECK_THROWS_WITH(Util::parse_signed("0x"), "invalid integer: \"0x\"");
-  CHECK_THROWS_WITH(Util::parse_signed("0x4"), "invalid integer: \"0x4\"");
-
-  // Custom description not used for invalid value.
-  CHECK_THROWS_WITH(Util::parse_signed("apple", nullopt, nullopt, "banana"),
-                    "invalid integer: \"apple\"");
-
-  // Boundary values.
-  CHECK_THROWS_WITH(Util::parse_signed("-9223372036854775809"),
-                    "invalid integer: \"-9223372036854775809\"");
-  CHECK(Util::parse_signed("-9223372036854775808") == INT64_MIN);
-  CHECK(Util::parse_signed("9223372036854775807") == INT64_MAX);
-  CHECK_THROWS_WITH(Util::parse_signed("9223372036854775808"),
-                    "invalid integer: \"9223372036854775808\"");
-
-  // Min and max values.
-  CHECK_THROWS_WITH(Util::parse_signed("-2", -1, 1),
-                    "integer must be between -1 and 1");
-  CHECK(Util::parse_signed("-1", -1, 1) == -1);
-  CHECK(Util::parse_signed("0", -1, 1) == 0);
-  CHECK(Util::parse_signed("1", -1, 1) == 1);
-  CHECK_THROWS_WITH(Util::parse_signed("2", -1, 1),
-                    "integer must be between -1 and 1");
-
-  // Custom description used for boundary violation.
-  CHECK_THROWS_WITH(Util::parse_signed("0", 1, 2, "banana"),
-                    "banana must be between 1 and 2");
-}
-
 TEST_CASE("Util::parse_size")
 {
   CHECK(Util::parse_size("0") == 0);
@@ -751,40 +685,6 @@ TEST_CASE("Util::parse_size")
   CHECK_THROWS_WITH(Util::parse_size(""), "invalid size: \"\"");
   CHECK_THROWS_WITH(Util::parse_size("x"), "invalid size: \"x\"");
   CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
-}
-
-TEST_CASE("Util::parse_unsigned")
-{
-  CHECK(Util::parse_unsigned("0") == 0);
-  CHECK(Util::parse_unsigned("2") == 2);
-  CHECK(Util::parse_unsigned("42") == 42);
-  CHECK(Util::parse_unsigned("0666") == 666);
-  CHECK(Util::parse_unsigned(" 777 ") == 777);
-
-  CHECK_THROWS_WITH(Util::parse_unsigned(""), "invalid unsigned integer: \"\"");
-  CHECK_THROWS_WITH(Util::parse_unsigned("x"),
-                    "invalid unsigned integer: \"x\"");
-  CHECK_THROWS_WITH(Util::parse_unsigned("0x"),
-                    "invalid unsigned integer: \"0x\"");
-  CHECK_THROWS_WITH(Util::parse_unsigned("0x4"),
-                    "invalid unsigned integer: \"0x4\"");
-
-  // Custom description not used for invalid value.
-  CHECK_THROWS_WITH(Util::parse_unsigned("apple", nullopt, nullopt, "banana"),
-                    "invalid unsigned integer: \"apple\"");
-
-  // Boundary values.
-  CHECK_THROWS_WITH(Util::parse_unsigned("-1"),
-                    "invalid unsigned integer: \"-1\"");
-  CHECK(Util::parse_unsigned("0") == 0);
-  CHECK(Util::parse_unsigned("18446744073709551615") == UINT64_MAX);
-  CHECK_THROWS_WITH(Util::parse_unsigned("18446744073709551616"),
-                    "invalid unsigned integer: \"18446744073709551616\"");
-
-  // Base
-  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 8) == 0666);
-  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 10) == 666);
-  CHECK(Util::parse_unsigned("0666", nullopt, nullopt, "", 16) == 0x666);
 }
 
 TEST_CASE("Util::read_file and Util::write_file")
@@ -857,52 +757,6 @@ TEST_CASE("Util::same_program_name")
 
 // Util::split_into_strings and Util::split_into_views are tested implicitly in
 // test_util_Tokenizer.cpp.
-
-TEST_CASE("Util::starts_with")
-{
-  // starts_with(const char*, string_view)
-  CHECK(Util::starts_with("", ""));
-  CHECK(Util::starts_with("x", ""));
-  CHECK(Util::starts_with("x", "x"));
-  CHECK(Util::starts_with("xy", ""));
-  CHECK(Util::starts_with("xy", "x"));
-  CHECK(Util::starts_with("xy", "xy"));
-  CHECK(Util::starts_with("xyz", ""));
-  CHECK(Util::starts_with("xyz", "x"));
-  CHECK(Util::starts_with("xyz", "xy"));
-  CHECK(Util::starts_with("xyz", "xyz"));
-
-  CHECK_FALSE(Util::starts_with("", "x"));
-  CHECK_FALSE(Util::starts_with("x", "y"));
-  CHECK_FALSE(Util::starts_with("x", "xy"));
-
-  // starts_with(string_view, string_view)
-  CHECK(Util::starts_with(std::string(""), ""));
-  CHECK(Util::starts_with(std::string("x"), ""));
-  CHECK(Util::starts_with(std::string("x"), "x"));
-  CHECK(Util::starts_with(std::string("xy"), ""));
-  CHECK(Util::starts_with(std::string("xy"), "x"));
-  CHECK(Util::starts_with(std::string("xy"), "xy"));
-  CHECK(Util::starts_with(std::string("xyz"), ""));
-  CHECK(Util::starts_with(std::string("xyz"), "x"));
-  CHECK(Util::starts_with(std::string("xyz"), "xy"));
-  CHECK(Util::starts_with(std::string("xyz"), "xyz"));
-
-  CHECK_FALSE(Util::starts_with(std::string(""), "x"));
-  CHECK_FALSE(Util::starts_with(std::string("x"), "y"));
-  CHECK_FALSE(Util::starts_with(std::string("x"), "xy"));
-}
-
-TEST_CASE("Util::strip_whitespace")
-{
-  CHECK(Util::strip_whitespace("") == "");
-  CHECK(Util::strip_whitespace("x") == "x");
-  CHECK(Util::strip_whitespace(" x") == "x");
-  CHECK(Util::strip_whitespace("x ") == "x");
-  CHECK(Util::strip_whitespace(" x ") == "x");
-  CHECK(Util::strip_whitespace(" \n\tx \n\t") == "x");
-  CHECK(Util::strip_whitespace("  x  y  ") == "x  y");
-}
 
 TEST_CASE("Util::to_lowercase")
 {

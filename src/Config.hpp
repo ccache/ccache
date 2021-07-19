@@ -83,11 +83,11 @@ public:
 
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
-  void set_cpp_extension(const std::string& value);
   void set_compiler(const std::string& value);
   void set_compiler_type(CompilerType value);
-  void set_depend_mode(bool value);
+  void set_cpp_extension(const std::string& value);
   void set_debug(bool value);
+  void set_depend_mode(bool value);
   void set_direct_mode(bool value);
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);

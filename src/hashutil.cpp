@@ -25,12 +25,14 @@
 #include "Logging.hpp"
 #include "Sloppiness.hpp"
 #include "Stat.hpp"
+#include "Util.hpp"
 #include "Win32Util.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
 #include <core/wincompat.hpp>
+#include <util/string.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
@@ -374,14 +376,14 @@ hash_command_output(Hash& hash,
                     const std::string& compiler)
 {
 #ifdef _WIN32
-  std::string adjusted_command = Util::strip_whitespace(command);
+  std::string adjusted_command = util::strip_whitespace(command);
 
   // Add "echo" command.
   bool using_cmd_exe;
-  if (Util::starts_with(adjusted_command, "echo")) {
+  if (util::starts_with(adjusted_command, "echo")) {
     adjusted_command = FMT("cmd.exe /c \"{}\"", adjusted_command);
     using_cmd_exe = true;
-  } else if (Util::starts_with(adjusted_command, "%compiler%")
+  } else if (util::starts_with(adjusted_command, "%compiler%")
              && compiler == "echo") {
     adjusted_command =
       FMT("cmd.exe /c \"{}{}\"", compiler, adjusted_command.substr(10));

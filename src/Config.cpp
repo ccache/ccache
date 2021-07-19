@@ -28,8 +28,9 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
-#include <util/path_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/expected.hpp>
+#include <util/path.hpp>
+#include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -277,7 +278,7 @@ parse_sloppiness(const std::string& value)
   while (end != std::string::npos) {
     end = value.find_first_of(", ", start);
     std::string token =
-      Util::strip_whitespace(value.substr(start, end - start));
+      util::strip_whitespace(value.substr(start, end - start));
     if (token == "file_stat_matches") {
       result |= SLOPPY_FILE_STAT_MATCHES;
     } else if (token == "file_stat_matches_ctime") {
@@ -374,7 +375,7 @@ parse_line(const std::string& line,
            std::string* value,
            std::string* error_message)
 {
-  std::string stripped_line = Util::strip_whitespace(line);
+  std::string stripped_line = util::strip_whitespace(line);
   if (stripped_line.empty() || stripped_line[0] == '#') {
     return true;
   }
@@ -385,8 +386,8 @@ parse_line(const std::string& line,
   }
   *key = stripped_line.substr(0, equal_pos);
   *value = stripped_line.substr(equal_pos + 1);
-  *key = Util::strip_whitespace(*key);
-  *value = Util::strip_whitespace(*value);
+  *key = util::strip_whitespace(*key);
+  *value = util::strip_whitespace(*value);
   return true;
 }
 
@@ -586,7 +587,7 @@ Config::update_from_environment()
   for (char** env = environ; *env; ++env) {
     std::string setting = *env;
     const std::string prefix = "CCACHE_";
-    if (!Util::starts_with(setting, prefix)) {
+    if (!util::starts_with(setting, prefix)) {
       continue;
     }
     size_t equal_pos = setting.find('=');
@@ -596,7 +597,7 @@ Config::update_from_environment()
 
     std::string key = setting.substr(prefix.size(), equal_pos - prefix.size());
     std::string value = setting.substr(equal_pos + 1);
-    bool negate = Util::starts_with(key, "NO");
+    bool negate = util::starts_with(key, "NO");
     if (negate) {
       key = key.substr(2);
     }
@@ -859,11 +860,10 @@ Config::set_item(const std::string& key,
     m_compression = parse_bool(value, env_var_key, negate);
     break;
 
-  case ConfigItem::compression_level: {
-    m_compression_level =
-      Util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level");
+  case ConfigItem::compression_level:
+    m_compression_level = util::value_or_throw<Error>(
+      util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level"));
     break;
-  }
 
   case ConfigItem::cpp_extension:
     m_cpp_extension = value;
@@ -930,7 +930,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = Util::parse_unsigned(value, nullopt, nullopt, "max_files");
+    m_max_files = util::value_or_throw<Error>(
+      util::parse_unsigned(value, nullopt, nullopt, "max_files"));
     break;
 
   case ConfigItem::max_size:

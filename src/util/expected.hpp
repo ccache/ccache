@@ -18,33 +18,41 @@
 
 #pragma once
 
-#include <third_party/nonstd/string_view.hpp>
-
-#include <string>
-#include <vector>
+#include <utility>
 
 namespace util {
 
-// Return whether `path` is absolute.
-bool is_absolute_path(nonstd::string_view path);
+// --- Interface ---
 
-// Return whether `path` includes at least one directory separator.
-inline bool
-is_full_path(nonstd::string_view path)
+// Return value of `value` (where `T` typically is `nonstd::expected`) or throw
+// an exception of type `E` with a `T::error_type` as the argument.
+template<typename E, typename T>
+typename T::value_type value_or_throw(const T& value);
+template<typename E, typename T>
+typename T::value_type value_or_throw(T&& value);
+
+// --- Inline implementations ---
+
+template<typename E, typename T>
+inline typename T::value_type
+value_or_throw(const T& value)
 {
-#ifdef _WIN32
-  if (path.find('\\') != nonstd::string_view::npos) {
-    return true;
+  if (value) {
+    return *value;
+  } else {
+    throw E(value.error());
   }
-#endif
-  return path.find('/') != nonstd::string_view::npos;
 }
 
-// Split a list of paths (such as the content of $PATH on Unix platforms or
-// %PATH% on Windows platforms) into paths.
-std::vector<std::string> split_path_list(nonstd::string_view path_list);
-
-// Make `path` an absolute path.
-std::string to_absolute_path(nonstd::string_view path);
+template<typename E, typename T>
+inline typename T::value_type
+value_or_throw(T&& value)
+{
+  if (value) {
+    return std::move(*value);
+  } else {
+    throw E(value.error());
+  }
+}
 
 } // namespace util

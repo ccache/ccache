@@ -18,17 +18,7 @@
 
 #pragma once
 
-#include <storage/SecondaryStorage.hpp>
-#include <storage/types.hpp>
-
-#include <memory>
-#include <string>
-
-class Url;
-
-namespace httplib {
-class Client;
-}
+#include "SecondaryStorage.hpp"
 
 namespace storage {
 namespace secondary {
@@ -36,22 +26,10 @@ namespace secondary {
 class HttpStorage : public SecondaryStorage
 {
 public:
-  HttpStorage(const Url& url, const AttributeMap& attributes);
-  ~HttpStorage() override;
+  std::unique_ptr<Backend>
+  create_backend(const Backend::Params& params) const override;
 
-  nonstd::expected<nonstd::optional<std::string>, Error>
-  get(const Digest& key) override;
-  nonstd::expected<bool, Error> put(const Digest& key,
-                                    const std::string& value,
-                                    bool only_if_missing) override;
-  nonstd::expected<bool, Error> remove(const Digest& key) override;
-
-private:
-  const std::string m_url_path;
-  std::unique_ptr<httplib::Client> m_http_client;
-
-  void configure_timeouts(const AttributeMap& attributes);
-  std::string get_entry_path(const Digest& key) const;
+  void redact_secrets(Backend::Params& params) const override;
 };
 
 } // namespace secondary

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,8 @@
 
 #include "Manifest.hpp"
 #include "Result.hpp"
-#include "Util.hpp"
+
+#include <util/string.hpp>
 
 const Stat&
 CacheFile::lstat() const
@@ -35,9 +36,9 @@ CacheFile::lstat() const
 CacheFile::Type
 CacheFile::type() const
 {
-  if (Util::ends_with(m_path, Manifest::k_file_suffix)) {
+  if (util::ends_with(m_path, Manifest::k_file_suffix)) {
     return Type::manifest;
-  } else if (Util::ends_with(m_path, Result::k_file_suffix)) {
+  } else if (util::ends_with(m_path, Result::k_file_suffix)) {
     return Type::result;
   } else {
     return Type::unknown;

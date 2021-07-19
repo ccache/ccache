@@ -96,6 +96,11 @@ private:
                                          const std::string& current_path,
                                          const Counters& counter_updates,
                                          core::CacheEntryType type);
+
+  // Join the cache directory, a '/' and `name` into a single path and return
+  // it. Additionally, `level` single-character, '/'-separated subpaths are
+  // split from the beginning of `name` before joining them all.
+  std::string get_path_in_cache(uint8_t level, nonstd::string_view name) const;
 };
 
 } // namespace primary

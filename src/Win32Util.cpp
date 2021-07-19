@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -142,12 +142,6 @@ gettimeofday(struct timeval* tp, struct timezone* /*tzp*/)
   return 0;
 }
 #endif
-
-void
-usleep(int64_t usec)
-{
-  std::this_thread::sleep_for(std::chrono::microseconds(usec));
-}
 
 struct tm*
 localtime_r(time_t* _clock, struct tm* _result)

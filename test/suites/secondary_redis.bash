@@ -76,24 +76,25 @@ SUITE_secondary_redis() {
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
+    expect_stat 'files in cache' 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     # -------------------------------------------------------------------------
     TEST "Password"
 
     port=7777
-    password=secret
+    password=secret123
     redis_url="redis://${password}@localhost:${port}"
     export CCACHE_SECONDARY_STORAGE="${redis_url}"
 
     start_redis_server "${port}" "${password}"
 
-    $CCACHE_COMPILE -c test.c
+    CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_not_contains test.o.ccache-log "${password}"
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 1
@@ -108,6 +109,6 @@ SUITE_secondary_redis() {
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
+    expect_stat 'files in cache' 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 }

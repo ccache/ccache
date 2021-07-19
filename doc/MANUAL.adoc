@@ -794,7 +794,7 @@ still has to do _some_ preprocessing (like macros).
 +
 Examples:
 +
-* `file:///shared/nfs/directory`
+* `file:/shared/nfs/directory`
 * `file:///shared/nfs/one|read-only file:///shared/nfs/two`
 * `http://example.com/cache`
 * `redis://example.com`
@@ -913,7 +913,7 @@ These are the available backends:
 
 === File storage backend
 
-URL format: `file://DIRECTORY`
+URL format: `file:DIRECTORY` or `file://DIRECTORY`
 
 This backend stores data as separate files in a directory structure below
 *DIRECTORY* (an absolute path), similar (but not identical) to the primary cache
@@ -923,7 +923,7 @@ has to be done by other means.
 
 Examples:
 
-* `file:///shared/nfs/directory`
+* `file:/shared/nfs/directory`
 * `file:///shared/nfs/directory|umask=002|update-mtime=true`
 
 Optional attributes:

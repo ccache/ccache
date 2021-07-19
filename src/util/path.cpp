@@ -16,21 +16,46 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "path.hpp"
 
-#include "SecondaryStorage.hpp"
+#include <Util.hpp>
+#include <fmtmacros.hpp>
 
-namespace storage {
-namespace secondary {
+#ifdef _WIN32
+const char k_path_delimiter[] = ";";
+#else
+const char k_path_delimiter[] = ":";
+#endif
 
-class RedisStorage : public SecondaryStorage
+namespace util {
+
+bool
+is_absolute_path(nonstd::string_view path)
 {
-public:
-  std::unique_ptr<Backend>
-  create_backend(const Backend::Params& params) const override;
+#ifdef _WIN32
+  if (path.length() >= 2 && path[1] == ':'
+      && (path[2] == '/' || path[2] == '\\')) {
+    return true;
+  }
+#endif
+  return !path.empty() && path[0] == '/';
+}
 
-  void redact_secrets(Backend::Params& params) const override;
-};
+std::vector<std::string>
+split_path_list(nonstd::string_view path_list)
+{
+  return Util::split_into_strings(path_list, k_path_delimiter);
+}
 
-} // namespace secondary
-} // namespace storage
+std::string
+to_absolute_path(nonstd::string_view path)
+{
+  if (util::is_absolute_path(path)) {
+    return to_string(path);
+  } else {
+    return Util::normalize_absolute_path(
+      FMT("{}/{}", Util::get_actual_cwd(), path));
+  }
+}
+
+} // namespace util

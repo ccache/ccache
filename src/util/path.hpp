@@ -18,29 +18,39 @@
 
 #pragma once
 
-#include <third_party/nonstd/expected.hpp>
-#include <third_party/nonstd/optional.hpp>
 #include <third_party/nonstd/string_view.hpp>
 
-#include <sys/stat.h> // for mode_t
-
 #include <string>
-#include <utility>
+#include <vector>
 
 namespace util {
 
-// Parse `value` (an octal integer).
-nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
+// --- Interface ---
 
-// Percent-decode[1] `string`.
-//
-// [1]: https://en.wikipedia.org/wiki/Percent-encoding
-nonstd::expected<std::string, std::string>
-percent_decode(nonstd::string_view string);
+// Return whether `path` is absolute.
+bool is_absolute_path(nonstd::string_view path);
 
-// Split `string` into two parts using `split_char` as the delimiter. The second
-// part will be `nullopt` if there is no `split_char` in `string.`
-std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
-split_once(nonstd::string_view string, char split_char);
+// Return whether `path` includes at least one directory separator.
+bool is_full_path(nonstd::string_view path);
+
+// Split a list of paths (such as the content of $PATH on Unix platforms or
+// %PATH% on Windows platforms) into paths.
+std::vector<std::string> split_path_list(nonstd::string_view path_list);
+
+// Make `path` an absolute path.
+std::string to_absolute_path(nonstd::string_view path);
+
+// --- Inline implementations ---
+
+inline bool
+is_full_path(const nonstd::string_view path)
+{
+#ifdef _WIN32
+  if (path.find('\\') != nonstd::string_view::npos) {
+    return true;
+  }
+#endif
+  return path.find('/') != nonstd::string_view::npos;
+}
 
 } // namespace util

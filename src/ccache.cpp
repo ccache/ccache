@@ -57,7 +57,9 @@
 
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
-#include <util/path_utils.hpp>
+#include <util/expected.hpp>
+#include <util/path.hpp>
+#include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
@@ -368,7 +370,7 @@ do_remember_include_file(Context& ctx,
   }
 
   // Canonicalize path for comparison; Clang uses ./header.h.
-  if (Util::starts_with(path, "./")) {
+  if (util::starts_with(path, "./")) {
     path.erase(0, 2);
   }
 
@@ -566,14 +568,14 @@ process_preprocessed_file(Context& ctx,
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
-            || Util::starts_with(&q[1], pragma_gcc_pch_preprocess)
+            || util::starts_with(&q[1], pragma_gcc_pch_preprocess)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
         && (q == data.data() || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
-        if (Util::starts_with(q, hash_31_command_line_newline)) {
+        if (util::starts_with(q, hash_31_command_line_newline)) {
           // Bogus extra line with #31, after the regular #1: Ignore the whole
           // line, and continue parsing.
           hash.hash(p, q - p);
@@ -583,7 +585,7 @@ process_preprocessed_file(Context& ctx,
           q++;
           p = q;
           continue;
-        } else if (Util::starts_with(q, hash_32_command_line_2_newline)) {
+        } else if (util::starts_with(q, hash_32_command_line_2_newline)) {
           // Bogus wrong line with #32, instead of regular #1: Replace the line
           // number with the usual one.
           hash.hash(p, q - p);
@@ -631,8 +633,8 @@ process_preprocessed_file(Context& ctx,
 
       bool should_hash_inc_path = true;
       if (!ctx.config.hash_dir()) {
-        if (Util::starts_with(inc_path, ctx.apparent_cwd)
-            && Util::ends_with(inc_path, "//")) {
+        if (util::starts_with(inc_path, ctx.apparent_cwd)
+            && util::ends_with(inc_path, "//")) {
           // When compiling with -g or similar, GCC adds the absolute path to
           // CWD like this:
           //
@@ -1180,7 +1182,7 @@ hash_compiler(const Context& ctx,
     hash.hash_delimiter("cc_mtime");
     hash.hash(st.size());
     hash.hash(st.mtime());
-  } else if (Util::starts_with(ctx.config.compiler_check(), "string:")) {
+  } else if (util::starts_with(ctx.config.compiler_check(), "string:")) {
     hash.hash_delimiter("cc_hash");
     hash.hash(&ctx.config.compiler_check()[7]);
   } else if (ctx.config.compiler_check() == "content" || !allow_command) {
@@ -1328,7 +1330,7 @@ hash_common_info(const Context& ctx,
             old_path,
             new_path,
             ctx.apparent_cwd);
-        if (Util::starts_with(ctx.apparent_cwd, old_path)) {
+        if (util::starts_with(ctx.apparent_cwd, old_path)) {
           dir_to_hash = new_path + ctx.apparent_cwd.substr(old_path.size());
         }
       }
@@ -1448,7 +1450,7 @@ option_should_be_ignored(const std::string& arg,
       const auto& prefix = string_view(pattern).substr(0, pattern.length() - 1);
       return (
         pattern == arg
-        || (Util::ends_with(pattern, "*") && Util::starts_with(arg, prefix)));
+        || (util::ends_with(pattern, "*") && util::starts_with(arg, prefix)));
     });
 }
 
@@ -1494,12 +1496,12 @@ calculate_result_and_manifest_key(Context& ctx,
       i++;
       continue;
     }
-    if (Util::starts_with(args[i], "-L") && !is_clang) {
+    if (util::starts_with(args[i], "-L") && !is_clang) {
       continue;
     }
 
     // -Wl,... doesn't affect compilation (except for clang).
-    if (Util::starts_with(args[i], "-Wl,") && !is_clang) {
+    if (util::starts_with(args[i], "-Wl,") && !is_clang) {
       continue;
     }
 
@@ -1507,17 +1509,17 @@ calculate_result_and_manifest_key(Context& ctx,
     // CCACHE_BASEDIR to reuse results across different directories. Skip using
     // the value of the option from hashing but still hash the existence of the
     // option.
-    if (Util::starts_with(args[i], "-fdebug-prefix-map=")) {
+    if (util::starts_with(args[i], "-fdebug-prefix-map=")) {
       hash.hash_delimiter("arg");
       hash.hash("-fdebug-prefix-map=");
       continue;
     }
-    if (Util::starts_with(args[i], "-ffile-prefix-map=")) {
+    if (util::starts_with(args[i], "-ffile-prefix-map=")) {
       hash.hash_delimiter("arg");
       hash.hash("-ffile-prefix-map=");
       continue;
     }
-    if (Util::starts_with(args[i], "-fmacro-prefix-map=")) {
+    if (util::starts_with(args[i], "-fmacro-prefix-map=")) {
       hash.hash_delimiter("arg");
       hash.hash("-fmacro-prefix-map=");
       continue;
@@ -1543,17 +1545,17 @@ calculate_result_and_manifest_key(Context& ctx,
     // If we're generating dependencies, we make sure to skip the filename of
     // the dependency file, since it doesn't impact the output.
     if (ctx.args_info.generating_dependencies) {
-      if (Util::starts_with(args[i], "-Wp,")) {
-        if (Util::starts_with(args[i], "-Wp,-MD,")
+      if (util::starts_with(args[i], "-Wp,")) {
+        if (util::starts_with(args[i], "-Wp,-MD,")
             && args[i].find(',', 8) == std::string::npos) {
           hash.hash(args[i].data(), 8);
           continue;
-        } else if (Util::starts_with(args[i], "-Wp,-MMD,")
+        } else if (util::starts_with(args[i], "-Wp,-MMD,")
                    && args[i].find(',', 9) == std::string::npos) {
           hash.hash(args[i].data(), 9);
           continue;
         }
-      } else if (Util::starts_with(args[i], "-MF")) {
+      } else if (util::starts_with(args[i], "-MF")) {
         // In either case, hash the "-MF" part.
         hash.hash_delimiter("arg");
         hash.hash(args[i].data(), 3);
@@ -1569,8 +1571,8 @@ calculate_result_and_manifest_key(Context& ctx,
       }
     }
 
-    if (Util::starts_with(args[i], "-specs=")
-        || Util::starts_with(args[i], "--specs=")
+    if (util::starts_with(args[i], "-specs=")
+        || util::starts_with(args[i], "--specs=")
         || (args[i] == "-specs" || args[i] == "--specs")
         || args[i] == "--config") {
       std::string path;
@@ -1595,7 +1597,7 @@ calculate_result_and_manifest_key(Context& ctx,
       }
     }
 
-    if (Util::starts_with(args[i], "-fplugin=")) {
+    if (util::starts_with(args[i], "-fplugin=")) {
       auto st = Stat::stat(&args[i][9], Stat::OnError::log);
       if (st) {
         hash.hash_delimiter("plugin");
@@ -1905,14 +1907,6 @@ set_up_uncached_err()
 }
 
 static void
-configuration_logger(const std::string& key,
-                     const std::string& value,
-                     const std::string& origin)
-{
-  BULK_LOG("Config: ({}) {} = {}", origin, key, value);
-}
-
-static void
 configuration_printer(const std::string& key,
                       const std::string& value,
                       const std::string& origin)
@@ -2037,7 +2031,15 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   if (!ctx.config.log_file().empty() || ctx.config.debug()) {
-    ctx.config.visit_items(configuration_logger);
+    ctx.config.visit_items([&ctx](const std::string& key,
+                                  const std::string& value,
+                                  const std::string& origin) {
+      const auto& log_value =
+        key == "secondary_storage"
+          ? ctx.storage.get_secondary_storage_config_for_logging()
+          : value;
+      BULK_LOG("Config: ({}) {} = {}", origin, key, log_value);
+    });
   }
 
   // Guess compiler after logging the config value in order to be able to
@@ -2396,7 +2398,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'F': { // --max-files
-      auto files = Util::parse_unsigned(arg);
+      auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
@@ -2481,8 +2483,8 @@ handle_main_options(int argc, const char* const* argv)
       if (arg == "uncompressed") {
         wanted_level = nullopt;
       } else {
-        wanted_level =
-          Util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level");
+        wanted_level = util::value_or_throw<Error>(
+          util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));
       }
 
       ProgressBar progress_bar("Recompressing...");

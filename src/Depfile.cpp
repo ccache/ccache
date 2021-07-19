@@ -23,7 +23,7 @@
 #include "Logging.hpp"
 #include "assertions.hpp"
 
-#include <util/path_utils.hpp>
+#include <util/path.hpp>
 
 static inline bool
 is_blank(const std::string& s)

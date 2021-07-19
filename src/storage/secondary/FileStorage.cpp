@@ -24,60 +24,68 @@
 #include <UmaskScope.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <exceptions.hpp>
 #include <fmtmacros.hpp>
-#include <util/file_utils.hpp>
-#include <util/string_utils.hpp>
+#include <util/expected.hpp>
+#include <util/file.hpp>
+#include <util/string.hpp>
 
 #include <third_party/nonstd/string_view.hpp>
+
+#include <sys/stat.h> // for mode_t
 
 namespace storage {
 namespace secondary {
 
-static std::string
-parse_url(const Url& url)
+namespace {
+
+class FileStorageBackend : public SecondaryStorage::Backend
 {
-  ASSERT(url.scheme() == "file");
-  const auto& dir = url.path();
-  if (!Util::starts_with(dir, "/")) {
-    throw Error("invalid file path \"{}\" - directory must start with a slash",
-                dir);
+public:
+  FileStorageBackend(const Params& params);
+
+  nonstd::expected<nonstd::optional<std::string>, Failure>
+  get(const Digest& key) override;
+
+  nonstd::expected<bool, Failure> put(const Digest& key,
+                                      const std::string& value,
+                                      bool only_if_missing) override;
+
+  nonstd::expected<bool, Failure> remove(const Digest& key) override;
+
+private:
+  const std::string m_dir;
+  nonstd::optional<mode_t> m_umask;
+  bool m_update_mtime = false;
+
+  std::string get_entry_path(const Digest& key) const;
+};
+
+FileStorageBackend::FileStorageBackend(const Params& params)
+  : m_dir(params.url.path())
+{
+  ASSERT(params.url.scheme() == "file");
+  if (!params.url.host().empty()) {
+    throw Fatal(FMT(
+      "invalid file path \"{}\":  specifying a host (\"{}\") is not supported",
+      params.url.str(),
+      params.url.host()));
   }
-  return dir;
-}
 
-static nonstd::optional<mode_t>
-parse_umask(const AttributeMap& attributes)
-{
-  const auto it = attributes.find("umask");
-  if (it == attributes.end()) {
-    return nonstd::nullopt;
-  }
-
-  const auto umask = util::parse_umask(it->second);
-  if (umask) {
-    return *umask;
-  } else {
-    LOG("Error: {}", umask.error());
-    return nonstd::nullopt;
+  for (const auto& attr : params.attributes) {
+    if (attr.key == "umask") {
+      m_umask = util::value_or_throw<Fatal>(util::parse_umask(attr.value));
+    } else if (attr.key == "update-mtime") {
+      m_update_mtime = attr.value == "true";
+    } else if (!is_framework_attribute(attr.key)) {
+      LOG("Unknown attribute: {}", attr.key);
+    }
   }
 }
 
-static bool
-parse_update_mtime(const AttributeMap& attributes)
-{
-  const auto it = attributes.find("update-mtime");
-  return it != attributes.end() && it->second == "true";
-}
-
-FileStorage::FileStorage(const Url& url, const AttributeMap& attributes)
-  : m_dir(parse_url(url)),
-    m_umask(parse_umask(attributes)),
-    m_update_mtime(parse_update_mtime(attributes))
-{
-}
-
-nonstd::expected<nonstd::optional<std::string>, SecondaryStorage::Error>
-FileStorage::get(const Digest& key)
+nonstd::expected<nonstd::optional<std::string>,
+                 SecondaryStorage::Backend::Failure>
+FileStorageBackend::get(const Digest& key)
 {
   const auto path = get_entry_path(key);
   const bool exists = Stat::stat(path);
@@ -96,16 +104,16 @@ FileStorage::get(const Digest& key)
   try {
     LOG("Reading {}", path);
     return Util::read_file(path);
-  } catch (const ::Error& e) {
+  } catch (const Error& e) {
     LOG("Failed to read {}: {}", path, e.what());
-    return nonstd::make_unexpected(Error::error);
+    return nonstd::make_unexpected(Failure::error);
   }
 }
 
-nonstd::expected<bool, SecondaryStorage::Error>
-FileStorage::put(const Digest& key,
-                 const std::string& value,
-                 const bool only_if_missing)
+nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+FileStorageBackend::put(const Digest& key,
+                        const std::string& value,
+                        const bool only_if_missing)
 {
   const auto path = get_entry_path(key);
 
@@ -122,7 +130,7 @@ FileStorage::put(const Digest& key,
     const auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
       LOG("Failed to create directory {}: {}", dir, strerror(errno));
-      return nonstd::make_unexpected(Error::error);
+      return nonstd::make_unexpected(Failure::error);
     }
 
     LOG("Writing {}", path);
@@ -131,25 +139,33 @@ FileStorage::put(const Digest& key,
       file.write(value);
       file.commit();
       return true;
-    } catch (const ::Error& e) {
+    } catch (const Error& e) {
       LOG("Failed to write {}: {}", path, e.what());
-      return nonstd::make_unexpected(Error::error);
+      return nonstd::make_unexpected(Failure::error);
     }
   }
 }
 
-nonstd::expected<bool, SecondaryStorage::Error>
-FileStorage::remove(const Digest& key)
+nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+FileStorageBackend::remove(const Digest& key)
 {
   return Util::unlink_safe(get_entry_path(key));
 }
 
 std::string
-FileStorage::get_entry_path(const Digest& key) const
+FileStorageBackend::get_entry_path(const Digest& key) const
 {
   const auto key_string = key.to_string();
   const uint8_t digits = 2;
   return FMT("{}/{:.{}}/{}", m_dir, key_string, digits, &key_string[digits]);
+}
+
+} // namespace
+
+std::unique_ptr<SecondaryStorage::Backend>
+FileStorage::create_backend(const Backend::Params& params) const
+{
+  return std::make_unique<FileStorageBackend>(params);
 }
 
 } // namespace secondary

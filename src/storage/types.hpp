@@ -20,12 +20,9 @@
 
 #include <functional>
 #include <string>
-#include <unordered_map>
 
 namespace storage {
 
-using AttributeMap =
-  std::unordered_map<std::string /*key*/, std::string /*value*/>;
 using CacheEntryWriter = std::function<bool(const std::string& path)>;
 
 } // namespace storage
