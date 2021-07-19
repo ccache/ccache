@@ -12,6 +12,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 import os
 import socket
+import ssl
 import sys
 
 class AuthenticationError(Exception):
@@ -87,18 +88,27 @@ def _get_best_family(*address):
     family, type, proto, canonname, sockaddr = next(iter(infos))
     return family, sockaddr
 
-def run(HandlerClass, ServerClass, port, bind):
+def run(HandlerClass, ServerClass, port, bind, directory, certfile, keyfile):
     HandlerClass.protocol_version = "HTTP/1.1"
     ServerClass.address_family, addr = _get_best_family(bind, port)
 
     with ServerClass(addr, HandlerClass) as httpd:
         host, port = httpd.socket.getsockname()[:2]
         url_host = f'[{host}]' if ':' in host else host
-        print(
-            f"Serving HTTP on {host} port {port} "
-            f"(http://{url_host}:{port}/) ..."
-        )
+        if (certfile and keyfile):
+            httpd.socket = ssl.wrap_socket(httpd.socket,
+                                           certfile=certfile, keyfile=keyfile, server_side=True)
+            print(
+                f"Serving HTTPS on {host} port {port} "
+                f"(https://{url_host}:{port}/) ..."
+            )
+        else:
+            print(
+                f"Serving HTTP on {host} port {port} "
+                f"(http://{url_host}:{port}/) ..."
+            )
         try:
+            os.chdir(directory)
             httpd.serve_forever()
         except KeyboardInterrupt:
             print("\nKeyboard interrupt received, exiting.")
@@ -116,6 +126,10 @@ if __name__ == "__main__":
     parser.add_argument('--directory', '-d', default=os.getcwd(),
                         help='Specify alternative directory '
                              '[default:current directory]')
+    parser.add_argument('--certfile', '-c',
+                        help='SSL certicicate file')
+    parser.add_argument('--keyfile', '-p',
+                        help='SSL private key file')
     parser.add_argument('port', action='store',
                         default=8080, type=int,
                         nargs='?',
@@ -124,11 +138,12 @@ if __name__ == "__main__":
 
     handler_class = partial(PUTEnabledHTTPRequestHandler, basic_auth=args.basic_auth)
 
-    os.chdir(args.directory)
-
     run(
         HandlerClass=handler_class,
         ServerClass=HTTPServer,
         port=args.port,
         bind=args.bind,
+        directory=args.directory,
+        certfile=args.certfile,
+        keyfile=args.keyfile,
     )

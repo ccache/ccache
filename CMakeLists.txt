@@ -97,6 +97,15 @@ endif()
 option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 REQUIRED)
 
+option(HTTPS_STORAGE_BACKEND "Enable HTTPS secondary storage" OFF)
+if(HTTPS_STORAGE_BACKEND)
+  message(WARNING
+    "Linking against OpenSSL doubles ccache startup time. Distributions are "
+    "encouraged to provide two ccache binaries: one without any extra "
+    "backends and one with the all the desired backends enabled.")
+  find_package(OpenSSL REQUIRED)
+endif()
+
 option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
   find_package(hiredis 0.13.3 REQUIRED)

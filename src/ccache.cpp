@@ -166,6 +166,9 @@ See also the manual on <https://ccache.dev/documentation.html>.
 
 constexpr const char FEATURE_TEXT[] =
   "http-storage"
+#ifdef HAVE_HTTPS_STORAGE_BACKEND
+  " https-storage"
+#endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
   " redis-storage"
 #endif

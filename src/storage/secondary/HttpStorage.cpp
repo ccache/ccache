@@ -173,6 +173,10 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+    } else if (attr.key == "cacert") {
+      m_http_client.set_ca_cert_path(attr.value.c_str());
+#endif
     } else if (!is_framework_attribute(attr.key)) {
       LOG("Unknown attribute: {}", attr.key);
     }

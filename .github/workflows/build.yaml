@@ -91,7 +91,7 @@ jobs:
           if [ "${{ runner.os }}" = "Linux" ]; then
             sudo apt-get update
 
-            packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools"
+            packages="elfutils libhiredis-dev libssl-dev libzstd-dev ninja-build openssl pkg-config python3 redis-server redis-tools"
             # Install ld.gold (binutils) and ld.lld (lld) on different runs.
             if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
               sudo apt-get install -y $packages binutils
@@ -112,7 +112,9 @@ jobs:
             fi
           elif [ "${{ runner.os }}" = "macOS" ]; then
             HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-              brew install ninja pkg-config hiredis redis
+              brew install ninja openssl pkg-config hiredis redis
+
+            echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl)" >> $GITHUB_ENV
 
             if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
               brew install gcc@${{ matrix.config.version }}
@@ -132,7 +134,7 @@ jobs:
         run: ci/build
         env:
           ENABLE_CACHE_CLEANUP_TESTS: true
-          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DHTTPS_STORAGE_BACKEND=ON
 
       - name: Collect testdir from failed tests
         if: failure()
