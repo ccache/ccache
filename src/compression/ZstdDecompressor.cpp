@@ -22,14 +22,16 @@
 
 #include <core/exceptions.hpp>
 
-ZstdDecompressor::ZstdDecompressor(FILE* stream)
+namespace compression {
+
+ZstdDecompressor::ZstdDecompressor(FILE* const stream)
   : m_stream(stream),
     m_input_size(0),
     m_input_consumed(0),
     m_zstd_stream(ZSTD_createDStream()),
     m_reached_stream_end(false)
 {
-  size_t ret = ZSTD_initDStream(m_zstd_stream);
+  const size_t ret = ZSTD_initDStream(m_zstd_stream);
   if (ZSTD_isError(ret)) {
     ZSTD_freeDStream(m_zstd_stream);
     throw core::Error("failed to initialize zstd decompression stream");
@@ -42,7 +44,7 @@ ZstdDecompressor::~ZstdDecompressor()
 }
 
 void
-ZstdDecompressor::read(void* data, size_t count)
+ZstdDecompressor::read(void* const data, const size_t count)
 {
   size_t bytes_read = 0;
   while (bytes_read < count) {
@@ -62,7 +64,8 @@ ZstdDecompressor::read(void* data, size_t count)
     m_zstd_out.dst = static_cast<uint8_t*>(data) + bytes_read;
     m_zstd_out.size = count - bytes_read;
     m_zstd_out.pos = 0;
-    size_t ret = ZSTD_decompressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
+    const size_t ret =
+      ZSTD_decompressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
     if (ZSTD_isError(ret)) {
       throw core::Error("failed to read from zstd input stream");
     }
@@ -82,3 +85,5 @@ ZstdDecompressor::finalize()
     throw core::Error("garbage data at end of zstd input stream");
   }
 }
+
+} // namespace compression

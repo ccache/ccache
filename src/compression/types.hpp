@@ -16,26 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Compressor.hpp"
+#pragma once
 
-#include "NullCompressor.hpp"
-#include "ZstdCompressor.hpp"
-#include "assertions.hpp"
+#include <cstdint>
+#include <string>
 
-#include <memory>
+class Config;
 
-std::unique_ptr<Compressor>
-Compressor::create_from_type(Compression::Type type,
-                             FILE* stream,
-                             int8_t compression_level)
-{
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullCompressor>(stream);
+namespace compression {
 
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdCompressor>(stream, compression_level);
-  }
+enum class Type : uint8_t {
+  none = 0,
+  zstd = 1,
+};
 
-  ASSERT(false);
-}
+int8_t level_from_config(const Config& config);
+
+Type type_from_config(const Config& config);
+
+Type type_from_int(uint8_t type);
+
+std::string type_to_string(Type type);
+
+} // namespace compression

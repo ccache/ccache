@@ -5,7 +5,6 @@ set(
   test_Args.cpp
   test_AtomicFile.cpp
   test_Checksum.cpp
-  test_Compression.cpp
   test_Config.cpp
   test_Counters.cpp
   test_Depfile.cpp
@@ -20,6 +19,7 @@ set(
   test_argprocessing.cpp
   test_ccache.cpp
   test_compopt.cpp
+  test_compression_types.cpp
   test_hashutil.cpp
   test_util_Tokenizer.cpp
   test_util_expected.cpp

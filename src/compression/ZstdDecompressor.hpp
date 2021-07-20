@@ -16,22 +16,38 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#pragma once
+
 #include "Decompressor.hpp"
 
-#include "NullDecompressor.hpp"
-#include "ZstdDecompressor.hpp"
-#include "assertions.hpp"
+#include <zstd.h>
 
-std::unique_ptr<Decompressor>
-Decompressor::create_from_type(Compression::Type type, FILE* stream)
+#include <cstdint>
+
+namespace compression {
+
+// A decompressor of a Zstandard stream.
+class ZstdDecompressor : public Decompressor
 {
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullDecompressor>(stream);
+public:
+  // Parameters:
+  // - stream: The file to read data from.
+  explicit ZstdDecompressor(FILE* stream);
 
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdDecompressor>(stream);
-  }
+  ~ZstdDecompressor() override;
 
-  ASSERT(false);
-}
+  void read(void* data, size_t count) override;
+  void finalize() override;
+
+private:
+  FILE* m_stream;
+  char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
+  size_t m_input_size;
+  size_t m_input_consumed;
+  ZSTD_DStream* m_zstd_stream;
+  ZSTD_inBuffer m_zstd_in;
+  ZSTD_outBuffer m_zstd_out;
+  bool m_reached_stream_end;
+};
+
+} // namespace compression

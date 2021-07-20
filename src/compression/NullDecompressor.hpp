@@ -18,36 +18,27 @@
 
 #pragma once
 
-#include "Compression.hpp"
+#include "Decompressor.hpp"
+
+#include <NonCopyable.hpp>
 
 #include <cstdio>
-#include <memory>
 
-class Decompressor
+namespace compression {
+
+// A decompressor of an uncompressed stream.
+class NullDecompressor : public Decompressor, NonCopyable
 {
 public:
-  virtual ~Decompressor() = default;
-
-  // Create a decompressor for the specified type.
-  //
   // Parameters:
-  // - type: The type.
-  // - stream: The stream to read from.
-  static std::unique_ptr<Decompressor> create_from_type(Compression::Type type,
-                                                        FILE* stream);
+  // - stream: The file to read data from.
+  explicit NullDecompressor(FILE* stream);
 
-  // Read data into a buffer from the compressed stream.
-  //
-  // Parameters:
-  // - data: Buffer to write decompressed data to.
-  // - count: How many bytes to write.
-  //
-  // Throws Error on failure.
-  virtual void read(void* data, size_t count) = 0;
+  void read(void* data, size_t count) override;
+  void finalize() override;
 
-  // Finalize decompression.
-  //
-  // This method checks that the end state of the compressed stream is correct
-  // and throws Error if not.
-  virtual void finalize() = 0;
+private:
+  FILE* m_stream;
 };
+
+} // namespace compression

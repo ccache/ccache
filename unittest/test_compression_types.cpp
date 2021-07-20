@@ -16,24 +16,37 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "../src/Config.hpp"
 
-#include "Decompressor.hpp"
-#include "NonCopyable.hpp"
+#include <compression/types.hpp>
 
-#include <cstdio>
+#include "third_party/doctest.h"
 
-// A decompressor of an uncompressed stream.
-class NullDecompressor : public Decompressor, NonCopyable
+TEST_SUITE_BEGIN("compression");
+
+TEST_CASE("compression::level_from_config")
 {
-public:
-  // Parameters:
-  // - stream: The file to read data from.
-  explicit NullDecompressor(FILE* stream);
+  Config config;
+  CHECK(compression::level_from_config(config) == 0);
+}
 
-  void read(void* data, size_t count) override;
-  void finalize() override;
+TEST_CASE("compression::type_from_config")
+{
+  Config config;
+  CHECK(compression::type_from_config(config) == compression::Type::zstd);
+}
 
-private:
-  FILE* m_stream;
-};
+TEST_CASE("compression::type_from_int")
+{
+  CHECK(compression::type_from_int(0) == compression::Type::none);
+  CHECK(compression::type_from_int(1) == compression::Type::zstd);
+  CHECK_THROWS_WITH(compression::type_from_int(2), "Unknown type: 2");
+}
+
+TEST_CASE("compression::type_to_string")
+{
+  CHECK(compression::type_to_string(compression::Type::none) == "none");
+  CHECK(compression::type_to_string(compression::Type::zstd) == "zstd");
+}
+
+TEST_SUITE_END();

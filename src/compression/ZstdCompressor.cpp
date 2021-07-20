@@ -25,7 +25,9 @@
 
 #include <algorithm>
 
-ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
+namespace compression {
+
+ZstdCompressor::ZstdCompressor(FILE* const stream, int8_t compression_level)
   : m_stream(stream),
     m_zstd_stream(ZSTD_createCStream())
 {
@@ -71,7 +73,7 @@ ZstdCompressor::actual_compression_level() const
 }
 
 void
-ZstdCompressor::write(const void* data, size_t count)
+ZstdCompressor::write(const void* const data, const size_t count)
 {
   m_zstd_in.src = data;
   m_zstd_in.size = count;
@@ -87,7 +89,7 @@ ZstdCompressor::write(const void* data, size_t count)
     m_zstd_out.pos = 0;
     ret = ZSTD_compressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
     ASSERT(!(ZSTD_isError(ret)));
-    size_t compressed_bytes = m_zstd_out.pos;
+    const size_t compressed_bytes = m_zstd_out.pos;
     if (fwrite(buffer, 1, compressed_bytes, m_stream) != compressed_bytes
         || ferror(m_stream)) {
       throw core::Error("failed to write to zstd output stream ");
@@ -100,7 +102,7 @@ ZstdCompressor::write(const void* data, size_t count)
     m_zstd_out.size = sizeof(buffer);
     m_zstd_out.pos = 0;
     ret = ZSTD_endStream(m_zstd_stream, &m_zstd_out);
-    size_t compressed_bytes = m_zstd_out.pos;
+    const size_t compressed_bytes = m_zstd_out.pos;
     if (fwrite(buffer, 1, compressed_bytes, m_stream) != compressed_bytes
         || ferror(m_stream)) {
       throw core::Error("failed to write to zstd output stream");
@@ -113,3 +115,5 @@ ZstdCompressor::finalize()
 {
   write(nullptr, 0);
 }
+
+} // namespace compression

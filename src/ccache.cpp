@@ -22,7 +22,6 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Checksum.hpp"
-#include "Compression.hpp"
 #include "Context.hpp"
 #include "Depfile.hpp"
 #include "Fd.hpp"
@@ -54,6 +53,7 @@
 #include "hashutil.hpp"
 #include "language.hpp"
 
+#include <compression/types.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <core/wincompat.hpp>

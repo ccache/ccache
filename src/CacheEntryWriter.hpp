@@ -19,8 +19,9 @@
 #pragma once
 
 #include "Checksum.hpp"
-#include "Compressor.hpp"
 #include "Util.hpp"
+
+#include <compression/Compressor.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -44,7 +45,7 @@ public:
   CacheEntryWriter(FILE* stream,
                    const uint8_t* magic,
                    uint8_t version,
-                   Compression::Type compression_type,
+                   compression::Type compression_type,
                    int8_t compression_level,
                    uint64_t payload_size);
 
@@ -72,7 +73,7 @@ public:
   void finalize();
 
 private:
-  std::unique_ptr<Compressor> m_compressor;
+  std::unique_ptr<compression::Compressor> m_compressor;
   Checksum m_checksum;
 };
 

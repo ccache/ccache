@@ -23,12 +23,12 @@
 CacheEntryWriter::CacheEntryWriter(FILE* stream,
                                    const uint8_t* magic,
                                    uint8_t version,
-                                   Compression::Type compression_type,
+                                   compression::Type compression_type,
                                    int8_t compression_level,
                                    uint64_t payload_size)
   // clang-format off
-  : m_compressor(
-      Compressor::create_from_type(compression_type, stream, compression_level))
+  : m_compressor(compression::Compressor::create_from_type(
+                   compression_type, stream, compression_level))
 // clang-format on
 {
   uint8_t header_bytes[15];

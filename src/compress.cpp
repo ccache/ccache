@@ -28,10 +28,10 @@
 #include "Result.hpp"
 #include "Statistics.hpp"
 #include "ThreadPool.hpp"
-#include "ZstdCompressor.hpp"
 #include "assertions.hpp"
 #include "fmtmacros.hpp"
 
+#include <compression/ZstdCompressor.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/string.hpp>
@@ -148,7 +148,7 @@ create_reader(const CacheFile& cache_file, FILE* stream)
 std::unique_ptr<CacheEntryWriter>
 create_writer(FILE* stream,
               const CacheEntryReader& reader,
-              Compression::Type compression_type,
+              compression::Type compression_type,
               int8_t compression_level)
 {
   return std::make_unique<CacheEntryWriter>(stream,
@@ -171,8 +171,10 @@ recompress_file(RecompressionStatistics& statistics,
   auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
   uint64_t content_size = reader->content_size();
   int8_t wanted_level =
-    level ? (*level == 0 ? ZstdCompressor::default_compression_level : *level)
-          : 0;
+    level
+      ? (*level == 0 ? compression::ZstdCompressor::default_compression_level
+                     : *level)
+      : 0;
 
   if (reader->compression_level() == wanted_level) {
     statistics.update(content_size, old_stat.size(), old_stat.size(), 0);
@@ -186,7 +188,7 @@ recompress_file(RecompressionStatistics& statistics,
   auto writer =
     create_writer(atomic_new_file.stream(),
                   *reader,
-                  level ? Compression::Type::zstd : Compression::Type::none,
+                  level ? compression::Type::zstd : compression::Type::none,
                   wanted_level);
 
   char buffer[CCACHE_READ_BUFFER_SIZE];

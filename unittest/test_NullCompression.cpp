@@ -16,34 +16,37 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Compression.hpp"
-#include "../src/Compressor.hpp"
-#include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
 #include "TestUtil.hpp"
+
+#include <compression/Compressor.hpp>
+#include <compression/Decompressor.hpp>
+#include <compression/types.hpp>
 
 #include "third_party/doctest.h"
 
 #include <cstring>
 
+using compression::Compressor;
+using compression::Decompressor;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("NullCompression");
 
-TEST_CASE("Compression::Type::none roundtrip")
+TEST_CASE("compression::Type::none roundtrip")
 {
   TestContext test_context;
 
   File f("data.uncompressed", "w");
   auto compressor =
-    Compressor::create_from_type(Compression::Type::none, f.get(), 1);
+    Compressor::create_from_type(compression::Type::none, f.get(), 1);
   CHECK(compressor->actual_compression_level() == 0);
   compressor->write("foobar", 6);
   compressor->finalize();
 
   f.open("data.uncompressed", "r");
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::none, f.get());
+    Decompressor::create_from_type(compression::Type::none, f.get());
 
   char buffer[4];
   decompressor->read(buffer, 4);

@@ -19,8 +19,9 @@
 #pragma once
 
 #include "Checksum.hpp"
-#include "Decompressor.hpp"
 #include "Util.hpp"
+
+#include <compression/Decompressor.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -82,7 +83,7 @@ public:
   uint8_t version() const;
 
   // Get compression type.
-  Compression::Type compression_type() const;
+  compression::Type compression_type() const;
 
   // Get compression level.
   int8_t compression_level() const;
@@ -91,11 +92,11 @@ public:
   uint64_t content_size() const;
 
 private:
-  std::unique_ptr<Decompressor> m_decompressor;
+  std::unique_ptr<compression::Decompressor> m_decompressor;
   Checksum m_checksum;
   uint8_t m_magic[4];
   uint8_t m_version;
-  Compression::Type m_compression_type;
+  compression::Type m_compression_type;
   int8_t m_compression_level;
   uint64_t m_content_size;
 };
@@ -121,7 +122,7 @@ CacheEntryReader::version() const
   return m_version;
 }
 
-inline Compression::Type
+inline compression::Type
 CacheEntryReader::compression_type() const
 {
   return m_compression_type;

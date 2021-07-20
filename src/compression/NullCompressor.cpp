@@ -16,26 +16,36 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "NullCompressor.hpp"
 
-#include <cstdint>
-#include <string>
+#include <core/exceptions.hpp>
 
-class Config;
+namespace compression {
 
-namespace Compression {
+NullCompressor::NullCompressor(FILE* const stream) : m_stream(stream)
+{
+}
 
-enum class Type : uint8_t {
-  none = 0,
-  zstd = 1,
-};
+int8_t
+NullCompressor::actual_compression_level() const
+{
+  return 0;
+}
 
-int8_t level_from_config(const Config& config);
+void
+NullCompressor::write(const void* const data, const size_t count)
+{
+  if (fwrite(data, 1, count, m_stream) != count) {
+    throw core::Error("failed to write to uncompressed stream");
+  }
+}
 
-Type type_from_config(const Config& config);
+void
+NullCompressor::finalize()
+{
+  if (fflush(m_stream) != 0) {
+    throw core::Error("failed to finalize uncompressed stream");
+  }
+}
 
-Type type_from_int(uint8_t type);
-
-std::string type_to_string(Compression::Type type);
-
-} // namespace Compression
+} // namespace compression

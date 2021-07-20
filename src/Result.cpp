@@ -368,8 +368,8 @@ Writer::do_finalize()
   CacheEntryWriter writer(atomic_result_file.stream(),
                           k_magic,
                           k_version,
-                          Compression::type_from_config(m_ctx.config),
-                          Compression::level_from_config(m_ctx.config),
+                          compression::type_from_config(m_ctx.config),
+                          compression::level_from_config(m_ctx.config),
                           payload_size);
 
   writer.write<uint8_t>(m_entries_to_write.size());

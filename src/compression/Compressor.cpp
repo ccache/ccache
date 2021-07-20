@@ -16,32 +16,30 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "Compressor.hpp"
+
 #include "NullCompressor.hpp"
+#include "ZstdCompressor.hpp"
+#include "assertions.hpp"
 
-#include <core/exceptions.hpp>
+#include <memory>
 
-NullCompressor::NullCompressor(FILE* stream) : m_stream(stream)
+namespace compression {
+
+std::unique_ptr<Compressor>
+Compressor::create_from_type(const Type type,
+                             FILE* const stream,
+                             const int8_t compression_level)
 {
-}
+  switch (type) {
+  case compression::Type::none:
+    return std::make_unique<NullCompressor>(stream);
 
-int8_t
-NullCompressor::actual_compression_level() const
-{
-  return 0;
-}
-
-void
-NullCompressor::write(const void* data, size_t count)
-{
-  if (fwrite(data, 1, count, m_stream) != count) {
-    throw core::Error("failed to write to uncompressed stream");
+  case compression::Type::zstd:
+    return std::make_unique<ZstdCompressor>(stream, compression_level);
   }
+
+  ASSERT(false);
 }
 
-void
-NullCompressor::finalize()
-{
-  if (fflush(m_stream) != 0) {
-    throw core::Error("failed to finalize uncompressed stream");
-  }
-}
+} // namespace compression

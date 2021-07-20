@@ -16,26 +16,53 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "NullDecompressor.hpp"
+#include "types.hpp"
 
+#include <Config.hpp>
+#include <Context.hpp>
+#include <assertions.hpp>
 #include <core/exceptions.hpp>
 
-NullDecompressor::NullDecompressor(FILE* stream) : m_stream(stream)
+namespace compression {
+
+int8_t
+level_from_config(const Config& config)
 {
+  return config.compression() ? config.compression_level() : 0;
 }
 
-void
-NullDecompressor::read(void* data, size_t count)
+Type
+type_from_config(const Config& config)
 {
-  if (fread(data, count, 1, m_stream) != 1) {
-    throw core::Error("failed to read from uncompressed stream");
-  }
+  return config.compression() ? Type::zstd : Type::none;
 }
 
-void
-NullDecompressor::finalize()
+Type
+type_from_int(const uint8_t type)
 {
-  if (fgetc(m_stream) != EOF) {
-    throw core::Error("garbage data at end of uncompressed stream");
+  switch (type) {
+  case static_cast<uint8_t>(Type::none):
+    return Type::none;
+
+  case static_cast<uint8_t>(Type::zstd):
+    return Type::zstd;
   }
+
+  throw core::Error("Unknown type: {}", type);
 }
+
+std::string
+type_to_string(const Type type)
+{
+  switch (type) {
+  case Type::none:
+    return "none";
+
+  case Type::zstd:
+    return "zstd";
+  }
+
+  ASSERT(false);
+}
+
+} // namespace compression

@@ -19,13 +19,13 @@
 #include "Config.hpp"
 
 #include "AtomicFile.hpp"
-#include "Compression.hpp"
 #include "MiniTrace.hpp"
 #include "Sloppiness.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
 #include "fmtmacros.hpp"
 
+#include <compression/types.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/expected.hpp>

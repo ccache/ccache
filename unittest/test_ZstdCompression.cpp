@@ -16,34 +16,37 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Compression.hpp"
-#include "../src/Compressor.hpp"
-#include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
 #include "TestUtil.hpp"
+
+#include <compression/Compressor.hpp>
+#include <compression/Decompressor.hpp>
+#include <compression/types.hpp>
 
 #include "third_party/doctest.h"
 
 #include <cstring>
 
+using compression::Compressor;
+using compression::Decompressor;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("ZstdCompression");
 
-TEST_CASE("Small Compression::Type::zstd roundtrip")
+TEST_CASE("Small compression::Type::zstd roundtrip")
 {
   TestContext test_context;
 
   File f("data.zstd", "wb");
   auto compressor =
-    Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
+    Compressor::create_from_type(compression::Type::zstd, f.get(), 1);
   CHECK(compressor->actual_compression_level() == 1);
   compressor->write("foobar", 6);
   compressor->finalize();
 
   f.open("data.zstd", "rb");
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::zstd, f.get());
+    Decompressor::create_from_type(compression::Type::zstd, f.get());
 
   char buffer[4];
   decompressor->read(buffer, 4);
@@ -64,7 +67,7 @@ TEST_CASE("Small Compression::Type::zstd roundtrip")
                     "failed to read from zstd input stream");
 }
 
-TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
+TEST_CASE("Large compressible compression::Type::zstd roundtrip")
 {
   TestContext test_context;
 
@@ -72,7 +75,7 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 
   File f("data.zstd", "wb");
   auto compressor =
-    Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
+    Compressor::create_from_type(compression::Type::zstd, f.get(), 1);
   for (size_t i = 0; i < 1000; i++) {
     compressor->write(data, sizeof(data));
   }
@@ -80,7 +83,7 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 
   f.open("data.zstd", "rb");
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::zstd, f.get());
+    Decompressor::create_from_type(compression::Type::zstd, f.get());
 
   char buffer[sizeof(data)];
   for (size_t i = 0; i < 1000; i++) {
@@ -96,7 +99,7 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
                     "failed to read from zstd input stream");
 }
 
-TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
+TEST_CASE("Large uncompressible compression::Type::zstd roundtrip")
 {
   TestContext test_context;
 
@@ -107,13 +110,13 @@ TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
 
   File f("data.zstd", "wb");
   auto compressor =
-    Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
+    Compressor::create_from_type(compression::Type::zstd, f.get(), 1);
   compressor->write(data, sizeof(data));
   compressor->finalize();
 
   f.open("data.zstd", "rb");
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::zstd, f.get());
+    Decompressor::create_from_type(compression::Type::zstd, f.get());
 
   char buffer[sizeof(data)];
   decompressor->read(buffer, sizeof(buffer));

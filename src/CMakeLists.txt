@@ -5,20 +5,15 @@ set(
   CacheEntryReader.cpp
   CacheEntryWriter.cpp
   CacheFile.cpp
-  Compression.cpp
-  Compressor.cpp
   Config.cpp
   Context.cpp
   Counters.cpp
-  Decompressor.cpp
   Depfile.cpp
   Fd.cpp
   Hash.cpp
   Lockfile.cpp
   Logging.cpp
   Manifest.cpp
-  NullCompressor.cpp
-  NullDecompressor.cpp
   ProgressBar.cpp
   Result.cpp
   ResultDumper.cpp
@@ -30,8 +25,6 @@ set(
   TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp
-  ZstdCompressor.cpp
-  ZstdDecompressor.cpp
   argprocessing.cpp
   assertions.cpp
   ccache.cpp
@@ -92,6 +85,7 @@ if(REDIS_STORAGE_BACKEND)
            third_party_lib)
 endif()
 
+add_subdirectory(compression)
 add_subdirectory(core)
 add_subdirectory(storage)
 add_subdirectory(third_party)

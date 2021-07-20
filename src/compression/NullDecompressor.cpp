@@ -16,25 +16,30 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "NullDecompressor.hpp"
 
-#include "Compressor.hpp"
-#include "NonCopyable.hpp"
+#include <core/exceptions.hpp>
 
-#include <cstdio>
+namespace compression {
 
-// A compressor of an uncompressed stream.
-class NullCompressor : public Compressor, NonCopyable
+NullDecompressor::NullDecompressor(FILE* const stream) : m_stream(stream)
 {
-public:
-  // Parameters:
-  // - stream: The file to write data to.
-  explicit NullCompressor(FILE* stream);
+}
 
-  int8_t actual_compression_level() const override;
-  void write(const void* data, size_t count) override;
-  void finalize() override;
+void
+NullDecompressor::read(void* const data, const size_t count)
+{
+  if (fread(data, count, 1, m_stream) != 1) {
+    throw core::Error("failed to read from uncompressed stream");
+  }
+}
 
-private:
-  FILE* m_stream;
-};
+void
+NullDecompressor::finalize()
+{
+  if (fgetc(m_stream) != EOF) {
+    throw core::Error("garbage data at end of uncompressed stream");
+  }
+}
+
+} // namespace compression

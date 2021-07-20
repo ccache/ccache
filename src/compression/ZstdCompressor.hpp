@@ -16,54 +16,41 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Compression.hpp"
+#pragma once
 
-#include "Config.hpp"
-#include "Context.hpp"
-#include "assertions.hpp"
+#include "Compressor.hpp"
 
-#include <core/exceptions.hpp>
+#include <NonCopyable.hpp>
 
-namespace Compression {
+#include <zstd.h>
 
-int8_t
-level_from_config(const Config& config)
+#include <cstdint>
+
+namespace compression {
+
+// A compressor of a Zstandard stream.
+class ZstdCompressor : public Compressor, NonCopyable
 {
-  return config.compression() ? config.compression_level() : 0;
-}
+public:
+  // Parameters:
+  // - stream: The file to write data to.
+  // - compression_level: Desired compression level.
+  ZstdCompressor(FILE* stream, int8_t compression_level);
 
-Type
-type_from_config(const Config& config)
-{
-  return config.compression() ? Type::zstd : Type::none;
-}
+  ~ZstdCompressor() override;
 
-Type
-type_from_int(uint8_t type)
-{
-  switch (type) {
-  case static_cast<uint8_t>(Type::none):
-    return Type::none;
+  int8_t actual_compression_level() const override;
+  void write(const void* data, size_t count) override;
+  void finalize() override;
 
-  case static_cast<uint8_t>(Type::zstd):
-    return Type::zstd;
-  }
+  constexpr static uint8_t default_compression_level = 1;
 
-  throw core::Error("Unknown type: {}", type);
-}
+private:
+  FILE* m_stream;
+  ZSTD_CStream* m_zstd_stream;
+  ZSTD_inBuffer m_zstd_in;
+  ZSTD_outBuffer m_zstd_out;
+  int8_t m_compression_level;
+};
 
-std::string
-type_to_string(Type type)
-{
-  switch (type) {
-  case Type::none:
-    return "none";
-
-  case Type::zstd:
-    return "zstd";
-  }
-
-  ASSERT(false);
-}
-
-} // namespace Compression
+} // namespace compression

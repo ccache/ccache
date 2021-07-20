@@ -382,8 +382,8 @@ write_manifest(const Config& config,
   CacheEntryWriter writer(atomic_manifest_file.stream(),
                           Manifest::k_magic,
                           Manifest::k_version,
-                          Compression::type_from_config(config),
-                          Compression::level_from_config(config),
+                          compression::type_from_config(config),
+                          compression::level_from_config(config),
                           payload_size);
   writer.write<uint32_t>(mf.files.size());
   for (const auto& file : mf.files) {
