@@ -4,7 +4,6 @@ set(
   AtomicFile.cpp
   CacheEntryReader.cpp
   CacheEntryWriter.cpp
-  CacheFile.cpp
   Config.cpp
   Context.cpp
   Counters.cpp
@@ -28,9 +27,7 @@ set(
   argprocessing.cpp
   assertions.cpp
   ccache.cpp
-  cleanup.cpp
   compopt.cpp
-  compress.cpp
   execute.cpp
   hashutil.cpp
   language.cpp

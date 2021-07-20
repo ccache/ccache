@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "util.hpp"
+
 #include <Counters.hpp>
 #include <Digest.hpp>
 #include <core/types.hpp>
@@ -39,6 +41,8 @@ public:
   void initialize();
   void finalize();
 
+  // --- Cache entry handling ---
+
   // Returns a path to a file containing the value.
   nonstd::optional<std::string> get(const Digest& key,
                                     core::CacheEntryType type) const;
@@ -49,6 +53,8 @@ public:
 
   void remove(const Digest& key, core::CacheEntryType type);
 
+  // --- Statistics ---
+
   void increment_statistic(Statistic statistic, int64_t value = 1);
 
   // Return a machine-readable string representing the final ccache result, or
@@ -58,6 +64,27 @@ public:
   // Return a human-readable string representing the final ccache result, or
   // nullopt if there was no result.
   nonstd::optional<std::string> get_result_message() const;
+
+  // --- Cleanup ---
+
+  void clean_old(const ProgressReceiver& progress_receiver, uint64_t max_age);
+
+  void clean_dir(const std::string& subdir,
+                 uint64_t max_size,
+                 uint64_t max_files,
+                 uint64_t max_age,
+                 const ProgressReceiver& progress_receiver);
+
+  void clean_all(const ProgressReceiver& progress_receiver);
+
+  void wipe_all(const ProgressReceiver& progress_receiver);
+
+  // --- Compression ---
+
+  void print_compression_statistics(const ProgressReceiver& progress_receiver);
+
+  void recompress(nonstd::optional<int8_t> level,
+                  const ProgressReceiver& progress_receiver);
 
 private:
   const Config& m_config;
@@ -88,7 +115,7 @@ private:
   LookUpCacheFileResult look_up_cache_file(const Digest& key,
                                            core::CacheEntryType type) const;
 
-  void clean_up_internal_tempdir();
+  void clean_internal_tempdir();
 
   nonstd::optional<Counters>
   update_stats_and_maybe_move_cache_file(const Digest& key,

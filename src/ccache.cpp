@@ -45,9 +45,7 @@
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "argprocessing.hpp"
-#include "cleanup.hpp"
 #include "compopt.hpp"
-#include "compress.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"
@@ -2319,8 +2317,8 @@ handle_main_options(int argc, const char* const* argv)
     case EVICT_OLDER_THAN: {
       auto seconds = Util::parse_duration(arg);
       ProgressBar progress_bar("Evicting...");
-      clean_old(
-        ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
+      ctx.storage.primary().clean_old(
+        [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
       }
@@ -2361,8 +2359,8 @@ handle_main_options(int argc, const char* const* argv)
     case 'c': // --cleanup
     {
       ProgressBar progress_bar("Cleaning...");
-      clean_up_all(ctx.config,
-                   [&](double progress) { progress_bar.update(progress); });
+      ctx.storage.primary().clean_all(
+        [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
       }
@@ -2372,10 +2370,14 @@ handle_main_options(int argc, const char* const* argv)
     case 'C': // --clear
     {
       ProgressBar progress_bar("Clearing...");
-      wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
+      ctx.storage.primary().wipe_all(
+        [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
       }
+#ifdef INODE_CACHE_SUPPORTED
+      ctx.inode_cache.drop();
+#endif
       break;
     }
 
@@ -2466,8 +2468,8 @@ handle_main_options(int argc, const char* const* argv)
     case 'x': // --show-compression
     {
       ProgressBar progress_bar("Scanning...");
-      compress_stats(ctx.config,
-                     [&](double progress) { progress_bar.update(progress); });
+      ctx.storage.primary().print_compression_statistics(
+        [&](double progress) { progress_bar.update(progress); });
       break;
     }
 
@@ -2482,9 +2484,8 @@ handle_main_options(int argc, const char* const* argv)
       }
 
       ProgressBar progress_bar("Recompressing...");
-      compress_recompress(ctx, wanted_level, [&](double progress) {
-        progress_bar.update(progress);
-      });
+      ctx.storage.primary().recompress(
+        wanted_level, [&](double progress) { progress_bar.update(progress); });
       break;
     }
 

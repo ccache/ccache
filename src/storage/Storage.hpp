@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "types.hpp"
-
 #include <core/types.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
+#include <storage/types.hpp>
 
 #include <third_party/nonstd/optional.hpp>
 

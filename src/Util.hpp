@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include "CacheFile.hpp"
-
+#include <Stat.hpp>
 #include <util/Tokenizer.hpp>
 
 #include "third_party/nonstd/optional.hpp"
@@ -39,9 +38,6 @@ class Context;
 namespace Util {
 
 using DataReceiver = std::function<void(const void* data, size_t size)>;
-using ProgressReceiver = std::function<void(double progress)>;
-using SubdirVisitor = std::function<void(
-  const std::string& dir_path, const ProgressReceiver& progress_receiver)>;
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
 
@@ -146,17 +142,6 @@ void ensure_dir_exists(nonstd::string_view dir);
 // Returns 0 on success, an error number otherwise.
 int fallocate(int fd, long new_size);
 
-// Call a function for each subdir (0-9a-f) in the cache.
-//
-// Parameters:
-// - cache_dir: Path to the cache directory.
-// - visitor: Function to call with directory path and progress_receiver as
-//   arguments.
-// - progress_receiver: Function that will be called for progress updates.
-void for_each_level_1_subdir(const std::string& cache_dir,
-                             const SubdirVisitor& visitor,
-                             const ProgressReceiver& progress_receiver);
-
 // Format `argv` as a simple string for logging purposes. That is, the result is
 // not intended to be machine parsable. `argv` must be terminated by a nullptr.
 std::string format_argv_for_logging(const char* const* argv);
@@ -188,24 +173,6 @@ std::string get_apparent_cwd(const std::string& actual_cwd);
 // Return the file extension (including the dot) as a view into `path`. If
 // `path` has no file extension, an empty string_view is returned.
 nonstd::string_view get_extension(nonstd::string_view path);
-
-// Get a list of files in a level 1 subdirectory of the cache.
-//
-// The function works under the assumption that directory entries with one
-// character names (except ".") are subdirectories and that there are no other
-// subdirectories.
-//
-// Files ignored:
-// - CACHEDIR.TAG
-// - stats
-// - .nfs* (temporary NFS files that may be left for open but deleted files).
-//
-// Parameters:
-// - dir: The directory to traverse recursively.
-// - progress_receiver: Function that will be called for progress updates.
-std::vector<CacheFile>
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver);
 
 // Return the current user's home directory, or throw `Fatal` if it can't
 // be determined.

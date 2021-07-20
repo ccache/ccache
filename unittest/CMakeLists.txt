@@ -21,6 +21,7 @@ set(
   test_compopt.cpp
   test_compression_types.cpp
   test_hashutil.cpp
+  test_storage_primary_util.cpp
   test_util_Tokenizer.cpp
   test_util_expected.cpp
   test_util_path.cpp

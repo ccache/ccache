@@ -514,22 +514,6 @@ fallocate(int fd, long new_size)
 #endif
 }
 
-void
-for_each_level_1_subdir(const std::string& cache_dir,
-                        const SubdirVisitor& visitor,
-                        const ProgressReceiver& progress_receiver)
-{
-  for (int i = 0; i <= 0xF; i++) {
-    double progress = 1.0 * i / 16;
-    progress_receiver(progress);
-    std::string subdir_path = FMT("{}/{:x}", cache_dir, i);
-    visitor(subdir_path, [&](double inner_progress) {
-      progress_receiver(progress + inner_progress / 16);
-    });
-  }
-  progress_receiver(1.0);
-}
-
 std::string
 format_argv_for_logging(const char* const* argv)
 {
@@ -660,37 +644,6 @@ get_extension(string_view path)
   } else {
     return path.substr(pos);
   }
-}
-
-std::vector<CacheFile>
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver)
-{
-  std::vector<CacheFile> files;
-
-  if (!Stat::stat(dir)) {
-    return files;
-  }
-
-  size_t level_2_directories = 0;
-
-  Util::traverse(dir, [&](const std::string& path, bool is_dir) {
-    auto name = Util::base_name(path);
-    if (name == "CACHEDIR.TAG" || name == "stats" || name.starts_with(".nfs")) {
-      return;
-    }
-
-    if (!is_dir) {
-      files.emplace_back(path);
-    } else if (path != dir
-               && path.find('/', dir.size() + 1) == std::string::npos) {
-      ++level_2_directories;
-      progress_receiver(level_2_directories / 16.0);
-    }
-  });
-
-  progress_receiver(1.0);
-  return files;
 }
 
 std::string

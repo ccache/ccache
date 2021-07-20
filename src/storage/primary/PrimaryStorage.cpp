@@ -26,7 +26,6 @@
 #include <Statistics.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
-#include <cleanup.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -98,11 +97,11 @@ PrimaryStorage::PrimaryStorage(const Config& config) : m_config(config)
 void
 PrimaryStorage::initialize()
 {
-  MTR_BEGIN("primary_storage", "clean_up_internal_tempdir");
+  MTR_BEGIN("primary_storage", "clean_internal_tempdir");
   if (m_config.temporary_dir() == m_config.cache_dir() + "/tmp") {
-    clean_up_internal_tempdir();
+    clean_internal_tempdir();
   }
-  MTR_END("primary_storage", "clean_up_internal_tempdir");
+  MTR_END("primary_storage", "clean_internal_tempdir");
 }
 
 void
@@ -174,8 +173,7 @@ PrimaryStorage::finalize()
     const uint64_t max_size = round(m_config.max_size() * factor);
     const uint32_t max_files = round(m_config.max_files() * factor);
     const time_t max_age = 0;
-    clean_up_dir(
-      subdir, max_size, max_files, max_age, [](double /*progress*/) {});
+    clean_dir(subdir, max_size, max_files, max_age, [](double /*progress*/) {});
   }
 }
 
@@ -303,7 +301,7 @@ PrimaryStorage::look_up_cache_file(const Digest& key,
 }
 
 void
-PrimaryStorage::clean_up_internal_tempdir()
+PrimaryStorage::clean_internal_tempdir()
 {
   const time_t now = time(nullptr);
   const auto dir_st = Stat::stat(m_config.cache_dir(), Stat::OnError::log);

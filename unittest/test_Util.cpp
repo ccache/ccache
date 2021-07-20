@@ -235,35 +235,6 @@ TEST_CASE("Util::fallocate")
   CHECK(Stat::stat(filename).size() == 20000);
 }
 
-TEST_CASE("Util::for_each_level_1_subdir")
-{
-  std::vector<std::string> actual;
-  Util::for_each_level_1_subdir(
-    "cache_dir",
-    [&](const auto& subdir, const auto&) { actual.push_back(subdir); },
-    [](double) {});
-
-  std::vector<std::string> expected = {
-    "cache_dir/0",
-    "cache_dir/1",
-    "cache_dir/2",
-    "cache_dir/3",
-    "cache_dir/4",
-    "cache_dir/5",
-    "cache_dir/6",
-    "cache_dir/7",
-    "cache_dir/8",
-    "cache_dir/9",
-    "cache_dir/a",
-    "cache_dir/b",
-    "cache_dir/c",
-    "cache_dir/d",
-    "cache_dir/e",
-    "cache_dir/f",
-  };
-  CHECK(actual == expected);
-}
-
 TEST_CASE("Util::format_argv_for_logging")
 {
   const char* argv_0[] = {nullptr};
@@ -350,55 +321,6 @@ os_path(std::string path)
 #endif
 
   return path;
-}
-
-TEST_CASE("Util::get_level_1_files")
-{
-  TestContext test_context;
-
-  Util::create_dir("e/m/p/t/y");
-
-  Util::create_dir("0/1");
-  Util::create_dir("0/f/c");
-  Util::write_file("0/file_a", "");
-  Util::write_file("0/1/file_b", "1");
-  Util::write_file("0/1/file_c", "12");
-  Util::write_file("0/f/c/file_d", "123");
-
-  auto null_receiver = [](double) {};
-
-  SUBCASE("nonexistent subdirectory")
-  {
-    const auto files = Util::get_level_1_files("2", null_receiver);
-    CHECK(files.empty());
-  }
-
-  SUBCASE("empty subdirectory")
-  {
-    const auto files = Util::get_level_1_files("e", null_receiver);
-    CHECK(files.empty());
-  }
-
-  SUBCASE("simple case")
-  {
-    auto files = Util::get_level_1_files("0", null_receiver);
-    REQUIRE(files.size() == 4);
-
-    // Files within a level are in arbitrary order, sort them to be able to
-    // verify them.
-    std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
-      return f1.path() < f2.path();
-    });
-
-    CHECK(files[0].path() == os_path("0/1/file_b"));
-    CHECK(files[0].lstat().size() == 1);
-    CHECK(files[1].path() == os_path("0/1/file_c"));
-    CHECK(files[1].lstat().size() == 2);
-    CHECK(files[2].path() == os_path("0/f/c/file_d"));
-    CHECK(files[2].lstat().size() == 3);
-    CHECK(files[3].path() == os_path("0/file_a"));
-    CHECK(files[3].lstat().size() == 0);
-  }
 }
 
 TEST_CASE("Util::get_relative_path")

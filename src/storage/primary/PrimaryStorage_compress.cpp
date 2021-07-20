@@ -16,27 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "compress.hpp"
+#include "PrimaryStorage.hpp"
 
-#include "AtomicFile.hpp"
-#include "CacheEntryReader.hpp"
-#include "CacheEntryWriter.hpp"
-#include "Context.hpp"
-#include "File.hpp"
-#include "Logging.hpp"
-#include "Manifest.hpp"
-#include "Result.hpp"
-#include "Statistics.hpp"
-#include "ThreadPool.hpp"
-#include "assertions.hpp"
-#include "fmtmacros.hpp"
-
+#include <AtomicFile.hpp>
+#include <CacheEntryReader.hpp>
+#include <CacheEntryWriter.hpp>
+#include <Context.hpp>
+#include <File.hpp>
+#include <Logging.hpp>
+#include <Manifest.hpp>
+#include <Result.hpp>
+#include <Statistics.hpp>
+#include <ThreadPool.hpp>
+#include <assertions.hpp>
 #include <compression/ZstdCompressor.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/string.hpp>
 
-#include "third_party/fmt/core.h"
+#include <third_party/fmt/core.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -46,7 +45,8 @@
 #include <string>
 #include <thread>
 
-using nonstd::optional;
+namespace storage {
+namespace primary {
 
 namespace {
 
@@ -71,10 +71,10 @@ private:
 };
 
 void
-RecompressionStatistics::update(uint64_t content_size,
-                                uint64_t old_size,
-                                uint64_t new_size,
-                                uint64_t incompressible_size)
+RecompressionStatistics::update(const uint64_t content_size,
+                                const uint64_t old_size,
+                                const uint64_t new_size,
+                                const uint64_t incompressible_size)
 {
   std::unique_lock<std::mutex> lock(m_mutex);
   m_incompressible_size += incompressible_size;
@@ -111,8 +111,10 @@ RecompressionStatistics::incompressible_size() const
   return m_incompressible_size;
 }
 
-File
-open_file(const std::string& path, const char* mode)
+} // namespace
+
+static File
+open_file(const std::string& path, const char* const mode)
 {
   File f(path, mode);
   if (!f) {
@@ -122,8 +124,8 @@ open_file(const std::string& path, const char* mode)
   return f;
 }
 
-std::unique_ptr<CacheEntryReader>
-create_reader(const CacheFile& cache_file, FILE* stream)
+static std::unique_ptr<CacheEntryReader>
+create_reader(const CacheFile& cache_file, FILE* const stream)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
     throw core::Error("unknown file type for {}", cache_file.path());
@@ -145,11 +147,11 @@ create_reader(const CacheFile& cache_file, FILE* stream)
   ASSERT(false);
 }
 
-std::unique_ptr<CacheEntryWriter>
-create_writer(FILE* stream,
+static std::unique_ptr<CacheEntryWriter>
+create_writer(FILE* const stream,
               const CacheEntryReader& reader,
-              compression::Type compression_type,
-              int8_t compression_level)
+              const compression::Type compression_type,
+              const int8_t compression_level)
 {
   return std::make_unique<CacheEntryWriter>(stream,
                                             reader.magic(),
@@ -159,18 +161,18 @@ create_writer(FILE* stream,
                                             reader.payload_size());
 }
 
-void
+static void
 recompress_file(RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
-                optional<int8_t> level)
+                const nonstd::optional<int8_t> level)
 {
   auto file = open_file(cache_file.path(), "rb");
   auto reader = create_reader(cache_file, file.get());
 
-  auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
-  uint64_t content_size = reader->content_size();
-  int8_t wanted_level =
+  const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
+  const uint64_t content_size = reader->content_size();
+  const int8_t wanted_level =
     level
       ? (*level == 0 ? compression::ZstdCompressor::default_compression_level
                      : *level)
@@ -205,7 +207,7 @@ recompress_file(RecompressionStatistics& statistics,
   file.close();
 
   atomic_new_file.commit();
-  auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
+  const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
   Statistics::update(stats_file, [=](auto& cs) {
     cs.increment(Statistic::cache_size_kibibyte,
@@ -217,21 +219,19 @@ recompress_file(RecompressionStatistics& statistics,
   LOG("Recompression of {} done", cache_file.path());
 }
 
-} // namespace
-
 void
-compress_stats(const Config& config,
-               const Util::ProgressReceiver& progress_receiver)
+PrimaryStorage::print_compression_statistics(
+  const ProgressReceiver& progress_receiver)
 {
   uint64_t on_disk_size = 0;
   uint64_t compr_size = 0;
   uint64_t content_size = 0;
   uint64_t incompr_size = 0;
 
-  Util::for_each_level_1_subdir(
-    config.cache_dir(),
+  for_each_level_1_subdir(
+    m_config.cache_dir(),
     [&](const auto& subdir, const auto& sub_progress_receiver) {
-      const std::vector<CacheFile> files = Util::get_level_1_files(
+      const std::vector<CacheFile> files = get_level_1_files(
         subdir, [&](double progress) { sub_progress_receiver(progress / 2); });
 
       for (size_t i = 0; i < files.size(); ++i) {
@@ -256,16 +256,20 @@ compress_stats(const Config& config,
     PRINT_RAW(stdout, "\n\n");
   }
 
-  double ratio =
+  const double ratio =
     compr_size > 0 ? static_cast<double>(content_size) / compr_size : 0.0;
-  double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
+  const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
-  std::string on_disk_size_str = Util::format_human_readable_size(on_disk_size);
-  std::string cache_size_str =
+  const std::string on_disk_size_str =
+    Util::format_human_readable_size(on_disk_size);
+  const std::string cache_size_str =
     Util::format_human_readable_size(compr_size + incompr_size);
-  std::string compr_size_str = Util::format_human_readable_size(compr_size);
-  std::string content_size_str = Util::format_human_readable_size(content_size);
-  std::string incompr_size_str = Util::format_human_readable_size(incompr_size);
+  const std::string compr_size_str =
+    Util::format_human_readable_size(compr_size);
+  const std::string content_size_str =
+    Util::format_human_readable_size(content_size);
+  const std::string incompr_size_str =
+    Util::format_human_readable_size(incompr_size);
 
   PRINT(stdout,
         "Total data:            {:>8s} ({} disk blocks)\n",
@@ -284,20 +288,19 @@ compress_stats(const Config& config,
 }
 
 void
-compress_recompress(Context& ctx,
-                    optional<int8_t> level,
-                    const Util::ProgressReceiver& progress_receiver)
+PrimaryStorage::recompress(const nonstd::optional<int8_t> level,
+                           const ProgressReceiver& progress_receiver)
 {
   const size_t threads = std::thread::hardware_concurrency();
   const size_t read_ahead = 2 * threads;
   ThreadPool thread_pool(threads, read_ahead);
   RecompressionStatistics statistics;
 
-  Util::for_each_level_1_subdir(
-    ctx.config.cache_dir(),
+  for_each_level_1_subdir(
+    m_config.cache_dir(),
     [&](const auto& subdir, const auto& sub_progress_receiver) {
       std::vector<CacheFile> files =
-        Util::get_level_1_files(subdir, [&](double progress) {
+        get_level_1_files(subdir, [&](double progress) {
           sub_progress_receiver(0.1 * progress);
         });
 
@@ -322,7 +325,7 @@ compress_recompress(Context& ctx,
       }
 
       if (util::ends_with(subdir, "f")) {
-        // Wait here instead of after Util::for_each_level_1_subdir to avoid
+        // Wait here instead of after for_each_level_1_subdir to avoid
         // updating the progress bar to 100% before all work is done.
         thread_pool.shut_down();
       }
@@ -333,28 +336,30 @@ compress_recompress(Context& ctx,
     PRINT_RAW(stdout, "\n\n");
   }
 
-  double old_ratio =
+  const double old_ratio =
     statistics.old_size() > 0
       ? static_cast<double>(statistics.content_size()) / statistics.old_size()
       : 0.0;
-  double old_savings = old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
-  double new_ratio =
+  const double old_savings =
+    old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
+  const double new_ratio =
     statistics.new_size() > 0
       ? static_cast<double>(statistics.content_size()) / statistics.new_size()
       : 0.0;
-  double new_savings = new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
-  int64_t size_difference = static_cast<int64_t>(statistics.new_size())
-                            - static_cast<int64_t>(statistics.old_size());
+  const double new_savings =
+    new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
+  const int64_t size_difference = static_cast<int64_t>(statistics.new_size())
+                                  - static_cast<int64_t>(statistics.old_size());
 
-  std::string old_compr_size_str =
+  const std::string old_compr_size_str =
     Util::format_human_readable_size(statistics.old_size());
-  std::string new_compr_size_str =
+  const std::string new_compr_size_str =
     Util::format_human_readable_size(statistics.new_size());
-  std::string content_size_str =
+  const std::string content_size_str =
     Util::format_human_readable_size(statistics.content_size());
-  std::string incompr_size_str =
+  const std::string incompr_size_str =
     Util::format_human_readable_size(statistics.incompressible_size());
-  std::string size_difference_str =
+  const std::string size_difference_str =
     FMT("{}{}",
         size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
         Util::format_human_readable_size(
@@ -379,3 +384,6 @@ compress_recompress(Context& ctx,
         new_savings);
   PRINT(stdout, "Size change:          {:>9s}\n", size_difference_str);
 }
+
+} // namespace primary
+} // namespace storage

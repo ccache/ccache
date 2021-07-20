@@ -16,36 +16,30 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "CacheFile.hpp"
 
-#include "Stat.hpp"
+#include <Manifest.hpp>
+#include <Result.hpp>
+#include <util/string.hpp>
 
-#include "third_party/nonstd/optional.hpp"
-
-#include <string>
-
-class CacheFile
+const Stat&
+CacheFile::lstat() const
 {
-public:
-  enum class Type { result, manifest, unknown };
+  if (!m_stat) {
+    m_stat = Stat::lstat(m_path);
+  }
 
-  explicit CacheFile(const std::string& path);
-
-  const Stat& lstat() const;
-  const std::string& path() const;
-  Type type() const;
-
-private:
-  std::string m_path;
-  mutable nonstd::optional<Stat> m_stat;
-};
-
-inline CacheFile::CacheFile(const std::string& path) : m_path(path)
-{
+  return *m_stat;
 }
 
-inline const std::string&
-CacheFile::path() const
+CacheFile::Type
+CacheFile::type() const
 {
-  return m_path;
+  if (util::ends_with(m_path, Manifest::k_file_suffix)) {
+    return Type::manifest;
+  } else if (util::ends_with(m_path, Result::k_file_suffix)) {
+    return Type::result;
+  } else {
+    return Type::unknown;
+  }
 }
