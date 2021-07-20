@@ -102,7 +102,7 @@ parse_storage_config(const nonstd::string_view entry)
   }
 
   SecondaryStorageConfig result;
-  result.params.url = to_string(parts[0]);
+  result.params.url = std::string(parts[0]);
   // The Url class is parsing the URL object lazily; check if successful.
   try {
     std::ignore = result.params.url.host();
@@ -128,7 +128,7 @@ parse_storage_config(const nonstd::string_view entry)
     }
     result.params.attributes.emplace_back(
       secondary::SecondaryStorage::Backend::Attribute{
-        to_string(key), value, to_string(raw_value)});
+        std::string(key), value, std::string(raw_value)});
   }
 
   return result;

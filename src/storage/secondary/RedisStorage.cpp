@@ -84,10 +84,10 @@ split_user_info(const std::string& user_info)
     return {nonstd::nullopt, nonstd::nullopt};
   } else if (pair.second) {
     // redis://USERNAME:PASSWORD@HOST
-    return {to_string(*pair.second), to_string(pair.first)};
+    return {std::string(*pair.second), std::string(pair.first)};
   } else {
     // redis://PASSWORD@HOST
-    return {to_string(pair.first), nonstd::nullopt};
+    return {std::string(pair.first), nonstd::nullopt};
   }
 }
 

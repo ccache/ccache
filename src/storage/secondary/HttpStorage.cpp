@@ -154,8 +154,8 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
       throw core::Fatal("Expected username:password in URL but got \"{}\"",
                         params.url.user_info());
     }
-    m_http_client.set_basic_auth(to_string(pair.first).c_str(),
-                                 to_string(*pair.second).c_str());
+    m_http_client.set_basic_auth(std::string(pair.first).c_str(),
+                                 std::string(*pair.second).c_str());
   }
 
   m_http_client.set_default_headers({
