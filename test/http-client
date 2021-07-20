@@ -3,6 +3,7 @@
 # This is a simple HTTP client to test readiness of the asynchronously
 # launched HTTP server.
 
+import ssl
 import sys
 import time
 import urllib.request
@@ -14,9 +15,12 @@ def run(url, timeout, basic_auth):
         import base64
         encoded_credentials = base64.b64encode(basic_auth.encode("ascii")).decode("ascii")
         req.add_header("Authorization", f"Basic {encoded_credentials}")
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
     while True:
         try:
-            response = urllib.request.urlopen(req)
+            response = urllib.request.urlopen(req, context=ctx)
             print(f"Connection successful (code: {response.getcode()})")
             break
         except urllib.error.URLError as e:

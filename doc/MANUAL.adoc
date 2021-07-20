@@ -935,7 +935,7 @@ Optional attributes:
 
 === HTTP storage backend
 
-URL format: `http://HOST[:PORT][/PATH]`
+URL format: `http[s]://HOST[:PORT][/PATH]`
 
 This backend stores data in an HTTP-compatible server. The required HTTP methods
 are `GET`, `PUT` and `DELETE`.
@@ -949,12 +949,9 @@ Examples:
 
 Optional attributes:
 
+* *cacert*: Path to a SSL Root CA file.
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
-
-Known issues and limitations:
-
-* HTTPS is not yet supported.
 
 === Redis storage backend
 
