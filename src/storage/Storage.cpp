@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <unordered_map>
+#include <vector>
 
 namespace storage {
 
@@ -50,6 +51,19 @@ const std::unordered_map<std::string /*scheme*/,
     {"redis", std::make_shared<secondary::RedisStorage>()},
 #endif
 };
+
+std::string
+get_features()
+{
+  std::vector<std::string> features;
+  features.reserve(k_secondary_storage_implementations.size());
+  std::transform(k_secondary_storage_implementations.begin(),
+                 k_secondary_storage_implementations.end(),
+                 std::back_inserter(features),
+                 [](auto& entry) { return FMT("{}-storage", entry.first); });
+  std::sort(features.begin(), features.end());
+  return util::join(features, " ");
+}
 
 struct SecondaryStorageConfig
 {

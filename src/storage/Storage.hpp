@@ -34,6 +34,8 @@ class Digest;
 
 namespace storage {
 
+std::string get_features();
+
 struct SecondaryStorageEntry;
 
 class Storage

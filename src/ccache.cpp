@@ -57,6 +57,7 @@
 
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
+#include <storage/Storage.hpp>
 #include <util/expected.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
@@ -163,13 +164,6 @@ Options for scripting or debugging:
 
 See also the manual on <https://ccache.dev/documentation.html>.
 )";
-
-constexpr const char FEATURE_TEXT[] =
-  "http-storage"
-#ifdef HAVE_REDIS_STORAGE_BACKEND
-  " redis-storage"
-#endif
-  ;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -2466,7 +2460,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'V': // --version
-      PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION, FEATURE_TEXT);
+      PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION, storage::get_features());
       exit(EXIT_SUCCESS);
 
     case 'x': // --show-compression
