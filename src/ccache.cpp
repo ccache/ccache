@@ -169,6 +169,9 @@ constexpr const char FEATURE_TEXT[] =
 #ifdef HAVE_REDIS_STORAGE_BACKEND
   " redis-storage"
 #endif
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  " rediss-storage"
+#endif
   ;
 
 // This is a string that identifies the current "version" of the hash sum
