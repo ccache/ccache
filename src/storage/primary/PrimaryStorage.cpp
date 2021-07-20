@@ -199,7 +199,7 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 nonstd::optional<std::string>
 PrimaryStorage::put(const Digest& key,
                     const core::CacheEntryType type,
-                    const storage::CacheEntryWriter& entry_writer)
+                    const storage::EntryWriter& entry_writer)
 {
   const auto cache_file = look_up_cache_file(key, type);
   switch (type) {

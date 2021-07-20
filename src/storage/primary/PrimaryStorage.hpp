@@ -43,10 +43,9 @@ public:
   nonstd::optional<std::string> get(const Digest& key,
                                     core::CacheEntryType type) const;
 
-  nonstd::optional<std::string>
-  put(const Digest& key,
-      core::CacheEntryType type,
-      const storage::CacheEntryWriter& entry_writer);
+  nonstd::optional<std::string> put(const Digest& key,
+                                    core::CacheEntryType type,
+                                    const storage::EntryWriter& entry_writer);
 
   void remove(const Digest& key, core::CacheEntryType type);
 

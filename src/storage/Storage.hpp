@@ -55,7 +55,7 @@ public:
 
   bool put(const Digest& key,
            core::CacheEntryType type,
-           const storage::CacheEntryWriter& entry_writer);
+           const storage::EntryWriter& entry_writer);
 
   void remove(const Digest& key, core::CacheEntryType type);
 

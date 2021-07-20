@@ -23,6 +23,6 @@
 
 namespace storage {
 
-using CacheEntryWriter = std::function<bool(const std::string& path)>;
+using EntryWriter = std::function<bool(const std::string& path)>;
 
 } // namespace storage

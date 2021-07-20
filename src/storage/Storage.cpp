@@ -218,7 +218,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
 bool
 Storage::put(const Digest& key,
              const core::CacheEntryType type,
-             const storage::CacheEntryWriter& entry_writer)
+             const storage::EntryWriter& entry_writer)
 {
   const auto path = m_primary_storage.put(key, type, entry_writer);
   if (!path) {
