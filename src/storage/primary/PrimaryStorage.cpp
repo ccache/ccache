@@ -22,10 +22,10 @@
 #include <Counters.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
-#include <Statistic.hpp>
 #include <Statistics.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -34,6 +34,8 @@
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+
+using core::Statistic;
 
 namespace storage {
 namespace primary {

@@ -19,18 +19,19 @@
 #include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
-#include "../src/Statistic.hpp"
 #include "../src/Util.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
+#include <core/Statistic.hpp>
 #include <core/wincompat.hpp>
 
 #include "third_party/doctest.h"
 
 #include <algorithm>
 
+using core::Statistic;
 using TestUtil::TestContext;
 
 namespace {

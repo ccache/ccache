@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,11 +17,13 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Counters.hpp"
-#include "../src/Statistic.hpp"
 #include "TestUtil.hpp"
+
+#include <core/Statistic.hpp>
 
 #include "third_party/doctest.h"
 
+using core::Statistic;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Counters");

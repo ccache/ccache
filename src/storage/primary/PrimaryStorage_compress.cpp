@@ -210,7 +210,7 @@ recompress_file(RecompressionStatistics& statistics,
   const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
   Statistics::update(stats_file, [=](auto& cs) {
-    cs.increment(Statistic::cache_size_kibibyte,
+    cs.increment(core::Statistic::cache_size_kibibyte,
                  Util::size_change_kibibyte(old_stat, new_stat));
   });
 

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Statistic.hpp"
+#include <core/Statistic.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -31,13 +31,13 @@ class Counters
 public:
   Counters();
 
-  uint64_t get(Statistic statistic) const;
-  void set(Statistic statistic, uint64_t value);
+  uint64_t get(core::Statistic statistic) const;
+  void set(core::Statistic statistic, uint64_t value);
 
   uint64_t get_raw(size_t index) const;
   void set_raw(size_t index, uint64_t value);
 
-  void increment(Statistic statistic, int64_t value = 1);
+  void increment(core::Statistic statistic, int64_t value = 1);
   void increment(const Counters& other);
 
   size_t size() const;

@@ -55,7 +55,7 @@ public:
 
   // --- Statistics ---
 
-  void increment_statistic(Statistic statistic, int64_t value = 1);
+  void increment_statistic(core::Statistic statistic, int64_t value = 1);
 
   // Return a machine-readable string representing the final ccache result, or
   // nullopt if there was no result.

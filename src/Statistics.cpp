@@ -37,6 +37,7 @@ const unsigned FLAG_ALWAYS = 2;     // always show, even if zero
 const unsigned FLAG_NEVER = 4;      // never show
 const unsigned FLAG_NOSTATSLOG = 8; // don't show for statslog
 
+using core::Statistic;
 using nonstd::nullopt;
 using nonstd::optional;
 

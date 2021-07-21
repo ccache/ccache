@@ -27,10 +27,10 @@
 #include "File.hpp"
 #include "Logging.hpp"
 #include "Stat.hpp"
-#include "Statistic.hpp"
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/path.hpp>

@@ -18,6 +18,8 @@
 
 #pragma once
 
+namespace core {
+
 // Statistics fields in storage order.
 enum class Statistic {
   none = 0,
@@ -56,3 +58,5 @@ enum class Statistic {
 
   END
 };
+
+} // namespace core

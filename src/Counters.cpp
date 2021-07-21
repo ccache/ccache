@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,28 +18,29 @@
 
 #include "Counters.hpp"
 
-#include "Statistic.hpp"
 #include "assertions.hpp"
+
+#include <core/Statistic.hpp>
 
 #include <algorithm>
 
-Counters::Counters() : m_counters(static_cast<size_t>(Statistic::END))
+Counters::Counters() : m_counters(static_cast<size_t>(core::Statistic::END))
 {
 }
 
 uint64_t
-Counters::get(Statistic statistic) const
+Counters::get(core::Statistic statistic) const
 {
   const auto index = static_cast<size_t>(statistic);
-  ASSERT(index < static_cast<size_t>(Statistic::END));
+  ASSERT(index < static_cast<size_t>(core::Statistic::END));
   return index < m_counters.size() ? m_counters[index] : 0;
 }
 
 void
-Counters::set(Statistic statistic, uint64_t value)
+Counters::set(core::Statistic statistic, uint64_t value)
 {
   const auto index = static_cast<size_t>(statistic);
-  ASSERT(index < static_cast<size_t>(Statistic::END));
+  ASSERT(index < static_cast<size_t>(core::Statistic::END));
   m_counters[index] = value;
 }
 
@@ -60,7 +61,7 @@ Counters::set_raw(size_t index, uint64_t value)
 }
 
 void
-Counters::increment(Statistic statistic, int64_t value)
+Counters::increment(core::Statistic statistic, int64_t value)
 {
   const auto i = static_cast<size_t>(statistic);
   if (i >= m_counters.size()) {

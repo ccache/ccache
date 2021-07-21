@@ -90,6 +90,7 @@ extern "C" {
 #endif
 const char CCACHE_NAME[] = MYNAME;
 
+using core::Statistic;
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;

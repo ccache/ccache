@@ -34,6 +34,8 @@
 
 #include <algorithm>
 
+using core::Statistic;
+
 namespace storage {
 namespace primary {
 
