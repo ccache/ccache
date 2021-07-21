@@ -17,7 +17,6 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Config.hpp"
-#include "../src/Sloppiness.hpp"
 #include "../src/Util.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
@@ -72,7 +71,7 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.read_only_direct());
   CHECK_FALSE(config.recache());
   CHECK(config.run_second_cpp());
-  CHECK(config.sloppiness() == 0);
+  CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
   CHECK(config.umask() == nonstd::nullopt);
@@ -166,12 +165,16 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.read_only_direct());
   CHECK(config.recache());
   CHECK_FALSE(config.run_second_cpp());
-  CHECK(config.sloppiness()
-        == (SLOPPY_INCLUDE_FILE_MTIME | SLOPPY_INCLUDE_FILE_CTIME
-            | SLOPPY_TIME_MACROS | SLOPPY_FILE_STAT_MATCHES
-            | SLOPPY_FILE_STAT_MATCHES_CTIME | SLOPPY_SYSTEM_HEADERS
-            | SLOPPY_PCH_DEFINES | SLOPPY_CLANG_INDEX_STORE
-            | SLOPPY_IVFSOVERLAY));
+  CHECK(config.sloppiness().to_bitmask()
+        == (static_cast<uint32_t>(core::Sloppy::include_file_mtime)
+            | static_cast<uint32_t>(core::Sloppy::include_file_ctime)
+            | static_cast<uint32_t>(core::Sloppy::time_macros)
+            | static_cast<uint32_t>(core::Sloppy::file_stat_matches)
+            | static_cast<uint32_t>(core::Sloppy::file_stat_matches_ctime)
+            | static_cast<uint32_t>(core::Sloppy::system_headers)
+            | static_cast<uint32_t>(core::Sloppy::pch_defines)
+            | static_cast<uint32_t>(core::Sloppy::clang_index_store)
+            | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
   CHECK(config.umask() == 0777u);
@@ -235,7 +238,8 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "sloppiness = time_macros, foo");
     CHECK(config.update_from_file("ccache.conf"));
-    CHECK(config.sloppiness() == SLOPPY_TIME_MACROS);
+    CHECK(config.sloppiness().to_bitmask()
+          == static_cast<uint32_t>(core::Sloppy::time_macros));
   }
 
   SUBCASE("invalid unsigned")

@@ -28,7 +28,6 @@
 #include "File.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "Sloppiness.hpp"
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"
 
@@ -453,8 +452,9 @@ verify_result(const Context& ctx,
       return false;
     }
 
-    if (ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
-      if (!(ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
+    if (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches)) {
+      if (!(ctx.config.sloppiness().is_enabled(
+            core::Sloppy::file_stat_matches_ctime))) {
         if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
           LOG("mtime/ctime hit for {}", path);
           continue;

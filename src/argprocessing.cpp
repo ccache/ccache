@@ -242,7 +242,7 @@ process_arg(Context& ctx,
 
   // Ignore clang -ivfsoverlay <arg> to not detect multiple input files.
   if (args[i] == "-ivfsoverlay"
-      && !(config.sloppiness() & SLOPPY_IVFSOVERLAY)) {
+      && !(config.sloppiness().is_enabled(core::Sloppy::ivfsoverlay))) {
     LOG_RAW(
       "You have to specify \"ivfsoverlay\" sloppiness when using"
       " -ivfsoverlay to get hits");
@@ -387,7 +387,7 @@ process_arg(Context& ctx,
       LOG("Compiler option {} is unsupported without direct depend mode",
           args[i]);
       return Statistic::could_not_use_modules;
-    } else if (!(config.sloppiness() & SLOPPY_MODULES)) {
+    } else if (!(config.sloppiness().is_enabled(core::Sloppy::modules))) {
       LOG_RAW(
         "You have to specify \"modules\" sloppiness when using"
         " -fmodules to get hits");
@@ -788,7 +788,7 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
+  if (config.sloppiness().is_enabled(core::Sloppy::clang_index_store)
       && args[i] == "-index-store-path") {
     // Xcode 9 or later calls Clang with this option. The given path includes a
     // UUID that might lead to cache misses, especially when cache is shared
@@ -1059,7 +1059,7 @@ process_args(Context& ctx)
 
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
-    if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
+    if (!(config.sloppiness().is_enabled(core::Sloppy::time_macros))) {
       LOG_RAW(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
@@ -1095,7 +1095,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.output_is_precompiled_header
-      && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
+      && !(config.sloppiness().is_enabled(core::Sloppy::pch_defines))) {
     LOG_RAW(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");

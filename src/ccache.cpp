@@ -320,14 +320,14 @@ include_file_too_new(const Context& ctx,
   // The comparison using >= is intentional, due to a possible race between
   // starting compilation and writing the include file. See also the notes under
   // "Performance" in doc/MANUAL.adoc.
-  if (!(ctx.config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
+  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_mtime))
       && path_stat.mtime() >= ctx.time_of_compilation) {
     LOG("Include file {} too new", path);
     return true;
   }
 
   // The same >= logic as above applies to the change time of the file.
-  if (!(ctx.config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
+  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_ctime))
       && path_stat.ctime() >= ctx.time_of_compilation) {
     LOG("Include file {} ctime too new", path);
     return true;
@@ -356,7 +356,8 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
-  if (system && (ctx.config.sloppiness() & SLOPPY_SYSTEM_HEADERS)) {
+  if (system
+      && (ctx.config.sloppiness().is_enabled(core::Sloppy::system_headers))) {
     // Don't remember this system header.
     return true;
   }
@@ -801,7 +802,7 @@ update_manifest_file(Context& ctx,
   // See comment in get_file_hash_index for why saving of timestamps is forced
   // for precompiled headers.
   const bool save_timestamp =
-    (ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES)
+    (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
   ctx.storage.put(
@@ -1296,7 +1297,7 @@ hash_common_info(const Context& ctx,
     }
   }
 
-  if (!(ctx.config.sloppiness() & SLOPPY_LOCALE)) {
+  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::locale))) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
     const char* envvars[] = {

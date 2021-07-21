@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <string>
-
 namespace core {
 
 enum class CacheEntryType { result, manifest };

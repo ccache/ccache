@@ -23,7 +23,6 @@
 #include "Context.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "Sloppiness.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
@@ -205,7 +204,7 @@ get_content_type(const Config& config, const std::string& path)
   if (Util::is_precompiled_header(path)) {
     return InodeCache::ContentType::precompiled_header;
   }
-  if (config.sloppiness() & SLOPPY_TIME_MACROS) {
+  if (config.sloppiness().is_enabled(core::Sloppy::time_macros)) {
     return InodeCache::ContentType::code_with_sloppy_time_macros;
   }
   return InodeCache::ContentType::code;
@@ -235,7 +234,7 @@ hash_source_code_string(const Context& ctx,
 
   // Check for __DATE__, __TIME__ and __TIMESTAMP__if the sloppiness
   // configuration tells us we should.
-  if (!(ctx.config.sloppiness() & SLOPPY_TIME_MACROS)) {
+  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::time_macros))) {
     result |= check_for_temporal_macros(str);
   }
 
