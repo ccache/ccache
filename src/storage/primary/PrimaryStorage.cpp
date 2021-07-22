@@ -19,16 +19,14 @@
 #include "PrimaryStorage.hpp"
 
 #include <Config.hpp>
-#include <Counters.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
-#include <Statistics.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
-#include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <storage/primary/StatsFile.hpp>
 #include <util/file.hpp>
 
 #ifdef HAVE_UNISTD_H
@@ -132,8 +130,9 @@ PrimaryStorage::finalize()
     const auto bucket = getpid() % 256;
     const auto stats_file =
       FMT("{}/{:x}/{:x}/stats", m_config.cache_dir(), bucket / 16, bucket % 16);
-    Statistics::update(
-      stats_file, [&](auto& cs) { cs.increment(m_result_counter_updates); });
+    StatsFile(stats_file).update([&](auto& cs) {
+      cs.increment(m_result_counter_updates);
+    });
     return;
   }
 
@@ -264,22 +263,6 @@ PrimaryStorage::increment_statistic(const Statistic statistic,
   m_result_counter_updates.increment(statistic, value);
 }
 
-// Return a machine-readable string representing the final ccache result, or
-// nullopt if there was no result.
-nonstd::optional<std::string>
-PrimaryStorage::get_result_id() const
-{
-  return Statistics::get_result_id(m_result_counter_updates);
-}
-
-// Return a human-readable string representing the final ccache result, or
-// nullopt if there was no result.
-nonstd::optional<std::string>
-PrimaryStorage::get_result_message() const
-{
-  return Statistics::get_result_message(m_result_counter_updates);
-}
-
 // Private methods
 
 PrimaryStorage::LookUpCacheFileResult
@@ -330,11 +313,11 @@ PrimaryStorage::clean_internal_tempdir()
   });
 }
 
-nonstd::optional<Counters>
+nonstd::optional<core::StatisticsCounters>
 PrimaryStorage::update_stats_and_maybe_move_cache_file(
   const Digest& key,
   const std::string& current_path,
-  const Counters& counter_updates,
+  const core::StatisticsCounters& counter_updates,
   const core::CacheEntryType type)
 {
   if (counter_updates.all_zero()) {
@@ -351,11 +334,11 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
   if (!use_stats_on_level_1) {
     level_string += FMT("/{:x}", key.bytes()[0] & 0xF);
   }
+
   const auto stats_file =
     FMT("{}/{}/stats", m_config.cache_dir(), level_string);
-
   const auto counters =
-    Statistics::update(stats_file, [&counter_updates](auto& cs) {
+    StatsFile(stats_file).update([&counter_updates](auto& cs) {
       cs.increment(counter_updates);
     });
   if (!counters) {

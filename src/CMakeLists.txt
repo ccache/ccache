@@ -6,7 +6,6 @@ set(
   CacheEntryWriter.cpp
   Config.cpp
   Context.cpp
-  Counters.cpp
   Depfile.cpp
   Fd.cpp
   Hash.cpp
@@ -20,7 +19,6 @@ set(
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
-  Statistics.cpp
   TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp

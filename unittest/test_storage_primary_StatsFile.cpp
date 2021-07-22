@@ -16,25 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Statistics.hpp"
-#include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
+#include <Util.hpp>
 #include <core/Statistic.hpp>
+#include <fmtmacros.hpp>
+#include <storage/primary/StatsFile.hpp>
 
-#include "third_party/doctest.h"
+#include <third_party/doctest.h>
 
 using core::Statistic;
+using storage::primary::StatsFile;
 using TestUtil::TestContext;
 
-TEST_SUITE_BEGIN("Statistics");
+TEST_SUITE_BEGIN("storage::primary::StatsFile");
 
 TEST_CASE("Read nonexistent")
 {
   TestContext test_context;
 
-  Counters counters = Statistics::read("test");
+  const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == static_cast<size_t>(Statistic::END));
   CHECK(counters.get(Statistic::cache_miss) == 0);
@@ -45,7 +46,7 @@ TEST_CASE("Read bad")
   TestContext test_context;
 
   Util::write_file("test", "bad 1 2 3 4 5\n");
-  Counters counters = Statistics::read("test");
+  const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == static_cast<size_t>(Statistic::END));
   CHECK(counters.get(Statistic::cache_miss) == 0);
@@ -56,7 +57,7 @@ TEST_CASE("Read existing")
   TestContext test_context;
 
   Util::write_file("test", "0 1 2 3 27 5\n");
-  Counters counters = Statistics::read("test");
+  const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == static_cast<size_t>(Statistic::END));
   CHECK(counters.get(Statistic::cache_miss) == 27);
@@ -74,23 +75,12 @@ TEST_CASE("Read future counters")
   }
 
   Util::write_file("test", content);
-  Counters counters = Statistics::read("test");
+  const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == count);
   for (size_t i = 0; i < count; ++i) {
     CHECK(counters.get_raw(i) == i);
   }
-}
-
-TEST_CASE("Read log")
-{
-  TestContext test_context;
-
-  Util::write_file("stats.log", "# comment\ndirect_cache_hit\n");
-  Counters counters = Statistics::read_log("stats.log");
-
-  CHECK(counters.get(Statistic::direct_cache_hit) == 1);
-  CHECK(counters.get(Statistic::cache_miss) == 0);
 }
 
 TEST_CASE("Update")
@@ -99,7 +89,7 @@ TEST_CASE("Update")
 
   Util::write_file("test", "0 1 2 3 27 5\n");
 
-  auto counters = Statistics::update("test", [](auto& cs) {
+  auto counters = StatsFile("test").update([](auto& cs) {
     cs.increment(Statistic::internal_error, 1);
     cs.increment(Statistic::cache_miss, 6);
   });
@@ -108,37 +98,9 @@ TEST_CASE("Update")
   CHECK(counters->get(Statistic::internal_error) == 4);
   CHECK(counters->get(Statistic::cache_miss) == 33);
 
-  counters = Statistics::read("test");
+  counters = StatsFile("test").read();
   CHECK(counters->get(Statistic::internal_error) == 4);
   CHECK(counters->get(Statistic::cache_miss) == 33);
-}
-
-TEST_CASE("Get result")
-{
-  TestContext test_context;
-
-  auto counters = Statistics::update(
-    "test", [](auto& cs) { cs.increment(Statistic::cache_miss, 1); });
-  REQUIRE(counters);
-
-  auto result = Statistics::get_result_message(*counters);
-  REQUIRE(result);
-}
-
-TEST_CASE("Log result")
-{
-  TestContext test_context;
-
-  auto counters = Statistics::update(
-    "test", [](auto& cs) { cs.increment(Statistic::cache_miss, 1); });
-  REQUIRE(counters);
-
-  auto result_id = Statistics::get_result_id(*counters);
-  REQUIRE(result_id);
-  Statistics::log_result("stats.log", "test.c", *result_id);
-
-  auto statslog = Util::read_file("stats.log");
-  REQUIRE(statslog.find(*result_id + "\n") != std::string::npos);
 }
 
 TEST_SUITE_END();

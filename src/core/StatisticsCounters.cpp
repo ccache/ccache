@@ -16,43 +16,44 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Counters.hpp"
+#include "StatisticsCounters.hpp"
 
-#include "assertions.hpp"
-
-#include <core/Statistic.hpp>
+#include <assertions.hpp>
 
 #include <algorithm>
 
-Counters::Counters() : m_counters(static_cast<size_t>(core::Statistic::END))
+namespace core {
+
+StatisticsCounters::StatisticsCounters()
+  : m_counters(static_cast<size_t>(Statistic::END))
 {
 }
 
 uint64_t
-Counters::get(core::Statistic statistic) const
+StatisticsCounters::get(Statistic statistic) const
 {
   const auto index = static_cast<size_t>(statistic);
-  ASSERT(index < static_cast<size_t>(core::Statistic::END));
+  ASSERT(index < static_cast<size_t>(Statistic::END));
   return index < m_counters.size() ? m_counters[index] : 0;
 }
 
 void
-Counters::set(core::Statistic statistic, uint64_t value)
+StatisticsCounters::set(Statistic statistic, uint64_t value)
 {
   const auto index = static_cast<size_t>(statistic);
-  ASSERT(index < static_cast<size_t>(core::Statistic::END));
+  ASSERT(index < static_cast<size_t>(Statistic::END));
   m_counters[index] = value;
 }
 
 uint64_t
-Counters::get_raw(size_t index) const
+StatisticsCounters::get_raw(size_t index) const
 {
   ASSERT(index < size());
   return m_counters[index];
 }
 
 void
-Counters::set_raw(size_t index, uint64_t value)
+StatisticsCounters::set_raw(size_t index, uint64_t value)
 {
   if (index >= m_counters.size()) {
     m_counters.resize(index + 1);
@@ -61,7 +62,7 @@ Counters::set_raw(size_t index, uint64_t value)
 }
 
 void
-Counters::increment(core::Statistic statistic, int64_t value)
+StatisticsCounters::increment(Statistic statistic, int64_t value)
 {
   const auto i = static_cast<size_t>(statistic);
   if (i >= m_counters.size()) {
@@ -73,7 +74,7 @@ Counters::increment(core::Statistic statistic, int64_t value)
 }
 
 void
-Counters::increment(const Counters& other)
+StatisticsCounters::increment(const StatisticsCounters& other)
 {
   m_counters.resize(std::max(size(), other.size()));
   for (size_t i = 0; i < other.size(); ++i) {
@@ -84,14 +85,16 @@ Counters::increment(const Counters& other)
 }
 
 size_t
-Counters::size() const
+StatisticsCounters::size() const
 {
   return m_counters.size();
 }
 
 bool
-Counters::all_zero() const
+StatisticsCounters::all_zero() const
 {
   return !std::any_of(
     m_counters.begin(), m_counters.end(), [](unsigned v) { return v != 0; });
 }
+
+} // namespace core

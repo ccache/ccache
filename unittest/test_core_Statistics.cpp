@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,35 +16,40 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "TestUtil.hpp"
 
 #include <core/Statistic.hpp>
+#include <core/Statistics.hpp>
 
-#include <cstddef>
-#include <cstdint>
-#include <vector>
+#include <third_party/doctest.h>
 
-// A simple wrapper around a vector of integers used for the statistics
-// counters.
-class Counters
+#include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
+
+using core::Statistic;
+using core::Statistics;
+using core::StatisticsCounters;
+using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("core::Statistics");
+
+TEST_CASE("get_result_id")
 {
-public:
-  Counters();
+  TestContext test_context;
 
-  uint64_t get(core::Statistic statistic) const;
-  void set(core::Statistic statistic, uint64_t value);
+  StatisticsCounters counters;
+  counters.increment(Statistic::cache_miss);
 
-  uint64_t get_raw(size_t index) const;
-  void set_raw(size_t index, uint64_t value);
+  CHECK(*Statistics(counters).get_result_id() == "cache_miss");
+}
 
-  void increment(core::Statistic statistic, int64_t value = 1);
-  void increment(const Counters& other);
+TEST_CASE("get_result_message")
+{
+  TestContext test_context;
 
-  size_t size() const;
+  StatisticsCounters counters;
+  counters.increment(Statistic::cache_miss);
 
-  // Return true if all counters are zero, false otherwise.
-  bool all_zero() const;
+  CHECK(*Statistics(counters).get_result_message() == "cache miss");
+}
 
-private:
-  std::vector<uint64_t> m_counters;
-};
+TEST_SUITE_END();

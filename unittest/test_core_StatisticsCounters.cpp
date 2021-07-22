@@ -16,23 +16,24 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Counters.hpp"
 #include "TestUtil.hpp"
 
 #include <core/Statistic.hpp>
+#include <core/StatisticsCounters.hpp>
 
 #include "third_party/doctest.h"
 
 using core::Statistic;
+using core::StatisticsCounters;
 using TestUtil::TestContext;
 
-TEST_SUITE_BEGIN("Counters");
+TEST_SUITE_BEGIN("core::StatisticsCounters");
 
-TEST_CASE("Counters")
+TEST_CASE("StatisticsCounters")
 {
   TestContext test_context;
 
-  Counters counters;
+  StatisticsCounters counters;
   CHECK(counters.size() == static_cast<size_t>(Statistic::END));
 
   SUBCASE("Get and set statistic")
@@ -77,7 +78,7 @@ TEST_CASE("Counters")
     counters.set(Statistic::files_in_cache, 10);
     counters.set(Statistic::cache_size_kibibyte, 1);
 
-    Counters updates;
+    StatisticsCounters updates;
     updates.set(Statistic::direct_cache_hit, 6);
     updates.set(Statistic::cache_miss, 5);
     updates.set(Statistic::files_in_cache, -1);

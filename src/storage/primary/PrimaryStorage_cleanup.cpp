@@ -22,9 +22,9 @@
 #include <Config.hpp>
 #include <Context.hpp>
 #include <Logging.hpp>
-#include <Statistics.hpp>
 #include <Util.hpp>
 #include <storage/primary/CacheFile.hpp>
+#include <storage/primary/StatsFile.hpp>
 #include <storage/primary/util.hpp>
 #include <util/string.hpp>
 
@@ -65,7 +65,7 @@ update_counters(const std::string& dir,
                 const bool cleanup_performed)
 {
   const std::string stats_file = dir + "/stats";
-  Statistics::update(stats_file, [=](auto& cs) {
+  StatsFile(stats_file).update([=](auto& cs) {
     if (cleanup_performed) {
       cs.increment(Statistic::cleanups_performed);
     }

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,113 +18,36 @@
 
 #include "Statistics.hpp"
 
-#include "AtomicFile.hpp"
-#include "Config.hpp"
-#include "File.hpp"
-#include "Lockfile.hpp"
-#include "Logging.hpp"
-#include "Util.hpp"
-#include "assertions.hpp"
-#include "fmtmacros.hpp"
+#include <Config.hpp>
+#include <Logging.hpp>
+#include <Util.hpp>
+#include <fmtmacros.hpp>
 
-#include <core/exceptions.hpp>
+namespace core {
 
-#include <fstream>
-#include <unordered_map>
+using core::Statistic;
+
+// Returns a formatted version of a statistics value, or the empty string if the
+// statistics line shouldn't be printed.
+using FormatFunction = std::string (*)(uint64_t value);
+
+static std::string format_size_times_1024(uint64_t value);
+static std::string format_timestamp(uint64_t value);
 
 const unsigned FLAG_NOZERO = 1;     // don't zero with the -z option
 const unsigned FLAG_ALWAYS = 2;     // always show, even if zero
 const unsigned FLAG_NEVER = 4;      // never show
 const unsigned FLAG_NOSTATSLOG = 8; // don't show for statslog
 
-using core::Statistic;
-using nonstd::nullopt;
-using nonstd::optional;
-
-// Returns a formatted version of a statistics value, or the empty string if the
-// statistics line shouldn't be printed.
-using FormatFunction = std::string (*)(uint64_t value);
-
-static std::string
-format_size(uint64_t size)
-{
-  return FMT("{:>11}", Util::format_human_readable_size(size));
-}
-
-static std::string
-format_size_times_1024(uint64_t size)
-{
-  return format_size(size * 1024);
-}
-
-static std::string
-format_timestamp(uint64_t timestamp)
-{
-  if (timestamp > 0) {
-    const auto tm = Util::localtime(timestamp);
-    char buffer[100] = "?";
-    if (tm) {
-      strftime(buffer, sizeof(buffer), "%c", &*tm);
-    }
-    return std::string("    ") + buffer;
-  } else {
-    return {};
-  }
-}
-
-static double
-hit_rate(const Counters& counters)
-{
-  const uint64_t direct = counters.get(Statistic::direct_cache_hit);
-  const uint64_t preprocessed = counters.get(Statistic::preprocessed_cache_hit);
-  const uint64_t hit = direct + preprocessed;
-  const uint64_t miss = counters.get(Statistic::cache_miss);
-  const uint64_t total = hit + miss;
-  return total > 0 ? (100.0 * hit) / total : 0.0;
-}
-
-static void
-for_each_level_1_and_2_stats_file(
-  const std::string& cache_dir,
-  const std::function<void(const std::string& path)> function)
-{
-  for (size_t level_1 = 0; level_1 <= 0xF; ++level_1) {
-    function(FMT("{}/{:x}/stats", cache_dir, level_1));
-    for (size_t level_2 = 0; level_2 <= 0xF; ++level_2) {
-      function(FMT("{}/{:x}/{:x}/stats", cache_dir, level_1, level_2));
-    }
-  }
-}
-
-std::pair<Counters, time_t>
-Statistics::collect_counters(const Config& config)
-{
-  Counters counters;
-  uint64_t zero_timestamp = 0;
-  time_t last_updated = 0;
-
-  // Add up the stats in each directory.
-  for_each_level_1_and_2_stats_file(config.cache_dir(), [&](const auto& path) {
-    counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
-    counters.increment(Statistics::read(path));
-    zero_timestamp =
-      std::max(counters.get(Statistic::stats_zeroed_timestamp), zero_timestamp);
-    last_updated = std::max(last_updated, Stat::stat(path).mtime());
-  });
-
-  counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
-  return std::make_pair(counters, last_updated);
-}
-
 namespace {
 
 struct StatisticsField
 {
-  StatisticsField(Statistic statistic_,
-                  const char* id_,
-                  const char* message_,
-                  unsigned flags_ = 0,
-                  FormatFunction format_ = nullptr)
+  StatisticsField(const Statistic statistic_,
+                  const char* const id_,
+                  const char* const message_,
+                  const unsigned flags_ = 0,
+                  const FormatFunction format_ = nullptr)
     : statistic(statistic_),
       id(id_),
       message(message_),
@@ -194,110 +117,51 @@ const StatisticsField k_statistics_fields[] = {
   STATISTICS_FIELD(none, nullptr),
 };
 
-namespace Statistics {
-
-Counters
-read(const std::string& path)
+static std::string
+format_size(const uint64_t value)
 {
-  Counters counters;
-
-  std::string data;
-  try {
-    data = Util::read_file(path);
-  } catch (const core::Error&) {
-    // Ignore.
-    return counters;
-  }
-
-  size_t i = 0;
-  const char* str = data.c_str();
-  while (true) {
-    char* end;
-    const uint64_t value = std::strtoull(str, &end, 10);
-    if (end == str) {
-      break;
-    }
-    counters.set_raw(i, value);
-    ++i;
-    str = end;
-  }
-
-  return counters;
+  return FMT("{:>11}", Util::format_human_readable_size(value));
 }
 
-Counters
-read_log(const std::string& path)
+static std::string
+format_size_times_1024(const uint64_t value)
 {
-  Counters counters;
-
-  std::unordered_map<std::string, Statistic> m;
-  for (const auto& field : k_statistics_fields) {
-    m[field.id] = field.statistic;
-  }
-
-  std::ifstream in(path);
-  std::string line;
-  while (std::getline(in, line, '\n')) {
-    if (line[0] == '#') {
-      continue;
-    }
-    auto search = m.find(line);
-    if (search != m.end()) {
-      Statistic statistic = search->second;
-      counters.increment(statistic, 1);
-    } else {
-      LOG("Unknown statistic: {}", line);
-    }
-  }
-
-  return counters;
+  return format_size(value * 1024);
 }
 
-optional<Counters>
-update(const std::string& path,
-       std::function<void(Counters& counters)> function)
+static std::string
+format_timestamp(const uint64_t value)
 {
-  Lockfile lock(path);
-  if (!lock.acquired()) {
-    LOG("Failed to acquire lock for {}", path);
-    return nullopt;
-  }
-
-  auto counters = Statistics::read(path);
-  function(counters);
-
-  AtomicFile file(path, AtomicFile::Mode::text);
-  for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(FMT("{}\n", counters.get_raw(i)));
-  }
-  try {
-    file.commit();
-  } catch (const core::Error& e) {
-    // Make failure to write a stats file a soft error since it's not
-    // important enough to fail whole the process and also because it is
-    // called in the Context destructor.
-    LOG("Error: {}", e.what());
-  }
-
-  return counters;
-}
-
-void
-log_result(const std::string& path,
-           const std::string& input,
-           const std::string& result)
-{
-  File file(path, "ab");
-  if (file) {
-    PRINT(*file, "# {}\n", input);
-    PRINT(*file, "{}\n", result);
+  if (value > 0) {
+    const auto tm = Util::localtime(value);
+    char buffer[100] = "?";
+    if (tm) {
+      strftime(buffer, sizeof(buffer), "%c", &*tm);
+    }
+    return std::string("    ") + buffer;
   } else {
-    LOG("Failed to open {}: {}", path, strerror(errno));
+    return {};
   }
+}
+
+static double
+hit_rate(const core::StatisticsCounters& counters)
+{
+  const uint64_t direct = counters.get(Statistic::direct_cache_hit);
+  const uint64_t preprocessed = counters.get(Statistic::preprocessed_cache_hit);
+  const uint64_t hit = direct + preprocessed;
+  const uint64_t miss = counters.get(Statistic::cache_miss);
+  const uint64_t total = hit + miss;
+  return total > 0 ? (100.0 * hit) / total : 0.0;
+}
+
+Statistics::Statistics(const StatisticsCounters& counters)
+  : m_counters(counters)
+{
 }
 
 static const StatisticsField*
-get_result(const Counters& counters)
+get_result(const core::StatisticsCounters& counters)
 {
   for (const auto& field : k_statistics_fields) {
     if (counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
@@ -307,52 +171,28 @@ get_result(const Counters& counters)
   return nullptr;
 }
 
-optional<std::string>
-get_result_id(const Counters& counters)
+nonstd::optional<std::string>
+Statistics::get_result_id() const
 {
-  const auto result = get_result(counters);
+  const auto result = get_result(m_counters);
   if (result) {
     return result->id;
   }
-  return nullopt;
+  return nonstd::nullopt;
 }
 
-optional<std::string>
-get_result_message(const Counters& counters)
+nonstd::optional<std::string>
+Statistics::get_result_message() const
 {
-  const auto result = get_result(counters);
+  const auto result = get_result(m_counters);
   if (result) {
     return result->message;
   }
-  return nullopt;
-}
-
-void
-zero_all_counters(const Config& config)
-{
-  const time_t timestamp = time(nullptr);
-
-  for_each_level_1_and_2_stats_file(
-    config.cache_dir(), [=](const std::string& path) {
-      Statistics::update(path, [=](Counters& cs) {
-        for (size_t i = 0; k_statistics_fields[i].message; ++i) {
-          if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
-            cs.set(k_statistics_fields[i].statistic, 0);
-          }
-        }
-        cs.set(Statistic::stats_zeroed_timestamp, timestamp);
-      });
-    });
+  return nonstd::nullopt;
 }
 
 std::string
-format_stats_log(const Config& config)
-{
-  return FMT("{:36}{}\n", "stats log", config.stats_log());
-}
-
-std::string
-format_config_header(const Config& config)
+Statistics::format_config_header(const Config& config)
 {
   std::string result;
 
@@ -365,9 +205,8 @@ format_config_header(const Config& config)
 }
 
 std::string
-format_human_readable(const Counters& counters,
-                      time_t last_updated,
-                      bool from_log)
+Statistics::format_human_readable(const time_t last_updated,
+                                  const bool from_log) const
 {
   std::string result;
 
@@ -387,7 +226,7 @@ format_human_readable(const Counters& counters,
     if (k_statistics_fields[i].flags & FLAG_NEVER) {
       continue;
     }
-    if (counters.get(statistic) == 0
+    if (m_counters.get(statistic) == 0
         && !(k_statistics_fields[i].flags & FLAG_ALWAYS)) {
       continue;
     }
@@ -399,14 +238,14 @@ format_human_readable(const Counters& counters,
 
     const std::string value =
       k_statistics_fields[i].format
-        ? k_statistics_fields[i].format(counters.get(statistic))
-        : FMT("{:8}", counters.get(statistic));
+        ? k_statistics_fields[i].format(m_counters.get(statistic))
+        : FMT("{:8}", m_counters.get(statistic));
     if (!value.empty()) {
       result += FMT("{:32}{}\n", k_statistics_fields[i].message, value);
     }
 
     if (statistic == Statistic::cache_miss) {
-      double percent = hit_rate(counters);
+      double percent = hit_rate(m_counters);
       result += FMT("{:34}{:6.2f} %\n", "cache hit rate", percent);
     }
   }
@@ -415,7 +254,7 @@ format_human_readable(const Counters& counters,
 }
 
 std::string
-format_config_footer(const Config& config)
+Statistics::format_config_footer(const Config& config)
 {
   std::string result;
 
@@ -431,7 +270,7 @@ format_config_footer(const Config& config)
 }
 
 std::string
-format_machine_readable(const Counters& counters, time_t last_updated)
+Statistics::format_machine_readable(const time_t last_updated) const
 {
   std::string result;
 
@@ -441,11 +280,33 @@ format_machine_readable(const Counters& counters, time_t last_updated)
     if (!(k_statistics_fields[i].flags & FLAG_NEVER)) {
       result += FMT("{}\t{}\n",
                     k_statistics_fields[i].id,
-                    counters.get(k_statistics_fields[i].statistic));
+                    m_counters.get(k_statistics_fields[i].statistic));
     }
   }
 
   return result;
 }
 
-} // namespace Statistics
+std::unordered_map<std::string, Statistic>
+Statistics::get_id_map()
+{
+  std::unordered_map<std::string, Statistic> result;
+  for (const auto& field : k_statistics_fields) {
+    result[field.id] = field.statistic;
+  }
+  return result;
+}
+
+std::vector<Statistic>
+Statistics::get_zeroable_fields()
+{
+  std::vector<Statistic> result;
+  for (const auto& field : k_statistics_fields) {
+    if (!(field.flags & FLAG_NOZERO)) {
+      result.push_back(field.statistic);
+    }
+  }
+  return result;
+}
+
+} // namespace core

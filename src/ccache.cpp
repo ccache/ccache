@@ -39,7 +39,6 @@
 #include "ResultExtractor.hpp"
 #include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
-#include "Statistics.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
 #include "Util.hpp"
@@ -52,6 +51,8 @@
 #include "language.hpp"
 
 #include <compression/types.hpp>
+#include <core/Statistics.hpp>
+#include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
@@ -1912,6 +1913,37 @@ static int cache_compilation(int argc, const char* const* argv);
 static Statistic do_cache_compilation(Context& ctx, const char* const* argv);
 
 static void
+log_result_to_debug_log(Context& ctx)
+{
+  if (ctx.config.log_file().empty() && !ctx.config.debug()) {
+    return;
+  }
+
+  core::Statistics statistics(ctx.storage.primary().get_statistics_updates());
+  const auto result_message = statistics.get_result_message();
+  if (result_message) {
+    LOG("Result: {}", *result_message);
+  }
+}
+
+static void
+log_result_to_stats_log(Context& ctx)
+{
+  if (ctx.config.stats_log().empty()) {
+    return;
+  }
+
+  core::Statistics statistics(ctx.storage.primary().get_statistics_updates());
+  const auto result_id = statistics.get_result_id();
+  if (!result_id) {
+    return;
+  }
+
+  core::StatsLog(ctx.config.stats_log())
+    .log_result(ctx.args_info.input_file, *result_id);
+}
+
+static void
 finalize_at_exit(Context& ctx)
 {
   try {
@@ -1921,20 +1953,8 @@ finalize_at_exit(Context& ctx)
       return;
     }
 
-    if (!ctx.config.log_file().empty() || ctx.config.debug()) {
-      const auto result = ctx.storage.primary().get_result_message();
-      if (result) {
-        LOG("Result: {}", *result);
-      }
-    }
-
-    if (!ctx.config.stats_log().empty()) {
-      const auto result_id = ctx.storage.primary().get_result_id();
-      if (result_id) {
-        Statistics::log_result(
-          ctx.config.stats_log(), ctx.args_info.input_file, *result_id);
-      }
-    }
+    log_result_to_debug_log(ctx);
+    log_result_to_stats_log(ctx);
 
     ctx.storage.finalize();
   } catch (const core::ErrorBase& e) {
@@ -2349,12 +2369,12 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case PRINT_STATS: {
-      Counters counters;
+      core::StatisticsCounters counters;
       time_t last_updated;
       std::tie(counters, last_updated) =
-        Statistics::collect_counters(ctx.config);
-      PRINT_RAW(stdout,
-                Statistics::format_machine_readable(counters, last_updated));
+        ctx.storage.primary().get_all_statistics();
+      core::Statistics statistics(counters);
+      PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
       break;
     }
 
@@ -2442,24 +2462,24 @@ handle_main_options(int argc, const char* const* argv)
       if (ctx.config.stats_log().empty()) {
         throw core::Fatal("No stats log has been configured");
       }
-      PRINT_RAW(stdout, Statistics::format_stats_log(ctx.config));
-      Counters counters = Statistics::read_log(ctx.config.stats_log());
-      auto st = Stat::stat(ctx.config.stats_log(), Stat::OnError::log);
-      PRINT_RAW(stdout,
-                Statistics::format_human_readable(counters, st.mtime(), true));
+      PRINT(stdout, "{:36}{}\n", "stats log", ctx.config.stats_log());
+      core::Statistics statistics(
+        core::StatsLog(ctx.config.stats_log()).read());
+      const auto timestamp =
+        Stat::stat(ctx.config.stats_log(), Stat::OnError::log).mtime();
+      PRINT_RAW(stdout, statistics.format_human_readable(timestamp, true));
       break;
     }
 
     case 's': { // --show-stats
-      PRINT_RAW(stdout, Statistics::format_config_header(ctx.config));
-      Counters counters;
+      core::StatisticsCounters counters;
       time_t last_updated;
       std::tie(counters, last_updated) =
-        Statistics::collect_counters(ctx.config);
-      PRINT_RAW(
-        stdout,
-        Statistics::format_human_readable(counters, last_updated, false));
-      PRINT_RAW(stdout, Statistics::format_config_footer(ctx.config));
+        ctx.storage.primary().get_all_statistics();
+      core::Statistics statistics(counters);
+      PRINT_RAW(stdout, statistics.format_config_header(ctx.config));
+      PRINT_RAW(stdout, statistics.format_human_readable(last_updated, false));
+      PRINT_RAW(stdout, statistics.format_config_footer(ctx.config));
       break;
     }
 
@@ -2492,7 +2512,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'z': // --zero-stats
-      Statistics::zero_all_counters(ctx.config);
+      ctx.storage.primary().zero_all_statistics();
       PRINT_RAW(stdout, "Statistics zeroed\n");
       break;
 

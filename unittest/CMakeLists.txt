@@ -6,21 +6,23 @@ set(
   test_AtomicFile.cpp
   test_Checksum.cpp
   test_Config.cpp
-  test_Counters.cpp
   test_Depfile.cpp
   test_FormatNonstdStringView.cpp
   test_Hash.cpp
   test_Lockfile.cpp
   test_NullCompression.cpp
   test_Stat.cpp
-  test_Statistics.cpp
   test_Util.cpp
   test_ZstdCompression.cpp
   test_argprocessing.cpp
   test_ccache.cpp
   test_compopt.cpp
   test_compression_types.cpp
+  test_core_Statistics.cpp
+  test_core_StatisticsCounters.cpp
+  test_core_StatsLog.cpp
   test_hashutil.cpp
+  test_storage_primary_StatsFile.cpp
   test_storage_primary_util.cpp
   test_util_Tokenizer.cpp
   test_util_expected.cpp

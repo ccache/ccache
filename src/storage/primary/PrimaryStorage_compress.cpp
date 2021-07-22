@@ -26,13 +26,13 @@
 #include <Logging.hpp>
 #include <Manifest.hpp>
 #include <Result.hpp>
-#include <Statistics.hpp>
 #include <ThreadPool.hpp>
 #include <assertions.hpp>
 #include <compression/ZstdCompressor.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <storage/primary/StatsFile.hpp>
 #include <util/string.hpp>
 
 #include <third_party/fmt/core.h>
@@ -209,7 +209,7 @@ recompress_file(RecompressionStatistics& statistics,
   atomic_new_file.commit();
   const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
-  Statistics::update(stats_file, [=](auto& cs) {
+  StatsFile(stats_file).update([=](auto& cs) {
     cs.increment(core::Statistic::cache_size_kibibyte,
                  Util::size_change_kibibyte(old_stat, new_stat));
   });

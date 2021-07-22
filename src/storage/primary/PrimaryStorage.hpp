@@ -18,17 +18,15 @@
 
 #pragma once
 
-#include "util.hpp"
-
-#include <Counters.hpp>
 #include <Digest.hpp>
+#include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
+#include <storage/primary/util.hpp>
 #include <storage/types.hpp>
 
 #include <third_party/nonstd/optional.hpp>
 
 class Config;
-class Counters;
 
 namespace storage {
 namespace primary {
@@ -57,23 +55,18 @@ public:
 
   void increment_statistic(core::Statistic statistic, int64_t value = 1);
 
-  // Return a machine-readable string representing the final ccache result, or
-  // nullopt if there was no result.
-  nonstd::optional<std::string> get_result_id() const;
+  const core::StatisticsCounters& get_statistics_updates() const;
 
-  // Return a human-readable string representing the final ccache result, or
-  // nullopt if there was no result.
-  nonstd::optional<std::string> get_result_message() const;
+  // Zero all statistics counters except those tracking cache size and number of
+  // files in the cache.
+  void zero_all_statistics();
+
+  // Get statistics and last time of update for the whole primary storage cache.
+  std::pair<core::StatisticsCounters, time_t> get_all_statistics() const;
 
   // --- Cleanup ---
 
   void clean_old(const ProgressReceiver& progress_receiver, uint64_t max_age);
-
-  void clean_dir(const std::string& subdir,
-                 uint64_t max_size,
-                 uint64_t max_files,
-                 uint64_t max_age,
-                 const ProgressReceiver& progress_receiver);
 
   void clean_all(const ProgressReceiver& progress_receiver);
 
@@ -92,11 +85,11 @@ private:
   // Main statistics updates (result statistics and size/count change for result
   // file) which get written into the statistics file belonging to the result
   // file.
-  Counters m_result_counter_updates;
+  core::StatisticsCounters m_result_counter_updates;
 
   // Statistics updates (only for manifest size/count change) which get written
   // into the statistics file belonging to the manifest.
-  Counters m_manifest_counter_updates;
+  core::StatisticsCounters m_manifest_counter_updates;
 
   // The manifest and result keys and paths are stored by put() so that
   // finalize() can use them to move the files in place.
@@ -117,17 +110,32 @@ private:
 
   void clean_internal_tempdir();
 
-  nonstd::optional<Counters>
-  update_stats_and_maybe_move_cache_file(const Digest& key,
-                                         const std::string& current_path,
-                                         const Counters& counter_updates,
-                                         core::CacheEntryType type);
+  nonstd::optional<core::StatisticsCounters>
+  update_stats_and_maybe_move_cache_file(
+    const Digest& key,
+    const std::string& current_path,
+    const core::StatisticsCounters& counter_updates,
+    core::CacheEntryType type);
 
   // Join the cache directory, a '/' and `name` into a single path and return
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
   std::string get_path_in_cache(uint8_t level, nonstd::string_view name) const;
+
+  static void clean_dir(const std::string& subdir,
+                        uint64_t max_size,
+                        uint64_t max_files,
+                        uint64_t max_age,
+                        const ProgressReceiver& progress_receiver);
 };
+
+// --- Inline implementations ---
+
+inline const core::StatisticsCounters&
+PrimaryStorage::get_statistics_updates() const
+{
+  return m_result_counter_updates;
+}
 
 } // namespace primary
 } // namespace storage

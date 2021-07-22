@@ -18,7 +18,6 @@
 
 #include "Context.hpp"
 
-#include "Counters.hpp"
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
