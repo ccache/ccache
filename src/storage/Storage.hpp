@@ -46,7 +46,7 @@ public:
   void initialize();
   void finalize();
 
-  primary::PrimaryStorage& primary();
+  primary::PrimaryStorage primary;
 
   // Returns a path to a file containing the value.
   nonstd::optional<std::string> get(const Digest& key,
@@ -62,7 +62,6 @@ public:
 
 private:
   const Config& m_config;
-  primary::PrimaryStorage m_primary_storage;
   std::vector<std::unique_ptr<SecondaryStorageEntry>> m_secondary_storages;
   std::vector<std::string> m_tmp_files;
 
@@ -71,11 +70,5 @@ private:
   void put_in_secondary_storage(const Digest& key, const std::string& value);
   void remove_from_secondary_storage(const Digest& key);
 };
-
-inline primary::PrimaryStorage&
-Storage::primary()
-{
-  return m_primary_storage;
-}
 
 } // namespace storage

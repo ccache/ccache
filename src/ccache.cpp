@@ -906,10 +906,10 @@ write_result(Context& ctx,
 
   const auto file_size_and_count_diff = result_writer.finalize();
   if (file_size_and_count_diff) {
-    ctx.storage.primary().increment_statistic(
+    ctx.storage.primary.increment_statistic(
       Statistic::cache_size_kibibyte, file_size_and_count_diff->size_kibibyte);
-    ctx.storage.primary().increment_statistic(Statistic::files_in_cache,
-                                              file_size_and_count_diff->count);
+    ctx.storage.primary.increment_statistic(Statistic::files_in_cache,
+                                            file_size_and_count_diff->count);
   } else {
     LOG("Error: {}", file_size_and_count_diff.error());
     throw Failure(Statistic::internal_error);
@@ -1919,7 +1919,7 @@ log_result_to_debug_log(Context& ctx)
     return;
   }
 
-  core::Statistics statistics(ctx.storage.primary().get_statistics_updates());
+  core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
   const auto result_message = statistics.get_result_message();
   if (result_message) {
     LOG("Result: {}", *result_message);
@@ -1933,7 +1933,7 @@ log_result_to_stats_log(Context& ctx)
     return;
   }
 
-  core::Statistics statistics(ctx.storage.primary().get_statistics_updates());
+  core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
   const auto result_id = statistics.get_result_id();
   if (!result_id) {
     return;
@@ -1993,10 +1993,10 @@ cache_compilation(int argc, const char* const* argv)
 
     try {
       Statistic statistic = do_cache_compilation(ctx, argv);
-      ctx.storage.primary().increment_statistic(statistic);
+      ctx.storage.primary.increment_statistic(statistic);
     } catch (const Failure& e) {
       if (e.statistic() != Statistic::none) {
-        ctx.storage.primary().increment_statistic(e.statistic());
+        ctx.storage.primary.increment_statistic(e.statistic());
       }
 
       if (e.exit_code()) {
@@ -2339,7 +2339,7 @@ handle_main_options(int argc, const char* const* argv)
     case EVICT_OLDER_THAN: {
       auto seconds = Util::parse_duration(arg);
       ProgressBar progress_bar("Evicting...");
-      ctx.storage.primary().clean_old(
+      ctx.storage.primary.clean_old(
         [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
@@ -2372,7 +2372,7 @@ handle_main_options(int argc, const char* const* argv)
       core::StatisticsCounters counters;
       time_t last_updated;
       std::tie(counters, last_updated) =
-        ctx.storage.primary().get_all_statistics();
+        ctx.storage.primary.get_all_statistics();
       core::Statistics statistics(counters);
       PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
       break;
@@ -2381,7 +2381,7 @@ handle_main_options(int argc, const char* const* argv)
     case 'c': // --cleanup
     {
       ProgressBar progress_bar("Cleaning...");
-      ctx.storage.primary().clean_all(
+      ctx.storage.primary.clean_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
@@ -2392,7 +2392,7 @@ handle_main_options(int argc, const char* const* argv)
     case 'C': // --clear
     {
       ProgressBar progress_bar("Clearing...");
-      ctx.storage.primary().wipe_all(
+      ctx.storage.primary.wipe_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
@@ -2475,7 +2475,7 @@ handle_main_options(int argc, const char* const* argv)
       core::StatisticsCounters counters;
       time_t last_updated;
       std::tie(counters, last_updated) =
-        ctx.storage.primary().get_all_statistics();
+        ctx.storage.primary.get_all_statistics();
       core::Statistics statistics(counters);
       PRINT_RAW(stdout, statistics.format_config_header(ctx.config));
       PRINT_RAW(stdout, statistics.format_human_readable(last_updated, false));
@@ -2490,7 +2490,7 @@ handle_main_options(int argc, const char* const* argv)
     case 'x': // --show-compression
     {
       ProgressBar progress_bar("Scanning...");
-      ctx.storage.primary().print_compression_statistics(
+      ctx.storage.primary.print_compression_statistics(
         [&](double progress) { progress_bar.update(progress); });
       break;
     }
@@ -2506,13 +2506,13 @@ handle_main_options(int argc, const char* const* argv)
       }
 
       ProgressBar progress_bar("Recompressing...");
-      ctx.storage.primary().recompress(
+      ctx.storage.primary.recompress(
         wanted_level, [&](double progress) { progress_bar.update(progress); });
       break;
     }
 
     case 'z': // --zero-stats
-      ctx.storage.primary().zero_all_statistics();
+      ctx.storage.primary.zero_all_statistics();
       PRINT_RAW(stdout, "Statistics zeroed\n");
       break;
 

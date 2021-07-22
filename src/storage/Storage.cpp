@@ -155,9 +155,7 @@ get_storage(const Url& url)
   }
 }
 
-Storage::Storage(const Config& config)
-  : m_config(config),
-    m_primary_storage(config)
+Storage::Storage(const Config& config) : primary(config), m_config(config)
 {
 }
 
@@ -171,20 +169,20 @@ Storage::~Storage()
 void
 Storage::initialize()
 {
-  m_primary_storage.initialize();
+  primary.initialize();
   add_secondary_storages();
 }
 
 void
 Storage::finalize()
 {
-  m_primary_storage.finalize();
+  primary.finalize();
 }
 
 nonstd::optional<std::string>
 Storage::get(const Digest& key, const core::CacheEntryType type)
 {
-  const auto path = m_primary_storage.get(key, type);
+  const auto path = primary.get(key, type);
   if (path) {
     return path;
   }
@@ -202,7 +200,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
     throw core::Fatal("Error writing to {}: {}", tmp_file.path, e.what());
   }
 
-  m_primary_storage.put(key, type, [&](const std::string& path) {
+  primary.put(key, type, [&](const std::string& path) {
     try {
       Util::copy_file(tmp_file.path, path);
     } catch (const core::Error& e) {
@@ -220,7 +218,7 @@ Storage::put(const Digest& key,
              const core::CacheEntryType type,
              const storage::EntryWriter& entry_writer)
 {
-  const auto path = m_primary_storage.put(key, type, entry_writer);
+  const auto path = primary.put(key, type, entry_writer);
   if (!path) {
     return false;
   }
@@ -250,7 +248,7 @@ Storage::put(const Digest& key,
 void
 Storage::remove(const Digest& key, const core::CacheEntryType type)
 {
-  m_primary_storage.remove(key, type);
+  primary.remove(key, type);
   remove_from_secondary_storage(key);
 }
 
