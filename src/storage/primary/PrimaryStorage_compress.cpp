@@ -219,14 +219,11 @@ recompress_file(RecompressionStatistics& statistics,
   LOG("Recompression of {} done", cache_file.path());
 }
 
-void
-PrimaryStorage::print_compression_statistics(
-  const ProgressReceiver& progress_receiver)
+CompressionStatistics
+PrimaryStorage::get_compression_statistics(
+  const ProgressReceiver& progress_receiver) const
 {
-  uint64_t on_disk_size = 0;
-  uint64_t compr_size = 0;
-  uint64_t content_size = 0;
-  uint64_t incompr_size = 0;
+  CompressionStatistics cs{};
 
   for_each_level_1_subdir(
     m_config.cache_dir(),
@@ -236,15 +233,15 @@ PrimaryStorage::print_compression_statistics(
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& cache_file = files[i];
-        on_disk_size += cache_file.lstat().size_on_disk();
+        cs.on_disk_size += cache_file.lstat().size_on_disk();
 
         try {
           auto file = open_file(cache_file.path(), "rb");
           auto reader = create_reader(cache_file, file.get());
-          compr_size += cache_file.lstat().size();
-          content_size += reader->content_size();
+          cs.compr_size += cache_file.lstat().size();
+          cs.content_size += reader->content_size();
         } catch (core::Error&) {
-          incompr_size += cache_file.lstat().size();
+          cs.incompr_size += cache_file.lstat().size();
         }
 
         sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
@@ -252,39 +249,7 @@ PrimaryStorage::print_compression_statistics(
     },
     progress_receiver);
 
-  if (isatty(STDOUT_FILENO)) {
-    PRINT_RAW(stdout, "\n\n");
-  }
-
-  const double ratio =
-    compr_size > 0 ? static_cast<double>(content_size) / compr_size : 0.0;
-  const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
-
-  const std::string on_disk_size_str =
-    Util::format_human_readable_size(on_disk_size);
-  const std::string cache_size_str =
-    Util::format_human_readable_size(compr_size + incompr_size);
-  const std::string compr_size_str =
-    Util::format_human_readable_size(compr_size);
-  const std::string content_size_str =
-    Util::format_human_readable_size(content_size);
-  const std::string incompr_size_str =
-    Util::format_human_readable_size(incompr_size);
-
-  PRINT(stdout,
-        "Total data:            {:>8s} ({} disk blocks)\n",
-        cache_size_str,
-        on_disk_size_str);
-  PRINT(stdout,
-        "Compressed data:       {:>8s} ({:.1f}% of original size)\n",
-        compr_size_str,
-        100.0 - savings);
-  PRINT(stdout, "  - Original data:     {:>8s}\n", content_size_str);
-  PRINT(stdout,
-        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-        ratio,
-        savings);
-  PRINT(stdout, "Incompressible data:   {:>8s}\n", incompr_size_str);
+  return cs;
 }
 
 void

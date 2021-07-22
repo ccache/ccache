@@ -1944,6 +1944,41 @@ log_result_to_stats_log(Context& ctx)
 }
 
 static void
+print_compression_statistics(const storage::primary::CompressionStatistics& cs)
+{
+  const double ratio = cs.compr_size > 0
+                         ? static_cast<double>(cs.content_size) / cs.compr_size
+                         : 0.0;
+  const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
+
+  const std::string on_disk_size_str =
+    Util::format_human_readable_size(cs.on_disk_size);
+  const std::string cache_size_str =
+    Util::format_human_readable_size(cs.compr_size + cs.incompr_size);
+  const std::string compr_size_str =
+    Util::format_human_readable_size(cs.compr_size);
+  const std::string content_size_str =
+    Util::format_human_readable_size(cs.content_size);
+  const std::string incompr_size_str =
+    Util::format_human_readable_size(cs.incompr_size);
+
+  PRINT(stdout,
+        "Total data:            {:>8s} ({} disk blocks)\n",
+        cache_size_str,
+        on_disk_size_str);
+  PRINT(stdout,
+        "Compressed data:       {:>8s} ({:.1f}% of original size)\n",
+        compr_size_str,
+        100.0 - savings);
+  PRINT(stdout, "  - Original data:     {:>8s}\n", content_size_str);
+  PRINT(stdout,
+        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
+        ratio,
+        savings);
+  PRINT(stdout, "Incompressible data:   {:>8s}\n", incompr_size_str);
+}
+
+static void
 finalize_at_exit(Context& ctx)
 {
   try {
@@ -2490,8 +2525,13 @@ handle_main_options(int argc, const char* const* argv)
     case 'x': // --show-compression
     {
       ProgressBar progress_bar("Scanning...");
-      ctx.storage.primary.print_compression_statistics(
-        [&](double progress) { progress_bar.update(progress); });
+      const auto compression_statistics =
+        ctx.storage.primary.get_compression_statistics(
+          [&](double progress) { progress_bar.update(progress); });
+      if (isatty(STDOUT_FILENO)) {
+        PRINT_RAW(stdout, "\n\n");
+      }
+      print_compression_statistics(compression_statistics);
       break;
     }
 

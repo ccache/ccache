@@ -26,10 +26,20 @@
 
 #include <third_party/nonstd/optional.hpp>
 
+#include <cstdint>
+
 class Config;
 
 namespace storage {
 namespace primary {
+
+struct CompressionStatistics
+{
+  uint64_t compr_size;
+  uint64_t content_size;
+  uint64_t incompr_size;
+  uint64_t on_disk_size;
+};
 
 class PrimaryStorage
 {
@@ -74,7 +84,8 @@ public:
 
   // --- Compression ---
 
-  void print_compression_statistics(const ProgressReceiver& progress_receiver);
+  CompressionStatistics
+  get_compression_statistics(const ProgressReceiver& progress_receiver) const;
 
   void recompress(nonstd::optional<int8_t> level,
                   const ProgressReceiver& progress_receiver);
