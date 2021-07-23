@@ -1,5 +1,4 @@
-// Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,26 +18,13 @@
 
 #pragma once
 
-#include "Config.hpp"
-
-#include "third_party/nonstd/string_view.hpp"
-
-#include <functional>
 #include <string>
 
-class Context;
+namespace core {
 
-extern const char CCACHE_NAME[];
-extern const char CCACHE_VERSION[];
+// The main program when not doing a compile.
+int process_main_options(int argc, const char* const* argv);
 
-using FindExecutableFunction =
-  std::function<std::string(const Context& ctx,
-                            const std::string& name,
-                            const std::string& exclude_name)>;
+std::string get_usage_text();
 
-int ccache_main(int argc, const char* const* argv);
-
-// Tested by unit tests.
-void find_compiler(Context& ctx,
-                   const FindExecutableFunction& find_executable_function);
-CompilerType guess_compiler(nonstd::string_view path);
+} // namespace core
