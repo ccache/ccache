@@ -34,6 +34,7 @@
 #include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
+#include <util/TextTable.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
@@ -144,31 +145,35 @@ print_compression_statistics(const storage::primary::CompressionStatistics& cs)
                          : 0.0;
   const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
-  const std::string on_disk_size_str =
-    Util::format_human_readable_size(cs.on_disk_size);
-  const std::string cache_size_str =
-    Util::format_human_readable_size(cs.compr_size + cs.incompr_size);
-  const std::string compr_size_str =
-    Util::format_human_readable_size(cs.compr_size);
-  const std::string content_size_str =
-    Util::format_human_readable_size(cs.content_size);
-  const std::string incompr_size_str =
-    Util::format_human_readable_size(cs.incompr_size);
+  using C = util::TextTable::Cell;
+  auto human_readable = Util::format_human_readable_size;
+  util::TextTable table;
 
-  PRINT(stdout,
-        "Total data:            {:>8s} ({} disk blocks)\n",
-        cache_size_str,
-        on_disk_size_str);
-  PRINT(stdout,
-        "Compressed data:       {:>8s} ({:.1f}% of original size)\n",
-        compr_size_str,
-        100.0 - savings);
-  PRINT(stdout, "  - Original data:     {:>8s}\n", content_size_str);
-  PRINT(stdout,
-        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-        ratio,
-        savings);
-  PRINT(stdout, "Incompressible data:   {:>8s}\n", incompr_size_str);
+  table.add_row({
+    C("Total data:"),
+    C(human_readable(cs.compr_size + cs.incompr_size)).right_align(),
+    C(FMT("({} disk blocks)", human_readable(cs.on_disk_size))),
+  });
+  table.add_row({
+    C("Compressed data:"),
+    C(human_readable(cs.compr_size)).right_align(),
+    C(FMT("({:.1f}% of original size)", 100.0 - savings)),
+  });
+  table.add_row({
+    C("  Original size:"),
+    C(human_readable(cs.content_size)).right_align(),
+  });
+  table.add_row({
+    C("  Compression ratio:"),
+    C(FMT("{:.3f} x ", ratio)).right_align(),
+    C(FMT("({:.1f}% space savings)", savings)),
+  });
+  table.add_row({
+    C("Incompressible data:"),
+    C(human_readable(cs.incompr_size)).right_align(),
+  });
+
+  PRINT_RAW(stdout, table.render());
 }
 
 static std::string
