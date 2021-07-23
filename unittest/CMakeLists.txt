@@ -24,6 +24,7 @@ set(
   test_hashutil.cpp
   test_storage_primary_StatsFile.cpp
   test_storage_primary_util.cpp
+  test_util_TextTable.cpp
   test_util_Tokenizer.cpp
   test_util_expected.cpp
   test_util_path.cpp
