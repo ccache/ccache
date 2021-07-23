@@ -54,7 +54,7 @@ std::string logfile_path;
 File logfile;
 
 // Whether to use syslog() instead.
-bool use_syslog;
+bool use_syslog = false;
 
 // Buffer used for logs in debug mode.
 std::string debug_log_buffer;
