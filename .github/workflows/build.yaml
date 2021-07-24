@@ -24,10 +24,6 @@ jobs:
         config:
           - os: ubuntu-18.04
             compiler: gcc
-            version: "5"
-
-          - os: ubuntu-18.04
-            compiler: gcc
             version: "6"
 
           - os: ubuntu-18.04
