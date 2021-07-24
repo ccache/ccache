@@ -678,7 +678,7 @@ src/third_party/httplib.h
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 cpp-httplib - A C++11 single-file header-only cross platform HTTP/HTTPS library.
-Copied from https://github.com/yhirose/cpp-httplib[cpp-httplib] v0.9.1.
+Copied from https://github.com/yhirose/cpp-httplib[cpp-httplib] v0.9.2.
 The library has the following license text:
 
 -------------------------------------------------------------------------------
