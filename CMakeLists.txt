@@ -87,10 +87,12 @@ include(GenerateVersionFile)
 #
 # Third party
 #
+set(HIREDIS_FROM_INTERNET_DEFAULT OFF)
 set(ZSTD_FROM_INTERNET_DEFAULT OFF)
 
 # Default to downloading deps for Visual Studio, unless using a package manager.
 if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg|conan")
+  set(HIREDIS_FROM_INTERNET_DEFAULT ON)
   set(ZSTD_FROM_INTERNET_DEFAULT ON)
 endif()
 
@@ -99,6 +101,7 @@ find_package(zstd 1.1.2 REQUIRED)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
+  option(HIREDIS_FROM_INTERNET "Download and use libhiredis from the Internet" ${HIREDIS_FROM_INTERNET_DEFAULT})
   find_package(hiredis 0.13.3 REQUIRED)
 endif()
 

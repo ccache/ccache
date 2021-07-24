@@ -14,6 +14,7 @@ To build ccache you need:
 - [libzstd](http://www.zstd.net). If you don't have libzstd installed and
   can't or don't want to install it in a standard system location, there are
   two options:
+
     1. Install zstd in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
        by passing `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`, or
     2. Pass `-DZSTD_FROM_INTERNET=ON` to `cmake` to make it download libzstd
@@ -24,6 +25,18 @@ To build ccache you need:
 
 Optional:
 
+- [hiredis](https://github.com/redis/hiredis) for the Redis storage backend. If
+  you don't have libhiredis installed and can't or don't want to install it in a
+  standard system location, there are two options:
+
+    1. Install hiredis in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
+       by passing `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`, or
+    2. Pass `-DHIREDIS_FROM_INTERNET=ON` to `cmake` to make it download hiredis
+       from the Internet and unpack it in the local binary tree. Ccache will
+       then be linked statically to the locally built libhiredis.
+
+  To link libhiredis statically you can use
+  `-DHIREDIS_LIBRARY=/path/to/libhiredis.a`.
 - GNU Bourne Again SHell (bash) for tests.
 - [AsciiDoc](https://www.methods.co.nz/asciidoc/) to build the HTML
   documentation.

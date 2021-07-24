@@ -25,7 +25,15 @@
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
+#ifdef __GNUC__
+#  pragma GCC diagnostic push
+// Ignore "ISO C++ forbids flexible array member ‘buf’" warning from -Wpedantic.
+#  pragma GCC diagnostic ignored "-Wpedantic"
+#endif
 #include <hiredis/hiredis.h>
+#ifdef __GNUC__
+#  pragma GCC diagnostic pop
+#endif
 
 #include <cstdarg>
 #include <memory>
