@@ -6,7 +6,7 @@ Prerequisites
 
 To build ccache you need:
 
-- CMake 3.4.3 or newer.
+- CMake 3.10 or newer.
 - A C++14 compiler. See [Supported platforms, compilers and
   languages](https://ccache.dev/platform-compiler-language-support.html) for
   details.
