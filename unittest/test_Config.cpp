@@ -292,11 +292,12 @@ TEST_CASE("Config::update_from_environment")
 TEST_CASE("Config::set_value_in_file")
 {
   TestContext test_context;
+  Config config;
 
   SUBCASE("set new value")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
-    Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
+    config.set_value_in_file("ccache.conf", "compiler", "chocolate");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\ncompiler = chocolate\n");
   }
@@ -304,7 +305,7 @@ TEST_CASE("Config::set_value_in_file")
   SUBCASE("existing value")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
-    Config::set_value_in_file("ccache.conf", "path", "vanilla");
+    config.set_value_in_file("ccache.conf", "path", "vanilla");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nstats = chocolate\n");
   }
@@ -313,7 +314,7 @@ TEST_CASE("Config::set_value_in_file")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     try {
-      Config::set_value_in_file("ccache.conf", "foo", "bar");
+      config.set_value_in_file("ccache.conf", "foo", "bar");
       CHECK(false);
     } catch (const core::Error& e) {
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
@@ -326,7 +327,7 @@ TEST_CASE("Config::set_value_in_file")
   SUBCASE("unknown sloppiness")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
-    Config::set_value_in_file("ccache.conf", "sloppiness", "foo");
+    config.set_value_in_file("ccache.conf", "sloppiness", "foo");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nsloppiness = foo\n");
   }
@@ -334,8 +335,8 @@ TEST_CASE("Config::set_value_in_file")
   SUBCASE("comments are kept")
   {
     Util::write_file("ccache.conf", "# c1\npath = blueberry\n#c2\n");
-    Config::set_value_in_file("ccache.conf", "path", "vanilla");
-    Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
+    config.set_value_in_file("ccache.conf", "path", "vanilla");
+    config.set_value_in_file("ccache.conf", "compiler", "chocolate");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "# c1\npath = vanilla\n#c2\ncompiler = chocolate\n");
   }

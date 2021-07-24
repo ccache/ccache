@@ -125,9 +125,9 @@ public:
 
   void visit_items(const ItemVisitor& item_visitor) const;
 
-  static void set_value_in_file(const std::string& path,
-                                const std::string& key,
-                                const std::string& value);
+  void set_value_in_file(const std::string& path,
+                         const std::string& key,
+                         const std::string& value) const;
 
   // Called from unit tests.
   static void check_key_tables_consistency();

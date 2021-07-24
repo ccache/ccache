@@ -2452,7 +2452,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'F': { // --max-files
       auto files = util::value_or_throw<core::Error>(util::parse_unsigned(arg));
-      Config::set_value_in_file(
+      ctx.config.set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
         PRINT_RAW(stdout, "Unset cache file limit\n");
@@ -2464,7 +2464,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'M': { // --max-size
       uint64_t size = Util::parse_size(arg);
-      Config::set_value_in_file(
+      ctx.config.set_value_in_file(
         ctx.config.primary_config_path(), "max_size", arg);
       if (size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");
@@ -2485,7 +2485,8 @@ handle_main_options(int argc, const char* const* argv)
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);
-      Config::set_value_in_file(ctx.config.primary_config_path(), key, value);
+      ctx.config.set_value_in_file(
+        ctx.config.primary_config_path(), key, value);
       break;
     }
 

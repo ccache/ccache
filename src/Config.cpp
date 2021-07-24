@@ -24,6 +24,7 @@
 #include "assertions.hpp"
 #include "fmtmacros.hpp"
 
+#include <UmaskScope.hpp>
 #include <compression/types.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
@@ -752,8 +753,10 @@ Config::get_string_value(const std::string& key) const
 void
 Config::set_value_in_file(const std::string& path,
                           const std::string& key,
-                          const std::string& value)
+                          const std::string& value) const
 {
+  UmaskScope umask_scope(m_umask);
+
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
     throw core::Error("unknown configuration option \"{}\"", key);
   }
