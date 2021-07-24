@@ -725,7 +725,7 @@ update_manifest_file(Context& ctx,
     || ctx.args_info.output_is_precompiled_header;
 
   ctx.storage.put(
-    manifest_key, core::CacheEntryType::manifest, [&](const std::string& path) {
+    manifest_key, core::CacheEntryType::manifest, [&](const auto& path) {
       LOG("Adding result key to {}", path);
       return Manifest::put(ctx.config,
                            path,
@@ -973,7 +973,7 @@ to_cache(Context& ctx,
 
   MTR_BEGIN("result", "result_put");
   const bool added = ctx.storage.put(
-    *result_key, core::CacheEntryType::result, [&](const std::string& path) {
+    *result_key, core::CacheEntryType::result, [&](const auto& path) {
       write_result(ctx, path, obj_stat, tmp_stderr_path);
       return true;
     });
@@ -1358,7 +1358,7 @@ option_should_be_ignored(const std::string& arg,
                          const std::vector<std::string>& patterns)
 {
   return std::any_of(
-    patterns.cbegin(), patterns.cend(), [&arg](const std::string& pattern) {
+    patterns.cbegin(), patterns.cend(), [&arg](const auto& pattern) {
       const auto& prefix = string_view(pattern).substr(0, pattern.length() - 1);
       return (
         pattern == arg

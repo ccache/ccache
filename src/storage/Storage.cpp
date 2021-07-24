@@ -200,7 +200,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
     throw core::Fatal("Error writing to {}: {}", tmp_file.path, e.what());
   }
 
-  primary.put(key, type, [&](const std::string& path) {
+  primary.put(key, type, [&](const auto& path) {
     try {
       Util::copy_file(tmp_file.path, path);
     } catch (const core::Error& e) {

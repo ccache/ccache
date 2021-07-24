@@ -51,7 +51,7 @@ PrimaryStorage::zero_all_statistics()
 
   for_each_level_1_and_2_stats_file(
     m_config.cache_dir(), [=](const std::string& path) {
-      StatsFile(path).update([=](core::StatisticsCounters& cs) {
+      StatsFile(path).update([=](auto& cs) {
         for (const auto statistic : zeroable_fields) {
           cs.set(statistic, 0);
         }
