@@ -142,6 +142,21 @@ endif()
 #
 install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+  "cmake/${PROJECT_NAME}-config.cmake.in"
+  "${PROJECT_NAME}-config.cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+  PATH_VARS CMAKE_INSTALL_BINDIR
+)
+
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake" "cmake/EnableCcache.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+)
+
 #
 # Packaging
 #
