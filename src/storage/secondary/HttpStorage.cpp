@@ -56,43 +56,6 @@ private:
   std::string get_entry_path(const Digest& key) const;
 };
 
-nonstd::string_view
-to_string(const httplib::Error error)
-{
-  using httplib::Error;
-
-  switch (error) {
-  case Error::Success:
-    return "Success";
-  case Error::Connection:
-    return "Connection";
-  case Error::BindIPAddress:
-    return "BindIPAddress";
-  case Error::Read:
-    return "Read";
-  case Error::Write:
-    return "Write";
-  case Error::ExceedRedirectCount:
-    return "ExceedRedirectCount";
-  case Error::Canceled:
-    return "Canceled";
-  case Error::SSLConnection:
-    return "SSLConnection";
-  case Error::SSLLoadingCerts:
-    return "SSLLoadingCerts";
-  case Error::SSLServerVerification:
-    return "SSLServerVerification";
-  case Error::UnsupportedMultipartBoundaryChars:
-    return "UnsupportedMultipartBoundaryChars";
-  case Error::Compression:
-    return "Compression";
-  case Error::Unknown:
-    break;
-  }
-
-  return "Unknown";
-}
-
 std::string
 get_url_path(const Url& url)
 {
@@ -107,29 +70,12 @@ Url
 get_partial_url(const Url& from_url)
 {
   Url url;
+  url.scheme(from_url.scheme());
   url.host(from_url.host(), from_url.ip_version());
   if (!from_url.port().empty()) {
     url.port(from_url.port());
   }
   return url;
-}
-
-std::string
-get_host_header_value(const Url& url)
-{
-  // We need to construct an HTTP Host header that follows the same IPv6
-  // escaping rules like a URL.
-  const auto rendered_value = get_partial_url(url).str();
-
-  // The rendered_value now contains a string like "//[::1]:8080". The leading
-  // slashes must be stripped.
-  const auto prefix = nonstd::string_view{"//"};
-  if (!util::starts_with(rendered_value, prefix)) {
-    throw core::Fatal(R"(Expected partial URL "{}" to start with "{}")",
-                      rendered_value,
-                      prefix);
-  }
-  return rendered_value.substr(prefix.size());
 }
 
 std::string
@@ -141,12 +87,12 @@ get_url(const Url& url)
   }
 
   // httplib requires a partial URL with just scheme, host and port.
-  return get_partial_url(url).scheme(url.scheme()).str();
+  return get_partial_url(url).str();
 }
 
 HttpStorageBackend::HttpStorageBackend(const Params& params)
   : m_url_path(get_url_path(params.url)),
-    m_http_client(get_url(params.url).c_str())
+    m_http_client(get_url(params.url))
 {
   if (!params.url.user_info().empty()) {
     const auto pair = util::split_once(params.url.user_info(), ':');
@@ -159,9 +105,6 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   }
 
   m_http_client.set_default_headers({
-    // Explicit setting of the Host header is required due to IPv6 address
-    // handling issues in httplib.
-    {"Host", get_host_header_value(params.url)},
     {"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)},
   });
   m_http_client.set_keep_alive(true);

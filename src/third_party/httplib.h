@@ -624,35 +624,22 @@ public:
 
   virtual bool is_valid() const;
 
-  Server &Get(const char *pattern, Handler handler);
-  Server &Get(const char *pattern, size_t pattern_len, Handler handler);
-  Server &Post(const char *pattern, Handler handler);
-  Server &Post(const char *pattern, size_t pattern_len, Handler handler);
-  Server &Post(const char *pattern, HandlerWithContentReader handler);
-  Server &Post(const char *pattern, size_t pattern_len,
-               HandlerWithContentReader handler);
-  Server &Put(const char *pattern, Handler handler);
-  Server &Put(const char *pattern, size_t pattern_len, Handler handler);
-  Server &Put(const char *pattern, HandlerWithContentReader handler);
-  Server &Put(const char *pattern, size_t pattern_len,
-              HandlerWithContentReader handler);
-  Server &Patch(const char *pattern, Handler handler);
-  Server &Patch(const char *pattern, size_t pattern_len, Handler handler);
-  Server &Patch(const char *pattern, HandlerWithContentReader handler);
-  Server &Patch(const char *pattern, size_t pattern_len,
-                HandlerWithContentReader handler);
-  Server &Delete(const char *pattern, Handler handler);
-  Server &Delete(const char *pattern, size_t pattern_len, Handler handler);
-  Server &Delete(const char *pattern, HandlerWithContentReader handler);
-  Server &Delete(const char *pattern, size_t pattern_len,
-                 HandlerWithContentReader handler);
-  Server &Options(const char *pattern, Handler handler);
-  Server &Options(const char *pattern, size_t pattern_len, Handler handler);
+  Server &Get(const std::string &pattern, Handler handler);
+  Server &Post(const std::string &pattern, Handler handler);
+  Server &Post(const std::string &pattern, HandlerWithContentReader handler);
+  Server &Put(const std::string &pattern, Handler handler);
+  Server &Put(const std::string &pattern, HandlerWithContentReader handler);
+  Server &Patch(const std::string &pattern, Handler handler);
+  Server &Patch(const std::string &pattern, HandlerWithContentReader handler);
+  Server &Delete(const std::string &pattern, Handler handler);
+  Server &Delete(const std::string &pattern, HandlerWithContentReader handler);
+  Server &Options(const std::string &pattern, Handler handler);
 
-  bool set_base_dir(const char *dir, const char *mount_point = nullptr);
-  bool set_mount_point(const char *mount_point, const char *dir,
+  bool set_base_dir(const std::string &dir,
+                    const std::string &mount_point = nullptr);
+  bool set_mount_point(const std::string &mount_point, const std::string &dir,
                        Headers headers = Headers());
-  bool remove_mount_point(const char *mount_point);
+  bool remove_mount_point(const std::string &mount_point);
   Server &set_file_extension_and_mimetype_mapping(const char *ext,
                                                   const char *mime);
   Server &set_file_request_handler(Handler handler);
@@ -811,8 +798,31 @@ enum class Error {
   Compression,
 };
 
+inline std::string to_string(const Error error) {
+  switch (error) {
+  case Error::Success: return "Success";
+  case Error::Connection: return "Connection";
+  case Error::BindIPAddress: return "BindIPAddress";
+  case Error::Read: return "Read";
+  case Error::Write: return "Write";
+  case Error::ExceedRedirectCount: return "ExceedRedirectCount";
+  case Error::Canceled: return "Canceled";
+  case Error::SSLConnection: return "SSLConnection";
+  case Error::SSLLoadingCerts: return "SSLLoadingCerts";
+  case Error::SSLServerVerification: return "SSLServerVerification";
+  case Error::UnsupportedMultipartBoundaryChars:
+    return "UnsupportedMultipartBoundaryChars";
+  case Error::Compression: return "Compression";
+  case Error::Unknown: return "Unknown";
+  default: break;
+  }
+
+  return "Invalid";
+}
+
 inline std::ostream &operator<<(std::ostream &os, const Error &obj) {
-  os << static_cast<std::underlying_type<Error>::type>(obj);
+  os << to_string(obj);
+  os << " (" << static_cast<std::underlying_type<Error>::type>(obj) << ')';
   return os;
 }
 
@@ -1027,6 +1037,12 @@ public:
 #endif
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  void set_ca_cert_path(const char *ca_cert_file_path,
+                        const char *ca_cert_dir_path = nullptr);
+  void set_ca_cert_store(X509_STORE *ca_cert_store);
+#endif
+
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
   void enable_server_certificate_verification(bool enabled);
 #endif
 
@@ -1128,6 +1144,13 @@ protected:
 #endif
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  std::string ca_cert_file_path_;
+  std::string ca_cert_dir_path_;
+
+  X509_STORE *ca_cert_store_ = nullptr;
+#endif
+
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
   bool server_certificate_verification_ = true;
 #endif
 
@@ -1153,6 +1176,8 @@ private:
       ContentProviderWithoutLength content_provider_without_length,
       const char *content_type);
 
+  std::string adjust_host_string(const std::string &host) const;
+
   virtual bool process_socket(const Socket &socket,
                               std::function<bool(Stream &strm)> callback);
   virtual bool is_ssl() const;
@@ -1161,9 +1186,9 @@ private:
 class Client {
 public:
   // Universal interface
-  explicit Client(const char *scheme_host_port);
+  explicit Client(const std::string &scheme_host_port);
 
-  explicit Client(const char *scheme_host_port,
+  explicit Client(const std::string &scheme_host_port,
                   const std::string &client_cert_path,
                   const std::string &client_key_path);
 
@@ -1403,9 +1428,6 @@ public:
 
   bool is_valid() const override;
 
-  void set_ca_cert_path(const char *ca_cert_file_path,
-                        const char *ca_cert_dir_path = nullptr);
-
   void set_ca_cert_store(X509_STORE *ca_cert_store);
 
   long get_openssl_verify_result() const;
@@ -1438,8 +1460,6 @@ private:
 
   std::vector<std::string> host_components_;
 
-  std::string ca_cert_file_path_;
-  std::string ca_cert_dir_path_;
   long verify_result_ = 0;
 
   friend class ClientImpl;
@@ -2558,28 +2578,40 @@ public:
                 Callback callback) override {
     assert(is_valid_);
 
-    auto flush = last ? Z_FINISH : Z_NO_FLUSH;
-
-    strm_.avail_in = static_cast<decltype(strm_.avail_in)>(data_length);
-    strm_.next_in = const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
-
-    int ret = Z_OK;
-
-    std::array<char, CPPHTTPLIB_COMPRESSION_BUFSIZ> buff{};
     do {
-      strm_.avail_out = static_cast<uInt>(buff.size());
-      strm_.next_out = reinterpret_cast<Bytef *>(buff.data());
+      constexpr size_t max_avail_in =
+          std::numeric_limits<decltype(strm_.avail_in)>::max();
 
-      ret = deflate(&strm_, flush);
-      if (ret == Z_STREAM_ERROR) { return false; }
+      strm_.avail_in = static_cast<decltype(strm_.avail_in)>(
+          std::min(data_length, max_avail_in));
+      strm_.next_in =
+          const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
 
-      if (!callback(buff.data(), buff.size() - strm_.avail_out)) {
-        return false;
-      }
-    } while (strm_.avail_out == 0);
+      data_length -= strm_.avail_in;
+      data += strm_.avail_in;
 
-    assert((last && ret == Z_STREAM_END) || (!last && ret == Z_OK));
-    assert(strm_.avail_in == 0);
+      auto flush = (last && data_length == 0) ? Z_FINISH : Z_NO_FLUSH;
+      int ret = Z_OK;
+
+      std::array<char, CPPHTTPLIB_COMPRESSION_BUFSIZ> buff{};
+      do {
+        strm_.avail_out = static_cast<uInt>(buff.size());
+        strm_.next_out = reinterpret_cast<Bytef *>(buff.data());
+
+        ret = deflate(&strm_, flush);
+        if (ret == Z_STREAM_ERROR) { return false; }
+
+        if (!callback(buff.data(), buff.size() - strm_.avail_out)) {
+          return false;
+        }
+      } while (strm_.avail_out == 0);
+
+      assert((flush == Z_FINISH && ret == Z_STREAM_END) ||
+             (flush == Z_NO_FLUSH && ret == Z_OK));
+      assert(strm_.avail_in == 0);
+
+    } while (data_length > 0);
+
     return true;
   }
 
@@ -2613,28 +2645,41 @@ public:
 
     int ret = Z_OK;
 
-    strm_.avail_in = static_cast<decltype(strm_.avail_in)>(data_length);
-    strm_.next_in = const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
+    do {
+      constexpr size_t max_avail_in =
+          std::numeric_limits<decltype(strm_.avail_in)>::max();
 
-    std::array<char, CPPHTTPLIB_COMPRESSION_BUFSIZ> buff{};
-    while (strm_.avail_in > 0) {
-      strm_.avail_out = static_cast<uInt>(buff.size());
-      strm_.next_out = reinterpret_cast<Bytef *>(buff.data());
+      strm_.avail_in = static_cast<decltype(strm_.avail_in)>(
+          std::min(data_length, max_avail_in));
+      strm_.next_in =
+          const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
 
-      ret = inflate(&strm_, Z_NO_FLUSH);
-      assert(ret != Z_STREAM_ERROR);
-      switch (ret) {
-      case Z_NEED_DICT:
-      case Z_DATA_ERROR:
-      case Z_MEM_ERROR: inflateEnd(&strm_); return false;
+      data_length -= strm_.avail_in;
+      data += strm_.avail_in;
+
+      std::array<char, CPPHTTPLIB_COMPRESSION_BUFSIZ> buff{};
+      while (strm_.avail_in > 0) {
+        strm_.avail_out = static_cast<uInt>(buff.size());
+        strm_.next_out = reinterpret_cast<Bytef *>(buff.data());
+
+        ret = inflate(&strm_, Z_NO_FLUSH);
+        assert(ret != Z_STREAM_ERROR);
+        switch (ret) {
+        case Z_NEED_DICT:
+        case Z_DATA_ERROR:
+        case Z_MEM_ERROR: inflateEnd(&strm_); return false;
+        }
+
+        if (!callback(buff.data(), buff.size() - strm_.avail_out)) {
+          return false;
+        }
       }
 
-      if (!callback(buff.data(), buff.size() - strm_.avail_out)) {
-        return false;
-      }
-    }
+      if (ret != Z_OK && ret != Z_STREAM_END) return false;
 
-    return ret == Z_OK || ret == Z_STREAM_END;
+    } while (data_length > 0);
+
+    return true;
   }
 
 private:
@@ -4225,128 +4270,79 @@ inline Server::Server()
 
 inline Server::~Server() {}
 
-inline Server &Server::Get(const char *pattern, Handler handler) {
-  return Get(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Get(const char *pattern, size_t pattern_len,
-                           Handler handler) {
+inline Server &Server::Get(const std::string &pattern, Handler handler) {
   get_handlers_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Post(const char *pattern, Handler handler) {
-  return Post(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Post(const char *pattern, size_t pattern_len,
-                            Handler handler) {
+inline Server &Server::Post(const std::string &pattern, Handler handler) {
   post_handlers_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Post(const char *pattern,
-                            HandlerWithContentReader handler) {
-  return Post(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Post(const char *pattern, size_t pattern_len,
+inline Server &Server::Post(const std::string &pattern,
                             HandlerWithContentReader handler) {
   post_handlers_for_content_reader_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Put(const char *pattern, Handler handler) {
-  return Put(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Put(const char *pattern, size_t pattern_len,
-                           Handler handler) {
+inline Server &Server::Put(const std::string &pattern, Handler handler) {
   put_handlers_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Put(const char *pattern,
-                           HandlerWithContentReader handler) {
-  return Put(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Put(const char *pattern, size_t pattern_len,
+inline Server &Server::Put(const std::string &pattern,
                            HandlerWithContentReader handler) {
   put_handlers_for_content_reader_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Patch(const char *pattern, Handler handler) {
-  return Patch(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Patch(const char *pattern, size_t pattern_len,
-                             Handler handler) {
+inline Server &Server::Patch(const std::string &pattern, Handler handler) {
   patch_handlers_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Patch(const char *pattern,
-                             HandlerWithContentReader handler) {
-  return Patch(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Patch(const char *pattern, size_t pattern_len,
+inline Server &Server::Patch(const std::string &pattern,
                              HandlerWithContentReader handler) {
   patch_handlers_for_content_reader_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Delete(const char *pattern, Handler handler) {
-  return Delete(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Delete(const char *pattern, size_t pattern_len,
-                              Handler handler) {
+inline Server &Server::Delete(const std::string &pattern, Handler handler) {
   delete_handlers_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Delete(const char *pattern,
-                              HandlerWithContentReader handler) {
-  return Delete(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Delete(const char *pattern, size_t pattern_len,
+inline Server &Server::Delete(const std::string &pattern,
                               HandlerWithContentReader handler) {
   delete_handlers_for_content_reader_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline Server &Server::Options(const char *pattern, Handler handler) {
-  return Options(pattern, strlen(pattern), handler);
-}
-
-inline Server &Server::Options(const char *pattern, size_t pattern_len,
-                               Handler handler) {
+inline Server &Server::Options(const std::string &pattern, Handler handler) {
   options_handlers_.push_back(
-      std::make_pair(std::regex(pattern, pattern_len), std::move(handler)));
+      std::make_pair(std::regex(pattern), std::move(handler)));
   return *this;
 }
 
-inline bool Server::set_base_dir(const char *dir, const char *mount_point) {
+inline bool Server::set_base_dir(const std::string &dir,
+                                 const std::string &mount_point) {
   return set_mount_point(mount_point, dir);
 }
 
-inline bool Server::set_mount_point(const char *mount_point, const char *dir,
-                                    Headers headers) {
+inline bool Server::set_mount_point(const std::string &mount_point,
+                                    const std::string &dir, Headers headers) {
   if (detail::is_dir(dir)) {
-    std::string mnt = mount_point ? mount_point : "/";
+    std::string mnt = !mount_point.empty() ? mount_point : "/";
     if (!mnt.empty() && mnt[0] == '/') {
       base_dirs_.push_back({mnt, dir, std::move(headers)});
       return true;
@@ -4355,7 +4351,7 @@ inline bool Server::set_mount_point(const char *mount_point, const char *dir,
   return false;
 }
 
-inline bool Server::remove_mount_point(const char *mount_point) {
+inline bool Server::remove_mount_point(const std::string &mount_point) {
   for (auto it = base_dirs_.begin(); it != base_dirs_.end(); ++it) {
     if (it->mount_point == mount_point) {
       base_dirs_.erase(it);
@@ -5301,9 +5297,8 @@ inline ClientImpl::ClientImpl(const std::string &host, int port)
 inline ClientImpl::ClientImpl(const std::string &host, int port,
                               const std::string &client_cert_path,
                               const std::string &client_key_path)
-    // : (Error::Success), host_(host), port_(port),
     : host_(host), port_(port),
-      host_and_port_(host_ + ":" + std::to_string(port_)),
+      host_and_port_(adjust_host_string(host) + ":" + std::to_string(port)),
       client_cert_path_(client_cert_path), client_key_path_(client_key_path) {}
 
 inline ClientImpl::~ClientImpl() {
@@ -5346,6 +5341,11 @@ inline void ClientImpl::copy_settings(const ClientImpl &rhs) {
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
   proxy_digest_auth_username_ = rhs.proxy_digest_auth_username_;
   proxy_digest_auth_password_ = rhs.proxy_digest_auth_password_;
+#endif
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  ca_cert_file_path_ = rhs.ca_cert_file_path_;
+  ca_cert_dir_path_ = rhs.ca_cert_dir_path_;
+  ca_cert_store_ = rhs.ca_cert_store_;
 #endif
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
   server_certificate_verification_ = rhs.server_certificate_verification_;
@@ -5642,6 +5642,9 @@ inline bool ClientImpl::redirect(Request &req, Response &res, Error &error) {
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
       SSLClient cli(next_host.c_str(), next_port);
       cli.copy_settings(*this);
+      if (ca_cert_store_) {
+        cli.set_ca_cert_store(ca_cert_store_);
+      }
       return detail::redirect(cli, req, res, next_path, location, error);
 #else
       return false;
@@ -5896,6 +5899,12 @@ inline Result ClientImpl::send_with_content_provider(
       std::move(content_provider_without_length), content_type, error);
 
   return Result{std::move(res), error, std::move(req.headers)};
+}
+
+inline std::string
+ClientImpl::adjust_host_string(const std::string &host) const {
+  if (host.find(':') != std::string::npos) { return "[" + host + "]"; }
+  return host;
 }
 
 inline bool ClientImpl::process_request(Stream &strm, Request &req,
@@ -6544,6 +6553,20 @@ inline void ClientImpl::set_proxy_digest_auth(const char *username,
 #endif
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+inline void ClientImpl::set_ca_cert_path(const char *ca_cert_file_path,
+                                        const char *ca_cert_dir_path) {
+  if (ca_cert_file_path) { ca_cert_file_path_ = ca_cert_file_path; }
+  if (ca_cert_dir_path) { ca_cert_dir_path_ = ca_cert_dir_path; }
+}
+
+inline void ClientImpl::set_ca_cert_store(X509_STORE *ca_cert_store) {
+  if (ca_cert_store && ca_cert_store != ca_cert_store_) {
+    ca_cert_store_ = ca_cert_store;
+  }
+}
+#endif
+
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 inline void ClientImpl::enable_server_certificate_verification(bool enabled) {
   server_certificate_verification_ = enabled;
 }
@@ -6933,12 +6956,6 @@ inline SSLClient::~SSLClient() {
 
 inline bool SSLClient::is_valid() const { return ctx_; }
 
-inline void SSLClient::set_ca_cert_path(const char *ca_cert_file_path,
-                                        const char *ca_cert_dir_path) {
-  if (ca_cert_file_path) { ca_cert_file_path_ = ca_cert_file_path; }
-  if (ca_cert_dir_path) { ca_cert_dir_path_ = ca_cert_dir_path; }
-}
-
 inline void SSLClient::set_ca_cert_store(X509_STORE *ca_cert_store) {
   if (ca_cert_store) {
     if (ctx_) {
@@ -7261,16 +7278,16 @@ inline bool SSLClient::check_host_name(const char *pattern,
 #endif
 
 // Universal client implementation
-inline Client::Client(const char *scheme_host_port)
+inline Client::Client(const std::string &scheme_host_port)
     : Client(scheme_host_port, std::string(), std::string()) {}
 
-inline Client::Client(const char *scheme_host_port,
+inline Client::Client(const std::string &scheme_host_port,
                       const std::string &client_cert_path,
                       const std::string &client_key_path) {
   const static std::regex re(
       R"((?:([a-z]+):\/\/)?(?:\[([\d:]+)\]|([^:/?#]+))(?::(\d+))?)");
 
-  std::cmatch m;
+  std::smatch m;
   if (std::regex_match(scheme_host_port, m, re)) {
     auto scheme = m[1].str();
 
@@ -7681,15 +7698,14 @@ inline void Client::set_logger(Logger logger) { cli_->set_logger(logger); }
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 inline void Client::set_ca_cert_path(const char *ca_cert_file_path,
                                      const char *ca_cert_dir_path) {
-  if (is_ssl_) {
-    static_cast<SSLClient &>(*cli_).set_ca_cert_path(ca_cert_file_path,
-                                                     ca_cert_dir_path);
-  }
+  cli_->set_ca_cert_path(ca_cert_file_path, ca_cert_dir_path);
 }
 
 inline void Client::set_ca_cert_store(X509_STORE *ca_cert_store) {
   if (is_ssl_) {
     static_cast<SSLClient &>(*cli_).set_ca_cert_store(ca_cert_store);
+  } else {
+    cli_->set_ca_cert_store(ca_cert_store);
   }
 }
 
