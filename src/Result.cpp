@@ -424,7 +424,7 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
   while (remain > 0) {
     uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
-    ssize_t bytes_read = read(*file, buf, n);
+    auto bytes_read = read(*file, buf, n);
     if (bytes_read == -1) {
       if (errno == EINTR) {
         continue;

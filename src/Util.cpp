@@ -1014,7 +1014,7 @@ parse_size(const std::string& value)
 bool
 read_fd(int fd, DataReceiver data_receiver)
 {
-  ssize_t n;
+  int64_t n;
   char buffer[CCACHE_READ_BUFFER_SIZE];
   while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
     if (n == -1 && errno != EINTR) {
@@ -1046,7 +1046,7 @@ read_file(const std::string& path, size_t size_hint)
     throw core::Error(strerror(errno));
   }
 
-  ssize_t ret = 0;
+  int64_t ret = 0;
   size_t pos = 0;
   std::string result;
   result.resize(size_hint);
@@ -1083,7 +1083,7 @@ read_link(const std::string& path)
 {
   size_t buffer_size = path_max(path);
   std::unique_ptr<char[]> buffer(new char[buffer_size]);
-  ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
+  const auto len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
   if (len == -1) {
     return "";
   }
@@ -1440,9 +1440,9 @@ wipe_path(const std::string& path)
 void
 write_fd(int fd, const void* data, size_t size)
 {
-  ssize_t written = 0;
+  int64_t written = 0;
   do {
-    ssize_t count =
+    const auto count =
       write(fd, static_cast<const uint8_t*>(data) + written, size - written);
     if (count == -1) {
       if (errno != EAGAIN && errno != EINTR) {
