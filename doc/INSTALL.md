@@ -38,12 +38,7 @@ Optional:
   To link libhiredis statically you can use
   `-DHIREDIS_LIBRARY=/path/to/libhiredis.a`.
 - GNU Bourne Again SHell (bash) for tests.
-- [AsciiDoc](https://www.methods.co.nz/asciidoc/) to build the HTML
-  documentation.
-  - Tip: On Debian-based systems (e.g. Ubuntu), install the `docbook-xml` and
-    `docbook-xsl` packages in addition to `asciidoc`. Without the former the
-    man page generation will be very slow.
-- [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html) to build the man page.
+- [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
 - [Python](https://www.python.org) to debug and run the performance test suite.
 
 

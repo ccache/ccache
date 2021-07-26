@@ -1,29 +1,27 @@
-Ccache news
-===========
+= Ccache news
 
-Ccache 4.3
-----------
+== Ccache 4.3
+
 Release date: 2021-05-09
 
-New features
-~~~~~~~~~~~~
+
+=== New features
 
 - Ccache now ignores the Clang compiler option `-ivfsoverlay` and its argument
-  if you opt in to ``ivfsoverlay sloppiness''. This is useful if you use Xcode,
+  if you opt in to "`ivfsoverlay sloppiness`". This is useful if you use Xcode,
   which uses a virtual file system (VFS) for things like combining Objective-C
   and Swift code.
 
-- When using `-P` in combination with `-E`, ccache now reports this as ``called
-  for preprocessing'' instead of ``unsupported compiler option''.
+- When using `-P` in combination with `-E`, ccache now reports this as "`called
+  for preprocessing`" instead of "`unsupported compiler option`".
 
 - Added support for `-specs file.specs` and `--specs file.specs` without an
   equal sign between the arguments.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
-- "Split dwarf" code paths are now disabled when outputting to `/dev/null`. This
+- "`Split dwarf`" code paths are now disabled when outputting to `/dev/null`. This
   avoids an attempt to delete `/dev/null.dwo`.
 
 - Made the `stat`/`lstat` wrapper function for Windows treat pending deletes as
@@ -37,8 +35,7 @@ Bug fixes
   object file path.
 
 
-Build improvements
-~~~~~~~~~~~~~~~~~~
+=== Build improvements
 
 - Added an `ENABLE_DOCUMENTATION` build option (default: true) that can be used
   to disable the build of documentation.
@@ -50,12 +47,12 @@ Build improvements
   expands to the empty string.
 
 
-Ccache 4.2.1
-------------
+== Ccache 4.2.1
+
 Release date: 2021-03-27
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Ccache now only duplicates the stderr file descriptor into `$UNCACHED_ERR_FD`
   for calls to the preprocessor/compiler. This works around a complex bug in
@@ -87,8 +84,7 @@ Bug fixes
 - Fixed handling of long command lines on Windows.
 
 
-Portability and build improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Portability and build improvements
 
 - Build configuration scripts now probe for atomic increment as well. This fixes
   a linking error on Sparc.
@@ -98,29 +94,28 @@ Portability and build improvements
 
 - Added support for building ccache with xlclang++ on AIX 7.2.
 
-- Fixed assertion in the "Debug option" test.
+- Fixed assertion in the "`Debug option`" test.
 
 - Made build configuration skip using ccache when building with MSVC.
 
 - Upgraded to doctest 2.4.6. This fixes a build error with glibc >= 2.34.
 
 
-Documentation
-~~~~~~~~~~~~~
+=== Documentation
 
-- Fixed markup of `compiler_type` value "other".
+- Fixed markup of `compiler_type` value `other`.
 
 - Fixed markup of `debug_dir` documentation.
 
 - Fixed references to the `extra_files_to_hash` configuration option.
 
 
-Ccache 4.2
-----------
+== Ccache 4.2
+
 Release date: 2021-02-02
 
-New features
-~~~~~~~~~~~~
+
+=== New features
 
 - Improved calculation of relative paths when using `base_dir` to also consider
   canonical paths (i.e. paths with dereferenced symlinks) as candidates.
@@ -137,8 +132,7 @@ New features
   `SOURCE_DATE_EPOCH`.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed a bug where a non-Clang compiler would silently accept the
   Clang-specific `-f(no-)color-diagnostics` option when run via ccache. This
@@ -165,8 +159,7 @@ Bug fixes
 - Fixed retrieval of the object file the destination is `/dev/null`.
 
 
-Portability and build improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Portability and build improvements
 
 - Additional compiler flags like `-Wextra -Werror` are now only added when
   building ccache in developer mode.
@@ -207,8 +200,7 @@ Portability and build improvements
 - Took steps towards being able to run the test suite on Windows.
 
 
-Documentation
-~~~~~~~~~~~~~
+=== Documentation
 
 - Improved wording of `compiler_check` string values.
 
@@ -225,16 +217,16 @@ Documentation
 - Mention that ccache requires the `-c` compiler option.
 
 
-Ccache 4.1
-----------
+== Ccache 4.1
+
 Release date: 2020-11-22
 
-New features
-~~~~~~~~~~~~
+
+=== New features
 
 - Symlinks are now followed when guessing the compiler. This makes ccache able
-  to guess compiler type “GCC” for a common symlink chain like this:
-  `/usr/bin/cc` → `/etc/alternatives/cc` → `/usr/bin/gcc` → `gcc-9` →
+  to guess compiler type "`GCC`" for a common symlink chain like this:
+  `/usr/bin/cc` -> `/etc/alternatives/cc` -> `/usr/bin/gcc` -> `gcc-9` ->
   `x86_64-linux-gnu-gcc-9`.
 
 - Added a new `compiler_type` (`CCACHE_COMPILERTYPE`) configuration option that
@@ -247,20 +239,19 @@ New features
   `CCACHE_CONFIGPATH` temporarily.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - The original color diagnostics options are now retained when forcing colored
   output. This fixes a bug where feature detection of the `-fcolor-diagnostics`
   option would succeed when run via ccache even though the actual compiler
-  doesn’t support it (e.g. GCC <4.9).
+  doesn't support it (e.g. GCC <4.9).
 
 - Fixed a bug related to umask when using the `umask` (`CCACHE_UMASK`)
   configuration option.
 
 - Allow `ccache ccache compiler ...` (repeated `ccache`) again.
 
-- Fixed parsing of dependency file in the “depend mode” so that filenames with
+- Fixed parsing of dependency file in the "`depend mode`" so that filenames with
   space or other special characters are handled correctly.
 
 - Fixed rewriting of the dependency file content when the object filename
@@ -273,16 +264,15 @@ Bug fixes
   found out at runtime that file cloning is unsupported by the OS.
 
 
-Portability and build fixes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Portability and build fixes
 
 - The ccache binary is now linked with `libatomic` if needed. This fixes build
   problems with GCC on ARM and PowerPC.
 
 - Fixed build of BLAKE3 code with Clang 3.4 and 3.5.
 
-- Fixed “use of undeclared identifier 'CLONE_NOOWNERCOPY'” build error on macOS
-  10.12.
+- Fixed "`use of undeclared identifier 'CLONE_NOOWNERCOPY'`" build error on
+  macOS 10.12.
 
 - Fixed build problems related to missing AVX2 and AVX512 support on older
   macOS versions.
@@ -290,7 +280,7 @@ Portability and build fixes
 - Fixed static linkage with libgcc and libstdc++ for MinGW and made it
   optional.
 
-- Fixed conditional compilation of “robust mutex” code for the inode cache
+- Fixed conditional compilation of "`robust mutex`" code for the inode cache
   routines.
 
 - Fixed badly named man page filename (`Ccache.1` instead of `ccache.1`).
@@ -298,8 +288,7 @@ Portability and build fixes
 - Disabled some tests on ancient Clang versions.
 
 
-Other improvements and fixes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Other improvements and fixes
 
 - The man page is now built by default if the required tools are available.
 
@@ -307,20 +296,19 @@ Other improvements and fixes
 
 - Improved build errors when building ccache with very old compiler versions.
 
-- Fall back to version “unknown” when Git is not installed.
+- Fall back to version "`unknown`" when Git is not installed.
 
 - Documented the relationship between `CCACHE_DIR` and `-d/--directory`.
 
 - Fixed incorrect reference and bad markup in the manual.
 
 
-Ccache 4.0
-----------
+== Ccache 4.0
+
 Release date: 2020-10-18
 
 
-Summary of major changes
-~~~~~~~~~~~~~~~~~~~~~~~~
+=== Summary of major changes
 
 - Changed the default cache directory location to follow the XDG base directory
   specification.
@@ -337,13 +325,12 @@ Summary of major changes
 
 - Improved cache directory structure.
 
-- Added support for using file cloning (AKA “reflinks”).
+- Added support for using file cloning (AKA "`reflinks`").
 
-- Added an experimental “inode cache” for file hashes.
+- Added an experimental "`inode cache`" for file hashes.
 
 
-Compatibility notes
-~~~~~~~~~~~~~~~~~~~
+=== Compatibility notes
 
 - The default location of the cache directory has changed to follow the XDG
   base directory specification (<<_detailed_functional_changes,more details
@@ -356,12 +343,11 @@ Compatibility notes
   4.0 will not share cache results with earlier versions. It is however safe to
   run ccache 4.0 and earlier versions against the same cache directory: cache
   bookkeeping, statistics and cleanup are backward compatible, with the minor
-  exception that some statistics counters incremented by ccache 4.0 won’t be
+  exception that some statistics counters incremented by ccache 4.0 won't be
   visible when running `ccache -s` with an older version.
 
 
-Changed tooling
-~~~~~~~~~~~~~~~
+=== Changed tooling
 
 - CMake is now used instead of Autoconf for configuration and building.
 
@@ -371,10 +357,9 @@ Changed tooling
 - Ccache can now be built using Microsoft Visual C++.
 
 
-Detailed functional changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Detailed functional changes
 
-- All data of a cached result is now stored in a single file called “result”
+- All data of a cached result is now stored in a single file called "`result`"
   instead of up to seven files. This reduces inode usage and improves data
   locality.
 
@@ -410,12 +395,12 @@ Detailed functional changes
   The `cache_dir_levels` (`CCACHE_NLEVELS`) configuration option has therefore
   been removed.
 
-- Added an experimental “inode cache” for file hashes, allowing computed hash
+- Added an experimental "`inode cache`" for file hashes, allowing computed hash
   values to be reused both within and between builds. The inode cache is off by
   default but can be enabled by setting `inode_cache` (`CCACHE_INODECACHE`) to
   `true`.
 
-- Added support for using file cloning (AKA “reflinks”) on Btrfs, XFS and APFS
+- Added support for using file cloning (AKA "`reflinks`") on Btrfs, XFS and APFS
   to copy data to and from the cache very efficiently.
 
 - Two measures have been implemented to make the hard link mode safer:
@@ -465,8 +450,8 @@ Detailed functional changes
 - Added optional logging to syslog if `log_file` (`CCACHE_LOGFILE`) is set to
   `syslog`.
 
-- The compiler option `-fmodules` is now handled in the “depend mode”. If
-  “depend mode” is disabled the option is still considered too hard and ccache
+- The compiler option `-fmodules` is now handled in the "`depend mode`". If
+  "`depend mode`" is disabled the option is still considered too hard and ccache
   will fall back to running the compiler.
 
 - Ccache can now cache compilations with coverage notes (`.gcno` files)
@@ -491,12 +476,12 @@ Detailed functional changes
 - Ccache is now able to share cache entries for different object file names
   when using `-MD` or `-MMD`.
 
-- Clang’s `-Xclang` (used by CMake for precompiled headers),
+- Clang's `-Xclang` (used by CMake for precompiled headers),
   `-fno-pch-timestamp`, `-emit-pch`, `-emit-pth` and `-include-pth` options are
   now understood.
 
-- Added support for the HIP (“C++ Heterogeneous-Compute Interface for
-  Portability”) language.
+- Added support for the HIP ("`C++ Heterogeneous-Compute Interface for
+  Portability`") language.
 
 - The manifest format now allows for header files larger than 4 GiB.
 
@@ -513,8 +498,8 @@ Detailed functional changes
 - Made handling of `.dwo` files and interaction between `-gsplit-dwarf` and
   other `-g*` options more robust.
 
-- The “couldn't find compiler” statistics counter is no longer incremented when
-  ccache exits with a fatal error.
+- The "`couldn't find compiler`" statistics counter is no longer incremented
+  when ccache exits with a fatal error.
 
 - Failure to run a `compiler_check` command is no longer a fatal error.
 
@@ -537,8 +522,7 @@ Detailed functional changes
   older than 3.1 (released 2010).
 
 
-Other improvements
-~~~~~~~~~~~~~~~~~~
+=== Other improvements
 
 - Improved help text and documentation of command line options.
 
@@ -549,7 +533,7 @@ Other improvements
 - Added HTML anchors to configuration options in the manual so that it is
   possible link to a specific option.
 
-- Tweaked placement of “(readonly)” in output of `ccache -s`.
+- Tweaked placement of "`(readonly)`" in output of `ccache -s`.
 
 - Improved visibility of color output from the test suite.
 
@@ -563,13 +547,12 @@ Other improvements
 - Disabled read-only tests on file systems that lack such support.
 
 
-ccache 3.7.12
--------------
+== ccache 3.7.12
 
 Release date: 2020-10-01
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Coverage files (`.gcno`) produced by GCC 9+ when using `-fprofile-dir=dir`
   are now handled gracefully by falling back to running the compiler.
@@ -578,8 +561,7 @@ Bug fixes
   32-bit mode.
 
 
-Other
-~~~~~
+=== Other
 
 - Improved documentation about sharing a cache on NFS.
 
@@ -588,35 +570,33 @@ Other
 - Fixed test case failures with GCC 4.4.
 
 
-ccache 3.7.11
--------------
+== ccache 3.7.11
 
 Release date: 2020-07-21
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Added knowledge about `-fprofile-{correction,reorder-functions,values}`.
 
 - ccache now handles the Intel compiler option `-xCODE` (where `CODE` is a
   processor feature code) correctly.
 
-- Added support for NVCC’s `-Werror` and `--Werror` options.
+- Added support for NVCC's `-Werror` and `--Werror` options.
 
 
-Other
-~~~~~
+=== Other
 
-- ccache’s “Directory is not hashed if using -gz[=zlib]” tests are now skipped
+- ccache's "`Directory is not hashed if using -gz[=zlib]`" tests are now skipped
   for GCC 6.
 
 
-ccache 3.7.10
-------------
+== ccache 3.7.10
+
 Release date: 2020-06-22
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Improved handling of profiling options. ccache should now work correctly for
   profiling options like `-fprofile-{generate,use}[=path]` for GCC ≥ 9 and
@@ -626,11 +606,11 @@ Bug fixes
 
 - ccache now copies files directly from the cache to the destination file
   instead of via a temporary file. This avoids problems when using filenames
-  long enough to be near the file system’s filename max limit.
+  long enough to be near the file system's filename max limit.
 
 - When the hard-link mode is enabled, ccache now only uses hard links for
   object files, not other files like dependency files. This is because
-  compilers unlink object files before writing to them but they don’t do that
+  compilers unlink object files before writing to them but they don't do that
   for dependency files, so the latter can become overwritten and therefore
   corrupted in the cache.
 
@@ -641,38 +621,37 @@ Bug fixes
 - Temporary files are now deleted immediately on signals like SIGTERM and
   SIGINT instead of some time later in a cleanup phase.
 
-- Fixed a bug that affected ccache’s `-o/--set-config` option for the
+- Fixed a bug that affected ccache's `-o/--set-config` option for the
   `base_dir` and `cache_dir_levels` keys.
 
 
-ccache 3.7.9
-------------
+== ccache 3.7.9
+
 Release date: 2020-03-29
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed replacing of /dev/null when building as root with hard link mode
   enabled and using `-o /dev/null`.
 
-- Removed incorrect assertion resulting in “ccache: error: Internal error in
-  format” when using `-fdebug-prefix-map=X=` with X equal to `$PWD`.
+- Removed incorrect assertion resulting in "`ccache: error: Internal error in
+  format`" when using `-fdebug-prefix-map=X=` with X equal to `$PWD`.
 
 
-Other
-~~~~~
+=== Other
 
 - Improved CUDA/NVCC support: Recognize `-dc` and `-x cu` options.
 
 - Improved name of temporary file used in NFS-safe unlink.
 
 
-ccache 3.7.8
-------------
+== ccache 3.7.8
+
 Release date: 2020-03-16
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Use `$PWD` instead of the real CWD (current working directory) when checking
   for CWD in preprocessed output. This fixes a problem when `$PWD` includes a
@@ -684,8 +663,7 @@ Bug fixes
 - If `localtime_r` fails the epoch time is now logged instead of garbage.
 
 
-Other
-~~~~~
+=== Other
 
 - Improved error message when a boolean environment variable has an invalid
   value.
@@ -693,28 +671,28 @@ Other
 - Improved the regression fix in ccache 3.7.5 related to not passing
   compilation-only options to the preprocessor.
 
-- ccache’s PCH test suite now skips running the tests if it detects broken PCH
+- ccache's PCH test suite now skips running the tests if it detects broken PCH
   compiler support.
 
 - Fixed unit test failure on Windows.
 
-- Fixed “stringop-truncation” build warning on Windows.
+- Fixed "`stringop-truncation`" build warning on Windows.
 
-- Improved “x_rename” implementation on Windows.
+- Improved "`x_rename`" implementation on Windows.
 
 - Improved removal of temporary file when rewriting absolute paths to relative
   in the dependency file.
 
-- Clarified “include_file_ctime sloppiness” in the Performance section in the
+- Clarified "`include_file_ctime sloppiness`" in the Performance section in the
   manual.
 
 
-ccache 3.7.7
-------------
+== ccache 3.7.7
+
 Release date: 2020-01-05
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed a bug related to object file location in the dependency file (if using
   `-MD` or `-MMD` but not `-MF` and the build directory is not the same as the
@@ -724,32 +702,32 @@ Bug fixes
   compilers again. (A better fix for this is planned for ccache 4.0.)
 
 - Removed the unify mode since it has bugs and shortcomings that are non-trivial
-  or impossible to fix: it doesn’t work with the direct mode, it doesn’t handle
+  or impossible to fix: it doesn't work with the direct mode, it doesn't handle
   C++ raw strings correctly, it can give false cache hits for `.incbin`
-  directives, it’s turned off when using `-g` and it can make line numbers in
+  directives, it's turned off when using `-g` and it can make line numbers in
   warning messages and `__LINE__` macros incorrect.
 
 - mtime and ctime values are now stored in the manifest files only when
   sloppy_file_stat is set. This avoids adding superfluous manifest file entries
   on direct mode cache misses.
 
-- A “Result:” line is now always printed to the log.
+- A "`Result:`" line is now always printed to the log.
 
-- The “cache miss” statistics counter will now be updated for read-only cache
+- The "`cache miss`" statistics counter will now be updated for read-only cache
   misses, making it consistent with the cache hit case.
 
 
-ccache 3.7.6
-------------
+== ccache 3.7.6
+
 Release date: 2019-11-17
 
-Bug fixes
-~~~~~~~~~
 
-- The opt-in “file_macro sloppiness” mode has been removed so that the input
+=== Bug fixes
+
+- The opt-in "`file_macro sloppiness`" mode has been removed so that the input
   file path now is always included in the direct mode hash. This fixes a bug
-  that could result in false cache hits in an edge case when “file_macro
-  sloppiness” is enabled and several identical source files include a relative
+  that could result in false cache hits in an edge case when "`file_macro
+  sloppiness`" is enabled and several identical source files include a relative
   header file with the same name but in different directories.
 
 - Statistics files are no longer lost when the filesystem of the cache is full.
@@ -760,26 +738,25 @@ Bug fixes
 - Properly handle color diagnostics in the depend mode as well.
 
 
-ccache 3.7.5
-------------
+== ccache 3.7.5
+
 Release date: 2019-10-22
 
-New features
-~~~~~~~~~~~~
+
+=== New features
 
 - Added support for `-MF=arg` (with an extra equal sign) as understood by
   EDG-based compilers.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed a regression in 3.7.2 that could result in a warning message instead of
-  an error in an edge case related to usage of “-Werror”.
+  an error in an edge case related to usage of "`-Werror`".
 
 - An implicit `-MQ` is now passed to the preprocessor only if the object file
   extension is non-standard. This will make it easier to use EDG-based
-  compilers (e.g. GHS) which don’t understand `-MQ`. (This is a bug fix of the
+  compilers (e.g. GHS) which don't understand `-MQ`. (This is a bug fix of the
   corresponding improvement implemented in ccache 3.4.)
 
 - ccache now falls back to running the real compiler instead of failing fataly
@@ -792,45 +769,45 @@ Bug fixes
 - Fixed warning during configure in out-of-tree build in developer mode.
 
 
-ccache 3.7.4
-------------
+== ccache 3.7.4
+
 Release date: 2019-09-12
 
-Improvements
-~~~~~~~~~~~~
+
+=== Improvements
 
 - Added support for the `-gz[=type]` compiler option (previously ccache would
-  think that “-gz” alone would enable debug information, thus potentially
+  think that "`-gz`" alone would enable debug information, thus potentially
   including the current directory in the hash).
 
-- Added support for converting paths like “/c/users/...” into relative paths on
-  Windows.
+- Added support for converting paths like "`/c/users/...`" into relative paths
+  on Windows.
 
 
-ccache 3.7.3
-------------
+== ccache 3.7.3
+
 Release date: 2019-08-17
 
-Bug fixes
-~~~~~~~~~
 
-- The cache size (which is counted in “used disk blocks”) is now correct on
+=== Bug fixes
+
+- The cache size (which is counted in "`used disk blocks`") is now correct on
   filesystems that use more or less disk blocks than conventional filesystems,
   e.g. ecryptfs or btrfs/zfs with transparent compression. This also fixes a
-  related problem with ccache’s own test suite when run on such file systems.
+  related problem with ccache's own test suite when run on such file systems.
 
-- Fixed a regression in 3.7.2 when using the compiler option “-Werror” and then
-  “-Wno-error” later on the command line.
+- Fixed a regression in 3.7.2 when using the compiler option "`-Werror`" and
+  then "`-Wno-error`" later on the command line.
 
 
-ccache 3.7.2
-------------
+== ccache 3.7.2
+
 Release date: 2019-07-19
 
-Bug fixes
-~~~~~~~~~
 
-- The compiler option `-gdwarf*` no longer forces “run_second_cpp = true”.
+=== Bug fixes
+
+- The compiler option `-gdwarf*` no longer forces "`run_second_cpp = true`".
 
 - Added verification that the value passed to the `-o/--set-config` option is
   valid.
@@ -847,11 +824,10 @@ Bug fixes
 
 - Unknown manifest versions are now handled gracefully in `--dump-manifest`.
 
-- Fixed `make check` with “funny” locales.
+- Fixed `make check` with "`funny`" locales.
 
 
-Documentation
-~~~~~~~~~~~~~
+=== Documentation
 
 - Added a hint about not running `autogen.sh` when building from a release
   archive.
@@ -859,28 +835,28 @@ Documentation
 - Mention that `xsltproc` is needed when building from the source repository.
 
 
-ccache 3.7.1
-------------
+== ccache 3.7.1
+
 Release date: 2019-05-01
 
-Changes
-~~~~~~~
+
+=== Changes
 
 - Fixed a problem when using the compiler option `-MF /dev/null`.
 
 - Long commandlines are now handled gracefully on Windows by using the `@file`
   syntax to avoid hitting the commandline size limit.
 
-- Fixed complaint from GCC 9’s `-Werror=format-overflow` when compiling ccache
+- Fixed complaint from GCC 9's `-Werror=format-overflow` when compiling ccache
   itself.
 
 
-ccache 3.7
-----------
+== ccache 3.7
+
 Release date: 2019-04-23
 
-Changes
-~~~~~~~
+
+=== Changes
 
 - Fixed crash when the debug mode is enabled and the output file is in a
   non-writable directory, e.g. when the output file is `/dev/null`.
@@ -924,12 +900,12 @@ Changes
   machine-parsable (tab-separated) format.
 
 - ccache no longer creates a missing output directory, thus mimicking the
-  compiler behavior for `-o out/obj.o` when “out” doesn’t exist.
+  compiler behavior for `-o out/obj.o` when `out` doesn't exist.
 
-- `-fdebug-prefix-map=ARG`, `-ffile-prefix-map=ARG` and
-  `-fmacro-prefix-map=ARG` are now included in the hash, but only the part
-  before “ARG”. This fixes a bug where compiler feature detection of said flags
-  would not work correctly with ccache.
+- `-fdebug-prefix-map=ARG`, `-ffile-prefix-map=ARG` and `-fmacro-prefix-map=ARG`
+  are now included in the hash, but only the part before "`ARG`". This fixes a
+  bug where compiler feature detection of said flags would not work correctly
+  with ccache.
 
 - Bail out on too hard compiler option `-gtoggle`.
 
@@ -952,19 +928,19 @@ Changes
   involved.
 
 
-ccache 3.6
-----------
+== ccache 3.6
+
 Release date: 2019-01-14
 
-Changes
-~~~~~~~
 
-- ccache now has an opt-in “depend mode”. When enabled, ccache never executes
+=== Changes
+
+- ccache now has an opt-in "`depend mode`". When enabled, ccache never executes
   the preprocessor, which results in much lower cache miss overhead at the
   expense of a lower potential cache hit rate. The depend mode is only possible
   to use when the compiler option `-MD` or `-MMD` is used.
 
-- Added support for GCC’s `-ffile-prefix-map` option. The `-fmacro-prefix-map`
+- Added support for GCC's `-ffile-prefix-map` option. The `-fmacro-prefix-map`
   option is now also skipped from the hash.
 
 - Added support for multiple `-fsanitize-blacklist` arguments.
@@ -976,7 +952,7 @@ Changes
 - Fixed a problem due to Clang overwriting the output file when compiling an
   assembler file.
 
-- Clarified the manual to explain the reasoning behind the “file_macro”
+- Clarified the manual to explain the reasoning behind the "`file_macro`"
   sloppiness setting in a better way.
 
 - ccache now handles several levels of nonexistent directories when rewriting
@@ -985,27 +961,27 @@ Changes
 - A new sloppiness setting `clang_index_store` makes ccache skip the Clang
   compiler option `-index-store-path` and its argument when computing the
   manifest hash. This is useful if you use Xcode, which uses an index store
-  path derived from the local project path. Note that the index store won’t be
+  path derived from the local project path. Note that the index store won't be
   updated correctly on cache hits if you enable this option.
 
 - Rename sloppiness `no_system_headers` to `system_headers` for consistency
   with other options. `no_system_headers` can still be used as an
   (undocumented) alias.
 
-- The GCC variables “DEPENDENCIES_OUTPUT” and “SUNPRO_DEPENDENCIES” are now
+- The GCC variables "`DEPENDENCIES_OUTPUT`" and "`SUNPRO_DEPENDENCIES`" are now
   supported correctly.
 
 - The algorithm that scans for `__DATE_` and `__TIME__` tokens in the hashed
-  source code now doesn’t produce false positives for tokens where `__DATE__`
+  source code now doesn't produce false positives for tokens where `__DATE__`
   or `__TIME__` is a substring.
 
 
-ccache 3.5.1
-------------
+== ccache 3.5.1
+
 Release date: 2019-01-02
 
-Changes
-~~~~~~~
+
+=== Changes
 
 - Added missing getopt_long.c source file to release archive.
 
@@ -1016,17 +992,17 @@ Changes
 - Improved development mode build flags.
 
 
-ccache 3.5
-----------
+== ccache 3.5
+
 Release date: 2018-10-15
 
-Changes
-~~~~~~~
+
+=== Changes
 
 - Added a boolean `debug` (`CCACHE_DEBUG`) configuration option. When enabled,
-  ccache will create per-object debug files that are helpful e.g. when
-  debugging unexpected cache misses. See also the new “Cache debugging” section
-  in the manual.
+  ccache will create per-object debug files that are helpful e.g. when debugging
+  unexpected cache misses. See also the new "`Cache debugging`" section in the
+  manual.
 
 - Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
   alias).
@@ -1042,36 +1018,36 @@ Changes
 - Improved performance substantially when using `hash_dir = false` on platforms
   like macOS where `getcwd()` is slow.
 
-- Added “stats updated” timestamp in `ccache -s` output. This can be useful if
+- Added "`stats updated`" timestamp in `ccache -s` output. This can be useful if
   you wonder whether ccache actually was used for your last build.
 
-- Renamed “stats zero time” to “stats zeroed” and documented it. The counter is
-  also now only present in `ccache -s` output when `ccache -z` actually has
+- Renamed "`stats zero time`" to "`stats zeroed`" and documented it. The counter
+  is also now only present in `ccache -s` output when `ccache -z` actually has
   been called.
 
 - The content of the `-fsanitize-blacklist` file is now included in the hash,
   so updates to the file will now correctly result in separate cache entries.
 
-- It’s now possible to opt out of building and installing man pages when
+- It's now possible to opt out of building and installing man pages when
   running `make install` in the source repository.
 
-- If the compiler type can’t be detected (e.g. if it is named `cc`), use safer
-  defaults that won’t trip up Clang.
+- If the compiler type can't be detected (e.g. if it is named `cc`), use safer
+  defaults that won't trip up Clang.
 
 - Made the ccache test suite work on FreeBSD.
 
 - Added `file_stat_matches_ctime` option to disable ctime check if
   `file_stat_matches` is enabled.
 
-- Made “./configure --without-bundled-zlib” do what’s intended.
+- Made "`./configure --without-bundled-zlib`" do what's intended.
 
 
-ccache 3.4.3
------------
+== ccache 3.4.3
+
 Release date: 2018-09-02
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed a race condition when creating the initial config file in the cache
   directory.
@@ -1085,12 +1061,12 @@ Bug fixes
 - Upgraded bundled zlib to version 1.2.11.
 
 
-ccache 3.4.2
-------------
+== ccache 3.4.2
+
 Release date: 2018-03-25
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - The cleanup algorithm has been fixed to not misbehave when files are removed
   by another process while the cleanup process is running. Previously, too many
@@ -1098,42 +1074,42 @@ Bug fixes
   triggered at the same time, in extreme cases trimming the cache to a much
   smaller size than the configured limits.
 
-- Correctly hash preprocessed headers located in a “.gch directory”.
+- Correctly hash preprocessed headers located in a "`.gch directory`".
   Previously, ccache would not pick up changes to such precompiled headers,
   risking false positive cache hits.
 
 - Fixed build failure when using the bundled zlib sources.
 
 - ccache 3.3.5 added a workaround for not triggering Clang errors when a
-  precompiled header’s dependency has an updated timestamp (but identical
+  precompiled header's dependency has an updated timestamp (but identical
   content). That workaround is now only applied when the compiler is Clang.
 
 - Made it possible to perform out-of-source builds in dev mode again.
 
 
-ccache 3.4.1
-------------
+== ccache 3.4.1
+
 Release date: 2018-02-11
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed printing of version number in `ccache --version`.
 
 
-ccache 3.4
-----------
+== ccache 3.4
+
 Release date: 2018-02-11
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+=== New features and enhancements
 
 - The compiler option form `--sysroot arg` is now handled like the documented
   `--sysroot=arg` form.
 
 - Added support for caching `.su` files generated by GCC flag `-fstack-usage`.
 
-- ccache should now work with distcc’s “pump” wrapper.
+- ccache should now work with distcc's "`pump`" wrapper.
 
 - The optional unifier is no longer disabled when the direct mode is enabled.
 
@@ -1142,7 +1118,7 @@ New features and enhancements
 
 - Boolean environment variable settings no longer accept the following
   (case-insensitive) values: `0`, `false`, `disable` and `no`. All other values
-  are accepted and taken to mean “true”. This is to stop users from setting
+  are accepted and taken to mean "`true`". This is to stop users from setting
   e.g. `CCACHE_DISABLE=0` and then expect the cache to be used.
 
 - Improved support for `run_second_cpp = false`: If combined with passing
@@ -1151,7 +1127,7 @@ New features and enhancements
 
 - An implicit `-MQ` is now passed to the preprocessor only if the object file
   extension is non-standard. This should make it easier to use EDG-based
-  compilers (e.g. GHS) which don’t understand `-MQ`.
+  compilers (e.g. GHS) which don't understand `-MQ`.
 
 - ccache now treats an unreadable configuration file just like a missing
   configuration file.
@@ -1161,8 +1137,7 @@ New features and enhancements
 - Documented caveats related to colored warnings from compilers.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - File size and number counters are now updated correctly when files are
   overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
@@ -1172,39 +1147,35 @@ Bug fixes
 - Fixed how the NVCC options `-optf` and `-odir` are handled.
 
 
-ccache 3.3.6
-------------
+== ccache 3.3.6
+
 Release date: 2018-01-28
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Improved instructions on how to get cache hits between different working
   directories.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed regression in ccache 3.3.5 related to the `UNCACHED_ERR_FD` feature.
 
 
-ccache 3.3.5
-------------
+== ccache 3.3.5
+
 Release date: 2018-01-13
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Documented how automatic cache cleanup works.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed a regression where the original order of debug options could be lost.
-  This reverts the “Improved parsing of `-g*` options” feature in ccache 3.3.
+  This reverts the "`Improved parsing of `-g*` options`" feature in ccache 3.3.
 
 - Multiple `-fdebug-prefix-map` options should now be handled correctly.
 
@@ -1222,9 +1193,9 @@ Bug fixes
 
 - `ccache -c/--cleanup` now works like documented: it just recalculates size
   counters and trims the cache to not exceed the max size and file number
-  limits. Previously, the forced cleanup took “limit_multiple” into account, so
-  that `ccache -c/--cleanup` by default would trim the cache to 80% of the max
-  limit.
+  limits. Previously, the forced cleanup took "`limit_multiple`" into account,
+  so that `ccache -c/--cleanup` by default would trim the cache to 80% of the
+  max limit.
 
 - ccache no longer ignores linker arguments for Clang since Clang warns about
   them.
@@ -1236,46 +1207,44 @@ Bug fixes
   `-remap` or `-trigraphs` option in preprocessor mode.
 
 
-ccache 3.3.4
-------------
+== ccache 3.3.4
+
 Release date: 2017-02-17
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Documented the different cache statistics counters.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed a regression in ccache 3.3 related to potentially bad content of
   dependency files when compiling identical source code but with different
   source paths. This was only partially fixed in 3.3.2 and reverts the new
-  “Names of included files are no longer included in the hash of the compiler’s
-  preprocessed output” feature in 3.3.
+  "`Names of included files are no longer included in the hash of the compiler's
+  preprocessed output`" feature in 3.3.
 
 - Corrected statistics counter for `-optf`/`--options-file` failure.
 
 - Fixed undefined behavior warnings in ccache found by `-fsanitize=undefined`.
 
-ccache 3.3.3
-------------
+== ccache 3.3.3
+
 Release date: 2016-10-26
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - ccache now detects usage of `.incbin` assembler directives in the source code
   and avoids caching such compilations.
 
 
-ccache 3.3.2
-------------
+== ccache 3.3.2
+
 Release date: 2016-09-28
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed a regression in ccache 3.3 related to potentially bad content of
   dependency files when compiling identical source code but with different
@@ -1286,14 +1255,14 @@ Bug fixes
   resulting in missing dependency files from direct mode cache hits.
 
 
-ccache 3.3.1
-------------
+== ccache 3.3.1
+
 Release date: 2016-09-07
 
-Bug fixes
-~~~~~~~~~
 
-- Fixed a problem in the “multiple `-arch` options” support introduced in 3.3.
+=== Bug fixes
+
+- Fixed a problem in the "`multiple `-arch` options`" support introduced in 3.3.
   When using the direct mode (the default), different combinations of `-arch`
   options were not detected properly.
 
@@ -1302,22 +1271,20 @@ Bug fixes
   (`CCACHE_CPP2`) is enabled.
 
 
-ccache 3.3
-----------
+== ccache 3.3
+
 Release date: 2016-08-27
 
-Notes
-~~~~~
+=== Notes
 
 - A C99-compatible compiler is now required to build ccache.
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - The configuration option `run_second_cpp` (`CCACHE_CPP2`) now defaults to
-  true. This improves ccache’s out-of-the-box experience for compilers that
-  can’t compile their own preprocessed output with the same outcome as if they
+  true. This improves ccache's out-of-the-box experience for compilers that
+  can't compile their own preprocessed output with the same outcome as if they
   compiled the real source code directly, e.g. newer versions of GCC and Clang.
 
 - The configuration option `hash_dir` (`CCACHE_HASHDIR`) now defaults to true.
@@ -1341,22 +1308,22 @@ New features and enhancements
 
 - Added a new statistics counter that tracks the number of performed cleanups
   due to the cache size being over the limit. The value is shown in the output
-  of “ccache -s”.
+  of "`ccache -s`".
 
 - Added support for relocating debug info directory using `-fdebug-prefix-map`.
   This allows for cache hits even when `hash_dir` is used in combination with
   `base_dir`.
 
-- Added a new “cache hit rate” field to the output of “ccache -s”.
+- Added a new "`cache hit rate`" field to the output of "`ccache -s`".
 
-- Added support for caching compilation of assembler code produced by e.g. “gcc
-  -S file.c”.
+- Added support for caching compilation of assembler code produced by e.g. "`gcc
+  -S file.c`".
 
 - Added support for cuda including the -optf/--options-file option.
 
 - Added support for Fortran 77.
 
-- Added support for multiple `-arch` options to produce “fat binaries”.
+- Added support for multiple `-arch` options to produce "`fat binaries`".
 
 - Multiple identical `-arch` arguments are now handled without bailing.
 
@@ -1378,7 +1345,7 @@ New features and enhancements
 - ccache now understands the undocumented `-coverage` (only one dash) GCC
   option.
 
-- Names of included files are no longer included in the hash of the compiler’s
+- Names of included files are no longer included in the hash of the compiler's
   preprocessed output. This leads to more potential cache hits when not using
   the direct mode.
 
@@ -1386,8 +1353,7 @@ New features and enhancements
   slightly.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Bail out on too hard compiler option `-P`.
 
@@ -1396,24 +1362,24 @@ Bug fixes
 - Fixed build and test for MinGW32 and Windows.
 
 
-ccache 3.2.9
-------------
+== ccache 3.2.9
+
 Release date: 2016-09-28
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed a regression in ccache 3.2.8: ccache could get confused when using the
   compiler option `-Wp,` to pass multiple options to the preprocessor,
   resulting in missing dependency files from direct mode cache hits.
 
 
-ccache 3.2.8
-------------
+== ccache 3.2.8
+
 Release date: 2016-09-07
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
   path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
@@ -1423,86 +1389,83 @@ Bug fixes
   option.
 
 
-ccache 3.2.7
-------------
+== ccache 3.2.7
+
 Release date: 2016-07-20
 
-Bug fixes
-~~~~~~~~~
+
+=== Bug fixes
 
 - Fixed a bug which could lead to false cache hits for compiler command lines
   with a missing argument to an option that takes an argument.
 
-- ccache now knows how to work around a glitch in the output of GCC 6’s
+- ccache now knows how to work around a glitch in the output of GCC 6's
   preprocessor.
 
 
-ccache 3.2.6
-------------
+== ccache 3.2.6
+
 Release date: 2016-07-12
 
-Bug fixes
-~~~~~~~~~
 
-- Fixed build problem on QNX, which lacks “SA_RESTART”.
+=== Bug fixes
+
+- Fixed build problem on QNX, which lacks "`SA_RESTART`".
 
 - Bail out on compiler option `-fstack-usage` since it creates a `.su` file
-  which ccache currently doesn’t handle.
+  which ccache currently doesn't handle.
 
 - Fixed a bug where (due to ccache rewriting paths) the compiler could choose
   incorrect include files if `CCACHE_BASEDIR` is used and the source file path
   is absolute and is a symlink.
 
 
-ccache 3.2.5
-------------
+== ccache 3.2.5
+
 Release date: 2016-04-17
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Only pass Clang-specific `-stdlib=` to the preprocessor.
 
 - Improved handling of stale NFS handles.
 
-- Made it harder to misinterpret documentation of boolean environment settings’
+- Made it harder to misinterpret documentation of boolean environment settings'
   semantics.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Include m4 files used by configure.ac in the source dist archives.
 
-- Corrected “Performance” section in the manual regarding `__DATE_`, `__TIME__`
-  and `__FILE__` macros.
+- Corrected "`Performance`" section in the manual regarding `__DATE_`,
+  `__TIME__` and `__FILE__` macros.
 
 - Fixed build on Solaris 10+ and AIX 7.
 
 - Fixed failure to create directories on QNX.
 
-- Don’t (try to) update manifest file in “read-only” and “read-only direct”
+- Don't (try to) update manifest file in "`read-only`" and "`read-only direct`"
   modes.
 
-- Fixed a bug in caching of `stat` system calls in “file_stat_matches
-  sloppiness mode”.
+- Fixed a bug in caching of `stat` system calls in "`file_stat_matches
+  sloppiness mode`".
 
 - Fixed bug in hashing of Clang plugins, leading to unnecessary cache misses.
 
-- Fixed --print-config to show “pch_defines sloppiness”.
+- Fixed --print-config to show "`pch_defines sloppiness`".
 
-- The man page is now built when running “make install” from Git repository
+- The man page is now built when running "`make install`" from Git repository
   sources.
 
 
-ccache 3.2.4
-------------
+== ccache 3.2.4
+
 Release date: 2015-10-08
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed build error related to zlib on systems with older make versions
   (regression in ccache 3.2.3).
@@ -1521,19 +1484,17 @@ Bug fixes
   64 GiB on 32-bit systems.
 
 
-ccache 3.2.3
-------------
+== ccache 3.2.3
+
 Release date: 2015-08-16
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Added support for compiler option `-gsplit-dwarf`.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Support external zlib in nonstandard directory.
 
@@ -1543,34 +1504,32 @@ Bug fixes
 
 - Bail out on compiler option `--save-temps` in addition to `-save-temps`.
 
-- Only log “Disabling direct mode” once when failing to read potential include
+- Only log "`Disabling direct mode`" once when failing to read potential include
   files.
 
 
-ccache 3.2.2
-------------
+== ccache 3.2.2
+
 Release date: 2015-05-10
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Added support for `CCACHE_COMPILERCHECK=string:<value>`. This is a faster
-  alternative to `CCACHE_COMPILERCHECK=<command>` if the command’s output can
+  alternative to `CCACHE_COMPILERCHECK=<command>` if the command's output can
   be precalculated by the build system.
 
 - Add support for caching code coverage results (compiling for gcov).
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Made hash of cached result created with and without `CCACHE_CPP2` different.
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
 
-- Don’t try to reset a nonexistent stats file. This avoids “No such file or
-  directory” messages in the ccache log when the cache directory doesn’t exist.
+- Don't try to reset a nonexistent stats file. This avoids "`No such file or
+  directory`" messages in the ccache log when the cache directory doesn't exist.
 
 - Fixed a bug where ccache deleted Clang diagnostics after compiler failures.
 
@@ -1592,13 +1551,12 @@ Bug fixes
 - Fixed build error when compiling ccache with recent Clang versions.
 
 
-ccache 3.2.1
-------------
+== ccache 3.2.1
+
 Release date: 2014-12-10
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed regression in temporary file handling, which lead to incorrect
   permissions for stats, manifest and ccache.conf files in the cache.
@@ -1616,13 +1574,12 @@ Bug fixes
   options.
 
 
-ccache 3.2
-----------
+== ccache 3.2
+
 Release date: 2014-11-17
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Added support for configuring ccache via one or several configuration files
   instead of via environment variables. Environment variables still have
@@ -1640,7 +1597,7 @@ New features and enhancements
 - Added support for several binaries (separated by space) in `CCACHE_PREFIX`.
 
 - The `-c` option is no longer passed to the preprocessor. This fixes problems
-  with Clang and Solaris’s C++ compiler.
+  with Clang and Solaris's C++ compiler.
 
 - ccache no longer passes preprocessor options like `-D` and `-I` to the
   compiler when compiling preprocessed output. This fixes warnings emitted by
@@ -1649,7 +1606,7 @@ New features and enhancements
 - Compiler options `-fprofile-generate`, `-fprofile-arcs`, `-fprofile-use` and
   `-fbranch-probabilities` are now handled without bailing.
 
-- Added support for Clang’s `--serialize-diagnostic` option, storing the
+- Added support for Clang's `--serialize-diagnostic` option, storing the
   diagnostic file (`.dia`) in the cache.
 
 - Added support for precompiled headers when using Clang.
@@ -1664,19 +1621,19 @@ New features and enhancements
   the other way around. This is needed to support compiler options like
   `-fprofile-arcs` and `--serialize-diagnostics`.
 
-- ccache now checks that included files’ ctimes aren’t too new. This check can
-  be turned off by adding `include_file_ctime` to the “ccache sloppiness”
+- ccache now checks that included files' ctimes aren't too new. This check can
+  be turned off by adding `include_file_ctime` to the "`ccache sloppiness`"
   setting.
 
 - Added possibility to get cache hits based on filename, size, mtime and ctime
   only. On other words, source code files are not even read, only stat-ed. This
-  operation mode is opt-in by adding `file_stat_matches` to the “ccache
-  sloppiness” setting.
+  operation mode is opt-in by adding `file_stat_matches` to the "`ccache
+  sloppiness`" setting.
 
 - The filename part of options like `-Wp,-MDfilename` is no longer included in
-  the hash since the filename doesn’t have any bearing on the result.
+  the hash since the filename doesn't have any bearing on the result.
 
-- Added a “read-only direct” configuration setting, which is like the ordinary
+- Added a "`read-only direct`" configuration setting, which is like the ordinary
   read-only setting except that ccache will only try to retrieve results from
   the cache using the direct mode, not the preprocessor mode.
 
@@ -1691,7 +1648,7 @@ New features and enhancements
 - Added support for `@file` and `-@file` arguments (reading options from a
   file).
 
-- `-Wl,` options are no longer included in the hash since they don’t affect
+- `-Wl,` options are no longer included in the hash since they don't affect
   compilation.
 
 - Bail out on too hard compiler option `-Wp,-P`.
@@ -1715,8 +1672,7 @@ New features and enhancements
 - Various other improvements of the test suite.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Any previous `.stderr` is now removed from the cache when recaching.
 
@@ -1727,26 +1683,24 @@ Bug fixes
 - Fixed test suite failures when `CC` is a ccache-wrapped compiler.
 
 
-ccache 3.1.12
--------------
+== ccache 3.1.12
+
 Release date: 2016-07-12
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed a bug where (due to ccache rewriting paths) the compiler could choose
   incorrect include files if `CCACHE_BASEDIR` is used and the source file path
   is absolute and is a symlink.
 
 
-ccache 3.1.11
--------------
+== ccache 3.1.11
+
 Release date: 2015-03-07
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed bug which could result in false cache hits when source code contains
   `'"'` followed by `" /*"` or `" //"` (with variations).
@@ -1755,17 +1709,16 @@ Bug fixes
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
 
-- Don’t try to reset a nonexistent stats file. This avoids “No such file or
-  directory” messages in the ccache log when the cache directory doesn’t exist.
+- Don't try to reset a nonexistent stats file. This avoids "`No such file or
+  directory`" messages in the ccache log when the cache directory doesn't exist.
 
 
-ccache 3.1.10
--------------
+== ccache 3.1.10
+
 Release date: 2014-10-19
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Added support for the `-Xclang` compiler option.
 
@@ -1780,21 +1733,20 @@ New features and enhancements
   `CCACHE_BASEDIR` to reuse results across different directories.)
 
 - Added note in documentation that `--ccache-skip` currently does not mean
-  “don’t hash the following option”.
+  "`don't hash the following option`".
 
 - To enable support for precompiled headers (PCH), `CCACHE_SLOPPINESS` now also
   needs to include the new `pch_defines` sloppiness. This is because ccache
-  can’t detect changes in the source code when only defined macros have been
+  can't detect changes in the source code when only defined macros have been
   changed.
 
 - Stale files in the internal temporary directory (`<ccache_dir>/tmp`) are now
   cleaned up if they are older than one hour.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
-- Fixed path canonicalization in `make_relative_path()` when path doesn’t
+- Fixed path canonicalization in `make_relative_path()` when path doesn't
   exist.
 
 - Fixed bug in `common_dir_prefix_length()`. This corrects the `CCACHE_BASEDIR`
@@ -1809,13 +1761,12 @@ Bug fixes
 - Fixed problem with logging of current working directory.
 
 
-ccache 3.1.9
-------------
+== ccache 3.1.9
+
 Release date: 2013-01-06
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - The EAGAIN signal is now handled correctly when emitting cached stderr
   output. This fixes a problem triggered by large error outputs from the
@@ -1823,7 +1774,7 @@ Bug fixes
 
 - Subdirectories in the cache are no longer created in read-only mode.
 
-- Fixed so that ccache’s log file descriptor is not made available to the
+- Fixed so that ccache's log file descriptor is not made available to the
   compiler.
 
 - Improved error reporting when failing to create temporary stdout/stderr files
@@ -1832,19 +1783,17 @@ Bug fixes
 - Disappearing temporary stdout/stderr files are now handled gracefully.
 
 
-Other
-~~~~~
+=== Other
 
 - Fixed test suite to work on ecryptfs.
 
 
-ccache 3.1.8
-------------
+== ccache 3.1.8
+
 Release date: 2012-08-11
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Made paths to dependency files relative in order to increase cache hits.
 
@@ -1854,8 +1803,7 @@ New features and enhancements
 - Clang plugins are now hashed to catch plugin upgrades.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Fixed crash when the current working directory has been removed.
 
@@ -1868,28 +1816,26 @@ Bug fixes
   base directory.
 
 
-Other
-~~~~~
+=== Other
 
 - Made git version macro work when compiling outside of the source directory.
 
 - Fixed `static_assert` macro definition clash with GCC 4.7.
 
 
-ccache 3.1.7
-------------
+== ccache 3.1.7
+
 Release date: 2012-01-08
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Non-writable `CCACHE_DIR` is now handled gracefully when `CCACHE_READONLY` is
   set.
 
 - Made failure to create files (typically due to bad directory permissions) in
   the cache directory fatal. Previously, such failures were silently and
-  erroneously flagged as “compiler produced stdout”.
+  erroneously flagged as "`compiler produced stdout`".
 
 - Both the `-specs=file` and `--specs=file` forms are now recognized.
 
@@ -1908,8 +1854,7 @@ Bug fixes
   versions.)
 
 
-Other
-~~~~~
+=== Other
 
 - Corrected license header for `mdfour.c`.
 
@@ -1917,34 +1862,31 @@ Other
 
 
 
-ccache 3.1.6
-------------
+== ccache 3.1.6
+
 Release date: 2011-08-21
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Rewrite argument to `--sysroot` if `CCACHE_BASEDIR` is used.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
-- Don’t crash if `getcwd()` fails.
+- Don't crash if `getcwd()` fails.
 
-- Fixed alignment of “called for preprocessing” counter.
+- Fixed alignment of "`called for preprocessing`" counter.
 
 
-ccache 3.1.5
-------------
+== ccache 3.1.5
+
 Release date: 2011-05-29
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
-- Added a new statistics counter named “called for preprocessing”.
+- Added a new statistics counter named "`called for preprocessing`".
 
 - The original command line is now logged to the file specified with
   `CCACHE_LOGFILE`.
@@ -1957,8 +1899,7 @@ New features and enhancements
 - Improved order of statistics counters in `ccache -s` output.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - The `-MF`/`-MT`/`-MQ` options with concatenated argument are now handled
   correctly when they are last on the command line.
@@ -1968,53 +1909,49 @@ Bug fixes
 
 - Fixed a minor memory leak.
 
-- Systems that lack (and don’t need to be linked with) libm are now supported.
+- Systems that lack (and don't need to be linked with) libm are now supported.
 
 
-ccache 3.1.4
-------------
+== ccache 3.1.4
+
 Release date: 2011-01-09
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Made a work-around for a bug in `gzputc()` in zlib 1.2.5.
 
-- Corrupt manifest files are now removed so that they won’t block direct mode
+- Corrupt manifest files are now removed so that they won't block direct mode
   hits.
 
-- ccache now copes with file systems that don’t know about symbolic links.
+- ccache now copes with file systems that don't know about symbolic links.
 
 - The file handle is now correctly closed on write error when trying to create
   a cache dir tag.
 
 
-ccache 3.1.3
-------------
+== ccache 3.1.3
+
 Release date: 2010-11-28
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - The -MFarg, -MTarg and -MQarg compiler options (i.e, without space between
   option and argument) are now handled correctly.
 
 
-Other
-~~~~~
+=== Other
 
 - Portability fixes for HP-UX 11.00 and other esoteric systems.
 
 
-ccache 3.1.2
-------------
+== ccache 3.1.2
+
 Release date: 2010-11-21
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Bail out on too hard compiler options `-fdump-*`.
 
@@ -2024,24 +1961,22 @@ Bug fixes
 - Fixed issue when parsing precompiler output on AIX.
 
 
-Other
-~~~~~
+=== Other
 
 - Improved documentation on which information is included in the hash sum.
 
-- Made the “too new header file” test case work on file systems with
+- Made the "`too new header file`" test case work on file systems with
   unsynchronized clocks.
 
 - The test suite now also works on systems that lack a /dev/zero.
 
 
-ccache 3.1.1
-------------
+== ccache 3.1.1
+
 Release date: 2010-11-07
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - ccache now falls back to preprocessor mode when a non-regular include file
   (device, socket, etc) has been detected so that potential hanging due to
@@ -2056,27 +1991,25 @@ Bug fixes
 - Fixed configure detection of ar.
 
 - ccache development version (set by dev.mk) now works with gits whose
-  `describe` command doesn’t understand `--dirty`.
+  `describe` command doesn't understand `--dirty`.
 
 
-Other
-~~~~~
+=== Other
 
 - Minor debug log message improvements.
 
 
-ccache 3.1
-----------
+== ccache 3.1
+
 Release date: 2010-09-16
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
 - Added support for hashing the output of a custom command (e.g. `%compiler%
   --version`) to identify the compiler instead of stat-ing or hashing the
   compiler binary. This can improve robustness when the compiler (as seen by
-  ccache) actually isn’t the real compiler but another compiler wrapper.
+  ccache) actually isn't the real compiler but another compiler wrapper.
 
 - Added support for caching compilations that use precompiled headers. (See the
   manual for important instructions regarding this.)
@@ -2095,9 +2028,9 @@ New features and enhancements
 - Reading and writing of statistics counters has been made forward-compatible
   (unknown counters are retained).
 
-- Files are now read without using `mmap()`. This has two benefits: it’s more
+- Files are now read without using `mmap()`. This has two benefits: it's more
   robust against file changes during reading and it improves performance on
-  poor systems where `mmap()` doesn’t use the disk cache.
+  poor systems where `mmap()` doesn't use the disk cache.
 
 - Added `.cp` and `.CP` as known C++ suffixes.
 
@@ -2107,8 +2040,7 @@ New features and enhancements
   statistics when using the Darwin linker.)
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Non-fatal error messages are now never printed to stderr but logged instead.
 
@@ -2119,8 +2051,7 @@ Bug fixes
 - EINTR is now handled correctly.
 
 
-Other
-~~~~~
+=== Other
 
 - Work on porting ccache to win32 (native), mostly done by Ramiro Polla. The
   port is not yet finished, but will hopefully be complete in some subsequent
@@ -2146,22 +2077,21 @@ Other
 - New `HACKING.txt` file with some notes about ccache code conventions.
 
 
-ccache 3.0.1
-------------
+== ccache 3.0.1
+
 Release date: 2010-07-15
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
-- The statistics counter “called for link” is now correctly updated when
+- The statistics counter "`called for link`" is now correctly updated when
   linking with a single object file.
 
 - Fixed a problem with out-of-source builds.
 
 
-ccache 3.0
-----------
+== ccache 3.0
+
 Release date: 2010-06-20
 
 
@@ -2172,19 +2102,17 @@ General
   or later.
 
 
-Upgrade notes
-~~~~~~~~~~~~~
+=== Upgrade notes
 
-- The way the hashes are calculated has changed, so you won’t get cache hits
+- The way the hashes are calculated has changed, so you won't get cache hits
   for compilation results stored by older ccache versions. Because of this, you
   might as well clear the old cache directory with `ccache --clear` if you
   want, unless you plan to keep using an older ccache version.
 
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== New features and enhancements
 
-- ccache now has a “direct mode” where it computes a hash of the source code
+- ccache now has a "`direct mode`" where it computes a hash of the source code
   (including all included files) and compiler options without running the
   preprocessor. By not running the preprocessor, CPU usage is reduced; the
   speed is somewhere between 1 and 5 times that of ccache running in
@@ -2202,19 +2130,19 @@ New features and enhancements
 - Object files are now optionally stored compressed in the cache. The runtime
   cost is negligible, and more files will fit in the ccache directory and in
   the disk cache. Set `CCACHE_COMPRESS` to enable object file compression. Note
-  that you can’t use compression in combination with the hard link feature.
+  that you can't use compression in combination with the hard link feature.
 
 - A `CCACHE_COMPILERCHECK` option has been added. This option tells ccache what
   compiler-identifying information to hash to ensure that results retrieved
-  from the cache are accurate. Possible values are: none (don’t hash anything),
-  mtime (hash the compiler’s mtime and size) and content (hash the content of
+  from the cache are accurate. Possible values are: none (don't hash anything),
+  mtime (hash the compiler's mtime and size) and content (hash the content of
   the compiler binary). The default is mtime.
 
 - It is now possible to specify extra files whose contents should be included
   in the hash sum by setting the `CCACHE_EXTRAFILES` option.
 
 - Added support for Objective-C and Objective-C\+\+. The statistics counter
-  “not a C/C++ file” has been renamed to “unsupported source language”.
+  "`not a C/C++ file`" has been renamed to "`unsupported source language`".
 
 - Added support for the `-x` compiler option.
 
@@ -2237,13 +2165,13 @@ New features and enhancements
 
 - Temporary files that later will be moved into the cache are now created in
   the cache directory they will end up in. This makes ccache more friendly to
-  Linux’s directory layout.
+  Linux's directory layout.
 
 - Improved the test suite and added tests for most of the new functionality.
-  It’s now also possible to specify a subset of tests to run.
+  It's now also possible to specify a subset of tests to run.
 
 - Standard error output from the compiler is now only stored in the cache if
-  it’s non-empty.
+  it's non-empty.
 
 - If the compiler produces no object file or an empty object file, but gives a
   zero exit status (could be due to a file system problem, a buggy program
@@ -2251,7 +2179,7 @@ New features and enhancements
 
 - Added `installcheck` and `distcheck` make targets.
 
-- Clarified cache size limit options’ and cleanup semantics.
+- Clarified cache size limit options' and cleanup semantics.
 
 - Improved display of cache max size values.
 
@@ -2260,8 +2188,7 @@ New features and enhancements
   `-iwithprefixbefore`, `-nostdinc`, `-nostdinc++` and `-U`.
 
 
-Bug fixes
-~~~~~~~~~
+=== Bug fixes
 
 - Various portability improvements.
 
@@ -2280,7 +2207,7 @@ Bug fixes
   `-save-temps`. Also bail out on `@file` style options.
 
 - Errors when using multiple `-arch` compiler options are now noted as
-  “unsupported compiler option”.
+  "`unsupported compiler option`".
 
 - `-MD`/`-MMD` options without `-MT`/`-MF` are now handled correctly.
 

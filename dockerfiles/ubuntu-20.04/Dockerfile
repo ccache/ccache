@@ -3,7 +3,7 @@ FROM ubuntu:20.04
 # Non-interactive: do not set up timezone settings.
 RUN apt-get update \
  && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
-        asciidoc \
+        asciidoctor \
         bash \
         build-essential \
         ccache \
@@ -18,7 +18,6 @@ RUN apt-get update \
         python3 \
         redis-server \
         redis-tools \
-        xsltproc \
  && rm -rf /var/lib/apt/lists/*
 
 # Redirect all compilers to ccache.

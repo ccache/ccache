@@ -1,70 +1,51 @@
-find_program(ASCIIDOC_EXE asciidoc)
-mark_as_advanced(ASCIIDOC_EXE) # Don't show in CMake UIs
+find_program(ASCIIDOCTOR_EXE asciidoctor)
+mark_as_advanced(ASCIIDOCTOR_EXE) # Don't show in CMake UIs
 
-if(NOT ASCIIDOC_EXE)
-  message(WARNING "Could not find asciidoc; documentation will not be generated")
+if(NOT ASCIIDOCTOR_EXE)
+  message(WARNING "Could not find asciidoctor; documentation will not be generated")
 else()
-  #
-  # HTML documentation
-  #
-  function(generate_html adoc_file)
+  function(generate_doc backend adoc_file output_file)
     get_filename_component(base_name "${adoc_file}" NAME_WE)
-    set(html_file "${base_name}.html")
     add_custom_command(
-      OUTPUT "${html_file}"
+      OUTPUT "${output_file}"
       COMMAND
-        ${ASCIIDOC_EXE}
-          -o "${html_file}"
+        ${ASCIIDOCTOR_EXE}
+          -o "${output_file}"
           -a revnumber="${CCACHE_VERSION}"
-          -a toc
-          -b xhtml11
+          -a toc=left
+          -a sectanchors
+          -b "${backend}"
           "${CMAKE_SOURCE_DIR}/${adoc_file}"
       MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/${adoc_file}"
     )
-    set(html_files "${html_files}" "${html_file}" PARENT_SCOPE)
+    set(doc_files "${doc_files}" "${output_file}" PARENT_SCOPE)
   endfunction()
 
-  generate_html(LICENSE.adoc)
-  generate_html(doc/AUTHORS.adoc)
-  generate_html(doc/MANUAL.adoc)
-  generate_html(doc/NEWS.adoc)
-
-  add_custom_target(doc-html DEPENDS "${html_files}")
-  set(doc_files "${html_files}")
+  #
+  # HTML documentation
+  #
+  generate_doc(html    LICENSE.adoc     LICENSE.html)
+  generate_doc(html    doc/AUTHORS.adoc AUTHORS.html)
+  generate_doc(html    doc/MANUAL.adoc  MANUAL.html)
+  generate_doc(html    doc/NEWS.adoc    NEWS.html)
+  add_custom_target(doc-html DEPENDS "${doc_files}")
 
   #
   # Man page
   #
-  find_program(A2X_EXE a2x)
-  mark_as_advanced(A2X_EXE) # Don't show in CMake UIs
-  if(NOT A2X_EXE)
-    message(WARNING "Could not find a2x; man page will not be generated")
-  else()
-    # MANUAL.adoc -> MANUAL.xml -> man page
-    add_custom_command(
-      OUTPUT MANUAL.xml
-      COMMAND
-        ${ASCIIDOC_EXE}
-          -o -
-          -a revnumber=${CCACHE_VERSION}
-          -d manpage
-          -b docbook "${CMAKE_SOURCE_DIR}/doc/MANUAL.adoc"
-        | perl -pe 's!<literal>\(.*?\)</literal>!<emphasis role="strong">\\1</emphasis>!g'
-            >MANUAL.xml
-      MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/doc/MANUAL.adoc"
-    )
-    add_custom_command(
-      OUTPUT ccache.1
-      COMMAND ${A2X_EXE} --doctype manpage --format manpage MANUAL.xml
-      MAIN_DEPENDENCY MANUAL.xml
-    )
-    add_custom_target(doc-man-page DEPENDS ccache.1)
-    install(
-      FILES "${CMAKE_CURRENT_BINARY_DIR}/ccache.1"
-      DESTINATION "${CMAKE_INSTALL_MANDIR}/man1"
-    )
-    set(doc_files "${doc_files}" ccache.1)
-  endif()
+  generate_doc(manpage doc/MANUAL.adoc ccache.1.tmp)
+  add_custom_command(
+    OUTPUT ccache.1
+    # Convert monospace to bold since that's typically rendered better when
+    # viewing the man page.
+    COMMAND perl -pe "'s!\\\\f\\(CR(.*?)\\\\fP!\\\\fB\\1\\\\fP!g'" ccache.1.tmp >ccache.1
+    MAIN_DEPENDENCY ccache.1.tmp
+  )
+  install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/ccache.1"
+    DESTINATION "${CMAKE_INSTALL_MANDIR}/man1"
+  )
+  add_custom_target(doc-man-page DEPENDS ccache.1)
 
-  add_custom_target(doc ALL DEPENDS "${doc_files}")
+  add_custom_target(doc ALL DEPENDS doc-html doc-man-page)
 endif()

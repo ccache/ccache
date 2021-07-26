@@ -1,5 +1,4 @@
-Ccache authors
-==============
+= Ccache authors
 
 Ccache was originally written by Andrew Tridgell and is currently developed and
 maintained by Joel Rosdahl.
