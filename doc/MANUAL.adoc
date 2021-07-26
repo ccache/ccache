@@ -60,6 +60,7 @@ compiler wrappers>>_.
 
 WARNING: Use a symbolic links for masquerading, not hard links.
 
+
 == Command line options
 
 These command line options only apply when you invoke ccache as "`ccache`".
@@ -284,6 +285,7 @@ is whitespace surrounding keys and values. Example:
 # Set maximum cache size to 10 GB:
 max_size = 10G
 -------------------------------------------------------------------------------
+
 
 === Boolean values
 
@@ -905,6 +907,7 @@ Optional attributes available for all secondary storage backends:
 
 These are the available backends:
 
+
 === File storage backend
 
 URL format: `+file:DIRECTORY+` or `+file://DIRECTORY+`
@@ -926,6 +929,7 @@ Optional attributes:
   files and directories in the cache directory.
 * *update-mtime*: If *true*, update the modification time (mtime) of cache
   entries that are read. The default is *false*.
+
 
 === HTTP storage backend
 
@@ -966,6 +970,7 @@ The default is *standard*.
 
 NOTE: HTTPS is not supported.
 
+
 === Redis storage backend
 
 URL format: `+redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]+`
@@ -986,6 +991,7 @@ Optional attributes:
 
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
+
 
 == Cache size management
 
