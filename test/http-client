@@ -7,12 +7,16 @@ import sys
 import time
 import urllib.request
 
+
 def run(url, timeout, basic_auth):
     deadline = time.time() + timeout
     req = urllib.request.Request(url, method="HEAD")
     if basic_auth:
         import base64
-        encoded_credentials = base64.b64encode(basic_auth.encode("ascii")).decode("ascii")
+
+        encoded_credentials = base64.b64encode(
+            basic_auth.encode("ascii")
+        ).decode("ascii")
         req.add_header("Authorization", f"Basic {encoded_credentials}")
     while True:
         try:
@@ -22,23 +26,30 @@ def run(url, timeout, basic_auth):
         except urllib.error.URLError as e:
             print(e.reason)
             if time.time() > deadline:
-                print(f"All connection attempts failed within {timeout} seconds.")
+                print(
+                    f"All connection attempts failed within {timeout} seconds."
+                )
                 sys.exit(1)
             time.sleep(0.5)
+
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--basic-auth', '-B',
-                        help='Basic auth tuple like user:pass')
-    parser.add_argument('--timeout', '-t', metavar='TIMEOUT',
-                        default=10, type=int,
-                        help='Maximum seconds to wait for successful connection attempt '
-                             '[default: 10 seconds]')
-    parser.add_argument('url',
-                        type=str,
-                        help='URL to connect to')
+    parser.add_argument(
+        "--basic-auth", "-B", help="Basic auth tuple like user:pass"
+    )
+    parser.add_argument(
+        "--timeout",
+        "-t",
+        metavar="TIMEOUT",
+        default=10,
+        type=int,
+        help="Maximum seconds to wait for successful connection attempt "
+        "[default: 10 seconds]",
+    )
+    parser.add_argument("url", type=str, help="URL to connect to")
     args = parser.parse_args()
 
     run(

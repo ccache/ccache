@@ -263,9 +263,7 @@ def main(argv):
     op.add_option(
         "--no-compression", help="disable compression", action="store_true"
     )
-    op.add_option(
-        "--compression-level", help="set compression level", type=int
-    )
+    op.add_option("--compression-level", help="set compression level", type=int)
     op.add_option(
         "-d",
         "--directory",
