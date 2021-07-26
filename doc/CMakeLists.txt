@@ -14,9 +14,11 @@ else()
           -a revnumber="${CCACHE_VERSION}"
           -a toc=left
           -a sectanchors
+          -a stylesheet="${CMAKE_CURRENT_SOURCE_DIR}/ccache-doc.css"
           -b "${backend}"
           "${CMAKE_SOURCE_DIR}/${adoc_file}"
       MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/${adoc_file}"
+      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ccache-doc.css"
     )
     set(doc_files "${doc_files}" "${output_file}" PARENT_SCOPE)
   endfunction()

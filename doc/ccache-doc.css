@@ -1,0 +1,50 @@
+@import url(//fonts.googleapis.com/css?family=Montserrat|Open+Sans);
+@import url(https://cdn.jsdelivr.net/gh/asciidoctor/asciidoctor@2.0/data/stylesheets/asciidoctor-default.css); /* Default asciidoc style framework - important */
+
+:root{
+--maincolor:#ffffff;
+--primarycolor:#294172;
+--secondarycolor:#5f646c;
+--tertiarycolor:#cccccc;
+--highlightcolor:#f5f5f5;
+--sidebarbackground:#f5f5f5;
+--linkcolor:#02a;
+--linkcoloralternate:#db3279;
+--white:#ffffff;
+--black:#000000;
+}
+
+/* Text styles */
+
+body{font-family: "Open Sans", sans-serif;background-color: var(--maincolor);color:var(--black);}
+
+h1{color:var(--primarycolor) !important;font-family:"Montserrat",sans-serif;}
+h2,h3,h4,h5,h6{color:var(--secondarycolor) !important;font-family:"Montserrat",sans-serif;}
+.title{color:var(--black) !important;font-family:"Open Sans",sans-serif;font-style: normal; font-weight: normal;}
+a{text-decoration: none;}
+a:hover{color: #3958da; text-decoration: underline;}
+p{font-family: "Open Sans",sans-serif ! important}
+#toc.toc2 a:link{color:var(--linkcolor);}
+blockquote{color:var(--linkcoloralternate) !important}
+.quoteblock blockquote:before{color:var(--linkcoloralternate)}
+code{color:var(--black);background-color: var(--highlightcolor) !important}
+mark{background-color: var(--highlightcolor)} /* Text highlighting color */
+
+/* Table styles */
+th{background-color: var(--maincolor);color:var(--black) !important;}
+td{background-color: var(--maincolor);color: var(--black) !important}
+
+
+#toc.toc2{background-color:var(--sidebarbackground);}
+#toctitle{color:var(--black);}
+
+/* Responsiveness fixes */
+video {
+  max-width: 100%;
+}
+
+@media all and (max-width: 600px) {
+table {
+  width: 55vw!important;
+  font-size: 3vw;
+}
