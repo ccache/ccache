@@ -16,11 +16,12 @@ if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   return()
 endif()
 
+include(EnableCcache)
+
 find_program(CCACHE_EXECUTABLE ccache)
 if(NOT CCACHE_EXECUTABLE)
   ccache_message_verbose("Ccache program not found, not enabling ccache for faster recompilation")
   return()
 endif()
 
-include(EnableCcache)
 enable_ccache()
