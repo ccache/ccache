@@ -938,12 +938,30 @@ Note that ccache will not perform any cleanup of the HTTP storage.
 
 Examples:
 
-* `+http://localhost:8080/+`
-* `+http://someusername:p4ssw0rd@example.com/cache+`
+* `+http://localhost+`
+* `+http://someusername:p4ssw0rd@example.com/cache/+`
+* `+http://localhost:8080|layout=bazel|connect-timeout=50+`
 
 Optional attributes:
 
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
+* *layout*: How to map key names to the path part of the URL. Available values:
++
+--
+* *bazel*: Store values in a format compatible with the Bazel HTTP caching
+   protocol. More specifically, the entries will be stored as 64 hex digits
+   under the `/ac/` part of the cache.
++
+NOTE: You may have to disable verification of action cache values in the server
+for this to work since ccache entries are not valid action result metadata
+values.
+* *standard*: Append the first two digits of ccache's standard text
+  representation of a hash to the URL (with a leading slash if needed), followed
+  by a slash and the rest of the key. This divides the entries into 256 buckets
+  since the first digits are in hex format.
+--
++
+The default is *standard*.
 * *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
 
 Known issues and limitations:

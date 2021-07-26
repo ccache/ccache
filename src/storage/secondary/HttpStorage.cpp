@@ -50,8 +50,11 @@ public:
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
 
 private:
+  enum class Layout { bazel, standard };
+
   const std::string m_url_path;
   httplib::Client m_http_client;
+  Layout m_layout = Layout::standard;
 
   std::string get_entry_path(const Digest& key) const;
 };
@@ -115,6 +118,14 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   for (const auto& attr : params.attributes) {
     if (attr.key == "connect-timeout") {
       connect_timeout = parse_timeout_attribute(attr.value);
+    } else if (attr.key == "layout") {
+      if (attr.value == "bazel") {
+        m_layout = Layout::bazel;
+      } else if (attr.value == "standard") {
+        m_layout = Layout::standard;
+      } else {
+        LOG("Unknown layout: {}", attr.value);
+      }
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
     } else if (!is_framework_attribute(attr.key)) {
@@ -225,7 +236,21 @@ HttpStorageBackend::remove(const Digest& key)
 std::string
 HttpStorageBackend::get_entry_path(const Digest& key) const
 {
-  return m_url_path + key.to_string();
+  switch (m_layout) {
+  case Layout::bazel: {
+    // Mimic hex representation of a SHA256 hash value.
+    const auto sha256_hex_size = 64;
+    static_assert(Digest::size() == 20, "Update below if digest size changes");
+    std::string hex_digits = Util::format_base16(key.bytes(), key.size());
+    hex_digits.append(hex_digits.data(), sha256_hex_size - hex_digits.size());
+    return FMT("{}ac/{}", m_url_path, hex_digits);
+  }
+
+  case Layout::standard:
+    return m_url_path + key.to_string();
+  }
+
+  ASSERT(false);
 }
 
 } // namespace

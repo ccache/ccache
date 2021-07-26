@@ -136,4 +136,38 @@ SUITE_secondary_http() {
         expect_stat 'files in cache' 2 # fetched from secondary
         expect_file_count 2 '*' secondary # result + manifest
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Bazel layout"
+
+    start_http_server 12780 secondary
+    mkdir secondary/ac
+    export CCACHE_SECONDARY_STORAGE="http://localhost:12780|layout=bazel"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    find secondary -ls
+    expect_file_count 2 '*' secondary/ac # result + manifest
+    if [ "$(ls secondary/ac | grep -Ec '^[0-9a-f]{64}$')" -ne 2 ]; then
+        test_failed "Bazel layout filenames not as expected"
+    fi
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_file_count 2 '*' secondary/ac # result + manifest
+
+    $CCACHE -C >/dev/null
+    expect_stat 'files in cache' 0
+    expect_file_count 2 '*' secondary/ac # result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_file_count 2 '*' secondary/ac # result + manifest
+
 }
