@@ -312,17 +312,18 @@ backend_is_available(SecondaryStorageEntry& entry,
     return false;
   }
 
-  try {
-    entry.backend = entry.storage->create_backend(entry.config.params);
-  } catch (const secondary::SecondaryStorage::Backend::Failed& e) {
-    LOG("Failed to construct backend for {}{}",
-        entry.url_for_logging,
-        nonstd::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
-    mark_backend_as_failed(entry, e.failure());
-    return false;
+  if (!entry.backend) {
+    try {
+      entry.backend = entry.storage->create_backend(entry.config.params);
+    } catch (const secondary::SecondaryStorage::Backend::Failed& e) {
+      LOG("Failed to construct backend for {}{}",
+          entry.url_for_logging,
+          nonstd::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
+      mark_backend_as_failed(entry, e.failure());
+    }
   }
 
-  return true;
+  return static_cast<bool>(entry.backend);
 }
 
 nonstd::optional<std::string>
