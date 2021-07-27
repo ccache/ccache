@@ -938,7 +938,12 @@ URL format: `+http://HOST[:PORT][/PATH]+`
 This backend stores data in an HTTP-compatible server. The required HTTP methods
 are `GET`, `PUT` and `DELETE`.
 
-Note that ccache will not perform any cleanup of the HTTP storage.
+IMPORTANT: ccache will not perform any cleanup of the HTTP storage.
+
+NOTE: HTTPS is not supported.
+
+TIP: See https://ccache.dev/howto/http-storage.html[How to set up HTTP storage]
+for hints on how to set up an HTTP server for use with ccache.
 
 Examples:
 
@@ -968,8 +973,6 @@ values.
 The default is *standard*.
 * *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
 
-NOTE: HTTPS is not supported.
-
 
 === Redis storage backend
 
@@ -979,8 +982,11 @@ This backend stores data in a https://redis.io[Redis] (or Redis-compatible)
 server. There are implementations for both memory-based and disk-based storage.
 *PORT* defaults to *6379* and *DBNUMBER* defaults to *0*.
 
-Note that ccache will not perform any cleanup of the Redis storage, but you can
+NOTE: ccache will not perform any cleanup of the Redis storage, but you can
 https://redis.io/topics/lru-cache[configure LRU eviction].
+
+TIP: See https://ccache.dev/howto/redis-storage.html[How to set up Redis
+storage] for hints on setting up a Redis server for use with ccache.
 
 Examples:
 
