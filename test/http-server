@@ -9,8 +9,8 @@
 from functools import partial
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-
 import os
+import signal
 import socket
 import sys
 
@@ -119,6 +119,12 @@ def run(HandlerClass, ServerClass, port, bind):
             sys.exit(0)
 
 
+def on_terminate(signum, frame):
+    sys.stdout.flush()
+    sys.stderr.flush()
+    sys.exit(128 + signum)
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -153,6 +159,9 @@ if __name__ == "__main__":
     )
 
     os.chdir(args.directory)
+
+    signal.signal(signal.SIGINT, on_terminate)
+    signal.signal(signal.SIGTERM, on_terminate)
 
     run(
         HandlerClass=handler_class,
