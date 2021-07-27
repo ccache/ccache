@@ -12,6 +12,7 @@ else()
         ${ASCIIDOCTOR_EXE}
           -o "${output_file}"
           -a revnumber="${CCACHE_VERSION}"
+          -a icons=font
           -a toc=left
           -a sectanchors
           -a stylesheet="${CMAKE_CURRENT_SOURCE_DIR}/ccache-doc.css"
