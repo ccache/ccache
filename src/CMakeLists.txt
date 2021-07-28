@@ -44,40 +44,40 @@ if(WIN32)
   list(APPEND source_files Win32Util.cpp)
 endif()
 
-add_library(ccache_lib STATIC ${source_files})
+add_library(ccache_framework STATIC ${source_files})
 target_compile_definitions(
-  ccache_lib PUBLIC -Dnssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_NONSTD
+  ccache_framework PUBLIC -Dnssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_NONSTD
 )
 
 if(WIN32)
-  target_link_libraries(ccache_lib PRIVATE ws2_32 "psapi")
+  target_link_libraries(ccache_framework PRIVATE ws2_32 "psapi")
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     if(STATIC_LINK)
-      target_link_libraries(ccache_lib PRIVATE -static-libgcc -static-libstdc++ -static winpthread -dynamic)
+      target_link_libraries(ccache_framework PRIVATE -static-libgcc -static-libstdc++ -static winpthread -dynamic)
     else()
-      target_link_libraries(ccache_lib PRIVATE winpthread)
+      target_link_libraries(ccache_framework PRIVATE winpthread)
     endif()
   elseif(STATIC_LINK AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_link_libraries(ccache_lib PRIVATE -static c++ -dynamic)
+    target_link_libraries(ccache_framework PRIVATE -static c++ -dynamic)
   endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(
-  ccache_lib
-  PRIVATE standard_settings standard_warnings ZSTD::ZSTD
-          Threads::Threads third_party_lib)
+  ccache_framework
+  PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
+)
 
-target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ccache_framework PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(REDIS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(
-    ccache_lib
-    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS
-           third_party_lib)
+    ccache_framework
+    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
+  )
 endif()
 
 add_subdirectory(compression)

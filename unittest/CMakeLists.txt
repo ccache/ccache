@@ -43,7 +43,7 @@ add_executable(unittest ${source_files})
 
 target_link_libraries(
   unittest
-  PRIVATE standard_settings standard_warnings ccache_lib third_party_lib)
+  PRIVATE standard_settings standard_warnings ccache_framework third_party)
 
 target_include_directories(unittest PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${ccache_SOURCE_DIR}/src)
 

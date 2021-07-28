@@ -127,7 +127,7 @@ add_subdirectory(src)
 # ccache executable
 #
 add_executable(ccache src/main.cpp)
-target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_lib)
+target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_framework)
 
 #
 # Documentation
