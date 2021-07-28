@@ -45,9 +45,38 @@ Here are some hints to make the process smoother:
   post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
 * Please add test cases for your new changes if applicable.
 * Please follow the ccache's code style (see the section below).
-* Consider [A Note About Git Commit
-  Messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
-  when writing commit messages.
+
+## Commit message conventions
+
+It is preferable, but not mandatory, to format commit messages in the spirit of
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The
+commit message subject should look like this:
+
+        <type>: <description>
+        <type>(<scope>): <description>
+
+`<description>` is a succinct description of the change:
+
+* Use the imperative, present tense: "Change", not "Changed" nor "Changes".
+* Capitalize the first letter.
+* No dot (`.`) at the end.
+
+Here is a summary of types used for ccache:
+
+| Type         | Explanation |
+| ------------ | ----------- |
+| **build**    | A change of the build system or build configuration. |
+| **bump**     | An increase of the version of an external dependency or an update of a bundled third party package. |
+| **chore**    | A change that doesn't match any other type. |
+| **ci**       | A change of CI scripts or configuration. |
+| **docs**     | A change of documentation only. |
+| **enhance**  | An enhancement of the code without adding a user-visible feature, for example adding a new utility class to be used by a future feature or refactoring. |
+| **feat**     | An addition or improvement of a user-visible feature. |
+| **fix**      | A bug fix (not necessarily user-visible). |
+| **perf**     | A performance improvement. |
+| **refactor** | A restructuring of the existing code without changing its external behavior. |
+| **style**    | A change of code style. |
+| **test**     | An addition or modification of tests or test framework. |
 
 ## Code style
 
