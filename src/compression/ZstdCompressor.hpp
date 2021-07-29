@@ -22,9 +22,12 @@
 
 #include <NonCopyable.hpp>
 
-#include <zstd.h>
-
 #include <cstdint>
+#include <memory>
+
+struct ZSTD_CCtx_s;
+struct ZSTD_inBuffer_s;
+struct ZSTD_outBuffer_s;
 
 namespace compression {
 
@@ -47,9 +50,9 @@ public:
 
 private:
   FILE* m_stream;
-  ZSTD_CStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
+  ZSTD_CCtx_s* m_zstd_stream;
+  std::unique_ptr<ZSTD_inBuffer_s> m_zstd_in;
+  std::unique_ptr<ZSTD_outBuffer_s> m_zstd_out;
   int8_t m_compression_level;
 };
 
