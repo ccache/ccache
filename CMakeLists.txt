@@ -56,10 +56,12 @@ endif()
 #
 include(CcacheVersion)
 
-if("${CCACHE_VERSION_ORIGIN}" STREQUAL git OR DEFINED ENV{CI})
-  set(CCACHE_DEV_MODE ON)
-else()
-  set(CCACHE_DEV_MODE OFF)
+if(NOT DEFINED CCACHE_DEV_MODE)
+  if("${CCACHE_VERSION_ORIGIN}" STREQUAL git OR DEFINED ENV{CI})
+    set(CCACHE_DEV_MODE ON)
+  else()
+    set(CCACHE_DEV_MODE OFF)
+  endif()
 endif()
 message(STATUS "Ccache dev mode: ${CCACHE_DEV_MODE}")
 
