@@ -1707,7 +1707,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   if ((ctx.config.compiler_type() == CompilerType::clang
        || ctx.config.compiler_type() == CompilerType::other)
       && ctx.args_info.output_is_precompiled_header
-      && !ctx.args_info.fno_pch_timestamp && mode == FromCacheCallMode::cpp) {
+      && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
     return nullopt;
   }
