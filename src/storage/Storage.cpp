@@ -31,6 +31,7 @@
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
 #include <storage/secondary/SecondaryStorage.hpp>
+#include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
@@ -334,7 +335,9 @@ Storage::get_from_secondary_storage(const Digest& key)
       continue;
     }
 
+    Timer timer;
     const auto result = entry->backend->get(key);
+    const auto ms = timer.measure_ms();
     if (!result) {
       mark_backend_as_failed(*entry, result.error());
       continue;
@@ -342,10 +345,14 @@ Storage::get_from_secondary_storage(const Digest& key)
 
     const auto& value = *result;
     if (value) {
-      LOG("Retrieved {} from {}", key.to_string(), entry->url_for_logging);
+      LOG("Retrieved {} from {} ({:.2f} ms)",
+          key.to_string(),
+          entry->url_for_logging,
+          ms);
       return *value;
     } else {
-      LOG("No {} in {}", key.to_string(), entry->url_for_logging);
+      LOG(
+        "No {} in {} ({:.2f} ms)", key.to_string(), entry->url_for_logging, ms);
     }
   }
 
@@ -360,7 +367,9 @@ Storage::put_in_secondary_storage(const Digest& key, const std::string& value)
       continue;
     }
 
+    Timer timer;
     const auto result = entry->backend->put(key, value);
+    const auto ms = timer.measure_ms();
     if (!result) {
       // The backend is expected to log details about the error.
       mark_backend_as_failed(*entry, result.error());
@@ -368,10 +377,11 @@ Storage::put_in_secondary_storage(const Digest& key, const std::string& value)
     }
 
     const bool stored = *result;
-    LOG("{} {} in {}",
+    LOG("{} {} in {} ({:.2f} ms)",
         stored ? "Stored" : "Failed to store",
         key.to_string(),
-        entry->url_for_logging);
+        entry->url_for_logging,
+        ms);
   }
 }
 
@@ -383,7 +393,9 @@ Storage::remove_from_secondary_storage(const Digest& key)
       continue;
     }
 
+    Timer timer;
     const auto result = entry->backend->remove(key);
+    const auto ms = timer.measure_ms();
     if (!result) {
       mark_backend_as_failed(*entry, result.error());
       continue;
@@ -391,9 +403,15 @@ Storage::remove_from_secondary_storage(const Digest& key)
 
     const bool removed = *result;
     if (removed) {
-      LOG("Removed {} from {}", key.to_string(), entry->url_for_logging);
+      LOG("Removed {} from {} ({:.2f} ms)",
+          key.to_string(),
+          entry->url_for_logging,
+          ms);
     } else {
-      LOG("No {} to remove from {}", key.to_string(), entry->url_for_logging);
+      LOG("No {} to remove from {} ({:.2f} ms)",
+          key.to_string(),
+          entry->url_for_logging,
+          ms);
     }
   }
 }
