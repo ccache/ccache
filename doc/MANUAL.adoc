@@ -23,8 +23,8 @@ again.
 Ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
 tell that you are using ccache is the speed. Currently known exceptions to this
-goal are listed under <<Caveats>>. If you discover an undocumented case
-where ccache changes the output of your compiler, please let us know.
+goal are listed under <<Caveats>>. If you discover an undocumented case where
+ccache changes the output of your compiler, please let us know.
 
 
 == Run modes
@@ -54,8 +54,8 @@ installing you may wish to run "`which gcc`" to make sure that the correct link
 is being used.
 
 WARNING: The technique of letting ccache masquerade as the compiler works well,
-but currently doesn't interact well with other tools that do the same thing.
-See _<<Using ccache with other compiler wrappers>>_.
+but currently doesn't interact well with other tools that do the same thing. See
+_<<Using ccache with other compiler wrappers>>_.
 
 WARNING: Use a symbolic links for masquerading, not hard links.
 
@@ -128,21 +128,21 @@ compiler's documentation.
     level can be an integer, with the same semantics as the
     <<config_compression_level,*compression_level*>> configuration option), or
     the special value *uncompressed* for no compression. See
-    _<<Cache compression>>_ for more information. This can
-    potentionally take a long time since all files in the cache need to be
-    visited. Only files that are currently compressed with a different level
-    than _LEVEL_ will be recompressed.
+    _<<Cache compression>>_ for more information. This can potentionally take a
+    long time since all files in the cache need to be visited. Only files that
+    are currently compressed with a different level than _LEVEL_ will be
+    recompressed.
 
 *-o* _KEY=VALUE_, *--set-config* _KEY_=_VALUE_::
 
-    Set configuration option _KEY_ to _VALUE_. See
-    _<<Configuration>>_ for more information.
+    Set configuration option _KEY_ to _VALUE_. See _<<Configuration>>_ for more
+    information.
 
 *-x*, *--show-compression*::
 
-    Print cache compression statistics. See _<<Cache compression>>_
-    for more information. This can potentionally take a long
-    time since all files in the cache need to be visited.
+    Print cache compression statistics. See _<<Cache compression>>_ for more
+    information. This can potentionally take a long time since all files in the
+    cache need to be visited.
 
 *-p*, *--show-config*::
 
@@ -152,8 +152,8 @@ compiler's documentation.
 
 *--show-log-stats*::
 
-    Print statistics counters from the stats log in human-readable format.
-    See <<config_stats_log,*stats_log*>>.
+    Print statistics counters from the stats log in human-readable format. See
+    <<config_stats_log,*stats_log*>>.
 
 *-s*, *--show-stats*::
 
@@ -195,8 +195,8 @@ compiler's documentation.
 
 *-k* _KEY_, *--get-config* _KEY_::
 
-    Print the value of configuration option _KEY_. See
-    _<<Configuration>>_ for more information.
+    Print the value of configuration option _KEY_. See _<<Configuration>>_ for
+    more information.
 
 *--hash-file* _PATH_::
 
@@ -320,12 +320,12 @@ option key.
 [[config_base_dir]] *base_dir* (*CCACHE_BASEDIR*)::
 
     This option should be an absolute path to a directory. If set, ccache will
-    rewrite absolute paths into paths relative to the current working
-    directory, but only absolute paths that begin with *base_dir*. Cache
-    results can then be shared for compilations in different directories even
-    if the project uses absolute paths in the compiler command line. See also
-    the discussion under _<<Compiling in different directories>>_. If set to the
-    empty string (which is the default), no rewriting is done.
+    rewrite absolute paths into paths relative to the current working directory,
+    but only absolute paths that begin with *base_dir*. Cache results can then
+    be shared for compilations in different directories even if the project uses
+    absolute paths in the compiler command line. See also the discussion under
+    _<<Compiling in different directories>>_. If set to the empty string (which
+    is the default), no rewriting is done.
 +
 A typical path to use as *base_dir* is your home directory or another directory
 that is a parent of your project directories. Don't use `/` as the base
@@ -439,9 +439,9 @@ misses when the compiler has been rebuilt but not changed.
 Another case is when the compiler (as seen by ccache) actually isn't the real
 compiler but another compiler wrapper -- in that case, the default *mtime*
 method will hash the mtime and size of the other compiler wrapper, which means
-that ccache won't be able to detect a compiler upgrade. Using a suitable
-command to identify the compiler is thus safer, but it's also slower, so you
-should consider continue using the *mtime* method in combination with the
+that ccache won't be able to detect a compiler upgrade. Using a suitable command
+to identify the compiler is thus safer, but it's also slower, so you should
+consider continue using the *mtime* method in combination with the
 *prefix_command* option if possible. See
 _<<Using ccache with other compiler wrappers>>_.
 --
@@ -531,9 +531,8 @@ See the http://zstd.net[Zstandard documentation] for more information.
 
     If true, enable the debug mode. The debug mode creates per-object debug
     files that are helpful when debugging unexpected cache misses. Note however
-    that ccache performance will be reduced slightly. See
-    _<<Cache debugging>>_ for more information. The default is
-    false.
+    that ccache performance will be reduced slightly. See _<<Cache debugging>>_
+    for more information. The default is false.
 
 [[config_debug_dir]] *debug_dir* (*CCACHE_DEBUGDIR*)::
 
@@ -693,14 +692,13 @@ file in `/etc/rsyslog.d`:
 [[config_max_files]] *max_files* (*CCACHE_MAXFILES*)::
 
     This option specifies the maximum number of files to keep in the cache. Use
-    0 for no limit (which is the default). See also
-    _<<Cache size management>>_.
+    0 for no limit (which is the default). See also _<<Cache size management>>_.
 
 [[config_max_size]] *max_size* (*CCACHE_MAXSIZE*)::
 
-    This option specifies the maximum size of the cache. Use 0 for no limit.
-    The default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki,
-    Mi, Gi, Ti (binary). The default suffix is G. See also
+    This option specifies the maximum size of the cache. Use 0 for no limit. The
+    default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki, Mi,
+    Gi, Ti (binary). The default suffix is G. See also
     _<<Cache size management>>_.
 
 [[config_path]] *path* (*CCACHE_PATH*)::
@@ -721,8 +719,8 @@ file in `/etc/rsyslog.d`:
 
 [[config_prefix_command]] *prefix_command* (*CCACHE_PREFIX*)::
 
-    This option adds a list of prefixes (separated by space) to the command
-    line that ccache uses when invoking the compiler. See also
+    This option adds a list of prefixes (separated by space) to the command line
+    that ccache uses when invoking the compiler. See also
     _<<Using ccache with other compiler wrappers>>_.
 
 [[config_prefix_command_cpp]] *prefix_command_cpp* (*CCACHE_PREFIX_CPP*)::
@@ -757,9 +755,9 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
 [[config_run_second_cpp]] *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see _<<Boolean values>>_ above)::
 
     If true, ccache will first run the preprocessor to preprocess the source
-    code (see _<<The preprocessor mode>>_) and then on a
-    cache miss run the compiler on the source code to get hold of the object
-    file. This is the default.
+    code (see _<<The preprocessor mode>>_) and then on a cache miss run the
+    compiler on the source code to get hold of the object file. This is the
+    default.
 +
 If false, ccache will first run preprocessor to preprocess the source code and
 then on a cache miss run the compiler on the _preprocessed source code_ instead
@@ -779,8 +777,8 @@ still has to do _some_ preprocessing (like macros).
 
     This option specifies one or several storage backends (separated by space)
     to query after the primary cache storage. See
-    _<<Secondary storage backends>>_ for
-    documentation of syntax and available backends.
+    _<<Secondary storage backends>>_ for documentation of syntax and available
+    backends.
 +
 Examples:
 +
@@ -817,8 +815,8 @@ Examples:
     is too new. This sloppiness disables that check. See also
     _<<Handling of newly created header files>>_.
 *include_file_mtime*::
-    By default, ccache will not cache a file if it includes a header whose
-    mtime is too new. This sloppiness disables that check. See also
+    By default, ccache will not cache a file if it includes a header whose mtime
+    is too new. This sloppiness disables that check. See also
     _<<Handling of newly created header files>>_.
 *ivfsoverlay*::
     Ignore the Clang compiler option `-ivfsoverlay` and its argument. This is
@@ -846,8 +844,7 @@ Examples:
     source code.
 --
 +
-See the discussion under _<<Troubleshooting>>_ for more
-information.
+See the discussion under _<<Troubleshooting>>_ for more information.
 
 [[config_stats]] *stats* (*CCACHE_STATS* or *CCACHE_NOSTATS*, see _<<Boolean values>>_ above)::
 
@@ -1231,11 +1228,10 @@ cache:
 The direct mode is generally faster since running the preprocessor has some
 overhead.
 
-If no previous result is detected (i.e., there is a cache miss) using the
-direct mode, ccache will fall back to the preprocessor mode unless the *depend
-mode* is enabled. In the depend mode, ccache never runs the preprocessor, not
-even on cache misses. Read more in _<<The depend mode>>_
-below.
+If no previous result is detected (i.e., there is a cache miss) using the direct
+mode, ccache will fall back to the preprocessor mode unless the *depend mode* is
+enabled. In the depend mode, ccache never runs the preprocessor, not even on
+cache misses. Read more in _<<The depend mode>>_ below.
 
 
 === Common hashed information
@@ -1502,9 +1498,9 @@ files) is the same the cached result should work. Still, you must set
 <<config_sloppiness,*sloppiness*>> to *modules* to allow caching.
 
 You must use both <<The direct mode,*direct mode*>> and
-<<The depend mode,*depend mode*>>. When using <<The preprocessor mode,the
-preprocessor mode>> Clang does not provide enough information to allow hashing
-of `module.modulemap` files.
+<<The depend mode,*depend mode*>>. When using
+<<The preprocessor mode,the preprocessor mode>> Clang does not provide enough
+information to allow hashing of `module.modulemap` files.
 
 
 == Sharing a cache
@@ -1679,8 +1675,8 @@ problems and what may be done to increase the hit rate:
 * If "`unsupported compiler option`" has been incremented, enable debug logging
   and check which compiler option was rejected.
 * If "`preprocessor error`" has been incremented, one possible reason is that
-  precompiled headers are being used. See _<<Precompiled headers>>_
-  for how to remedy this.
+  precompiled headers are being used. See _<<Precompiled headers>>_ for how to
+  remedy this.
 * If "`can't use precompiled header`" has been incremented, see
   _<<Precompiled headers>>_.
 * If "`can't use modules`" has been incremented, see _<<C++ modules>>_.
