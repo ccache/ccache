@@ -333,13 +333,13 @@ Release date: 2020-10-18
 === Compatibility notes
 
 - The default location of the cache directory has changed to follow the XDG
-  base directory specification (<<_detailed_functional_changes,more details
+  base directory specification (<<Detailed functional changes,more details
   below>>). This means that scripts can no longer assume that the cache
   directory is `~/.ccache` by default. The `CCACHE_DIR` environment variable
   still overrides the default location just like before.
 
 - The cache directory structure has changed compared to previous versions
-  (<<_detailed_functional_changes,more details below>>). This means that ccache
+  (<<Detailed functional changes,more details below>>). This means that ccache
   4.0 will not share cache results with earlier versions. It is however safe to
   run ccache 4.0 and earlier versions against the same cache directory: cache
   bookkeeping, statistics and cleanup are backward compatible, with the minor
