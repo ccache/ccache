@@ -23,7 +23,7 @@ again.
 Ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
 tell that you are using ccache is the speed. Currently known exceptions to this
-goal are listed under <<Caveats>>. If you discover an undocumented case where
+goal are listed under _<<Caveats>>_. If you discover an undocumented case where
 ccache changes the output of your compiler, please let us know.
 
 
