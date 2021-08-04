@@ -228,22 +228,6 @@ format_bool(bool value)
   return value ? "true" : "false";
 }
 
-double
-parse_double(const std::string& value)
-{
-  size_t end;
-  double result;
-  try {
-    result = std::stod(value, &end);
-  } catch (std::exception& e) {
-    throw core::Error(e.what());
-  }
-  if (end != value.size()) {
-    throw core::Error("invalid floating point: \"{}\"", value);
-  }
-  return result;
-}
-
 std::string
 format_cache_size(uint64_t value)
 {
@@ -924,7 +908,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::limit_multiple:
-    m_limit_multiple = Util::clamp(parse_double(value), 0.0, 1.0);
+    m_limit_multiple = Util::clamp(
+      util::value_or_throw<core::Error>(util::parse_double(value)), 0.0, 1.0);
     break;
 
   case ConfigItem::log_file:
