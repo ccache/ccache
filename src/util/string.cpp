@@ -21,6 +21,7 @@
 #include <fmtmacros.hpp>
 
 #include <cctype>
+#include <iostream>
 
 namespace util {
 
@@ -126,6 +127,27 @@ percent_decode(nonstd::string_view string)
     }
   }
 
+  return result;
+}
+
+std::string
+replace_first(const nonstd::string_view string,
+              const nonstd::string_view from,
+              const nonstd::string_view to)
+{
+  if (from.empty()) {
+    return std::string(string);
+  }
+
+  std::string result;
+  const auto pos = string.find(from);
+  if (pos != nonstd::string_view::npos) {
+    result.append(string.data(), pos);
+    result.append(to.data(), to.length());
+    result.append(string.data() + pos + from.size());
+  } else {
+    result = std::string(string);
+  }
   return result;
 }
 

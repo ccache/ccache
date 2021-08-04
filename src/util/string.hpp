@@ -81,6 +81,11 @@ parse_unsigned(const std::string& value,
 nonstd::expected<std::string, std::string>
 percent_decode(nonstd::string_view string);
 
+// Replace the first occurrence of `from` to `to` in `string`.
+std::string replace_first(nonstd::string_view string,
+                          nonstd::string_view from,
+                          nonstd::string_view to);
+
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`
 std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>

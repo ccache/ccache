@@ -187,6 +187,17 @@ TEST_CASE("util::percent_decode")
         == "invalid percent-encoded string at position 1: a%0g");
 }
 
+TEST_CASE("util::replace_first")
+{
+  CHECK(util::replace_first("", "", "") == "");
+  CHECK(util::replace_first("x", "", "") == "x");
+  CHECK(util::replace_first("", "x", "") == "");
+  CHECK(util::replace_first("", "", "x") == "");
+  CHECK(util::replace_first("x", "y", "z") == "x");
+  CHECK(util::replace_first("x", "x", "y") == "y");
+  CHECK(util::replace_first("xabcyabcz", "abc", "defdef") == "xdefdefyabcz");
+}
+
 TEST_CASE("util::split_once")
 {
   using nonstd::nullopt;
