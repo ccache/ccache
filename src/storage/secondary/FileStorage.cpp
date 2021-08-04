@@ -126,13 +126,13 @@ FileStorageBackend::put(const Digest& key,
   {
     UmaskScope umask_scope(m_umask);
 
-    util::create_cachedir_tag(m_dir);
-
     const auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
       LOG("Failed to create directory {}: {}", dir, strerror(errno));
       return nonstd::make_unexpected(Failure::error);
     }
+
+    util::create_cachedir_tag(m_dir);
 
     LOG("Writing {}", path);
     try {
