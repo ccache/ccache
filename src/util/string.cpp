@@ -25,6 +25,26 @@
 
 namespace util {
 
+nonstd::expected<double, std::string>
+parse_double(const std::string& value)
+{
+  size_t end;
+  double result;
+  bool failed = false;
+  try {
+    result = std::stod(value, &end);
+  } catch (const std::exception&) {
+    failed = true;
+  }
+
+  if (failed || end != value.size()) {
+    return nonstd::make_unexpected(
+      FMT("invalid floating point: \"{}\"", value));
+  } else {
+    return result;
+  }
+}
+
 nonstd::expected<int64_t, std::string>
 parse_signed(const std::string& value,
              const nonstd::optional<int64_t> min_value,

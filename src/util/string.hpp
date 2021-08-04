@@ -47,6 +47,11 @@ template<typename T>
 std::string
 join(const T& begin, const T& end, const nonstd::string_view delimiter);
 
+// Parse a string into a double.
+//
+// Returns an error string if `value` cannot be parsed as a double.
+nonstd::expected<double, std::string> parse_double(const std::string& value);
+
 // Parse a string into a signed integer.
 //
 // Returns an error string if `value` cannot be parsed as an int64_t or if the

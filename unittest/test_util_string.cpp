@@ -72,6 +72,19 @@ TEST_CASE("util::join")
   }
 }
 
+TEST_CASE("util::parse_double")
+{
+  CHECK(*util::parse_double("0") == doctest::Approx(0.0));
+  CHECK(*util::parse_double(".0") == doctest::Approx(0.0));
+  CHECK(*util::parse_double("0.") == doctest::Approx(0.0));
+  CHECK(*util::parse_double("0.0") == doctest::Approx(0.0));
+  CHECK(*util::parse_double("2.1") == doctest::Approx(2.1));
+  CHECK(*util::parse_double("-42.789") == doctest::Approx(-42.789));
+
+  CHECK(util::parse_double("").error() == "invalid floating point: \"\"");
+  CHECK(util::parse_double("x").error() == "invalid floating point: \"x\"");
+}
+
 TEST_CASE("util::parse_signed")
 {
   CHECK(*util::parse_signed("0") == 0);
