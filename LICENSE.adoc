@@ -1,12 +1,10 @@
-Ccache copyright and license
-============================
+= Ccache copyright and license
 
-Overall license
----------------
+== Overall license
 
 The license for ccache as a whole is as follows:
 
--------------------------------------------------------------------------------
+----
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
 Foundation; either version 3 of the License, or (at your option) any later
@@ -19,14 +17,13 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 Street, Fifth Floor, Boston, MA 02110-1301 USA
--------------------------------------------------------------------------------
+----
 
 The full license text can be found in GPL-3.0.txt and at
 https://www.gnu.org/licenses/gpl-3.0.html.
 
 
-Copyright and authors
----------------------
+== Copyright and authors
 
 Ccache is a collective work with contributions from many people, listed in
 AUTHORS.adoc and at https://ccache.dev/credits.html. Subsequent additions by
@@ -36,14 +33,13 @@ their portions of the work.
 
 The copyright for ccache as a whole is as follows:
 
--------------------------------------------------------------------------------
+----
 Copyright (C) 2002-2007 Andrew Tridgell
 Copyright (C) 2009-2021 Joel Rosdahl and other contributors
--------------------------------------------------------------------------------
+----
 
 
-Files derived from other sources
---------------------------------
+== Files derived from other sources
 
 The ccache distribution contain some files from other sources and some have
 been modified for use in ccache. These files all carry attribution notices, and
@@ -52,13 +48,12 @@ the GPL: that is, if separated from the ccache sources, they may be usable
 under less restrictive terms.
 
 
-src/third_party/base32hex.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/base32hex.*
 
 This base32hex implementation comes from
 <https://github.com/pmconrad/tinydnssec>.
 
--------------------------------------------------------------------------------
+----
 (C) 2012 Peter Conrad <conrad@quisquis.de>
 
 This program is free software: you can redistribute it and/or modify
@@ -72,20 +67,18 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/blake3/blake3_*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/blake3/blake3_*
 
 This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.0.0 with
 the following license:
 
--------------------------------------------------------------------------------
+----
 This work is released into the public domain with CC0 1.0. Alternatively, it is
 licensed under the Apache License 2.0.
 
--------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
 Creative Commons Legal Code
@@ -210,7 +203,6 @@ express Statement of Purpose.
     party to this document and has no duty or obligation with respect to
     this CC0 or use of the Work.
 
--------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
                                  Apache License
@@ -414,16 +406,15 @@ express Statement of Purpose.
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/doctest.h
-~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/doctest.h
 
 This is the single header version of https://github.com/onqtam/doctest[doctest]
 2.4.6 with the following license:
 
--------------------------------------------------------------------------------
+----
 The MIT License (MIT)
 
 Copyright (c) 2016-2021 Viktor Kirilov
@@ -445,15 +436,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/fmt/*.h and src/third_party/format.cpp
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/fmt/*.h and src/third_party/format.cpp
 
 This is a subset of https://fmt.dev[fmt] 7.1.3 with the following license:
 
--------------------------------------------------------------------------------
+----
 Formatting library for C++
 
 Copyright (c) 2012 - present, Victor Zverovich
@@ -482,16 +472,15 @@ As an exception, if, as a result of your compiling your source code, portions
 of this Software are embedded into a machine-executable object form of such
 source code, you may redistribute such embedded portions in such object form
 without including the above copyright and permission notices.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/getopt_long.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/getopt_long.*
 
 This implementation of `getopt_long()` was copied from
 https://www.postgresql.org[PostgreSQL] and has the following license text:
 
--------------------------------------------------------------------------------
+----
 Portions Copyright (c) 1987, 1993, 1994
 The Regents of the University of California.  All rights reserved.
 
@@ -521,16 +510,15 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/minitrace.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/minitrace.*
 
 A library for producing JSON traces suitable for Chrome's built-in trace viewer
 (chrome://tracing). Downloaded from <https://github.com/hrydgard/minitrace>.
 
--------------------------------------------------------------------------------
+----
 The MIT License (MIT)
 
 Copyright (c) 2014 Henrik Rydgård
@@ -552,17 +540,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/nonstd/expected.hpp
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/nonstd/expected.hpp
 
 This is the single header version of
 https://github.com/martinmoene/expected-lite[expected-lite] 0.5.0 with the
 following license:
 
--------------------------------------------------------------------------------
+----
 Copyright (c) 2016-2018 Martin Moene
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -588,17 +575,16 @@ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
 FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/nonstd/optional.hpp
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/nonstd/optional.hpp
 
 This is the single header version of
 https://github.com/martinmoene/optional-lite[optional-lite] 3.4.0 with the
 following license:
 
--------------------------------------------------------------------------------
+----
 Copyright (c) 2014-2018 Martin Moene
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -624,17 +610,16 @@ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
 FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/nonstd/string_view.hpp
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/nonstd/string_view.hpp
 
 This alternative implementation of `std::string_view` was downloaded from
 <https://github.com/martinmoene/string-view-lite> and has the following license
 text:
 
--------------------------------------------------------------------------------
+----
 Copyright 2017-2020 by Martin Moene
 
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -660,11 +645,10 @@ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
 FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/win32/getopt.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/win32/getopt.*
 
 This implementation of `getopt_long()` for Win32 was taken from
 https://www.codeproject.com/Articles/157001/Full-getopt-Port-for-Unicode-and-Multibyte-Microso
@@ -674,14 +658,13 @@ The full license text can be found in LGPL-3.0.txt and at
 https://www.gnu.org/licenses/lgpl-3.0.html.
 
 
-src/third_party/httplib.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/httplib.*
 
 cpp-httplib - A C++11 cross-platform HTTP/HTTPS library. Copied from
 https://github.com/yhirose/cpp-httplib[cpp-httplib] commit
 469c6bc2b611ec5d212275e559e58e4da256019d. The library has the following license:
 
--------------------------------------------------------------------------------
+----
 The MIT License (MIT)
 
 Copyright (c) 2021 yhirose
@@ -703,17 +686,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/win32/mktemp.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/win32/mktemp.*
 
 This implementation of `mkstemp()` for Win32 was adapted from
 <https://github.com/openbsd/src/blob/99b791d14c0f1858d87a0c33b55880fb9b00be66/lib/libc/stdio/mktemp.c>
 and has the following license text:
 
--------------------------------------------------------------------------------
+----
 Copyright (c) 1996-1998, 2008 Theo de Raadt
 Copyright (c) 1997, 2008-2009 Todd C. Miller
 
@@ -728,17 +710,15 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/url.*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/url.*
 
-CxxUrl - A simple C++ URL class. Copied from CxxUrl v0.2 downloaded
-from <https://github.com/chmike/CxxUrl>.
-It has the following license text:
+CxxUrl - A simple C++ URL class. Copied from CxxUrl v0.2 downloaded from
+<https://github.com/chmike/CxxUrl>. It has the following license text:
 
--------------------------------------------------------------------------------
+----
 The MIT License (MIT)
 
 Copyright (c) 2015 Christophe Meessen
@@ -760,17 +740,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
--------------------------------------------------------------------------------
+----
 
 
-src/third_party/win32/winerror_to_errno.h
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== src/third_party/win32/winerror_to_errno.h
 
 The implementation of `winerror_to_errno()` was adapted from
 <https://github.com/python/cpython/blob/1a79785e3e8fea80bcf6a800b45a04e06c787480/PC/errmap.h>
 and has the following license text:
 
--------------------------------------------------------------------------------
+----
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 
 1. This LICENSE AGREEMENT is between the Python Software Foundation
@@ -818,15 +797,15 @@ products or services of Licensee, or any third party.
 8. By copying, installing or otherwise using Python, Licensee
 agrees to be bound by the terms and conditions of this License
 Agreement.
--------------------------------------------------------------------------------
+----
 
-src/third_party/xxh*
-~~~~~~~~~~~~~~~~~~~~
+
+=== src/third_party/xxh*
 
 xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.0 downloaded
 from <https://github.com/Cyan4973/xxHash/releases>.
 
--------------------------------------------------------------------------------
+----
 Copyright (c) 2012-2020 Yann Collet
 All rights reserved.
 
@@ -854,4 +833,4 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
--------------------------------------------------------------------------------
+----
