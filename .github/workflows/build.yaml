@@ -368,7 +368,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install codespell
-        run: sudo apt-get update && sudo apt-get install codespell
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-pip
+          pip3 install codespell==2.1.0
 
       - name: Run codespell
-        run: codespell -q 7 -S ".git,LICENSE.adoc,./src/third_party/*" -I misc/codespell-allowlist.txt
+        run: codespell -q 7 -S ".git,build*,./src/third_party/*" -I misc/codespell-allowlist.txt
