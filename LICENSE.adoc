@@ -711,7 +711,7 @@ src/third_party/win32/mktemp.*
 
 This implementation of `mkstemp()` for Win32 was adapted from
 <https://github.com/openbsd/src/blob/99b791d14c0f1858d87a0c33b55880fb9b00be66/lib/libc/stdio/mktemp.c>
-and has the folowing license text:
+and has the following license text:
 
 -------------------------------------------------------------------------------
 Copyright (c) 1996-1998, 2008 Theo de Raadt
@@ -768,7 +768,7 @@ src/third_party/win32/winerror_to_errno.h
 
 The implementation of `winerror_to_errno()` was adapted from
 <https://github.com/python/cpython/blob/1a79785e3e8fea80bcf6a800b45a04e06c787480/PC/errmap.h>
-and has the folowing license text:
+and has the following license text:
 
 -------------------------------------------------------------------------------
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
