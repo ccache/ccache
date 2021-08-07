@@ -50,11 +50,11 @@ public:
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
 
 private:
-  enum class Layout { bazel, standard };
+  enum class Layout { bazel, flat, subdirs };
 
   const std::string m_url_path;
   httplib::Client m_http_client;
-  Layout m_layout = Layout::standard;
+  Layout m_layout = Layout::subdirs;
 
   std::string get_entry_path(const Digest& key) const;
 };
@@ -121,8 +121,10 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
     } else if (attr.key == "layout") {
       if (attr.value == "bazel") {
         m_layout = Layout::bazel;
-      } else if (attr.value == "standard") {
-        m_layout = Layout::standard;
+      } else if (attr.value == "flat") {
+        m_layout = Layout::flat;
+      } else if (attr.value == "subdirs") {
+        m_layout = Layout::subdirs;
       } else {
         LOG("Unknown layout: {}", attr.value);
       }
@@ -247,8 +249,15 @@ HttpStorageBackend::get_entry_path(const Digest& key) const
     return FMT("{}ac/{}", m_url_path, hex_digits);
   }
 
-  case Layout::standard:
+  case Layout::flat:
     return m_url_path + key.to_string();
+
+  case Layout::subdirs: {
+    const auto key_str = key.to_string();
+    const uint8_t digits = 2;
+    ASSERT(key_str.length() > digits);
+    return FMT("{}/{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
+  }
   }
 
   ASSERT(false);

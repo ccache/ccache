@@ -40,7 +40,7 @@ SUITE_secondary_http_SETUP() {
 
 SUITE_secondary_http() {
     # -------------------------------------------------------------------------
-    TEST "Base case"
+    TEST "Subdirs layout"
 
     start_http_server 12780 secondary
     export CCACHE_SECONDARY_STORAGE="http://localhost:12780"
@@ -50,6 +50,10 @@ SUITE_secondary_http() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_file_count 2 '*' secondary # result + manifest
+    subdirs=$(find secondary -type d | wc -l)
+    if [ "${subdirs}" -lt 2 ]; then # "secondary" itself counts as one
+        test_failed "Expected subdirectories in secondary"
+    fi
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 1
@@ -67,6 +71,37 @@ SUITE_secondary_http() {
     expect_stat 'files in cache' 2 # fetched from secondary
     expect_file_count 2 '*' secondary # result + manifest
 
+    # -------------------------------------------------------------------------
+    TEST "Flat layout"
+
+    start_http_server 12780 secondary
+    export CCACHE_SECONDARY_STORAGE="http://localhost:12780|layout=flat"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_file_count 2 '*' secondary # result + manifest
+    subdirs=$(find secondary -type d | wc -l)
+    if [ "${subdirs}" -ne 1 ]; then # "secondary" itself counts as one
+        test_failed "Expected no subdirectories in secondary"
+    fi
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_file_count 2 '*' secondary # result + manifest
+
+    $CCACHE -C >/dev/null
+    expect_stat 'files in cache' 0
+    expect_file_count 2 '*' secondary # result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_file_count 2 '*' secondary # result + manifest
 
     # -------------------------------------------------------------------------
     TEST "Bazel layout"
