@@ -1891,6 +1891,7 @@ cache_compilation(int argc, const char* const* argv)
 
   {
     Context ctx;
+    ctx.initialize();
     SignalHandler signal_handler(ctx);
     Finalizer finalizer([&ctx] { finalize_at_exit(ctx); });
 

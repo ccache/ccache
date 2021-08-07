@@ -45,6 +45,11 @@ Context::Context()
     inode_cache(config)
 #endif
 {
+}
+
+void
+Context::initialize()
+{
   config.read();
   Logging::init(config);
 

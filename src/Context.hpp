@@ -48,6 +48,10 @@ public:
   Context();
   ~Context();
 
+  // Read configuration, initialize logging, etc. Typically not called from unit
+  // tests.
+  void initialize();
+
   ArgsInfo args_info;
   Config config;
 
