@@ -46,6 +46,7 @@ class PUTEnabledHTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         path = self.translate_path(self.path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             self._handle_auth()
             file_length = int(self.headers["Content-Length"])
