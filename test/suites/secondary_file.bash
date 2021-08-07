@@ -113,4 +113,17 @@ SUITE_secondary_file() {
     $CCACHE_COMPILE -c test.c
     expect_perm secondary drwxrwxrwx
     expect_perm secondary/CACHEDIR.TAG -rw-rw-rw-
+
+    # -------------------------------------------------------------------------
+    TEST "Sharding"
+
+    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary/*|shards=a,b(2)"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    if [ ! -d secondary/a ] && [ ! -d secondary/b ]; then
+        test_failed "Expected secondary/a or secondary/b to exist"
+    fi
 }

@@ -893,6 +893,28 @@ Optional attributes available for all secondary storage backends:
 
 * *read-only*: If *true*, only read from this backend, don't write. The default
   is *false*.
+* *shards*: A comma-separated list of names for sharding (partitioning) the
+  cache entries using
+  https://en.wikipedia.org/wiki/Rendezvous_hashing[Rendezvous hashing],
+  typically to spread the cache over a server cluster. When set, the storage URL
+  must contain an asterisk (`+*+`), which will be replaced by one of the shard
+  names to form a real URL. A shard name can optionally have an appended weight
+  within parentheses to indicate how much of the key space should be associated
+  with that shard. A shard with weight *w* will contain *w*/*S* of the cache,
+  where *S* is the sum of all shard weights. A weight could for instance be set
+  to represent the available memory for a memory cache on a specific server. The
+  default weight is *1*.
++
+Examples:
++
+--
+* `+redis://cache-*.example.com|shards=a(3),b(1),c(1.5)+` will put 55% (3/5.5)
+  of the cache on `+redis://cache-a.example.com+`, 18% (1/5.5) on
+  `+redis://cache-b.example.com+` and 27% (1.5/5.5) on
+  `+redis://cache-c.example.com+`.
+* `+http://example.com/*|shards=alpha,beta+` will put 50% of the cache on
+  `+http://example.com/alpha+` and 50% on `+http://example.com/beta+`.
+--
 
 These are the available backends:
 
@@ -976,6 +998,9 @@ https://redis.io/topics/lru-cache[configure LRU eviction].
 
 TIP: See https://ccache.dev/howto/redis-storage.html[How to set up Redis
 storage] for hints on setting up a Redis server for use with ccache.
+
+TIP: You can set up a cluster of Redis servers using the `shards` attribute
+described in _<<Secondary storage backends>>_.
 
 Examples:
 
