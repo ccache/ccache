@@ -936,6 +936,14 @@ Examples:
 
 Optional attributes:
 
+* *layout*: How to store file under the cache directory. Available values:
++
+--
+* *flat*: Store all files directly under the cache directory.
+* *subdirs*: Store files in 256 subdirectories of the cache directory.
+--
++
+The default is *subdirs*.
 * *umask*: This attribute (an octal integer) overrides the umask to use for
   files and directories in the cache directory.
 * *update-mtime*: If *true*, update the modification time (mtime) of cache

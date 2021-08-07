@@ -7,13 +7,49 @@ SUITE_secondary_file_SETUP() {
 
 SUITE_secondary_file() {
     # -------------------------------------------------------------------------
-    TEST "Base case"
+    TEST "Subdirs layout"
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_exists secondary/CACHEDIR.TAG
+    subdirs=$(find secondary -type d | wc -l)
+    if [ "${subdirs}" -lt 2 ]; then # "secondary" itself counts as one
+        test_failed "Expected subdirectories in secondary"
+    fi
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    $CCACHE -C >/dev/null
+    expect_stat 'files in cache' 0
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Flat layout"
+
+    CCACHE_SECONDARY_STORAGE+="|layout=flat"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_exists secondary/CACHEDIR.TAG
+    subdirs=$(find secondary -type d | wc -l)
+    if [ "${subdirs}" -ne 1 ]; then # "secondary" itself counts as one
+        test_failed "Expected no subdirectories in secondary"
+    fi
     expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
 
     $CCACHE_COMPILE -c test.c

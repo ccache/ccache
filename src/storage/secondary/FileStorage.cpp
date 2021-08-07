@@ -54,9 +54,12 @@ public:
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
 
 private:
+  enum class Layout { flat, subdirs };
+
   const std::string m_dir;
   nonstd::optional<mode_t> m_umask;
   bool m_update_mtime = false;
+  Layout m_layout = Layout::subdirs;
 
   std::string get_entry_path(const Digest& key) const;
 };
@@ -73,7 +76,15 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 
   for (const auto& attr : params.attributes) {
-    if (attr.key == "umask") {
+    if (attr.key == "layout") {
+      if (attr.value == "flat") {
+        m_layout = Layout::flat;
+      } else if (attr.value == "subdirs") {
+        m_layout = Layout::subdirs;
+      } else {
+        LOG("Unknown layout: {}", attr.value);
+      }
+    } else if (attr.key == "umask") {
       m_umask =
         util::value_or_throw<core::Fatal>(util::parse_umask(attr.value));
     } else if (attr.key == "update-mtime") {
@@ -156,9 +167,19 @@ FileStorageBackend::remove(const Digest& key)
 std::string
 FileStorageBackend::get_entry_path(const Digest& key) const
 {
-  const auto key_string = key.to_string();
-  const uint8_t digits = 2;
-  return FMT("{}/{:.{}}/{}", m_dir, key_string, digits, &key_string[digits]);
+  switch (m_layout) {
+  case Layout::flat:
+    return FMT("{}/{}", m_dir, key.to_string());
+
+  case Layout::subdirs: {
+    const auto key_str = key.to_string();
+    const uint8_t digits = 2;
+    ASSERT(key_str.length() > digits);
+    return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);
+  }
+  }
+
+  ASSERT(false);
 }
 
 } // namespace
