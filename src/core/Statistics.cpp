@@ -22,6 +22,7 @@
 #include <Logging.hpp>
 #include <Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/string.hpp>
 
 namespace core {
 
@@ -266,19 +267,20 @@ Statistics::format_config_footer(const Config& config)
 std::string
 Statistics::format_machine_readable(const time_t last_updated) const
 {
-  std::string result;
+  std::vector<std::string> lines;
 
-  result += FMT("stats_updated_timestamp\t{}\n", last_updated);
+  lines.push_back(FMT("stats_updated_timestamp\t{}\n", last_updated));
 
   for (size_t i = 0; k_statistics_fields[i].message; i++) {
     if (!(k_statistics_fields[i].flags & FLAG_NEVER)) {
-      result += FMT("{}\t{}\n",
-                    k_statistics_fields[i].id,
-                    m_counters.get(k_statistics_fields[i].statistic));
+      lines.push_back(FMT("{}\t{}\n",
+                          k_statistics_fields[i].id,
+                          m_counters.get(k_statistics_fields[i].statistic)));
     }
   }
 
-  return result;
+  std::sort(lines.begin(), lines.end());
+  return util::join(lines, "");
 }
 
 std::unordered_map<std::string, Statistic>
