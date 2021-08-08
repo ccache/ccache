@@ -20,6 +20,7 @@
 
 #include <core/types.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
+#include <storage/secondary/SecondaryStorage.hpp>
 #include <storage/types.hpp>
 
 #include <third_party/nonstd/optional.hpp>
@@ -35,6 +36,7 @@ namespace storage {
 
 std::string get_features();
 
+struct SecondaryStorageBackendEntry;
 struct SecondaryStorageEntry;
 
 class Storage
@@ -66,8 +68,20 @@ private:
   std::vector<std::string> m_tmp_files;
 
   void add_secondary_storages();
+
+  void
+  mark_backend_as_failed(SecondaryStorageBackendEntry& backend_entry,
+                         secondary::SecondaryStorage::Backend::Failure failure);
+
+  SecondaryStorageBackendEntry*
+  get_backend(SecondaryStorageEntry& entry,
+              const Digest& key,
+              nonstd::string_view operation_description,
+              const bool for_writing);
   nonstd::optional<std::string> get_from_secondary_storage(const Digest& key);
+
   void put_in_secondary_storage(const Digest& key, const std::string& value);
+
   void remove_from_secondary_storage(const Digest& key);
 };
 

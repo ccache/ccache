@@ -57,6 +57,12 @@ enum class Statistic {
   could_not_use_modules = 32,
   direct_cache_miss = 33,
   preprocessed_cache_miss = 34,
+  primary_storage_hit = 35,
+  primary_storage_miss = 36,
+  secondary_storage_hit = 37,
+  secondary_storage_miss = 38,
+  secondary_storage_error = 39,
+  secondary_storage_timeout = 40,
 
   END
 };

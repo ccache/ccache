@@ -24,6 +24,7 @@
 #include <TemporaryFile.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/secondary/FileStorage.hpp>
@@ -31,7 +32,6 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
-#include <storage/secondary/SecondaryStorage.hpp>
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
@@ -228,8 +228,11 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
 {
   const auto path = primary.get(key, type);
   if (path) {
+    primary.increment_statistic(core::Statistic::primary_storage_hit);
     return path;
   }
+
+  primary.increment_statistic(core::Statistic::primary_storage_miss);
 
   const auto value = get_from_secondary_storage(key);
   if (!value) {
@@ -324,14 +327,17 @@ Storage::add_secondary_storages()
   }
 }
 
-static void
-mark_backend_as_failed(
+void
+Storage::mark_backend_as_failed(
   SecondaryStorageBackendEntry& backend_entry,
   const secondary::SecondaryStorage::Backend::Failure failure)
 {
   // The backend is expected to log details about the error.
   backend_entry.failed = true;
-  (void)failure; // TODO: Update statistics.
+  primary.increment_statistic(
+    failure == secondary::SecondaryStorage::Backend::Failure::timeout
+      ? core::Statistic::secondary_storage_timeout
+      : core::Statistic::secondary_storage_error);
 }
 
 static double
@@ -370,11 +376,11 @@ get_shard_url(const Digest& key,
   return util::replace_first(url, "*", best_shard);
 }
 
-static SecondaryStorageBackendEntry*
-get_backend(SecondaryStorageEntry& entry,
-            const Digest& key,
-            nonstd::string_view operation_description,
-            const bool for_writing)
+SecondaryStorageBackendEntry*
+Storage::get_backend(SecondaryStorageEntry& entry,
+                     const Digest& key,
+                     const nonstd::string_view operation_description,
+                     const bool for_writing)
 {
   if (for_writing && entry.config.read_only) {
     LOG("Not {} {} since it is read-only",
@@ -441,12 +447,14 @@ Storage::get_from_secondary_storage(const Digest& key)
           key.to_string(),
           backend->url_for_logging,
           ms);
+      primary.increment_statistic(core::Statistic::secondary_storage_hit);
       return *value;
     } else {
       LOG("No {} in {} ({:.2f} ms)",
           key.to_string(),
           backend->url_for_logging,
           ms);
+      primary.increment_statistic(core::Statistic::secondary_storage_miss);
     }
   }
 

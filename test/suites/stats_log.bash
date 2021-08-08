@@ -20,6 +20,8 @@ SUITE_stats_log() {
 cache_miss
 direct_cache_miss
 preprocessed_cache_miss
+primary_storage_miss
 # test.c
-direct_cache_hit"
+direct_cache_hit
+primary_storage_hit"
 }
