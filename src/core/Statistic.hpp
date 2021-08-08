@@ -63,6 +63,7 @@ enum class Statistic {
   secondary_storage_miss = 38,
   secondary_storage_error = 39,
   secondary_storage_timeout = 40,
+  recache = 41,
 
   END
 };

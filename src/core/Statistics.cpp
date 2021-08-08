@@ -87,6 +87,7 @@ const StatisticsField k_statistics_fields[] = {
   STATISTICS_FIELD(secondary_storage_miss, "secondary storage miss"),
   STATISTICS_FIELD(secondary_storage_error, "secondary storage error"),
   STATISTICS_FIELD(secondary_storage_timeout, "secondary storage timeout"),
+  STATISTICS_FIELD(recache, "forced recache"),
   STATISTICS_FIELD(called_for_link, "called for link"),
   STATISTICS_FIELD(called_for_preprocessing, "called for preprocessing"),
   STATISTICS_FIELD(multiple_source_files, "multiple source files"),

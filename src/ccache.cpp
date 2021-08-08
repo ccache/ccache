@@ -2199,7 +2199,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
   MTR_END("cache", "to_cache");
 
-  return Statistic::cache_miss;
+  return ctx.config.recache() ? Statistic::recache : Statistic::cache_miss;
 }
 
 int

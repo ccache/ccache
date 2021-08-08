@@ -447,10 +447,12 @@ fi
     $CCACHE_COMPILE -c test1.c
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat recache 0
 
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
     expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 2
+    expect_stat cache_miss 1
+    expect_stat recache 1
 
     $REAL_COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o

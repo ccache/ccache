@@ -1141,6 +1141,7 @@ EOF
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat recache 0
     expect_stat files_in_cache 2 # result + manifest
 
     manifest_file=$(find $CCACHE_DIR -name '*M')
@@ -1148,7 +1149,8 @@ EOF
 
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
-    expect_stat cache_miss 2
+    expect_stat cache_miss 1
+    expect_stat recache 1
     expect_stat files_in_cache 2
 
     expect_equal_content $manifest_file saved.manifest
