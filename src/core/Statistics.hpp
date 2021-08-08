@@ -20,10 +20,9 @@
 
 #include <core/StatisticsCounters.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 class Config;
 
@@ -34,13 +33,11 @@ class Statistics
 public:
   Statistics(const StatisticsCounters& counters);
 
-  // Return a machine-readable string representing the final ccache result, or
-  // nullopt if there was no result.
-  nonstd::optional<std::string> get_result_id() const;
+  // Return machine-readable strings representing the statistics counters.
+  std::vector<std::string> get_statistics_ids() const;
 
-  // Return a human-readable string representing the final ccache result, or
-  // nullopt if there was no result.
-  nonstd::optional<std::string> get_result_message() const;
+  // Return human-readable strings representing the statistics counters.
+  std::vector<std::string> get_statistics_messages() const;
 
   // Format config header in human-readable format.
   static std::string format_config_header(const Config& config);

@@ -32,24 +32,34 @@ using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("core::Statistics");
 
-TEST_CASE("get_result_id")
+TEST_CASE("get_statistics_ids")
 {
   TestContext test_context;
 
   StatisticsCounters counters;
+  counters.increment(Statistic::cache_size_kibibyte);
   counters.increment(Statistic::cache_miss);
+  counters.increment(Statistic::direct_cache_hit);
+  counters.increment(Statistic::autoconf_test);
 
-  CHECK(*Statistics(counters).get_result_id() == "cache_miss");
+  std::vector<std::string> expected = {
+    "autoconf_test", "cache_miss", "direct_cache_hit"};
+  CHECK(Statistics(counters).get_statistics_ids() == expected);
 }
 
-TEST_CASE("get_result_message")
+TEST_CASE("get_statistics_messages")
 {
   TestContext test_context;
 
   StatisticsCounters counters;
+  counters.increment(Statistic::cache_size_kibibyte);
   counters.increment(Statistic::cache_miss);
+  counters.increment(Statistic::direct_cache_hit);
+  counters.increment(Statistic::autoconf_test);
 
-  CHECK(*Statistics(counters).get_result_message() == "cache miss");
+  std::vector<std::string> expected = {
+    "autoconf compile/link", "cache hit (direct)", "cache miss"};
+  CHECK(Statistics(counters).get_statistics_messages() == expected);
 }
 
 TEST_SUITE_END();

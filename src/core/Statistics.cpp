@@ -160,35 +160,29 @@ Statistics::Statistics(const StatisticsCounters& counters)
 {
 }
 
-static const StatisticsField*
-get_result(const core::StatisticsCounters& counters)
+static std::vector<std::string>
+get_statistics_fields(const core::StatisticsCounters& counters, bool id)
 {
+  std::vector<std::string> result;
   for (const auto& field : k_statistics_fields) {
     if (counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-      return &field;
+      result.emplace_back(id ? field.id : field.message);
     }
   }
-  return nullptr;
+  std::sort(result.begin(), result.end());
+  return result;
 }
 
-nonstd::optional<std::string>
-Statistics::get_result_id() const
+std::vector<std::string>
+Statistics::get_statistics_ids() const
 {
-  const auto result = get_result(m_counters);
-  if (result) {
-    return result->id;
-  }
-  return nonstd::nullopt;
+  return get_statistics_fields(m_counters, true);
 }
 
-nonstd::optional<std::string>
-Statistics::get_result_message() const
+std::vector<std::string>
+Statistics::get_statistics_messages() const
 {
-  const auto result = get_result(m_counters);
-  if (result) {
-    return result->message;
-  }
-  return nonstd::nullopt;
+  return get_statistics_fields(m_counters, false);
 }
 
 std::string

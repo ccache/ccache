@@ -1858,9 +1858,8 @@ log_result_to_debug_log(Context& ctx)
   }
 
   core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
-  const auto result_message = statistics.get_result_message();
-  if (result_message) {
-    LOG("Result: {}", *result_message);
+  for (const auto& message : statistics.get_statistics_messages()) {
+    LOG("Result: {}", message);
   }
 }
 
@@ -1872,13 +1871,13 @@ log_result_to_stats_log(Context& ctx)
   }
 
   core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
-  const auto result_id = statistics.get_result_id();
-  if (!result_id) {
+  const auto ids = statistics.get_statistics_ids();
+  if (ids.empty()) {
     return;
   }
 
   core::StatsLog(ctx.config.stats_log())
-    .log_result(ctx.args_info.input_file, *result_id);
+    .log_result(ctx.args_info.input_file, ids);
 }
 
 static void

@@ -21,6 +21,7 @@
 #include "StatisticsCounters.hpp"
 
 #include <string>
+#include <vector>
 
 namespace core {
 
@@ -30,7 +31,8 @@ public:
   StatsLog(const std::string& path);
 
   StatisticsCounters read() const;
-  void log_result(const std::string& input_file, const std::string& result_id);
+  void log_result(const std::string& input_file,
+                  const std::vector<std::string>& result_ids);
 
 private:
   const std::string m_path;

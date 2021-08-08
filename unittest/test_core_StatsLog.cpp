@@ -45,8 +45,8 @@ TEST_CASE("log_result")
   TestContext test_context;
 
   StatsLog stats_log("stats.log");
-  stats_log.log_result("foo.c", "cache_miss");
-  stats_log.log_result("bar.c", "preprocessed_cache_hit");
+  stats_log.log_result("foo.c", {"cache_miss"});
+  stats_log.log_result("bar.c", {"preprocessed_cache_hit"});
 
   CHECK(Util::read_file("stats.log")
         == "# foo.c\ncache_miss\n# bar.c\npreprocessed_cache_hit\n");

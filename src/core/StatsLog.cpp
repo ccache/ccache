@@ -54,14 +54,17 @@ StatsLog::read() const
 
 void
 StatsLog::log_result(const std::string& input_file,
-                     const std::string& result_id)
+                     const std::vector<std::string>& result_ids)
 {
   File file(m_path, "ab");
-  if (file) {
-    PRINT(*file, "# {}\n", input_file);
-    PRINT(*file, "{}\n", result_id);
-  } else {
+  if (!file) {
     LOG("Failed to open {}: {}", m_path, strerror(errno));
+    return;
+  }
+
+  PRINT(*file, "# {}\n", input_file);
+  for (const auto& id : result_ids) {
+    PRINT(*file, "{}\n", id);
   }
 }
 
