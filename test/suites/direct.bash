@@ -33,6 +33,8 @@ SUITE_direct() {
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat direct_cache_miss 1
+    expect_stat preprocessed_cache_miss 1
     expect_stat files_in_cache 2 # result + manifest
     expect_equal_object_files reference_test.o test.o
 
@@ -43,6 +45,8 @@ SUITE_direct() {
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat direct_cache_miss 1
+    expect_stat preprocessed_cache_miss 1
     expect_stat files_in_cache 2
     expect_equal_object_files reference_test.o test.o
     expect_newer_than $manifest_file test.c

@@ -1713,14 +1713,14 @@ calculate_result_and_manifest_key(Context& ctx,
 enum class FromCacheCallMode { direct, cpp };
 
 // Try to return the compile result from cache.
-static optional<Statistic>
+static bool
 from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 {
   UmaskScope umask_scope(ctx.original_umask);
 
   // The user might be disabling cache hits.
   if (ctx.config.recache()) {
-    return nullopt;
+    return false;
   }
 
   // If we're using Clang, we can't trust a precompiled header object based on
@@ -1735,7 +1735,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
       && ctx.args_info.output_is_precompiled_header
       && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
-    return nullopt;
+    return false;
   }
 
   MTR_BEGIN("cache", "from_cache");
@@ -1744,7 +1744,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   const auto result_path =
     ctx.storage.get(result_key, core::CacheEntryType::result);
   if (!result_path) {
-    return nullopt;
+    return false;
   }
 
   Result::Reader result_reader(*result_path);
@@ -1755,13 +1755,11 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   MTR_END("cache", "from_cache");
   if (error) {
     LOG("Failed to get result from cache: {}", *error);
-    return nullopt;
+    return false;
   }
 
   LOG_RAW("Succeeded getting cached result");
-
-  return mode == FromCacheCallMode::direct ? Statistic::direct_cache_hit
-                                           : Statistic::preprocessed_cache_hit;
+  return true;
 }
 
 // Find the real compiler and put it into ctx.orig_args[0]. We just search the
@@ -2098,9 +2096,10 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     MTR_END("hash", "direct_hash");
     if (result_key) {
       // If we can return from cache at this point then do so.
-      auto result = from_cache(ctx, FromCacheCallMode::direct, *result_key);
-      if (result) {
-        return *result;
+      const bool found =
+        from_cache(ctx, FromCacheCallMode::direct, *result_key);
+      if (found) {
+        return Statistic::direct_cache_hit;
       }
 
       // Wasn't able to return from cache at this point. However, the result
@@ -2112,6 +2111,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       // Add result to manifest later.
       put_result_in_manifest = true;
     }
+
+    ctx.storage.primary.increment_statistic(Statistic::direct_cache_miss);
   }
 
   if (ctx.config.read_only_direct()) {
@@ -2160,13 +2161,15 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
 
     // If we can return from cache at this point then do.
-    const auto result = from_cache(ctx, FromCacheCallMode::cpp, *result_key);
-    if (result) {
+    const auto found = from_cache(ctx, FromCacheCallMode::cpp, *result_key);
+    if (found) {
       if (manifest_key && put_result_in_manifest) {
         update_manifest_file(ctx, *manifest_key, *result_key);
       }
-      return *result;
+      return Statistic::preprocessed_cache_hit;
     }
+
+    ctx.storage.primary.increment_statistic(Statistic::preprocessed_cache_miss);
   }
 
   if (ctx.config.read_only()) {

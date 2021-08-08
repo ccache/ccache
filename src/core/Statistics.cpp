@@ -79,6 +79,8 @@ const StatisticsField k_statistics_fields[] = {
   STATISTICS_FIELD(
     preprocessed_cache_hit, "cache hit (preprocessed)", FLAG_ALWAYS),
   STATISTICS_FIELD(cache_miss, "cache miss", FLAG_ALWAYS),
+  STATISTICS_FIELD(direct_cache_miss, "cache miss (direct)"),
+  STATISTICS_FIELD(preprocessed_cache_miss, "cache miss (preprocessed)"),
   STATISTICS_FIELD(called_for_link, "called for link"),
   STATISTICS_FIELD(called_for_preprocessing, "called for preprocessing"),
   STATISTICS_FIELD(multiple_source_files, "multiple source files"),

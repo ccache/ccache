@@ -55,6 +55,8 @@ enum class Statistic {
   unsupported_code_directive = 30,
   stats_zeroed_timestamp = 31,
   could_not_use_modules = 32,
+  direct_cache_miss = 33,
+  preprocessed_cache_miss = 34,
 
   END
 };

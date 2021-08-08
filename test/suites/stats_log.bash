@@ -18,6 +18,8 @@ SUITE_stats_log() {
 
     expect_content stats.log "# test.c
 cache_miss
+direct_cache_miss
+preprocessed_cache_miss
 # test.c
 direct_cache_hit"
 }

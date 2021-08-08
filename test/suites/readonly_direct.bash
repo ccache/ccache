@@ -21,11 +21,15 @@ SUITE_readonly_direct() {
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat direct_cache_miss 1
+    expect_stat preprocessed_cache_miss 1
 
     CCACHE_READONLY_DIRECT=1 $CCACHE_COMPILE -c test.c -o test.o
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat direct_cache_miss 1
+    expect_stat preprocessed_cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "Direct miss doesn't lead to preprocessed hit"
@@ -34,9 +38,13 @@ SUITE_readonly_direct() {
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+    expect_stat direct_cache_miss 1
+    expect_stat preprocessed_cache_miss 1
 
     CCACHE_READONLY_DIRECT=1 $CCACHE_COMPILE -DFOO -c test.c -o test.o
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
+    expect_stat direct_cache_miss 2
+    expect_stat preprocessed_cache_miss 1
 }
