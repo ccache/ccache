@@ -64,6 +64,7 @@ public:
   // --- Statistics ---
 
   void increment_statistic(core::Statistic statistic, int64_t value = 1);
+  void increment_statistics(const core::StatisticsCounters& statistics);
 
   const core::StatisticsCounters& get_statistics_updates() const;
 

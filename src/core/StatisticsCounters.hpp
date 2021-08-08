@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <vector>
 
 namespace core {
@@ -32,6 +33,8 @@ class StatisticsCounters
 {
 public:
   StatisticsCounters();
+  StatisticsCounters(Statistic statistic);
+  StatisticsCounters(std::initializer_list<Statistic> statistics);
 
   uint64_t get(Statistic statistic) const;
   void set(Statistic statistic, uint64_t value);

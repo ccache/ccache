@@ -31,6 +31,14 @@ typename T::value_type value_or_throw(const T& value);
 template<typename E, typename T>
 typename T::value_type value_or_throw(T&& value);
 
+#define TRY(x_)                                                                \
+  do {                                                                         \
+    const auto result = x_;                                                    \
+    if (!result) {                                                             \
+      return nonstd::make_unexpected(result.error());                          \
+    }                                                                          \
+  } while (false)
+
 // --- Inline implementations ---
 
 template<typename E, typename T>

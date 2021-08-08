@@ -29,6 +29,20 @@ StatisticsCounters::StatisticsCounters()
 {
 }
 
+StatisticsCounters::StatisticsCounters(const Statistic statistic)
+  : StatisticsCounters({statistic})
+{
+}
+
+StatisticsCounters::StatisticsCounters(
+  const std::initializer_list<Statistic> statistics)
+  : StatisticsCounters()
+{
+  for (auto st : statistics) {
+    increment(st);
+  }
+}
+
 uint64_t
 StatisticsCounters::get(Statistic statistic) const
 {

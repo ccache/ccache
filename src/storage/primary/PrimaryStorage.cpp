@@ -263,6 +263,12 @@ PrimaryStorage::increment_statistic(const Statistic statistic,
   m_result_counter_updates.increment(statistic, value);
 }
 
+void
+PrimaryStorage::increment_statistics(const core::StatisticsCounters& statistics)
+{
+  m_result_counter_updates.increment(statistics);
+}
+
 // Private methods
 
 PrimaryStorage::LookUpCacheFileResult
