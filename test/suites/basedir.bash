@@ -19,30 +19,30 @@ SUITE_basedir() {
 
     cd dir1
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     cd ../dir2
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "Disabled (default) CCACHE_BASEDIR"
 
     cd dir1
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     # CCACHE_BASEDIR="" is the default:
     $CCACHE_COMPILE -I`pwd`/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
@@ -50,18 +50,18 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
 
     cd dir1
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     mkdir subdir
 
     # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
     # slashes, redundant "/." parts and "foo/.." parts correctly.
     CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)//./subdir/../include -c $(pwd)/src/test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 fi
 
     # -------------------------------------------------------------------------
@@ -134,19 +134,19 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
 
     cd dir1/src
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     cd ../../dir2/src
     # Apparent CWD:
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     # Actual CWD (e.g. from $(CURDIR) in a Makefile):
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd -P)/../include -c $(pwd -P)/test.c -o $(pwd -P)/build/test.o
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
 fi
 
     # -------------------------------------------------------------------------
@@ -173,19 +173,19 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
 
     cd build1
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/src/include -c $(pwd)/src/src/test.c -o $(pwd)/test.o
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     cd ../build2
     # Apparent CWD:
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/src/include -c $(pwd)/src/src/test.c -o $(pwd)/test.o
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     # Actual CWD:
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd -P)/src/include -c $(pwd -P)/src/src/test.c -o $(pwd -P)/test.o
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
 fi
 
     # -------------------------------------------------------------------------
@@ -203,17 +203,17 @@ EOF
 EOF
 
     CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -Wall -W -I`pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     if grep `pwd` stderr.txt >/dev/null 2>&1; then
         test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
 
     CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -Wall -W -I`pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     if grep `pwd` stderr.txt >/dev/null 2>&1; then
         test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
@@ -225,16 +225,16 @@ EOF
         clear_cache
         cd dir1
         CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
-        expect_stat 'cache hit (direct)' 0
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
         cd ..
 
         cd dir2
         CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
-        expect_stat 'cache hit (direct)' 1
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
         cd ..
     done
 
@@ -248,9 +248,9 @@ EOF
         clear_cache
         cd dir1
         CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
-        expect_stat 'cache hit (direct)' 0
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
         # Check that there is no absolute path in the dependency file:
         while read line; do
             for file in $line; do
@@ -263,9 +263,9 @@ EOF
 
         cd dir2
         CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
-        expect_stat 'cache hit (direct)' 1
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
         cd ..
     done
 
@@ -285,30 +285,30 @@ EOF
     $REAL_COMPILER -c $pwd/test.c 2>reference.stderr
 
     CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -c $pwd/test.c 2>ccache.stderr
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content reference.stderr ccache.stderr
 
     CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -c $pwd/test.c 2>ccache.stderr
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content reference.stderr ccache.stderr
 
     if $REAL_COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
         $REAL_COMPILER -fdiagnostics-color=always -c $pwd/test.c 2>reference.stderr
 
         CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
-        expect_stat 'cache hit (direct)' 2
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
+        expect_stat direct_cache_hit 2
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
         expect_equal_content reference.stderr ccache.stderr
 
         CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
-        expect_stat 'cache hit (direct)' 3
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
+        expect_stat direct_cache_hit 3
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
         expect_equal_content reference.stderr ccache.stderr
     fi
 
@@ -317,15 +317,15 @@ EOF
 
     cd dir1
     CCACHE_BASEDIR="$(pwd)" PWD=. $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     cd ../dir2
     CCACHE_BASEDIR="$(pwd)" PWD=. $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "Unset PWD"
@@ -334,13 +334,13 @@ EOF
 
     cd dir1
     CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     cd ../dir2
     CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 }

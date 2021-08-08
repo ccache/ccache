@@ -36,9 +36,9 @@ SUITE_direct_gcc() {
     TEST "DEPENDENCIES_OUTPUT environment variable"
 
     DEPENDENCIES_OUTPUT="other.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_dependencies_output.d
 
     DEPENDENCIES_OUTPUT="other.d" $REAL_COMPILER -c test.c -o reference_test.o
@@ -46,16 +46,16 @@ SUITE_direct_gcc() {
 
     rm -f other.d
     DEPENDENCIES_OUTPUT="other.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_dependencies_output.d
     expect_equal_object_files reference_test.o test.o
 
     DEPENDENCIES_OUTPUT="different_name.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content different_name.d expected_dependencies_output.d
     expect_equal_object_files reference_test.o test.o
 
@@ -63,9 +63,9 @@ SUITE_direct_gcc() {
     TEST "DEPENDENCIES_OUTPUT environment variable with target"
 
     DEPENDENCIES_OUTPUT="other.d target.o" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_dependencies_output_target.d
 
     DEPENDENCIES_OUTPUT="other.d target.o" $REAL_COMPILER -c test.c -o reference_test.o
@@ -73,16 +73,16 @@ SUITE_direct_gcc() {
 
     rm -f other.d
     DEPENDENCIES_OUTPUT="other.d target.o" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_dependencies_output_target.d
     expect_equal_object_files reference_test.o test.o
 
     DEPENDENCIES_OUTPUT="different_name.d target.o" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content different_name.d expected_dependencies_output_target.d
     expect_equal_object_files reference_test.o test.o
 
@@ -90,9 +90,9 @@ SUITE_direct_gcc() {
     TEST "SUNPRO_DEPENDENCIES environment variable"
 
     SUNPRO_DEPENDENCIES="other.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_sunpro_dependencies.d
 
     SUNPRO_DEPENDENCIES="other.d" $REAL_COMPILER -c test.c -o reference_test.o
@@ -100,16 +100,16 @@ SUITE_direct_gcc() {
 
     rm -f other.d
     SUNPRO_DEPENDENCIES="other.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_sunpro_dependencies.d
     expect_equal_object_files reference_test.o test.o
 
     SUNPRO_DEPENDENCIES="different_name.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content different_name.d expected_sunpro_dependencies.d
     expect_equal_object_files reference_test.o test.o
 
@@ -117,9 +117,9 @@ SUITE_direct_gcc() {
     TEST "SUNPRO_DEPENDENCIES environment variable with target"
 
     SUNPRO_DEPENDENCIES="other.d target.o" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_sunpro_dependencies_target.d
 
     SUNPRO_DEPENDENCIES="other.d target.o" $REAL_COMPILER -c test.c -o reference_test.o
@@ -127,16 +127,16 @@ SUITE_direct_gcc() {
 
     rm -f other.d
     SUNPRO_DEPENDENCIES="other.d target.o" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content other.d expected_sunpro_dependencies_target.d
     expect_equal_object_files reference_test.o test.o
 
     SUNPRO_DEPENDENCIES="different_name.d target.o" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     expect_equal_content different_name.d expected_sunpro_dependencies_target.d
     expect_equal_object_files reference_test.o test.o
 
@@ -144,12 +144,12 @@ SUITE_direct_gcc() {
     TEST "DEPENDENCIES_OUTPUT environment variable set to /dev/null"
 
     DEPENDENCIES_OUTPUT="/dev/null" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     DEPENDENCIES_OUTPUT="other.d" $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 2
 }

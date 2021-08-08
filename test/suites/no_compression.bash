@@ -12,15 +12,15 @@ SUITE_no_compression() {
     $REAL_COMPILER -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_object_files reference_test.o test.o
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -39,42 +39,42 @@ SUITE_no_compression() {
     TEST "Hash sum equal for compressed and uncompressed files"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     unset CCACHE_NOCOMPRESS
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "Corrupt result file"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
 
     result_file=$(find $CCACHE_DIR -name '*R')
     printf foo | dd of=$result_file bs=3 count=1 seek=20 conv=notrunc >&/dev/null
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 2
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 2
 }

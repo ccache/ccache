@@ -16,17 +16,17 @@ SUITE_hardlink() {
     $REAL_COMPILER -c -o reference_test1.o test1.c
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_object_files reference_test1.o test1.o
 
     mv test1.o test1.o.saved
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     if [ ! test1.o -ef test1.o.saved ]; then
         test_failed "Object files not hard linked"
     fi
@@ -37,16 +37,16 @@ SUITE_hardlink() {
     generate_code 1 test1.c
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
 
     mv test1.o test1.o.saved
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
 
     # -------------------------------------------------------------------------
     TEST "Overwrite assembler"
@@ -57,25 +57,25 @@ SUITE_hardlink() {
     $REAL_COMPILER -c -o reference_test1.o test1.s
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.s
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
 
     generate_code 2 test1.c
     $REAL_COMPILER -S -o test1.s test1.c
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.s
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 4
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 4
 
     generate_code 1 test1.c
     $REAL_COMPILER -S -o test1.s test1.c
 
     CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.s
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 4
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 4
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -86,11 +86,11 @@ SUITE_hardlink() {
     generate_code 1 test1.c
 
     CCACHE_HARDLINK=1 CCACHE_DEPEND=1 $CCACHE_COMPILE -c -MMD -MF test1.d.tmp test1.c
-    expect_stat 'cache hit (direct)' 0
+    expect_stat direct_cache_hit 0
     mv test1.d.tmp test1.d || test_failed "first mv failed"
 
     CCACHE_HARDLINK=1 CCACHE_DEPEND=1 $CCACHE_COMPILE -c -MMD -MF test1.d.tmp test1.c
-    expect_stat 'cache hit (direct)' 1
+    expect_stat direct_cache_hit 1
     mv test1.d.tmp test1.d || test_failed "second mv failed"
 
     # -------------------------------------------------------------------------
@@ -103,22 +103,22 @@ SUITE_hardlink() {
     echo "int x;" >test1.c
 
     $CCACHE_COMPILE -c -MMD test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
     expect_content test1.d "test1.o: test1.c"
 
     touch test1.h
     echo '#include "test1.h"' >>test1.c
 
     $CCACHE_COMPILE -c -MMD test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
     expect_content test1.d "test1.o: test1.c test1.h"
 
     echo "int x;" >test1.c
 
     $CCACHE_COMPILE -c -MMD test1.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
     expect_content test1.d "test1.o: test1.c"
 }

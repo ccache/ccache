@@ -46,9 +46,9 @@ SUITE_secondary_http() {
     export CCACHE_SECONDARY_STORAGE="http://localhost:12780"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary # result + manifest
     subdirs=$(find secondary -type d | wc -l)
     if [ "${subdirs}" -lt 2 ]; then # "secondary" itself counts as one
@@ -56,19 +56,19 @@ SUITE_secondary_http() {
     fi
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary # result + manifest
 
     $CCACHE -C >/dev/null
-    expect_stat 'files in cache' 0
+    expect_stat files_in_cache 0
     expect_file_count 2 '*' secondary # result + manifest
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from secondary
     expect_file_count 2 '*' secondary # result + manifest
 
     # -------------------------------------------------------------------------
@@ -78,9 +78,9 @@ SUITE_secondary_http() {
     export CCACHE_SECONDARY_STORAGE="http://localhost:12780|layout=flat"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary # result + manifest
     subdirs=$(find secondary -type d | wc -l)
     if [ "${subdirs}" -ne 1 ]; then # "secondary" itself counts as one
@@ -88,19 +88,19 @@ SUITE_secondary_http() {
     fi
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary # result + manifest
 
     $CCACHE -C >/dev/null
-    expect_stat 'files in cache' 0
+    expect_stat files_in_cache 0
     expect_file_count 2 '*' secondary # result + manifest
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from secondary
     expect_file_count 2 '*' secondary # result + manifest
 
     # -------------------------------------------------------------------------
@@ -111,28 +111,28 @@ SUITE_secondary_http() {
     export CCACHE_SECONDARY_STORAGE="http://localhost:12780|layout=bazel"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary/ac # result + manifest
     if [ "$(ls secondary/ac | grep -Ec '^[0-9a-f]{64}$')" -ne 2 ]; then
         test_failed "Bazel layout filenames not as expected"
     fi
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary/ac # result + manifest
 
     $CCACHE -C >/dev/null
-    expect_stat 'files in cache' 0
+    expect_stat files_in_cache 0
     expect_file_count 2 '*' secondary/ac # result + manifest
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from secondary
     expect_file_count 2 '*' secondary/ac # result + manifest
 
     # -------------------------------------------------------------------------
@@ -142,9 +142,9 @@ SUITE_secondary_http() {
     export CCACHE_SECONDARY_STORAGE="http://somebody:secret123@localhost:12780"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary # result + manifest
     expect_not_contains test.o.ccache-log secret123
 
@@ -156,9 +156,9 @@ SUITE_secondary_http() {
     export CCACHE_SECONDARY_STORAGE="http://localhost:12780"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 0 '*' secondary # result + manifest
     expect_contains test.o.ccache-log "status code: 401"
 
@@ -169,9 +169,9 @@ SUITE_secondary_http() {
     export CCACHE_SECONDARY_STORAGE="http://somebody:wrong@localhost:12780"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_file_count 0 '*' secondary # result + manifest
     expect_not_contains test.o.ccache-log secret123
     expect_contains test.o.ccache-log "status code: 401"
@@ -183,25 +183,25 @@ SUITE_secondary_http() {
         export CCACHE_SECONDARY_STORAGE="http://[::1]:12780"
 
         $CCACHE_COMPILE -c test.c
-        expect_stat 'cache hit (direct)' 0
-        expect_stat 'cache miss' 1
-        expect_stat 'files in cache' 2
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+        expect_stat files_in_cache 2
         expect_file_count 2 '*' secondary # result + manifest
 
         $CCACHE_COMPILE -c test.c
-        expect_stat 'cache hit (direct)' 1
-        expect_stat 'cache miss' 1
-        expect_stat 'files in cache' 2
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+        expect_stat files_in_cache 2
         expect_file_count 2 '*' secondary # result + manifest
 
         $CCACHE -C >/dev/null
-        expect_stat 'files in cache' 0
+        expect_stat files_in_cache 0
         expect_file_count 2 '*' secondary # result + manifest
 
         $CCACHE_COMPILE -c test.c
-        expect_stat 'cache hit (direct)' 2
-        expect_stat 'cache miss' 1
-        expect_stat 'files in cache' 2 # fetched from secondary
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 1
+        expect_stat files_in_cache 2 # fetched from secondary
         expect_file_count 2 '*' secondary # result + manifest
     fi
 }

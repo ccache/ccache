@@ -35,10 +35,10 @@ SUITE_modules() {
     TEST "fall back to real compiler, no sloppiness"
 
     $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat "can't use modules" 1
+    expect_stat could_not_use_modules 1
 
     $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat "can't use modules" 2
+    expect_stat could_not_use_modules 2
 
     # -------------------------------------------------------------------------
     TEST "fall back to real compiler, no depend mode"
@@ -46,27 +46,27 @@ SUITE_modules() {
     unset CCACHE_DEPEND
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat "can't use modules" 1
+    expect_stat could_not_use_modules 1
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat "can't use modules" 2
+    expect_stat could_not_use_modules 2
 
     # -------------------------------------------------------------------------
     TEST "cache hit"
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "cache miss"
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat 'cache miss' 1
+    expect_stat cache_miss 1
 
     cat <<EOF >test1.h
 #include <string>
@@ -75,11 +75,11 @@ EOF
     backdate test1.h
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat 'cache miss' 2
+    expect_stat cache_miss 2
 
     echo >>module.modulemap
     backdate test1.h
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
-    expect_stat 'cache miss' 3
+    expect_stat cache_miss 3
 }

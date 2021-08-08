@@ -58,16 +58,16 @@ SUITE_nvcc_ldir() {
 
     # First compile.
     $ccache_nvcc_cuda $TEST_OPTS test_cuda.cu
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test1.dump test1.dump
 
     $ccache_nvcc_cuda $TEST_OPTS test_cuda.cu
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test1.dump test1.dump
 
@@ -80,16 +80,16 @@ SUITE_nvcc_ldir() {
 
     # First compile.
     $ccache_nvcc_cuda $TEST_OPTS test_cuda.cu
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test1.dump test1.dump
 
     $ccache_nvcc_cuda $TEST_OPTS test_cuda.cu
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test1.dump test1.dump
 

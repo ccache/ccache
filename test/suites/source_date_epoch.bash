@@ -18,19 +18,19 @@ SUITE_source_date_epoch() {
     unset CCACHE_NODIRECT
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c without_temporal_macros.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c without_temporal_macros.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=2 $CCACHE_COMPILE -c without_temporal_macros.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "With __DATE__ macro"
@@ -38,19 +38,19 @@ SUITE_source_date_epoch() {
     unset CCACHE_NODIRECT
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_date_macro.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_date_macro.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=2 $CCACHE_COMPILE -c with_date_macro.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "With __TIME__ macro"
@@ -58,19 +58,19 @@ SUITE_source_date_epoch() {
     unset CCACHE_NODIRECT
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=2 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
     TEST "With __TIME__ and time_macros sloppiness"
@@ -78,22 +78,22 @@ SUITE_source_date_epoch() {
     unset CCACHE_NODIRECT
 
     CCACHE_SLOPPINESS=time_macros SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     CCACHE_SLOPPINESS=time_macros SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     CCACHE_SLOPPINESS=time_macros SOURCE_DATE_EPOCH=2 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
 
     SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c with_time_macro.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
 }

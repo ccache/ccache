@@ -19,37 +19,37 @@ SUITE_profiling_hip_clang() {
     hip_opts="-x hip --cuda-gpu-arch=gfx900 -nogpulib"
 
     $CCACHE_COMPILE $hip_opts -c test1.hip
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE $hip_opts -c test1.hip
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE $hip_opts --cuda-gpu-arch=gfx906 -c test1.hip
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
 
     $CCACHE_COMPILE $hip_opts -c test2.hip
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 3
+    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
 
     $CCACHE_COMPILE $hip_opts -c test2.hip
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 3
+    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
 
     $CCACHE_COMPILE $hip_opts -Dx=x -c test2.hip
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 3
+    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
 
     $CCACHE_COMPILE $hip_opts -Dx=y -c test2.hip
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 4
+    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 4
 }

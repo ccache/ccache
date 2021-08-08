@@ -27,6 +27,7 @@ skip_code=125
 if [[ -t 1 ]]; then
     ansi_boldgreen='\033[1;32m'
     ansi_boldred='\033[1;31m'
+    ansi_boldyellow='\033[1;93m'
     ansi_bold='\033[1m'
     ansi_reset='\033[1;0m'
 fi
@@ -37,6 +38,10 @@ green() {
 
 red() {
     printf "$ansi_boldred%s$ansi_reset\n" "$*"
+}
+
+yellow() {
+    printf "$ansi_boldyellow%s$ansi_reset\n" "$*"
 }
 
 bold() {
@@ -55,8 +60,15 @@ test_failed_internal() {
     echo "Test case:      $(bold $CURRENT_TEST)"
     echo "Failure reason: $(red "$1")"
     echo
-    echo "ccache -s:"
-    $CCACHE -s
+    echo "Actual statistics counters"
+    echo "=========================="
+    while read -r key value; do
+        if [[ $value > 0 ]]; then
+            printf "$(yellow %-32s) $(yellow %s)\n" "$key" "$value"
+        else
+            printf "%-32s %s\n" "$key" "$value"
+        fi
+    done < <($CCACHE --print-stats | grep -v '^stats_')
     echo
     echo "Test data and log file have been left in $TESTDIR / $TEST_FAILED_SYMLINK"
     symlink_testdir_on_failure
@@ -161,18 +173,14 @@ expect_stat() {
     local line
     local value=""
 
-    while IFS= read -r line; do
-        if [[ $line = *"$stat"* ]]; then
-            value="${line:32}"
-            # remove leading & trailing whitespace
-            value="${value#${value%%[![:space:]]*}}"
-            value="${value%${value##*[![:space:]]}}"
+    while read -r key value; do
+        if [[ $key == $stat ]]; then
             break
         fi
-    done < <($CCACHE -s)
+    done < <($CCACHE --print-stats)
 
     if [ "$expected_value" != "$value" ]; then
-        test_failed_internal "Expected \"$stat\" to be $expected_value, actual $value"
+        test_failed_internal "Expected $stat to be $expected_value, actual $value"
     fi
 }
 

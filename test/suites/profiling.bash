@@ -21,32 +21,32 @@ SUITE_profiling() {
     TEST "-fprofile-use, missing file"
 
     $CCACHE_COMPILE -fprofile-use -c test.c 2>/dev/null
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'no input file' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat no_input_file 1
 
     # -------------------------------------------------------------------------
     TEST "-fbranch-probabilities, missing file"
 
     $CCACHE_COMPILE -fbranch-probabilities -c test.c 2>/dev/null
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'no input file' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat no_input_file 1
 
     # -------------------------------------------------------------------------
     TEST "-fprofile-use=file, missing file"
 
     $CCACHE_COMPILE -fprofile-use=data.gcda -c test.c 2>/dev/null
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'no input file' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat no_input_file 1
 
     # -------------------------------------------------------------------------
     TEST "-fprofile-use"
 
     $CCACHE_COMPILE -fprofile-generate -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     $COMPILER -fprofile-generate test.o -o test
 
@@ -54,19 +54,19 @@ SUITE_profiling() {
     merge_profiling_data .
 
     $CCACHE_COMPILE -fprofile-use -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
 
     $CCACHE_COMPILE -fprofile-use -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
 
     ./test
     merge_profiling_data .
 
     $CCACHE_COMPILE -fprofile-use -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 3
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
     TEST "-fprofile-use=dir"
@@ -74,8 +74,8 @@ SUITE_profiling() {
     mkdir data
 
     $CCACHE_COMPILE -fprofile-generate=data -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     $COMPILER -fprofile-generate test.o -o test
 
@@ -83,19 +83,19 @@ SUITE_profiling() {
     merge_profiling_data data
 
     $CCACHE_COMPILE -fprofile-use=data -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
 
     $CCACHE_COMPILE -fprofile-use=data -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
 
     ./test
     merge_profiling_data data
 
     $CCACHE_COMPILE -fprofile-use=data -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 3
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
     TEST "-fprofile-generate=dir in different directories"
@@ -106,13 +106,13 @@ SUITE_profiling() {
 
     $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
         || test_failed "compilation error"
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
         || test_failed "compilation error"
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     $COMPILER -Werror -fprofile-generate test.o -o test \
         || test_failed "compilation error"
@@ -122,20 +122,20 @@ SUITE_profiling() {
 
     $CCACHE_COMPILE -Werror -fprofile-use=data -c ../test.c \
         || test_failed "compilation error"
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
 
     cd ../dir2
 
     $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
         || test_failed "compilation error"
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 3
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
 
     $CCACHE_COMPILE -Werror -fprofile-generate=data -c ../test.c \
         || test_failed "compilation error"
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 3
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
 
     $COMPILER -Werror -fprofile-generate test.o -o test \
         || test_failed "compilation error"
@@ -167,14 +167,14 @@ SUITE_profiling() {
             rm "$gcno_name"
 
             $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
-            expect_stat 'cache hit (direct)' 0
-            expect_stat 'cache miss' 1
+            expect_stat direct_cache_hit 0
+            expect_stat cache_miss 1
             expect_exists "$gcno_name"
             rm "$gcno_name"
 
             $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
-            expect_stat 'cache hit (direct)' 1
-            expect_stat 'cache miss' 1
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 1
             expect_exists "$gcno_name"
             rm "$gcno_name"
         done
@@ -186,22 +186,22 @@ SUITE_profiling() {
     mkdir obj1 obj2
 
     $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj1/test.o
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj1/test.o
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj2/test.o
     expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
 
     $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj2/test.o
     expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 2
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
 }
 
 merge_profiling_data() {

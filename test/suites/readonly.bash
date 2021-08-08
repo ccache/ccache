@@ -18,8 +18,8 @@ SUITE_readonly() {
 
     # Cache a compilation.
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     rm test.o
 
     # Make the cache read-only.
@@ -53,9 +53,9 @@ SUITE_readonly() {
     if [ $? -ne 0 ]; then
         test_failed "Failure when compiling test2.c read-only"
     fi
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 0
 
     # -------------------------------------------------------------------------
     # Check that read-only mode and direct mode work together.
@@ -63,8 +63,8 @@ SUITE_readonly() {
 
     # Cache a compilation.
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
     rm test.o
 
     # Make the cache read-only.

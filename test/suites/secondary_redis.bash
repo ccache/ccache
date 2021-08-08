@@ -58,25 +58,25 @@ SUITE_secondary_redis() {
     start_redis_server "${port}"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     $CCACHE -C >/dev/null
-    expect_stat 'files in cache' 0
+    expect_stat files_in_cache 0
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     # -------------------------------------------------------------------------
@@ -90,25 +90,25 @@ SUITE_secondary_redis() {
     start_redis_server "${port}" "${password}"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
     expect_not_contains test.o.ccache-log "${password}"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     $CCACHE -C >/dev/null
-    expect_stat 'files in cache' 0
+    expect_stat files_in_cache 0
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # fetched from secondary
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 }
