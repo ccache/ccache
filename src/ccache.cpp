@@ -2001,8 +2001,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
-    // Statistic::cache_miss is a dummy to trigger stats_flush.
-    return nonstd::make_unexpected(Statistic::cache_miss);
+    return nonstd::make_unexpected(Statistic::none);
   }
 
   LOG("Command line: {}", Util::format_argv_for_logging(argv));
