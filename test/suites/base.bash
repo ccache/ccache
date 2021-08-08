@@ -110,9 +110,15 @@ base_tests() {
     expect_stat 'called for link' 2
 
     # -------------------------------------------------------------------------
-    TEST "No input file"
+    TEST "No existing input file"
 
     $CCACHE_COMPILE -c foo.c 2>/dev/null
+    expect_stat 'no input file' 1
+
+    # -------------------------------------------------------------------------
+    TEST "No input file on command line"
+
+    $CCACHE_COMPILE -c -O2 2>/dev/null
     expect_stat 'no input file' 1
 
     # -------------------------------------------------------------------------
@@ -185,12 +191,6 @@ base_tests() {
     expect_stat 'could not write to output file' 1
     expect_stat 'cache miss' 1
     expect_missing out/foo.o
-
-    # -------------------------------------------------------------------------
-    TEST "No input file"
-
-    $CCACHE_COMPILE -c -O2 2>/dev/null
-    expect_stat 'no input file' 1
 
     # -------------------------------------------------------------------------
     TEST "No file extension"
@@ -660,12 +660,6 @@ b"
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 32
     expect_stat 'files in cache' 32
-
-    # -------------------------------------------------------------------------
-    TEST "Called for preprocessing"
-
-    $CCACHE_COMPILE -c test1.c -E >test1.i
-    expect_stat 'called for preprocessing' 1
 
     # -------------------------------------------------------------------------
     TEST "Direct .i compile"
