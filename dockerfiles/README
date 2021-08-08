@@ -3,7 +3,7 @@ different build environments.
 
 For instance, run something like this to build ccache in Ubuntu 20.04:
 
-    misc/build-in-docker ubuntu-20-focal
+    misc/build-in-docker ubuntu-20.04
 
 The above command will first build the Ubuntu 20.04 Docker image if needed and
 finally build ccache and run the ccache test suite.
