@@ -935,7 +935,9 @@ _key_=_value_ or just _key_ as a short form of _key_=*true*. Attribute values
 must be https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they
 contain percent, pipe or space characters.
 
-Optional attributes available for all secondary storage backends:
+=== Attributes for all backends
+
+These optional attributes are available for all secondary storage backends:
 
 * *read-only*: If *true*, only read from this backend, don't write. The default
   is *false*.
@@ -964,7 +966,27 @@ Examples:
 * *share-hits*: If *true*, write hits for this backend to primary storage. The
   default is *true*.
 
-These are the available backends:
+
+=== Storage interaction
+
+The table below describes the interaction between primary and secondary storage
+on cache hits and misses:
+
+[options="header",cols="20%,20%,60%"]
+|==============================================================================
+| *Primary storage* | *Secondary storage* | *What happens*
+
+| miss | miss | Compile, write to primary, write to secondary^[1]^
+| miss | hit  | Read from secondary, write to primary^[2]^
+| hit  | -    | Read from primary, don't write to secondary^[3]^
+
+|==============================================================================
+
+^[1]^ Unless secondary storage has attribute `read-only=true`. +
+^[2]^ Unless secondary storage has attribute `share-hits=false`. +
+^[3]^ Unless primary storage is set to share its cache hits with the
+<<config_reshare,*reshare*>> option.
+
 
 
 === File storage backend
