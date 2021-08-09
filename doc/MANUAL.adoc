@@ -961,6 +961,8 @@ Examples:
 * `+http://example.com/*|shards=alpha,beta+` will put 50% of the cache on
   `+http://example.com/alpha+` and 50% on `+http://example.com/beta+`.
 --
+* *share-hits*: If *true*, write hits for this backend to primary storage. The
+  default is *true*.
 
 These are the available backends:
 

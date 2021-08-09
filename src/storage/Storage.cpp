@@ -80,6 +80,7 @@ struct SecondaryStorageConfig
   std::vector<SecondaryStorageShardConfig> shards;
   secondary::SecondaryStorage::Backend::Params params;
   bool read_only = false;
+  bool share_hits = true;
 };
 
 struct SecondaryStorageBackendEntry
@@ -140,8 +141,8 @@ parse_storage_config(const nonstd::string_view entry)
     const auto& raw_value = kv_pair.second.value_or("true");
     const auto value =
       util::value_or_throw<core::Error>(util::percent_decode(raw_value));
-    if (key == "read-only" && value == "true") {
-      result.read_only = true;
+    if (key == "read-only") {
+      result.read_only = (value == "true");
     } else if (key == "shards") {
       const auto url_str = result.params.url.str();
       if (url_str.find('*') == std::string::npos) {
@@ -169,6 +170,8 @@ parse_storage_config(const nonstd::string_view entry)
 
         result.shards.push_back({std::string(name), weight});
       }
+    } else if (key == "share-hits") {
+      result.share_hits = (value == "true");
     }
 
     result.params.attributes.push_back(
@@ -252,28 +255,32 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
     return path;
   }
 
-  const auto value = get_from_secondary_storage(key);
-  if (!value) {
+  const auto value_and_share_hits = get_from_secondary_storage(key);
+  if (!value_and_share_hits) {
     return nonstd::nullopt;
   }
+  const auto& value = value_and_share_hits->first;
+  const auto& share_hits = value_and_share_hits->second;
 
   TemporaryFile tmp_file(FMT("{}/tmp.get", m_config.temporary_dir()));
   m_tmp_files.push_back(tmp_file.path);
   try {
-    Util::write_file(tmp_file.path, *value);
+    Util::write_file(tmp_file.path, value);
   } catch (const core::Error& e) {
     throw core::Fatal("Error writing to {}: {}", tmp_file.path, e.what());
   }
 
-  primary.put(key, type, [&](const auto& path) {
-    try {
-      Util::copy_file(tmp_file.path, path);
-    } catch (const core::Error& e) {
-      LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
-      // Don't indicate failure since get from primary storage was OK.
-    }
-    return true;
-  });
+  if (share_hits) {
+    primary.put(key, type, [&](const auto& path) {
+      try {
+        Util::copy_file(tmp_file.path, path);
+      } catch (const core::Error& e) {
+        LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
+        // Don't indicate failure since get from primary storage was OK.
+      }
+      return true;
+    });
+  }
 
   return tmp_file.path;
 }
@@ -442,7 +449,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-nonstd::optional<std::string>
+nonstd::optional<std::pair<std::string, bool>>
 Storage::get_from_secondary_storage(const Digest& key)
 {
   for (const auto& entry : m_secondary_storages) {
@@ -466,7 +473,7 @@ Storage::get_from_secondary_storage(const Digest& key)
           backend->url_for_logging,
           ms);
       primary.increment_statistic(core::Statistic::secondary_storage_hit);
-      return *value;
+      return std::make_pair(*value, entry->config.share_hits);
     } else {
       LOG("No {} in {} ({:.2f} ms)",
           key.to_string(),
