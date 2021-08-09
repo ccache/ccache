@@ -70,6 +70,7 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.read_only());
   CHECK_FALSE(config.read_only_direct());
   CHECK_FALSE(config.recache());
+  CHECK_FALSE(config.reshare());
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
@@ -125,6 +126,7 @@ TEST_CASE("Config::update_from_file")
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
+    "reshare = true\n"
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
@@ -164,6 +166,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.read_only());
   CHECK(config.read_only_direct());
   CHECK(config.recache());
+  CHECK(config.reshare());
   CHECK_FALSE(config.run_second_cpp());
   CHECK(config.sloppiness().to_bitmask()
         == (static_cast<uint32_t>(core::Sloppy::include_file_mtime)
@@ -406,6 +409,7 @@ TEST_CASE("Config::visit_items")
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
+    "reshare = true\n"
     "run_second_cpp = false\n"
     "secondary_storage = ss\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
@@ -464,6 +468,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) read_only = true",
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
+    "(test.conf) reshare = true",
     "(test.conf) run_second_cpp = false",
     "(test.conf) secondary_storage = ss",
     "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"

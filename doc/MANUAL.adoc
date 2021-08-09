@@ -785,6 +785,12 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
 
+[#config_reshare]
+*reshare* (*CCACHE_RESHARE* or *CCACHE_NORESHARE*, see _<<Boolean values>>_ above)::
+
+    If true, ccache will write results to secondary storage even for primary
+    storage cache hits. The default is false.
+
 [#config_run_second_cpp]
 *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see _<<Boolean values>>_ above)::
 

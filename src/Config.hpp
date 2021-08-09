@@ -75,6 +75,7 @@ public:
   bool read_only() const;
   bool read_only_direct() const;
   bool recache() const;
+  bool reshare() const;
   bool run_second_cpp() const;
   const std::string& secondary_storage() const;
   core::Sloppiness sloppiness() const;
@@ -169,6 +170,7 @@ private:
   bool m_read_only = false;
   bool m_read_only_direct = false;
   bool m_recache = false;
+  bool m_reshare = false;
   bool m_run_second_cpp = true;
   std::string m_secondary_storage;
   core::Sloppiness m_sloppiness;
@@ -386,6 +388,12 @@ inline bool
 Config::recache() const
 {
   return m_recache;
+}
+
+inline bool
+Config::reshare() const
+{
+  return m_reshare;
 }
 
 inline bool

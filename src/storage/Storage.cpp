@@ -227,12 +227,30 @@ nonstd::optional<std::string>
 Storage::get(const Digest& key, const core::CacheEntryType type)
 {
   const auto path = primary.get(key, type);
+  primary.increment_statistic(path ? core::Statistic::primary_storage_hit
+                                   : core::Statistic::primary_storage_miss);
   if (path) {
-    primary.increment_statistic(core::Statistic::primary_storage_hit);
+    if (m_config.reshare()) {
+      // Temporary optimization until primary storage API has been refactored to
+      // pass data via memory instead of files.
+      const bool should_put_in_secondary_storage =
+        std::any_of(m_secondary_storages.begin(),
+                    m_secondary_storages.end(),
+                    [](const auto& entry) { return !entry->config.read_only; });
+      if (should_put_in_secondary_storage) {
+        std::string value;
+        try {
+          value = Util::read_file(*path);
+        } catch (const core::Error& e) {
+          LOG("Failed to read {}: {}", *path, e.what());
+          return path; // Don't indicate failure since primary storage was OK.
+        }
+        put_in_secondary_storage(key, value, true);
+      }
+    }
+
     return path;
   }
-
-  primary.increment_statistic(core::Statistic::primary_storage_miss);
 
   const auto value = get_from_secondary_storage(key);
   if (!value) {
@@ -284,7 +302,7 @@ Storage::put(const Digest& key,
       LOG("Failed to read {}: {}", *path, e.what());
       return true; // Don't indicate failure since primary storage was OK.
     }
-    put_in_secondary_storage(key, value);
+    put_in_secondary_storage(key, value, false);
   }
 
   return true;
@@ -462,7 +480,9 @@ Storage::get_from_secondary_storage(const Digest& key)
 }
 
 void
-Storage::put_in_secondary_storage(const Digest& key, const std::string& value)
+Storage::put_in_secondary_storage(const Digest& key,
+                                  const std::string& value,
+                                  bool only_if_missing)
 {
   for (const auto& entry : m_secondary_storages) {
     auto backend = get_backend(*entry, key, "putting in", true);
@@ -471,7 +491,7 @@ Storage::put_in_secondary_storage(const Digest& key, const std::string& value)
     }
 
     Timer timer;
-    const auto result = backend->impl->put(key, value);
+    const auto result = backend->impl->put(key, value, only_if_missing);
     const auto ms = timer.measure_ms();
     if (!result) {
       // The backend is expected to log details about the error.
@@ -481,7 +501,7 @@ Storage::put_in_secondary_storage(const Digest& key, const std::string& value)
 
     const bool stored = *result;
     LOG("{} {} in {} ({:.2f} ms)",
-        stored ? "Stored" : "Failed to store",
+        stored ? "Stored" : "Did not have to store",
         key.to_string(),
         entry->url_for_logging,
         ms);

@@ -93,6 +93,7 @@ enum class ConfigItem {
   read_only,
   read_only_direct,
   recache,
+  reshare,
   run_second_cpp,
   secondary_storage,
   sloppiness,
@@ -136,6 +137,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"read_only", ConfigItem::read_only},
   {"read_only_direct", ConfigItem::read_only_direct},
   {"recache", ConfigItem::recache},
+  {"reshare", ConfigItem::reshare},
   {"run_second_cpp", ConfigItem::run_second_cpp},
   {"secondary_storage", ConfigItem::secondary_storage},
   {"sloppiness", ConfigItem::sloppiness},
@@ -181,6 +183,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
+  {"RESHARE", "reshare"},
   {"SECONDARY_STORAGE", "secondary_storage"},
   {"SLOPPINESS", "sloppiness"},
   {"STATS", "stats"},
@@ -709,6 +712,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::recache:
     return format_bool(m_recache);
 
+  case ConfigItem::reshare:
+    return format_bool(m_reshare);
+
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
 
@@ -951,6 +957,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::recache:
     m_recache = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::reshare:
+    m_reshare = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::run_second_cpp:

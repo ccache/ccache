@@ -1,3 +1,6 @@
+# This test suite verified both the file storage backend and the secondary
+# storage framework itself.
+
 SUITE_secondary_file_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_SECONDARY_STORAGE="file:$PWD/secondary"
@@ -174,4 +177,46 @@ SUITE_secondary_file() {
     if [ ! -d secondary/a ] && [ ! -d secondary/b ]; then
         test_failed "Expected secondary/a or secondary/b to exist"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Reshare"
+
+    CCACHE_SECONDARY_STORAGE="" $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_stat primary_storage_hit 0
+    expect_stat primary_storage_miss 2
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 0
+    expect_missing secondary
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat primary_storage_hit 2
+    expect_stat primary_storage_miss 2
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 0
+    expect_missing secondary
+
+    CCACHE_RESHARE=1 $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat primary_storage_hit 4
+    expect_stat primary_storage_miss 2
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 0
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    $CCACHE -C >/dev/null
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 1
+    expect_stat primary_storage_hit 4
+    expect_stat primary_storage_miss 4
+    expect_stat secondary_storage_hit 2
+    expect_stat secondary_storage_miss 0
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
 }

@@ -80,7 +80,9 @@ private:
               const bool for_writing);
   nonstd::optional<std::string> get_from_secondary_storage(const Digest& key);
 
-  void put_in_secondary_storage(const Digest& key, const std::string& value);
+  void put_in_secondary_storage(const Digest& key,
+                                const std::string& value,
+                                bool only_if_missing);
 
   void remove_from_secondary_storage(const Digest& key);
 };
