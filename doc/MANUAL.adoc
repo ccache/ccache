@@ -169,6 +169,35 @@ compiler's documentation.
     Zero the cache statistics (but not the configuration options).
 
 
+=== Options for secondary storage
+
+*--trim-dir* _PATH_::
+
+   Remove old files from directory _PATH_ until it is at most the size specified
+   by `--trim-max-size`.
++
+WARNING: Don't use this option to trim the primary cache. To trim the primary
+cache directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
+
+*--trim-max-size* _SIZE_::
+
+   Specify the maximum size for `--trim-dir`. _SIZE_ should be a number followed
+   by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or Ti (binary). The
+   default suffix is G.
+
+*--trim-method* _METHOD_::
+
+    Specify the method to trim a directory with `--trim-dir`. Possible values
+    are:
++
+--
+*atime*::
+    LRU (least recently used) using the file access timestamp. This is the
+    default.
+*mtime*::
+    LRU (least recently used) using the file modification timestamp.
+--
+
 === Options for scripting or debugging
 
 *--checksum-file* _PATH_::
@@ -996,8 +1025,10 @@ URL format: `+file:DIRECTORY+` or `+file://DIRECTORY+`
 This backend stores data as separate files in a directory structure below
 *DIRECTORY* (an absolute path), similar (but not identical) to the primary cache
 storage. A typical use case for this backend would be sharing a cache on an NFS
-directory. Note that ccache will not perform any cleanup of the storage -- that
-has to be done by other means.
+directory.
+
+IMPORTANT: ccache will not perform any cleanup of the storage -- that has to be
+done by other means, for instance by running `ccache --trim-dir` periodically.
 
 Examples:
 
@@ -1027,7 +1058,8 @@ URL format: `+http://HOST[:PORT][/PATH]+`
 This backend stores data in an HTTP-compatible server. The required HTTP methods
 are `GET`, `PUT` and `DELETE`.
 
-IMPORTANT: ccache will not perform any cleanup of the HTTP storage.
+IMPORTANT: ccache will not perform any cleanup of the storage -- that has to be
+done by other means, for instance by running `ccache --trim-dir` periodically.
 
 NOTE: HTTPS is not supported.
 

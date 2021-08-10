@@ -113,6 +113,17 @@ Common options:
     -h, --help                 print this help text
     -V, --version              print version and copyright information
 
+Options for secondary storage:
+        --trim-dir PATH        remove old files from directory _PATH_ until it
+                               is at most the size specified by --trim-max-size
+                               (note: don't use this option to trim the primary
+                               cache)
+        --trim-max-size SIZE   specify the maximum size for --trim-dir;
+                               available suffixes: k, M, G, T (decimal) and Ki,
+                               Mi, Gi, Ti (binary); default suffix: G
+        --trim-method METHOD   specify the method (atime or mtime) for
+                               --trim-dir; default: atime
+
 Options for scripting or debugging:
         --checksum-file PATH   print the checksum (64 bit XXH3) of the file at
                                PATH
@@ -176,6 +187,61 @@ print_compression_statistics(const storage::primary::CompressionStatistics& cs)
   PRINT_RAW(stdout, table.render());
 }
 
+static void
+trim_dir(const std::string& dir,
+         const uint64_t trim_max_size,
+         const bool trim_lru_mtime)
+{
+  struct File
+  {
+    std::string path;
+    Stat stat;
+  };
+  std::vector<File> files;
+  uint64_t size_before = 0;
+
+  Util::traverse(dir, [&](const std::string& path, const bool is_dir) {
+    const auto stat = Stat::lstat(path);
+    if (!stat) {
+      // Probably some race, ignore.
+      return;
+    }
+    size_before += stat.size_on_disk();
+    if (!is_dir) {
+      const auto name = Util::base_name(path);
+      if (name == "ccache.conf" || name == "stats") {
+        throw Fatal("this looks like a primary cache directory (found {})",
+                    path);
+      }
+      files.push_back({path, stat});
+    }
+  });
+
+  std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
+    if (trim_lru_mtime) {
+      return f1.stat.mtime() < f2.stat.mtime();
+    } else {
+      return f1.stat.atime() < f2.stat.atime();
+    }
+  });
+
+  uint64_t size_after = size_before;
+
+  for (const auto& file : files) {
+    if (size_after <= trim_max_size) {
+      break;
+    }
+    Util::unlink_tmp(file.path);
+    size_after -= file.stat.size();
+  }
+
+  PRINT(stdout,
+        "Removed {} ({} -> {})\n",
+        Util::format_human_readable_size(size_before - size_after),
+        Util::format_human_readable_size(size_before),
+        Util::format_human_readable_size(size_after));
+}
+
 static std::string
 get_version_text()
 {
@@ -199,6 +265,9 @@ enum {
   HASH_FILE,
   PRINT_STATS,
   SHOW_LOG_STATS,
+  TRIM_DIR,
+  TRIM_MAX_SIZE,
+  TRIM_METHOD,
 };
 
 const char options_string[] = "cCd:k:hF:M:po:sVxX:z";
@@ -224,6 +293,9 @@ const option long_options[] = {
   {"show-config", no_argument, nullptr, 'p'},
   {"show-log-stats", no_argument, nullptr, SHOW_LOG_STATS},
   {"show-stats", no_argument, nullptr, 's'},
+  {"trim-dir", required_argument, nullptr, TRIM_DIR},
+  {"trim-max-size", required_argument, nullptr, TRIM_MAX_SIZE},
+  {"trim-method", required_argument, nullptr, TRIM_METHOD},
   {"version", no_argument, nullptr, 'V'},
   {"zero-stats", no_argument, nullptr, 'z'},
   {nullptr, 0, nullptr, 0}};
@@ -232,6 +304,8 @@ int
 process_main_options(int argc, const char* const* argv)
 {
   int c;
+  nonstd::optional<uint64_t> trim_max_size;
+  bool trim_lru_mtime = false;
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -240,13 +314,23 @@ process_main_options(int argc, const char* const* argv)
                           long_options,
                           nullptr))
          != -1) {
+    const std::string arg = optarg ? optarg : std::string();
+
     switch (c) {
     case 'd': // --directory
-      Util::setenv("CCACHE_DIR", optarg);
+      Util::setenv("CCACHE_DIR", arg);
       break;
 
     case CONFIG_PATH:
-      Util::setenv("CCACHE_CONFIGPATH", optarg);
+      Util::setenv("CCACHE_CONFIGPATH", arg);
+      break;
+
+    case TRIM_MAX_SIZE:
+      trim_max_size = Util::parse_size(arg);
+      break;
+
+    case TRIM_METHOD:
+      trim_lru_mtime = (arg == "ctime");
       break;
     }
   }
@@ -262,14 +346,15 @@ process_main_options(int argc, const char* const* argv)
     Config config;
     config.read();
 
-    std::string arg = optarg ? optarg : std::string();
+    const std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
     case CONFIG_PATH:
-      break; // Already handled in the first pass.
-
     case 'd': // --directory
-      break;  // Already handled in the first pass.
+    case TRIM_MAX_SIZE:
+    case TRIM_METHOD:
+      // Already handled in the first pass.
+      break;
 
     case CHECKSUM_FILE: {
       Checksum checksum;
@@ -433,6 +518,13 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(stdout, statistics.format_config_footer(config));
       break;
     }
+
+    case TRIM_DIR:
+      if (!trim_max_size) {
+        throw Error("please specify --trim-max-size when using --trim-dir");
+      }
+      trim_dir(arg, *trim_max_size, trim_lru_mtime);
+      break;
 
     case 'V': // --version
       PRINT_RAW(stdout, get_version_text());
