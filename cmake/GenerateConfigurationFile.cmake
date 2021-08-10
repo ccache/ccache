@@ -60,6 +60,8 @@ check_function_exists(pthread_mutexattr_setpshared HAVE_PTHREAD_MUTEXATTR_SETPSH
 set(CMAKE_REQUIRED_FLAGS)
 
 include(CheckStructHasMember)
+check_struct_has_member("struct stat" st_atim sys/stat.h
+                        HAVE_STRUCT_STAT_ST_ATIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_ctim sys/stat.h
                         HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_mtim sys/stat.h

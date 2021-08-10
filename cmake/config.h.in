@@ -115,6 +115,9 @@
 // Define if "f_fstypename" is a member of "struct statfs".
 #cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
 
+// Define if "st_atim" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIM
+
 // Define if "st_ctim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_CTIM
 
