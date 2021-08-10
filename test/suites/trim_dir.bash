@@ -6,10 +6,11 @@ SUITE_trim_dir() {
         one_mb=1m
     else
         one_mb=1M
+    fi
     for subdir in aa bb cc; do
         mkdir -p secondary/$subdir
-        dd if=/dev/zero of=secondary/$subdir/1 count=1 bs=$one_mb 2/dev/null
-        dd if=/dev/zero of=secondary/$subdir/2 count=1 bs=$one_mb 2/dev/null
+        dd if=/dev/zero of=secondary/$subdir/1 count=1 bs=$one_mb 2>/dev/null
+        dd if=/dev/zero of=secondary/$subdir/2 count=1 bs=$one_mb 2>/dev/null
     done
 
     backdate secondary/bb/2 secondary/cc/1
