@@ -126,7 +126,11 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
   // Sort according to modification time, oldest first.
   std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
-    return f1.lstat().mtime() < f2.lstat().mtime();
+    const auto ts_1 = f1.lstat().mtim();
+    const auto ts_2 = f2.lstat().mtim();
+    const auto ns_1 = 1'000'000'000ULL * ts_1.tv_sec + ts_1.tv_nsec;
+    const auto ns_2 = 1'000'000'000ULL * ts_2.tv_sec + ts_2.tv_nsec;
+    return ns_1 < ns_2;
   });
 
   LOG("Before cleanup: {:.0f} KiB, {:.0f} files",

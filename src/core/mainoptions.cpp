@@ -218,11 +218,11 @@ trim_dir(const std::string& dir,
   });
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
-    if (trim_lru_mtime) {
-      return f1.stat.mtime() < f2.stat.mtime();
-    } else {
-      return f1.stat.atime() < f2.stat.atime();
-    }
+    const auto ts_1 = trim_lru_mtime ? f1.stat.mtim() : f1.stat.atim();
+    const auto ts_2 = trim_lru_mtime ? f2.stat.mtim() : f2.stat.atim();
+    const auto ns_1 = 1'000'000'000ULL * ts_1.tv_sec + ts_1.tv_nsec;
+    const auto ns_2 = 1'000'000'000ULL * ts_2.tv_sec + ts_2.tv_nsec;
+    return ns_1 < ns_2;
   });
 
   uint64_t size_after = size_before;
