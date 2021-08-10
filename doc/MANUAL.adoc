@@ -91,12 +91,12 @@ compiler's documentation.
     the default. Using this option has the same effect as setting the
     environment variable `CCACHE_CONFIGPATH` temporarily.
 
-*-d*, *--directory* _PATH_::
+*-d*, *--dir* _PATH_::
 
     Let the command line options operate on cache directory _PATH_ instead of
     the default. For example, to show statistics for a cache directory at
-    `/shared/ccache` you can run `ccache -d /shared/ccache -s`. Using this
-    option has the same effect as setting the environment variable `CCACHE_DIR`
+    `/shared/ccache` you can run `ccache -d /shared/ccache -s`. Using this option
+    has the same effect as setting the environment variable `CCACHE_DIR`
     temporarily.
 
 *--evict-older-than* _AGE_::
@@ -414,7 +414,7 @@ project2 will be a different absolute path.
 See also _<<Location of the primary configuration file>>_.
 +
 If you want to use another `CCACHE_DIR` value temporarily for one ccache
-invocation you can use the `-d`/`--directory` command line option instead.
+invocation you can use the `-d`/`--dir` command line option instead.
 
 [#config_compiler]
 *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::

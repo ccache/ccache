@@ -88,7 +88,7 @@ Common options:
     -C, --clear                clear the cache completely (except configuration)
         --config-path PATH     operate on configuration file PATH instead of the
                                default
-    -d, --directory PATH       operate on cache directory PATH instead of the
+    -d, --dir PATH             operate on cache directory PATH instead of the
                                default
         --evict-older-than AGE remove files older than AGE (unsigned integer
                                with a d (days) or s (seconds) suffix)
@@ -276,7 +276,8 @@ const option long_options[] = {
   {"cleanup", no_argument, nullptr, 'c'},
   {"clear", no_argument, nullptr, 'C'},
   {"config-path", required_argument, nullptr, CONFIG_PATH},
-  {"directory", required_argument, nullptr, 'd'},
+  {"dir", required_argument, nullptr, 'd'},
+  {"directory", required_argument, nullptr, 'd'}, // backward compatibility
   {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
   {"dump-result", required_argument, nullptr, DUMP_RESULT},
   {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
@@ -317,7 +318,7 @@ process_main_options(int argc, const char* const* argv)
     const std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
-    case 'd': // --directory
+    case 'd': // --dir
       Util::setenv("CCACHE_DIR", arg);
       break;
 
@@ -350,7 +351,7 @@ process_main_options(int argc, const char* const* argv)
 
     switch (c) {
     case CONFIG_PATH:
-    case 'd': // --directory
+    case 'd': // --dir
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
       // Already handled in the first pass.
