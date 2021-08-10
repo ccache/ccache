@@ -189,51 +189,53 @@ get_usage_text()
   return FMT(USAGE_TEXT, CCACHE_NAME);
 }
 
+enum {
+  CHECKSUM_FILE,
+  CONFIG_PATH,
+  DUMP_MANIFEST,
+  DUMP_RESULT,
+  EVICT_OLDER_THAN,
+  EXTRACT_RESULT,
+  HASH_FILE,
+  PRINT_STATS,
+  SHOW_LOG_STATS,
+};
+
+const char options_string[] = "cCd:k:hF:M:po:sVxX:z";
+const option long_options[] = {
+  {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
+  {"cleanup", no_argument, nullptr, 'c'},
+  {"clear", no_argument, nullptr, 'C'},
+  {"config-path", required_argument, nullptr, CONFIG_PATH},
+  {"directory", required_argument, nullptr, 'd'},
+  {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
+  {"dump-result", required_argument, nullptr, DUMP_RESULT},
+  {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
+  {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
+  {"get-config", required_argument, nullptr, 'k'},
+  {"hash-file", required_argument, nullptr, HASH_FILE},
+  {"help", no_argument, nullptr, 'h'},
+  {"max-files", required_argument, nullptr, 'F'},
+  {"max-size", required_argument, nullptr, 'M'},
+  {"print-stats", no_argument, nullptr, PRINT_STATS},
+  {"recompress", required_argument, nullptr, 'X'},
+  {"set-config", required_argument, nullptr, 'o'},
+  {"show-compression", no_argument, nullptr, 'x'},
+  {"show-config", no_argument, nullptr, 'p'},
+  {"show-log-stats", no_argument, nullptr, SHOW_LOG_STATS},
+  {"show-stats", no_argument, nullptr, 's'},
+  {"version", no_argument, nullptr, 'V'},
+  {"zero-stats", no_argument, nullptr, 'z'},
+  {nullptr, 0, nullptr, 0}};
+
 int
 process_main_options(int argc, const char* const* argv)
 {
-  enum longopts {
-    CHECKSUM_FILE,
-    CONFIG_PATH,
-    DUMP_MANIFEST,
-    DUMP_RESULT,
-    EVICT_OLDER_THAN,
-    EXTRACT_RESULT,
-    HASH_FILE,
-    PRINT_STATS,
-    SHOW_LOG_STATS,
-  };
-  static const struct option options[] = {
-    {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
-    {"cleanup", no_argument, nullptr, 'c'},
-    {"clear", no_argument, nullptr, 'C'},
-    {"config-path", required_argument, nullptr, CONFIG_PATH},
-    {"directory", required_argument, nullptr, 'd'},
-    {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
-    {"dump-result", required_argument, nullptr, DUMP_RESULT},
-    {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
-    {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
-    {"get-config", required_argument, nullptr, 'k'},
-    {"hash-file", required_argument, nullptr, HASH_FILE},
-    {"help", no_argument, nullptr, 'h'},
-    {"max-files", required_argument, nullptr, 'F'},
-    {"max-size", required_argument, nullptr, 'M'},
-    {"print-stats", no_argument, nullptr, PRINT_STATS},
-    {"recompress", required_argument, nullptr, 'X'},
-    {"set-config", required_argument, nullptr, 'o'},
-    {"show-compression", no_argument, nullptr, 'x'},
-    {"show-config", no_argument, nullptr, 'p'},
-    {"show-log-stats", no_argument, nullptr, SHOW_LOG_STATS},
-    {"show-stats", no_argument, nullptr, 's'},
-    {"version", no_argument, nullptr, 'V'},
-    {"zero-stats", no_argument, nullptr, 'z'},
-    {nullptr, 0, nullptr, 0}};
-
   int c;
   while ((c = getopt_long(argc,
                           const_cast<char* const*>(argv),
-                          "cCd:k:hF:M:po:sVxX:z",
-                          options,
+                          options_string,
+                          long_options,
                           nullptr))
          != -1) {
     Config config;
