@@ -232,6 +232,27 @@ int
 process_main_options(int argc, const char* const* argv)
 {
   int c;
+
+  // First pass: Handle non-command options that affect command options.
+  while ((c = getopt_long(argc,
+                          const_cast<char* const*>(argv),
+                          options_string,
+                          long_options,
+                          nullptr))
+         != -1) {
+    switch (c) {
+    case 'd': // --directory
+      Util::setenv("CCACHE_DIR", optarg);
+      break;
+
+    case CONFIG_PATH:
+      Util::setenv("CCACHE_CONFIGPATH", optarg);
+      break;
+    }
+  }
+
+  // Second pass: Handle command options in order.
+  optind = 1;
   while ((c = getopt_long(argc,
                           const_cast<char* const*>(argv),
                           options_string,
@@ -244,6 +265,12 @@ process_main_options(int argc, const char* const* argv)
     std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
+    case CONFIG_PATH:
+      break; // Already handled in the first pass.
+
+    case 'd': // --directory
+      break;  // Already handled in the first pass.
+
     case CHECKSUM_FILE: {
       Checksum checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
@@ -253,10 +280,6 @@ process_main_options(int argc, const char* const* argv)
       PRINT(stdout, "{:016x}\n", checksum.digest());
       break;
     }
-
-    case CONFIG_PATH:
-      Util::setenv("CCACHE_CONFIGPATH", arg);
-      break;
 
     case DUMP_MANIFEST:
       return Manifest::dump(arg, stdout) ? 0 : 1;
@@ -337,10 +360,6 @@ process_main_options(int argc, const char* const* argv)
 #endif
       break;
     }
-
-    case 'd': // --directory
-      Util::setenv("CCACHE_DIR", arg);
-      break;
 
     case 'h': // --help
       PRINT(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
