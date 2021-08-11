@@ -161,26 +161,26 @@ print_compression_statistics(const storage::primary::CompressionStatistics& cs)
   util::TextTable table;
 
   table.add_row({
-    C("Total data:"),
+    "Total data:",
     C(human_readable(cs.compr_size + cs.incompr_size)).right_align(),
-    C(FMT("({} disk blocks)", human_readable(cs.on_disk_size))),
+    FMT("({} disk blocks)", human_readable(cs.on_disk_size)),
   });
   table.add_row({
-    C("Compressed data:"),
+    "Compressed data:",
     C(human_readable(cs.compr_size)).right_align(),
-    C(FMT("({:.1f}% of original size)", 100.0 - savings)),
+    FMT("({:.1f}% of original size)", 100.0 - savings),
   });
   table.add_row({
-    C("  Original size:"),
+    "  Original size:",
     C(human_readable(cs.content_size)).right_align(),
   });
   table.add_row({
-    C("  Compression ratio:"),
+    "  Compression ratio:",
     C(FMT("{:.3f} x ", ratio)).right_align(),
-    C(FMT("({:.1f}% space savings)", savings)),
+    FMT("({:.1f}% space savings)", savings),
   });
   table.add_row({
-    C("Incompressible data:"),
+    "Incompressible data:",
     C(human_readable(cs.incompr_size)).right_align(),
   });
 
