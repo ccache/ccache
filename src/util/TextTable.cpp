@@ -75,6 +75,10 @@ TextTable::Cell::Cell(const std::string& text)
 {
 }
 
+TextTable::Cell::Cell(const char* text) : Cell(std::string(text))
+{
+}
+
 TextTable::Cell::Cell(const uint64_t number)
   : m_text(fmt::format("{}", number)),
     m_right_align(true)
