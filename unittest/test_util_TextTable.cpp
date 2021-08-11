@@ -48,8 +48,8 @@ TEST_CASE("TextTable")
   SUBCASE("1x2")
   {
     table.add_row({{"a"}});
-    table.add_row({{"b"}});
-    CHECK(table.render() == "a\nb\n");
+    table.add_row({1});
+    CHECK(table.render() == "a\n1\n");
   }
 
   SUBCASE("3 + 2")
@@ -59,6 +59,28 @@ TEST_CASE("TextTable")
     CHECK(table.render()
           == ("a  b   c\n"
               "aa bbb\n"));
+  }
+
+  SUBCASE("strings and numbers")
+  {
+    table.add_row({{"a"}, 123, {"cc"}});
+    table.add_row({{"aa"}, 4, {"ccc"}});
+    table.add_row({{"aaa"}, 56, {"c"}});
+    CHECK(table.render()
+          == ("a   123 cc\n"
+              "aa    4 ccc\n"
+              "aaa  56 c\n"));
+  }
+
+  SUBCASE("left align")
+  {
+    table.add_row({{"a"}, 123, {"cc"}});
+    table.add_row({{"aa"}, C(4).left_align(), {"ccc"}});
+    table.add_row({{"aaa"}, 56, {"c"}});
+    CHECK(table.render()
+          == ("a   123 cc\n"
+              "aa  4   ccc\n"
+              "aaa  56 c\n"));
   }
 
   SUBCASE("right align")

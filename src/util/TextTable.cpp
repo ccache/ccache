@@ -69,8 +69,23 @@ TextTable::render() const
   return result;
 }
 
-TextTable::Cell::Cell(const std::string& text) : m_text(text)
+TextTable::Cell::Cell(const std::string& text)
+  : m_text(text),
+    m_right_align(false)
 {
+}
+
+TextTable::Cell::Cell(const uint64_t number)
+  : m_text(fmt::format("{}", number)),
+    m_right_align(true)
+{
+}
+
+TextTable::Cell&
+TextTable::Cell::left_align()
+{
+  m_right_align = false;
+  return *this;
 }
 
 TextTable::Cell&

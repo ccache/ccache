@@ -31,7 +31,9 @@ public:
   {
   public:
     Cell(const std::string& text);
+    Cell(uint64_t number);
 
+    Cell& left_align();
     Cell& right_align();
 
   private:
