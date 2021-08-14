@@ -105,4 +105,17 @@ TEST_CASE("TextTable")
               "DDDDDD\n"
               "aaa bbb ccc\n"));
   }
+
+  SUBCASE("colspan")
+  {
+    table.add_row({C("22").colspan(2), C("2r").colspan(2).right_align()});
+    table.add_row({C("1").colspan(1), C("22222").colspan(2), "1"});
+    table.add_row({"1", "1", "1", "1", "1"});
+    table.add_row({"1", C("3333333333").colspan(3), "1"});
+    CHECK(table.render()
+          == ("22        2r\n"      // 4 columns
+              "1 22222 1\n"         // 4 columns
+              "1 1 1   1    1\n"    // 5 columns
+              "1 3333333333 1\n")); // 5 columns
+  }
 }

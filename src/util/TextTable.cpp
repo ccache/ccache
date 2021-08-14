@@ -18,6 +18,8 @@
 
 #include "TextTable.hpp"
 
+#include <assertions.hpp>
+
 #include <third_party/fmt/core.h>
 
 #include <algorithm>
@@ -35,33 +37,74 @@ TextTable::add_heading(const std::string& text)
 void
 TextTable::add_row(const std::initializer_list<Cell> cells)
 {
-  m_rows.emplace_back(cells);
+  m_rows.emplace_back();
+  for (const auto& cell : cells) {
+    for (size_t i = 0; i < cell.m_colspan - 1; ++i) {
+      Cell dummy("");
+      dummy.m_colspan = 0;
+      m_rows.back().push_back(dummy);
+    }
+    m_rows.back().push_back(cell);
+
+    m_columns = std::max(m_columns, m_rows.back().size());
+  }
+}
+
+std::vector<size_t>
+TextTable::compute_column_widths() const
+{
+  std::vector<size_t> result(m_columns, 0);
+
+  for (size_t column_index = 0; column_index < m_columns; ++column_index) {
+    for (const auto row : m_rows) {
+      if (column_index >= row.size()) {
+        continue;
+      }
+      const auto& cell = row[column_index];
+      if (cell.m_heading || cell.m_colspan == 0) {
+        continue;
+      }
+
+      size_t width_of_left_cols_in_span = 0;
+      for (size_t i = 0; i < cell.m_colspan - 1; ++i) {
+        width_of_left_cols_in_span += 1 + result[column_index - i - 1];
+      }
+      result[column_index] = std::max(
+        result[column_index],
+        cell.m_text.length()
+          - std::min(width_of_left_cols_in_span, cell.m_text.length()));
+    }
+  }
+
+  return result;
 }
 
 std::string
 TextTable::render() const
 {
-  std::vector<size_t> column_widths;
-
-  for (const auto& row : m_rows) {
-    column_widths.resize(std::max(column_widths.size(), row.size()));
-    for (size_t i = 0; i < row.size(); ++i) {
-      if (!row[i].m_heading) {
-        column_widths[i] = std::max(column_widths[i], row[i].m_text.size());
-      }
-    }
-  }
+  auto column_widths = compute_column_widths();
 
   std::string result;
   for (const auto& row : m_rows) {
     std::string r;
+    bool first = true;
     for (size_t i = 0; i < row.size(); ++i) {
-      if (i > 0) {
+      const auto& cell = row[i];
+      if (cell.m_colspan == 0) {
+        continue;
+      }
+      if (first) {
+        first = false;
+      } else {
         r += ' ';
       }
-      r += fmt::format((row[i].m_right_align ? "{:>{}}" : "{:<{}}"),
-                       row[i].m_text,
-                       column_widths[i]);
+
+      size_t width = 0;
+      for (size_t j = i + 1 - cell.m_colspan; j <= i; ++j) {
+        width += column_widths[j] + (j == i ? 0 : 1);
+      }
+      r += fmt::format(
+        (cell.m_right_align ? "{:>{}}" : "{:<{}}"), cell.m_text, width);
     }
     result.append(r, 0, r.find_last_not_of(' ') + 1);
     result += '\n';
@@ -89,6 +132,14 @@ TextTable::Cell&
 TextTable::Cell::left_align()
 {
   m_right_align = false;
+  return *this;
+}
+
+TextTable::Cell&
+TextTable::Cell::colspan(const size_t columns)
+{
+  ASSERT(columns >= 1);
+  m_colspan = columns;
   return *this;
 }
 
