@@ -50,7 +50,7 @@ target_compile_definitions(
 )
 
 if(WIN32)
-  target_link_libraries(ccache_framework PRIVATE ws2_32 "psapi")
+  target_link_libraries(ccache_framework PRIVATE "psapi")
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     if(STATIC_LINK)
