@@ -333,6 +333,9 @@ process_main_options(int argc, const char* const* argv)
     case TRIM_METHOD:
       trim_lru_mtime = (arg == "ctime");
       break;
+
+    case '?': // unknown option
+      return EXIT_FAILURE;
     }
   }
 
