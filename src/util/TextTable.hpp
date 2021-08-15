@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -48,7 +47,7 @@ public:
   };
 
   void add_heading(const std::string& text);
-  void add_row(std::initializer_list<Cell> cells);
+  void add_row(const std::vector<Cell>& cells);
   std::string render() const;
 
 private:

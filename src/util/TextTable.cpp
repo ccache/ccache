@@ -35,7 +35,7 @@ TextTable::add_heading(const std::string& text)
 }
 
 void
-TextTable::add_row(const std::initializer_list<Cell> cells)
+TextTable::add_row(const std::vector<Cell>& cells)
 {
   m_rows.emplace_back();
   for (const auto& cell : cells) {
@@ -56,7 +56,7 @@ TextTable::compute_column_widths() const
   std::vector<size_t> result(m_columns, 0);
 
   for (size_t column_index = 0; column_index < m_columns; ++column_index) {
-    for (const auto row : m_rows) {
+    for (const auto& row : m_rows) {
       if (column_index >= row.size()) {
         continue;
       }
