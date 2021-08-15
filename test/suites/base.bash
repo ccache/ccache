@@ -374,7 +374,7 @@ fi
     TEST "CCACHE_DEBUGDIR"
 
     CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
-    expect_contains debugdir"$(pwd -P)"/test1.o.ccache-log "Result: cache miss"
+    expect_contains debugdir"$(pwd -P)"/test1.o.ccache-log "Result: cache_miss"
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"

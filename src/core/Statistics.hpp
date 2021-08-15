@@ -36,9 +36,6 @@ public:
   // Return machine-readable strings representing the statistics counters.
   std::vector<std::string> get_statistics_ids() const;
 
-  // Return human-readable strings representing the statistics counters.
-  std::vector<std::string> get_statistics_messages() const;
-
   // Format config header in human-readable format.
   static std::string format_config_header(const Config& config);
 

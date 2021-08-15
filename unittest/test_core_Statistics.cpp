@@ -47,19 +47,4 @@ TEST_CASE("get_statistics_ids")
   CHECK(Statistics(counters).get_statistics_ids() == expected);
 }
 
-TEST_CASE("get_statistics_messages")
-{
-  TestContext test_context;
-
-  StatisticsCounters counters;
-  counters.increment(Statistic::cache_size_kibibyte);
-  counters.increment(Statistic::cache_miss);
-  counters.increment(Statistic::direct_cache_hit);
-  counters.increment(Statistic::autoconf_test);
-
-  std::vector<std::string> expected = {
-    "autoconf compile/link", "cache hit (direct)", "cache miss"};
-  CHECK(Statistics(counters).get_statistics_messages() == expected);
-}
-
 TEST_SUITE_END();

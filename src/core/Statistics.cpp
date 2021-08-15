@@ -189,12 +189,6 @@ Statistics::get_statistics_ids() const
   return get_statistics_fields(m_counters, true);
 }
 
-std::vector<std::string>
-Statistics::get_statistics_messages() const
-{
-  return get_statistics_fields(m_counters, false);
-}
-
 std::string
 Statistics::format_config_header(const Config& config)
 {

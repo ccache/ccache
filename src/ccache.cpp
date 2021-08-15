@@ -1856,7 +1856,7 @@ log_result_to_debug_log(Context& ctx)
   }
 
   core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
-  for (const auto& message : statistics.get_statistics_messages()) {
+  for (const auto& message : statistics.get_statistics_ids()) {
     LOG("Result: {}", message);
   }
 }
