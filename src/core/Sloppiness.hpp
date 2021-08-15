@@ -23,29 +23,29 @@
 namespace core {
 
 enum class Sloppy : uint32_t {
-  none = 0u,
+  none = 0U,
 
-  include_file_mtime = 1u << 0,
-  include_file_ctime = 1u << 1,
-  time_macros = 1u << 2,
-  pch_defines = 1u << 3,
+  include_file_mtime = 1U << 0,
+  include_file_ctime = 1U << 1,
+  time_macros = 1U << 2,
+  pch_defines = 1U << 3,
   // Allow us to match files based on their stats (size, mtime, ctime), without
   // looking at their contents.
-  file_stat_matches = 1u << 4,
+  file_stat_matches = 1U << 4,
   // Allow us to not include any system headers in the manifest include files,
   // similar to -MM versus -M for dependencies.
-  system_headers = 1u << 5,
+  system_headers = 1U << 5,
   // Allow us to ignore ctimes when comparing file stats, so we can fake mtimes
   // if we want to (it is much harder to fake ctimes, requires changing clock)
-  file_stat_matches_ctime = 1u << 6,
+  file_stat_matches_ctime = 1U << 6,
   // Allow us to not include the -index-store-path option in the manifest hash.
-  clang_index_store = 1u << 7,
+  clang_index_store = 1U << 7,
   // Ignore locale settings.
-  locale = 1u << 8,
+  locale = 1U << 8,
   // Allow caching even if -fmodules is used.
-  modules = 1u << 9,
+  modules = 1U << 9,
   // Ignore virtual file system (VFS) overlay file.
-  ivfsoverlay = 1u << 10,
+  ivfsoverlay = 1U << 10,
 };
 
 class Sloppiness
