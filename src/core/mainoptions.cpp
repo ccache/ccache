@@ -452,7 +452,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'h': // --help
       PRINT(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
-      exit(EXIT_SUCCESS);
+      return EXIT_SUCCESS;
 
     case 'k': // --get-config
       PRINT(stdout, "{}\n", config.get_string_value(arg));
@@ -532,7 +532,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
       PRINT_RAW(stdout, get_version_text());
-      exit(EXIT_SUCCESS);
+      break;
 
     case 'x': // --show-compression
     {
@@ -570,11 +570,11 @@ process_main_options(int argc, const char* const* argv)
 
     default:
       PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 } // namespace core
