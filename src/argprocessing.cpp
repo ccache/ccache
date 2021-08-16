@@ -169,7 +169,7 @@ process_profiling_option(Context& ctx, const std::string& arg)
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-generate" || arg == "-fprofile-instr-generate") {
     ctx.args_info.profile_generate = true;
-    if (ctx.config.compiler_type() == CompilerType::clang) {
+    if (ctx.config.base_compiler_type() == CompilerType::clang) {
       new_profile_path = ".";
     } else {
       // GCC uses $PWD/$(basename $obj).
@@ -512,7 +512,8 @@ process_arg(Context& ctx,
   // with gcc -E, when the output file is not specified.
   if (args[i] == "-MD" || args[i] == "-MMD") {
     args_info.generating_dependencies = true;
-    args_info.seen_MD_MMD = true;
+    args_info.seen_MD |= (args[i] == "-MD");
+    args_info.seen_MMD |= (args[i] == "-MMD");
     state.dep_args.push_back(args[i]);
     return nullopt;
   }
@@ -1193,7 +1194,7 @@ process_args(Context& ctx)
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
   nonstd::optional<std::string> diagnostics_color_arg;
-  if (config.compiler_type() == CompilerType::clang) {
+  if (config.base_compiler_type() == CompilerType::clang) {
     // Don't pass -fcolor-diagnostics when compiling assembler to avoid an
     // "argument unused during compilation" warning.
     if (args_info.actual_language != "assembler") {
@@ -1204,6 +1205,21 @@ process_args(Context& ctx)
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
     args_info.strip_diagnostics_colors = false;
+  }
+
+  // Switch off incompatible modes before any processing that depend on modes.
+  if (ctx.config.unify_mode() && ctx.args_info.generating_debuginfo
+      && !ctx.config.sloppiness().is_enabled(core::Sloppy::unify_with_debug)) {
+    LOG_RAW("Disabling unify mode: debug info requested");
+    ctx.config.set_unify_mode(false);
+  }
+  if (ctx.config.unify_mode() && ctx.args_info.seen_MMD
+      && !ctx.config.sloppiness().is_enabled(core::Sloppy::system_headers)) {
+    LOG_RAW(
+      "Disabling unify mode: -MMD output requested, but -MD output needed to "
+      "track system headers. Either enable the system_header sloppiness option "
+      "or use run_second_cpp");
+    ctx.config.set_unify_mode(false);
   }
 
   if (args_info.generating_dependencies) {
@@ -1292,6 +1308,9 @@ process_args(Context& ctx)
   }
 
   Args preprocessor_args = state.common_args;
+  if (!config.preprocessor().empty()) {
+    preprocessor_args[0] = config.preprocessor();
+  }
   preprocessor_args.push_back(state.cpp_args);
 
   if (config.run_second_cpp()) {

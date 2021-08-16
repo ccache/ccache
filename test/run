@@ -233,12 +233,12 @@ expect_different_content() {
 }
 
 is_equal_object_files() {
-    if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
+    if $HOST_OS_LINUX; then
         if ! command -v eu-elfcmp >/dev/null; then
             test_failed_internal "Please install elfutils to get eu-elfcmp"
         fi
         eu-elfcmp -q "$1" "$2"
-    elif $HOST_OS_FREEBSD && $COMPILER_TYPE_CLANG; then
+    elif $HOST_OS_FREEBSD; then
         elfdump -a -w "$1".dump "$1"
         elfdump -a -w "$2".dump "$2"
         # these were the elfdump fields that seemed to differ (empirically)
@@ -505,6 +505,7 @@ case $compiler_version in
     *clang*)
         COMPILER_TYPE_CLANG=true
         CLANG_VERSION_SUFFIX=$(echo "${COMPILER%% *}" | sed 's/.*clang//')
+        CLANG_VERSION_MAJOR=$(echo "${compiler_version}" | sed -En 's/.*version ([0-9]+)\.([0-9]+)\.([0-9]+) .*/\1/p')
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- Skipped running tests" >&2

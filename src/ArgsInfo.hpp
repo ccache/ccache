@@ -58,8 +58,11 @@ struct ArgsInfo
   // Is the compiler being asked to output dependencies?
   bool generating_dependencies = false;
 
-  // Seen -MD or -MMD?
-  bool seen_MD_MMD = false;
+  // Seen -MD?
+  bool seen_MD = false;
+
+  // Seen -MMD?
+  bool seen_MMD = false;
 
   // Is the dependency makefile target name specified with -MT or -MQ?
   bool dependency_target_specified = false;

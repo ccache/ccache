@@ -79,6 +79,7 @@ Ccache is a collective work with contributions from many people, including:
 * Matthias Kretz
 * Matt Whitlock
 * Melven Roehrig-Zoellner
+* Michael Kruse
 * Michael Marineau
 * Michael Meeks
 * Michał Mirosław

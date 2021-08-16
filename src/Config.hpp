@@ -31,7 +31,15 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump };
+enum class CompilerType {
+  auto_guess,
+  clang,
+  clang_minimize_whitespace,
+  gcc,
+  nvcc,
+  other,
+  pump
+};
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
@@ -72,6 +80,9 @@ public:
   bool pch_external_checksum() const;
   const std::string& prefix_command() const;
   const std::string& prefix_command_cpp() const;
+  const std::string& preprocessor() const;
+  const std::string& preprocessor_check() const;
+  CompilerType preprocessor_type() const;
   bool read_only() const;
   bool read_only_direct() const;
   bool recache() const;
@@ -83,6 +94,7 @@ public:
   const std::string& stats_log() const;
   const std::string& temporary_dir() const;
   nonstd::optional<mode_t> umask() const;
+  bool unify_mode() const;
 
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
@@ -96,7 +108,10 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_max_size(uint64_t value);
+  void set_preprocessor(const std::string& value);
+  void set_preprocessor_type(CompilerType value);
   void set_run_second_cpp(bool value);
+  void set_unify_mode(bool value);
 
   // Where to write configuration changes.
   const std::string& primary_config_path() const;
@@ -133,6 +148,12 @@ public:
   // Called from unit tests.
   static void check_key_tables_consistency();
 
+  // Normalize the underlying compiler type without variants.
+  CompilerType base_compiler_type() const;
+
+  const std::string& effective_preprocessor() const;
+  CompilerType effective_preprocessor_type() const;
+
 private:
   std::string m_primary_config_path;
   std::string m_secondary_config_path;
@@ -167,6 +188,9 @@ private:
   bool m_pch_external_checksum = false;
   std::string m_prefix_command;
   std::string m_prefix_command_cpp;
+  std::string m_preprocessor;
+  std::string m_preprocessor_check = "mtime";
+  CompilerType m_preprocessor_type = CompilerType::auto_guess;
   bool m_read_only = false;
   bool m_read_only_direct = false;
   bool m_recache = false;
@@ -178,6 +202,7 @@ private:
   std::string m_stats_log;
   std::string m_temporary_dir;
   nonstd::optional<mode_t> m_umask;
+  bool m_unify_mode = false;
 
   bool m_temporary_dir_configured_explicitly = false;
 
@@ -228,6 +253,24 @@ Config::compiler_type() const
   return m_compiler_type;
 }
 
+inline const std::string&
+Config::preprocessor() const
+{
+  return m_preprocessor;
+}
+
+inline const std::string&
+Config::preprocessor_check() const
+{
+  return m_preprocessor_check;
+}
+
+inline CompilerType
+Config::preprocessor_type() const
+{
+  return m_preprocessor_type;
+}
+
 inline bool
 Config::compression() const
 {
@@ -268,6 +311,12 @@ inline bool
 Config::direct_mode() const
 {
   return m_direct_mode;
+}
+
+inline bool
+Config::unify_mode() const
+{
+  return m_unify_mode;
 }
 
 inline bool
@@ -472,9 +521,27 @@ Config::set_compiler_type(CompilerType value)
 }
 
 inline void
+Config::set_preprocessor(const std::string& value)
+{
+  m_preprocessor = value;
+}
+
+inline void
+Config::set_preprocessor_type(CompilerType value)
+{
+  m_preprocessor_type = value;
+}
+
+inline void
 Config::set_depend_mode(bool value)
 {
   m_depend_mode = value;
+}
+
+inline void
+Config::set_unify_mode(bool value)
+{
+  m_unify_mode = value;
 }
 
 inline void
@@ -517,4 +584,31 @@ inline void
 Config::set_run_second_cpp(bool value)
 {
   m_run_second_cpp = value;
+}
+
+inline CompilerType
+Config::base_compiler_type() const
+{
+  if (m_compiler_type == CompilerType::clang_minimize_whitespace) {
+    return CompilerType::clang;
+  }
+  return m_compiler_type;
+}
+
+inline const std::string&
+Config::effective_preprocessor() const
+{
+  if (m_preprocessor.empty()) {
+    return m_compiler;
+  }
+  return m_preprocessor;
+}
+
+inline CompilerType
+Config::effective_preprocessor_type() const
+{
+  if (m_preprocessor.empty()) {
+    return m_compiler_type;
+  }
+  return m_preprocessor_type;
 }

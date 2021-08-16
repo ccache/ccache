@@ -31,6 +31,14 @@ else()
   generate_doc(html    doc/AUTHORS.adoc AUTHORS.html)
   generate_doc(html    doc/MANUAL.adoc  MANUAL.html)
   generate_doc(html    doc/NEWS.adoc    NEWS.html)
+  add_custom_command(
+    OUTPUT "unify_mode.svg"
+    MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/unify_mode.svg"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/unify_mode.svg" "unify_mode.svg"
+    VERBATIM
+  )
+  list(APPEND doc_files "unify_mode.svg")
+  
   add_custom_target(doc-html DEPENDS "${doc_files}")
 
   #

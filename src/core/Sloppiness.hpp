@@ -46,6 +46,17 @@ enum class Sloppy : uint32_t {
   modules = 1u << 9,
   // Ignore virtual file system (VFS) overlay file.
   ivfsoverlay = 1u << 10,
+  // Skip scanning for .incbin dependencies in preprocessor and unify modes.
+  // Direct and depend modes always ignore them.
+  incbin = 1 << 11,
+  // Unify mode: Allow unify mode even with -g flag. Debug info (used be
+  // debuggers) line location may be approximate due to the reuse of compiler
+  // output after adding or removing whitespace.
+  unify_with_debug = 1 << 12,
+  // Unify mode: Allow caching even if there was compiler output. Diagnosed
+  // error/warning locations may be approximate due to the reuse of compiler
+  // output after whitespace change.
+  unify_with_output = 1 << 13,
 };
 
 class Sloppiness

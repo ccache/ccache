@@ -676,16 +676,25 @@ b"
     expect_stat files_in_cache 32
 
     # -------------------------------------------------------------------------
-    TEST "Direct .i compile"
+    # unify mode does not save the -E output, hence cannot cache-hit it.
+    if [ -z "$CCACHE_UNIFY" ]; then
+        TEST "Direct .i compile"
 
-    $CCACHE_COMPILE -c test1.c
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
+        $CCACHE_COMPILE -c test1.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
 
-    $REAL_COMPILER -c test1.c -E >test1.i
-    $CCACHE_COMPILE -c test1.i
-    expect_stat preprocessed_cache_hit 1
-    expect_stat cache_miss 1
+        # ccache uses -fminimize-whitespace for its hashing when possible
+        NORMALIZATION_FLAGS=
+        if [ -n "$CLANG_VERSION_MAJOR" -a "$CLANG_VERSION_MAJOR" -ge 14 ]; then
+            NORMALIZATION_FLAGS=-fminimize-whitespace
+        fi
+
+        $REAL_COMPILER -c test1.c -E $NORMALIZATION_FLAGS >test1.i
+        $CCACHE_COMPILE -c test1.i
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+    fi
 
     # -------------------------------------------------------------------------
     TEST "-x c"
@@ -1320,7 +1329,7 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    if [ -z "$CCACHE_NOCPP2" ]; then
+    if [ -z "$CCACHE_NOCPP2" -a -z "$CCACHE_UNIFY" ]; then
         expect_content compiler.args "[-E test1.c][-c -o test1.o test1.c]"
     fi
     rm compiler.args
@@ -1329,7 +1338,9 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_content compiler.args "[-E test1.c]"
+    if [ -z "$CCACHE_UNIFY" ]; then
+        expect_content compiler.args "[-E test1.c]"
+    fi
     rm compiler.args
 
     # Even though -Werror is not passed to the preprocessor, it should be part
@@ -1338,7 +1349,7 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 2
     expect_stat files_in_cache 2
-    if [ -z "$CCACHE_NOCPP2" ]; then
+    if [ -z "$CCACHE_NOCPP2" -a -z "$CCACHE_UNIFY" ]; then
         expect_content compiler.args "[-E test1.c][-Werror -rdynamic -c -o test1.o test1.c]"
     fi
     rm compiler.args
