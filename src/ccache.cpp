@@ -992,10 +992,10 @@ to_cache(Context& ctx,
     *result_key, core::CacheEntryType::result, [&](const auto& path) {
       return write_result(ctx, path, obj_stat, tmp_stderr_path);
     });
+  MTR_END("result", "result_put");
   if (!added) {
     return nonstd::make_unexpected(Statistic::internal_error);
   }
-  MTR_END("result", "result_put");
 
   // Everything OK.
   Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
@@ -1736,7 +1736,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     return false;
   }
 
-  MTR_BEGIN("cache", "from_cache");
+  MTR_SCOPE("cache", "from_cache");
 
   // Get result from cache.
   const auto result_path =
@@ -1750,7 +1750,6 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     ctx, should_rewrite_dependency_target(ctx.args_info));
 
   auto error = result_reader.read(result_retriever);
-  MTR_END("cache", "from_cache");
   if (error) {
     LOG("Failed to get result from cache: {}", *error);
     return false;
@@ -2064,10 +2063,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   Hash common_hash;
   init_hash_debug(ctx, common_hash, 'c', "COMMON", debug_text_file);
 
-  MTR_BEGIN("hash", "common_hash");
-  TRY(hash_common_info(
-    ctx, processed.preprocessor_args, common_hash, ctx.args_info));
-  MTR_END("hash", "common_hash");
+  {
+    MTR_SCOPE("hash", "common_hash");
+    TRY(hash_common_info(
+      ctx, processed.preprocessor_args, common_hash, ctx.args_info));
+  }
 
   // Try to find the hash using the manifest.
   Hash direct_hash = common_hash;
@@ -2083,15 +2083,15 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");
-    MTR_BEGIN("hash", "direct_hash");
     Args dummy_args;
+    MTR_BEGIN("hash", "direct_hash");
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
       ctx, args_to_hash, dummy_args, direct_hash, true);
+    MTR_END("hash", "direct_hash");
     if (!result_and_manifest_key) {
       return nonstd::make_unexpected(result_and_manifest_key.error());
     }
     std::tie(result_key, manifest_key) = *result_and_manifest_key;
-    MTR_END("hash", "direct_hash");
     if (result_key) {
       // If we can return from cache at this point then do so.
       const bool found =
@@ -2127,11 +2127,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     MTR_BEGIN("hash", "cpp_hash");
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
       ctx, args_to_hash, processed.preprocessor_args, cpp_hash, false);
+    MTR_END("hash", "cpp_hash");
     if (!result_and_manifest_key) {
       return nonstd::make_unexpected(result_and_manifest_key.error());
     }
     result_key = result_and_manifest_key->first;
-    MTR_END("hash", "cpp_hash");
 
     // calculate_result_and_manifest_key always returns a non-nullopt result_key
     // if the last argument (direct_mode) is false.
@@ -2187,6 +2187,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                                result_key,
                                ctx.args_info.depend_extra_args,
                                depend_mode_hash);
+  MTR_END("cache", "to_cache");
   if (!digest) {
     return nonstd::make_unexpected(digest.error());
   }
@@ -2195,7 +2196,6 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ASSERT(manifest_key);
     update_manifest_file(ctx, *manifest_key, *result_key);
   }
-  MTR_END("cache", "to_cache");
 
   return ctx.config.recache() ? Statistic::recache : Statistic::cache_miss;
 }
