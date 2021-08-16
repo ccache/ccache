@@ -36,14 +36,11 @@ public:
   // Return machine-readable strings representing the statistics counters.
   std::vector<std::string> get_statistics_ids() const;
 
-  // Format config header in human-readable format.
-  static std::string format_config_header(const Config& config);
-
   // Format cache statistics in human-readable format.
-  std::string format_human_readable(time_t last_updated, bool from_log) const;
-
-  // Format config footer in human-readable format.
-  static std::string format_config_footer(const Config& config);
+  std::string format_human_readable(const Config& config,
+                                    time_t last_updated,
+                                    uint8_t verbosity,
+                                    bool from_log) const;
 
   // Format cache statistics in machine-readable format.
   std::string format_machine_readable(time_t last_updated) const;
@@ -56,6 +53,10 @@ public:
 
 private:
   const StatisticsCounters m_counters;
+
+  uint64_t count_stats(unsigned flags) const;
+  std::vector<std::pair<std::string, uint64_t>> get_stats(unsigned flags,
+                                                          bool all) const;
 };
 
 // --- Inline implementations ---

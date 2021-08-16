@@ -108,6 +108,7 @@ Common options:
                                in human-readable format
     -s, --show-stats           show summary of configuration and statistics
                                counters in human-readable format
+    -v, --verbose              increase verbosity
     -z, --zero-stats           zero statistics counters
 
     -h, --help                 print this help text
@@ -270,7 +271,7 @@ enum {
   TRIM_METHOD,
 };
 
-const char options_string[] = "cCd:k:hF:M:po:sVxX:z";
+const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
 const option long_options[] = {
   {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
   {"cleanup", no_argument, nullptr, 'c'},
@@ -297,6 +298,7 @@ const option long_options[] = {
   {"trim-dir", required_argument, nullptr, TRIM_DIR},
   {"trim-max-size", required_argument, nullptr, TRIM_MAX_SIZE},
   {"trim-method", required_argument, nullptr, TRIM_METHOD},
+  {"verbose", no_argument, nullptr, 'v'},
   {"version", no_argument, nullptr, 'V'},
   {"zero-stats", no_argument, nullptr, 'z'},
   {nullptr, 0, nullptr, 0}};
@@ -307,6 +309,7 @@ process_main_options(int argc, const char* const* argv)
   int c;
   nonstd::optional<uint64_t> trim_max_size;
   bool trim_lru_mtime = false;
+  uint8_t verbosity = 0;
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -334,6 +337,10 @@ process_main_options(int argc, const char* const* argv)
       trim_lru_mtime = (arg == "ctime");
       break;
 
+    case 'v': // --verbose
+      ++verbosity;
+      break;
+
     case '?': // unknown option
       return EXIT_FAILURE;
     }
@@ -357,6 +364,7 @@ process_main_options(int argc, const char* const* argv)
     case 'd': // --dir
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
+    case 'v': // --verbose
       // Already handled in the first pass.
       break;
 
@@ -503,11 +511,15 @@ process_main_options(int argc, const char* const* argv)
       if (config.stats_log().empty()) {
         throw Fatal("No stats log has been configured");
       }
-      PRINT(stdout, "{:36}{}\n", "stats log", config.stats_log());
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
         Stat::stat(config.stats_log(), Stat::OnError::log).mtime();
-      PRINT_RAW(stdout, statistics.format_human_readable(timestamp, true));
+      PRINT_RAW(
+        stdout,
+        statistics.format_human_readable(config, timestamp, verbosity, true));
+      if (verbosity == 0) {
+        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
+      }
       break;
     }
 
@@ -517,9 +529,12 @@ process_main_options(int argc, const char* const* argv)
       std::tie(counters, last_updated) =
         storage::primary::PrimaryStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(stdout, statistics.format_config_header(config));
-      PRINT_RAW(stdout, statistics.format_human_readable(last_updated, false));
-      PRINT_RAW(stdout, statistics.format_config_footer(config));
+      PRINT_RAW(stdout,
+                statistics.format_human_readable(
+                  config, last_updated, verbosity, false));
+      if (verbosity == 0) {
+        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
+      }
       break;
     }
 

@@ -11,7 +11,7 @@ SUITE_upgrade() {
     else
         expected=$HOME/.cache/ccache
     fi
-    actual=$($CCACHE -s | sed -n 's/^cache directory *//p')
+    actual=$($CCACHE -k cache_dir)
     if [ "$actual" != "$expected" ]; then
         test_failed "expected cache directory $expected, actual $actual"
     fi
@@ -21,7 +21,7 @@ SUITE_upgrade() {
     else
         expected=$HOME/.config/ccache/ccache.conf
     fi
-    actual=$($CCACHE -s | sed -n 's/^primary config *//p')
+    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
     if [ "$actual" != "$expected" ]; then
         test_failed "expected primary config $expected actual $actual"
     fi
@@ -36,13 +36,13 @@ SUITE_upgrade() {
     export XDG_CONFIG_HOME=/elsewhere/config
 
     expected=$XDG_CACHE_HOME/ccache
-    actual=$($CCACHE -s | sed -n 's/^cache directory *//p')
+    actual=$($CCACHE -k cache_dir)
     if [ "$actual" != "$expected" ]; then
         test_failed "expected cache directory $expected, actual $actual"
     fi
 
     expected=$XDG_CONFIG_HOME/ccache/ccache.conf
-    actual=$($CCACHE -s | sed -n 's/^primary config *//p')
+    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
     if [ "$actual" != "$expected" ]; then
         test_failed "expected primary config $expected actual $actual"
     fi
@@ -58,13 +58,13 @@ SUITE_upgrade() {
     mkdir $HOME/.ccache
 
     expected=$HOME/.ccache
-    actual=$($CCACHE -s | sed -n 's/^cache directory *//p')
+    actual=$($CCACHE -k cache_dir)
     if [ "$actual" != "$expected" ]; then
         test_failed "expected cache directory $expected, actual $actual"
     fi
 
     expected=$HOME/.ccache/ccache.conf
-    actual=$($CCACHE -s | sed -n 's/^primary config *//p')
+    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
     if [ "$actual" != "$expected" ]; then
         test_failed "expected primary config $expected actual $actual"
     fi
@@ -79,13 +79,13 @@ SUITE_upgrade() {
     export XDG_CONFIG_HOME=/elsewhere/config
 
     expected=$CCACHE_DIR
-    actual=$($CCACHE -s | sed -n 's/^cache directory *//p')
+    actual=$($CCACHE -k cache_dir)
     if [ "$actual" != "$expected" ]; then
         test_failed "expected cache directory $expected, actual $actual"
     fi
 
     expected=$CCACHE_DIR/ccache.conf
-    actual=$($CCACHE -s | sed -n 's/^primary config *//p')
+    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
     if [ "$actual" != "$expected" ]; then
         test_failed "expected primary config $expected actual $actual"
     fi
@@ -105,13 +105,13 @@ SUITE_upgrade() {
     echo 'cache_dir = /nowhere' > $CCACHE_CONFIGPATH2
 
     expected=$XDG_CACHE_HOME/ccache
-    actual=$($CCACHE -s | sed -n 's/^cache directory *//p')
+    actual=$($CCACHE -k cache_dir)
     if [ "$actual" != "$expected" ]; then
         test_failed "expected cache directory $expected, actual $actual"
     fi
 
     expected=$XDG_CONFIG_HOME/ccache/ccache.conf
-    actual=$($CCACHE -s | sed -n 's/^primary config *//p')
+    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
     if [ "$actual" != "$expected" ]; then
         test_failed "expected primary config $expected actual $actual"
     fi

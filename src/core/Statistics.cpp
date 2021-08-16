@@ -22,23 +22,17 @@
 #include <Logging.hpp>
 #include <Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/TextTable.hpp>
 #include <util/string.hpp>
 
 namespace core {
 
 using core::Statistic;
 
-// Returns a formatted version of a statistics value, or the empty string if the
-// statistics line shouldn't be printed.
-using FormatFunction = std::string (*)(uint64_t value);
-
-static std::string format_size_times_1024(uint64_t value);
-static std::string format_timestamp(uint64_t value);
-
-const unsigned FLAG_NOZERO = 1;     // don't zero with the -z option
-const unsigned FLAG_ALWAYS = 2;     // always show, even if zero
-const unsigned FLAG_NEVER = 4;      // never show
-const unsigned FLAG_NOSTATSLOG = 8; // don't show for statslog
+const unsigned FLAG_NOZERO = 1U << 0;      // don't zero with --zero-stats
+const unsigned FLAG_NEVER = 1U << 1;       // don't include in --print-stats
+const unsigned FLAG_ERROR = 1U << 2;       // include in error count
+const unsigned FLAG_UNCACHEABLE = 1U << 3; // include in uncacheable count
 
 namespace {
 
@@ -46,123 +40,113 @@ struct StatisticsField
 {
   StatisticsField(const Statistic statistic_,
                   const char* const id_,
-                  const char* const message_,
-                  const unsigned flags_ = 0,
-                  const FormatFunction format_ = nullptr)
+                  const char* const description_,
+                  const unsigned flags_ = 0)
     : statistic(statistic_),
       id(id_),
-      message(message_),
-      flags(flags_),
-      format(format_)
+      description(description_),
+      flags(flags_)
   {
   }
 
   const Statistic statistic;
-  const char* const id;        // for --print-stats
-  const char* const message;   // for --show-stats
-  const unsigned flags;        // bitmask of FLAG_* values
-  const FormatFunction format; // nullptr -> use plain integer format
+  const char* const id;          // for --print-stats
+  const char* const description; // for --show-stats --verbose
+  const unsigned flags;          // bitmask of FLAG_* values
 };
 
 } // namespace
 
-#define STATISTICS_FIELD(id, ...)                                              \
+#define FIELD(id, ...)                                                         \
   {                                                                            \
     Statistic::id, #id, __VA_ARGS__                                            \
   }
 
-// Statistics fields in display order.
 const StatisticsField k_statistics_fields[] = {
-  STATISTICS_FIELD(
-    stats_zeroed_timestamp, "stats zeroed", FLAG_ALWAYS, format_timestamp),
-  STATISTICS_FIELD(direct_cache_hit, "cache hit (direct)", FLAG_ALWAYS),
-  STATISTICS_FIELD(
-    preprocessed_cache_hit, "cache hit (preprocessed)", FLAG_ALWAYS),
-  STATISTICS_FIELD(cache_miss, "cache miss", FLAG_ALWAYS),
-  STATISTICS_FIELD(direct_cache_miss, "cache miss (direct)"),
-  STATISTICS_FIELD(preprocessed_cache_miss, "cache miss (preprocessed)"),
-  STATISTICS_FIELD(primary_storage_hit, "primary storage hit"),
-  STATISTICS_FIELD(primary_storage_miss, "primary storage miss"),
-  STATISTICS_FIELD(secondary_storage_hit, "secondary storage hit"),
-  STATISTICS_FIELD(secondary_storage_miss, "secondary storage miss"),
-  STATISTICS_FIELD(secondary_storage_error, "secondary storage error"),
-  STATISTICS_FIELD(secondary_storage_timeout, "secondary storage timeout"),
-  STATISTICS_FIELD(recache, "forced recache"),
-  STATISTICS_FIELD(called_for_link, "called for link"),
-  STATISTICS_FIELD(called_for_preprocessing, "called for preprocessing"),
-  STATISTICS_FIELD(multiple_source_files, "multiple source files"),
-  STATISTICS_FIELD(compiler_produced_stdout, "compiler produced stdout"),
-  STATISTICS_FIELD(compiler_produced_no_output, "compiler produced no output"),
-  STATISTICS_FIELD(compiler_produced_empty_output,
-                   "compiler produced empty output"),
-  STATISTICS_FIELD(compile_failed, "compile failed"),
-  STATISTICS_FIELD(internal_error, "ccache internal error"),
-  STATISTICS_FIELD(preprocessor_error, "preprocessor error"),
-  STATISTICS_FIELD(could_not_use_precompiled_header,
-                   "can't use precompiled header"),
-  STATISTICS_FIELD(could_not_use_modules, "can't use modules"),
-  STATISTICS_FIELD(could_not_find_compiler, "couldn't find the compiler"),
-  STATISTICS_FIELD(missing_cache_file, "cache file missing"),
-  STATISTICS_FIELD(bad_compiler_arguments, "bad compiler arguments"),
-  STATISTICS_FIELD(unsupported_source_language, "unsupported source language"),
-  STATISTICS_FIELD(compiler_check_failed, "compiler check failed"),
-  STATISTICS_FIELD(autoconf_test, "autoconf compile/link"),
-  STATISTICS_FIELD(unsupported_compiler_option, "unsupported compiler option"),
-  STATISTICS_FIELD(unsupported_code_directive, "unsupported code directive"),
-  STATISTICS_FIELD(output_to_stdout, "output to stdout"),
-  STATISTICS_FIELD(bad_output_file, "could not write to output file"),
-  STATISTICS_FIELD(no_input_file, "no input file"),
-  STATISTICS_FIELD(error_hashing_extra_file, "error hashing extra file"),
-  STATISTICS_FIELD(
-    cleanups_performed, "cleanups performed", FLAG_NOSTATSLOG | FLAG_ALWAYS),
-  STATISTICS_FIELD(files_in_cache,
-                   "files in cache",
-                   FLAG_NOZERO | FLAG_NOSTATSLOG | FLAG_ALWAYS),
-  STATISTICS_FIELD(cache_size_kibibyte,
-                   "cache size",
-                   FLAG_NOZERO | FLAG_NOSTATSLOG | FLAG_ALWAYS,
-                   format_size_times_1024),
-  STATISTICS_FIELD(obsolete_max_files, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
-  STATISTICS_FIELD(obsolete_max_size, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
-  STATISTICS_FIELD(none, nullptr),
+  // Field "none" intentionally omitted.
+  FIELD(autoconf_test, "Autoconf compile/link", FLAG_UNCACHEABLE),
+  FIELD(bad_compiler_arguments, "Bad compiler arguments", FLAG_UNCACHEABLE),
+  FIELD(bad_output_file, "Could not write to output file", FLAG_ERROR),
+  FIELD(cache_miss, nullptr),
+  FIELD(cache_size_kibibyte, nullptr, FLAG_NOZERO),
+  FIELD(called_for_link, "Called for linking", FLAG_UNCACHEABLE),
+  FIELD(called_for_preprocessing, "Called for preprocessing", FLAG_UNCACHEABLE),
+  FIELD(cleanups_performed, nullptr),
+  FIELD(compile_failed, "Compilation failed", FLAG_UNCACHEABLE),
+  FIELD(compiler_check_failed, "Compiler check failed", FLAG_ERROR),
+  FIELD(compiler_produced_empty_output,
+        "Compiler produced empty output",
+        FLAG_UNCACHEABLE),
+  FIELD(compiler_produced_no_output,
+        "Compiler produced no output",
+        FLAG_UNCACHEABLE),
+  FIELD(compiler_produced_stdout, "Compiler produced stdout", FLAG_UNCACHEABLE),
+  FIELD(could_not_find_compiler, "Could not find compiler", FLAG_ERROR),
+  FIELD(could_not_use_modules, "Could not use modules", FLAG_UNCACHEABLE),
+  FIELD(could_not_use_precompiled_header,
+        "Could not use precompiled header",
+        FLAG_UNCACHEABLE),
+  FIELD(direct_cache_hit, nullptr),
+  FIELD(direct_cache_miss, nullptr),
+  FIELD(error_hashing_extra_file, "Error hashing extra file", FLAG_ERROR),
+  FIELD(files_in_cache, nullptr, FLAG_NOZERO),
+  FIELD(internal_error, "Internal error", FLAG_ERROR),
+  FIELD(missing_cache_file, "Missing cache file", FLAG_ERROR),
+  FIELD(multiple_source_files, "Multiple source files", FLAG_UNCACHEABLE),
+  FIELD(no_input_file, "No input file", FLAG_UNCACHEABLE),
+  FIELD(obsolete_max_files, nullptr, FLAG_NOZERO | FLAG_NEVER),
+  FIELD(obsolete_max_size, nullptr, FLAG_NOZERO | FLAG_NEVER),
+  FIELD(output_to_stdout, "Output to stdout", FLAG_UNCACHEABLE),
+  FIELD(preprocessed_cache_hit, nullptr),
+  FIELD(preprocessed_cache_miss, nullptr),
+  FIELD(preprocessor_error, "Preprocessing failed", FLAG_UNCACHEABLE),
+  FIELD(primary_storage_hit, nullptr),
+  FIELD(primary_storage_miss, nullptr),
+  FIELD(recache, "Forced recache", FLAG_UNCACHEABLE),
+  FIELD(secondary_storage_error, nullptr),
+  FIELD(secondary_storage_hit, nullptr),
+  FIELD(secondary_storage_miss, nullptr),
+  FIELD(secondary_storage_timeout, nullptr),
+  FIELD(stats_zeroed_timestamp, nullptr),
+  FIELD(
+    unsupported_code_directive, "Unsupported code directive", FLAG_UNCACHEABLE),
+  FIELD(unsupported_compiler_option,
+        "Unsupported compiler option",
+        FLAG_UNCACHEABLE),
+  FIELD(unsupported_source_language,
+        "Unsupported source language",
+        FLAG_UNCACHEABLE),
 };
 
-static std::string
-format_size(const uint64_t value)
-{
-  return FMT("{:>11}", Util::format_human_readable_size(value));
-}
-
-static std::string
-format_size_times_1024(const uint64_t value)
-{
-  return format_size(value * 1024);
-}
+static_assert(sizeof(k_statistics_fields) / sizeof(k_statistics_fields[0])
+                == static_cast<size_t>(Statistic::END) - 1,
+              "incorrect number of fields");
 
 static std::string
 format_timestamp(const uint64_t value)
 {
-  if (value > 0) {
+  if (value == 0) {
+    return "never";
+  } else {
     const auto tm = Util::localtime(value);
     char buffer[100] = "?";
     if (tm) {
       strftime(buffer, sizeof(buffer), "%c", &*tm);
     }
-    return std::string("    ") + buffer;
-  } else {
-    return {};
+    return buffer;
   }
 }
 
-static double
-hit_rate(const core::StatisticsCounters& counters)
+static std::string
+percent(const uint64_t nominator, const uint64_t denominator)
 {
-  const uint64_t direct = counters.get(Statistic::direct_cache_hit);
-  const uint64_t preprocessed = counters.get(Statistic::preprocessed_cache_hit);
-  const uint64_t hit = direct + preprocessed;
-  const uint64_t miss = counters.get(Statistic::cache_miss);
-  const uint64_t total = hit + miss;
-  return total > 0 ? (100.0 * hit) / total : 0.0;
+  if (denominator == 0) {
+    return "";
+  } else if (nominator >= denominator) {
+    return FMT("({:.1f} %)", (100.0 * nominator) / denominator);
+  } else {
+    return FMT("({:.2f} %)", (100.0 * nominator) / denominator);
+  }
 }
 
 Statistics::Statistics(const StatisticsCounters& counters)
@@ -170,101 +154,189 @@ Statistics::Statistics(const StatisticsCounters& counters)
 {
 }
 
-static std::vector<std::string>
-get_statistics_fields(const core::StatisticsCounters& counters, bool id)
+std::vector<std::string>
+Statistics::get_statistics_ids() const
 {
   std::vector<std::string> result;
   for (const auto& field : k_statistics_fields) {
-    if (counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-      result.emplace_back(id ? field.id : field.message);
+    if (m_counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
+      result.emplace_back(field.id);
     }
   }
   std::sort(result.begin(), result.end());
   return result;
 }
 
-std::vector<std::string>
-Statistics::get_statistics_ids() const
+uint64_t
+Statistics::count_stats(const unsigned flags) const
 {
-  return get_statistics_fields(m_counters, true);
+  uint64_t sum = 0;
+  for (const auto& field : k_statistics_fields) {
+    if (field.flags & flags) {
+      sum += m_counters.get(field.statistic);
+    }
+  }
+  return sum;
 }
 
-std::string
-Statistics::format_config_header(const Config& config)
+std::vector<std::pair<std::string, uint64_t>>
+Statistics::get_stats(unsigned flags, const bool all) const
 {
-  std::string result;
-
-  result += FMT("{:36}{}\n", "cache directory", config.cache_dir());
-  result += FMT("{:36}{}\n", "primary config", config.primary_config_path());
-  result += FMT(
-    "{:36}{}\n", "secondary config (readonly)", config.secondary_config_path());
-
+  std::vector<std::pair<std::string, uint64_t>> result;
+  for (const auto& field : k_statistics_fields) {
+    const auto count = m_counters.get(field.statistic);
+    if ((field.flags & flags) && (all || count > 0)) {
+      result.emplace_back(field.description, count);
+    }
+  }
   return result;
 }
 
 std::string
-Statistics::format_human_readable(const time_t last_updated,
+Statistics::format_human_readable(const Config& config,
+                                  const time_t last_updated,
+                                  const uint8_t verbosity,
                                   const bool from_log) const
 {
-  std::string result;
+  util::TextTable table;
+  using C = util::TextTable::Cell;
 
-  if (last_updated > 0) {
-    const auto tm = Util::localtime(last_updated);
-    char timestamp[100] = "?";
-    if (tm) {
-      strftime(timestamp, sizeof(timestamp), "%c", &*tm);
-    }
-    result += FMT("{:36}{}\n", "stats updated", timestamp);
-  }
+#define S(x_) m_counters.get(Statistic::x_)
 
-  // ...and display them.
-  for (size_t i = 0; k_statistics_fields[i].message; i++) {
-    const Statistic statistic = k_statistics_fields[i].statistic;
+  const uint64_t d_hits = S(direct_cache_hit);
+  const uint64_t d_misses = S(direct_cache_miss);
+  const uint64_t p_hits = S(preprocessed_cache_hit);
+  const uint64_t p_misses = S(preprocessed_cache_miss);
+  const uint64_t hits = d_hits + p_hits;
+  const uint64_t misses = S(cache_miss);
 
-    if (k_statistics_fields[i].flags & FLAG_NEVER) {
-      continue;
-    }
-    if (m_counters.get(statistic) == 0
-        && !(k_statistics_fields[i].flags & FLAG_ALWAYS)) {
-      continue;
-    }
-
-    // don't show cache directory info if reading from a log
-    if (from_log && (k_statistics_fields[i].flags & FLAG_NOSTATSLOG)) {
-      continue;
-    }
-
-    const std::string value =
-      k_statistics_fields[i].format
-        ? k_statistics_fields[i].format(m_counters.get(statistic))
-        : FMT("{:8}", m_counters.get(statistic));
-    if (!value.empty()) {
-      result += FMT("{:32}{}\n", k_statistics_fields[i].message, value);
-    }
-
-    if (statistic == Statistic::cache_miss) {
-      double percent = hit_rate(m_counters);
-      result += FMT("{:34}{:6.2f} %\n", "cache hit rate", percent);
+  table.add_heading("Summary:");
+  if (verbosity > 0 && !from_log) {
+    table.add_row({"  Cache directory:", C(config.cache_dir()).colspan(4)});
+    table.add_row(
+      {"  Primary config:", C(config.primary_config_path()).colspan(4)});
+    table.add_row(
+      {"  Secondary config:", C(config.secondary_config_path()).colspan(4)});
+    table.add_row(
+      {"  Stats updated:", C(format_timestamp(last_updated)).colspan(4)});
+    if (verbosity > 1) {
+      const uint64_t last_zeroed = S(stats_zeroed_timestamp);
+      table.add_row(
+        {"  Stats zeroed:", C(format_timestamp(last_zeroed)).colspan(4)});
     }
   }
+  table.add_row({
+    "  Hits:",
+    hits,
+    "/",
+    hits + misses,
+    percent(hits, hits + misses),
+  });
+  table.add_row({
+    "    Direct:",
+    d_hits,
+    "/",
+    d_hits + d_misses,
+    percent(d_hits, d_hits + d_misses),
+  });
+  table.add_row({
+    "    Preprocessed:",
+    p_hits,
+    "/",
+    p_hits + p_misses,
+    percent(p_hits, p_hits + p_misses),
+  });
 
-  return result;
-}
-
-std::string
-Statistics::format_config_footer(const Config& config)
-{
-  std::string result;
-
-  if (config.max_files() != 0) {
-    result += FMT("{:32}{:8}\n", "max files", config.max_files());
+  const auto errors = count_stats(FLAG_ERROR);
+  const auto uncacheable = count_stats(FLAG_UNCACHEABLE);
+  if (verbosity > 1 || errors > 0) {
+    table.add_row({"  Errors:", errors});
   }
-  if (config.max_size() != 0) {
-    result +=
-      FMT("{:32}{}\n", "max cache size", format_size(config.max_size()));
+  if (verbosity > 1 || uncacheable > 0) {
+    table.add_row({"  Uncacheable:", uncacheable});
   }
 
-  return result;
+  const uint64_t g = 1'000'000'000;
+  const uint64_t pri_hits = S(primary_storage_hit);
+  const uint64_t pri_misses = S(primary_storage_miss);
+  const uint64_t pri_size = S(cache_size_kibibyte) * 1024;
+  const uint64_t cleanups = S(cleanups_performed);
+  table.add_heading("Primary storage:");
+  table.add_row({
+    "  Hits:",
+    pri_hits,
+    "/",
+    pri_hits + pri_misses,
+    percent(pri_hits, pri_hits + pri_misses),
+  });
+  if (!from_log) {
+    table.add_row({
+      "  Cache size (GB):",
+      C(FMT("{:.2f}", static_cast<double>(pri_size) / g)).right_align(),
+      "/",
+      C(FMT("{:.2f}", static_cast<double>(config.max_size()) / g))
+        .right_align(),
+      percent(pri_size, config.max_size()),
+    });
+    if (verbosity > 0) {
+      std::vector<C> cells{"  Files:", S(files_in_cache)};
+      if (config.max_files() > 0) {
+        cells.emplace_back("/");
+        cells.emplace_back(config.max_files());
+        cells.emplace_back(percent(S(files_in_cache), config.max_files()));
+      }
+      table.add_row(cells);
+    }
+    if (cleanups > 0) {
+      table.add_row({"  Cleanups:", cleanups});
+    }
+  }
+
+  const uint64_t sec_hits = S(secondary_storage_hit);
+  const uint64_t sec_misses = S(secondary_storage_miss);
+  const uint64_t sec_errors = S(secondary_storage_error);
+  const uint64_t sec_timeouts = S(secondary_storage_timeout);
+
+  if (verbosity > 0 || sec_hits + sec_misses + sec_errors + sec_timeouts > 0) {
+    table.add_heading("Secondary storage:");
+    table.add_row({
+      "  Hits:",
+      sec_hits,
+      "/",
+      sec_hits + sec_misses,
+      percent(sec_hits, sec_hits + pri_misses),
+    });
+    if (verbosity > 1 || sec_errors > 0) {
+      table.add_row({"  Errors:", sec_errors});
+    }
+    if (verbosity > 1 || sec_timeouts > 0) {
+      table.add_row({"  Timeouts:", sec_timeouts});
+    }
+  }
+
+  auto cmp_fn = [](const auto& e1, const auto& e2) {
+    return e1.first.compare(e2.first) < 0;
+  };
+
+  if (verbosity > 1 || (verbosity == 1 && errors > 0)) {
+    auto error_stats = get_stats(FLAG_ERROR, verbosity > 1);
+    std::sort(error_stats.begin(), error_stats.end(), cmp_fn);
+    table.add_heading("Errors:");
+    for (const auto& descr_count : error_stats) {
+      table.add_row({FMT("  {}:", descr_count.first), descr_count.second});
+    }
+  }
+
+  if (verbosity > 1 || (verbosity == 1 && uncacheable > 0)) {
+    auto uncacheable_stats = get_stats(FLAG_UNCACHEABLE, verbosity > 1);
+    std::sort(uncacheable_stats.begin(), uncacheable_stats.end(), cmp_fn);
+    table.add_heading("Uncacheable:");
+    for (const auto& descr_count : uncacheable_stats) {
+      table.add_row({FMT("  {}:", descr_count.first), descr_count.second});
+    }
+  }
+
+  return table.render();
 }
 
 std::string
@@ -274,11 +346,10 @@ Statistics::format_machine_readable(const time_t last_updated) const
 
   lines.push_back(FMT("stats_updated_timestamp\t{}\n", last_updated));
 
-  for (size_t i = 0; k_statistics_fields[i].message; i++) {
-    if (!(k_statistics_fields[i].flags & FLAG_NEVER)) {
-      lines.push_back(FMT("{}\t{}\n",
-                          k_statistics_fields[i].id,
-                          m_counters.get(k_statistics_fields[i].statistic)));
+  for (const auto& field : k_statistics_fields) {
+    if (!(field.flags & FLAG_NEVER)) {
+      lines.push_back(
+        FMT("{}\t{}\n", field.id, m_counters.get(field.statistic)));
     }
   }
 
