@@ -2194,6 +2194,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   result_key = *digest;
   if (ctx.config.direct_mode()) {
     ASSERT(manifest_key);
+    MTR_SCOPE("cache", "update_manifest");
     update_manifest_file(ctx, *manifest_key, *result_key);
   }
 

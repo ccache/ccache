@@ -21,6 +21,7 @@
 #include <Checksum.hpp>
 #include <Config.hpp>
 #include <Logging.hpp>
+#include <MiniTrace.hpp>
 #include <TemporaryFile.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
@@ -229,6 +230,8 @@ Storage::finalize()
 nonstd::optional<std::string>
 Storage::get(const Digest& key, const core::CacheEntryType type)
 {
+  MTR_SCOPE("storage", "get");
+
   const auto path = primary.get(key, type);
   primary.increment_statistic(path ? core::Statistic::primary_storage_hit
                                    : core::Statistic::primary_storage_miss);
@@ -290,6 +293,8 @@ Storage::put(const Digest& key,
              const core::CacheEntryType type,
              const storage::EntryWriter& entry_writer)
 {
+  MTR_SCOPE("storage", "put");
+
   const auto path = primary.put(key, type, entry_writer);
   if (!path) {
     return false;
@@ -318,6 +323,8 @@ Storage::put(const Digest& key,
 void
 Storage::remove(const Digest& key, const core::CacheEntryType type)
 {
+  MTR_SCOPE("storage", "remove");
+
   primary.remove(key, type);
   remove_from_secondary_storage(key);
 }
@@ -452,6 +459,8 @@ Storage::get_backend(SecondaryStorageEntry& entry,
 nonstd::optional<std::pair<std::string, bool>>
 Storage::get_from_secondary_storage(const Digest& key)
 {
+  MTR_SCOPE("secondary_storage", "get");
+
   for (const auto& entry : m_secondary_storages) {
     auto backend = get_backend(*entry, key, "getting from", false);
     if (!backend) {
@@ -491,6 +500,8 @@ Storage::put_in_secondary_storage(const Digest& key,
                                   const std::string& value,
                                   bool only_if_missing)
 {
+  MTR_SCOPE("secondary_storage", "put");
+
   for (const auto& entry : m_secondary_storages) {
     auto backend = get_backend(*entry, key, "putting in", true);
     if (!backend) {
@@ -518,6 +529,8 @@ Storage::put_in_secondary_storage(const Digest& key,
 void
 Storage::remove_from_secondary_storage(const Digest& key)
 {
+  MTR_SCOPE("secondary_storage", "remove");
+
   for (const auto& entry : m_secondary_storages) {
     auto backend = get_backend(*entry, key, "removing from", true);
     if (!backend) {

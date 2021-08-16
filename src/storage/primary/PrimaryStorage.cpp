@@ -181,6 +181,8 @@ PrimaryStorage::finalize()
 nonstd::optional<std::string>
 PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 {
+  MTR_SCOPE("primary_storage", "get");
+
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
     LOG("No {} in primary storage", key.to_string());
@@ -200,6 +202,8 @@ PrimaryStorage::put(const Digest& key,
                     const core::CacheEntryType type,
                     const storage::EntryWriter& entry_writer)
 {
+  MTR_SCOPE("primary_storage", "put");
+
   const auto cache_file = look_up_cache_file(key, type);
   switch (type) {
   case core::CacheEntryType::manifest:
@@ -246,6 +250,8 @@ PrimaryStorage::put(const Digest& key,
 void
 PrimaryStorage::remove(const Digest& key, const core::CacheEntryType type)
 {
+  MTR_SCOPE("primary_storage", "remove");
+
   const auto cache_file = look_up_cache_file(key, type);
   if (cache_file.stat) {
     Util::unlink_safe(cache_file.path);
