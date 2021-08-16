@@ -726,7 +726,7 @@ update_manifest_file(Context& ctx,
     return;
   }
 
-  MTR_BEGIN("manifest", "manifest_put");
+  MTR_SCOPE("manifest", "manifest_put");
 
   // See comment in get_file_hash_index for why saving of timestamps is forced
   // for precompiled headers.
@@ -744,8 +744,6 @@ update_manifest_file(Context& ctx,
                            ctx.time_of_compilation,
                            save_timestamp);
     });
-
-  MTR_END("manifest", "manifest_put");
 }
 
 struct FindCoverageFileResult

@@ -97,11 +97,11 @@ PrimaryStorage::PrimaryStorage(const Config& config) : m_config(config)
 void
 PrimaryStorage::initialize()
 {
-  MTR_BEGIN("primary_storage", "clean_internal_tempdir");
+  MTR_SCOPE("primary_storage", "clean_internal_tempdir");
+
   if (m_config.temporary_dir() == m_config.cache_dir() + "/tmp") {
     clean_internal_tempdir();
   }
-  MTR_END("primary_storage", "clean_internal_tempdir");
 }
 
 void
