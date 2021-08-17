@@ -1,5 +1,172 @@
 = Ccache news
 
+== Ccache 4.4
+
+Release date: TODO
+
+
+=== New features
+
+- Made it possible to share a cache over network or on a local filesystem. The
+  configuration option `secondary_storage`/`CCACHE_SECONDARY_STORAGE` specifies
+  one or several storage backends to query after the primary local cache
+  storage. It is also possible to configure sharding (partitioning) of the cache
+  to spread it over a server cluster using
+  https://en.wikipedia.org/wiki/Rendezvous_hashing[Rendezvous hashing]. See the
+  _https://ccache.dev/manual/4.4.html#_secondary_storage_backends[Secondary
+  storage backends]_ chapter in the manual for details. +
+  _[contributed by Joel Rosdahl]_
+
+- Added an HTTP backend for secondary storage on any HTTP server that supports
+  GET/PUT/DELETE methods. See https://ccache.dev/howto/http-storage.html[How to
+  set up HTTP storage] for hints on how to set up an HTTP server for use with
+  ccache. +
+  _[contributed by Gregor Jasny]_
+
+- Added a Redis backend for secondary storage on any server that supports the
+  Redis protocol. See https://ccache.dev/howto/redis-storage.html[How to set up
+  Redis storage] for hints on how to set up a Redis server for use with
+  ccache. +
+  _[contributed by Anders F Björklund]_
+
+- Added a filesystem backend for secondary storage. It can for instance be used
+  for a shared cache over networked filesystems such as NFS, or for mounting a
+  secondary read-only cache layer into a build container. +
+  _[contributed by Joel Rosdahl]_
+
+- Added `--trim-dir`, `--trim-max-size` and `--trim-method` options that can be
+  used to trim a secondary storage directory to a certain size, e.g. via
+  cron. +
+  _[contributed by Joel Rosdahl]_
+
+- Added a configuration option `reshare`/`CCACHE_RESHARE` which makes ccache
+  send results to secondary storage even for primary storage cache hits. +
+  _[contributed by Joel Rosdahl]_
+
+- Added new statistics counters for direct/preprocessed cache misses, primary
+  storage hits/misses, secondary storage hits/misses/errors/timeouts and forced
+  recaches. +
+  _[contributed by Joel Rosdahl]_
+
+- Improved statistics summary. The `-s`/`--show-stats` option now prints a more
+  condensed overview where the counters representing "`uncacheable calls`" are
+  summed as uncacheable and errors counters. The summary shows hit rate for
+  direct/preprocessed hits/misses, as well as primary/secondary storage
+  hits/misses. More details are shown with `-v`/`--verbose`. Note: Scripts
+  should use `--print-stats` (available since ccache 3.7) instead of trying to
+  parse the output of `--show-stats`. +
+  _[contributed by Joel Rosdahl]_
+
+- Added a "`stats log`" feature (configuration option
+  `stats_log`/`CCACHE_STATSLOG`), which tells ccache to store statistics in a
+  separate log file specified by the user. It can for instance be used to
+  collect statistics for a single build without interference from other
+  concurrent builds. Statistics from the log file can then be viewed with
+  `ccache --show-log-stats`. +
+  _[contributed by Anders F Björklund]_
+
+- Added support for clang's `--config` option. +
+  _[contributed by Tom Stellard]_
+
+- Added support for one `-Xarch_*` option that matches a corresponding `-arch`
+  option. +
+  _[contributed by Joel Rosdahl]_
+
+- Renamed the `--directory` option to `--dir` for consistency with other
+  options. +
+  _[contributed by Joel Rosdahl]_
+
+- Made the `--config-path` and `--dir` options affect whole command line so that
+  they don't have to be put before `-s`/`--show-stats`. +
+  _[contributed by Joel Rosdahl]_
+
+- Made `--dump-manifest` and `--dump-result` accept filename `-` for reading
+  from standard input. +
+  _[contributed by Anders F Björklund]_
+
+- Made the output of `--print-stats` sorted. +
+  _[contributed by Joel Rosdahl]_
+
+- Added more internal trace points. +
+  _[contributed by Joel Rosdahl]_
+
+
+=== Bug fixes
+
+- Fixed a crash if using `base_dir` and `$PWD` is set to a relative path. +
+  _[contributed by Joel Rosdahl]_
+
+- Fixed a bug with `-fprofile-generate` where ccache could give false positive
+  cache hits when compiling with relative paths in another directory. +
+  _[contributed by Joel Rosdahl]_
+
+- Fixed a bug in `debug_dir`/`CCACHE_DEBUGDIR`. The absolute path to the object
+  file was not created correctly if the object file didn't already exist. +
+  _[contributed by Joel Rosdahl]_
+
+- Disabled preprocessor hits for pre-compiled headers with Clang again. +
+  _[contributed by Arne Hasselbring]_
+
+- Fixed a problem when using the Gold linker on MIPS by only probing for a
+  faster linker in dev build mode and on x86_64. +
+  _[contributed by Joel Rosdahl]_
+
+- Made the `-DENABLE_TRACING=1` mode work again. +
+  _[contributed by Anders F Björklund]_
+
+
+=== Changed tooling
+
+- A C++14 compiler or newer is now required to build ccache. For GCC, this means
+  version 6 or newer in practice.
+
+- CMake 3.10 or newer is now required to build ccache.
+
+- https://asciidoctor.org[Asciidoctor] is now required to build ccache
+  documentation.
+
+
+=== Build/test/documentation improvements
+
+- Fixed an issue in the modules test suite that showed up when running the
+  ccache test suite with the clang wrapper provided by Nixpkgs. +
+  _[contributed by Ryan Burns]_
+
+- Made the nvcc_ldir test suite require a working NVCC. +
+  _[contributed by Michael Kruse]_
+
+- Made the ivfsoverlay test suite more robust. +
+  _[contributed by Michael Kruse]_
+
+- Fixed issue with usage of `/FI` when building ccache with MSVC. +
+  _[contributed by Michael Kruse]_
+
+- Fixed Apple Clang detection in the integration test suite. +
+  _[contributed by Gregor Jasny]_
+
+- Made clang the default compiler when running the test suite on macOS. +
+  _[contributed by Gregor Jasny]_
+
+- Silenced stray printout from "-P -c" test case. +
+  _[contributed by Joel Rosdahl]_
+
+- Fixed selection of the ccache binary to use when running the test suite with
+  multi-config generators like Xcode. +
+  _[contributed by Gregor Jasny]_
+
+- Fixed CMake feature detection for `ctim`/`mtim` fields in `struct stat`. +
+  _[contributed by Gregor Jasny]_
+
+- Fixed issue with not linking to .lib correctly on Windows. +
+  _[contributed by R. Voggenauer]_
+
+- Made it possible to override `CCACHE_DEV_MODE` on the command line. +
+  _[contributed by Joel Rosdahl]_
+
+- Improved HTML documentation style. +
+  _[contributed by Joel Rosdahl with minor fixes by Orgad Shaneh]_
+
+
 == Ccache 4.3
 
 Release date: 2021-05-09
