@@ -79,6 +79,7 @@ Ccache is a collective work with contributions from many people, including:
 * Matthias Kretz
 * Matt Whitlock
 * Melven Roehrig-Zoellner
+* Michael Kruse
 * Michael Marineau
 * Michael Meeks
 * Michał Mirosław
@@ -116,8 +117,10 @@ Ccache is a collective work with contributions from many people, including:
 * Robert Yang
 * Robin H. Johnson
 * Rolf Bjarne Kvinge
+* R. Voggenauer
 * RW
 * Ryan Brown
+* Ryan Burns
 * Ryan Egesdahl
 * Sam Gross
 * Sergei Trofimovich
@@ -130,6 +133,7 @@ Ccache is a collective work with contributions from many people, including:
 * Tim Potter
 * Tomasz Miąsko
 * Tom Hughes
+* Tom Stellard
 * Tor Arne Vestbø
 * Vadim Petrochenkov
 * Ville Skyttä
