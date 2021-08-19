@@ -2,7 +2,7 @@
 
 == Ccache 4.4
 
-Release date: TODO
+Release date: 2021-08-19
 
 
 === New features
