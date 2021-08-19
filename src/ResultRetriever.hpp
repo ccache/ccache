@@ -39,7 +39,7 @@ public:
 
 private:
   Context& m_ctx;
-  Result::FileType m_dest_file_type;
+  Result::FileType m_dest_file_type{};
   Fd m_dest_fd;
   std::string m_dest_path;
 

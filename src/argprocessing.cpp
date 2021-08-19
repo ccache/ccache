@@ -341,7 +341,7 @@ process_arg(Context& ctx,
   // Some arguments that clang passes directly to cc1 (related to precompiled
   // headers) need the usual ccache handling. In those cases, the -Xclang
   // prefix is skipped and the cc1 argument is handled instead.
-  if (args[i] == "-Xclang" && i < args.size() - 1
+  if (args[i] == "-Xclang" && i + 1 < args.size()
       && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
           || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
           || args[i + 1] == "-fno-pch-timestamp")) {
@@ -741,7 +741,7 @@ process_arg(Context& ctx,
 
   // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
   // -fcolor-diagnostics argument which is passed to cc1 is handled below.
-  if (args[i] == "-Xclang" && i < args.size() - 1
+  if (args[i] == "-Xclang" && i + 1 < args.size()
       && args[i + 1] == "-fcolor-diagnostics") {
     state.compiler_only_args_no_hash.push_back(args[i]);
     ++i;
