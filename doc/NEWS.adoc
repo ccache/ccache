@@ -76,8 +76,8 @@ Release date: 2021-08-19
   options. +
   [small]#_[contributed by Joel Rosdahl]_#
 
-- Made the `--config-path` and `--dir` options affect whole command line so that
-  they don't have to be put before `-s`/`--show-stats`. +
+- Made the `--config-path` and `--dir` options affect the whole command line so
+  that they don't have to be put before `-s`/`--show-stats`. +
   [small]#_[contributed by Joel Rosdahl]_#
 
 - Made `--dump-manifest` and `--dump-result` accept filename `-` for reading
