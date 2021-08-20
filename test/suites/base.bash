@@ -1394,8 +1394,10 @@ EOF
 if ! $HOST_OS_WINDOWS; then
     TEST ".incbin"
 
+    touch empty.bin
+
     cat <<EOF >incbin.c
-__asm__(".incbin \"/dev/null\"");
+__asm__(".incbin \"empty.bin\"");
 EOF
 
     $CCACHE_COMPILE -c incbin.c
@@ -1404,7 +1406,7 @@ EOF
     expect_stat unsupported_code_directive 1
 
     cat <<EOF >incbin.s
-.incbin "/dev/null";
+.incbin "empty.bin";
 EOF
 
     $CCACHE_COMPILE -c incbin.s
