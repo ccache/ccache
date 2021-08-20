@@ -297,7 +297,7 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t sec_errors = S(secondary_storage_error);
   const uint64_t sec_timeouts = S(secondary_storage_timeout);
 
-  if (verbosity > 0 || sec_hits + sec_misses + sec_errors + sec_timeouts > 0) {
+  if (verbosity > 1 || sec_hits + sec_misses + sec_errors + sec_timeouts > 0) {
     table.add_heading("Secondary storage:");
     table.add_row({
       "  Hits:",
