@@ -10,6 +10,11 @@ if(MSVC)
   return()
 endif()
 
+if(ENABLE_IPO)
+  message(STATUS "Using standard linker for IPO")
+  return()
+endif()
+
 if(NOT CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
   # Be conservative and only probe for a faster linker on platforms that likely
   # don't have toolchain bugs. See for example

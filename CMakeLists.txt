@@ -65,17 +65,17 @@ if(NOT DEFINED CCACHE_DEV_MODE)
 endif()
 message(STATUS "Ccache dev mode: ${CCACHE_DEV_MODE}")
 
+option(ENABLE_IPO "Enable interprocedural (link time, LTO) optimization" OFF)
+if(ENABLE_IPO)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
+
 include(UseCcache)
 include(UseFastestLinker)
 include(StandardSettings)
 include(StandardWarnings)
 include(CIBuildType)
 include(DefaultBuildType)
-
-option(ENABLE_IPO "Enable interprocedural (link time, LTO) optimization" OFF)
-if(ENABLE_IPO)
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-endif()
 
 #
 # Configuration
