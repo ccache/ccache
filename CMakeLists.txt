@@ -66,7 +66,7 @@ endif()
 message(STATUS "Ccache dev mode: ${CCACHE_DEV_MODE}")
 
 option(ENABLE_IPO "Enable interprocedural (link time, LTO) optimization" OFF)
-if(ENABLE_IPO)
+if(ENABLE_IPO AND NOT MINGW)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
