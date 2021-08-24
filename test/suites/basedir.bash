@@ -281,7 +281,7 @@ EOF
 EOF
     backdate test.h
 
-    pwd=$PWD.real
+    pwd="$(/bin/pwd -P)"
     $REAL_COMPILER -c $pwd/test.c 2>reference.stderr
 
     CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -c $pwd/test.c 2>ccache.stderr
