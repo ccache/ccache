@@ -1113,13 +1113,13 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_equal_text_content reference_stderr.txt stderr.txt
+    expect_equal_content reference_stderr.txt stderr.txt
 
     $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_equal_text_content reference_stderr.txt stderr.txt
+    expect_equal_content reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
     TEST "Empty object file"

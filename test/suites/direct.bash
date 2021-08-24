@@ -222,17 +222,17 @@ EOF
             $CCACHE_COMPILE -c test.c $dep_args $obj_args
             expect_stat direct_cache_hit 0
             expect_stat cache_miss 1
-            expect_equal_text_content $dep_file.real $dep_file
+            expect_equal_content $dep_file.real $dep_file
 
             # cache hit
             $CCACHE_COMPILE -c test.c $dep_args $obj_args
             expect_stat direct_cache_hit 1
             expect_stat cache_miss 1
-            expect_equal_text_content $dep_file.real $dep_file
+            expect_equal_content $dep_file.real $dep_file
 
             # change object file name
             $CCACHE_COMPILE -c test.c $dep_args -o another.o
-            expect_equal_text_content another.d.real $another_dep_file
+            expect_equal_content another.d.real $another_dep_file
         done
     done
 

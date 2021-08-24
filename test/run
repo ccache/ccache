@@ -204,18 +204,6 @@ expect_equal_content() {
         test_failed_internal "expect_equal_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
-        test_failed_internal "$1 and $2 differ"
-    fi
-}
-
-expect_equal_text_content() {
-    if [ ! -e "$1" ]; then
-        test_failed_internal "expect_equal_text_content: $1 missing"
-    fi
-    if [ ! -e "$2" ]; then
-        test_failed_internal "expect_equal_text_content: $2 missing"
-    fi
-    if ! cmp -s "$1" "$2"; then
         test_failed_internal "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
     fi
 }
