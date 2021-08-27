@@ -55,7 +55,9 @@ using nonstd::optional;
 #  define DLLIMPORT
 #endif
 
+#ifndef environ
 DLLIMPORT extern char** environ;
+#endif
 
 namespace {
 
