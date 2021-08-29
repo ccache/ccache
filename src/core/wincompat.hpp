@@ -104,4 +104,6 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 #    define O_BINARY 0
 #  endif
 
+#else
+#  define DLLIMPORT
 #endif // _WIN32

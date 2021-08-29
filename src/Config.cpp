@@ -49,12 +49,6 @@
 using nonstd::nullopt;
 using nonstd::optional;
 
-#if defined(_MSC_VER)
-#  define DLLIMPORT __declspec(dllimport)
-#else
-#  define DLLIMPORT
-#endif
-
 #ifndef environ
 DLLIMPORT extern char** environ;
 #endif
