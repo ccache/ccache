@@ -245,5 +245,5 @@ SUITE_secondary_file() {
     expect_stat primary_storage_miss 4
     expect_stat secondary_storage_hit 2
     expect_stat secondary_storage_miss 2
-    expect_file_count 0
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
 }
