@@ -317,7 +317,7 @@ expect_file_count() {
     local expected=$1
     local pattern=$2
     local dir=$3
-    local actual=`find $dir -type f -name "$pattern" | wc -l`
+    local actual=`find "$dir" -type f -name "$pattern" | wc -l`
     if [ $actual -ne $expected ]; then
         test_failed_internal "Found $actual (expected $expected) $pattern files in $dir"
     fi
