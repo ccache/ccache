@@ -21,6 +21,8 @@
 
 #include "third_party/doctest.h"
 
+#include <iostream>
+
 TEST_SUITE_BEGIN("Win32Util");
 
 TEST_CASE("Win32Util::argv_to_string")
