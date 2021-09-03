@@ -622,7 +622,7 @@ socket_t create_socket(const char *host, int port, int address_family,
   auto service = std::to_string(port);
 
   if (getaddrinfo(host, service.c_str(), &hints, &result)) {
-#ifdef __linux__
+#if defined __linux__ && !defined __ANDROID__
     res_init();
 #endif
     return INVALID_SOCKET;
@@ -1411,8 +1411,7 @@ bool prepare_content_receiver(T &x, int &status,
     std::string encoding = x.get_header_value("Content-Encoding");
     std::unique_ptr<decompressor> decompressor;
 
-    if (encoding.find("gzip") != std::string::npos ||
-        encoding.find("deflate") != std::string::npos) {
+    if (encoding == "gzip" || encoding == "deflate") {
 #ifdef CPPHTTPLIB_ZLIB_SUPPORT
       decompressor = detail::make_unique<gzip_decompressor>();
 #else
@@ -1704,14 +1703,6 @@ std::string params_to_query_str(const Params &params) {
     query += encode_query_param(it->second);
   }
   return query;
-}
-
-std::string append_query_params(const char *path, const Params &params) {
-  std::string path_with_query = path;
-  const static std::regex re("[^?]+\\?.*");
-  auto delm = std::regex_match(path, re) ? '&' : '?';
-  path_with_query += delm + params_to_query_str(params);
-  return path_with_query;
 }
 
 void parse_query_text(const std::string &s, Params &params) {
@@ -2346,6 +2337,14 @@ private:
 };
 
 } // namespace detail
+
+std::string append_query_params(const char *path, const Params &params) {
+  std::string path_with_query = path;
+  const static std::regex re("[^?]+\\?.*");
+  auto delm = std::regex_match(path, re) ? '&' : '?';
+  path_with_query += delm + detail::params_to_query_str(params);
+  return path_with_query;
+}
 
 // Header utilities
 std::pair<std::string, std::string> make_range_header(Ranges ranges) {
@@ -4440,7 +4439,7 @@ Result ClientImpl::Get(const char *path, const Params &params,
                               const Headers &headers, Progress progress) {
   if (params.empty()) { return Get(path, headers); }
 
-  std::string path_with_query = detail::append_query_params(path, params);
+  std::string path_with_query = append_query_params(path, params);
   return Get(path_with_query.c_str(), headers, progress);
 }
 
@@ -4460,7 +4459,7 @@ Result ClientImpl::Get(const char *path, const Params &params,
     return Get(path, headers, response_handler, content_receiver, progress);
   }
 
-  std::string path_with_query = detail::append_query_params(path, params);
+  std::string path_with_query = append_query_params(path, params);
   return Get(path_with_query.c_str(), headers, response_handler,
              content_receiver, progress);
 }

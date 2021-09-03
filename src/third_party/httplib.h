@@ -178,7 +178,9 @@ using socket_t = SOCKET;
 #include <unistd.h>
 
 using socket_t = int;
+#ifndef INVALID_SOCKET
 #define INVALID_SOCKET (-1)
+#endif
 #endif //_WIN32
 
 #include <algorithm>
@@ -580,23 +582,7 @@ using Logger = std::function<void(const Request &, const Response &)>;
 
 using SocketOptions = std::function<void(socket_t sock)>;
 
-inline void default_socket_options(socket_t sock) {
-  int yes = 1;
-#ifdef _WIN32
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char *>(&yes),
-             sizeof(yes));
-  setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-             reinterpret_cast<char *>(&yes), sizeof(yes));
-#else
-#ifdef SO_REUSEPORT
-  setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<void *>(&yes),
-             sizeof(yes));
-#else
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<void *>(&yes),
-             sizeof(yes));
-#endif
-#endif
-}
+void default_socket_options(socket_t sock);
 
 class Server {
 public:
@@ -798,33 +784,9 @@ enum class Error {
   Compression,
 };
 
-inline std::string to_string(const Error error) {
-  switch (error) {
-  case Error::Success: return "Success";
-  case Error::Connection: return "Connection";
-  case Error::BindIPAddress: return "BindIPAddress";
-  case Error::Read: return "Read";
-  case Error::Write: return "Write";
-  case Error::ExceedRedirectCount: return "ExceedRedirectCount";
-  case Error::Canceled: return "Canceled";
-  case Error::SSLConnection: return "SSLConnection";
-  case Error::SSLLoadingCerts: return "SSLLoadingCerts";
-  case Error::SSLServerVerification: return "SSLServerVerification";
-  case Error::UnsupportedMultipartBoundaryChars:
-    return "UnsupportedMultipartBoundaryChars";
-  case Error::Compression: return "Compression";
-  case Error::Unknown: return "Unknown";
-  default: break;
-  }
+std::string to_string(const Error error);
 
-  return "Invalid";
-}
-
-inline std::ostream &operator<<(std::ostream &os, const Error &obj) {
-  os << to_string(obj);
-  os << " (" << static_cast<std::underlying_type<Error>::type>(obj) << ')';
-  return os;
-}
+std::ostream &operator<<(std::ostream &os, const Error &obj);
 
 class Result {
 public:
@@ -1544,6 +1506,24 @@ inline ssize_t Stream::write_format(const char *fmt, const Args &... args) {
   }
 }
 
+inline void default_socket_options(socket_t sock) {
+  int yes = 1;
+#ifdef _WIN32
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char *>(&yes),
+             sizeof(yes));
+  setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
+             reinterpret_cast<char *>(&yes), sizeof(yes));
+#else
+#ifdef SO_REUSEPORT
+  setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<void *>(&yes),
+             sizeof(yes));
+#else
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<void *>(&yes),
+             sizeof(yes));
+#endif
+#endif
+}
+
 template <class Rep, class Period>
 inline Server &
 Server::set_read_timeout(const std::chrono::duration<Rep, Period> &duration) {
@@ -1566,6 +1546,34 @@ Server::set_idle_interval(const std::chrono::duration<Rep, Period> &duration) {
   detail::duration_to_sec_and_usec(
       duration, [&](time_t sec, time_t usec) { set_idle_interval(sec, usec); });
   return *this;
+}
+
+inline std::string to_string(const Error error) {
+  switch (error) {
+  case Error::Success: return "Success";
+  case Error::Connection: return "Connection";
+  case Error::BindIPAddress: return "BindIPAddress";
+  case Error::Read: return "Read";
+  case Error::Write: return "Write";
+  case Error::ExceedRedirectCount: return "ExceedRedirectCount";
+  case Error::Canceled: return "Canceled";
+  case Error::SSLConnection: return "SSLConnection";
+  case Error::SSLLoadingCerts: return "SSLLoadingCerts";
+  case Error::SSLServerVerification: return "SSLServerVerification";
+  case Error::UnsupportedMultipartBoundaryChars:
+    return "UnsupportedMultipartBoundaryChars";
+  case Error::Compression: return "Compression";
+  case Error::Unknown: return "Unknown";
+  default: break;
+  }
+
+  return "Invalid";
+}
+
+inline std::ostream &operator<<(std::ostream &os, const Error &obj) {
+  os << to_string(obj);
+  os << " (" << static_cast<std::underlying_type<Error>::type>(obj) << ')';
+  return os;
 }
 
 template <typename T>
@@ -1617,6 +1625,8 @@ Client::set_write_timeout(const std::chrono::duration<Rep, Period> &duration) {
  * Forward declarations and types that will be part of the .h file if split into
  * .h + .cc.
  */
+
+std::string append_query_params(const char *path, const Params &params);
 
 std::pair<std::string, std::string> make_range_header(Ranges ranges);
 
