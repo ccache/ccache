@@ -110,7 +110,6 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_default_headers({
     {"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)},
   });
-  m_http_client.set_keep_alive(true);
 
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
