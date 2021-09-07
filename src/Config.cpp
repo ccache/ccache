@@ -1001,7 +1001,10 @@ Config::set_item(const std::string& key,
     break;
   }
 
-  m_origins.emplace(key, origin);
+  auto result = m_origins.emplace(key, origin);
+  if (!result.second) {
+    result.first->second = origin;
+  }
 }
 
 void
