@@ -71,6 +71,8 @@ SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
 #  ifdef SIGQUIT
   register_signal_handler(SIGQUIT);
 #  endif
+
+  signal(SIGPIPE, SIG_IGN); // NOLINT: This is no error, clang-tidy
 }
 
 SignalHandler::~SignalHandler()
