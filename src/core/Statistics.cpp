@@ -246,6 +246,9 @@ Statistics::format_human_readable(const Config& config,
     p_hits + p_misses,
     percent(p_hits, p_hits + p_misses),
   });
+  table.add_row({"  Misses:", misses});
+  table.add_row({"    Direct:", d_misses});
+  table.add_row({"    Preprocessed:", p_misses});
 
   const auto errors = count_stats(FLAG_ERROR);
   const auto uncacheable = count_stats(FLAG_UNCACHEABLE);
@@ -269,6 +272,7 @@ Statistics::format_human_readable(const Config& config,
     pri_hits + pri_misses,
     percent(pri_hits, pri_hits + pri_misses),
   });
+  table.add_row({"  Misses:", pri_misses});
   if (!from_log) {
     table.add_row({
       "  Cache size (GB):",
@@ -306,6 +310,7 @@ Statistics::format_human_readable(const Config& config,
       sec_hits + sec_misses,
       percent(sec_hits, sec_hits + pri_misses),
     });
+    table.add_row({"  Misses:", sec_misses});
     if (verbosity > 1 || sec_errors > 0) {
       table.add_row({"  Errors:", sec_errors});
     }
