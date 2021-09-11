@@ -1,5 +1,59 @@
 = Ccache news
 
+== Ccache 4.4.1
+
+Release date: 2021-09-11
+
+
+=== New features
+
+- The secondary storage statistics section of `-s/--show-stats` is now shown
+  only if it's non-empty or with two verbose options. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added display of statistics counters for misses. Previously they were only
+  implicit in the "`hits + misses`" sums. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed spurious crashes when using the HTTP or Redis backend and the remote
+  connection hung up. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made sure to always store configuration origin value. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+
+=== Build improvements
+
+- The matching version of lld is now used for Clang. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- The standard linker is now used if IPO (LTO) is enabled. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Disabled IPO (LTO) for MinGW toolchains since they seem to be generally
+  broken. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Fixed build errors with Clang on Windows. +
+  [small]#_[contributed by Orgad Shaneh]_#
+
+
+=== Test improvements
+
+- Fixed .incbin test with newer binutil versions. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed basedir test suite failure when using a symlinked CWD. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved output of differing text files on failure. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.4
 
 Release date: 2021-08-19
