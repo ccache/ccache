@@ -18,8 +18,8 @@ int test3;
 EOF
     backdate test1.h test2.h test3.h
 
-    $REAL_COMPILER -c -Wp,-MD,expected.d test.c
-    $REAL_COMPILER -c -Wp,-MMD,expected_mmd.d test.c
+    $COMPILER -c -Wp,-MD,expected.d test.c
+    $COMPILER -c -Wp,-MMD,expected_mmd.d test.c
     rm test.o
 }
 
@@ -27,7 +27,7 @@ SUITE_direct() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $REAL_COMPILER -c -o reference_test.o test.c
+    $COMPILER -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -212,10 +212,10 @@ EOF
             TEST "Dependency file content, $dep_args $obj_args"
             # -----------------------------------------------------------------
 
-            $REAL_COMPILER -c test.c $dep_args $obj_args
+            $COMPILER -c test.c $dep_args $obj_args
             mv $dep_file $dep_file.real
 
-            $REAL_COMPILER -c test.c $dep_args -o another.o
+            $COMPILER -c test.c $dep_args -o another.o
             mv $another_dep_file another.d.real
 
             # cache miss
@@ -250,7 +250,7 @@ EOF
                 obj=$dir/$name.o
                 dep=$(echo $obj | sed 's/\.o$/.d/')
 
-                $REAL_COMPILER $option -c test1.c -o $obj
+                $COMPILER $option -c test1.c -o $obj
                 mv $dep orig.d
 
                 $CCACHE_COMPILE $option -c test1.c -o $obj
@@ -277,7 +277,7 @@ EOF
         for name in test2 obj1 obj2; do
             obj=$dir1/$name.o
             dep=$(echo $obj | sed 's/\.o$/.d/')
-            $REAL_COMPILER -MMD -c $src -o $obj
+            $COMPILER -MMD -c $src -o $obj
             mv $dep $orig_dep
             rm $obj
 
@@ -333,7 +333,7 @@ EOF
     expect_stat cache_miss 1
     expect_equal_content other.d expected.d
 
-    $REAL_COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
+    $COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -360,7 +360,7 @@ EOF
     expect_stat cache_miss 1
     expect_equal_content other.d expected_mmd.d
 
-    $REAL_COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
+    $COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -447,7 +447,7 @@ EOF
     expect_stat cache_miss 1
     expect_equal_content test.d expected.d
 
-    $REAL_COMPILER -c -MD test.c -o reference_test.o
+    $COMPILER -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -486,7 +486,7 @@ EOF
 int test() { return 0; }
 EOF
 
-    if $REAL_COMPILER -c -fstack-usage code.c >/dev/null 2>&1; then
+    if $COMPILER -c -fstack-usage code.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage code.c
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
@@ -510,7 +510,7 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_equal_content test.d expected.d
-    $REAL_COMPILER -c -MD test.c -o reference_test.o
+    $COMPILER -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -548,7 +548,7 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_equal_content other.d expected.d
-    $REAL_COMPILER -c -MD -MF other.d test.c -o reference_test.o
+    $COMPILER -c -MD -MF other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d

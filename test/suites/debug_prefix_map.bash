@@ -1,6 +1,6 @@
 SUITE_debug_prefix_map_PROBE() {
     touch test.c
-    if ! $REAL_COMPILER -c -fdebug-prefix-map=old=new test.c 2>/dev/null; then
+    if ! $COMPILER -c -fdebug-prefix-map=old=new test.c 2>/dev/null; then
         echo "-fdebug-prefix-map not supported by compiler"
     fi
 }

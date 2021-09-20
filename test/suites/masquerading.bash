@@ -19,7 +19,7 @@ SUITE_masquerading() {
     # -------------------------------------------------------------------------
     TEST "Masquerading via symlink, relative path"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     ./$COMPILER_BIN $COMPILER_ARGS -c test1.c
     expect_stat preprocessed_cache_hit 0
@@ -36,7 +36,7 @@ SUITE_masquerading() {
     # -------------------------------------------------------------------------
     TEST "Masquerading via symlink, absolute path"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     $PWD/$COMPILER_BIN $COMPILER_ARGS -c test1.c
     expect_stat preprocessed_cache_hit 0

@@ -24,10 +24,10 @@ int test3;
 EOF
     backdate test1.h test2.h test3.h
 
-    DEPENDENCIES_OUTPUT="expected_dependencies_output.d" $REAL_COMPILER -c test.c
-    DEPENDENCIES_OUTPUT="expected_dependencies_output_target.d target.o" $REAL_COMPILER -c test.c
-    SUNPRO_DEPENDENCIES="expected_sunpro_dependencies.d" $REAL_COMPILER -c test.c
-    SUNPRO_DEPENDENCIES="expected_sunpro_dependencies_target.d target.o" $REAL_COMPILER -c test.c
+    DEPENDENCIES_OUTPUT="expected_dependencies_output.d" $COMPILER -c test.c
+    DEPENDENCIES_OUTPUT="expected_dependencies_output_target.d target.o" $COMPILER -c test.c
+    SUNPRO_DEPENDENCIES="expected_sunpro_dependencies.d" $COMPILER -c test.c
+    SUNPRO_DEPENDENCIES="expected_sunpro_dependencies_target.d target.o" $COMPILER -c test.c
     rm test.o
 }
 
@@ -41,7 +41,7 @@ SUITE_direct_gcc() {
     expect_stat cache_miss 1
     expect_equal_content other.d expected_dependencies_output.d
 
-    DEPENDENCIES_OUTPUT="other.d" $REAL_COMPILER -c test.c -o reference_test.o
+    DEPENDENCIES_OUTPUT="other.d" $COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -68,7 +68,7 @@ SUITE_direct_gcc() {
     expect_stat cache_miss 1
     expect_equal_content other.d expected_dependencies_output_target.d
 
-    DEPENDENCIES_OUTPUT="other.d target.o" $REAL_COMPILER -c test.c -o reference_test.o
+    DEPENDENCIES_OUTPUT="other.d target.o" $COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -95,7 +95,7 @@ SUITE_direct_gcc() {
     expect_stat cache_miss 1
     expect_equal_content other.d expected_sunpro_dependencies.d
 
-    SUNPRO_DEPENDENCIES="other.d" $REAL_COMPILER -c test.c -o reference_test.o
+    SUNPRO_DEPENDENCIES="other.d" $COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -122,7 +122,7 @@ SUITE_direct_gcc() {
     expect_stat cache_miss 1
     expect_equal_content other.d expected_sunpro_dependencies_target.d
 
-    SUNPRO_DEPENDENCIES="other.d target.o" $REAL_COMPILER -c test.c -o reference_test.o
+    SUNPRO_DEPENDENCIES="other.d target.o" $COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d

@@ -2,13 +2,13 @@ SUITE_pch_PROBE() {
     touch pch.h empty.c
     mkdir dir
 
-    if ! $REAL_COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
+    if ! $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
             || [ ! -f pch.h.gch ]; then
         echo "compiler ($($COMPILER --version | head -n 1)) doesn't support precompiled headers"
     fi
 
-    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch 2>/dev/null
-    if ! $REAL_COMPILER $SYSROOT -c -include dir/pch.h empty.c 2>/dev/null; then
+    $COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch 2>/dev/null
+    if ! $COMPILER $SYSROOT -c -include dir/pch.h empty.c 2>/dev/null; then
         echo "compiler ($($COMPILER --version | head -n 1)) seems to have broken support for precompiled headers"
     fi
 }
@@ -121,7 +121,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include, remove pch.h"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -136,7 +136,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include, no sloppiness"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -149,7 +149,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -164,7 +164,7 @@ pch_suite_common() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -180,7 +180,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, -include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
@@ -195,7 +195,7 @@ pch_suite_common() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
@@ -236,7 +236,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include, PCH_EXTSUM=1"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     echo "original checksum" > pch.h.gch.sum
@@ -270,7 +270,7 @@ pch_suite_common() {
 
     sleep 1
     touch pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -281,7 +281,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include, no PCH_EXTSUM"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     echo "original checksum" > pch.h.gch.sum
@@ -307,7 +307,7 @@ pch_suite_common() {
     TEST "Use .gch, -include, other dir for .gch"
 
     mkdir -p dir
-    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    $COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
     backdate dir/pch.h.gch
     rm -f pch.h.gch
 
@@ -323,7 +323,7 @@ pch_suite_common() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    $COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
     backdate dir/pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch2.c
@@ -341,7 +341,7 @@ pch_suite_common() {
     TEST "Use .gch, preprocessor mode, -include, other dir for .gch"
 
     mkdir -p dir
-    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    $COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
     backdate dir/pch.h.gch
     rm -f pch.h.gch
 
@@ -357,7 +357,7 @@ pch_suite_common() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    $COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
     backdate dir/pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch.c
@@ -374,7 +374,7 @@ pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, depend mode, -include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c -MD -MF pch.d
@@ -389,7 +389,7 @@ pch_suite_common() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c -MD -MF pch.d
@@ -407,7 +407,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include, remove pch.h"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -424,7 +424,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include, no sloppiness"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -437,7 +437,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -453,7 +453,7 @@ pch_suite_gcc() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
@@ -469,7 +469,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, #include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -485,7 +485,7 @@ pch_suite_gcc() {
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
@@ -543,7 +543,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include, PCH_EXTSUM=1"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     echo "original checksum" > pch.h.gch.sum
@@ -577,7 +577,7 @@ pch_suite_gcc() {
 
     sleep 1
     touch pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
@@ -588,7 +588,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include, no PCH_EXTSUM"
 
-    $REAL_COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     echo "original checksum" > pch.h.gch.sum
@@ -624,7 +624,7 @@ pch_suite_gcc() {
     touch lib.h
     touch main.c
 
-    $REAL_COMPILER $SYSROOT -c lib.h
+    $COMPILER $SYSROOT -c lib.h
     touch -d "@$(($(date +%s) + 60))" lib.h.gch # 1 minute in the future
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines,time_macros" $CCACHE_COMPILE -include lib.h -c main.c
@@ -661,7 +661,7 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
 
-    $REAL_COMPILER $SYSROOT -c -include pch2.h pch2.c
+    $COMPILER $SYSROOT -c -include pch2.h pch2.c
     expect_exists pch2.o
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -c pch2.h
@@ -672,7 +672,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pch, -include, no sloppiness"
 
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -685,7 +685,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pch, -include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -700,7 +700,7 @@ EOF
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -711,7 +711,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pch, preprocessor mode, -include"
 
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
@@ -726,7 +726,7 @@ EOF
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
@@ -742,7 +742,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pch, -include-pch"
 
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch2.c
@@ -757,7 +757,7 @@ EOF
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch2.c
@@ -768,7 +768,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pch, preprocessor mode, -include-pch"
 
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
@@ -783,7 +783,7 @@ EOF
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    $COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
@@ -823,7 +823,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pch the with -Xclang options"
 
-    $REAL_COMPILER $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    $COMPILER $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
     backdate pch.h.pch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Xclang -include-pch -Xclang pch.h.pch -Xclang -include -Xclang pch.h -c pch.c
@@ -838,7 +838,7 @@ EOF
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
-    $REAL_COMPILER $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    $COMPILER $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
     backdate pch.h.pch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Xclang -include-pch -Xclang pch.h.pch -Xclang -include -Xclang pch.h -c pch.c

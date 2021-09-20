@@ -1,7 +1,7 @@
 nvcc_PROBE() {
     if [ -z "$REAL_NVCC" ]; then
         echo "nvcc is not available"
-    elif [ -z "$REAL_CUOBJDUMP" ]; then
+    elif ! command -v cuobjdump >/dev/null; then
         echo "cuobjdump is not available"
     fi
 }
@@ -58,7 +58,7 @@ nvcc_tests() {
     nvcc_opts_gpu2="--generate-code arch=compute_52,code=sm_52"
     ccache_nvcc_cpp="$CCACHE $REAL_NVCC $nvcc_opts_cpp"
     ccache_nvcc_cuda="$CCACHE $REAL_NVCC $nvcc_opts_cuda"
-    cuobjdump="$REAL_CUOBJDUMP -all -elf -symbols -ptx -sass"
+    cuobjdump="cuobjdump -all -elf -symbols -ptx -sass"
 
     # -------------------------------------------------------------------------
     TEST "Simple mode"
@@ -215,17 +215,17 @@ nvcc_tests() {
     # -------------------------------------------------------------------------
     TEST "Option --compiler-bindir"
 
-    $REAL_NVCC $nvcc_opts_cpp --compiler-bindir $REAL_COMPILER_BIN \
+    $REAL_NVCC $nvcc_opts_cpp --compiler-bindir $COMPILER_BIN \
       -o reference_test1.o test_cpp.cu
 
     # First compile.
-    $ccache_nvcc_cpp --compiler-bindir $REAL_COMPILER_BIN test_cpp.cu
+    $ccache_nvcc_cpp --compiler-bindir $COMPILER_BIN test_cpp.cu
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_equal_content reference_test1.o test_cpp.o
 
-    $ccache_nvcc_cpp --compiler-bindir $REAL_COMPILER_BIN test_cpp.cu
+    $ccache_nvcc_cpp --compiler-bindir $COMPILER_BIN test_cpp.cu
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
@@ -234,17 +234,17 @@ nvcc_tests() {
     # -------------------------------------------------------------------------
     TEST "Option -ccbin"
 
-    $REAL_NVCC $nvcc_opts_cpp -ccbin $REAL_COMPILER_BIN \
+    $REAL_NVCC $nvcc_opts_cpp -ccbin $COMPILER_BIN \
       -o reference_test1.o test_cpp.cu
 
     # First compile.
-    $ccache_nvcc_cpp -ccbin $REAL_COMPILER_BIN test_cpp.cu
+    $ccache_nvcc_cpp -ccbin $COMPILER_BIN test_cpp.cu
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_equal_content reference_test1.o test_cpp.o
 
-    $ccache_nvcc_cpp -ccbin $REAL_COMPILER_BIN test_cpp.cu
+    $ccache_nvcc_cpp -ccbin $COMPILER_BIN test_cpp.cu
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1

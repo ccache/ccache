@@ -1,6 +1,6 @@
 SUITE_split_dwarf_PROBE() {
     touch test.c
-    if ! $REAL_COMPILER -c -gsplit-dwarf test.c 2>/dev/null || [ ! -e test.dwo ]; then
+    if ! $COMPILER -c -gsplit-dwarf test.c 2>/dev/null || [ ! -e test.dwo ]; then
         echo "-gsplit-dwarf not supported by compiler"
     elif ! $COMPILER -fdebug-prefix-map=a=b -c test.c 2>/dev/null; then
         echo "-fdebug-prefix-map not supported by compiler"
@@ -50,11 +50,11 @@ SUITE_split_dwarf() {
 
     cd dir1
 
-    $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
+    $COMPILER -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
     mv test.o reference.o
     mv test.dwo reference.dwo
 
-    $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
+    $COMPILER -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
     mv test.o reference2.o
     mv test.dwo reference2.dwo
 
@@ -75,7 +75,7 @@ SUITE_split_dwarf() {
         expect_stat cache_miss 1
         expect_stat files_in_cache 2
 
-        $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
+        $COMPILER -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
         mv test2.o reference2.o
         mv test2.dwo reference2.dwo
 
@@ -124,7 +124,7 @@ SUITE_split_dwarf() {
     # "gcc -gsplit-dwarf -g1" produces a .dwo file, but "clang -gsplit-dwarf
     # -g1" doesn't, so test that ccache handles it gracefully either way.
 
-    $REAL_COMPILER -gsplit-dwarf -g1 -c test.c -o reference.o
+    $COMPILER -gsplit-dwarf -g1 -c test.c -o reference.o
 
     $CCACHE_COMPILE -gsplit-dwarf -g1 -c test.c
     expect_stat direct_cache_hit 0

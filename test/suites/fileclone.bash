@@ -11,7 +11,7 @@ SUITE_fileclone() {
 
     generate_code 1 test.c
 
-    $REAL_COMPILER -c -o reference_test.o test.c
+    $COMPILER -c -o reference_test.o test.c
 
     CCACHE_FILECLONE=1 $CCACHE_COMPILE -c test.c
     expect_stat preprocessed_cache_hit 0
@@ -37,7 +37,7 @@ SUITE_fileclone() {
 
     generate_code 1 test.c
 
-    $REAL_COMPILER -c -o reference_test.o test.c
+    $COMPILER -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
     expect_stat preprocessed_cache_hit 0

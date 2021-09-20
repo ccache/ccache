@@ -458,13 +458,14 @@ for HOST_CCACHE_DIR in $HOST_CCACHE_DIRS; do
 done
 export PATH
 
-if [ -n "$CC" ]; then
-    COMPILER="$CC"
-elif [[ "$OSTYPE" == "darwin"* && -x "$(command -v clang)" ]]; then
-    COMPILER=clang
-else
-    COMPILER=gcc
+if [ -z "$CC" ]; then
+    if [[ "$OSTYPE" == "darwin"* && -x "$(command -v clang)" ]]; then
+        CC=clang
+    else
+        CC=gcc
+    fi
 fi
+
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
@@ -485,17 +486,17 @@ HOST_OS_FREEBSD=false
 HOST_OS_WINDOWS=false
 HOST_OS_CYGWIN=false
 
-compiler_version="`$COMPILER --version 2>/dev/null | head -1`"
+compiler_version="`$CC --version 2>/dev/null | head -1`"
 case $compiler_version in
     *gcc*|*g++*|2.95*)
         COMPILER_TYPE_GCC=true
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
-        CLANG_VERSION_SUFFIX=$(echo "${COMPILER%% *}" | sed 's/.*clang//')
+        CLANG_VERSION_SUFFIX=$(echo "${CC%% *}" | sed 's/.*clang//')
         ;;
     *)
-        echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- Skipped running tests" >&2
+        echo "WARNING: Compiler $CC not supported (version: $compiler_version) -- Skipped running tests" >&2
         exit $skip_code
         ;;
 esac
@@ -574,28 +575,37 @@ symlink_testdir_on_failure() {
     ln -s "$$" "$TEST_FAILED_SYMLINK"
 }
 
-cd $TESTDIR || exit 1
-
-COMPILER_BIN=$(echo $COMPILER | awk '{print $1}')
-COMPILER_ARGS=$(echo $COMPILER | awk '{$1 = ""; print}')
+COMPILER_BIN=$(echo $CC | awk '{print $1}')
+COMPILER_ARGS=$(echo $CC | awk '{$1 = ""; print}')
 REAL_COMPILER_BIN=$(find_compiler $COMPILER_BIN)
 REAL_COMPILER="$REAL_COMPILER_BIN$COMPILER_ARGS"
-
-if [ "$REAL_COMPILER" = "$COMPILER" ]; then
-    echo "Compiler:         $COMPILER"
-else
-    echo "Compiler:         $COMPILER ($REAL_COMPILER)"
-fi
-echo "Compiler version: $($COMPILER --version 2>/dev/null | head -n 1)"
-
 REAL_NVCC=$(find_compiler nvcc)
-REAL_CUOBJDUMP=$(find_compiler cuobjdump)
+
+if [ "$REAL_COMPILER_BIN" = "$COMPILER_BIN" ]; then
+    echo "Compiler:         $CC"
+else
+    echo "Compiler:         $CC ($REAL_COMPILER)"
+fi
+echo "Compiler version: $($CC --version 2>/dev/null | head -n 1)"
+
 if [ -n "$REAL_NVCC" ]; then
     echo "CUDA compiler:    $($REAL_NVCC --version | tail -n 1) ($REAL_NVCC)"
 else
     echo "CUDA compiler:    not available"
 fi
 echo
+
+cd $TESTDIR || exit 1
+
+mkdir compiler
+COMPILER="$(pwd)/compiler/$(basename "$REAL_COMPILER_BIN")"
+cat >"$COMPILER" <<EOF
+#!/bin/sh
+
+CCACHE_DISABLE=1 CCACHE_COMPILER= CCACHE_PREFIX= \
+  exec $COMPILER_BIN$COMPILER_ARGS "\$@"
+EOF
+chmod +x "$COMPILER"
 
 [ -z "${VERBOSE:-}" ] && verbose=false || verbose=true
 [ "$1" = "-v" ] && { verbose=true; shift; }
@@ -624,4 +634,3 @@ else
     green PASSED
     exit 0
 fi
-

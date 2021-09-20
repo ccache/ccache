@@ -1,6 +1,6 @@
 SUITE_input_charset_PROBE() {
     touch test.c
-    if ! $REAL_COMPILER -c -finput-charset=latin1 test.c >/dev/null 2>&1; then
+    if ! $COMPILER -c -finput-charset=latin1 test.c >/dev/null 2>&1; then
         echo "compiler doesn't support -finput-charset"
     fi
 }

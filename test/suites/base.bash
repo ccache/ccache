@@ -2,7 +2,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat preprocessed_cache_hit 0
@@ -33,7 +33,7 @@ base_tests() {
     # E.g. due to some suboptimal setup, scripts etc. Source:
     # https://github.com/ccache/ccache/issues/686
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     $CCACHE $COMPILER -c test1.c
     expect_stat preprocessed_cache_hit 0
@@ -75,7 +75,7 @@ base_tests() {
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c -g
+    $COMPILER -c -o reference_test1.o test1.c -g
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -89,7 +89,7 @@ base_tests() {
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o foo.o
 
     # -------------------------------------------------------------------------
@@ -107,7 +107,7 @@ base_tests() {
     expect_stat preprocessed_cache_hit 2
     expect_stat cache_miss 1
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o dir
     expect_equal_object_files reference_test1.o ptf
 
@@ -387,7 +387,7 @@ fi
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     mv test1.c test1-saved.c
     echo '// initial comment' >test1.c
@@ -402,7 +402,7 @@ fi
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -454,7 +454,7 @@ fi
     expect_stat cache_miss 1
     expect_stat recache 1
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     expect_stat files_in_cache 1
@@ -525,7 +525,7 @@ fi
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz"
 
-    $REAL_COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null
+    $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null
     if [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
@@ -548,7 +548,7 @@ fi
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz=zlib"
 
-    $REAL_COMPILER -E test1.c -gz=zlib >preprocessed.i 2>/dev/null
+    $COMPILER -E test1.c -gz=zlib >preprocessed.i 2>/dev/null
     if [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
@@ -682,7 +682,7 @@ b"
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    $REAL_COMPILER -c test1.c -E >test1.i
+    $COMPILER -c test1.c -E >test1.i
     $CCACHE_COMPILE -c test1.i
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
@@ -776,7 +776,7 @@ b"
     # -------------------------------------------------------------------------
     TEST "-frecord-gcc-switches"
 
-    if $REAL_COMPILER -frecord-gcc-switches -c test1.c >&/dev/null; then
+    if $COMPILER -frecord-gcc-switches -c test1.c >&/dev/null; then
         $CCACHE_COMPILE -frecord-gcc-switches -c test1.c
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
@@ -797,15 +797,18 @@ b"
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMPILER"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
+    export CCACHE_DEBUG=1
+    export CCACHE_DEBUGDIR=/tmp/a
     $CCACHE_COMPILE -c test1.c
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 
-    CCACHE_COMPILER=$COMPILER_BIN $CCACHE \
+    export CCACHE_DEBUGDIR=/tmp/b
+    CCACHE_COMPILER=$COMPILER $CCACHE \
         non_existing_compiler_will_be_overridden_anyway \
         $COMPILER_ARGS -c test1.c
     expect_stat preprocessed_cache_hit 1
@@ -813,14 +816,14 @@ b"
     expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 
-    CCACHE_COMPILER=$COMPILER_BIN $CCACHE same/for/relative \
+    CCACHE_COMPILER=$COMPILER $CCACHE same/for/relative \
         $COMPILER_ARGS -c test1.c
     expect_stat preprocessed_cache_hit 2
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 
-    CCACHE_COMPILER=$COMPILER_BIN $CCACHE /and/even/absolute/compilers \
+    CCACHE_COMPILER=$COMPILER $CCACHE /and/even/absolute/compilers \
         $COMPILER_ARGS -c test1.c
     expect_stat preprocessed_cache_hit 3
     expect_stat cache_miss 1
@@ -1105,7 +1108,7 @@ EOF
 
     echo '#warning This triggers a compiler warning' >stderr.c
 
-    $REAL_COMPILER -Wall -c stderr.c -fsyntax-only 2>reference_stderr.txt
+    $COMPILER -Wall -c stderr.c -fsyntax-only 2>reference_stderr.txt
 
     expect_contains reference_stderr.txt "This triggers a compiler warning"
 
@@ -1156,7 +1159,7 @@ int stderr(void)
   // Trigger warning by having no return statement.
 }
 EOF
-    $REAL_COMPILER -c -Wall -W -c stderr.c 2>reference_stderr.txt
+    $COMPILER -c -Wall -W -c stderr.c 2>reference_stderr.txt
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>stderr.txt
     expect_equal_content reference_stderr.txt stderr.txt
 
@@ -1194,7 +1197,7 @@ EOF
     cat <<EOF >test.c
 #warning Foo
 EOF
-    $REAL_COMPILER -c test.c -MMD 2>reference.stderr
+    $COMPILER -c test.c -MMD 2>reference.stderr
     mv test.d reference.d
 
     $CCACHE_COMPILE -c test.c -MMD 2>test.stderr
