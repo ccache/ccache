@@ -228,3 +228,9 @@ Args::replace(size_t index, const Args& args)
     insert(index, args);
   }
 }
+
+void
+Args::replace(size_t index, const std::string& arg)
+{
+  m_args[index] = arg;
+}

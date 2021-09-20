@@ -928,6 +928,11 @@ process_arg(Context& ctx,
 
   // Rewrite to relative to increase hit rate.
   args_info.input_file = Util::make_relative_path(ctx, args[i]);
+  if (i < ctx.orig_args.size()) {
+    // Rewrite to relative in original args in case hash_full_command_line
+    // is set (-frecord-gcc-switches) - to increase hit rate
+    ctx.orig_args.replace(i, args_info.input_file);
+  }
 
   return nullopt;
 }

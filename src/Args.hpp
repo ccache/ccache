@@ -85,6 +85,9 @@ public:
   // Replace the argument at `index` with all arguments in `args`.
   void replace(size_t index, const Args& args);
 
+  // Replace the argument at `index` with an `arg`.
+  void replace(size_t index, const std::string& arg);
+
 private:
   std::deque<std::string> m_args;
 };
