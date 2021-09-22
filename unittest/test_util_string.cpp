@@ -200,6 +200,20 @@ TEST_CASE("util::percent_decode")
         == "invalid percent-encoded string at position 1: a%0g");
 }
 
+TEST_CASE("util::replace_all")
+{
+  CHECK(util::replace_all("", "", "") == "");
+  CHECK(util::replace_all("x", "", "") == "x");
+  CHECK(util::replace_all("", "x", "") == "");
+  CHECK(util::replace_all("", "", "x") == "");
+  CHECK(util::replace_all("x", "y", "z") == "x");
+  CHECK(util::replace_all("x", "x", "y") == "y");
+  CHECK(util::replace_all("abc", "abc", "defdef") == "defdef");
+  CHECK(util::replace_all("xabc", "abc", "defdef") == "xdefdef");
+  CHECK(util::replace_all("abcx", "abc", "defdef") == "defdefx");
+  CHECK(util::replace_all("xabcyabcz", "abc", "defdef") == "xdefdefydefdefz");
+}
+
 TEST_CASE("util::replace_first")
 {
   CHECK(util::replace_first("", "", "") == "");

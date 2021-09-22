@@ -18,6 +18,7 @@
 
 #include "string.hpp"
 
+#include <assertions.hpp>
 #include <fmtmacros.hpp>
 
 #include <cctype>
@@ -147,6 +148,31 @@ percent_decode(nonstd::string_view string)
     }
   }
 
+  return result;
+}
+
+std::string
+replace_all(const nonstd::string_view string,
+            const nonstd::string_view from,
+            const nonstd::string_view to)
+{
+  if (from.empty()) {
+    return std::string(string);
+  }
+
+  std::string result;
+  size_t left = 0;
+  size_t right = 0;
+  while (left < string.size()) {
+    right = string.find(from, left);
+    if (right == nonstd::string_view::npos) {
+      result.append(string.data() + left);
+      break;
+    }
+    result.append(string.data() + left, right - left);
+    result.append(to.data(), to.size());
+    left = right + from.size();
+  }
   return result;
 }
 
