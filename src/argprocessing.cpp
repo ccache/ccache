@@ -106,9 +106,9 @@ color_output_possible()
 }
 
 bool
-detect_pch(Context& ctx,
-           const std::string& option,
+detect_pch(const std::string& option,
            const std::string& arg,
+           std::string& included_pch_file,
            bool is_cc1_option,
            bool* found_pch)
 {
@@ -135,13 +135,13 @@ detect_pch(Context& ctx,
   }
 
   if (!pch_file.empty()) {
-    if (!ctx.included_pch_file.empty()) {
+    if (!included_pch_file.empty()) {
       LOG("Multiple precompiled headers used: {} and {}",
-          ctx.included_pch_file,
+          included_pch_file,
           pch_file);
       return false;
     }
-    ctx.included_pch_file = pch_file;
+    included_pch_file = pch_file;
     *found_pch = true;
   }
   return true;
@@ -821,8 +821,11 @@ process_arg(Context& ctx,
       next = 2;
     }
 
-    if (!detect_pch(
-          ctx, args[i], args[i + next], next == 2, &state.found_pch)) {
+    if (!detect_pch(args[i],
+                    args[i + next],
+                    args_info.included_pch_file,
+                    next == 2,
+                    &state.found_pch)) {
       return Statistic::bad_compiler_arguments;
     }
 

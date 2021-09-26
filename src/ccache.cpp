@@ -355,7 +355,7 @@ do_remember_include_file(Context& ctx,
   Hash fhash;
 
   if (is_pch) {
-    if (ctx.included_pch_file.empty()) {
+    if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
     }
     bool using_pch_sum = false;
@@ -608,8 +608,9 @@ process_preprocessed_file(Context& ctx,
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
-  if (!ctx.included_pch_file.empty()) {
-    std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -649,8 +650,9 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
-  if (!ctx.included_pch_file.empty()) {
-    std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
