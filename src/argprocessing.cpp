@@ -1310,7 +1310,7 @@ process_args(Context& ctx)
   if (config.run_second_cpp()) {
     extra_args_to_hash.push_back(state.dep_args);
   }
-  if (state.hash_full_command_line) {
+  if (state.hash_full_command_line && !ctx.config.sloppiness().is_enabled(core::Sloppy::full_command_line)) {
     extra_args_to_hash.push_back(ctx.orig_args);
   }
 

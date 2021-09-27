@@ -328,6 +328,34 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
+    TEST "-frecord-gcc-switches"
+
+    if $COMPILER -frecord-gcc-switches -c test1.c >&/dev/null; then
+        cd dir1
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -frecord-gcc-switches -I$(pwd)/include -c $(pwd)/src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        cd ../dir2
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -frecord-gcc-switches -I$(pwd)/include -c $(pwd)/src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+
+        CCACHE_BASEDIR="$(pwd)" CCACHE_SLOPPINESS=full_command_line $CCACHE_COMPILE -frecord-gcc-switches -I$(pwd)/include -c $(pwd)/src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 3
+
+        cd ../dir1
+        CCACHE_BASEDIR="$(pwd)" CCACHE_SLOPPINESS=full_command_line $CCACHE_COMPILE -frecord-gcc-switches -I$(pwd)/include -c $(pwd)/src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 3
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Unset PWD"
 
     unset PWD

@@ -918,6 +918,11 @@ Examples:
 *time_macros*::
     Ignore `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+` being present in the
     source code.
+*full_command_line*::
+    By default, ccache will add full command line to hash if `-frecord-gcc-
+    switches` is used, resulting in cache miss when compiling in
+    different directories. With this sloppiness set ccache will only hash
+    processed command line (see _<<Compiling in different directories>>_).
 --
 +
 See the discussion under _<<Troubleshooting>>_ for more information.

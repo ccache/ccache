@@ -46,6 +46,8 @@ enum class Sloppy : uint32_t {
   modules = 1U << 9,
   // Ignore virtual file system (VFS) overlay file.
   ivfsoverlay = 1U << 10,
+  // Don't hash full command line, e.g. when -frecord-gcc-switches is used.
+  full_command_line = 1U << 11,
 };
 
 class Sloppiness

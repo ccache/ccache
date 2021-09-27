@@ -284,6 +284,8 @@ parse_sloppiness(const std::string& value)
       result.enable(core::Sloppy::modules);
     } else if (token == "ivfsoverlay") {
       result.enable(core::Sloppy::ivfsoverlay);
+    } else if (token == "full_command_line") {
+      result.enable(core::Sloppy::full_command_line);
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
@@ -326,6 +328,9 @@ format_sloppiness(core::Sloppiness sloppiness)
   }
   if (sloppiness.is_enabled(core::Sloppy::ivfsoverlay)) {
     result += "ivfsoverlay, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::full_command_line)) {
+    result += "full_command_line, ";
   }
   if (!result.empty()) {
     // Strip last ", ".

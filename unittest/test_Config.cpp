@@ -130,7 +130,7 @@ TEST_CASE("Config::update_from_file")
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay\n"
+    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,full_command_line\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777"); // Note: no newline.
@@ -177,7 +177,8 @@ TEST_CASE("Config::update_from_file")
             | static_cast<uint32_t>(core::Sloppy::system_headers)
             | static_cast<uint32_t>(core::Sloppy::pch_defines)
             | static_cast<uint32_t>(core::Sloppy::clang_index_store)
-            | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)));
+            | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)
+            | static_cast<uint32_t>(core::Sloppy::full_command_line)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
   CHECK(config.umask() == 0777u);
