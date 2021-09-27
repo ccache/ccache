@@ -70,17 +70,17 @@ jobs:
             compiler: clang
             version: "11"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
             version: "10.3"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
             version: "11.7"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
-            version: "12.2"
+            version: "12.4"
     steps:
       - name: Install dependencies
         run: |
