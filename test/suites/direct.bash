@@ -830,6 +830,11 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
+    $CCACHE_COMPILE -c time_h.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 1
+
     # -------------------------------------------------------------------------
     TEST "__TIME__ in source file ignored if sloppy"
 

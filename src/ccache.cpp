@@ -728,6 +728,8 @@ update_manifest_file(Context& ctx,
     return;
   }
 
+  ASSERT(ctx.config.direct_mode());
+
   MTR_SCOPE("manifest", "manifest_put");
 
   // See comment in get_file_hash_index for why saving of timestamps is forced
@@ -2163,7 +2165,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     // If we can return from cache at this point then do.
     const auto found = from_cache(ctx, FromCacheCallMode::cpp, *result_key);
     if (found) {
-      if (manifest_key && put_result_in_manifest) {
+      if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest_file(ctx, *manifest_key, *result_key);
       }
       return Statistic::preprocessed_cache_hit;
