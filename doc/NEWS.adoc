@@ -1,5 +1,29 @@
 = Ccache news
 
+== Ccache 4.4.2
+
+Release date: 2021-09-28
+
+
+=== Bug fixes
+
+- Fixed a bug introduced in 4.4 where ccache could produce false direct cache
+  hits in some situations if it decides to disable the direct mode temporarily
+  (e.g. due to "`too new header`" file). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Use shell builtin pwd command for basedir test. +
+  [small]#_[contributed by Kira Bruneau]_#
+
+- Cope with CC being a wrapper script that uses ccache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+= Ccache news
+
 == Ccache 4.4.1
 
 Release date: 2021-09-11
