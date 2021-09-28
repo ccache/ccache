@@ -181,7 +181,6 @@ jobs:
           - name: Windows VS2019 32-bit Ninja
             os: windows-2019
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
@@ -203,7 +202,6 @@ jobs:
           - name: Windows VS2019 64-bit Ninja
             os: windows-2019
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1

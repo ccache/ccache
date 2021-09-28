@@ -100,6 +100,7 @@ SUITE_split_dwarf() {
     # differs), so we can't verify filename hashing.
 
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "-fdebug-prefix-map and -gsplit-dwarf"
 
     cd dir1
@@ -117,7 +118,7 @@ SUITE_split_dwarf() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_objdump_not_contains test.o "$(pwd)" 2>/dev/null
-
+fi
     # -------------------------------------------------------------------------
     TEST "-gsplit-dwarf -g1"
 

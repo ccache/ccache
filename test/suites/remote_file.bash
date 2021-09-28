@@ -1,6 +1,12 @@
 # This test suite verified both the file storage backend and the remote
 # storage framework itself.
 
+SUITE_remote_file_PROBE() {
+    if ! $RUN_WIN_XFAIL; then
+        echo "remote file is broken on windows."
+    fi
+}
+
 SUITE_remote_file_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_REMOTE_STORAGE="file:$PWD/remote"
