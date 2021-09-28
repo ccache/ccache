@@ -22,8 +22,6 @@ Release date: 2021-09-28
   [small]#_[contributed by Joel Rosdahl]_#
 
 
-= Ccache news
-
 == Ccache 4.4.1
 
 Release date: 2021-09-11
