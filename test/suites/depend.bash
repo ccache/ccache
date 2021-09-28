@@ -172,13 +172,13 @@ EOF
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
-    expect_content stderr-orig.txt "`cat stderr-baseline.txt`"
+    expect_equal_text_content stderr-orig.txt stderr-baseline.txt
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -Wall -W -c cpp-warning.c 2>stderr-mf.txt
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
-    expect_content stderr-mf.txt "`cat stderr-baseline.txt`"
+    expect_equal_text_content stderr-mf.txt stderr-baseline.txt
 
     # -------------------------------------------------------------------------
     # This test case covers a case in depend mode with unchanged source file

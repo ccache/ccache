@@ -1,3 +1,10 @@
+SUITE_upgrade_PROBE() {
+    if ! $RUN_WIN_XFAIL; then
+        echo "upgrade tests are broken on Windows. (mix between windows and posix path)"
+        return
+    fi
+}
+
 SUITE_upgrade() {
     # -------------------------------------------------------------------------
     TEST "Default cache config/directory without XDG variables"

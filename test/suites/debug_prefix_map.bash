@@ -3,6 +3,11 @@ SUITE_debug_prefix_map_PROBE() {
     if ! $COMPILER -c -fdebug-prefix-map=old=new test.c 2>/dev/null; then
         echo "-fdebug-prefix-map not supported by compiler"
     fi
+
+    if ! $RUN_WIN_XFAIL; then
+        echo "debug_prefix_map tests are broken on Windows."
+        return
+    fi
 }
 
 SUITE_debug_prefix_map_SETUP() {

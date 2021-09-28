@@ -12,6 +12,11 @@ SUITE_color_diagnostics_PROBE() {
         return
     fi
 
+    if ! $RUN_WIN_XFAIL; then
+        echo "color_diagnostics tests are broken on Windows."
+        return
+    fi
+
     # Probe that real compiler actually supports colored diagnostics.
     if [[ ! $color_diagnostics_enable || ! $color_diagnostics_disable ]]; then
         echo "compiler $COMPILER does not support colored diagnostics"

@@ -1,10 +1,21 @@
 # This test suite verified both the file storage backend and the secondary
 # storage framework itself.
 
+SUITE_secondary_file_PROBE() {
+    if ! $RUN_WIN_XFAIL; then
+        echo "secondary_file tests are broken on Windows"
+        return
+    fi
+}
+
 SUITE_secondary_file_SETUP() {
     unset CCACHE_NODIRECT
-    export CCACHE_SECONDARY_STORAGE="file:$PWD/secondary"
-
+    if $HOST_OS_WINDOWS;then
+        export MSYS2_ENV_CONV_EXCL=CCACHE_SECONDARY_STORAGE
+        export CCACHE_SECONDARY_STORAGE="file:/$(cygpath -m $PWD/secondary)"
+    else
+        export CCACHE_SECONDARY_STORAGE="file:$PWD/secondary"
+    fi
     generate_code 1 test.c
 }
 

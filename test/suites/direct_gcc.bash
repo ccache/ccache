@@ -2,6 +2,10 @@ SUITE_direct_gcc_PROBE() {
     if [[ "${COMPILER_TYPE_GCC}" != "true" ]]; then
         echo "Skipping GCC only test cases"
     fi
+    if ! $RUN_WIN_XFAIL; then
+        echo "direct_gcc tests are broken on Windows"
+        return
+    fi
 }
 
 SUITE_direct_gcc_SETUP() {

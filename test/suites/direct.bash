@@ -181,6 +181,7 @@ EOF
     expect_stat files_in_cache $((2 * i + 2))
 
     # -------------------------------------------------------------------------
+if ! $COMPILER_USES_MSVC; then
     TEST "-MMD for different source files"
 
     mkdir a b
@@ -194,7 +195,7 @@ EOF
 
     $CCACHE_COMPILE -MMD -c a/source.c -o a/source.o
     expect_content a/source.d "a/source.o: a/source.c"
-
+fi
     # -------------------------------------------------------------------------
     for dep_args in "-MMD" "-MMD -MF foo.d" "-Wp,-MMD,foo.d"; do
         for obj_args in "" "-o bar.o"; do
@@ -294,6 +295,7 @@ EOF
     done
 
     # -------------------------------------------------------------------------
+if ! $COMPILER_USES_MSVC; then
     TEST "Dependency file content"
 
     mkdir build
@@ -307,8 +309,9 @@ EOF
             expect_content $dep "$obj: $src"
         done
     done
-
+fi
     # -------------------------------------------------------------------------
+if ! $COMPILER_USES_MSVC; then
     TEST "-MMD for different include file paths"
 
     mkdir a b
@@ -323,7 +326,7 @@ EOF
 
     $CCACHE_COMPILE -MMD -Ia -c source.c
     expect_content source.d "source.o: source.c a/source.h"
-
+fi
     # -------------------------------------------------------------------------
     TEST "-Wp,-MD"
 
@@ -412,6 +415,7 @@ EOF
     expect_content source.d "source.o: source.c"
 
     # -------------------------------------------------------------------------
+if ! $COMPILER_USES_MSVC; then
     TEST "-MMD for different source files"
 
     mkdir a b
@@ -424,7 +428,7 @@ EOF
 
     $CCACHE_COMPILE -MMD -c a/source.c
     expect_content source.d "source.o: a/source.c"
-
+fi
     # -------------------------------------------------------------------------
     TEST "Multiple object entries in manifest"
 
@@ -579,6 +583,7 @@ EOF
     rm -f third_name.d
 
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then 
     TEST "MF /dev/null"
 
     $CCACHE_COMPILE -c -MD -MF /dev/null test.c
@@ -608,7 +613,7 @@ EOF
     expect_stat cache_miss 2
     expect_stat files_in_cache 4
     expect_equal_content test.d expected.d
-
+fi
     # -------------------------------------------------------------------------
     TEST "stderr from both preprocessor and compiler"
 
