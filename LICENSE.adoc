@@ -681,7 +681,7 @@ DEALINGS IN THE SOFTWARE.
 
 === src/third_party/url.*
 
-CxxUrl - A simple C++ URL class. Copied from CxxUrl v0.2 downloaded from
+CxxUrl - A simple C++ URL class. Copied from CxxUrl v0.3 downloaded from
 <https://github.com/chmike/CxxUrl>. It has the following license text:
 
 ----
