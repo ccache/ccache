@@ -1081,7 +1081,7 @@ Optional attributes:
 
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *keep-alive*: If *true*, keep the HTTP connection to the storage server open
-to avoid reconnects. The default is *false*.
+  to avoid reconnects. The default is *false*.
 +
 NOTE: Connection keep-alive is disabled by default because with the current
 HTTP implementation uploads to the remote end might fail in case the server
