@@ -179,8 +179,11 @@ expect_stat() {
         fi
     done < <($CCACHE --print-stats)
 
+    # strip any windows newline char from the value
+    value=${value//$'\r'/}
+
     if [ "$expected_value" != "$value" ]; then
-        test_failed_internal "Expected $stat to be $expected_value, actual $value"
+        test_failed_internal "Expected $stat to be \"$expected_value\", actual \"$value\""
     fi
 }
 
