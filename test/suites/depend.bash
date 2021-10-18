@@ -32,8 +32,9 @@ set_up_different_sets_of_headers_test() {
     BASEDIR2="$BASEDIR/test/dir2"
     BASEDIR3="$BASEDIR/test/dir3"
     BASEDIR4="$BASEDIR/test/dir4"
+    BASEDIR5="$BASEDIR/test/dir5"
 
-    mkdir -p $BASEDIR1 $BASEDIR2 $BASEDIR3 $BASEDIR4
+    mkdir -p $BASEDIR1 $BASEDIR2 $BASEDIR3 $BASEDIR4 $BASEDIR5
 
     cat <<EOF >$BASEDIR1/test.c
 #include "header.h"
@@ -50,6 +51,7 @@ EOF
     cp -f "$BASEDIR1/test.c" $BASEDIR2
     cp -f "$BASEDIR1/test.c" $BASEDIR3
     cp -f "$BASEDIR1/test.c" $BASEDIR4
+    cp -f "$BASEDIR1/test.c" $BASEDIR5
 
     cat <<EOF >"$BASEDIR1/header.h"
 void test();
@@ -73,17 +75,29 @@ EOF
 static void some_function(){};
 EOF
 
+    cat <<EOF >"$BASEDIR5/header.h"
+void test();
+EOF
+
     backdate "$BASEDIR1/header.h" "$BASEDIR1/test.c"
     backdate "$BASEDIR2/header.h" "$BASEDIR2/test.c"
     backdate "$BASEDIR3/header.h" "$BASEDIR3/test.c"
     backdate "$BASEDIR4/header.h" "$BASEDIR4/test.c" "$BASEDIR4/header2.h"
+    backdate "$BASEDIR5/header.h" "$BASEDIR5/test.c"
 
     DEPFLAGS="-MD -MF test.d"
 }
 
 generate_reference_compiler_output() {
+    local filename
+    if [[ $# -gt 0 ]]
+    then
+        filename=$1
+    else
+        filename=test.c
+    fi
     rm -f *.o *.d
-    $COMPILER $DEPFLAGS -c -o test.o test.c
+    $COMPILER $DEPFLAGS -c -o test.o $filename
     mv test.o reference_test.o
     mv test.d reference_test.d
 }
@@ -190,6 +204,7 @@ EOF
     # dir2 has a change in header which affects object file
     # dir3 has a change in header which does not affect object file
     # dir4 has an additional include header which should change the dependency file
+    # dir5 has no changes, only a different base dir
     TEST "Different sets of headers for the same source code"
 
     set_up_different_sets_of_headers_test
@@ -252,13 +267,25 @@ EOF
     expect_stat cache_miss 4
     expect_stat files_in_cache 5      # 4x result, 1x manifest
 
+    # Compile dir5. dir5 is identical to dir1
+    cd $BASEDIR5
+    generate_reference_compiler_output
+    CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR5 $CCACHE_COMPILE $DEPFLAGS -c test.c
+    expect_equal_object_files reference_test.o test.o
+    expect_equal_content reference_test.d test.d
+    expect_equal_content reference_test.d $BASEDIR1/test.d
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 4
+    expect_stat files_in_cache 5      # 4x result, 1x manifest
+
     # Recompile dir1 second time.
     cd $BASEDIR1
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR1 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
     expect_equal_content reference_test.d test.d
-    expect_stat direct_cache_hit 2
+    expect_stat direct_cache_hit 3
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 4
     expect_stat files_in_cache 5
@@ -269,7 +296,7 @@ EOF
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR2 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
     expect_equal_content reference_test.d test.d
-    expect_stat direct_cache_hit 3
+    expect_stat direct_cache_hit 4
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 4
     expect_stat files_in_cache 5
@@ -280,7 +307,7 @@ EOF
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR3 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
     expect_equal_content reference_test.d test.d
-    expect_stat direct_cache_hit 4
+    expect_stat direct_cache_hit 5
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 4
     expect_stat files_in_cache 5
@@ -292,7 +319,20 @@ EOF
     expect_equal_object_files reference_test.o test.o
     expect_equal_content reference_test.d test.d
     expect_different_content reference_test.d $BASEDIR1/test.d
-    expect_stat direct_cache_hit 5
+    expect_stat direct_cache_hit 6
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 4
+    expect_stat files_in_cache 5
+
+    # Recompile dir5 from an absolute directory.
+    cd $BASEDIR5
+    generate_reference_compiler_output `pwd`/test.c
+    CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR5 $CCACHE_COMPILE $DEPFLAGS -c `pwd`/test.c
+    expect_equal_object_files reference_test.o test.o
+    # from the ccache doc: One known issue is that absolute paths are not reproduced in dependency files
+    # expect_equal_content reference_test.d test.d
+    expect_equal_content test.d $BASEDIR1/test.d
+    expect_stat direct_cache_hit 7
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 4
     expect_stat files_in_cache 5
