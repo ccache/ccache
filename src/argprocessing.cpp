@@ -312,6 +312,16 @@ process_option_arg(const Context& ctx,
     return Statistic::called_for_preprocessing;
   }
 
+  if (config.compiler_type() == CompilerType::cctc
+      || config.compiler_type() == CompilerType::ctc) {
+    // tasking specific common to compiler and control
+    if (args[i] == "-n" || args[i] == "--stdout") {
+      // dry run or stdout
+      args_info.output_obj = "-";
+      return Statistic::none;
+    }
+  }
+
   // Handle "@file" argument.
   if (util::starts_with(args[i], "@") || util::starts_with(args[i], "-@")) {
     const char* argpath = args[i].c_str() + 1;
@@ -333,17 +343,28 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // Handle cuda "-optf" and "--options-file" argument.
-  if (config.compiler_type() == CompilerType::nvcc
-      && (args[i] == "-optf" || args[i] == "--options-file")) {
-    if (i == args.size() - 1) {
-      LOG("Expected argument after {}", args[i]);
-      return Statistic::bad_compiler_arguments;
+  // Handle cuda "-optf" and "--options-file" argument and tasking "-f" and
+  // "--option-file" argument.
+  if ((config.compiler_type() == CompilerType::nvcc
+       && (args[i] == "-optf" || args[i] == "--options-file"))
+      || ((config.compiler_type() == CompilerType::cctc
+           || config.compiler_type() == CompilerType::ctc)
+          && (args[i] == "-f"
+              || util::starts_with(args[i], "--option-file=")))) {
+    std::string_view optionfiles;
+    if (util::starts_with(args[i], "--option-file=")) {
+      optionfiles = std::string_view(args[i]).substr(14);
+    } else {
+      if (i == args.size() - 1) {
+        LOG("Expected argument after {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      ++i;
+      optionfiles = std::string_view(args[i]);
     }
-    ++i;
 
     // Argument is a comma-separated list of files.
-    auto paths = Util::split_into_strings(args[i], ",");
+    auto paths = Util::split_into_strings(optionfiles, ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
       auto file_args = Args::from_atfile(*it);
       if (!file_args) {
@@ -477,7 +498,14 @@ process_option_arg(const Context& ctx,
   }
 
   // We must have -c.
-  if (args[i] == "-c") {
+  if (args[i] == "-c" && config.compiler_type() != CompilerType::ctc) {
+    state.found_c_opt = true;
+    return Statistic::none;
+  }
+
+  if (config.compiler_type() == CompilerType::cctc
+      && (args[i] == "-co" || args[i] == "-cobject" || args[i] == "--create=o"
+          || args[i] == "--create=object")) {
     state.found_c_opt = true;
     return Statistic::none;
   }
@@ -555,6 +583,15 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  // Alternate form of -o for Tasking.
+  if (util::starts_with(args[i], "--output=")
+      && (config.compiler_type() == CompilerType::ctc
+          || config.compiler_type() == CompilerType::cctc)) {
+    args_info.output_obj =
+      Util::make_relative_path(ctx, std::string_view(args[i]).substr(9));
+    return Statistic::none;
+  }
+
   if (util::starts_with(args[i], "-fdebug-prefix-map=")
       || util::starts_with(args[i], "-ffile-prefix-map=")) {
     std::string map = args[i].substr(args[i].find('=') + 1);
@@ -565,7 +602,10 @@ process_option_arg(const Context& ctx,
 
   // Debugging is handled specially, so that we know if we can strip line
   // number info.
-  if (util::starts_with(args[i], "-g")) {
+  if (util::starts_with(args[i], "-g")
+      || (util::starts_with(args[i], "--debug-info")
+          && (config.compiler_type() == CompilerType::ctc
+              || config.compiler_type() == CompilerType::cctc))) {
     state.common_args.push_back(args[i]);
 
     if (util::starts_with(args[i], "-gdwarf")) {
@@ -599,7 +639,7 @@ process_option_arg(const Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if ((args[i] == "-MD" || args[i] == "-MMD")
+  if ((args[i] == "-MD" || args[i] == "-MMD" || args[i] == "--dep-file")
       && !config.is_compiler_group_msvc()) {
     state.found_md_or_mmd_opt = true;
     args_info.generating_dependencies = true;
@@ -607,8 +647,17 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (util::starts_with(args[i], "-MF")) {
+  if (util::starts_with(args[i], "-MF")
+      || util::starts_with(args[i], "--dep-file=")) {
     state.found_mf_opt = true;
+
+    if (config.compiler_type() == CompilerType::ctc
+        || config.compiler_type() == CompilerType::cctc) {
+      // with tasking compiler, the dep-file option also enables the
+      // generation of the dependencies
+      state.found_md_or_mmd_opt = true;
+      args_info.generating_dependencies = true;
+    }
 
     std::string dep_file;
     bool separate_argument = (args[i].size() == 3);
@@ -621,8 +670,13 @@ process_option_arg(const Context& ctx,
       dep_file = args[i + 1];
       i++;
     } else {
-      // -MFarg or -MF=arg (EDG-based compilers)
-      dep_file = args[i].substr(args[i][3] == '=' ? 4 : 3);
+      // -MFarg or -MF=arg (EDG-based compilers) or --dep-file=arg
+      size_t equal_pos = args[i].find('=');
+      if (equal_pos == std::string::npos) {
+        dep_file = args[i].substr(3);
+      } else {
+        dep_file = args[i].substr(equal_pos + 1);
+      }
     }
 
     if (state.output_dep_origin <= OutputDepOrigin::mf) {
@@ -634,7 +688,11 @@ process_option_arg(const Context& ctx,
       state.dep_args.push_back("-MF");
       state.dep_args.push_back(args_info.output_dep);
     } else {
-      state.dep_args.push_back("-MF" + args_info.output_dep);
+      if (util::starts_with(args[i], "--dep-file=")) {
+        state.dep_args.push_back("--dep-file=" + args_info.output_dep);
+      } else {
+        state.dep_args.push_back("-MF" + args_info.output_dep);
+      }
     }
     return Statistic::none;
   }
@@ -1099,6 +1157,11 @@ process_arg(const Context& ctx,
     }
   }
 
+  // ctc can only generate object files
+  if (config.compiler_type() == CompilerType::ctc) {
+    state.found_c_opt = true;
+  }
+
   // Rewrite to relative to increase hit rate.
   args_info.orig_input_file = args[i];
   args_info.input_file = Util::make_relative_path(ctx, args[i]);
@@ -1181,10 +1244,18 @@ process_args(Context& ctx)
   }
 
   if (output_obj_by_source && !args_info.input_file.empty()) {
-    std::string_view extension =
-      state.found_S_opt ? ".s" : get_default_object_file_extension(ctx.config);
-    args_info.output_obj +=
-      Util::change_extension(Util::base_name(args_info.input_file), extension);
+    if (config.compiler_type() == CompilerType::ctc) {
+      args_info.output_obj =
+        Util::change_extension(Util::base_name(args_info.input_file), ".src");
+    } else if (config.compiler_type() == CompilerType::ctc) {
+      args_info.output_obj =
+        Util::change_extension(Util::base_name(args_info.input_file), ".elf");
+    } else {
+      std::string_view extension =
+        state.found_S_opt ? ".s" : get_default_object_file_extension(ctx.config);
+      args_info.output_obj +=
+        Util::change_extension(Util::base_name(args_info.input_file), extension);
+    }
   }
 
   args_info.orig_output_obj = args_info.output_obj;
@@ -1433,7 +1504,7 @@ process_args(Context& ctx)
     compiler_args.push_back(p_language_for_language(state.explicit_language));
   }
 
-  if (state.found_c_opt) {
+  if (state.found_c_opt && config.compiler_type() != CompilerType::ctc) {
     compiler_args.push_back("-c");
   }
 

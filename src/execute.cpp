@@ -53,7 +53,8 @@ static int win32execute(const char* path,
                         int doreturn,
                         int fd_stdout,
                         int fd_stderr,
-                        const std::string& temp_dir);
+                        const std::string& temp_dir,
+                        CompilerType compiler_type);
 
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
@@ -63,13 +64,16 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
                       1,
                       fd_out.release(),
                       fd_err.release(),
-                      ctx.config.temporary_dir());
+                      ctx.config.temporary_dir(),
+                      ctx.config.compiler_type());
 }
 
 void
-execute_noreturn(const char* const* argv, const std::string& temp_dir)
+execute_noreturn(const char* const* argv,
+                 const std::string& temp_dir,
+                 CompilerType compiler_type)
 {
-  win32execute(argv[0], argv, 0, -1, -1, temp_dir);
+  win32execute(argv[0], argv, 0, -1, -1, temp_dir, compiler_type);
 }
 
 std::string
@@ -101,7 +105,8 @@ win32execute(const char* path,
              int doreturn,
              int fd_stdout,
              int fd_stderr,
-             const std::string& temp_dir)
+             const std::string& temp_dir,
+             CompilerType compiler_type)
 {
   PROCESS_INFORMATION pi;
   memset(&pi, 0x00, sizeof(pi));
@@ -150,7 +155,12 @@ win32execute(const char* path,
     TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
     args = Win32Util::argv_to_string(argv + 1, sh, true);
     util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
+    if (compiler_type != CompilerType::ctc
+        && compiler_type != CompilerType::cctc) {
+      args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
+    } else {
+      args = FMT("{} -f {}", full_path, tmp_file.path);
+    }
     tmp_file_path = tmp_file.path;
     LOG("Arguments from {}", tmp_file.path);
   }
@@ -241,8 +251,12 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 }
 
 void
-execute_noreturn(const char* const* argv, const std::string& /*temp_dir*/)
+execute_noreturn(const char* const* argv,
+                 const std::string& /*temp_dir*/,
+                 CompilerType compiler_type)
 {
+  // unused in this case, but used in Windows implementation
+  (void)compiler_type;
   execv(argv[0], const_cast<char* const*>(argv));
 }
 #endif

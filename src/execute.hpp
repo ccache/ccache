@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "Config.hpp"
 #include "Fd.hpp"
 
 #include <optional>
@@ -27,7 +28,9 @@ class Context;
 
 int execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err);
 
-void execute_noreturn(const char* const* argv, const std::string& temp_dir);
+void execute_noreturn(const char* const* argv,
+                      const std::string& temp_dir,
+                      CompilerType compiler_type);
 
 // Find an executable named `name` in `$PATH`. Exclude any executables that are
 // links to `exclude_path`.

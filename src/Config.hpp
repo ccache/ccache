@@ -39,7 +39,9 @@ enum class CompilerType {
   icl,
   msvc,
   nvcc,
-  other
+  other,
+  ctc,
+  cctc
 };
 
 std::string compiler_type_to_string(CompilerType compiler_type);
