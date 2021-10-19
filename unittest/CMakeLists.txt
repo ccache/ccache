@@ -25,6 +25,7 @@ set(
   test_storage_primary_util.cpp
   test_util_TextTable.cpp
   test_util_Tokenizer.cpp
+  test_util_XXH3_128.cpp
   test_util_XXH3_64.cpp
   test_util_expected.cpp
   test_util_path.cpp
