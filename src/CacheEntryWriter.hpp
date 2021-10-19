@@ -18,10 +18,10 @@
 
 #pragma once
 
-#include "Checksum.hpp"
 #include "Util.hpp"
 
 #include <compression/Compressor.hpp>
+#include <util/XXH3_64.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -74,7 +74,7 @@ public:
 
 private:
   std::unique_ptr<compression::Compressor> m_compressor;
-  Checksum m_checksum;
+  util::XXH3_64 m_checksum;
 };
 
 template<typename T>

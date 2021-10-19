@@ -18,10 +18,10 @@
 
 #pragma once
 
-#include "Checksum.hpp"
 #include "Util.hpp"
 
 #include <compression/Decompressor.hpp>
+#include <util/XXH3_64.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -93,7 +93,7 @@ public:
 
 private:
   std::unique_ptr<compression::Decompressor> m_decompressor;
-  Checksum m_checksum;
+  util::XXH3_64 m_checksum;
   uint8_t m_magic[4];
   uint8_t m_version;
   compression::Type m_compression_type;

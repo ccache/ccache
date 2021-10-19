@@ -18,7 +18,6 @@
 
 #include "Storage.hpp"
 
-#include <Checksum.hpp>
 #include <Config.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
@@ -35,6 +34,7 @@
 #endif
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
+#include <util/XXH3_64.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
@@ -392,7 +392,7 @@ get_shard_url(const Digest& key,
   double highest_score = -1.0;
   std::string best_shard;
   for (const auto& shard_config : shards) {
-    Checksum checksum;
+    util::XXH3_64 checksum;
     checksum.update(key.bytes(), key.size());
     checksum.update(shard_config.name.data(), shard_config.name.length());
     const double score = to_half_open_unit_interval(checksum.digest());

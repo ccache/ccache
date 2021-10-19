@@ -18,7 +18,6 @@
 
 #include "mainoptions.hpp"
 
-#include <Checksum.hpp>
 #include <Config.hpp>
 #include <Fd.hpp>
 #include <Hash.hpp>
@@ -35,6 +34,7 @@
 #include <storage/Storage.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
 #include <util/TextTable.hpp>
+#include <util/XXH3_64.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
@@ -369,7 +369,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case CHECKSUM_FILE: {
-      Checksum checksum;
+      util::XXH3_64 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
         checksum.update(data, size);

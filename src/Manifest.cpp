@@ -21,7 +21,6 @@
 #include "AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
-#include "Checksum.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Digest.hpp"
@@ -32,6 +31,7 @@
 #include "hashutil.hpp"
 
 #include <core/exceptions.hpp>
+#include <util/XXH3_64.hpp>
 
 #include <memory>
 
@@ -150,7 +150,7 @@ template<> struct hash<FileInfo>
   operator()(const FileInfo& file_info) const
   {
     static_assert(sizeof(FileInfo) == 48, "unexpected size"); // No padding.
-    Checksum checksum;
+    util::XXH3_64 checksum;
     checksum.update(&file_info, sizeof(file_info));
     return checksum.digest();
   }

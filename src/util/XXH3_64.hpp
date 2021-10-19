@@ -26,11 +26,13 @@
 
 #include <cstdint>
 
-class Checksum
+namespace util {
+
+class XXH3_64
 {
 public:
-  Checksum();
-  ~Checksum();
+  XXH3_64();
+  ~XXH3_64();
 
   void reset();
   void update(const void* data, size_t length);
@@ -40,30 +42,32 @@ private:
   XXH3_state_t* m_state;
 };
 
-inline Checksum::Checksum() : m_state(XXH3_createState())
+inline XXH3_64::XXH3_64() : m_state(XXH3_createState())
 {
   reset();
 }
 
-inline Checksum::~Checksum()
+inline XXH3_64::~XXH3_64()
 {
   XXH3_freeState(m_state);
 }
 
 inline void
-Checksum::reset()
+XXH3_64::reset()
 {
   XXH3_64bits_reset(m_state);
 }
 
 inline void
-Checksum::update(const void* data, size_t length)
+XXH3_64::update(const void* data, size_t length)
 {
   XXH3_64bits_update(m_state, data, length);
 }
 
 inline uint64_t
-Checksum::digest() const
+XXH3_64::digest() const
 {
   return XXH3_64bits_digest(m_state);
 }
+
+} // namespace util

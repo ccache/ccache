@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,15 +16,15 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Checksum.hpp"
+#include <util/XXH3_64.hpp>
 
-#include "third_party/doctest.h"
+#include <third_party/doctest.h>
 
-TEST_SUITE_BEGIN("Checksum");
+TEST_SUITE_BEGIN("util::XXH3_64");
 
-TEST_CASE("Checksums")
+TEST_CASE("util::XXH3_64")
 {
-  Checksum checksum;
+  util::XXH3_64 checksum;
   CHECK(checksum.digest() == 0x2d06800538d394c2);
 
   checksum.update("foo", 3);
