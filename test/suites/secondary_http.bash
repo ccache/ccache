@@ -149,6 +149,11 @@ SUITE_secondary_http() {
     expect_not_contains test.o.ccache-log secret123
 
     # -------------------------------------------------------------------------
+    # This test fails sporadically.
+    # Mostly with MSVC 32 bit, but from time to time also with all other
+    # Windows test runs.
+    # Probably the http-server is doing something wrong here.
+if $RUN_WIN_XFAIL; then
     TEST "Basic auth required"
 
     start_http_server 12780 secondary "somebody:secret123"
@@ -161,8 +166,14 @@ SUITE_secondary_http() {
     expect_stat files_in_cache 2
     expect_file_count 0 '*' secondary # result + manifest
     expect_contains test.o.ccache-log "status code: 401"
+fi
 
     # -------------------------------------------------------------------------
+    # This test fails sporadically.
+    # Mostly with MSVC 32 bit, but from time to time also with all other
+    # Windows test runs.
+    # Probably the http-server is doing something wrong here.
+if $RUN_WIN_XFAIL; then
     TEST "Basic auth failed"
 
     start_http_server 12780 secondary "somebody:secret123"
@@ -175,7 +186,7 @@ SUITE_secondary_http() {
     expect_file_count 0 '*' secondary # result + manifest
     expect_not_contains test.o.ccache-log secret123
     expect_contains test.o.ccache-log "status code: 401"
-
+fi
      # -------------------------------------------------------------------------
     TEST "IPv6 address"
 
