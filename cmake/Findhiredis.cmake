@@ -1,5 +1,5 @@
 if(HIREDIS_FROM_INTERNET)
-  set(hiredis_version "1.0.0")
+  set(hiredis_version "1.0.2")
   set(hiredis_url https://github.com/redis/hiredis/archive/v${hiredis_version}.tar.gz)
 
   set(hiredis_dir ${CMAKE_BINARY_DIR}/hiredis-${hiredis_version})
