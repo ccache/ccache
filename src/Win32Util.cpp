@@ -70,6 +70,10 @@ error_message(DWORD error_code)
                    0,
                    nullptr);
   std::string message(buffer, size);
+  while (!message.empty()
+         && (message.back() == '\n' || message.back() == '\r')) {
+    message.pop_back();
+  }
   LocalFree(buffer);
   return message;
 }
