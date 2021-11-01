@@ -242,6 +242,15 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
+  bool changed_from_slash = false;
+  if (ctx.config.compiler_type() == CompilerType::cl
+      && util::starts_with(args[i], "/")) {
+    // MSVC understands both /option and -option, so convert all /option to
+    // -option to simplify our handling.
+    args[i][0] = '-';
+    changed_from_slash = true;
+  }
+
   // Ignore clang -ivfsoverlay <arg> to not detect multiple input files.
   if (args[i] == "-ivfsoverlay"
       && !(config.sloppiness().is_enabled(core::Sloppy::ivfsoverlay))) {
@@ -252,7 +261,11 @@ process_arg(const Context& ctx,
   }
 
   // Special case for -E.
-  if (args[i] == "-E" || args[i] == "/E") {
+  if (args[i] == "-E") {
+    return Statistic::called_for_preprocessing;
+  }
+  // MSVC -P is -E with output to a file.
+  if (args[i] == "-P" && ctx.config.compiler_type() == CompilerType::cl) {
     return Statistic::called_for_preprocessing;
   }
 
@@ -302,8 +315,8 @@ process_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(args[i]) || util::starts_with(args[i], "-fdump-")
-      || util::starts_with(args[i], "-MJ") || util::starts_with(args[i], "-Yc")
-      || util::starts_with(args[i], "/Yc")) {
+      || util::starts_with(args[i], "-MJ")
+      || util::starts_with(args[i], "-Yc")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
@@ -401,13 +414,13 @@ process_arg(const Context& ctx,
   }
 
   // We must have -c.
-  if (args[i] == "-c" || args[i] == "/c") {
+  if (args[i] == "-c") {
     state.found_c_opt = true;
     return nullopt;
   }
 
-  // MSVC /Fo with no space.
-  if (util::starts_with(args[i], "/Fo")
+  // MSVC -Fo with no space.
+  if (util::starts_with(args[i], "-Fo")
       && config.compiler_type() == CompilerType::cl) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(3));
@@ -818,6 +831,12 @@ process_arg(const Context& ctx,
     state.hash_full_command_line = true;
   }
 
+  // MSVC -u is something else than GCC -u, handle it specially.
+  if (args[i] == "-u" && ctx.config.compiler_type() == CompilerType::cl) {
+    state.cpp_args.push_back(args[i]);
+    return nullopt;
+  }
+
   // Options taking an argument that we may want to rewrite to relative paths to
   // get better hit rate. A secondary effect is that paths in the standard error
   // output produced by the compiler will be normalized.
@@ -857,8 +876,7 @@ process_arg(const Context& ctx,
 
   // Same as above but options with concatenated argument beginning with a
   // slash.
-  if (args[i][0] == '-'
-      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
+  if (args[i][0] == '-') {
     size_t slash_pos = args[i].find('/');
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
@@ -896,8 +914,7 @@ process_arg(const Context& ctx,
   }
 
   // Other options.
-  if (args[i][0] == '-'
-      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
+  if (args[i][0] == '-') {
     if (compopt_affects_cpp_output(args[i])
         || compopt_prefix_affects_cpp_output(args[i])) {
       state.cpp_args.push_back(args[i]);
@@ -913,6 +930,9 @@ process_arg(const Context& ctx,
   // Note that "/dev/null" is an exception that is sometimes used as an input
   // file when code is testing compiler flags.
   if (args[i] != "/dev/null") {
+    if (changed_from_slash) {
+      args[i][0] = '/';
+    }
     auto st = Stat::stat(args[i]);
     if (!st || !st.is_regular()) {
       LOG("{} is not a regular file, not considering as input file", args[i]);

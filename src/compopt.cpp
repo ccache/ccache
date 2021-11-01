@@ -67,10 +67,14 @@ const CompOpt compopts[] = {
   {"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},
   {"--specs", TAKES_ARG},
   {"-A", TAKES_ARG},
+  {"-AI", TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-B", TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-D", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
   {"-E", TOO_HARD},
+  {"-EP", TOO_HARD}, // msvc
   {"-F", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+  {"-FI", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"-FU", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-G", TAKES_ARG},
   {"-I", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-L", TAKES_ARG},
@@ -90,6 +94,9 @@ const CompOpt compopts[] = {
   {"-Xclang", TAKES_ARG},
   {"-Xlinker", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xpreprocessor", AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
+  {"-Yc", TAKES_ARG | TOO_HARD}, // msvc
+  {"-ZI", TOO_HARD},             // msvc
+  {"-Zi", TOO_HARD},             // msvc
   {"-all_load", AFFECTS_COMP},
   {"-analyze", TOO_HARD}, // Clang
   {"-arch", TAKES_ARG},
@@ -140,20 +147,6 @@ const CompOpt compopts[] = {
   {"-stdlib=", AFFECTS_CPP | TAKES_CONCAT_ARG},
   {"-trigraphs", AFFECTS_CPP},
   {"-u", TAKES_ARG | TAKES_CONCAT_ARG},
-  {"/AI", TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},               // msvc
-  {"/D", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},               // msvc
-  {"/E", TOO_HARD},                                                 // msvc
-  {"/EP", TOO_HARD},                                                // msvc
-  {"/FI", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
-  {"/FU", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
-  {"/I", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},  // msvc
-  {"/L", TAKES_ARG},                                                // msvc
-  {"/P", TOO_HARD},                                                 // msvc
-  {"/U", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},               // msvc
-  {"/Yc", TAKES_ARG | TOO_HARD},                                    // msvc
-  {"/ZI", TOO_HARD},                                                // msvc
-  {"/Zi", TOO_HARD},                                                // msvc
-  {"/u", AFFECTS_CPP},                                              // msvc
 };
 
 static int
