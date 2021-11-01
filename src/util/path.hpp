@@ -40,6 +40,9 @@ std::vector<std::string> split_path_list(nonstd::string_view path_list);
 // Make `path` an absolute path.
 std::string to_absolute_path(nonstd::string_view path);
 
+// Make `path` an absolute path, but do not include Windows drive.
+std::string to_absolute_path_no_drive(nonstd::string_view path);
+
 // --- Inline implementations ---
 
 inline bool

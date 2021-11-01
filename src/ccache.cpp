@@ -170,10 +170,7 @@ prepare_debug_path(const std::string& debug_dir,
 {
   auto prefix = debug_dir.empty()
                   ? output_obj
-                  : debug_dir + util::to_absolute_path(output_obj);
-#ifdef _WIN32
-  prefix.erase(std::remove(prefix.begin(), prefix.end(), ':'), prefix.end());
-#endif
+                  : debug_dir + util::to_absolute_path_no_drive(output_obj);
   try {
     Util::ensure_dir_exists(Util::dir_name(prefix));
   } catch (core::Error&) {
