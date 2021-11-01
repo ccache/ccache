@@ -50,6 +50,8 @@ struct ArgumentProcessingState
   bool found_S_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
+  bool found_Yu = false;
+  bool found_valid_Fp = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
@@ -110,16 +112,43 @@ detect_pch(const std::string& option,
            const std::string& arg,
            std::string& included_pch_file,
            bool is_cc1_option,
-           bool* found_pch)
+           ArgumentProcessingState& state)
 {
-  ASSERT(found_pch);
-
   // Try to be smart about detecting precompiled headers.
   // If the option is an option for Clang (is_cc1_option), don't accept
   // anything just because it has a corresponding precompiled header,
   // because Clang doesn't behave that way either.
   std::string pch_file;
-  if (option == "-include-pch" || option == "-include-pth") {
+  if (option == "-Yu") {
+    state.found_Yu = true;
+    if (state.found_valid_Fp) { // Use file set by -Fp.
+      LOG("Detected use of precompiled header: {}", included_pch_file);
+      pch_file = included_pch_file;
+    } else {
+      std::string file = Util::change_extension(arg, ".pch");
+      if (Stat::stat(file)) {
+        LOG("Detected use of precompiled header: {}", file);
+        pch_file = file;
+      }
+    }
+  } else if (option == "-Fp") {
+    std::string file = arg;
+    if (Util::get_extension(file).empty()) {
+      file += ".pch";
+    }
+    if (Stat::stat(file)) {
+      state.found_valid_Fp = true;
+      if (!state.found_Yu) {
+        LOG("Precompiled header file specified: {}", file);
+        included_pch_file = file; // remember file
+        return true;              // -Fp does not turn on PCH
+      }
+      LOG("Detected use of precompiled header: {}", file);
+      pch_file = file;
+      included_pch_file.clear(); // reset pch file set from /Yu
+      // continue and set as if the file was passed to -Yu
+    }
+  } else if (option == "-include-pch" || option == "-include-pth") {
     if (Stat::stat(arg)) {
       LOG("Detected use of precompiled header: {}", arg);
       pch_file = arg;
@@ -142,7 +171,7 @@ detect_pch(const std::string& option,
       return false;
     }
     included_pch_file = pch_file;
-    *found_pch = true;
+    state.found_pch = true;
   }
   return true;
 }
@@ -869,7 +898,7 @@ process_arg(const Context& ctx,
                     args[i + next],
                     args_info.included_pch_file,
                     next == 2,
-                    &state.found_pch)) {
+                    state)) {
       return Statistic::bad_compiler_arguments;
     }
 
@@ -886,14 +915,29 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
-  // Same as above but options with concatenated argument beginning with a
-  // slash.
+  // Same as above but options with concatenated path argument beginning with a
+  // slash or select few that do not require a slash.
+  // FIXME: None of them really need a slash, the path may be relative, this
+  // should check prefix.
   if (args[i][0] == '-'
       || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     size_t slash_pos = args[i].find('/');
+    if (args[i].size() > 3
+        && (util::starts_with(args[i], "-Yu")
+            || util::starts_with(args[i], "-Fp"))) {
+      slash_pos = 3;
+    }
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
+        if (!detect_pch(option,
+                        args[i].substr(slash_pos),
+                        args_info.included_pch_file,
+                        false,
+                        state)) {
+          return Statistic::bad_compiler_arguments;
+        }
+
         auto relpath =
           Util::make_relative_path(ctx, string_view(args[i]).substr(slash_pos));
         std::string new_option = option + relpath;
@@ -1239,7 +1283,7 @@ process_args(Context& ctx)
   if (!state.input_charset_option.empty()) {
     state.cpp_args.push_back(state.input_charset_option);
   }
-  if (state.found_pch) {
+  if (state.found_pch && ctx.config.compiler_type() != CompilerType::cl) {
     state.cpp_args.push_back("-fpch-preprocess");
   }
   if (!state.explicit_language.empty()) {
