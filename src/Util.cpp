@@ -1174,11 +1174,35 @@ same_program_name(nonstd::string_view program_name,
 #endif
 }
 
+#ifdef _WIN32
+// Stdout/stderr are normally opened in text mode, which would convert newlines
+// a second time, since we treat outputs as binary data.
+// Make sure to switch to binary mode.
+namespace {
+struct BinaryModeHelper
+{
+  BinaryModeHelper(int fd_) : fd(fd_), oldmode(_setmode(fd, _O_BINARY))
+  {
+  }
+  ~BinaryModeHelper()
+  {
+    _setmode(fd, oldmode);
+  }
+  int fd;
+  int oldmode;
+};
+} // namespace
+#endif
+
 void
-send_to_stderr(const Context& ctx, const std::string& text)
+send_to_fd(const Context& ctx, const std::string& text, int fd)
 {
   const std::string* text_to_send = &text;
   std::string modified_text;
+
+#ifdef _WIN32
+  BinaryModeHelper helper(fd);
+#endif
 
   if (ctx.args_info.strip_diagnostics_colors) {
     try {
@@ -1195,7 +1219,7 @@ send_to_stderr(const Context& ctx, const std::string& text)
   }
 
   try {
-    write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length());
+    write_fd(fd, text_to_send->data(), text_to_send->length());
   } catch (core::Error& e) {
     throw core::Error("Failed to write to stderr: {}", e.what());
   }
