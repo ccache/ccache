@@ -33,6 +33,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 class Context;
 
 namespace Util {

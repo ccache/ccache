@@ -944,15 +944,11 @@ to_cache(Context& ctx,
   // MSVC compiler always print the input file name to stdout,
   // plus parts of the warnings/error messages.
   // So we have to fusion that into stderr...
-  // Transform \r\n into \n. This way ninja won't produce empty newlines
-  // for the /showIncludes argument.
   if (ctx.config.compiler_type() == CompilerType::cl) {
     const std::string merged_output =
       Util::read_file(tmp_stdout_path) + Util::read_file(tmp_stderr_path);
-    const std::string merged_output_with_unix_line_endings =
-      util::replace_all(merged_output, "\r\n", "\n");
     try {
-      Util::write_file(tmp_stderr_path, merged_output_with_unix_line_endings);
+      Util::write_file(tmp_stderr_path, merged_output);
     } catch (const core::Error& e) {
       LOG("Failed writing to {}: {}", tmp_stderr_path, e.what());
       return nonstd::make_unexpected(Statistic::internal_error);
