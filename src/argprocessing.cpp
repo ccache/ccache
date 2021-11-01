@@ -570,7 +570,8 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
-  if (util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT")) {
+  if ((util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT"))
+      && config.compiler_type() != CompilerType::cl) {
     args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
@@ -589,6 +590,21 @@ process_arg(const Context& ctx,
       auto relpath = Util::make_relative_path(ctx, option);
       state.dep_args.push_back(FMT("{}{}", arg_opt, relpath));
     }
+    return nullopt;
+  }
+
+  // MSVC -MD[d], -MT[d] and -LT[d] options are something different than GCC's
+  // -MD etc.
+  if (config.compiler_type() == CompilerType::cl
+      && (util::starts_with(args[i], "-MD")
+          || util::starts_with(args[i], "-MDd")
+          || util::starts_with(args[i], "-MT")
+          || util::starts_with(args[i], "-MTd")
+          || util::starts_with(args[i], "-LD")
+          || util::starts_with(args[i], "-LDd"))) {
+    // These affect compiler but also #define some things.
+    state.cpp_args.push_back(args[i]);
+    state.common_args.push_back(args[i]);
     return nullopt;
   }
 
