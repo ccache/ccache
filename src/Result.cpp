@@ -183,6 +183,9 @@ file_type_to_string(FileType type)
 
   case FileType::coverage_mangled:
     return ".gcno-mangled";
+
+  case FileType::stdout_output:
+    return "<stdout>";
   }
 
   return k_unknown_file_type;

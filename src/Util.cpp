@@ -1219,9 +1219,16 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
   }
 
   try {
-    write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length());
+    write_fd(fd, text_to_send->data(), text_to_send->length());
   } catch (core::Error& e) {
-    throw core::Error("Failed to write to stderr: {}", e.what());
+    switch (fd) {
+    case STDOUT_FILENO:
+      throw core::Error("Failed to write to stdout: {}", e.what());
+    case STDERR_FILENO:
+      throw core::Error("Failed to write to stderr: {}", e.what());
+    default:
+      throw core::Error("Failed to write to fd {}: {}", fd, e.what());
+    }
   }
 }
 
