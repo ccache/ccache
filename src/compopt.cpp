@@ -75,6 +75,7 @@ const CompOpt compopts[] = {
   {"-F", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-FI", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-FU", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"-Fp", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-G", TAKES_ARG},
   {"-I", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-L", TAKES_ARG},
@@ -94,9 +95,10 @@ const CompOpt compopts[] = {
   {"-Xclang", TAKES_ARG},
   {"-Xlinker", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xpreprocessor", AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
-  {"-Yc", TAKES_ARG | TOO_HARD}, // msvc
-  {"-ZI", TOO_HARD},             // msvc
-  {"-Zi", TOO_HARD},             // msvc
+  {"-Yc", TAKES_ARG | TOO_HARD},                                    // msvc
+  {"-Yu", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"-ZI", TOO_HARD},                                                // msvc
+  {"-Zi", TOO_HARD},                                                // msvc
   {"-all_load", AFFECTS_COMP},
   {"-analyze", TOO_HARD}, // Clang
   {"-arch", TAKES_ARG},
