@@ -1042,7 +1042,14 @@ process_args(Context& ctx)
   // Determine output object file.
   const bool implicit_output_obj = args_info.output_obj.empty();
   if (implicit_output_obj && !args_info.input_file.empty()) {
-    string_view extension = state.found_S_opt ? ".s" : ".o";
+    string_view extension;
+    if (state.found_S_opt) {
+      extension = ".s";
+    } else if (ctx.config.compiler_type() != CompilerType::cl) {
+      extension = ".o";
+    } else {
+      extension = ".obj";
+    }
     args_info.output_obj =
       Util::change_extension(Util::base_name(args_info.input_file), extension);
   }
