@@ -76,9 +76,10 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     }
     break;
 
+  case FileType::stdout_output:
   case FileType::stderr_output:
-    // Stderr data: Don't open a destination file. Instead accumulate it in
-    // m_dest_data and write it in on_entry_end.
+    // Stdout/stderr data: Don't open a destination file. Instead accumulate it
+    // in m_dest_data and write it in on_entry_end.
     m_dest_data.reserve(file_len);
     break;
 
@@ -114,7 +115,8 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     break;
   }
 
-  if (file_type == FileType::stderr_output) {
+  if (file_type == FileType::stdout_output
+      || file_type == FileType::stderr_output) {
     // Written in on_entry_end.
   } else if (dest_path.empty()) {
     LOG_RAW("Not writing");
@@ -141,9 +143,12 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
 void
 ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 {
-  ASSERT(!(m_dest_file_type == FileType::stderr_output && m_dest_fd));
+  ASSERT(!((m_dest_file_type == FileType::stdout_output
+            || m_dest_file_type == FileType::stderr_output)
+           && m_dest_fd));
 
-  if (m_dest_file_type == FileType::stderr_output
+  if (m_dest_file_type == FileType::stdout_output
+      || m_dest_file_type == FileType::stderr_output
       || (m_dest_file_type == FileType::dependency && !m_dest_path.empty())) {
     m_dest_data.append(reinterpret_cast<const char*>(data), size);
   } else if (m_dest_fd) {
@@ -158,7 +163,10 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 void
 ResultRetriever::on_entry_end()
 {
-  if (m_dest_file_type == FileType::stderr_output) {
+  if (m_dest_file_type == FileType::stdout_output) {
+    LOG("Writing to file descriptor {}", STDOUT_FILENO);
+    Util::send_to_fd(m_ctx, m_dest_data, STDOUT_FILENO);
+  } else if (m_dest_file_type == FileType::stderr_output) {
     LOG("Writing to file descriptor {}", STDERR_FILENO);
     Util::send_to_fd(m_ctx, m_dest_data, STDERR_FILENO);
   } else if (m_dest_file_type == FileType::dependency && !m_dest_path.empty()) {

@@ -789,17 +789,24 @@ static bool
 write_result(Context& ctx,
              const std::string& result_path,
              const Stat& obj_stat,
+             const std::string& stdout_path,
              const std::string& stderr_path)
 {
   Result::Writer result_writer(ctx, result_path);
 
+  const auto stdout_stat = Stat::stat(stdout_path, Stat::OnError::log);
   const auto stderr_stat = Stat::stat(stderr_path, Stat::OnError::log);
-  if (!stderr_stat) {
+  if (!stdout_stat || !stderr_stat) {
     return false;
   }
 
   if (stderr_stat.size() > 0) {
     result_writer.write(Result::FileType::stderr_output, stderr_path);
+  }
+  // Write stdout only after stderr (better with MSVC), as ResultRetriever
+  // will later print process them in the order they are read.
+  if (stdout_stat.size() > 0) {
+    result_writer.write(Result::FileType::stdout_output, stdout_path);
   }
   if (obj_stat) {
     result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
@@ -936,24 +943,6 @@ to_cache(Context& ctx,
     return nonstd::make_unexpected(Statistic::missing_cache_file);
   }
 
-  // MSVC compiler always print the input file name to stdout,
-  // plus parts of the warnings/error messages.
-  // So we have to fusion that into stderr...
-  // Transform \r\n into \n. This way ninja won't produce empty newlines
-  // for the /showIncludes argument.
-  if (ctx.config.compiler_type() == CompilerType::cl) {
-    const std::string merged_output =
-      Util::read_file(tmp_stdout_path) + Util::read_file(tmp_stderr_path);
-    const std::string merged_output_with_unix_line_endings =
-      util::replace_all(merged_output, "\r\n", "\n");
-    try {
-      Util::write_file(tmp_stderr_path, merged_output_with_unix_line_endings);
-    } catch (const core::Error& e) {
-      LOG("Failed writing to {}: {}", tmp_stderr_path, e.what());
-      return nonstd::make_unexpected(Statistic::internal_error);
-    }
-  }
-
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && ctx.config.compiler_type() != CompilerType::pump
@@ -962,8 +951,8 @@ to_cache(Context& ctx,
     return nonstd::make_unexpected(Statistic::compiler_produced_stdout);
   }
 
-  // Merge stderr from the preprocessor (if any) and stderr from the real
-  // compiler into tmp_stderr.
+  // Merge stderr from the preprocessor (if any) and stderr from
+  // the real compiler into tmp_stderr.
   if (!ctx.cpp_stderr.empty()) {
     std::string combined_stderr =
       Util::read_file(ctx.cpp_stderr) + Util::read_file(tmp_stderr_path);
@@ -975,6 +964,7 @@ to_cache(Context& ctx,
 
     // We can output stderr immediately instead of rerunning the compiler.
     Util::send_to_fd(ctx, Util::read_file(tmp_stderr_path), STDERR_FILENO);
+    Util::send_to_fd(ctx, Util::read_file(tmp_stdout_path), STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(*status);
@@ -1014,7 +1004,8 @@ to_cache(Context& ctx,
   MTR_BEGIN("result", "result_put");
   const bool added = ctx.storage.put(
     *result_key, core::CacheEntryType::result, [&](const auto& path) {
-      return write_result(ctx, path, obj_stat, tmp_stderr_path);
+      return write_result(
+        ctx, path, obj_stat, tmp_stdout_path, tmp_stderr_path);
     });
   MTR_END("result", "result_put");
   if (!added) {
@@ -1023,6 +1014,8 @@ to_cache(Context& ctx,
 
   // Everything OK.
   Util::send_to_fd(ctx, Util::read_file(tmp_stderr_path), STDERR_FILENO);
+  // Send stdout after stderr, it makes the output clearer with MSVC.
+  Util::send_to_fd(ctx, Util::read_file(tmp_stdout_path), STDOUT_FILENO);
 
   return *result_key;
 }
