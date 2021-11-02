@@ -638,6 +638,12 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
+  if (args[i] == "-showIncludes") {
+    args_info.generating_includes = true;
+    state.dep_args.push_back(args[i]);
+    return nullopt;
+  }
+
   if (args[i] == "-fprofile-arcs") {
     args_info.profile_arcs = true;
     state.common_args.push_back(args[i]);

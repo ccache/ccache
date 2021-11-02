@@ -61,6 +61,9 @@ struct ArgsInfo
   // Is the compiler being asked to output dependencies?
   bool generating_dependencies = false;
 
+  // Is the compiler being asked to output includes (MSVC -showIncludes)?
+  bool generating_includes = false;
+
   // Seen -MD or -MMD?
   bool seen_MD_MMD = false;
 

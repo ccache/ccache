@@ -17,6 +17,7 @@ set(
   ResultDumper.cpp
   ResultExtractor.cpp
   ResultRetriever.cpp
+  ShowIncludesParser.cpp
   SignalHandler.cpp
   Stat.cpp
   TemporaryFile.cpp
