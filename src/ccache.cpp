@@ -33,6 +33,7 @@
 #include "MiniTrace.hpp"
 #include "Result.hpp"
 #include "ResultRetriever.hpp"
+#include "ShowIncludesParser.hpp"
 #include "SignalHandler.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
@@ -661,6 +662,48 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 
   return hash.digest();
 }
+
+// Extract the used includes from -showIncludes output in stdout. Note that we
+// cannot distinguish system headers from other includes here.
+static optional<Digest>
+result_key_from_includes(Context& ctx,
+                         Hash& hash,
+                         const std::string& stdout_path)
+{
+  std::string file_content;
+  try {
+    file_content = Util::read_file(stdout_path);
+  } catch (const core::Error& e) {
+    LOG("Cannot open stdout tmp file {}: {}", stdout_path, e.what());
+    return nullopt;
+  }
+
+  for (string_view token : ShowIncludesParser::tokenize(
+         file_content, ctx.config.msvc_dep_prefix())) {
+    if (!ctx.has_absolute_include_headers) {
+      ctx.has_absolute_include_headers = util::is_absolute_path(token);
+    }
+    std::string path = Util::make_relative_path(ctx, token);
+    remember_include_file(ctx, path, hash, false, &hash);
+  }
+
+  // Explicitly check the .pch file as it is not mentioned in the
+  // includes output.
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pch_path);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
+  }
+
+  bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+  if (debug_included) {
+    print_included_files(ctx, stdout);
+  }
+
+  return hash.digest();
+}
+
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
 static nonstd::expected<int, Failure>
@@ -1042,7 +1085,14 @@ to_cache(Context& ctx,
 
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
-    result_key = result_key_from_depfile(ctx, *depend_mode_hash);
+    if (ctx.args_info.generating_dependencies) {
+      result_key = result_key_from_depfile(ctx, *depend_mode_hash);
+    } else if (ctx.args_info.generating_includes) {
+      result_key =
+        result_key_from_includes(ctx, *depend_mode_hash, tmp_stdout_path);
+    } else {
+      ASSERT(false);
+    }
     if (!result_key) {
       return nonstd::make_unexpected(Statistic::internal_error);
     }
@@ -2117,12 +2167,14 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx.config.set_run_second_cpp(true);
   }
 
-  if (ctx.config.depend_mode()
-      && (!ctx.args_info.generating_dependencies
-          || ctx.args_info.output_dep == "/dev/null"
-          || !ctx.config.run_second_cpp())) {
-    LOG_RAW("Disabling depend mode");
-    ctx.config.set_depend_mode(false);
+  if (ctx.config.depend_mode()) {
+    bool deps = ctx.args_info.generating_dependencies
+                && ctx.args_info.output_dep != "/dev/null";
+    bool includes = ctx.args_info.generating_includes;
+    if (!ctx.config.run_second_cpp() || (!deps && !includes)) {
+      LOG_RAW("Disabling depend mode");
+      ctx.config.set_depend_mode(false);
+    }
   }
 
   if (ctx.storage.has_secondary_storage()) {
@@ -2244,8 +2296,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
     result_key = result_and_manifest_key->first;
 
-    // calculate_result_and_manifest_key always returns a non-nullopt result_key
-    // if the last argument (direct_mode) is false.
+    // calculate_result_and_manifest_key always returns a non-nullopt
+    // result_key if the last argument (direct_mode) is false.
     ASSERT(result_key);
 
     if (result_key_from_manifest && result_key_from_manifest != result_key) {

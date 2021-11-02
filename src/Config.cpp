@@ -82,6 +82,7 @@ enum class ConfigItem {
   log_file,
   max_files,
   max_size,
+  msvc_dep_prefix,
   namespace_,
   path,
   pch_external_checksum,
@@ -127,6 +128,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"log_file", ConfigItem::log_file},
   {"max_files", ConfigItem::max_files},
   {"max_size", ConfigItem::max_size},
+  {"msvc_dep_prefix", ConfigItem::msvc_dep_prefix},
   {"namespace", ConfigItem::namespace_},
   {"path", ConfigItem::path},
   {"pch_external_checksum", ConfigItem::pch_external_checksum},
@@ -174,6 +176,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
   {"MAXSIZE", "max_size"},
+  {"MSVC_DEP_PREFIX", "msvc_dep_prefix"},
   {"NAMESPACE", "namespace"},
   {"PATH", "path"},
   {"PCH_EXTSUM", "pch_external_checksum"},
@@ -688,6 +691,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::max_size:
     return format_cache_size(m_max_size);
 
+  case ConfigItem::msvc_dep_prefix:
+    return m_msvc_dep_prefix;
+
   case ConfigItem::namespace_:
     return m_namespace;
 
@@ -929,6 +935,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::max_size:
     m_max_size = Util::parse_size(value);
+    break;
+
+  case ConfigItem::msvc_dep_prefix:
+    m_msvc_dep_prefix = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::namespace_:
