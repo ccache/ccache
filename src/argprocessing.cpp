@@ -200,7 +200,7 @@ process_profiling_option(const Context& ctx,
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-generate" || arg == "-fprofile-instr-generate") {
     args_info.profile_generate = true;
-    if (ctx.config.compiler_type() == CompilerType::clang) {
+    if (ctx.config.is_compiler_group_clang()) {
       new_profile_path = ".";
     } else {
       // GCC uses $PWD/$(basename $obj).
@@ -272,8 +272,7 @@ process_arg(const Context& ctx,
   }
 
   bool changed_from_slash = false;
-  if (ctx.config.compiler_type() == CompilerType::cl
-      && util::starts_with(args[i], "/")) {
+  if (ctx.config.is_compiler_group_cl() && util::starts_with(args[i], "/")) {
     // MSVC understands both /option and -option, so convert all /option to
     // -option to simplify our handling.
     args[i][0] = '-';
@@ -294,7 +293,7 @@ process_arg(const Context& ctx,
     return Statistic::called_for_preprocessing;
   }
   // MSVC -P is -E with output to a file.
-  if (args[i] == "-P" && ctx.config.compiler_type() == CompilerType::cl) {
+  if (args[i] == "-P" && ctx.config.is_compiler_group_cl()) {
     return Statistic::called_for_preprocessing;
   }
 
@@ -306,7 +305,7 @@ process_arg(const Context& ctx,
       ++argpath;
     }
     auto file_args =
-      Args::from_atfile(argpath, config.compiler_type() == CompilerType::cl);
+      Args::from_atfile(argpath, ctx.config.is_compiler_group_cl());
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -450,7 +449,7 @@ process_arg(const Context& ctx,
 
   // MSVC -Fo with no space.
   if ((util::starts_with(args[i], "-Fo") || util::starts_with(args[i], "/Fo"))
-      && config.compiler_type() == CompilerType::cl) {
+      && config.is_compiler_group_cl()) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(3));
     return nullopt;
@@ -565,7 +564,7 @@ process_arg(const Context& ctx,
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
   if ((args[i] == "-MD" || args[i] == "-MMD")
-      && config.compiler_type() != CompilerType::cl) {
+      && !config.is_compiler_group_cl()) {
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
@@ -601,7 +600,7 @@ process_arg(const Context& ctx,
   }
 
   if ((util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT"))
-      && config.compiler_type() != CompilerType::cl) {
+      && !config.is_compiler_group_cl()) {
     args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
@@ -625,7 +624,7 @@ process_arg(const Context& ctx,
 
   // MSVC -MD[d], -MT[d] and -LT[d] options are something different than GCC's
   // -MD etc.
-  if (config.compiler_type() == CompilerType::cl
+  if (config.is_compiler_group_cl()
       && (util::starts_with(args[i], "-MD") || util::starts_with(args[i], "-MT")
           || util::starts_with(args[i], "-LD"))) {
     // These affect compiler but also #define some things.
@@ -879,7 +878,7 @@ process_arg(const Context& ctx,
   }
 
   // MSVC -u is something else than GCC -u, handle it specially.
-  if (args[i] == "-u" && ctx.config.compiler_type() == CompilerType::cl) {
+  if (args[i] == "-u" && ctx.config.is_compiler_group_cl()) {
     state.cpp_args.push_back(args[i]);
     return nullopt;
   }
@@ -926,7 +925,7 @@ process_arg(const Context& ctx,
   // FIXME: None of them really need a slash, the path may be relative, this
   // should check prefix.
   if (args[i][0] == '-'
-      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
+      || (config.is_compiler_group_cl() && args[i][0] == '/')) {
     size_t slash_pos = args[i].find('/');
     if (args[i].size() > 3
         && (util::starts_with(args[i], "-Yu")
@@ -978,7 +977,7 @@ process_arg(const Context& ctx,
 
   // Other options.
   if (args[i][0] == '-'
-      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
+      || (config.is_compiler_group_cl() && args[i][0] == '/')) {
     if (compopt_affects_cpp_output(args[i])
         || compopt_prefix_affects_cpp_output(args[i])) {
       state.cpp_args.push_back(args[i]);
@@ -1131,7 +1130,7 @@ process_args(Context& ctx)
     string_view extension;
     if (state.found_S_opt) {
       extension = ".s";
-    } else if (ctx.config.compiler_type() != CompilerType::cl) {
+    } else if (!ctx.config.is_compiler_group_cl()) {
       extension = ".o";
     } else {
       extension = ".obj";
@@ -1289,7 +1288,7 @@ process_args(Context& ctx)
   if (!state.input_charset_option.empty()) {
     state.cpp_args.push_back(state.input_charset_option);
   }
-  if (state.found_pch && ctx.config.compiler_type() != CompilerType::cl) {
+  if (state.found_pch && !ctx.config.is_compiler_group_cl()) {
     state.cpp_args.push_back("-fpch-preprocess");
   }
   if (!state.explicit_language.empty()) {
@@ -1305,7 +1304,7 @@ process_args(Context& ctx)
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
   nonstd::optional<std::string> diagnostics_color_arg;
-  if (config.compiler_type() == CompilerType::clang) {
+  if (config.is_compiler_group_clang()) {
     // Don't pass -fcolor-diagnostics when compiling assembler to avoid an
     // "argument unused during compilation" warning.
     if (args_info.actual_language != "assembler") {
