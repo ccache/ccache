@@ -514,8 +514,12 @@ process_arg(const Context& ctx,
   }
 
   // Alternate form of -o with no space. Nvcc does not support this.
+  // Cl does support it as deprecated, but also has -openmp or -link -out
+  // which can confuse this and cause incorrect output_obj (and thus
+  // ccache debug file location), so better ignore it.
   if (util::starts_with(args[i], "-o")
-      && config.compiler_type() != CompilerType::nvcc) {
+      && config.compiler_type() != CompilerType::nvcc
+      && config.compiler_type() != CompilerType::msvc) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(2));
     return nullopt;
