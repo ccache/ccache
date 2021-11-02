@@ -31,7 +31,16 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump, cl };
+enum class CompilerType {
+  auto_guess,
+  clang,
+  gcc,
+  nvcc,
+  other,
+  pump,
+  cl,
+  clangcl
+};
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
@@ -48,6 +57,10 @@ public:
   const std::string& compiler() const;
   const std::string& compiler_check() const;
   CompilerType compiler_type() const;
+  // Returns true for clang or clangcl.
+  bool is_compiler_group_clang() const;
+  // Returns true for cl or clangcl.
+  bool is_compiler_group_cl() const;
   bool compression() const;
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
@@ -228,6 +241,20 @@ inline CompilerType
 Config::compiler_type() const
 {
   return m_compiler_type;
+}
+
+inline bool
+Config::is_compiler_group_clang() const
+{
+  return m_compiler_type == CompilerType::clang
+         || m_compiler_type == CompilerType::clangcl;
+}
+
+inline bool
+Config::is_compiler_group_cl() const
+{
+  return m_compiler_type == CompilerType::cl
+         || m_compiler_type == CompilerType::clangcl;
 }
 
 inline bool

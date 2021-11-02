@@ -229,7 +229,9 @@ guess_compiler(string_view path)
 #endif
 
   const string_view name = Util::base_name(compiler_path);
-  if (name.find("clang") != nonstd::string_view::npos) {
+  if (name.find("clang-cl") != nonstd::string_view::npos) {
+    return CompilerType::clangcl;
+  } else if (name.find("clang") != nonstd::string_view::npos) {
     return CompilerType::clang;
   } else if (name.find("gcc") != nonstd::string_view::npos
              || name.find("g++") != nonstd::string_view::npos) {
@@ -906,7 +908,7 @@ to_cache(Context& ctx,
          const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
-  if (ctx.config.compiler_type() == CompilerType::cl) {
+  if (ctx.config.is_compiler_group_cl()) {
     args.push_back(fmt::format("-Fo{}", ctx.args_info.output_obj));
   } else {
     args.push_back("-o");
@@ -993,7 +995,7 @@ to_cache(Context& ctx,
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && ctx.config.compiler_type() != CompilerType::pump
-      && ctx.config.compiler_type() != CompilerType::cl) {
+      && !ctx.config.is_compiler_group_cl()) {
     LOG_RAW("Compiler produced stdout");
     return nonstd::make_unexpected(Statistic::compiler_produced_stdout);
   }
@@ -1483,7 +1485,7 @@ calculate_result_and_manifest_key(Context& ctx,
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
-  int is_clang = ctx.config.compiler_type() == CompilerType::clang
+  int is_clang = ctx.config.is_compiler_group_clang()
                  || ctx.config.compiler_type() == CompilerType::other;
 
   // First the arguments.
@@ -1805,7 +1807,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   //
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
-  if ((ctx.config.compiler_type() == CompilerType::clang
+  if ((ctx.config.is_compiler_group_clang()
        || ctx.config.compiler_type() == CompilerType::other)
       && ctx.args_info.output_is_precompiled_header
       && mode == FromCacheCallMode::cpp) {
