@@ -171,9 +171,7 @@ prepare_debug_path(const std::string& debug_dir,
   auto prefix = debug_dir.empty()
                   ? output_obj
                   : debug_dir + util::to_absolute_path_no_drive(output_obj);
-  try {
-    Util::ensure_dir_exists(Util::dir_name(prefix));
-  } catch (core::Error&) {
+  if (!Util::create_dir(Util::dir_name(prefix))) {
     // Ignore since we can't handle an error in another way in this context. The
     // caller takes care of logging when trying to open the path for writing.
   }
