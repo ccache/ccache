@@ -52,6 +52,7 @@ struct ArgumentProcessingState
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
   bool found_valid_Fp = false;
+  bool found_syntax_only = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
@@ -652,9 +653,11 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
-  if (args[i] == "-fsyntax-only") {
+  // -Zs is MSVC's -fsyntax-only equivalent
+  if (args[i] == "-fsyntax-only" || args[i] == "-Zs") {
     args_info.expect_output_obj = false;
     state.compiler_only_args.push_back(args[i]);
+    state.found_syntax_only = true;
     return nullopt;
   }
 
@@ -1210,6 +1213,8 @@ process_args(Context& ctx)
   if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt) {
     if (args_info.output_is_precompiled_header) {
       state.common_args.push_back("-c");
+    } else if (state.found_syntax_only) {
+      // -fsyntax-only/-Zs does not need -c
     } else {
       LOG_RAW("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
