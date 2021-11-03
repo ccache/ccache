@@ -612,11 +612,11 @@ DEALINGS IN THE SOFTWARE.
 === src/third_party/nonstd/optional.hpp
 
 This is the single header version of
-https://github.com/martinmoene/optional-lite[optional-lite] 3.4.0 with the
+https://github.com/martinmoene/optional-lite[optional-lite] 3.5.0 with the
 following license:
 
 ----
-Copyright (c) 2014-2018 Martin Moene
+Copyright (c) 2014-2021 Martin Moene
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
