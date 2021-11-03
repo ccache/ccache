@@ -516,7 +516,7 @@ SUCH DAMAGE.
 === src/third_party/httplib.*
 
 cpp-httplib - A C++11 cross-platform HTTP/HTTPS library. Copied from cpp-httplib
-v0.9.4 downloaded from https://github.com/yhirose/cpp-httplib[cpp-httplib]. The
+v0.9.7 downloaded from https://github.com/yhirose/cpp-httplib[cpp-httplib]. The
 library has the following license:
 
 ----

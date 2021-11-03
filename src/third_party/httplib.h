@@ -259,7 +259,7 @@ namespace detail {
 
 template <class T, class... Args>
 typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type
-make_unique(Args &&... args) {
+make_unique(Args &&...args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
@@ -492,7 +492,7 @@ public:
   virtual socket_t socket() const = 0;
 
   template <typename... Args>
-  ssize_t write_format(const char *fmt, const Args &... args);
+  ssize_t write_format(const char *fmt, const Args &...args);
   ssize_t write(const char *ptr);
   ssize_t write(const std::string &s);
 };
@@ -622,7 +622,7 @@ public:
   Server &Options(const std::string &pattern, Handler handler);
 
   bool set_base_dir(const std::string &dir,
-                    const std::string &mount_point = nullptr);
+                    const std::string &mount_point = std::string());
   bool set_mount_point(const std::string &mount_point, const std::string &dir,
                        Headers headers = Headers());
   bool remove_mount_point(const std::string &mount_point);
@@ -1161,6 +1161,8 @@ public:
                   const std::string &client_cert_path,
                   const std::string &client_key_path);
 
+  Client(Client &&) = default;
+
   ~Client();
 
   bool is_valid() const;
@@ -1362,6 +1364,9 @@ public:
   SSLServer(X509 *cert, EVP_PKEY *private_key,
             X509_STORE *client_ca_cert_store = nullptr);
 
+  SSLServer(
+      const std::function<bool(SSL_CTX &ssl_ctx)> &setup_ssl_ctx_callback);
+
   ~SSLServer() override;
 
   bool is_valid() const override;
@@ -1473,7 +1478,7 @@ inline T Response::get_header_value(const char *key, size_t id) const {
 }
 
 template <typename... Args>
-inline ssize_t Stream::write_format(const char *fmt, const Args &... args) {
+inline ssize_t Stream::write_format(const char *fmt, const Args &...args) {
   const auto bufsiz = 2048;
   std::array<char, bufsiz> buf;
 
@@ -1670,6 +1675,10 @@ void parse_query_text(const std::string &s, Params &params);
 bool parse_range_header(const std::string &s, Ranges &ranges);
 
 int close_socket(socket_t sock);
+
+ssize_t send_socket(socket_t sock, const void *ptr, size_t size, int flags);
+
+ssize_t read_socket(socket_t sock, void *ptr, size_t size, int flags);
 
 enum class EncodingType { None = 0, Gzip, Brotli };
 
