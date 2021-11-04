@@ -34,7 +34,8 @@ ResultExtractor::ResultExtractor(const std::string& directory)
 }
 
 void
-ResultExtractor::on_header(CacheEntryReader& /*cache_entry_reader*/)
+ResultExtractor::on_header(core::CacheEntryReader& /*cache_entry_reader*/,
+                           const uint8_t /*result_format_version*/)
 {
 }
 

@@ -18,10 +18,51 @@
 
 #pragma once
 
-#include <cstdint>
+#include <core/Reader.hpp>
+#include <util/XXH3_128.hpp>
 
 namespace core {
 
-enum class CacheEntryType : uint8_t { result = 0, manifest = 1 };
+class ChecksummingReader : public Reader
+{
+public:
+  ChecksummingReader(core::Reader& reader);
+
+  using core::Reader::read;
+  size_t read(void* data, size_t count) override;
+
+  void set_reader(core::Reader& reader);
+
+  util::XXH3_128::Digest digest() const;
+
+private:
+  core::Reader* m_reader;
+  util::XXH3_128 m_checksum;
+};
+
+inline ChecksummingReader::ChecksummingReader(core::Reader& reader)
+  : m_reader(&reader)
+{
+}
+
+inline size_t
+ChecksummingReader::read(void* const data, const size_t count)
+{
+  const auto bytes_read = m_reader->read(data, count);
+  m_checksum.update(data, bytes_read);
+  return bytes_read;
+}
+
+inline void
+ChecksummingReader::set_reader(core::Reader& reader)
+{
+  m_reader = &reader;
+}
+
+inline util::XXH3_128::Digest
+ChecksummingReader::digest() const
+{
+  return m_checksum.digest();
+}
 
 } // namespace core

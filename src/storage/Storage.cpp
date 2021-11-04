@@ -392,10 +392,10 @@ get_shard_url(const Digest& key,
   double highest_score = -1.0;
   std::string best_shard;
   for (const auto& shard_config : shards) {
-    util::XXH3_64 checksum;
-    checksum.update(key.bytes(), key.size());
-    checksum.update(shard_config.name.data(), shard_config.name.length());
-    const double score = to_half_open_unit_interval(checksum.digest());
+    util::XXH3_64 hash;
+    hash.update(key.bytes(), key.size());
+    hash.update(shard_config.name.data(), shard_config.name.length());
+    const double score = to_half_open_unit_interval(hash.digest());
     ASSERT(score >= 0.0 && score < 1.0);
     const double weighted_score =
       score == 0.0 ? 0.0 : shard_config.weight / -std::log(score);

@@ -18,10 +18,47 @@
 
 #pragma once
 
+#include <Util.hpp>
+#include <assertions.hpp>
+
+#include <cstddef>
 #include <cstdint>
+#include <string>
 
 namespace core {
 
-enum class CacheEntryType : uint8_t { result = 0, manifest = 1 };
+class Writer
+{
+public:
+  virtual ~Writer() = default;
+
+  // Write `count` bytes from `data`. Throws `core::Error` on failure.
+  virtual void write(const void* data, size_t count) = 0;
+
+  // Write integer `value`. Throws `core::Error` on failure.
+  template<typename T> void write_int(T value);
+
+  // Write `value`. Throws `core::Error` on failure.
+  void write_str(const std::string& value);
+
+  // Finalize writing, e.g. flush written bytes and potentially check for error
+  // states. Throws `core::Error` on failure.
+  virtual void finalize() = 0;
+};
+
+template<typename T>
+inline void
+Writer::write_int(const T value)
+{
+  uint8_t buffer[sizeof(T)];
+  Util::int_to_big_endian(value, buffer);
+  write(buffer, sizeof(T));
+}
+
+inline void
+Writer::write_str(const std::string& value)
+{
+  write(value.data(), value.length());
+}
 
 } // namespace core

@@ -88,7 +88,7 @@ using nonstd::string_view;
 // different for the same input in a new ccache version, we can just change
 // this string. A typical example would be if the format of one of the files
 // stored in the cache changes in a backwards-incompatible way.
-const char HASH_PREFIX[] = "3";
+const char HASH_PREFIX[] = "4";
 
 namespace {
 

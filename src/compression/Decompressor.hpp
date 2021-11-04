@@ -19,33 +19,20 @@
 #pragma once
 
 #include <compression/types.hpp>
+#include <core/Reader.hpp>
 
-#include <cstdio>
 #include <memory>
 
 namespace compression {
 
-class Decompressor
+class Decompressor : public core::Reader
 {
 public:
   virtual ~Decompressor() = default;
 
   // Create a decompressor for the specified type.
-  //
-  // Parameters:
-  // - type: The type.
-  // - stream: The stream to read from.
   static std::unique_ptr<Decompressor> create_from_type(Type type,
-                                                        FILE* stream);
-
-  // Read data into a buffer from the compressed stream.
-  //
-  // Parameters:
-  // - data: Buffer to write decompressed data to.
-  // - count: How many bytes to write.
-  //
-  // Throws Error on failure.
-  virtual void read(void* data, size_t count) = 0;
+                                                        core::Reader& reader);
 
   // Finalize decompression.
   //

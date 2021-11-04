@@ -2,8 +2,6 @@ set(
   source_files
   Args.cpp
   AtomicFile.cpp
-  CacheEntryReader.cpp
-  CacheEntryWriter.cpp
   Config.cpp
   Context.cpp
   Depfile.cpp

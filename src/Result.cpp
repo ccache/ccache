@@ -19,8 +19,6 @@
 #include "Result.hpp"
 
 #include "AtomicFile.hpp"
-#include "CacheEntryReader.hpp"
-#include "CacheEntryWriter.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Fd.hpp"
@@ -30,6 +28,11 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <ccache.hpp>
+#include <core/CacheEntryReader.hpp>
+#include <core/CacheEntryWriter.hpp>
+#include <core/FileReader.hpp>
+#include <core/FileWriter.hpp>
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
@@ -50,17 +53,8 @@
 //
 // Integers are big-endian.
 //
-// <result>               ::= <header> <body> <epilogue>
-// <header>               ::= <magic> <version> <compr_type> <compr_level>
-//                            <content_len>
-// <magic>                ::= 4 bytes ("cCrS")
-// <version>              ::= uint8_t
-// <compr_type>           ::= <compr_none> | <compr_zstd>
-// <compr_none>           ::= 0 (uint8_t)
-// <compr_zstd>           ::= 1 (uint8_t)
-// <compr_level>          ::= int8_t
-// <content_len>          ::= uint64_t ; size of file if stored uncompressed
-// <body>                 ::= <n_entries> <entry>* ; potentially compressed
+// <payload>              ::= <format_ver> <n_entries> <entry>*
+// <format_ver>           ::= uint8_t
 // <n_entries>            ::= uint8_t
 // <entry>                ::= <embedded_file_entry> | <raw_file_entry>
 // <embedded_file_entry>  ::= <embedded_file_marker> <suffix_len> <suffix>
@@ -74,38 +68,14 @@
 // <file_len>             ::= uint64_t
 // <epilogue>             ::= <checksum>
 // <checksum>             ::= uint64_t ; XXH3 of content bytes
-//
-// Sketch of concrete layout:
-//
-// <magic>                4 bytes
-// <version>              1 byte
-// <compr_type>           1 byte
-// <compr_level>          1 byte
-// <content_len>          8 bytes
-// --- [potentially compressed from here] -------------------------------------
-// <n_entries>            1 byte
-// <embedded_file_marker> 1 byte
-// <embedded_file_type>   1 byte
-// <data_len>             8 bytes
-// <data>                 data_len bytes
-// ...
-// <ref_marker>           1 byte
-// <key_len>              1 byte
-// <key>                  key_len bytes
-// ...
-// checksum               8 bytes
-//
-//
-// Version history
-// ===============
-//
-// 1: Introduced in ccache 4.0.
 
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
 
 namespace {
+
+const uint8_t k_result_format_version = 0;
 
 // File data stored inside the result file.
 const uint8_t k_embedded_file_marker = 0;
@@ -252,12 +222,18 @@ Reader::read_result(Consumer& consumer)
     file_stream = file.get();
   }
 
-  CacheEntryReader cache_entry_reader(file_stream, k_magic, k_version);
+  core::FileReader file_reader(file_stream);
+  core::CacheEntryReader cache_entry_reader(file_reader);
 
-  consumer.on_header(cache_entry_reader);
+  const auto result_format_version = cache_entry_reader.read_int<uint8_t>();
+  if (result_format_version != k_result_format_version) {
+    throw core::Error("Unknown result format version: {}",
+                      result_format_version);
+  }
 
-  uint8_t n_entries;
-  cache_entry_reader.read(n_entries);
+  consumer.on_header(cache_entry_reader, result_format_version);
+
+  const auto n_entries = cache_entry_reader.read_int<uint8_t>();
 
   uint32_t i;
   for (i = 0; i < n_entries; ++i) {
@@ -273,12 +249,11 @@ Reader::read_result(Consumer& consumer)
 }
 
 void
-Reader::read_entry(CacheEntryReader& cache_entry_reader,
+Reader::read_entry(core::CacheEntryReader& cache_entry_reader,
                    uint32_t entry_number,
                    Reader::Consumer& consumer)
 {
-  uint8_t marker;
-  cache_entry_reader.read(marker);
+  const auto marker = cache_entry_reader.read_int<uint8_t>();
 
   switch (marker) {
   case k_embedded_file_marker:
@@ -289,12 +264,9 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
     throw core::Error("Unknown entry type: {}", marker);
   }
 
-  UnderlyingFileTypeInt type;
-  cache_entry_reader.read(type);
-  FileType file_type = FileType(type);
-
-  uint64_t file_len;
-  cache_entry_reader.read(file_len);
+  const auto type = cache_entry_reader.read_int<UnderlyingFileTypeInt>();
+  const auto file_type = FileType(type);
+  const auto file_len = cache_entry_reader.read_int<uint64_t>();
 
   if (marker == k_embedded_file_marker) {
     consumer.on_entry_start(entry_number, file_type, file_len, nullopt);
@@ -365,14 +337,19 @@ Writer::do_finalize()
   }
 
   AtomicFile atomic_result_file(m_result_path, AtomicFile::Mode::binary);
-  CacheEntryWriter writer(atomic_result_file.stream(),
-                          k_magic,
-                          k_version,
-                          compression::type_from_config(m_ctx.config),
-                          compression::level_from_config(m_ctx.config),
-                          payload_size);
+  core::CacheEntryHeader header(core::CacheEntryType::result,
+                                compression::type_from_config(m_ctx.config),
+                                compression::level_from_config(m_ctx.config),
+                                time(nullptr),
+                                CCACHE_VERSION,
+                                "");
+  header.set_entry_size_from_payload_size(payload_size);
 
-  writer.write<uint8_t>(m_entries_to_write.size());
+  core::FileWriter file_writer(atomic_result_file.stream());
+  core::CacheEntryWriter writer(file_writer, header);
+
+  writer.write_int(k_result_format_version);
+  writer.write_int<uint8_t>(m_entries_to_write.size());
 
   uint32_t entry_number = 0;
   for (const auto& pair : m_entries_to_write) {
@@ -390,10 +367,10 @@ Writer::do_finalize()
         file_size,
         path);
 
-    writer.write<uint8_t>(store_raw ? k_raw_file_marker
-                                    : k_embedded_file_marker);
-    writer.write(UnderlyingFileTypeInt(file_type));
-    writer.write(file_size);
+    writer.write_int<uint8_t>(store_raw ? k_raw_file_marker
+                                        : k_embedded_file_marker);
+    writer.write_int(UnderlyingFileTypeInt(file_type));
+    writer.write_int(file_size);
 
     if (store_raw) {
       file_size_and_count_diff += write_raw_file_entry(path, entry_number);
@@ -411,7 +388,7 @@ Writer::do_finalize()
 }
 
 void
-Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
+Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
                                           const std::string& path,
                                           uint64_t file_size)
 {

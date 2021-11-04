@@ -18,34 +18,33 @@
 
 #pragma once
 
-#include "Decompressor.hpp"
+#include <compression/Compressor.hpp>
+#include <core/ChecksummingWriter.hpp>
+#include <core/Writer.hpp>
 
-#include <zstd.h>
+namespace core {
 
-#include <cstdint>
+struct CacheEntryHeader;
 
-namespace compression {
-
-// A decompressor of a Zstandard stream.
-class ZstdDecompressor : public Decompressor
+// This class knows how to write a cache entry with a format described in
+// CacheEntryHeader.
+class CacheEntryWriter : public Writer
 {
 public:
-  explicit ZstdDecompressor(core::Reader& reader);
+  CacheEntryWriter(Writer& writer, const CacheEntryHeader& header);
 
-  ~ZstdDecompressor() override;
+  void write(const void* data, size_t count) override;
+  using Writer::write;
 
-  size_t read(void* data, size_t count) override;
+  // Close for writing.
+  //
+  // This method potentially verifies the end state after writing the cache
+  // entry and throws `core::Error` if any integrity issues are found.
   void finalize() override;
 
 private:
-  core::Reader& m_reader;
-  char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
-  size_t m_input_size;
-  size_t m_input_consumed;
-  ZSTD_DStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
-  bool m_reached_stream_end;
+  ChecksummingWriter m_checksumming_writer;
+  std::unique_ptr<compression::Compressor> m_compressor;
 };
 
-} // namespace compression
+} // namespace core

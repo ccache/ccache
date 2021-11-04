@@ -34,7 +34,7 @@
 #include <storage/Storage.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
 #include <util/TextTable.hpp>
-#include <util/XXH3_64.hpp>
+#include <util/XXH3_128.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
@@ -126,7 +126,7 @@ Options for secondary storage:
                                --trim-dir; default: atime
 
 Options for scripting or debugging:
-        --checksum-file PATH   print the checksum (64 bit XXH3) of the file at
+        --checksum-file PATH   print the checksum (128 bit XXH3) of the file at
                                PATH
         --dump-manifest PATH   dump manifest file at PATH in text format
         --dump-result PATH     dump result file at PATH in text format
@@ -369,12 +369,13 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case CHECKSUM_FILE: {
-      util::XXH3_64 checksum;
+      util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
         checksum.update(data, size);
       });
-      PRINT(stdout, "{:016x}\n", checksum.digest());
+      const auto digest = checksum.digest();
+      PRINT(stdout, "{}\n", Util::format_base16(digest.bytes(), digest.size()));
       break;
     }
 

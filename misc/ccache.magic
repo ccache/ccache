@@ -1,7 +1,4 @@
-# ccache manifest
-0       string          cCmF            ccache manifest
->4      ubyte           x               \b, version %d
-
-# ccache result
-0       string          cCrS            ccache result
->4      ubyte           x               \b, version %d
+0       beshort         0xCCAC          ccache entry
+>2      byte            x               \b, format version %d
+>3      byte            0               \b, result
+>3      byte            1               \b, manifest

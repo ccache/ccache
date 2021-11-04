@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,34 +18,41 @@
 
 #pragma once
 
-#include "Decompressor.hpp"
+#include <core/Writer.hpp>
+#include <core/exceptions.hpp>
 
-#include <zstd.h>
+#include <cstdio>
 
-#include <cstdint>
+namespace core {
 
-namespace compression {
-
-// A decompressor of a Zstandard stream.
-class ZstdDecompressor : public Decompressor
+class FileWriter : public Writer
 {
 public:
-  explicit ZstdDecompressor(core::Reader& reader);
+  FileWriter(FILE* stream);
 
-  ~ZstdDecompressor() override;
-
-  size_t read(void* data, size_t count) override;
+  void write(const void* data, size_t size) override;
   void finalize() override;
 
 private:
-  core::Reader& m_reader;
-  char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
-  size_t m_input_size;
-  size_t m_input_consumed;
-  ZSTD_DStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
-  bool m_reached_stream_end;
+  FILE* m_stream;
 };
 
-} // namespace compression
+inline FileWriter::FileWriter(FILE* const stream) : m_stream(stream)
+{
+}
+
+inline void
+FileWriter::write(const void* const data, const size_t size)
+{
+  if (size > 0 && fwrite(data, size, 1, m_stream) != 1) {
+    throw core::Error("Failed to write to stream");
+  }
+}
+
+inline void
+FileWriter::finalize()
+{
+  fflush(m_stream);
+}
+
+} // namespace core

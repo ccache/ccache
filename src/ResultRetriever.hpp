@@ -29,7 +29,8 @@ class ResultRetriever : public Result::Reader::Consumer
 public:
   ResultRetriever(Context& ctx, bool rewrite_dependency_target);
 
-  void on_header(CacheEntryReader& cache_entry_reader) override;
+  void on_header(core::CacheEntryReader& cache_entry_reader,
+                 uint8_t result_format_version) override;
   void on_entry_start(uint32_t entry_number,
                       Result::FileType file_type,
                       uint64_t file_len,
