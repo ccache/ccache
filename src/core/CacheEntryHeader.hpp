@@ -28,7 +28,7 @@
 //
 // <entry>            ::= <header> <payload> <epilogue>
 // <header>           ::= <magic> <format_ver> <entry_type> <compr_type>
-//                        <compr_level> <creation_time> <ccache_ver> <tag>
+//                        <compr_level> <creation_time> <ccache_ver> <namespace>
 //                        <entry_size>
 // <magic>            ::= uint16_t (0xccac)
 // <format_ver>       ::= uint8_t
@@ -41,7 +41,7 @@
 // <compr_level>      ::= int8_t
 // <creation_time>    ::= uint64_t (Unix epoch time when entry was created)
 // <ccache_ver>       ::= string length (uint8_t) + string data
-// <tag>              ::= string length (uint8_t) + string data
+// <namespace>        ::= string length (uint8_t) + string data
 // <entry_size>       ::= uint64_t ; = size of file if stored uncompressed
 // ; potentially compressed from here
 // <payload>          ::= depends on entry_type
@@ -61,7 +61,7 @@ struct CacheEntryHeader
                    int8_t compression_level,
                    uint64_t creation_time,
                    const std::string& ccache_version,
-                   const std::string& tag,
+                   const std::string& namespace_,
                    uint64_t entry_size = 0);
 
   uint16_t magic;
@@ -71,7 +71,7 @@ struct CacheEntryHeader
   int8_t compression_level;
   uint64_t creation_time;
   std::string ccache_version;
-  std::string tag;
+  std::string namespace_;
   uint64_t entry_size;
 
   uint64_t payload_size() const;

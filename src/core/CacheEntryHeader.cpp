@@ -30,7 +30,7 @@ const size_t k_static_header_fields_size =
   + sizeof(core::CacheEntryHeader::entry_size)
   // ccache_version length field:
   + 1
-  // tag length field:
+  // namespace_ length field:
   + 1;
 
 const size_t k_static_epilogue_fields_size =
@@ -43,7 +43,7 @@ CacheEntryHeader::CacheEntryHeader(const core::CacheEntryType entry_type_,
                                    const int8_t compression_level_,
                                    const uint64_t creation_time_,
                                    const std::string& ccache_version_,
-                                   const std::string& tag_,
+                                   const std::string& namespace_arg,
                                    const uint64_t entry_size_)
   : magic(k_ccache_magic),
     entry_format_version(k_entry_format_version),
@@ -52,7 +52,7 @@ CacheEntryHeader::CacheEntryHeader(const core::CacheEntryType entry_type_,
     compression_level(compression_level_),
     creation_time(creation_time_),
     ccache_version(ccache_version_),
-    tag(tag_),
+    namespace_(namespace_arg),
     entry_size(entry_size_)
 {
 }
@@ -81,15 +81,15 @@ CacheEntryHeader::dump(FILE* const stream) const
   PRINT(stream, "Compression level: {}\n", compression_level);
   PRINT(stream, "Creation time: {}\n", creation_time);
   PRINT(stream, "Ccache version: {}\n", ccache_version);
-  PRINT(stream, "Tag: {}\n", tag);
+  PRINT(stream, "Namespace: {}\n", namespace_);
   PRINT(stream, "Entry size: {}\n", entry_size);
 }
 
 size_t
 CacheEntryHeader::non_payload_size() const
 {
-  return k_static_header_fields_size + ccache_version.length() + tag.length()
-         + k_static_epilogue_fields_size;
+  return k_static_header_fields_size + ccache_version.length()
+         + namespace_.length() + k_static_epilogue_fields_size;
 }
 
 } // namespace core
