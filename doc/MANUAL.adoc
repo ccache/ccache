@@ -207,7 +207,7 @@ cache directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
 *--checksum-file* _PATH_::
 
-    Print the checksum (64 bit XXH3) of the file at _PATH_ (`-` for standard
+    Print the checksum (128 bit XXH3) of the file at _PATH_ (`-` for standard
     input).
 
 *--dump-manifest* _PATH_::
