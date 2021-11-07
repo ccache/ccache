@@ -92,6 +92,8 @@ public:
   void set_debug(bool value);
   void set_depend_mode(bool value);
   void set_direct_mode(bool value);
+  void set_file_clone(bool value);
+  void set_hard_link(bool value);
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
@@ -487,6 +489,18 @@ inline void
 Config::set_direct_mode(bool value)
 {
   m_direct_mode = value;
+}
+
+inline void
+Config::set_file_clone(const bool value)
+{
+  m_file_clone = value;
+}
+
+inline void
+Config::set_hard_link(const bool value)
+{
+  m_hard_link = value;
 }
 
 inline void

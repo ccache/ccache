@@ -329,6 +329,12 @@ Storage::remove(const Digest& key, const core::CacheEntryType type)
   remove_from_secondary_storage(key);
 }
 
+bool
+Storage::has_secondary_storage() const
+{
+  return !m_secondary_storages.empty();
+}
+
 std::string
 Storage::get_secondary_storage_config_for_logging() const
 {

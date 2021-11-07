@@ -2024,6 +2024,17 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx.config.set_depend_mode(false);
   }
 
+  if (ctx.storage.has_secondary_storage()) {
+    if (ctx.config.file_clone()) {
+      LOG_RAW("Disabling file clone mode since secondary storage is enabled");
+      ctx.config.set_file_clone(false);
+    }
+    if (ctx.config.hard_link()) {
+      LOG_RAW("Disabling hard link mode since secondary storage is enabled");
+      ctx.config.set_hard_link(false);
+    }
+  }
+
   LOG("Source file: {}", ctx.args_info.input_file);
   if (ctx.args_info.generating_dependencies) {
     LOG("Dependency file: {}", ctx.args_info.output_dep);

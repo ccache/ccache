@@ -61,6 +61,7 @@ public:
 
   void remove(const Digest& key, core::CacheEntryType type);
 
+  bool has_secondary_storage() const;
   std::string get_secondary_storage_config_for_logging() const;
 
 private:
