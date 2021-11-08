@@ -342,7 +342,7 @@ Writer::do_finalize()
                                 compression::level_from_config(m_ctx.config),
                                 time(nullptr),
                                 CCACHE_VERSION,
-                                "");
+                                m_ctx.config.namespace_());
   header.set_entry_size_from_payload_size(payload_size);
 
   core::FileWriter file_writer(atomic_result_file.stream());

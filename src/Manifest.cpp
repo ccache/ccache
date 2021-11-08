@@ -341,7 +341,7 @@ write_manifest(const Config& config,
                                 compression::level_from_config(config),
                                 time(nullptr),
                                 CCACHE_VERSION,
-                                "");
+                                config.namespace_());
   header.set_entry_size_from_payload_size(payload_size);
 
   core::CacheEntryWriter writer(file_writer, header);

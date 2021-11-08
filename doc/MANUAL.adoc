@@ -99,10 +99,16 @@ compiler's documentation.
     has the same effect as setting the environment variable `CCACHE_DIR`
     temporarily.
 
+*--evict-namespace* _NAMESPACE_::
+
+    Remove files created with a certain <<config_namespace,*namespace*>> from
+    the cache.
+
 *--evict-older-than* _AGE_::
 
     Remove files older than _AGE_ from the cache. _AGE_ should be an unsigned
-    integer with a `d` (days) or `s` (seconds) suffix.
+    integer with a `d` (days) or `s` (seconds) suffix. If combined with
+    `--evict-namespace`, only remove old files within that namespace.
 
 *-h*, *--help*::
 
@@ -760,6 +766,21 @@ file in `/etc/rsyslog.d`:
     default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki, Mi,
     Gi, Ti (binary). The default suffix is G. See also
     _<<Cache size management>>_.
+
+[#config_namespace]
+*namespace* (*CCACHE_NAMESPACE*)::
+
+    If set, the namespace string will be added to the hashed data for each
+    compilation. This will make the associated cache entries logically separate
+    from cache entries with other namespaces, but they will still share the same
+    storage space. Cache entries can also be selectively removed from the
+    primary cache with the command line option `--evict-namespace`, potentially
+    in combination with `--evict-older-than`.
+.
+For instance, if you use the same primary cache for several disparate projects,
+you can use a unique namespace string for each one. This allows you to remove
+cache entries that belong to a certain project if stop working with that
+project.
 
 [#config_path]
 *path* (*CCACHE_PATH*)::

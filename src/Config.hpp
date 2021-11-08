@@ -81,6 +81,7 @@ public:
   core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::string& stats_log() const;
+  const std::string& namespace_() const;
   const std::string& temporary_dir() const;
   nonstd::optional<mode_t> umask() const;
 
@@ -178,6 +179,7 @@ private:
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
   std::string m_stats_log;
+  std::string m_namespace;
   std::string m_temporary_dir;
   nonstd::optional<mode_t> m_umask;
 
@@ -426,6 +428,12 @@ inline const std::string&
 Config::stats_log() const
 {
   return m_stats_log;
+}
+
+inline const std::string&
+Config::namespace_() const
+{
+  return m_namespace;
 }
 
 inline const std::string&

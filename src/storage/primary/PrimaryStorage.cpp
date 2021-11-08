@@ -173,8 +173,12 @@ PrimaryStorage::finalize()
     const double factor = m_config.limit_multiple() / 16;
     const uint64_t max_size = round(m_config.max_size() * factor);
     const uint32_t max_files = round(m_config.max_files() * factor);
-    const time_t max_age = 0;
-    clean_dir(subdir, max_size, max_files, max_age, [](double /*progress*/) {});
+    clean_dir(subdir,
+              max_size,
+              max_files,
+              nonstd::nullopt,
+              nonstd::nullopt,
+              [](double /*progress*/) {});
   }
 }
 

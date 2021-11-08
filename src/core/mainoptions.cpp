@@ -90,6 +90,8 @@ Common options:
                                default
     -d, --dir PATH             operate on cache directory PATH instead of the
                                default
+        --evict-namespace NAMESPACE
+                               remove files created with namespace NAMESPACE
         --evict-older-than AGE remove files older than AGE (unsigned integer
                                with a d (days) or s (seconds) suffix)
     -F, --max-files NUM        set maximum number of files in cache to NUM (use
@@ -261,6 +263,7 @@ enum {
   CONFIG_PATH,
   DUMP_MANIFEST,
   DUMP_RESULT,
+  EVICT_NAMESPACE,
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
   HASH_FILE,
@@ -281,6 +284,7 @@ const option long_options[] = {
   {"directory", required_argument, nullptr, 'd'}, // backward compatibility
   {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
   {"dump-result", required_argument, nullptr, DUMP_RESULT},
+  {"evict-namespace", required_argument, nullptr, EVICT_NAMESPACE},
   {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
   {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
   {"get-config", required_argument, nullptr, 'k'},
@@ -310,6 +314,8 @@ process_main_options(int argc, const char* const* argv)
   nonstd::optional<uint64_t> trim_max_size;
   bool trim_lru_mtime = false;
   uint8_t verbosity = 0;
+  nonstd::optional<std::string> evict_namespace;
+  nonstd::optional<uint64_t> evict_max_age;
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -392,14 +398,13 @@ process_main_options(int argc, const char* const* argv)
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
+    case EVICT_NAMESPACE: {
+      evict_namespace = arg;
+      break;
+    }
+
     case EVICT_OLDER_THAN: {
-      auto seconds = Util::parse_duration(arg);
-      ProgressBar progress_bar("Evicting...");
-      storage::primary::PrimaryStorage(config).clean_old(
-        [&](double progress) { progress_bar.update(progress); }, seconds);
-      if (isatty(STDOUT_FILENO)) {
-        PRINT_RAW(stdout, "\n");
-      }
+      evict_max_age = Util::parse_duration(arg);
       break;
     }
 
@@ -587,6 +592,20 @@ process_main_options(int argc, const char* const* argv)
     default:
       PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       return EXIT_FAILURE;
+    }
+  }
+
+  if (evict_max_age || evict_namespace) {
+    Config config;
+    config.read();
+
+    ProgressBar progress_bar("Evicting...");
+    storage::primary::PrimaryStorage(config).evict(
+      [&](double progress) { progress_bar.update(progress); },
+      evict_max_age,
+      evict_namespace);
+    if (isatty(STDOUT_FILENO)) {
+      PRINT_RAW(stdout, "\n");
     }
   }
 

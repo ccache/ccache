@@ -1189,6 +1189,11 @@ hash_common_info(const Context& ctx,
 {
   hash.hash(HASH_PREFIX);
 
+  if (!ctx.config.namespace_().empty()) {
+    hash.hash_delimiter("namespace");
+    hash.hash(ctx.config.namespace_());
+  }
+
   // We have to hash the extension, as a .i file isn't treated the same by the
   // compiler as a .ii file.
   hash.hash_delimiter("ext");
