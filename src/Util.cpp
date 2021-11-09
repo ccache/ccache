@@ -253,7 +253,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     }
   }
 
-  if (ioctl(*dest_fd, (int)FICLONE, *src_fd) != 0) {
+  if (ioctl(*dest_fd, static_cast<int>FICLONE, *src_fd) != 0) {
     throw core::Error(strerror(errno));
   }
 
