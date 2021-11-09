@@ -16,15 +16,23 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
-
-#include <cstdint>
-#include <string>
+#include "types.hpp"
 
 namespace core {
 
-enum class CacheEntryType : uint8_t { result = 0, manifest = 1 };
+std::string
+to_string(const CacheEntryType type)
+{
+  switch (type) {
+  case CacheEntryType::manifest:
+    return "manifest";
 
-std::string to_string(CacheEntryType type);
+  case CacheEntryType::result:
+    return "result";
+
+  default:
+    return "unknown";
+  }
+}
 
 } // namespace core

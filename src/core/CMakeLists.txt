@@ -7,6 +7,7 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/StatisticsCounters.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/StatsLog.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mainoptions.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/types.cpp
 )
 
 target_sources(ccache_framework PRIVATE ${sources})
