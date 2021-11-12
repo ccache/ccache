@@ -91,7 +91,7 @@ Common options:
     -d, --dir PATH             operate on cache directory PATH instead of the
                                default
         --evict-namespace NAMESPACE
-                               remove files created with namespace NAMESPACE
+                               remove files created in namespace NAMESPACE
         --evict-older-than AGE remove files older than AGE (unsigned integer
                                with a d (days) or s (seconds) suffix)
     -F, --max-files NUM        set maximum number of files in cache to NUM (use

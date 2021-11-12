@@ -101,8 +101,8 @@ compiler's documentation.
 
 *--evict-namespace* _NAMESPACE_::
 
-    Remove files created with a certain <<config_namespace,*namespace*>> from
-    the cache.
+    Remove files created in the given <<config_namespace,*namespace*>> from the
+    cache.
 
 *--evict-older-than* _AGE_::
 
