@@ -7,6 +7,7 @@ Ccache is a collective work with contributions from many people, including:
 
 * Abubakar Nur Khalil
 * Aleksander Salwa
+* Alexander Falkenstern
 * Alexander Korsunsky
 * Alexander Lanin
 * Alexey Tourbin
