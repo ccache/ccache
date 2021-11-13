@@ -1,5 +1,58 @@
 = Ccache news
 
+== Ccache 4.5
+
+Release date: 2021-11-13
+
+
+=== New features
+
+- Made various improvements to the cache entry format. Among other things, the
+  header now contains a creation timestamp and a note of the ccache version used
+  to create the entry. The cache entry checksum has also been upgraded to use
+  128-bit XXH3 instead 64-bit XXH3. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for cache namespaces. If a namespace configured, e.g. using
+  `CCACHE_NAMESPACE=some_string`, the namespace string will be added to the
+  hashed data for each compilation. This will make the associated cache entries
+  logically separate from cache entries in other namespaces, but they will still
+  share the same storage space. Cache entries can also be selectively removed
+  from the primary cache with the new command line option `--evict-namespace`,
+  potentially in combination with `--evict-older-than`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made HTTP keep-alive configurable, defaulting to off for now. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Added support for rewriting absolute path to Clang option `--gcc-toolchain`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Compatibility notes
+
+- A consequence of the changed cache entry format is that ccache 4.5 will not
+  share cache entries with earlier versions. Different ccache versions can
+  however still use the same cache storage without any issues.
+
+
+=== Bug fixes
+
+- Fixed a problem with special characters in the user info part of URLs for HTTP
+  storage. +
+  [small]#_[contributed by Russell McClellan]_#
+
+- Fixed win32 log messages about file locks. +
+  [small]#_[contributed by Luboš Luňák]_#
+
+- Fixed debug directory handling on Windows. +
+  [small]#_[contributed by Luboš Luňák]_#
+
+- The hard link and file clone features are now disabled when secondary storage
+  is used since they only work for the local primary cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.4.2
 
 Release date: 2021-09-28
