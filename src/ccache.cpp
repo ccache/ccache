@@ -734,7 +734,7 @@ process_unified_file(Context& ctx,
   }
 
   // With sloppy_incbin, only hash the preprocessor output. Otherwise, read-in
-  // the entire file to hash and scan for .incbin directives.
+  // the entire file to hash and scan for include binary directives.
   if (ctx.config.sloppiness().is_enabled(core::Sloppy::incbin)) {
     if (!hash.hash_file(stdout_path)) {
       LOG("Failed to open {}: {}", stdout_path, strerror(errno));
@@ -751,8 +751,8 @@ process_unified_file(Context& ctx,
 
     hash.hash(data);
 
-    if (data.find(".incbin") != std::string::npos) {
-      LOG_RAW("Found unsupported .incbin directive in source code");
+    if (data.find(".inc" "bin") != std::string::npos) {
+      LOG_RAW("Found unsupported .inc" "bin directive in source code");
       return nonstd::make_unexpected(Statistic::unsupported_code_directive);
     }
   }
