@@ -225,12 +225,14 @@ guess_compiler(string_view path)
 
   const string_view name = Util::base_name(compiler_path);
   if (name.find("clang") != nonstd::string_view::npos) {
-    const char *clangversionstart = nullptr;
+    const char* clangversionstart = nullptr;
     if (name.substr(0, 6) == "clang-") {
-      // Clang compiled from official sources makes clang a symlink to clang-{version}.
+      // Clang compiled from official sources makes clang a symlink to
+      // clang-{version}.
       clangversionstart = name.data() + 6;
     } else {
-      // Debian and Ubuntu install Clang into /usr/lib/llvm-{version}/bin/clang but no symlink to clang-{version}.
+      // Debian and Ubuntu install Clang into /usr/lib/llvm-{version}/bin/clang
+      // but no symlink to clang-{version}.
       size_t llvmdashpos = compiler_path.find("llvm-");
       if (llvmdashpos != nonstd::string_view::npos) {
         clangversionstart = compiler_path.data() + llvmdashpos + 5;
@@ -752,8 +754,12 @@ process_unified_file(Context& ctx,
 
     hash.hash(data);
 
-    if (data.find(".inc" "bin") != std::string::npos) {
-      LOG_RAW("Found unsupported .inc" "bin directive in source code");
+    if (data.find(".inc"
+                  "bin")
+        != std::string::npos) {
+      LOG_RAW(
+        "Found unsupported .inc"
+        "bin directive in source code");
       return nonstd::make_unexpected(Statistic::unsupported_code_directive);
     }
   }
@@ -1040,7 +1046,8 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.unify_mode()
-      && !ctx.config.sloppiness().is_enabled(core::Sloppy::unify_with_diagnostics)) {
+      && !ctx.config.sloppiness().is_enabled(
+        core::Sloppy::unify_with_diagnostics)) {
     Stat se = Stat::stat(tmp_stderr_path, Stat::OnError::log);
     if (!se) {
       // The stderr file was removed - cleanup in progress? Better bail out.
@@ -1050,7 +1057,7 @@ to_cache(Context& ctx,
       LOG_RAW("Compiler emitted the following diagnostics in unify mode:");
       std::string stderr_content = Util::read_file(tmp_stderr_path);
       std::istringstream stderr_stream(stderr_content);
-      for (std::string line; std::getline(stderr_stream, line); ) {
+      for (std::string line; std::getline(stderr_stream, line);) {
         LOG_RAW(line);
       }
 

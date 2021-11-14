@@ -151,8 +151,6 @@ public:
   // Normalize the underlying compiler type without variants.
   CompilerType base_compiler_type() const;
 
-
-
 private:
   std::string m_primary_config_path;
   std::string m_secondary_config_path;
@@ -579,4 +577,3 @@ Config::base_compiler_type() const
   }
   return m_compiler_type;
 }
-
