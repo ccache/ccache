@@ -981,12 +981,6 @@ The incbin sloppiness option allows ccache to skip scanning for
 the .incbin directive. This is mostly beneficial in
 <<the_unify_mode,unify mode>> where searching for *.incbin* is the only
 reason for it to parse the preprocessed file and therefore could be skipped.
-+
-Neither <<_the_direct_mode,direct mode>> nor
-<<the_depend_mode,depend mode>> take *.incbin*
-directives into account, nor are
-https://sourceware.org/binutils/docs/as/Include.html#Include[*.include*]
-directives taken into account.
 
 *include_file_ctime*::
     By default, ccache will not cache a file if it includes a header whose ctime
@@ -1948,6 +1942,10 @@ the other wrapper when doing preprocessing (normally by adding `-E`).
 * The direct mode fails to pick up new header files in some rare scenarios. See
   _<<The direct mode>>_ above.
 
+ * Neither <<_the_direct_mode,direct mode>> nor <<the_depend_mode,depend mode>>
+   take *.incbin* directives into account, nor does any mode handle
+   https://sourceware.org/binutils/docs/as/Include.html#Include[*.include*]
+  directives.
 
 == Troubleshooting
 
