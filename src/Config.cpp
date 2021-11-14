@@ -87,9 +87,6 @@ enum class ConfigItem {
   pch_external_checksum,
   prefix_command,
   prefix_command_cpp,
-  preprocessor,
-  preprocessor_check,
-  preprocessor_type,
   read_only,
   read_only_direct,
   recache,
@@ -136,9 +133,6 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"pch_external_checksum", ConfigItem::pch_external_checksum},
   {"prefix_command", ConfigItem::prefix_command},
   {"prefix_command_cpp", ConfigItem::prefix_command_cpp},
-  {"preprocessor", ConfigItem::preprocessor},
-  {"preprocessor_check", ConfigItem::preprocessor_check},
-  {"preprocessor_type", ConfigItem::preprocessor_type},
   {"read_only", ConfigItem::read_only},
   {"read_only_direct", ConfigItem::read_only_direct},
   {"recache", ConfigItem::recache},
@@ -187,9 +181,6 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"PCH_EXTSUM", "pch_external_checksum"},
   {"PREFIX", "prefix_command"},
   {"PREFIX_CPP", "prefix_command_cpp"},
-  {"PREPROCESSOR", "preprocessor"},
-  {"PREPROCESSORCHECK", "preprocessor_check"},
-  {"PREPROCESSORTYPE", "preprocessor_type"},
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
@@ -735,15 +726,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::prefix_command_cpp:
     return m_prefix_command_cpp;
 
-  case ConfigItem::preprocessor:
-    return m_preprocessor;
-
-  case ConfigItem::preprocessor_check:
-    return m_preprocessor_check;
-
-  case ConfigItem::preprocessor_type:
-    return compiler_type_to_string(m_preprocessor_type);
-
   case ConfigItem::read_only:
     return format_bool(m_read_only);
 
@@ -993,18 +975,6 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::prefix_command_cpp:
     m_prefix_command_cpp = Util::expand_environment_variables(value);
-    break;
-
-  case ConfigItem::preprocessor:
-    m_preprocessor = value;
-    break;
-
-  case ConfigItem::preprocessor_check:
-    m_preprocessor_check = value;
-    break;
-
-  case ConfigItem::preprocessor_type:
-    m_preprocessor_type = parse_compiler_type(value);
     break;
 
   case ConfigItem::read_only:

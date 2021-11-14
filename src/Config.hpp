@@ -80,9 +80,6 @@ public:
   bool pch_external_checksum() const;
   const std::string& prefix_command() const;
   const std::string& prefix_command_cpp() const;
-  const std::string& preprocessor() const;
-  const std::string& preprocessor_check() const;
-  CompilerType preprocessor_type() const;
   bool read_only() const;
   bool read_only_direct() const;
   bool recache() const;
@@ -154,8 +151,7 @@ public:
   // Normalize the underlying compiler type without variants.
   CompilerType base_compiler_type() const;
 
-  const std::string& effective_preprocessor() const;
-  CompilerType effective_preprocessor_type() const;
+
 
 private:
   std::string m_primary_config_path;
@@ -191,9 +187,6 @@ private:
   bool m_pch_external_checksum = false;
   std::string m_prefix_command;
   std::string m_prefix_command_cpp;
-  std::string m_preprocessor;
-  std::string m_preprocessor_check = "mtime";
-  CompilerType m_preprocessor_type = CompilerType::auto_guess;
   bool m_read_only = false;
   bool m_read_only_direct = false;
   bool m_recache = false;
@@ -255,24 +248,6 @@ inline CompilerType
 Config::compiler_type() const
 {
   return m_compiler_type;
-}
-
-inline const std::string&
-Config::preprocessor() const
-{
-  return m_preprocessor;
-}
-
-inline const std::string&
-Config::preprocessor_check() const
-{
-  return m_preprocessor_check;
-}
-
-inline CompilerType
-Config::preprocessor_type() const
-{
-  return m_preprocessor_type;
 }
 
 inline bool
@@ -531,18 +506,6 @@ Config::set_compiler_type(CompilerType value)
 }
 
 inline void
-Config::set_preprocessor(const std::string& value)
-{
-  m_preprocessor = value;
-}
-
-inline void
-Config::set_preprocessor_type(CompilerType value)
-{
-  m_preprocessor_type = value;
-}
-
-inline void
 Config::set_depend_mode(bool value)
 {
   m_depend_mode = value;
@@ -617,20 +580,3 @@ Config::base_compiler_type() const
   return m_compiler_type;
 }
 
-inline const std::string&
-Config::effective_preprocessor() const
-{
-  if (m_preprocessor.empty()) {
-    return m_compiler;
-  }
-  return m_preprocessor;
-}
-
-inline CompilerType
-Config::effective_preprocessor_type() const
-{
-  if (m_preprocessor.empty()) {
-    return m_compiler_type;
-  }
-  return m_preprocessor_type;
-}

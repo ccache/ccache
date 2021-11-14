@@ -222,7 +222,6 @@ guess_compiler(string_view path)
   }
 #endif
 
-  
   const string_view name = Util::base_name(compiler_path);
   if (name.find("clang") != nonstd::string_view::npos) {
     const char *clangversionstart = nullptr;
@@ -767,16 +766,12 @@ static nonstd::expected<int, Failure>
 do_execute(Context& ctx,
            Args& args,
            TemporaryFile&& tmp_stdout,
-           TemporaryFile&& tmp_stderr,
-           bool is_preprocessor = false)
+           TemporaryFile&& tmp_stderr)
 {
   UmaskScope umask_scope(ctx.original_umask);
-  CompilerType type = is_preprocessor
-                        ? ctx.config.compiler_type()
-                        : ctx.config.effective_preprocessor_type();
 
   if (ctx.diagnostics_color_failed) {
-    DEBUG_ASSERT(type == CompilerType::gcc);
+    DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
     args.erase_last("-fdiagnostics-color");
   }
   int status = execute(ctx,
@@ -784,7 +779,7 @@ do_execute(Context& ctx,
                        std::move(tmp_stdout.fd),
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
-      && type == CompilerType::gcc) {
+      && ctx.config.compiler_type() == CompilerType::gcc) {
     auto errors = Util::read_file(tmp_stderr.path);
     if (errors.find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
@@ -1225,7 +1220,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     LOG_RAW("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     const auto status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr), true);
+      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
 
@@ -1300,36 +1295,6 @@ hash_compiler(const Context& ctx,
     }
   }
   return {};
-}
-
-// Hash mtime or content of a file, or the output of a command, according to
-// the CCACHE_PREPROCESSORCHECK setting.
-static void
-hash_preprocessor(const Context& ctx,
-                  Hash& hash,
-                  const Stat& st,
-                  const std::string& path,
-                  bool allow_command)
-{
-  const std::string& checkmethod = ctx.config.preprocessor_check();
-  if (checkmethod == "none") {
-    // Do nothing.
-  } else if (checkmethod == "mtime") {
-    hash.hash_delimiter("cpp_mtime");
-    hash.hash(st.size());
-    hash.hash(st.mtime());
-  } else if (util::starts_with(checkmethod, "string:")) {
-    hash.hash_delimiter("cpp_hash");
-    hash.hash(&checkmethod[7]);
-  } else if (checkmethod == "content" || !allow_command) {
-    hash.hash_delimiter("cpp_content");
-    hash_binary_file(ctx, hash, path);
-  } else { // command string
-    if (!hash_multicommand_output(hash, checkmethod, ctx.orig_args[0])) {
-      LOG("Failure running preprocessor check command: {}", checkmethod);
-      throw Failure(Statistic::preprocessor_check_failed);
-    }
-  }
 }
 
 // Hash the host compiler(s) invoked by nvcc.
@@ -1424,13 +1389,6 @@ hash_common_info(const Context& ctx,
 
   // Hash information about the compiler.
   TRY(hash_compiler(ctx, hash, st, compiler_path, true));
-  if (!ctx.config.preprocessor().empty() && !ctx.config.depend_mode()) {
-    std::string preprocessor_path = ctx.config.preprocessor();
-#ifdef _WIN32
-    preprocessor_path = Win32Util::add_exe_suffix(preprocessor_path);
-#endif
-    hash_preprocessor(ctx, hash, st, preprocessor_path, true);
-  }
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -2147,18 +2105,6 @@ cache_compilation(int argc, const char* const* argv)
     find_compiler(ctx, &find_executable);
     MTR_END("main", "find_compiler");
 
-    const std ::string& preprocessor = ctx.config.preprocessor();
-    if (!preprocessor.empty()) {
-      if (!util::is_full_path(preprocessor)) {
-        std::string resolved_compiler =
-          find_executable(ctx, preprocessor, CCACHE_NAME);
-        if (resolved_compiler.empty()) {
-          throw core::Fatal("Could not find preprocessor \"{}\" in PATH",
-                            preprocessor);
-        }
-      }
-    }
-
     const auto result = do_cache_compilation(ctx, argv);
     const auto& counters = result ? *result : result.error().counters();
     ctx.storage.primary.increment_statistics(counters);
@@ -2228,16 +2174,6 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
   DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
 
-  const std ::string& preprocessor = ctx.config.preprocessor();
-  if (!preprocessor.empty() && !ctx.config.depend_mode()) {
-    if (ctx.config.preprocessor_type() == CompilerType::auto_guess) {
-      ctx.config.set_preprocessor_type(guess_compiler(preprocessor));
-    }
-    DEBUG_ASSERT(ctx.config.preprocessor_type() != CompilerType::auto_guess);
-  }
-  DEBUG_ASSERT(ctx.config.effective_preprocessor_type()
-               != CompilerType::auto_guess);
-
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
     return nonstd::make_unexpected(Statistic::none);
@@ -2251,10 +2187,6 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
-  if (!preprocessor.empty() && !ctx.config.depend_mode()) {
-    LOG("Preprocessor type: {}",
-        compiler_type_to_string(ctx.config.preprocessor_type()));
-  }
 
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);

@@ -100,7 +100,6 @@ const StatisticsField k_statistics_fields[] = {
   FIELD(output_to_stdout, "Output to stdout", FLAG_UNCACHEABLE),
   FIELD(preprocessed_cache_hit, nullptr),
   FIELD(preprocessed_cache_miss, nullptr),
-  FIELD(preprocessor_check_failed, "Preprocessor check failed"),
   FIELD(preprocessor_error, "Preprocessing failed", FLAG_UNCACHEABLE),
   FIELD(primary_storage_hit, nullptr),
   FIELD(primary_storage_miss, nullptr),

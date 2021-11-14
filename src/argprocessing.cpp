@@ -1313,9 +1313,6 @@ process_args(Context& ctx)
   }
 
   Args preprocessor_args = state.common_args;
-  if (!config.preprocessor().empty()) {
-    preprocessor_args[0] = config.preprocessor();
-  }
   preprocessor_args.push_back(state.cpp_args);
 
   if (config.run_second_cpp()) {

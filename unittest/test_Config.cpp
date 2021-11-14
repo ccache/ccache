@@ -67,9 +67,6 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.pch_external_checksum());
   CHECK(config.prefix_command().empty());
   CHECK(config.prefix_command_cpp().empty());
-  CHECK(config.preprocessor().empty());
-  CHECK(config.preprocessor_check() == "mtime");
-  CHECK(config.preprocessor_type() == CompilerType::auto_guess);
   CHECK_FALSE(config.read_only());
   CHECK_FALSE(config.read_only_direct());
   CHECK_FALSE(config.recache());
@@ -127,9 +124,6 @@ TEST_CASE("Config::update_from_file")
     "pch_external_checksum = true\n"
     "prefix_command = x$USER\n"
     "prefix_command_cpp = y\n"
-    "preprocessor = bar\n"
-    "preprocessor_check = none\n"
-    "preprocessor_type = clang_minimize_whitespace\n"
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
@@ -172,9 +166,6 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.pch_external_checksum());
   CHECK(config.prefix_command() == FMT("x{}", user));
   CHECK(config.prefix_command_cpp() == "y");
-  CHECK(config.preprocessor() == "bar");
-  CHECK(config.preprocessor_check() == "none");
-  CHECK(config.preprocessor_type() == CompilerType::clang_minimize_whitespace);
   CHECK(config.read_only());
   CHECK(config.read_only_direct());
   CHECK(config.recache());
@@ -423,9 +414,6 @@ TEST_CASE("Config::visit_items")
     "pch_external_checksum = true\n"
     "prefix_command = pc\n"
     "prefix_command_cpp = pcc\n"
-    "preprocessor = clang-14\n"
-    "preprocessor_check = mtime\n"
-    "preprocessor_type = clang_minimize_whitespace\n"
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
@@ -488,9 +476,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) pch_external_checksum = true",
     "(test.conf) prefix_command = pc",
     "(test.conf) prefix_command_cpp = pcc",
-    "(test.conf) preprocessor = clang-14",
-    "(test.conf) preprocessor_check = mtime",
-    "(test.conf) preprocessor_type = clang_minimize_whitespace",
     "(test.conf) read_only = true",
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
