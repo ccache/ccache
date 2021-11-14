@@ -222,18 +222,30 @@ guess_compiler(string_view path)
   }
 #endif
 
+  
   const string_view name = Util::base_name(compiler_path);
-  size_t clangdashpos = name.find("clang-");
-  if (clangdashpos != nonstd::string_view::npos) {
-    // Clang version 14 or later support the -fminimize-whitespace flag.
-    char* EndPtr = nullptr;
-    long clangversion = strtol(name.data() + 6, &EndPtr, 10);
-    if (clangversion >= 14) {
-      return CompilerType::clang_minimize_whitespace;
+  if (name.find("clang") != nonstd::string_view::npos) {
+    const char *clangversionstart = nullptr;
+    if (name.substr(0, 6) == "clang-") {
+      // Clang compiled from official sources makes clang a symlink to clang-{version}.
+      clangversionstart = name.data() + 6;
+    } else {
+      // Debian and Ubuntu install Clang into /usr/lib/llvm-{version}/bin/clang but no symlink to clang-{version}.
+      size_t llvmdashpos = compiler_path.find("llvm-");
+      if (llvmdashpos != nonstd::string_view::npos) {
+        clangversionstart = compiler_path.data() + llvmdashpos + 5;
+      }
     }
 
-    return CompilerType::clang;
-  } else if (name.find("clang") != nonstd::string_view::npos) {
+    if (clangversionstart) {
+      // atoi returns 0 if parsing was unsuccessful.
+      int clangversion = atoi(clangversionstart);
+      // Clang version 14 and later support the -fminimize-whitespace flag.
+      if (clangversion >= 14) {
+        return CompilerType::clang_minimize_whitespace;
+      }
+    }
+
     return CompilerType::clang;
   } else if (name.find("gcc") != nonstd::string_view::npos
              || name.find("g++") != nonstd::string_view::npos) {
