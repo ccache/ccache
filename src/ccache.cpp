@@ -72,6 +72,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <sstream>
 
 #ifndef MYNAME
 #  define MYNAME "ccache"
@@ -1046,9 +1047,12 @@ to_cache(Context& ctx,
       return nonstd::make_unexpected(Statistic::missing_cache_file);
     }
     if (se.size() != 0) {
-      LOG_RAW("Compiler emitted diagnostics in unify mode");
+      LOG_RAW("Compiler emitted the following diagnostics in unify mode:");
       std::string stderr_content = Util::read_file(tmp_stderr_path);
-      LOG("The diagnostics:\n----\n{}\n----\n", stderr_content);
+      std::istringstream stderr_stream(stderr_content);
+      for (std::string line; std::getline(stderr_stream, line); ) {
+        LOG_RAW(line);
+      }
 
       // Without run_second_cpp, diagnostics refer to the temporary file; fail
       // and run again using the original input to get usable diagnostics.

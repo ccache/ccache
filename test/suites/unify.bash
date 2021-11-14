@@ -120,7 +120,7 @@ EOF
         expect_stat preprocessed_cache_hit 1
         expect_stat cache_miss 1
     else
-        # .incbin unaccounted in dependencies 
+        # .incbin unaccounted in dependencies
         expect_stat unsupported_code_directive 1
     fi
 
@@ -146,7 +146,7 @@ EOF
     # Reference output
     $REAL_COMPILER -g -c normalize.c -o normalize-ref.o
 
-    # Cache seeding 
+    # Cache seeding
     $CCACHE_COMPILE -g -c normalize.c -o normalize1.o
     expect_equal_object_files normalize-ref.o normalize1.o
     expect_stat preprocessed_cache_hit 0
@@ -182,7 +182,7 @@ EOF
 double main() {
 // Compiler warning
 int x = x / 0; // diag.c:6:11: warning: division by zero [-Wdiv-by-zero]
-} 
+}
 EOF
 
     # Reference output
