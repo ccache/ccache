@@ -21,7 +21,7 @@ unify_tests_common() {
     unify_test_cases "$TESTENV CCACHE_SLOPPINESS=incbin,${ORIG_SLOPPINESS}"
     unify_test_cases "$TESTENV CCACHE_SLOPPINESS=system_headers,${ORIG_SLOPPINESS}"
     unify_test_cases "$TESTENV CCACHE_SLOPPINESS=unify_with_debug,${ORIG_SLOPPINESS}"
-    unify_test_cases "$TESTENV CCACHE_SLOPPINESS=unify_with_output,${ORIG_SLOPPINESS}"
+    unify_test_cases "$TESTENV CCACHE_SLOPPINESS=unify_with_diagnostics,${ORIG_SLOPPINESS}"
 }
 
 
@@ -192,7 +192,7 @@ EOF
     $CCACHE_COMPILE -c diag.c -o diag1.o 2>/dev/null
     expect_equal_object_files diag-ref.o diag1.o
     expect_stat preprocessed_cache_hit 0
-    if [[ -n "$CCACHE_NOCPP2" && "${CCACHE_SLOPPINESS}" != *"unify_with_output"* ]]; then
+    if [[ -n "$CCACHE_NOCPP2" && "${CCACHE_SLOPPINESS}" != *"unify_with_diagnostics"* ]]; then
         # Any output in unify+nocpp2 mode results in a fallback; diagnostics would refer to temporary file
         expect_stat compiler_produced_stderr 1
         expect_stat cache_miss 0
@@ -210,7 +210,7 @@ int x = x / 0;
 EOF
         $CCACHE_COMPILE -c diag.c -o diag2.o 2>/dev/null
         expect_equal_object_files diag-ref.o diag2.o
-        if [[ "${CCACHE_SLOPPINESS}" = *unify_with_output* ]]; then
+        if [[ "${CCACHE_SLOPPINESS}" = *unify_with_diagnostics* ]]; then
             # Expect hit with sloppy; diagnostics may point to the wrong lines
             expect_stat preprocessed_cache_hit 1
             expect_stat cache_miss 1

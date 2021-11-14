@@ -132,7 +132,7 @@ TEST_CASE("Config::update_from_file")
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
     " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay"
-    ",incbin,unify_with_debug,unify_with_output\n"
+    ",incbin,unify_with_debug,unify_with_diagnostics\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777\n"
@@ -183,7 +183,7 @@ TEST_CASE("Config::update_from_file")
             | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)
             | static_cast<uint32_t>(core::Sloppy::incbin)
             | static_cast<uint32_t>(core::Sloppy::unify_with_debug)
-            | static_cast<uint32_t>(core::Sloppy::unify_with_output)));
+            | static_cast<uint32_t>(core::Sloppy::unify_with_diagnostics)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
   CHECK(config.umask() == 0777u);
@@ -423,7 +423,7 @@ TEST_CASE("Config::visit_items")
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
     " clang_index_store, ivfsoverlay,"
-    " incbin, unify_with_debug, unify_with_output\n"
+    " incbin, unify_with_debug, unify_with_diagnostics\n"
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"
@@ -485,7 +485,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"
     " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
     " system_headers, clang_index_store, ivfsoverlay, incbin, unify_with_debug,"
-    " unify_with_output",
+    " unify_with_diagnostics",
     "(test.conf) stats = false",
     "(test.conf) stats_log = sl",
     "(test.conf) temporary_dir = td",

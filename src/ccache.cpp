@@ -1039,7 +1039,7 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.unify_mode()
-      && !ctx.config.sloppiness().is_enabled(core::Sloppy::unify_with_output)) {
+      && !ctx.config.sloppiness().is_enabled(core::Sloppy::unify_with_diagnostics)) {
     Stat se = Stat::stat(tmp_stderr_path, Stat::OnError::log);
     if (!se) {
       // The stderr file was removed - cleanup in progress? Better bail out.

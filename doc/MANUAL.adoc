@@ -1031,8 +1031,8 @@ info will instead point to the file containing the preprocessed source.
 The file is temporary and will have been deleted already which makes the
 debug info rather useless.
 
-[#config_sloppy_unify_with_output]
-*unify_with_output*::
+[#config_sloppy_unify_with_diagnostics]
+*unify_with_diagnostics*::
     By default, <<the_unify_mode,unify mode>> will not cache
     preprocessed results if there was any compiler output. Such output
     usually contains line numbers that, like with debug info, may be off
@@ -1658,7 +1658,7 @@ Disadvantages:
   compilations can only cache-hit in direct mode. However, most coding
   guidelines seek a warning-free compilation anyway. This behavior can
   be overridden using the <<config_sloppy_unify_with_debug,*unify_with_debug*>>
-  or <<config_sloppy_unify_with_output,*unify_with_output*>> sloppiness
+  or <<config_sloppy_unify_with_diagnostics,*unify_with_diagnostics*>> sloppiness
   options.
 
 * The mode is new and not as well tested.
@@ -1682,9 +1682,9 @@ with removing line information from the preprocessed output, it also
 does not preserve which declarations are from a system header. Compiler
 behaviour may differ in system headers, in particular compiler
 diagnostics are suppressed when originating from a system header.
-That is, with <<config_sloppy_unify_with_output,*unify_with_output*>>
+That is, with <<config_sloppy_unify_with_diagnostics,*unify_with_diagnostics*>>
 sloppiness option, this results in noisy compiler diagnostics.
-Without <<config_sloppy_unify_with_output,*unify_with_output*>>, any
+Without <<config_sloppy_unify_with_diagnostics,*unify_with_diagnostics*>>, any
 compiler output will trigger a fallback compiler invocation using the
 original files and without caching.
 

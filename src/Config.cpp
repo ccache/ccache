@@ -296,8 +296,8 @@ parse_sloppiness(const std::string& value)
       result.enable(core::Sloppy::incbin);
     } else if (token == "unify_with_debug") {
       result.enable(core::Sloppy::unify_with_debug);
-    } else if (token == "unify_with_output") {
-      result.enable(core::Sloppy::unify_with_output);
+    } else if (token == "unify_with_diagnostics") {
+      result.enable(core::Sloppy::unify_with_diagnostics);
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
@@ -347,8 +347,8 @@ format_sloppiness(core::Sloppiness sloppiness)
   if (sloppiness.is_enabled(core::Sloppy::unify_with_debug)) {
     result += "unify_with_debug, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::unify_with_output)) {
-    result += "unify_with_output, ";
+  if (sloppiness.is_enabled(core::Sloppy::unify_with_diagnostics)) {
+    result += "unify_with_diagnostics, ";
   }
   if (!result.empty()) {
     // Strip last ", ".

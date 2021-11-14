@@ -56,7 +56,7 @@ enum class Sloppy : uint32_t {
   // Unify mode: Allow caching even if there was compiler output. Diagnosed
   // error/warning locations may be approximate due to the reuse of compiler
   // output after whitespace change.
-  unify_with_output = 1 << 13,
+  unify_with_diagnostics = 1 << 13,
 };
 
 class Sloppiness
