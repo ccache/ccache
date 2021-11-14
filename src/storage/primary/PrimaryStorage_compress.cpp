@@ -19,8 +19,6 @@
 #include "PrimaryStorage.hpp"
 
 #include <AtomicFile.hpp>
-#include <CacheEntryReader.hpp>
-#include <CacheEntryWriter.hpp>
 #include <Context.hpp>
 #include <File.hpp>
 #include <Logging.hpp>
@@ -29,6 +27,10 @@
 #include <ThreadPool.hpp>
 #include <assertions.hpp>
 #include <compression/ZstdCompressor.hpp>
+#include <core/CacheEntryReader.hpp>
+#include <core/CacheEntryWriter.hpp>
+#include <core/FileReader.hpp>
+#include <core/FileWriter.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -124,41 +126,20 @@ open_file(const std::string& path, const char* const mode)
   return f;
 }
 
-static std::unique_ptr<CacheEntryReader>
-create_reader(const CacheFile& cache_file, FILE* const stream)
+static std::unique_ptr<core::CacheEntryReader>
+create_reader(const CacheFile& cache_file, core::Reader& reader)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
     throw core::Error("unknown file type for {}", cache_file.path());
   }
 
-  switch (cache_file.type()) {
-  case CacheFile::Type::result:
-    return std::make_unique<CacheEntryReader>(
-      stream, Result::k_magic, Result::k_version);
-
-  case CacheFile::Type::manifest:
-    return std::make_unique<CacheEntryReader>(
-      stream, Manifest::k_magic, Manifest::k_version);
-
-  case CacheFile::Type::unknown:
-    ASSERT(false); // Handled at function entry.
-  }
-
-  ASSERT(false);
+  return std::make_unique<core::CacheEntryReader>(reader);
 }
 
-static std::unique_ptr<CacheEntryWriter>
-create_writer(FILE* const stream,
-              const CacheEntryReader& reader,
-              const compression::Type compression_type,
-              const int8_t compression_level)
+static std::unique_ptr<core::CacheEntryWriter>
+create_writer(core::Writer& writer, const core::CacheEntryHeader& header)
 {
-  return std::make_unique<CacheEntryWriter>(stream,
-                                            reader.magic(),
-                                            reader.version(),
-                                            compression_type,
-                                            compression_level,
-                                            reader.payload_size());
+  return std::make_unique<core::CacheEntryWriter>(writer, header);
 }
 
 static void
@@ -168,17 +149,18 @@ recompress_file(RecompressionStatistics& statistics,
                 const nonstd::optional<int8_t> level)
 {
   auto file = open_file(cache_file.path(), "rb");
-  auto reader = create_reader(cache_file, file.get());
+  core::FileReader file_reader(file.get());
+  auto reader = create_reader(cache_file, file_reader);
 
   const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
-  const uint64_t content_size = reader->content_size();
+  const uint64_t content_size = reader->header().entry_size;
   const int8_t wanted_level =
     level
       ? (*level == 0 ? compression::ZstdCompressor::default_compression_level
                      : *level)
       : 0;
 
-  if (reader->compression_level() == wanted_level) {
+  if (reader->header().compression_level == wanted_level) {
     statistics.update(content_size, old_stat.size(), old_stat.size(), 0);
     return;
   }
@@ -187,14 +169,15 @@ recompress_file(RecompressionStatistics& statistics,
       cache_file.path(),
       level ? FMT("level {}", wanted_level) : "uncompressed");
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
-  auto writer =
-    create_writer(atomic_new_file.stream(),
-                  *reader,
-                  level ? compression::Type::zstd : compression::Type::none,
-                  wanted_level);
+  core::FileWriter file_writer(atomic_new_file.stream());
+  auto header = reader->header();
+  header.compression_type =
+    level ? compression::Type::zstd : compression::Type::none;
+  header.compression_level = wanted_level;
+  auto writer = create_writer(file_writer, header);
 
   char buffer[CCACHE_READ_BUFFER_SIZE];
-  size_t bytes_left = reader->payload_size();
+  size_t bytes_left = reader->header().payload_size();
   while (bytes_left > 0) {
     size_t bytes_to_read = std::min(bytes_left, sizeof(buffer));
     reader->read(buffer, bytes_to_read);
@@ -237,9 +220,10 @@ PrimaryStorage::get_compression_statistics(
 
         try {
           auto file = open_file(cache_file.path(), "rb");
-          auto reader = create_reader(cache_file, file.get());
+          core::FileReader file_reader(file.get());
+          auto reader = create_reader(cache_file, file_reader);
           cs.compr_size += cache_file.lstat().size();
-          cs.content_size += reader->content_size();
+          cs.content_size += reader->header().entry_size;
         } catch (core::Error&) {
           cs.incompr_size += cache_file.lstat().size();
         }

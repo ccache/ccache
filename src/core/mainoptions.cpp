@@ -18,7 +18,6 @@
 
 #include "mainoptions.hpp"
 
-#include <Checksum.hpp>
 #include <Config.hpp>
 #include <Fd.hpp>
 #include <Hash.hpp>
@@ -35,6 +34,7 @@
 #include <storage/Storage.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
 #include <util/TextTable.hpp>
+#include <util/XXH3_128.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
@@ -90,6 +90,8 @@ Common options:
                                default
     -d, --dir PATH             operate on cache directory PATH instead of the
                                default
+        --evict-namespace NAMESPACE
+                               remove files created in namespace NAMESPACE
         --evict-older-than AGE remove files older than AGE (unsigned integer
                                with a d (days) or s (seconds) suffix)
     -F, --max-files NUM        set maximum number of files in cache to NUM (use
@@ -108,6 +110,7 @@ Common options:
                                in human-readable format
     -s, --show-stats           show summary of configuration and statistics
                                counters in human-readable format
+    -v, --verbose              increase verbosity
     -z, --zero-stats           zero statistics counters
 
     -h, --help                 print this help text
@@ -125,7 +128,7 @@ Options for secondary storage:
                                --trim-dir; default: atime
 
 Options for scripting or debugging:
-        --checksum-file PATH   print the checksum (64 bit XXH3) of the file at
+        --checksum-file PATH   print the checksum (128 bit XXH3) of the file at
                                PATH
         --dump-manifest PATH   dump manifest file at PATH in text format
         --dump-result PATH     dump result file at PATH in text format
@@ -161,26 +164,26 @@ print_compression_statistics(const storage::primary::CompressionStatistics& cs)
   util::TextTable table;
 
   table.add_row({
-    C("Total data:"),
+    "Total data:",
     C(human_readable(cs.compr_size + cs.incompr_size)).right_align(),
-    C(FMT("({} disk blocks)", human_readable(cs.on_disk_size))),
+    FMT("({} disk blocks)", human_readable(cs.on_disk_size)),
   });
   table.add_row({
-    C("Compressed data:"),
+    "Compressed data:",
     C(human_readable(cs.compr_size)).right_align(),
-    C(FMT("({:.1f}% of original size)", 100.0 - savings)),
+    FMT("({:.1f}% of original size)", 100.0 - savings),
   });
   table.add_row({
-    C("  Original size:"),
+    "  Original size:",
     C(human_readable(cs.content_size)).right_align(),
   });
   table.add_row({
-    C("  Compression ratio:"),
+    "  Compression ratio:",
     C(FMT("{:.3f} x ", ratio)).right_align(),
-    C(FMT("({:.1f}% space savings)", savings)),
+    FMT("({:.1f}% space savings)", savings),
   });
   table.add_row({
-    C("Incompressible data:"),
+    "Incompressible data:",
     C(human_readable(cs.incompr_size)).right_align(),
   });
 
@@ -260,6 +263,7 @@ enum {
   CONFIG_PATH,
   DUMP_MANIFEST,
   DUMP_RESULT,
+  EVICT_NAMESPACE,
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
   HASH_FILE,
@@ -270,7 +274,7 @@ enum {
   TRIM_METHOD,
 };
 
-const char options_string[] = "cCd:k:hF:M:po:sVxX:z";
+const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
 const option long_options[] = {
   {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
   {"cleanup", no_argument, nullptr, 'c'},
@@ -280,6 +284,7 @@ const option long_options[] = {
   {"directory", required_argument, nullptr, 'd'}, // backward compatibility
   {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
   {"dump-result", required_argument, nullptr, DUMP_RESULT},
+  {"evict-namespace", required_argument, nullptr, EVICT_NAMESPACE},
   {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
   {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
   {"get-config", required_argument, nullptr, 'k'},
@@ -297,6 +302,7 @@ const option long_options[] = {
   {"trim-dir", required_argument, nullptr, TRIM_DIR},
   {"trim-max-size", required_argument, nullptr, TRIM_MAX_SIZE},
   {"trim-method", required_argument, nullptr, TRIM_METHOD},
+  {"verbose", no_argument, nullptr, 'v'},
   {"version", no_argument, nullptr, 'V'},
   {"zero-stats", no_argument, nullptr, 'z'},
   {nullptr, 0, nullptr, 0}};
@@ -307,6 +313,9 @@ process_main_options(int argc, const char* const* argv)
   int c;
   nonstd::optional<uint64_t> trim_max_size;
   bool trim_lru_mtime = false;
+  uint8_t verbosity = 0;
+  nonstd::optional<std::string> evict_namespace;
+  nonstd::optional<uint64_t> evict_max_age;
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -333,6 +342,13 @@ process_main_options(int argc, const char* const* argv)
     case TRIM_METHOD:
       trim_lru_mtime = (arg == "ctime");
       break;
+
+    case 'v': // --verbose
+      ++verbosity;
+      break;
+
+    case '?': // unknown option
+      return EXIT_FAILURE;
     }
   }
 
@@ -354,16 +370,18 @@ process_main_options(int argc, const char* const* argv)
     case 'd': // --dir
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
+    case 'v': // --verbose
       // Already handled in the first pass.
       break;
 
     case CHECKSUM_FILE: {
-      Checksum checksum;
+      util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
         checksum.update(data, size);
       });
-      PRINT(stdout, "{:016x}\n", checksum.digest());
+      const auto digest = checksum.digest();
+      PRINT(stdout, "{}\n", Util::format_base16(digest.bytes(), digest.size()));
       break;
     }
 
@@ -380,14 +398,13 @@ process_main_options(int argc, const char* const* argv)
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
+    case EVICT_NAMESPACE: {
+      evict_namespace = arg;
+      break;
+    }
+
     case EVICT_OLDER_THAN: {
-      auto seconds = Util::parse_duration(arg);
-      ProgressBar progress_bar("Evicting...");
-      storage::primary::PrimaryStorage(config).clean_old(
-        [&](double progress) { progress_bar.update(progress); }, seconds);
-      if (isatty(STDOUT_FILENO)) {
-        PRINT_RAW(stdout, "\n");
-      }
+      evict_max_age = Util::parse_duration(arg);
       break;
     }
 
@@ -449,7 +466,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'h': // --help
       PRINT(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
-      exit(EXIT_SUCCESS);
+      return EXIT_SUCCESS;
 
     case 'k': // --get-config
       PRINT(stdout, "{}\n", config.get_string_value(arg));
@@ -500,11 +517,15 @@ process_main_options(int argc, const char* const* argv)
       if (config.stats_log().empty()) {
         throw Fatal("No stats log has been configured");
       }
-      PRINT(stdout, "{:36}{}\n", "stats log", config.stats_log());
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
         Stat::stat(config.stats_log(), Stat::OnError::log).mtime();
-      PRINT_RAW(stdout, statistics.format_human_readable(timestamp, true));
+      PRINT_RAW(
+        stdout,
+        statistics.format_human_readable(config, timestamp, verbosity, true));
+      if (verbosity == 0) {
+        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
+      }
       break;
     }
 
@@ -514,9 +535,12 @@ process_main_options(int argc, const char* const* argv)
       std::tie(counters, last_updated) =
         storage::primary::PrimaryStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(stdout, statistics.format_config_header(config));
-      PRINT_RAW(stdout, statistics.format_human_readable(last_updated, false));
-      PRINT_RAW(stdout, statistics.format_config_footer(config));
+      PRINT_RAW(stdout,
+                statistics.format_human_readable(
+                  config, last_updated, verbosity, false));
+      if (verbosity == 0) {
+        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
+      }
       break;
     }
 
@@ -529,7 +553,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
       PRINT_RAW(stdout, get_version_text());
-      exit(EXIT_SUCCESS);
+      break;
 
     case 'x': // --show-compression
     {
@@ -567,11 +591,25 @@ process_main_options(int argc, const char* const* argv)
 
     default:
       PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
   }
 
-  return 0;
+  if (evict_max_age || evict_namespace) {
+    Config config;
+    config.read();
+
+    ProgressBar progress_bar("Evicting...");
+    storage::primary::PrimaryStorage(config).evict(
+      [&](double progress) { progress_bar.update(progress); },
+      evict_max_age,
+      evict_namespace);
+    if (isatty(STDOUT_FILENO)) {
+      PRINT_RAW(stdout, "\n");
+    }
+  }
+
+  return EXIT_SUCCESS;
 }
 
 } // namespace core

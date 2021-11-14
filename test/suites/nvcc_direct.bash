@@ -20,7 +20,7 @@ SUITE_nvcc_direct() {
     nvcc_opts_gpu2="--generate-code arch=compute_52,code=sm_52"
     ccache_nvcc_cpp="$CCACHE $REAL_NVCC $nvcc_opts_cpp"
     ccache_nvcc_cuda="$CCACHE $REAL_NVCC $nvcc_opts_cuda"
-    cuobjdump="$REAL_CUOBJDUMP -all -elf -symbols -ptx -sass"
+    cuobjdump="cuobjdump -all -elf -symbols -ptx -sass"
 
     # -------------------------------------------------------------------------
     TEST "Simple mode"

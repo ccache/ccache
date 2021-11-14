@@ -30,17 +30,15 @@ namespace compression {
 class ZstdDecompressor : public Decompressor
 {
 public:
-  // Parameters:
-  // - stream: The file to read data from.
-  explicit ZstdDecompressor(FILE* stream);
+  explicit ZstdDecompressor(core::Reader& reader);
 
   ~ZstdDecompressor() override;
 
-  void read(void* data, size_t count) override;
+  size_t read(void* data, size_t count) override;
   void finalize() override;
 
 private:
-  FILE* m_stream;
+  core::Reader& m_reader;
   char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
   size_t m_input_size;
   size_t m_input_consumed;

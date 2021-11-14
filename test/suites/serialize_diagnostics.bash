@@ -1,6 +1,6 @@
 SUITE_serialize_diagnostics_PROBE() {
     touch test.c
-    if ! $REAL_COMPILER -c --serialize-diagnostics \
+    if ! $COMPILER -c --serialize-diagnostics \
          test1.dia test.c 2>/dev/null; then
         echo "--serialize-diagnostics not supported by compiler"
     fi
@@ -14,7 +14,7 @@ SUITE_serialize_diagnostics() {
     # -------------------------------------------------------------------------
     TEST "Compile OK"
 
-    $REAL_COMPILER -c --serialize-diagnostics expected.dia test1.c
+    $COMPILER -c --serialize-diagnostics expected.dia test1.c
 
     $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
     expect_stat preprocessed_cache_hit 0
@@ -34,7 +34,7 @@ SUITE_serialize_diagnostics() {
     TEST "Unsuccessful compilation"
 
     echo "bad source" >error.c
-    if $REAL_COMPILER -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then
+    if $COMPILER -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then
         test_failed "Expected an error compiling error.c"
     fi
 

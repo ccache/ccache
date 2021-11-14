@@ -1,6 +1,6 @@
 SUITE_source_date_epoch_PROBE() {
     echo 'char x[] = __DATE__;' >test.c
-    if ! SOURCE_DATE_EPOCH=0 $REAL_COMPILER -E test.c | grep -q 1970; then
+    if ! SOURCE_DATE_EPOCH=0 $COMPILER -E test.c | grep -q 1970; then
         echo "SOURCE_DATE_EPOCH not supported by compiler"
     fi
 }

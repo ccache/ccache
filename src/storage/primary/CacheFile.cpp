@@ -39,6 +39,8 @@ CacheFile::type() const
     return Type::manifest;
   } else if (util::ends_with(m_path, Result::k_file_suffix)) {
     return Type::result;
+  } else if (util::ends_with(m_path, "W")) {
+    return Type::raw;
   } else {
     return Type::unknown;
   }

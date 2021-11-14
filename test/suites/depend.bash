@@ -18,8 +18,8 @@ int test3;
 EOF
     backdate test1.h test2.h test3.h
 
-    $REAL_COMPILER -c -Wp,-MD,expected.d test.c
-    $REAL_COMPILER -c -Wp,-MMD,expected_mmd.d test.c
+    $COMPILER -c -Wp,-MD,expected.d test.c
+    $COMPILER -c -Wp,-MMD,expected_mmd.d test.c
     rm test.o
 
     DEPSFLAGS_REAL="-MP -MMD -MF reference_test.d"
@@ -83,7 +83,7 @@ EOF
 
 generate_reference_compiler_output() {
     rm -f *.o *.d
-    $REAL_COMPILER $DEPFLAGS -c -o test.o test.c
+    $COMPILER $DEPFLAGS -c -o test.o test.c
     mv test.o reference_test.o
     mv test.d reference_test.d
 }
@@ -92,7 +92,7 @@ SUITE_depend() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $REAL_COMPILER $DEPSFLAGS_REAL -c -o reference_test.o test.c
+    $COMPILER $DEPSFLAGS_REAL -c -o reference_test.o test.c
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE $DEPSFLAGS_CCACHE -c test.c
     expect_equal_object_files reference_test.o test.o
@@ -130,7 +130,7 @@ SUITE_depend() {
     # -------------------------------------------------------------------------
     TEST "No explicit dependency file"
 
-    $REAL_COMPILER $DEPSFLAGS_REAL -c -o reference_test.o test.c
+    $COMPILER $DEPSFLAGS_REAL -c -o reference_test.o test.c
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -c test.c
     expect_equal_object_files reference_test.o test.o
@@ -166,7 +166,7 @@ int stderr(void)
   // Trigger compiler warning by having no return statement.
 }
 EOF
-    $REAL_COMPILER -MD -Wall -W -c cpp-warning.c 2>stderr-baseline.txt
+    $COMPILER -MD -Wall -W -c cpp-warning.c 2>stderr-baseline.txt
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -Wall -W -c cpp-warning.c 2>stderr-orig.txt
     expect_stat direct_cache_hit 0
@@ -301,7 +301,7 @@ EOF
     TEST "Source file with special characters"
 
     touch 'file with$special#characters.c'
-    $REAL_COMPILER -MMD -c 'file with$special#characters.c'
+    $COMPILER -MMD -c 'file with$special#characters.c'
     mv 'file with$special#characters.d' reference.d
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MMD -c 'file with$special#characters.c'

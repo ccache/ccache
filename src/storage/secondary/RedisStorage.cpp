@@ -280,16 +280,14 @@ RedisStorageBackend::authenticate(const Url& url)
   const auto password_username_pair = split_user_info(url.user_info());
   const auto& password = password_username_pair.first;
   if (password) {
-    decltype(redis_command("")) reply = nonstd::make_unexpected(Failure::error);
     const auto& username = password_username_pair.second;
     if (username) {
       LOG("Redis AUTH {} {}", *username, k_redacted_password);
-      reply = util::value_or_throw<Failed>(
+      util::value_or_throw<Failed>(
         redis_command("AUTH %s %s", username->c_str(), password->c_str()));
     } else {
       LOG("Redis AUTH {}", k_redacted_password);
-      reply = util::value_or_throw<Failed>(
-        redis_command("AUTH %s", password->c_str()));
+      util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
     }
   }
 }

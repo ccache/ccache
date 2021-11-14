@@ -92,6 +92,7 @@ public:
   core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::string& stats_log() const;
+  const std::string& namespace_() const;
   const std::string& temporary_dir() const;
   nonstd::optional<mode_t> umask() const;
   bool unify_mode() const;
@@ -104,6 +105,8 @@ public:
   void set_debug(bool value);
   void set_depend_mode(bool value);
   void set_direct_mode(bool value);
+  void set_file_clone(bool value);
+  void set_hard_link(bool value);
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
@@ -200,6 +203,7 @@ private:
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
   std::string m_stats_log;
+  std::string m_namespace;
   std::string m_temporary_dir;
   nonstd::optional<mode_t> m_umask;
   bool m_unify_mode = false;
@@ -476,6 +480,12 @@ Config::stats_log() const
 }
 
 inline const std::string&
+Config::namespace_() const
+{
+  return m_namespace;
+}
+
+inline const std::string&
 Config::temporary_dir() const
 {
   return m_temporary_dir;
@@ -554,6 +564,18 @@ inline void
 Config::set_direct_mode(bool value)
 {
   m_direct_mode = value;
+}
+
+inline void
+Config::set_file_clone(const bool value)
+{
+  m_file_clone = value;
+}
+
+inline void
+Config::set_hard_link(const bool value)
+{
+  m_hard_link = value;
 }
 
 inline void

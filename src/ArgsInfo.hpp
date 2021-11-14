@@ -49,6 +49,9 @@ struct ArgsInfo
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::string output_dwo;
 
+  // The .gch/.pch/.pth file used for compilation.
+  std::string included_pch_file;
+
   // Language to use for the compilation target (see language.c).
   std::string actual_language;
 

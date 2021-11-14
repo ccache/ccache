@@ -22,7 +22,7 @@
 
 namespace compression {
 
-NullCompressor::NullCompressor(FILE* const stream) : m_stream(stream)
+NullCompressor::NullCompressor(core::Writer& writer) : m_writer(writer)
 {
 }
 
@@ -35,17 +35,13 @@ NullCompressor::actual_compression_level() const
 void
 NullCompressor::write(const void* const data, const size_t count)
 {
-  if (fwrite(data, 1, count, m_stream) != count) {
-    throw core::Error("failed to write to uncompressed stream");
-  }
+  m_writer.write(data, count);
 }
 
 void
 NullCompressor::finalize()
 {
-  if (fflush(m_stream) != 0) {
-    throw core::Error("failed to finalize uncompressed stream");
-  }
+  m_writer.finalize();
 }
 
 } // namespace compression

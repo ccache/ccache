@@ -21,8 +21,12 @@
 
 #include <Config.hpp>
 #include <Context.hpp>
+#include <File.hpp>
 #include <Logging.hpp>
 #include <Util.hpp>
+#include <core/CacheEntryReader.hpp>
+#include <core/FileReader.hpp>
+#include <fmtmacros.hpp>
 #include <storage/primary/CacheFile.hpp>
 #include <storage/primary/StatsFile.hpp>
 #include <storage/primary/util.hpp>
@@ -75,14 +79,15 @@ update_counters(const std::string& dir,
 }
 
 void
-PrimaryStorage::clean_old(const ProgressReceiver& progress_receiver,
-                          const uint64_t max_age)
+PrimaryStorage::evict(const ProgressReceiver& progress_receiver,
+                      nonstd::optional<uint64_t> max_age,
+                      nonstd::optional<std::string> namespace_)
 {
   for_each_level_1_subdir(
     m_config.cache_dir(),
     [&](const std::string& subdir,
         const ProgressReceiver& sub_progress_receiver) {
-      clean_dir(subdir, 0, 0, max_age, sub_progress_receiver);
+      clean_dir(subdir, 0, 0, max_age, namespace_, sub_progress_receiver);
     },
     progress_receiver);
 }
@@ -92,7 +97,8 @@ void
 PrimaryStorage::clean_dir(const std::string& subdir,
                           const uint64_t max_size,
                           const uint64_t max_files,
-                          const uint64_t max_age,
+                          const nonstd::optional<uint64_t> max_age,
+                          const nonstd::optional<std::string> namespace_,
                           const ProgressReceiver& progress_receiver)
 {
   LOG("Cleaning up cache directory {}", subdir);
@@ -103,6 +109,9 @@ PrimaryStorage::clean_dir(const std::string& subdir,
   uint64_t cache_size = 0;
   uint64_t files_in_cache = 0;
   time_t current_time = time(nullptr);
+  std::unordered_map<std::string /*result_file*/,
+                     std::vector<std::string> /*associated_raw_files*/>
+    raw_files_map;
 
   for (size_t i = 0; i < files.size();
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
@@ -118,6 +127,12 @@ PrimaryStorage::clean_dir(const std::string& subdir,
         && Util::base_name(file.path()).find(".tmp.") != std::string::npos) {
       Util::unlink_tmp(file.path());
       continue;
+    }
+
+    if (namespace_ && file.type() == CacheFile::Type::raw) {
+      const auto result_filename =
+        FMT("{}R", file.path().substr(0, file.path().length() - 2));
+      raw_files_map[result_filename].push_back(file.path());
     }
 
     cache_size += file.lstat().size_on_disk();
@@ -148,10 +163,39 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
-        && (max_age == 0
+        && (!max_age
             || file.lstat().mtime()
-                 > (current_time - static_cast<int64_t>(max_age)))) {
+                 > (current_time - static_cast<int64_t>(*max_age)))
+        && (!namespace_ || max_age)) {
       break;
+    }
+
+    if (namespace_) {
+      try {
+        File file_stream(file.path(), "rb");
+        core::FileReader file_reader(*file_stream);
+        core::CacheEntryReader reader(file_reader);
+        if (reader.header().namespace_ != *namespace_) {
+          continue;
+        }
+      } catch (core::Error&) {
+        // Failed to read header: ignore.
+        continue;
+      }
+
+      // For namespace eviction we need to remove raw files based on result
+      // filename since they don't have a header.
+      if (file.type() == CacheFile::Type::result) {
+        const auto entry = raw_files_map.find(file.path());
+        if (entry != raw_files_map.end()) {
+          for (const auto& raw_file : entry->second) {
+            delete_file(raw_file,
+                        Stat::lstat(raw_file).size_on_disk(),
+                        &cache_size,
+                        &files_in_cache);
+          }
+        }
+      }
     }
 
     if (util::ends_with(file.path(), ".stderr")) {
@@ -199,7 +243,8 @@ PrimaryStorage::clean_all(const ProgressReceiver& progress_receiver)
       clean_dir(subdir,
                 m_config.max_size() / 16,
                 m_config.max_files() / 16,
-                0,
+                nonstd::nullopt,
+                nonstd::nullopt,
                 sub_progress_receiver);
     },
     progress_receiver);

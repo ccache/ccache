@@ -24,8 +24,8 @@
 
 namespace compression {
 
-ZstdDecompressor::ZstdDecompressor(FILE* const stream)
-  : m_stream(stream),
+ZstdDecompressor::ZstdDecompressor(core::Reader& reader)
+  : m_reader(reader),
     m_input_size(0),
     m_input_consumed(0),
     m_zstd_stream(ZSTD_createDStream()),
@@ -43,17 +43,14 @@ ZstdDecompressor::~ZstdDecompressor()
   ZSTD_freeDStream(m_zstd_stream);
 }
 
-void
+size_t
 ZstdDecompressor::read(void* const data, const size_t count)
 {
   size_t bytes_read = 0;
   while (bytes_read < count) {
     ASSERT(m_input_size >= m_input_consumed);
     if (m_input_size == m_input_consumed) {
-      m_input_size = fread(m_input_buffer, 1, sizeof(m_input_buffer), m_stream);
-      if (m_input_size == 0) {
-        throw core::Error("failed to read from zstd input stream");
-      }
+      m_input_size = m_reader.read(m_input_buffer, sizeof(m_input_buffer));
       m_input_consumed = 0;
     }
 
@@ -67,7 +64,7 @@ ZstdDecompressor::read(void* const data, const size_t count)
     const size_t ret =
       ZSTD_decompressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
     if (ZSTD_isError(ret)) {
-      throw core::Error("failed to read from zstd input stream");
+      throw core::Error("Failed to read from zstd input stream");
     }
     if (ret == 0) {
       m_reached_stream_end = true;
@@ -76,13 +73,15 @@ ZstdDecompressor::read(void* const data, const size_t count)
     bytes_read += m_zstd_out.pos;
     m_input_consumed += m_zstd_in.pos;
   }
+
+  return count;
 }
 
 void
 ZstdDecompressor::finalize()
 {
   if (!m_reached_stream_end) {
-    throw core::Error("garbage data at end of zstd input stream");
+    throw core::Error("Garbage data at end of zstd input stream");
   }
 }
 

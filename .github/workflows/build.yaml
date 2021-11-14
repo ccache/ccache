@@ -70,17 +70,21 @@ jobs:
             compiler: clang
             version: "11"
 
-          - os: macOS-latest
+          - os: ubuntu-20.04
+            compiler: clang
+            version: "12"
+
+          - os: macOS-10.15
             compiler: xcode
             version: "10.3"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
             version: "11.7"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
-            version: "12.2"
+            version: "12.4"
     steps:
       - name: Install dependencies
         run: |
@@ -104,7 +108,7 @@ jobs:
               echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
               echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
 
-              sudo apt install -y clang-${{ matrix.config.version }} g++-multilib
+              sudo apt install -y clang-${{ matrix.config.version }} g++-multilib lld-${{ matrix.config.version }}
             fi
           elif [ "${{ runner.os }}" = "macOS" ]; then
             HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \

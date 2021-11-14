@@ -1,6 +1,6 @@
 SUITE_sanitize_blacklist_PROBE() {
     touch test.c blacklist.txt
-    if ! $REAL_COMPILER -c -fsanitize-blacklist=blacklist.txt \
+    if ! $COMPILER -c -fsanitize-blacklist=blacklist.txt \
          test.c 2>/dev/null; then
         echo "-fsanitize-blacklist not supported by compiler"
     fi
@@ -18,7 +18,7 @@ SUITE_sanitize_blacklist() {
     # -------------------------------------------------------------------------
     TEST "Compile OK"
 
-    $REAL_COMPILER -c -fsanitize-blacklist=blacklist.txt test1.c
+    $COMPILER -c -fsanitize-blacklist=blacklist.txt test1.c
 
     $CCACHE_COMPILE -c -fsanitize-blacklist=blacklist.txt test1.c
     expect_stat direct_cache_hit 0
@@ -45,7 +45,7 @@ SUITE_sanitize_blacklist() {
     # -------------------------------------------------------------------------
     TEST "Unsuccessful compilation"
 
-    if $REAL_COMPILER -c -fsanitize-blacklist=nosuchfile.txt test1.c 2>expected.stderr; then
+    if $COMPILER -c -fsanitize-blacklist=nosuchfile.txt test1.c 2>expected.stderr; then
         test_failed "Expected an error compiling test1.c"
     fi
 
@@ -60,7 +60,7 @@ SUITE_sanitize_blacklist() {
     # -------------------------------------------------------------------------
     TEST "Multiple -fsanitize-blacklist"
 
-    $REAL_COMPILER -c -fsanitize-blacklist=blacklist2.txt -fsanitize-blacklist=blacklist.txt test1.c
+    $COMPILER -c -fsanitize-blacklist=blacklist2.txt -fsanitize-blacklist=blacklist.txt test1.c
 
     $CCACHE_COMPILE -c -fsanitize-blacklist=blacklist2.txt -fsanitize-blacklist=blacklist.txt test1.c
     expect_stat direct_cache_hit 0

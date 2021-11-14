@@ -15,9 +15,9 @@ SUITE_color_diagnostics_PROBE() {
     # Probe that real compiler actually supports colored diagnostics.
     if [[ ! $color_diagnostics_enable || ! $color_diagnostics_disable ]]; then
         echo "compiler $COMPILER does not support colored diagnostics"
-    elif ! $REAL_COMPILER $color_diagnostics_enable -E - </dev/null >/dev/null 2>&1; then
+    elif ! $COMPILER $color_diagnostics_enable -E - </dev/null >/dev/null 2>&1; then
         echo "compiler $COMPILER (version: $compiler_version) does not support $color_diagnostics_enable"
-    elif ! $REAL_COMPILER $color_diagnostics_disable -E - </dev/null >/dev/null 2>&1; then
+    elif ! $COMPILER $color_diagnostics_disable -E - </dev/null >/dev/null 2>&1; then
         echo "compiler $COMPILER (version: $compiler_version) does not support $color_diagnostics_disable"
     fi
 }

@@ -22,23 +22,19 @@
 
 #include <NonCopyable.hpp>
 
-#include <cstdio>
-
 namespace compression {
 
 // A decompressor of an uncompressed stream.
 class NullDecompressor : public Decompressor, NonCopyable
 {
 public:
-  // Parameters:
-  // - stream: The file to read data from.
-  explicit NullDecompressor(FILE* stream);
+  explicit NullDecompressor(core::Reader& reader);
 
-  void read(void* data, size_t count) override;
+  size_t read(void* data, size_t count) override;
   void finalize() override;
 
 private:
-  FILE* m_stream;
+  core::Reader& m_reader;
 };
 
 } // namespace compression

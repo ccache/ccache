@@ -49,13 +49,9 @@
 using nonstd::nullopt;
 using nonstd::optional;
 
-#if defined(_MSC_VER)
-#  define DLLIMPORT __declspec(dllimport)
-#else
-#  define DLLIMPORT
-#endif
-
+#ifndef environ
 DLLIMPORT extern char** environ;
+#endif
 
 namespace {
 
@@ -86,6 +82,7 @@ enum class ConfigItem {
   log_file,
   max_files,
   max_size,
+  namespace_,
   path,
   pch_external_checksum,
   prefix_command,
@@ -134,6 +131,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"log_file", ConfigItem::log_file},
   {"max_files", ConfigItem::max_files},
   {"max_size", ConfigItem::max_size},
+  {"namespace", ConfigItem::namespace_},
   {"path", ConfigItem::path},
   {"pch_external_checksum", ConfigItem::pch_external_checksum},
   {"prefix_command", ConfigItem::prefix_command},
@@ -184,6 +182,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
   {"MAXSIZE", "max_size"},
+  {"NAMESPACE", "namespace"},
   {"PATH", "path"},
   {"PCH_EXTSUM", "pch_external_checksum"},
   {"PREFIX", "prefix_command"},
@@ -721,6 +720,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::max_size:
     return format_cache_size(m_max_size);
 
+  case ConfigItem::namespace_:
+    return m_namespace;
+
   case ConfigItem::path:
     return m_path;
 
@@ -973,6 +975,10 @@ Config::set_item(const std::string& key,
     m_max_size = Util::parse_size(value);
     break;
 
+  case ConfigItem::namespace_:
+    m_namespace = Util::expand_environment_variables(value);
+    break;
+
   case ConfigItem::path:
     m_path = Util::expand_environment_variables(value);
     break;
@@ -1057,7 +1063,10 @@ Config::set_item(const std::string& key,
     break;
   }
 
-  m_origins.emplace(key, origin);
+  auto result = m_origins.emplace(key, origin);
+  if (!result.second) {
+    result.first->second = origin;
+  }
 }
 
 void

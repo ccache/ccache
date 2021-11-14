@@ -77,7 +77,9 @@ public:
 
   // --- Cleanup ---
 
-  void clean_old(const ProgressReceiver& progress_receiver, uint64_t max_age);
+  void evict(const ProgressReceiver& progress_receiver,
+             nonstd::optional<uint64_t> max_age,
+             nonstd::optional<std::string> namespace_);
 
   void clean_all(const ProgressReceiver& progress_receiver);
 
@@ -137,7 +139,8 @@ private:
   static void clean_dir(const std::string& subdir,
                         uint64_t max_size,
                         uint64_t max_files,
-                        uint64_t max_age,
+                        nonstd::optional<uint64_t> max_age,
+                        nonstd::optional<std::string> namespace_,
                         const ProgressReceiver& progress_receiver);
 };
 

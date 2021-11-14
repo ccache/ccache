@@ -1,5 +1,301 @@
 = Ccache news
 
+== Ccache 4.5
+
+Release date: 2021-11-13
+
+
+=== New features
+
+- Made various improvements to the cache entry format. Among other things, the
+  header now contains a creation timestamp and a note of the ccache version used
+  to create the entry. The cache entry checksum has also been upgraded to use
+  128-bit XXH3 instead 64-bit XXH3. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for cache namespaces. If a namespace configured, e.g. using
+  `CCACHE_NAMESPACE=some_string`, the namespace string will be added to the
+  hashed data for each compilation. This will make the associated cache entries
+  logically separate from cache entries in other namespaces, but they will still
+  share the same storage space. Cache entries can also be selectively removed
+  from the primary cache with the new command line option `--evict-namespace`,
+  potentially in combination with `--evict-older-than`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made HTTP keep-alive configurable, defaulting to off for now. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Added support for rewriting absolute path to Clang option `--gcc-toolchain`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Compatibility notes
+
+- A consequence of the changed cache entry format is that ccache 4.5 will not
+  share cache entries with earlier versions. Different ccache versions can
+  however still use the same cache storage without any issues.
+
+
+=== Bug fixes
+
+- Fixed a problem with special characters in the user info part of URLs for HTTP
+  storage. +
+  [small]#_[contributed by Russell McClellan]_#
+
+- Fixed win32 log messages about file locks. +
+  [small]#_[contributed by Luboš Luňák]_#
+
+- Fixed debug directory handling on Windows. +
+  [small]#_[contributed by Luboš Luňák]_#
+
+- The hard link and file clone features are now disabled when secondary storage
+  is used since they only work for the local primary cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.4.2
+
+Release date: 2021-09-28
+
+
+=== Bug fixes
+
+- Fixed a bug introduced in 4.4 where ccache could produce false direct cache
+  hits in some situations if it decides to disable the direct mode temporarily
+  (e.g. due to "`too new header`" file). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Use shell builtin pwd command for basedir test. +
+  [small]#_[contributed by Kira Bruneau]_#
+
+- Cope with CC being a wrapper script that uses ccache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.4.1
+
+Release date: 2021-09-11
+
+
+=== New features
+
+- The secondary storage statistics section of `-s/--show-stats` is now shown
+  only if it's non-empty or with two verbose options. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added display of statistics counters for misses. Previously they were only
+  implicit in the "`hits + misses`" sums. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed spurious crashes when using the HTTP or Redis backend and the remote
+  connection hung up. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made sure to always store configuration origin value. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+
+=== Build improvements
+
+- The matching version of lld is now used for Clang. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- The standard linker is now used if IPO (LTO) is enabled. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Disabled IPO (LTO) for MinGW toolchains since they seem to be generally
+  broken. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Fixed build errors with Clang on Windows. +
+  [small]#_[contributed by Orgad Shaneh]_#
+
+
+=== Test improvements
+
+- Fixed .incbin test with newer binutil versions. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed basedir test suite failure when using a symlinked CWD. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved output of differing text files on failure. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.4
+
+Release date: 2021-08-19
+
+
+=== New features
+
+- Made it possible to share a cache over network or on a local filesystem. The
+  configuration option `secondary_storage`/`CCACHE_SECONDARY_STORAGE` specifies
+  one or several storage backends to query after the primary local cache
+  storage. It is also possible to configure sharding (partitioning) of the cache
+  to spread it over a server cluster using
+  https://en.wikipedia.org/wiki/Rendezvous_hashing[Rendezvous hashing]. See the
+  _https://ccache.dev/manual/4.4.html#_secondary_storage_backends[Secondary
+  storage backends]_ chapter in the manual for details. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added an HTTP backend for secondary storage on any HTTP server that supports
+  GET/PUT/DELETE methods. See https://ccache.dev/howto/http-storage.html[How to
+  set up HTTP storage] for hints on how to set up an HTTP server for use with
+  ccache. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Added a Redis backend for secondary storage on any server that supports the
+  Redis protocol. See https://ccache.dev/howto/redis-storage.html[How to set up
+  Redis storage] for hints on how to set up a Redis server for use with
+  ccache. +
+  [small]#_[contributed by Anders F Björklund]_#
+
+- Added a filesystem backend for secondary storage. It can for instance be used
+  for a shared cache over networked filesystems such as NFS, or for mounting a
+  secondary read-only cache layer into a build container. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added `--trim-dir`, `--trim-max-size` and `--trim-method` options that can be
+  used to trim a secondary storage directory to a certain size, e.g. via
+  cron. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a configuration option `reshare`/`CCACHE_RESHARE` which makes ccache
+  send results to secondary storage even for primary storage cache hits. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added new statistics counters for direct/preprocessed cache misses, primary
+  storage hits/misses, secondary storage hits/misses/errors/timeouts and forced
+  recaches. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved statistics summary. The `-s`/`--show-stats` option now prints a more
+  condensed overview where the counters representing "`uncacheable calls`" are
+  summed as uncacheable and errors counters. The summary shows hit rate for
+  direct/preprocessed hits/misses, as well as primary/secondary storage
+  hits/misses. More details are shown with `-v`/`--verbose`. Note: Scripts
+  should use `--print-stats` (available since ccache 3.7) instead of trying to
+  parse the output of `--show-stats`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a "`stats log`" feature (configuration option
+  `stats_log`/`CCACHE_STATSLOG`), which tells ccache to store statistics in a
+  separate log file specified by the user. It can for instance be used to
+  collect statistics for a single build without interference from other
+  concurrent builds. Statistics from the log file can then be viewed with
+  `ccache --show-log-stats`. +
+  [small]#_[contributed by Anders F Björklund]_#
+
+- Added support for clang's `--config` option. +
+  [small]#_[contributed by Tom Stellard]_#
+
+- Added support for one `-Xarch_*` option that matches a corresponding `-arch`
+  option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Renamed the `--directory` option to `--dir` for consistency with other
+  options. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made the `--config-path` and `--dir` options affect the whole command line so
+  that they don't have to be put before `-s`/`--show-stats`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made `--dump-manifest` and `--dump-result` accept filename `-` for reading
+  from standard input. +
+  [small]#_[contributed by Anders F Björklund]_#
+
+- Made the output of `--print-stats` sorted. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added more internal trace points. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed a crash if using `base_dir` and `$PWD` is set to a relative path. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a bug with `-fprofile-generate` where ccache could give false positive
+  cache hits when compiling with relative paths in another directory. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a bug in `debug_dir`/`CCACHE_DEBUGDIR`. The absolute path to the object
+  file was not created correctly if the object file didn't already exist. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Disabled preprocessor hits for pre-compiled headers with Clang again. +
+  [small]#_[contributed by Arne Hasselbring]_#
+
+- Fixed a problem when using the Gold linker on MIPS by only probing for a
+  faster linker in dev build mode and on x86_64. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made the `-DENABLE_TRACING=1` mode work again. +
+  [small]#_[contributed by Anders F Björklund]_#
+
+
+=== Changed tooling
+
+- A C++14 compiler or newer is now required to build ccache. For GCC, this means
+  version 6 or newer in practice.
+
+- CMake 3.10 or newer is now required to build ccache.
+
+- https://asciidoctor.org[Asciidoctor] is now required to build ccache
+  documentation.
+
+
+=== Build/test/documentation improvements
+
+- Fixed an issue in the modules test suite that showed up when running the
+  ccache test suite with the clang wrapper provided by Nixpkgs. +
+  [small]#_[contributed by Ryan Burns]_#
+
+- Made the nvcc_ldir test suite require a working NVCC. +
+  [small]#_[contributed by Michael Kruse]_#
+
+- Made the ivfsoverlay test suite more robust. +
+  [small]#_[contributed by Michael Kruse]_#
+
+- Fixed issue with usage of `/FI` when building ccache with MSVC. +
+  [small]#_[contributed by Michael Kruse]_#
+
+- Fixed Apple Clang detection in the integration test suite. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Made clang the default compiler when running the test suite on macOS. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Silenced stray printout from "-P -c" test case. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed selection of the ccache binary to use when running the test suite with
+  multi-config generators like Xcode. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Fixed CMake feature detection for `ctim`/`mtim` fields in `struct stat`. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Fixed issue with not linking to .lib correctly on Windows. +
+  [small]#_[contributed by R. Voggenauer]_#
+
+- Made it possible to override `CCACHE_DEV_MODE` on the command line. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved HTML documentation style. +
+  [small]#_[contributed by Joel Rosdahl with minor fixes by Orgad Shaneh]_#
+
+
 == Ccache 4.3
 
 Release date: 2021-05-09
@@ -547,7 +843,7 @@ Release date: 2020-10-18
 - Disabled read-only tests on file systems that lack such support.
 
 
-== ccache 3.7.12
+== Ccache 3.7.12
 
 Release date: 2020-10-01
 
@@ -570,7 +866,7 @@ Release date: 2020-10-01
 - Fixed test case failures with GCC 4.4.
 
 
-== ccache 3.7.11
+== Ccache 3.7.11
 
 Release date: 2020-07-21
 
@@ -591,7 +887,7 @@ Release date: 2020-07-21
   for GCC 6.
 
 
-== ccache 3.7.10
+== Ccache 3.7.10
 
 Release date: 2020-06-22
 
@@ -625,7 +921,7 @@ Release date: 2020-06-22
   `base_dir` and `cache_dir_levels` keys.
 
 
-== ccache 3.7.9
+== Ccache 3.7.9
 
 Release date: 2020-03-29
 
@@ -646,7 +942,7 @@ Release date: 2020-03-29
 - Improved name of temporary file used in NFS-safe unlink.
 
 
-== ccache 3.7.8
+== Ccache 3.7.8
 
 Release date: 2020-03-16
 
@@ -687,7 +983,7 @@ Release date: 2020-03-16
   manual.
 
 
-== ccache 3.7.7
+== Ccache 3.7.7
 
 Release date: 2020-01-05
 
@@ -717,7 +1013,7 @@ Release date: 2020-01-05
   misses, making it consistent with the cache hit case.
 
 
-== ccache 3.7.6
+== Ccache 3.7.6
 
 Release date: 2019-11-17
 
@@ -738,7 +1034,7 @@ Release date: 2019-11-17
 - Properly handle color diagnostics in the depend mode as well.
 
 
-== ccache 3.7.5
+== Ccache 3.7.5
 
 Release date: 2019-10-22
 
@@ -769,7 +1065,7 @@ Release date: 2019-10-22
 - Fixed warning during configure in out-of-tree build in developer mode.
 
 
-== ccache 3.7.4
+== Ccache 3.7.4
 
 Release date: 2019-09-12
 
@@ -784,7 +1080,7 @@ Release date: 2019-09-12
   on Windows.
 
 
-== ccache 3.7.3
+== Ccache 3.7.3
 
 Release date: 2019-08-17
 
@@ -800,7 +1096,7 @@ Release date: 2019-08-17
   then "`-Wno-error`" later on the command line.
 
 
-== ccache 3.7.2
+== Ccache 3.7.2
 
 Release date: 2019-07-19
 
@@ -835,7 +1131,7 @@ Release date: 2019-07-19
 - Mention that `xsltproc` is needed when building from the source repository.
 
 
-== ccache 3.7.1
+== Ccache 3.7.1
 
 Release date: 2019-05-01
 
@@ -851,7 +1147,7 @@ Release date: 2019-05-01
   itself.
 
 
-== ccache 3.7
+== Ccache 3.7
 
 Release date: 2019-04-23
 
@@ -928,7 +1224,7 @@ Release date: 2019-04-23
   involved.
 
 
-== ccache 3.6
+== Ccache 3.6
 
 Release date: 2019-01-14
 
@@ -976,7 +1272,7 @@ Release date: 2019-01-14
   or `__TIME__` is a substring.
 
 
-== ccache 3.5.1
+== Ccache 3.5.1
 
 Release date: 2019-01-02
 
@@ -992,7 +1288,7 @@ Release date: 2019-01-02
 - Improved development mode build flags.
 
 
-== ccache 3.5
+== Ccache 3.5
 
 Release date: 2018-10-15
 
@@ -1042,7 +1338,7 @@ Release date: 2018-10-15
 - Made "`./configure --without-bundled-zlib`" do what's intended.
 
 
-== ccache 3.4.3
+== Ccache 3.4.3
 
 Release date: 2018-09-02
 
@@ -1061,7 +1357,7 @@ Release date: 2018-09-02
 - Upgraded bundled zlib to version 1.2.11.
 
 
-== ccache 3.4.2
+== Ccache 3.4.2
 
 Release date: 2018-03-25
 
@@ -1087,7 +1383,7 @@ Release date: 2018-03-25
 - Made it possible to perform out-of-source builds in dev mode again.
 
 
-== ccache 3.4.1
+== Ccache 3.4.1
 
 Release date: 2018-02-11
 
@@ -1097,7 +1393,7 @@ Release date: 2018-02-11
 - Fixed printing of version number in `ccache --version`.
 
 
-== ccache 3.4
+== Ccache 3.4
 
 Release date: 2018-02-11
 
@@ -1147,7 +1443,7 @@ Release date: 2018-02-11
 - Fixed how the NVCC options `-optf` and `-odir` are handled.
 
 
-== ccache 3.3.6
+== Ccache 3.3.6
 
 Release date: 2018-01-28
 
@@ -1162,7 +1458,7 @@ Release date: 2018-01-28
 - Fixed regression in ccache 3.3.5 related to the `UNCACHED_ERR_FD` feature.
 
 
-== ccache 3.3.5
+== Ccache 3.3.5
 
 Release date: 2018-01-13
 
@@ -1207,7 +1503,7 @@ Release date: 2018-01-13
   `-remap` or `-trigraphs` option in preprocessor mode.
 
 
-== ccache 3.3.4
+== Ccache 3.3.4
 
 Release date: 2017-02-17
 
@@ -1228,7 +1524,7 @@ Release date: 2017-02-17
 
 - Fixed undefined behavior warnings in ccache found by `-fsanitize=undefined`.
 
-== ccache 3.3.3
+== Ccache 3.3.3
 
 Release date: 2016-10-26
 
@@ -1239,7 +1535,7 @@ Release date: 2016-10-26
   and avoids caching such compilations.
 
 
-== ccache 3.3.2
+== Ccache 3.3.2
 
 Release date: 2016-09-28
 
@@ -1255,7 +1551,7 @@ Release date: 2016-09-28
   resulting in missing dependency files from direct mode cache hits.
 
 
-== ccache 3.3.1
+== Ccache 3.3.1
 
 Release date: 2016-09-07
 
@@ -1271,7 +1567,7 @@ Release date: 2016-09-07
   (`CCACHE_CPP2`) is enabled.
 
 
-== ccache 3.3
+== Ccache 3.3
 
 Release date: 2016-08-27
 
@@ -1362,7 +1658,7 @@ Release date: 2016-08-27
 - Fixed build and test for MinGW32 and Windows.
 
 
-== ccache 3.2.9
+== Ccache 3.2.9
 
 Release date: 2016-09-28
 
@@ -1374,7 +1670,7 @@ Release date: 2016-09-28
   resulting in missing dependency files from direct mode cache hits.
 
 
-== ccache 3.2.8
+== Ccache 3.2.8
 
 Release date: 2016-09-07
 
@@ -1389,7 +1685,7 @@ Release date: 2016-09-07
   option.
 
 
-== ccache 3.2.7
+== Ccache 3.2.7
 
 Release date: 2016-07-20
 
@@ -1403,7 +1699,7 @@ Release date: 2016-07-20
   preprocessor.
 
 
-== ccache 3.2.6
+== Ccache 3.2.6
 
 Release date: 2016-07-12
 
@@ -1420,7 +1716,7 @@ Release date: 2016-07-12
   is absolute and is a symlink.
 
 
-== ccache 3.2.5
+== Ccache 3.2.5
 
 Release date: 2016-04-17
 
@@ -1460,7 +1756,7 @@ Release date: 2016-04-17
   sources.
 
 
-== ccache 3.2.4
+== Ccache 3.2.4
 
 Release date: 2015-10-08
 
@@ -1484,7 +1780,7 @@ Release date: 2015-10-08
   64 GiB on 32-bit systems.
 
 
-== ccache 3.2.3
+== Ccache 3.2.3
 
 Release date: 2015-08-16
 
@@ -1508,7 +1804,7 @@ Release date: 2015-08-16
   files.
 
 
-== ccache 3.2.2
+== Ccache 3.2.2
 
 Release date: 2015-05-10
 
@@ -1551,7 +1847,7 @@ Release date: 2015-05-10
 - Fixed build error when compiling ccache with recent Clang versions.
 
 
-== ccache 3.2.1
+== Ccache 3.2.1
 
 Release date: 2014-12-10
 
@@ -1574,7 +1870,7 @@ Release date: 2014-12-10
   options.
 
 
-== ccache 3.2
+== Ccache 3.2
 
 Release date: 2014-11-17
 
@@ -1683,7 +1979,7 @@ Release date: 2014-11-17
 - Fixed test suite failures when `CC` is a ccache-wrapped compiler.
 
 
-== ccache 3.1.12
+== Ccache 3.1.12
 
 Release date: 2016-07-12
 
@@ -1695,7 +1991,7 @@ Release date: 2016-07-12
   is absolute and is a symlink.
 
 
-== ccache 3.1.11
+== Ccache 3.1.11
 
 Release date: 2015-03-07
 
@@ -1713,7 +2009,7 @@ Release date: 2015-03-07
   directory`" messages in the ccache log when the cache directory doesn't exist.
 
 
-== ccache 3.1.10
+== Ccache 3.1.10
 
 Release date: 2014-10-19
 
@@ -1761,7 +2057,7 @@ Release date: 2014-10-19
 - Fixed problem with logging of current working directory.
 
 
-== ccache 3.1.9
+== Ccache 3.1.9
 
 Release date: 2013-01-06
 
@@ -1788,7 +2084,7 @@ Release date: 2013-01-06
 - Fixed test suite to work on ecryptfs.
 
 
-== ccache 3.1.8
+== Ccache 3.1.8
 
 Release date: 2012-08-11
 
@@ -1823,7 +2119,7 @@ Release date: 2012-08-11
 - Fixed `static_assert` macro definition clash with GCC 4.7.
 
 
-== ccache 3.1.7
+== Ccache 3.1.7
 
 Release date: 2012-01-08
 
@@ -1862,7 +2158,7 @@ Release date: 2012-01-08
 
 
 
-== ccache 3.1.6
+== Ccache 3.1.6
 
 Release date: 2011-08-21
 
@@ -1879,7 +2175,7 @@ Release date: 2011-08-21
 - Fixed alignment of "`called for preprocessing`" counter.
 
 
-== ccache 3.1.5
+== Ccache 3.1.5
 
 Release date: 2011-05-29
 
@@ -1912,7 +2208,7 @@ Release date: 2011-05-29
 - Systems that lack (and don't need to be linked with) libm are now supported.
 
 
-== ccache 3.1.4
+== Ccache 3.1.4
 
 Release date: 2011-01-09
 
@@ -1930,7 +2226,7 @@ Release date: 2011-01-09
   a cache dir tag.
 
 
-== ccache 3.1.3
+== Ccache 3.1.3
 
 Release date: 2010-11-28
 
@@ -1946,7 +2242,7 @@ Release date: 2010-11-28
 - Portability fixes for HP-UX 11.00 and other esoteric systems.
 
 
-== ccache 3.1.2
+== Ccache 3.1.2
 
 Release date: 2010-11-21
 
@@ -1971,7 +2267,7 @@ Release date: 2010-11-21
 - The test suite now also works on systems that lack a /dev/zero.
 
 
-== ccache 3.1.1
+== Ccache 3.1.1
 
 Release date: 2010-11-07
 
@@ -1999,7 +2295,7 @@ Release date: 2010-11-07
 - Minor debug log message improvements.
 
 
-== ccache 3.1
+== Ccache 3.1
 
 Release date: 2010-09-16
 
@@ -2077,7 +2373,7 @@ Release date: 2010-09-16
 - New `HACKING.txt` file with some notes about ccache code conventions.
 
 
-== ccache 3.0.1
+== Ccache 3.0.1
 
 Release date: 2010-07-15
 
@@ -2090,7 +2386,7 @@ Release date: 2010-07-15
 - Fixed a problem with out-of-source builds.
 
 
-== ccache 3.0
+== Ccache 3.0
 
 Release date: 2010-06-20
 

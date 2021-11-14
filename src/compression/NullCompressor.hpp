@@ -22,24 +22,20 @@
 
 #include <NonCopyable.hpp>
 
-#include <cstdio>
-
 namespace compression {
 
 // A compressor of an uncompressed stream.
 class NullCompressor : public Compressor, NonCopyable
 {
 public:
-  // Parameters:
-  // - stream: The file to write data to.
-  explicit NullCompressor(FILE* stream);
+  explicit NullCompressor(core::Writer& writer);
 
   int8_t actual_compression_level() const override;
   void write(const void* data, size_t count) override;
   void finalize() override;
 
 private:
-  FILE* m_stream;
+  core::Writer& m_writer;
 };
 
 } // namespace compression

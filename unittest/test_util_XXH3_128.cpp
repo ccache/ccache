@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,25 +16,33 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Checksum.hpp"
+#include <util/XXH3_128.hpp>
 
-#include "third_party/doctest.h"
+#include <third_party/doctest.h>
 
-TEST_SUITE_BEGIN("Checksum");
+TEST_SUITE_BEGIN("util::XXH3_128");
 
-TEST_CASE("Checksums")
+TEST_CASE("util::XXH3_128")
 {
-  Checksum checksum;
-  CHECK(checksum.digest() == 0x2d06800538d394c2);
+  util::XXH3_128 checksum;
+  auto digest = checksum.digest();
+  CHECK(Util::format_base16(digest.bytes(), 16)
+        == "99aa06d3014798d86001c324468d497f");
 
   checksum.update("foo", 3);
-  CHECK(checksum.digest() == 0xab6e5f64077e7d8a);
+  digest = checksum.digest();
+  CHECK(Util::format_base16(digest.bytes(), 16)
+        == "79aef92e83454121ab6e5f64077e7d8a");
 
   checksum.update("t", 1);
-  CHECK(checksum.digest() == 0x3fd918aed1a9e7e4);
+  digest = checksum.digest();
+  CHECK(Util::format_base16(digest.bytes(), 16)
+        == "e6045075b5bf1ae7a3e4c87775e6c97f");
 
   checksum.reset();
-  CHECK(checksum.digest() == 0x2d06800538d394c2);
+  digest = checksum.digest();
+  CHECK(Util::format_base16(digest.bytes(), 16)
+        == "99aa06d3014798d86001c324468d497f");
 }
 
 TEST_SUITE_END();

@@ -22,23 +22,28 @@
 
 namespace compression {
 
-NullDecompressor::NullDecompressor(FILE* const stream) : m_stream(stream)
+NullDecompressor::NullDecompressor(core::Reader& reader) : m_reader(reader)
 {
 }
 
-void
+size_t
 NullDecompressor::read(void* const data, const size_t count)
 {
-  if (fread(data, count, 1, m_stream) != 1) {
-    throw core::Error("failed to read from uncompressed stream");
-  }
+  return m_reader.read(data, count);
 }
 
 void
 NullDecompressor::finalize()
 {
-  if (fgetc(m_stream) != EOF) {
-    throw core::Error("garbage data at end of uncompressed stream");
+  bool eof;
+  try {
+    m_reader.read_int<uint8_t>();
+    eof = false;
+  } catch (core::Error&) {
+    eof = true;
+  }
+  if (!eof) {
+    throw core::Error("Garbage data at end of uncompressed stream");
   }
 }
 

@@ -19,9 +19,6 @@
 #include "Manifest.hpp"
 
 #include "AtomicFile.hpp"
-#include "CacheEntryReader.hpp"
-#include "CacheEntryWriter.hpp"
-#include "Checksum.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Digest.hpp"
@@ -31,7 +28,13 @@
 #include "fmtmacros.hpp"
 #include "hashutil.hpp"
 
+#include <ccache.hpp>
+#include <core/CacheEntryReader.hpp>
+#include <core/CacheEntryWriter.hpp>
+#include <core/FileReader.hpp>
+#include <core/FileWriter.hpp>
 #include <core/exceptions.hpp>
+#include <util/XXH3_64.hpp>
 
 #include <memory>
 
@@ -40,18 +43,8 @@
 //
 // Integers are big-endian.
 //
-// <manifest>      ::= <header> <body> <epilogue
-// <header>        ::= <magic> <version> <compr_type> <compr_level>
-//                     <content_len>
-// <magic>         ::= 4 bytes ("cCrS")
-// <version>       ::= uint8_t
-// <compr_type>    ::= <compr_none> | <compr_zstd>
-// <compr_none>    ::= 0 (uint8_t)
-// <compr_zstd>    ::= 1 (uint8_t)
-// <compr_level>   ::= int8_t
-// <content_len>   ::= uint64_t ; size of file if stored uncompressed
-// <body>          ::= <paths> <includes> <results> ; body is potentially
-//                                                  ; compressed
+// <payload>       ::= <format_ver> <paths> <includes> <results>
+// <format_ver>    ::= uint8_t
 // <paths>         ::= <n_paths> <path_entry>*
 // <n_paths>       ::= uint32_t
 // <path_entry>    ::= <path_len> <path>
@@ -67,52 +60,15 @@
 // <ctime>         ::= int64_t ; status change time
 // <results>       ::= <n_results> <result>*
 // <n_results>     ::= uint32_t
-// <result>        ::= <n_indexes> <include_index>* <name>
+// <result>        ::= <n_indexes> <include_index>* <key>
 // <n_indexes>     ::= uint32_t
 // <include_index> ::= uint32_t
-// <name>          ::= Digest::size() bytes
-// <epilogue>      ::= <checksum>
-// <checksum>      ::= uint64_t ; XXH3 of content bytes
-//
-// Sketch of concrete layout:
-
-// <magic>         4 bytes
-// <version>       1 byte
-// <compr_type>    1 byte
-// <compr_level>   1 byte
-// <content_len>   8 bytes
-// --- [potentially compressed from here] -------------------------------------
-// <n_paths>       4 bytes
-// <path_len>      2 bytes
-// <path>          path_len bytes
-// ...
-// ----------------------------------------------------------------------------
-// <n_includes>    4 bytes
-// <path_index>    4 bytes
-// <digest>        Digest::size() bytes
-// <fsize>         8 bytes
-// <mtime>         8 bytes
-// <ctime>         8 bytes
-// ...
-// ----------------------------------------------------------------------------
-// <n_results>     4 bytes
-// <n_indexes>     4 bytes
-// <include_index> 4 bytes
-// ...
-// <name>          Digest::size() bytes
-// ...
-// checksum        8 bytes
-//
-//
-// Version history
-// ===============
-//
-// 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
-// 2: Introduced in ccache 4.0.
+// <result_key>    ::= Digest::size() bytes
 
 using nonstd::nullopt;
 using nonstd::optional;
 
+const uint8_t k_manifest_format_version = 0;
 const uint32_t k_max_manifest_entries = 100;
 const uint32_t k_max_manifest_file_info_entries = 10000;
 
@@ -150,9 +106,9 @@ template<> struct hash<FileInfo>
   operator()(const FileInfo& file_info) const
   {
     static_assert(sizeof(FileInfo) == 48, "unexpected size"); // No padding.
-    Checksum checksum;
-    checksum.update(&file_info, sizeof(file_info));
-    return checksum.digest();
+    util::XXH3_64 hash;
+    hash.update(&file_info, sizeof(file_info));
+    return hash.digest();
   }
 };
 
@@ -307,49 +263,49 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
     file_stream = file.get();
   }
 
-  CacheEntryReader reader(file_stream, Manifest::k_magic, Manifest::k_version);
+  core::FileReader file_reader(file_stream);
+  core::CacheEntryReader reader(file_reader);
 
   if (dump_stream) {
-    reader.dump_header(dump_stream);
+    reader.header().dump(dump_stream);
+  }
+
+  const auto format_ver = reader.read_int<uint8_t>();
+  if (format_ver != k_manifest_format_version) {
+    throw core::Error("Unknown manifest format version: {}", format_ver);
+  }
+
+  if (dump_stream) {
+    PRINT(dump_stream, "Manifest format version: {}\n", format_ver);
   }
 
   auto mf = std::make_unique<ManifestData>();
 
-  uint32_t entry_count;
-  reader.read(entry_count);
-  for (uint32_t i = 0; i < entry_count; ++i) {
-    mf->files.emplace_back();
-    auto& entry = mf->files.back();
-
-    uint16_t length;
-    reader.read(length);
-    entry.assign(length, 0);
-    reader.read(&entry[0], length);
+  const auto file_count = reader.read_int<uint32_t>();
+  for (uint32_t i = 0; i < file_count; ++i) {
+    mf->files.push_back(reader.read_str(reader.read_int<uint16_t>()));
   }
 
-  reader.read(entry_count);
-  for (uint32_t i = 0; i < entry_count; ++i) {
+  const auto file_info_count = reader.read_int<uint32_t>();
+  for (uint32_t i = 0; i < file_info_count; ++i) {
     mf->file_infos.emplace_back();
     auto& entry = mf->file_infos.back();
 
-    reader.read(entry.index);
+    reader.read_int(entry.index);
     reader.read(entry.digest.bytes(), Digest::size());
-    reader.read(entry.fsize);
-    reader.read(entry.mtime);
-    reader.read(entry.ctime);
+    reader.read_int(entry.fsize);
+    reader.read_int(entry.mtime);
+    reader.read_int(entry.ctime);
   }
 
-  reader.read(entry_count);
-  for (uint32_t i = 0; i < entry_count; ++i) {
+  const auto result_count = reader.read_int<uint32_t>();
+  for (uint32_t i = 0; i < result_count; ++i) {
     mf->results.emplace_back();
     auto& entry = mf->results.back();
 
-    uint32_t file_info_count;
-    reader.read(file_info_count);
-    for (uint32_t j = 0; j < file_info_count; ++j) {
-      uint32_t file_info_index;
-      reader.read(file_info_index);
-      entry.file_info_indexes.push_back(file_info_index);
+    const auto file_info_index_count = reader.read_int<uint32_t>();
+    for (uint32_t j = 0; j < file_info_index_count; ++j) {
+      entry.file_info_indexes.push_back(reader.read_int<uint32_t>());
     }
     reader.read(entry.key.bytes(), Digest::size());
   }
@@ -364,6 +320,7 @@ write_manifest(const Config& config,
                const ManifestData& mf)
 {
   uint64_t payload_size = 0;
+  payload_size += 1; // format_ver
   payload_size += 4; // n_files
   for (const auto& file : mf.files) {
     payload_size += 2 + file.length();
@@ -378,32 +335,37 @@ write_manifest(const Config& config,
   }
 
   AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
-  CacheEntryWriter writer(atomic_manifest_file.stream(),
-                          Manifest::k_magic,
-                          Manifest::k_version,
-                          compression::type_from_config(config),
-                          compression::level_from_config(config),
-                          payload_size);
-  writer.write<uint32_t>(mf.files.size());
+  core::FileWriter file_writer(atomic_manifest_file.stream());
+  core::CacheEntryHeader header(core::CacheEntryType::manifest,
+                                compression::type_from_config(config),
+                                compression::level_from_config(config),
+                                time(nullptr),
+                                CCACHE_VERSION,
+                                config.namespace_());
+  header.set_entry_size_from_payload_size(payload_size);
+
+  core::CacheEntryWriter writer(file_writer, header);
+  writer.write_int(k_manifest_format_version);
+  writer.write_int<uint32_t>(mf.files.size());
   for (const auto& file : mf.files) {
-    writer.write<uint16_t>(file.length());
-    writer.write(file.data(), file.length());
+    writer.write_int<uint16_t>(file.length());
+    writer.write_str(file);
   }
 
-  writer.write<uint32_t>(mf.file_infos.size());
+  writer.write_int<uint32_t>(mf.file_infos.size());
   for (const auto& file_info : mf.file_infos) {
-    writer.write<uint32_t>(file_info.index);
+    writer.write_int<uint32_t>(file_info.index);
     writer.write(file_info.digest.bytes(), Digest::size());
-    writer.write(file_info.fsize);
-    writer.write(file_info.mtime);
-    writer.write(file_info.ctime);
+    writer.write_int(file_info.fsize);
+    writer.write_int(file_info.mtime);
+    writer.write_int(file_info.ctime);
   }
 
-  writer.write<uint32_t>(mf.results.size());
+  writer.write_int<uint32_t>(mf.results.size());
   for (const auto& result : mf.results) {
-    writer.write<uint32_t>(result.file_info_indexes.size());
+    writer.write_int<uint32_t>(result.file_info_indexes.size());
     for (auto index : result.file_info_indexes) {
-      writer.write(index);
+      writer.write_int(index);
     }
     writer.write(result.key.bytes(), Digest::size());
   }

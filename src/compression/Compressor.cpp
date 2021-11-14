@@ -22,21 +22,23 @@
 #include "ZstdCompressor.hpp"
 #include "assertions.hpp"
 
+#include <core/Writer.hpp>
+
 #include <memory>
 
 namespace compression {
 
 std::unique_ptr<Compressor>
 Compressor::create_from_type(const Type type,
-                             FILE* const stream,
+                             core::Writer& writer,
                              const int8_t compression_level)
 {
   switch (type) {
   case compression::Type::none:
-    return std::make_unique<NullCompressor>(stream);
+    return std::make_unique<NullCompressor>(writer);
 
   case compression::Type::zstd:
-    return std::make_unique<ZstdCompressor>(stream, compression_level);
+    return std::make_unique<ZstdCompressor>(writer, compression_level);
   }
 
   ASSERT(false);

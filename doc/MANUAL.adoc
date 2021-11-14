@@ -99,10 +99,16 @@ compiler's documentation.
     has the same effect as setting the environment variable `CCACHE_DIR`
     temporarily.
 
+*--evict-namespace* _NAMESPACE_::
+
+    Remove files created in the given <<config_namespace,*namespace*>> from the
+    cache.
+
 *--evict-older-than* _AGE_::
 
     Remove files older than _AGE_ from the cache. _AGE_ should be an unsigned
-    integer with a `d` (days) or `s` (seconds) suffix.
+    integer with a `d` (days) or `s` (seconds) suffix. If combined with
+    `--evict-namespace`, only remove old files within that namespace.
 
 *-h*, *--help*::
 
@@ -153,12 +159,17 @@ compiler's documentation.
 *--show-log-stats*::
 
     Print statistics counters from the stats log in human-readable format. See
-    <<config_stats_log,*stats_log*>>.
+    <<config_stats_log,*stats_log*>>. Use `-v`/`--verbose` once or twice for
+    more details.
 
 *-s*, *--show-stats*::
 
     Print a summary of configuration and statistics counters in human-readable
-    format.
+    format. Use `-v`/`--verbose` once or twice for more details.
+
+*-v*, *--verbose*::
+
+    Increase verbosity. The option can be given multiple times.
 
 *-V*, *--version*::
 
@@ -202,7 +213,7 @@ cache directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
 *--checksum-file* _PATH_::
 
-    Print the checksum (64 bit XXH3) of the file at _PATH_ (`-` for standard
+    Print the checksum (128 bit XXH3) of the file at _PATH_ (`-` for standard
     input).
 
 *--dump-manifest* _PATH_::
@@ -765,6 +776,21 @@ file in `/etc/rsyslog.d`:
     Gi, Ti (binary). The default suffix is G. See also
     _<<Cache size management>>_.
 
+[#config_namespace]
+*namespace* (*CCACHE_NAMESPACE*)::
+
+    If set, the namespace string will be added to the hashed data for each
+    compilation. This will make the associated cache entries logically separate
+    from cache entries with other namespaces, but they will still share the same
+    storage space. Cache entries can also be selectively removed from the
+    primary cache with the command line option `--evict-namespace`, potentially
+    in combination with `--evict-older-than`.
+.
+For instance, if you use the same primary cache for several disparate projects,
+you can use a unique namespace string for each one. This allows you to remove
+cache entries that belong to a certain project if stop working with that
+project.
+
 [#config_path]
 *path* (*CCACHE_PATH*)::
 
@@ -1189,6 +1215,14 @@ Examples:
 Optional attributes:
 
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
+* *keep-alive*: If *true*, keep the HTTP connection to the storage server open
+  to avoid reconnects. The default is *false*.
++
+NOTE: Connection keep-alive is disabled by default because with the current
+HTTP implementation uploads to the remote end might fail in case the server
+closes the connection due to a keep-alive timeout. If the general case with
+short compilation times should be accelerated or the server is configured with
+a long-enough timeout, then connection keep-alive could be enabled.
 * *layout*: How to map key names to the path part of the URL. Available values:
 +
 --
@@ -1313,7 +1347,7 @@ Incompressible data:   3.5 GB
 Notes:
 
 * The "`disk blocks`" size is the cache size when taking disk block size into
-  account. This value should match the "`cache size`" value from "`ccache
+  account. This value should match the "`Cache size`" value from "`ccache
   --show-stats`". The other size numbers refer to actual content sizes.
 * "`Compressed data`" refers to result and manifest files stored in the cache.
 * "`Incompressible data`" refers to files that are always stored uncompressed
@@ -1335,64 +1369,51 @@ recompressed.
 
 == Cache statistics
 
-`ccache -s` can show the following statistics:
+`ccache --show-stats` shows a summary of statistics, including cache size,
+cleanups (number of performed cleanups, either implicitly due to a cache size
+limit being reached or due to explicit `ccache -c` calls), overall hit rate, hit
+rate for <<The direct mode,direct>>/<<The preprocessor mode,preprocessed>> modes
+and hit rate for primary and <<config_secondary_storage,secondary>> storage.
+
+The summary also includes counters called "`Errors`" and "`Uncacheable`", which
+are sums of more detailed counters. To see those detailed counters, use the
+`-v`/`--verbose` flag. The verbose mode can show the following counters:
 
 [options="header",cols="30%,70%"]
 |==============================================================================
-| *Name* | *Description*
+| *Counter* | *Description*
 
-| autoconf compile/link |
-Uncachable compilation or linking by an autoconf test.
+| Autoconf compile/link |
+Uncacheable compilation or linking by an Autoconf test.
 
-| bad compiler arguments |
+| Bad compiler arguments |
 Malformed compiler argument, e.g. missing a value for a compiler option that
 requires an argument or failure to read a file specified by a compiler option
 argument.
 
-| cache file missing |
-A file was unexpectedly missing from the cache. This only happens in rare
-situations, e.g. if one ccache instance is about to get a file from the cache
-while another instance removed the file as part of cache cleanup.
-
-| cache hit (direct) |
-A result was successfully found using <<The direct mode,the direct mode>>.
-
-| cache hit (preprocessed) |
-A result was successfully found using <<The preprocessor mode,the preprocessor
-mode>>.
-
-| cache miss |
-No result was found.
-
-| cache size |
-Current size of the cache.
-
-| called for link |
+| Called for linking |
 The compiler was called for linking, not compiling. Ccache only supports
 compilation of a single file, i.e. calling the compiler with the `-c` option to
 produce a single object file from a single source file.
 
-| called for preprocessing |
+| Called for preprocessing |
 The compiler was called for preprocessing, not compiling.
 
-| can't use precompiled header |
+| Could not use modules |
+Preconditions for using <<C++ modules>> were not fulfilled.
+
+| Could not use precompiled header |
 Preconditions for using <<Precompiled headers,precompiled headers>> were not
 fulfilled.
 
-| can't use modules |
-Preconditions for using <<C++ modules>> were not fulfilled.
+| Could not write to output file |
+The output path specified with `-o` is not a file (e.g. a directory or a device
+node).
 
-| ccache internal error |
-Unexpected failure, e.g. due to problems reading/writing the cache.
-
-| cleanups performed |
-Number of cleanups performed, either implicitly due to the cache size limit
-being reached or due to explicit `ccache -c` calls.
-
-| compile failed |
+| Compilation failed |
 The compilation failed. No result stored in the cache.
 
-| compiler check failed |
+| Compiler check failed |
 A compiler check program specified by
 <<config_compiler_check,*compiler_check*>> (*CCACHE_COMPILERCHECK*) failed.
 
@@ -1400,40 +1421,44 @@ A compiler check program specified by
 A preprocessor check program specified by
 <<config_preprocessor_check,*preprocessor_check*>> (*CCACHE_PREPROCESSORCHECK*) failed.
 
-| compiler produced empty output |
+| Compiler produced empty output |
 The compiler's output file (typically an object file) was empty after
 compilation.
 
-| compiler produced no output |
+| Compiler produced no output |
 The compiler's output file (typically an object file) was missing after
 compilation.
 
-| compiler produced stdout |
+| Compiler produced stdout |
 The compiler wrote data to standard output. This is something that compilers
 normally never do, so ccache is not designed to store such output in the cache.
 
-| couldn't find the compiler |
+| Could not find the compiler |
 The compiler to execute could not be found.
 
-| error hashing extra file |
+| Error hashing extra file |
 Failure reading a file specified by
 <<config_extra_files_to_hash,*extra_files_to_hash*>> (*CCACHE_EXTRAFILES*).
 
-| files in cache |
-Current number of files in the cache.
+| Forced recache |
+<<config_recache,*CCACHE_RECACHE*>> was used to overwrite an existing result.
 
-| multiple source files |
+| Internal error |
+Unexpected failure, e.g. due to problems reading/writing the cache.
+
+| Missing cache file |
+A file was unexpectedly missing from the cache. This only happens in rare
+situations, e.g. if one ccache instance is about to get a file from the cache
+while another instance removed the file as part of cache cleanup.
+
+| Multiple source files |
 The compiler was called to compile multiple source files in one go. This is not
 supported by ccache.
 
-| no input file |
+| No input file |
 No input file was specified to the compiler.
 
-| output to a non-regular file |
-The output path specified with `-o` is not a file (e.g. a directory or a device
-node).
-
-| output to stdout |
+| Output to stdout |
 The compiler was instructed to write its output to standard output using `-o -`.
 This is not supported by ccache.
 
@@ -1443,23 +1468,17 @@ The compiler emitted diagnostics in <<the_unify_mode,unify mode>> with
 will refer to the temporary file, it has to re-run with he original
 input file.
 
-| preprocessor error |
+| Preprocessing failed |
 Preprocessing the source code using the compiler's `-E` option failed.
 
-| stats updated |
-When statistics were updated the last time.
-
-| stats zeroed |
-When `ccache -z` was called the last time.
-
-| unsupported code directive |
+| Unsupported code directive |
 Code like the assembler `.incbin` directive was found. This is not supported
 by ccache.
 
-| unsupported compiler option |
+| Unsupported compiler option |
 A compiler option not supported by ccache was found.
 
-| unsupported source language |
+| Unsupported source language |
 A source language e.g. specified with `-x` was unsupported by ccache.
 
 |==============================================================================
@@ -1818,10 +1837,10 @@ things to make it work properly:
    compiling.
 --
 +
-If you don't do this, either the non-precompiled version of the header file
-will be used (if available) or ccache will fall back to running the real
-compiler and increase the statistics counter "`preprocessor error`" (if the
-non-precompiled header file is not available).
+If you don't do this, either the non-precompiled version of the header file will
+be used (if available) or ccache will fall back to running the real compiler and
+increase the statistics counter "`Preprocessing failed`" (if the non-precompiled
+header file is not available).
 
 
 == C++ modules
@@ -1955,9 +1974,9 @@ A good way of monitoring how well ccache works is to run `ccache -s` before and
 after your build and then compare the statistics counters. Here are some common
 problems and what may be done to increase the hit rate:
 
-* If "`cache hit (preprocessed)`" has been incremented instead of "`cache hit
-  (direct)`", ccache has fallen back to preprocessor mode, which is generally
-  slower. Some possible reasons are:
+* If the counter for preprocessed cache hits has been incremented instead of the
+  one for direct cache hits, ccache has fallen back to preprocessor mode, which
+  is generally slower. Some possible reasons are:
 ** The source code has been modified in such a way that the preprocessor output
    is not affected.
 ** Compiler arguments that are hashed in the direct mode but not in the
@@ -1998,24 +2017,24 @@ problems and what may be done to increase the hit rate:
    direct mode hash to be able to take relative include files into account and
    to produce a correct object file if the source code includes a `+__FILE__+`
    macro.
-* If "`cache miss`" has been incremented even though the same code has been
+* If a cache hit counter was not incremented even though the same code has been
   compiled and cached before, ccache has either detected that something has
   changed anyway or a cleanup has been performed (either explicitly or
   implicitly when a cache limit has been reached). Some perhaps unobvious things
   that may result in a cache miss are usage of `+__TIME__+`, `+__DATE__+` or
   `+__TIMESTAMP__+` macros, or use of automatically generated code that contains
   a timestamp, build counter or other volatile information.
-* If "`multiple source files`" has been incremented, it's an indication that
-  the compiler has been invoked on several source code files at once. Ccache
-  doesn't support that. Compile the source code files separately if possible.
-* If "`unsupported compiler option`" has been incremented, enable debug logging
+* If "`Multiple source files`" has been incremented, it's an indication that the
+  compiler has been invoked on several source code files at once. Ccache doesn't
+  support that. Compile the source code files separately if possible.
+* If "`Unsupported compiler option`" has been incremented, enable debug logging
   and check which compiler option was rejected.
-* If "`preprocessor error`" has been incremented, one possible reason is that
+* If "`Preprocessing failed`" has been incremented, one possible reason is that
   precompiled headers are being used. See _<<Precompiled headers>>_ for how to
   remedy this.
-* If "`can't use precompiled header`" has been incremented, see
+* If "`Could not use precompiled header`" has been incremented, see
   _<<Precompiled headers>>_.
-* If "`can't use modules`" has been incremented, see _<<C++ modules>>_.
+* If "`Could not use modules`" has been incremented, see _<<C++ modules>>_.
 
 
 === Corrupt object files

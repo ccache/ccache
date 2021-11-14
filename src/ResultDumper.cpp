@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,10 +18,11 @@
 
 #include "ResultDumper.hpp"
 
-#include "CacheEntryReader.hpp"
 #include "Context.hpp"
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
+
+#include <core/CacheEntryReader.hpp>
 
 using nonstd::optional;
 
@@ -30,9 +31,11 @@ ResultDumper::ResultDumper(FILE* stream) : m_stream(stream)
 }
 
 void
-ResultDumper::on_header(CacheEntryReader& cache_entry_reader)
+ResultDumper::on_header(core::CacheEntryReader& cache_entry_reader,
+                        const uint8_t result_format_version)
 {
-  cache_entry_reader.dump_header(m_stream);
+  cache_entry_reader.header().dump(m_stream);
+  PRINT(m_stream, "Result format version: {}\n", result_format_version);
 }
 
 void

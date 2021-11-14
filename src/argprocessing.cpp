@@ -106,9 +106,9 @@ color_output_possible()
 }
 
 bool
-detect_pch(Context& ctx,
-           const std::string& option,
+detect_pch(const std::string& option,
            const std::string& arg,
+           std::string& included_pch_file,
            bool is_cc1_option,
            bool* found_pch)
 {
@@ -135,20 +135,22 @@ detect_pch(Context& ctx,
   }
 
   if (!pch_file.empty()) {
-    if (!ctx.included_pch_file.empty()) {
+    if (!included_pch_file.empty()) {
       LOG("Multiple precompiled headers used: {} and {}",
-          ctx.included_pch_file,
+          included_pch_file,
           pch_file);
       return false;
     }
-    ctx.included_pch_file = pch_file;
+    included_pch_file = pch_file;
     *found_pch = true;
   }
   return true;
 }
 
 bool
-process_profiling_option(Context& ctx, const std::string& arg)
+process_profiling_option(const Context& ctx,
+                         ArgsInfo& args_info,
+                         const std::string& arg)
 {
   static const std::vector<std::string> known_simple_options = {
     "-fprofile-correction",
@@ -168,7 +170,7 @@ process_profiling_option(Context& ctx, const std::string& arg)
   if (util::starts_with(arg, "-fprofile-dir=")) {
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-generate" || arg == "-fprofile-instr-generate") {
-    ctx.args_info.profile_generate = true;
+    args_info.profile_generate = true;
     if (ctx.config.base_compiler_type() == CompilerType::clang) {
       new_profile_path = ".";
     } else {
@@ -177,13 +179,13 @@ process_profiling_option(Context& ctx, const std::string& arg)
     }
   } else if (util::starts_with(arg, "-fprofile-generate=")
              || util::starts_with(arg, "-fprofile-instr-generate=")) {
-    ctx.args_info.profile_generate = true;
+    args_info.profile_generate = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-use" || arg == "-fprofile-instr-use"
              || arg == "-fprofile-sample-use" || arg == "-fbranch-probabilities"
              || arg == "-fauto-profile") {
     new_profile_use = true;
-    if (ctx.args_info.profile_path.empty()) {
+    if (args_info.profile_path.empty()) {
       new_profile_path = ".";
     }
   } else if (util::starts_with(arg, "-fprofile-use=")
@@ -198,19 +200,19 @@ process_profiling_option(Context& ctx, const std::string& arg)
   }
 
   if (new_profile_use) {
-    if (ctx.args_info.profile_use) {
+    if (args_info.profile_use) {
       LOG_RAW("Multiple profiling options not supported");
       return false;
     }
-    ctx.args_info.profile_use = true;
+    args_info.profile_use = true;
   }
 
   if (!new_profile_path.empty()) {
-    ctx.args_info.profile_path = new_profile_path;
-    LOG("Set profile directory to {}", ctx.args_info.profile_path);
+    args_info.profile_path = new_profile_path;
+    LOG("Set profile directory to {}", args_info.profile_path);
   }
 
-  if (ctx.args_info.profile_generate && ctx.args_info.profile_use) {
+  if (args_info.profile_generate && args_info.profile_use) {
     // Too hard to figure out what the compiler will do.
     LOG_RAW("Both generating and using profile info, giving up");
     return false;
@@ -220,14 +222,13 @@ process_profiling_option(Context& ctx, const std::string& arg)
 }
 
 optional<Statistic>
-process_arg(Context& ctx,
+process_arg(const Context& ctx,
+            ArgsInfo& args_info,
+            Config& config,
             Args& args,
             size_t& args_index,
             ArgumentProcessingState& state)
 {
-  ArgsInfo& args_info = ctx.args_info;
-  Config& config = ctx.config;
-
   size_t& i = args_index;
 
   // The user knows best: just swallow the next arg.
@@ -341,7 +342,7 @@ process_arg(Context& ctx,
   // Some arguments that clang passes directly to cc1 (related to precompiled
   // headers) need the usual ccache handling. In those cases, the -Xclang
   // prefix is skipped and the cc1 argument is handled instead.
-  if (args[i] == "-Xclang" && i < args.size() - 1
+  if (args[i] == "-Xclang" && i + 1 < args.size()
       && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
           || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
           || args[i + 1] == "-fno-pch-timestamp")) {
@@ -547,7 +548,7 @@ process_arg(Context& ctx,
   }
 
   if (util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT")) {
-    ctx.args_info.dependency_target_specified = true;
+    args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
       // -MQ arg or -MT arg
@@ -603,7 +604,7 @@ process_arg(Context& ctx,
   if (util::starts_with(args[i], "-fprofile-")
       || util::starts_with(args[i], "-fauto-profile")
       || args[i] == "-fbranch-probabilities") {
-    if (!process_profiling_option(ctx, args[i])) {
+    if (!process_profiling_option(ctx, args_info, args[i])) {
       // The failure is logged by process_profiling_option.
       return Statistic::unsupported_compiler_option;
     }
@@ -742,7 +743,7 @@ process_arg(Context& ctx,
 
   // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
   // -fcolor-diagnostics argument which is passed to cc1 is handled below.
-  if (args[i] == "-Xclang" && i < args.size() - 1
+  if (args[i] == "-Xclang" && i + 1 < args.size()
       && args[i + 1] == "-fcolor-diagnostics") {
     state.compiler_only_args_no_hash.push_back(args[i]);
     ++i;
@@ -822,8 +823,11 @@ process_arg(Context& ctx,
       next = 2;
     }
 
-    if (!detect_pch(
-          ctx, args[i], args[i + next], next == 2, &state.found_pch)) {
+    if (!detect_pch(args[i],
+                    args[i + next],
+                    args_info.included_pch_file,
+                    next == 2,
+                    &state.found_pch)) {
       return Statistic::bad_compiler_arguments;
     }
 
@@ -1009,7 +1013,8 @@ process_args(Context& ctx)
 
   optional<Statistic> argument_error;
   for (size_t i = 1; i < args.size(); i++) {
-    const auto error = process_arg(ctx, args, i, state);
+    const auto error =
+      process_arg(ctx, ctx.args_info, ctx.config, args, i, state);
     if (error && !argument_error) {
       argument_error = error;
     }

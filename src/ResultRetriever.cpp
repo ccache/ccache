@@ -42,7 +42,8 @@ ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
 }
 
 void
-ResultRetriever::on_header(CacheEntryReader& /*cache_entry_reader*/)
+ResultRetriever::on_header(core::CacheEntryReader& /*cache_entry_reader*/,
+                           const uint8_t /*result_format_version*/)
 {
 }
 

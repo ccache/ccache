@@ -2,7 +2,7 @@ SUITE_nvcc_ldir_PROBE() {
     if [ -z "$REAL_NVCC" ]; then
         echo "nvcc is not available"
         return
-    elif [ -z "$REAL_CUOBJDUMP" ]; then
+    elif ! command -v cuobjdump >/dev/null; then
         echo "cuobjdump is not available"
         return
     fi
@@ -23,9 +23,9 @@ SUITE_nvcc_ldir_PROBE() {
         echo "include directory $nvcc_idir not found"
     fi
 
-    echo "int main() { return 0; }" | $REAL_NVCC -Wno-deprecated-gpu-targets -ccbin $REAL_COMPILER_BIN -c -x cu - 
+    echo "int main() { return 0; }" | $REAL_NVCC -Wno-deprecated-gpu-targets -ccbin $COMPILER_BIN -c -x cu - 
     if [ $? -ne 0 ]; then
-        echo "nvcc of a canary failed; Is CUDA compatible with the host compiler ($REAL_COMPILER_BIN)?"
+        echo "nvcc of a canary failed; Is CUDA compatible with the host compiler ($COMPILER_BIN)?"
     fi
 }
 
@@ -34,9 +34,9 @@ SUITE_nvcc_ldir_SETUP() {
 }
 
 SUITE_nvcc_ldir() {
-    nvcc_opts_cuda="-Wno-deprecated-gpu-targets -c -ccbin $REAL_COMPILER_BIN"
+    nvcc_opts_cuda="-Wno-deprecated-gpu-targets -c -ccbin $COMPILER_BIN"
     ccache_nvcc_cuda="$CCACHE $REAL_NVCC $nvcc_opts_cuda"
-    cuobjdump="$REAL_CUOBJDUMP -all -elf -symbols -ptx -sass"
+    cuobjdump="cuobjdump -all -elf -symbols -ptx -sass"
     nvcc_dir=$(dirname $REAL_NVCC)
     nvcc_ldir=$nvcc_dir/../nvvm/libdevice
     cicc_path=$nvcc_dir/../nvvm/bin

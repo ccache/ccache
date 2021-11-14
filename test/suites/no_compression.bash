@@ -9,7 +9,7 @@ SUITE_no_compression() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $REAL_COMPILER -c -o reference_test.o test.c
+    $COMPILER -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0

@@ -159,10 +159,6 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
     }
 
     DWORD error = GetLastError();
-    LOG("lockfile_acquire: CreateFile {}: {} ({})",
-        lockfile,
-        Win32Util::error_message(error),
-        error);
     if (error == ERROR_PATH_NOT_FOUND) {
       // Directory doesn't exist?
       if (Util::create_dir(Util::dir_name(lockfile))) {
@@ -170,6 +166,11 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
         continue;
       }
     }
+
+    LOG("lockfile_acquire: CreateFile {}: {} ({})",
+        lockfile,
+        Win32Util::error_message(error),
+        error);
 
     // ERROR_SHARING_VIOLATION: lock already held.
     // ERROR_ACCESS_DENIED: maybe pending delete.

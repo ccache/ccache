@@ -27,7 +27,7 @@
 class CacheFile
 {
 public:
-  enum class Type { result, manifest, unknown };
+  enum class Type { result, manifest, raw, unknown };
 
   explicit CacheFile(const std::string& path);
 

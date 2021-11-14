@@ -35,10 +35,7 @@ namespace compression {
 class ZstdCompressor : public Compressor, NonCopyable
 {
 public:
-  // Parameters:
-  // - stream: The file to write data to.
-  // - compression_level: Desired compression level.
-  ZstdCompressor(FILE* stream, int8_t compression_level);
+  ZstdCompressor(core::Writer& writer, int8_t compression_level);
 
   ~ZstdCompressor() override;
 
@@ -49,7 +46,7 @@ public:
   constexpr static uint8_t default_compression_level = 1;
 
 private:
-  FILE* m_stream;
+  core::Writer& m_writer;
   ZSTD_CCtx_s* m_zstd_stream;
   std::unique_ptr<ZSTD_inBuffer_s> m_zstd_in;
   std::unique_ptr<ZSTD_outBuffer_s> m_zstd_out;

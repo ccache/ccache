@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -31,7 +30,11 @@ public:
   {
   public:
     Cell(const std::string& text);
+    Cell(const char* text);
+    Cell(uint64_t number);
 
+    Cell& colspan(size_t columns);
+    Cell& left_align();
     Cell& right_align();
 
   private:
@@ -40,14 +43,18 @@ public:
     const std::string m_text;
     bool m_right_align = false;
     bool m_heading = false;
+    size_t m_colspan = 1;
   };
 
   void add_heading(const std::string& text);
-  void add_row(std::initializer_list<Cell> cells);
+  void add_row(const std::vector<Cell>& cells);
   std::string render() const;
 
 private:
   std::vector<std::vector<Cell>> m_rows;
+  size_t m_columns = 0;
+
+  std::vector<size_t> compute_column_widths() const;
 };
 
 } // namespace util

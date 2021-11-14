@@ -88,7 +88,7 @@ using nonstd::string_view;
 // different for the same input in a new ccache version, we can just change
 // this string. A typical example would be if the format of one of the files
 // stored in the cache changes in a backwards-incompatible way.
-const char HASH_PREFIX[] = "3";
+const char HASH_PREFIX[] = "4";
 
 namespace {
 
@@ -170,13 +170,8 @@ prepare_debug_path(const std::string& debug_dir,
 {
   auto prefix = debug_dir.empty()
                   ? output_obj
-                  : debug_dir + util::to_absolute_path(output_obj);
-#ifdef _WIN32
-  prefix.erase(std::remove(prefix.begin(), prefix.end(), ':'), prefix.end());
-#endif
-  try {
-    Util::ensure_dir_exists(Util::dir_name(prefix));
-  } catch (core::Error&) {
+                  : debug_dir + util::to_absolute_path_no_drive(output_obj);
+  if (!Util::create_dir(Util::dir_name(prefix))) {
     // Ignore since we can't handle an error in another way in this context. The
     // caller takes care of logging when trying to open the path for writing.
   }
@@ -230,7 +225,7 @@ guess_compiler(string_view path)
   const string_view name = Util::base_name(compiler_path);
   size_t clangdashpos = name.find("clang-");
   if (clangdashpos != nonstd::string_view::npos) {
-    // Clang version 13 or later support the -fnormalize-whitespace flag.
+    // Clang version 14 or later support the -fminimize-whitespace flag.
     char* EndPtr = nullptr;
     long clangversion = strtol(name.data() + 6, &EndPtr, 10);
     if (clangversion >= 14) {
@@ -365,7 +360,7 @@ do_remember_include_file(Context& ctx,
   Hash fhash;
 
   if (is_pch) {
-    if (ctx.included_pch_file.empty()) {
+    if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
     }
     bool using_pch_sum = false;
@@ -454,7 +449,8 @@ process_preprocessed_file(Context& ctx,
                           const std::string& path,
                           bool pump)
 {
-  bool detect_incbin = !ctx.config.sloppiness(). is_enabled(core::Sloppy::incbin);
+  bool detect_incbin =
+    !ctx.config.sloppiness().is_enabled(core::Sloppy::incbin);
 
   std::string data;
   try {
@@ -622,8 +618,9 @@ process_preprocessed_file(Context& ctx,
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
-  if (!ctx.included_pch_file.empty()) {
-    std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
     remember_include_file(ctx, pch_path, &hash, false, nullptr);
   }
@@ -676,12 +673,20 @@ hash_depfiles(Context& ctx,
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
+<<<<<<< HEAD
   if (!ctx.included_pch_file.empty()) {
     std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
     if (pch_hash) {
       pch_hash->hash(pch_path);
     }
     remember_include_file(ctx, pch_path, pch_hash, false, nullptr);
+=======
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pch_path);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
+>>>>>>> official/master
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -698,12 +703,12 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   if (!hash_depfiles(ctx, &hash, &hash, ctx.args_info.output_dep)) {
     return nullopt;
   }
-   
+
   return hash.digest();
 }
 
 // Process the output of the preprocessor output in unify mode.
-static Statistic
+static nonstd::expected<void, Failure>
 process_unified_file(Context& ctx,
                      Hash& hash,
                      const std::string& stdout_path,
@@ -714,21 +719,22 @@ process_unified_file(Context& ctx,
   // dependency.
   if (!deps_path.empty() && !hash.hash_file(deps_path)) {
     LOG("Failed to open {}: {}", stdout_path, strerror(errno));
-    return Statistic::internal_error;
+    return nonstd::make_unexpected(Statistic::internal_error);
   }
 
   // The preprocessed file already contains all the content, so throw away the
   // included files' hashes, but still record them for direct mode.
   if (!hash_depfiles(ctx, nullptr, &hash, deps_path)) {
-    throw Failure(Statistic::internal_error);
+    LOG_RAW("Failure while hashing files");
+    return nonstd::make_unexpected(Statistic::internal_error);
   }
 
   // With sloppy_incbin, only hash the preprocessor output. Otherwise, read-in
   // the entire file to hash and scan for .incbin directives.
-  if (ctx.config.sloppiness(). is_enabled(core::Sloppy::incbin) ) {
+  if (ctx.config.sloppiness().is_enabled(core::Sloppy::incbin)) {
     if (!hash.hash_file(stdout_path)) {
       LOG("Failed to open {}: {}", stdout_path, strerror(errno));
-      throw Failure(Statistic::internal_error);
+      return nonstd::make_unexpected(Statistic::internal_error);
     }
   } else {
     std::string data;
@@ -736,18 +742,18 @@ process_unified_file(Context& ctx,
       data = Util::read_file(stdout_path);
     } catch (core::Error& err) {
       LOG("Failed to open {}: {}", stdout_path, err.what());
-      return Statistic::internal_error;
+      return nonstd::make_unexpected(Statistic::internal_error);
     }
 
     hash.hash(data);
 
     if (data.find(".incbin") != std::string::npos) {
       LOG_RAW("Found unsupported .incbin directive in source code");
-      throw Failure(Statistic::unsupported_code_directive);
+      return nonstd::make_unexpected(Statistic::unsupported_code_directive);
     }
   }
 
-  return Statistic::none;
+  return {};
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -818,7 +824,9 @@ update_manifest_file(Context& ctx,
     return;
   }
 
-  MTR_BEGIN("manifest", "manifest_put");
+  ASSERT(ctx.config.direct_mode());
+
+  MTR_SCOPE("manifest", "manifest_put");
 
   // See comment in get_file_hash_index for why saving of timestamps is forced
   // for precompiled headers.
@@ -836,8 +844,6 @@ update_manifest_file(Context& ctx,
                            ctx.time_of_compilation,
                            save_timestamp);
     });
-
-  MTR_END("manifest", "manifest_put");
 }
 
 struct FindCoverageFileResult
@@ -1033,21 +1039,21 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.unify_mode()
-      && !ctx.config.sloppiness(). is_enabled(core::Sloppy::unify_with_output) ) {
+      && !ctx.config.sloppiness().is_enabled(core::Sloppy::unify_with_output)) {
     Stat se = Stat::stat(tmp_stderr_path, Stat::OnError::log);
     if (!se) {
       // The stderr file was removed - cleanup in progress? Better bail out.
-      throw Failure(Statistic::missing_cache_file);
+      return nonstd::make_unexpected(Statistic::missing_cache_file);
     }
     if (se.size() != 0) {
-      LOG_RAW("Compiler emitted diagnostics in unify mode qq");
+      LOG_RAW("Compiler emitted diagnostics in unify mode");
       std::string stderr_content = Util::read_file(tmp_stderr_path);
       LOG("The diagnostics:\n----\n{}\n----\n", stderr_content);
 
       // Without run_second_cpp, diagnostics refer to the temporary file; fail
       // and run again using the original input to get usable diagnostics.
       if (!ctx.config.run_second_cpp()) {
-        throw Failure(Statistic::compiler_produced_stderr);
+        return nonstd::make_unexpected(Statistic::compiler_produced_stderr);
       }
 
       // With run_second_cpp, the compiler diagnostic output is good for this
@@ -1057,7 +1063,6 @@ to_cache(Context& ctx,
       // referred to from the manifest, and thus, by direct mode.
       LOG_RAW("Invalidate preprocessed output hash");
       depend_mode_hash->hash_delimiter("diag");
-
       depend_mode_hash->hash(stderr_content);
       result_key = depend_mode_hash->digest();
     }
@@ -1117,10 +1122,10 @@ to_cache(Context& ctx,
     *result_key, core::CacheEntryType::result, [&](const auto& path) {
       return write_result(ctx, path, obj_stat, tmp_stderr_path);
     });
+  MTR_END("result", "result_put");
   if (!added) {
     return nonstd::make_unexpected(Statistic::internal_error);
   }
-  MTR_END("result", "result_put");
 
   // Everything OK.
   Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
@@ -1137,11 +1142,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
   std::string stderr_path;
   std::string stdout_path;
-<<<<<<< HEAD
   std::string deps_path;
-  int status;
-=======
->>>>>>> official/master~19
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
@@ -1196,7 +1197,9 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
         deps_path = tmp_deps.path;
         LOG("Unify mode: Using temporary dependency file {}", deps_path);
         args.push_back(
-          ctx.config.sloppiness(). is_enabled(core::Sloppy::system_headers) ? "-MMD" : "-MD");
+          ctx.config.sloppiness().is_enabled(core::Sloppy::system_headers)
+            ? "-MMD"
+            : "-MD");
         args.push_back("-MF");
         args.push_back(deps_path);
         args_added += 3;
@@ -1216,13 +1219,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
-<<<<<<< HEAD
-    status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr), true);
-=======
     const auto status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
->>>>>>> official/master~19
+      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr), true);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
 
@@ -1235,26 +1233,13 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   hash.hash_delimiter("cpp");
-<<<<<<< HEAD
 
   if (ctx.config.unify_mode()) {
-    const Statistic error =
-      process_unified_file(ctx, hash, stdout_path, deps_path);
-    if (error != Statistic::none) {
-      throw Failure(error);
-    }
+    TRY(process_unified_file(ctx, hash, stdout_path, deps_path));
   } else {
     const bool is_pump = (ctx.config.compiler_type() == CompilerType::pump);
-    const Statistic error =
-      process_preprocessed_file(ctx, hash, stdout_path, is_pump);
-    if (error != Statistic::none) {
-      throw Failure(error);
-    }
+    TRY(process_preprocessed_file(ctx, hash, stdout_path, is_pump));
   }
-=======
-  const bool is_pump = ctx.config.compiler_type() == CompilerType::pump;
-  TRY(process_preprocessed_file(ctx, hash, stdout_path, is_pump));
->>>>>>> official/master~19
 
   hash.hash_delimiter("cppstderr");
   if (!ctx.args_info.direct_i_file && !hash.hash_file(stderr_path)) {
@@ -1411,6 +1396,11 @@ hash_common_info(const Context& ctx,
 {
   hash.hash(HASH_PREFIX);
 
+  if (!ctx.config.namespace_().empty()) {
+    hash.hash_delimiter("namespace");
+    hash.hash(ctx.config.namespace_());
+  }
+
   // We have to hash the extension, as a .i file isn't treated the same by the
   // compiler as a .ii file.
   hash.hash_delimiter("ext");
@@ -1428,8 +1418,7 @@ hash_common_info(const Context& ctx,
   }
 
   // Hash information about the compiler.
-<<<<<<< HEAD
-  hash_compiler(ctx, hash, st, compiler_path, true);
+  TRY(hash_compiler(ctx, hash, st, compiler_path, true));
   if (!ctx.config.preprocessor().empty() && !ctx.config.depend_mode()) {
     std::string preprocessor_path = ctx.config.preprocessor();
 #ifdef _WIN32
@@ -1437,9 +1426,6 @@ hash_common_info(const Context& ctx,
 #endif
     hash_preprocessor(ctx, hash, st, preprocessor_path, true);
   }
-=======
-  TRY(hash_compiler(ctx, hash, st, compiler_path, true));
->>>>>>> official/master~19
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -1943,14 +1929,14 @@ calculate_result_and_manifest_key(Context& ctx,
 enum class FromCacheCallMode { direct, cpp };
 
 // Try to return the compile result from cache.
-static optional<Statistic>
+static bool
 from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 {
   UmaskScope umask_scope(ctx.original_umask);
 
   // The user might be disabling cache hits.
   if (ctx.config.recache()) {
-    return nullopt;
+    return false;
   }
 
   // If we're using Clang, we can't trust a precompiled header object based on
@@ -1965,16 +1951,16 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
       && ctx.args_info.output_is_precompiled_header
       && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
-    return nullopt;
+    return false;
   }
 
-  MTR_BEGIN("cache", "from_cache");
+  MTR_SCOPE("cache", "from_cache");
 
   // Get result from cache.
   const auto result_path =
     ctx.storage.get(result_key, core::CacheEntryType::result);
   if (!result_path) {
-    return nullopt;
+    return false;
   }
 
   Result::Reader result_reader(*result_path);
@@ -1982,16 +1968,13 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     ctx, should_rewrite_dependency_target(ctx.args_info));
 
   auto error = result_reader.read(result_retriever);
-  MTR_END("cache", "from_cache");
   if (error) {
     LOG("Failed to get result from cache: {}", *error);
-    return nullopt;
+    return false;
   }
 
   LOG_RAW("Succeeded getting cached result");
-
-  return mode == FromCacheCallMode::direct ? Statistic::direct_cache_hit
-                                           : Statistic::preprocessed_cache_hit;
+  return true;
 }
 
 // Find the real compiler and put it into ctx.orig_args[0]. We just search the
@@ -2088,9 +2071,8 @@ log_result_to_debug_log(Context& ctx)
   }
 
   core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
-  const auto result_message = statistics.get_result_message();
-  if (result_message) {
-    LOG("Result: {}", *result_message);
+  for (const auto& message : statistics.get_statistics_ids()) {
+    LOG("Result: {}", message);
   }
 }
 
@@ -2102,13 +2084,13 @@ log_result_to_stats_log(Context& ctx)
   }
 
   core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
-  const auto result_id = statistics.get_result_id();
-  if (!result_id) {
+  const auto ids = statistics.get_statistics_ids();
+  if (ids.empty()) {
     return;
   }
 
   core::StatsLog(ctx.config.stats_log())
-    .log_result(ctx.args_info.input_file, *result_id);
+    .log_result(ctx.args_info.input_file, ids);
 }
 
 static void
@@ -2160,7 +2142,6 @@ cache_compilation(int argc, const char* const* argv)
     find_compiler(ctx, &find_executable);
     MTR_END("main", "find_compiler");
 
-<<<<<<< HEAD
     const std ::string& preprocessor = ctx.config.preprocessor();
     if (!preprocessor.empty()) {
       if (!util::is_full_path(preprocessor)) {
@@ -2168,29 +2149,17 @@ cache_compilation(int argc, const char* const* argv)
           find_executable(ctx, preprocessor, CCACHE_NAME);
         if (resolved_compiler.empty()) {
           throw core::Fatal("Could not find preprocessor \"{}\" in PATH",
-                      preprocessor);
+                            preprocessor);
         }
       }
     }
 
-    try {
-      Statistic statistic = do_cache_compilation(ctx, argv);
-      ctx.storage.primary.increment_statistic(statistic);
-    } catch (const Failure& e) {
-      if (e.statistic() != Statistic::none) {
-        ctx.storage.primary.increment_statistic(e.statistic());
-      }
-
-      if (e.exit_code()) {
-        return *e.exit_code();
-=======
     const auto result = do_cache_compilation(ctx, argv);
     const auto& counters = result ? *result : result.error().counters();
     ctx.storage.primary.increment_statistics(counters);
     if (!result) {
       if (result.error().exit_code()) {
         return *result.error().exit_code();
->>>>>>> official/master~19
       }
       // Else: Fall back to running the real compiler.
       fall_back_to_original_compiler = true;
@@ -2266,8 +2235,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
-    // Statistic::cache_miss is a dummy to trigger stats_flush.
-    return nonstd::make_unexpected(Statistic::cache_miss);
+    return nonstd::make_unexpected(Statistic::none);
   }
 
   LOG("Command line: {}", Util::format_argv_for_logging(argv));
@@ -2299,6 +2267,17 @@ do_cache_compilation(Context& ctx, const char* const* argv)
           || !ctx.config.run_second_cpp())) {
     LOG_RAW("Disabling depend mode");
     ctx.config.set_depend_mode(false);
+  }
+
+  if (ctx.storage.has_secondary_storage()) {
+    if (ctx.config.file_clone()) {
+      LOG_RAW("Disabling file clone mode since secondary storage is enabled");
+      ctx.config.set_file_clone(false);
+    }
+    if (ctx.config.hard_link()) {
+      LOG_RAW("Disabling hard link mode since secondary storage is enabled");
+      ctx.config.set_hard_link(false);
+    }
   }
 
   LOG("Source file: {}", ctx.args_info.input_file);
@@ -2339,10 +2318,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   Hash common_hash;
   init_hash_debug(ctx, common_hash, 'c', "COMMON", debug_text_file);
 
-  MTR_BEGIN("hash", "common_hash");
-  TRY(hash_common_info(
-    ctx, processed.preprocessor_args, common_hash, ctx.args_info));
-  MTR_END("hash", "common_hash");
+  {
+    MTR_SCOPE("hash", "common_hash");
+    TRY(hash_common_info(
+      ctx, processed.preprocessor_args, common_hash, ctx.args_info));
+  }
 
   // Try to find the hash using the manifest.
   Hash direct_hash = common_hash;
@@ -2358,20 +2338,21 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");
-    MTR_BEGIN("hash", "direct_hash");
     Args dummy_args;
+    MTR_BEGIN("hash", "direct_hash");
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
       ctx, args_to_hash, dummy_args, direct_hash, true);
+    MTR_END("hash", "direct_hash");
     if (!result_and_manifest_key) {
       return nonstd::make_unexpected(result_and_manifest_key.error());
     }
     std::tie(result_key, manifest_key) = *result_and_manifest_key;
-    MTR_END("hash", "direct_hash");
     if (result_key) {
       // If we can return from cache at this point then do so.
-      auto result = from_cache(ctx, FromCacheCallMode::direct, *result_key);
-      if (result) {
-        return *result;
+      const bool found =
+        from_cache(ctx, FromCacheCallMode::direct, *result_key);
+      if (found) {
+        return Statistic::direct_cache_hit;
       }
 
       // Wasn't able to return from cache at this point. However, the result
@@ -2383,6 +2364,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       // Add result to manifest later.
       put_result_in_manifest = true;
     }
+
+    ctx.storage.primary.increment_statistic(Statistic::direct_cache_miss);
   }
 
   if (ctx.config.read_only_direct()) {
@@ -2399,11 +2382,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     MTR_BEGIN("hash", "cpp_hash");
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
       ctx, args_to_hash, processed.preprocessor_args, cpp_hash, false);
+    MTR_END("hash", "cpp_hash");
     if (!result_and_manifest_key) {
       return nonstd::make_unexpected(result_and_manifest_key.error());
     }
     result_key = result_and_manifest_key->first;
-    MTR_END("hash", "cpp_hash");
 
     // calculate_result_and_manifest_key always returns a non-nullopt result_key
     // if the last argument (direct_mode) is false.
@@ -2431,13 +2414,15 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
 
     // If we can return from cache at this point then do.
-    const auto result = from_cache(ctx, FromCacheCallMode::cpp, *result_key);
-    if (result) {
-      if (manifest_key && put_result_in_manifest) {
+    const auto found = from_cache(ctx, FromCacheCallMode::cpp, *result_key);
+    if (found) {
+      if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest_file(ctx, *manifest_key, *result_key);
       }
-      return *result;
+      return Statistic::preprocessed_cache_hit;
     }
+
+    ctx.storage.primary.increment_statistic(Statistic::preprocessed_cache_miss);
   }
 
   if (ctx.config.read_only()) {
@@ -2447,7 +2432,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   add_prefix(ctx, processed.compiler_args, ctx.config.prefix_command());
 
-  // In depend_ and unify mode, extend the direct hash.
+  // In depend and unify mode, extend the direct hash.
   Hash* depend_mode_hash = (ctx.config.depend_mode() || ctx.config.unify_mode())
                              ? &direct_hash
                              : nullptr;
@@ -2459,17 +2444,18 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                                result_key,
                                ctx.args_info.depend_extra_args,
                                depend_mode_hash);
+  MTR_END("cache", "to_cache");
   if (!digest) {
     return nonstd::make_unexpected(digest.error());
   }
   result_key = *digest;
   if (ctx.config.direct_mode()) {
     ASSERT(manifest_key);
+    MTR_SCOPE("cache", "update_manifest");
     update_manifest_file(ctx, *manifest_key, *result_key);
   }
-  MTR_END("cache", "to_cache");
 
-  return Statistic::cache_miss;
+  return ctx.config.recache() ? Statistic::recache : Statistic::cache_miss;
 }
 
 int

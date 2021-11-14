@@ -58,4 +58,16 @@ to_absolute_path(nonstd::string_view path)
   }
 }
 
+std::string
+to_absolute_path_no_drive(nonstd::string_view path)
+{
+  std::string abs_path = to_absolute_path(path);
+#ifdef _WIN32
+  if (abs_path.length() >= 2 && abs_path[1] == ':') {
+    abs_path.erase(0, 2);
+  }
+#endif
+  return abs_path;
+}
+
 } // namespace util

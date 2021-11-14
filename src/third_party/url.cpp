@@ -727,7 +727,7 @@ void Url::parse_url() const {
             p=find_char(b, ea, '@');
             // get user info if any
             if (p!=ea) {
-                if (!is_chars(b, p, 0x05))
+                if (!is_chars(b, p, 0x25))
                     throw Url::parse_error("User info in '"+std::string(s,e-s)+"' is invalid");
                 user_b=b;
                 user_e=p;

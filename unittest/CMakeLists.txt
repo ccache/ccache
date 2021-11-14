@@ -4,7 +4,6 @@ set(
   main.cpp
   test_Args.cpp
   test_AtomicFile.cpp
-  test_Checksum.cpp
   test_Config.cpp
   test_Depfile.cpp
   test_FormatNonstdStringView.cpp
@@ -26,6 +25,8 @@ set(
   test_storage_primary_util.cpp
   test_util_TextTable.cpp
   test_util_Tokenizer.cpp
+  test_util_XXH3_128.cpp
+  test_util_XXH3_64.cpp
   test_util_expected.cpp
   test_util_path.cpp
   test_util_string.cpp

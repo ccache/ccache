@@ -54,12 +54,13 @@ struct CompOpt
 };
 
 const CompOpt compopts[] = {
-  {"--Werror", TAKES_ARG},                            // nvcc
-  {"--analyze", TOO_HARD},                            // Clang
-  {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},     // nvcc
-  {"--config", TAKES_ARG},                            // Clang
-  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
-  {"--output-directory", AFFECTS_CPP | TAKES_ARG},    // nvcc
+  {"--Werror", TAKES_ARG},                             // nvcc
+  {"--analyze", TOO_HARD},                             // Clang
+  {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
+  {"--config", TAKES_ARG},                             // Clang
+  {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
+  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG},  // nvcc
+  {"--output-directory", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--param", TAKES_ARG},
   {"--save-temps", TOO_HARD},
   {"--save-temps=cwd", TOO_HARD},
@@ -105,6 +106,7 @@ const CompOpt compopts[] = {
   {"-frepo", TOO_HARD},
   {"-ftime-trace", TOO_HARD}, // Clang
   {"-fworking-directory", AFFECTS_CPP},
+  {"-gcc-toolchain", TAKES_ARG | TAKES_PATH},       // Clang
   {"-gen-cdb-fragment-path", TAKES_ARG | TOO_HARD}, // Clang
   {"-gtoggle", TOO_HARD},
   {"-idirafter", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},

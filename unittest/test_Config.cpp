@@ -418,6 +418,7 @@ TEST_CASE("Config::visit_items")
     "log_file = lf\n"
     "max_files = 4711\n"
     "max_size = 98.7M\n"
+    "namespace = ns\n"
     "path = p\n"
     "pch_external_checksum = true\n"
     "prefix_command = pc\n"
@@ -482,6 +483,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) log_file = lf",
     "(test.conf) max_files = 4711",
     "(test.conf) max_size = 98.7M",
+    "(test.conf) namespace = ns",
     "(test.conf) path = p",
     "(test.conf) pch_external_checksum = true",
     "(test.conf) prefix_command = pc",

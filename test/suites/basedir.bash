@@ -81,7 +81,7 @@ EOF
     ln -s d1/d2 d3
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d3/c.c
-    $REAL_COMPILER c.o -o c
+    $COMPILER c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
@@ -104,7 +104,7 @@ EOF
     ln -s d/c.c c.c
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/c.c
-    $REAL_COMPILER c.o -o c
+    $COMPILER c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
@@ -281,8 +281,8 @@ EOF
 EOF
     backdate test.h
 
-    pwd=$PWD.real
-    $REAL_COMPILER -c $pwd/test.c 2>reference.stderr
+    pwd="$(pwd -P)"
+    $COMPILER -c $pwd/test.c 2>reference.stderr
 
     CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -c $pwd/test.c 2>ccache.stderr
     expect_stat direct_cache_hit 0
@@ -296,8 +296,8 @@ EOF
     expect_stat cache_miss 1
     expect_equal_content reference.stderr ccache.stderr
 
-    if $REAL_COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
-        $REAL_COMPILER -fdiagnostics-color=always -c $pwd/test.c 2>reference.stderr
+    if $COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
+        $COMPILER -fdiagnostics-color=always -c $pwd/test.c 2>reference.stderr
 
         CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
         expect_stat direct_cache_hit 2

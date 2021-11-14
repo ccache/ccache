@@ -83,9 +83,6 @@ public:
   // The name of the cpp stderr file.
   std::string cpp_stderr;
 
-  // The .gch/.pch/.pth file used for compilation.
-  std::string included_pch_file;
-
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;
 

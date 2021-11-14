@@ -384,6 +384,34 @@ template <typename T> ssize_t handle_EINTR(T fn) {
   return res;
 }
 
+ssize_t read_socket(socket_t sock, void *ptr, size_t size, int flags) {
+  return handle_EINTR([&]() {
+    return recv(sock,
+#ifdef _WIN32
+                static_cast<char *>(ptr),
+                static_cast<int>(size),
+#else
+                ptr,
+                size,
+#endif
+                flags);
+  });
+}
+
+ssize_t send_socket(socket_t sock, const void *ptr, size_t size, int flags) {
+  return handle_EINTR([&]() {
+    return send(sock,
+#ifdef _WIN32
+                static_cast<const char *>(ptr),
+                static_cast<int>(size),
+#else
+                ptr,
+                size,
+#endif
+                flags);
+  });
+}
+
 ssize_t select_read(socket_t sock, time_t sec, time_t usec) {
 #ifdef CPPHTTPLIB_USE_POLL
   struct pollfd pfd_read;
@@ -508,6 +536,12 @@ private:
   time_t read_timeout_usec_;
   time_t write_timeout_sec_;
   time_t write_timeout_usec_;
+
+  std::vector<char> read_buff_;
+  size_t read_buff_off_ = 0;
+  size_t read_buff_content_size_ = 0;
+
+  static const size_t read_buff_size_ = 1024 * 4;
 };
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
@@ -622,7 +656,7 @@ socket_t create_socket(const char *host, int port, int address_family,
   auto service = std::to_string(port);
 
   if (getaddrinfo(host, service.c_str(), &hints, &result)) {
-#ifdef __linux__
+#if defined __linux__ && !defined __ANDROID__
     res_init();
 #endif
     return INVALID_SOCKET;
@@ -1055,10 +1089,10 @@ bool gzip_compressor::compress(const char *data, size_t data_length,
 
   do {
     constexpr size_t max_avail_in =
-        std::numeric_limits<decltype(strm_.avail_in)>::max();
+        (std::numeric_limits<decltype(strm_.avail_in)>::max)();
 
     strm_.avail_in = static_cast<decltype(strm_.avail_in)>(
-        std::min(data_length, max_avail_in));
+        (std::min)(data_length, max_avail_in));
     strm_.next_in = const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
 
     data_length -= strm_.avail_in;
@@ -1114,10 +1148,10 @@ bool gzip_decompressor::decompress(const char *data, size_t data_length,
 
   do {
     constexpr size_t max_avail_in =
-        std::numeric_limits<decltype(strm_.avail_in)>::max();
+        (std::numeric_limits<decltype(strm_.avail_in)>::max)();
 
     strm_.avail_in = static_cast<decltype(strm_.avail_in)>(
-        std::min(data_length, max_avail_in));
+        (std::min)(data_length, max_avail_in));
     strm_.next_in = const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
 
     data_length -= strm_.avail_in;
@@ -1128,7 +1162,14 @@ bool gzip_decompressor::decompress(const char *data, size_t data_length,
       strm_.avail_out = static_cast<uInt>(buff.size());
       strm_.next_out = reinterpret_cast<Bytef *>(buff.data());
 
+      auto prev_avail_in = strm_.avail_in;
+
       ret = inflate(&strm_, Z_NO_FLUSH);
+
+      if (prev_avail_in - strm_.avail_in == 0) {
+        return false;
+      }
+
       assert(ret != Z_STREAM_ERROR);
       switch (ret) {
       case Z_NEED_DICT:
@@ -1411,8 +1452,7 @@ bool prepare_content_receiver(T &x, int &status,
     std::string encoding = x.get_header_value("Content-Encoding");
     std::unique_ptr<decompressor> decompressor;
 
-    if (encoding.find("gzip") != std::string::npos ||
-        encoding.find("deflate") != std::string::npos) {
+    if (encoding == "gzip" || encoding == "deflate") {
 #ifdef CPPHTTPLIB_ZLIB_SUPPORT
       decompressor = detail::make_unique<gzip_decompressor>();
 #else
@@ -1704,14 +1744,6 @@ std::string params_to_query_str(const Params &params) {
     query += encode_query_param(it->second);
   }
   return query;
-}
-
-std::string append_query_params(const char *path, const Params &params) {
-  std::string path_with_query = path;
-  const static std::regex re("[^?]+\\?.*");
-  auto delm = std::regex_match(path, re) ? '&' : '?';
-  path_with_query += delm + params_to_query_str(params);
-  return path_with_query;
 }
 
 void parse_query_text(const std::string &s, Params &params) {
@@ -2161,17 +2193,15 @@ template <typename CTX, typename Init, typename Update, typename Final>
 std::string message_digest(const std::string &s, Init init,
                                   Update update, Final final,
                                   size_t digest_length) {
-  using namespace std;
-
   std::vector<unsigned char> md(digest_length, 0);
   CTX ctx;
   init(&ctx);
   update(&ctx, s.data(), s.size());
   final(md.data(), &ctx);
 
-  stringstream ss;
+  std::stringstream ss;
   for (auto c : md) {
-    ss << setfill('0') << setw(2) << hex << (unsigned int)c;
+    ss << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)c;
   }
   return ss.str();
 }
@@ -2239,45 +2269,55 @@ std::pair<std::string, std::string> make_digest_authentication_header(
     const Request &req, const std::map<std::string, std::string> &auth,
     size_t cnonce_count, const std::string &cnonce, const std::string &username,
     const std::string &password, bool is_proxy = false) {
-  using namespace std;
-
-  string nc;
+  std::string nc;
   {
-    stringstream ss;
-    ss << setfill('0') << setw(8) << hex << cnonce_count;
+    std::stringstream ss;
+    ss << std::setfill('0') << std::setw(8) << std::hex << cnonce_count;
     nc = ss.str();
   }
 
-  auto qop = auth.at("qop");
-  if (qop.find("auth-int") != std::string::npos) {
-    qop = "auth-int";
-  } else {
-    qop = "auth";
+  std::string qop;
+  if (auth.find("qop") != auth.end()) {
+    qop = auth.at("qop");
+    if (qop.find("auth-int") != std::string::npos) {
+      qop = "auth-int";
+    } else if (qop.find("auth") != std::string::npos) {
+      qop = "auth";
+    } else {
+      qop.clear();
+    }
   }
 
   std::string algo = "MD5";
   if (auth.find("algorithm") != auth.end()) { algo = auth.at("algorithm"); }
 
-  string response;
+  std::string response;
   {
-    auto H = algo == "SHA-256"
-                 ? detail::SHA_256
-                 : algo == "SHA-512" ? detail::SHA_512 : detail::MD5;
+    auto H = algo == "SHA-256"   ? detail::SHA_256
+             : algo == "SHA-512" ? detail::SHA_512
+                                 : detail::MD5;
 
     auto A1 = username + ":" + auth.at("realm") + ":" + password;
 
     auto A2 = req.method + ":" + req.path;
     if (qop == "auth-int") { A2 += ":" + H(req.body); }
 
-    response = H(H(A1) + ":" + auth.at("nonce") + ":" + nc + ":" + cnonce +
-                 ":" + qop + ":" + H(A2));
+    if (qop.empty()) {
+      response = H(H(A1) + ":" + auth.at("nonce") + ":" + H(A2));
+    } else {
+      response = H(H(A1) + ":" + auth.at("nonce") + ":" + nc + ":" + cnonce +
+                   ":" + qop + ":" + H(A2));
+    }
   }
 
-  auto field = "Digest username=\"" + username + "\", realm=\"" +
-               auth.at("realm") + "\", nonce=\"" + auth.at("nonce") +
-               "\", uri=\"" + req.path + "\", algorithm=" + algo +
-               ", qop=" + qop + ", nc=\"" + nc + "\", cnonce=\"" + cnonce +
-               "\", response=\"" + response + "\"";
+  auto field =
+      "Digest username=\"" + username + "\", realm=\"" + auth.at("realm") +
+      "\", nonce=\"" + auth.at("nonce") + "\", uri=\"" + req.path +
+      "\", algorithm=" + algo +
+      (qop.empty() ? ", response=\""
+                   : ", qop=" + qop + ", nc=\"" + nc + "\", cnonce=\"" +
+                         cnonce + "\", response=\"") +
+      response + "\"";
 
   auto key = is_proxy ? "Proxy-Authorization" : "Authorization";
   return std::make_pair(key, field);
@@ -2346,6 +2386,14 @@ private:
 };
 
 } // namespace detail
+
+std::string append_query_params(const char *path, const Params &params) {
+  std::string path_with_query = path;
+  const static std::regex re("[^?]+\\?.*");
+  auto delm = std::regex_match(path, re) ? '&' : '?';
+  path_with_query += delm + detail::params_to_query_str(params);
+  return path_with_query;
+}
 
 // Header utilities
 std::pair<std::string, std::string> make_range_header(Ranges ranges) {
@@ -2556,7 +2604,8 @@ SocketStream::SocketStream(socket_t sock, time_t read_timeout_sec,
     : sock_(sock), read_timeout_sec_(read_timeout_sec),
       read_timeout_usec_(read_timeout_usec),
       write_timeout_sec_(write_timeout_sec),
-      write_timeout_usec_(write_timeout_usec) {}
+      write_timeout_usec_(write_timeout_usec),
+      read_buff_(read_buff_size_, 0) {}
 
 SocketStream::~SocketStream() {}
 
@@ -2569,31 +2618,56 @@ bool SocketStream::is_writable() const {
 }
 
 ssize_t SocketStream::read(char *ptr, size_t size) {
+#ifdef _WIN32
+  size = (std::min)(size, static_cast<size_t>((std::numeric_limits<int>::max)()));
+#else
+  size = (std::min)(size, static_cast<size_t>((std::numeric_limits<ssize_t>::max)()));
+#endif
+
+  if (read_buff_off_ < read_buff_content_size_) {
+    auto remaining_size = read_buff_content_size_ - read_buff_off_;
+    if (size <= remaining_size) {
+      memcpy(ptr, read_buff_.data() + read_buff_off_, size);
+      read_buff_off_ += size;
+      return static_cast<ssize_t>(size);
+    } else {
+      memcpy(ptr, read_buff_.data() + read_buff_off_, remaining_size);
+      read_buff_off_ += remaining_size;
+      return static_cast<ssize_t>(remaining_size);
+    }
+  }
+
   if (!is_readable()) { return -1; }
 
-#ifdef _WIN32
-  if (size > static_cast<size_t>((std::numeric_limits<int>::max)())) {
-    return -1;
+  read_buff_off_ = 0;
+  read_buff_content_size_ = 0;
+
+  if (size < read_buff_size_) {
+    auto n = read_socket(sock_, read_buff_.data(), read_buff_size_, CPPHTTPLIB_RECV_FLAGS);
+    if (n <= 0) {
+      return n;
+    } else if (n <= static_cast<ssize_t>(size)) {
+      memcpy(ptr, read_buff_.data(), static_cast<size_t>(n));
+      return n;
+    } else {
+      memcpy(ptr, read_buff_.data(), size);
+      read_buff_off_ = size;
+      read_buff_content_size_ = static_cast<size_t>(n);
+      return static_cast<ssize_t>(size);
+    }
+  } else {
+    return read_socket(sock_, ptr, size, CPPHTTPLIB_RECV_FLAGS);
   }
-  return recv(sock_, ptr, static_cast<int>(size), CPPHTTPLIB_RECV_FLAGS);
-#else
-  return handle_EINTR(
-      [&]() { return recv(sock_, ptr, size, CPPHTTPLIB_RECV_FLAGS); });
-#endif
 }
 
 ssize_t SocketStream::write(const char *ptr, size_t size) {
   if (!is_writable()) { return -1; }
 
 #ifdef _WIN32
-  if (size > static_cast<size_t>((std::numeric_limits<int>::max)())) {
-    return -1;
-  }
-  return send(sock_, ptr, static_cast<int>(size), CPPHTTPLIB_SEND_FLAGS);
-#else
-  return handle_EINTR(
-      [&]() { return send(sock_, ptr, size, CPPHTTPLIB_SEND_FLAGS); });
+  size = (std::min)(size, static_cast<size_t>((std::numeric_limits<int>::max)()));
 #endif
+
+  return send_socket(sock_, ptr, size, CPPHTTPLIB_SEND_FLAGS);
 }
 
 void SocketStream::get_remote_ip_and_port(std::string &ip,
@@ -3082,6 +3156,10 @@ bool Server::read_content(Stream &strm, Request &req, Response &res) {
           })) {
     const auto &content_type = req.get_header_value("Content-Type");
     if (!content_type.find("application/x-www-form-urlencoded")) {
+      if (req.body.size() > CPPHTTPLIB_REQUEST_URI_MAX_LENGTH) {
+        res.status = 413; // NOTE: should be 414?
+        return false;
+      }
       detail::parse_query_text(req.body, req.params);
     }
     return true;
@@ -3118,7 +3196,7 @@ bool Server::read_content_core(Stream &strm, Request &req, Response &res,
       /* For debug
       size_t pos = 0;
       while (pos < n) {
-        auto read_size = std::min<size_t>(1, n - pos);
+        auto read_size = (std::min)<size_t>(1, n - pos);
         auto ret = multipart_form_data_parser.parse(
             buf + pos, read_size, multipart_receiver, mulitpart_header);
         if (!ret) { return false; }
@@ -4137,7 +4215,12 @@ bool ClientImpl::write_request(Stream &strm, Request &req,
     return write_content_with_provider(strm, req, error);
   }
 
-  return detail::write_data(strm, req.body.data(), req.body.size());
+  if (!detail::write_data(strm, req.body.data(), req.body.size())) {
+    error = Error::Write;
+    return false;
+  }
+
+  return true;
 }
 
 std::unique_ptr<Response> ClientImpl::send_with_content_provider(
@@ -4440,7 +4523,7 @@ Result ClientImpl::Get(const char *path, const Params &params,
                               const Headers &headers, Progress progress) {
   if (params.empty()) { return Get(path, headers); }
 
-  std::string path_with_query = detail::append_query_params(path, params);
+  std::string path_with_query = append_query_params(path, params);
   return Get(path_with_query.c_str(), headers, progress);
 }
 
@@ -4460,7 +4543,7 @@ Result ClientImpl::Get(const char *path, const Params &params,
     return Get(path, headers, response_handler, content_receiver, progress);
   }
 
-  std::string path_with_query = detail::append_query_params(path, params);
+  std::string path_with_query = append_query_params(path, params);
   return Get(path_with_query.c_str(), headers, response_handler,
              content_receiver, progress);
 }
@@ -5107,7 +5190,30 @@ ssize_t SSLSocketStream::read(char *ptr, size_t size) {
 }
 
 ssize_t SSLSocketStream::write(const char *ptr, size_t size) {
-  if (is_writable()) { return SSL_write(ssl_, ptr, static_cast<int>(size)); }
+  if (is_writable()) {
+    auto ret = SSL_write(ssl_, ptr, static_cast<int>(size));
+    if (ret < 0) {
+      auto err = SSL_get_error(ssl_, ret);
+      int n = 1000;
+#ifdef _WIN32
+      while (--n >= 0 &&
+             (err == SSL_ERROR_WANT_WRITE ||
+              err == SSL_ERROR_SYSCALL && WSAGetLastError() == WSAETIMEDOUT)) {
+#else
+      while (--n >= 0 && err == SSL_ERROR_WANT_WRITE) {
+#endif
+        if (is_writable()) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          ret = SSL_write(ssl_, ptr, static_cast<int>(size));
+          if (ret >= 0) { return ret; }
+          err = SSL_get_error(ssl_, ret);
+        } else {
+          return -1;
+        }
+      }
+    }
+    return ret;
+  }
   return -1;
 }
 
@@ -5184,6 +5290,17 @@ SSLServer::SSLServer(X509 *cert, EVP_PKEY *private_key,
           SSL_VERIFY_PEER |
               SSL_VERIFY_FAIL_IF_NO_PEER_CERT, // SSL_VERIFY_CLIENT_ONCE,
           nullptr);
+    }
+  }
+}
+
+SSLServer::SSLServer(
+    const std::function<bool(SSL_CTX &ssl_ctx)> &setup_ssl_ctx_callback) {
+  ctx_ = SSL_CTX_new(TLS_method());
+  if (ctx_) {
+    if (!setup_ssl_ctx_callback(*ctx_)) {
+      SSL_CTX_free(ctx_);
+      ctx_ = nullptr;
     }
   }
 }

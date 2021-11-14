@@ -162,7 +162,7 @@ SUITE_profiling() {
             touch "$dir/test.c"
             find -name '*.gcno' -delete
 
-            $REAL_COMPILER $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+            $COMPILER $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
             gcno_name=$(find -name '*.gcno')
             rm "$gcno_name"
 

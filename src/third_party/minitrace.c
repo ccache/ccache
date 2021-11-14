@@ -35,6 +35,8 @@
 #endif
 
 #define ARRAY_SIZE(x) sizeof(x)/sizeof(x[0])
+#define TRUE 1
+#define FALSE 0
 
 // Ugh, this struct is already pretty heavy.
 // Will probably need to move arguments to a second buffer to support more than one.
@@ -55,18 +57,25 @@ typedef struct raw_event {
 	};
 } raw_event_t;
 
-static raw_event_t *buffer;
-static volatile int count;
-static int is_tracing = 0;
+static raw_event_t *event_buffer;
+static raw_event_t *flush_buffer;
+static volatile int event_count;
+static int is_tracing = FALSE;
+static int is_flushing = FALSE;
+static int events_in_progress = 0;
 static int64_t time_offset;
 static int first_line = 1;
 static FILE *f;
 static __thread int cur_thread_id;	// Thread local storage
 static int cur_process_id;
 static pthread_mutex_t mutex;
+static pthread_mutex_t event_mutex;
 
 #define STRING_POOL_SIZE 100
 static char *str_pool[100];
+
+// forward declaration
+void mtr_flush_with_state(int);
 
 // Tiny portability layer.
 // Exposes:
@@ -164,15 +173,17 @@ void mtr_init_from_stream(void *stream) {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
+	event_buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
+	flush_buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
 	is_tracing = 1;
-	count = 0;
+	event_count = 0;
 	f = (FILE *)stream;
 	const char *header = "{\"traceEvents\":[\n";
 	fwrite(header, 1, strlen(header), f);
 	time_offset = (uint64_t)(mtr_time_s() * 1000000);
 	first_line = 1;
 	pthread_mutex_init(&mutex, 0);
+	pthread_mutex_init(&event_mutex, 0);
 }
 
 void mtr_init(const char *json_file) {
@@ -187,14 +198,18 @@ void mtr_shutdown() {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	is_tracing = 0;
-	mtr_flush();
+	pthread_mutex_lock(&mutex);
+	is_tracing = FALSE;
+	pthread_mutex_unlock(&mutex);
+	mtr_flush_with_state(TRUE);
+
 	fwrite("\n]}\n", 1, 4, f);
 	fclose(f);
 	pthread_mutex_destroy(&mutex);
+	pthread_mutex_destroy(&event_mutex);
 	f = 0;
-	free(buffer);
-	buffer = 0;
+	free(event_buffer);
+	event_buffer = 0;
 	for (i = 0; i < STRING_POOL_SIZE; i++) {
 		if (str_pool[i]) {
 			free(str_pool[i]);
@@ -222,18 +237,26 @@ void mtr_start() {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	is_tracing = 1;
+	pthread_mutex_lock(&mutex);
+	is_tracing = TRUE;
+	pthread_mutex_unlock(&mutex);
 }
 
 void mtr_stop() {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	is_tracing = 0;
+	pthread_mutex_lock(&mutex);
+	is_tracing = FALSE;
+	pthread_mutex_unlock(&mutex);
 }
 
 // TODO: fwrite more than one line at a time.
-void mtr_flush() {
+// Flushing is thread safe and process async
+// using double-buffering mechanism.
+// Aware: only one flushing process may be 
+// running at any point of time
+void mtr_flush_with_state(int is_last) {
 #ifndef MTR_ENABLED
 	return;
 #endif
@@ -241,15 +264,36 @@ void mtr_flush() {
 	char linebuf[1024];
 	char arg_buf[1024];
 	char id_buf[256];
-	// We have to lock while flushing. So we really should avoid flushing as much as possible.
+	int event_count_copy = 0;
+	int events_in_progress_copy = 1;
+	raw_event_t *event_buffer_tmp = NULL;
 
-
+	// small critical section to swap buffers
+	// - no any new events can be spawn while
+	//   swapping since they tied to the same mutex
+	// - checks for any flushing in process
 	pthread_mutex_lock(&mutex);
-	int old_tracing = is_tracing;
-	is_tracing = 0;	// Stop logging even if using interlocked increments instead of the mutex. Can cause data loss.
+	// if not flushing already
+	if (is_flushing) {
+		pthread_mutex_unlock(&mutex);
+		return;
+	}
+	is_flushing = TRUE;
+	event_count_copy = event_count;
+	event_buffer_tmp = flush_buffer;
+	flush_buffer = event_buffer;
+	event_buffer = event_buffer_tmp;
+	event_count = 0;
+	// waiting for any unfinished events before swap
+	while (events_in_progress_copy != 0) {
+		pthread_mutex_lock(&event_mutex);
+		events_in_progress_copy = events_in_progress;
+		pthread_mutex_unlock(&event_mutex);
+	}
+	pthread_mutex_unlock(&mutex);
 
-	for (i = 0; i < count; i++) {
-		raw_event_t *raw = &buffer[i];
+	for (i = 0; i < event_count_copy; i++) {
+		raw_event_t *raw = &flush_buffer[i];
 		int len;
 		switch (raw->arg_type) {
 		case MTR_ARG_TYPE_INT:
@@ -305,18 +349,41 @@ void mtr_flush() {
 				cat, raw->pid, raw->tid, raw->ts - time_offset, raw->ph, raw->name, arg_buf, id_buf);
 		fwrite(linebuf, 1, len, f);
 		first_line = 0;
+
+		if (raw->arg_type == MTR_ARG_TYPE_STRING_COPY) {
+			free((void*)raw->a_str);
+		}
+		#ifdef MTR_COPY_EVENT_CATEGORY_AND_NAME
+		free(raw->name);
+		free(raw->cat);
+		#endif
 	}
-	count = 0;
-	is_tracing = old_tracing;
+
+	pthread_mutex_lock(&mutex);
+	is_flushing = is_last;
 	pthread_mutex_unlock(&mutex);
+}
+
+void mtr_flush() {
+	mtr_flush_with_state(FALSE);
 }
 
 void internal_mtr_raw_event(const char *category, const char *name, char ph, void *id) {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	if (!is_tracing || count >= INTERNAL_MINITRACE_BUFFER_SIZE)
+	pthread_mutex_lock(&mutex);
+	if (!is_tracing || event_count >= INTERNAL_MINITRACE_BUFFER_SIZE) {
+		pthread_mutex_unlock(&mutex);
 		return;
+	}
+	raw_event_t *ev = &event_buffer[event_count];
+	++event_count;
+	pthread_mutex_lock(&event_mutex);
+	++events_in_progress;
+	pthread_mutex_unlock(&event_mutex);
+	pthread_mutex_unlock(&mutex);
+
 	double ts = mtr_time_s();
 	if (!cur_thread_id) {
 		cur_thread_id = get_cur_thread_id();
@@ -325,18 +392,20 @@ void internal_mtr_raw_event(const char *category, const char *name, char ph, voi
 		cur_process_id = get_cur_process_id();
 	}
 
-#if 0 && _WIN32	// This should work, feel free to enable if you're adventurous and need performance.
-	int bufPos = InterlockedExchangeAdd((LONG volatile *)&count, 1);
-	raw_event_t *ev = &buffer[bufPos];
-#else
-	pthread_mutex_lock(&mutex);
-	raw_event_t *ev = &buffer[count];
-	count++;
-	pthread_mutex_unlock(&mutex);
-#endif
+#ifdef MTR_COPY_EVENT_CATEGORY_AND_NAME
+	const size_t category_len = strlen(category);
+	ev->cat = malloc(category_len + 1);
+	strcpy(ev->cat, category);
 
+	const size_t name_len = strlen(name);
+	ev->name = malloc(name_len + 1);
+	strcpy(ev->name, name);
+
+#else
 	ev->cat = category;
 	ev->name = name;
+#endif
+
 	ev->id = id;
 	ev->ph = ph;
 	if (ev->ph == 'X') {
@@ -350,14 +419,28 @@ void internal_mtr_raw_event(const char *category, const char *name, char ph, voi
 	ev->tid = cur_thread_id;
 	ev->pid = cur_process_id;
 	ev->arg_type = MTR_ARG_TYPE_NONE;
+
+	pthread_mutex_lock(&event_mutex);
+	--events_in_progress;
+	pthread_mutex_unlock(&event_mutex);
 }
 
 void internal_mtr_raw_event_arg(const char *category, const char *name, char ph, void *id, mtr_arg_type arg_type, const char *arg_name, void *arg_value) {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	if (!is_tracing || count >= INTERNAL_MINITRACE_BUFFER_SIZE)
+	pthread_mutex_lock(&mutex);
+	if (!is_tracing || event_count >= INTERNAL_MINITRACE_BUFFER_SIZE) {
+		pthread_mutex_unlock(&mutex);
 		return;
+	}
+	raw_event_t *ev = &event_buffer[event_count];
+	++event_count;
+	pthread_mutex_lock(&event_mutex);
+	++events_in_progress;
+	pthread_mutex_unlock(&event_mutex);
+	pthread_mutex_unlock(&mutex);
+
 	if (!cur_thread_id) {
 		cur_thread_id = get_cur_thread_id();
 	}
@@ -366,18 +449,20 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 	}
 	double ts = mtr_time_s();
 
-#if 0 && _WIN32	// This should work, feel free to enable if you're adventurous and need performance.
-	int bufPos = InterlockedExchangeAdd((LONG volatile *)&count, 1);
-	raw_event_t *ev = &buffer[bufPos];
-#else
-	pthread_mutex_lock(&mutex);
-	raw_event_t *ev = &buffer[count];
-	count++;
-	pthread_mutex_unlock(&mutex);
-#endif
+#ifdef MTR_COPY_EVENT_CATEGORY_AND_NAME
+	const size_t category_len = strlen(category);
+	ev->cat = malloc(category_len + 1);
+	strcpy(ev->cat, category);
 
+	const size_t name_len = strlen(name);
+	ev->name = malloc(name_len + 1);
+	strcpy(ev->name, name);
+
+#else
 	ev->cat = category;
 	ev->name = name;
+#endif
+
 	ev->id = id;
 	ev->ts = (int64_t)(ts * 1000000);
 	ev->ph = ph;
@@ -391,5 +476,9 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 	case MTR_ARG_TYPE_STRING_COPY: ev->a_str = strdup((const char*)arg_value); break;
 	case MTR_ARG_TYPE_NONE: break;
 	}
+
+	pthread_mutex_lock(&event_mutex);
+	--events_in_progress;
+	pthread_mutex_unlock(&event_mutex);
 }
 
