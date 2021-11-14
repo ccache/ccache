@@ -43,3 +43,5 @@ bool language_is_supported(const std::string& language);
 
 // Return whether `language` is supported preprocessed language.
 bool language_is_preprocessed(const std::string& language);
+
+bool language_supports_unify(const std::string& language);

@@ -80,6 +80,7 @@ const StatisticsField k_statistics_fields[] = {
   FIELD(compiler_produced_no_output,
         "Compiler produced no output",
         FLAG_UNCACHEABLE),
+  FIELD(compiler_produced_stderr, "Compiler produced stderr"),
   FIELD(compiler_produced_stdout, "Compiler produced stdout", FLAG_UNCACHEABLE),
   FIELD(could_not_find_compiler, "Could not find compiler", FLAG_ERROR),
   FIELD(could_not_use_modules, "Could not use modules", FLAG_UNCACHEABLE),

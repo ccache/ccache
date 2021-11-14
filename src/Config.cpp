@@ -98,6 +98,7 @@ enum class ConfigItem {
   stats_log,
   temporary_dir,
   umask,
+  unify_mode,
 };
 
 const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
@@ -143,6 +144,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"stats_log", ConfigItem::stats_log},
   {"temporary_dir", ConfigItem::temporary_dir},
   {"umask", ConfigItem::umask},
+  {"unify_mode", ConfigItem::unify_mode},
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
@@ -189,6 +191,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"STATSLOG", "stats_log"},
   {"TEMPDIR", "temporary_dir"},
   {"UMASK", "umask"},
+  {"UNIFY", "unify_mode"},
 };
 
 bool
@@ -241,6 +244,8 @@ parse_compiler_type(const std::string& value)
 {
   if (value == "clang") {
     return CompilerType::clang;
+  } else if (value == "clang_minimize_whitespace") {
+    return CompilerType::clang_minimize_whitespace;
   } else if (value == "gcc") {
     return CompilerType::gcc;
   } else if (value == "nvcc") {
@@ -287,6 +292,12 @@ parse_sloppiness(const std::string& value)
       result.enable(core::Sloppy::modules);
     } else if (token == "ivfsoverlay") {
       result.enable(core::Sloppy::ivfsoverlay);
+    } else if (token == "incbin") {
+      result.enable(core::Sloppy::incbin);
+    } else if (token == "unify_with_debug") {
+      result.enable(core::Sloppy::unify_with_debug);
+    } else if (token == "unify_with_diagnostics") {
+      result.enable(core::Sloppy::unify_with_diagnostics);
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
@@ -329,6 +340,15 @@ format_sloppiness(core::Sloppiness sloppiness)
   }
   if (sloppiness.is_enabled(core::Sloppy::ivfsoverlay)) {
     result += "ivfsoverlay, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::incbin)) {
+    result += "incbin, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::unify_with_debug)) {
+    result += "unify_with_debug, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::unify_with_diagnostics)) {
+    result += "unify_with_diagnostics, ";
   }
   if (!result.empty()) {
     // Strip last ", ".
@@ -451,6 +471,7 @@ compiler_type_to_string(CompilerType compiler_type)
     return "auto";
 
     CASE(clang);
+    CASE(clang_minimize_whitespace);
     CASE(gcc);
     CASE(nvcc);
     CASE(other);
@@ -737,6 +758,9 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::umask:
     return format_umask(m_umask);
+
+  case ConfigItem::unify_mode:
+    return format_bool(m_unify_mode);
   }
 
   ASSERT(false); // Never reached
@@ -1002,6 +1026,10 @@ Config::set_item(const std::string& key,
       }
       m_umask = *umask;
     }
+    break;
+
+  case ConfigItem::unify_mode:
+    m_unify_mode = parse_bool(value, env_var_key, negate);
     break;
   }
 

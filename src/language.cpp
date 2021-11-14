@@ -118,7 +118,9 @@ std::string
 language_for_file(const std::string& fname, CompilerType compiler_type)
 {
   auto ext = Util::get_extension(fname);
-  if (ext == ".cu" && compiler_type == CompilerType::clang) {
+  if (ext == ".cu"
+      && (compiler_type == CompilerType::clang
+          || compiler_type == CompilerType::clang_minimize_whitespace)) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";
   }
@@ -162,4 +164,11 @@ bool
 language_is_preprocessed(const std::string& language)
 {
   return language == p_language_for_language(language);
+}
+
+bool
+language_supports_unify(const std::string& language)
+{
+  return language_is_supported(language)
+         && language.find("assembler") == std::string::npos;
 }

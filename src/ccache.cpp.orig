@@ -72,7 +72,6 @@
 #include <cmath>
 #include <limits>
 #include <memory>
-#include <sstream>
 
 #ifndef MYNAME
 #  define MYNAME "ccache"
@@ -224,30 +223,17 @@ guess_compiler(string_view path)
 #endif
 
   const string_view name = Util::base_name(compiler_path);
-  if (name.find("clang") != nonstd::string_view::npos) {
-    const char* clangversionstart = nullptr;
-    if (name.substr(0, 6) == "clang-") {
-      // Clang compiled from official sources makes clang a symlink to
-      // clang-{version}.
-      clangversionstart = name.data() + 6;
-    } else {
-      // Debian and Ubuntu install Clang into /usr/lib/llvm-{version}/bin/clang
-      // but no symlink to clang-{version}.
-      size_t llvmdashpos = compiler_path.find("llvm-");
-      if (llvmdashpos != nonstd::string_view::npos) {
-        clangversionstart = compiler_path.data() + llvmdashpos + 5;
-      }
+  size_t clangdashpos = name.find("clang-");
+  if (clangdashpos != nonstd::string_view::npos) {
+    // Clang version 14 or later support the -fminimize-whitespace flag.
+    char* EndPtr = nullptr;
+    long clangversion = strtol(name.data() + 6, &EndPtr, 10);
+    if (clangversion >= 14) {
+      return CompilerType::clang_minimize_whitespace;
     }
 
-    if (clangversionstart) {
-      // atoi returns 0 if parsing was unsuccessful.
-      int clangversion = atoi(clangversionstart);
-      // Clang version 14 and later support the -fminimize-whitespace flag.
-      if (clangversion >= 14) {
-        return CompilerType::clang_minimize_whitespace;
-      }
-    }
-
+    return CompilerType::clang;
+  } else if (name.find("clang") != nonstd::string_view::npos) {
     return CompilerType::clang;
   } else if (name.find("gcc") != nonstd::string_view::npos
              || name.find("g++") != nonstd::string_view::npos) {
@@ -687,13 +673,20 @@ hash_depfiles(Context& ctx,
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
-  if (!ctx.args_info.included_pch_file.empty()) {
-    std::string pch_path =
-      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
+<<<<<<< HEAD
+  if (!ctx.included_pch_file.empty()) {
+    std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
     if (pch_hash) {
       pch_hash->hash(pch_path);
     }
     remember_include_file(ctx, pch_path, pch_hash, false, nullptr);
+=======
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pch_path);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
+>>>>>>> official/master
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -737,7 +730,7 @@ process_unified_file(Context& ctx,
   }
 
   // With sloppy_incbin, only hash the preprocessor output. Otherwise, read-in
-  // the entire file to hash and scan for include binary directives.
+  // the entire file to hash and scan for .incbin directives.
   if (ctx.config.sloppiness().is_enabled(core::Sloppy::incbin)) {
     if (!hash.hash_file(stdout_path)) {
       LOG("Failed to open {}: {}", stdout_path, strerror(errno));
@@ -754,12 +747,8 @@ process_unified_file(Context& ctx,
 
     hash.hash(data);
 
-    if (data.find(".inc"
-                  "bin")
-        != std::string::npos) {
-      LOG_RAW(
-        "Found unsupported .inc"
-        "bin directive in source code");
+    if (data.find(".incbin") != std::string::npos) {
+      LOG_RAW("Found unsupported .incbin directive in source code");
       return nonstd::make_unexpected(Statistic::unsupported_code_directive);
     }
   }
@@ -773,12 +762,16 @@ static nonstd::expected<int, Failure>
 do_execute(Context& ctx,
            Args& args,
            TemporaryFile&& tmp_stdout,
-           TemporaryFile&& tmp_stderr)
+           TemporaryFile&& tmp_stderr,
+           bool is_preprocessor = false)
 {
   UmaskScope umask_scope(ctx.original_umask);
+  CompilerType type = is_preprocessor
+                        ? ctx.config.compiler_type()
+                        : ctx.config.effective_preprocessor_type();
 
   if (ctx.diagnostics_color_failed) {
-    DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
+    DEBUG_ASSERT(type == CompilerType::gcc);
     args.erase_last("-fdiagnostics-color");
   }
   int status = execute(ctx,
@@ -786,7 +779,7 @@ do_execute(Context& ctx,
                        std::move(tmp_stdout.fd),
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.config.compiler_type() == CompilerType::gcc) {
+      && type == CompilerType::gcc) {
     auto errors = Util::read_file(tmp_stderr.path);
     if (errors.find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
@@ -1046,20 +1039,16 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.unify_mode()
-      && !ctx.config.sloppiness().is_enabled(
-        core::Sloppy::unify_with_diagnostics)) {
+      && !ctx.config.sloppiness().is_enabled(core::Sloppy::unify_with_output)) {
     Stat se = Stat::stat(tmp_stderr_path, Stat::OnError::log);
     if (!se) {
       // The stderr file was removed - cleanup in progress? Better bail out.
       return nonstd::make_unexpected(Statistic::missing_cache_file);
     }
     if (se.size() != 0) {
-      LOG_RAW("Compiler emitted the following diagnostics in unify mode:");
+      LOG_RAW("Compiler emitted diagnostics in unify mode");
       std::string stderr_content = Util::read_file(tmp_stderr_path);
-      std::istringstream stderr_stream(stderr_content);
-      for (std::string line; std::getline(stderr_stream, line);) {
-        LOG_RAW(line);
-      }
+      LOG("The diagnostics:\n----\n{}\n----\n", stderr_content);
 
       // Without run_second_cpp, diagnostics refer to the temporary file; fail
       // and run again using the original input to get usable diagnostics.
@@ -1231,7 +1220,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     LOG_RAW("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     const auto status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
+      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr), true);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
 
@@ -1306,6 +1295,36 @@ hash_compiler(const Context& ctx,
     }
   }
   return {};
+}
+
+// Hash mtime or content of a file, or the output of a command, according to
+// the CCACHE_PREPROCESSORCHECK setting.
+static void
+hash_preprocessor(const Context& ctx,
+                  Hash& hash,
+                  const Stat& st,
+                  const std::string& path,
+                  bool allow_command)
+{
+  const std::string& checkmethod = ctx.config.preprocessor_check();
+  if (checkmethod == "none") {
+    // Do nothing.
+  } else if (checkmethod == "mtime") {
+    hash.hash_delimiter("cpp_mtime");
+    hash.hash(st.size());
+    hash.hash(st.mtime());
+  } else if (util::starts_with(checkmethod, "string:")) {
+    hash.hash_delimiter("cpp_hash");
+    hash.hash(&checkmethod[7]);
+  } else if (checkmethod == "content" || !allow_command) {
+    hash.hash_delimiter("cpp_content");
+    hash_binary_file(ctx, hash, path);
+  } else { // command string
+    if (!hash_multicommand_output(hash, checkmethod, ctx.orig_args[0])) {
+      LOG("Failure running preprocessor check command: {}", checkmethod);
+      throw Failure(Statistic::preprocessor_check_failed);
+    }
+  }
 }
 
 // Hash the host compiler(s) invoked by nvcc.
@@ -1400,6 +1419,13 @@ hash_common_info(const Context& ctx,
 
   // Hash information about the compiler.
   TRY(hash_compiler(ctx, hash, st, compiler_path, true));
+  if (!ctx.config.preprocessor().empty() && !ctx.config.depend_mode()) {
+    std::string preprocessor_path = ctx.config.preprocessor();
+#ifdef _WIN32
+    preprocessor_path = Win32Util::add_exe_suffix(preprocessor_path);
+#endif
+    hash_preprocessor(ctx, hash, st, preprocessor_path, true);
+  }
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -2116,6 +2142,18 @@ cache_compilation(int argc, const char* const* argv)
     find_compiler(ctx, &find_executable);
     MTR_END("main", "find_compiler");
 
+    const std ::string& preprocessor = ctx.config.preprocessor();
+    if (!preprocessor.empty()) {
+      if (!util::is_full_path(preprocessor)) {
+        std::string resolved_compiler =
+          find_executable(ctx, preprocessor, CCACHE_NAME);
+        if (resolved_compiler.empty()) {
+          throw core::Fatal("Could not find preprocessor \"{}\" in PATH",
+                            preprocessor);
+        }
+      }
+    }
+
     const auto result = do_cache_compilation(ctx, argv);
     const auto& counters = result ? *result : result.error().counters();
     ctx.storage.primary.increment_statistics(counters);
@@ -2185,6 +2223,16 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
   DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
 
+  const std ::string& preprocessor = ctx.config.preprocessor();
+  if (!preprocessor.empty() && !ctx.config.depend_mode()) {
+    if (ctx.config.preprocessor_type() == CompilerType::auto_guess) {
+      ctx.config.set_preprocessor_type(guess_compiler(preprocessor));
+    }
+    DEBUG_ASSERT(ctx.config.preprocessor_type() != CompilerType::auto_guess);
+  }
+  DEBUG_ASSERT(ctx.config.effective_preprocessor_type()
+               != CompilerType::auto_guess);
+
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
     return nonstd::make_unexpected(Statistic::none);
@@ -2198,6 +2246,10 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
+  if (!preprocessor.empty() && !ctx.config.depend_mode()) {
+    LOG("Preprocessor type: {}",
+        compiler_type_to_string(ctx.config.preprocessor_type()));
+  }
 
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);

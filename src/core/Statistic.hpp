@@ -64,6 +64,7 @@ enum class Statistic {
   secondary_storage_error = 39,
   secondary_storage_timeout = 40,
   recache = 41,
+  compiler_produced_stderr = 42,
 
   END
 };
