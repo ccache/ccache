@@ -1214,7 +1214,6 @@ public:
     )
     operator=( optional && other ) noexcept
     {
-	reset();
         if      ( (has_value() == true ) && (other.has_value() == false) ) { reset(); }
         else if ( (has_value() == false) && (other.has_value() == true ) ) { initialize( std::move( *other ) ); }
         else if ( (has_value() == true ) && (other.has_value() == true ) ) { contained.value() = std::move( *other ); }
