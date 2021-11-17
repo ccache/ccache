@@ -33,7 +33,7 @@ CacheEntryWriter::CacheEntryWriter(core::Writer& writer,
   m_checksumming_writer.write_int(static_cast<uint8_t>(header.entry_type));
   m_checksumming_writer.write_int(
     static_cast<uint8_t>(header.compression_type));
-  m_checksumming_writer.write_int(header.compression_level);
+  m_checksumming_writer.write_int(m_compressor->actual_compression_level());
   m_checksumming_writer.write_int(header.creation_time);
   m_checksumming_writer.write_int<uint8_t>(header.ccache_version.length());
   m_checksumming_writer.write_str(header.ccache_version);
