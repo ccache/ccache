@@ -325,6 +325,7 @@ Writer::do_finalize()
 {
   FileSizeAndCountDiff file_size_and_count_diff{0, 0};
   uint64_t payload_size = 0;
+  payload_size += 1; // format_ver
   payload_size += 1; // n_entries
   for (const auto& pair : m_entries_to_write) {
     const auto& path = pair.second;
