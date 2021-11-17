@@ -450,6 +450,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
           entry.url_for_logging,
           nonstd::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
+      return nullptr;
     }
     return &entry.backends.back();
   } else if (backend->failed) {

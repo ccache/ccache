@@ -111,4 +111,15 @@ SUITE_secondary_redis() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Unreachable server"
+
+    export CCACHE_SECONDARY_STORAGE="redis://localhost:1"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_stat secondary_storage_error 1
 }
