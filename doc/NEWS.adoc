@@ -15,7 +15,7 @@ Release date: 2021-11-17
   header. +
   [small]#_[contributed by Joel Rosdahl]_#
 
-- Corrected error handling for unconstructible secondary storage backends. For
+- Corrected error handling for non-constructible secondary storage backends. For
   instance, this avoids a crash when a Redis server can't be reached. +
   [small]#_[contributed by Joel Rosdahl]_#
 
