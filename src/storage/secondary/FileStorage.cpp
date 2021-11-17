@@ -70,7 +70,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   ASSERT(params.url.scheme() == "file");
   if (!params.url.host().empty()) {
     throw core::Fatal(FMT(
-      "invalid file path \"{}\":  specifying a host (\"{}\") is not supported",
+      "invalid file path \"{}\": specifying a host (\"{}\") is not supported",
       params.url.str(),
       params.url.host()));
   }
