@@ -120,8 +120,10 @@ check_for_temporal_macros_bmh(string_view str)
 }
 
 #ifdef HAVE_AVX2
+#  ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
 int check_for_temporal_macros_avx2(string_view str)
   __attribute__((target("avx2")));
+#  endif
 
 // The following algorithm, which uses AVX2 instructions to find __DATE__,
 // __TIME__ and __TIMESTAMP__, is heavily inspired by
@@ -157,7 +159,13 @@ check_for_temporal_macros_avx2(string_view str)
     // A bit set in mask now indicates a possible location for a temporal macro.
     while (mask != 0) {
       // The start position + 1 (as we know the first char is _).
+#  ifndef _MSC_VER
       const auto start = pos + __builtin_ctz(mask) + 1;
+#  else
+      unsigned long index;
+      _BitScanForward(&index, mask);
+      const auto start = pos + index + 1;
+#  endif
 
       // Clear the least significant bit set.
       mask = mask & (mask - 1);
