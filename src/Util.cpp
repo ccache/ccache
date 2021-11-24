@@ -1221,7 +1221,7 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
   try {
     write_fd(fd, text_to_send->data(), text_to_send->length());
   } catch (core::Error& e) {
-    throw core::Error("Failed to write to stderr: {}", e.what());
+    throw core::Error("Failed to write to {}: {}", fd, e.what());
   }
 }
 
