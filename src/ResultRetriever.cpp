@@ -160,7 +160,7 @@ ResultRetriever::on_entry_end()
 {
   if (m_dest_file_type == FileType::stderr_output) {
     LOG("Writing to file descriptor {}", STDERR_FILENO);
-    Util::send_to_stderr(m_ctx, m_dest_data);
+    Util::send_to_fd(m_ctx, m_dest_data, STDERR_FILENO);
   } else if (m_dest_file_type == FileType::dependency && !m_dest_path.empty()) {
     write_dependency_file();
   }

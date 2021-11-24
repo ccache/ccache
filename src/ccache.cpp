@@ -974,7 +974,7 @@ to_cache(Context& ctx,
     LOG("Compiler gave exit status {}", *status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
+    Util::send_to_fd(ctx, Util::read_file(tmp_stderr_path), STDERR_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(*status);
@@ -1022,7 +1022,7 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
+  Util::send_to_fd(ctx, Util::read_file(tmp_stderr_path), STDERR_FILENO);
 
   return *result_key;
 }

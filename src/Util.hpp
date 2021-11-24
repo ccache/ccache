@@ -33,10 +33,6 @@
 #include <utility>
 #include <vector>
 
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-#endif
-
 class Context;
 
 namespace Util {
@@ -322,16 +318,11 @@ void rename(const std::string& oldpath, const std::string& newpath);
 bool same_program_name(nonstd::string_view program_name,
                        nonstd::string_view canonical_program_name);
 
-// Send `text` to file descriptor 'fd', optionally stripping ANSI color
+// Send `text` to file descriptor `fd`, optionally stripping ANSI color
 // sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
 // paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws
 // `core::Error` on error.
 void send_to_fd(const Context& ctx, const std::string& text, int fd);
-inline void
-send_to_stderr(const Context& ctx, const std::string& text)
-{
-  send_to_fd(ctx, text, STDERR_FILENO);
-}
 
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
 void set_cloexec_flag(int fd);

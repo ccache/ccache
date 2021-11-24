@@ -26,6 +26,7 @@
 #include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/path.hpp>
@@ -1174,26 +1175,6 @@ same_program_name(nonstd::string_view program_name,
 #endif
 }
 
-#ifdef _WIN32
-// Stdout/stderr are normally opened in text mode, which would convert newlines
-// a second time, since we treat outputs as binary data.
-// Make sure to switch to binary mode.
-namespace {
-struct BinaryModeHelper
-{
-  BinaryModeHelper(int fd_) : fd(fd_), oldmode(_setmode(fd, _O_BINARY))
-  {
-  }
-  ~BinaryModeHelper()
-  {
-    _setmode(fd, oldmode);
-  }
-  int fd;
-  int oldmode;
-};
-} // namespace
-#endif
-
 void
 send_to_fd(const Context& ctx, const std::string& text, int fd)
 {
@@ -1201,7 +1182,11 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
   std::string modified_text;
 
 #ifdef _WIN32
-  BinaryModeHelper helper(fd);
+  // stdout/stderr are normally opened in text mode, which would convert
+  // newlines a second time since we treat output as binary data. Make sure to
+  // switch to binary mode.
+  int oldmode = _setmode(fd, _O_BINARY);
+  Finalizer binary_mode_restorer([=] { _setmode(fd, oldmode); });
 #endif
 
   if (ctx.args_info.strip_diagnostics_colors) {
