@@ -1552,7 +1552,7 @@ Log for this object file.
 
 |==============================================================================
 
-If <<config_debug_dir,*config_dir*>> (environment variable `CCACHE_DEBUGDIR`) is
+If <<config_debug_dir,*debug_dir*>> (environment variable `CCACHE_DEBUGDIR`) is
 set, the files above will be written to that directory with full absolute paths
 instead of next to the object file.
 
