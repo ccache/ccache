@@ -203,13 +203,16 @@ trim_dir(const std::string& dir,
   std::vector<File> files;
   uint64_t size_before = 0;
 
+  bool is_zfs = false;
+  Util::is_zfs_path(dir, &is_zfs);
+
   Util::traverse(dir, [&](const std::string& path, const bool is_dir) {
     const auto stat = Stat::lstat(path);
     if (!stat) {
       // Probably some race, ignore.
       return;
     }
-    size_before += stat.size_on_disk();
+    size_before += is_zfs ? stat.size() : stat.size_on_disk();
     if (!is_dir) {
       const auto name = Util::base_name(path);
       if (name == "ccache.conf" || name == "stats") {

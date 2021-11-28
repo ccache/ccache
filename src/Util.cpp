@@ -779,6 +779,26 @@ is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
 }
 #endif
 
+#ifdef __linux
+int
+is_zfs_path(const std::string& path, bool* is_zfs)
+{
+  struct statfs buf;
+  if (statfs(path.c_str(), &buf) != 0) {
+    return errno;
+  }
+  const long S_MAGIC_ZFS = 0x2FC12FC1;
+  *is_zfs = buf.f_type == S_MAGIC_ZFS;
+  return 0;
+}
+#else
+int
+is_zfs_path(const std::string& /*path*/, bool* /*is_zfs*/)
+{
+  return -1;
+}
+#endif
+
 bool
 is_precompiled_header(string_view path)
 {

@@ -228,6 +228,14 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 // error occurred.
 int is_nfs_fd(int fd, bool* is_nfs);
 
+// Test if a file is on zfs.
+//
+// Sets is_zfs to the result if fstatfs is available and no error occurred.
+//
+// Returns 0 if is_zfs was set, -1 if fstatfs is not available or errno if an
+// error occurred.
+int is_zfs_path(const std::string& path, bool* is_zfs);
+
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.
 inline bool
