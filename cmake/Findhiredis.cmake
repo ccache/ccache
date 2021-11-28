@@ -27,6 +27,8 @@ if(HIREDIS_FROM_INTERNET)
     message(FATAL "extracting ${hiredis_dir}.tar.gz failed")
   endif()
 
+  find_package(OpenSSL)
+
   set(
     hiredis_sources
     "${hiredis_dir}/alloc.c"
@@ -38,8 +40,14 @@ if(HIREDIS_FROM_INTERNET)
     "${hiredis_dir}/sds.c"
     "${hiredis_dir}/sockcompat.c"
   )
+  set(
+    hiredis_ssl_sources
+    "${hiredis_dir}/ssl.c"
+  )
   add_library(libhiredis_static STATIC EXCLUDE_FROM_ALL ${hiredis_sources})
   add_library(HIREDIS::HIREDIS ALIAS libhiredis_static)
+  add_library(libhiredis_ssl_static STATIC EXCLUDE_FROM_ALL ${hiredis_ssl_sources})
+  add_library(HIREDIS::HIREDIS_SSL ALIAS libhiredis_ssl_static)
   if(WIN32)
     target_compile_definitions(libhiredis_static PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_link_libraries(libhiredis_static PUBLIC ws2_32)
@@ -53,6 +61,13 @@ if(HIREDIS_FROM_INTERNET)
     libhiredis_static
     PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/include>")
+  set_target_properties(
+    libhiredis_ssl_static
+    PROPERTIES
+    INTERFACE_LINK_LIBRARIES OpenSSL::SSL
+    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/include>")
+
+  set(hiredis_ssl_FOUND TRUE)
 else()
   find_package(PkgConfig)
   if(PKG_CONFIG_FOUND)
@@ -80,6 +95,10 @@ else()
     find_path(HIREDIS_SSL_INCLUDE_DIR hiredis/hiredis_ssl.h)
   endif()
 
+  find_package_handle_standard_args(
+    hiredis_ssl
+    "please install libhiredis_ssl or use -DHIREDIS_FROM_INTERNET=ON or disable with -DREDISS_STORAGE_BACKEND=OFF"
+    HIREDIS_SSL_INCLUDE_DIR HIREDIS_SSL_LIBRARY)
   mark_as_advanced(HIREDIS_SSL_INCLUDE_DIR HIREDIS_SSL_LIBRARY)
   set(hiredis_ssl_FOUND HIREDIS_SSL_LIBRARY)
 
