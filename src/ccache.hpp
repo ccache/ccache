@@ -36,6 +36,8 @@ using FindExecutableFunction =
                             const std::string& name,
                             const std::string& exclude_name)>;
 
+int ccache_main(int argc, const char* const* argv);
+
 // Tested by unit tests.
 void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function);

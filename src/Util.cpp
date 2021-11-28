@@ -21,12 +21,13 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Fd.hpp"
-#include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
 #include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <Finalizer.hpp>
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
@@ -236,7 +237,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #  if defined(__linux__)
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
-    throw Error("{}: {}", src, strerror(errno));
+    throw core::Error("{}: {}", src, strerror(errno));
   }
 
   Fd dest_fd;
@@ -249,12 +250,12 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw Error("{}: {}", src, strerror(errno));
+      throw core::Error("{}: {}", src, strerror(errno));
     }
   }
 
   if (ioctl(*dest_fd, FICLONE, *src_fd) != 0) {
-    throw Error(strerror(errno));
+    throw core::Error(strerror(errno));
   }
 
   dest_fd.close();
@@ -266,13 +267,13 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #  elif defined(__APPLE__)
   (void)via_tmp_file;
   if (clonefile(src.c_str(), dest.c_str(), CLONE_NOOWNERCOPY) != 0) {
-    throw Error(strerror(errno));
+    throw core::Error(strerror(errno));
   }
 #  else
   (void)src;
   (void)dest;
   (void)via_tmp_file;
-  throw Error(strerror(EOPNOTSUPP));
+  throw core::Error(strerror(EOPNOTSUPP));
 #  endif
 }
 #endif // FILE_CLONING_SUPPORTED
@@ -289,7 +290,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
     try {
       clone_file(source, dest, via_tmp_file);
       return;
-    } catch (Error& e) {
+    } catch (core::Error& e) {
       LOG("Failed to clone: {}", e.what());
     }
 #else
@@ -304,7 +305,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
         LOG("Failed to chmod: {}", strerror(errno));
       }
       return;
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       LOG_RAW(e.what());
       // Fall back to copying.
     }
@@ -356,7 +357,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
-    throw Error("{}: {}", src, strerror(errno));
+    throw core::Error("{}: {}", src, strerror(errno));
   }
 
   Fd dest_fd;
@@ -369,7 +370,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw Error("{}: {}", dest, strerror(errno));
+      throw core::Error("{}: {}", dest, strerror(errno));
     }
   }
 
@@ -455,7 +456,7 @@ expand_environment_variables(const std::string& str)
         ++right;
       }
       if (curly && *right != '}') {
-        throw Error("syntax error: missing '}}' after \"{}\"", left);
+        throw core::Error("syntax error: missing '}}' after \"{}\"", left);
       }
       if (right == left) {
         // Special case: don't consider a single $ the left of a variable.
@@ -465,7 +466,7 @@ expand_environment_variables(const std::string& str)
         std::string name(left, right - left);
         const char* value = getenv(name.c_str());
         if (!value) {
-          throw Error("environment variable \"{}\" not set", name);
+          throw core::Error("environment variable \"{}\" not set", name);
         }
         result += value;
         if (!curly) {
@@ -505,29 +506,13 @@ fallocate(int fd, long new_size)
   int err = 0;
   try {
     write_fd(fd, buf, bytes_to_write);
-  } catch (Error&) {
+  } catch (core::Error&) {
     err = errno;
   }
   lseek(fd, saved_pos, SEEK_SET);
   free(buf);
   return err;
 #endif
-}
-
-void
-for_each_level_1_subdir(const std::string& cache_dir,
-                        const SubdirVisitor& visitor,
-                        const ProgressReceiver& progress_receiver)
-{
-  for (int i = 0; i <= 0xF; i++) {
-    double progress = 1.0 * i / 16;
-    progress_receiver(progress);
-    std::string subdir_path = FMT("{}/{:x}", cache_dir, i);
-    visitor(subdir_path, [&](double inner_progress) {
-      progress_receiver(progress + inner_progress / 16);
-    });
-  }
-  progress_receiver(1.0);
 }
 
 std::string
@@ -596,7 +581,8 @@ void
 ensure_dir_exists(nonstd::string_view dir)
 {
   if (!create_dir(dir)) {
-    throw Fatal("Failed to create directory {}: {}", dir, strerror(errno));
+    throw core::Fatal(
+      "Failed to create directory {}: {}", dir, strerror(errno));
   }
 }
 
@@ -661,37 +647,6 @@ get_extension(string_view path)
   }
 }
 
-std::vector<CacheFile>
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver)
-{
-  std::vector<CacheFile> files;
-
-  if (!Stat::stat(dir)) {
-    return files;
-  }
-
-  size_t level_2_directories = 0;
-
-  Util::traverse(dir, [&](const std::string& path, bool is_dir) {
-    auto name = Util::base_name(path);
-    if (name == "CACHEDIR.TAG" || name == "stats" || name.starts_with(".nfs")) {
-      return;
-    }
-
-    if (!is_dir) {
-      files.emplace_back(path);
-    } else if (path != dir
-               && path.find('/', dir.size() + 1) == std::string::npos) {
-      ++level_2_directories;
-      progress_receiver(level_2_directories / 16.0);
-    }
-  });
-
-  progress_receiver(1.0);
-  return files;
-}
-
 std::string
 get_home_directory()
 {
@@ -713,7 +668,8 @@ get_home_directory()
     }
   }
 #endif
-  throw Fatal("Could not determine home directory from $HOME or getpwuid(3)");
+  throw core::Fatal(
+    "Could not determine home directory from $HOME or getpwuid(3)");
 }
 
 const char*
@@ -786,16 +742,16 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 
 #ifndef _WIN32
   if (link(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw Error(
+    throw core::Error(
       "failed to link {} to {}: {}", oldpath, newpath, strerror(errno));
   }
 #else
   if (!CreateHardLink(newpath.c_str(), oldpath.c_str(), nullptr)) {
     DWORD error = GetLastError();
-    throw Error("failed to link {} to {}: {}",
-                oldpath,
-                newpath,
-                Win32Util::error_message(error));
+    throw core::Error("failed to link {} to {}: {}",
+                      oldpath,
+                      newpath,
+                      Win32Util::error_message(error));
   }
 #endif
 }
@@ -1002,8 +958,8 @@ parse_duration(const std::string& duration)
     factor = 1;
     break;
   default:
-    throw Error("invalid suffix (supported: d (day) and s (second)): \"{}\"",
-                duration);
+    throw core::Error(
+      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration);
   }
 
   const auto value =
@@ -1011,7 +967,7 @@ parse_duration(const std::string& duration)
   if (value) {
     return factor * *value;
   } else {
-    throw Error(value.error());
+    throw core::Error(value.error());
   }
 }
 
@@ -1023,7 +979,7 @@ parse_size(const std::string& value)
   char* p;
   double result = strtod(value.c_str(), &p);
   if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
-    throw Error("invalid size: \"{}\"", value);
+    throw core::Error("invalid size: \"{}\"", value);
   }
 
   while (isspace(*p)) {
@@ -1047,7 +1003,7 @@ parse_size(const std::string& value)
       result *= multiplier;
       break;
     default:
-      throw Error("invalid size: \"{}\"", value);
+      throw core::Error("invalid size: \"{}\"", value);
     }
   } else {
     // Default suffix: G.
@@ -1059,7 +1015,7 @@ parse_size(const std::string& value)
 bool
 read_fd(int fd, DataReceiver data_receiver)
 {
-  ssize_t n;
+  int64_t n;
   char buffer[CCACHE_READ_BUFFER_SIZE];
   while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
     if (n == -1 && errno != EINTR) {
@@ -1078,7 +1034,7 @@ read_file(const std::string& path, size_t size_hint)
   if (size_hint == 0) {
     auto stat = Stat::stat(path);
     if (!stat) {
-      throw Error(strerror(errno));
+      throw core::Error(strerror(errno));
     }
     size_hint = stat.size();
   }
@@ -1088,10 +1044,10 @@ read_file(const std::string& path, size_t size_hint)
 
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
-    throw Error(strerror(errno));
+    throw core::Error(strerror(errno));
   }
 
-  ssize_t ret = 0;
+  int64_t ret = 0;
   size_t pos = 0;
   std::string result;
   result.resize(size_hint);
@@ -1115,7 +1071,7 @@ read_file(const std::string& path, size_t size_hint)
 
   if (ret == -1) {
     LOG("Failed reading {}", path);
-    throw Error(strerror(errno));
+    throw core::Error(strerror(errno));
   }
 
   result.resize(pos);
@@ -1128,7 +1084,7 @@ read_link(const std::string& path)
 {
   size_t buffer_size = path_max(path);
   std::unique_ptr<char[]> buffer(new char[buffer_size]);
-  ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
+  const auto len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
   if (len == -1) {
     return "";
   }
@@ -1189,7 +1145,7 @@ rename(const std::string& oldpath, const std::string& newpath)
 {
 #ifndef _WIN32
   if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw Error(
+    throw core::Error(
       "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno));
   }
 #else
@@ -1198,10 +1154,10 @@ rename(const std::string& oldpath, const std::string& newpath)
   if (!MoveFileExA(
         oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
     DWORD error = GetLastError();
-    throw Error("failed to rename {} to {}: {}",
-                oldpath,
-                newpath,
-                Win32Util::error_message(error));
+    throw core::Error("failed to rename {} to {}: {}",
+                      oldpath,
+                      newpath,
+                      Win32Util::error_message(error));
   }
 #endif
 }
@@ -1220,16 +1176,24 @@ same_program_name(nonstd::string_view program_name,
 }
 
 void
-send_to_stderr(const Context& ctx, const std::string& text)
+send_to_fd(const Context& ctx, const std::string& text, int fd)
 {
   const std::string* text_to_send = &text;
   std::string modified_text;
+
+#ifdef _WIN32
+  // stdout/stderr are normally opened in text mode, which would convert
+  // newlines a second time since we treat output as binary data. Make sure to
+  // switch to binary mode.
+  int oldmode = _setmode(fd, _O_BINARY);
+  Finalizer binary_mode_restorer([=] { _setmode(fd, oldmode); });
+#endif
 
   if (ctx.args_info.strip_diagnostics_colors) {
     try {
       modified_text = strip_ansi_csi_seqs(text);
       text_to_send = &modified_text;
-    } catch (const Error&) {
+    } catch (const core::Error&) {
       // Fall through
     }
   }
@@ -1240,9 +1204,9 @@ send_to_stderr(const Context& ctx, const std::string& text)
   }
 
   try {
-    write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length());
-  } catch (Error& e) {
-    throw Error("Failed to write to stderr: {}", e.what());
+    write_fd(fd, text_to_send->data(), text_to_send->length());
+  } catch (core::Error& e) {
+    throw core::Error("Failed to write to {}: {}", fd, e.what());
   }
 }
 
@@ -1345,9 +1309,9 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
           if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
             continue;
           }
-          throw Error("failed to lstat {}: {}",
-                      entry_path,
-                      strerror(stat.error_number()));
+          throw core::Error("failed to lstat {}: {}",
+                            entry_path,
+                            strerror(stat.error_number()));
         }
         is_dir = stat.is_directory();
       }
@@ -1362,7 +1326,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (errno == ENOTDIR) {
     visitor(path, false);
   } else {
-    throw Error("failed to open directory {}: {}", path, strerror(errno));
+    throw core::Error("failed to open directory {}: {}", path, strerror(errno));
   }
 }
 
@@ -1385,7 +1349,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (std::filesystem::exists(path)) {
     visitor(path, false);
   } else {
-    throw Error("failed to open directory {}: {}", path, strerror(errno));
+    throw core::Error("failed to open directory {}: {}", path, strerror(errno));
   }
 }
 
@@ -1404,7 +1368,7 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
   bool success = true;
   try {
     Util::rename(path, tmp_name);
-  } catch (Error&) {
+  } catch (core::Error&) {
     success = false;
     saved_errno = errno;
   }
@@ -1474,10 +1438,10 @@ wipe_path(const std::string& path)
   traverse(path, [](const std::string& p, bool is_dir) {
     if (is_dir) {
       if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-        throw Error("failed to rmdir {}: {}", p, strerror(errno));
+        throw core::Error("failed to rmdir {}: {}", p, strerror(errno));
       }
     } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-      throw Error("failed to unlink {}: {}", p, strerror(errno));
+      throw core::Error("failed to unlink {}: {}", p, strerror(errno));
     }
   });
 }
@@ -1485,13 +1449,13 @@ wipe_path(const std::string& path)
 void
 write_fd(int fd, const void* data, size_t size)
 {
-  ssize_t written = 0;
+  int64_t written = 0;
   do {
-    ssize_t count =
+    const auto count =
       write(fd, static_cast<const uint8_t*>(data) + written, size - written);
     if (count == -1) {
       if (errno != EAGAIN && errno != EINTR) {
-        throw Error(strerror(errno));
+        throw core::Error(strerror(errno));
       }
     } else {
       written += count;
@@ -1505,13 +1469,13 @@ write_file(const std::string& path,
            std::ios_base::openmode open_mode)
 {
   if (path.empty()) {
-    throw Error("No such file or directory");
+    throw core::Error("No such file or directory");
   }
 
   open_mode |= std::ios::out;
   std::ofstream file(path, open_mode);
   if (!file) {
-    throw Error(strerror(errno));
+    throw core::Error(strerror(errno));
   }
   file << data;
 }

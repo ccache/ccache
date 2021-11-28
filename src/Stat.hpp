@@ -18,11 +18,12 @@
 
 #pragma once
 
-#include "exceptions.hpp"
+#include <core/wincompat.hpp>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <ctime>
 #include <string>
 
 #ifdef _WIN32
@@ -125,6 +126,7 @@ public:
   dev_t device() const;
   ino_t inode() const;
   mode_t mode() const;
+  time_t atime() const;
   time_t ctime() const;
   time_t mtime() const;
   uint64_t size() const;
@@ -140,6 +142,7 @@ public:
   uint32_t reparse_tag() const;
 #endif
 
+  timespec atim() const;
   timespec ctim() const;
   timespec mtim() const;
 
@@ -193,6 +196,12 @@ inline mode_t
 Stat::mode() const
 {
   return m_stat.st_mode;
+}
+
+inline time_t
+Stat::atime() const
+{
+  return atim().tv_sec;
 }
 
 inline time_t
@@ -254,6 +263,16 @@ Stat::reparse_tag() const
   return m_stat.st_reparse_tag;
 }
 #endif
+
+inline timespec
+Stat::atim() const
+{
+#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_ATIM)
+  return m_stat.st_atim;
+#else
+  return {m_stat.st_atime, 0};
+#endif
+}
 
 inline timespec
 Stat::ctim() const

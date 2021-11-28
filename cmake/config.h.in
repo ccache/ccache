@@ -115,6 +115,9 @@
 // Define if "f_fstypename" is a member of "struct statfs".
 #cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
 
+// Define if "st_atim" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIM
+
 // Define if "st_ctim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_CTIM
 
@@ -187,13 +190,6 @@
 #  ifdef _MSC_VER
 typedef unsigned __int32 mode_t;
 typedef int pid_t;
-#    ifdef _WIN64
-typedef __int64 ssize_t;
-#    else
-typedef int ssize_t;
-#    endif
-#  elif !defined(__MINGW32__)
-typedef __int64 ssize_t;
 #  endif // _MSC_VER
 #endif   // _WIN32
 

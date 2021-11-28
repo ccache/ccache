@@ -27,18 +27,18 @@ SUITE_ivfsoverlay() {
     TEST "without sloppy ivfsoverlay"
 
     $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat unsupported_compiler_option 1
 
     # -------------------------------------------------------------------------
     TEST "with sloppy ivfsoverlay"
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime ivfsoverlay" $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime ivfsoverlay" $CCACHE_COMPILE -ivfsoverlay test.yaml -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 }

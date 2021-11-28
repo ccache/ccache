@@ -6,7 +6,7 @@ Prerequisites
 
 To build ccache you need:
 
-- CMake 3.4.3 or newer.
+- CMake 3.10 or newer.
 - A C++14 compiler. See [Supported platforms, compilers and
   languages](https://ccache.dev/platform-compiler-language-support.html) for
   details.
@@ -14,6 +14,7 @@ To build ccache you need:
 - [libzstd](http://www.zstd.net). If you don't have libzstd installed and
   can't or don't want to install it in a standard system location, there are
   two options:
+
     1. Install zstd in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
        by passing `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`, or
     2. Pass `-DZSTD_FROM_INTERNET=ON` to `cmake` to make it download libzstd
@@ -24,13 +25,20 @@ To build ccache you need:
 
 Optional:
 
+- [hiredis](https://github.com/redis/hiredis) for the Redis storage backend. If
+  you don't have libhiredis installed and can't or don't want to install it in a
+  standard system location, there are two options:
+
+    1. Install hiredis in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
+       by passing `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`, or
+    2. Pass `-DHIREDIS_FROM_INTERNET=ON` to `cmake` to make it download hiredis
+       from the Internet and unpack it in the local binary tree. Ccache will
+       then be linked statically to the locally built libhiredis.
+
+  To link libhiredis statically you can use
+  `-DHIREDIS_LIBRARY=/path/to/libhiredis.a`.
 - GNU Bourne Again SHell (bash) for tests.
-- [AsciiDoc](https://www.methods.co.nz/asciidoc/) to build the HTML
-  documentation.
-  - Tip: On Debian-based systems (e.g. Ubuntu), install the `docbook-xml` and
-    `docbook-xsl` packages in addition to `asciidoc`. Without the former the
-    man page generation will be very slow.
-- [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html) to build the man page.
+- [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
 - [Python](https://www.python.org) to debug and run the performance test suite.
 
 

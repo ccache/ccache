@@ -20,7 +20,7 @@ SUITE_nvcc_direct() {
     nvcc_opts_gpu2="--generate-code arch=compute_52,code=sm_52"
     ccache_nvcc_cpp="$CCACHE $REAL_NVCC $nvcc_opts_cpp"
     ccache_nvcc_cuda="$CCACHE $REAL_NVCC $nvcc_opts_cuda"
-    cuobjdump="$REAL_CUOBJDUMP -all -elf -symbols -ptx -sass"
+    cuobjdump="cuobjdump -all -elf -symbols -ptx -sass"
 
     # -------------------------------------------------------------------------
     TEST "Simple mode"
@@ -29,15 +29,15 @@ SUITE_nvcc_direct() {
 
     # First compile.
     $ccache_nvcc_cpp test_cpp.cu
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     $ccache_nvcc_cpp test_cpp.cu
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     # -------------------------------------------------------------------------
@@ -54,39 +54,39 @@ SUITE_nvcc_direct() {
     expect_different_content reference_test2.dump reference_test3.dump
 
     $ccache_nvcc_cuda test_cuda.cu
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test1.dump test1.dump
 
     # Other GPU.
     $ccache_nvcc_cuda $nvcc_opts_gpu1 test_cuda.cu
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 4
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 4
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test2.dump test1.dump
 
     $ccache_nvcc_cuda $nvcc_opts_gpu1 test_cuda.cu
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 4
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 4
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test2.dump test1.dump
 
     # Another GPU.
     $ccache_nvcc_cuda $nvcc_opts_gpu2 test_cuda.cu
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 3
-    expect_stat 'files in cache' 6
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
+    expect_stat files_in_cache 6
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test3.dump test1.dump
 
     $ccache_nvcc_cuda $nvcc_opts_gpu2 test_cuda.cu
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 3
-    expect_stat 'files in cache' 6
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
+    expect_stat files_in_cache 6
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test3.dump test1.dump
 
@@ -98,30 +98,30 @@ SUITE_nvcc_direct() {
     expect_different_content reference_test1.o reference_test2.o
 
     $ccache_nvcc_cpp test_cpp.cu
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     # Specified define, but unused. Can only be found by preprocessed mode.
     $ccache_nvcc_cpp -DDUMMYENV=1 test_cpp.cu
-    expect_stat "cache hit (preprocessed)" 1
-    expect_stat "cache hit (direct)" 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 3
+    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 3
     expect_equal_content reference_test1.o test_cpp.o
 
     # Specified used define.
     $ccache_nvcc_cpp -DNUM=10 test_cpp.cu
-    expect_stat "cache hit (direct)" 0
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 5
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 5
     expect_equal_content reference_test2.o test_cpp.o
 
     $ccache_nvcc_cpp -DNUM=10 test_cpp.cu
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 5
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 5
     expect_equal_content reference_test2.o test_cpp.o
 
     # -------------------------------------------------------------------------
@@ -132,26 +132,26 @@ SUITE_nvcc_direct() {
     expect_different_content reference_test1.o reference_test2.o
 
     $ccache_nvcc_cpp -optf test1.optf test_cpp.cu
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     $ccache_nvcc_cpp -optf test1.optf test_cpp.cu
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     $ccache_nvcc_cpp -optf test2.optf test_cpp.cu
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 4
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 4
     expect_equal_content reference_test2.o test_cpp.o
 
     $ccache_nvcc_cpp -optf test2.optf test_cpp.cu
-    expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 4
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    expect_stat files_in_cache 4
     expect_equal_content reference_test2.o test_cpp.o
 }

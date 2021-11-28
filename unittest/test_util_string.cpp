@@ -72,6 +72,19 @@ TEST_CASE("util::join")
   }
 }
 
+TEST_CASE("util::parse_double")
+{
+  CHECK(*util::parse_double("0") == doctest::Approx(0.0));
+  CHECK(*util::parse_double(".0") == doctest::Approx(0.0));
+  CHECK(*util::parse_double("0.") == doctest::Approx(0.0));
+  CHECK(*util::parse_double("0.0") == doctest::Approx(0.0));
+  CHECK(*util::parse_double("2.1") == doctest::Approx(2.1));
+  CHECK(*util::parse_double("-42.789") == doctest::Approx(-42.789));
+
+  CHECK(util::parse_double("").error() == "invalid floating point: \"\"");
+  CHECK(util::parse_double("x").error() == "invalid floating point: \"x\"");
+}
+
 TEST_CASE("util::parse_signed")
 {
   CHECK(*util::parse_signed("0") == 0);
@@ -185,6 +198,31 @@ TEST_CASE("util::percent_decode")
         == "invalid percent-encoded string at position 0: %%");
   CHECK(util::percent_decode("a%0g").error()
         == "invalid percent-encoded string at position 1: a%0g");
+}
+
+TEST_CASE("util::replace_all")
+{
+  CHECK(util::replace_all("", "", "") == "");
+  CHECK(util::replace_all("x", "", "") == "x");
+  CHECK(util::replace_all("", "x", "") == "");
+  CHECK(util::replace_all("", "", "x") == "");
+  CHECK(util::replace_all("x", "y", "z") == "x");
+  CHECK(util::replace_all("x", "x", "y") == "y");
+  CHECK(util::replace_all("abc", "abc", "defdef") == "defdef");
+  CHECK(util::replace_all("xabc", "abc", "defdef") == "xdefdef");
+  CHECK(util::replace_all("abcx", "abc", "defdef") == "defdefx");
+  CHECK(util::replace_all("xabcyabcz", "abc", "defdef") == "xdefdefydefdefz");
+}
+
+TEST_CASE("util::replace_first")
+{
+  CHECK(util::replace_first("", "", "") == "");
+  CHECK(util::replace_first("x", "", "") == "x");
+  CHECK(util::replace_first("", "x", "") == "");
+  CHECK(util::replace_first("", "", "x") == "");
+  CHECK(util::replace_first("x", "y", "z") == "x");
+  CHECK(util::replace_first("x", "x", "y") == "y");
+  CHECK(util::replace_first("xabcyabcz", "abc", "defdef") == "xdefdefyabcz");
 }
 
 TEST_CASE("util::split_once")

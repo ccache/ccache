@@ -22,6 +22,7 @@
 #include "Depfile.hpp"
 #include "Logging.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 
 #include <fcntl.h>
@@ -41,7 +42,8 @@ ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
 }
 
 void
-ResultRetriever::on_header(CacheEntryReader& /*cache_entry_reader*/)
+ResultRetriever::on_header(core::CacheEntryReader& /*cache_entry_reader*/,
+                           const uint8_t /*result_format_version*/)
 {
 }
 
@@ -129,7 +131,7 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     m_dest_fd = Fd(
       open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!m_dest_fd) {
-      throw Error(
+      throw core::Error(
         "Failed to open {} for writing: {}", dest_path, strerror(errno));
     }
     m_dest_path = dest_path;
@@ -147,8 +149,8 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
   } else if (m_dest_fd) {
     try {
       Util::write_fd(*m_dest_fd, data, size);
-    } catch (Error& e) {
-      throw Error("Failed to write to {}: {}", m_dest_path, e.what());
+    } catch (core::Error& e) {
+      throw core::Error("Failed to write to {}: {}", m_dest_path, e.what());
     }
   }
 }
@@ -158,7 +160,7 @@ ResultRetriever::on_entry_end()
 {
   if (m_dest_file_type == FileType::stderr_output) {
     LOG("Writing to file descriptor {}", STDERR_FILENO);
-    Util::send_to_stderr(m_ctx, m_dest_data);
+    Util::send_to_fd(m_ctx, m_dest_data, STDERR_FILENO);
   } else if (m_dest_file_type == FileType::dependency && !m_dest_path.empty()) {
     write_dependency_file();
   }
@@ -189,7 +191,7 @@ ResultRetriever::write_dependency_file()
     Util::write_fd(*m_dest_fd,
                    m_dest_data.data() + start_pos,
                    m_dest_data.length() - start_pos);
-  } catch (Error& e) {
-    throw Error("Failed to write to {}: {}", m_dest_path, e.what());
+  } catch (core::Error& e) {
+    throw core::Error("Failed to write to {}: {}", m_dest_path, e.what());
   }
 }

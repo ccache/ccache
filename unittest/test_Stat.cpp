@@ -21,6 +21,7 @@
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 
 #include "third_party/doctest.h"
@@ -620,7 +621,7 @@ TEST_CASE("Win32 No Sharing")
   Finalizer cleanup([&] { CloseHandle(handle); });
 
   // Sanity check we can't open the file for read/write access.
-  REQUIRE_THROWS_AS(Util::read_file("file"), const Error&);
+  REQUIRE_THROWS_AS(Util::read_file("file"), const core::Error&);
 
   SUBCASE("stat file no sharing")
   {

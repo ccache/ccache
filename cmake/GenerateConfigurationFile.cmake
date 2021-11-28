@@ -60,6 +60,8 @@ check_function_exists(pthread_mutexattr_setpshared HAVE_PTHREAD_MUTEXATTR_SETPSH
 set(CMAKE_REQUIRED_FLAGS)
 
 include(CheckStructHasMember)
+check_struct_has_member("struct stat" st_atim sys/stat.h
+                        HAVE_STRUCT_STAT_ST_ATIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_ctim sys/stat.h
                         HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_mtim sys/stat.h
@@ -71,7 +73,9 @@ include(CheckCXXSourceCompiles)
 check_cxx_source_compiles(
   [=[
     #include <immintrin.h>
+    #ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
     void func() __attribute__((target("avx2")));
+    #endif
     void func() { _mm256_abs_epi8(_mm256_set1_epi32(42)); }
     int main()
     {

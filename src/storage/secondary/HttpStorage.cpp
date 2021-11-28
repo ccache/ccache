@@ -21,7 +21,7 @@
 #include <Digest.hpp>
 #include <Logging.hpp>
 #include <ccache.hpp>
-#include <exceptions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
@@ -50,48 +50,14 @@ public:
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
 
 private:
+  enum class Layout { bazel, flat, subdirs };
+
   const std::string m_url_path;
   httplib::Client m_http_client;
+  Layout m_layout = Layout::subdirs;
 
   std::string get_entry_path(const Digest& key) const;
 };
-
-nonstd::string_view
-to_string(const httplib::Error error)
-{
-  using httplib::Error;
-
-  switch (error) {
-  case Error::Success:
-    return "Success";
-  case Error::Connection:
-    return "Connection";
-  case Error::BindIPAddress:
-    return "BindIPAddress";
-  case Error::Read:
-    return "Read";
-  case Error::Write:
-    return "Write";
-  case Error::ExceedRedirectCount:
-    return "ExceedRedirectCount";
-  case Error::Canceled:
-    return "Canceled";
-  case Error::SSLConnection:
-    return "SSLConnection";
-  case Error::SSLLoadingCerts:
-    return "SSLLoadingCerts";
-  case Error::SSLServerVerification:
-    return "SSLServerVerification";
-  case Error::UnsupportedMultipartBoundaryChars:
-    return "UnsupportedMultipartBoundaryChars";
-  case Error::Compression:
-    return "Compression";
-  case Error::Unknown:
-    break;
-  }
-
-  return "Unknown";
-}
 
 std::string
 get_url_path(const Url& url)
@@ -107,6 +73,7 @@ Url
 get_partial_url(const Url& from_url)
 {
   Url url;
+  url.scheme(from_url.scheme());
   url.host(from_url.host(), from_url.ip_version());
   if (!from_url.port().empty()) {
     url.port(from_url.port());
@@ -115,55 +82,35 @@ get_partial_url(const Url& from_url)
 }
 
 std::string
-get_host_header_value(const Url& url)
-{
-  // We need to construct an HTTP Host header that follows the same IPv6
-  // escaping rules like a URL.
-  const auto rendered_value = get_partial_url(url).str();
-
-  // The rendered_value now contains a string like "//[::1]:8080". The leading
-  // slashes must be stripped.
-  const auto prefix = nonstd::string_view{"//"};
-  if (!util::starts_with(rendered_value, prefix)) {
-    throw Fatal(R"(Expected partial URL "{}" to start with "{}")",
-                rendered_value,
-                prefix);
-  }
-  return rendered_value.substr(prefix.size());
-}
-
-std::string
 get_url(const Url& url)
 {
   if (url.host().empty()) {
-    throw Fatal("A host is required in HTTP storage URL \"{}\"", url.str());
+    throw core::Fatal("A host is required in HTTP storage URL \"{}\"",
+                      url.str());
   }
 
   // httplib requires a partial URL with just scheme, host and port.
-  return get_partial_url(url).scheme(url.scheme()).str();
+  return get_partial_url(url).str();
 }
 
 HttpStorageBackend::HttpStorageBackend(const Params& params)
   : m_url_path(get_url_path(params.url)),
-    m_http_client(get_url(params.url).c_str())
+    m_http_client(get_url(params.url))
 {
   if (!params.url.user_info().empty()) {
     const auto pair = util::split_once(params.url.user_info(), ':');
     if (!pair.second) {
-      throw Fatal("Expected username:password in URL but got \"{}\"",
-                  params.url.user_info());
+      throw core::Fatal("Expected username:password in URL but got \"{}\"",
+                        params.url.user_info());
     }
-    m_http_client.set_basic_auth(to_string(pair.first).c_str(),
-                                 to_string(*pair.second).c_str());
+    m_http_client.set_basic_auth(std::string(pair.first).c_str(),
+                                 std::string(*pair.second).c_str());
   }
 
   m_http_client.set_default_headers({
-    // Explicit setting of the Host header is required due to IPv6 address
-    // handling issues in httplib.
-    {"Host", get_host_header_value(params.url)},
     {"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)},
   });
-  m_http_client.set_keep_alive(true);
+  m_http_client.set_keep_alive(false);
 
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
@@ -171,6 +118,18 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   for (const auto& attr : params.attributes) {
     if (attr.key == "connect-timeout") {
       connect_timeout = parse_timeout_attribute(attr.value);
+    } else if (attr.key == "keep-alive") {
+      m_http_client.set_keep_alive(attr.value == "true");
+    } else if (attr.key == "layout") {
+      if (attr.value == "bazel") {
+        m_layout = Layout::bazel;
+      } else if (attr.value == "flat") {
+        m_layout = Layout::flat;
+      } else if (attr.value == "subdirs") {
+        m_layout = Layout::subdirs;
+      } else {
+        LOG("Unknown layout: {}", attr.value);
+      }
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
     } else if (!is_framework_attribute(attr.key)) {
@@ -281,7 +240,29 @@ HttpStorageBackend::remove(const Digest& key)
 std::string
 HttpStorageBackend::get_entry_path(const Digest& key) const
 {
-  return m_url_path + key.to_string();
+  switch (m_layout) {
+  case Layout::bazel: {
+    // Mimic hex representation of a SHA256 hash value.
+    const auto sha256_hex_size = 64;
+    static_assert(Digest::size() == 20, "Update below if digest size changes");
+    std::string hex_digits = Util::format_base16(key.bytes(), key.size());
+    hex_digits.append(hex_digits.data(), sha256_hex_size - hex_digits.size());
+    LOG("Translated key {} to Bazel layout ac/{}", key.to_string(), hex_digits);
+    return FMT("{}ac/{}", m_url_path, hex_digits);
+  }
+
+  case Layout::flat:
+    return m_url_path + key.to_string();
+
+  case Layout::subdirs: {
+    const auto key_str = key.to_string();
+    const uint8_t digits = 2;
+    ASSERT(key_str.length() > digits);
+    return FMT("{}/{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
+  }
+  }
+
+  ASSERT(false);
 }
 
 } // namespace

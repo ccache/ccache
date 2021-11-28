@@ -19,7 +19,6 @@
 #include "argprocessing.hpp"
 
 #include "Context.hpp"
-#include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
 #include "assertions.hpp"
 #include "compopt.hpp"
@@ -35,6 +34,7 @@
 
 #include <cassert>
 
+using core::Statistic;
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -106,9 +106,9 @@ color_output_possible()
 }
 
 bool
-detect_pch(Context& ctx,
-           const std::string& option,
+detect_pch(const std::string& option,
            const std::string& arg,
+           std::string& included_pch_file,
            bool is_cc1_option,
            bool* found_pch)
 {
@@ -135,20 +135,22 @@ detect_pch(Context& ctx,
   }
 
   if (!pch_file.empty()) {
-    if (!ctx.included_pch_file.empty()) {
+    if (!included_pch_file.empty()) {
       LOG("Multiple precompiled headers used: {} and {}",
-          ctx.included_pch_file,
+          included_pch_file,
           pch_file);
       return false;
     }
-    ctx.included_pch_file = pch_file;
+    included_pch_file = pch_file;
     *found_pch = true;
   }
   return true;
 }
 
 bool
-process_profiling_option(Context& ctx, const std::string& arg)
+process_profiling_option(const Context& ctx,
+                         ArgsInfo& args_info,
+                         const std::string& arg)
 {
   static const std::vector<std::string> known_simple_options = {
     "-fprofile-correction",
@@ -168,7 +170,7 @@ process_profiling_option(Context& ctx, const std::string& arg)
   if (util::starts_with(arg, "-fprofile-dir=")) {
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-generate" || arg == "-fprofile-instr-generate") {
-    ctx.args_info.profile_generate = true;
+    args_info.profile_generate = true;
     if (ctx.config.compiler_type() == CompilerType::clang) {
       new_profile_path = ".";
     } else {
@@ -177,13 +179,13 @@ process_profiling_option(Context& ctx, const std::string& arg)
     }
   } else if (util::starts_with(arg, "-fprofile-generate=")
              || util::starts_with(arg, "-fprofile-instr-generate=")) {
-    ctx.args_info.profile_generate = true;
+    args_info.profile_generate = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-use" || arg == "-fprofile-instr-use"
              || arg == "-fprofile-sample-use" || arg == "-fbranch-probabilities"
              || arg == "-fauto-profile") {
     new_profile_use = true;
-    if (ctx.args_info.profile_path.empty()) {
+    if (args_info.profile_path.empty()) {
       new_profile_path = ".";
     }
   } else if (util::starts_with(arg, "-fprofile-use=")
@@ -198,19 +200,19 @@ process_profiling_option(Context& ctx, const std::string& arg)
   }
 
   if (new_profile_use) {
-    if (ctx.args_info.profile_use) {
+    if (args_info.profile_use) {
       LOG_RAW("Multiple profiling options not supported");
       return false;
     }
-    ctx.args_info.profile_use = true;
+    args_info.profile_use = true;
   }
 
   if (!new_profile_path.empty()) {
-    ctx.args_info.profile_path = new_profile_path;
-    LOG("Set profile directory to {}", ctx.args_info.profile_path);
+    args_info.profile_path = new_profile_path;
+    LOG("Set profile directory to {}", args_info.profile_path);
   }
 
-  if (ctx.args_info.profile_generate && ctx.args_info.profile_use) {
+  if (args_info.profile_generate && args_info.profile_use) {
     // Too hard to figure out what the compiler will do.
     LOG_RAW("Both generating and using profile info, giving up");
     return false;
@@ -220,14 +222,13 @@ process_profiling_option(Context& ctx, const std::string& arg)
 }
 
 optional<Statistic>
-process_arg(Context& ctx,
+process_arg(const Context& ctx,
+            ArgsInfo& args_info,
+            Config& config,
             Args& args,
             size_t& args_index,
             ArgumentProcessingState& state)
 {
-  ArgsInfo& args_info = ctx.args_info;
-  Config& config = ctx.config;
-
   size_t& i = args_index;
 
   // The user knows best: just swallow the next arg.
@@ -243,7 +244,7 @@ process_arg(Context& ctx,
 
   // Ignore clang -ivfsoverlay <arg> to not detect multiple input files.
   if (args[i] == "-ivfsoverlay"
-      && !(config.sloppiness() & SLOPPY_IVFSOVERLAY)) {
+      && !(config.sloppiness().is_enabled(core::Sloppy::ivfsoverlay))) {
     LOG_RAW(
       "You have to specify \"ivfsoverlay\" sloppiness when using"
       " -ivfsoverlay to get hits");
@@ -251,7 +252,7 @@ process_arg(Context& ctx,
   }
 
   // Special case for -E.
-  if (args[i] == "-E") {
+  if (args[i] == "-E" || args[i] == "/E") {
     return Statistic::called_for_preprocessing;
   }
 
@@ -262,7 +263,8 @@ process_arg(Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
-    auto file_args = Args::from_gcc_atfile(argpath);
+    auto file_args =
+      Args::from_atfile(argpath, config.compiler_type() == CompilerType::cl);
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -285,7 +287,7 @@ process_arg(Context& ctx,
     // Argument is a comma-separated list of files.
     auto paths = Util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args = Args::from_gcc_atfile(*it);
+      auto file_args = Args::from_atfile(*it);
       if (!file_args) {
         LOG("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;
@@ -299,7 +301,8 @@ process_arg(Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(args[i]) || util::starts_with(args[i], "-fdump-")
-      || util::starts_with(args[i], "-MJ")) {
+      || util::starts_with(args[i], "-MJ") || util::starts_with(args[i], "-Yc")
+      || util::starts_with(args[i], "/Yc")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
@@ -341,7 +344,7 @@ process_arg(Context& ctx,
   // Some arguments that clang passes directly to cc1 (related to precompiled
   // headers) need the usual ccache handling. In those cases, the -Xclang
   // prefix is skipped and the cc1 argument is handled instead.
-  if (args[i] == "-Xclang" && i < args.size() - 1
+  if (args[i] == "-Xclang" && i + 1 < args.size()
       && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
           || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
           || args[i + 1] == "-fno-pch-timestamp")) {
@@ -388,7 +391,7 @@ process_arg(Context& ctx,
       LOG("Compiler option {} is unsupported without direct depend mode",
           args[i]);
       return Statistic::could_not_use_modules;
-    } else if (!(config.sloppiness() & SLOPPY_MODULES)) {
+    } else if (!(config.sloppiness().is_enabled(core::Sloppy::modules))) {
       LOG_RAW(
         "You have to specify \"modules\" sloppiness when using"
         " -fmodules to get hits");
@@ -397,8 +400,16 @@ process_arg(Context& ctx,
   }
 
   // We must have -c.
-  if (args[i] == "-c") {
+  if (args[i] == "-c" || args[i] == "/c") {
     state.found_c_opt = true;
+    return nullopt;
+  }
+
+  // MSVC /Fo with no space.
+  if (util::starts_with(args[i], "/Fo")
+      && config.compiler_type() == CompilerType::cl) {
+    args_info.output_obj =
+      Util::make_relative_path(ctx, string_view(args[i]).substr(3));
     return nullopt;
   }
 
@@ -510,7 +521,8 @@ process_arg(Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if (args[i] == "-MD" || args[i] == "-MMD") {
+  if ((args[i] == "-MD" || args[i] == "-MMD")
+      && config.compiler_type() != CompilerType::cl) {
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
@@ -546,7 +558,7 @@ process_arg(Context& ctx,
   }
 
   if (util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT")) {
-    ctx.args_info.dependency_target_specified = true;
+    args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
       // -MQ arg or -MT arg
@@ -602,7 +614,7 @@ process_arg(Context& ctx,
   if (util::starts_with(args[i], "-fprofile-")
       || util::starts_with(args[i], "-fauto-profile")
       || args[i] == "-fbranch-probabilities") {
-    if (!process_profiling_option(ctx, args[i])) {
+    if (!process_profiling_option(ctx, args_info, args[i])) {
       // The failure is logged by process_profiling_option.
       return Statistic::unsupported_compiler_option;
     }
@@ -741,7 +753,7 @@ process_arg(Context& ctx,
 
   // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
   // -fcolor-diagnostics argument which is passed to cc1 is handled below.
-  if (args[i] == "-Xclang" && i < args.size() - 1
+  if (args[i] == "-Xclang" && i + 1 < args.size()
       && args[i + 1] == "-fcolor-diagnostics") {
     state.compiler_only_args_no_hash.push_back(args[i]);
     ++i;
@@ -789,7 +801,7 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
+  if (config.sloppiness().is_enabled(core::Sloppy::clang_index_store)
       && args[i] == "-index-store-path") {
     // Xcode 9 or later calls Clang with this option. The given path includes a
     // UUID that might lead to cache misses, especially when cache is shared
@@ -821,8 +833,11 @@ process_arg(Context& ctx,
       next = 2;
     }
 
-    if (!detect_pch(
-          ctx, args[i], args[i + next], next == 2, &state.found_pch)) {
+    if (!detect_pch(args[i],
+                    args[i + next],
+                    args_info.included_pch_file,
+                    next == 2,
+                    &state.found_pch)) {
       return Statistic::bad_compiler_arguments;
     }
 
@@ -841,7 +856,8 @@ process_arg(Context& ctx,
 
   // Same as above but options with concatenated argument beginning with a
   // slash.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-'
+      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     size_t slash_pos = args[i].find('/');
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
@@ -879,7 +895,8 @@ process_arg(Context& ctx,
   }
 
   // Other options.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-'
+      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     if (compopt_affects_cpp_output(args[i])
         || compopt_prefix_affects_cpp_output(args[i])) {
       state.cpp_args.push_back(args[i]);
@@ -1008,7 +1025,8 @@ process_args(Context& ctx)
 
   optional<Statistic> argument_error;
   for (size_t i = 1; i < args.size(); i++) {
-    const auto error = process_arg(ctx, args, i, state);
+    const auto error =
+      process_arg(ctx, ctx.args_info, ctx.config, args, i, state);
     if (error && !argument_error) {
       argument_error = error;
     }
@@ -1023,7 +1041,14 @@ process_args(Context& ctx)
   // Determine output object file.
   const bool implicit_output_obj = args_info.output_obj.empty();
   if (implicit_output_obj && !args_info.input_file.empty()) {
-    string_view extension = state.found_S_opt ? ".s" : ".o";
+    string_view extension;
+    if (state.found_S_opt) {
+      extension = ".s";
+    } else if (ctx.config.compiler_type() != CompilerType::cl) {
+      extension = ".o";
+    } else {
+      extension = ".obj";
+    }
     args_info.output_obj =
       Util::change_extension(Util::base_name(args_info.input_file), extension);
   }
@@ -1060,7 +1085,7 @@ process_args(Context& ctx)
 
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
-    if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
+    if (!(config.sloppiness().is_enabled(core::Sloppy::time_macros))) {
       LOG_RAW(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
@@ -1096,7 +1121,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.output_is_precompiled_header
-      && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
+      && !(config.sloppiness().is_enabled(core::Sloppy::pch_defines))) {
     LOG_RAW(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");

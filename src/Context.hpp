@@ -21,12 +21,10 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
-#include "Counters.hpp"
 #include "Digest.hpp"
 #include "File.hpp"
 #include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
-#include "Sloppiness.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
@@ -49,6 +47,10 @@ class Context : NonCopyable
 public:
   Context();
   ~Context();
+
+  // Read configuration, initialize logging, etc. Typically not called from unit
+  // tests.
+  void initialize();
 
   ArgsInfo args_info;
   Config config;
@@ -80,9 +82,6 @@ public:
 
   // The name of the cpp stderr file.
   std::string cpp_stderr;
-
-  // The .gch/.pch/.pth file used for compilation.
-  std::string included_pch_file;
 
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;

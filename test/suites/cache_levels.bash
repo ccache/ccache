@@ -29,16 +29,16 @@ SUITE_cache_levels() {
     TEST "Empty cache"
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_on_level R 2
     expect_on_level M 2
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
     expect_on_level R 2
     expect_on_level M 2
 
@@ -49,16 +49,16 @@ SUITE_cache_levels() {
     add_fake_files_counters $files
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 2
     expect_on_level M 2
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 2
     expect_on_level M 2
 
@@ -69,16 +69,16 @@ SUITE_cache_levels() {
     add_fake_files_counters $files
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 3
     expect_on_level M 3
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 3
     expect_on_level M 3
 
@@ -89,16 +89,16 @@ SUITE_cache_levels() {
     add_fake_files_counters $files
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 4
     expect_on_level M 4
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 4
     expect_on_level M 4
 
@@ -109,16 +109,16 @@ SUITE_cache_levels() {
     add_fake_files_counters $files
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 4
     expect_on_level M 4
 
     $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' $((files + 2))
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache $((files + 2))
     expect_on_level R 4
     expect_on_level M 4
 }

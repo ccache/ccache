@@ -19,34 +19,34 @@ SUITE_masquerading() {
     # -------------------------------------------------------------------------
     TEST "Masquerading via symlink, relative path"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     ./$COMPILER_BIN $COMPILER_ARGS -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 
     ./$COMPILER_BIN $COMPILER_ARGS -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
     TEST "Masquerading via symlink, absolute path"
 
-    $REAL_COMPILER -c -o reference_test1.o test1.c
+    $COMPILER -c -o reference_test1.o test1.c
 
     $PWD/$COMPILER_BIN $COMPILER_ARGS -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 
     $PWD/$COMPILER_BIN $COMPILER_ARGS -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
 }

@@ -16,34 +16,41 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Compression.hpp"
-#include "../src/Compressor.hpp"
-#include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
 #include "TestUtil.hpp"
+
+#include <compression/Compressor.hpp>
+#include <compression/Decompressor.hpp>
+#include <compression/types.hpp>
+#include <core/FileReader.hpp>
+#include <core/FileWriter.hpp>
 
 #include "third_party/doctest.h"
 
 #include <cstring>
 
+using compression::Compressor;
+using compression::Decompressor;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("ZstdCompression");
 
-TEST_CASE("Small Compression::Type::zstd roundtrip")
+TEST_CASE("Small compression::Type::zstd roundtrip")
 {
   TestContext test_context;
 
   File f("data.zstd", "wb");
+  core::FileWriter fw(f.get());
   auto compressor =
-    Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
+    Compressor::create_from_type(compression::Type::zstd, fw, 1);
   CHECK(compressor->actual_compression_level() == 1);
   compressor->write("foobar", 6);
   compressor->finalize();
 
   f.open("data.zstd", "rb");
+  core::FileReader fr(f.get());
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::zstd, f.get());
+    Decompressor::create_from_type(compression::Type::zstd, fr);
 
   char buffer[4];
   decompressor->read(buffer, 4);
@@ -51,7 +58,7 @@ TEST_CASE("Small Compression::Type::zstd roundtrip")
 
   // Not reached the end.
   CHECK_THROWS_WITH(decompressor->finalize(),
-                    "garbage data at end of zstd input stream");
+                    "Garbage data at end of zstd input stream");
 
   decompressor->read(buffer, 2);
   CHECK(memcmp(buffer, "ar", 2) == 0);
@@ -61,26 +68,28 @@ TEST_CASE("Small Compression::Type::zstd roundtrip")
 
   // Nothing left to read.
   CHECK_THROWS_WITH(decompressor->read(buffer, 1),
-                    "failed to read from zstd input stream");
+                    "Failed to read from file stream");
 }
 
-TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
+TEST_CASE("Large compressible compression::Type::zstd roundtrip")
 {
   TestContext test_context;
 
   char data[] = "The quick brown fox jumps over the lazy dog";
 
   File f("data.zstd", "wb");
+  core::FileWriter fw(f.get());
   auto compressor =
-    Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
+    Compressor::create_from_type(compression::Type::zstd, fw, 1);
   for (size_t i = 0; i < 1000; i++) {
     compressor->write(data, sizeof(data));
   }
   compressor->finalize();
 
   f.open("data.zstd", "rb");
+  core::FileReader fr(f.get());
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::zstd, f.get());
+    Decompressor::create_from_type(compression::Type::zstd, fr);
 
   char buffer[sizeof(data)];
   for (size_t i = 0; i < 1000; i++) {
@@ -93,10 +102,10 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 
   // Nothing left to read.
   CHECK_THROWS_WITH(decompressor->read(buffer, 1),
-                    "failed to read from zstd input stream");
+                    "Failed to read from file stream");
 }
 
-TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
+TEST_CASE("Large uncompressible compression::Type::zstd roundtrip")
 {
   TestContext test_context;
 
@@ -106,14 +115,16 @@ TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
   }
 
   File f("data.zstd", "wb");
+  core::FileWriter fw(f.get());
   auto compressor =
-    Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
+    Compressor::create_from_type(compression::Type::zstd, fw, 1);
   compressor->write(data, sizeof(data));
   compressor->finalize();
 
   f.open("data.zstd", "rb");
+  core::FileReader fr(f.get());
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::zstd, f.get());
+    Decompressor::create_from_type(compression::Type::zstd, fr);
 
   char buffer[sizeof(data)];
   decompressor->read(buffer, sizeof(buffer));

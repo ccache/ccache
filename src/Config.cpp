@@ -19,14 +19,14 @@
 #include "Config.hpp"
 
 #include "AtomicFile.hpp"
-#include "Compression.hpp"
 #include "MiniTrace.hpp"
-#include "Sloppiness.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
-#include "exceptions.hpp"
 #include "fmtmacros.hpp"
 
+#include <UmaskScope.hpp>
+#include <compression/types.hpp>
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/expected.hpp>
 #include <util/path.hpp>
@@ -49,13 +49,9 @@
 using nonstd::nullopt;
 using nonstd::optional;
 
-#if defined(_MSC_VER)
-#  define DLLIMPORT __declspec(dllimport)
-#else
-#  define DLLIMPORT
-#endif
-
+#ifndef environ
 DLLIMPORT extern char** environ;
+#endif
 
 namespace {
 
@@ -86,6 +82,7 @@ enum class ConfigItem {
   log_file,
   max_files,
   max_size,
+  namespace_,
   path,
   pch_external_checksum,
   prefix_command,
@@ -93,6 +90,7 @@ enum class ConfigItem {
   read_only,
   read_only_direct,
   recache,
+  reshare,
   run_second_cpp,
   secondary_storage,
   sloppiness,
@@ -129,6 +127,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"log_file", ConfigItem::log_file},
   {"max_files", ConfigItem::max_files},
   {"max_size", ConfigItem::max_size},
+  {"namespace", ConfigItem::namespace_},
   {"path", ConfigItem::path},
   {"pch_external_checksum", ConfigItem::pch_external_checksum},
   {"prefix_command", ConfigItem::prefix_command},
@@ -136,6 +135,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"read_only", ConfigItem::read_only},
   {"read_only_direct", ConfigItem::read_only_direct},
   {"recache", ConfigItem::recache},
+  {"reshare", ConfigItem::reshare},
   {"run_second_cpp", ConfigItem::run_second_cpp},
   {"secondary_storage", ConfigItem::secondary_storage},
   {"sloppiness", ConfigItem::sloppiness},
@@ -174,6 +174,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
   {"MAXSIZE", "max_size"},
+  {"NAMESPACE", "namespace"},
   {"PATH", "path"},
   {"PCH_EXTSUM", "pch_external_checksum"},
   {"PREFIX", "prefix_command"},
@@ -181,6 +182,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
+  {"RESHARE", "reshare"},
   {"SECONDARY_STORAGE", "secondary_storage"},
   {"SLOPPINESS", "sloppiness"},
   {"STATS", "stats"},
@@ -205,7 +207,7 @@ parse_bool(const std::string& value,
     std::string lower_value = Util::to_lowercase(value);
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
-      throw Error(
+      throw core::Error(
         "invalid boolean environment variable value \"{}\" (did you mean to"
         " set \"CCACHE_{}{}=true\"?)",
         value,
@@ -218,7 +220,7 @@ parse_bool(const std::string& value,
   } else if (value == "false") {
     return false;
   } else {
-    throw Error("not a boolean value: \"{}\"", value);
+    throw core::Error("not a boolean value: \"{}\"", value);
   }
 }
 
@@ -226,22 +228,6 @@ std::string
 format_bool(bool value)
 {
   return value ? "true" : "false";
-}
-
-double
-parse_double(const std::string& value)
-{
-  size_t end;
-  double result;
-  try {
-    result = std::stod(value, &end);
-  } catch (std::exception& e) {
-    throw Error(e.what());
-  }
-  if (end != value.size()) {
-    throw Error("invalid floating point: \"{}\"", value);
-  }
-  return result;
 }
 
 std::string
@@ -269,38 +255,38 @@ parse_compiler_type(const std::string& value)
   }
 }
 
-uint32_t
+core::Sloppiness
 parse_sloppiness(const std::string& value)
 {
   size_t start = 0;
   size_t end = 0;
-  uint32_t result = 0;
+  core::Sloppiness result;
   while (end != std::string::npos) {
     end = value.find_first_of(", ", start);
     std::string token =
       util::strip_whitespace(value.substr(start, end - start));
     if (token == "file_stat_matches") {
-      result |= SLOPPY_FILE_STAT_MATCHES;
+      result.enable(core::Sloppy::file_stat_matches);
     } else if (token == "file_stat_matches_ctime") {
-      result |= SLOPPY_FILE_STAT_MATCHES_CTIME;
+      result.enable(core::Sloppy::file_stat_matches_ctime);
     } else if (token == "include_file_ctime") {
-      result |= SLOPPY_INCLUDE_FILE_CTIME;
+      result.enable(core::Sloppy::include_file_ctime);
     } else if (token == "include_file_mtime") {
-      result |= SLOPPY_INCLUDE_FILE_MTIME;
+      result.enable(core::Sloppy::include_file_mtime);
     } else if (token == "system_headers" || token == "no_system_headers") {
-      result |= SLOPPY_SYSTEM_HEADERS;
+      result.enable(core::Sloppy::system_headers);
     } else if (token == "pch_defines") {
-      result |= SLOPPY_PCH_DEFINES;
+      result.enable(core::Sloppy::pch_defines);
     } else if (token == "time_macros") {
-      result |= SLOPPY_TIME_MACROS;
+      result.enable(core::Sloppy::time_macros);
     } else if (token == "clang_index_store") {
-      result |= SLOPPY_CLANG_INDEX_STORE;
+      result.enable(core::Sloppy::clang_index_store);
     } else if (token == "locale") {
-      result |= SLOPPY_LOCALE;
+      result.enable(core::Sloppy::locale);
     } else if (token == "modules") {
-      result |= SLOPPY_MODULES;
+      result.enable(core::Sloppy::modules);
     } else if (token == "ivfsoverlay") {
-      result |= SLOPPY_IVFSOVERLAY;
+      result.enable(core::Sloppy::ivfsoverlay);
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
@@ -308,40 +294,40 @@ parse_sloppiness(const std::string& value)
 }
 
 std::string
-format_sloppiness(uint32_t sloppiness)
+format_sloppiness(core::Sloppiness sloppiness)
 {
   std::string result;
-  if (sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
+  if (sloppiness.is_enabled(core::Sloppy::include_file_mtime)) {
     result += "include_file_mtime, ";
   }
-  if (sloppiness & SLOPPY_INCLUDE_FILE_CTIME) {
+  if (sloppiness.is_enabled(core::Sloppy::include_file_ctime)) {
     result += "include_file_ctime, ";
   }
-  if (sloppiness & SLOPPY_TIME_MACROS) {
+  if (sloppiness.is_enabled(core::Sloppy::time_macros)) {
     result += "time_macros, ";
   }
-  if (sloppiness & SLOPPY_PCH_DEFINES) {
+  if (sloppiness.is_enabled(core::Sloppy::pch_defines)) {
     result += "pch_defines, ";
   }
-  if (sloppiness & SLOPPY_FILE_STAT_MATCHES) {
+  if (sloppiness.is_enabled(core::Sloppy::file_stat_matches)) {
     result += "file_stat_matches, ";
   }
-  if (sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME) {
+  if (sloppiness.is_enabled(core::Sloppy::file_stat_matches_ctime)) {
     result += "file_stat_matches_ctime, ";
   }
-  if (sloppiness & SLOPPY_SYSTEM_HEADERS) {
+  if (sloppiness.is_enabled(core::Sloppy::system_headers)) {
     result += "system_headers, ";
   }
-  if (sloppiness & SLOPPY_CLANG_INDEX_STORE) {
+  if (sloppiness.is_enabled(core::Sloppy::clang_index_store)) {
     result += "clang_index_store, ";
   }
-  if (sloppiness & SLOPPY_LOCALE) {
+  if (sloppiness.is_enabled(core::Sloppy::locale)) {
     result += "locale, ";
   }
-  if (sloppiness & SLOPPY_MODULES) {
+  if (sloppiness.is_enabled(core::Sloppy::modules)) {
     result += "modules, ";
   }
-  if (sloppiness & SLOPPY_IVFSOVERLAY) {
+  if (sloppiness.is_enabled(core::Sloppy::ivfsoverlay)) {
     result += "ivfsoverlay, ";
   }
   if (!result.empty()) {
@@ -365,7 +351,7 @@ void
 verify_absolute_path(const std::string& value)
 {
   if (!util::is_absolute_path(value)) {
-    throw Error("not an absolute path: \"{}\"", value);
+    throw core::Error("not an absolute path: \"{}\"", value);
   }
 }
 
@@ -417,11 +403,11 @@ parse_config_file(const std::string& path,
       std::string value;
       std::string error_message;
       if (!parse_line(line, &key, &value, &error_message)) {
-        throw Error(error_message);
+        throw core::Error(error_message);
       }
       config_line_handler(line, key, value);
-    } catch (const Error& e) {
-      throw Error("{}:{}: {}", path, line_number, e.what());
+    } catch (const core::Error& e) {
+      throw core::Error("{}:{}: {}", path, line_number, e.what());
     }
   }
   return true;
@@ -469,6 +455,7 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(nvcc);
     CASE(other);
     CASE(pump);
+    CASE(cl);
   }
 #undef CASE
 
@@ -611,8 +598,8 @@ Config::update_from_environment()
 
     try {
       set_item(config_key, value, key, negate, "environment");
-    } catch (const Error& e) {
-      throw Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
+    } catch (const core::Error& e) {
+      throw core::Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
     }
   }
 }
@@ -622,7 +609,7 @@ Config::get_string_value(const std::string& key) const
 {
   auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
-    throw Error("unknown configuration option \"{}\"", key);
+    throw core::Error("unknown configuration option \"{}\"", key);
   }
 
   switch (it->second) {
@@ -704,6 +691,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::max_size:
     return format_cache_size(m_max_size);
 
+  case ConfigItem::namespace_:
+    return m_namespace;
+
   case ConfigItem::path:
     return m_path;
 
@@ -724,6 +714,9 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::recache:
     return format_bool(m_recache);
+
+  case ConfigItem::reshare:
+    return format_bool(m_reshare);
 
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
@@ -753,10 +746,12 @@ Config::get_string_value(const std::string& key) const
 void
 Config::set_value_in_file(const std::string& path,
                           const std::string& key,
-                          const std::string& value)
+                          const std::string& value) const
 {
+  UmaskScope umask_scope(m_umask);
+
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
-    throw Error("unknown configuration option \"{}\"", key);
+    throw core::Error("unknown configuration option \"{}\"", key);
   }
 
   // Verify that the value is valid; set_item will throw if not.
@@ -769,8 +764,8 @@ Config::set_value_in_file(const std::string& path,
     Util::ensure_dir_exists(Util::dir_name(resolved_path));
     try {
       Util::write_file(resolved_path, "");
-    } catch (const Error& e) {
-      throw Error("failed to write to {}: {}", resolved_path, e.what());
+    } catch (const core::Error& e) {
+      throw core::Error("failed to write to {}: {}", resolved_path, e.what());
     }
   }
 
@@ -787,7 +782,7 @@ Config::set_value_in_file(const std::string& path,
             output.write(FMT("{}\n", c_line));
           }
         })) {
-    throw Error("failed to open {}: {}", path, strerror(errno));
+    throw core::Error("failed to open {}: {}", path, strerror(errno));
   }
 
   if (!found) {
@@ -861,7 +856,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level:
-    m_compression_level = util::value_or_throw<Error>(
+    m_compression_level = util::value_or_throw<core::Error>(
       util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level"));
     break;
 
@@ -922,7 +917,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::limit_multiple:
-    m_limit_multiple = Util::clamp(parse_double(value), 0.0, 1.0);
+    m_limit_multiple = Util::clamp(
+      util::value_or_throw<core::Error>(util::parse_double(value)), 0.0, 1.0);
     break;
 
   case ConfigItem::log_file:
@@ -930,12 +926,16 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = util::value_or_throw<Error>(
+    m_max_files = util::value_or_throw<core::Error>(
       util::parse_unsigned(value, nullopt, nullopt, "max_files"));
     break;
 
   case ConfigItem::max_size:
     m_max_size = Util::parse_size(value);
+    break;
+
+  case ConfigItem::namespace_:
+    m_namespace = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::path:
@@ -964,6 +964,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::recache:
     m_recache = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::reshare:
+    m_reshare = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::run_second_cpp:
@@ -995,14 +999,17 @@ Config::set_item(const std::string& key,
     if (!value.empty()) {
       const auto umask = util::parse_umask(value);
       if (!umask) {
-        throw Error(umask.error());
+        throw core::Error(umask.error());
       }
       m_umask = *umask;
     }
     break;
   }
 
-  m_origins.emplace(key, origin);
+  auto result = m_origins.emplace(key, origin);
+  if (!result.second) {
+    result.first->second = origin;
+  }
 }
 
 void
@@ -1010,7 +1017,7 @@ Config::check_key_tables_consistency()
 {
   for (const auto& item : k_env_variable_table) {
     if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
-      throw Error(
+      throw core::Error(
         "env var {} mapped to {} which is missing from k_config_key_table",
         item.first,
         item.second);

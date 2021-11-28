@@ -2,23 +2,14 @@ set(
   source_files
   Args.cpp
   AtomicFile.cpp
-  CacheEntryReader.cpp
-  CacheEntryWriter.cpp
-  CacheFile.cpp
-  Compression.cpp
-  Compressor.cpp
   Config.cpp
   Context.cpp
-  Counters.cpp
-  Decompressor.cpp
   Depfile.cpp
   Fd.cpp
   Hash.cpp
   Lockfile.cpp
   Logging.cpp
   Manifest.cpp
-  NullCompressor.cpp
-  NullDecompressor.cpp
   ProgressBar.cpp
   Result.cpp
   ResultDumper.cpp
@@ -26,18 +17,13 @@ set(
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
-  Statistics.cpp
   TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp
-  ZstdCompressor.cpp
-  ZstdDecompressor.cpp
   argprocessing.cpp
   assertions.cpp
   ccache.cpp
-  cleanup.cpp
   compopt.cpp
-  compress.cpp
   execute.cpp
   hashutil.cpp
   language.cpp
@@ -56,46 +42,47 @@ if(WIN32)
   list(APPEND source_files Win32Util.cpp)
 endif()
 
-add_library(ccache_lib STATIC ${source_files})
+add_library(ccache_framework STATIC ${source_files})
 target_compile_definitions(
-  ccache_lib PUBLIC -Dnssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_NONSTD
+  ccache_framework PUBLIC -Dnssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_NONSTD
 )
 
 if(WIN32)
-  target_link_libraries(ccache_lib PRIVATE ws2_32 "psapi")
+  target_link_libraries(ccache_framework PRIVATE "psapi")
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     if(STATIC_LINK)
-      target_link_libraries(ccache_lib PRIVATE -static-libgcc -static-libstdc++ -static winpthread -dynamic)
+      target_link_libraries(ccache_framework PRIVATE -static-libgcc -static-libstdc++ -static winpthread -dynamic)
     else()
-      target_link_libraries(ccache_lib PRIVATE winpthread)
+      target_link_libraries(ccache_framework PRIVATE winpthread)
     endif()
   elseif(STATIC_LINK AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_link_libraries(ccache_lib PRIVATE -static c++ -dynamic)
+    target_link_libraries(ccache_framework PRIVATE -static c++ -dynamic)
   endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(
-  ccache_lib
-  PRIVATE standard_settings standard_warnings ZSTD::ZSTD
-          Threads::Threads third_party_lib)
+  ccache_framework
+  PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
+)
 
-target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ccache_framework PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(REDIS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(
-    ccache_lib
-    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS
-           third_party_lib)
+    ccache_framework
+    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
+  )
 endif()
 if(REDISS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_lib PRIVATE -DHAVE_REDISS_STORAGE_BACKEND)
-  target_link_libraries(ccache_lib PUBLIC HIREDIS::HIREDIS HIREDIS::HIREDIS_SSL)
+  target_compile_definitions(ccache_framework PRIVATE -DHAVE_REDISS_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PUBLIC HIREDIS::HIREDIS HIREDIS::HIREDIS_SSL)
 endif()
 
+add_subdirectory(compression)
 add_subdirectory(core)
 add_subdirectory(storage)
 add_subdirectory(third_party)

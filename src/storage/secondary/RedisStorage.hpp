@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "SecondaryStorage.hpp"
+#include <storage/secondary/SecondaryStorage.hpp>
 
 namespace storage {
 namespace secondary {

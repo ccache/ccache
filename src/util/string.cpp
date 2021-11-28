@@ -18,12 +18,33 @@
 
 #include "string.hpp"
 
-#include <FormatNonstdStringView.hpp>
+#include <assertions.hpp>
 #include <fmtmacros.hpp>
 
 #include <cctype>
+#include <iostream>
 
 namespace util {
+
+nonstd::expected<double, std::string>
+parse_double(const std::string& value)
+{
+  size_t end;
+  double result;
+  bool failed = false;
+  try {
+    result = std::stod(value, &end);
+  } catch (const std::exception&) {
+    failed = true;
+  }
+
+  if (failed || end != value.size()) {
+    return nonstd::make_unexpected(
+      FMT("invalid floating point: \"{}\"", value));
+  } else {
+    return result;
+  }
+}
 
 nonstd::expected<int64_t, std::string>
 parse_signed(const std::string& value,
@@ -127,6 +148,52 @@ percent_decode(nonstd::string_view string)
     }
   }
 
+  return result;
+}
+
+std::string
+replace_all(const nonstd::string_view string,
+            const nonstd::string_view from,
+            const nonstd::string_view to)
+{
+  if (from.empty()) {
+    return std::string(string);
+  }
+
+  std::string result;
+  size_t left = 0;
+  size_t right = 0;
+  while (left < string.size()) {
+    right = string.find(from, left);
+    if (right == nonstd::string_view::npos) {
+      result.append(string.data() + left);
+      break;
+    }
+    result.append(string.data() + left, right - left);
+    result.append(to.data(), to.size());
+    left = right + from.size();
+  }
+  return result;
+}
+
+std::string
+replace_first(const nonstd::string_view string,
+              const nonstd::string_view from,
+              const nonstd::string_view to)
+{
+  if (from.empty()) {
+    return std::string(string);
+  }
+
+  std::string result;
+  const auto pos = string.find(from);
+  if (pos != nonstd::string_view::npos) {
+    result.append(string.data(), pos);
+    result.append(to.data(), to.length());
+    result.append(string.data() + pos + from.size());
+  } else {
+    result = std::string(string);
+  }
   return result;
 }
 

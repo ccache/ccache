@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,8 @@
 #pragma once
 
 #include "Args.hpp"
-#include "Statistic.hpp"
+
+#include <core/Statistic.hpp>
 
 #include "third_party/nonstd/optional.hpp"
 
@@ -27,14 +28,14 @@ class Context;
 
 struct ProcessArgsResult
 {
-  ProcessArgsResult(Statistic error_);
+  ProcessArgsResult(core::Statistic error_);
   ProcessArgsResult(const Args& preprocessor_args_,
                     const Args& extra_args_to_hash_,
                     const Args& compiler_args_);
 
   // nullopt on success, otherwise the statistics counter that should be
   // incremented.
-  nonstd::optional<Statistic> error;
+  nonstd::optional<core::Statistic> error;
 
   // Arguments (except -E) to send to the preprocessor.
   Args preprocessor_args;
@@ -46,7 +47,8 @@ struct ProcessArgsResult
   Args compiler_args;
 };
 
-inline ProcessArgsResult::ProcessArgsResult(Statistic error_) : error(error_)
+inline ProcessArgsResult::ProcessArgsResult(core::Statistic error_)
+  : error(error_)
 {
 }
 

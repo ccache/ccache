@@ -47,9 +47,14 @@ template<typename T>
 std::string
 join(const T& begin, const T& end, const nonstd::string_view delimiter);
 
+// Parse a string into a double.
+//
+// Returns an error string if `value` cannot be parsed as a double.
+nonstd::expected<double, std::string> parse_double(const std::string& value);
+
 // Parse a string into a signed integer.
 //
-// Return an error string if `value` cannot be parsed as an int64_t or if the
+// Returns an error string if `value` cannot be parsed as an int64_t or if the
 // value falls out of the range [`min_value`, `max_value`]. `min_value` and
 // `max_value` default to min and max values of int64_t. `description` is
 // included in the error message for range violations.
@@ -80,6 +85,16 @@ parse_unsigned(const std::string& value,
 // [1]: https://en.wikipedia.org/wiki/Percent-encoding
 nonstd::expected<std::string, std::string>
 percent_decode(nonstd::string_view string);
+
+// Replace the all occurrences of `from` to `to` in `string`.
+std::string replace_all(nonstd::string_view string,
+                        nonstd::string_view from,
+                        nonstd::string_view to);
+
+// Replace the first occurrence of `from` to `to` in `string`.
+std::string replace_first(nonstd::string_view string,
+                          nonstd::string_view from,
+                          nonstd::string_view to);
 
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`

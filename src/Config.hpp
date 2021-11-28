@@ -21,6 +21,8 @@
 #include "NonCopyable.hpp"
 #include "Util.hpp"
 
+#include <core/Sloppiness.hpp>
+
 #include "third_party/nonstd/optional.hpp"
 
 #include <cstdint>
@@ -29,7 +31,7 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump };
+enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump, cl };
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
@@ -73,11 +75,13 @@ public:
   bool read_only() const;
   bool read_only_direct() const;
   bool recache() const;
+  bool reshare() const;
   bool run_second_cpp() const;
   const std::string& secondary_storage() const;
-  uint32_t sloppiness() const;
+  core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::string& stats_log() const;
+  const std::string& namespace_() const;
   const std::string& temporary_dir() const;
   nonstd::optional<mode_t> umask() const;
 
@@ -89,6 +93,8 @@ public:
   void set_debug(bool value);
   void set_depend_mode(bool value);
   void set_direct_mode(bool value);
+  void set_file_clone(bool value);
+  void set_hard_link(bool value);
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
@@ -123,9 +129,9 @@ public:
 
   void visit_items(const ItemVisitor& item_visitor) const;
 
-  static void set_value_in_file(const std::string& path,
-                                const std::string& key,
-                                const std::string& value);
+  void set_value_in_file(const std::string& path,
+                         const std::string& key,
+                         const std::string& value) const;
 
   // Called from unit tests.
   static void check_key_tables_consistency();
@@ -167,11 +173,13 @@ private:
   bool m_read_only = false;
   bool m_read_only_direct = false;
   bool m_recache = false;
+  bool m_reshare = false;
   bool m_run_second_cpp = true;
   std::string m_secondary_storage;
-  uint32_t m_sloppiness = 0;
+  core::Sloppiness m_sloppiness;
   bool m_stats = true;
   std::string m_stats_log;
+  std::string m_namespace;
   std::string m_temporary_dir;
   nonstd::optional<mode_t> m_umask;
 
@@ -387,6 +395,12 @@ Config::recache() const
 }
 
 inline bool
+Config::reshare() const
+{
+  return m_reshare;
+}
+
+inline bool
 Config::run_second_cpp() const
 {
   return m_run_second_cpp;
@@ -398,7 +412,7 @@ Config::secondary_storage() const
   return m_secondary_storage;
 }
 
-inline uint32_t
+inline core::Sloppiness
 Config::sloppiness() const
 {
   return m_sloppiness;
@@ -414,6 +428,12 @@ inline const std::string&
 Config::stats_log() const
 {
   return m_stats_log;
+}
+
+inline const std::string&
+Config::namespace_() const
+{
+  return m_namespace;
 }
 
 inline const std::string&
@@ -477,6 +497,18 @@ inline void
 Config::set_direct_mode(bool value)
 {
   m_direct_mode = value;
+}
+
+inline void
+Config::set_file_clone(const bool value)
+{
+  m_file_clone = value;
+}
+
+inline void
+Config::set_hard_link(const bool value)
+{
+  m_hard_link = value;
 }
 
 inline void

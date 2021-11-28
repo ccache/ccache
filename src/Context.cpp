@@ -18,7 +18,6 @@
 
 #include "Context.hpp"
 
-#include "Counters.hpp"
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
@@ -45,6 +44,11 @@ Context::Context()
     ,
     inode_cache(config)
 #endif
+{
+}
+
+void
+Context::initialize()
 {
   config.read();
   Logging::init(config);

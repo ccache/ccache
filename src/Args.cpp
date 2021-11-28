@@ -20,6 +20,7 @@
 
 #include "Util.hpp"
 
+#include <core/exceptions.hpp>
 #include <util/string.hpp>
 
 using nonstd::nullopt;
@@ -49,12 +50,12 @@ Args::from_string(const std::string& command)
 }
 
 optional<Args>
-Args::from_gcc_atfile(const std::string& filename)
+Args::from_atfile(const std::string& filename, bool ignore_backslash)
 {
   std::string argtext;
   try {
     argtext = Util::read_file(filename);
-  } catch (Error&) {
+  } catch (core::Error&) {
     return nullopt;
   }
 
@@ -71,6 +72,9 @@ Args::from_gcc_atfile(const std::string& filename)
   while (true) {
     switch (*pos) {
     case '\\':
+      if (ignore_backslash) {
+        break;
+      }
       pos++;
       if (*pos == '\0') {
         continue;

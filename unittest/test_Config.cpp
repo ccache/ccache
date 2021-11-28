@@ -17,11 +17,11 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Config.hpp"
-#include "../src/Sloppiness.hpp"
 #include "../src/Util.hpp"
-#include "../src/exceptions.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
+
+#include <core/exceptions.hpp>
 
 #include "third_party/doctest.h"
 #include "third_party/fmt/core.h"
@@ -70,8 +70,9 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.read_only());
   CHECK_FALSE(config.read_only_direct());
   CHECK_FALSE(config.recache());
+  CHECK_FALSE(config.reshare());
   CHECK(config.run_second_cpp());
-  CHECK(config.sloppiness() == 0);
+  CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
   CHECK(config.umask() == nonstd::nullopt);
@@ -125,6 +126,7 @@ TEST_CASE("Config::update_from_file")
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
+    "reshare = true\n"
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
@@ -164,13 +166,18 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.read_only());
   CHECK(config.read_only_direct());
   CHECK(config.recache());
+  CHECK(config.reshare());
   CHECK_FALSE(config.run_second_cpp());
-  CHECK(config.sloppiness()
-        == (SLOPPY_INCLUDE_FILE_MTIME | SLOPPY_INCLUDE_FILE_CTIME
-            | SLOPPY_TIME_MACROS | SLOPPY_FILE_STAT_MATCHES
-            | SLOPPY_FILE_STAT_MATCHES_CTIME | SLOPPY_SYSTEM_HEADERS
-            | SLOPPY_PCH_DEFINES | SLOPPY_CLANG_INDEX_STORE
-            | SLOPPY_IVFSOVERLAY));
+  CHECK(config.sloppiness().to_bitmask()
+        == (static_cast<uint32_t>(core::Sloppy::include_file_mtime)
+            | static_cast<uint32_t>(core::Sloppy::include_file_ctime)
+            | static_cast<uint32_t>(core::Sloppy::time_macros)
+            | static_cast<uint32_t>(core::Sloppy::file_stat_matches)
+            | static_cast<uint32_t>(core::Sloppy::file_stat_matches_ctime)
+            | static_cast<uint32_t>(core::Sloppy::system_headers)
+            | static_cast<uint32_t>(core::Sloppy::pch_defines)
+            | static_cast<uint32_t>(core::Sloppy::clang_index_store)
+            | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
   CHECK(config.umask() == 0777u);
@@ -234,7 +241,8 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "sloppiness = time_macros, foo");
     CHECK(config.update_from_file("ccache.conf"));
-    CHECK(config.sloppiness() == SLOPPY_TIME_MACROS);
+    CHECK(config.sloppiness().to_bitmask()
+          == static_cast<uint32_t>(core::Sloppy::time_macros));
   }
 
   SUBCASE("invalid unsigned")
@@ -287,11 +295,12 @@ TEST_CASE("Config::update_from_environment")
 TEST_CASE("Config::set_value_in_file")
 {
   TestContext test_context;
+  Config config;
 
   SUBCASE("set new value")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
-    Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
+    config.set_value_in_file("ccache.conf", "compiler", "chocolate");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\ncompiler = chocolate\n");
   }
@@ -299,7 +308,7 @@ TEST_CASE("Config::set_value_in_file")
   SUBCASE("existing value")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
-    Config::set_value_in_file("ccache.conf", "path", "vanilla");
+    config.set_value_in_file("ccache.conf", "path", "vanilla");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nstats = chocolate\n");
   }
@@ -308,9 +317,9 @@ TEST_CASE("Config::set_value_in_file")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     try {
-      Config::set_value_in_file("ccache.conf", "foo", "bar");
+      config.set_value_in_file("ccache.conf", "foo", "bar");
       CHECK(false);
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
     }
 
@@ -321,7 +330,7 @@ TEST_CASE("Config::set_value_in_file")
   SUBCASE("unknown sloppiness")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
-    Config::set_value_in_file("ccache.conf", "sloppiness", "foo");
+    config.set_value_in_file("ccache.conf", "sloppiness", "foo");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nsloppiness = foo\n");
   }
@@ -329,8 +338,8 @@ TEST_CASE("Config::set_value_in_file")
   SUBCASE("comments are kept")
   {
     Util::write_file("ccache.conf", "# c1\npath = blueberry\n#c2\n");
-    Config::set_value_in_file("ccache.conf", "path", "vanilla");
-    Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
+    config.set_value_in_file("ccache.conf", "path", "vanilla");
+    config.set_value_in_file("ccache.conf", "compiler", "chocolate");
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "# c1\npath = vanilla\n#c2\ncompiler = chocolate\n");
   }
@@ -351,7 +360,7 @@ TEST_CASE("Config::get_string_value")
     try {
       config.get_string_value("foo");
       CHECK(false);
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
     }
   }
@@ -393,6 +402,7 @@ TEST_CASE("Config::visit_items")
     "log_file = lf\n"
     "max_files = 4711\n"
     "max_size = 98.7M\n"
+    "namespace = ns\n"
     "path = p\n"
     "pch_external_checksum = true\n"
     "prefix_command = pc\n"
@@ -400,6 +410,7 @@ TEST_CASE("Config::visit_items")
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
+    "reshare = true\n"
     "run_second_cpp = false\n"
     "secondary_storage = ss\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
@@ -451,6 +462,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) log_file = lf",
     "(test.conf) max_files = 4711",
     "(test.conf) max_size = 98.7M",
+    "(test.conf) namespace = ns",
     "(test.conf) path = p",
     "(test.conf) pch_external_checksum = true",
     "(test.conf) prefix_command = pc",
@@ -458,6 +470,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) read_only = true",
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
+    "(test.conf) reshare = true",
     "(test.conf) run_second_cpp = false",
     "(test.conf) secondary_storage = ss",
     "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"

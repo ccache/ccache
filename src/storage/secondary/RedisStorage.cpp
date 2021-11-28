@@ -20,14 +20,29 @@
 
 #include <Digest.hpp>
 #include <Logging.hpp>
-#include <exceptions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
+// Ignore "ISO C++ forbids flexible array member ‘buf’" warning from -Wpedantic.
+#ifdef __GNUC__
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable : 4200)
+#endif
 #include <hiredis/hiredis.h>
 #ifdef HAVE_REDISS_STORAGE_BACKEND
 #  include <hiredis/hiredis_ssl.h>
+#endif
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#  pragma GCC diagnostic pop
 #endif
 
 #include <cstdarg>
@@ -103,10 +118,10 @@ split_user_info(const std::string& user_info)
     return {nonstd::nullopt, nonstd::nullopt};
   } else if (pair.second) {
     // redis://USERNAME:PASSWORD@HOST
-    return {to_string(*pair.second), to_string(pair.first)};
+    return {std::string(*pair.second), std::string(pair.first)};
   } else {
     // redis://PASSWORD@HOST
-    return {to_string(pair.first), nonstd::nullopt};
+    return {std::string(pair.first), nonstd::nullopt};
   }
 }
 
@@ -286,7 +301,7 @@ RedisStorageBackend::connect(const Url& url,
   const std::string host = url.host().empty() ? "localhost" : url.host();
   const uint32_t port = url.port().empty()
                           ? DEFAULT_PORT
-                          : util::value_or_throw<Fatal>(
+                          : util::value_or_throw<core::Fatal>(
                             util::parse_unsigned(url.port(), 1, 65535, "port"));
   ASSERT(url.path().empty() || url.path()[0] == '/');
 
@@ -335,7 +350,7 @@ RedisStorageBackend::select_database(const Url& url)
 {
   const uint32_t db_number =
     url.path().empty() ? 0
-                       : util::value_or_throw<Fatal>(util::parse_unsigned(
+                       : util::value_or_throw<core::Fatal>(util::parse_unsigned(
                          url.path().substr(1),
                          0,
                          std::numeric_limits<uint32_t>::max(),
@@ -354,16 +369,14 @@ RedisStorageBackend::authenticate(const Url& url)
   const auto password_username_pair = split_user_info(url.user_info());
   const auto& password = password_username_pair.first;
   if (password) {
-    decltype(redis_command("")) reply = nonstd::make_unexpected(Failure::error);
     const auto& username = password_username_pair.second;
     if (username) {
       LOG("Redis AUTH {} {}", *username, k_redacted_password);
-      reply = util::value_or_throw<Failed>(
+      util::value_or_throw<Failed>(
         redis_command("AUTH %s %s", username->c_str(), password->c_str()));
     } else {
       LOG("Redis AUTH {}", k_redacted_password);
-      reply = util::value_or_throw<Failed>(
-        redis_command("AUTH %s", password->c_str()));
+      util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
     }
   }
 }

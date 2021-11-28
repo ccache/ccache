@@ -16,34 +16,41 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Compression.hpp"
-#include "../src/Compressor.hpp"
-#include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
 #include "TestUtil.hpp"
+
+#include <compression/Compressor.hpp>
+#include <compression/Decompressor.hpp>
+#include <compression/types.hpp>
+#include <core/FileReader.hpp>
+#include <core/FileWriter.hpp>
 
 #include "third_party/doctest.h"
 
 #include <cstring>
 
+using compression::Compressor;
+using compression::Decompressor;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("NullCompression");
 
-TEST_CASE("Compression::Type::none roundtrip")
+TEST_CASE("compression::Type::none roundtrip")
 {
   TestContext test_context;
 
   File f("data.uncompressed", "w");
+  core::FileWriter fw(f.get());
   auto compressor =
-    Compressor::create_from_type(Compression::Type::none, f.get(), 1);
+    Compressor::create_from_type(compression::Type::none, fw, 1);
   CHECK(compressor->actual_compression_level() == 0);
   compressor->write("foobar", 6);
   compressor->finalize();
 
   f.open("data.uncompressed", "r");
+  core::FileReader fr(f.get());
   auto decompressor =
-    Decompressor::create_from_type(Compression::Type::none, f.get());
+    Decompressor::create_from_type(compression::Type::none, fr);
 
   char buffer[4];
   decompressor->read(buffer, 4);
@@ -53,7 +60,7 @@ TEST_CASE("Compression::Type::none roundtrip")
   {
     // Not reached the end.
     CHECK_THROWS_WITH(decompressor->finalize(),
-                      "garbage data at end of uncompressed stream");
+                      "Garbage data at end of uncompressed stream");
   }
 
   SUBCASE("Read to end")
@@ -66,7 +73,7 @@ TEST_CASE("Compression::Type::none roundtrip")
 
     // Nothing left to read.
     CHECK_THROWS_WITH(decompressor->read(buffer, 1),
-                      "failed to read from uncompressed stream");
+                      "Failed to read from file stream");
   }
 }
 

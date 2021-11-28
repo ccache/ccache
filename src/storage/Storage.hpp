@@ -18,22 +18,26 @@
 
 #pragma once
 
-#include "types.hpp"
-
 #include <core/types.hpp>
 #include <storage/primary/PrimaryStorage.hpp>
+#include <storage/secondary/SecondaryStorage.hpp>
+#include <storage/types.hpp>
 
 #include <third_party/nonstd/optional.hpp>
 
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 class Digest;
 
 namespace storage {
 
+std::string get_features();
+
+struct SecondaryStorageBackendEntry;
 struct SecondaryStorageEntry;
 
 class Storage
@@ -45,7 +49,7 @@ public:
   void initialize();
   void finalize();
 
-  primary::PrimaryStorage& primary();
+  primary::PrimaryStorage primary;
 
   // Returns a path to a file containing the value.
   nonstd::optional<std::string> get(const Digest& key,
@@ -53,28 +57,37 @@ public:
 
   bool put(const Digest& key,
            core::CacheEntryType type,
-           const storage::CacheEntryWriter& entry_writer);
+           const storage::EntryWriter& entry_writer);
 
   void remove(const Digest& key, core::CacheEntryType type);
 
+  bool has_secondary_storage() const;
   std::string get_secondary_storage_config_for_logging() const;
 
 private:
   const Config& m_config;
-  primary::PrimaryStorage m_primary_storage;
   std::vector<std::unique_ptr<SecondaryStorageEntry>> m_secondary_storages;
   std::vector<std::string> m_tmp_files;
 
   void add_secondary_storages();
-  nonstd::optional<std::string> get_from_secondary_storage(const Digest& key);
-  void put_in_secondary_storage(const Digest& key, const std::string& value);
+
+  void
+  mark_backend_as_failed(SecondaryStorageBackendEntry& backend_entry,
+                         secondary::SecondaryStorage::Backend::Failure failure);
+
+  SecondaryStorageBackendEntry*
+  get_backend(SecondaryStorageEntry& entry,
+              const Digest& key,
+              nonstd::string_view operation_description,
+              const bool for_writing);
+  nonstd::optional<std::pair<std::string, bool>>
+  get_from_secondary_storage(const Digest& key);
+
+  void put_in_secondary_storage(const Digest& key,
+                                const std::string& value,
+                                bool only_if_missing);
+
   void remove_from_secondary_storage(const Digest& key);
 };
-
-inline primary::PrimaryStorage&
-Storage::primary()
-{
-  return m_primary_storage;
-}
 
 } // namespace storage

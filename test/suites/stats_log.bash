@@ -9,15 +9,19 @@ SUITE_stats_log() {
     TEST "CCACHE_STATSLOG"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache miss' 1
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 
     expect_content stats.log "# test.c
 cache_miss
+direct_cache_miss
+preprocessed_cache_miss
+primary_storage_miss
 # test.c
-direct_cache_hit"
+direct_cache_hit
+primary_storage_hit"
 }

@@ -20,6 +20,8 @@
 
 #include "Util.hpp"
 
+#include <core/exceptions.hpp>
+
 #ifdef _WIN32
 #  include "third_party/win32/mktemp.h"
 #endif
@@ -61,7 +63,7 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
   fd = Fd(mkstemp(&path[0]));
 #endif
   if (!fd) {
-    throw Fatal(
+    throw core::Fatal(
       "Failed to create temporary file for {}: {}", path, strerror(errno));
   }
 

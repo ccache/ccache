@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,7 +21,8 @@
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
-#include "exceptions.hpp"
+
+#include <core/exceptions.hpp>
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
@@ -43,7 +44,8 @@ void
 AtomicFile::write(const std::string& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
-    throw Error("failed to write data to {}: {}", m_path, strerror(errno));
+    throw core::Error(
+      "failed to write data to {}: {}", m_path, strerror(errno));
   }
 }
 
@@ -51,7 +53,8 @@ void
 AtomicFile::write(const std::vector<uint8_t>& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
-    throw Error("failed to write data to {}: {}", m_path, strerror(errno));
+    throw core::Error(
+      "failed to write data to {}: {}", m_path, strerror(errno));
   }
 }
 
@@ -63,7 +66,8 @@ AtomicFile::commit()
   m_stream = nullptr;
   if (result == EOF) {
     Util::unlink_tmp(m_tmp_path);
-    throw Error("failed to write data to {}: {}", m_path, strerror(errno));
+    throw core::Error(
+      "failed to write data to {}: {}", m_path, strerror(errno));
   }
   Util::rename(m_tmp_path, m_path);
 }

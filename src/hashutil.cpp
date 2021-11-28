@@ -23,7 +23,6 @@
 #include "Context.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "Sloppiness.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
@@ -31,6 +30,7 @@
 #include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/string.hpp>
 
@@ -120,8 +120,10 @@ check_for_temporal_macros_bmh(string_view str)
 }
 
 #ifdef HAVE_AVX2
+#  ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
 int check_for_temporal_macros_avx2(string_view str)
   __attribute__((target("avx2")));
+#  endif
 
 // The following algorithm, which uses AVX2 instructions to find __DATE__,
 // __TIME__ and __TIMESTAMP__, is heavily inspired by
@@ -157,7 +159,13 @@ check_for_temporal_macros_avx2(string_view str)
     // A bit set in mask now indicates a possible location for a temporal macro.
     while (mask != 0) {
       // The start position + 1 (as we know the first char is _).
+#  ifndef _MSC_VER
       const auto start = pos + __builtin_ctz(mask) + 1;
+#  else
+      unsigned long index;
+      _BitScanForward(&index, mask);
+      const auto start = pos + index + 1;
+#  endif
 
       // Clear the least significant bit set.
       mask = mask & (mask - 1);
@@ -189,7 +197,7 @@ hash_source_code_file_nocache(const Context& ctx,
     std::string data;
     try {
       data = Util::read_file(path, size_hint);
-    } catch (Error&) {
+    } catch (core::Error&) {
       return HASH_SOURCE_CODE_ERROR;
     }
     int result = hash_source_code_string(ctx, hash, data, path);
@@ -204,7 +212,7 @@ get_content_type(const Config& config, const std::string& path)
   if (Util::is_precompiled_header(path)) {
     return InodeCache::ContentType::precompiled_header;
   }
-  if (config.sloppiness() & SLOPPY_TIME_MACROS) {
+  if (config.sloppiness().is_enabled(core::Sloppy::time_macros)) {
     return InodeCache::ContentType::code_with_sloppy_time_macros;
   }
   return InodeCache::ContentType::code;
@@ -234,7 +242,7 @@ hash_source_code_string(const Context& ctx,
 
   // Check for __DATE__, __TIME__ and __TIMESTAMP__if the sloppiness
   // configuration tells us we should.
-  if (!(ctx.config.sloppiness() & SLOPPY_TIME_MACROS)) {
+  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::time_macros))) {
     result |= check_for_temporal_macros(str);
   }
 
@@ -471,12 +479,12 @@ hash_command_output(Hash& hash,
 #else
   int pipefd[2];
   if (pipe(pipefd) == -1) {
-    throw Fatal("pipe failed: {}", strerror(errno));
+    throw core::Fatal("pipe failed: {}", strerror(errno));
   }
 
   pid_t pid = fork();
   if (pid == -1) {
-    throw Fatal("fork failed: {}", strerror(errno));
+    throw core::Fatal("fork failed: {}", strerror(errno));
   }
 
   if (pid == 0) {

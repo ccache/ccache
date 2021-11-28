@@ -24,7 +24,7 @@
 #include <UmaskScope.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
-#include <exceptions.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -54,9 +54,12 @@ public:
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
 
 private:
+  enum class Layout { flat, subdirs };
+
   const std::string m_dir;
   nonstd::optional<mode_t> m_umask;
   bool m_update_mtime = false;
+  Layout m_layout = Layout::subdirs;
 
   std::string get_entry_path(const Digest& key) const;
 };
@@ -66,15 +69,24 @@ FileStorageBackend::FileStorageBackend(const Params& params)
 {
   ASSERT(params.url.scheme() == "file");
   if (!params.url.host().empty()) {
-    throw Fatal(FMT(
-      "invalid file path \"{}\":  specifying a host (\"{}\") is not supported",
+    throw core::Fatal(FMT(
+      "invalid file path \"{}\": specifying a host (\"{}\") is not supported",
       params.url.str(),
       params.url.host()));
   }
 
   for (const auto& attr : params.attributes) {
-    if (attr.key == "umask") {
-      m_umask = util::value_or_throw<Fatal>(util::parse_umask(attr.value));
+    if (attr.key == "layout") {
+      if (attr.value == "flat") {
+        m_layout = Layout::flat;
+      } else if (attr.value == "subdirs") {
+        m_layout = Layout::subdirs;
+      } else {
+        LOG("Unknown layout: {}", attr.value);
+      }
+    } else if (attr.key == "umask") {
+      m_umask =
+        util::value_or_throw<core::Fatal>(util::parse_umask(attr.value));
     } else if (attr.key == "update-mtime") {
       m_update_mtime = attr.value == "true";
     } else if (!is_framework_attribute(attr.key)) {
@@ -104,7 +116,7 @@ FileStorageBackend::get(const Digest& key)
   try {
     LOG("Reading {}", path);
     return Util::read_file(path);
-  } catch (const Error& e) {
+  } catch (const core::Error& e) {
     LOG("Failed to read {}: {}", path, e.what());
     return nonstd::make_unexpected(Failure::error);
   }
@@ -125,13 +137,13 @@ FileStorageBackend::put(const Digest& key,
   {
     UmaskScope umask_scope(m_umask);
 
-    util::create_cachedir_tag(m_dir);
-
     const auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
       LOG("Failed to create directory {}: {}", dir, strerror(errno));
       return nonstd::make_unexpected(Failure::error);
     }
+
+    util::create_cachedir_tag(m_dir);
 
     LOG("Writing {}", path);
     try {
@@ -139,7 +151,7 @@ FileStorageBackend::put(const Digest& key,
       file.write(value);
       file.commit();
       return true;
-    } catch (const Error& e) {
+    } catch (const core::Error& e) {
       LOG("Failed to write {}: {}", path, e.what());
       return nonstd::make_unexpected(Failure::error);
     }
@@ -155,9 +167,19 @@ FileStorageBackend::remove(const Digest& key)
 std::string
 FileStorageBackend::get_entry_path(const Digest& key) const
 {
-  const auto key_string = key.to_string();
-  const uint8_t digits = 2;
-  return FMT("{}/{:.{}}/{}", m_dir, key_string, digits, &key_string[digits]);
+  switch (m_layout) {
+  case Layout::flat:
+    return FMT("{}/{}", m_dir, key.to_string());
+
+  case Layout::subdirs: {
+    const auto key_str = key.to_string();
+    const uint8_t digits = 2;
+    ASSERT(key_str.length() > digits);
+    return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);
+  }
+  }
+
+  ASSERT(false);
 }
 
 } // namespace

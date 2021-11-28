@@ -9,20 +9,25 @@
 from functools import partial
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-
 import os
+import signal
 import socket
 import sys
 
+
 class AuthenticationError(Exception):
     pass
+
 
 class PUTEnabledHTTPRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, basic_auth=None, **kwargs):
         self.basic_auth = None
         if basic_auth:
             import base64
-            self.basic_auth = base64.b64encode(basic_auth.encode("ascii")).decode("ascii")
+
+            self.basic_auth = base64.b64encode(
+                basic_auth.encode("ascii")
+            ).decode("ascii")
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
@@ -41,10 +46,11 @@ class PUTEnabledHTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         path = self.translate_path(self.path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             self._handle_auth()
-            file_length = int(self.headers['Content-Length'])
-            with open(path, 'wb') as output_file:
+            file_length = int(self.headers["Content-Length"])
+            with open(path, "wb") as output_file:
                 output_file.write(self.rfile.read(file_length))
             self.send_response(HTTPStatus.CREATED)
             self.send_header("Content-Length", "0")
@@ -52,7 +58,9 @@ class PUTEnabledHTTPRequestHandler(SimpleHTTPRequestHandler):
         except AuthenticationError:
             self.send_error(HTTPStatus.UNAUTHORIZED, "Need Authentication")
         except OSError:
-            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot open file for writing")
+            self.send_error(
+                HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot open file for writing"
+            )
 
     def do_DELETE(self):
         path = self.translate_path(self.path)
@@ -65,7 +73,9 @@ class PUTEnabledHTTPRequestHandler(SimpleHTTPRequestHandler):
         except AuthenticationError:
             self.send_error(HTTPStatus.UNAUTHORIZED, "Need Authentication")
         except OSError:
-            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot delete file")
+            self.send_error(
+                HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot delete file"
+            )
 
     def _handle_auth(self):
         if not self.basic_auth:
@@ -74,9 +84,13 @@ class PUTEnabledHTTPRequestHandler(SimpleHTTPRequestHandler):
         if authorization:
             authorization = authorization.split()
             if len(authorization) == 2:
-                if authorization[0] == "Basic" and authorization[1] == self.basic_auth:
+                if (
+                    authorization[0] == "Basic"
+                    and authorization[1] == self.basic_auth
+                ):
                     return
         raise AuthenticationError("Authentication required")
+
 
 def _get_best_family(*address):
     infos = socket.getaddrinfo(
@@ -87,13 +101,14 @@ def _get_best_family(*address):
     family, type, proto, canonname, sockaddr = next(iter(infos))
     return family, sockaddr
 
+
 def run(HandlerClass, ServerClass, port, bind):
     HandlerClass.protocol_version = "HTTP/1.1"
     ServerClass.address_family, addr = _get_best_family(bind, port)
 
     with ServerClass(addr, HandlerClass) as httpd:
         host, port = httpd.socket.getsockname()[:2]
-        url_host = f'[{host}]' if ':' in host else host
+        url_host = f"[{host}]" if ":" in host else host
         print(
             f"Serving HTTP on {host} port {port} "
             f"(http://{url_host}:{port}/) ..."
@@ -104,27 +119,50 @@ def run(HandlerClass, ServerClass, port, bind):
             print("\nKeyboard interrupt received, exiting.")
             sys.exit(0)
 
+
+def on_terminate(signum, frame):
+    sys.stdout.flush()
+    sys.stderr.flush()
+    sys.exit(128 + signum)
+
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--basic-auth', '-B',
-                        help='Basic auth tuple like user:pass')
-    parser.add_argument('--bind', '-b', metavar='ADDRESS',
-                        help='Specify alternate bind address '
-                             '[default: all interfaces]')
-    parser.add_argument('--directory', '-d', default=os.getcwd(),
-                        help='Specify alternative directory '
-                             '[default:current directory]')
-    parser.add_argument('port', action='store',
-                        default=8080, type=int,
-                        nargs='?',
-                        help='Specify alternate port [default: 8080]')
+    parser.add_argument(
+        "--basic-auth", "-B", help="Basic auth tuple like user:pass"
+    )
+    parser.add_argument(
+        "--bind",
+        "-b",
+        metavar="ADDRESS",
+        help="Specify alternate bind address " "[default: all interfaces]",
+    )
+    parser.add_argument(
+        "--directory",
+        "-d",
+        default=os.getcwd(),
+        help="Specify alternative directory " "[default:current directory]",
+    )
+    parser.add_argument(
+        "port",
+        action="store",
+        default=8080,
+        type=int,
+        nargs="?",
+        help="Specify alternate port [default: 8080]",
+    )
     args = parser.parse_args()
 
-    handler_class = partial(PUTEnabledHTTPRequestHandler, basic_auth=args.basic_auth)
+    handler_class = partial(
+        PUTEnabledHTTPRequestHandler, basic_auth=args.basic_auth
+    )
 
     os.chdir(args.directory)
+
+    signal.signal(signal.SIGINT, on_terminate)
+    signal.signal(signal.SIGTERM, on_terminate)
 
     run(
         HandlerClass=handler_class,

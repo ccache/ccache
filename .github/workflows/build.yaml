@@ -24,10 +24,6 @@ jobs:
         config:
           - os: ubuntu-18.04
             compiler: gcc
-            version: "5"
-
-          - os: ubuntu-18.04
-            compiler: gcc
             version: "6"
 
           - os: ubuntu-18.04
@@ -74,17 +70,21 @@ jobs:
             compiler: clang
             version: "11"
 
-          - os: macOS-latest
+          - os: ubuntu-20.04
+            compiler: clang
+            version: "12"
+
+          - os: macOS-10.15
             compiler: xcode
             version: "10.3"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
             version: "11.7"
 
-          - os: macOS-latest
+          - os: macOS-10.15
             compiler: xcode
-            version: "12.2"
+            version: "12.4"
     steps:
       - name: Install dependencies
         run: |
@@ -108,7 +108,7 @@ jobs:
               echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
               echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
 
-              sudo apt install -y clang-${{ matrix.config.version }} g++-multilib
+              sudo apt install -y clang-${{ matrix.config.version }} g++-multilib lld-${{ matrix.config.version }}
             fi
           elif [ "${{ runner.os }}" = "macOS" ]; then
             HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
@@ -169,7 +169,7 @@ jobs:
             CFLAGS: -m32 -g -O2
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
 
@@ -177,7 +177,7 @@ jobs:
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 10.1.243-1
             apt_get: elfutils libzstd-dev
@@ -186,7 +186,7 @@ jobs:
             os: ubuntu-18.04
             CC: i686-w64-mingw32-gcc-posix
             CXX: i686-w64-mingw32-g++-posix
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             RUN_TESTS: none
             apt_get: elfutils mingw-w64
 
@@ -195,7 +195,7 @@ jobs:
             CC: x86_64-w64-mingw32-gcc-posix
             CXX: x86_64-w64-mingw32-g++-posix
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
@@ -207,7 +207,7 @@ jobs:
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2019 64-bit
@@ -218,7 +218,7 @@ jobs:
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
@@ -252,19 +252,19 @@ jobs:
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build asciidoc xsltproc docbook-xml docbook-xsl
+            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build asciidoctor
 
           - name: HTML documentation
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
             RUN_TESTS: none
-            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoc docbook-xml docbook-xsl
+            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoctor
 
           - name: Manual page
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
             RUN_TESTS: none
-            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoc xsltproc docbook-xml docbook-xsl
+            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoctor
 
           - name: Clang-Tidy
             os: ubuntu-18.04
@@ -372,7 +372,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install codespell
-        run: sudo apt-get update && sudo apt-get install codespell
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-pip
+          pip3 install codespell==2.1.0
 
       - name: Run codespell
-        run: codespell -q 7 -S ".git,LICENSE.adoc,./src/third_party/*" -I misc/codespell-allowlist.txt
+        run: codespell -q 7 -S ".git,build*,./src/third_party/*" -I misc/codespell-allowlist.txt

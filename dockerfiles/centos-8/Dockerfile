@@ -4,7 +4,6 @@ FROM centos:8
 RUN dnf install -y epel-release \
  && dnf update -y \
  && dnf install -y \
-        asciidoc \
         autoconf \
         bash \
         ccache \

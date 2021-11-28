@@ -27,6 +27,7 @@ skip_code=125
 if [[ -t 1 ]]; then
     ansi_boldgreen='\033[1;32m'
     ansi_boldred='\033[1;31m'
+    ansi_boldyellow='\033[1;93m'
     ansi_bold='\033[1m'
     ansi_reset='\033[1;0m'
 fi
@@ -37,6 +38,10 @@ green() {
 
 red() {
     printf "$ansi_boldred%s$ansi_reset\n" "$*"
+}
+
+yellow() {
+    printf "$ansi_boldyellow%s$ansi_reset\n" "$*"
 }
 
 bold() {
@@ -55,8 +60,15 @@ test_failed_internal() {
     echo "Test case:      $(bold $CURRENT_TEST)"
     echo "Failure reason: $(red "$1")"
     echo
-    echo "ccache -s:"
-    $CCACHE -s
+    echo "Actual statistics counters"
+    echo "=========================="
+    while read -r key value; do
+        if [[ $value > 0 ]]; then
+            printf "$(yellow %-32s) $(yellow %s)\n" "$key" "$value"
+        else
+            printf "%-32s %s\n" "$key" "$value"
+        fi
+    done < <($CCACHE --print-stats | grep -v '^stats_')
     echo
     echo "Test data and log file have been left in $TESTDIR / $TEST_FAILED_SYMLINK"
     symlink_testdir_on_failure
@@ -161,18 +173,14 @@ expect_stat() {
     local line
     local value=""
 
-    while IFS= read -r line; do
-        if [[ $line = *"$stat"* ]]; then
-            value="${line:32}"
-            # remove leading & trailing whitespace
-            value="${value#${value%%[![:space:]]*}}"
-            value="${value%${value##*[![:space:]]}}"
+    while read -r key value; do
+        if [[ $key == $stat ]]; then
             break
         fi
-    done < <($CCACHE -s)
+    done < <($CCACHE --print-stats)
 
     if [ "$expected_value" != "$value" ]; then
-        test_failed_internal "Expected \"$stat\" to be $expected_value, actual $value"
+        test_failed_internal "Expected $stat to be $expected_value, actual $value"
     fi
 }
 
@@ -194,18 +202,6 @@ expect_equal_content() {
     fi
     if [ ! -e "$2" ]; then
         test_failed_internal "expect_equal_content: $2 missing"
-    fi
-    if ! cmp -s "$1" "$2"; then
-        test_failed_internal "$1 and $2 differ"
-    fi
-}
-
-expect_equal_text_content() {
-    if [ ! -e "$1" ]; then
-        test_failed_internal "expect_equal_text_content: $1 missing"
-    fi
-    if [ ! -e "$2" ]; then
-        test_failed_internal "expect_equal_text_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
         test_failed_internal "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
@@ -321,7 +317,7 @@ expect_file_count() {
     local expected=$1
     local pattern=$2
     local dir=$3
-    local actual=`find $dir -type f -name "$pattern" | wc -l`
+    local actual=`find "$dir" -type f -name "$pattern" | wc -l`
     if [ $actual -ne $expected ]; then
         test_failed_internal "Found $actual (expected $expected) $pattern files in $dir"
     fi
@@ -462,13 +458,14 @@ for HOST_CCACHE_DIR in $HOST_CCACHE_DIRS; do
 done
 export PATH
 
-if [ -n "$CC" ]; then
-    COMPILER="$CC"
-elif [[ "$OSTYPE" == "darwin"* && -x "$(command -v clang)" ]]; then
-    COMPILER=clang
-else
-    COMPILER=gcc
+if [ -z "$CC" ]; then
+    if [[ "$OSTYPE" == "darwin"* && -x "$(command -v clang)" ]]; then
+        CC=clang
+    else
+        CC=gcc
+    fi
 fi
+
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
@@ -489,17 +486,17 @@ HOST_OS_FREEBSD=false
 HOST_OS_WINDOWS=false
 HOST_OS_CYGWIN=false
 
-compiler_version="`$COMPILER --version 2>/dev/null | head -1`"
+compiler_version="`$CC --version 2>/dev/null | head -1`"
 case $compiler_version in
     *gcc*|*g++*|2.95*)
         COMPILER_TYPE_GCC=true
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
-        CLANG_VERSION_SUFFIX=$(echo "${COMPILER%% *}" | sed 's/.*clang//')
+        CLANG_VERSION_SUFFIX=$(echo "${CC%% *}" | sed 's/.*clang//')
         ;;
     *)
-        echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- Skipped running tests" >&2
+        echo "WARNING: Compiler $CC not supported (version: $compiler_version) -- Skipped running tests" >&2
         exit $skip_code
         ;;
 esac
@@ -578,28 +575,37 @@ symlink_testdir_on_failure() {
     ln -s "$$" "$TEST_FAILED_SYMLINK"
 }
 
-cd $TESTDIR || exit 1
-
-COMPILER_BIN=$(echo $COMPILER | awk '{print $1}')
-COMPILER_ARGS=$(echo $COMPILER | awk '{$1 = ""; print}')
+COMPILER_BIN=$(echo $CC | awk '{print $1}')
+COMPILER_ARGS=$(echo $CC | awk '{$1 = ""; print}')
 REAL_COMPILER_BIN=$(find_compiler $COMPILER_BIN)
 REAL_COMPILER="$REAL_COMPILER_BIN$COMPILER_ARGS"
-
-if [ "$REAL_COMPILER" = "$COMPILER" ]; then
-    echo "Compiler:         $COMPILER"
-else
-    echo "Compiler:         $COMPILER ($REAL_COMPILER)"
-fi
-echo "Compiler version: $($COMPILER --version 2>/dev/null | head -n 1)"
-
 REAL_NVCC=$(find_compiler nvcc)
-REAL_CUOBJDUMP=$(find_compiler cuobjdump)
+
+if [ "$REAL_COMPILER_BIN" = "$COMPILER_BIN" ]; then
+    echo "Compiler:         $CC"
+else
+    echo "Compiler:         $CC ($REAL_COMPILER)"
+fi
+echo "Compiler version: $($CC --version 2>/dev/null | head -n 1)"
+
 if [ -n "$REAL_NVCC" ]; then
     echo "CUDA compiler:    $($REAL_NVCC --version | tail -n 1) ($REAL_NVCC)"
 else
     echo "CUDA compiler:    not available"
 fi
 echo
+
+cd $TESTDIR || exit 1
+
+mkdir compiler
+COMPILER="$(pwd)/compiler/$(basename "$REAL_COMPILER_BIN")"
+cat >"$COMPILER" <<EOF
+#!/bin/sh
+
+CCACHE_DISABLE=1 CCACHE_COMPILER= CCACHE_PREFIX= \
+  exec $COMPILER_BIN$COMPILER_ARGS "\$@"
+EOF
+chmod +x "$COMPILER"
 
 [ -z "${VERBOSE:-}" ] && verbose=false || verbose=true
 [ "$1" = "-v" ] && { verbose=true; shift; }
@@ -628,4 +634,3 @@ else
     green PASSED
     exit 0
 fi
-

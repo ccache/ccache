@@ -22,6 +22,7 @@
 #include "Logging.hpp"
 #include "Win32Util.hpp"
 
+#include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 
 #ifdef _WIN32
@@ -211,7 +212,7 @@ Stat::Stat(StatFunction stat_function,
   } else {
     m_errno = errno;
     if (on_error == OnError::throw_error) {
-      throw Error("failed to stat {}: {}", path, strerror(errno));
+      throw core::Error("failed to stat {}: {}", path, strerror(errno));
     }
     if (on_error == OnError::log) {
       LOG("Failed to stat {}: {}", path, strerror(errno));

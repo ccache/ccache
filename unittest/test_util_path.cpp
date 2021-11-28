@@ -94,3 +94,24 @@ TEST_CASE("util::to_absolute_path")
   CHECK(util::to_absolute_path("../foo/bar")
         == FMT("{}/foo/bar", Util::dir_name(cwd)));
 }
+
+TEST_CASE("util::to_absolute_path_no_drive")
+{
+  CHECK(util::to_absolute_path_no_drive("/foo/bar") == "/foo/bar");
+
+#ifdef _WIN32
+  CHECK(util::to_absolute_path_no_drive("C:\\foo\\bar") == "\\foo\\bar");
+#endif
+
+  auto cwd = Util::get_actual_cwd();
+#ifdef _WIN32
+  cwd = cwd.substr(2);
+#endif
+
+  CHECK(util::to_absolute_path_no_drive("") == cwd);
+  CHECK(util::to_absolute_path_no_drive(".") == cwd);
+  CHECK(util::to_absolute_path_no_drive("..") == Util::dir_name(cwd));
+  CHECK(util::to_absolute_path_no_drive("foo") == FMT("{}/foo", cwd));
+  CHECK(util::to_absolute_path_no_drive("../foo/bar")
+        == FMT("{}/foo/bar", Util::dir_name(cwd)));
+}

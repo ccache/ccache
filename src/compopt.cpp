@@ -54,12 +54,13 @@ struct CompOpt
 };
 
 const CompOpt compopts[] = {
-  {"--Werror", TAKES_ARG},                            // nvcc
-  {"--analyze", TOO_HARD},                            // Clang
-  {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},     // nvcc
-  {"--config", TAKES_ARG},                            // Clang
-  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
-  {"--output-directory", AFFECTS_CPP | TAKES_ARG},    // nvcc
+  {"--Werror", TAKES_ARG},                             // nvcc
+  {"--analyze", TOO_HARD},                             // Clang
+  {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
+  {"--config", TAKES_ARG},                             // Clang
+  {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
+  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG},  // nvcc
+  {"--output-directory", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--param", TAKES_ARG},
   {"--save-temps", TOO_HARD},
   {"--save-temps=cwd", TOO_HARD},
@@ -105,6 +106,7 @@ const CompOpt compopts[] = {
   {"-frepo", TOO_HARD},
   {"-ftime-trace", TOO_HARD}, // Clang
   {"-fworking-directory", AFFECTS_CPP},
+  {"-gcc-toolchain", TAKES_ARG | TAKES_PATH},       // Clang
   {"-gen-cdb-fragment-path", TAKES_ARG | TOO_HARD}, // Clang
   {"-gtoggle", TOO_HARD},
   {"-idirafter", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
@@ -140,6 +142,20 @@ const CompOpt compopts[] = {
   {"-stdlib=", AFFECTS_CPP | TAKES_CONCAT_ARG},
   {"-trigraphs", AFFECTS_CPP},
   {"-u", TAKES_ARG | TAKES_CONCAT_ARG},
+  {"/AI", TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},               // msvc
+  {"/D", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},               // msvc
+  {"/E", TOO_HARD},                                                 // msvc
+  {"/EP", TOO_HARD},                                                // msvc
+  {"/FI", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"/FU", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"/I", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},  // msvc
+  {"/L", TAKES_ARG},                                                // msvc
+  {"/P", TOO_HARD},                                                 // msvc
+  {"/U", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},               // msvc
+  {"/Yc", TAKES_ARG | TOO_HARD},                                    // msvc
+  {"/ZI", TOO_HARD},                                                // msvc
+  {"/Zi", TOO_HARD},                                                // msvc
+  {"/u", AFFECTS_CPP},                                              // msvc
 };
 
 static int
