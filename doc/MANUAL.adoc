@@ -867,6 +867,9 @@ the compiler. This will cause the compiler to leave the macros and other
 preprocessor information, and only process the *#include* directives. When run
 in this way, the preprocessor arguments will be passed to the compiler since it
 still has to do _some_ preprocessing (like macros).
++
+This option is ignored with MSVC, as there is no way to make it compile without
+preprocessing first.
 
 [#config_secondary_storage]
 *secondary_storage* (*CCACHE_SECONDARY_STORAGE*)::
