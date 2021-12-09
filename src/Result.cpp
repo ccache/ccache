@@ -308,9 +308,15 @@ Writer::Writer(Context& ctx, const std::string& result_path)
 }
 
 void
-Writer::write(FileType file_type, const std::string& file_path)
+Writer::write_data(const FileType file_type, const std::string& data)
 {
-  m_entries_to_write.emplace_back(file_type, file_path);
+  m_entries_to_write.push_back(Entry{file_type, ValueType::data, data});
+}
+
+void
+Writer::write_file(const FileType file_type, const std::string& path)
+{
+  m_entries_to_write.push_back(Entry{file_type, ValueType::path, path});
 }
 
 nonstd::expected<FileSizeAndCountDiff, std::string>
@@ -330,14 +336,14 @@ Writer::do_finalize()
   uint64_t payload_size = 0;
   payload_size += 1; // format_ver
   payload_size += 1; // n_entries
-  for (const auto& pair : m_entries_to_write) {
-    const auto& path = pair.second;
-    auto st = Stat::stat(path, Stat::OnError::throw_error);
-
-    payload_size += 1;         // embedded_file_marker
-    payload_size += 1;         // embedded_file_type
-    payload_size += 8;         // data_len
-    payload_size += st.size(); // data
+  for (const auto& entry : m_entries_to_write) {
+    payload_size += 1; // embedded_file_marker
+    payload_size += 1; // embedded_file_type
+    payload_size += 8; // data_len
+    payload_size +=    // data
+      entry.value_type == ValueType::data
+        ? entry.value.size()
+        : Stat::stat(entry.value, Stat::OnError::throw_error).size();
   }
 
   AtomicFile atomic_result_file(m_result_path, AtomicFile::Mode::binary);
@@ -356,30 +362,35 @@ Writer::do_finalize()
   writer.write_int<uint8_t>(m_entries_to_write.size());
 
   uint32_t entry_number = 0;
-  for (const auto& pair : m_entries_to_write) {
-    const auto file_type = pair.first;
-    const auto& path = pair.second;
-    LOG("Storing result file {}", path);
+  for (const auto& entry : m_entries_to_write) {
+    const bool store_raw =
+      entry.value_type == ValueType::path
+      && should_store_raw_file(m_ctx.config, entry.file_type);
+    const uint64_t entry_size =
+      entry.value_type == ValueType::data
+        ? entry.value.size()
+        : Stat::stat(entry.value, Stat::OnError::throw_error).size();
 
-    const bool store_raw = should_store_raw_file(m_ctx.config, file_type);
-    uint64_t file_size = Stat::stat(path, Stat::OnError::throw_error).size();
-
-    LOG("Storing {} file #{} {} ({} bytes) from {}",
+    LOG("Storing {} entry #{} {} ({} bytes){}",
         store_raw ? "raw" : "embedded",
         entry_number,
-        file_type_to_string(file_type),
-        file_size,
-        path);
+        file_type_to_string(entry.file_type),
+        entry_size,
+        entry.value_type == ValueType::data ? ""
+                                            : FMT(" from {}", entry.value));
 
     writer.write_int<uint8_t>(store_raw ? k_raw_file_marker
                                         : k_embedded_file_marker);
-    writer.write_int(UnderlyingFileTypeInt(file_type));
-    writer.write_int(file_size);
+    writer.write_int(UnderlyingFileTypeInt(entry.file_type));
+    writer.write_int(entry_size);
 
     if (store_raw) {
-      file_size_and_count_diff += write_raw_file_entry(path, entry_number);
+      file_size_and_count_diff +=
+        write_raw_file_entry(entry.value, entry_number);
+    } else if (entry.value_type == ValueType::data) {
+      writer.write(entry.value.data(), entry.value.size());
     } else {
-      write_embedded_file_entry(writer, path, file_size);
+      write_embedded_file_entry(writer, entry.value, entry_size);
     }
 
     ++entry_number;
@@ -394,7 +405,7 @@ Writer::do_finalize()
 void
 Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
                                           const std::string& path,
-                                          uint64_t file_size)
+                                          const uint64_t file_size)
 {
   Fd file(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!file) {

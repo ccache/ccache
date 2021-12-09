@@ -134,16 +134,28 @@ class Writer
 public:
   Writer(Context& ctx, const std::string& result_path);
 
-  // Register a file to include in the result. Does not throw.
-  void write(FileType file_type, const std::string& file_path);
+  // Register content to include in the result. Does not throw.
+  void write_data(FileType file_type, const std::string& data);
 
-  // Write registered files to the result. Returns an error message on error.
+  // Register a file path whose content should be included in the result. Does
+  // not throw.
+  void write_file(FileType file_type, const std::string& path);
+
+  // Write registered entries to the result. Returns an error message on error.
   nonstd::expected<FileSizeAndCountDiff, std::string> finalize();
 
 private:
+  enum class ValueType { data, path };
+  struct Entry
+  {
+    FileType file_type;
+    ValueType value_type;
+    std::string value;
+  };
+
   Context& m_ctx;
   const std::string m_result_path;
-  std::vector<std::pair<FileType, std::string>> m_entries_to_write;
+  std::vector<Entry> m_entries_to_write;
 
   FileSizeAndCountDiff do_finalize();
   static void write_embedded_file_entry(core::CacheEntryWriter& writer,

@@ -801,40 +801,44 @@ write_result(Context& ctx,
   }
 
   if (stderr_stat.size() > 0) {
-    result_writer.write(Result::FileType::stderr_output, stderr_path);
+    result_writer.write_file(Result::FileType::stderr_output, stderr_path);
   }
   // Write stdout only after stderr (better with MSVC), as ResultRetriever
   // will later print process them in the order they are read.
   if (stdout_stat.size() > 0) {
-    result_writer.write(Result::FileType::stdout_output, stdout_path);
+    result_writer.write_file(Result::FileType::stdout_output, stdout_path);
   }
   if (obj_stat) {
-    result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
+    result_writer.write_file(Result::FileType::object,
+                             ctx.args_info.output_obj);
   }
   if (ctx.args_info.generating_dependencies) {
-    result_writer.write(Result::FileType::dependency, ctx.args_info.output_dep);
+    result_writer.write_file(Result::FileType::dependency,
+                             ctx.args_info.output_dep);
   }
   if (ctx.args_info.generating_coverage) {
     const auto coverage_file = find_coverage_file(ctx);
     if (!coverage_file.found) {
       return false;
     }
-    result_writer.write(coverage_file.mangled
-                          ? Result::FileType::coverage_mangled
-                          : Result::FileType::coverage_unmangled,
-                        coverage_file.path);
+    result_writer.write_file(coverage_file.mangled
+                               ? Result::FileType::coverage_mangled
+                               : Result::FileType::coverage_unmangled,
+                             coverage_file.path);
   }
   if (ctx.args_info.generating_stackusage) {
-    result_writer.write(Result::FileType::stackusage, ctx.args_info.output_su);
+    result_writer.write_file(Result::FileType::stackusage,
+                             ctx.args_info.output_su);
   }
   if (ctx.args_info.generating_diagnostics) {
-    result_writer.write(Result::FileType::diagnostic, ctx.args_info.output_dia);
+    result_writer.write_file(Result::FileType::diagnostic,
+                             ctx.args_info.output_dia);
   }
   if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
     // Only store .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_writer.write(Result::FileType::dwarf_object,
-                        ctx.args_info.output_dwo);
+    result_writer.write_file(Result::FileType::dwarf_object,
+                             ctx.args_info.output_dwo);
   }
 
   const auto file_size_and_count_diff = result_writer.finalize();
