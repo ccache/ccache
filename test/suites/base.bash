@@ -1213,6 +1213,26 @@ EOF
     expect_equal_content reference.d test.d
 
     # -------------------------------------------------------------------------
+    TEST "No stdout"
+
+    cat <<EOF >test.c
+// just something random
+int test() { return 1; }
+EOF
+
+    stderr=$($CCACHE_COMPILE -c test.c >stdout 2>stderr)
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content stdout ""
+    expect_content stderr ""
+
+    stderr=$($CCACHE_COMPILE -c test.c >stdout 2>stderr)
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_content stdout ""
+    expect_content stderr ""
+
+    # -------------------------------------------------------------------------
     TEST "--zero-stats"
 
     $CCACHE_COMPILE -c test1.c

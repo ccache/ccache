@@ -1317,6 +1317,8 @@ compilation.
 | Compiler produced stdout |
 The compiler wrote data to standard output. This is something that compilers
 normally never do, so ccache is not designed to store such output in the cache.
+For compilers that may normally write data to standard output, as such MSVC,
+the output is cached properly and it is not considered to be an error.
 
 | Could not find the compiler |
 The compiler to execute could not be found.
