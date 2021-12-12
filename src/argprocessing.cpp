@@ -935,15 +935,17 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
+  // It was not a known option.
+  if (changed_from_slash) {
+    args[i][0] = '/';
+  }
+
   // If an argument isn't a plain file then assume its an option, not an input
   // file. This allows us to cope better with unusual compiler options.
   //
   // Note that "/dev/null" is an exception that is sometimes used as an input
   // file when code is testing compiler flags.
   if (args[i] != "/dev/null") {
-    if (changed_from_slash) {
-      args[i][0] = '/';
-    }
     auto st = Stat::stat(args[i]);
     if (!st || !st.is_regular()) {
       LOG("{} is not a regular file, not considering as input file", args[i]);
