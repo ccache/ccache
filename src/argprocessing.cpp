@@ -596,12 +596,8 @@ process_arg(const Context& ctx,
   // MSVC -MD[d], -MT[d] and -LT[d] options are something different than GCC's
   // -MD etc.
   if (config.compiler_type() == CompilerType::cl
-      && (util::starts_with(args[i], "-MD")
-          || util::starts_with(args[i], "-MDd")
-          || util::starts_with(args[i], "-MT")
-          || util::starts_with(args[i], "-MTd")
-          || util::starts_with(args[i], "-LD")
-          || util::starts_with(args[i], "-LDd"))) {
+      && (util::starts_with(args[i], "-MD") || util::starts_with(args[i], "-MT")
+          || util::starts_with(args[i], "-LD"))) {
     // These affect compiler but also #define some things.
     state.cpp_args.push_back(args[i]);
     state.common_args.push_back(args[i]);
