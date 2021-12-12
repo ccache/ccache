@@ -133,6 +133,7 @@ const CompOpt compopts[] = {
   {"-iwithprefixbefore",
    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-ldir", AFFECTS_CPP | TAKES_ARG}, // nvcc
+  {"-link", TOO_HARD},                // msvc
   {"-nolibc", AFFECTS_COMP},
   {"-nostdinc", AFFECTS_CPP},
   {"-nostdinc++", AFFECTS_CPP},
