@@ -230,8 +230,6 @@ guess_compiler(string_view path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != nonstd::string_view::npos) {
     return CompilerType::nvcc;
-  } else if (name == "pump" || name == "distcc-pump") {
-    return CompilerType::pump;
   } else if (name.find("cl") != nonstd::string_view::npos) {
     return CompilerType::cl;
   } else {
@@ -434,10 +432,7 @@ print_included_files(const Context& ctx, FILE* fp)
 //   when computing the hash sum.
 // - Stores the paths and hashes of included files in ctx.included_files.
 static nonstd::expected<void, Failure>
-process_preprocessed_file(Context& ctx,
-                          Hash& hash,
-                          const std::string& path,
-                          bool pump)
+process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 {
   std::string data;
   try {
@@ -583,7 +578,7 @@ process_preprocessed_file(Context& ctx,
         "bin directive in source code");
       return nonstd::make_unexpected(
         Failure(Statistic::unsupported_code_directive));
-    } else if (pump && strncmp(q, "_________", 9) == 0) {
+    } else if (strncmp(q, "___________", 10) == 0) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
       // __________Using # distcc servers in pump mode
@@ -857,8 +852,7 @@ rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
   //   __________Using # distcc servers in pump mode
   //
   // We don't want to cache those.
-  if (!stdout_data.empty()
-      && ctx.config.compiler_type() == CompilerType::pump) {
+  if (!stdout_data.empty()) {
     std::string new_stdout_text;
     for (const auto line : util::Tokenizer(
            stdout_data, "\n", util::Tokenizer::Mode::include_empty)) {
@@ -1102,8 +1096,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   hash.hash_delimiter("cpp");
-  const bool is_pump = ctx.config.compiler_type() == CompilerType::pump;
-  TRY(process_preprocessed_file(ctx, hash, stdout_path, is_pump));
+  TRY(process_preprocessed_file(ctx, hash, stdout_path));
 
   hash.hash_delimiter("cppstderr");
   if (!ctx.args_info.direct_i_file && !hash.hash_file(stderr_path)) {

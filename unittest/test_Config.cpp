@@ -101,7 +101,7 @@ TEST_CASE("Config::update_from_file")
     "  #A comment\n"
     "\t compiler = foo\n"
     "compiler_check = none\n"
-    "compiler_type = pump\n"
+    "compiler_type = nvcc\n"
     "compression=false\n"
     "compression_level= 2\n"
     "cpp_extension = .foo\n"
@@ -141,7 +141,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
   CHECK(config.compiler() == "foo");
   CHECK(config.compiler_check() == "none");
-  CHECK(config.compiler_type() == CompilerType::pump);
+  CHECK(config.compiler_type() == CompilerType::nvcc);
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");

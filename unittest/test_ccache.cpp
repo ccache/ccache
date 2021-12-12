@@ -183,9 +183,6 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler("/test/prefix/nvcc") == CompilerType::nvcc);
     CHECK(guess_compiler("/test/prefix/nvcc-10.1.243") == CompilerType::nvcc);
 
-    CHECK(guess_compiler("/test/prefix/pump") == CompilerType::pump);
-    CHECK(guess_compiler("/test/prefix/distcc-pump") == CompilerType::pump);
-
     CHECK(guess_compiler("/test/prefix/x") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/cc") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/c++") == CompilerType::other);

@@ -247,8 +247,6 @@ parse_compiler_type(const std::string& value)
     return CompilerType::nvcc;
   } else if (value == "other") {
     return CompilerType::other;
-  } else if (value == "pump") {
-    return CompilerType::pump;
   } else {
     // Allow any unknown value for forward compatibility.
     return CompilerType::auto_guess;
@@ -454,7 +452,6 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(gcc);
     CASE(nvcc);
     CASE(other);
-    CASE(pump);
     CASE(cl);
   }
 #undef CASE
