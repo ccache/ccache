@@ -175,12 +175,6 @@ base_tests() {
     expect_stat unsupported_compiler_option 1
 
     # -------------------------------------------------------------------------
-    TEST "Compiler produced stdout"
-
-    $CCACHE echo foo -c test1.c >/dev/null
-    expect_stat compiler_produced_stdout 1
-
-    # -------------------------------------------------------------------------
     TEST "Output to directory"
 
     mkdir testd
@@ -1213,24 +1207,34 @@ EOF
     expect_equal_content reference.d test.d
 
     # -------------------------------------------------------------------------
-    TEST "No stdout"
+    TEST "Caching stdout and stderr"
 
-    cat <<EOF >test.c
-// just something random
-int test() { return 1; }
+    cat >compiler.sh <<EOF
+#!/bin/sh
+if [ \$1 = -E ] || ! echo "\$*" | grep -q '\.i\$'; then
+    printf "cpp_err|" >&2
+fi
+if [ \$1 != -E ]; then
+    printf "cc_err|" >&2
+    printf "cc_out|"
+fi
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
+exec $COMPILER "\$@"
 EOF
+    chmod +x compiler.sh
 
-    stderr=$($CCACHE_COMPILE -c test.c >stdout 2>stderr)
+    $CCACHE ./compiler.sh -c test1.c >stdout 2>stderr
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
-    expect_content stdout ""
-    expect_content stderr ""
+    expect_content stdout "cc_out|"
+    expect_content stderr "cpp_err|cc_err|"
 
-    stderr=$($CCACHE_COMPILE -c test.c >stdout 2>stderr)
+    $CCACHE ./compiler.sh -c test1.c >stdout 2>stderr
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
-    expect_content stdout ""
-    expect_content stderr ""
+    expect_content stdout "cc_out|"
+    expect_content stderr "cpp_err|cc_err|"
 
     # -------------------------------------------------------------------------
     TEST "--zero-stats"

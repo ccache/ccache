@@ -789,24 +789,18 @@ static bool
 write_result(Context& ctx,
              const std::string& result_path,
              const Stat& obj_stat,
-             const std::string& stdout_path,
-             const std::string& stderr_path)
+             const std::string& stdout_data,
+             const std::string& stderr_data)
 {
   Result::Writer result_writer(ctx, result_path);
 
-  const auto stdout_stat = Stat::stat(stdout_path, Stat::OnError::log);
-  const auto stderr_stat = Stat::stat(stderr_path, Stat::OnError::log);
-  if (!stdout_stat || !stderr_stat) {
-    return false;
-  }
-
-  if (stderr_stat.size() > 0) {
-    result_writer.write_file(Result::FileType::stderr_output, stderr_path);
+  if (!stderr_data.empty()) {
+    result_writer.write_data(Result::FileType::stderr_output, stderr_data);
   }
   // Write stdout only after stderr (better with MSVC), as ResultRetriever
   // will later print process them in the order they are read.
-  if (stdout_stat.size() > 0) {
-    result_writer.write_file(Result::FileType::stdout_output, stdout_path);
+  if (!stdout_data.empty()) {
+    result_writer.write_data(Result::FileType::stdout_output, stdout_data);
   }
   if (obj_stat) {
     result_writer.write_file(Result::FileType::object,
@@ -853,6 +847,32 @@ write_result(Context& ctx,
   }
 
   return true;
+}
+
+static std::string
+rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
+{
+  // distcc-pump outputs lines like this:
+  //
+  //   __________Using # distcc servers in pump mode
+  //
+  // We don't want to cache those.
+  if (!stdout_data.empty()
+      && ctx.config.compiler_type() == CompilerType::pump) {
+    std::string new_stdout_text;
+    for (const auto line : util::Tokenizer(
+           stdout_data, "\n", util::Tokenizer::Mode::include_empty)) {
+      if (util::starts_with(line, "__________")) {
+        Util::send_to_fd(ctx, std::string(line), STDOUT_FILENO);
+      } else {
+        new_stdout_text.append(line.data(), line.length());
+        new_stdout_text.append("\n");
+      }
+    }
+    return new_stdout_text;
+  } else {
+    return std::move(stdout_data);
+  }
 }
 
 // Run the real compiler and put the result in cache. Returns the result key.
@@ -941,20 +961,6 @@ to_cache(Context& ctx,
     return nonstd::make_unexpected(status.error());
   }
 
-  auto st = Stat::stat(tmp_stdout_path, Stat::OnError::log);
-  if (!st) {
-    // The stdout file was removed - cleanup in progress? Better bail out.
-    return nonstd::make_unexpected(Statistic::missing_cache_file);
-  }
-
-  // distcc-pump outputs lines like this:
-  // __________Using # distcc servers in pump mode
-  if (st.size() != 0 && ctx.config.compiler_type() != CompilerType::pump
-      && ctx.config.compiler_type() != CompilerType::cl) {
-    LOG_RAW("Compiler produced stdout");
-    return nonstd::make_unexpected(Statistic::compiler_produced_stdout);
-  }
-
   // Merge stderr from the preprocessor (if any) and stderr from
   // the real compiler into tmp_stderr.
   if (!ctx.cpp_stderr.empty()) {
@@ -963,12 +969,25 @@ to_cache(Context& ctx,
     Util::write_file(tmp_stderr_path, combined_stderr);
   }
 
+  std::string stdout_data;
+  std::string stderr_data;
+  try {
+    stdout_data = Util::read_file(tmp_stdout_path);
+    stderr_data = Util::read_file(tmp_stderr_path);
+  } catch (core::Error&) {
+    // The stdout or stderr file was removed - cleanup in progress? Better bail
+    // out.
+    return nonstd::make_unexpected(Statistic::missing_cache_file);
+  }
+
+  stdout_data = rewrite_stdout_from_compiler(ctx, std::move(stdout_data));
+
   if (status != 0) {
     LOG("Compiler gave exit status {}", *status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_fd(ctx, Util::read_file(tmp_stderr_path), STDERR_FILENO);
-    Util::send_to_fd(ctx, Util::read_file(tmp_stdout_path), STDOUT_FILENO);
+    Util::send_to_fd(ctx, stderr_data, STDERR_FILENO);
+    Util::send_to_fd(ctx, stdout_data, STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(*status);
@@ -1008,8 +1027,7 @@ to_cache(Context& ctx,
   MTR_BEGIN("result", "result_put");
   const bool added = ctx.storage.put(
     *result_key, core::CacheEntryType::result, [&](const auto& path) {
-      return write_result(
-        ctx, path, obj_stat, tmp_stdout_path, tmp_stderr_path);
+      return write_result(ctx, path, obj_stat, stdout_data, stderr_data);
     });
   MTR_END("result", "result_put");
   if (!added) {
@@ -1017,9 +1035,9 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  Util::send_to_fd(ctx, Util::read_file(tmp_stderr_path), STDERR_FILENO);
+  Util::send_to_fd(ctx, stderr_data, STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
-  Util::send_to_fd(ctx, Util::read_file(tmp_stdout_path), STDOUT_FILENO);
+  Util::send_to_fd(ctx, stdout_data, STDOUT_FILENO);
 
   return *result_key;
 }
