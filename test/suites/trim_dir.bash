@@ -1,3 +1,9 @@
+SUITE_trim_dir_PROBE() {
+    if [ -z "$ENABLE_CACHE_CLEANUP_TESTS" ]; then
+        echo "cleanup tests disabled"
+    fi
+}
+
 SUITE_trim_dir() {
     # -------------------------------------------------------------------------
     TEST "Trim secondary cache directory"
