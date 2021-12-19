@@ -651,23 +651,20 @@ TEST_CASE("Util::read_file and Util::write_file")
                     "No such file or directory");
 }
 
-TEST_CASE(
-  "Util::read_file, Util::write_file and Util::copy_file with binary files")
+TEST_CASE("Util::{read,write,copy}_file with binary files")
 {
   TestContext test_context;
 
-  std::string origin_data;
-  for (int i = 0; i < 512; i++) {
-    origin_data.push_back(static_cast<char>((32 + i) % 256));
+  std::string data;
+  for (size_t i = 0; i < 512; ++i) {
+    data.push_back(static_cast<char>((32 + i) % 256));
   }
 
-  Util::write_file("test", origin_data, std::ios_base::binary);
-  std::string data = Util::read_file("test");
-  CHECK(data == origin_data);
+  Util::write_file("test", data);
+  CHECK(Util::read_file("test") == data);
 
   Util::copy_file("test", "copy");
-  data = Util::read_file("copy");
-  CHECK(data == origin_data);
+  CHECK(Util::read_file("copy") == data);
 }
 
 TEST_CASE("Util::remove_extension")
