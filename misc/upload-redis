@@ -20,9 +20,6 @@ context = redis.Redis(
     host=host, port=port, unix_socket_path=sock, password=password
 )
 
-CCACHE_MANIFEST = b"cCmF"
-CCACHE_RESULT = b"cCrS"
-
 ccache = os.getenv("CCACHE_DIR", os.path.expanduser("~/.cache/ccache"))
 filelist = []
 for dirpath, dirnames, filenames in os.walk(ccache):
@@ -52,11 +49,6 @@ for mtime, dirpath, filename in filelist:
             val = open(os.path.join(dirpath, filename), "rb").read() or None
             if val:
                 print("%s: %s %d" % (key, ext, len(val)))
-                magic = val[0:4]
-                if ext == "M":
-                    assert magic == CCACHE_MANIFEST
-                if ext == "R":
-                    assert magic == CCACHE_RESULT
                 context.set(key, val)
                 objects = objects + 1
         files = files + 1
