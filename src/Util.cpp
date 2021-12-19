@@ -355,7 +355,7 @@ copy_fd(int fd_in, int fd_out)
 void
 copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
-  Fd src_fd(open(src.c_str(), O_RDONLY));
+  Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
   if (!src_fd) {
     throw core::Error("{}: {}", src, strerror(errno));
   }
