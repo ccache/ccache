@@ -567,8 +567,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
           Statistic::could_not_use_precompiled_header);
       }
       p = q; // Everything of interest between p and q has been hashed now.
-    } else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
-               && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
+    } else if (strncmp(q, ".incbin \\\"", 10) == 0
+               || strncmp(q, ".incbin \"", 9) == 0) {
       // An assembler .inc bin (without the space) statement, which could be
       // part of inline assembly, refers to an external file. If the file
       // changes, the hash should change as well, but finding out what file to

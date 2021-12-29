@@ -1440,6 +1440,20 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 0
     expect_stat unsupported_code_directive 2
+
+    cat <<EOF >incbin.cpp
+        struct A {
+             void incbin() const { }
+        };
+        void f() {
+             A a;
+             a.incbin();
+        }
+EOF
+    $CCACHE_COMPILE -x c++ -c incbin.cpp
+    expect_stat preprocessed_cache_hit 0
+    expect_stat unsupported_code_directive 2
+    expect_stat cache_miss 1
 fi
 
     # -------------------------------------------------------------------------
