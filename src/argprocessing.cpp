@@ -340,7 +340,8 @@ process_arg(const Context& ctx,
       return Statistic::unsupported_compiler_option;
     }
     state.common_args.push_back(args[i]);
-    state.common_args.push_back(args[++i]);
+    state.common_args.push_back(args[i + 1]);
+    ++i;
     return nullopt;
   }
 
