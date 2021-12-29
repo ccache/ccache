@@ -60,6 +60,10 @@
 #define CPPHTTPLIB_REQUEST_URI_MAX_LENGTH 8192
 #endif
 
+#ifndef CPPHTTPLIB_HEADER_MAX_LENGTH
+#define CPPHTTPLIB_HEADER_MAX_LENGTH 8192
+#endif
+
 #ifndef CPPHTTPLIB_REDIRECT_MAX_COUNT
 #define CPPHTTPLIB_REDIRECT_MAX_COUNT 20
 #endif
@@ -93,6 +97,10 @@
 
 #ifndef CPPHTTPLIB_SEND_FLAGS
 #define CPPHTTPLIB_SEND_FLAGS 0
+#endif
+
+#ifndef CPPHTTPLIB_LISTEN_BACKLOG
+#define CPPHTTPLIB_LISTEN_BACKLOG 5
 #endif
 
 /*
@@ -505,7 +513,7 @@ public:
   virtual void enqueue(std::function<void()> fn) = 0;
   virtual void shutdown() = 0;
 
-  virtual void on_idle(){};
+  virtual void on_idle() {}
 };
 
 class ThreadPool : public TaskQueue {
@@ -955,6 +963,8 @@ public:
 
   void stop();
 
+  void set_hostname_addr_map(const std::map<std::string, std::string> addr_map);
+
   void set_default_headers(Headers headers);
 
   void set_address_family(int family);
@@ -1057,6 +1067,9 @@ protected:
   size_t socket_requests_in_flight_ = 0;
   std::thread::id socket_requests_are_from_thread_ = std::thread::id();
   bool socket_should_be_closed_when_request_is_done_ = false;
+
+  // Hostname-IP map
+  std::map<std::string, std::string> addr_map_;
 
   // Default headers
   Headers default_headers_;
@@ -1285,6 +1298,8 @@ public:
 
   void stop();
 
+  void set_hostname_addr_map(const std::map<std::string, std::string> addr_map);
+
   void set_default_headers(Headers headers);
 
   void set_address_family(int family);
@@ -1370,6 +1385,8 @@ public:
   ~SSLServer() override;
 
   bool is_valid() const override;
+
+  SSL_CTX *ssl_context() const;
 
 private:
   bool process_and_close_socket(socket_t sock) override;
@@ -1480,10 +1497,10 @@ inline T Response::get_header_value(const char *key, size_t id) const {
 template <typename... Args>
 inline ssize_t Stream::write_format(const char *fmt, const Args &...args) {
   const auto bufsiz = 2048;
-  std::array<char, bufsiz> buf;
+  std::array<char, bufsiz> buf{};
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
-  auto sn = _snprintf_s(buf.data(), bufsiz - 1, buf.size() - 1, fmt, args...);
+  auto sn = _snprintf_s(buf.data(), bufsiz, _TRUNCATE, fmt, args...);
 #else
   auto sn = snprintf(buf.data(), buf.size() - 1, fmt, args...);
 #endif
@@ -1656,14 +1673,12 @@ bool process_client_socket(socket_t sock, time_t read_timeout_sec,
                            time_t write_timeout_usec,
                            std::function<bool(Stream &)> callback);
 
-socket_t create_client_socket(const char *host, int port, int address_family,
-                              bool tcp_nodelay, SocketOptions socket_options,
-                              time_t connection_timeout_sec,
-                              time_t connection_timeout_usec,
-                              time_t read_timeout_sec, time_t read_timeout_usec,
-                              time_t write_timeout_sec,
-                              time_t write_timeout_usec,
-                              const std::string &intf, Error &error);
+socket_t create_client_socket(
+    const char *host, const char *ip, int port, int address_family,
+    bool tcp_nodelay, SocketOptions socket_options,
+    time_t connection_timeout_sec, time_t connection_timeout_usec,
+    time_t read_timeout_sec, time_t read_timeout_usec, time_t write_timeout_sec,
+    time_t write_timeout_usec, const std::string &intf, Error &error);
 
 const char *get_header_value(const Headers &headers, const char *key,
                              size_t id = 0, const char *def = nullptr);
