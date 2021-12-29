@@ -18,8 +18,8 @@
 
 #include "CacheFile.hpp"
 
-#include <Manifest.hpp>
 #include <Result.hpp>
+#include <core/Manifest.hpp>
 #include <util/string.hpp>
 
 const Stat&
@@ -35,7 +35,7 @@ CacheFile::lstat() const
 CacheFile::Type
 CacheFile::type() const
 {
-  if (util::ends_with(m_path, Manifest::k_file_suffix)) {
+  if (util::ends_with(m_path, "M")) {
     return Type::manifest;
   } else if (util::ends_with(m_path, Result::k_file_suffix)) {
     return Type::result;

@@ -9,7 +9,6 @@ set(
   Hash.cpp
   Lockfile.cpp
   Logging.cpp
-  Manifest.cpp
   ProgressBar.cpp
   Result.cpp
   ResultDumper.cpp

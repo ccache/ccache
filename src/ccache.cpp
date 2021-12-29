@@ -30,7 +30,6 @@
 #include "Hash.hpp"
 #include "Lockfile.hpp"
 #include "Logging.hpp"
-#include "Manifest.hpp"
 #include "MiniTrace.hpp"
 #include "Result.hpp"
 #include "ResultRetriever.hpp"
@@ -46,7 +45,13 @@
 #include "hashutil.hpp"
 #include "language.hpp"
 
+#include <AtomicFile.hpp>
 #include <compression/types.hpp>
+#include <core/CacheEntryReader.hpp>
+#include <core/CacheEntryWriter.hpp>
+#include <core/FileReader.hpp>
+#include <core/FileWriter.hpp>
+#include <core/Manifest.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
@@ -710,6 +715,45 @@ do_execute(Context& ctx,
   return status;
 }
 
+static core::Manifest
+read_manifest(const std::string& path)
+{
+  core::Manifest manifest;
+  File file(path, "rb");
+  if (file) {
+    try {
+      core::FileReader file_reader(*file);
+      core::CacheEntryReader reader(file_reader);
+      manifest.read(reader);
+      reader.finalize();
+    } catch (const core::Error& e) {
+      LOG("Error reading {}: {}", path, e.what());
+    }
+  }
+  return manifest;
+}
+
+static void
+save_manifest(const Config& config,
+              const core::Manifest& manifest,
+              const std::string& path)
+{
+  AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
+  core::FileWriter file_writer(atomic_manifest_file.stream());
+  core::CacheEntryHeader header(core::CacheEntryType::manifest,
+                                compression::type_from_config(config),
+                                compression::level_from_config(config),
+                                time(nullptr),
+                                CCACHE_VERSION,
+                                config.namespace_());
+  header.set_entry_size_from_payload_size(manifest.serialized_size());
+
+  core::CacheEntryWriter writer(file_writer, header);
+  manifest.write(writer);
+  writer.finalize();
+  atomic_manifest_file.commit();
+}
+
 // Create or update the manifest file.
 static void
 update_manifest_file(Context& ctx,
@@ -724,8 +768,8 @@ update_manifest_file(Context& ctx,
 
   MTR_SCOPE("manifest", "manifest_put");
 
-  // See comment in get_file_hash_index for why saving of timestamps is forced
-  // for precompiled headers.
+  // See comment in core::Manifest::get_file_info_index for why saving of
+  // timestamps is forced for precompiled headers.
   const bool save_timestamp =
     (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
@@ -733,12 +777,20 @@ update_manifest_file(Context& ctx,
   ctx.storage.put(
     manifest_key, core::CacheEntryType::manifest, [&](const auto& path) {
       LOG("Adding result key to {}", path);
-      return Manifest::put(ctx.config,
-                           path,
-                           result_key,
-                           ctx.included_files,
-                           ctx.time_of_compilation,
-                           save_timestamp);
+      try {
+        auto manifest = read_manifest(path);
+        const bool added = manifest.add_result(result_key,
+                                               ctx.included_files,
+                                               ctx.time_of_compilation,
+                                               save_timestamp);
+        if (added) {
+          save_manifest(ctx.config, manifest, path);
+        }
+        return added;
+      } catch (const core::Error& e) {
+        LOG("Failed to add result key to {}: {}", path, e.what());
+        return false;
+      }
     });
 }
 
@@ -1438,7 +1490,7 @@ calculate_result_and_manifest_key(Context& ctx,
 
   if (direct_mode) {
     hash.hash_delimiter("manifest version");
-    hash.hash(Manifest::k_version);
+    hash.hash(core::Manifest::k_format_version);
   }
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
@@ -1708,7 +1760,12 @@ calculate_result_and_manifest_key(Context& ctx,
     if (manifest_path) {
       LOG("Looking for result key in {}", *manifest_path);
       MTR_BEGIN("manifest", "manifest_get");
-      result_key = Manifest::get(ctx, *manifest_path);
+      try {
+        const auto manifest = read_manifest(*manifest_path);
+        result_key = manifest.look_up_result_digest(ctx);
+      } catch (const core::Error& e) {
+        LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
+      }
       MTR_END("manifest", "manifest_get");
       if (result_key) {
         LOG_RAW("Got result key from manifest");

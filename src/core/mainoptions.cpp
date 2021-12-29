@@ -20,13 +20,16 @@
 
 #include <Config.hpp>
 #include <Fd.hpp>
+#include <File.hpp>
 #include <Hash.hpp>
 #include <InodeCache.hpp>
-#include <Manifest.hpp>
 #include <ProgressBar.hpp>
 #include <ResultDumper.hpp>
 #include <ResultExtractor.hpp>
 #include <ccache.hpp>
+#include <core/CacheEntryReader.hpp>
+#include <core/FileReader.hpp>
+#include <core/Manifest.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
@@ -385,8 +388,19 @@ process_main_options(int argc, const char* const* argv)
       break;
     }
 
-    case DUMP_MANIFEST:
-      return Manifest::dump(arg, stdout) ? 0 : 1;
+    case DUMP_MANIFEST: {
+      File file(arg, "rb");
+      if (!file) {
+        throw Fatal("No such file: {}", arg);
+      }
+      core::FileReader file_reader(*file);
+      core::CacheEntryReader reader(file_reader);
+      core::Manifest manifest;
+      manifest.read(reader);
+      reader.finalize();
+      manifest.dump(stdout);
+      return 0;
+    }
 
     case DUMP_RESULT: {
       ResultDumper result_dumper(stdout);
