@@ -802,7 +802,7 @@ Agreement.
 
 === src/third_party/xxh*
 
-xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.0 downloaded
+xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.1 downloaded
 from <https://github.com/Cyan4973/xxHash/releases>.
 
 ----
