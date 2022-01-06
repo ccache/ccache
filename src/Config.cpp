@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1025,11 +1025,14 @@ Config::check_key_tables_consistency()
 std::string
 Config::default_temporary_dir(const std::string& cache_dir)
 {
+  static const std::string run_user_tmp_dir = [] {
 #ifdef HAVE_GETEUID
-  std::string user_tmp_dir = FMT("/run/user/{}", geteuid());
-  if (Stat::stat(user_tmp_dir).is_directory()) {
-    return user_tmp_dir + "/ccache-tmp";
-  }
+    const auto dir = FMT("/run/user/{}/ccache-tmp", geteuid());
+    if (Util::create_dir(dir)) {
+      return dir;
+    }
 #endif
-  return cache_dir + "/tmp";
+    return std::string();
+  }();
+  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : cache_dir + "/tmp";
 }
