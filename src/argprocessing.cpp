@@ -261,7 +261,7 @@ process_arg(const Context& ctx,
   }
 
   // Special case for -E.
-  if (args[i] == "-E") {
+  if (args[i] == "-E" || args[i] == "/E") {
     return Statistic::called_for_preprocessing;
   }
   // MSVC -P is -E with output to a file.
@@ -314,7 +314,7 @@ process_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(args[i]) || util::starts_with(args[i], "-fdump-")
-      || util::starts_with(args[i], "-MJ")
+      || util::starts_with(args[i], "-MJ") || util::starts_with(args[i], "/Yc")
       || util::starts_with(args[i], "-Yc")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
@@ -414,13 +414,13 @@ process_arg(const Context& ctx,
   }
 
   // We must have -c.
-  if (args[i] == "-c") {
+  if (args[i] == "-c" || args[i] == "/c") {
     state.found_c_opt = true;
     return nullopt;
   }
 
   // MSVC -Fo with no space.
-  if (util::starts_with(args[i], "-Fo")
+  if ((util::starts_with(args[i], "-Fo") || util::starts_with(args[i], "/Fo"))
       && config.compiler_type() == CompilerType::cl) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(3));
@@ -888,7 +888,8 @@ process_arg(const Context& ctx,
 
   // Same as above but options with concatenated argument beginning with a
   // slash.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-'
+      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     size_t slash_pos = args[i].find('/');
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
@@ -926,7 +927,8 @@ process_arg(const Context& ctx,
   }
 
   // Other options.
-  if (args[i][0] == '-') {
+  if (args[i][0] == '-'
+      || (config.compiler_type() == CompilerType::cl && args[i][0] == '/')) {
     if (compopt_affects_cpp_output(args[i])
         || compopt_prefix_affects_cpp_output(args[i])) {
       state.cpp_args.push_back(args[i]);
