@@ -308,7 +308,7 @@ Statistics::format_human_readable(const Config& config,
       sec_hits,
       "/",
       sec_hits + sec_misses,
-      percent(sec_hits, sec_hits + pri_misses),
+      percent(sec_hits, sec_hits + sec_misses),
     });
     table.add_row({"  Misses:", sec_misses});
     if (verbosity > 1 || sec_errors > 0) {
