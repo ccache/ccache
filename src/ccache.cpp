@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -460,6 +460,10 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       "# 31 \"<command-line>\"\n";
     static const string_view hash_32_command_line_2_newline =
       "# 32 \"<command-line>\" 2\n";
+    // Note: Intentionally not using the string form to avoid false positive
+    // match by ccache itself.
+    static const char incbin_prefix[] = {
+      '.', 'i', 'n', 'c', 'b', 'i', 'n', ' '};
 
     // Check if we look at a line containing the file name of an included file.
     // At least the following formats exist (where N is a positive integer):
@@ -572,8 +576,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
           Statistic::could_not_use_precompiled_header);
       }
       p = q; // Everything of interest between p and q has been hashed now.
-    } else if (strncmp(q, ".incbin \\\"", 10) == 0
-               || strncmp(q, ".incbin \"", 9) == 0) {
+    } else if (strncmp(q, incbin_prefix, sizeof(incbin_prefix)) == 0
+               && (q[8] == '"' || (q[8] == '\\' && q[9] == '"'))) {
       // An assembler .inc bin (without the space) statement, which could be
       // part of inline assembly, refers to an external file. If the file
       // changes, the hash should change as well, but finding out what file to
