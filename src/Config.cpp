@@ -1027,7 +1027,7 @@ Config::default_temporary_dir(const std::string& cache_dir)
 {
   static const std::string run_user_tmp_dir = [] {
 #ifdef HAVE_GETEUID
-    const auto dir = FMT("/run/user/{}/ccache-tmp", geteuid());
+    auto dir = FMT("/run/user/{}/ccache-tmp", geteuid());
     if (Util::create_dir(dir)) {
       return dir;
     }
