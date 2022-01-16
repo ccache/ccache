@@ -509,6 +509,8 @@ _<<Using ccache with other compiler wrappers>>_.
     GCC-based compiler.
 *nvcc*::
     NVCC (CUDA) compiler.
+*cl*::
+    MSVC compiler
 *other*::
     Any compiler other than the known types.
 *pump*::
