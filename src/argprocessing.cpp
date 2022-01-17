@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1210,11 +1210,11 @@ process_args(Context& ctx)
     return Statistic::could_not_use_precompiled_header;
   }
 
-  if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt) {
+  // -fsyntax-only/-Zs does not need -c
+  if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt
+      && !state.found_syntax_only) {
     if (args_info.output_is_precompiled_header) {
       state.common_args.push_back("-c");
-    } else if (state.found_syntax_only) {
-      // -fsyntax-only/-Zs does not need -c
     } else {
       LOG_RAW("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
