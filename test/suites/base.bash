@@ -1102,16 +1102,17 @@ EOF
 
     echo '#warning This triggers a compiler warning' >stderr.c
 
-    $COMPILER -Wall -c stderr.c -fsyntax-only 2>reference_stderr.txt
+    $COMPILER -Wall stderr.c -fsyntax-only 2>reference_stderr.txt
 
     expect_contains reference_stderr.txt "This triggers a compiler warning"
 
-    $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
+    $CCACHE_COMPILE -Wall stderr.c -fsyntax-only 2>stderr.txt
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_equal_content reference_stderr.txt stderr.txt
 
+    # Intentionally compiling with "-c" here but not above.
     $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
