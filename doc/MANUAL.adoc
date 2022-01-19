@@ -776,10 +776,10 @@ file in `/etc/rsyslog.d`:
     storage space. Cache entries can also be selectively removed from the
     primary cache with the command line option `--evict-namespace`, potentially
     in combination with `--evict-older-than`.
-.
++
 For instance, if you use the same primary cache for several disparate projects,
 you can use a unique namespace string for each one. This allows you to remove
-cache entries that belong to a certain project if stop working with that
+cache entries that belong to a certain project if you stop working with that
 project.
 
 [#config_path]
