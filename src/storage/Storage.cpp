@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -276,6 +276,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
   if (share_hits) {
     primary.put(key, type, [&](const auto& path) {
       try {
+        Util::ensure_dir_exists(Util::dir_name(path));
         Util::copy_file(tmp_file.path, path);
       } catch (const core::Error& e) {
         LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
