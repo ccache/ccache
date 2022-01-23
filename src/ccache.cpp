@@ -227,7 +227,8 @@ guess_compiler(string_view path)
   }
 #endif
 
-  const string_view name = Util::base_name(compiler_path);
+  const auto name =
+    Util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
   if (name.find("clang") != nonstd::string_view::npos) {
     return CompilerType::clang;
   } else if (name.find("gcc") != nonstd::string_view::npos
@@ -235,7 +236,7 @@ guess_compiler(string_view path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != nonstd::string_view::npos) {
     return CompilerType::nvcc;
-  } else if (name.find("cl") != nonstd::string_view::npos) {
+  } else if (name == "cl") {
     return CompilerType::msvc;
   } else {
     return CompilerType::other;
