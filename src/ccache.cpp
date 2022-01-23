@@ -236,7 +236,7 @@ guess_compiler(string_view path)
   } else if (name.find("nvcc") != nonstd::string_view::npos) {
     return CompilerType::nvcc;
   } else if (name.find("cl") != nonstd::string_view::npos) {
-    return CompilerType::cl;
+    return CompilerType::msvc;
   } else {
     return CompilerType::other;
   }
@@ -933,7 +933,7 @@ to_cache(Context& ctx,
          const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
-  if (ctx.config.compiler_type() == CompilerType::cl) {
+  if (ctx.config.compiler_type() == CompilerType::msvc) {
     args.push_back(fmt::format("-Fo{}", ctx.args_info.output_obj));
   } else {
     args.push_back("-o");
@@ -2116,7 +2116,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   TRY(set_up_uncached_err());
 
   if (!ctx.config.run_second_cpp()
-      && ctx.config.compiler_type() == CompilerType::cl) {
+      && ctx.config.compiler_type() == CompilerType::msvc) {
     LOG_RAW("Second preprocessor cannot be disabled");
     ctx.config.set_run_second_cpp(true);
   }

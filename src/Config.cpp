@@ -450,9 +450,9 @@ compiler_type_to_string(CompilerType compiler_type)
 
     CASE(clang);
     CASE(gcc);
+    CASE(msvc);
     CASE(nvcc);
     CASE(other);
-    CASE(cl);
   }
 #undef CASE
 

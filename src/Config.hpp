@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,7 +31,7 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, gcc, nvcc, other, cl };
+enum class CompilerType { auto_guess, clang, gcc, msvc, nvcc, other };
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
