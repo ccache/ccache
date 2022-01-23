@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -47,7 +47,8 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
 {
   std::string suffix = Result::file_type_to_string(file_type);
   if (suffix == Result::k_unknown_file_type) {
-    suffix = FMT(".type_{}", file_type);
+    suffix =
+      FMT(".type_{}", static_cast<Result::UnderlyingFileTypeInt>(file_type));
   } else if (suffix[0] == '<') {
     suffix[0] = '.';
     suffix.resize(suffix.length() - 1);

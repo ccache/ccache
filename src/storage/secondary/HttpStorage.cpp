@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -153,7 +153,7 @@ HttpStorageBackend::get(const Digest& key)
     LOG("Failed to get {} from http storage: {} ({})",
         url_path,
         to_string(result.error()),
-        result.error());
+        static_cast<int>(result.error()));
     return nonstd::make_unexpected(Failure::error);
   }
 
@@ -179,7 +179,7 @@ HttpStorageBackend::put(const Digest& key,
       LOG("Failed to check for {} in http storage: {} ({})",
           url_path,
           to_string(result.error()),
-          result.error());
+          static_cast<int>(result.error()));
       return nonstd::make_unexpected(Failure::error);
     }
 
@@ -199,7 +199,7 @@ HttpStorageBackend::put(const Digest& key,
     LOG("Failed to put {} to http storage: {} ({})",
         url_path,
         to_string(result.error()),
-        result.error());
+        static_cast<int>(result.error()));
     return nonstd::make_unexpected(Failure::error);
   }
 
@@ -223,7 +223,7 @@ HttpStorageBackend::remove(const Digest& key)
     LOG("Failed to delete {} from http storage: {} ({})",
         url_path,
         to_string(result.error()),
-        result.error());
+        static_cast<int>(result.error()));
     return nonstd::make_unexpected(Failure::error);
   }
 
