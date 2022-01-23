@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -108,23 +108,25 @@ TEST_CASE("bsd_mkstemp")
   SUBCASE("successful")
   {
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemp(&path[0]));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "AAAAAA");
   }
 
   SUBCASE("existing file")
   {
-    CHECK_MESSAGE(ScopedHANDLE(CreateFileA("AAAAAA",
-                                           GENERIC_READ | GENERIC_WRITE,
-                                           0,
-                                           nullptr,
-                                           CREATE_NEW,
-                                           FILE_ATTRIBUTE_NORMAL,
-                                           nullptr)),
-                  "errno=" << errno);
+    ScopedHANDLE handle(CreateFileA("AAAAAA",
+                                    GENERIC_READ | GENERIC_WRITE,
+                                    0,
+                                    nullptr,
+                                    CREATE_NEW,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    nullptr));
+    CHECK_MESSAGE(handle, "errno=" << errno);
 
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemp(&path[0]));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "BBBBBB");
   }
 
@@ -150,7 +152,8 @@ TEST_CASE("bsd_mkstemp")
                   "errno=" << errno);
 
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemp(&path[0]));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "BBBBBB");
   }
 
@@ -159,7 +162,8 @@ TEST_CASE("bsd_mkstemp")
     CHECK_MESSAGE(CreateDirectoryA("AAAAAA", nullptr), "errno=" << errno);
 
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemp(&path[0]));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "BBBBBB");
   }
 
