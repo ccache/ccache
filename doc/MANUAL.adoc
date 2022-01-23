@@ -507,6 +507,8 @@ _<<Using ccache with other compiler wrappers>>_.
     Clang-based compiler.
 *gcc*::
     GCC-based compiler.
+*msvc*::
+    Microsoft Visual C++ (MSVC).
 *nvcc*::
     NVCC (CUDA) compiler.
 *other*::

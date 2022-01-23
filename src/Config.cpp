@@ -243,6 +243,8 @@ parse_compiler_type(const std::string& value)
     return CompilerType::clang;
   } else if (value == "gcc") {
     return CompilerType::gcc;
+  } else if (value == "msvc") {
+    return CompilerType::msvc;
   } else if (value == "nvcc") {
     return CompilerType::nvcc;
   } else if (value == "other") {
