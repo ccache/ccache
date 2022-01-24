@@ -1844,13 +1844,17 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     return false;
   }
 
-  Result::Reader result_reader(*result_path);
+  File file(*result_path, "rb");
+  core::FileReader file_reader(file.get());
+  core::CacheEntryReader cache_entry_reader(file_reader);
+  Result::Reader result_reader(cache_entry_reader, *result_path);
   ResultRetriever result_retriever(
     ctx, should_rewrite_dependency_target(ctx.args_info));
 
-  auto error = result_reader.read(result_retriever);
-  if (error) {
-    LOG("Failed to get result from cache: {}", *error);
+  try {
+    result_reader.read(result_retriever);
+  } catch (core::Error& e) {
+    LOG("Failed to get result from cache: {}", e.what());
     return false;
   }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,6 +17,8 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #pragma once
+
+#include <core/Reader.hpp>
 
 #include "third_party/nonstd/expected.hpp"
 #include "third_party/nonstd/optional.hpp"
@@ -99,15 +101,14 @@ struct FileSizeAndCountDiff
 class Reader
 {
 public:
-  Reader(const std::string& result_path);
+  Reader(core::CacheEntryReader& cache_entry_reader,
+         const std::string& result_path);
 
   class Consumer
   {
   public:
     virtual ~Consumer() = default;
 
-    virtual void on_header(core::CacheEntryReader& cache_entry_reader,
-                           uint8_t result_format_version) = 0;
     virtual void on_entry_start(uint32_t entry_number,
                                 FileType file_type,
                                 uint64_t file_len,
@@ -116,16 +117,14 @@ public:
     virtual void on_entry_end() = 0;
   };
 
-  // Returns error message on error, otherwise nonstd::nullopt.
-  nonstd::optional<std::string> read(Consumer& consumer);
+  // Throws core::Error on error.
+  void read(Consumer& consumer);
 
 private:
+  core::CacheEntryReader& m_reader;
   const std::string m_result_path;
 
-  bool read_result(Consumer& consumer);
-  void read_entry(core::CacheEntryReader& cache_entry_reader,
-                  uint32_t entry_number,
-                  Reader::Consumer& consumer);
+  void read_entry(uint32_t entry_number, Reader::Consumer& consumer);
 };
 
 // This class knows how to write a result cache entry.

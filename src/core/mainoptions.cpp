@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,8 +24,9 @@
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
-#include <ResultDumper.hpp>
+#include <Result.hpp>
 #include <ResultExtractor.hpp>
+#include <ResultInspector.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntryReader.hpp>
 #include <core/FileReader.hpp>
@@ -133,13 +134,13 @@ Options for secondary storage:
 Options for scripting or debugging:
         --checksum-file PATH   print the checksum (128 bit XXH3) of the file at
                                PATH
-        --dump-manifest PATH   dump manifest file at PATH in text format
-        --dump-result PATH     dump result file at PATH in text format
-        --extract-result PATH  extract data stored in result file at PATH to the
-                               current working directory
+        --extract-result PATH  extract file data stored in result file at PATH
+                               to the current working directory
     -k, --get-config KEY       print the value of configuration key KEY
         --hash-file PATH       print the hash (160 bit BLAKE3) of the file at
                                PATH
+        --inspect PATH         print result/manifest file at PATH in
+                               human-readable format
         --print-stats          print statistics counter IDs and corresponding
                                values in machine-parsable format
 
@@ -152,6 +153,38 @@ configuration_printer(const std::string& key,
                       const std::string& origin)
 {
   PRINT(stdout, "({}) {} = {}\n", origin, key, value);
+}
+
+static int
+inspect_path(const std::string& path)
+{
+  File file = path == "-" ? File(stdin) : File(path, "rb");
+  if (!file) {
+    PRINT(stderr, "Error: Failed to open \"{}\"", path);
+    return EXIT_FAILURE;
+  }
+  core::FileReader file_reader(file.get());
+  core::CacheEntryReader cache_entry_reader(file_reader);
+
+  const auto& header = cache_entry_reader.header();
+  header.inspect(stdout);
+
+  switch (header.entry_type) {
+  case core::CacheEntryType::manifest: {
+    core::Manifest manifest;
+    manifest.read(cache_entry_reader);
+    cache_entry_reader.finalize();
+    manifest.dump(stdout);
+    break;
+  }
+  case core::CacheEntryType::result:
+    Result::Reader result_reader(cache_entry_reader, path);
+    ResultInspector result_inspector(stdout);
+    result_reader.read(result_inspector);
+    break;
+  }
+
+  return EXIT_SUCCESS;
 }
 
 static void
@@ -270,6 +303,7 @@ enum {
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
   HASH_FILE,
+  INSPECT,
   PRINT_STATS,
   SHOW_LOG_STATS,
   TRIM_DIR,
@@ -284,15 +318,16 @@ const option long_options[] = {
   {"clear", no_argument, nullptr, 'C'},
   {"config-path", required_argument, nullptr, CONFIG_PATH},
   {"dir", required_argument, nullptr, 'd'},
-  {"directory", required_argument, nullptr, 'd'}, // backward compatibility
-  {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
-  {"dump-result", required_argument, nullptr, DUMP_RESULT},
+  {"directory", required_argument, nullptr, 'd'},               // bwd compat
+  {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST}, // bwd compat
+  {"dump-result", required_argument, nullptr, DUMP_RESULT},     // bwd compat
   {"evict-namespace", required_argument, nullptr, EVICT_NAMESPACE},
   {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
   {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
   {"get-config", required_argument, nullptr, 'k'},
   {"hash-file", required_argument, nullptr, HASH_FILE},
   {"help", no_argument, nullptr, 'h'},
+  {"inspect", required_argument, nullptr, INSPECT},
   {"max-files", required_argument, nullptr, 'F'},
   {"max-size", required_argument, nullptr, 'M'},
   {"print-stats", no_argument, nullptr, PRINT_STATS},
@@ -388,30 +423,6 @@ process_main_options(int argc, const char* const* argv)
       break;
     }
 
-    case DUMP_MANIFEST: {
-      File file(arg, "rb");
-      if (!file) {
-        throw Fatal("No such file: {}", arg);
-      }
-      core::FileReader file_reader(*file);
-      core::CacheEntryReader reader(file_reader);
-      core::Manifest manifest;
-      manifest.read(reader);
-      reader.finalize();
-      manifest.dump(stdout);
-      return 0;
-    }
-
-    case DUMP_RESULT: {
-      ResultDumper result_dumper(stdout);
-      Result::Reader result_reader(arg);
-      auto error = result_reader.read(result_dumper);
-      if (error) {
-        PRINT(stderr, "Error: {}\n", *error);
-      }
-      return error ? EXIT_FAILURE : EXIT_SUCCESS;
-    }
-
     case EVICT_NAMESPACE: {
       evict_namespace = arg;
       break;
@@ -424,12 +435,16 @@ process_main_options(int argc, const char* const* argv)
 
     case EXTRACT_RESULT: {
       ResultExtractor result_extractor(".");
-      Result::Reader result_reader(arg);
-      auto error = result_reader.read(result_extractor);
-      if (error) {
-        PRINT(stderr, "Error: {}\n", *error);
+      File file = arg == "-" ? File(stdin) : File(arg, "rb");
+      if (!file) {
+        PRINT(stderr, "Error: Failed to open \"{}\"", arg);
+        return EXIT_FAILURE;
       }
-      return error ? EXIT_FAILURE : EXIT_SUCCESS;
+      core::FileReader file_reader(file.get());
+      core::CacheEntryReader cache_entry_reader(file_reader);
+      Result::Reader result_reader(cache_entry_reader, arg);
+      result_reader.read(result_extractor);
+      return EXIT_SUCCESS;
     }
 
     case HASH_FILE: {
@@ -442,6 +457,11 @@ process_main_options(int argc, const char* const* argv)
       PRINT(stdout, "{}\n", hash.digest().to_string());
       break;
     }
+
+    case INSPECT:
+    case DUMP_MANIFEST: // Backward compatibility
+    case DUMP_RESULT:   // Backward compatibility
+      return inspect_path(arg);
 
     case PRINT_STATS: {
       StatisticsCounters counters;

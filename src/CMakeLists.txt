@@ -11,8 +11,8 @@ set(
   Logging.cpp
   ProgressBar.cpp
   Result.cpp
-  ResultDumper.cpp
   ResultExtractor.cpp
+  ResultInspector.cpp
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp

@@ -216,21 +216,11 @@ cache directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     Print the checksum (128 bit XXH3) of the file at _PATH_ (`-` for standard
     input).
 
-*--dump-manifest* _PATH_::
-
-    Dump manifest file at _PATH_ (`-` for standard input) in text format to
-    standard output. This is only useful when debugging ccache and its behavior.
-
-*--dump-result* _PATH_::
-
-    Dump result file at _PATH_ (`-` for standard input) in text format to
-    standard output. This is only useful when debugging ccache and its behavior.
-
 *--extract-result* _PATH_::
 
     Extract data stored in the result file at _PATH_ (`-` for standard input).
     The data will be written to `ccache-result.*` files in to the current
-    working directory. This is only useful when debugging ccache and its
+    working directory. This option is only useful when debugging ccache and its
     behavior.
 
 *-k* _KEY_, *--get-config* _KEY_::
@@ -242,6 +232,14 @@ cache directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
     Print the hash (160 bit BLAKE3) of the file at _PATH_ (`-` for standard
     input). This is only useful when debugging ccache and its behavior.
+
+*--inspect* _PATH_::
+
+    Print the content of a result or manifest file at _PATH_ (`-` for standard
+    input) to standard output in human-readable format. File content embedded in
+    a result file will however not be printed; use `--extract-result` to extract
+    the file content. This option is only useful when debugging ccache and its
+    behavior.
 
 *--print-stats*::
 

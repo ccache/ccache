@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -188,75 +188,45 @@ FileSizeAndCountDiff::operator+=(const FileSizeAndCountDiff& other)
   return *this;
 }
 
-Result::Reader::Reader(const std::string& result_path)
-  : m_result_path(result_path)
+Result::Reader::Reader(core::CacheEntryReader& cache_entry_reader,
+                       const std::string& result_path)
+  : m_reader(cache_entry_reader),
+    m_result_path(result_path)
 {
 }
 
-optional<std::string>
-Result::Reader::read(Consumer& consumer)
+void
+Reader::read(Consumer& consumer)
 {
-  LOG("Reading result {}", m_result_path);
-
-  try {
-    if (read_result(consumer)) {
-      return nullopt;
-    } else {
-      return "No such result file";
-    }
-  } catch (const core::Error& e) {
-    return e.what();
-  }
-}
-
-bool
-Reader::read_result(Consumer& consumer)
-{
-  FILE* file_stream;
-  File file;
-  if (m_result_path == "-") {
-    file_stream = stdin;
-  } else {
-    file = File(m_result_path, "rb");
-    if (!file) {
-      // Cache miss.
-      return false;
-    }
-    file_stream = file.get();
+  if (m_reader.header().entry_type != core::CacheEntryType::result) {
+    throw core::Error("Unexpected cache entry type: {}",
+                      to_string(m_reader.header().entry_type));
   }
 
-  core::FileReader file_reader(file_stream);
-  core::CacheEntryReader cache_entry_reader(file_reader);
-
-  const auto result_format_version = cache_entry_reader.read_int<uint8_t>();
+  const auto result_format_version = m_reader.read_int<uint8_t>();
   if (result_format_version != k_result_format_version) {
     throw core::Error("Unknown result format version: {}",
                       result_format_version);
   }
 
-  consumer.on_header(cache_entry_reader, result_format_version);
-
-  const auto n_entries = cache_entry_reader.read_int<uint8_t>();
+  const auto n_entries = m_reader.read_int<uint8_t>();
 
   uint32_t i;
   for (i = 0; i < n_entries; ++i) {
-    read_entry(cache_entry_reader, i, consumer);
+    read_entry(i, consumer);
   }
 
   if (i != n_entries) {
     throw core::Error("Too few entries (read {}, expected {})", i, n_entries);
   }
 
-  cache_entry_reader.finalize();
-  return true;
+  m_reader.finalize();
 }
 
 void
-Reader::read_entry(core::CacheEntryReader& cache_entry_reader,
-                   uint32_t entry_number,
-                   Reader::Consumer& consumer)
+Reader::read_entry(uint32_t entry_number, Reader::Consumer& consumer)
 {
-  const auto marker = cache_entry_reader.read_int<uint8_t>();
+  const auto marker = m_reader.read_int<uint8_t>();
 
   switch (marker) {
   case k_embedded_file_marker:
@@ -267,9 +237,9 @@ Reader::read_entry(core::CacheEntryReader& cache_entry_reader,
     throw core::Error("Unknown entry type: {}", marker);
   }
 
-  const auto type = cache_entry_reader.read_int<UnderlyingFileTypeInt>();
+  const auto type = m_reader.read_int<UnderlyingFileTypeInt>();
   const auto file_type = FileType(type);
-  const auto file_len = cache_entry_reader.read_int<uint64_t>();
+  const auto file_len = m_reader.read_int<uint64_t>();
 
   if (marker == k_embedded_file_marker) {
     consumer.on_entry_start(entry_number, file_type, file_len, nullopt);
@@ -278,21 +248,24 @@ Reader::read_entry(core::CacheEntryReader& cache_entry_reader,
     size_t remain = file_len;
     while (remain > 0) {
       size_t n = std::min(remain, sizeof(buf));
-      cache_entry_reader.read(buf, n);
+      m_reader.read(buf, n);
       consumer.on_entry_data(buf, n);
       remain -= n;
     }
   } else {
     ASSERT(marker == k_raw_file_marker);
 
-    auto raw_path = get_raw_file_path(m_result_path, entry_number);
-    auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
-    if (st.size() != file_len) {
-      throw core::Error(
-        "Bad file size of {} (actual {} bytes, expected {} bytes)",
-        raw_path,
-        st.size(),
-        file_len);
+    std::string raw_path;
+    if (m_result_path != "-") {
+      raw_path = get_raw_file_path(m_result_path, entry_number);
+      auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
+      if (st.size() != file_len) {
+        throw core::Error(
+          "Bad file size of {} (actual {} bytes, expected {} bytes)",
+          raw_path,
+          st.size(),
+          file_len);
+      }
     }
 
     consumer.on_entry_start(entry_number, file_type, file_len, raw_path);

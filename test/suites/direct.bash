@@ -1029,19 +1029,19 @@ EOF
 
     manifest=`find $CCACHE_DIR -name '*M'`
     if [ -n "$manifest" ]; then
-        data="`$CCACHE --dump-manifest $manifest | egrep '/dev/(stdout|tty|sda|hda'`"
+        data="`$CCACHE --inspect $manifest | egrep '/dev/(stdout|tty|sda|hda'`"
         if [ -n "$data" ]; then
             test_failed "$manifest contained troublesome file(s): $data"
         fi
     fi
 
     # -------------------------------------------------------------------------
-    TEST "--dump-manifest"
+    TEST "--inspect"
 
     $CCACHE_COMPILE test.c -c -o test.o
 
     manifest=`find $CCACHE_DIR -name '*M'`
-    $CCACHE --dump-manifest $manifest >manifest.dump
+    $CCACHE --inspect $manifest >manifest.dump
 
     checksum_test1_h='b7273h0ksdehi0o4pitg5jeehal3i54ns'
     checksum_test2_h='24f1315jch5tcndjbm6uejtu8q3lf9100'
@@ -1052,7 +1052,7 @@ EOF
        grep "Hash: $checksum_test3_h" manifest.dump >/dev/null 2>&1; then
         : OK
     else
-        test_failed "Unexpected output of --dump-manifest"
+        test_failed "Unexpected output of --inspect"
     fi
 
     # -------------------------------------------------------------------------
@@ -1092,7 +1092,7 @@ EOF
 
     CCACHE_IGNOREHEADERS="subdir/ignore.h" $CCACHE_COMPILE -c ignore.c
     manifest=`find $CCACHE_DIR -name '*M'`
-    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
+    data="`$CCACHE --inspect $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi
@@ -1112,7 +1112,7 @@ EOF
 
     CCACHE_IGNOREHEADERS="subdir" $CCACHE_COMPILE -c ignore.c
     manifest=`find $CCACHE_DIR -name '*M'`
-    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
+    data="`$CCACHE --inspect $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi

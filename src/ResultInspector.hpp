@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,14 +23,12 @@
 #include <cstdint>
 #include <cstdio>
 
-// This class dumps information about the result entry to `stream`.
-class ResultDumper : public Result::Reader::Consumer
+// This class writes information about the result entry to `stream`.
+class ResultInspector : public Result::Reader::Consumer
 {
 public:
-  ResultDumper(FILE* stream);
+  ResultInspector(FILE* stream);
 
-  void on_header(core::CacheEntryReader& cache_entry_reader,
-                 uint8_t result_format_version) override;
   void on_entry_start(uint32_t entry_number,
                       Result::FileType file_type,
                       uint64_t file_len,

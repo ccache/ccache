@@ -70,7 +70,7 @@ CacheEntryHeader::set_entry_size_from_payload_size(const uint64_t payload_size)
 }
 
 void
-CacheEntryHeader::dump(FILE* const stream) const
+CacheEntryHeader::inspect(FILE* const stream) const
 {
   PRINT(stream, "Magic: {:04x}\n", magic);
   PRINT(stream, "Entry format version: {}\n", entry_format_version);

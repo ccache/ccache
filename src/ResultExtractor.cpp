@@ -34,12 +34,6 @@ ResultExtractor::ResultExtractor(const std::string& directory)
 }
 
 void
-ResultExtractor::on_header(core::CacheEntryReader& /*cache_entry_reader*/,
-                           const uint8_t /*result_format_version*/)
-{
-}
-
-void
 ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
                                 Result::FileType file_type,
                                 uint64_t /*file_len*/,
@@ -63,6 +57,9 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
       throw core::Error(
         "Failed to open {} for writing: {}", m_dest_path, strerror(errno));
     }
+  } else if (raw_file->empty()) {
+    PRINT_RAW(stderr,
+              "Note: Can't extract raw file since reading from stdin\n");
   } else {
     try {
       Util::copy_file(*raw_file, m_dest_path, false);

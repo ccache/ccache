@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -38,12 +38,6 @@ using Result::FileType;
 ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
   : m_ctx(ctx),
     m_rewrite_dependency_target(rewrite_dependency_target)
-{
-}
-
-void
-ResultRetriever::on_header(core::CacheEntryReader& /*cache_entry_reader*/,
-                           const uint8_t /*result_format_version*/)
 {
 }
 

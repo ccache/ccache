@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,33 +16,23 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "ResultDumper.hpp"
+#include "ResultInspector.hpp"
 
 #include "Context.hpp"
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
 
-#include <core/CacheEntryReader.hpp>
-
 using nonstd::optional;
 
-ResultDumper::ResultDumper(FILE* stream) : m_stream(stream)
+ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
 {
 }
 
 void
-ResultDumper::on_header(core::CacheEntryReader& cache_entry_reader,
-                        const uint8_t result_format_version)
-{
-  cache_entry_reader.header().dump(m_stream);
-  PRINT(m_stream, "Result format version: {}\n", result_format_version);
-}
-
-void
-ResultDumper::on_entry_start(uint32_t entry_number,
-                             Result::FileType file_type,
-                             uint64_t file_len,
-                             optional<std::string> raw_file)
+ResultInspector::on_entry_start(uint32_t entry_number,
+                                Result::FileType file_type,
+                                uint64_t file_len,
+                                optional<std::string> raw_file)
 {
   PRINT(m_stream,
         "{} file #{}: {} ({} bytes)\n",
@@ -53,11 +43,11 @@ ResultDumper::on_entry_start(uint32_t entry_number,
 }
 
 void
-ResultDumper::on_entry_data(const uint8_t* /*data*/, size_t /*size*/)
+ResultInspector::on_entry_data(const uint8_t* /*data*/, size_t /*size*/)
 {
 }
 
 void
-ResultDumper::on_entry_end()
+ResultInspector::on_entry_end()
 {
 }
