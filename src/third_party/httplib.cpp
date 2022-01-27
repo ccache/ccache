@@ -111,8 +111,12 @@ std::string base64_encode(const std::string &in) {
 }
 
 bool is_file(const std::string &path) {
+#ifdef _WIN32
+  return _access_s(path.c_str(), 0) == 0;
+#else
   struct stat st;
   return stat(path.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
+#endif
 }
 
 bool is_dir(const std::string &path) {
@@ -465,7 +469,7 @@ ssize_t select_write(socket_t sock, time_t sec, time_t usec) {
 #endif
 }
 
-bool wait_until_socket_is_ready(socket_t sock, time_t sec, time_t usec) {
+Error wait_until_socket_is_ready(socket_t sock, time_t sec, time_t usec) {
 #ifdef CPPHTTPLIB_USE_POLL
   struct pollfd pfd_read;
   pfd_read.fd = sock;
@@ -475,17 +479,23 @@ bool wait_until_socket_is_ready(socket_t sock, time_t sec, time_t usec) {
 
   auto poll_res = handle_EINTR([&]() { return poll(&pfd_read, 1, timeout); });
 
+  if (poll_res == 0) {
+    return Error::ConnectionTimeout;
+  }
+
   if (poll_res > 0 && pfd_read.revents & (POLLIN | POLLOUT)) {
     int error = 0;
     socklen_t len = sizeof(error);
     auto res = getsockopt(sock, SOL_SOCKET, SO_ERROR,
                           reinterpret_cast<char *>(&error), &len);
-    return res >= 0 && !error;
+    auto successful = res >= 0 && !error;
+    return successful ? Error::Success : Error::Connection;
   }
-  return false;
+
+  return Error::Connection;
 #else
 #ifndef _WIN32
-  if (sock >= FD_SETSIZE) { return false; }
+  if (sock >= FD_SETSIZE) { return Error::Connection; }
 #endif
 
   fd_set fdsr;
@@ -503,14 +513,19 @@ bool wait_until_socket_is_ready(socket_t sock, time_t sec, time_t usec) {
     return select(static_cast<int>(sock + 1), &fdsr, &fdsw, &fdse, &tv);
   });
 
+  if (ret == 0) {
+    return Error::ConnectionTimeout;
+  }
+
   if (ret > 0 && (FD_ISSET(sock, &fdsr) || FD_ISSET(sock, &fdsw))) {
     int error = 0;
     socklen_t len = sizeof(error);
-    return getsockopt(sock, SOL_SOCKET, SO_ERROR,
-                      reinterpret_cast<char *>(&error), &len) >= 0 &&
-           !error;
+    auto res = getsockopt(sock, SOL_SOCKET, SO_ERROR,
+                          reinterpret_cast<char *>(&error), &len);
+    auto successful = res >= 0 && !error;
+    return successful ? Error::Success : Error::Connection;
   }
-  return false;
+  return Error::Connection;
 #endif
 }
 
@@ -655,25 +670,28 @@ socket_t create_socket(const char *host, const char *ip, int port,
                        SocketOptions socket_options,
                        BindOrConnect bind_or_connect) {
   // Get address info
+  const char *node = nullptr;
   struct addrinfo hints;
   struct addrinfo *result;
 
   memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_family = address_family;
   hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = socket_flags;
   hints.ai_protocol = 0;
 
-  // Ask getaddrinfo to convert IP in c-string to address
   if (ip[0] != '\0') {
+    node = ip;
+    // Ask getaddrinfo to convert IP in c-string to address
     hints.ai_family = AF_UNSPEC;
     hints.ai_flags = AI_NUMERICHOST;
+  } else {
+    node = host;
+    hints.ai_family = address_family;
+    hints.ai_flags = socket_flags;
   }
 
   auto service = std::to_string(port);
 
-  if (ip[0] != '\0' ? getaddrinfo(ip, service.c_str(), &hints, &result)
-                    : getaddrinfo(host, service.c_str(), &hints, &result)) {
+  if (getaddrinfo(node, service.c_str(), &hints, &result)) {
 #if defined __linux__ && !defined __ANDROID__
     res_init();
 #endif
@@ -833,10 +851,13 @@ socket_t create_client_socket(
             ::connect(sock2, ai.ai_addr, static_cast<socklen_t>(ai.ai_addrlen));
 
         if (ret < 0) {
-          if (is_connection_error() ||
-              !wait_until_socket_is_ready(sock2, connection_timeout_sec,
-                                          connection_timeout_usec)) {
+          if (is_connection_error()) {
             error = Error::Connection;
+            return false;
+          }
+          error = wait_until_socket_is_ready(sock2, connection_timeout_sec,
+                                             connection_timeout_usec);
+          if (error != Error::Success) {
             return false;
           }
         }
@@ -844,16 +865,31 @@ socket_t create_client_socket(
         set_nonblocking(sock2, false);
 
         {
+#ifdef _WIN32
+          auto timeout = static_cast<uint32_t>(read_timeout_sec * 1000 +
+                                               read_timeout_usec / 1000);
+          setsockopt(sock2, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+                     sizeof(timeout));
+#else
           timeval tv;
           tv.tv_sec = static_cast<long>(read_timeout_sec);
           tv.tv_usec = static_cast<decltype(tv.tv_usec)>(read_timeout_usec);
           setsockopt(sock2, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+#endif
         }
         {
+
+#ifdef _WIN32
+          auto timeout = static_cast<uint32_t>(write_timeout_sec * 1000 +
+                                               write_timeout_usec / 1000);
+          setsockopt(sock2, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+                     sizeof(timeout));
+#else
           timeval tv;
           tv.tv_sec = static_cast<long>(write_timeout_sec);
           tv.tv_usec = static_cast<decltype(tv.tv_usec)>(write_timeout_usec);
           setsockopt(sock2, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(tv));
+#endif
         }
 
         error = Error::Success;
@@ -869,7 +905,7 @@ socket_t create_client_socket(
   return sock;
 }
 
-void get_remote_ip_and_port(const struct sockaddr_storage &addr,
+bool get_remote_ip_and_port(const struct sockaddr_storage &addr,
                                    socklen_t addr_len, std::string &ip,
                                    int &port) {
   if (addr.ss_family == AF_INET) {
@@ -877,14 +913,19 @@ void get_remote_ip_and_port(const struct sockaddr_storage &addr,
   } else if (addr.ss_family == AF_INET6) {
     port =
         ntohs(reinterpret_cast<const struct sockaddr_in6 *>(&addr)->sin6_port);
+  } else {
+    return false;
   }
 
   std::array<char, NI_MAXHOST> ipstr{};
-  if (!getnameinfo(reinterpret_cast<const struct sockaddr *>(&addr), addr_len,
-                   ipstr.data(), static_cast<socklen_t>(ipstr.size()), nullptr,
-                   0, NI_NUMERICHOST)) {
-    ip = ipstr.data();
+  if (getnameinfo(reinterpret_cast<const struct sockaddr *>(&addr), addr_len,
+                  ipstr.data(), static_cast<socklen_t>(ipstr.size()), nullptr,
+                  0, NI_NUMERICHOST)) {
+    return false;
   }
+
+  ip = ipstr.data();
+  return true;
 }
 
 void get_remote_ip_and_port(socket_t sock, std::string &ip, int &port) {
@@ -1346,17 +1387,26 @@ bool read_headers(Stream &strm, Headers &headers) {
     if (!line_reader.getline()) { return false; }
 
     // Check if the line ends with CRLF.
+    auto line_terminator_len = 2;
     if (line_reader.end_with_crlf()) {
       // Blank line indicates end of headers.
       if (line_reader.size() == 2) { break; }
+#ifdef CPPHTTPLIB_ALLOW_LF_AS_LINE_TERMINATOR
+    } else {
+      // Blank line indicates end of headers.
+      if (line_reader.size() == 1) { break; }
+      line_terminator_len = 1;
+    }
+#else
     } else {
       continue; // Skip invalid line.
     }
+#endif
 
     if (line_reader.size() > CPPHTTPLIB_HEADER_MAX_LENGTH) { return false; }
 
-    // Exclude CRLF
-    auto end = line_reader.ptr() + line_reader.size() - 2;
+    // Exclude line terminator
+    auto end = line_reader.ptr() + line_reader.size() - line_terminator_len;
 
     parse_header(line_reader.ptr(), end,
                  [&](std::string &&key, std::string &&val) {
@@ -2085,6 +2135,7 @@ std::string make_multipart_data_boundary() {
   // platforms, but due to lack of support in the c++ standard library,
   // doing better requires either some ugly hacks or breaking portability.
   std::random_device seed_gen;
+
   // Request 128 bits of entropy for initialization
   std::seed_seq seed_sequence{seed_gen(), seed_gen(), seed_gen(), seed_gen()};
   std::mt19937 engine(seed_sequence);
@@ -2367,14 +2418,16 @@ std::pair<std::string, std::string> make_digest_authentication_header(
     }
   }
 
-  auto field =
-      "Digest username=\"" + username + "\", realm=\"" + auth.at("realm") +
-      "\", nonce=\"" + auth.at("nonce") + "\", uri=\"" + req.path +
-      "\", algorithm=" + algo +
-      (qop.empty() ? ", response=\""
-                   : ", qop=" + qop + ", nc=\"" + nc + "\", cnonce=\"" +
-                         cnonce + "\", response=\"") +
-      response + "\"";
+  auto opaque = (auth.find("opaque") != auth.end()) ? auth.at("opaque") : "";
+
+  auto field = "Digest username=\"" + username + "\", realm=\"" +
+               auth.at("realm") + "\", nonce=\"" + auth.at("nonce") +
+               "\", uri=\"" + req.path + "\", algorithm=" + algo +
+               (qop.empty() ? ", response=\""
+                            : ", qop=" + qop + ", nc=" + nc + ", cnonce=\"" +
+                                  cnonce + "\", response=\"") +
+               response + "\"" +
+               (opaque.empty() ? "" : ", opaque=\"" + opaque + "\"");
 
   auto key = is_proxy ? "Proxy-Authorization" : "Authorization";
   return std::make_pair(key, field);
@@ -2443,6 +2496,41 @@ private:
 };
 
 } // namespace detail
+
+std::string hosted_at(const char *hostname) {
+  std::vector<std::string> addrs;
+  hosted_at(hostname, addrs);
+  if (addrs.empty()) { return std::string(); }
+  return addrs[0];
+}
+
+void hosted_at(const char *hostname, std::vector<std::string> &addrs) {
+  struct addrinfo hints;
+  struct addrinfo *result;
+
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = 0;
+
+  if (getaddrinfo(hostname, nullptr, &hints, &result)) {
+#if defined __linux__ && !defined __ANDROID__
+    res_init();
+#endif
+    return;
+  }
+
+  for (auto rp = result; rp; rp = rp->ai_next) {
+    const auto &addr =
+        *reinterpret_cast<struct sockaddr_storage *>(rp->ai_addr);
+    std::string ip;
+    int dummy = -1;
+    if (detail::get_remote_ip_and_port(addr, sizeof(struct sockaddr_storage),
+                                       ip, dummy)) {
+      addrs.push_back(ip);
+    }
+  }
+}
 
 std::string append_query_params(const char *path, const Params &params) {
   std::string path_with_query = path;
@@ -3400,16 +3488,31 @@ bool Server::listen_internal() {
       }
 
       {
+#ifdef _WIN32
+        auto timeout = static_cast<uint32_t>(read_timeout_sec_ * 1000 +
+                                             read_timeout_usec_ / 1000);
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+                   sizeof(timeout));
+#else
         timeval tv;
         tv.tv_sec = static_cast<long>(read_timeout_sec_);
         tv.tv_usec = static_cast<decltype(tv.tv_usec)>(read_timeout_usec_);
         setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+#endif
       }
       {
+
+#ifdef _WIN32
+        auto timeout = static_cast<uint32_t>(write_timeout_sec_ * 1000 +
+                                             write_timeout_usec_ / 1000);
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+                   sizeof(timeout));
+#else
         timeval tv;
         tv.tv_sec = static_cast<long>(write_timeout_sec_);
         tv.tv_usec = static_cast<decltype(tv.tv_usec)>(write_timeout_usec_);
         setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(tv));
+#endif
       }
 
 #if __cplusplus > 201703L
@@ -3852,6 +3955,7 @@ socket_t ClientImpl::create_client_socket(Error &error) const {
         read_timeout_sec_, read_timeout_usec_, write_timeout_sec_,
         write_timeout_usec_, interface_, error);
   }
+
   // Check is custom IP specified for host_
   std::string ip;
   auto it = addr_map_.find(host_);
@@ -3912,7 +4016,11 @@ bool ClientImpl::read_response_line(Stream &strm, const Request &req,
 
   if (!line_reader.getline()) { return false; }
 
+#ifdef CPPHTTPLIB_ALLOW_LF_AS_LINE_TERMINATOR
   const static std::regex re("(HTTP/1\\.[01]) (\\d{3})(?: (.*?))?\r\n");
+#else
+  const static std::regex re("(HTTP/1\\.[01]) (\\d{3})(?: (.*?))?\r?\n");
+#endif
 
   std::cmatch m;
   if (!std::regex_match(line_reader.ptr(), m, re)) {
@@ -4298,11 +4406,6 @@ std::unique_ptr<Response> ClientImpl::send_with_content_provider(
     const char *body, size_t content_length, ContentProvider content_provider,
     ContentProviderWithoutLength content_provider_without_length,
     const char *content_type, Error &error) {
-
-  // Request req;
-  // req.method = method;
-  // req.headers = headers;
-  // req.path = path;
 
   if (content_type) { req.headers.emplace("Content-Type", content_type); }
 

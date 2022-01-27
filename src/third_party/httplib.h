@@ -217,6 +217,15 @@ using socket_t = int;
 #include <thread>
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+// these are defined in wincrypt.h and it breaks compilation if BoringSSL is
+// used
+#ifdef _WIN32
+#undef X509_NAME
+#undef X509_CERT_PAIR
+#undef X509_EXTENSIONS
+#undef PKCS7_SIGNER_INFO
+#endif
+
 #include <openssl/err.h>
 #include <openssl/md5.h>
 #include <openssl/ssl.h>
@@ -790,6 +799,7 @@ enum class Error {
   SSLServerVerification,
   UnsupportedMultipartBoundaryChars,
   Compression,
+  ConnectionTimeout,
 };
 
 std::string to_string(const Error error);
@@ -1585,6 +1595,7 @@ inline std::string to_string(const Error error) {
   case Error::UnsupportedMultipartBoundaryChars:
     return "UnsupportedMultipartBoundaryChars";
   case Error::Compression: return "Compression";
+  case Error::ConnectionTimeout: return "ConnectionTimeout";
   case Error::Unknown: return "Unknown";
   default: break;
   }
@@ -1648,6 +1659,10 @@ Client::set_write_timeout(const std::chrono::duration<Rep, Period> &duration) {
  * .h + .cc.
  */
 
+std::string hosted_at(const char *hostname);
+
+void hosted_at(const char *hostname, std::vector<std::string> &addrs);
+
 std::string append_query_params(const char *path, const Params &params);
 
 std::pair<std::string, std::string> make_range_header(Ranges ranges);
@@ -1660,6 +1675,8 @@ make_basic_authentication_header(const std::string &username,
 namespace detail {
 
 std::string encode_query_param(const std::string &value);
+
+std::string decode_url(const std::string &s, bool convert_plus_to_space);
 
 void read_file(const std::string &path, std::string &out);
 
