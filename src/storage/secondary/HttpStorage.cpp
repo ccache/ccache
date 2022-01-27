@@ -132,6 +132,8 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
       }
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
+    } else if (attr.key == "bearer-token") {
+      m_http_client.set_bearer_token_auth(attr.value.c_str());
     } else if (!is_framework_attribute(attr.key)) {
       LOG("Unknown attribute: {}", attr.key);
     }

@@ -1131,6 +1131,7 @@ values.
 +
 The default is *subdirs*.
 * *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
+* *bearer-token*: Bearer token used to authorize the HTTP requests.
 
 
 === Redis storage backend
