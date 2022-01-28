@@ -116,7 +116,9 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   auto operation_timeout = k_default_operation_timeout;
 
   for (const auto& attr : params.attributes) {
-    if (attr.key == "connect-timeout") {
+    if (attr.key == "bearer-token") {
+      m_http_client.set_bearer_token_auth(attr.value.c_str());
+    } else if (attr.key == "connect-timeout") {
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "keep-alive") {
       m_http_client.set_keep_alive(attr.value == "true");
@@ -280,6 +282,15 @@ HttpStorage::redact_secrets(Backend::Params& params) const
   const auto user_info = util::split_once(url.user_info(), ':');
   if (user_info.second) {
     url.user_info(FMT("{}:{}", user_info.first, k_redacted_password));
+  }
+
+  auto bearer_token_attribute =
+    std::find_if(params.attributes.begin(),
+                 params.attributes.end(),
+                 [&](const auto& attr) { return attr.key == "bearer-token"; });
+  if (bearer_token_attribute != params.attributes.end()) {
+    bearer_token_attribute->value = k_redacted_password;
+    bearer_token_attribute->raw_value = k_redacted_password;
   }
 }
 
