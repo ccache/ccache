@@ -283,6 +283,15 @@ HttpStorage::redact_secrets(Backend::Params& params) const
   if (user_info.second) {
     url.user_info(FMT("{}:{}", user_info.first, k_redacted_password));
   }
+
+  auto bearer_token_attribute =
+    std::find_if(params.attributes.begin(),
+                 params.attributes.end(),
+                 [&](const auto& attr) { return attr.key == "bearer-token"; });
+  if (bearer_token_attribute != params.attributes.end()) {
+    bearer_token_attribute->value = k_redacted_password;
+    bearer_token_attribute->raw_value = k_redacted_password;
+  }
 }
 
 } // namespace secondary
