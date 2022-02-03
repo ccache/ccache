@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -245,8 +245,6 @@ Manifest::write(Writer& writer) const
     }
     writer.write(result.key.bytes(), Digest::size());
   }
-
-  writer.finalize();
 }
 
 bool
