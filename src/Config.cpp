@@ -451,9 +451,10 @@ compiler_type_to_string(CompilerType compiler_type)
   switch (compiler_type) {
   case CompilerType::auto_guess:
     return "auto";
+  case CompilerType::clang_cl:
+    return "clang-cl";
 
     CASE(clang);
-    CASE(clang_cl);
     CASE(gcc);
     CASE(msvc);
     CASE(nvcc);
