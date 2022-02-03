@@ -273,7 +273,7 @@ process_arg(const Context& ctx,
   }
 
   bool changed_from_slash = false;
-  if (ctx.config.is_compiler_group_cl() && util::starts_with(args[i], "/")) {
+  if (ctx.config.is_compiler_group_msvc() && util::starts_with(args[i], "/")) {
     // MSVC understands both /option and -option, so convert all /option to
     // -option to simplify our handling.
     args[i][0] = '-';
@@ -294,7 +294,7 @@ process_arg(const Context& ctx,
     return Statistic::called_for_preprocessing;
   }
   // MSVC -P is -E with output to a file.
-  if (args[i] == "-P" && ctx.config.is_compiler_group_cl()) {
+  if (args[i] == "-P" && ctx.config.is_compiler_group_msvc()) {
     return Statistic::called_for_preprocessing;
   }
 
@@ -306,7 +306,7 @@ process_arg(const Context& ctx,
       ++argpath;
     }
     auto file_args =
-      Args::from_atfile(argpath, ctx.config.is_compiler_group_cl());
+      Args::from_atfile(argpath, ctx.config.is_compiler_group_msvc());
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -449,7 +449,7 @@ process_arg(const Context& ctx,
   }
 
   // MSVC -Fo with no space.
-  if (util::starts_with(args[i], "-Fo") && config.is_compiler_group_cl()) {
+  if (util::starts_with(args[i], "-Fo") && config.is_compiler_group_msvc()) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(3));
     return nullopt;
@@ -568,7 +568,7 @@ process_arg(const Context& ctx,
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
   if ((args[i] == "-MD" || args[i] == "-MMD")
-      && !config.is_compiler_group_cl()) {
+      && !config.is_compiler_group_msvc()) {
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
@@ -604,7 +604,7 @@ process_arg(const Context& ctx,
   }
 
   if ((util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT"))
-      && !config.is_compiler_group_cl()) {
+      && !config.is_compiler_group_msvc()) {
     args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
@@ -628,7 +628,7 @@ process_arg(const Context& ctx,
 
   // MSVC -MD[d], -MT[d] and -LT[d] options are something different than GCC's
   // -MD etc.
-  if (config.is_compiler_group_cl()
+  if (config.is_compiler_group_msvc()
       && (util::starts_with(args[i], "-MD") || util::starts_with(args[i], "-MT")
           || util::starts_with(args[i], "-LD"))) {
     // These affect compiler but also #define some things.
@@ -878,7 +878,7 @@ process_arg(const Context& ctx,
   }
 
   // MSVC -u is something else than GCC -u, handle it specially.
-  if (args[i] == "-u" && ctx.config.is_compiler_group_cl()) {
+  if (args[i] == "-u" && ctx.config.is_compiler_group_msvc()) {
     state.cpp_args.push_back(args[i]);
     return nullopt;
   }
@@ -1128,7 +1128,7 @@ process_args(Context& ctx)
     string_view extension;
     if (state.found_S_opt) {
       extension = ".s";
-    } else if (!ctx.config.is_compiler_group_cl()) {
+    } else if (!ctx.config.is_compiler_group_msvc()) {
       extension = ".o";
     } else {
       extension = ".obj";

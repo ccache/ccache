@@ -31,7 +31,7 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, clangcl, gcc, msvc, nvcc, other };
+enum class CompilerType { auto_guess, clang, clang_cl, gcc, msvc, nvcc, other };
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
@@ -48,10 +48,6 @@ public:
   const std::string& compiler() const;
   const std::string& compiler_check() const;
   CompilerType compiler_type() const;
-  // Returns true for clang or clangcl.
-  bool is_compiler_group_clang() const;
-  // Returns true for cl or clangcl.
-  bool is_compiler_group_cl() const;
   bool compression() const;
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
@@ -88,6 +84,12 @@ public:
   const std::string& namespace_() const;
   const std::string& temporary_dir() const;
   nonstd::optional<mode_t> umask() const;
+
+  // Return true for Clang and clang-cl.
+  bool is_compiler_group_clang() const;
+
+  // Return true for MSVC (cl.exe) and clang-cl.
+  bool is_compiler_group_msvc() const;
 
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
@@ -240,14 +242,14 @@ inline bool
 Config::is_compiler_group_clang() const
 {
   return m_compiler_type == CompilerType::clang
-         || m_compiler_type == CompilerType::clangcl;
+         || m_compiler_type == CompilerType::clang_cl;
 }
 
 inline bool
-Config::is_compiler_group_cl() const
+Config::is_compiler_group_msvc() const
 {
   return m_compiler_type == CompilerType::msvc
-         || m_compiler_type == CompilerType::clangcl;
+         || m_compiler_type == CompilerType::clang_cl;
 }
 
 inline bool

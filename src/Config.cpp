@@ -242,7 +242,7 @@ parse_compiler_type(const std::string& value)
   if (value == "clang") {
     return CompilerType::clang;
   } else if (value == "clang-cl") {
-    return CompilerType::clangcl;
+    return CompilerType::clang_cl;
   } else if (value == "gcc") {
     return CompilerType::gcc;
   } else if (value == "msvc") {
@@ -453,7 +453,7 @@ compiler_type_to_string(CompilerType compiler_type)
     return "auto";
 
     CASE(clang);
-    CASE(clangcl);
+    CASE(clang_cl);
     CASE(gcc);
     CASE(msvc);
     CASE(nvcc);
