@@ -64,7 +64,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(
   ccache_framework
-  PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
+  PRIVATE standard_settings standard_warnings ${ZSTD_LIBRARIES} Threads::Threads third_party
 )
 
 target_include_directories(ccache_framework PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})

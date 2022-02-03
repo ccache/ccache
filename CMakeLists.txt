@@ -98,6 +98,11 @@ endif()
 
 option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 REQUIRED)
+if(TARGET zstd::libzstd_shared)
+  set(ZSTD_LIBRARIES zstd::libzstd_shared)
+else()
+  set(ZSTD_LIBRARIES ZSTD::ZSTD)
+endif()
 
 option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
