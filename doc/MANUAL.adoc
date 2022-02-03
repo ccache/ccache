@@ -503,6 +503,8 @@ _<<Using ccache with other compiler wrappers>>_.
     symlinks). This is the default.
 *clang*::
     Clang-based compiler.
+*clang-cl*::
+    clang-cl.
 *gcc*::
     GCC-based compiler.
 *msvc*::
