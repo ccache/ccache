@@ -883,9 +883,6 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
-  // Options taking an argument that we may want to rewrite to relative paths to
-  // get better hit rate. A secondary effect is that paths in the standard error
-  // output produced by the compiler will be normalized.
   if (compopt_takes_path(args[i])) {
     if (i == args.size() - 1) {
       LOG("Missing argument to {}", args[i]);
@@ -894,10 +891,7 @@ process_arg(const Context& ctx,
 
     // In the -Xclang -include-(pch/pth) -Xclang <path> case, the path is one
     // index further behind.
-    int next = 1;
-    if (args[i + 1] == "-Xclang" && i + 2 < args.size()) {
-      next = 2;
-    }
+    const size_t next = args[i + 1] == "-Xclang" && i + 2 < args.size() ? 2 : 1;
 
     if (!detect_pch(args[i],
                     args[i + next],
@@ -907,6 +901,9 @@ process_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
 
+    // Potentially rewrite path argument to relative path to get better hit
+    // rate. A secondary effect is that paths in the standard error output
+    // produced by the compiler will be normalized.
     std::string relpath = Util::make_relative_path(ctx, args[i + next]);
     auto& dest_args =
       compopt_affects_cpp_output(args[i]) ? state.cpp_args : state.common_args;
@@ -920,28 +917,12 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
-  // Same as above but options with concatenated path argument beginning with a
-  // slash or select few that do not require a slash.
-  // FIXME: None of them really need a slash, the path may be relative, this
-  // should check prefix.
+  // Potentially rewrite concatenated absolute path argument to relative.
   if (args[i][0] == '-') {
     size_t slash_pos = args[i].find('/');
-    if (args[i].size() > 3
-        && (util::starts_with(args[i], "-Yu")
-            || util::starts_with(args[i], "-Fp"))) {
-      slash_pos = 3;
-    }
     if (slash_pos != std::string::npos) {
       std::string option = args[i].substr(0, slash_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-        if (!detect_pch(option,
-                        args[i].substr(slash_pos),
-                        args_info.included_pch_file,
-                        false,
-                        state)) {
-          return Statistic::bad_compiler_arguments;
-        }
-
         auto relpath =
           Util::make_relative_path(ctx, string_view(args[i]).substr(slash_pos));
         std::string new_option = option + relpath;
@@ -952,6 +933,18 @@ process_arg(const Context& ctx,
         }
         return nullopt;
       }
+    }
+  }
+
+  // Detect PCH for options with concatenated path.
+  if (util::starts_with(args[i], "-Fp") || util::starts_with(args[i], "-Yu")) {
+    const size_t path_pos = 3;
+    if (!detect_pch(args[i].substr(0, path_pos),
+                    args[i].substr(path_pos),
+                    args_info.included_pch_file,
+                    false,
+                    state)) {
+      return Statistic::bad_compiler_arguments;
     }
   }
 
