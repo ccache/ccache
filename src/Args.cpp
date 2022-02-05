@@ -54,7 +54,7 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
 {
   std::string argtext;
   try {
-    argtext = Util::read_file(filename);
+    argtext = Util::read_text_file(filename);
   } catch (core::Error&) {
     return nullopt;
   }

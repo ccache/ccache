@@ -667,6 +667,24 @@ TEST_CASE("Util::{read,write,copy}_file with binary files")
   CHECK(Util::read_file("copy") == data);
 }
 
+TEST_CASE("Util::read_text_file with UTF-16 little endian encoding")
+{
+  TestContext test_context;
+
+  std::string data;
+  data.push_back(static_cast<unsigned char>(0xff));
+  data.push_back(static_cast<unsigned char>(0xfe));
+  data.push_back('a');
+  data.push_back('\0');
+  data.push_back('b');
+  data.push_back('\0');
+  data.push_back('c');
+  data.push_back('\0');
+
+  Util::write_file("test", data);
+  CHECK(Util::read_text_file("test") == "abc");
+}
+
 TEST_CASE("Util::remove_extension")
 {
   CHECK(Util::remove_extension("") == "");
