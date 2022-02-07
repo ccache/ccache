@@ -109,7 +109,7 @@ public:
   public:
     virtual ~Consumer() = default;
 
-    virtual void on_entry_start(uint32_t entry_number,
+    virtual void on_entry_start(uint8_t entry_number,
                                 FileType file_type,
                                 uint64_t file_len,
                                 nonstd::optional<std::string> raw_file) = 0;
@@ -124,7 +124,7 @@ private:
   core::CacheEntryReader& m_reader;
   const std::string m_result_path;
 
-  void read_entry(uint32_t entry_number, Reader::Consumer& consumer);
+  void read_entry(uint8_t entry_number, Reader::Consumer& consumer);
 };
 
 // This class knows how to write a result cache entry.
@@ -161,7 +161,7 @@ private:
                                         const std::string& path,
                                         uint64_t file_size);
   FileSizeAndCountDiff write_raw_file_entry(const std::string& path,
-                                            uint32_t entry_number);
+                                            uint8_t entry_number);
 };
 
 } // namespace Result

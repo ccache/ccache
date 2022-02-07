@@ -29,7 +29,7 @@ ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
 }
 
 void
-ResultInspector::on_entry_start(uint32_t entry_number,
+ResultInspector::on_entry_start(uint8_t entry_number,
                                 Result::FileType file_type,
                                 uint64_t file_len,
                                 optional<std::string> raw_file)

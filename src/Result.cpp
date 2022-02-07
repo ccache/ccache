@@ -84,8 +84,15 @@ const uint8_t k_embedded_file_marker = 0;
 const uint8_t k_raw_file_marker = 1;
 
 std::string
-get_raw_file_path(string_view result_path, uint32_t entry_number)
+get_raw_file_path(string_view result_path, uint8_t entry_number)
 {
+  if (entry_number >= 10) {
+    // To support more entries in the future, encode to [0-9a-z]. Note that
+    // PrimaryStorage::evict currently assumes that the entry number is
+    // represented as one character.
+    throw core::Error("Too high raw file entry number: {}", entry_number);
+  }
+
   const auto prefix = result_path.substr(
     0, result_path.length() - Result::k_file_suffix.length());
   return FMT("{}{}W", prefix, entry_number);
@@ -210,8 +217,11 @@ Reader::read(Consumer& consumer)
   }
 
   const auto n_entries = m_reader.read_int<uint8_t>();
+  if (n_entries >= 10) {
+    throw core::Error("Too many entries raw file entries: {}", n_entries);
+  }
 
-  uint32_t i;
+  uint8_t i;
   for (i = 0; i < n_entries; ++i) {
     read_entry(i, consumer);
   }
@@ -224,7 +234,7 @@ Reader::read(Consumer& consumer)
 }
 
 void
-Reader::read_entry(uint32_t entry_number, Reader::Consumer& consumer)
+Reader::read_entry(uint8_t entry_number, Reader::Consumer& consumer)
 {
   const auto marker = m_reader.read_int<uint8_t>();
 
@@ -334,7 +344,7 @@ Writer::do_finalize()
   writer.write_int(k_result_format_version);
   writer.write_int<uint8_t>(m_entries_to_write.size());
 
-  uint32_t entry_number = 0;
+  uint8_t entry_number = 0;
   for (const auto& entry : m_entries_to_write) {
     const bool store_raw =
       entry.value_type == ValueType::path
@@ -406,7 +416,7 @@ Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
 
 FileSizeAndCountDiff
 Result::Writer::write_raw_file_entry(const std::string& path,
-                                     uint32_t entry_number)
+                                     uint8_t entry_number)
 {
   const auto raw_file = get_raw_file_path(m_result_path, entry_number);
   const auto old_stat = Stat::stat(raw_file);

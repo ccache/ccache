@@ -42,7 +42,7 @@ ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
 }
 
 void
-ResultRetriever::on_entry_start(uint32_t entry_number,
+ResultRetriever::on_entry_start(uint8_t entry_number,
                                 FileType file_type,
                                 uint64_t file_len,
                                 nonstd::optional<std::string> raw_file)

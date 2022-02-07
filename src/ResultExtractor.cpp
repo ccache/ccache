@@ -34,7 +34,7 @@ ResultExtractor::ResultExtractor(const std::string& directory)
 }
 
 void
-ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
+ResultExtractor::on_entry_start(uint8_t /*entry_number*/,
                                 Result::FileType file_type,
                                 uint64_t /*file_len*/,
                                 nonstd::optional<std::string> raw_file)
