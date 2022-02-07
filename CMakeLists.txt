@@ -70,7 +70,6 @@ if(ENABLE_IPO AND NOT MINGW)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
-include(UseCcache)
 include(UseFastestLinker)
 include(StandardSettings)
 include(StandardWarnings)
