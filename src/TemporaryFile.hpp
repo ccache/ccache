@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,9 +36,7 @@ public:
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 
-  // Note: Should be declared noexcept, but since GCC 4.8 trips on it, don't do
-  // that for now.
-  TemporaryFile& operator=(TemporaryFile&& other) = default;
+  TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
 
   // The resulting open file descriptor in read/write mode. Unset on error.
   Fd fd;
