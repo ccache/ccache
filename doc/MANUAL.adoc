@@ -437,8 +437,9 @@ invocation you can use the `-d`/`--dir` command line option instead.
 
     By default, ccache includes the modification time ("`mtime`") and size of
     the compiler in the hash to ensure that results retrieved from the cache
-    are accurate. This option can be used to select another strategy. Possible
-    values are:
+    are accurate. If compiler plugins are used, these plugins will also be 
+    added to the hash. This option can be used to select another strategy.
+    Possible values are:
 +
 --
 *content*::
