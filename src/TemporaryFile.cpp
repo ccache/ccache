@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,25 +28,6 @@
 
 using nonstd::string_view;
 
-namespace {
-
-#ifndef _WIN32
-mode_t
-get_umask()
-{
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
-  }
-  return mask;
-}
-#endif
-
-} // namespace
-
 TemporaryFile::TemporaryFile(string_view path_prefix)
   : path(std::string(path_prefix) + ".XXXXXX")
 {
@@ -69,6 +50,6 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
 
   Util::set_cloexec_flag(*fd);
 #ifndef _WIN32
-  fchmod(*fd, 0666 & ~get_umask());
+  fchmod(*fd, 0666 & ~Util::get_umask());
 #endif
 }
