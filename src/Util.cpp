@@ -311,9 +311,11 @@ clone_hard_link_or_copy_file(const Context& ctx,
     LOG("Hard linking {} to {}", source, dest);
     try {
       Util::hard_link(source, dest);
-      if (chmod(dest.c_str(), 0444) != 0) {
+#ifndef _WIN32
+      if (chmod(dest.c_str(), 0444 & ~Util::get_umask()) != 0) {
         LOG("Failed to chmod: {}", strerror(errno));
       }
+#endif
       return;
     } catch (const core::Error& e) {
       LOG_RAW(e.what());
