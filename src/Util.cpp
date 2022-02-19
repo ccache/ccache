@@ -48,7 +48,9 @@ extern "C" {
 
 #include <algorithm>
 #include <climits>
+#include <codecvt>
 #include <fstream>
+#include <locale>
 
 #ifndef HAVE_DIRENT_H
 #  include <filesystem>
@@ -205,6 +207,14 @@ rewrite_stderr_to_absolute_paths(string_view text)
     result += '\n';
   }
   return result;
+}
+
+bool
+has_utf16_le_bom(string_view text)
+{
+  return text.size() > 1
+         && ((static_cast<uint8_t>(text[0]) == 0xff
+              && static_cast<uint8_t>(text[1]) == 0xfe));
 }
 
 } // namespace
@@ -1075,6 +1085,21 @@ read_file(const std::string& path, size_t size_hint)
   }
 
   result.resize(pos);
+  return result;
+}
+
+std::string
+read_text_file(const std::string& path, size_t size_hint)
+{
+  std::string result = read_file(path, size_hint);
+  // Convert to UTF-8 if the contents start with UTF-16 little-endian BOM
+  if (has_utf16_le_bom(result)) {
+    result.erase(0, 2); // Remove BOM
+    std::u16string result_as_u16((result.size() / 2) + 1, '\0');
+    result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+    result = converter.to_bytes(result_as_u16);
+  }
   return result;
 }
 

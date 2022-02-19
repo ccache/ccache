@@ -293,6 +293,12 @@ bool read_fd(int fd, DataReceiver data_receiver);
 // without the path.
 std::string read_file(const std::string& path, size_t size_hint = 0);
 
+// Return contents of a text file as UTF-8 encoded string.
+//
+// Throws `core::Error` on error. The description contains the error message
+// without the path.
+std::string read_text_file(const std::string& path, size_t size_hint = 0);
+
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
 std::string read_link(const std::string& path);
