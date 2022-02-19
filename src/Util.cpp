@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1088,21 +1088,6 @@ read_file(const std::string& path, size_t size_hint)
   return result;
 }
 
-std::string
-read_text_file(const std::string& path, size_t size_hint)
-{
-  std::string result = read_file(path, size_hint);
-  // Convert to UTF-8 if the contents start with UTF-16 little-endian BOM
-  if (has_utf16_le_bom(result)) {
-    result.erase(0, 2); // Remove BOM
-    std::u16string result_as_u16((result.size() / 2) + 1, '\0');
-    result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
-    result = converter.to_bytes(result_as_u16);
-  }
-  return result;
-}
-
 #ifndef _WIN32
 std::string
 read_link(const std::string& path)
@@ -1157,6 +1142,21 @@ real_path(const std::string& path, bool return_empty_on_error)
 #endif
 
   return resolved ? resolved : (return_empty_on_error ? "" : path);
+}
+
+std::string
+read_text_file(const std::string& path, size_t size_hint)
+{
+  std::string result = read_file(path, size_hint);
+  // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
+  if (has_utf16_le_bom(result)) {
+    result.erase(0, 2); // Remove BOM.
+    std::u16string result_as_u16((result.size() / 2) + 1, '\0');
+    result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+    result = converter.to_bytes(result_as_u16);
+  }
+  return result;
 }
 
 string_view
