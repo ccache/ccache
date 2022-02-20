@@ -72,7 +72,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 === src/third_party/blake3/blake3_*
 
-This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.2.0 with
+This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.3.1 with
 the following license:
 
 ----
