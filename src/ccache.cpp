@@ -2244,7 +2244,9 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       put_result_in_manifest = true;
     }
 
-    ctx.storage.primary.increment_statistic(Statistic::direct_cache_miss);
+    if (!ctx.config.recache()) {
+      ctx.storage.primary.increment_statistic(Statistic::direct_cache_miss);
+    }
   }
 
   if (ctx.config.read_only_direct()) {
