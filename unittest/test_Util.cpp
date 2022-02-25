@@ -489,6 +489,14 @@ TEST_CASE("Util::make_relative_path")
       make_relative_path(
         actual_cwd.substr(0, 3), actual_cwd, apparent_cwd, actual_cwd + "/x")
       == "./x");
+    CHECK(
+      make_relative_path(
+        actual_cwd.substr(0, 3), actual_cwd, apparent_cwd, actual_cwd + "\\x")
+      == ".\\x");
+    CHECK(
+      make_relative_path(
+        actual_cwd.substr(0, 3), actual_cwd, apparent_cwd, actual_cwd + "\\\\x")
+      == ".\\x");
 #else
     CHECK(make_relative_path("/", actual_cwd, apparent_cwd, actual_cwd + "/x")
           == "./x");

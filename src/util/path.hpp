@@ -33,6 +33,10 @@ bool is_absolute_path(nonstd::string_view path);
 // Return whether `path` includes at least one directory separator.
 bool is_full_path(nonstd::string_view path);
 
+// Return whether `path` starts with `prefix` considering path specifics on
+// Windows
+bool path_starts_with(nonstd::string_view path, nonstd::string_view prefix);
+
 // Split a list of paths (such as the content of $PATH on Unix platforms or
 // %PATH% on Windows platforms) into paths.
 std::vector<std::string> split_path_list(nonstd::string_view path_list);

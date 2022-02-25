@@ -832,7 +832,7 @@ make_relative_path(const std::string& base_dir,
                    const std::string& apparent_cwd,
                    nonstd::string_view path)
 {
-  if (base_dir.empty() || !util::starts_with(path, base_dir)) {
+  if (base_dir.empty() || !util::path_starts_with(path, base_dir)) {
     return std::string(path);
   }
 
