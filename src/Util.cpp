@@ -233,6 +233,31 @@ base_name(string_view path)
   return n == std::string::npos ? path : path.substr(n + 1);
 }
 
+bool
+is_absolute_path_with_prefix(nonstd::string_view path, size_t& split_pos)
+{
+#ifdef _WIN32
+  const char delim[] = "/\\";
+#else
+  const char delim[] = "/";
+#endif
+  split_pos = path.find_first_of(delim);
+  if (split_pos != std::string::npos) {
+#ifdef _WIN32
+    // -I/C:/foo and -I/c/foo will already be handled by delim_pos
+    // correctly resulting in -I and /C:/foo or /c/foo respectively.
+    // -IC:/foo will not as we would get -IC: and /foo
+    if (split_pos > 0 && path[split_pos - 1] == ':') {
+      split_pos = split_pos - 2;
+    }
+#endif
+    // this is not redundant on some platforms so nothing to simplify
+    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
+    return true;
+  }
+  return false;
+}
+
 std::string
 change_extension(string_view path, string_view new_ext)
 {

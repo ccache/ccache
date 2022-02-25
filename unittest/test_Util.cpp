@@ -52,6 +52,27 @@ TEST_CASE("Util::base_name")
   CHECK(Util::base_name("/foo/bar/f.txt") == "f.txt");
 }
 
+TEST_CASE("Util::is_absolute_path_with_prefix")
+{
+  size_t delim_pos = 0;
+  CHECK(Util::is_absolute_path_with_prefix("-I/c/foo", delim_pos));
+  CHECK(delim_pos == 2);
+  CHECK(Util::is_absolute_path_with_prefix("-W,path/c/foo", delim_pos));
+  CHECK(delim_pos == 7);
+  CHECK(!Util::is_absolute_path_with_prefix("-DMACRO", delim_pos));
+#ifdef _WIN32
+  CHECK(Util::is_absolute_path_with_prefix("-I/C:/foo", delim_pos));
+  CHECK(delim_pos == 2);
+  CHECK(Util::is_absolute_path_with_prefix("-IC:/foo", delim_pos));
+  CHECK(delim_pos == 2);
+  CHECK(Util::is_absolute_path_with_prefix("-W,path/c:/foo", delim_pos));
+  CHECK(delim_pos == 7);
+  CHECK(Util::is_absolute_path_with_prefix("-W,pathc:/foo", delim_pos));
+  CHECK(delim_pos == 7);
+  CHECK(!Util::is_absolute_path_with_prefix("-opt:value", delim_pos));
+#endif
+}
+
 TEST_CASE("Util::big_endian_to_int")
 {
   uint8_t bytes[8] = {0x70, 0x9e, 0x9a, 0xbc, 0xd6, 0x54, 0x4b, 0xca};

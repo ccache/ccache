@@ -919,8 +919,8 @@ process_arg(const Context& ctx,
 
   // Potentially rewrite concatenated absolute path argument to relative.
   if (args[i][0] == '-') {
-    size_t slash_pos = args[i].find('/');
-    if (slash_pos != std::string::npos) {
+    size_t slash_pos = 0;
+    if (Util::is_absolute_path_with_prefix(args[i], slash_pos)) {
       std::string option = args[i].substr(0, slash_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
         auto relpath =

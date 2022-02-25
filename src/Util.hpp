@@ -46,6 +46,10 @@ enum class UnlinkLog { log_failure, ignore_failure };
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
 
+// Determine if `path` is an absolute path with prefix, returning the split
+// point
+bool is_absolute_path_with_prefix(nonstd::string_view path, size_t& split_pos);
+
 // Get an integer value from bytes in big endian order.
 //
 // Parameters:
