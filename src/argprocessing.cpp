@@ -919,12 +919,12 @@ process_arg(const Context& ctx,
 
   // Potentially rewrite concatenated absolute path argument to relative.
   if (args[i][0] == '-') {
-    size_t slash_pos = 0;
-    if (Util::is_absolute_path_with_prefix(args[i], slash_pos)) {
-      std::string option = args[i].substr(0, slash_pos);
+    const auto slash_pos = Util::is_absolute_path_with_prefix(args[i]);
+    if (slash_pos) {
+      std::string option = args[i].substr(0, *slash_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-        auto relpath =
-          Util::make_relative_path(ctx, string_view(args[i]).substr(slash_pos));
+        auto relpath = Util::make_relative_path(
+          ctx, string_view(args[i]).substr(*slash_pos));
         std::string new_option = option + relpath;
         if (compopt_affects_cpp_output(option)) {
           state.cpp_args.push_back(new_option);

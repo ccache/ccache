@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,27 +50,6 @@ TEST_CASE("Util::base_name")
   CHECK(Util::base_name("/") == "");
   CHECK(Util::base_name("/foo") == "foo");
   CHECK(Util::base_name("/foo/bar/f.txt") == "f.txt");
-}
-
-TEST_CASE("Util::is_absolute_path_with_prefix")
-{
-  size_t delim_pos = 0;
-  CHECK(Util::is_absolute_path_with_prefix("-I/c/foo", delim_pos));
-  CHECK(delim_pos == 2);
-  CHECK(Util::is_absolute_path_with_prefix("-W,path/c/foo", delim_pos));
-  CHECK(delim_pos == 7);
-  CHECK(!Util::is_absolute_path_with_prefix("-DMACRO", delim_pos));
-#ifdef _WIN32
-  CHECK(Util::is_absolute_path_with_prefix("-I/C:/foo", delim_pos));
-  CHECK(delim_pos == 2);
-  CHECK(Util::is_absolute_path_with_prefix("-IC:/foo", delim_pos));
-  CHECK(delim_pos == 2);
-  CHECK(Util::is_absolute_path_with_prefix("-W,path/c:/foo", delim_pos));
-  CHECK(delim_pos == 7);
-  CHECK(Util::is_absolute_path_with_prefix("-W,pathc:/foo", delim_pos));
-  CHECK(delim_pos == 7);
-  CHECK(!Util::is_absolute_path_with_prefix("-opt:value", delim_pos));
-#endif
 }
 
 TEST_CASE("Util::big_endian_to_int")
@@ -455,6 +434,20 @@ TEST_CASE("Util::int_to_big_endian")
   CHECK(bytes[5] == 0x54);
   CHECK(bytes[6] == 0x4b);
   CHECK(bytes[7] == 0xca);
+}
+
+TEST_CASE("Util::is_absolute_path_with_prefix")
+{
+  CHECK(*Util::is_absolute_path_with_prefix("-I/c/foo") == 2);
+  CHECK(*Util::is_absolute_path_with_prefix("-W,path/c/foo") == 7);
+  CHECK(!Util::is_absolute_path_with_prefix("-DMACRO"));
+#ifdef _WIN32
+  CHECK(*Util::is_absolute_path_with_prefix("-I/C:/foo") == 2);
+  CHECK(*Util::is_absolute_path_with_prefix("-IC:/foo") == 2);
+  CHECK(*Util::is_absolute_path_with_prefix("-W,path/c:/foo") == 7);
+  CHECK(*Util::is_absolute_path_with_prefix("-W,pathc:/foo") == 7);
+  CHECK(!Util::is_absolute_path_with_prefix("-opt:value"));
+#endif
 }
 
 TEST_CASE("Util::is_dir_separator")
