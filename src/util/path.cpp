@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -47,7 +47,7 @@ path_starts_with(nonstd::string_view path, nonstd::string_view prefix)
   for (size_t i = 0, j = 0; i < path.length() && j < prefix.length();
        ++i, ++j) {
 #ifdef _WIN32
-    // skip escaped backslashes \\\\ as seen by the preprocessor
+    // Skip escaped backslashes \\\\ as seen by the preprocessor.
     if (i > 0 && path[i] == '\\' && path[i - 1] == '\\') {
       ++i;
     }
@@ -55,7 +55,7 @@ path_starts_with(nonstd::string_view path, nonstd::string_view prefix)
       ++j;
     }
 
-    // handle back and forward slashes as equal
+    // Handle back and forward slashes as equal.
     if (path[i] == '/' && prefix[j] == '\\') {
       continue;
     }
