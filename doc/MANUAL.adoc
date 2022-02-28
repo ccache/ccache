@@ -1142,6 +1142,7 @@ The default is *subdirs*.
 === Redis storage backend
 
 URL format: `+redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]+`
+Alternative: `+redis+unix://SOCKET_PATH[?db=DBNUMBER[&password=PASSWORD]]+`
 
 This backend stores data in a https://redis.io[Redis] (or Redis-compatible)
 server. There are implementations for both memory-based and disk-based storage.
@@ -1160,6 +1161,8 @@ Examples:
 
 * `+redis://localhost+`
 * `+redis://p4ssw0rd@cache.example.com:6379/0|connect-timeout=50+`
+* `+redis+unix:///run/redis.sock+`
+* `+redis+unix:///var/run/redis/redis-server.sock?password=p4ssw0rd&db=0|connect-timeout=50+`
 
 Optional attributes:
 
