@@ -7,8 +7,8 @@ Release date: 2022-02-27
 
 === New features
 
-- Added for caching calls to Microsoft Visual C++ (MSVC) and clang-cl (MSVC
-  compatibility for Clang). +
+- Added support for caching calls to Microsoft Visual C++ (MSVC) and clang-cl
+  (MSVC compatibility for Clang). +
   [small]#_[contributed by Cristian Adam, Luboš Luňák, Orgad Shaneh and Joel
   Rosdahl]_#
 
