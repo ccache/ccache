@@ -349,13 +349,19 @@ Storage::get_secondary_storage_config_for_logging() const
   return util::join(configs, " ");
 }
 
+static void
+redact_url_for_logging(Url& url_for_logging)
+{
+  url_for_logging.user_info("");
+}
+
 void
 Storage::add_secondary_storages()
 {
   const auto configs = parse_storage_configs(m_config.secondary_storage());
   for (const auto& config : configs) {
     auto url_for_logging = config.params.url;
-    url_for_logging.user_info("");
+    redact_url_for_logging(url_for_logging);
     const auto storage = get_storage(config.params.url);
     if (!storage) {
       throw core::Error("unknown secondary storage URL: {}",
@@ -439,7 +445,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
 
   if (backend == entry.backends.end()) {
     auto shard_url_for_logging = shard_url;
-    shard_url_for_logging.user_info("");
+    redact_url_for_logging(shard_url_for_logging);
     entry.backends.push_back(
       {shard_url, shard_url_for_logging.str(), {}, false});
     auto shard_params = entry.config.params;
