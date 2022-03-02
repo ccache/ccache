@@ -965,6 +965,9 @@ to_cache(Context& ctx,
   Util::unsetenv("DEPENDENCIES_OUTPUT");
   Util::unsetenv("SUNPRO_DEPENDENCIES");
 
+  if (ctx.config.is_compiler_group_clang()) {
+    args.push_back("--");
+  }
   if (ctx.config.run_second_cpp()) {
     args.push_back(ctx.args_info.input_file);
   } else {
@@ -1142,6 +1145,9 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
       args_added++;
+    }
+    if (ctx.config.is_compiler_group_clang()) {
+      args.push_back("--");
     }
     args.push_back(ctx.args_info.input_file);
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
