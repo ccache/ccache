@@ -1116,8 +1116,20 @@ process_args(Context& ctx)
   }
 
   // Determine output object file.
-  const bool implicit_output_obj = args_info.output_obj.empty();
-  if (implicit_output_obj && !args_info.input_file.empty()) {
+  bool output_obj_by_source = args_info.output_obj.empty();
+  if (!output_obj_by_source && ctx.config.is_compiler_group_msvc()) {
+    if (*args_info.output_obj.rbegin() == '\\') {
+      output_obj_by_source = true;
+    } else {
+      auto st = Stat::stat(args_info.output_obj);
+      if (st && st.is_directory()) {
+        args_info.output_obj.append("\\");
+        output_obj_by_source = true;
+      }
+    }
+  }
+
+  if (output_obj_by_source && !args_info.input_file.empty()) {
     string_view extension;
     if (state.found_S_opt) {
       extension = ".s";
@@ -1126,8 +1138,9 @@ process_args(Context& ctx)
     } else {
       extension = ".obj";
     }
-    args_info.output_obj =
-      Util::change_extension(Util::base_name(args_info.input_file), extension);
+    args_info.output_obj = args_info.output_obj
+                           + Util::change_extension(
+                             Util::base_name(args_info.input_file), extension);
   }
 
   // On argument processing error, return now since we have determined
@@ -1193,7 +1206,7 @@ process_args(Context& ctx)
     args_info.actual_language.find("-header") != std::string::npos
     || Util::is_precompiled_header(args_info.output_obj);
 
-  if (args_info.output_is_precompiled_header && implicit_output_obj) {
+  if (args_info.output_is_precompiled_header && output_obj_by_source) {
     args_info.output_obj = args_info.input_file + ".gch";
   }
 
