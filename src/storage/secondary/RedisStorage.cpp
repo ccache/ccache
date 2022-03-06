@@ -127,8 +127,8 @@ RedisStorageBackend::RedisStorageBackend(const Params& params)
   }
 
   connect(url, connect_timeout.count(), operation_timeout.count());
-  select_database(url);
   authenticate(url);
+  select_database(url);
 }
 
 inline bool
