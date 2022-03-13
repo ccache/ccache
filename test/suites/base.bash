@@ -1452,10 +1452,11 @@ EOF
         a.incbin();
       }
 EOF
-    $CCACHE_COMPILE -x c++ -c incbin.cpp
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-    expect_stat unsupported_code_directive 2
+    if $CCACHE_COMPILE -x c++ -c incbin.cpp 2>/dev/null; then
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_stat unsupported_code_directive 2
+    fi
 fi
 
     # -------------------------------------------------------------------------
