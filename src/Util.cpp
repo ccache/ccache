@@ -209,6 +209,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
   return result;
 }
 
+#ifdef _WIN32
 bool
 has_utf16_le_bom(string_view text)
 {
@@ -216,6 +217,7 @@ has_utf16_le_bom(string_view text)
          && ((static_cast<uint8_t>(text[0]) == 0xff
               && static_cast<uint8_t>(text[1]) == 0xfe));
 }
+#endif
 
 } // namespace
 
@@ -1190,7 +1192,12 @@ std::string
 read_text_file(const std::string& path, size_t size_hint)
 {
   std::string result = read_file(path, size_hint);
+#ifdef _WIN32
   // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
+  //
+  // Note that this code assumes a little-endian machine, which is why it's
+  // #ifdef-ed to only run on Windows (which is always little-endian) where it's
+  // actually needed.
   if (has_utf16_le_bom(result)) {
     result.erase(0, 2); // Remove BOM.
     std::u16string result_as_u16((result.size() / 2) + 1, '\0');
@@ -1198,6 +1205,7 @@ read_text_file(const std::string& path, size_t size_hint)
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
     result = converter.to_bytes(result_as_u16);
   }
+#endif
   return result;
 }
 

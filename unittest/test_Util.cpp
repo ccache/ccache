@@ -689,6 +689,7 @@ TEST_CASE("Util::{read,write,copy}_file with binary files")
   CHECK(Util::read_file("copy") == data);
 }
 
+#ifdef _WIN32
 TEST_CASE("Util::read_text_file with UTF-16 little endian encoding")
 {
   TestContext test_context;
@@ -706,6 +707,7 @@ TEST_CASE("Util::read_text_file with UTF-16 little endian encoding")
   Util::write_file("test", data);
   CHECK(Util::read_text_file("test") == "abc");
 }
+#endif
 
 TEST_CASE("Util::remove_extension")
 {
