@@ -1098,6 +1098,42 @@ EOF
     expect_stat compiler_produced_no_output 2
 
     # -------------------------------------------------------------------------
+    TEST "-fsyntax-only"
+
+    echo existing >test1.o
+    $CCACHE_COMPILE -fsyntax-only test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_content test1.o existing
+
+    rm test1.o
+
+    $CCACHE_COMPILE -fsyntax-only test1.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_missing test1.o
+
+    # -------------------------------------------------------------------------
+    TEST "-fsyntax-only /dev/null"
+
+    echo existing >null.o
+    $CCACHE_COMPILE -fsyntax-only -x c /dev/null
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_content null.o existing
+
+    rm null.o
+
+    $CCACHE_COMPILE -fsyntax-only -x c /dev/null
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_missing null.o
+
+    # -------------------------------------------------------------------------
     TEST "No object file due to -fsyntax-only"
 
     echo '#warning This triggers a compiler warning' >stderr.c

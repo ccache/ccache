@@ -1064,17 +1064,20 @@ to_cache(Context& ctx,
     Depfile::make_paths_relative_in_output_dep(ctx);
   }
 
-  const auto obj_stat = Stat::stat(ctx.args_info.output_obj);
-  if (!obj_stat) {
-    if (ctx.args_info.expect_output_obj) {
-      LOG_RAW("Compiler didn't produce an object file (unexpected)");
+  Stat obj_stat;
+  if (!ctx.args_info.expect_output_obj) {
+    // Don't probe for object file when we don't expect one since we otherwise
+    // will be fooled by an already existing object file.
+    LOG_RAW("Compiler not expected to produce an object file");
+  } else {
+    obj_stat = Stat::stat(ctx.args_info.output_obj);
+    if (!obj_stat) {
+      LOG_RAW("Compiler didn't produce an object file");
       return nonstd::make_unexpected(Statistic::compiler_produced_no_output);
-    } else {
-      LOG_RAW("Compiler didn't produce an object file (expected)");
+    } else if (obj_stat.size() == 0) {
+      LOG_RAW("Compiler produced an empty object file");
+      return nonstd::make_unexpected(Statistic::compiler_produced_empty_output);
     }
-  } else if (obj_stat.size() == 0) {
-    LOG_RAW("Compiler produced an empty object file");
-    return nonstd::make_unexpected(Statistic::compiler_produced_empty_output);
   }
 
   MTR_BEGIN("result", "result_put");
