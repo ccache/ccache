@@ -906,6 +906,9 @@ write_result(Context& ctx,
 static std::string
 rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
 {
+  using util::Tokenizer;
+  using Mode = Tokenizer::Mode;
+  using IncludeDelimiter = Tokenizer::IncludeDelimiter;
   // distcc-pump outputs lines like this:
   //
   //   __________Using # distcc servers in pump mode
@@ -913,13 +916,12 @@ rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
   // We don't want to cache those.
   if (!stdout_data.empty()) {
     std::string new_stdout_text;
-    for (const auto line : util::Tokenizer(
-           stdout_data, "\n", util::Tokenizer::Mode::include_empty)) {
+    for (const auto line : Tokenizer(
+           stdout_data, "\n", Mode::include_empty, IncludeDelimiter::yes)) {
       if (util::starts_with(line, "__________")) {
         Util::send_to_fd(ctx, std::string(line), STDOUT_FILENO);
       } else {
         new_stdout_text.append(line.data(), line.length());
-        new_stdout_text.append("\n");
       }
     }
     return new_stdout_text;
