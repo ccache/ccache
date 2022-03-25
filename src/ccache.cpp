@@ -1869,7 +1869,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     Result::Reader result_reader(cache_entry_reader, *result_path);
     ResultRetriever result_retriever(
       ctx, should_rewrite_dependency_target(ctx.args_info));
-  
+
     result_reader.read(result_retriever);
   } catch (core::Error& e) {
     LOG("Failed to get result from cache: {}", e.what());
