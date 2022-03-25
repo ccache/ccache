@@ -103,6 +103,7 @@ extern "C" {
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
+using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace {
 
@@ -159,10 +160,13 @@ template<typename T>
 std::vector<T>
 split_into(string_view string,
            const char* separators,
-           util::Tokenizer::Mode mode)
+           util::Tokenizer::Mode mode,
+           IncludeDelimiter include_delimiter)
+
 {
   std::vector<T> result;
-  for (const auto token : util::Tokenizer(string, separators, mode)) {
+  for (const auto token :
+       util::Tokenizer(string, separators, mode, include_delimiter)) {
     result.emplace_back(token);
   }
   return result;
@@ -1313,17 +1317,19 @@ setenv(const std::string& name, const std::string& value)
 std::vector<string_view>
 split_into_views(string_view string,
                  const char* separators,
-                 util::Tokenizer::Mode mode)
+                 util::Tokenizer::Mode mode,
+                 IncludeDelimiter include_delimiter)
 {
-  return split_into<string_view>(string, separators, mode);
+  return split_into<string_view>(string, separators, mode, include_delimiter);
 }
 
 std::vector<std::string>
 split_into_strings(string_view string,
                    const char* separators,
-                   util::Tokenizer::Mode mode)
+                   util::Tokenizer::Mode mode,
+                   IncludeDelimiter include_delimiter)
 {
-  return split_into<std::string>(string, separators, mode);
+  return split_into<std::string>(string, separators, mode, include_delimiter);
 }
 
 std::string

@@ -37,11 +37,14 @@ public:
     skip_last_empty, // Include empty tokens except the last one.
   };
 
+  enum class IncludeDelimiter { no, yes };
+
   // Split `string` into tokens at any of the characters in `separators` which
   // must neither be the empty string nor a nullptr.
   Tokenizer(nonstd::string_view string,
             const char* delimiters,
-            Mode mode = Mode::skip_empty);
+            Mode mode = Mode::skip_empty,
+            IncludeDelimiter include_delimiter = IncludeDelimiter::no);
 
   class Iterator
   {
@@ -69,14 +72,17 @@ private:
   const nonstd::string_view m_string;
   const char* const m_delimiters;
   const Mode m_mode;
+  const IncludeDelimiter m_include_delimiter;
 };
 
 inline Tokenizer::Tokenizer(const nonstd::string_view string,
                             const char* const delimiters,
-                            const Tokenizer::Mode mode)
+                            Tokenizer::Mode mode,
+                            Tokenizer::IncludeDelimiter include_delimiter)
   : m_string(string),
     m_delimiters(delimiters),
-    m_mode(mode)
+    m_mode(mode),
+    m_include_delimiter(include_delimiter)
 {
   DEBUG_ASSERT(delimiters != nullptr && delimiters[0] != '\0');
 }
@@ -105,14 +111,6 @@ inline bool
 Tokenizer::Iterator::operator!=(const Iterator& other) const
 {
   return &m_tokenizer != &other.m_tokenizer || m_left != other.m_left;
-}
-
-inline nonstd::string_view
-Tokenizer::Iterator::operator*() const
-{
-  DEBUG_ASSERT(m_left <= m_right);
-  DEBUG_ASSERT(m_right <= m_tokenizer.m_string.length());
-  return m_tokenizer.m_string.substr(m_left, m_right - m_left);
 }
 
 inline Tokenizer::Iterator

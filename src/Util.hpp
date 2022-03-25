@@ -357,16 +357,20 @@ size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)
 // Split `string` into tokens at any of the characters in `separators`. These
 // tokens are views into `string`. `separators` must neither be the empty string
 // nor a nullptr.
-std::vector<nonstd::string_view> split_into_views(
-  nonstd::string_view string,
-  const char* separators,
-  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty);
+std::vector<nonstd::string_view>
+split_into_views(nonstd::string_view string,
+                 const char* separators,
+                 util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty,
+                 util::Tokenizer::IncludeDelimiter include_delimiter =
+                   util::Tokenizer::IncludeDelimiter::no);
 
 // Same as `split_into_views` but the tokens are copied from `string`.
 std::vector<std::string> split_into_strings(
   nonstd::string_view string,
   const char* separators,
-  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty);
+  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty,
+  util::Tokenizer::IncludeDelimiter include_delimiter =
+    util::Tokenizer::IncludeDelimiter::no);
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(nonstd::string_view string);
