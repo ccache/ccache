@@ -1351,6 +1351,9 @@ by ccache.
 | Unsupported compiler option |
 A compiler option not supported by ccache was found.
 
+| Unsupported environment variable |
+An environment variable not supported by ccache was set.
+
 | Unsupported source language |
 A source language e.g. specified with `-x` was unsupported by ccache.
 

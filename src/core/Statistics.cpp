@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -112,6 +112,9 @@ const StatisticsField k_statistics_fields[] = {
     unsupported_code_directive, "Unsupported code directive", FLAG_UNCACHEABLE),
   FIELD(unsupported_compiler_option,
         "Unsupported compiler option",
+        FLAG_UNCACHEABLE),
+  FIELD(unsupported_environment_variable,
+        "Unsupported environment variable",
         FLAG_UNCACHEABLE),
   FIELD(unsupported_source_language,
         "Unsupported source language",

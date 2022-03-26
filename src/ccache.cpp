@@ -2138,6 +2138,15 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   TRY(set_up_uncached_err());
 
+  if (ctx.config.is_compiler_group_msvc()) {
+    for (const auto& name : {"CL", "_CL_"}) {
+      if (getenv(name)) {
+        LOG("Unsupported environment variable: {}", name);
+        return Statistic::unsupported_environment_variable;
+      }
+    }
+  }
+
   if (!ctx.config.run_second_cpp() && ctx.config.is_compiler_group_msvc()) {
     LOG_RAW("Second preprocessor cannot be disabled");
     ctx.config.set_run_second_cpp(true);

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -64,6 +64,7 @@ enum class Statistic {
   secondary_storage_error = 39,
   secondary_storage_timeout = 40,
   recache = 41,
+  unsupported_environment_variable = 42,
 
   END
 };
