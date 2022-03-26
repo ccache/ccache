@@ -1138,9 +1138,8 @@ process_args(Context& ctx)
     } else {
       extension = ".obj";
     }
-    args_info.output_obj = args_info.output_obj
-                           + Util::change_extension(
-                             Util::base_name(args_info.input_file), extension);
+    args_info.output_obj +=
+      Util::change_extension(Util::base_name(args_info.input_file), extension);
   }
 
   // On argument processing error, return now since we have determined
