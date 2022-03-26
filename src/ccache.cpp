@@ -1872,7 +1872,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 
     result_reader.read(result_retriever);
   } catch (core::Error& e) {
-    LOG("Failed to get result from cache: {}", e.what());
+    LOG("Failed to get result from {}: {}", *result_path, e.what());
     return false;
   }
 
