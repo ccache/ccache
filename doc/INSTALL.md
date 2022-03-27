@@ -41,6 +41,11 @@ Optional:
 - [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
 - [Python](https://www.python.org) to debug and run the performance test suite.
 
+Reference configurations:
+
+- See [CI configurations](../.github/workflows/build.yaml) for a selection of
+  regularly tested build setups, including cross-compiling and explicit
+  dependencies required in Debian/Ubuntu environment.
 
 Installation
 ------------
