@@ -43,7 +43,7 @@ Optional:
 
 Reference configurations:
 
-- see [CI configurations](../.github/workflows/build.yaml) for a selection of
+- See [CI configurations](../.github/workflows/build.yaml) for a selection of
   regularly tested build setups, including cross-compiling and explicit
   dependencies required in Debian/Ubuntu environment.
 
