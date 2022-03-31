@@ -267,7 +267,9 @@ parse_sloppiness(const std::string& value)
     end = value.find_first_of(", ", start);
     std::string token =
       util::strip_whitespace(value.substr(start, end - start));
-    if (token == "file_stat_matches") {
+    if (token == "clang_index_store") {
+      result.enable(core::Sloppy::clang_index_store);
+    } else if (token == "file_stat_matches") {
       result.enable(core::Sloppy::file_stat_matches);
     } else if (token == "file_stat_matches_ctime") {
       result.enable(core::Sloppy::file_stat_matches_ctime);
@@ -275,20 +277,18 @@ parse_sloppiness(const std::string& value)
       result.enable(core::Sloppy::include_file_ctime);
     } else if (token == "include_file_mtime") {
       result.enable(core::Sloppy::include_file_mtime);
-    } else if (token == "system_headers" || token == "no_system_headers") {
-      result.enable(core::Sloppy::system_headers);
-    } else if (token == "pch_defines") {
-      result.enable(core::Sloppy::pch_defines);
-    } else if (token == "time_macros") {
-      result.enable(core::Sloppy::time_macros);
-    } else if (token == "clang_index_store") {
-      result.enable(core::Sloppy::clang_index_store);
+    } else if (token == "ivfsoverlay") {
+      result.enable(core::Sloppy::ivfsoverlay);
     } else if (token == "locale") {
       result.enable(core::Sloppy::locale);
     } else if (token == "modules") {
       result.enable(core::Sloppy::modules);
-    } else if (token == "ivfsoverlay") {
-      result.enable(core::Sloppy::ivfsoverlay);
+    } else if (token == "pch_defines") {
+      result.enable(core::Sloppy::pch_defines);
+    } else if (token == "system_headers" || token == "no_system_headers") {
+      result.enable(core::Sloppy::system_headers);
+    } else if (token == "time_macros") {
+      result.enable(core::Sloppy::time_macros);
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
@@ -299,17 +299,8 @@ std::string
 format_sloppiness(core::Sloppiness sloppiness)
 {
   std::string result;
-  if (sloppiness.is_enabled(core::Sloppy::include_file_mtime)) {
-    result += "include_file_mtime, ";
-  }
-  if (sloppiness.is_enabled(core::Sloppy::include_file_ctime)) {
-    result += "include_file_ctime, ";
-  }
-  if (sloppiness.is_enabled(core::Sloppy::time_macros)) {
-    result += "time_macros, ";
-  }
-  if (sloppiness.is_enabled(core::Sloppy::pch_defines)) {
-    result += "pch_defines, ";
+  if (sloppiness.is_enabled(core::Sloppy::clang_index_store)) {
+    result += "clang_index_store, ";
   }
   if (sloppiness.is_enabled(core::Sloppy::file_stat_matches)) {
     result += "file_stat_matches, ";
@@ -317,11 +308,14 @@ format_sloppiness(core::Sloppiness sloppiness)
   if (sloppiness.is_enabled(core::Sloppy::file_stat_matches_ctime)) {
     result += "file_stat_matches_ctime, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::system_headers)) {
-    result += "system_headers, ";
+  if (sloppiness.is_enabled(core::Sloppy::include_file_ctime)) {
+    result += "include_file_ctime, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::clang_index_store)) {
-    result += "clang_index_store, ";
+  if (sloppiness.is_enabled(core::Sloppy::include_file_mtime)) {
+    result += "include_file_mtime, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::ivfsoverlay)) {
+    result += "ivfsoverlay, ";
   }
   if (sloppiness.is_enabled(core::Sloppy::locale)) {
     result += "locale, ";
@@ -329,8 +323,14 @@ format_sloppiness(core::Sloppiness sloppiness)
   if (sloppiness.is_enabled(core::Sloppy::modules)) {
     result += "modules, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::ivfsoverlay)) {
-    result += "ivfsoverlay, ";
+  if (sloppiness.is_enabled(core::Sloppy::pch_defines)) {
+    result += "pch_defines, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::system_headers)) {
+    result += "system_headers, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::time_macros)) {
+    result += "time_macros, ";
   }
   if (!result.empty()) {
     // Strip last ", ".
