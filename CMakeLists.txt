@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(ccache LANGUAGES C CXX)
+project(ccache LANGUAGES C CXX ASM ASM_MASM)
 if(MSVC)
   enable_language(ASM_MASM)
 else()
