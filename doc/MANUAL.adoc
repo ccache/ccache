@@ -913,6 +913,14 @@ Examples:
 *file_stat_matches_ctime*::
     Ignore ctimes when *file_stat_matches* is enabled. This can be useful when
     backdating files' mtimes in a controlled way.
+*gcno_cwd*::
+    By default, ccache will include the current working directory in the hash
+    when producing a `.gcno` file (when compiling with `-ftest-coverage` or
+    `--coverage`). This is because GCC 9+ includes the current working directory
+    in the `.gcno` file. The *gcno_cwd* sloppiness makes ccache not hash the
+    current working directory so that you can get cache hits when compiling in
+    different directories, with the tradeoff of potentially getting an incorrect
+    directory in the `.gcno` file.
 *include_file_ctime*::
     By default, ccache will not cache a file if it includes a header whose ctime
     is too new. This sloppiness disables that check. See also

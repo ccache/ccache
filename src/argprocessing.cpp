@@ -1014,12 +1014,6 @@ process_arg(const Context& ctx,
     }
   }
 
-  // The source code file path gets put into the notes.
-  if (args_info.generating_coverage) {
-    args_info.input_file = args[i];
-    return nullopt;
-  }
-
   // Rewrite to relative to increase hit rate.
   args_info.input_file = Util::make_relative_path(ctx, args[i]);
 

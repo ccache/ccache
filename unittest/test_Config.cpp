@@ -130,7 +130,7 @@ TEST_CASE("Config::update_from_file")
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay\n"
+    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,gcno_cwd\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777"); // Note: no newline.
@@ -172,6 +172,7 @@ TEST_CASE("Config::update_from_file")
         == (static_cast<uint32_t>(core::Sloppy::clang_index_store)
             | static_cast<uint32_t>(core::Sloppy::file_stat_matches)
             | static_cast<uint32_t>(core::Sloppy::file_stat_matches_ctime)
+            | static_cast<uint32_t>(core::Sloppy::gcno_cwd)
             | static_cast<uint32_t>(core::Sloppy::include_file_ctime)
             | static_cast<uint32_t>(core::Sloppy::include_file_mtime)
             | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)
@@ -415,7 +416,7 @@ TEST_CASE("Config::visit_items")
     "secondary_storage = ss\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
-    " clang_index_store, ivfsoverlay\n"
+    " clang_index_store, ivfsoverlay, gcno_cwd\n"
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"
@@ -474,8 +475,9 @@ TEST_CASE("Config::visit_items")
     "(test.conf) run_second_cpp = false",
     "(test.conf) secondary_storage = ss",
     "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
-    " file_stat_matches_ctime, include_file_ctime, include_file_mtime,"
-    " ivfsoverlay, pch_defines, system_headers, time_macros",
+    " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"
+    " include_file_mtime, ivfsoverlay, pch_defines, system_headers,"
+    " time_macros",
     "(test.conf) stats = false",
     "(test.conf) stats_log = sl",
     "(test.conf) temporary_dir = td",

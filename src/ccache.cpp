@@ -1395,6 +1395,16 @@ hash_common_info(const Context& ctx,
     hash.hash(ctx.args_info.output_obj);
   }
 
+  if (ctx.args_info.generating_coverage
+      && !(ctx.config.sloppiness().is_enabled(core::Sloppy::gcno_cwd))) {
+    // GCC 9+ includes $PWD in the .gcno file. Since we don't have knowledge
+    // about compiler version we always (unless sloppiness is wanted) include
+    // the directory in the hash for now.
+    LOG_RAW("Hashing apparent CWD due to generating a .gcno file");
+    hash.hash_delimiter("CWD in .gcno");
+    hash.hash(ctx.apparent_cwd);
+  }
+
   // Possibly hash the coverage data file path.
   if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
     std::string dir;

@@ -1,3 +1,11 @@
+# Remove header, including a volatile timestamp, from a .gcno file.
+normalize_gcno_file() {
+    local from="$1"
+    local to="$2"
+    cut -b 13- "${from}" >"${to}"
+}
+
+
 SUITE_profiling_PROBE() {
     touch test.c
     if ! $COMPILER -fprofile-generate -c test.c 2>/dev/null; then
@@ -202,6 +210,67 @@ SUITE_profiling() {
     expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "-ftest-coverage, different directories"
+
+    mkdir obj1 obj2
+
+    cd obj1
+    $COMPILER -ftest-coverage -c "$(pwd)/../test.c"
+    normalize_gcno_file test.gcno test.gcno.reference
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    normalize_gcno_file test.gcno test.gcno.ccache-miss
+    expect_equal_content test.gcno.reference test.gcno.ccache-miss
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    normalize_gcno_file test.gcno test.gcno.ccache-hit
+    expect_equal_content test.gcno.reference test.gcno.ccache-hit
+
+    cd ../obj2
+    $COMPILER -ftest-coverage -c "$(pwd)/../test.c"
+    normalize_gcno_file test.gcno test.gcno.reference
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    normalize_gcno_file test.gcno test.gcno.ccache-miss
+    expect_equal_content test.gcno.reference test.gcno.ccache-miss
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    normalize_gcno_file test.gcno test.gcno.ccache-hit
+    expect_equal_content test.gcno.reference test.gcno.ccache-hit
+
+    # -------------------------------------------------------------------------
+    TEST "-ftest-coverage, different directories, basedir, sloppy gcno_cwd"
+
+    export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS gcno_cwd"
+    export CCACHE_BASEDIR="$(pwd)"
+
+    mkdir obj1 obj2
+
+    cd obj1
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    cd ../obj2
+
+    $CCACHE_COMPILE -ftest-coverage -c "$(pwd)/../test.c"
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
 }
 
 merge_profiling_data() {

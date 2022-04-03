@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,6 +46,8 @@ enum class Sloppy : uint32_t {
   modules = 1U << 9,
   // Ignore virtual file system (VFS) overlay file.
   ivfsoverlay = 1U << 10,
+  // Allow us to include incorrect working directory in .gcno files.
+  gcno_cwd = 1U << 11,
 };
 
 class Sloppiness
