@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,13 +36,14 @@ TEST_CASE("util::Tokenizer")
     void
     operator()(const char* input,
                const char* separators,
-               const std::vector<std::string>& expected)
+               const std::vector<std::string>& expected) const
     {
       const auto res =
         Util::split_into_views(input, separators, m_mode, m_includeDelimiter);
       REQUIRE(res.size() == expected.size());
-      for (int i = 0, total = expected.size(); i < total; ++i)
+      for (int i = 0, total = expected.size(); i < total; ++i) {
         CHECK(res[i] == expected[i]);
+      }
     }
 
     Mode m_mode;

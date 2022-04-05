@@ -1,5 +1,12 @@
 ---
-Checks:          '-*,readability-function-size'
+Checks:          '-*,
+                  readability-*,
+                  -readability-implicit-bool-conversion,
+                  -readability-magic-numbers,
+                  -readability-else-after-return,
+                  -readability-named-parameter,
+                  -readability-qualified-auto,
+                  -readability-redundant-declaration'
 WarningsAsErrors: '*'
 # Only include headers directly in unittest.
 HeaderFilterRegex: 'unittest/[^/]*$'
