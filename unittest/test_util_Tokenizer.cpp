@@ -27,9 +27,9 @@ TEST_CASE("util::Tokenizer")
   struct SplitTest
   {
     SplitTest(Mode mode,
-              IncludeDelimiter includeDelimiter = IncludeDelimiter::no)
+              IncludeDelimiter include_delimiter = IncludeDelimiter::no)
       : m_mode(mode),
-        m_includeDelimiter(includeDelimiter)
+        m_include_delimiter(include_delimiter)
     {
     }
 
@@ -39,7 +39,7 @@ TEST_CASE("util::Tokenizer")
                const std::vector<std::string>& expected) const
     {
       const auto res =
-        Util::split_into_views(input, separators, m_mode, m_includeDelimiter);
+        Util::split_into_views(input, separators, m_mode, m_include_delimiter);
       REQUIRE(res.size() == expected.size());
       for (int i = 0, total = expected.size(); i < total; ++i) {
         CHECK(res[i] == expected[i]);
@@ -47,7 +47,7 @@ TEST_CASE("util::Tokenizer")
     }
 
     Mode m_mode;
-    IncludeDelimiter m_includeDelimiter;
+    IncludeDelimiter m_include_delimiter;
   };
 
   SUBCASE("include empty tokens")
