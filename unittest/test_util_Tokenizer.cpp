@@ -75,17 +75,6 @@ TEST_CASE("util::Tokenizer")
           {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"});
   }
 
-  SUBCASE("skip last empty token")
-  {
-    SplitTest split(Mode::skip_last_empty);
-    split("", "/", {});
-    split("/", "/", {""});
-    split("a/", "/", {"a"});
-    split("/b", "/", {"", "b"});
-    split("a/b", "/", {"a", "b"});
-    split("/a:", "/:", {"", "a"});
-  }
-
   SUBCASE("include empty and delimiter")
   {
     SplitTest split(Mode::include_empty, IncludeDelimiter::yes);
@@ -111,16 +100,5 @@ TEST_CASE("util::Tokenizer")
     split(".0.1.2.3.4.5.6.7.8.9.",
           "/:.+_abcdef",
           {"0.", "1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9."});
-  }
-
-  SUBCASE("skip last empty and include delimiter")
-  {
-    SplitTest split(Mode::skip_last_empty, IncludeDelimiter::yes);
-    split("", "/", {});
-    split("/", "/", {"/"});
-    split("a/", "/", {"a/"});
-    split("/b", "/", {"/", "b"});
-    split("a/b", "/", {"a/", "b"});
-    split("/a:", "/:", {"/", "a:"});
   }
 }

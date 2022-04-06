@@ -178,8 +178,11 @@ rewrite_stderr_to_absolute_paths(string_view text)
   static const std::string in_file_included_from = "In file included from ";
 
   std::string result;
-  for (auto line :
-       util::Tokenizer(text, "\n", util::Tokenizer::Mode::skip_last_empty)) {
+  using util::Tokenizer;
+  for (auto line : Tokenizer(text,
+                             "\n",
+                             Tokenizer::Mode::include_empty,
+                             Tokenizer::IncludeDelimiter::yes)) {
     // Rewrite <path> to <absolute path> in the following two cases, where X may
     // be optional ANSI CSI sequences:
     //
@@ -208,7 +211,6 @@ rewrite_stderr_to_absolute_paths(string_view text)
         result.append(line.data(), line.length());
       }
     }
-    result += '\n';
   }
   return result;
 }
