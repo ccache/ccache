@@ -590,8 +590,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
         "bin directive in source code");
       return nonstd::make_unexpected(
         Failure(Statistic::unsupported_code_directive));
-    } else if (strncmp(q, "___________", 10)
-               && (q == data.data() || q[-1] == '\n') == 0) {
+    } else if (strncmp(q, "___________", 10) == 0
+               && (q == data.data() || q[-1] == '\n')) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
       // __________Using # distcc servers in pump mode
