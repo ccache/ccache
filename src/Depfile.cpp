@@ -72,8 +72,11 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
   adjusted_file_content.reserve(file_content.size());
 
   bool content_rewritten = false;
-  for (const auto line : util::Tokenizer(
-         file_content, "\n", util::Tokenizer::Mode::skip_last_empty)) {
+  using util::Tokenizer;
+  for (const auto line : Tokenizer(file_content,
+                                   "\n",
+                                   Tokenizer::Mode::include_empty,
+                                   Tokenizer::IncludeDelimiter::yes)) {
     const auto tokens = Util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
       DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
@@ -96,7 +99,6 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
         adjusted_file_content.append(token.begin(), token.end());
       }
     }
-    adjusted_file_content.push_back('\n');
   }
 
   if (content_rewritten) {

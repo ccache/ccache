@@ -32,9 +32,8 @@ class Tokenizer
 {
 public:
   enum class Mode {
-    include_empty,   // Include empty tokens.
-    skip_empty,      // Skip empty tokens.
-    skip_last_empty, // Include empty tokens except the last one.
+    include_empty, // Include empty tokens.
+    skip_empty,    // Skip empty tokens.
   };
 
   enum class IncludeDelimiter { no, yes };

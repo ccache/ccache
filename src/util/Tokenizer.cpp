@@ -44,10 +44,6 @@ Tokenizer::Iterator::advance(bool initial)
       m_right = delim_pos == npos ? string.length() : delim_pos;
     }
   } while (mode == Mode::skip_empty && m_left == m_right);
-
-  if (mode == Mode::skip_last_empty && m_left == string.length()) {
-    m_left = npos;
-  }
 }
 
 nonstd::sv_lite::string_view
