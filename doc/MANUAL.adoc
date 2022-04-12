@@ -417,8 +417,9 @@ project2 will be a different absolute path.
 
     This option specifies where ccache will keep its cached compiler outputs.
     The default is `$XDG_CACHE_HOME/ccache` if `XDG_CACHE_HOME` is set,
-    otherwise `$HOME/.cache/ccache`. Exception: If the legacy directory
-    `$HOME/.ccache` exists then that directory is the default.
+    otherwise `%APPDATA%/ccache` (Windows), `$HOME/Library/Caches/ccache`
+    (macOS) or `$HOME/.config/ccache` (other systems). Exception: If the legacy
+    directory `$HOME/.ccache` exists then that directory is the default.
 +
 See also _<<Location of the primary configuration file>>_.
 +
