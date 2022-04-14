@@ -965,9 +965,12 @@ to_cache(Context& ctx,
   Util::unsetenv("DEPENDENCIES_OUTPUT");
   Util::unsetenv("SUNPRO_DEPENDENCIES");
 
+#ifndef __APPLE__
+  // Older Clang versions on macOS didn't support this.
   if (ctx.config.is_compiler_group_clang()) {
     args.push_back("--");
   }
+#endif
   if (ctx.config.run_second_cpp()) {
     args.push_back(ctx.args_info.input_file);
   } else {
@@ -1146,10 +1149,13 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       args.push_back("-C");
       args_added++;
     }
+#ifndef __APPLE__
+    // Older Clang versions on macOS didn't support this.
     if (ctx.config.is_compiler_group_clang()) {
       args.push_back("--");
       args_added++;
     }
+#endif
     args.push_back(ctx.args_info.input_file);
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
