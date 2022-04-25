@@ -917,6 +917,19 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
+  // Detect PCH for options with concatenated path.
+  if (util::starts_with(args[i], "-Fp") || util::starts_with(args[i], "-Yu")) {
+    const size_t path_pos = 3;
+    if (!detect_pch(args[i].substr(0, path_pos),
+                    args[i].substr(path_pos),
+                    args_info.included_pch_file,
+                    false,
+                    state)) {
+      return Statistic::bad_compiler_arguments;
+    }
+    return nullopt;
+  }
+
   // Potentially rewrite concatenated absolute path argument to relative.
   if (args[i][0] == '-') {
     const auto slash_pos = Util::is_absolute_path_with_prefix(args[i]);
@@ -933,18 +946,6 @@ process_arg(const Context& ctx,
         }
         return nullopt;
       }
-    }
-  }
-
-  // Detect PCH for options with concatenated path.
-  if (util::starts_with(args[i], "-Fp") || util::starts_with(args[i], "-Yu")) {
-    const size_t path_pos = 3;
-    if (!detect_pch(args[i].substr(0, path_pos),
-                    args[i].substr(path_pos),
-                    args_info.included_pch_file,
-                    false,
-                    state)) {
-      return Statistic::bad_compiler_arguments;
     }
   }
 
