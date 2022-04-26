@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -171,7 +171,7 @@ inline Stat::operator bool() const
 inline bool
 Stat::same_inode_as(const Stat& other) const
 {
-  return device() == other.device() && inode() == other.inode();
+  return m_errno == 0 && device() == other.device() && inode() == other.inode();
 }
 
 inline int
