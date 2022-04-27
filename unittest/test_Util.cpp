@@ -561,33 +561,53 @@ TEST_CASE("Util::matches_dir_prefix_or_file")
 #endif
 }
 
-TEST_CASE("Util::normalize_absolute_path")
+TEST_CASE("Util::normalize_abstract_absolute_path")
 {
-  CHECK(Util::normalize_absolute_path("") == "");
-  CHECK(Util::normalize_absolute_path(".") == ".");
-  CHECK(Util::normalize_absolute_path("..") == "..");
-  CHECK(Util::normalize_absolute_path("...") == "...");
-  CHECK(Util::normalize_absolute_path("x/./") == "x/./");
+  CHECK(Util::normalize_abstract_absolute_path("") == "");
+  CHECK(Util::normalize_abstract_absolute_path(".") == ".");
+  CHECK(Util::normalize_abstract_absolute_path("..") == "..");
+  CHECK(Util::normalize_abstract_absolute_path("...") == "...");
+  CHECK(Util::normalize_abstract_absolute_path("x/./") == "x/./");
 
 #ifdef _WIN32
-  CHECK(Util::normalize_absolute_path("c:/") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:/.") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\..") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\x/..") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\x/./y\\..\\\\z") == "c:/x/z");
+  CHECK(Util::normalize_abstract_absolute_path("c:/") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:/.") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\..") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\x/..") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\x/./y\\..\\\\z")
+        == "c:/x/z");
 #else
-  CHECK(Util::normalize_absolute_path("/") == "/");
-  CHECK(Util::normalize_absolute_path("/.") == "/");
-  CHECK(Util::normalize_absolute_path("/..") == "/");
-  CHECK(Util::normalize_absolute_path("/./") == "/");
-  CHECK(Util::normalize_absolute_path("//") == "/");
-  CHECK(Util::normalize_absolute_path("/../x") == "/x");
-  CHECK(Util::normalize_absolute_path("/x/./y/z") == "/x/y/z");
-  CHECK(Util::normalize_absolute_path("/x/../y/z/") == "/y/z");
-  CHECK(Util::normalize_absolute_path("/x/.../y/z") == "/x/.../y/z");
-  CHECK(Util::normalize_absolute_path("/x/yyy/../zz") == "/x/zz");
-  CHECK(Util::normalize_absolute_path("//x/yyy///.././zz") == "/x/zz");
+  CHECK(Util::normalize_abstract_absolute_path("/") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/.") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/..") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/./") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("//") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/../x") == "/x");
+  CHECK(Util::normalize_abstract_absolute_path("/x/./y/z") == "/x/y/z");
+  CHECK(Util::normalize_abstract_absolute_path("/x/../y/z/") == "/y/z");
+  CHECK(Util::normalize_abstract_absolute_path("/x/.../y/z") == "/x/.../y/z");
+  CHECK(Util::normalize_abstract_absolute_path("/x/yyy/../zz") == "/x/zz");
+  CHECK(Util::normalize_abstract_absolute_path("//x/yyy///.././zz") == "/x/zz");
+#endif
+}
+
+TEST_CASE("Util::normalize_concrete_absolute_path")
+{
+#ifndef _WIN32
+  TestContext test_context;
+
+  Util::write_file("file", "");
+  REQUIRE(Util::create_dir("dir1/dir2"));
+  REQUIRE(symlink("dir1/dir2", "symlink") == 0);
+  const auto cwd = Util::get_actual_cwd();
+
+  CHECK(Util::normalize_concrete_absolute_path(FMT("{}/file", cwd))
+        == FMT("{}/file", cwd));
+  CHECK(Util::normalize_concrete_absolute_path(FMT("{}/dir1/../file", cwd))
+        == FMT("{}/file", cwd));
+  CHECK(Util::normalize_concrete_absolute_path(FMT("{}/symlink/../file", cwd))
+        == FMT("{}/symlink/../file", cwd));
 #endif
 }
 

@@ -276,10 +276,15 @@ bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
 //
 // Normalization here means syntactically removing redundant slashes and
 // resolving "." and ".." parts. The algorithm does however *not* follow
-// symlinks, so the result may not actually resolve to `path`.
+// symlinks, so the result may not actually resolve to the same filesystem entry
+// as `path` (nor to any existing file system entry for that matter).
 //
 // On Windows: Backslashes are replaced with forward slashes.
-std::string normalize_absolute_path(nonstd::string_view path);
+std::string normalize_abstract_absolute_path(nonstd::string_view path);
+
+// Like normalize_abstract_absolute_path, but returns `path` unchanged if the
+// normalized result doesn't resolve to the same file system entry as `path`.
+std::string normalize_concrete_absolute_path(const std::string& path);
 
 // Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
 // into seconds. Throws `core::Error` on error.

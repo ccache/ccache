@@ -82,7 +82,7 @@ to_absolute_path(nonstd::string_view path)
   if (util::is_absolute_path(path)) {
     return std::string(path);
   } else {
-    return Util::normalize_absolute_path(
+    return Util::normalize_abstract_absolute_path(
       FMT("{}/{}", Util::get_actual_cwd(), path));
   }
 }

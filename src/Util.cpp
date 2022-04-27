@@ -636,14 +636,9 @@ get_apparent_cwd(const std::string& actual_cwd)
 
   auto pwd_stat = Stat::stat(pwd);
   auto cwd_stat = Stat::stat(actual_cwd);
-  if (!pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)) {
-    return actual_cwd;
-  }
-  std::string normalized_pwd = normalize_absolute_path(pwd);
-  return normalized_pwd == pwd
-             || Stat::stat(normalized_pwd).same_inode_as(pwd_stat)
-           ? normalized_pwd
-           : pwd;
+  return !pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)
+           ? actual_cwd
+           : normalize_concrete_absolute_path(pwd);
 #endif
 }
 
@@ -898,7 +893,8 @@ make_relative_path(const std::string& base_dir,
   const auto real_path = Util::real_path(std::string(path));
 
   const auto add_relpath_candidates = [&](auto path) {
-    const std::string normalized_path = Util::normalize_absolute_path(path);
+    const std::string normalized_path =
+      Util::normalize_abstract_absolute_path(path);
     relpath_candidates.push_back(
       Util::get_relative_path(actual_cwd, normalized_path));
     if (apparent_cwd != actual_cwd) {
@@ -946,7 +942,7 @@ matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
 }
 
 std::string
-normalize_absolute_path(string_view path)
+normalize_abstract_absolute_path(string_view path)
 {
   if (!util::is_absolute_path(path)) {
     return std::string(path);
@@ -956,7 +952,7 @@ normalize_absolute_path(string_view path)
   if (path.find("\\") != string_view::npos) {
     std::string new_path(path);
     std::replace(new_path.begin(), new_path.end(), '\\', '/');
-    return normalize_absolute_path(new_path);
+    return normalize_abstract_absolute_path(new_path);
   }
 
   std::string drive(path.substr(0, 2));
@@ -1002,6 +998,15 @@ normalize_absolute_path(string_view path)
 #else
   return result;
 #endif
+}
+
+std::string
+normalize_concrete_absolute_path(const std::string& path)
+{
+  const auto normalized_path = normalize_abstract_absolute_path(path);
+  return Stat::stat(normalized_path).same_inode_as(Stat::stat(path))
+           ? normalized_path
+           : path;
 }
 
 uint64_t
