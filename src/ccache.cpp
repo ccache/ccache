@@ -284,7 +284,7 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
-  if (path == ctx.args_info.input_file) {
+  if (path == ctx.args_info.normalized_input_file) {
     // Don't remember the input file.
     return true;
   }
