@@ -19,7 +19,7 @@ echo "Installing CUDA support"
 
 retry wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb
 retry sudo dpkg -i cuda-repo-ubuntu1804_${CUDA}_amd64.deb
-retry sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+retry sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 retry sudo apt-get update -qq
 
 cuda_prefix=${CUDA:0:4}
