@@ -1016,6 +1016,8 @@ process_arg(const Context& ctx,
 
   // Rewrite to relative to increase hit rate.
   args_info.input_file = Util::make_relative_path(ctx, args[i]);
+  args_info.normalized_input_file =
+    Util::normalize_concrete_absolute_path(args_info.input_file);
 
   return nullopt;
 }
