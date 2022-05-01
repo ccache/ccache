@@ -4,10 +4,8 @@ SUITE_inode_cache_PROBE() {
         return
     fi
 
-    temp_dir=$(dirname $($CCACHE -k temporary_dir))
-    fs=$(stat -fLc %T $temp_dir)
-    if [ "$fs" = "nfs" ]; then
-        echo "ccache temporary directory is on NFS"
+    if [ "$(stat -fLc %T "${CCACHE_DIR}")" = "nfs" ]; then
+        echo "ccache directory is on NFS"
     fi
 }
 
@@ -15,6 +13,7 @@ SUITE_inode_cache_SETUP() {
     export CCACHE_INODECACHE=1
     export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
+    export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"  # isolate inode cache file
 }
 
 SUITE_inode_cache() {
