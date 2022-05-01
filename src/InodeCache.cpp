@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -254,8 +254,6 @@ InodeCache::with_bucket(const Digest& key_digest,
 bool
 InodeCache::create_new_file(const std::string& filename)
 {
-  LOG_RAW("Creating a new inode cache");
-
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   TemporaryFile tmp_file(filename);
@@ -312,6 +310,7 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
 
+  LOG("Created a new inode cache {}", filename);
   return true;
 }
 
@@ -452,6 +451,7 @@ InodeCache::drop()
   if (unlink(file.c_str()) != 0) {
     return false;
   }
+  LOG("Dropped inode cache {}", file);
   if (m_sr) {
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
