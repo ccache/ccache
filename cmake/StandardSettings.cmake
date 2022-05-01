@@ -3,12 +3,16 @@
 
 add_library(standard_settings INTERFACE)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
+if(MSVC)
+  target_compile_options(standard_settings INTERFACE "/FI${CMAKE_BINARY_DIR}/config.h")
+else()
   target_compile_options(
     standard_settings
     INTERFACE -include ${CMAKE_BINARY_DIR}/config.h
   )
+endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
   option(ENABLE_COVERAGE "Enable coverage reporting for GCC/Clang" FALSE)
   if(ENABLE_COVERAGE)
     target_compile_options(standard_settings INTERFACE --coverage -O0 -g)
@@ -52,8 +56,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
   include(StdAtomic)
 
 elseif(MSVC)
-  target_compile_options(standard_settings INTERFACE "/FI${CMAKE_BINARY_DIR}/config.h")
-
   target_compile_options(
     standard_settings
     INTERFACE /Zc:preprocessor /Zc:__cplusplus /D_CRT_SECURE_NO_WARNINGS
