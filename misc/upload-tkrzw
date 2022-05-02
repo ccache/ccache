@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+# This script uploads the contents of the cache from primary storage to a Tkrzw
+# secondary storage.
+
+import tkrzw
+import tkrzw_rpc
+import os
+
+config = os.getenv("TKRZW_CONF", "localhost:1978")
+if config.startswith("/"):
+    local = True
+    dbm = tkrzw.DBM()
+    status = dbm.Open(config, True)
+    if not status.IsOK():
+        raise tkrzw.StatusException(status)
+else:
+    local = False
+    dbm = tkrzw_rpc.RemoteDBM()
+    status = dbm.Connect(config, 10)
+    if not status.IsOK():
+        raise tkrzw_rpc.StatusException(status)
+
+ccache = os.getenv("CCACHE_DIR", os.path.expanduser("~/.cache/ccache"))
+filelist = []
+for dirpath, dirnames, filenames in os.walk(ccache):
+    # sort by modification time, most recently used last
+    for filename in filenames:
+        if filename.endswith(".lock"):
+            continue
+        stat = os.stat(os.path.join(dirpath, filename))
+        filelist.append((stat.st_mtime, dirpath, filename))
+filelist.sort()
+files = result = manifest = objects = 0
+for mtime, dirpath, filename in filelist:
+    dirname = dirpath.replace(ccache + os.path.sep, "")
+    if dirname == "tmp":
+        continue
+    elif filename == "CACHEDIR.TAG" or filename == "stats":
+        # ignore these
+        files = files + 1
+    else:
+        (base, ext) = filename[:-1], filename[-1:]
+        if ext == "R" or ext == "M":
+            if ext == "R":
+                result = result + 1
+            if ext == "M":
+                manifest = manifest + 1
+            key = "".join(list(os.path.split(dirname)) + [base])
+            val = open(os.path.join(dirpath, filename), "rb").read() or None
+            if val:
+                print("%s: %s %d" % (key, ext, len(val)))
+                dbm.Set(key, val).OrDie()
+                objects = objects + 1
+        files = files + 1
+if local:
+    dbm.Close().OrDie()
+else:
+    dbm.Disconnect().OrDie()
+print(
+    "%d files, %d result (%d manifest) = %d objects"
+    % (files, result, manifest, objects)
+)

@@ -77,6 +77,14 @@ if(REDIS_STORAGE_BACKEND)
   )
 endif()
 
+if(TKRZW_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PRIVATE -DHAVE_TKRZW_STORAGE_BACKEND)
+  target_link_libraries(
+    ccache_framework
+    PUBLIC standard_settings standard_warnings ${TKRZW_LIBRARY} ${TKRZW_RPC_LIBRARY} third_party
+  )
+endif()
+
 add_subdirectory(compression)
 add_subdirectory(core)
 add_subdirectory(storage)

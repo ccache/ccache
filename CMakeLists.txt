@@ -11,7 +11,7 @@ set(CMAKE_PROJECT_DESCRIPTION "a fast C/C++ compiler cache")
 if(MSVC)
   set(CMAKE_CXX_STANDARD 17) # Need support for std::filesystem
 else()
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -102,6 +102,12 @@ option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
   option(HIREDIS_FROM_INTERNET "Download and use libhiredis from the Internet" ${HIREDIS_FROM_INTERNET_DEFAULT})
   find_package(hiredis 0.13.3 MODULE REQUIRED)
+endif()
+
+option(TKRZW_STORAGE_BACKEND "Enable Tkrzw secondary storage" OFF)
+if(TKRZW_STORAGE_BACKEND)
+  find_library(TKRZW_LIBRARY tkrzw REQUIRED)
+  find_library(TKRZW_RPC_LIBRARY tkrzw_rpc REQUIRED)
 endif()
 
 #

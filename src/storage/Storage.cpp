@@ -32,6 +32,9 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
+#ifdef HAVE_TKRZW_STORAGE_BACKEND
+#  include <storage/secondary/TkrzwStorage.hpp>
+#endif
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/XXH3_64.hpp>
@@ -54,6 +57,9 @@ const std::unordered_map<std::string /*scheme*/,
     {"http", std::make_shared<secondary::HttpStorage>()},
 #ifdef HAVE_REDIS_STORAGE_BACKEND
     {"redis", std::make_shared<secondary::RedisStorage>()},
+#endif
+#ifdef HAVE_TKRZW_STORAGE_BACKEND
+    {"tkrzw", std::make_shared<secondary::TkrzwStorage>()},
 #endif
 };
 

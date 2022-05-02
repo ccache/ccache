@@ -8,5 +8,8 @@ set(
 if(REDIS_STORAGE_BACKEND)
   list(APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/RedisStorage.cpp)
 endif()
+if(TKRZW_STORAGE_BACKEND)
+  list(APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/TkrzwStorage.cpp)
+endif()
 
 target_sources(ccache_framework PRIVATE ${sources})

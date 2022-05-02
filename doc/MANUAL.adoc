@@ -1168,6 +1168,48 @@ Optional attributes:
 * *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
 
 
+=== Tkrzw storage backend
+
+URL format: `+tkrzw://DBMFILE+` (local) or `+tkrzw://HOST:PORT+` (remote)
+
+This backend stores data in a https://dbmx.net/tkrzw/[Tkrzw] database.
+The database can either be stored in a local DBM file, or accessed remotely
+using RPC to *HOST* over TCP where the default *PORT* for Tkrzw is: 1978.
+
+NOTE: ccache will not perform any cleanup of the Tkrzw storage, but you can
+https://dbmx.net/tkrzw/#cachedbm_overview[configure LRU deletion].
+
+TIP: See https://ccache.dev/howto/tkrzw-storage.html[How to set up Tkrzw
+storage] for hints on setting up a Tkrzw server for use with ccache.
+
+The database format is decided using the file suffix of the "PolyDBM".
+The database server can use any of the same formats as the "RemoteDBM".
+Both file (for local) and on-memory (for remote) classes are provided.
+
+Examples:
+
+* `+tkrzw://$HOME/.cache/ccache.tkh+`
+* `+tkrzw://localhost:1978+`
+
+Classes:
+
+* HashDBM: `.tkh`, `.hash` (File, hash table)
+* TreeDBM: `.tkt`, `.tree` (File, B+ tree)
+* SkipDBM: `.tks`, `.skip` (File, skip list)
+* TinyDBM: `.tkmt`, `.tiny` (On-memory, hash table)
+* BabyDBM: `.tkmb`, `.baby` (On-memory, B+ tree)
+* CacheDBM: `.tkmc`, `.cache` (On-memory, LRU deletion)
+
+IMPORTANT: The on-memory classes are not usable as a secondary storage
+for ccache itself, since they would only be kept while ccache is running!
+But they _can_ be used as storage for `tkrzw_server`, instead of using files.
+
+Optional attributes:
+
+* *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
+* *operation-timeout*: Timeout (in ms) for database commands. The default is 10000.
+
+
 == Cache size management
 
 By default, ccache has a 5 GB limit on the total size of files in the cache and
