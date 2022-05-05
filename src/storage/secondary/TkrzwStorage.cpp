@@ -93,7 +93,7 @@ TkrzwStorageBackend::TkrzwStorageBackend(const Params& params)
     m_remote(nullptr)
 {
   const auto& url = params.url;
-  ASSERT(url.scheme() == "tkrzw");
+  ASSERT(url.scheme() == "tkrzw" || (url.scheme() == "tkrzw+unix"));
 
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
@@ -181,6 +181,7 @@ TkrzwStorageBackend::connect(const Url& url,
                              const uint32_t connect_timeout,
                              const uint32_t operation_timeout)
 {
+  const bool unix = (url.scheme() == "tkrzw+unix");
   const std::string host = url.host().empty() ? "localhost" : url.host();
   const uint32_t port = url.port().empty()
                           ? DEFAULT_PORT
@@ -188,7 +189,7 @@ TkrzwStorageBackend::connect(const Url& url,
                             util::parse_unsigned(url.port(), 1, 65535, "port"));
   ASSERT(url.path().empty() || url.path()[0] == '/');
 
-  if (url.host().empty()) {
+  if (url.host().empty() && !unix) {
     LOG("Tkrzw opening dbm {}", url.path());
     is_local = true;
     m_local = new tkrzw::PolyDBM();
@@ -198,11 +199,16 @@ TkrzwStorageBackend::connect(const Url& url,
     }
     LOG_RAW("Tkrzw open local OK");
   } else {
+    std::string address;
+    if (!unix) {
+      address = FMT("{}:{}", host, port);
+    } else {
+      address = FMT("unix:{}", url.path());
+    }
     LOG(
-      "Tkrzw connecting to {}:{} (connect timeout {} ms, operation_timeout {} "
+      "Tkrzw connecting to {} (connect timeout {} ms, operation_timeout {} "
       "ms)",
-      url.host(),
-      port,
+      address,
       connect_timeout,
       operation_timeout);
     is_local = false;
@@ -210,7 +216,7 @@ TkrzwStorageBackend::connect(const Url& url,
     // NOTE: currently the _same_ timeout value is used,
     // for both connection and database operation <sigh>
     const auto status =
-      m_remote->Connect(FMT("{}:{}", host, port), operation_timeout / 1000.0);
+      m_remote->Connect(address, operation_timeout / 1000.0);
     if (status != tkrzw::Status::SUCCESS) {
       throw Failed(FMT("Tkrzw connect error: {}", std::string(status)));
     }

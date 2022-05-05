@@ -60,6 +60,7 @@ const std::unordered_map<std::string /*scheme*/,
 #endif
 #ifdef HAVE_TKRZW_STORAGE_BACKEND
     {"tkrzw", std::make_shared<secondary::TkrzwStorage>()},
+    {"tkrzw+unix", std::make_shared<secondary::TkrzwStorage>()},
 #endif
 };
 
