@@ -919,12 +919,16 @@ process_arg(const Context& ctx,
 
   // Potentially rewrite concatenated absolute path argument to relative.
   if (args[i][0] == '-') {
-    const auto slash_pos = Util::is_absolute_path_with_prefix(args[i]);
-    if (slash_pos) {
-      std::string option = args[i].substr(0, *slash_pos);
+    const auto path_pos = Util::is_absolute_path_with_prefix(args[i]);
+    if (path_pos) {
+      const std::string option = args[i].substr(0, *path_pos);
+      const std::string path = args[i].substr(*path_pos);
+      if (!detect_pch(
+            option, path, args_info.included_pch_file, false, state)) {
+        return Statistic::bad_compiler_arguments;
+      }
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-        auto relpath = Util::make_relative_path(
-          ctx, string_view(args[i]).substr(*slash_pos));
+        const auto relpath = Util::make_relative_path(ctx, path);
         std::string new_option = option + relpath;
         if (compopt_affects_cpp_output(option)) {
           state.cpp_args.push_back(new_option);
@@ -933,18 +937,6 @@ process_arg(const Context& ctx,
         }
         return nullopt;
       }
-    }
-  }
-
-  // Detect PCH for options with concatenated path.
-  if (util::starts_with(args[i], "-Fp") || util::starts_with(args[i], "-Yu")) {
-    const size_t path_pos = 3;
-    if (!detect_pch(args[i].substr(0, path_pos),
-                    args[i].substr(path_pos),
-                    args_info.included_pch_file,
-                    false,
-                    state)) {
-      return Statistic::bad_compiler_arguments;
     }
   }
 
