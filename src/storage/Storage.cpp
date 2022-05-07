@@ -529,7 +529,7 @@ Storage::put_in_secondary_storage(const Digest& key,
     LOG("{} {} in {} ({:.2f} ms)",
         stored ? "Stored" : "Did not have to store",
         key.to_string(),
-        entry->url_for_logging,
+        backend->url_for_logging,
         ms);
   }
 }
@@ -557,12 +557,12 @@ Storage::remove_from_secondary_storage(const Digest& key)
     if (removed) {
       LOG("Removed {} from {} ({:.2f} ms)",
           key.to_string(),
-          entry->url_for_logging,
+          backend->url_for_logging,
           ms);
     } else {
       LOG("No {} to remove from {} ({:.2f} ms)",
           key.to_string(),
-          entry->url_for_logging,
+          backend->url_for_logging,
           ms);
     }
   }
