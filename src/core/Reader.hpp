@@ -72,7 +72,12 @@ inline std::string
 Reader::read_str(const size_t length)
 {
   std::string value(length, 0);
-  read(&value[0], length);
+  if (length > 0) {
+    const auto bytes_read = read(&value[0], length);
+    if (bytes_read != length) {
+      throw core::Error("Read underflow");
+    }
+  }
   return value;
 }
 
