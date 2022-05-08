@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -72,11 +72,9 @@ inline std::string
 Reader::read_str(const size_t length)
 {
   std::string value(length, 0);
-  if (length > 0) {
-    const auto bytes_read = read(&value[0], length);
-    if (bytes_read != length) {
-      throw core::Error("Read underflow");
-    }
+  const auto bytes_read = read(&value[0], length);
+  if (bytes_read != length) {
+    throw core::Error("Read underflow");
   }
   return value;
 }
