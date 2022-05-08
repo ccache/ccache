@@ -125,6 +125,7 @@ detect_pch(const std::string& option,
     if (state.found_valid_Fp) { // Use file set by -Fp.
       LOG("Detected use of precompiled header: {}", included_pch_file);
       pch_file = included_pch_file;
+      included_pch_file.clear(); // reset pch file set from /Fp
     } else {
       std::string file = Util::change_extension(arg, ".pch");
       if (Stat::stat(file)) {
