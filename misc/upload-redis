@@ -6,6 +6,9 @@
 import redis
 import os
 
+import progress.bar
+import humanize
+
 config = os.getenv("REDIS_CONF", "localhost")
 if ":" in config:
     host, port = config.rsplit(":", 1)
@@ -16,9 +19,8 @@ else:
     host, port, sock = config, 6379, None
 username = os.getenv("REDIS_USERNAME")
 password = os.getenv("REDIS_PASSWORD")
-context = redis.Redis(
-    host=host, port=port, unix_socket_path=sock, password=password
-)
+context = redis.Redis(host=host, port=port, unix_socket_path=sock, password=password)
+pipe = context.pipeline(transaction=False)
 
 ccache = os.getenv("CCACHE_DIR", os.path.expanduser("~/.cache/ccache"))
 filelist = []
@@ -28,10 +30,16 @@ for dirpath, dirnames, filenames in os.walk(ccache):
         if filename.endswith(".lock"):
             continue
         stat = os.stat(os.path.join(dirpath, filename))
-        filelist.append((stat.st_mtime, dirpath, filename))
+        filelist.append((stat.st_mtime, dirpath, filename, stat.st_size))
 filelist.sort()
 files = result = manifest = objects = 0
-for mtime, dirpath, filename in filelist:
+size = 0
+columns = os.get_terminal_size()[0]
+width = min(columns - 22, 100)
+bar = progress.bar.Bar(
+    "Uploading...", max=len(filelist), fill="=", suffix="%(percent).1f%%", width=width
+)
+for mtime, dirpath, filename, filesize in filelist:
     dirname = dirpath.replace(ccache + os.path.sep, "")
     if dirname == "tmp":
         continue
@@ -48,11 +56,14 @@ for mtime, dirpath, filename in filelist:
             key = "ccache:" + "".join(list(os.path.split(dirname)) + [base])
             val = open(os.path.join(dirpath, filename), "rb").read() or None
             if val:
-                print("%s: %s %d" % (key, ext, len(val)))
-                context.set(key, val)
+                # print("%s: %s %d" % (key, ext, len(val)))
+                pipe.set(key, val)
                 objects = objects + 1
         files = files + 1
+        size = size + filesize
+    bar.next()
+bar.finish()
 print(
-    "%d files, %d result (%d manifest) = %d objects"
-    % (files, result, manifest, objects)
+    "%d files, %d result (%d manifest) = %d objects (%s)"
+    % (files, result, manifest, objects, humanize.naturalsize(size, binary=True))
 )
