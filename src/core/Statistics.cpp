@@ -162,8 +162,10 @@ Statistics::get_statistics_ids() const
 {
   std::vector<std::string> result;
   for (const auto& field : k_statistics_fields) {
-    if (m_counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-      result.emplace_back(field.id);
+    if (!(field.flags & FLAG_NOZERO)) {
+      for (size_t i = 0; i < m_counters.get(field.statistic); ++i) {
+        result.emplace_back(field.id);
+      }
     }
   }
   std::sort(result.begin(), result.end());
