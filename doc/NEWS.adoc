@@ -14,7 +14,7 @@ Release date: 2022-02-27
 
 - Added an option to use a bearer token with the HTTP backend. This makes it
   possible to use e.g. Google Cloud Storage as a secondary storage backend. +
-  [small]#_[contributed by Delgan]_#
+  [small]#_[contributed by an anonymous user]_#
 
 - Added support for caching standard output from the compiler. +
   [small]#_[contributed by Luboš Luňák and Joel Rosdahl]_#
