@@ -136,6 +136,25 @@ TEST_CASE("Args::from_atfile")
     CHECK(args[5] == "si'x\" th");
     CHECK(args[6] == "seve\nth");
   }
+
+  SUBCASE("Only escape double quote and backslash in alternate format")
+  {
+    Util::write_file("at_file", "\"\\\"\\a\\ \\\\\\ \\b\\\"\"\\");
+    args = *Args::from_atfile(
+      "at_file", Args::AtFileFormat::QuoteDouble_EscapeQuoteEscape);
+    CHECK(args.size() == 1);
+    CHECK(args[0] == "\"\\a\\ \\\\ \\b\"\\");
+  }
+
+  SUBCASE("Ignore single quote in alternate format")
+  {
+    Util::write_file("at_file", "'a b'");
+    args = *Args::from_atfile(
+      "at_file", Args::AtFileFormat::QuoteDouble_EscapeQuoteEscape);
+    CHECK(args.size() == 2);
+    CHECK(args[0] == "'a");
+    CHECK(args[1] == "b'");
+  }
 }
 
 TEST_CASE("Args copy assignment operator")
