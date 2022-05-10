@@ -36,8 +36,14 @@ public:
 
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(const std::string& command);
-  static nonstd::optional<Args> from_atfile(const std::string& filename,
-                                            bool ignore_backslash = false);
+
+  enum class AtFileFormat {
+    QuoteAny_EscapeAny, // '\'' and '"' quote, '\\' escapes any character
+    QuoteDouble_EscapeQuoteEscape, // '"' quotes, '\\' escapes only '"' and '\\'
+  };
+  static nonstd::optional<Args>
+  from_atfile(const std::string& filename,
+              AtFileFormat format = AtFileFormat::QuoteAny_EscapeAny);
 
   Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;

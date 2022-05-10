@@ -50,7 +50,7 @@ Args::from_string(const std::string& command)
 }
 
 optional<Args>
-Args::from_atfile(const std::string& filename, bool ignore_backslash)
+Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
   std::string argtext;
   try {
@@ -72,17 +72,28 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
   while (true) {
     switch (*pos) {
     case '\\':
-      if (ignore_backslash) {
-        break;
-      }
       pos++;
-      if (*pos == '\0') {
-        continue;
+      switch (format) {
+      case AtFileFormat::QuoteAny_EscapeAny:
+        if (*pos == '\0') {
+          continue;
+        }
+        break;
+      case AtFileFormat::QuoteDouble_EscapeQuoteEscape:
+        if (*pos != '"' && *pos != '\\') {
+          pos--;
+        }
+        break;
       }
       break;
 
-    case '"':
     case '\'':
+      if (format == AtFileFormat::QuoteDouble_EscapeQuoteEscape) {
+        break;
+      }
+      // Fall through.
+
+    case '"':
       if (quoting != '\0') {
         if (quoting == *pos) {
           quoting = '\0';

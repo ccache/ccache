@@ -307,7 +307,10 @@ process_arg(const Context& ctx,
       ++argpath;
     }
     auto file_args =
-      Args::from_atfile(argpath, ctx.config.is_compiler_group_msvc());
+      Args::from_atfile(argpath,
+                        config.is_compiler_group_msvc()
+                          ? Args::AtFileFormat::QuoteDouble_EscapeQuoteEscape
+                          : Args::AtFileFormat::QuoteAny_EscapeAny);
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
