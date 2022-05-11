@@ -112,7 +112,8 @@ Common options:
         --show-log-stats       print statistics counters from the stats log
                                in human-readable format
     -s, --show-stats           show summary of configuration and statistics
-                               counters in human-readable format
+                               counters in human-readable format (use
+                               -v/--verbose once of twice for more details)
     -v, --verbose              increase verbosity
     -z, --zero-stats           zero statistics counters
 
@@ -556,9 +557,6 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(
         stdout,
         statistics.format_human_readable(config, timestamp, verbosity, true));
-      if (verbosity == 0) {
-        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
-      }
       break;
     }
 
@@ -571,9 +569,6 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(stdout,
                 statistics.format_human_readable(
                   config, last_updated, verbosity, false));
-      if (verbosity == 0) {
-        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
-      }
       break;
     }
 
