@@ -48,7 +48,8 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   else()
     macro(git)
       execute_process(
-        COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_SOURCE_DIR}" ${ARGN}
+        COMMAND "${GIT_EXECUTABLE}" ${ARGN}
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
     endmacro()
