@@ -53,6 +53,9 @@ using nonstd::optional;
 DLLIMPORT extern char** environ;
 #endif
 
+// Make room for binary patching at install time.
+const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
+
 namespace {
 
 enum class ConfigItem {
@@ -489,7 +492,7 @@ Config::read()
 
     set_secondary_config_path(env_ccache_configpath2
                                 ? env_ccache_configpath2
-                                : FMT("{}/ccache.conf", SYSCONFDIR));
+                                : FMT("{}/ccache.conf", k_sysconfdir));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     update_from_file(secondary_config_path());
