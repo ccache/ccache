@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,7 +45,7 @@ public:
   nonstd::optional<Digest> look_up_result_digest(const Context& ctx) const;
 
   bool add_result(const Digest& result_key,
-                  std::unordered_map<std::string, Digest>& included_files,
+                  const std::unordered_map<std::string, Digest>& included_files,
                   time_t time_of_compilation,
                   bool save_timestamp);
   size_t serialized_size() const;

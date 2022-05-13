@@ -137,10 +137,11 @@ Manifest::look_up_result_digest(const Context& ctx) const
 }
 
 bool
-Manifest::add_result(const Digest& result_key,
-                     std::unordered_map<std::string, Digest>& included_files,
-                     const time_t time_of_compilation,
-                     const bool save_timestamp)
+Manifest::add_result(
+  const Digest& result_key,
+  const std::unordered_map<std::string, Digest>& included_files,
+  const time_t time_of_compilation,
+  const bool save_timestamp)
 {
   if (m_results.size() > k_max_manifest_entries) {
     // Normally, there shouldn't be many result entries in the manifest since
