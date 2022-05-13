@@ -269,8 +269,7 @@ RedisStorageBackend::select_database(const Url& url)
 
   if (db_number != 0) {
     LOG("Redis SELECT {}", db_number);
-    const auto reply =
-      util::value_or_throw<Failed>(redis_command("SELECT %d", db_number));
+    util::value_or_throw<Failed>(redis_command("SELECT %d", db_number));
   }
 }
 
