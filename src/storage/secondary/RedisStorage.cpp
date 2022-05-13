@@ -230,11 +230,11 @@ RedisStorageBackend::connect(const Url& url,
   ASSERT(url.path().empty() || url.path()[0] == '/');
 
   LOG("Redis connecting to {}:{} (connect timeout {} ms)",
-      url.host(),
+      host,
       port,
       connect_timeout);
-  m_context.reset(redisConnectWithTimeout(
-    url.host().c_str(), port, to_timeval(connect_timeout)));
+  m_context.reset(
+    redisConnectWithTimeout(host.c_str(), port, to_timeval(connect_timeout)));
 
   if (!m_context) {
     throw Failed("Redis context construction error");
