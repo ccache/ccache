@@ -1,5 +1,138 @@
 = Ccache news
 
+== Ccache 4.6.1
+
+Release date: 2022-05-15
+
+
+=== New features
+
+- Added support for passing a directory to the MSVC `/Fo` option. +
+  [small]#_[contributed by Orgad Shaneh]_#
+
+- Added knowledge about the `-imsvc` compiler option. +
+  [small]#_[contributed by Jacob Young]_#
+
+- Added knowledge about the `-z` linker option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Improved handling of `.gcno` files in combination with absolute input file
+  paths. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Adapted to changes in GCC 9+ `.gcno` files, which contain the current working
+  directory, by including said directory in the hash. You can opt out of this by
+  enabling "`gcno_cwd sloppiness`". +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- A preexisting object file is no longer considered when using
+  `-fsyntax-only`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Authenticate with Redis before database selection. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Don't exit with an error on failure reading a cached file. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Bail out on too hard MSVC environment variables `CL` and `+_CL_+`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Only use `/run/user/<UID>/ccache-tmp` as the temporary directory if it's
+  writable. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed handling of the final newline in cached standard output from the
+  compiler. +
+  [small]#_[contributed by Orgad Shaneh]_#
+
+- Fixed a bug related to distcc markers in standard error output. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Paths to `base_dir` are now properly normalized on Windows. +
+  [small]#_[contributed by Vili Väinölä and Joel Rosdahl]_#
+
+- Fixed handling of MSVC `/Fp` and `/Yu` options with concatenated path. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed "`Multiple precompiled headers used`" error if MSVC `/Yu` option is used
+  after `/Fp`. +
+  [small]#_[contributed by Alexey Telishev]_#
+
+- Check for short reads when reading strings in result/manifest files. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Log expanded secondary storage URL in put/remove. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed logging of statistics counters with value higher than one in debug log
+  and stats log. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Avoid incorrect error log message for Redis write operations in `reshare`
+  mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Support Redis URL without host (meaning localhost). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Prefer CMake find module for hiredis and zstd packages. +
+  [small]#_[contributed by Cristian Adam and Joel Rosdahl]_#
+
+- Fixed building and linking BLAKE3 with MSVC. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+- Fixed static linkage with hiredis on Windows. +
+  [small]#_[contributed by Orgad Shaneh]_#
+
+- Fixed miscompile of nonstd::expected on MSVC v19.22. +
+  [small]#_[contributed by Jacob Young]_#
+
+- Fixed build arguments to clang-cl. +
+  [small]#_[contributed by Jacob Young]_#
+
+- Fixed parsing of MSVC response files.  +
+  [small]#_[contributed by Jacob Young]_#
+
+- Support Git 1.x when determining ccache version. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Worked around an endianness problem which affected builds and tests on
+  big-endian systems. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- A C++-capable compiler is no longer required for the test suite. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed an issue with inode cache tests, leading to sporadic failures in the
+  inode test suite when running many parallel tests. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed sporadic failures in the profiling test suite. +
+  [small]#_[contributed by Jacob Young]_#
+
+
+=== Documentation improvements
+
+- Added reference to example build configs in installation instructions. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Default cache locations are now mentioned for Windows and macOS as well. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a warning about usage of `base_dir`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.6
 
 Release date: 2022-02-27
