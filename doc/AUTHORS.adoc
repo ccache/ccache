@@ -11,6 +11,7 @@ Ccache is a collective work with contributions from many people, including:
 * Alexander Korsunsky
 * Alexander Lanin
 * Alexey Sheplyakov
+* Alexey Telishev
 * Alexey Tourbin
 * Alfred Landrum
 * Anders F Björklund
@@ -50,6 +51,7 @@ Ccache is a collective work with contributions from many people, including:
 * Igor Pylypiv
 * Ivan Vaigult
 * Ivan Volnov
+* Jacob Young
 * Jiang Jiang
 * Joel Galenson
 * Joel Rosdahl
