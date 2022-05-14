@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -74,12 +74,12 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
     case '\\':
       pos++;
       switch (format) {
-      case AtFileFormat::QuoteAny_EscapeAny:
+      case AtFileFormat::gcc:
         if (*pos == '\0') {
           continue;
         }
         break;
-      case AtFileFormat::QuoteDouble_EscapeQuoteEscape:
+      case AtFileFormat::msvc:
         if (*pos != '"' && *pos != '\\') {
           pos--;
         }
@@ -88,7 +88,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
       break;
 
     case '\'':
-      if (format == AtFileFormat::QuoteDouble_EscapeQuoteEscape) {
+      if (format == AtFileFormat::msvc) {
         break;
       }
       // Fall through.
