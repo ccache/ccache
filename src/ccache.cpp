@@ -539,6 +539,10 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       while (q < end && *q != '"') {
         q++;
       }
+      if (p == q) {
+        // Skip empty file name.
+        continue;
+      }
       // Look for preprocessor flags, after the "filename".
       bool system = false;
       const char* r = q + 1;
