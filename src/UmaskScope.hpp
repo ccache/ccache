@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,7 +50,15 @@ inline UmaskScope::~UmaskScope()
 {
 #ifndef _WIN32
   if (m_saved_umask) {
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80635
+#  if defined(__GNUC__) && !defined(__clang__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#  endif
     umask(*m_saved_umask);
+#  if defined(__GNUC__) && !defined(__clang__)
+#    pragma GCC diagnostic pop
+#  endif
   }
 #endif
 }
