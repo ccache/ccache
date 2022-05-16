@@ -18,24 +18,24 @@
 
 #pragma once
 
-#include "third_party/nonstd/optional.hpp"
-
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <optional>
 
 // This class sets a new (process-global) umask and restores the previous umask
 // when destructed.
 class UmaskScope
 {
 public:
-  UmaskScope(nonstd::optional<mode_t> new_umask);
+  UmaskScope(std::optional<mode_t> new_umask);
   ~UmaskScope();
 
 private:
-  nonstd::optional<mode_t> m_saved_umask;
+  std::optional<mode_t> m_saved_umask = std::nullopt;
 };
 
-inline UmaskScope::UmaskScope(nonstd::optional<mode_t> new_umask)
+inline UmaskScope::UmaskScope(std::optional<mode_t> new_umask)
 {
 #ifndef _WIN32
   if (new_umask) {

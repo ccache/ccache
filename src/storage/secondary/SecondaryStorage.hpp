@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,11 +21,11 @@
 #include <storage/types.hpp>
 
 #include <third_party/nonstd/expected.hpp>
-#include <third_party/nonstd/optional.hpp>
 #include <third_party/url.hpp>
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -78,8 +78,8 @@ public:
     virtual ~Backend() = default;
 
     // Get the value associated with `key`. Returns the value on success or
-    // nonstd::nullopt if the entry is not present.
-    virtual nonstd::expected<nonstd::optional<std::string>, Failure>
+    // std::nullopt if the entry is not present.
+    virtual nonstd::expected<std::optional<std::string>, Failure>
     get(const Digest& key) = 0;
 
     // Put `value` associated to `key` in the storage. A true `only_if_missing`

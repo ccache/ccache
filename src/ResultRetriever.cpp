@@ -45,7 +45,7 @@ void
 ResultRetriever::on_entry_start(uint8_t entry_number,
                                 FileType file_type,
                                 uint64_t file_len,
-                                nonstd::optional<std::string> raw_file)
+                                std::optional<std::string> raw_file)
 {
   LOG("Reading {} entry #{} {} ({} bytes)",
       raw_file ? "raw" : "embedded",

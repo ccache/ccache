@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,10 +32,10 @@
 
 #include <storage/Storage.hpp>
 
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <ctime>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -107,7 +107,7 @@ public:
 
   // Original umask before applying the `umask`/`CCACHE_UMASK` configuration, or
   // `nullopt` if there is no such configuration.
-  nonstd::optional<mode_t> original_umask;
+  std::optional<mode_t> original_umask;
 
 #ifdef MTR_ENABLED
   // Internal tracing.

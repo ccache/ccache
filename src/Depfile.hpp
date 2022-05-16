@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,17 +23,17 @@ class Hash;
 
 #include "Digest.hpp"
 
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace Depfile {
 
 std::string escape_filename(nonstd::string_view filename);
-nonstd::optional<std::string> rewrite_paths(const Context& ctx,
-                                            const std::string& file_content);
+std::optional<std::string> rewrite_paths(const Context& ctx,
+                                         const std::string& file_content);
 void make_paths_relative_in_output_dep(const Context& ctx);
 std::vector<std::string> tokenize(nonstd::string_view file_content);
 

@@ -119,7 +119,7 @@ Manifest::read(Reader& reader)
   }
 }
 
-nonstd::optional<Digest>
+std::optional<Digest>
 Manifest::look_up_result_digest(const Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
@@ -133,7 +133,7 @@ Manifest::look_up_result_digest(const Context& ctx) const
     }
   }
 
-  return nonstd::nullopt;
+  return std::nullopt;
 }
 
 bool

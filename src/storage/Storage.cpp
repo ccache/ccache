@@ -227,7 +227,7 @@ Storage::finalize()
   primary.finalize();
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 Storage::get(const Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("storage", "get");
@@ -260,7 +260,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
 
   const auto value_and_share_hits = get_from_secondary_storage(key);
   if (!value_and_share_hits) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
   const auto& value = value_and_share_hits->first;
   const auto& share_hits = value_and_share_hits->second;
@@ -464,7 +464,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-nonstd::optional<std::pair<std::string, bool>>
+std::optional<std::pair<std::string, bool>>
 Storage::get_from_secondary_storage(const Digest& key)
 {
   MTR_SCOPE("secondary_storage", "get");
@@ -500,7 +500,7 @@ Storage::get_from_secondary_storage(const Digest& key)
     }
   }
 
-  return nonstd::nullopt;
+  return std::nullopt;
 }
 
 void

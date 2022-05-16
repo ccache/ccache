@@ -100,8 +100,6 @@ extern "C" {
 #  endif
 #endif
 
-using nonstd::nullopt;
-using nonstd::optional;
 using nonstd::string_view;
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
@@ -786,7 +784,7 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 #endif
 }
 
-nonstd::optional<size_t>
+std::optional<size_t>
 is_absolute_path_with_prefix(nonstd::string_view path)
 {
 #ifdef _WIN32
@@ -808,7 +806,7 @@ is_absolute_path_with_prefix(nonstd::string_view path)
     // NOLINTNEXTLINE(readability-simplify-boolean-expr)
     return split_pos;
   }
-  return nonstd::nullopt;
+  return std::nullopt;
 }
 
 #if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
@@ -842,15 +840,15 @@ is_precompiled_header(string_view path)
          || get_extension(dir_name(path)) == ".gch";
 }
 
-optional<tm>
-localtime(optional<time_t> time)
+std::optional<tm>
+localtime(std::optional<time_t> time)
 {
   time_t timestamp = time ? *time : ::time(nullptr);
   tm result;
   if (localtime_r(&timestamp, &result)) {
     return result;
   } else {
-    return nullopt;
+    return std::nullopt;
   }
 }
 

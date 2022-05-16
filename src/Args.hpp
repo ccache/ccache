@@ -21,10 +21,10 @@
 #include "NonCopyable.hpp"
 #include "Util.hpp"
 
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <deque>
+#include <optional>
 #include <string>
 
 class Args
@@ -42,7 +42,7 @@ public:
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(const std::string& command);
 
-  static nonstd::optional<Args>
+  static std::optional<Args>
   from_atfile(const std::string& filename,
               AtFileFormat format = AtFileFormat::gcc);
 

@@ -46,9 +46,6 @@
 #include <unordered_map>
 #include <vector>
 
-using nonstd::nullopt;
-using nonstd::optional;
-
 #ifndef environ
 DLLIMPORT extern char** environ;
 #endif
@@ -196,7 +193,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
 
 bool
 parse_bool(const std::string& value,
-           const optional<std::string> env_var_key,
+           const std::optional<std::string> env_var_key,
            bool negate)
 {
   if (env_var_key) {
@@ -348,7 +345,7 @@ format_sloppiness(core::Sloppiness sloppiness)
 }
 
 std::string
-format_umask(nonstd::optional<mode_t> umask)
+format_umask(std::optional<mode_t> umask)
 {
   if (umask) {
     return FMT("{:03o}", *umask);
@@ -574,7 +571,7 @@ Config::update_from_file(const std::string& path)
   return parse_config_file(
     path, [&](const auto& /*line*/, const auto& key, const auto& value) {
       if (!key.empty()) {
-        this->set_item(key, value, nullopt, false, path);
+        this->set_item(key, value, std::nullopt, false, path);
       }
     });
 }
@@ -767,7 +764,7 @@ Config::set_value_in_file(const std::string& path,
 
   // Verify that the value is valid; set_item will throw if not.
   Config dummy_config;
-  dummy_config.set_item(key, value, nullopt, false, "");
+  dummy_config.set_item(key, value, std::nullopt, false, "");
 
   const auto resolved_path = Util::real_path(path);
   const auto st = Stat::stat(resolved_path);
@@ -823,7 +820,7 @@ Config::visit_items(const ItemVisitor& item_visitor) const
 void
 Config::set_item(const std::string& key,
                  const std::string& value,
-                 const optional<std::string>& env_var_key,
+                 const std::optional<std::string>& env_var_key,
                  bool negate,
                  const std::string& origin)
 {
@@ -938,7 +935,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::max_files:
     m_max_files = util::value_or_throw<core::Error>(
-      util::parse_unsigned(value, nullopt, nullopt, "max_files"));
+      util::parse_unsigned(value, std::nullopt, std::nullopt, "max_files"));
     break;
 
   case ConfigItem::max_size:

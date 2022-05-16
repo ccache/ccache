@@ -48,8 +48,8 @@ parse_double(const std::string& value)
 
 nonstd::expected<int64_t, std::string>
 parse_signed(const std::string& value,
-             const nonstd::optional<int64_t> min_value,
-             const nonstd::optional<int64_t> max_value,
+             const std::optional<int64_t> min_value,
+             const std::optional<int64_t> max_value,
              const nonstd::string_view description)
 {
   const std::string stripped_value = strip_whitespace(value);
@@ -86,8 +86,8 @@ parse_umask(const std::string& value)
 
 nonstd::expected<uint64_t, std::string>
 parse_unsigned(const std::string& value,
-               const nonstd::optional<uint64_t> min_value,
-               const nonstd::optional<uint64_t> max_value,
+               const std::optional<uint64_t> min_value,
+               const std::optional<uint64_t> max_value,
                const nonstd::string_view description,
                const int base)
 {
@@ -197,12 +197,12 @@ replace_first(const nonstd::string_view string,
   return result;
 }
 
-std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
+std::pair<nonstd::string_view, std::optional<nonstd::string_view>>
 split_once(const nonstd::string_view string, const char split_char)
 {
   const size_t sep_pos = string.find(split_char);
   if (sep_pos == nonstd::string_view::npos) {
-    return std::make_pair(string, nonstd::nullopt);
+    return std::make_pair(string, std::nullopt);
   } else {
     return std::make_pair(string.substr(0, sep_pos),
                           string.substr(sep_pos + 1));

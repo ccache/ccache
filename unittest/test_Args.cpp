@@ -84,7 +84,7 @@ TEST_CASE("Args::from_atfile")
 
   SUBCASE("Nonexistent file")
   {
-    CHECK(Args::from_atfile("at_file") == nonstd::nullopt);
+    CHECK(Args::from_atfile("at_file") == std::nullopt);
   }
 
   SUBCASE("Empty")

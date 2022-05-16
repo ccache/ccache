@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -57,7 +57,7 @@ escape_filename(nonstd::string_view filename)
   return result;
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 rewrite_paths(const Context& ctx, const std::string& file_content)
 {
   ASSERT(!ctx.config.base_dir().empty());
@@ -65,7 +65,7 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
 
   // Fast path for the common case:
   if (file_content.find(ctx.config.base_dir()) == std::string::npos) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   std::string adjusted_file_content;
@@ -104,7 +104,7 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
   if (content_rewritten) {
     return adjusted_file_content;
   } else {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 }
 

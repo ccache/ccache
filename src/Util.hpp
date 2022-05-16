@@ -21,7 +21,6 @@
 #include <Stat.hpp>
 #include <util/Tokenizer.hpp>
 
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <algorithm>
@@ -29,6 +28,7 @@
 #include <functional>
 #include <ios>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -227,7 +227,7 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 
 // Determine if `path` is an absolute path with prefix, returning the split
 // point.
-nonstd::optional<size_t> is_absolute_path_with_prefix(nonstd::string_view path);
+std::optional<size_t> is_absolute_path_with_prefix(nonstd::string_view path);
 
 // Test if a file is on nfs.
 //
@@ -255,7 +255,7 @@ bool is_precompiled_header(nonstd::string_view path);
 
 // Thread-safe version of `localtime(3)`. If `time` is not specified the current
 // time of day is used.
-nonstd::optional<tm> localtime(nonstd::optional<time_t> time = {});
+std::optional<tm> localtime(std::optional<time_t> time = {});
 
 // Make a relative path from current working directory (either `actual_cwd` or
 // `apparent_cwd`) to `path` if `path` is under `base_dir`.

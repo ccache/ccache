@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,8 +20,7 @@
 
 #include <Stat.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
+#include <optional>
 #include <string>
 
 class CacheFile
@@ -37,7 +36,7 @@ public:
 
 private:
   std::string m_path;
-  mutable nonstd::optional<Stat> m_stat;
+  mutable std::optional<Stat> m_stat;
 };
 
 inline CacheFile::CacheFile(const std::string& path) : m_path(path)

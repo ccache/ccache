@@ -69,8 +69,6 @@
 // <epilogue>             ::= <checksum>
 // <checksum>             ::= uint64_t ; XXH3 of content bytes
 
-using nonstd::nullopt;
-using nonstd::optional;
 using nonstd::string_view;
 
 namespace {
@@ -252,7 +250,7 @@ Reader::read_entry(uint8_t entry_number, Reader::Consumer& consumer)
   const auto file_len = m_reader.read_int<uint64_t>();
 
   if (marker == k_embedded_file_marker) {
-    consumer.on_entry_start(entry_number, file_type, file_len, nullopt);
+    consumer.on_entry_start(entry_number, file_type, file_len, std::nullopt);
 
     uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t remain = file_len;

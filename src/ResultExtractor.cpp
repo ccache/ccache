@@ -37,7 +37,7 @@ void
 ResultExtractor::on_entry_start(uint8_t /*entry_number*/,
                                 Result::FileType file_type,
                                 uint64_t /*file_len*/,
-                                nonstd::optional<std::string> raw_file)
+                                std::optional<std::string> raw_file)
 {
   std::string suffix = Result::file_type_to_string(file_type);
   if (suffix == Result::k_unknown_file_type) {

@@ -64,10 +64,11 @@
 #include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <fcntl.h>
+
+#include <optional>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -84,8 +85,6 @@
 const char CCACHE_NAME[] = MYNAME;
 
 using core::Statistic;
-using nonstd::nullopt;
-using nonstd::optional;
 using nonstd::string_view;
 
 // This is a string that identifies the current "version" of the hash sum
@@ -108,12 +107,12 @@ public:
   Failure(std::initializer_list<Statistic> statistics);
 
   const core::StatisticsCounters& counters() const;
-  nonstd::optional<int> exit_code() const;
+  std::optional<int> exit_code() const;
   void set_exit_code(int exit_code);
 
 private:
   core::StatisticsCounters m_counters;
-  nonstd::optional<int> m_exit_code;
+  std::optional<int> m_exit_code;
 };
 
 inline Failure::Failure(const Statistic statistic) : m_counters({statistic})
@@ -131,7 +130,7 @@ Failure::counters() const
   return m_counters;
 }
 
-inline nonstd::optional<int>
+inline std::optional<int>
 Failure::exit_code() const
 {
   return m_exit_code;
@@ -622,7 +621,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static optional<Digest>
+static std::optional<Digest>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
   std::string file_content;
@@ -631,7 +630,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   } catch (const core::Error& e) {
     LOG(
       "Cannot open dependency file {}: {}", ctx.args_info.output_dep, e.what());
-    return nullopt;
+    return std::nullopt;
   }
 
   for (string_view token : Depfile::tokenize(file_content)) {
@@ -939,7 +938,7 @@ rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
 static nonstd::expected<Digest, Failure>
 to_cache(Context& ctx,
          Args& args,
-         nonstd::optional<Digest> result_key,
+         std::optional<Digest> result_key,
          const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
@@ -1514,9 +1513,8 @@ option_should_be_ignored(const std::string& arg,
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result key. Returns the result key on success, and
 // if direct_mode is true also the manifest key.
-static nonstd::expected<
-  std::pair<nonstd::optional<Digest>, nonstd::optional<Digest>>,
-  Failure>
+static nonstd::expected<std::pair<std::optional<Digest>, std::optional<Digest>>,
+                        Failure>
 calculate_result_and_manifest_key(Context& ctx,
                                   const Args& args,
                                   Args& preprocessor_args,
@@ -1748,8 +1746,8 @@ calculate_result_and_manifest_key(Context& ctx,
     hash.hash(arch);
   }
 
-  nonstd::optional<Digest> result_key;
-  nonstd::optional<Digest> manifest_key;
+  std::optional<Digest> result_key;
+  std::optional<Digest> manifest_key;
 
   if (direct_mode) {
     // Hash environment variables that affect the preprocessor output.
@@ -1789,7 +1787,7 @@ calculate_result_and_manifest_key(Context& ctx,
     if (result & HASH_SOURCE_CODE_FOUND_TIME) {
       LOG_RAW("Disabling direct mode");
       ctx.config.set_direct_mode(false);
-      return std::make_pair(nullopt, nullopt);
+      return std::make_pair(std::nullopt, std::nullopt);
     }
 
     manifest_key = hash.digest();
@@ -1832,7 +1830,7 @@ calculate_result_and_manifest_key(Context& ctx,
       LOG("Got result key from preprocessor with -arch {}",
           ctx.args_info.arch_args[i]);
       if (i != ctx.args_info.arch_args.size() - 1) {
-        result_key = nullopt;
+        result_key = std::nullopt;
       }
       preprocessor_args.pop_back();
     }
@@ -2047,7 +2045,7 @@ cache_compilation(int argc, const char* const* argv)
 
   bool fall_back_to_original_compiler = false;
   Args saved_orig_args;
-  nonstd::optional<uint32_t> original_umask;
+  std::optional<uint32_t> original_umask;
   std::string saved_temp_dir;
 
   {
@@ -2240,9 +2238,9 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   args_to_hash.push_back(processed.extra_args_to_hash);
 
   bool put_result_in_manifest = false;
-  optional<Digest> result_key;
-  optional<Digest> result_key_from_manifest;
-  optional<Digest> manifest_key;
+  std::optional<Digest> result_key;
+  std::optional<Digest> result_key_from_manifest;
+  std::optional<Digest> manifest_key;
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");

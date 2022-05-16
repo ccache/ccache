@@ -21,8 +21,8 @@
 #include <FormatNonstdStringView.hpp>
 
 #include <third_party/fmt/core.h>
-#include <third_party/nonstd/optional.hpp>
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>

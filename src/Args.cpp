@@ -23,8 +23,6 @@
 #include <core/exceptions.hpp>
 #include <util/string.hpp>
 
-using nonstd::nullopt;
-using nonstd::optional;
 using nonstd::string_view;
 
 Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
@@ -49,14 +47,14 @@ Args::from_string(const std::string& command)
   return args;
 }
 
-optional<Args>
+std::optional<Args>
 Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
   std::string argtext;
   try {
     argtext = Util::read_text_file(filename);
   } catch (core::Error&) {
-    return nullopt;
+    return std::nullopt;
   }
 
   Args args;

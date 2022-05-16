@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -44,7 +44,7 @@ class FileStorageBackend : public SecondaryStorage::Backend
 public:
   FileStorageBackend(const Params& params);
 
-  nonstd::expected<nonstd::optional<std::string>, Failure>
+  nonstd::expected<std::optional<std::string>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
@@ -57,7 +57,7 @@ private:
   enum class Layout { flat, subdirs };
 
   const std::string m_dir;
-  nonstd::optional<mode_t> m_umask;
+  std::optional<mode_t> m_umask;
   bool m_update_mtime = false;
   Layout m_layout = Layout::subdirs;
 
@@ -95,8 +95,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 }
 
-nonstd::expected<nonstd::optional<std::string>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
 FileStorageBackend::get(const Digest& key)
 {
   const auto path = get_entry_path(key);
@@ -104,7 +103,7 @@ FileStorageBackend::get(const Digest& key)
 
   if (!exists) {
     // Don't log failure if the entry doesn't exist.
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   if (m_update_mtime) {

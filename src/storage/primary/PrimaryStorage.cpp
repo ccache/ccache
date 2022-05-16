@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -176,13 +176,13 @@ PrimaryStorage::finalize()
     clean_dir(subdir,
               max_size,
               max_files,
-              nonstd::nullopt,
-              nonstd::nullopt,
+              std::nullopt,
+              std::nullopt,
               [](double /*progress*/) {});
   }
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 {
   MTR_SCOPE("primary_storage", "get");
@@ -190,7 +190,7 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
     LOG("No {} in primary storage", key.to_string());
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   LOG(
@@ -201,7 +201,7 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
   return cache_file.path;
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 PrimaryStorage::put(const Digest& key,
                     const core::CacheEntryType type,
                     const storage::EntryWriter& entry_writer)
@@ -223,13 +223,13 @@ PrimaryStorage::put(const Digest& key,
 
   if (!entry_writer(cache_file.path)) {
     LOG("Did not store {} in primary storage", key.to_string());
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   const auto new_stat = Stat::stat(cache_file.path, Stat::OnError::log);
   if (!new_stat) {
     LOG("Failed to stat {}: {}", cache_file.path, strerror(errno));
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   LOG("Stored {} in primary storage ({})", key.to_string(), cache_file.path);
@@ -329,7 +329,7 @@ PrimaryStorage::clean_internal_tempdir()
   });
 }
 
-nonstd::optional<core::StatisticsCounters>
+std::optional<core::StatisticsCounters>
 PrimaryStorage::update_stats_and_maybe_move_cache_file(
   const Digest& key,
   const std::string& current_path,
@@ -337,7 +337,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
   const core::CacheEntryType type)
 {
   if (counter_updates.all_zero()) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   // Use stats file in the level one subdirectory for cache bookkeeping counters
@@ -358,7 +358,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
       cs.increment(counter_updates);
     });
   if (!counters) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   if (use_stats_on_level_1) {

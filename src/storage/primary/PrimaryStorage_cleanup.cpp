@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2006 Andrew Tridgell
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -80,8 +80,8 @@ update_counters(const std::string& dir,
 
 void
 PrimaryStorage::evict(const ProgressReceiver& progress_receiver,
-                      nonstd::optional<uint64_t> max_age,
-                      nonstd::optional<std::string> namespace_)
+                      std::optional<uint64_t> max_age,
+                      std::optional<std::string> namespace_)
 {
   for_each_level_1_subdir(
     m_config.cache_dir(),
@@ -97,8 +97,8 @@ void
 PrimaryStorage::clean_dir(const std::string& subdir,
                           const uint64_t max_size,
                           const uint64_t max_files,
-                          const nonstd::optional<uint64_t> max_age,
-                          const nonstd::optional<std::string> namespace_,
+                          const std::optional<uint64_t> max_age,
+                          const std::optional<std::string> namespace_,
                           const ProgressReceiver& progress_receiver)
 {
   LOG("Cleaning up cache directory {}", subdir);
@@ -243,8 +243,8 @@ PrimaryStorage::clean_all(const ProgressReceiver& progress_receiver)
       clean_dir(subdir,
                 m_config.max_size() / 16,
                 m_config.max_files() / 16,
-                nonstd::nullopt,
-                nonstd::nullopt,
+                std::nullopt,
+                std::nullopt,
                 sub_progress_receiver);
     },
     progress_receiver);

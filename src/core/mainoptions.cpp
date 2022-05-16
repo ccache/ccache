@@ -42,10 +42,9 @@
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
 #include <fcntl.h>
 
+#include <optional>
 #include <string>
 
 #ifdef HAVE_UNISTD_H
@@ -349,11 +348,11 @@ int
 process_main_options(int argc, const char* const* argv)
 {
   int c;
-  nonstd::optional<uint64_t> trim_max_size;
+  std::optional<uint64_t> trim_max_size;
   bool trim_lru_mtime = false;
   uint8_t verbosity = 0;
-  nonstd::optional<std::string> evict_namespace;
-  nonstd::optional<uint64_t> evict_max_age;
+  std::optional<std::string> evict_namespace;
+  std::optional<uint64_t> evict_max_age;
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -604,9 +603,9 @@ process_main_options(int argc, const char* const* argv)
 
     case 'X': // --recompress
     {
-      nonstd::optional<int8_t> wanted_level;
+      std::optional<int8_t> wanted_level;
       if (arg == "uncompressed") {
-        wanted_level = nonstd::nullopt;
+        wanted_level = std::nullopt;
       } else {
         wanted_level = util::value_or_throw<Error>(
           util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));

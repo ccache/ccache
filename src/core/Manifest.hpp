@@ -20,9 +20,8 @@
 
 #include <Digest.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -42,7 +41,7 @@ public:
   Manifest() = default;
 
   void read(Reader& reader);
-  nonstd::optional<Digest> look_up_result_digest(const Context& ctx) const;
+  std::optional<Digest> look_up_result_digest(const Context& ctx) const;
 
   bool add_result(const Digest& result_key,
                   const std::unordered_map<std::string, Digest>& included_files,

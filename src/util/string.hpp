@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,12 +19,12 @@
 #pragma once
 
 #include <third_party/nonstd/expected.hpp>
-#include <third_party/nonstd/optional.hpp>
 #include <third_party/nonstd/string_view.hpp>
 
 #include <sys/stat.h> // for mode_t
 
 #include <cstring>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -60,8 +60,8 @@ nonstd::expected<double, std::string> parse_double(const std::string& value);
 // included in the error message for range violations.
 nonstd::expected<int64_t, std::string>
 parse_signed(const std::string& value,
-             nonstd::optional<int64_t> min_value = nonstd::nullopt,
-             nonstd::optional<int64_t> max_value = nonstd::nullopt,
+             std::optional<int64_t> min_value = std::nullopt,
+             std::optional<int64_t> max_value = std::nullopt,
              nonstd::string_view description = "integer");
 
 // Parse `value` (an octal integer).
@@ -75,8 +75,8 @@ nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
 // `description` is included in the error message for range violations.
 nonstd::expected<uint64_t, std::string>
 parse_unsigned(const std::string& value,
-               nonstd::optional<uint64_t> min_value = nonstd::nullopt,
-               nonstd::optional<uint64_t> max_value = nonstd::nullopt,
+               std::optional<uint64_t> min_value = std::nullopt,
+               std::optional<uint64_t> max_value = std::nullopt,
                nonstd::string_view description = "integer",
                int base = 10);
 
@@ -98,7 +98,7 @@ std::string replace_first(nonstd::string_view string,
 
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`
-std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
+std::pair<nonstd::string_view, std::optional<nonstd::string_view>>
 split_once(nonstd::string_view string, char split_char);
 
 // Return true if `prefix` is a prefix of `string`.

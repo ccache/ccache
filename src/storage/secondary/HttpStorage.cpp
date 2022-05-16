@@ -40,7 +40,7 @@ class HttpStorageBackend : public SecondaryStorage::Backend
 public:
   HttpStorageBackend(const Params& params);
 
-  nonstd::expected<nonstd::optional<std::string>, Failure>
+  nonstd::expected<std::optional<std::string>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
@@ -144,8 +144,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<nonstd::optional<std::string>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -161,7 +160,7 @@ HttpStorageBackend::get(const Digest& key)
 
   if (result->status < 200 || result->status >= 300) {
     // Don't log failure if the entry doesn't exist.
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   return result->body;

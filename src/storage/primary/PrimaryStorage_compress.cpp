@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -146,7 +146,7 @@ static void
 recompress_file(RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
-                const nonstd::optional<int8_t> level)
+                const std::optional<int8_t> level)
 {
   auto file = open_file(cache_file.path(), "rb");
   core::FileReader file_reader(file.get());
@@ -237,7 +237,7 @@ PrimaryStorage::get_compression_statistics(
 }
 
 void
-PrimaryStorage::recompress(const nonstd::optional<int8_t> level,
+PrimaryStorage::recompress(const std::optional<int8_t> level,
                            const ProgressReceiver& progress_receiver)
 {
   const size_t threads = std::thread::hardware_concurrency();

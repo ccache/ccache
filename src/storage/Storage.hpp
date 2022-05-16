@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,10 +23,9 @@
 #include <storage/secondary/SecondaryStorage.hpp>
 #include <storage/types.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,8 +51,7 @@ public:
   primary::PrimaryStorage primary;
 
   // Returns a path to a file containing the value.
-  nonstd::optional<std::string> get(const Digest& key,
-                                    core::CacheEntryType type);
+  std::optional<std::string> get(const Digest& key, core::CacheEntryType type);
 
   bool put(const Digest& key,
            core::CacheEntryType type,
@@ -80,7 +78,7 @@ private:
               const Digest& key,
               nonstd::string_view operation_description,
               const bool for_writing);
-  nonstd::optional<std::pair<std::string, bool>>
+  std::optional<std::pair<std::string, bool>>
   get_from_secondary_storage(const Digest& key);
 
   void put_in_secondary_storage(const Digest& key,

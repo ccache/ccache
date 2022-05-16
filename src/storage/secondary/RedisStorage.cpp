@@ -60,7 +60,7 @@ class RedisStorageBackend : public SecondaryStorage::Backend
 public:
   RedisStorageBackend(const SecondaryStorage::Backend::Params& params);
 
-  nonstd::expected<nonstd::optional<std::string>, Failure>
+  nonstd::expected<std::optional<std::string>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
@@ -90,19 +90,19 @@ to_timeval(const uint32_t ms)
   return tv;
 }
 
-std::pair<nonstd::optional<std::string>, nonstd::optional<std::string>>
+std::pair<std::optional<std::string>, std::optional<std::string>>
 split_user_info(const std::string& user_info)
 {
   const auto pair = util::split_once(user_info, ':');
   if (pair.first.empty()) {
     // redis://HOST
-    return {nonstd::nullopt, nonstd::nullopt};
+    return {std::nullopt, std::nullopt};
   } else if (pair.second) {
     // redis://USERNAME:PASSWORD@HOST
     return {std::string(*pair.second), std::string(pair.first)};
   } else {
     // redis://PASSWORD@HOST
-    return {std::string(pair.first), nonstd::nullopt};
+    return {std::string(pair.first), std::nullopt};
   }
 }
 
@@ -149,8 +149,7 @@ is_timeout(int err)
 #endif
 }
 
-nonstd::expected<nonstd::optional<std::string>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
 RedisStorageBackend::get(const Digest& key)
 {
   const auto key_string = get_key_string(key);
@@ -161,7 +160,7 @@ RedisStorageBackend::get(const Digest& key)
   } else if ((*reply)->type == REDIS_REPLY_STRING) {
     return std::string((*reply)->str, (*reply)->len);
   } else if ((*reply)->type == REDIS_REPLY_NIL) {
-    return nonstd::nullopt;
+    return std::nullopt;
   } else {
     LOG("Unknown reply type: {}", (*reply)->type);
     return nonstd::make_unexpected(Failure::error);
