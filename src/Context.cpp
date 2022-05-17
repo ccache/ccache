@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -33,8 +33,6 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-
-using nonstd::string_view;
 
 Context::Context()
   : actual_cwd(Util::get_actual_cwd()),

@@ -35,7 +35,7 @@ is_blank(const std::string& s)
 namespace Depfile {
 
 std::string
-escape_filename(nonstd::string_view filename)
+escape_filename(std::string_view filename)
 {
   std::string result;
   result.reserve(filename.size());
@@ -139,7 +139,7 @@ make_paths_relative_in_output_dep(const Context& ctx)
 }
 
 std::vector<std::string>
-tokenize(nonstd::string_view file_content)
+tokenize(std::string_view file_content)
 {
   // A dependency file uses Makefile syntax. This is not perfect parser but
   // should be enough for parsing a regular dependency file.

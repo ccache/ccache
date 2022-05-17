@@ -26,7 +26,6 @@
 #include "Fd.hpp"
 #include "File.hpp"
 #include "Finalizer.hpp"
-#include "FormatNonstdStringView.hpp"
 #include "Hash.hpp"
 #include "Lockfile.hpp"
 #include "Logging.hpp"
@@ -64,11 +63,11 @@
 #include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
-#include "third_party/nonstd/string_view.hpp"
 
 #include <fcntl.h>
 
 #include <optional>
+#include <string_view>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -85,7 +84,6 @@
 const char CCACHE_NAME[] = MYNAME;
 
 using core::Statistic;
-using nonstd::string_view;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -170,7 +168,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 static std::string
 prepare_debug_path(const std::string& debug_dir,
                    const std::string& output_obj,
-                   string_view suffix)
+                   std::string_view suffix)
 {
   auto prefix = debug_dir.empty()
                   ? output_obj
@@ -186,7 +184,7 @@ static void
 init_hash_debug(Context& ctx,
                 Hash& hash,
                 char type,
-                string_view section_name,
+                std::string_view section_name,
                 FILE* debug_text_file)
 {
   if (!ctx.config.debug()) {
@@ -205,7 +203,7 @@ init_hash_debug(Context& ctx,
 }
 
 CompilerType
-guess_compiler(string_view path)
+guess_compiler(std::string_view path)
 {
   std::string compiler_path(path);
 
@@ -228,14 +226,14 @@ guess_compiler(string_view path)
 
   const auto name =
     Util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
-  if (name.find("clang-cl") != nonstd::string_view::npos) {
+  if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
-  } else if (name.find("clang") != nonstd::string_view::npos) {
+  } else if (name.find("clang") != std::string_view::npos) {
     return CompilerType::clang;
-  } else if (name.find("gcc") != nonstd::string_view::npos
-             || name.find("g++") != nonstd::string_view::npos) {
+  } else if (name.find("gcc") != std::string_view::npos
+             || name.find("g++") != std::string_view::npos) {
     return CompilerType::gcc;
-  } else if (name.find("nvcc") != nonstd::string_view::npos) {
+  } else if (name.find("nvcc") != std::string_view::npos) {
     return CompilerType::nvcc;
   } else if (name == "cl") {
     return CompilerType::msvc;
@@ -456,11 +454,11 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
   // There must be at least 7 characters (# 1 "x") left to potentially find an
   // include file path.
   while (q < end - 7) {
-    static const string_view pragma_gcc_pch_preprocess =
+    static const std::string_view pragma_gcc_pch_preprocess =
       "pragma GCC pch_preprocess ";
-    static const string_view hash_31_command_line_newline =
+    static const std::string_view hash_31_command_line_newline =
       "# 31 \"<command-line>\"\n";
-    static const string_view hash_32_command_line_2_newline =
+    static const std::string_view hash_32_command_line_2_newline =
       "# 32 \"<command-line>\" 2\n";
     // Note: Intentionally not using the string form to avoid false positive
     // match by ccache itself.
@@ -633,8 +631,8 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     return std::nullopt;
   }
 
-  for (string_view token : Depfile::tokenize(file_content)) {
-    if (token.ends_with(":")) {
+  for (std::string_view token : Depfile::tokenize(file_content)) {
+    if (util::ends_with(token, ":")) {
       continue;
     }
     if (!ctx.has_absolute_include_headers) {
@@ -1420,7 +1418,7 @@ hash_common_info(const Context& ctx,
       dir =
         Util::real_path(std::string(Util::dir_name(ctx.args_info.output_obj)));
     }
-    string_view stem =
+    std::string_view stem =
       Util::remove_extension(Util::base_name(ctx.args_info.output_obj));
     std::string gcda_path = FMT("{}/{}.gcda", dir, stem);
     LOG("Hashing coverage path {}", gcda_path);
@@ -1464,7 +1462,7 @@ static bool
 hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
-  string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
+  std::string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
   std::string hashified_cwd = ctx.apparent_cwd;
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
@@ -1503,7 +1501,8 @@ option_should_be_ignored(const std::string& arg,
 {
   return std::any_of(
     patterns.cbegin(), patterns.cend(), [&arg](const auto& pattern) {
-      const auto& prefix = string_view(pattern).substr(0, pattern.length() - 1);
+      const auto& prefix =
+        std::string_view(pattern).substr(0, pattern.length() - 1);
       return (
         pattern == arg
         || (util::ends_with(pattern, "*") && util::starts_with(arg, prefix)));

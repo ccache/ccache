@@ -26,9 +26,7 @@
 #  include "third_party/win32/mktemp.h"
 #endif
 
-using nonstd::string_view;
-
-TemporaryFile::TemporaryFile(string_view path_prefix)
+TemporaryFile::TemporaryFile(std::string_view path_prefix)
   : path(std::string(path_prefix) + ".XXXXXX")
 {
   Util::ensure_dir_exists(Util::dir_name(path));

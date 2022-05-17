@@ -133,7 +133,7 @@ private:
   // Join the cache directory, a '/' and `name` into a single path and return
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
-  std::string get_path_in_cache(uint8_t level, nonstd::string_view name) const;
+  std::string get_path_in_cache(uint8_t level, std::string_view name) const;
 
   static void clean_dir(const std::string& subdir,
                         uint64_t max_size,

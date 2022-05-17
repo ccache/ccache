@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,8 +45,6 @@
 #ifdef _WIN32
 #  include "Finalizer.hpp"
 #endif
-
-using nonstd::string_view;
 
 #ifdef _WIN32
 static int win32execute(const char* path,

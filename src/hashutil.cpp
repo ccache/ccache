@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -52,8 +52,6 @@
 #  include <immintrin.h>
 #endif
 
-using nonstd::string_view;
-
 namespace {
 
 // Returns one of HASH_SOURCE_CODE_FOUND_DATE, HASH_SOURCE_CODE_FOUND_TIME or
@@ -62,7 +60,7 @@ namespace {
 //
 // Pre-condition: str[pos - 1] == '_'
 int
-check_for_temporal_macros_helper(string_view str, size_t pos)
+check_for_temporal_macros_helper(std::string_view str, size_t pos)
 {
   if (pos + 7 > str.length()) {
     return 0;
@@ -94,7 +92,7 @@ check_for_temporal_macros_helper(string_view str, size_t pos)
 }
 
 int
-check_for_temporal_macros_bmh(string_view str)
+check_for_temporal_macros_bmh(std::string_view str)
 {
   int result = 0;
 
@@ -121,7 +119,7 @@ check_for_temporal_macros_bmh(string_view str)
 
 #ifdef HAVE_AVX2
 #  ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
-int check_for_temporal_macros_avx2(string_view str)
+int check_for_temporal_macros_avx2(std::string_view str)
   __attribute__((target("avx2")));
 #  endif
 
@@ -129,7 +127,7 @@ int check_for_temporal_macros_avx2(string_view str)
 // __TIME__ and __TIMESTAMP__, is heavily inspired by
 // <http://0x80.pl/articles/simd-strfind.html>.
 int
-check_for_temporal_macros_avx2(string_view str)
+check_for_temporal_macros_avx2(std::string_view str)
 {
   int result = 0;
 
@@ -222,7 +220,7 @@ get_content_type(const Config& config, const std::string& path)
 } // namespace
 
 int
-check_for_temporal_macros(string_view str)
+check_for_temporal_macros(std::string_view str)
 {
 #ifdef HAVE_AVX2
   if (blake3_cpu_supports_avx2()) {
@@ -235,7 +233,7 @@ check_for_temporal_macros(string_view str)
 int
 hash_source_code_string(const Context& ctx,
                         Hash& hash,
-                        string_view str,
+                        std::string_view str,
                         const std::string& path)
 {
   int result = HASH_SOURCE_CODE_OK;

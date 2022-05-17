@@ -27,8 +27,9 @@
 #include <util/string.hpp>
 
 #include <third_party/httplib.h>
-#include <third_party/nonstd/string_view.hpp>
 #include <third_party/url.hpp>
+
+#include <string_view>
 
 namespace storage {
 namespace secondary {

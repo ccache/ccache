@@ -30,9 +30,9 @@
 #include <util/file.hpp>
 #include <util/string.hpp>
 
-#include <third_party/nonstd/string_view.hpp>
-
 #include <sys/stat.h> // for mode_t
+
+#include <string_view>
 
 namespace storage {
 namespace secondary {

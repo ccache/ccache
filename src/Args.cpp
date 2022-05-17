@@ -23,8 +23,6 @@
 #include <core/exceptions.hpp>
 #include <util/string.hpp>
 
-using nonstd::string_view;
-
 Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
 {
 }
@@ -171,7 +169,7 @@ Args::to_string() const
 }
 
 void
-Args::erase_last(string_view arg)
+Args::erase_last(std::string_view arg)
 {
   const auto it = std::find(m_args.rbegin(), m_args.rend(), arg);
   if (it != m_args.rend()) {
@@ -180,7 +178,7 @@ Args::erase_last(string_view arg)
 }
 
 void
-Args::erase_with_prefix(string_view prefix)
+Args::erase_with_prefix(std::string_view prefix)
 {
   m_args.erase(std::remove_if(m_args.begin(),
                               m_args.end(),

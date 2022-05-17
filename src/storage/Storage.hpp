@@ -76,7 +76,7 @@ private:
   SecondaryStorageBackendEntry*
   get_backend(SecondaryStorageEntry& entry,
               const Digest& key,
-              nonstd::string_view operation_description,
+              std::string_view operation_description,
               const bool for_writing);
   std::optional<std::pair<std::string, bool>>
   get_from_secondary_storage(const Digest& key);

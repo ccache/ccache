@@ -385,7 +385,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
 
 std::string
 PrimaryStorage::get_path_in_cache(const uint8_t level,
-                                  const nonstd::string_view name) const
+                                  const std::string_view name) const
 {
   ASSERT(level >= 1 && level <= 8);
   ASSERT(name.length() >= level);
@@ -399,7 +399,7 @@ PrimaryStorage::get_path_in_cache(const uint8_t level,
   }
 
   path.push_back('/');
-  const nonstd::string_view name_remaining = name.substr(level);
+  const std::string_view name_remaining = name.substr(level);
   path.append(name_remaining.data(), name_remaining.length());
 
   return path;

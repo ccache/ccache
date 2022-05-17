@@ -22,6 +22,8 @@
 
 #include <third_party/doctest.h>
 
+#include <ostream> // https://github.com/doctest/doctest/issues/618
+
 TEST_CASE("util::is_absolute_path")
 {
 #ifdef _WIN32

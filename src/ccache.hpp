@@ -21,10 +21,9 @@
 
 #include "Config.hpp"
 
-#include "third_party/nonstd/string_view.hpp"
-
 #include <functional>
 #include <string>
+#include <string_view>
 
 class Context;
 
@@ -41,4 +40,4 @@ int ccache_main(int argc, const char* const* argv);
 // Tested by unit tests.
 void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function);
-CompilerType guess_compiler(nonstd::string_view path);
+CompilerType guess_compiler(std::string_view path);

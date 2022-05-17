@@ -23,9 +23,8 @@
 #include <vector>
 
 static bool
-operator==(
-  std::pair<nonstd::string_view, std::optional<nonstd::string_view>> left,
-  std::pair<nonstd::string_view, std::optional<nonstd::string_view>> right)
+operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
+           std::pair<std::string_view, std::optional<std::string_view>> right)
 {
   return left.first == right.first && left.second == right.second;
 }
@@ -67,7 +66,7 @@ TEST_CASE("util::join")
     CHECK(util::join(v.begin() + 1, v.end(), "|") == " b |c|");
   }
   {
-    std::vector<nonstd::string_view> v{"1", "2"};
+    std::vector<std::string_view> v{"1", "2"};
     CHECK(util::join(v, " ") == "1 2");
   }
 }

@@ -111,7 +111,7 @@ to_string(const SecondaryStorageConfig& entry)
 }
 
 static SecondaryStorageConfig
-parse_storage_config(const nonstd::string_view entry)
+parse_storage_config(const std::string_view entry)
 {
   const auto parts =
     Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
@@ -152,9 +152,9 @@ parse_storage_config(const nonstd::string_view entry)
       }
       for (const auto& shard : util::Tokenizer(value, ",")) {
         double weight = 1.0;
-        nonstd::string_view name;
+        std::string_view name;
         const auto lp_pos = shard.find('(');
-        if (lp_pos != nonstd::string_view::npos) {
+        if (lp_pos != std::string_view::npos) {
           if (shard.back() != ')') {
             throw core::Error("Invalid shard name: \"{}\"", shard);
           }
@@ -183,7 +183,7 @@ parse_storage_config(const nonstd::string_view entry)
 }
 
 static std::vector<SecondaryStorageConfig>
-parse_storage_configs(const nonstd::string_view& configs)
+parse_storage_configs(const std::string_view& configs)
 {
   std::vector<SecondaryStorageConfig> result;
   for (const auto& config : util::Tokenizer(configs, " ")) {
@@ -418,7 +418,7 @@ get_shard_url(const Digest& key,
 SecondaryStorageBackendEntry*
 Storage::get_backend(SecondaryStorageEntry& entry,
                      const Digest& key,
-                     const nonstd::string_view operation_description,
+                     const std::string_view operation_description,
                      const bool for_writing)
 {
   if (for_writing && entry.config.read_only) {
@@ -449,7 +449,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
     } catch (const secondary::SecondaryStorage::Backend::Failed& e) {
       LOG("Failed to construct backend for {}{}",
           entry.url_for_logging,
-          nonstd::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
+          std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
       return nullptr;
     }

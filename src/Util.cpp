@@ -100,7 +100,6 @@ extern "C" {
 #  endif
 #endif
 
-using nonstd::string_view;
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace {
@@ -112,8 +111,8 @@ namespace {
 // The primary reason for not using std::regex is that it's not available for
 // GCC 4.8. It's also a bit bloated. The reason for not using POSIX regex
 // functionality is that it's are not available in MinGW.
-string_view
-find_first_ansi_csi_seq(string_view string)
+std::string_view
+find_first_ansi_csi_seq(std::string_view string)
 {
   size_t pos = 0;
   while (pos < string.length() && string[pos] != 0x1b) {
@@ -156,7 +155,7 @@ path_max(const std::string& path)
 
 template<typename T>
 std::vector<T>
-split_into(string_view string,
+split_into(std::string_view string,
            const char* separators,
            util::Tokenizer::Mode mode,
            IncludeDelimiter include_delimiter)
@@ -171,7 +170,7 @@ split_into(string_view string,
 }
 
 std::string
-rewrite_stderr_to_absolute_paths(string_view text)
+rewrite_stderr_to_absolute_paths(std::string_view text)
 {
   static const std::string in_file_included_from = "In file included from ";
 
@@ -197,7 +196,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
       line = line.substr(csi_seq.length());
     }
     size_t path_end = line.find(':');
-    if (path_end == string_view::npos) {
+    if (path_end == std::string_view::npos) {
       result.append(line.data(), line.length());
     } else {
       std::string path(line.substr(0, path_end));
@@ -215,7 +214,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
 
 #ifdef _WIN32
 bool
-has_utf16_le_bom(string_view text)
+has_utf16_le_bom(std::string_view text)
 {
   return text.size() > 1
          && ((static_cast<uint8_t>(text[0]) == 0xff
@@ -227,8 +226,8 @@ has_utf16_le_bom(string_view text)
 
 namespace Util {
 
-string_view
-base_name(string_view path)
+std::string_view
+base_name(std::string_view path)
 {
 #ifdef _WIN32
   const char delim[] = "/\\";
@@ -240,9 +239,9 @@ base_name(string_view path)
 }
 
 std::string
-change_extension(string_view path, string_view new_ext)
+change_extension(std::string_view path, std::string_view new_ext)
 {
-  string_view without_ext = Util::remove_extension(path);
+  std::string_view without_ext = Util::remove_extension(path);
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
@@ -334,7 +333,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
 }
 
 size_t
-common_dir_prefix_length(string_view dir, string_view path)
+common_dir_prefix_length(std::string_view dir, std::string_view path)
 {
   if (dir.empty() || path.empty() || dir == "/" || path == "/") {
     return 0;
@@ -402,7 +401,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 }
 
 bool
-create_dir(string_view dir)
+create_dir(std::string_view dir)
 {
   std::string dir_str(dir);
   auto st = Stat::stat(dir_str);
@@ -429,8 +428,8 @@ create_dir(string_view dir)
   }
 }
 
-string_view
-dir_name(string_view path)
+std::string_view
+dir_name(std::string_view path)
 {
 #ifdef _WIN32
   const char delim[] = "/\\";
@@ -596,7 +595,7 @@ format_parsable_size_with_suffix(uint64_t size)
 }
 
 void
-ensure_dir_exists(nonstd::string_view dir)
+ensure_dir_exists(std::string_view dir)
 {
   if (!create_dir(dir)) {
     throw core::Fatal(
@@ -640,8 +639,8 @@ get_apparent_cwd(const std::string& actual_cwd)
 #endif
 }
 
-string_view
-get_extension(string_view path)
+std::string_view
+get_extension(std::string_view path)
 {
 #ifndef _WIN32
   const char stop_at_chars[] = "./";
@@ -649,7 +648,7 @@ get_extension(string_view path)
   const char stop_at_chars[] = "./\\";
 #endif
   size_t pos = path.find_last_of(stop_at_chars);
-  if (pos == string_view::npos || path.at(pos) == '/') {
+  if (pos == std::string_view::npos || path.at(pos) == '/') {
     return {};
 #ifdef _WIN32
   } else if (path.at(pos) == '\\') {
@@ -702,7 +701,7 @@ get_hostname()
 }
 
 std::string
-get_relative_path(string_view dir, string_view path)
+get_relative_path(std::string_view dir, std::string_view path)
 {
   ASSERT(util::is_absolute_path(dir));
   ASSERT(util::is_absolute_path(path));
@@ -785,7 +784,7 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 }
 
 std::optional<size_t>
-is_absolute_path_with_prefix(nonstd::string_view path)
+is_absolute_path_with_prefix(std::string_view path)
 {
 #ifdef _WIN32
   const char delim[] = "/\\";
@@ -833,9 +832,9 @@ is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
 #endif
 
 bool
-is_precompiled_header(string_view path)
+is_precompiled_header(std::string_view path)
 {
-  string_view ext = get_extension(path);
+  std::string_view ext = get_extension(path);
   return ext == ".gch" || ext == ".pch" || ext == ".pth"
          || get_extension(dir_name(path)) == ".gch";
 }
@@ -856,7 +855,7 @@ std::string
 make_relative_path(const std::string& base_dir,
                    const std::string& actual_cwd,
                    const std::string& apparent_cwd,
-                   nonstd::string_view path)
+                   std::string_view path)
 {
   if (base_dir.empty() || !util::path_starts_with(path, base_dir)) {
     return std::string(path);
@@ -922,32 +921,33 @@ make_relative_path(const std::string& base_dir,
 }
 
 std::string
-make_relative_path(const Context& ctx, string_view path)
+make_relative_path(const Context& ctx, std::string_view path)
 {
   return make_relative_path(
     ctx.config.base_dir(), ctx.actual_cwd, ctx.apparent_cwd, path);
 }
 
 bool
-matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
+matches_dir_prefix_or_file(std::string_view dir_prefix_or_file,
+                           std::string_view path)
 {
   return !dir_prefix_or_file.empty() && !path.empty()
          && dir_prefix_or_file.length() <= path.length()
-         && path.starts_with(dir_prefix_or_file)
+         && util::starts_with(path, dir_prefix_or_file)
          && (dir_prefix_or_file.length() == path.length()
              || is_dir_separator(path[dir_prefix_or_file.length()])
              || is_dir_separator(dir_prefix_or_file.back()));
 }
 
 std::string
-normalize_abstract_absolute_path(string_view path)
+normalize_abstract_absolute_path(std::string_view path)
 {
   if (!util::is_absolute_path(path)) {
     return std::string(path);
   }
 
 #ifdef _WIN32
-  if (path.find("\\") != string_view::npos) {
+  if (path.find("\\") != std::string_view::npos) {
     std::string new_path(path);
     std::replace(new_path.begin(), new_path.end(), '\\', '/');
     return normalize_abstract_absolute_path(new_path);
@@ -958,7 +958,7 @@ normalize_abstract_absolute_path(string_view path)
 #endif
 
   std::string result = "/";
-  const size_t npos = string_view::npos;
+  const size_t npos = std::string_view::npos;
   size_t left = 1;
 
   while (true) {
@@ -966,7 +966,8 @@ normalize_abstract_absolute_path(string_view path)
       break;
     }
     const auto right = path.find('/', left);
-    string_view part = path.substr(left, right == npos ? npos : right - left);
+    std::string_view part =
+      path.substr(left, right == npos ? npos : right - left);
     if (part == "..") {
       if (result.length() > 1) {
         // "/x/../part" -> "/part"
@@ -1218,8 +1219,8 @@ read_text_file(const std::string& path, size_t size_hint)
   return result;
 }
 
-string_view
-remove_extension(string_view path)
+std::string_view
+remove_extension(std::string_view path)
 {
   return path.substr(0, path.length() - get_extension(path).length());
 }
@@ -1247,8 +1248,8 @@ rename(const std::string& oldpath, const std::string& newpath)
 }
 
 bool
-same_program_name(nonstd::string_view program_name,
-                  nonstd::string_view canonical_program_name)
+same_program_name(std::string_view program_name,
+                  std::string_view canonical_program_name)
 {
 #ifdef _WIN32
   std::string lowercase_program_name = Util::to_lowercase(program_name);
@@ -1319,17 +1320,18 @@ setenv(const std::string& name, const std::string& value)
 #endif
 }
 
-std::vector<string_view>
-split_into_views(string_view string,
+std::vector<std::string_view>
+split_into_views(std::string_view string,
                  const char* separators,
                  util::Tokenizer::Mode mode,
                  IncludeDelimiter include_delimiter)
 {
-  return split_into<string_view>(string, separators, mode, include_delimiter);
+  return split_into<std::string_view>(
+    string, separators, mode, include_delimiter);
 }
 
 std::vector<std::string>
-split_into_strings(string_view string,
+split_into_strings(std::string_view string,
                    const char* separators,
                    util::Tokenizer::Mode mode,
                    IncludeDelimiter include_delimiter)
@@ -1338,7 +1340,7 @@ split_into_strings(string_view string,
 }
 
 std::string
-strip_ansi_csi_seqs(string_view string)
+strip_ansi_csi_seqs(std::string_view string)
 {
   size_t pos = 0;
   std::string result;
@@ -1360,7 +1362,7 @@ strip_ansi_csi_seqs(string_view string)
 }
 
 std::string
-to_lowercase(string_view string)
+to_lowercase(std::string_view string)
 {
   std::string result;
   result.resize(string.length());

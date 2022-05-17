@@ -69,8 +69,6 @@
 // <epilogue>             ::= <checksum>
 // <checksum>             ::= uint64_t ; XXH3 of content bytes
 
-using nonstd::string_view;
-
 namespace {
 
 const uint8_t k_result_format_version = 0;
@@ -82,7 +80,7 @@ const uint8_t k_embedded_file_marker = 0;
 const uint8_t k_raw_file_marker = 1;
 
 std::string
-get_raw_file_path(string_view result_path, uint8_t entry_number)
+get_raw_file_path(std::string_view result_path, uint8_t entry_number)
 {
   if (entry_number >= 10) {
     // To support more entries in the future, encode to [0-9a-z]. Note that

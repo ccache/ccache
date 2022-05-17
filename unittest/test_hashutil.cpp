@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,7 +22,6 @@
 
 #include "third_party/doctest.h"
 
-using nonstd::string_view;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("hashutil");
@@ -115,31 +114,31 @@ TEST_CASE("hash_multicommand_output_error_handling")
 
 TEST_CASE("check_for_temporal_macros")
 {
-  const string_view time_start =
+  const std::string_view time_start =
     "__TIME__\n"
     "int a;\n";
-  const string_view time_middle =
+  const std::string_view time_middle =
     "#define a __TIME__\n"
     "int a;\n";
-  const string_view time_end = "#define a __TIME__";
+  const std::string_view time_end = "#define a __TIME__";
 
-  const string_view date_start =
+  const std::string_view date_start =
     "__DATE__\n"
     "int ab;\n";
-  const string_view date_middle =
+  const std::string_view date_middle =
     "#define ab __DATE__\n"
     "int ab;\n";
-  const string_view date_end = "#define ab __DATE__";
+  const std::string_view date_end = "#define ab __DATE__";
 
-  const string_view timestamp_start =
+  const std::string_view timestamp_start =
     "__TIMESTAMP__\n"
     "int c;\n";
-  const string_view timestamp_middle =
+  const std::string_view timestamp_middle =
     "#define c __TIMESTAMP__\n"
     "int c;\n";
-  const string_view timestamp_end = "#define c __TIMESTAMP__";
+  const std::string_view timestamp_end = "#define c __TIMESTAMP__";
 
-  const string_view no_temporal =
+  const std::string_view no_temporal =
     "#define ab a__DATE__\n"
     "#define ab  __DATE__a\n"
     "#define ab A__DATE__\n"
@@ -162,7 +161,7 @@ TEST_CASE("check_for_temporal_macros")
     "#define ab __TIME __\n"
     "#define ab __TIME_ _\n";
 
-  const string_view temporal_at_avx_boundary =
+  const std::string_view temporal_at_avx_boundary =
     "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
     "__DATE__";
 

@@ -32,11 +32,10 @@
 
 #include <storage/Storage.hpp>
 
-#include "third_party/nonstd/string_view.hpp"
-
 #include <ctime>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 

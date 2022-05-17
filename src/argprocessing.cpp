@@ -35,7 +35,6 @@
 #include <cassert>
 
 using core::Statistic;
-using nonstd::string_view;
 
 namespace {
 
@@ -452,7 +451,7 @@ process_arg(const Context& ctx,
   // MSVC -Fo with no space.
   if (util::starts_with(args[i], "-Fo") && config.is_compiler_group_msvc()) {
     args_info.output_obj =
-      Util::make_relative_path(ctx, string_view(args[i]).substr(3));
+      Util::make_relative_path(ctx, std::string_view(args[i]).substr(3));
     return std::nullopt;
   }
 
@@ -520,7 +519,7 @@ process_arg(const Context& ctx,
       && config.compiler_type() != CompilerType::nvcc
       && config.compiler_type() != CompilerType::msvc) {
     args_info.output_obj =
-      Util::make_relative_path(ctx, string_view(args[i]).substr(2));
+      Util::make_relative_path(ctx, std::string_view(args[i]).substr(2));
     return std::nullopt;
   }
 
@@ -619,8 +618,8 @@ process_arg(const Context& ctx,
       state.dep_args.push_back(relpath);
       i++;
     } else {
-      auto arg_opt = string_view(args[i]).substr(0, 3);
-      auto option = string_view(args[i]).substr(3);
+      auto arg_opt = std::string_view(args[i]).substr(0, 3);
+      auto option = std::string_view(args[i]).substr(3);
       auto relpath = Util::make_relative_path(ctx, option);
       state.dep_args.push_back(FMT("{}{}", arg_opt, relpath));
     }
@@ -690,7 +689,7 @@ process_arg(const Context& ctx,
   }
 
   if (util::starts_with(args[i], "--sysroot=")) {
-    auto path = string_view(args[i]).substr(10);
+    auto path = std::string_view(args[i]).substr(10);
     auto relpath = Util::make_relative_path(ctx, path);
     state.common_args.push_back("--sysroot=" + relpath);
     return std::nullopt;
@@ -740,7 +739,7 @@ process_arg(const Context& ctx,
       args_info.generating_dependencies = true;
       state.dependency_filename_specified = true;
       args_info.output_dep =
-        Util::make_relative_path(ctx, string_view(args[i]).substr(8));
+        Util::make_relative_path(ctx, std::string_view(args[i]).substr(8));
       state.dep_args.push_back(args[i]);
       return std::nullopt;
     } else if (util::starts_with(args[i], "-Wp,-MMD,")
@@ -748,7 +747,7 @@ process_arg(const Context& ctx,
       args_info.generating_dependencies = true;
       state.dependency_filename_specified = true;
       args_info.output_dep =
-        Util::make_relative_path(ctx, string_view(args[i]).substr(9));
+        Util::make_relative_path(ctx, std::string_view(args[i]).substr(9));
       state.dep_args.push_back(args[i]);
       return std::nullopt;
     } else if (util::starts_with(args[i], "-Wp,-D")
@@ -938,8 +937,8 @@ process_arg(const Context& ctx,
     if (path_pos) {
       const std::string option = args[i].substr(0, *path_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-        const auto relpath =
-          Util::make_relative_path(ctx, string_view(args[i]).substr(*path_pos));
+        const auto relpath = Util::make_relative_path(
+          ctx, std::string_view(args[i]).substr(*path_pos));
         std::string new_option = option + relpath;
         if (compopt_affects_cpp_output(option)) {
           state.cpp_args.push_back(new_option);
@@ -1060,7 +1059,7 @@ handle_dependency_environment_variables(Context& ctx,
   if (dependencies.size() > 1) {
     // It's the "file target" form.
     ctx.args_info.dependency_target_specified = true;
-    string_view abspath_obj = dependencies[1];
+    std::string_view abspath_obj = dependencies[1];
     std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
     // Ensure that the compiler gets a relative path.
     std::string relpath_both = FMT("{} {}", args_info.output_dep, relpath_obj);
@@ -1129,7 +1128,7 @@ process_args(Context& ctx)
   }
 
   if (output_obj_by_source && !args_info.input_file.empty()) {
-    string_view extension;
+    std::string_view extension;
     if (state.found_S_opt) {
       extension = ".s";
     } else if (!ctx.config.is_compiler_group_msvc()) {
