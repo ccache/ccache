@@ -232,7 +232,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("storage", "get");
 
-  const auto path = primary.get(key, type);
+  auto path = primary.get(key, type);
   primary.increment_statistic(path ? core::Statistic::primary_storage_hit
                                    : core::Statistic::primary_storage_miss);
   if (path) {

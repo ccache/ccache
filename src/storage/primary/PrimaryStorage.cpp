@@ -353,10 +353,9 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
 
   const auto stats_file =
     FMT("{}/{}/stats", m_config.cache_dir(), level_string);
-  const auto counters =
-    StatsFile(stats_file).update([&counter_updates](auto& cs) {
-      cs.increment(counter_updates);
-    });
+  auto counters = StatsFile(stats_file).update([&counter_updates](auto& cs) {
+    cs.increment(counter_updates);
+  });
   if (!counters) {
     return std::nullopt;
   }
