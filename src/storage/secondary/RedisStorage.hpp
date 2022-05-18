@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,8 +20,7 @@
 
 #include <storage/secondary/SecondaryStorage.hpp>
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 class RedisStorage : public SecondaryStorage
 {
@@ -32,5 +31,4 @@ public:
   void redact_secrets(Backend::Params& params) const override;
 };
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

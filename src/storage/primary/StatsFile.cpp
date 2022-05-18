@@ -25,8 +25,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 StatsFile::StatsFile(const std::string& path) : m_path(path)
 {
@@ -90,5 +89,4 @@ StatsFile::update(
   return counters;
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

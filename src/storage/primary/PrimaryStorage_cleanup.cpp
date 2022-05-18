@@ -40,8 +40,7 @@
 
 using core::Statistic;
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 static void
 delete_file(const std::string& path,
@@ -278,5 +277,4 @@ PrimaryStorage::wipe_all(const ProgressReceiver& progress_receiver)
   for_each_level_1_subdir(m_config.cache_dir(), wipe_dir, progress_receiver);
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

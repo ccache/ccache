@@ -22,8 +22,7 @@
 #include <fmtmacros.hpp>
 #include <util/string.hpp>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 void
 for_each_level_1_subdir(const std::string& cache_dir,
@@ -73,5 +72,4 @@ get_level_1_files(const std::string& dir,
   return files;
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

@@ -35,8 +35,7 @@
 
 using core::Statistic;
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
@@ -404,5 +403,4 @@ PrimaryStorage::get_path_in_cache(const uint8_t level,
   return path;
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

@@ -45,8 +45,7 @@
 #include <cstdarg>
 #include <memory>
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 namespace {
 
@@ -338,5 +337,4 @@ RedisStorage::redact_secrets(Backend::Params& params) const
   }
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

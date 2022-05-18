@@ -47,8 +47,7 @@
 #include <string>
 #include <thread>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 namespace {
 
@@ -334,5 +333,4 @@ PrimaryStorage::recompress(const std::optional<int8_t> level,
   PRINT(stdout, "Size change:          {:>9s}\n", size_difference_str);
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

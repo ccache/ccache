@@ -31,8 +31,7 @@
 
 #include <string_view>
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 namespace {
 
@@ -294,5 +293,4 @@ HttpStorage::redact_secrets(Backend::Params& params) const
   }
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

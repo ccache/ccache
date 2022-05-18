@@ -24,8 +24,7 @@
 #include <optional>
 #include <string>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 class StatsFile
 {
@@ -46,5 +45,4 @@ private:
   const std::string m_path;
 };
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

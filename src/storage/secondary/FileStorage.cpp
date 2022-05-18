@@ -34,8 +34,7 @@
 
 #include <string_view>
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 namespace {
 
@@ -189,5 +188,4 @@ FileStorage::create_backend(const Backend::Params& params) const
   return std::make_unique<FileStorageBackend>(params);
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

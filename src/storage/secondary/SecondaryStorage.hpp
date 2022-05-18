@@ -31,8 +31,7 @@
 
 class Digest;
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 constexpr auto k_redacted_password = "********";
 const auto k_default_connect_timeout = std::chrono::milliseconds{100};
@@ -143,5 +142,4 @@ SecondaryStorage::Backend::Failed::failure() const
   return m_failure;
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary
