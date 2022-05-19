@@ -41,6 +41,17 @@ if(ZSTD_FROM_INTERNET)
 
   set(zstd_FOUND TRUE)
 else()
+  find_package(zstd QUIET CONFIG)
+  if(zstd_FOUND)
+    add_library(ZSTD::ZSTD INTERFACE IMPORTED)
+    if(TARGET zstd::libzstd_shared)
+      set_target_properties(ZSTD::ZSTD PROPERTIES INTERFACE_LINK_LIBRARIES zstd::libzstd_shared)
+    else()
+      set_target_properties(ZSTD::ZSTD PROPERTIES INTERFACE_LINK_LIBRARIES zstd::libzstd_static)
+    endif()
+    return()
+  endif()
+
   find_library(ZSTD_LIBRARY zstd)
   find_path(ZSTD_INCLUDE_DIR zstd.h)
 
