@@ -26,7 +26,7 @@ set(
   execute.cpp
   hashutil.cpp
   language.cpp
-  version.cpp
+  ${PROJECT_BINARY_DIR}/src/version.cpp
 )
 
 if(INODE_CACHE_SUPPORTED)
