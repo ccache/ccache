@@ -85,9 +85,7 @@ public:
     uint32_t st_reparse_tag;
   };
 #else
-  // Use of typedef needed to suppress a spurious 'declaration does not declare
-  // anything' warning in old GCC.
-  typedef struct ::stat stat_t; // NOLINT(modernize-use-using)
+  using stat_t = struct stat;
 #endif
 
   using dev_t = decltype(stat_t{}.st_dev);
