@@ -50,6 +50,13 @@ if(HIREDIS_FROM_INTERNET)
     PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/include>")
 else()
+  find_package(hiredis QUIET CONFIG)
+  if(hiredis_FOUND)
+    add_library(HIREDIS::HIREDIS INTERFACE IMPORTED)
+    set_target_properties(HIREDIS::HIREDIS PROPERTIES INTERFACE_LINK_LIBRARIES hiredis::hiredis)
+    return()
+  endif()
+
   find_package(PkgConfig)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(HIREDIS hiredis>=${hiredis_FIND_VERSION})
