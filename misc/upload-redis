@@ -34,6 +34,7 @@ for dirpath, dirnames, filenames in os.walk(ccache):
 filelist.sort()
 files = result = manifest = objects = 0
 size = 0
+batchsize = 0
 columns = os.get_terminal_size()[0]
 width = min(columns - 22, 100)
 bar = progress.bar.Bar(
@@ -61,6 +62,10 @@ for mtime, dirpath, filename, filesize in filelist:
                 objects = objects + 1
         files = files + 1
         size = size + filesize
+        batchsize = batchsize + filesize
+        if batchsize > 64 * 1024 * 1024:
+            pipe.execute()
+            batchsize = 0
     bar.next()
 pipe.execute()
 bar.finish()
