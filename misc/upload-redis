@@ -62,6 +62,7 @@ for mtime, dirpath, filename, filesize in filelist:
         files = files + 1
         size = size + filesize
     bar.next()
+pipe.execute()
 bar.finish()
 print(
     "%d files, %d result (%d manifest) = %d objects (%s)"
