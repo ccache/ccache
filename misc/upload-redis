@@ -58,7 +58,7 @@ for mtime, dirpath, filename, filesize in filelist:
             val = open(os.path.join(dirpath, filename), "rb").read() or None
             if val:
                 # print("%s: %s %d" % (key, ext, len(val)))
-                pipe.set(key, val)
+                pipe.setnx(key, val)
                 objects = objects + 1
         files = files + 1
         size = size + filesize
