@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.15)
+  cmake_policy(SET CMP0091 NEW) # Needed by CMAKE_MSVC_RUNTIME_LIBRARY
+endif()
+
 project(ccache LANGUAGES C CXX ASM ASM_MASM)
 if(MSVC)
   enable_language(ASM_MASM)
@@ -84,6 +88,18 @@ include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 
 #
+# Static link configuration
+#
+
+if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  option(STATIC_LINK "Link statically with system libraries" ON)
+endif()
+
+if(MSVC AND STATIC_LINK)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+#
 # Third party
 #
 set(HIREDIS_FROM_INTERNET_DEFAULT OFF)
@@ -112,10 +128,6 @@ endif()
 #
 include(CodeAnalysis)
 option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)
-
-if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  option(STATIC_LINK "Link statically with system libraries" ON)
-endif()
 
 #
 # Source code
