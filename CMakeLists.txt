@@ -26,25 +26,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # C++ error messages)
 #
 
-if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.8)
-   OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5)
+if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5)
+   OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8)
    OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
   message(
     FATAL_ERROR
     "The compiler you are using is too old, sorry.\n"
     "You need one listed here: https://ccache.dev/platform-compiler-language-support.html")
-endif()
-
-if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4)
-    OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6))
-  message(
-    WARNING
-    "The compiler you are using is rather old.\n"
-    "If anything goes wrong you might be better off with one listed here:"
-    " https://ccache.dev/platform-compiler-language-support.html")
-
-  # Warnings from old compilers are probably useless anyway.
-  option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 endif()
 
 #
