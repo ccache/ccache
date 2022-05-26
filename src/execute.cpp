@@ -151,7 +151,7 @@ win32execute(const char* path,
     TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
     args = Win32Util::argv_to_string(argv + 1, sh, true);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT("{} @{}", full_path, tmp_file.path);
+    args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;
     LOG("Arguments from {}", tmp_file.path);
   }
