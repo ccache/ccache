@@ -117,7 +117,8 @@ ResultRetriever::on_entry_start(uint8_t entry_number,
   } else if (dest_path == "/dev/null") {
     LOG_RAW("Not writing to /dev/null");
   } else if (raw_file) {
-    Util::clone_hard_link_or_copy_file(m_ctx, *raw_file, dest_path, false);
+    Util::clone_hard_link_or_copy_file(
+      m_ctx.config, *raw_file, dest_path, false);
 
     // Update modification timestamp to save the file from LRU cleanup (and, if
     // hard-linked, to make the object file newer than the source file).

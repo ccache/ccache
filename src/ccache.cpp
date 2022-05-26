@@ -1125,7 +1125,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     // stdout_path needs the proper cpp_extension for the compiler to do its
     // thing correctly.
     stdout_path = FMT("{}.{}", tmp_stdout.path, ctx.config.cpp_extension());
-    Util::hard_link(tmp_stdout.path, stdout_path);
+    Util::hard_link_or_copy(tmp_stdout.path, stdout_path);
     ctx.register_pending_tmp_file(stdout_path);
 
     TemporaryFile tmp_stderr(

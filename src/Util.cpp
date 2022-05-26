@@ -293,13 +293,14 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 }
 #endif // FILE_CLONING_SUPPORTED
 
-void
-clone_hard_link_or_copy_file(const Context& ctx,
-                             const std::string& source,
+static void
+clone_hard_link_or_copy_file(const std::string& source,
                              const std::string& dest,
+                             bool try_clone,
+                             bool try_hard_link,
                              bool via_tmp_file)
 {
-  if (ctx.config.file_clone()) {
+  if (try_clone) {
 #ifdef FILE_CLONING_SUPPORTED
     LOG("Cloning {} to {}", source, dest);
     try {
@@ -312,7 +313,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
     LOG("Not cloning {} to {} since it's unsupported", source, dest);
 #endif
   }
-  if (ctx.config.hard_link()) {
+  if (try_hard_link) {
     LOG("Hard linking {} to {}", source, dest);
     try {
       Util::hard_link(source, dest);
@@ -330,6 +331,16 @@ clone_hard_link_or_copy_file(const Context& ctx,
 
   LOG("Copying {} to {}", source, dest);
   copy_file(source, dest, via_tmp_file);
+}
+
+void
+clone_hard_link_or_copy_file(const Config& config,
+                             const std::string& source,
+                             const std::string& dest,
+                             bool via_tmp_file)
+{
+  clone_hard_link_or_copy_file(
+    source, dest, config.file_clone(), config.hard_link(), via_tmp_file);
 }
 
 size_t
@@ -781,6 +792,12 @@ hard_link(const std::string& oldpath, const std::string& newpath)
                       Win32Util::error_message(error));
   }
 #endif
+}
+
+void
+hard_link_or_copy(const std::string& oldpath, const std::string& newpath)
+{
+  return clone_hard_link_or_copy_file(oldpath, newpath, false, true, false);
 }
 
 std::optional<size_t>
