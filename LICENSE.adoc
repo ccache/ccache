@@ -577,8 +577,8 @@ SOFTWARE.
 === src/third_party/nonstd/expected.hpp
 
 This is the single header version of
-https://github.com/martinmoene/expected-lite[expected-lite] revision
-3abf06821d489d56aa9c60eccf8aab70d67d158b with the following license:
+https://github.com/martinmoene/expected-lite[expected-lite] 0.6.0 with the
+following license:
 
 ----
 Copyright (c) 2016-2020 Martin Moene

@@ -101,10 +101,11 @@
 #define nsel_CPP14_OR_GREATER  ( nsel_CPLUSPLUS >= 201402L )
 #define nsel_CPP17_OR_GREATER  ( nsel_CPLUSPLUS >= 201703L )
 #define nsel_CPP20_OR_GREATER  ( nsel_CPLUSPLUS >= 202000L )
+#define nsel_CPP23_OR_GREATER  ( nsel_CPLUSPLUS >= 202300L )
 
-// Use C++20 std::expected if available and requested:
+// Use C++23 std::expected if available and requested:
 
-#if nsel_CPP20_OR_GREATER && defined(__has_include )
+#if nsel_CPP23_OR_GREATER && defined(__has_include )
 # if __has_include( <expected> )
 #  define nsel_HAVE_STD_EXPECTED  1
 # else
