@@ -70,6 +70,10 @@ jobs:
             compiler: clang
             version: "12"
 
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: "11"
+
           - os: macOS-10.15
             compiler: xcode
             version: "10.3"
