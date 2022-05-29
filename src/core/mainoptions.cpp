@@ -113,7 +113,7 @@ Common options:
                                in human-readable format
     -s, --show-stats           show summary of configuration and statistics
                                counters in human-readable format (use
-                               -v/--verbose once of twice for more details)
+                               -v/--verbose once or twice for more details)
     -v, --verbose              increase verbosity
     -z, --zero-stats           zero statistics counters
 
