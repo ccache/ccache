@@ -732,7 +732,8 @@ process_arg(const Context& ctx,
   if (util::starts_with(args[i], "-Wp,")) {
     if (args[i].find(",-P,") != std::string::npos
         || util::ends_with(args[i], ",-P")) {
-      // -P together with other preprocessor options is just too hard.
+      LOG("-P together with other preprocessor options is too hard: {}",
+          args[i]);
       return Statistic::unsupported_compiler_option;
     } else if (util::starts_with(args[i], "-Wp,-MD,")
                && args[i].find(',', 8) == std::string::npos) {
