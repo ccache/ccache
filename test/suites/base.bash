@@ -1324,6 +1324,30 @@ EOF
     expect_stat called_for_preprocessing 1
 
     # -------------------------------------------------------------------------
+    if $COMPILER -c -Wa,-a test1.c >&/dev/null; then
+        TEST "-Wa,-a"
+
+        $CCACHE_COMPILE -c -Wa,-a test1.c >first.lst
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -Wa,-a test1.c >second.lst
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+        expect_equal_content first.lst second.lst
+    fi
+
+    # -------------------------------------------------------------------------
+    if $COMPILER -c -Wa,-a=test1.lst test1.c >&/dev/null; then
+        TEST "-Wa,-a=file"
+
+        $CCACHE_COMPILE -c -Wa,-a=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 0
+        expect_stat unsupported_compiler_option 1
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "-Wp,-P"
 
     $CCACHE_COMPILE -c -Wp,-P test1.c

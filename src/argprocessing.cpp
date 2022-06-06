@@ -404,6 +404,13 @@ process_arg(const Context& ctx,
     ++i;
   }
 
+  if (util::starts_with(args[i], "-Wa,")
+      && args[i].find('=') != std::string::npos) {
+    LOG("Assembler listing file (-Wa,...=file) is currently not supported: {}",
+        args[i]);
+    return Statistic::unsupported_compiler_option;
+  }
+
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_compiler_output(args[i])) {
     state.compiler_only_args.push_back(args[i]);
