@@ -120,9 +120,7 @@ inline bool
 ends_with(const std::string_view string, const std::string_view suffix)
 {
   return string.length() >= suffix.length()
-         && string.compare(
-              string.length() - suffix.length(), std::string_view::npos, suffix)
-              == 0;
+         && string.substr(string.length() - suffix.length()) == suffix;
 }
 
 template<typename T>
