@@ -417,7 +417,7 @@ Result::Writer::write_raw_file_entry(const std::string& path,
   const auto raw_file = get_raw_file_path(m_result_path, entry_number);
   const auto old_stat = Stat::stat(raw_file);
   try {
-    Util::clone_hard_link_or_copy_file(m_ctx.config, path, raw_file, true);
+    Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
   } catch (core::Error& e) {
     throw core::Error(
       "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
