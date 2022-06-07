@@ -184,10 +184,8 @@ const char* get_hostname();
 // resolve to the same file as `path`.
 std::string get_relative_path(std::string_view dir, std::string_view path);
 
-#ifndef _WIN32
 // Get process umask.
 mode_t get_umask();
-#endif
 
 // Hard-link `oldpath` to `newpath`. Throws `core::Error` on error.
 void hard_link(const std::string& oldpath, const std::string& newpath);

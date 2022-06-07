@@ -167,18 +167,22 @@ SUITE_secondary_file() {
     # -------------------------------------------------------------------------
     TEST "umask"
 
-    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=022"
+    export CCACHE_UMASK=042
+    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=024"
     rm -rf secondary
     $CCACHE_COMPILE -c test.c
-    expect_perm secondary drwxr-xr-x
-    expect_perm secondary/CACHEDIR.TAG -rw-r--r--
+    expect_perm secondary drwxr-x-wx # 777 & 024
+    expect_perm secondary/CACHEDIR.TAG -rw-r---w- # 666 & 024
+    result_file=$(find $CCACHE_DIR -name '*R')
+    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
-    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=000"
+    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=026"
     $CCACHE -C >/dev/null
     rm -rf secondary
     $CCACHE_COMPILE -c test.c
-    expect_perm secondary drwxrwxrwx
-    expect_perm secondary/CACHEDIR.TAG -rw-rw-rw-
+    expect_perm secondary drwxr-x--x # 777 & 026
+    expect_perm secondary/CACHEDIR.TAG -rw-r----- # 666 & 026
 
     # -------------------------------------------------------------------------
     TEST "Sharding"
