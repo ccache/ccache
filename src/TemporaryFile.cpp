@@ -21,25 +21,33 @@
 #include "Util.hpp"
 
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
+
+#include <cstdlib>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #ifdef _WIN32
 #  include "third_party/win32/mktemp.h"
 #endif
 
-TemporaryFile::TemporaryFile(std::string_view path_prefix)
-  : path(std::string(path_prefix) + ".XXXXXX")
+TemporaryFile::TemporaryFile(std::string_view path_prefix,
+                             std::string_view suffix)
+  : path(FMT("{}.XXXXXX{}", path_prefix, suffix))
 {
   Util::ensure_dir_exists(Util::dir_name(path));
 #ifdef _WIN32
-  // MSVC lacks mkstemp() and Mingw-w64's implementation[1] is problematic, as
+  // MSVC lacks mkstemps() and Mingw-w64's implementation[1] is problematic, as
   // it can reuse the names of recently-deleted files unless the caller
   // remembers to call srand().
 
   // [1]: <https://github.com/Alexpux/mingw-w64/blob/
   // d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c>
-  fd = Fd(bsd_mkstemp(&path[0]));
+  fd = Fd(bsd_mkstemps(&path[0], suffix.length()));
 #else
-  fd = Fd(mkstemp(&path[0]));
+  fd = Fd(mkstemps(&path[0], suffix.length()));
 #endif
   if (!fd) {
     throw core::Fatal(
