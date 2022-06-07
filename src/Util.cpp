@@ -747,20 +747,13 @@ get_relative_path(string_view dir, string_view path)
   return result.empty() ? "." : result;
 }
 
-#ifndef _WIN32
 mode_t
 get_umask()
 {
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
-  }
+  const mode_t mask = umask(0);
+  umask(mask);
   return mask;
 }
-#endif
 
 void
 hard_link(const std::string& oldpath, const std::string& newpath)
