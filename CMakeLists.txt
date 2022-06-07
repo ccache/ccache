@@ -83,12 +83,27 @@ include(GenerateVersionFile)
 # Static link configuration
 #
 
-if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  option(STATIC_LINK "Link statically with system libraries" ON)
+set(STATIC_LINK_DEFAULT OFF)
+if(WIN32)
+  set(STATIC_LINK_DEFAULT ON)
 endif()
 
-if(MSVC AND STATIC_LINK)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+option(STATIC_LINK "Prefer linking libraries statically" ${STATIC_LINK_DEFAULT})
+
+if(STATIC_LINK)
+  list(INSERT CMAKE_FIND_LIBRARY_SUFFIXES 0 "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  set(CMAKE_LINK_SEARCH_START_STATIC ON)
+
+  # Link MSVC runtime statically.
+  if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # Link MINGW runtime statically.
+  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
+  # Link WIN32 clang libs statically.
+  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    list(APPEND CCACHE_EXTRA_LIBS -Wl,-Bstatic -lc++ -lunwind -Wl,-Bdynamic)
+  endif()
 endif()
 
 #
