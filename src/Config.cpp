@@ -461,6 +461,7 @@ compiler_type_to_string(CompilerType compiler_type)
 
     CASE(clang);
     CASE(gcc);
+    CASE(icl);
     CASE(msvc);
     CASE(nvcc);
     CASE(other);

@@ -251,6 +251,8 @@ guess_compiler(std::string_view path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != std::string_view::npos) {
     return CompilerType::nvcc;
+  } else if (name == "icl") {
+    return CompilerType::icl;
   } else if (name == "cl") {
     return CompilerType::msvc;
   } else {
