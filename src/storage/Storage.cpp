@@ -228,34 +228,42 @@ Storage::finalize()
 }
 
 std::optional<std::string>
-Storage::get(const Digest& key, const core::CacheEntryType type)
+Storage::get(const Digest& key,
+             const core::CacheEntryType type,
+             const Mode mode)
 {
   MTR_SCOPE("storage", "get");
 
-  auto path = primary.get(key, type);
-  primary.increment_statistic(path ? core::Statistic::primary_storage_hit
-                                   : core::Statistic::primary_storage_miss);
-  if (path) {
-    if (m_config.reshare()) {
-      // Temporary optimization until primary storage API has been refactored to
-      // pass data via memory instead of files.
-      const bool should_put_in_secondary_storage =
-        std::any_of(m_secondary_storages.begin(),
-                    m_secondary_storages.end(),
-                    [](const auto& entry) { return !entry->config.read_only; });
-      if (should_put_in_secondary_storage) {
-        std::string value;
-        try {
-          value = Util::read_file(*path);
-        } catch (const core::Error& e) {
-          LOG("Failed to read {}: {}", *path, e.what());
-          return path; // Don't indicate failure since primary storage was OK.
+  if (mode != Mode::secondary_only) {
+    const auto path = primary.get(key, type);
+    primary.increment_statistic(path ? core::Statistic::primary_storage_hit
+                                     : core::Statistic::primary_storage_miss);
+    if (path) {
+      if (m_config.reshare()) {
+        // Temporary optimization until primary storage API has been refactored
+        // to pass data via memory instead of files.
+        const bool should_put_in_secondary_storage = std::any_of(
+          m_secondary_storages.begin(),
+          m_secondary_storages.end(),
+          [](const auto& entry) { return !entry->config.read_only; });
+        if (should_put_in_secondary_storage) {
+          std::string value;
+          try {
+            value = Util::read_file(*path);
+          } catch (const core::Error& e) {
+            LOG("Failed to read {}: {}", *path, e.what());
+            return path; // Don't indicate failure since primary storage was OK.
+          }
+          put_in_secondary_storage(key, value, true);
         }
-        put_in_secondary_storage(key, value, true);
       }
-    }
 
-    return path;
+      return path;
+    }
+  }
+
+  if (mode == Mode::primary_only) {
+    return std::nullopt;
   }
 
   const auto value_and_share_hits = get_from_secondary_storage(key);

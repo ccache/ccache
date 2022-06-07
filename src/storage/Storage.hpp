@@ -51,7 +51,10 @@ public:
   primary::PrimaryStorage primary;
 
   // Returns a path to a file containing the value.
-  std::optional<std::string> get(const Digest& key, core::CacheEntryType type);
+  enum class Mode { secondary_fallback, secondary_only, primary_only };
+  std::optional<std::string> get(const Digest& key,
+                                 core::CacheEntryType type,
+                                 const Mode mode = Mode::secondary_fallback);
 
   bool put(const Digest& key,
            core::CacheEntryType type,

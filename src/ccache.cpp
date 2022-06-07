@@ -1791,8 +1791,9 @@ calculate_result_and_manifest_key(Context& ctx,
 
     manifest_key = hash.digest();
 
-    const auto manifest_path =
-      ctx.storage.get(*manifest_key, core::CacheEntryType::manifest);
+    auto manifest_path = ctx.storage.get(*manifest_key,
+                                         core::CacheEntryType::manifest,
+                                         storage::Storage::Mode::primary_only);
 
     if (manifest_path) {
       LOG("Looking for result key in {}", *manifest_path);
@@ -1808,6 +1809,30 @@ calculate_result_and_manifest_key(Context& ctx,
         LOG_RAW("Got result key from manifest");
       } else {
         LOG_RAW("Did not find result key in manifest");
+      }
+    }
+    // Check secondary storage if not found in primary
+    if (!result_key) {
+      manifest_path = ctx.storage.get(*manifest_key,
+                                      core::CacheEntryType::manifest,
+                                      storage::Storage::Mode::secondary_only);
+      if (manifest_path) {
+        LOG("Looking for result key in fetched secondary manifest {}",
+            *manifest_path);
+        MTR_BEGIN("manifest", "secondary_manifest_get");
+        try {
+          const auto manifest = read_manifest(*manifest_path);
+          result_key = manifest.look_up_result_digest(ctx);
+        } catch (const core::Error& e) {
+          LOG(
+            "Failed to look up result key in {}: {}", *manifest_path, e.what());
+        }
+        MTR_END("manifest", "secondary_manifest_get");
+        if (result_key) {
+          LOG_RAW("Got result key from fetched secondary manifest");
+        } else {
+          LOG_RAW("Did not find result key in fetched secondary manifest");
+        }
       }
     }
   } else if (ctx.args_info.arch_args.empty()) {
