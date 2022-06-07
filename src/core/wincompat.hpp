@@ -75,9 +75,13 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 #  define NOMINMAX 1
 #  define WIN32_NO_STATUS
 // clang-format off
-#  include <windows.h>
-#  include <bcrypt.h> // NTSTATUS
 #  include <winsock2.h> // struct timeval
+// windows must be included after winsock2
+// https://stackoverflow.com/questions/1372480/c-redefinition-header-files-winsock2-h
+#  include <windows.h>
+//  bccrypt must go after windows.h
+// https://stackoverflow.com/questions/57472787/compile-errors-when-using-c-and-bcrypt-header
+#  include <bcrypt.h> // NTSTATUS
 // clang-format on
 #  undef WIN32_NO_STATUS
 #  include <ntstatus.h>
