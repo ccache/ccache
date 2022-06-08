@@ -98,6 +98,13 @@ using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace {
 
+// Process umask, read and written by get_umask and set_umask.
+mode_t g_umask = [] {
+  const mode_t mask = umask(0);
+  umask(mask);
+  return mask;
+}();
+
 // Search for the first match of the following regular expression:
 //
 //   \x1b\[[\x30-\x3f]*[\x20-\x2f]*[Km]
@@ -741,9 +748,7 @@ get_relative_path(std::string_view dir, std::string_view path)
 mode_t
 get_umask()
 {
-  const mode_t mask = umask(0);
-  umask(mask);
-  return mask;
+  return g_umask;
 }
 
 void
@@ -1293,6 +1298,13 @@ set_cloexec_flag(int fd)
 #else
   (void)fd;
 #endif
+}
+
+mode_t
+set_umask(mode_t mask)
+{
+  g_umask = mask;
+  return umask(mask);
 }
 
 void

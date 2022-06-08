@@ -341,6 +341,9 @@ void send_to_fd(const Context& ctx, const std::string& text, int fd);
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
 void set_cloexec_flag(int fd);
 
+// Set process umask. Returns the previous mask.
+mode_t set_umask(mode_t mask);
+
 // Set environment variable `name` to `value`.
 void setenv(const std::string& name, const std::string& value);
 

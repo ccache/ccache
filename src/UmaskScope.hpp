@@ -39,7 +39,7 @@ inline UmaskScope::UmaskScope(std::optional<mode_t> new_umask)
 {
 #ifndef _WIN32
   if (new_umask) {
-    m_saved_umask = umask(*new_umask);
+    m_saved_umask = Util::set_umask(*new_umask);
   }
 #else
   (void)new_umask;
@@ -55,7 +55,7 @@ inline UmaskScope::~UmaskScope()
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #  endif
-    umask(*m_saved_umask);
+    Util::set_umask(*m_saved_umask);
 #  if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic pop
 #  endif
