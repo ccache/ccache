@@ -64,12 +64,6 @@ extern "C" {
 #  include <sys/time.h>
 #endif
 
-#ifdef HAVE_UTIME_H
-#  include <utime.h>
-#elif defined(HAVE_SYS_UTIME_H)
-#  include <sys/utime.h>
-#endif
-
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
@@ -1497,16 +1491,6 @@ unsetenv(const std::string& name)
   ::unsetenv(name.c_str());
 #else
   putenv(strdup(name.c_str())); // Leak to environment.
-#endif
-}
-
-void
-update_mtime(const std::string& path)
-{
-#ifdef HAVE_UTIMES
-  utimes(path.c_str(), nullptr);
-#else
-  utime(path.c_str(), nullptr);
 #endif
 }
 

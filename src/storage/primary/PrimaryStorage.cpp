@@ -196,7 +196,7 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
     "Retrieved {} from primary storage ({})", key.to_string(), cache_file.path);
 
   // Update modification timestamp to save file from LRU cleanup.
-  Util::update_mtime(cache_file.path);
+  util::set_timestamps(cache_file.path);
   return cache_file.path;
 }
 
@@ -310,7 +310,7 @@ PrimaryStorage::clean_internal_tempdir()
     return;
   }
 
-  Util::update_mtime(m_config.cache_dir());
+  util::set_timestamps(m_config.cache_dir());
 
   const std::string& temp_dir = m_config.temporary_dir();
   if (!Stat::lstat(temp_dir)) {

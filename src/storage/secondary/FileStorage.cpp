@@ -108,7 +108,7 @@ FileStorageBackend::get(const Digest& key)
   if (m_update_mtime) {
     // Update modification timestamp for potential LRU cleanup by some external
     // mechanism.
-    Util::update_mtime(path);
+    util::set_timestamps(path);
   }
 
   try {
