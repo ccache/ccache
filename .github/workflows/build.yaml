@@ -24,14 +24,6 @@ jobs:
         config:
           - os: ubuntu-18.04
             compiler: gcc
-            version: "7"
-
-          - os: ubuntu-18.04
-            compiler: gcc
-            version: "8"
-
-          - os: ubuntu-18.04
-            compiler: gcc
             version: "9"
 
           - os: ubuntu-20.04
@@ -73,10 +65,6 @@ jobs:
           - os: ubuntu-22.04
             compiler: gcc
             version: "11"
-
-          - os: macOS-10.15
-            compiler: xcode
-            version: "10.3"
 
           - os: macOS-10.15
             compiler: xcode
