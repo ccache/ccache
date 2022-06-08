@@ -35,6 +35,7 @@
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <storage/primary/StatsFile.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 #include <third_party/fmt/core.h>
@@ -187,15 +188,16 @@ recompress_file(RecompressionStatistics& statistics,
   writer->finalize();
 
   file.close();
-
   atomic_new_file.commit();
-  const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
+  // Restore mtime/atime to keep cache LRU cleanup working as expected:
+  util::set_timestamps(cache_file.path(), old_stat.mtim(), old_stat.atim());
+
+  const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
   StatsFile(stats_file).update([=](auto& cs) {
     cs.increment(core::Statistic::cache_size_kibibyte,
                  Util::size_change_kibibyte(old_stat, new_stat));
   });
-
   statistics.update(content_size, old_stat.size(), new_stat.size(), 0);
 
   LOG("Recompression of {} done", cache_file.path());
