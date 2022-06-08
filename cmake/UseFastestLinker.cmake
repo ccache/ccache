@@ -5,6 +5,11 @@ if(NOT CCACHE_DEV_MODE)
   return()
 endif()
 
+if(DISABLE_FASTEST_LINKER)
+  message(STATUS "Not probing for fastest linker")
+  return()
+endif()
+
 if(MSVC)
   message(STATUS "Using standard linker for MSVC")
   return()
