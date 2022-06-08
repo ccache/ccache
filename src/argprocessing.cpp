@@ -249,16 +249,17 @@ process_profiling_option(const Context& ctx,
   return true;
 }
 
+// Returns std::nullopt if the option wasn't recognized, otherwise the error
+// code (with Statistic::none for "no error").
 std::optional<Statistic>
-process_arg(const Context& ctx,
-            ArgsInfo& args_info,
-            Config& config,
-            Args& args,
-            size_t& args_index,
-            ArgumentProcessingState& state)
+process_option_arg(const Context& ctx,
+                   ArgsInfo& args_info,
+                   Config& config,
+                   Args& args,
+                   size_t& args_index,
+                   ArgumentProcessingState& state)
 {
   size_t& i = args_index;
-
   // The user knows best: just swallow the next arg.
   if (args[i] == "--ccache-skip") {
     i++;
@@ -267,7 +268,7 @@ process_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   bool changed_from_slash = false;
@@ -314,7 +315,7 @@ process_arg(const Context& ctx,
 
     args.replace(i, *file_args);
     i--;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Handle cuda "-optf" and "--options-file" argument.
@@ -338,7 +339,7 @@ process_arg(const Context& ctx,
       args.insert(i + 1, *file_args);
     }
 
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // These are always too hard.
@@ -371,7 +372,7 @@ process_arg(const Context& ctx,
     state.common_args.push_back(args[i]);
     state.common_args.push_back(args[i + 1]);
     ++i;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Handle -arch options.
@@ -381,7 +382,7 @@ process_arg(const Context& ctx,
     if (args_info.arch_args.size() == 2) {
       config.set_run_second_cpp(true);
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Some arguments that clang passes directly to cc1 (related to precompiled
@@ -421,11 +422,11 @@ process_arg(const Context& ctx,
       state.compiler_only_args.push_back(args[i + 1]);
       ++i;
     }
-    return std::nullopt;
+    return Statistic::none;
   }
   if (compopt_prefix_affects_compiler_output(args[i])) {
     state.compiler_only_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Modules are handled on demand as necessary in the background, so there is
@@ -452,28 +453,28 @@ process_arg(const Context& ctx,
   // We must have -c.
   if (args[i] == "-c") {
     state.found_c_opt = true;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // MSVC -Fo with no space.
   if (util::starts_with(args[i], "-Fo") && config.is_compiler_group_msvc()) {
     args_info.output_obj =
       Util::make_relative_path(ctx, std::string_view(args[i]).substr(3));
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // when using nvcc with separable compilation, -dc implies -c
   if ((args[i] == "-dc" || args[i] == "--device-c")
       && config.compiler_type() == CompilerType::nvcc) {
     state.found_dc_opt = true;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // -S changes the default extension.
   if (args[i] == "-S") {
     state.common_args.push_back(args[i]);
     state.found_S_opt = true;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-x")) {
@@ -483,7 +484,7 @@ process_arg(const Context& ctx,
       // language specification. (GCC's "-x" language argument is always
       // lowercase.)
       state.common_args.push_back(args[i]);
-      return std::nullopt;
+      return Statistic::none;
     }
 
     // Special handling for -x: remember the last specified language before the
@@ -497,14 +498,14 @@ process_arg(const Context& ctx,
         state.explicit_language = args[i + 1];
       }
       i++;
-      return std::nullopt;
+      return Statistic::none;
     }
 
     DEBUG_ASSERT(args[i].length() >= 3);
     if (args_info.input_file.empty()) {
       state.explicit_language = args[i].substr(2);
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // We need to work out where the output was meant to go.
@@ -515,7 +516,7 @@ process_arg(const Context& ctx,
     }
     args_info.output_obj = Util::make_relative_path(ctx, args[i + 1]);
     i++;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Alternate form of -o with no space. Nvcc does not support this.
@@ -527,7 +528,7 @@ process_arg(const Context& ctx,
       && config.compiler_type() != CompilerType::msvc) {
     args_info.output_obj =
       Util::make_relative_path(ctx, std::string_view(args[i]).substr(2));
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-fdebug-prefix-map=")
@@ -535,7 +536,7 @@ process_arg(const Context& ctx,
     std::string map = args[i].substr(args[i].find('=') + 1);
     args_info.debug_prefix_maps.push_back(map);
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Debugging is handled specially, so that we know if we can strip line
@@ -547,12 +548,12 @@ process_arg(const Context& ctx,
       // Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
       // debug info on level 2.
       args_info.generating_debuginfo = true;
-      return std::nullopt;
+      return Statistic::none;
     }
 
     if (util::starts_with(args[i], "-gz")) {
       // -gz[=type] neither disables nor enables debug info.
-      return std::nullopt;
+      return Statistic::none;
     }
 
     char last_char = args[i].back();
@@ -569,7 +570,7 @@ process_arg(const Context& ctx,
         args_info.seen_split_dwarf = true;
       }
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // These options require special handling, because they behave differently
@@ -579,7 +580,7 @@ process_arg(const Context& ctx,
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-MF")) {
@@ -607,7 +608,7 @@ process_arg(const Context& ctx,
     } else {
       state.dep_args.push_back("-MF" + args_info.output_dep);
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if ((util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT"))
@@ -630,7 +631,7 @@ process_arg(const Context& ctx,
       auto relpath = Util::make_relative_path(ctx, option);
       state.dep_args.push_back(FMT("{}{}", arg_opt, relpath));
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // MSVC -MD[d], -MT[d] and -LT[d] options are something different than GCC's
@@ -641,25 +642,25 @@ process_arg(const Context& ctx,
     // These affect compiler but also #define some things.
     state.cpp_args.push_back(args[i]);
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-fprofile-arcs") {
     args_info.profile_arcs = true;
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-ftest-coverage") {
     args_info.generating_coverage = true;
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-fstack-usage") {
     args_info.generating_stackusage = true;
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // -Zs is MSVC's -fsyntax-only equivalent
@@ -667,7 +668,7 @@ process_arg(const Context& ctx,
     args_info.expect_output_obj = false;
     state.compiler_only_args.push_back(args[i]);
     state.found_syntax_only = true;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "--coverage"      // = -fprofile-arcs -ftest-coverage
@@ -675,7 +676,7 @@ process_arg(const Context& ctx,
     args_info.profile_arcs = true;
     args_info.generating_coverage = true;
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-fprofile-")
@@ -686,20 +687,20 @@ process_arg(const Context& ctx,
       return Statistic::unsupported_compiler_option;
     }
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-fsanitize-blacklist=")) {
     args_info.sanitize_blacklists.emplace_back(args[i].substr(21));
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "--sysroot=")) {
     auto path = std::string_view(args[i]).substr(10);
     auto relpath = Util::make_relative_path(ctx, path);
     state.common_args.push_back("--sysroot=" + relpath);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Alternate form of specifying sysroot without =
@@ -712,7 +713,7 @@ process_arg(const Context& ctx,
     auto relpath = Util::make_relative_path(ctx, args[i + 1]);
     state.common_args.push_back(relpath);
     i++;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Alternate form of specifying target without =
@@ -724,7 +725,7 @@ process_arg(const Context& ctx,
     state.common_args.push_back(args[i]);
     state.common_args.push_back(args[i + 1]);
     i++;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-P" || args[i] == "-Wp,-P") {
@@ -733,7 +734,7 @@ process_arg(const Context& ctx,
     state.compiler_only_args.push_back(args[i]);
     LOG("{} used; not compiling preprocessed code", args[i]);
     config.set_run_second_cpp(true);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-Wp,")) {
@@ -749,7 +750,7 @@ process_arg(const Context& ctx,
       args_info.output_dep =
         Util::make_relative_path(ctx, std::string_view(args[i]).substr(8));
       state.dep_args.push_back(args[i]);
-      return std::nullopt;
+      return Statistic::none;
     } else if (util::starts_with(args[i], "-Wp,-MMD,")
                && args[i].find(',', 9) == std::string::npos) {
       args_info.generating_dependencies = true;
@@ -757,12 +758,12 @@ process_arg(const Context& ctx,
       args_info.output_dep =
         Util::make_relative_path(ctx, std::string_view(args[i]).substr(9));
       state.dep_args.push_back(args[i]);
-      return std::nullopt;
+      return Statistic::none;
     } else if (util::starts_with(args[i], "-Wp,-D")
                && args[i].find(',', 6) == std::string::npos) {
       // Treat it like -D.
       state.cpp_args.push_back(args[i].substr(4));
-      return std::nullopt;
+      return Statistic::none;
     } else if (args[i] == "-Wp,-MP"
                || (args[i].size() > 8 && util::starts_with(args[i], "-Wp,-M")
                    && args[i][7] == ','
@@ -771,7 +772,7 @@ process_arg(const Context& ctx,
                    && args[i].find(',', 8) == std::string::npos)) {
       // TODO: Make argument to MF/MQ/MT relative.
       state.dep_args.push_back(args[i]);
-      return std::nullopt;
+      return Statistic::none;
     } else if (config.direct_mode()) {
       // -Wp, can be used to pass too hard options to the preprocessor.
       // Hence, disable direct mode.
@@ -781,18 +782,18 @@ process_arg(const Context& ctx,
 
     // Any other -Wp,* arguments are only relevant for the preprocessor.
     state.cpp_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-MP") {
     state.dep_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Input charset needs to be handled specially.
   if (util::starts_with(args[i], "-finput-charset=")) {
     state.input_charset_option = args[i];
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "--serialize-diagnostics") {
@@ -803,7 +804,7 @@ process_arg(const Context& ctx,
     args_info.generating_diagnostics = true;
     args_info.output_dia = Util::make_relative_path(ctx, args[i + 1]);
     i++;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (config.compiler_type() == CompilerType::gcc
@@ -831,42 +832,42 @@ process_arg(const Context& ctx,
       || args[i] == "-fdiagnostics-color=always") {
     state.color_diagnostics = ColorDiagnostics::always;
     state.compiler_only_args_no_hash.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
   if (args[i] == "-fno-color-diagnostics" || args[i] == "-fno-diagnostics-color"
       || args[i] == "-fdiagnostics-color=never") {
     state.color_diagnostics = ColorDiagnostics::never;
     state.compiler_only_args_no_hash.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
   if (args[i] == "-fdiagnostics-color=auto") {
     state.color_diagnostics = ColorDiagnostics::automatic;
     state.compiler_only_args_no_hash.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // GCC
   if (args[i] == "-fdirectives-only") {
     state.found_directives_only = true;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Clang
   if (args[i] == "-frewrite-includes") {
     state.found_rewrite_includes = true;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-fno-pch-timestamp") {
     args_info.fno_pch_timestamp = true;
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-fpch-preprocess") {
     state.found_fpch_preprocess = true;
     state.common_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (config.sloppiness().is_enabled(core::Sloppy::clang_index_store)
@@ -878,7 +879,7 @@ process_arg(const Context& ctx,
     if (i <= args.size() - 1) {
       LOG("Skipping argument -index-store-path {}", args[i]);
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (args[i] == "-frecord-gcc-switches") {
@@ -888,7 +889,7 @@ process_arg(const Context& ctx,
   // MSVC -u is something else than GCC -u, handle it specially.
   if (args[i] == "-u" && ctx.config.is_compiler_group_msvc()) {
     state.cpp_args.push_back(args[i]);
-    return std::nullopt;
+    return Statistic::none;
   }
 
   if (compopt_takes_path(args[i])) {
@@ -922,7 +923,7 @@ process_arg(const Context& ctx,
     dest_args.push_back(relpath);
 
     i += next;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Detect PCH for options with concatenated path (relative or absolute).
@@ -953,7 +954,7 @@ process_arg(const Context& ctx,
         } else {
           state.common_args.push_back(new_option);
         }
-        return std::nullopt;
+        return Statistic::none;
       }
     }
   }
@@ -974,7 +975,7 @@ process_arg(const Context& ctx,
     }
 
     i++;
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // Other options.
@@ -985,13 +986,33 @@ process_arg(const Context& ctx,
     } else {
       state.common_args.push_back(args[i]);
     }
-    return std::nullopt;
+    return Statistic::none;
   }
 
   // It was not a known option.
   if (changed_from_slash) {
     args[i][0] = '/';
   }
+
+  return std::nullopt;
+}
+
+Statistic
+process_arg(const Context& ctx,
+            ArgsInfo& args_info,
+            Config& config,
+            Args& args,
+            size_t& args_index,
+            ArgumentProcessingState& state)
+{
+  const auto processed =
+    process_option_arg(ctx, args_info, config, args, args_index, state);
+  if (processed) {
+    const auto& error = *processed;
+    return error;
+  }
+
+  size_t& i = args_index;
 
   // If an argument isn't a plain file then assume its an option, not an input
   // file. This allows us to cope better with unusual compiler options.
@@ -1003,7 +1024,7 @@ process_arg(const Context& ctx,
     if (!st || !st.is_regular()) {
       LOG("{} is not a regular file, not considering as input file", args[i]);
       state.common_args.push_back(args[i]);
-      return std::nullopt;
+      return Statistic::none;
     }
   }
 
@@ -1029,7 +1050,7 @@ process_arg(const Context& ctx,
   args_info.normalized_input_file =
     Util::normalize_concrete_absolute_path(args_info.input_file);
 
-  return std::nullopt;
+  return Statistic::none;
 }
 
 void
@@ -1110,7 +1131,7 @@ process_args(Context& ctx)
   for (size_t i = 1; i < args.size(); i++) {
     const auto error =
       process_arg(ctx, ctx.args_info, ctx.config, args, i, state);
-    if (error && !argument_error) {
+    if (error != Statistic::none && !argument_error) {
       argument_error = error;
     }
   }
