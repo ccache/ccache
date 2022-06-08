@@ -141,7 +141,7 @@ jobs:
       matrix:
         config:
           - name: Linux GCC debug + in source + tracing
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             CC: gcc
             CXX: g++
             ENABLE_CACHE_CLEANUP_TESTS: 1
@@ -151,7 +151,7 @@ jobs:
             apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
 
           - name: Linux GCC 32-bit
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             CC: gcc
             CXX: g++
             CFLAGS: -m32 -g -O2
@@ -159,7 +159,7 @@ jobs:
             LDFLAGS: -m32
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
+            apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-10-dev
 
           - name: Linux GCC CUDA
             os: ubuntu-20.04
@@ -171,7 +171,7 @@ jobs:
             apt_get: elfutils libzstd-dev
 
           - name: Linux MinGW 32-bit
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             CC: i686-w64-mingw32-gcc-posix
             CXX: i686-w64-mingw32-g++-posix
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
@@ -243,13 +243,13 @@ jobs:
             apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build asciidoctor
 
           - name: HTML documentation
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
             RUN_TESTS: none
             apt_get: libzstd-dev pkg-config libhiredis-dev asciidoctor
 
           - name: Manual page
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
             RUN_TESTS: none
             apt_get: libzstd-dev pkg-config libhiredis-dev asciidoctor
