@@ -67,7 +67,7 @@ Hash::hash_delimiter(std::string_view type)
 {
   hash_buffer(HASH_DELIMITER);
   hash_buffer(type);
-  hash_buffer(std::string_view("", 1)); // NUL
+  hash_buffer(std::string_view("\x00", 1));
   add_debug_text("### ");
   add_debug_text(type);
   add_debug_text("\n");

@@ -235,7 +235,7 @@ Storage::get(const Digest& key,
   MTR_SCOPE("storage", "get");
 
   if (mode != Mode::secondary_only) {
-    const auto path = primary.get(key, type);
+    auto path = primary.get(key, type);
     primary.increment_statistic(path ? core::Statistic::primary_storage_hit
                                      : core::Statistic::primary_storage_miss);
     if (path) {
