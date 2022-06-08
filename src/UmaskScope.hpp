@@ -39,7 +39,7 @@ inline UmaskScope::UmaskScope(nonstd::optional<mode_t> new_umask)
 {
 #ifndef _WIN32
   if (new_umask) {
-    m_saved_umask = umask(*new_umask);
+    m_saved_umask = Util::set_umask(*new_umask);
   }
 #else
   (void)new_umask;
@@ -50,7 +50,7 @@ inline UmaskScope::~UmaskScope()
 {
 #ifndef _WIN32
   if (m_saved_umask) {
-    umask(*m_saved_umask);
+    Util::set_umask(*m_saved_umask);
   }
 #endif
 }

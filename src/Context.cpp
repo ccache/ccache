@@ -64,7 +64,7 @@ Context::initialize()
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
   if (config.umask()) {
-    original_umask = umask(*config.umask());
+    original_umask = Util::set_umask(*config.umask());
   }
 }
 
