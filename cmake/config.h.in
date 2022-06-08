@@ -172,8 +172,8 @@
 // Define if you have the "unsetenv" function.
 #cmakedefine HAVE_UNSETENV
 
-// Define if you have the "utimes" function.
-#cmakedefine HAVE_UTIMES
+// Define if you have the "utimensat" function.
+#cmakedefine HAVE_UTIMENSAT
 
 // Define if you have the "PTHREAD_MUTEX_ROBUST" constant.
 #cmakedefine HAVE_PTHREAD_MUTEX_ROBUST

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <third_party/nonstd/optional.hpp>
+
 #include <string>
 
 namespace util {
@@ -25,5 +27,11 @@ namespace util {
 // --- Interface ---
 
 void create_cachedir_tag(const std::string& dir);
+
+// Set atime/mtime of `path`. If `mtime` is nonstd::nullopt, set to the current
+// time. If `atime` is nonstd::nullopt, set to what `mtime` specifies.
+void set_timestamps(const std::string& path,
+                    nonstd::optional<timespec> mtime = nonstd::nullopt,
+                    nonstd::optional<timespec> atime = nonstd::nullopt);
 
 } // namespace util

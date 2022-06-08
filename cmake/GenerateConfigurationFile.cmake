@@ -36,7 +36,8 @@ set(functions
     strndup
     syslog
     unsetenv
-    utimes)
+    utimensat
+)
 foreach(func IN ITEMS ${functions})
   string(TOUPPER ${func} func_var)
   set(func_var HAVE_${func_var})
