@@ -43,7 +43,7 @@ public:
   Error(const std::string& message);
 
   // `args` are forwarded to `fmt::format`.
-  template<typename... T> inline Error(T&&... args);
+  template<typename... T> inline Error(const char* format, T&&... args);
 };
 
 inline Error::Error(const std::string& message) : ErrorBase(message)
@@ -51,8 +51,8 @@ inline Error::Error(const std::string& message) : ErrorBase(message)
 }
 
 template<typename... T>
-inline Error::Error(T&&... args)
-  : ErrorBase(fmt::format(std::forward<T>(args)...))
+inline Error::Error(const char* format, T&&... args)
+  : ErrorBase(fmt::format(format, std::forward<T>(args)...))
 {
 }
 
@@ -65,7 +65,7 @@ public:
   Fatal(const std::string& message);
 
   // `args` are forwarded to `fmt::format`.
-  template<typename... T> inline Fatal(T&&... args);
+  template<typename... T> inline Fatal(const char* format, T&&... args);
 };
 
 inline Fatal::Fatal(const std::string& message) : ErrorBase(message)
@@ -73,8 +73,8 @@ inline Fatal::Fatal(const std::string& message) : ErrorBase(message)
 }
 
 template<typename... T>
-inline Fatal::Fatal(T&&... args)
-  : ErrorBase(fmt::format(std::forward<T>(args)...))
+inline Fatal::Fatal(const char* format, T&&... args)
+  : ErrorBase(fmt::format(format, std::forward<T>(args)...))
 {
 }
 
