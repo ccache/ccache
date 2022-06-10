@@ -2165,6 +2165,12 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
 
+  // Set CCACHE_DISABLE so no process ccache executes from now on will risk
+  // calling ccache second time. For instance, if the real compiler is a wrapper
+  // script that calls "ccache $compiler ..." we want that inner ccache call to
+  // be disabled.
+  Util::setenv("CCACHE_DISABLE", "1");
+
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);
   MTR_END("main", "process_args");

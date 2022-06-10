@@ -789,6 +789,21 @@ b"
     fi
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DISABLE set when executing compiler"
+
+    cat >compiler.sh <<EOF
+#!/bin/sh
+printf "%s" "\${CCACHE_DISABLE}" >>CCACHE_DISABLE.value
+exec $COMPILER "\$@"
+EOF
+    chmod +x compiler.sh
+    backdate compiler.sh
+    $CCACHE ./compiler.sh -c test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content CCACHE_DISABLE.value '11' # preprocessor + compiler
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_COMPILER"
 
     $COMPILER -c -o reference_test1.o test1.c
@@ -867,8 +882,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 # A comment
 EOF
@@ -896,8 +909,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -920,8 +931,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -944,8 +953,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -971,8 +978,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1005,8 +1010,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1255,8 +1258,6 @@ if [ \$1 != -E ]; then
     printf "cc_err|" >&2
     printf "cc_out|"
 fi
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1450,8 +1451,6 @@ EOF
 
     cat >buggy-cpp <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 if echo "\$*" | grep -- -D >/dev/null; then
   $COMPILER "\$@"
 else
