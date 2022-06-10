@@ -450,6 +450,21 @@ TEST_CASE("Util::is_absolute_path_with_prefix")
 #endif
 }
 
+TEST_CASE("Util::is_ccache_executable")
+{
+  CHECK(Util::is_ccache_executable("ccache"));
+  CHECK(Util::is_ccache_executable("ccache-1.2.3"));
+  CHECK(!Util::is_ccache_executable("fooccache"));
+  CHECK(!Util::is_ccache_executable("gcc"));
+#ifdef _WIN32
+  CHECK(Util::is_ccache_executable("CCACHE"));
+  CHECK(Util::is_ccache_executable("CCACHE.exe"));
+  CHECK(Util::is_ccache_executable("CCACHE-1.2.3"));
+  CHECK(Util::is_ccache_executable("CCACHE.EXE"));
+  CHECK(Util::is_ccache_executable("CCACHE-1.2.3.EXE"));
+#endif
+}
+
 TEST_CASE("Util::is_dir_separator")
 {
   CHECK(!Util::is_dir_separator('x'));
@@ -742,18 +757,6 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("f.abc.txt") == "f.abc");
   CHECK(Util::remove_extension("/foo/bar/f.txt") == "/foo/bar/f");
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
-}
-
-TEST_CASE("Util::same_program_name")
-{
-  CHECK(Util::same_program_name("foo", "foo"));
-#ifdef _WIN32
-  CHECK(Util::same_program_name("FOO", "foo"));
-  CHECK(Util::same_program_name("FOO.exe", "foo"));
-#else
-  CHECK(!Util::same_program_name("FOO", "foo"));
-  CHECK(!Util::same_program_name("FOO.exe", "foo"));
-#endif
 }
 
 // Util::split_into_strings and Util::split_into_views are tested implicitly in

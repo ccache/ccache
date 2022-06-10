@@ -74,10 +74,10 @@ execute_noreturn(const char* const* argv, const std::string& temp_dir)
 std::string
 win32getshell(const std::string& path)
 {
-  const char* path_env = getenv("PATH");
+  const char* path_list = getenv("PATH");
   std::string sh;
-  if (Util::to_lowercase(Util::get_extension(path)) == ".sh" && path_env) {
-    sh = find_executable_in_path("sh.exe", "", path_env);
+  if (Util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
+    sh = find_executable_in_path("sh.exe", path_list);
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
@@ -85,8 +85,8 @@ win32getshell(const std::string& path)
     if (fp) {
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
-      if (std::string(buf) == "#!/bin/sh" && path_env) {
-        sh = find_executable_in_path("sh.exe", "", path_env);
+      if (std::string(buf) == "#!/bin/sh" && path_list) {
+        sh = find_executable_in_path("sh.exe", path_list);
       }
     }
   }
@@ -249,72 +249,70 @@ execute_noreturn(const char* const* argv, const std::string& /*temp_dir*/)
 std::string
 find_executable(const Context& ctx,
                 const std::string& name,
-                const std::string& exclude_name)
+                const std::string& exclude_path)
 {
   if (util::is_absolute_path(name)) {
     return name;
   }
 
-  std::string path = ctx.config.path();
-  if (path.empty()) {
-    path = getenv("PATH");
+  std::string path_list = ctx.config.path();
+  if (path_list.empty()) {
+    path_list = getenv("PATH");
   }
-  if (path.empty()) {
+  if (path_list.empty()) {
     LOG_RAW("No PATH variable");
     return {};
   }
 
-  return find_executable_in_path(name, exclude_name, path);
+  return find_executable_in_path(name, path_list, exclude_path);
 }
 
 std::string
 find_executable_in_path(const std::string& name,
-                        const std::string& exclude_name,
-                        const std::string& path)
+                        const std::string& path_list,
+                        std::optional<std::string> exclude_path)
 {
-  if (path.empty()) {
+  if (path_list.empty()) {
     return {};
   }
 
-  // Search the path looking for the first compiler of the right name that isn't
-  // us.
-  for (const std::string& dir : util::split_path_list(path)) {
+  const auto real_exclude_path =
+    exclude_path ? Util::real_path(*exclude_path) : "";
+
+  // Search the path list looking for the first compiler of the right name that
+  // isn't us.
+  for (const std::string& dir : util::split_path_list(path_list)) {
+    const std::vector<std::string> candidates = {
+      FMT("{}/{}", dir, name),
 #ifdef _WIN32
-    char namebuf[MAX_PATH];
-    int ret = SearchPath(
-      dir.c_str(), name.c_str(), nullptr, sizeof(namebuf), namebuf, nullptr);
-    if (!ret) {
-      std::string exename = FMT("{}.exe", name);
-      ret = SearchPath(dir.c_str(),
-                       exename.c_str(),
-                       nullptr,
-                       sizeof(namebuf),
-                       namebuf,
-                       nullptr);
-    }
-    (void)exclude_name;
-    if (ret) {
-      return namebuf;
-    }
+      FMT("{}/{}.exe", dir, name),
+#endif
+    };
+    for (const auto& candidate : candidates) {
+      // A valid candidate:
+      //
+      // 1. Must exist (e.g., should not be a broken symlink) and be an
+      //    executable.
+      // 2. Must not resolve to the same program as argv[0] (i.e.,
+      //    exclude_path). This can happen if ccache is masquerading as the
+      //    compiler (with or without using a symlink).
+      // 3. As an extra safety measure: must not be a ccache executable after
+      //    resolving symlinks. This can happen if the candidate compiler is a
+      //    symlink to another ccache executeable.
+      const bool candidate_exists =
+#ifdef _WIN32
+        Stat::stat(candidate);
 #else
-    ASSERT(!exclude_name.empty());
-    std::string fname = FMT("{}/{}", dir, name);
-    auto st1 = Stat::lstat(fname);
-    auto st2 = Stat::stat(fname);
-    // Look for a normal executable file.
-    if (st1 && st2 && st2.is_regular() && access(fname.c_str(), X_OK) == 0) {
-      if (st1.is_symlink()) {
-        std::string real_path = Util::real_path(fname, true);
-        if (Util::base_name(real_path) == exclude_name) {
-          // It's a link to "ccache"!
-          continue;
+        access(candidate.c_str(), X_OK) == 0;
+#endif
+      if (candidate_exists) {
+        const auto real_candidate = Util::real_path(candidate);
+        if ((real_exclude_path.empty() || real_candidate != real_exclude_path)
+            && !Util::is_ccache_executable(real_candidate)) {
+          return candidate;
         }
       }
-
-      // Found it!
-      return fname;
     }
-#endif
   }
 
   return {};

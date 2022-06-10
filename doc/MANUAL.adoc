@@ -11,7 +11,7 @@ ccache - a fast C/C++ compiler cache
 [verse]
 *ccache* [_options_]
 *ccache* _compiler_ [_compiler options_]
-_compiler_ [_compiler options_]                   (via symbolic link)
+_compiler_ [_compiler options_]            (ccache masquerading as the compiler)
 
 
 == Description
@@ -29,43 +29,50 @@ ccache changes the output of your compiler, please let us know.
 
 == Run modes
 
-There are two ways to use ccache. You can either prefix your compilation
-commands with `ccache` or you can let ccache masquerade as the compiler by
-creating a symbolic link (named as the compiler) to ccache. The first method is
-most convenient if you just want to try out ccache or wish to use it for some
-specific projects. The second method is most useful for when you wish to use
-ccache for all your compilations.
+There are two different ways to use ccache to cache a compilation:
 
-To use the first method, just make sure that `ccache` is in your `PATH`.
-
-To use the symlinks method, do something like this:
-
+1. Prefix your compilation command with `ccache`. This method is most convenient
+   if you just want to try out ccache or wish to use it for some specific
+   projects. Example:
++
+-------------------------------------------------------------------------------
+ccache gcc -c example.c
+-------------------------------------------------------------------------------
++
+2. Let ccache masquerade as the compiler. This method is most useful when you
+   wish to use ccache for all your compilations. To do this, create a symbolic
+   link to ccache named as the compiler. For example, here is set up ccache to
+   masquerade as `gcc` and `g++`:
++
 -------------------------------------------------------------------------------
 cp ccache /usr/local/bin/
 ln -s ccache /usr/local/bin/gcc
 ln -s ccache /usr/local/bin/g++
-ln -s ccache /usr/local/bin/cc
-ln -s ccache /usr/local/bin/c++
 -------------------------------------------------------------------------------
-
-And so forth. This will work as long as the directory with symlinks comes
-before the path to the compiler (which is usually in `/usr/bin`). After
-installing you may wish to run "`which gcc`" to make sure that the correct link
-is being used.
-
++
+On platforms that don't support symbolic links you can simply copy ccache to the
+compiler name instead for a similar effect:
++
+-------------------------------------------------------------------------------
+cp ccache /usr/local/bin/gcc
+cp ccache /usr/local/bin/g++
+-------------------------------------------------------------------------------
++
+And so forth. This will work as long as the directory with symbolic links or
+ccache copies comes before the directory with the compiler (typically
+`/usr/bin`) in `PATH`.
++
 WARNING: The technique of letting ccache masquerade as the compiler works well,
 but currently doesn't interact well with other tools that do the same thing. See
 _<<Using ccache with other compiler wrappers>>_.
 
-WARNING: Use a symbolic links for masquerading, not hard links.
-
 
 == Command line options
 
-These command line options only apply when you invoke ccache as "`ccache`".
-When invoked as a compiler (via a symlink as described in the previous
-section), the normal compiler options apply and you should refer to the
-compiler's documentation.
+These command line options only apply when you invoke ccache as "`ccache`". When
+ccache masquerades as a compiler (as described in the previous section), the
+normal compiler options apply and you should refer to the compiler's
+documentation.
 
 
 === Common options

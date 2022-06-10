@@ -800,6 +800,16 @@ is_absolute_path_with_prefix(std::string_view path)
   return std::nullopt;
 }
 
+bool
+is_ccache_executable(const std::string_view path)
+{
+  std::string name(Util::base_name(path));
+#ifdef _WIN32
+  name = Util::to_lowercase(name);
+#endif
+  return util::starts_with(name, "ccache");
+}
+
 #if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
 int
 is_nfs_fd(int fd, bool* is_nfs)
@@ -1236,19 +1246,6 @@ rename(const std::string& oldpath, const std::string& newpath)
                       newpath,
                       Win32Util::error_message(error));
   }
-#endif
-}
-
-bool
-same_program_name(std::string_view program_name,
-                  std::string_view canonical_program_name)
-{
-#ifdef _WIN32
-  std::string lowercase_program_name = Util::to_lowercase(program_name);
-  return lowercase_program_name == canonical_program_name
-         || lowercase_program_name == FMT("{}.exe", canonical_program_name);
-#else
-  return program_name == canonical_program_name;
 #endif
 }
 

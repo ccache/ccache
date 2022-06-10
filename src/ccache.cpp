@@ -78,11 +78,6 @@
 #include <limits>
 #include <memory>
 
-#ifndef MYNAME
-#  define MYNAME "ccache"
-#endif
-const char CCACHE_NAME[] = MYNAME;
-
 using core::Statistic;
 
 // This is a string that identifies the current "version" of the hash sum
@@ -151,7 +146,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
   Args prefix;
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
-    std::string path = find_executable(ctx, word, CCACHE_NAME);
+    std::string path = find_executable(ctx, word, ctx.orig_args[0]);
     if (path.empty()) {
       throw core::Fatal("{}: {}", word, strerror(errno));
     }
@@ -1257,7 +1252,7 @@ hash_nvcc_host_compiler(const Context& ctx,
           TRY(hash_compiler(ctx, hash, st, path, false));
         }
       } else {
-        std::string path = find_executable(ctx, compiler, CCACHE_NAME);
+        std::string path = find_executable(ctx, compiler, ctx.orig_args[0]);
         if (!path.empty()) {
           auto st = Stat::stat(path, Stat::OnError::log);
           TRY(hash_compiler(ctx, hash, st, ccbin, false));
@@ -1918,8 +1913,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 }
 
 // Find the real compiler and put it into ctx.orig_args[0]. We just search the
-// PATH to find an executable of the same name that isn't a link to ourselves.
-// Pass find_executable function as second parameter.
+// PATH to find an executable of the same name that isn't ourselves.
 void
 find_compiler(Context& ctx,
               const FindExecutableFunction& find_executable_function)
@@ -1929,8 +1923,7 @@ find_compiler(Context& ctx,
   // ccache ccache gcc --> 2
   size_t compiler_pos = 0;
   while (compiler_pos < ctx.orig_args.size()
-         && Util::same_program_name(
-           Util::base_name(ctx.orig_args[compiler_pos]), CCACHE_NAME)) {
+         && Util::is_ccache_executable(ctx.orig_args[compiler_pos])) {
     ++compiler_pos;
   }
 
@@ -1946,17 +1939,14 @@ find_compiler(Context& ctx,
   const std::string resolved_compiler =
     util::is_full_path(compiler)
       ? compiler
-      : find_executable_function(ctx, compiler, CCACHE_NAME);
+      : find_executable_function(ctx, compiler, ctx.orig_args[0]);
 
   if (resolved_compiler.empty()) {
     throw core::Fatal("Could not find compiler \"{}\" in PATH", compiler);
   }
 
-  if (Util::same_program_name(Util::base_name(resolved_compiler),
-                              CCACHE_NAME)) {
-    throw core::Fatal(
-      "Recursive invocation (the name of the ccache binary must be \"{}\")",
-      CCACHE_NAME);
+  if (Util::is_ccache_executable(resolved_compiler)) {
+    throw core::Fatal("Recursive invocation of ccache");
   }
 
   ctx.orig_args.pop_front(compiler_pos);
@@ -2396,11 +2386,9 @@ int
 ccache_main(int argc, const char* const* argv)
 {
   try {
-    // Check if we are being invoked as "ccache".
-    std::string program_name(Util::base_name(argv[0]));
-    if (Util::same_program_name(program_name, CCACHE_NAME)) {
+    if (Util::is_ccache_executable(argv[0])) {
       if (argc < 2) {
-        PRINT_RAW(stderr, core::get_usage_text());
+        PRINT_RAW(stderr, core::get_usage_text(Util::base_name(argv[0])));
         exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being

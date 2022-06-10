@@ -108,7 +108,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   }
 
   m_http_client.set_default_headers({
-    {"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)},
+    {"User-Agent", FMT("ccache/{}", CCACHE_VERSION)},
   });
   m_http_client.set_keep_alive(true);
 

@@ -223,6 +223,9 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 // point.
 std::optional<size_t> is_absolute_path_with_prefix(std::string_view path);
 
+// Detmine if `path` refers to a ccache executable.
+bool is_ccache_executable(std::string_view path);
+
 // Test if a file is on nfs.
 //
 // Sets is_nfs to the result if fstatfs is available and no error occurred.
@@ -325,12 +328,6 @@ std::string_view remove_extension(std::string_view path);
 // Rename `oldpath` to `newpath` (deleting `newpath`). Throws `core::Error` on
 // error.
 void rename(const std::string& oldpath, const std::string& newpath);
-
-// Detmine if `program_name` is equal to `canonical_program_name`. On Windows,
-// this means performing a case insensitive equality check with and without a
-// ".exe" suffix. On non-Windows, it is a simple equality check.
-bool same_program_name(std::string_view program_name,
-                       std::string_view canonical_program_name);
 
 // Send `text` to file descriptor `fd`, optionally stripping ANSI color
 // sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting

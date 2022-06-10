@@ -82,7 +82,7 @@ constexpr const char USAGE_TEXT[] =
   R"(Usage:
     {0} [options]
     {0} compiler [compiler options]
-    compiler [compiler options]          (via symbolic link)
+    compiler [compiler options]            (ccache masquerading as the compiler)
 
 Common options:
     -c, --cleanup              delete old files and recalculate size counters
@@ -282,16 +282,16 @@ trim_dir(const std::string& dir,
 }
 
 static std::string
-get_version_text()
+get_version_text(const std::string_view ccache_name)
 {
   return FMT(
-    VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION, storage::get_features());
+    VERSION_TEXT, ccache_name, CCACHE_VERSION, storage::get_features());
 }
 
 std::string
-get_usage_text()
+get_usage_text(const std::string_view ccache_name)
 {
-  return FMT(USAGE_TEXT, CCACHE_NAME);
+  return FMT(USAGE_TEXT, ccache_name);
 }
 
 enum {
@@ -499,7 +499,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      PRINT(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+      PRINT(stdout, USAGE_TEXT, Util::base_name(argv[0]));
       return EXIT_SUCCESS;
 
     case 'k': // --get-config
@@ -580,7 +580,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      PRINT_RAW(stdout, get_version_text());
+      PRINT_RAW(stdout, get_version_text(Util::base_name(argv[0])));
       break;
 
     case 'x': // --show-compression
@@ -618,7 +618,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+      PRINT(stderr, USAGE_TEXT, Util::base_name(argv[0]));
       return EXIT_FAILURE;
     }
   }
