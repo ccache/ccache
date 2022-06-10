@@ -298,7 +298,7 @@ find_executable_in_path(const std::string& name,
       //    compiler (with or without using a symlink).
       // 3. As an extra safety measure: must not be a ccache executable after
       //    resolving symlinks. This can happen if the candidate compiler is a
-      //    symlink to another ccache executeable.
+      //    symlink to another ccache executable.
       const bool candidate_exists =
 #ifdef _WIN32
         Stat::stat(candidate);
