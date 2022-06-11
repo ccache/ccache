@@ -1383,7 +1383,7 @@ hash_common_info(const Context& ctx,
     hash.hash(dir_to_hash);
   }
 
-  // The object file produced by MSVC includes the full path to the object file
+  // The object file produced by MSVC includes the full path to the source file
   // even without debug flags. Hashing the directory should be enough since the
   // filename is included in the hash anyway.
   if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
