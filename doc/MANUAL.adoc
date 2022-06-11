@@ -1213,6 +1213,10 @@ The reason for removing more files than just those needed to not exceed the max
 limits is that a cleanup is a fairly slow operation, so it would not be a good
 idea to trigger it often, like after each cache miss.
 
+The LRU cleanup makes use of the file modification time (mtime) of cache
+entries; ccache updates mtime of the cache entries read on a cache hit to mark
+them as "recently used".
+
 
 === Manual cleanup
 
