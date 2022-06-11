@@ -4,6 +4,7 @@ SUITE_inode_cache_PROBE() {
         return
     fi
 
+    mkdir -p "${CCACHE_DIR}"
     if [ "$(stat -fLc %T "${CCACHE_DIR}")" = "nfs" ]; then
         echo "ccache directory is on NFS"
     fi
