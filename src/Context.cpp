@@ -23,9 +23,13 @@
 #include "Util.hpp"
 #include "hashutil.hpp"
 
+#include <Win32Util.hpp>
 #include <core/wincompat.hpp>
 #include <util/path.hpp>
 
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -43,6 +47,7 @@ Context::Context()
     inode_cache(config)
 #endif
 {
+  gettimeofday(&time_of_invocation, nullptr);
 }
 
 void

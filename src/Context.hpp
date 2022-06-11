@@ -39,6 +39,10 @@
 #include <unordered_map>
 #include <vector>
 
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
+
 class SignalHandler;
 
 class Context : NonCopyable
@@ -62,6 +66,9 @@ public:
 
   // The original argument list.
   Args orig_args;
+
+  // Time of ccache invocation.
+  timeval time_of_invocation;
 
   // Time of compilation. Used to see if include files have changed after
   // compilation.

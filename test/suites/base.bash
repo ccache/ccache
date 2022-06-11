@@ -345,14 +345,14 @@ fi
     unset CCACHE_LOGFILE
     unset CCACHE_NODIRECT
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c
-    if ! grep -q Result: test1.o.ccache-log; then
+    if ! grep -q Result: test1.o.*.ccache-log; then
         test_failed "Unexpected data in <obj>.ccache-log"
     fi
-    if ! grep -q "PREPROCESSOR MODE" test1.o.ccache-input-text; then
-        test_failed "Unexpected data in <obj>.ccache-input-text"
+    if ! grep -q "PREPROCESSOR MODE" test1.o.*.ccache-input-text; then
+        test_failed "Unexpected data in <obj>.<timestamp>.ccache-input-text"
     fi
     for ext in c p d; do
-        if ! [ -f test1.o.ccache-input-$ext ]; then
+        if ! [ -f test1.o.*.ccache-input-$ext ]; then
             test_failed "<obj>.ccache-input-$ext missing"
         fi
     done
@@ -362,13 +362,13 @@ fi
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c -save-temps
     expect_stat unsupported_compiler_option 1
-    expect_exists test1.o.ccache-log
+    expect_exists test1.o.*.ccache-log
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DEBUGDIR"
 
     CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
-    expect_contains debugdir"$(pwd -P)"/test1.o.ccache-log "Result: cache_miss"
+    expect_contains debugdir"$(pwd -P)"/test1.o.*.ccache-log "Result: cache_miss"
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
@@ -849,15 +849,15 @@ EOF
     chmod +x gcc
 
     CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.*.ccache-log)
     if [ "$compiler_type" != gcc ]; then
         test_failed "Compiler type $compiler_type != gcc"
     fi
 
-    rm test1.o.ccache-log
+    rm test1.o.*.ccache-log
 
     CCACHE_COMPILERTYPE=clang CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.*.ccache-log)
     if [ "$compiler_type" != clang ]; then
         test_failed "Compiler type $compiler_type != clang"
     fi

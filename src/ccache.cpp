@@ -69,6 +69,9 @@
 #include <optional>
 #include <string_view>
 
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -162,6 +165,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
 static std::string
 prepare_debug_path(const std::string& debug_dir,
+                   const timeval& time_of_invocation,
                    const std::string& output_obj,
                    std::string_view suffix)
 {
@@ -172,7 +176,22 @@ prepare_debug_path(const std::string& debug_dir,
     // Ignore since we can't handle an error in another way in this context. The
     // caller takes care of logging when trying to open the path for writing.
   }
-  return FMT("{}.ccache-{}", prefix, suffix);
+
+  char timestamp[100];
+  const auto tm = Util::localtime(time_of_invocation.tv_sec);
+  if (tm) {
+    strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &*tm);
+  } else {
+    snprintf(timestamp,
+             sizeof(timestamp),
+             "%llu",
+             static_cast<long long unsigned int>(time_of_invocation.tv_sec));
+  }
+  return FMT("{}.{}_{:06}.ccache-{}",
+             prefix,
+             timestamp,
+             time_of_invocation.tv_usec,
+             suffix);
 }
 
 static void
@@ -186,8 +205,10 @@ init_hash_debug(Context& ctx,
     return;
   }
 
-  const auto path = prepare_debug_path(
-    ctx.config.debug_dir(), ctx.args_info.output_obj, FMT("input-{}", type));
+  const auto path = prepare_debug_path(ctx.config.debug_dir(),
+                                       ctx.time_of_invocation,
+                                       ctx.args_info.output_obj,
+                                       FMT("input-{}", type));
   File debug_binary_file(path, "wb");
   if (debug_binary_file) {
     hash.enable_debug(section_name, debug_binary_file.get(), debug_text_file);
@@ -2044,8 +2065,10 @@ finalize_at_exit(Context& ctx)
 
   // Dump log buffer last to not lose any logs.
   if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
-    Logging::dump_log(prepare_debug_path(
-      ctx.config.debug_dir(), ctx.args_info.output_obj, "log"));
+    Logging::dump_log(prepare_debug_path(ctx.config.debug_dir(),
+                                         ctx.time_of_invocation,
+                                         ctx.args_info.output_obj,
+                                         "log"));
   }
 }
 
@@ -2225,8 +2248,10 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
   if (ctx.config.debug()) {
-    const auto path = prepare_debug_path(
-      ctx.config.debug_dir(), ctx.args_info.output_obj, "input-text");
+    const auto path = prepare_debug_path(ctx.config.debug_dir(),
+                                         ctx.time_of_invocation,
+                                         ctx.args_info.output_obj,
+                                         "input-text");
     File debug_text_file(path, "w");
     if (debug_text_file) {
       ctx.hash_debug_files.push_back(std::move(debug_text_file));

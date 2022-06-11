@@ -1557,22 +1557,25 @@ next to the object file:
 |==============================================================================
 | *Filename* | *Description*
 
-| `<objectfile>.ccache-input-c` |
+| `<objectfile>.<timestamp>.ccache-input-c` |
 Binary input hashed by both the direct mode and the preprocessor mode.
 
-| `<objectfile>.ccache-input-d` |
+| `<objectfile>.<timestamp>.ccache-input-d` |
 Binary input only hashed by the direct mode.
 
-| `<objectfile>.ccache-input-p` |
+| `<objectfile>.<timestamp>.ccache-input-p` |
 Binary input only hashed by the preprocessor mode.
 
-| `<objectfile>.ccache-input-text` |
+| `<objectfile>.<timestamp>.ccache-input-text` |
 Human-readable combined diffable text version of the three files above.
 
-| `<objectfile>.ccache-log` |
+| `<objectfile>.<timestamp>.ccache-log` |
 Log for this object file.
 
 |==============================================================================
+
+ The timestamp format is
+`<year><month><day>_<hour><minute><second>_<microsecond>`.
 
 If <<config_debug_dir,*debug_dir*>> (environment variable `CCACHE_DEBUGDIR`) is
 set, the files above will be written to that directory with full absolute paths
@@ -1591,12 +1594,12 @@ data comes next.
 To debug why you don't get an expected cache hit for an object file, you can do
 something like this:
 
-1. Build with debug mode enabled.
-2. Save the `<objectfile>.ccache-++*++` files.
-3. Build again with debug mode enabled.
-4. Compare `<objectfile>.ccache-input-text` for the two builds. This together
-   with the `<objectfile>.ccache-log` files should give you some clues about
-   what is happening.
+1. Enable `debug` (`CCACHE_DEBUG`).
+2. Build.
+3. Clean and build again.
+4. Compare the `<objectfile>.<timestamp>.ccache-input-text` files for the two
+   builds. This together with the `<objectfile>.<timestamp>.ccache-log` files
+   should give you some clues about what is happening.
 
 
 == Compiling in different directories
