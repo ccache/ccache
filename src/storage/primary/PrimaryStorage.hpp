@@ -46,7 +46,6 @@ class PrimaryStorage
 public:
   PrimaryStorage(const Config& config);
 
-  void initialize();
   void finalize();
 
   // --- Cache entry handling ---

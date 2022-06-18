@@ -95,18 +95,12 @@ PrimaryStorage::PrimaryStorage(const Config& config) : m_config(config)
 }
 
 void
-PrimaryStorage::initialize()
+PrimaryStorage::finalize()
 {
-  MTR_SCOPE("primary_storage", "clean_internal_tempdir");
-
   if (m_config.temporary_dir() == m_config.default_temporary_dir()) {
     clean_internal_tempdir();
   }
-}
 
-void
-PrimaryStorage::finalize()
-{
   if (!m_config.stats()) {
     return;
   }
@@ -304,29 +298,31 @@ PrimaryStorage::look_up_cache_file(const Digest& key,
 void
 PrimaryStorage::clean_internal_tempdir()
 {
+  MTR_SCOPE("primary_storage", "clean_internal_tempdir");
+
   const time_t now = time(nullptr);
-  const auto dir_st = Stat::stat(m_config.cache_dir(), Stat::OnError::log);
-  if (!dir_st || dir_st.mtime() + k_tempdir_cleanup_interval >= now) {
+  const auto cleaned_stamp = FMT("{}/.cleaned", m_config.temporary_dir());
+  const auto cleaned_stat = Stat::stat(cleaned_stamp);
+  if (cleaned_stat
+      && cleaned_stat.mtime() + k_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
     return;
   }
 
-  util::set_timestamps(m_config.cache_dir());
+  LOG("Cleaning up {}", m_config.temporary_dir());
+  Util::ensure_dir_exists(m_config.temporary_dir());
+  Util::traverse(m_config.temporary_dir(),
+                 [now](const std::string& path, bool is_dir) {
+                   if (is_dir) {
+                     return;
+                   }
+                   const auto st = Stat::lstat(path, Stat::OnError::log);
+                   if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
+                     Util::unlink_tmp(path);
+                   }
+                 });
 
-  const std::string& temp_dir = m_config.temporary_dir();
-  if (!Stat::lstat(temp_dir)) {
-    return;
-  }
-
-  Util::traverse(temp_dir, [now](const std::string& path, bool is_dir) {
-    if (is_dir) {
-      return;
-    }
-    const auto st = Stat::lstat(path, Stat::OnError::log);
-    if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
-      Util::unlink_tmp(path);
-    }
-  });
+  Util::write_file(cleaned_stamp, "");
 }
 
 nonstd::optional<core::StatisticsCounters>
