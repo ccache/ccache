@@ -217,7 +217,6 @@ Storage::~Storage()
 void
 Storage::initialize()
 {
-  primary.initialize();
   add_secondary_storages();
 }
 
