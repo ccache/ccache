@@ -1037,7 +1037,7 @@ Config::check_key_tables_consistency()
 }
 
 std::string
-Config::default_temporary_dir(const std::string& cache_dir)
+Config::default_temporary_dir() const
 {
   static const std::string run_user_tmp_dir = [] {
 #ifdef HAVE_GETEUID
@@ -1048,5 +1048,5 @@ Config::default_temporary_dir(const std::string& cache_dir)
 #endif
     return std::string();
   }();
-  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : cache_dir + "/tmp";
+  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : m_cache_dir + "/tmp";
 }
