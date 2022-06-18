@@ -98,7 +98,7 @@ PrimaryStorage::initialize()
 {
   MTR_SCOPE("primary_storage", "clean_internal_tempdir");
 
-  if (m_config.temporary_dir() == m_config.cache_dir() + "/tmp") {
+  if (m_config.temporary_dir() == m_config.default_temporary_dir()) {
     clean_internal_tempdir();
   }
 }

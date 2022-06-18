@@ -90,6 +90,8 @@ public:
   // Return true for MSVC (cl.exe) and clang-cl.
   bool is_compiler_group_msvc() const;
 
+  std::string default_temporary_dir() const;
+
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
   void set_compiler(const std::string& value);
@@ -197,8 +199,6 @@ private:
                 const std::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
-
-  static std::string default_temporary_dir(const std::string& cache_dir);
 };
 
 inline bool
@@ -478,7 +478,7 @@ Config::set_cache_dir(const std::string& value)
 {
   m_cache_dir = value;
   if (!m_temporary_dir_configured_explicitly) {
-    m_temporary_dir = default_temporary_dir(m_cache_dir);
+    m_temporary_dir = default_temporary_dir();
   }
 }
 
