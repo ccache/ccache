@@ -127,10 +127,10 @@ TEST_CASE("util::parse_signed")
 
 TEST_CASE("util::parse_umask")
 {
-  CHECK(util::parse_umask("1") == 01u);
-  CHECK(util::parse_umask("002") == 2u);
-  CHECK(util::parse_umask("777") == 0777u);
-  CHECK(util::parse_umask("0777") == 0777u);
+  CHECK(util::parse_umask("1") == 1U);
+  CHECK(util::parse_umask("002") == 002U);
+  CHECK(util::parse_umask("777") == 0777U);
+  CHECK(util::parse_umask("0777") == 0777U);
 
   CHECK(util::parse_umask("").error()
         == "invalid unsigned octal integer: \"\"");

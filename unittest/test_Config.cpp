@@ -181,7 +181,7 @@ TEST_CASE("Config::update_from_file")
             | static_cast<uint32_t>(core::Sloppy::time_macros)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
-  CHECK(config.umask() == 0777u);
+  CHECK(config.umask() == 0777U);
 }
 
 TEST_CASE("Config::update_from_file, error handling")
