@@ -65,7 +65,7 @@ template<> struct hash<core::Manifest::FileInfo>
   size_t
   operator()(const core::Manifest::FileInfo& file_info) const
   {
-    static_assert(sizeof(file_info) == 48, "unexpected size"); // No padding.
+    static_assert(sizeof(file_info) == 48); // No padding.
     util::XXH3_64 hash;
     hash.update(&file_info, sizeof(file_info));
     return hash.digest();

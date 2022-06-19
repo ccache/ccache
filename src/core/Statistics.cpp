@@ -124,8 +124,7 @@ const StatisticsField k_statistics_fields[] = {
 };
 
 static_assert(sizeof(k_statistics_fields) / sizeof(k_statistics_fields[0])
-                == static_cast<size_t>(Statistic::END) - 1,
-              "incorrect number of fields");
+              == static_cast<size_t>(Statistic::END) - 1);
 
 static std::string
 format_timestamp(const uint64_t value)
