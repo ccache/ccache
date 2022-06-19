@@ -87,7 +87,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
       if (format == AtFileFormat::msvc) {
         break;
       }
-      // Fall through.
+      [[fallthrough]];
 
     case '"':
       if (quoting != '\0') {
@@ -111,7 +111,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
       if (quoting) {
         break;
       }
-      // Fall through.
+      [[fallthrough]];
 
     case '\0':
       // End of token

@@ -1059,13 +1059,13 @@ parse_size(const std::string& value)
     switch (*p) {
     case 'T':
       result *= multiplier;
-    // Fallthrough.
+      [[fallthrough]];
     case 'G':
       result *= multiplier;
-    // Fallthrough.
+      [[fallthrough]];
     case 'M':
       result *= multiplier;
-    // Fallthrough.
+      [[fallthrough]];
     case 'K':
     case 'k':
       result *= multiplier;
@@ -1270,7 +1270,7 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
       modified_text = strip_ansi_csi_seqs(text);
       text_to_send = &modified_text;
     } catch (const core::Error&) {
-      // Fall through
+      // Ignore.
     }
   }
 
