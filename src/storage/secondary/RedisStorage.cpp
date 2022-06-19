@@ -92,16 +92,16 @@ to_timeval(const uint32_t ms)
 std::pair<std::optional<std::string>, std::optional<std::string>>
 split_user_info(const std::string& user_info)
 {
-  const auto pair = util::split_once(user_info, ':');
-  if (pair.first.empty()) {
+  const auto [left, right] = util::split_once(user_info, ':');
+  if (left.empty()) {
     // redis://HOST
     return {std::nullopt, std::nullopt};
-  } else if (pair.second) {
+  } else if (right) {
     // redis://USERNAME:PASSWORD@HOST
-    return {std::string(*pair.second), std::string(pair.first)};
+    return {std::string(left), std::string(*right)};
   } else {
     // redis://PASSWORD@HOST
-    return {std::string(pair.first), std::nullopt};
+    return {std::nullopt, std::string(left)};
   }
 }
 
@@ -274,15 +274,15 @@ RedisStorageBackend::select_database(const Url& url)
 void
 RedisStorageBackend::authenticate(const Url& url)
 {
-  const auto password_username_pair = split_user_info(url.user_info());
-  const auto& password = password_username_pair.first;
+  const auto [user, password] = split_user_info(url.user_info());
   if (password) {
-    const auto& username = password_username_pair.second;
-    if (username) {
-      LOG("Redis AUTH {} {}", *username, k_redacted_password);
+    if (user) {
+      // redis://user:password@host
+      LOG("Redis AUTH {} {}", *user, k_redacted_password);
       util::value_or_throw<Failed>(
-        redis_command("AUTH %s %s", username->c_str(), password->c_str()));
+        redis_command("AUTH %s %s", user->c_str(), password->c_str()));
     } else {
+      // redis://password@host
       LOG("Redis AUTH {}", k_redacted_password);
       util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
     }
@@ -327,13 +327,15 @@ void
 RedisStorage::redact_secrets(Backend::Params& params) const
 {
   auto& url = params.url;
-  const auto user_info = util::split_once(url.user_info(), ':');
-  if (user_info.second) {
-    // redis://username:password@host
-    url.user_info(FMT("{}:{}", user_info.first, k_redacted_password));
-  } else if (!user_info.first.empty()) {
-    // redis://password@host
-    url.user_info(k_redacted_password);
+  const auto [user, password] = split_user_info(url.user_info());
+  if (password) {
+    if (user) {
+      // redis://user:password@host
+      url.user_info(FMT("{}:{}", *user, k_redacted_password));
+    } else {
+      // redis://password@host
+      url.user_info(k_redacted_password);
+    }
   }
 }
 

@@ -179,9 +179,9 @@ Manifest::add_result(
   std::vector<uint32_t> file_info_indexes;
   file_info_indexes.reserve(included_files.size());
 
-  for (const auto& item : included_files) {
-    file_info_indexes.push_back(get_file_info_index(item.first,
-                                                    item.second,
+  for (const auto& [path, digest] : included_files) {
+    file_info_indexes.push_back(get_file_info_index(path,
+                                                    digest,
                                                     mf_files,
                                                     mf_file_infos,
                                                     time_of_compilation,

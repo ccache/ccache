@@ -441,8 +441,8 @@ remember_include_file(Context& ctx,
 static void
 print_included_files(const Context& ctx, FILE* fp)
 {
-  for (const auto& item : ctx.included_files) {
-    PRINT(fp, "{}\n", item.first);
+  for (const auto& [path, digest] : ctx.included_files) {
+    PRINT(fp, "{}\n", path);
   }
 }
 

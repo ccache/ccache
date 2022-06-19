@@ -98,13 +98,13 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
     m_http_client(get_url(params.url))
 {
   if (!params.url.user_info().empty()) {
-    const auto pair = util::split_once(params.url.user_info(), ':');
-    if (!pair.second) {
+    const auto [user, password] = util::split_once(params.url.user_info(), ':');
+    if (!password) {
       throw core::Fatal("Expected username:password in URL but got \"{}\"",
                         params.url.user_info());
     }
-    m_http_client.set_basic_auth(std::string(pair.first).c_str(),
-                                 std::string(*pair.second).c_str());
+    m_http_client.set_basic_auth(std::string(user).c_str(),
+                                 std::string(*password).c_str());
   }
 
   m_http_client.set_default_headers({
@@ -278,9 +278,9 @@ void
 HttpStorage::redact_secrets(Backend::Params& params) const
 {
   auto& url = params.url;
-  const auto user_info = util::split_once(url.user_info(), ':');
-  if (user_info.second) {
-    url.user_info(FMT("{}:{}", user_info.first, k_redacted_password));
+  const auto [user, password] = util::split_once(url.user_info(), ':');
+  if (password) {
+    url.user_info(FMT("{}:{}", user, k_redacted_password));
   }
 
   auto bearer_token_attribute =

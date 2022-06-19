@@ -270,11 +270,8 @@ Statistics::format_human_readable(const Config& config,
     if (verbosity > 0) {
       auto uncacheable_stats = get_stats(FLAG_UNCACHEABLE, verbosity > 1);
       std::sort(uncacheable_stats.begin(), uncacheable_stats.end(), cmp_fn);
-      for (const auto& descr_count : uncacheable_stats) {
-        add_ratio_row(table,
-                      FMT("  {}:", descr_count.first),
-                      descr_count.second,
-                      uncacheable);
+      for (const auto& [name, value] : uncacheable_stats) {
+        add_ratio_row(table, FMT("  {}:", name), value, uncacheable);
       }
     }
   }
@@ -284,9 +281,8 @@ Statistics::format_human_readable(const Config& config,
     if (verbosity > 0) {
       auto error_stats = get_stats(FLAG_ERROR, verbosity > 1);
       std::sort(error_stats.begin(), error_stats.end(), cmp_fn);
-      for (const auto& descr_count : error_stats) {
-        add_ratio_row(
-          table, FMT("  {}:", descr_count.first), descr_count.second, errors);
+      for (const auto& [name, value] : error_stats) {
+        add_ratio_row(table, FMT("  {}:", name), value, errors);
       }
     }
   }

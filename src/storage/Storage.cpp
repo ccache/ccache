@@ -137,9 +137,8 @@ parse_storage_config(const std::string_view entry)
     if (parts[i].empty()) {
       continue;
     }
-    const auto kv_pair = util::split_once(parts[i], '=');
-    const auto& key = kv_pair.first;
-    const auto& raw_value = kv_pair.second.value_or("true");
+    const auto [key, right_hand_side] = util::split_once(parts[i], '=');
+    const auto& raw_value = right_hand_side.value_or("true");
     const auto value =
       util::value_or_throw<core::Error>(util::percent_decode(raw_value));
     if (key == "read-only") {

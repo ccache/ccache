@@ -806,8 +806,8 @@ Config::visit_items(const ItemVisitor& item_visitor) const
   std::vector<std::string> keys;
   keys.reserve(k_config_key_table.size());
 
-  for (const auto& item : k_config_key_table) {
-    keys.emplace_back(item.first);
+  for (const auto& [key, value] : k_config_key_table) {
+    keys.emplace_back(key);
   }
   std::sort(keys.begin(), keys.end());
   for (const auto& key : keys) {
@@ -1014,21 +1014,21 @@ Config::set_item(const std::string& key,
     break;
   }
 
-  auto result = m_origins.emplace(key, origin);
-  if (!result.second) {
-    result.first->second = origin;
+  const auto& [element, inserted] = m_origins.emplace(key, origin);
+  if (!inserted) {
+    element->second = origin;
   }
 }
 
 void
 Config::check_key_tables_consistency()
 {
-  for (const auto& item : k_env_variable_table) {
-    if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
+  for (const auto& [key, value] : k_env_variable_table) {
+    if (k_config_key_table.find(value) == k_config_key_table.end()) {
       throw core::Error(
         "env var {} mapped to {} which is missing from k_config_key_table",
-        item.first,
-        item.second);
+        key,
+        value);
     }
   }
 }
