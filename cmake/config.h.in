@@ -193,12 +193,6 @@ typedef int pid_t;
 #  endif // _MSC_VER
 #endif   // _WIN32
 
-// GCC version of a couple of standard C++ attributes.
-#ifdef __GNUC__
-#  define nodiscard gnu::warn_unused_result
-#  define maybe_unused gnu::unused
-#endif
-
 // O_BINARY is needed when reading binary data on Windows, so use it everywhere
 // with a compatibility define for Unix platforms.
 #if !defined(_WIN32) && !defined(O_BINARY)
