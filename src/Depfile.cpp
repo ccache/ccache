@@ -26,6 +26,8 @@
 #include <core/exceptions.hpp>
 #include <util/path.hpp>
 
+#include <algorithm>
+
 static inline bool
 is_blank(const std::string& s)
 {

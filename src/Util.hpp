@@ -21,7 +21,6 @@
 #include <Stat.hpp>
 #include <util/Tokenizer.hpp>
 
-#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <ios>
@@ -78,14 +77,6 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 // Remove the extension via `remove_extension()`, then add `new_ext`. `new_ext`
 // should start with a dot, no extra dot is inserted.
 std::string change_extension(std::string_view path, std::string_view new_ext);
-
-// Return `value` adjusted to not be less than `min` and not more than `max`.
-template<typename T>
-T
-clamp(T value, T min, T max)
-{
-  return std::min(max, std::max(min, value));
-}
 
 // Clone a file from `src` to `dest`. If `via_tmp_file` is true, `src` is cloned
 // to a temporary file and then renamed to `dest`. Throws `core::Error` on

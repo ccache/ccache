@@ -44,6 +44,7 @@
 
 #include <fcntl.h>
 
+#include <algorithm>
 #include <optional>
 #include <string>
 

@@ -25,6 +25,8 @@
 #include <util/TextTable.hpp>
 #include <util/string.hpp>
 
+#include <algorithm>
+
 namespace core {
 
 using core::Statistic;

@@ -32,6 +32,8 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 
+#include <algorithm>
+
 extern "C" {
 #include "third_party/base32hex.h"
 }

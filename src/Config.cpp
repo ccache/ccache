@@ -925,7 +925,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::limit_multiple:
-    m_limit_multiple = Util::clamp(
+    m_limit_multiple = std::clamp(
       util::value_or_throw<core::Error>(util::parse_double(value)), 0.0, 1.0);
     break;
 
