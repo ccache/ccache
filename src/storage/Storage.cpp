@@ -52,6 +52,7 @@ const std::unordered_map<std::string /*scheme*/,
   k_secondary_storage_implementations = {
     {"file", std::make_shared<secondary::FileStorage>()},
     {"http", std::make_shared<secondary::HttpStorage>()},
+    {"https", std::make_shared<secondary::HttpStorage>()},
 #ifdef HAVE_REDIS_STORAGE_BACKEND
     {"redis", std::make_shared<secondary::RedisStorage>()},
 #endif

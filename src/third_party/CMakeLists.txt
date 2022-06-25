@@ -6,6 +6,13 @@ else()
   target_compile_definitions(third_party PUBLIC -DSTATIC_GETOPT)
 endif()
 
+find_package(OpenSSL)
+if(OPENSSL_FOUND)
+  message(STATUS "Compiling with support for Https")
+  target_compile_definitions(third_party PRIVATE -DCPPHTTPLIB_OPENSSL_SUPPORT=1)
+  target_link_libraries(third_party PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+endif()
+
 if(WIN32)
   target_sources(third_party PRIVATE win32/mktemp.c)
 endif ()
