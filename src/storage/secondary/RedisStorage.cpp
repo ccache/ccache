@@ -280,7 +280,7 @@ RedisStorageBackend::connect(const Url& url,
 void
 RedisStorageBackend::select_database(const Url& url)
 {
-  nonstd::optional<std::string> db;
+  std::optional<std::string> db;
   if (url.scheme() == "redis+unix") {
     const auto parameters_map = split_parameters(url.query());
     auto search = parameters_map.find("db");
