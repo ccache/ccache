@@ -84,9 +84,9 @@ private:
 
 #ifdef HAVE_REDISS_STORAGE_BACKEND
   void init_ssl(const Url& url,
-                nonstd::optional<std::string> ca_cert,
-                nonstd::optional<std::string> cert,
-                nonstd::optional<std::string> key);
+                std::optional<std::string> ca_cert,
+                std::optional<std::string> cert,
+                std::optional<std::string> key);
 #endif
   void
   connect(const Url& url, uint32_t connect_timeout, uint32_t operation_timeout);
@@ -146,9 +146,9 @@ RedisStorageBackend::RedisStorageBackend(const Params& params)
   ASSERT(url.scheme() == "redis");
 #endif
 
-  nonstd::optional<std::string> cacert;
-  nonstd::optional<std::string> cert;
-  nonstd::optional<std::string> key;
+  std::optional<std::string> cacert;
+  std::optional<std::string> cert;
+  std::optional<std::string> key;
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
 
@@ -267,9 +267,9 @@ RedisStorageBackend::remove(const Digest& key)
 #ifdef HAVE_REDISS_STORAGE_BACKEND
 void
 RedisStorageBackend::init_ssl(const Url& url,
-                              nonstd::optional<std::string> ca_cert,
-                              nonstd::optional<std::string> cert,
-                              nonstd::optional<std::string> key)
+                              std::optional<std::string> ca_cert,
+                              std::optional<std::string> cert,
+                              std::optional<std::string> key)
 {
   if (is_secure(url)) {
     if (redisInitOpenSSL() != REDIS_OK) {
