@@ -1,12 +1,14 @@
 //
 //  httplib.h
 //
-//  Copyright (c) 2021 Yuji Hirose. All rights reserved.
+//  Copyright (c) 2022 Yuji Hirose. All rights reserved.
 //  MIT License
 //
 
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
+
+#define CPPHTTPLIB_VERSION "0.10.7"
 
 /*
  * Configuration
@@ -60,12 +62,20 @@
 #define CPPHTTPLIB_REQUEST_URI_MAX_LENGTH 8192
 #endif
 
+#ifndef CPPHTTPLIB_HEADER_MAX_LENGTH
+#define CPPHTTPLIB_HEADER_MAX_LENGTH 8192
+#endif
+
 #ifndef CPPHTTPLIB_REDIRECT_MAX_COUNT
 #define CPPHTTPLIB_REDIRECT_MAX_COUNT 20
 #endif
 
 #ifndef CPPHTTPLIB_PAYLOAD_MAX_LENGTH
 #define CPPHTTPLIB_PAYLOAD_MAX_LENGTH ((std::numeric_limits<size_t>::max)())
+#endif
+
+#ifndef CPPHTTPLIB_FORM_URL_ENCODED_PAYLOAD_MAX_LENGTH
+#define CPPHTTPLIB_FORM_URL_ENCODED_PAYLOAD_MAX_LENGTH 8192
 #endif
 
 #ifndef CPPHTTPLIB_TCP_NODELAY
@@ -93,6 +103,10 @@
 
 #ifndef CPPHTTPLIB_SEND_FLAGS
 #define CPPHTTPLIB_SEND_FLAGS 0
+#endif
+
+#ifndef CPPHTTPLIB_LISTEN_BACKLOG
+#define CPPHTTPLIB_LISTEN_BACKLOG 5
 #endif
 
 /*
@@ -134,8 +148,6 @@ using ssize_t = int;
 
 #include <io.h>
 #include <winsock2.h>
-
-#include <wincrypt.h>
 #include <ws2tcpip.h>
 
 #ifndef WSA_FLAG_NO_HANDLE_INHERIT
@@ -144,8 +156,6 @@ using ssize_t = int;
 
 #ifdef _MSC_VER
 #pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "crypt32.lib")
-#pragma comment(lib, "cryptui.lib")
 #endif
 
 #ifndef strcasecmp
@@ -160,8 +170,8 @@ using socket_t = SOCKET;
 #else // not _WIN32
 
 #include <arpa/inet.h>
-#include <cstring>
 #include <ifaddrs.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #ifdef __linux__
@@ -183,6 +193,7 @@ using socket_t = int;
 #endif
 #endif //_WIN32
 
+#include <cstring>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -209,8 +220,24 @@ using socket_t = int;
 #include <thread>
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+#ifdef _WIN32
+#include <wincrypt.h>
+
+// these are defined in wincrypt.h and it breaks compilation if BoringSSL is
+// used
+#undef X509_NAME
+#undef X509_CERT_PAIR
+#undef X509_EXTENSIONS
+#undef PKCS7_SIGNER_INFO
+
+#ifdef _MSC_VER
+#pragma comment(lib, "crypt32.lib")
+#pragma comment(lib, "cryptui.lib")
+#endif
+#endif //_WIN32
+
 #include <openssl/err.h>
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
@@ -505,7 +532,7 @@ public:
   virtual void enqueue(std::function<void()> fn) = 0;
   virtual void shutdown() = 0;
 
-  virtual void on_idle(){};
+  virtual void on_idle() {}
 };
 
 class ThreadPool : public TaskQueue {
@@ -782,6 +809,7 @@ enum class Error {
   SSLServerVerification,
   UnsupportedMultipartBoundaryChars,
   Compression,
+  ConnectionTimeout,
 };
 
 std::string to_string(const Error error);
@@ -955,6 +983,8 @@ public:
 
   void stop();
 
+  void set_hostname_addr_map(std::map<std::string, std::string> addr_map);
+
   void set_default_headers(Headers headers);
 
   void set_address_family(int family);
@@ -1057,6 +1087,9 @@ protected:
   size_t socket_requests_in_flight_ = 0;
   std::thread::id socket_requests_are_from_thread_ = std::thread::id();
   bool socket_should_be_closed_when_request_is_done_ = false;
+
+  // Hostname-IP map
+  std::map<std::string, std::string> addr_map_;
 
   // Default headers
   Headers default_headers_;
@@ -1285,6 +1318,8 @@ public:
 
   void stop();
 
+  void set_hostname_addr_map(std::map<std::string, std::string> addr_map);
+
   void set_default_headers(Headers headers);
 
   void set_address_family(int family);
@@ -1359,7 +1394,8 @@ class SSLServer : public Server {
 public:
   SSLServer(const char *cert_path, const char *private_key_path,
             const char *client_ca_cert_file_path = nullptr,
-            const char *client_ca_cert_dir_path = nullptr);
+            const char *client_ca_cert_dir_path = nullptr,
+            const char *private_key_password = nullptr);
 
   SSLServer(X509 *cert, EVP_PKEY *private_key,
             X509_STORE *client_ca_cert_store = nullptr);
@@ -1370,6 +1406,8 @@ public:
   ~SSLServer() override;
 
   bool is_valid() const override;
+
+  SSL_CTX *ssl_context() const;
 
 private:
   bool process_and_close_socket(socket_t sock) override;
@@ -1480,10 +1518,10 @@ inline T Response::get_header_value(const char *key, size_t id) const {
 template <typename... Args>
 inline ssize_t Stream::write_format(const char *fmt, const Args &...args) {
   const auto bufsiz = 2048;
-  std::array<char, bufsiz> buf;
+  std::array<char, bufsiz> buf{};
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
-  auto sn = _snprintf_s(buf.data(), bufsiz - 1, buf.size() - 1, fmt, args...);
+  auto sn = _snprintf_s(buf.data(), bufsiz, _TRUNCATE, fmt, args...);
 #else
   auto sn = snprintf(buf.data(), buf.size() - 1, fmt, args...);
 #endif
@@ -1568,6 +1606,7 @@ inline std::string to_string(const Error error) {
   case Error::UnsupportedMultipartBoundaryChars:
     return "UnsupportedMultipartBoundaryChars";
   case Error::Compression: return "Compression";
+  case Error::ConnectionTimeout: return "ConnectionTimeout";
   case Error::Unknown: return "Unknown";
   default: break;
   }
@@ -1631,6 +1670,10 @@ Client::set_write_timeout(const std::chrono::duration<Rep, Period> &duration) {
  * .h + .cc.
  */
 
+std::string hosted_at(const char *hostname);
+
+void hosted_at(const char *hostname, std::vector<std::string> &addrs);
+
 std::string append_query_params(const char *path, const Params &params);
 
 std::pair<std::string, std::string> make_range_header(Ranges ranges);
@@ -1644,6 +1687,8 @@ namespace detail {
 
 std::string encode_query_param(const std::string &value);
 
+std::string decode_url(const std::string &s, bool convert_plus_to_space);
+
 void read_file(const std::string &path, std::string &out);
 
 std::string trim_copy(const std::string &s);
@@ -1656,14 +1701,12 @@ bool process_client_socket(socket_t sock, time_t read_timeout_sec,
                            time_t write_timeout_usec,
                            std::function<bool(Stream &)> callback);
 
-socket_t create_client_socket(const char *host, int port, int address_family,
-                              bool tcp_nodelay, SocketOptions socket_options,
-                              time_t connection_timeout_sec,
-                              time_t connection_timeout_usec,
-                              time_t read_timeout_sec, time_t read_timeout_usec,
-                              time_t write_timeout_sec,
-                              time_t write_timeout_usec,
-                              const std::string &intf, Error &error);
+socket_t create_client_socket(
+    const char *host, const char *ip, int port, int address_family,
+    bool tcp_nodelay, SocketOptions socket_options,
+    time_t connection_timeout_sec, time_t connection_timeout_usec,
+    time_t read_timeout_sec, time_t read_timeout_usec, time_t write_timeout_sec,
+    time_t write_timeout_usec, const std::string &intf, Error &error);
 
 const char *get_header_value(const Headers &headers, const char *key,
                              size_t id = 0, const char *def = nullptr);

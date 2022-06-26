@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,46 +21,33 @@
 #include "Util.hpp"
 
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
+
+#include <cstdlib>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #ifdef _WIN32
 #  include "third_party/win32/mktemp.h"
 #endif
 
-using nonstd::string_view;
-
-namespace {
-
-#ifndef _WIN32
-mode_t
-get_umask()
-{
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
-  }
-  return mask;
-}
-#endif
-
-} // namespace
-
-TemporaryFile::TemporaryFile(string_view path_prefix)
-  : path(std::string(path_prefix) + ".XXXXXX")
+TemporaryFile::TemporaryFile(std::string_view path_prefix,
+                             std::string_view suffix)
+  : path(FMT("{}.XXXXXX{}", path_prefix, suffix))
 {
   Util::ensure_dir_exists(Util::dir_name(path));
 #ifdef _WIN32
-  // MSVC lacks mkstemp() and Mingw-w64's implementation[1] is problematic, as
+  // MSVC lacks mkstemps() and Mingw-w64's implementation[1] is problematic, as
   // it can reuse the names of recently-deleted files unless the caller
   // remembers to call srand().
 
   // [1]: <https://github.com/Alexpux/mingw-w64/blob/
   // d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c>
-  fd = Fd(bsd_mkstemp(&path[0]));
+  fd = Fd(bsd_mkstemps(&path[0], suffix.length()));
 #else
-  fd = Fd(mkstemp(&path[0]));
+  fd = Fd(mkstemps(&path[0], suffix.length()));
 #endif
   if (!fd) {
     throw core::Fatal(
@@ -69,6 +56,6 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
 
   Util::set_cloexec_flag(*fd);
 #ifndef _WIN32
-  fchmod(*fd, 0666 & ~get_umask());
+  fchmod(*fd, 0666 & ~Util::get_umask());
 #endif
 }

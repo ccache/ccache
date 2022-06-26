@@ -3,6 +3,7 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/CacheEntryHeader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/CacheEntryReader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/CacheEntryWriter.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Manifest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Statistics.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/StatisticsCounters.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/StatsLog.cpp

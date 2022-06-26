@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -82,6 +82,8 @@ static_assert(
   static_cast<int>(InodeCache::ContentType::precompiled_header) == 3,
   "Numeric value is part of key, increment version number if changed.");
 
+const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here
+
 } // namespace
 
 struct InodeCache::Key
@@ -148,7 +150,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0));
   fd.close();
-  if (sr == reinterpret_cast<void*>(-1)) {
+  if (sr == MMAP_FAILED) {
     LOG("Failed to mmap {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
@@ -254,8 +256,6 @@ InodeCache::with_bucket(const Digest& key_digest,
 bool
 InodeCache::create_new_file(const std::string& filename)
 {
-  LOG_RAW("Creating a new inode cache");
-
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   TemporaryFile tmp_file(filename);
@@ -282,7 +282,7 @@ InodeCache::create_new_file(const std::string& filename)
                                          MAP_SHARED,
                                          *tmp_file.fd,
                                          0));
-  if (sr == reinterpret_cast<void*>(-1)) {
+  if (sr == MMAP_FAILED) {
     LOG("Failed to mmap new inode cache: {}", strerror(errno));
     return false;
   }
@@ -312,6 +312,7 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
 
+  LOG("Created a new inode cache {}", filename);
   return true;
 }
 
@@ -452,6 +453,7 @@ InodeCache::drop()
   if (unlink(file.c_str()) != 0) {
     return false;
   }
+  LOG("Dropped inode cache {}", file);
   if (m_sr) {
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;

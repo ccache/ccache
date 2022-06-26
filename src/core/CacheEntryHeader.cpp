@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -70,11 +70,14 @@ CacheEntryHeader::set_entry_size_from_payload_size(const uint64_t payload_size)
 }
 
 void
-CacheEntryHeader::dump(FILE* const stream) const
+CacheEntryHeader::inspect(FILE* const stream) const
 {
   PRINT(stream, "Magic: {:04x}\n", magic);
   PRINT(stream, "Entry format version: {}\n", entry_format_version);
-  PRINT(stream, "Entry type: {} ({})\n", entry_type, to_string(entry_type));
+  PRINT(stream,
+        "Entry type: {} ({})\n",
+        static_cast<uint8_t>(entry_type),
+        to_string(entry_type));
   PRINT(stream,
         "Compression type: {}\n",
         compression::type_to_string(compression_type));

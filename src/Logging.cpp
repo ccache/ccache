@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,8 +45,6 @@
 #  endif
 #endif
 
-using nonstd::string_view;
-
 namespace {
 
 // Logfile path and file handle, read from Config::log_file().
@@ -76,7 +74,7 @@ print_fatal_error_and_exit()
 }
 
 void
-do_log(string_view message, bool bulk)
+do_log(std::string_view message, bool bulk)
 {
   static char prefix[200];
 
@@ -159,7 +157,7 @@ enabled()
 }
 
 void
-log(string_view message)
+log(std::string_view message)
 {
   if (!enabled()) {
     return;
@@ -168,7 +166,7 @@ log(string_view message)
 }
 
 void
-bulk_log(string_view message)
+bulk_log(std::string_view message)
 {
   if (!enabled()) {
     return;

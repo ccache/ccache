@@ -1,9 +1,6 @@
-FROM centos:8
+FROM fedora:36
 
-# also run update due to https://bugs.centos.org/view.php?id=18212
-RUN dnf install -y epel-release \
- && dnf update -y \
- && dnf install -y \
+RUN dnf install -y \
         autoconf \
         bash \
         ccache \
@@ -11,6 +8,7 @@ RUN dnf install -y epel-release \
         cmake \
         diffutils \
         elfutils \
+        findutils \
         gcc \
         gcc-c++ \
         hiredis-devel \

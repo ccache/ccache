@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,9 +24,8 @@
 #include <storage/primary/util.hpp>
 #include <storage/types.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
 #include <cstdint>
+#include <optional>
 
 class Config;
 
@@ -46,18 +45,17 @@ class PrimaryStorage
 public:
   PrimaryStorage(const Config& config);
 
-  void initialize();
   void finalize();
 
   // --- Cache entry handling ---
 
   // Returns a path to a file containing the value.
-  nonstd::optional<std::string> get(const Digest& key,
-                                    core::CacheEntryType type) const;
+  std::optional<std::string> get(const Digest& key,
+                                 core::CacheEntryType type) const;
 
-  nonstd::optional<std::string> put(const Digest& key,
-                                    core::CacheEntryType type,
-                                    const storage::EntryWriter& entry_writer);
+  std::optional<std::string> put(const Digest& key,
+                                 core::CacheEntryType type,
+                                 const storage::EntryWriter& entry_writer);
 
   void remove(const Digest& key, core::CacheEntryType type);
 
@@ -78,8 +76,8 @@ public:
   // --- Cleanup ---
 
   void evict(const ProgressReceiver& progress_receiver,
-             nonstd::optional<uint64_t> max_age,
-             nonstd::optional<std::string> namespace_);
+             std::optional<uint64_t> max_age,
+             std::optional<std::string> namespace_);
 
   void clean_all(const ProgressReceiver& progress_receiver);
 
@@ -90,7 +88,7 @@ public:
   CompressionStatistics
   get_compression_statistics(const ProgressReceiver& progress_receiver) const;
 
-  void recompress(nonstd::optional<int8_t> level,
+  void recompress(std::optional<int8_t> level,
                   const ProgressReceiver& progress_receiver);
 
 private:
@@ -107,8 +105,8 @@ private:
 
   // The manifest and result keys and paths are stored by put() so that
   // finalize() can use them to move the files in place.
-  nonstd::optional<Digest> m_manifest_key;
-  nonstd::optional<Digest> m_result_key;
+  std::optional<Digest> m_manifest_key;
+  std::optional<Digest> m_result_key;
   std::string m_manifest_path;
   std::string m_result_path;
 
@@ -124,7 +122,7 @@ private:
 
   void clean_internal_tempdir();
 
-  nonstd::optional<core::StatisticsCounters>
+  std::optional<core::StatisticsCounters>
   update_stats_and_maybe_move_cache_file(
     const Digest& key,
     const std::string& current_path,
@@ -134,13 +132,13 @@ private:
   // Join the cache directory, a '/' and `name` into a single path and return
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
-  std::string get_path_in_cache(uint8_t level, nonstd::string_view name) const;
+  std::string get_path_in_cache(uint8_t level, std::string_view name) const;
 
   static void clean_dir(const std::string& subdir,
                         uint64_t max_size,
                         uint64_t max_files,
-                        nonstd::optional<uint64_t> max_age,
-                        nonstd::optional<std::string> namespace_,
+                        std::optional<uint64_t> max_age,
+                        std::optional<std::string> namespace_,
                         const ProgressReceiver& progress_receiver);
 };
 

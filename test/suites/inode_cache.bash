@@ -4,10 +4,9 @@ SUITE_inode_cache_PROBE() {
         return
     fi
 
-    temp_dir=$(dirname $($CCACHE -k temporary_dir))
-    fs=$(stat -fLc %T $temp_dir)
-    if [ "$fs" = "nfs" ]; then
-        echo "ccache temporary directory is on NFS"
+    mkdir -p "${CCACHE_DIR}"
+    if [ "$(stat -fLc %T "${CCACHE_DIR}")" = "nfs" ]; then
+        echo "ccache directory is on NFS"
     fi
 }
 
@@ -15,6 +14,7 @@ SUITE_inode_cache_SETUP() {
     export CCACHE_INODECACHE=1
     export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
+    export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"  # isolate inode cache file
 }
 
 SUITE_inode_cache() {
@@ -26,8 +26,7 @@ expect_inode_cache_type() {
     local source_file=$2
     local type=$3
 
-    local log_file=$(echo $source_file | sed 's/\.c$/.o.ccache-log/')
-    local actual=$(grep -c "inode cache $type: $source_file" "$log_file")
+    local actual=$(grep -c "inode cache $type: $source_file" ${source_file/%.c/.o}.*.ccache-log)
     if [ $actual -ne $expected ]; then
         test_failed_internal "Found $actual (expected $expected) $type for $source_file"
     fi
@@ -53,6 +52,8 @@ inode_cache_tests() {
     echo "// recompile" > test1.c
     $CCACHE_COMPILE -c test1.c
     expect_inode_cache 0 1 1 test1.c
+    rm *.ccache-*
+
     $CCACHE_COMPILE -c test1.c
     expect_inode_cache 1 0 0 test1.c
 
@@ -62,6 +63,7 @@ inode_cache_tests() {
     echo "// backdate" > test1.c
     $CCACHE_COMPILE -c test1.c
     expect_inode_cache 0 1 1 test1.c
+    rm *.ccache-*
 
     backdate test1.c
     $CCACHE_COMPILE -c test1.c
@@ -93,6 +95,7 @@ inode_cache_tests() {
     echo "// replace" > test1.c
     $CCACHE_COMPILE -c test1.c
     expect_inode_cache 0 1 1 test1.c
+    rm *.ccache-*
 
     rm test1.c
     echo "// replace" > test1.c

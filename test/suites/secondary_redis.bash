@@ -94,7 +94,7 @@ SUITE_secondary_redis() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
-    expect_not_contains test.o.ccache-log "${password}"
+    expect_not_contains test.o.*.ccache-log "${password}"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1

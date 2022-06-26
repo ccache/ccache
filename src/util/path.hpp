@@ -18,9 +18,8 @@
 
 #pragma once
 
-#include <third_party/nonstd/string_view.hpp>
-
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace util {
@@ -28,32 +27,36 @@ namespace util {
 // --- Interface ---
 
 // Return whether `path` is absolute.
-bool is_absolute_path(nonstd::string_view path);
+bool is_absolute_path(std::string_view path);
 
 // Return whether `path` includes at least one directory separator.
-bool is_full_path(nonstd::string_view path);
+bool is_full_path(std::string_view path);
+
+// Return whether `path` starts with `prefix` considering path specifics on
+// Windows
+bool path_starts_with(std::string_view path, std::string_view prefix);
 
 // Split a list of paths (such as the content of $PATH on Unix platforms or
 // %PATH% on Windows platforms) into paths.
-std::vector<std::string> split_path_list(nonstd::string_view path_list);
+std::vector<std::string> split_path_list(std::string_view path_list);
 
 // Make `path` an absolute path.
-std::string to_absolute_path(nonstd::string_view path);
+std::string to_absolute_path(std::string_view path);
 
 // Make `path` an absolute path, but do not include Windows drive.
-std::string to_absolute_path_no_drive(nonstd::string_view path);
+std::string to_absolute_path_no_drive(std::string_view path);
 
 // --- Inline implementations ---
 
 inline bool
-is_full_path(const nonstd::string_view path)
+is_full_path(const std::string_view path)
 {
 #ifdef _WIN32
-  if (path.find('\\') != nonstd::string_view::npos) {
+  if (path.find('\\') != std::string_view::npos) {
     return true;
   }
 #endif
-  return path.find('/') != nonstd::string_view::npos;
+  return path.find('/') != std::string_view::npos;
 }
 
 } // namespace util

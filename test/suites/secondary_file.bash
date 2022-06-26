@@ -12,6 +12,7 @@ SUITE_secondary_file() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
+    # Compile and send result to primary and secondary storage.
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
@@ -27,6 +28,7 @@ SUITE_secondary_file() {
     fi
     expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
 
+    # Get result from primary storage.
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
@@ -37,14 +39,27 @@ SUITE_secondary_file() {
     expect_stat files_in_cache 2
     expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
 
+    # Clear primary storage.
     $CCACHE -C >/dev/null
     expect_stat files_in_cache 0
     expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
 
+    # Get result from secondary storage, copying it to primary storage.
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
     expect_stat primary_storage_hit 2
+    expect_stat primary_storage_miss 4 # 2 * (result + manifest)
+    expect_stat secondary_storage_hit 2 # result + manifest
+    expect_stat secondary_storage_miss 2 # result + manifest
+    expect_stat files_in_cache 2 # fetched from secondary
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    # Get result from primary storage again.
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 1
+    expect_stat primary_storage_hit 4
     expect_stat primary_storage_miss 4 # 2 * (result + manifest)
     expect_stat secondary_storage_hit 2 # result + manifest
     expect_stat secondary_storage_miss 2 # result + manifest
@@ -152,18 +167,22 @@ SUITE_secondary_file() {
     # -------------------------------------------------------------------------
     TEST "umask"
 
-    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=022"
+    export CCACHE_UMASK=042
+    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=024"
     rm -rf secondary
     $CCACHE_COMPILE -c test.c
-    expect_perm secondary drwxr-xr-x
-    expect_perm secondary/CACHEDIR.TAG -rw-r--r--
+    expect_perm secondary drwxr-x-wx # 777 & 024
+    expect_perm secondary/CACHEDIR.TAG -rw-r---w- # 666 & 024
+    result_file=$(find $CCACHE_DIR -name '*R')
+    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
-    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=000"
+    CCACHE_SECONDARY_STORAGE="file://$PWD/secondary|umask=026"
     $CCACHE -C >/dev/null
     rm -rf secondary
     $CCACHE_COMPILE -c test.c
-    expect_perm secondary drwxrwxrwx
-    expect_perm secondary/CACHEDIR.TAG -rw-rw-rw-
+    expect_perm secondary drwxr-x--x # 777 & 026
+    expect_perm secondary/CACHEDIR.TAG -rw-r----- # 666 & 026
 
     # -------------------------------------------------------------------------
     TEST "Sharding"
@@ -246,4 +265,34 @@ SUITE_secondary_file() {
     expect_stat secondary_storage_hit 2
     expect_stat secondary_storage_miss 2
     expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Recache"
+
+    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat direct_cache_miss 0
+    expect_stat cache_miss 0
+    expect_stat recache 1
+    expect_stat files_in_cache 2
+    expect_stat primary_storage_hit 0
+    expect_stat primary_storage_miss 1 # Try to read manifest for updating
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 1 # Try to read manifest for updating
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    $CCACHE -C >/dev/null
+    expect_stat files_in_cache 0
+    expect_file_count 3 '*' secondary # CACHEDIR.TAG + result + manifest
+
+    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat direct_cache_miss 0
+    expect_stat cache_miss 0
+    expect_stat recache 2
+    expect_stat files_in_cache 2
+    expect_stat primary_storage_hit 0
+    expect_stat primary_storage_miss 2 # Try to read manifest for updating
+    expect_stat secondary_storage_hit 1 # Read manifest for updating
+    expect_stat secondary_storage_miss 1
 }

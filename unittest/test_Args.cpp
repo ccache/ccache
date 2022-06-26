@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -84,7 +84,7 @@ TEST_CASE("Args::from_atfile")
 
   SUBCASE("Nonexistent file")
   {
-    CHECK(Args::from_atfile("at_file") == nonstd::nullopt);
+    CHECK(Args::from_atfile("at_file") == std::nullopt);
   }
 
   SUBCASE("Empty")
@@ -135,6 +135,23 @@ TEST_CASE("Args::from_atfile")
     CHECK(args[4] == "fif th");
     CHECK(args[5] == "si'x\" th");
     CHECK(args[6] == "seve\nth");
+  }
+
+  SUBCASE("Only escape double quote and backslash in alternate format")
+  {
+    Util::write_file("at_file", "\"\\\"\\a\\ \\\\\\ \\b\\\"\"\\");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 1);
+    CHECK(args[0] == "\"\\a\\ \\\\ \\b\"\\");
+  }
+
+  SUBCASE("Ignore single quote in alternate format")
+  {
+    Util::write_file("at_file", "'a b'");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 2);
+    CHECK(args[0] == "'a");
+    CHECK(args[1] == "b'");
   }
 }
 

@@ -27,6 +27,7 @@ class File : public NonCopyable
 {
 public:
   File() = default;
+  File(FILE* file);
   File(const std::string& path, const char* mode);
   File(File&& other) noexcept;
   ~File();
@@ -42,16 +43,26 @@ public:
 
 private:
   FILE* m_file = nullptr;
+  bool m_owned = false;
 };
+
+inline File::File(FILE* const file)
+{
+  m_file = file;
+  m_owned = false;
+}
 
 inline File::File(const std::string& path, const char* mode)
 {
   open(path, mode);
 }
 
-inline File::File(File&& other) noexcept : m_file(other.m_file)
+inline File::File(File&& other) noexcept
+  : m_file(other.m_file),
+    m_owned(other.m_owned)
 {
   other.m_file = nullptr;
+  other.m_owned = false;
 }
 
 inline File::~File()
@@ -63,7 +74,9 @@ inline File&
 File::operator=(File&& other) noexcept
 {
   m_file = other.m_file;
+  m_owned = other.m_owned;
   other.m_file = nullptr;
+  other.m_owned = false;
   return *this;
 }
 
@@ -72,15 +85,17 @@ File::open(const std::string& path, const char* mode)
 {
   close();
   m_file = fopen(path.c_str(), mode);
+  m_owned = true;
 }
 
 inline void
 File::close()
 {
-  if (m_file) {
+  if (m_file && m_owned) {
     fclose(m_file);
     m_file = nullptr;
   }
+  m_owned = false;
 }
 
 inline File::operator bool() const

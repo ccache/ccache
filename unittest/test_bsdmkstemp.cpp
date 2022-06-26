@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -88,9 +88,9 @@ private:
 
 } // namespace
 
-TEST_SUITE_BEGIN("bsd_mkstemp");
+TEST_SUITE_BEGIN("bsd_mkstemps");
 
-TEST_CASE("bsd_mkstemp")
+TEST_CASE("bsd_mkstemps")
 {
   TestContext test_context;
 
@@ -108,23 +108,33 @@ TEST_CASE("bsd_mkstemp")
   SUBCASE("successful")
   {
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemps(&path[0], 0));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "AAAAAA");
+  }
+
+  SUBCASE("successful with suffix")
+  {
+    std::string path = "XXXXXX123";
+    Fd fd(bsd_mkstemps(&path[0], 3));
+    CHECK_MESSAGE(fd, "errno=" << errno);
+    CHECK(path == "AAAAAA123");
   }
 
   SUBCASE("existing file")
   {
-    CHECK_MESSAGE(ScopedHANDLE(CreateFileA("AAAAAA",
-                                           GENERIC_READ | GENERIC_WRITE,
-                                           0,
-                                           nullptr,
-                                           CREATE_NEW,
-                                           FILE_ATTRIBUTE_NORMAL,
-                                           nullptr)),
-                  "errno=" << errno);
+    ScopedHANDLE handle(CreateFileA("AAAAAA",
+                                    GENERIC_READ | GENERIC_WRITE,
+                                    0,
+                                    nullptr,
+                                    CREATE_NEW,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    nullptr));
+    CHECK_MESSAGE(handle, "errno=" << errno);
 
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemps(&path[0], 0));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "BBBBBB");
   }
 
@@ -150,7 +160,8 @@ TEST_CASE("bsd_mkstemp")
                   "errno=" << errno);
 
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemps(&path[0], 0));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "BBBBBB");
   }
 
@@ -159,7 +170,8 @@ TEST_CASE("bsd_mkstemp")
     CHECK_MESSAGE(CreateDirectoryA("AAAAAA", nullptr), "errno=" << errno);
 
     std::string path = "XXXXXX";
-    CHECK_MESSAGE(Fd(bsd_mkstemp(&path[0])), "errno=" << errno);
+    Fd fd(bsd_mkstemps(&path[0], 0));
+    CHECK_MESSAGE(fd, "errno=" << errno);
     CHECK(path == "BBBBBB");
   }
 
@@ -198,7 +210,7 @@ TEST_CASE("bsd_mkstemp")
 
     if (!broken_acls) {
       std::string path = "my_readonly_dir/XXXXXX";
-      CHECK(!Fd(bsd_mkstemp(&path[0])));
+      CHECK(!Fd(bsd_mkstemps(&path[0], 0)));
       CHECK(errno == EACCES);
     } else {
       MESSAGE("ACLs do not appear to function properly on this filesystem");

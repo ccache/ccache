@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,10 +23,6 @@
 #include <core/exceptions.hpp>
 #include <util/string.hpp>
 
-using nonstd::nullopt;
-using nonstd::optional;
-using nonstd::string_view;
-
 Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
 {
 }
@@ -49,14 +45,14 @@ Args::from_string(const std::string& command)
   return args;
 }
 
-optional<Args>
-Args::from_atfile(const std::string& filename, bool ignore_backslash)
+std::optional<Args>
+Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
   std::string argtext;
   try {
-    argtext = Util::read_file(filename);
+    argtext = Util::read_text_file(filename);
   } catch (core::Error&) {
-    return nullopt;
+    return std::nullopt;
   }
 
   Args args;
@@ -72,17 +68,28 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
   while (true) {
     switch (*pos) {
     case '\\':
-      if (ignore_backslash) {
-        break;
-      }
       pos++;
-      if (*pos == '\0') {
-        continue;
+      switch (format) {
+      case AtFileFormat::gcc:
+        if (*pos == '\0') {
+          continue;
+        }
+        break;
+      case AtFileFormat::msvc:
+        if (*pos != '"' && *pos != '\\') {
+          pos--;
+        }
+        break;
       }
       break;
 
-    case '"':
     case '\'':
+      if (format == AtFileFormat::msvc) {
+        break;
+      }
+      [[fallthrough]];
+
+    case '"':
       if (quoting != '\0') {
         if (quoting == *pos) {
           quoting = '\0';
@@ -104,7 +111,7 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
       if (quoting) {
         break;
       }
-      // Fall through.
+      [[fallthrough]];
 
     case '\0':
       // End of token
@@ -162,7 +169,7 @@ Args::to_string() const
 }
 
 void
-Args::erase_last(string_view arg)
+Args::erase_last(std::string_view arg)
 {
   const auto it = std::find(m_args.rbegin(), m_args.rend(), arg);
   if (it != m_args.rend()) {
@@ -171,7 +178,7 @@ Args::erase_last(string_view arg)
 }
 
 void
-Args::erase_with_prefix(string_view prefix)
+Args::erase_with_prefix(std::string_view prefix)
 {
   m_args.erase(std::remove_if(m_args.begin(),
                               m_args.end(),

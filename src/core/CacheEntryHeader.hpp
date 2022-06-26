@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -76,7 +76,7 @@ struct CacheEntryHeader
 
   uint64_t payload_size() const;
   void set_entry_size_from_payload_size(uint64_t payload_size);
-  void dump(FILE* stream) const;
+  void inspect(FILE* stream) const;
 
 private:
   size_t non_payload_size() const;

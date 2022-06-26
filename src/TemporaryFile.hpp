@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,9 +20,8 @@
 
 #include "Fd.hpp"
 
-#include "third_party/nonstd/string_view.hpp"
-
 #include <string>
+#include <string_view>
 
 // This class represents a unique temporary file created by mkstemp. The file is
 // not deleted by the destructor.
@@ -30,15 +29,13 @@ class TemporaryFile
 {
 public:
   // `path_prefix` is the base path. The resulting filename will be this path
-  //  plus a unique suffix. If `path_prefix` refers to a nonexistent directory
-  //  the directory will be created if possible.`
-  TemporaryFile(nonstd::string_view path_prefix);
+  //  plus a unique string plus `suffix`. If `path_prefix` refers to a
+  //  nonexistent directory the directory will be created if possible.`
+  TemporaryFile(std::string_view path_prefix, std::string_view suffix = {});
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 
-  // Note: Should be declared noexcept, but since GCC 4.8 trips on it, don't do
-  // that for now.
-  TemporaryFile& operator=(TemporaryFile&& other) = default;
+  TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
 
   // The resulting open file descriptor in read/write mode. Unset on error.
   Fd fd;

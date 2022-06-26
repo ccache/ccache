@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,9 +32,7 @@
 #  include <unistd.h>
 #endif
 
-using nonstd::string_view;
-
-const string_view HASH_DELIMITER("\000cCaChE\000", 8);
+const std::string_view HASH_DELIMITER("\000cCaChE\000", 8);
 
 Hash::Hash()
 {
@@ -42,7 +40,7 @@ Hash::Hash()
 }
 
 void
-Hash::enable_debug(string_view section_name,
+Hash::enable_debug(std::string_view section_name,
                    FILE* debug_binary,
                    FILE* debug_text)
 {
@@ -65,11 +63,11 @@ Hash::digest() const
 }
 
 Hash&
-Hash::hash_delimiter(string_view type)
+Hash::hash_delimiter(std::string_view type)
 {
   hash_buffer(HASH_DELIMITER);
   hash_buffer(type);
-  hash_buffer(string_view("", 1)); // NUL
+  hash_buffer(std::string_view("\x00", 1));
   add_debug_text("### ");
   add_debug_text(type);
   add_debug_text("\n");
@@ -79,7 +77,7 @@ Hash::hash_delimiter(string_view type)
 Hash&
 Hash::hash(const void* data, size_t size, HashType hash_type)
 {
-  string_view buffer(static_cast<const char*>(data), size);
+  std::string_view buffer(static_cast<const char*>(data), size);
   hash_buffer(buffer);
 
   switch (hash_type) {
@@ -98,7 +96,7 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
 }
 
 Hash&
-Hash::hash(string_view data)
+Hash::hash(std::string_view data)
 {
   hash(data.data(), data.length());
   return *this;
@@ -107,7 +105,7 @@ Hash::hash(string_view data)
 Hash&
 Hash::hash(int64_t x)
 {
-  hash_buffer(string_view(reinterpret_cast<const char*>(&x), sizeof(x)));
+  hash_buffer(std::string_view(reinterpret_cast<const char*>(&x), sizeof(x)));
   add_debug_text(FMT("{}\n", x));
   return *this;
 }
@@ -133,7 +131,7 @@ Hash::hash_file(const std::string& path)
 }
 
 void
-Hash::hash_buffer(string_view buffer)
+Hash::hash_buffer(std::string_view buffer)
 {
   blake3_hasher_update(&m_hasher, buffer.data(), buffer.size());
   if (!buffer.empty() && m_debug_binary) {
@@ -142,7 +140,7 @@ Hash::hash_buffer(string_view buffer)
 }
 
 void
-Hash::add_debug_text(string_view text)
+Hash::add_debug_text(std::string_view text)
 {
   if (!text.empty() && m_debug_text) {
     (void)fwrite(text.data(), 1, text.length(), m_debug_text);

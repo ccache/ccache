@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 
-project(ccache LANGUAGES C CXX)
+project(ccache LANGUAGES C CXX ASM ASM_MASM)
 if(MSVC)
   enable_language(ASM_MASM)
 else()
@@ -8,11 +8,7 @@ else()
 endif()
 set(CMAKE_PROJECT_DESCRIPTION "a fast C/C++ compiler cache")
 
-if(MSVC)
-  set(CMAKE_CXX_STANDARD 17) # Need support for std::filesystem
-else()
-  set(CMAKE_CXX_STANDARD 14)
-endif()
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
@@ -70,7 +66,6 @@ if(ENABLE_IPO AND NOT MINGW)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
-include(UseCcache)
 include(UseFastestLinker)
 include(StandardSettings)
 include(StandardWarnings)
@@ -85,6 +80,33 @@ include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 
 #
+# Static link configuration
+#
+
+set(STATIC_LINK_DEFAULT OFF)
+if(WIN32)
+  set(STATIC_LINK_DEFAULT ON)
+endif()
+
+option(STATIC_LINK "Prefer linking libraries statically" ${STATIC_LINK_DEFAULT})
+
+if(STATIC_LINK)
+  list(INSERT CMAKE_FIND_LIBRARY_SUFFIXES 0 "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  set(CMAKE_LINK_SEARCH_START_STATIC ON)
+
+  # Link MSVC runtime statically.
+  if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # Link MINGW runtime statically.
+  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
+  # Link WIN32 clang libs statically.
+  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    list(APPEND CCACHE_EXTRA_LIBS -Wl,-Bstatic -lc++ -lunwind -Wl,-Bdynamic)
+  endif()
+endif()
+
+#
 # Third party
 #
 set(HIREDIS_FROM_INTERNET_DEFAULT OFF)
@@ -97,12 +119,12 @@ if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg|conan")
 endif()
 
 option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
-find_package(zstd 1.1.2 REQUIRED)
+find_package(zstd 1.1.2 MODULE REQUIRED)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
 if(REDIS_STORAGE_BACKEND)
   option(HIREDIS_FROM_INTERNET "Download and use libhiredis from the Internet" ${HIREDIS_FROM_INTERNET_DEFAULT})
-  find_package(hiredis 0.13.3 REQUIRED)
+  find_package(hiredis 0.13.3 MODULE REQUIRED)
 endif()
 
 option(REDISS_STORAGE_BACKEND "Enable Redis SSL secondary storage" OFF)
@@ -125,10 +147,6 @@ endif()
 #
 include(CodeAnalysis)
 option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)
-
-if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  option(STATIC_LINK "Link statically with system libraries" ON)
-endif()
 
 #
 # Source code

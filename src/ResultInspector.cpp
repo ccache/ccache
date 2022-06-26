@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,28 +16,36 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "ResultInspector.hpp"
 
-#include "Result.hpp"
+#include "Context.hpp"
+#include "Logging.hpp"
+#include "fmtmacros.hpp"
 
-#include <cstdint>
-#include <cstdio>
-
-// This class dumps information about the result entry to `stream`.
-class ResultDumper : public Result::Reader::Consumer
+ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
 {
-public:
-  ResultDumper(FILE* stream);
+}
 
-  void on_header(core::CacheEntryReader& cache_entry_reader,
-                 uint8_t result_format_version) override;
-  void on_entry_start(uint32_t entry_number,
-                      Result::FileType file_type,
-                      uint64_t file_len,
-                      nonstd::optional<std::string> raw_file) override;
-  void on_entry_data(const uint8_t* data, size_t size) override;
-  void on_entry_end() override;
+void
+ResultInspector::on_entry_start(uint8_t entry_number,
+                                Result::FileType file_type,
+                                uint64_t file_len,
+                                std::optional<std::string> raw_file)
+{
+  PRINT(m_stream,
+        "{} file #{}: {} ({} bytes)\n",
+        raw_file ? "Raw" : "Embedded",
+        entry_number,
+        Result::file_type_to_string(file_type),
+        file_len);
+}
 
-private:
-  FILE* m_stream;
-};
+void
+ResultInspector::on_entry_data(const uint8_t* /*data*/, size_t /*size*/)
+{
+}
+
+void
+ResultInspector::on_entry_end()
+{
+}

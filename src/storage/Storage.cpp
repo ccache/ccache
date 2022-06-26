@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -114,7 +114,7 @@ to_string(const SecondaryStorageConfig& entry)
 }
 
 static SecondaryStorageConfig
-parse_storage_config(const nonstd::string_view entry)
+parse_storage_config(const std::string_view entry)
 {
   const auto parts =
     Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
@@ -140,9 +140,8 @@ parse_storage_config(const nonstd::string_view entry)
     if (parts[i].empty()) {
       continue;
     }
-    const auto kv_pair = util::split_once(parts[i], '=');
-    const auto& key = kv_pair.first;
-    const auto& raw_value = kv_pair.second.value_or("true");
+    const auto [key, right_hand_side] = util::split_once(parts[i], '=');
+    const auto& raw_value = right_hand_side.value_or("true");
     const auto value =
       util::value_or_throw<core::Error>(util::percent_decode(raw_value));
     if (key == "read-only") {
@@ -155,9 +154,9 @@ parse_storage_config(const nonstd::string_view entry)
       }
       for (const auto& shard : util::Tokenizer(value, ",")) {
         double weight = 1.0;
-        nonstd::string_view name;
+        std::string_view name;
         const auto lp_pos = shard.find('(');
-        if (lp_pos != nonstd::string_view::npos) {
+        if (lp_pos != std::string_view::npos) {
           if (shard.back() != ')') {
             throw core::Error("Invalid shard name: \"{}\"", shard);
           }
@@ -186,7 +185,7 @@ parse_storage_config(const nonstd::string_view entry)
 }
 
 static std::vector<SecondaryStorageConfig>
-parse_storage_configs(const nonstd::string_view& configs)
+parse_storage_configs(const std::string_view& configs)
 {
   std::vector<SecondaryStorageConfig> result;
   for (const auto& config : util::Tokenizer(configs, " ")) {
@@ -220,7 +219,6 @@ Storage::~Storage()
 void
 Storage::initialize()
 {
-  primary.initialize();
   add_secondary_storages();
 }
 
@@ -230,40 +228,48 @@ Storage::finalize()
   primary.finalize();
 }
 
-nonstd::optional<std::string>
-Storage::get(const Digest& key, const core::CacheEntryType type)
+std::optional<std::string>
+Storage::get(const Digest& key,
+             const core::CacheEntryType type,
+             const Mode mode)
 {
   MTR_SCOPE("storage", "get");
 
-  const auto path = primary.get(key, type);
-  primary.increment_statistic(path ? core::Statistic::primary_storage_hit
-                                   : core::Statistic::primary_storage_miss);
-  if (path) {
-    if (m_config.reshare()) {
-      // Temporary optimization until primary storage API has been refactored to
-      // pass data via memory instead of files.
-      const bool should_put_in_secondary_storage =
-        std::any_of(m_secondary_storages.begin(),
-                    m_secondary_storages.end(),
-                    [](const auto& entry) { return !entry->config.read_only; });
-      if (should_put_in_secondary_storage) {
-        std::string value;
-        try {
-          value = Util::read_file(*path);
-        } catch (const core::Error& e) {
-          LOG("Failed to read {}: {}", *path, e.what());
-          return path; // Don't indicate failure since primary storage was OK.
+  if (mode != Mode::secondary_only) {
+    auto path = primary.get(key, type);
+    primary.increment_statistic(path ? core::Statistic::primary_storage_hit
+                                     : core::Statistic::primary_storage_miss);
+    if (path) {
+      if (m_config.reshare()) {
+        // Temporary optimization until primary storage API has been refactored
+        // to pass data via memory instead of files.
+        const bool should_put_in_secondary_storage = std::any_of(
+          m_secondary_storages.begin(),
+          m_secondary_storages.end(),
+          [](const auto& entry) { return !entry->config.read_only; });
+        if (should_put_in_secondary_storage) {
+          std::string value;
+          try {
+            value = Util::read_file(*path);
+          } catch (const core::Error& e) {
+            LOG("Failed to read {}: {}", *path, e.what());
+            return path; // Don't indicate failure since primary storage was OK.
+          }
+          put_in_secondary_storage(key, value, true);
         }
-        put_in_secondary_storage(key, value, true);
       }
-    }
 
-    return path;
+      return path;
+    }
+  }
+
+  if (mode == Mode::primary_only) {
+    return std::nullopt;
   }
 
   const auto value_and_share_hits = get_from_secondary_storage(key);
   if (!value_and_share_hits) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
   const auto& value = value_and_share_hits->first;
   const auto& share_hits = value_and_share_hits->second;
@@ -279,6 +285,7 @@ Storage::get(const Digest& key, const core::CacheEntryType type)
   if (share_hits) {
     primary.put(key, type, [&](const auto& path) {
       try {
+        Util::ensure_dir_exists(Util::dir_name(path));
         Util::copy_file(tmp_file.path, path);
       } catch (const core::Error& e) {
         LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
@@ -420,7 +427,7 @@ get_shard_url(const Digest& key,
 SecondaryStorageBackendEntry*
 Storage::get_backend(SecondaryStorageEntry& entry,
                      const Digest& key,
-                     const nonstd::string_view operation_description,
+                     const std::string_view operation_description,
                      const bool for_writing)
 {
   if (for_writing && entry.config.read_only) {
@@ -451,7 +458,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
     } catch (const secondary::SecondaryStorage::Backend::Failed& e) {
       LOG("Failed to construct backend for {}{}",
           entry.url_for_logging,
-          nonstd::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
+          std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
       return nullptr;
     }
@@ -466,7 +473,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-nonstd::optional<std::pair<std::string, bool>>
+std::optional<std::pair<std::string, bool>>
 Storage::get_from_secondary_storage(const Digest& key)
 {
   MTR_SCOPE("secondary_storage", "get");
@@ -502,7 +509,7 @@ Storage::get_from_secondary_storage(const Digest& key)
     }
   }
 
-  return nonstd::nullopt;
+  return std::nullopt;
 }
 
 void
@@ -531,7 +538,7 @@ Storage::put_in_secondary_storage(const Digest& key,
     LOG("{} {} in {} ({:.2f} ms)",
         stored ? "Stored" : "Did not have to store",
         key.to_string(),
-        entry->url_for_logging,
+        backend->url_for_logging,
         ms);
   }
 }
@@ -559,12 +566,12 @@ Storage::remove_from_secondary_storage(const Digest& key)
     if (removed) {
       LOG("Removed {} from {} ({:.2f} ms)",
           key.to_string(),
-          entry->url_for_logging,
+          backend->url_for_logging,
           ms);
     } else {
       LOG("No {} to remove from {} ({:.2f} ms)",
           key.to_string(),
-          entry->url_for_logging,
+          backend->url_for_logging,
           ms);
     }
   }

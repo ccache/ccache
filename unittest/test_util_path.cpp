@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,8 @@
 #include <util/path.hpp>
 
 #include <third_party/doctest.h>
+
+#include <ostream> // https://github.com/doctest/doctest/issues/618
 
 TEST_CASE("util::is_absolute_path")
 {
@@ -114,4 +116,22 @@ TEST_CASE("util::to_absolute_path_no_drive")
   CHECK(util::to_absolute_path_no_drive("foo") == FMT("{}/foo", cwd));
   CHECK(util::to_absolute_path_no_drive("../foo/bar")
         == FMT("{}/foo/bar", Util::dir_name(cwd)));
+}
+
+TEST_CASE("util::path_starts_with")
+{
+  CHECK(util::path_starts_with("/foo/bar", "/foo"));
+  CHECK(!util::path_starts_with("/batz/bar", "/foo"));
+  CHECK(!util::path_starts_with("/foo/bar", "/foo/baz"));
+  CHECK(!util::path_starts_with("/beh/foo", "/foo"));
+#ifdef _WIN32
+  CHECK(util::path_starts_with("C:/foo/bar", "C:\\foo"));
+  CHECK(util::path_starts_with("C:/foo/bar", "C:\\\\foo"));
+  CHECK(util::path_starts_with("C:\\foo\\bar", "C:/foo"));
+  CHECK(util::path_starts_with("C:\\\\foo\\\\bar", "C:/foo"));
+  CHECK(!util::path_starts_with("C:\\foo\\bar", "/foo/baz"));
+  CHECK(!util::path_starts_with("C:\\foo\\bar", "C:/foo/baz"));
+  CHECK(!util::path_starts_with("C:\\beh\\foo", "/foo"));
+  CHECK(!util::path_starts_with("C:\\beh\\foo", "C:/foo"));
+#endif
 }

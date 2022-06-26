@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,8 +21,7 @@
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 bool
 SecondaryStorage::Backend::is_framework_attribute(const std::string& name)
@@ -37,5 +36,4 @@ SecondaryStorage::Backend::parse_timeout_attribute(const std::string& value)
     util::parse_unsigned(value, 1, 60 * 1000, "timeout")));
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

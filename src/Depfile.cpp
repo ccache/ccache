@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,6 +26,8 @@
 #include <core/exceptions.hpp>
 #include <util/path.hpp>
 
+#include <algorithm>
+
 static inline bool
 is_blank(const std::string& s)
 {
@@ -35,7 +37,7 @@ is_blank(const std::string& s)
 namespace Depfile {
 
 std::string
-escape_filename(nonstd::string_view filename)
+escape_filename(std::string_view filename)
 {
   std::string result;
   result.reserve(filename.size());
@@ -57,7 +59,7 @@ escape_filename(nonstd::string_view filename)
   return result;
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 rewrite_paths(const Context& ctx, const std::string& file_content)
 {
   ASSERT(!ctx.config.base_dir().empty());
@@ -65,15 +67,18 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
 
   // Fast path for the common case:
   if (file_content.find(ctx.config.base_dir()) == std::string::npos) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   std::string adjusted_file_content;
   adjusted_file_content.reserve(file_content.size());
 
   bool content_rewritten = false;
-  for (const auto line : util::Tokenizer(
-         file_content, "\n", util::Tokenizer::Mode::skip_last_empty)) {
+  using util::Tokenizer;
+  for (const auto line : Tokenizer(file_content,
+                                   "\n",
+                                   Tokenizer::Mode::include_empty,
+                                   Tokenizer::IncludeDelimiter::yes)) {
     const auto tokens = Util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
       DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
@@ -96,13 +101,12 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
         adjusted_file_content.append(token.begin(), token.end());
       }
     }
-    adjusted_file_content.push_back('\n');
   }
 
   if (content_rewritten) {
     return adjusted_file_content;
   } else {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 }
 
@@ -137,7 +141,7 @@ make_paths_relative_in_output_dep(const Context& ctx)
 }
 
 std::vector<std::string>
-tokenize(nonstd::string_view file_content)
+tokenize(std::string_view file_content)
 {
   // A dependency file uses Makefile syntax. This is not perfect parser but
   // should be enough for parsing a regular dependency file.

@@ -28,7 +28,7 @@ SUITE_no_compression() {
 
     $CCACHE_COMPILE -c test.c
     result_file=$(find $CCACHE_DIR -name '*R')
-    if ! $CCACHE --dump-result $result_file | grep 'Compression type: none' >/dev/null 2>&1; then
+    if ! $CCACHE --inspect $result_file | grep 'Compression type: none' >/dev/null 2>&1; then
         test_failed "Result file not uncompressed according to metadata"
     fi
     if [ $(file_size $result_file) -le $(file_size test.o) ]; then

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,21 +18,19 @@
 
 #pragma once
 
-#include "FormatNonstdStringView.hpp"
-
 #include "third_party/fmt/core.h"
 #include "third_party/fmt/format.h"
-#include "third_party/nonstd/optional.hpp"
-#include "third_party/nonstd/string_view.hpp"
 
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 // Log a raw message (plus a newline character).
 #define LOG_RAW(message_)                                                      \
   do {                                                                         \
     if (Logging::enabled()) {                                                  \
-      Logging::log(nonstd::string_view(message_));                             \
+      Logging::log(std::string_view(message_));                                \
     }                                                                          \
   } while (false)
 
@@ -62,11 +60,11 @@ void init(const Config& config);
 bool enabled();
 
 // Log `message` (plus a newline character).
-void log(nonstd::string_view message);
+void log(std::string_view message);
 
 // Log `message` (plus a newline character) without flushing and with a reused
 // timestamp.
-void bulk_log(nonstd::string_view message);
+void bulk_log(std::string_view message);
 
 // Write the current log memory buffer `path`.
 void dump_log(const std::string& path);

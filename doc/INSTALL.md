@@ -6,8 +6,8 @@ Prerequisites
 
 To build ccache you need:
 
-- CMake 3.10 or newer.
-- A C++14 compiler. See [Supported platforms, compilers and
+- CMake 3.15 or newer.
+- A C++17 compiler. See [Supported platforms, compilers and
   languages](https://ccache.dev/platform-compiler-language-support.html) for
   details.
 - A C99 compiler.
@@ -41,6 +41,11 @@ Optional:
 - [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
 - [Python](https://www.python.org) to debug and run the performance test suite.
 
+Reference configurations:
+
+- See [CI configurations](../.github/workflows/build.yaml) for a selection of
+  regularly tested build setups, including cross-compiling and explicit
+  dependencies required in Debian/Ubuntu environment.
 
 Installation
 ------------
@@ -58,26 +63,30 @@ You can set the installation directory to e.g. `/usr` by adding
 where the secondary configuration file should be located to e.g. `/etc` by
 adding `-DCMAKE_INSTALL_SYSCONFDIR=/etc`.
 
-There are two ways to use ccache. You can either prefix your compilation
-commands with `ccache` or you can create a symbolic link (named as your
-compiler) to ccache. The first method is most convenient if you just want to
-try out ccache or wish to use it for some specific projects. The second method
-is most useful for when you wish to use ccache for all your compilations.
+There are two different ways to use ccache to cache a compilation:
 
-To install for usage by the first method just copy ccache to somewhere in your
-path.
-
-To install for the second method, do something like this:
-
-    cp ccache /usr/local/bin/
-    ln -s ccache /usr/local/bin/gcc
-    ln -s ccache /usr/local/bin/g++
-    ln -s ccache /usr/local/bin/cc
-    ln -s ccache /usr/local/bin/c++
-
-And so forth. This will work as long as `/usr/local/bin` comes before the path
-to the compiler (which is usually in `/usr/bin`). After installing you may wish
-to run `which gcc` to make sure that the correct link is being used.
-
-NOTE: Do not use a hard link, use a symbolic link. A hard link will cause
-"interesting" problems.
+1. Prefix your compilation command with `ccache`. This method is most convenient
+   if you just want to try out ccache or wish to use it for some specific
+   projects.
+2. Let ccache masquerade as the compiler. This method is most useful when you
+   wish to use ccache for all your compilations. To do this, create a symbolic
+   link to ccache named as the compiler. For example, here is set up ccache to
+   masquerade as `gcc` and `g++`:
++
+-------------------------------------------------------------------------------
+cp ccache /usr/local/bin/
+ln -s ccache /usr/local/bin/gcc
+ln -s ccache /usr/local/bin/g++
+-------------------------------------------------------------------------------
++
+On platforms that don't support symbolic links you can simply copy ccache to the
+compiler name instead for a similar effect:
++
+-------------------------------------------------------------------------------
+cp ccache /usr/local/bin/gcc
+cp ccache /usr/local/bin/g++
+-------------------------------------------------------------------------------
++
+And so forth. This will work as long as the directory with symbolic links or
+ccache copies comes before the directory with the compiler (typically
+`/usr/bin`) in `PATH`.

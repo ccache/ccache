@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,31 +18,24 @@
 
 #pragma once
 
-#include "third_party/nonstd/optional.hpp"
+#include "Result.hpp"
 
 #include <cstdint>
 #include <cstdio>
-#include <ctime>
-#include <string>
-#include <unordered_map>
 
-class Config;
-class Context;
-class Digest;
+// This class writes information about the result entry to `stream`.
+class ResultInspector : public Result::Reader::Consumer
+{
+public:
+  ResultInspector(FILE* stream);
 
-namespace Manifest {
+  void on_entry_start(uint8_t entry_number,
+                      Result::FileType file_type,
+                      uint64_t file_len,
+                      std::optional<std::string> raw_file) override;
+  void on_entry_data(const uint8_t* data, size_t size) override;
+  void on_entry_end() override;
 
-extern const std::string k_file_suffix;
-extern const uint8_t k_magic[4];
-extern const uint8_t k_version;
-
-nonstd::optional<Digest> get(const Context& ctx, const std::string& path);
-bool put(const Config& config,
-         const std::string& path,
-         const Digest& result_key,
-         const std::unordered_map<std::string, Digest>& included_files,
-         time_t time_of_compilation,
-         bool save_timestamp);
-bool dump(const std::string& path, FILE* stream);
-
-} // namespace Manifest
+private:
+  FILE* m_stream;
+};

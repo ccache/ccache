@@ -14,35 +14,39 @@ build() {
     local cxx=$3
     local test_cc=$4
     shift 4
+    local cmake_params="$*"
+    if command -v >/dev/null ccache; then
+        cmake_params="${cmake_params} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+    fi
     echo "Build in Docker: $name CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS=\"$*\""
-    ASM=$cc CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS="$*" $build_in_docker $name
+    ASM=$cc CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS="${cmake_params}" $build_in_docker $name
 }
 
-#     NAME         CC    CXX     TEST_CC CMAKE_PARAMS
+#     NAME         CC     CXX     TEST_CC CMAKE_PARAMS
 
-build debian-10    gcc   g++     gcc
-build debian-10    clang clang++ clang
+build debian-11    gcc    g++     gcc
+build debian-11    clang  clang++ clang
 
-build debian-11    gcc   g++     gcc
-build debian-11    clang clang++ clang
+build ubuntu-18.04 gcc-9  g++-9   gcc
+build ubuntu-18.04 clang  clang++ clang
 
-build ubuntu-18.04 gcc   g++     gcc
-build ubuntu-18.04 clang clang++ clang
+build ubuntu-20.04 gcc    g++     gcc
+build ubuntu-20.04 clang  clang++ clang
 
-build ubuntu-20.04 gcc   g++     gcc
-build ubuntu-20.04 clang clang++ clang
+build ubuntu-22.04 gcc    g++     gcc
+build ubuntu-22.04 clang  clang++ clang
 
-build centos-7     gcc   g++     gcc     -DWARNINGS_AS_ERRORS=false -DREDIS_STORAGE_BACKEND=OFF
-build centos-7     gcc   g++     clang   -DWARNINGS_AS_ERRORS=false -DREDIS_STORAGE_BACKEND=OFF
+build ubuntu-22.04 gcc-12 g++-12  gcc
+build ubuntu-22.04 clang  clang++ clang
 
-build centos-8     gcc   g++     gcc
-build centos-8     clang clang++ clang
+build centos-7     gcc    g++     gcc     -DHIREDIS_FROM_INTERNET=ON
+build centos-7     gcc    g++     clang   -DHIREDIS_FROM_INTERNET=ON
 
-build fedora-32    gcc   g++     gcc
-build fedora-32    clang clang++ clang
+build fedora-36    gcc    g++     gcc
+build fedora-36    clang  clang++ clang
 
-build alpine-3.8   gcc   g++     gcc
-build alpine-3.8   gcc   g++     clang
+build alpine-3.11  gcc    g++     gcc
+build alpine-3.11  gcc    g++     clang
 
-build alpine-3.14  gcc   g++     gcc
-build alpine-3.14  clang clang++ clang
+build alpine-3.15  gcc    g++     gcc
+build alpine-3.15  clang  clang++ clang

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -35,8 +35,7 @@
 
 using core::Statistic;
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
@@ -95,18 +94,12 @@ PrimaryStorage::PrimaryStorage(const Config& config) : m_config(config)
 }
 
 void
-PrimaryStorage::initialize()
-{
-  MTR_SCOPE("primary_storage", "clean_internal_tempdir");
-
-  if (m_config.temporary_dir() == m_config.cache_dir() + "/tmp") {
-    clean_internal_tempdir();
-  }
-}
-
-void
 PrimaryStorage::finalize()
 {
+  if (m_config.temporary_dir() == m_config.default_temporary_dir()) {
+    clean_internal_tempdir();
+  }
+
   if (!m_config.stats()) {
     return;
   }
@@ -176,13 +169,13 @@ PrimaryStorage::finalize()
     clean_dir(subdir,
               max_size,
               max_files,
-              nonstd::nullopt,
-              nonstd::nullopt,
+              std::nullopt,
+              std::nullopt,
               [](double /*progress*/) {});
   }
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 {
   MTR_SCOPE("primary_storage", "get");
@@ -190,18 +183,18 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
     LOG("No {} in primary storage", key.to_string());
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   LOG(
     "Retrieved {} from primary storage ({})", key.to_string(), cache_file.path);
 
   // Update modification timestamp to save file from LRU cleanup.
-  Util::update_mtime(cache_file.path);
+  util::set_timestamps(cache_file.path);
   return cache_file.path;
 }
 
-nonstd::optional<std::string>
+std::optional<std::string>
 PrimaryStorage::put(const Digest& key,
                     const core::CacheEntryType type,
                     const storage::EntryWriter& entry_writer)
@@ -223,13 +216,13 @@ PrimaryStorage::put(const Digest& key,
 
   if (!entry_writer(cache_file.path)) {
     LOG("Did not store {} in primary storage", key.to_string());
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   const auto new_stat = Stat::stat(cache_file.path, Stat::OnError::log);
   if (!new_stat) {
     LOG("Failed to stat {}: {}", cache_file.path, strerror(errno));
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   LOG("Stored {} in primary storage ({})", key.to_string(), cache_file.path);
@@ -304,32 +297,34 @@ PrimaryStorage::look_up_cache_file(const Digest& key,
 void
 PrimaryStorage::clean_internal_tempdir()
 {
+  MTR_SCOPE("primary_storage", "clean_internal_tempdir");
+
   const time_t now = time(nullptr);
-  const auto dir_st = Stat::stat(m_config.cache_dir(), Stat::OnError::log);
-  if (!dir_st || dir_st.mtime() + k_tempdir_cleanup_interval >= now) {
+  const auto cleaned_stamp = FMT("{}/.cleaned", m_config.temporary_dir());
+  const auto cleaned_stat = Stat::stat(cleaned_stamp);
+  if (cleaned_stat
+      && cleaned_stat.mtime() + k_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
     return;
   }
 
-  Util::update_mtime(m_config.cache_dir());
+  LOG("Cleaning up {}", m_config.temporary_dir());
+  Util::ensure_dir_exists(m_config.temporary_dir());
+  Util::traverse(m_config.temporary_dir(),
+                 [now](const std::string& path, bool is_dir) {
+                   if (is_dir) {
+                     return;
+                   }
+                   const auto st = Stat::lstat(path, Stat::OnError::log);
+                   if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
+                     Util::unlink_tmp(path);
+                   }
+                 });
 
-  const std::string& temp_dir = m_config.temporary_dir();
-  if (!Stat::lstat(temp_dir)) {
-    return;
-  }
-
-  Util::traverse(temp_dir, [now](const std::string& path, bool is_dir) {
-    if (is_dir) {
-      return;
-    }
-    const auto st = Stat::lstat(path, Stat::OnError::log);
-    if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
-      Util::unlink_tmp(path);
-    }
-  });
+  Util::write_file(cleaned_stamp, "");
 }
 
-nonstd::optional<core::StatisticsCounters>
+std::optional<core::StatisticsCounters>
 PrimaryStorage::update_stats_and_maybe_move_cache_file(
   const Digest& key,
   const std::string& current_path,
@@ -337,7 +332,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
   const core::CacheEntryType type)
 {
   if (counter_updates.all_zero()) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   // Use stats file in the level one subdirectory for cache bookkeeping counters
@@ -353,12 +348,11 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
 
   const auto stats_file =
     FMT("{}/{}/stats", m_config.cache_dir(), level_string);
-  const auto counters =
-    StatsFile(stats_file).update([&counter_updates](auto& cs) {
-      cs.increment(counter_updates);
-    });
+  auto counters = StatsFile(stats_file).update([&counter_updates](auto& cs) {
+    cs.increment(counter_updates);
+  });
   if (!counters) {
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   if (use_stats_on_level_1) {
@@ -385,7 +379,7 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
 
 std::string
 PrimaryStorage::get_path_in_cache(const uint8_t level,
-                                  const nonstd::string_view name) const
+                                  const std::string_view name) const
 {
   ASSERT(level >= 1 && level <= 8);
   ASSERT(name.length() >= level);
@@ -399,11 +393,10 @@ PrimaryStorage::get_path_in_cache(const uint8_t level,
   }
 
   path.push_back('/');
-  const nonstd::string_view name_remaining = name.substr(level);
+  const std::string_view name_remaining = name.substr(level);
   path.append(name_remaining.data(), name_remaining.length());
 
   return path;
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

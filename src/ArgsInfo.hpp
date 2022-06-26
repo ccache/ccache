@@ -26,8 +26,11 @@
 // This class holds meta-information derived from the compiler arguments.
 struct ArgsInfo
 {
-  // The source file.
+  // The source file path.
   std::string input_file;
+
+  // The source file path run through Util::normalize_concrete_absolute_path.
+  std::string normalized_input_file;
 
   // In normal compiler operation an output file is created if there is no
   // compiler error. However certain flags like -fsyntax-only change this

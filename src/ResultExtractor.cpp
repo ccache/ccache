@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -34,20 +34,15 @@ ResultExtractor::ResultExtractor(const std::string& directory)
 }
 
 void
-ResultExtractor::on_header(core::CacheEntryReader& /*cache_entry_reader*/,
-                           const uint8_t /*result_format_version*/)
-{
-}
-
-void
-ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
+ResultExtractor::on_entry_start(uint8_t /*entry_number*/,
                                 Result::FileType file_type,
                                 uint64_t /*file_len*/,
-                                nonstd::optional<std::string> raw_file)
+                                std::optional<std::string> raw_file)
 {
   std::string suffix = Result::file_type_to_string(file_type);
   if (suffix == Result::k_unknown_file_type) {
-    suffix = FMT(".type_{}", file_type);
+    suffix =
+      FMT(".type_{}", static_cast<Result::UnderlyingFileTypeInt>(file_type));
   } else if (suffix[0] == '<') {
     suffix[0] = '.';
     suffix.resize(suffix.length() - 1);
@@ -62,6 +57,9 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
       throw core::Error(
         "Failed to open {} for writing: {}", m_dest_path, strerror(errno));
     }
+  } else if (raw_file->empty()) {
+    PRINT_RAW(stderr,
+              "Note: Can't extract raw file since reading from stdin\n");
   } else {
     try {
       Util::copy_file(*raw_file, m_dest_path, false);

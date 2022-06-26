@@ -9,11 +9,10 @@ set(
   Hash.cpp
   Lockfile.cpp
   Logging.cpp
-  Manifest.cpp
   ProgressBar.cpp
   Result.cpp
-  ResultDumper.cpp
   ResultExtractor.cpp
+  ResultInspector.cpp
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
@@ -43,22 +42,16 @@ if(WIN32)
 endif()
 
 add_library(ccache_framework STATIC ${source_files})
-target_compile_definitions(
-  ccache_framework PUBLIC -Dnssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_NONSTD
-)
 
 if(WIN32)
-  target_link_libraries(ccache_framework PRIVATE "psapi")
+  list(APPEND CCACHE_EXTRA_LIBS psapi ws2_32)
+endif()
 
-  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    if(STATIC_LINK)
-      target_link_libraries(ccache_framework PRIVATE -static-libgcc -static-libstdc++ -static winpthread -dynamic)
-    else()
-      target_link_libraries(ccache_framework PRIVATE winpthread)
-    endif()
-  elseif(STATIC_LINK AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_link_libraries(ccache_framework PRIVATE -static c++ -dynamic)
-  endif()
+if(CCACHE_EXTRA_LIBS)
+  target_link_libraries(
+    ccache_framework
+    PRIVATE "${CCACHE_EXTRA_LIBS}"
+  )
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

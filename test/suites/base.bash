@@ -175,12 +175,6 @@ base_tests() {
     expect_stat unsupported_compiler_option 1
 
     # -------------------------------------------------------------------------
-    TEST "Compiler produced stdout"
-
-    $CCACHE echo foo -c test1.c >/dev/null
-    expect_stat compiler_produced_stdout 1
-
-    # -------------------------------------------------------------------------
     TEST "Output to directory"
 
     mkdir testd
@@ -312,7 +306,7 @@ fi
 
     $CCACHE_COMPILE -c test1.c
     result_file=$(find $CCACHE_DIR -name '*R')
-    if ! $CCACHE --dump-result $result_file | grep 'Compression type: zstd' >/dev/null 2>&1; then
+    if ! $CCACHE --inspect $result_file | grep 'Compression type: zstd' >/dev/null 2>&1; then
         test_failed "Result file not uncompressed according to metadata"
     fi
     if [ $(file_size $result_file) -ge $(file_size test1.o) ]; then
@@ -351,14 +345,14 @@ fi
     unset CCACHE_LOGFILE
     unset CCACHE_NODIRECT
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c
-    if ! grep -q Result: test1.o.ccache-log; then
+    if ! grep -q Result: test1.o.*.ccache-log; then
         test_failed "Unexpected data in <obj>.ccache-log"
     fi
-    if ! grep -q "PREPROCESSOR MODE" test1.o.ccache-input-text; then
-        test_failed "Unexpected data in <obj>.ccache-input-text"
+    if ! grep -q "PREPROCESSOR MODE" test1.o.*.ccache-input-text; then
+        test_failed "Unexpected data in <obj>.<timestamp>.ccache-input-text"
     fi
     for ext in c p d; do
-        if ! [ -f test1.o.ccache-input-$ext ]; then
+        if ! [ -f test1.o.*.ccache-input-$ext ]; then
             test_failed "<obj>.ccache-input-$ext missing"
         fi
     done
@@ -368,13 +362,13 @@ fi
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c -save-temps
     expect_stat unsupported_compiler_option 1
-    expect_exists test1.o.ccache-log
+    expect_exists test1.o.*.ccache-log
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DEBUGDIR"
 
     CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
-    expect_contains debugdir"$(pwd -P)"/test1.o.ccache-log "Result: cache_miss"
+    expect_contains debugdir"$(pwd -P)"/test1.o.*.ccache-log "Result: cache_miss"
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
@@ -795,6 +789,21 @@ b"
     fi
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DISABLE set when executing compiler"
+
+    cat >compiler.sh <<EOF
+#!/bin/sh
+printf "%s" "\${CCACHE_DISABLE}" >>CCACHE_DISABLE.value
+exec $COMPILER "\$@"
+EOF
+    chmod +x compiler.sh
+    backdate compiler.sh
+    $CCACHE ./compiler.sh -c test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content CCACHE_DISABLE.value '11' # preprocessor + compiler
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_COMPILER"
 
     $COMPILER -c -o reference_test1.o test1.c
@@ -840,15 +849,15 @@ EOF
     chmod +x gcc
 
     CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.*.ccache-log)
     if [ "$compiler_type" != gcc ]; then
         test_failed "Compiler type $compiler_type != gcc"
     fi
 
-    rm test1.o.ccache-log
+    rm test1.o.*.ccache-log
 
     CCACHE_COMPILERTYPE=clang CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.*.ccache-log)
     if [ "$compiler_type" != clang ]; then
         test_failed "Compiler type $compiler_type != clang"
     fi
@@ -873,8 +882,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 # A comment
 EOF
@@ -902,8 +909,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -926,8 +931,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -950,8 +953,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -977,8 +978,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1011,8 +1010,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1104,20 +1101,57 @@ EOF
     expect_stat compiler_produced_no_output 2
 
     # -------------------------------------------------------------------------
+    TEST "-fsyntax-only"
+
+    echo existing >test1.o
+    $CCACHE_COMPILE -fsyntax-only test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_content test1.o existing
+
+    rm test1.o
+
+    $CCACHE_COMPILE -fsyntax-only test1.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_missing test1.o
+
+    # -------------------------------------------------------------------------
+    TEST "-fsyntax-only /dev/null"
+
+    echo existing >null.o
+    $CCACHE_COMPILE -fsyntax-only -x c /dev/null
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_content null.o existing
+
+    rm null.o
+
+    $CCACHE_COMPILE -fsyntax-only -x c /dev/null
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
+    expect_missing null.o
+
+    # -------------------------------------------------------------------------
     TEST "No object file due to -fsyntax-only"
 
     echo '#warning This triggers a compiler warning' >stderr.c
 
-    $COMPILER -Wall -c stderr.c -fsyntax-only 2>reference_stderr.txt
+    $COMPILER -Wall stderr.c -fsyntax-only 2>reference_stderr.txt
 
     expect_contains reference_stderr.txt "This triggers a compiler warning"
 
-    $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
+    $CCACHE_COMPILE -Wall stderr.c -fsyntax-only 2>stderr.txt
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_equal_content reference_stderr.txt stderr.txt
 
+    # Intentionally compiling with "-c" here but not above.
     $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
@@ -1213,6 +1247,34 @@ EOF
     expect_equal_content reference.d test.d
 
     # -------------------------------------------------------------------------
+    TEST "Caching stdout and stderr"
+
+    cat >compiler.sh <<EOF
+#!/bin/sh
+if [ \$1 = -E ] || ! echo "\$*" | grep -q '\.i\$'; then
+    printf "cpp_err|" >&2
+fi
+if [ \$1 != -E ]; then
+    printf "cc_err|" >&2
+    printf "cc_out|"
+fi
+exec $COMPILER "\$@"
+EOF
+    chmod +x compiler.sh
+
+    $CCACHE ./compiler.sh -c test1.c >stdout 2>stderr
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content stdout "cc_out|"
+    expect_content stderr "cpp_err|cc_err|"
+
+    $CCACHE ./compiler.sh -c test1.c >stdout 2>stderr
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_content stdout "cc_out|"
+    expect_content stderr "cpp_err|cc_err|"
+
+    # -------------------------------------------------------------------------
     TEST "--zero-stats"
 
     $CCACHE_COMPILE -c test1.c
@@ -1261,6 +1323,30 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 0
     expect_stat called_for_preprocessing 1
+
+    # -------------------------------------------------------------------------
+    if $COMPILER -c -Wa,-a test1.c >&/dev/null; then
+        TEST "-Wa,-a"
+
+        $CCACHE_COMPILE -c -Wa,-a test1.c >first.lst
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -Wa,-a test1.c >second.lst
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+        expect_equal_content first.lst second.lst
+    fi
+
+    # -------------------------------------------------------------------------
+    if $COMPILER -c -Wa,-a=test1.lst test1.c >&/dev/null; then
+        TEST "-Wa,-a=file"
+
+        $CCACHE_COMPILE -c -Wa,-a=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 0
+        expect_stat unsupported_compiler_option 1
+    fi
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-P"
@@ -1365,8 +1451,6 @@ EOF
 
     cat >buggy-cpp <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 if echo "\$*" | grep -- -D >/dev/null; then
   $COMPILER "\$@"
 else
@@ -1416,6 +1500,22 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 0
     expect_stat unsupported_code_directive 2
+
+    cat <<EOF >incbin.cpp
+      struct A {
+        void incbin() const {}
+      };
+      void f()
+      {
+        A a;
+        a.incbin();
+      }
+EOF
+    if $CCACHE_COMPILE -x c++ -c incbin.cpp 2>/dev/null; then
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_stat unsupported_code_directive 2
+    fi
 fi
 
     # -------------------------------------------------------------------------

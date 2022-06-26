@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -69,10 +69,6 @@
 // <epilogue>             ::= <checksum>
 // <checksum>             ::= uint64_t ; XXH3 of content bytes
 
-using nonstd::nullopt;
-using nonstd::optional;
-using nonstd::string_view;
-
 namespace {
 
 const uint8_t k_result_format_version = 0;
@@ -84,8 +80,15 @@ const uint8_t k_embedded_file_marker = 0;
 const uint8_t k_raw_file_marker = 1;
 
 std::string
-get_raw_file_path(string_view result_path, uint32_t entry_number)
+get_raw_file_path(std::string_view result_path, uint8_t entry_number)
 {
+  if (entry_number >= 10) {
+    // To support more entries in the future, encode to [0-9a-z]. Note that
+    // PrimaryStorage::evict currently assumes that the entry number is
+    // represented as one character.
+    throw core::Error("Too high raw file entry number: {}", entry_number);
+  }
+
   const auto prefix = result_path.substr(
     0, result_path.length() - Result::k_file_suffix.length());
   return FMT("{}{}W", prefix, entry_number);
@@ -153,6 +156,9 @@ file_type_to_string(FileType type)
 
   case FileType::coverage_mangled:
     return ".gcno-mangled";
+
+  case FileType::stdout_output:
+    return "<stdout>";
   }
 
   return k_unknown_file_type;
@@ -185,75 +191,48 @@ FileSizeAndCountDiff::operator+=(const FileSizeAndCountDiff& other)
   return *this;
 }
 
-Result::Reader::Reader(const std::string& result_path)
-  : m_result_path(result_path)
+Result::Reader::Reader(core::CacheEntryReader& cache_entry_reader,
+                       const std::string& result_path)
+  : m_reader(cache_entry_reader),
+    m_result_path(result_path)
 {
 }
 
-optional<std::string>
-Result::Reader::read(Consumer& consumer)
+void
+Reader::read(Consumer& consumer)
 {
-  LOG("Reading result {}", m_result_path);
-
-  try {
-    if (read_result(consumer)) {
-      return nullopt;
-    } else {
-      return "No such result file";
-    }
-  } catch (const core::Error& e) {
-    return e.what();
-  }
-}
-
-bool
-Reader::read_result(Consumer& consumer)
-{
-  FILE* file_stream;
-  File file;
-  if (m_result_path == "-") {
-    file_stream = stdin;
-  } else {
-    file = File(m_result_path, "rb");
-    if (!file) {
-      // Cache miss.
-      return false;
-    }
-    file_stream = file.get();
+  if (m_reader.header().entry_type != core::CacheEntryType::result) {
+    throw core::Error("Unexpected cache entry type: {}",
+                      to_string(m_reader.header().entry_type));
   }
 
-  core::FileReader file_reader(file_stream);
-  core::CacheEntryReader cache_entry_reader(file_reader);
-
-  const auto result_format_version = cache_entry_reader.read_int<uint8_t>();
+  const auto result_format_version = m_reader.read_int<uint8_t>();
   if (result_format_version != k_result_format_version) {
     throw core::Error("Unknown result format version: {}",
                       result_format_version);
   }
 
-  consumer.on_header(cache_entry_reader, result_format_version);
+  const auto n_entries = m_reader.read_int<uint8_t>();
+  if (n_entries >= 10) {
+    throw core::Error("Too many entries raw file entries: {}", n_entries);
+  }
 
-  const auto n_entries = cache_entry_reader.read_int<uint8_t>();
-
-  uint32_t i;
+  uint8_t i;
   for (i = 0; i < n_entries; ++i) {
-    read_entry(cache_entry_reader, i, consumer);
+    read_entry(i, consumer);
   }
 
   if (i != n_entries) {
     throw core::Error("Too few entries (read {}, expected {})", i, n_entries);
   }
 
-  cache_entry_reader.finalize();
-  return true;
+  m_reader.finalize();
 }
 
 void
-Reader::read_entry(core::CacheEntryReader& cache_entry_reader,
-                   uint32_t entry_number,
-                   Reader::Consumer& consumer)
+Reader::read_entry(uint8_t entry_number, Reader::Consumer& consumer)
 {
-  const auto marker = cache_entry_reader.read_int<uint8_t>();
+  const auto marker = m_reader.read_int<uint8_t>();
 
   switch (marker) {
   case k_embedded_file_marker:
@@ -264,32 +243,35 @@ Reader::read_entry(core::CacheEntryReader& cache_entry_reader,
     throw core::Error("Unknown entry type: {}", marker);
   }
 
-  const auto type = cache_entry_reader.read_int<UnderlyingFileTypeInt>();
+  const auto type = m_reader.read_int<UnderlyingFileTypeInt>();
   const auto file_type = FileType(type);
-  const auto file_len = cache_entry_reader.read_int<uint64_t>();
+  const auto file_len = m_reader.read_int<uint64_t>();
 
   if (marker == k_embedded_file_marker) {
-    consumer.on_entry_start(entry_number, file_type, file_len, nullopt);
+    consumer.on_entry_start(entry_number, file_type, file_len, std::nullopt);
 
     uint8_t buf[CCACHE_READ_BUFFER_SIZE];
     size_t remain = file_len;
     while (remain > 0) {
       size_t n = std::min(remain, sizeof(buf));
-      cache_entry_reader.read(buf, n);
+      m_reader.read(buf, n);
       consumer.on_entry_data(buf, n);
       remain -= n;
     }
   } else {
     ASSERT(marker == k_raw_file_marker);
 
-    auto raw_path = get_raw_file_path(m_result_path, entry_number);
-    auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
-    if (st.size() != file_len) {
-      throw core::Error(
-        "Bad file size of {} (actual {} bytes, expected {} bytes)",
-        raw_path,
-        st.size(),
-        file_len);
+    std::string raw_path;
+    if (m_result_path != "-") {
+      raw_path = get_raw_file_path(m_result_path, entry_number);
+      auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
+      if (st.size() != file_len) {
+        throw core::Error(
+          "Bad file size of {} (actual {} bytes, expected {} bytes)",
+          raw_path,
+          st.size(),
+          file_len);
+      }
     }
 
     consumer.on_entry_start(entry_number, file_type, file_len, raw_path);
@@ -305,9 +287,15 @@ Writer::Writer(Context& ctx, const std::string& result_path)
 }
 
 void
-Writer::write(FileType file_type, const std::string& file_path)
+Writer::write_data(const FileType file_type, const std::string& data)
 {
-  m_entries_to_write.emplace_back(file_type, file_path);
+  m_entries_to_write.push_back(Entry{file_type, ValueType::data, data});
+}
+
+void
+Writer::write_file(const FileType file_type, const std::string& path)
+{
+  m_entries_to_write.push_back(Entry{file_type, ValueType::path, path});
 }
 
 nonstd::expected<FileSizeAndCountDiff, std::string>
@@ -327,14 +315,14 @@ Writer::do_finalize()
   uint64_t payload_size = 0;
   payload_size += 1; // format_ver
   payload_size += 1; // n_entries
-  for (const auto& pair : m_entries_to_write) {
-    const auto& path = pair.second;
-    auto st = Stat::stat(path, Stat::OnError::throw_error);
-
-    payload_size += 1;         // embedded_file_marker
-    payload_size += 1;         // embedded_file_type
-    payload_size += 8;         // data_len
-    payload_size += st.size(); // data
+  for (const auto& entry : m_entries_to_write) {
+    payload_size += 1; // embedded_file_marker
+    payload_size += 1; // embedded_file_type
+    payload_size += 8; // data_len
+    payload_size +=    // data
+      entry.value_type == ValueType::data
+        ? entry.value.size()
+        : Stat::stat(entry.value, Stat::OnError::throw_error).size();
   }
 
   AtomicFile atomic_result_file(m_result_path, AtomicFile::Mode::binary);
@@ -352,31 +340,36 @@ Writer::do_finalize()
   writer.write_int(k_result_format_version);
   writer.write_int<uint8_t>(m_entries_to_write.size());
 
-  uint32_t entry_number = 0;
-  for (const auto& pair : m_entries_to_write) {
-    const auto file_type = pair.first;
-    const auto& path = pair.second;
-    LOG("Storing result file {}", path);
+  uint8_t entry_number = 0;
+  for (const auto& entry : m_entries_to_write) {
+    const bool store_raw =
+      entry.value_type == ValueType::path
+      && should_store_raw_file(m_ctx.config, entry.file_type);
+    const uint64_t entry_size =
+      entry.value_type == ValueType::data
+        ? entry.value.size()
+        : Stat::stat(entry.value, Stat::OnError::throw_error).size();
 
-    const bool store_raw = should_store_raw_file(m_ctx.config, file_type);
-    uint64_t file_size = Stat::stat(path, Stat::OnError::throw_error).size();
-
-    LOG("Storing {} file #{} {} ({} bytes) from {}",
+    LOG("Storing {} entry #{} {} ({} bytes){}",
         store_raw ? "raw" : "embedded",
         entry_number,
-        file_type_to_string(file_type),
-        file_size,
-        path);
+        file_type_to_string(entry.file_type),
+        entry_size,
+        entry.value_type == ValueType::data ? ""
+                                            : FMT(" from {}", entry.value));
 
     writer.write_int<uint8_t>(store_raw ? k_raw_file_marker
                                         : k_embedded_file_marker);
-    writer.write_int(UnderlyingFileTypeInt(file_type));
-    writer.write_int(file_size);
+    writer.write_int(UnderlyingFileTypeInt(entry.file_type));
+    writer.write_int(entry_size);
 
     if (store_raw) {
-      file_size_and_count_diff += write_raw_file_entry(path, entry_number);
+      file_size_and_count_diff +=
+        write_raw_file_entry(entry.value, entry_number);
+    } else if (entry.value_type == ValueType::data) {
+      writer.write(entry.value.data(), entry.value.size());
     } else {
-      write_embedded_file_entry(writer, path, file_size);
+      write_embedded_file_entry(writer, entry.value, entry_size);
     }
 
     ++entry_number;
@@ -391,7 +384,7 @@ Writer::do_finalize()
 void
 Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
                                           const std::string& path,
-                                          uint64_t file_size)
+                                          const uint64_t file_size)
 {
   Fd file(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!file) {
@@ -419,7 +412,7 @@ Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
 
 FileSizeAndCountDiff
 Result::Writer::write_raw_file_entry(const std::string& path,
-                                     uint32_t entry_number)
+                                     uint8_t entry_number)
 {
   const auto raw_file = get_raw_file_path(m_result_path, entry_number);
   const auto old_stat = Stat::stat(raw_file);

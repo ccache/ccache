@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -75,7 +75,7 @@ TEST_CASE("Config: default values")
   CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
-  CHECK(config.umask() == nonstd::nullopt);
+  CHECK(config.umask() == std::nullopt);
 }
 
 TEST_CASE("Config::update_from_file")
@@ -101,7 +101,7 @@ TEST_CASE("Config::update_from_file")
     "  #A comment\n"
     "\t compiler = foo\n"
     "compiler_check = none\n"
-    "compiler_type = pump\n"
+    "compiler_type = nvcc\n"
     "compression=false\n"
     "compression_level= 2\n"
     "cpp_extension = .foo\n"
@@ -130,7 +130,7 @@ TEST_CASE("Config::update_from_file")
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay\n"
+    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,gcno_cwd\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777"); // Note: no newline.
@@ -141,7 +141,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
   CHECK(config.compiler() == "foo");
   CHECK(config.compiler_check() == "none");
-  CHECK(config.compiler_type() == CompilerType::pump);
+  CHECK(config.compiler_type() == CompilerType::nvcc);
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");
@@ -169,18 +169,19 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.reshare());
   CHECK_FALSE(config.run_second_cpp());
   CHECK(config.sloppiness().to_bitmask()
-        == (static_cast<uint32_t>(core::Sloppy::include_file_mtime)
-            | static_cast<uint32_t>(core::Sloppy::include_file_ctime)
-            | static_cast<uint32_t>(core::Sloppy::time_macros)
+        == (static_cast<uint32_t>(core::Sloppy::clang_index_store)
             | static_cast<uint32_t>(core::Sloppy::file_stat_matches)
             | static_cast<uint32_t>(core::Sloppy::file_stat_matches_ctime)
-            | static_cast<uint32_t>(core::Sloppy::system_headers)
+            | static_cast<uint32_t>(core::Sloppy::gcno_cwd)
+            | static_cast<uint32_t>(core::Sloppy::include_file_ctime)
+            | static_cast<uint32_t>(core::Sloppy::include_file_mtime)
+            | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)
             | static_cast<uint32_t>(core::Sloppy::pch_defines)
-            | static_cast<uint32_t>(core::Sloppy::clang_index_store)
-            | static_cast<uint32_t>(core::Sloppy::ivfsoverlay)));
+            | static_cast<uint32_t>(core::Sloppy::system_headers)
+            | static_cast<uint32_t>(core::Sloppy::time_macros)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
-  CHECK(config.umask() == 0777u);
+  CHECK(config.umask() == 0777U);
 }
 
 TEST_CASE("Config::update_from_file, error handling")
@@ -226,7 +227,7 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "umask = ");
     CHECK(config.update_from_file("ccache.conf"));
-    CHECK(config.umask() == nonstd::nullopt);
+    CHECK(config.umask() == std::nullopt);
   }
 
   SUBCASE("invalid size")
@@ -415,7 +416,7 @@ TEST_CASE("Config::visit_items")
     "secondary_storage = ss\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
-    " clang_index_store, ivfsoverlay\n"
+    " clang_index_store, ivfsoverlay, gcno_cwd\n"
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"
@@ -473,9 +474,10 @@ TEST_CASE("Config::visit_items")
     "(test.conf) reshare = true",
     "(test.conf) run_second_cpp = false",
     "(test.conf) secondary_storage = ss",
-    "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"
-    " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
-    " system_headers, clang_index_store, ivfsoverlay",
+    "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
+    " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"
+    " include_file_mtime, ivfsoverlay, pch_defines, system_headers,"
+    " time_macros",
     "(test.conf) stats = false",
     "(test.conf) stats_log = sl",
     "(test.conf) temporary_dir = td",
