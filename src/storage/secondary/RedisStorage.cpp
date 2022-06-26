@@ -126,6 +126,13 @@ RedisStorageBackend::RedisStorageBackend(const Params& params)
 {
   const auto& url = params.url;
   ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix");
+  if (url.scheme() == "redis+unix" && !params.url.host().empty()
+      && params.url.host() != "localhost") {
+    throw core::Fatal(FMT(
+      "invalid file path \"{}\": specifying a host (\"{}\") is not supported",
+      params.url.str(),
+      params.url.host()));
+  }
 
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;

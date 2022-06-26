@@ -96,6 +96,12 @@ SUITE_secondary_redis_unix() {
     expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
+    redis_url="redis+unix:${socket}"
+    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 3
+
     # -------------------------------------------------------------------------
     TEST "Password"
 
@@ -132,6 +138,12 @@ SUITE_secondary_redis_unix() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+
+    redis_url="redis+unix://${password}@localhost${socket}"
+    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 3
 
     # -------------------------------------------------------------------------
     TEST "Unreachable server"
