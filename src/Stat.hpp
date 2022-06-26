@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -85,9 +85,7 @@ public:
     uint32_t st_reparse_tag;
   };
 #else
-  // Use of typedef needed to suppress a spurious 'declaration does not declare
-  // anything' warning in old GCC.
-  typedef struct ::stat stat_t; // NOLINT(modernize-use-using)
+  using stat_t = struct stat;
 #endif
 
   using dev_t = decltype(stat_t{}.st_dev);
@@ -171,7 +169,7 @@ inline Stat::operator bool() const
 inline bool
 Stat::same_inode_as(const Stat& other) const
 {
-  return device() == other.device() && inode() == other.inode();
+  return m_errno == 0 && device() == other.device() && inode() == other.inode();
 }
 
 inline int

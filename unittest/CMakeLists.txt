@@ -6,7 +6,6 @@ set(
   test_AtomicFile.cpp
   test_Config.cpp
   test_Depfile.cpp
-  test_FormatNonstdStringView.cpp
   test_Hash.cpp
   test_Lockfile.cpp
   test_NullCompression.cpp

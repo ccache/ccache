@@ -25,6 +25,8 @@
 #include <util/TextTable.hpp>
 #include <util/string.hpp>
 
+#include <algorithm>
+
 namespace core {
 
 using core::Statistic;
@@ -122,8 +124,7 @@ const StatisticsField k_statistics_fields[] = {
 };
 
 static_assert(sizeof(k_statistics_fields) / sizeof(k_statistics_fields[0])
-                == static_cast<size_t>(Statistic::END) - 1,
-              "incorrect number of fields");
+              == static_cast<size_t>(Statistic::END) - 1);
 
 static std::string
 format_timestamp(const uint64_t value)
@@ -146,9 +147,9 @@ percent(const uint64_t nominator, const uint64_t denominator)
   if (denominator == 0) {
     return "";
   } else if (nominator >= denominator) {
-    return FMT("({:.1f} %)", (100.0 * nominator) / denominator);
+    return FMT("({:5.1f}%)", (100.0 * nominator) / denominator);
   } else {
-    return FMT("({:.2f} %)", (100.0 * nominator) / denominator);
+    return FMT("({:5.2f}%)", (100.0 * nominator) / denominator);
   }
 }
 
@@ -162,8 +163,10 @@ Statistics::get_statistics_ids() const
 {
   std::vector<std::string> result;
   for (const auto& field : k_statistics_fields) {
-    if (m_counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-      result.emplace_back(field.id);
+    if (!(field.flags & FLAG_NOZERO)) {
+      for (size_t i = 0; i < m_counters.get(field.statistic); ++i) {
+        result.emplace_back(field.id);
+      }
     }
   }
   std::sort(result.begin(), result.end());
@@ -195,6 +198,25 @@ Statistics::get_stats(unsigned flags, const bool all) const
   return result;
 }
 
+static void
+add_ratio_row(util::TextTable& table,
+              const std::string& text,
+              const uint64_t nominator,
+              const uint64_t denominator)
+{
+  if (denominator > 0) {
+    table.add_row({
+      text,
+      nominator,
+      "/",
+      denominator,
+      percent(nominator, denominator),
+    });
+  } else {
+    table.add_row({text, nominator});
+  }
+}
+
 std::string
 Statistics::format_human_readable(const Config& config,
                                   const time_t last_updated,
@@ -212,54 +234,63 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t p_misses = S(preprocessed_cache_miss);
   const uint64_t hits = d_hits + p_hits;
   const uint64_t misses = S(cache_miss);
+  const uint64_t uncacheable = count_stats(FLAG_UNCACHEABLE);
+  const uint64_t errors = count_stats(FLAG_ERROR);
+  const uint64_t total_calls = hits + misses + errors + uncacheable;
 
-  table.add_heading("Summary:");
+  auto cmp_fn = [](const auto& e1, const auto& e2) {
+    return e1.first.compare(e2.first) < 0;
+  };
+
   if (verbosity > 0 && !from_log) {
-    table.add_row({"  Cache directory:", C(config.cache_dir()).colspan(4)});
+    table.add_row({"Cache directory:", C(config.cache_dir()).colspan(4)});
     table.add_row(
-      {"  Primary config:", C(config.primary_config_path()).colspan(4)});
+      {"Primary config:", C(config.primary_config_path()).colspan(4)});
     table.add_row(
-      {"  Secondary config:", C(config.secondary_config_path()).colspan(4)});
+      {"Secondary config:", C(config.secondary_config_path()).colspan(4)});
     table.add_row(
-      {"  Stats updated:", C(format_timestamp(last_updated)).colspan(4)});
+      {"Stats updated:", C(format_timestamp(last_updated)).colspan(4)});
     if (verbosity > 1) {
       const uint64_t last_zeroed = S(stats_zeroed_timestamp);
       table.add_row(
-        {"  Stats zeroed:", C(format_timestamp(last_zeroed)).colspan(4)});
+        {"Stats zeroed:", C(format_timestamp(last_zeroed)).colspan(4)});
     }
   }
-  table.add_row({
-    "  Hits:",
-    hits,
-    "/",
-    hits + misses,
-    percent(hits, hits + misses),
-  });
-  table.add_row({
-    "    Direct:",
-    d_hits,
-    "/",
-    d_hits + d_misses,
-    percent(d_hits, d_hits + d_misses),
-  });
-  table.add_row({
-    "    Preprocessed:",
-    p_hits,
-    "/",
-    p_hits + p_misses,
-    percent(p_hits, p_hits + p_misses),
-  });
-  table.add_row({"  Misses:", misses});
-  table.add_row({"    Direct:", d_misses});
-  table.add_row({"    Preprocessed:", p_misses});
 
-  const auto errors = count_stats(FLAG_ERROR);
-  const auto uncacheable = count_stats(FLAG_UNCACHEABLE);
-  if (verbosity > 1 || errors > 0) {
-    table.add_row({"  Errors:", errors});
+  if (total_calls > 0 || verbosity > 1) {
+    add_ratio_row(table, "Cacheable calls:", hits + misses, total_calls);
+    add_ratio_row(table, "  Hits:", hits, hits + misses);
+    add_ratio_row(table, "    Direct:", d_hits, hits);
+    add_ratio_row(table, "    Preprocessed:", p_hits, hits);
+    add_ratio_row(table, "  Misses:", misses, hits + misses);
   }
-  if (verbosity > 1 || uncacheable > 0) {
-    table.add_row({"  Uncacheable:", uncacheable});
+
+  if (uncacheable > 0 || verbosity > 1) {
+    add_ratio_row(table, "Uncacheable calls:", uncacheable, total_calls);
+    if (verbosity > 0) {
+      auto uncacheable_stats = get_stats(FLAG_UNCACHEABLE, verbosity > 1);
+      std::sort(uncacheable_stats.begin(), uncacheable_stats.end(), cmp_fn);
+      for (const auto& [name, value] : uncacheable_stats) {
+        add_ratio_row(table, FMT("  {}:", name), value, uncacheable);
+      }
+    }
+  }
+
+  if (errors > 0 || verbosity > 1) {
+    add_ratio_row(table, "Errors:", errors, total_calls);
+    if (verbosity > 0) {
+      auto error_stats = get_stats(FLAG_ERROR, verbosity > 1);
+      std::sort(error_stats.begin(), error_stats.end(), cmp_fn);
+      for (const auto& [name, value] : error_stats) {
+        add_ratio_row(table, FMT("  {}:", name), value, errors);
+      }
+    }
+  }
+
+  if (total_calls > 0 && verbosity > 0) {
+    table.add_heading("Successful lookups:");
+    add_ratio_row(table, "  Direct:", d_hits, d_hits + d_misses);
+    add_ratio_row(table, "  Preprocessed:", p_hits, p_hits + p_misses);
   }
 
   const uint64_t g = 1'000'000'000;
@@ -268,14 +299,8 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t pri_size = S(cache_size_kibibyte) * 1024;
   const uint64_t cleanups = S(cleanups_performed);
   table.add_heading("Primary storage:");
-  table.add_row({
-    "  Hits:",
-    pri_hits,
-    "/",
-    pri_hits + pri_misses,
-    percent(pri_hits, pri_hits + pri_misses),
-  });
-  table.add_row({"  Misses:", pri_misses});
+  add_ratio_row(table, "  Hits:", pri_hits, pri_hits + pri_misses);
+  add_ratio_row(table, "  Misses:", pri_misses, pri_hits + pri_misses);
   if (!from_log) {
     table.add_row({
       "  Cache size (GB):",
@@ -306,41 +331,13 @@ Statistics::format_human_readable(const Config& config,
 
   if (verbosity > 1 || sec_hits + sec_misses + sec_errors + sec_timeouts > 0) {
     table.add_heading("Secondary storage:");
-    table.add_row({
-      "  Hits:",
-      sec_hits,
-      "/",
-      sec_hits + sec_misses,
-      percent(sec_hits, sec_hits + sec_misses),
-    });
-    table.add_row({"  Misses:", sec_misses});
+    add_ratio_row(table, "  Hits:", sec_hits, sec_hits + sec_misses);
+    add_ratio_row(table, "  Misses:", sec_misses, sec_hits + sec_misses);
     if (verbosity > 1 || sec_errors > 0) {
       table.add_row({"  Errors:", sec_errors});
     }
     if (verbosity > 1 || sec_timeouts > 0) {
       table.add_row({"  Timeouts:", sec_timeouts});
-    }
-  }
-
-  auto cmp_fn = [](const auto& e1, const auto& e2) {
-    return e1.first.compare(e2.first) < 0;
-  };
-
-  if (verbosity > 1 || (verbosity == 1 && errors > 0)) {
-    auto error_stats = get_stats(FLAG_ERROR, verbosity > 1);
-    std::sort(error_stats.begin(), error_stats.end(), cmp_fn);
-    table.add_heading("Errors:");
-    for (const auto& descr_count : error_stats) {
-      table.add_row({FMT("  {}:", descr_count.first), descr_count.second});
-    }
-  }
-
-  if (verbosity > 1 || (verbosity == 1 && uncacheable > 0)) {
-    auto uncacheable_stats = get_stats(FLAG_UNCACHEABLE, verbosity > 1);
-    std::sort(uncacheable_stats.begin(), uncacheable_stats.end(), cmp_fn);
-    table.add_heading("Uncacheable:");
-    for (const auto& descr_count : uncacheable_stats) {
-      table.add_row({FMT("  {}:", descr_count.first), descr_count.second});
     }
   }
 

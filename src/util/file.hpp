@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <ctime>
+#include <optional>
 #include <string>
 
 namespace util {
@@ -25,5 +27,11 @@ namespace util {
 // --- Interface ---
 
 void create_cachedir_tag(const std::string& dir);
+
+// Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
+// time. If `atime` is std::nullopt, set to what `mtime` specifies.
+void set_timestamps(const std::string& path,
+                    std::optional<timespec> mtime = std::nullopt,
+                    std::optional<timespec> atime = std::nullopt);
 
 } // namespace util

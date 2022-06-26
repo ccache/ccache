@@ -32,6 +32,8 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 
+#include <algorithm>
+
 extern "C" {
 #include "third_party/base32hex.h"
 }
@@ -64,12 +66,6 @@ extern "C" {
 #  include <sys/time.h>
 #endif
 
-#ifdef HAVE_UTIME_H
-#  include <utime.h>
-#elif defined(HAVE_SYS_UTIME_H)
-#  include <sys/utime.h>
-#endif
-
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
@@ -100,12 +96,16 @@ extern "C" {
 #  endif
 #endif
 
-using nonstd::nullopt;
-using nonstd::optional;
-using nonstd::string_view;
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace {
+
+// Process umask, read and written by get_umask and set_umask.
+mode_t g_umask = [] {
+  const mode_t mask = umask(0);
+  umask(mask);
+  return mask;
+}();
 
 // Search for the first match of the following regular expression:
 //
@@ -114,8 +114,8 @@ namespace {
 // The primary reason for not using std::regex is that it's not available for
 // GCC 4.8. It's also a bit bloated. The reason for not using POSIX regex
 // functionality is that it's are not available in MinGW.
-string_view
-find_first_ansi_csi_seq(string_view string)
+std::string_view
+find_first_ansi_csi_seq(std::string_view string)
 {
   size_t pos = 0;
   while (pos < string.length() && string[pos] != 0x1b) {
@@ -158,7 +158,7 @@ path_max(const std::string& path)
 
 template<typename T>
 std::vector<T>
-split_into(string_view string,
+split_into(std::string_view string,
            const char* separators,
            util::Tokenizer::Mode mode,
            IncludeDelimiter include_delimiter)
@@ -173,7 +173,7 @@ split_into(string_view string,
 }
 
 std::string
-rewrite_stderr_to_absolute_paths(string_view text)
+rewrite_stderr_to_absolute_paths(std::string_view text)
 {
   static const std::string in_file_included_from = "In file included from ";
 
@@ -199,7 +199,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
       line = line.substr(csi_seq.length());
     }
     size_t path_end = line.find(':');
-    if (path_end == string_view::npos) {
+    if (path_end == std::string_view::npos) {
       result.append(line.data(), line.length());
     } else {
       std::string path(line.substr(0, path_end));
@@ -217,7 +217,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
 
 #ifdef _WIN32
 bool
-has_utf16_le_bom(string_view text)
+has_utf16_le_bom(std::string_view text)
 {
   return text.size() > 1
          && ((static_cast<uint8_t>(text[0]) == 0xff
@@ -229,8 +229,8 @@ has_utf16_le_bom(string_view text)
 
 namespace Util {
 
-string_view
-base_name(string_view path)
+std::string_view
+base_name(std::string_view path)
 {
 #ifdef _WIN32
   const char delim[] = "/\\";
@@ -242,9 +242,9 @@ base_name(string_view path)
 }
 
 std::string
-change_extension(string_view path, string_view new_ext)
+change_extension(std::string_view path, std::string_view new_ext)
 {
-  string_view without_ext = Util::remove_extension(path);
+  std::string_view without_ext = Util::remove_extension(path);
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
@@ -336,7 +336,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
 }
 
 size_t
-common_dir_prefix_length(string_view dir, string_view path)
+common_dir_prefix_length(std::string_view dir, std::string_view path)
 {
   if (dir.empty() || path.empty() || dir == "/" || path == "/") {
     return 0;
@@ -404,7 +404,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 }
 
 bool
-create_dir(string_view dir)
+create_dir(std::string_view dir)
 {
   std::string dir_str(dir);
   auto st = Stat::stat(dir_str);
@@ -431,8 +431,8 @@ create_dir(string_view dir)
   }
 }
 
-string_view
-dir_name(string_view path)
+std::string_view
+dir_name(std::string_view path)
 {
 #ifdef _WIN32
   const char delim[] = "/\\";
@@ -598,7 +598,7 @@ format_parsable_size_with_suffix(uint64_t size)
 }
 
 void
-ensure_dir_exists(nonstd::string_view dir)
+ensure_dir_exists(std::string_view dir)
 {
   if (!create_dir(dir)) {
     throw core::Fatal(
@@ -636,19 +636,14 @@ get_apparent_cwd(const std::string& actual_cwd)
 
   auto pwd_stat = Stat::stat(pwd);
   auto cwd_stat = Stat::stat(actual_cwd);
-  if (!pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)) {
-    return actual_cwd;
-  }
-  std::string normalized_pwd = normalize_absolute_path(pwd);
-  return normalized_pwd == pwd
-             || Stat::stat(normalized_pwd).same_inode_as(pwd_stat)
-           ? normalized_pwd
-           : pwd;
+  return !pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)
+           ? actual_cwd
+           : normalize_concrete_absolute_path(pwd);
 #endif
 }
 
-string_view
-get_extension(string_view path)
+std::string_view
+get_extension(std::string_view path)
 {
 #ifndef _WIN32
   const char stop_at_chars[] = "./";
@@ -656,7 +651,7 @@ get_extension(string_view path)
   const char stop_at_chars[] = "./\\";
 #endif
   size_t pos = path.find_last_of(stop_at_chars);
-  if (pos == string_view::npos || path.at(pos) == '/') {
+  if (pos == std::string_view::npos || path.at(pos) == '/') {
     return {};
 #ifdef _WIN32
   } else if (path.at(pos) == '\\') {
@@ -709,7 +704,7 @@ get_hostname()
 }
 
 std::string
-get_relative_path(string_view dir, string_view path)
+get_relative_path(std::string_view dir, std::string_view path)
 {
   ASSERT(util::is_absolute_path(dir));
   ASSERT(util::is_absolute_path(path));
@@ -752,20 +747,11 @@ get_relative_path(string_view dir, string_view path)
   return result.empty() ? "." : result;
 }
 
-#ifndef _WIN32
 mode_t
 get_umask()
 {
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
-  }
-  return mask;
+  return g_umask;
 }
-#endif
 
 void
 hard_link(const std::string& oldpath, const std::string& newpath)
@@ -791,8 +777,8 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 #endif
 }
 
-nonstd::optional<size_t>
-is_absolute_path_with_prefix(nonstd::string_view path)
+std::optional<size_t>
+is_absolute_path_with_prefix(std::string_view path)
 {
 #ifdef _WIN32
   const char delim[] = "/\\";
@@ -813,7 +799,17 @@ is_absolute_path_with_prefix(nonstd::string_view path)
     // NOLINTNEXTLINE(readability-simplify-boolean-expr)
     return split_pos;
   }
-  return nonstd::nullopt;
+  return std::nullopt;
+}
+
+bool
+is_ccache_executable(const std::string_view path)
+{
+  std::string name(Util::base_name(path));
+#ifdef _WIN32
+  name = Util::to_lowercase(name);
+#endif
+  return util::starts_with(name, "ccache");
 }
 
 #if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
@@ -840,22 +836,22 @@ is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
 #endif
 
 bool
-is_precompiled_header(string_view path)
+is_precompiled_header(std::string_view path)
 {
-  string_view ext = get_extension(path);
+  std::string_view ext = get_extension(path);
   return ext == ".gch" || ext == ".pch" || ext == ".pth"
          || get_extension(dir_name(path)) == ".gch";
 }
 
-optional<tm>
-localtime(optional<time_t> time)
+std::optional<tm>
+localtime(std::optional<time_t> time)
 {
   time_t timestamp = time ? *time : ::time(nullptr);
   tm result;
   if (localtime_r(&timestamp, &result)) {
     return result;
   } else {
-    return nullopt;
+    return std::nullopt;
   }
 }
 
@@ -863,7 +859,7 @@ std::string
 make_relative_path(const std::string& base_dir,
                    const std::string& actual_cwd,
                    const std::string& apparent_cwd,
-                   nonstd::string_view path)
+                   std::string_view path)
 {
   if (base_dir.empty() || !util::path_starts_with(path, base_dir)) {
     return std::string(path);
@@ -898,7 +894,8 @@ make_relative_path(const std::string& base_dir,
   const auto real_path = Util::real_path(std::string(path));
 
   const auto add_relpath_candidates = [&](auto path) {
-    const std::string normalized_path = Util::normalize_absolute_path(path);
+    const std::string normalized_path =
+      Util::normalize_abstract_absolute_path(path);
     relpath_candidates.push_back(
       Util::get_relative_path(actual_cwd, normalized_path));
     if (apparent_cwd != actual_cwd) {
@@ -928,35 +925,36 @@ make_relative_path(const std::string& base_dir,
 }
 
 std::string
-make_relative_path(const Context& ctx, string_view path)
+make_relative_path(const Context& ctx, std::string_view path)
 {
   return make_relative_path(
     ctx.config.base_dir(), ctx.actual_cwd, ctx.apparent_cwd, path);
 }
 
 bool
-matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
+matches_dir_prefix_or_file(std::string_view dir_prefix_or_file,
+                           std::string_view path)
 {
   return !dir_prefix_or_file.empty() && !path.empty()
          && dir_prefix_or_file.length() <= path.length()
-         && path.starts_with(dir_prefix_or_file)
+         && util::starts_with(path, dir_prefix_or_file)
          && (dir_prefix_or_file.length() == path.length()
              || is_dir_separator(path[dir_prefix_or_file.length()])
              || is_dir_separator(dir_prefix_or_file.back()));
 }
 
 std::string
-normalize_absolute_path(string_view path)
+normalize_abstract_absolute_path(std::string_view path)
 {
   if (!util::is_absolute_path(path)) {
     return std::string(path);
   }
 
 #ifdef _WIN32
-  if (path.find("\\") != string_view::npos) {
+  if (path.find("\\") != std::string_view::npos) {
     std::string new_path(path);
     std::replace(new_path.begin(), new_path.end(), '\\', '/');
-    return normalize_absolute_path(new_path);
+    return normalize_abstract_absolute_path(new_path);
   }
 
   std::string drive(path.substr(0, 2));
@@ -964,7 +962,7 @@ normalize_absolute_path(string_view path)
 #endif
 
   std::string result = "/";
-  const size_t npos = string_view::npos;
+  const size_t npos = std::string_view::npos;
   size_t left = 1;
 
   while (true) {
@@ -972,7 +970,8 @@ normalize_absolute_path(string_view path)
       break;
     }
     const auto right = path.find('/', left);
-    string_view part = path.substr(left, right == npos ? npos : right - left);
+    std::string_view part =
+      path.substr(left, right == npos ? npos : right - left);
     if (part == "..") {
       if (result.length() > 1) {
         // "/x/../part" -> "/part"
@@ -1002,6 +1001,15 @@ normalize_absolute_path(string_view path)
 #else
   return result;
 #endif
+}
+
+std::string
+normalize_concrete_absolute_path(const std::string& path)
+{
+  const auto normalized_path = normalize_abstract_absolute_path(path);
+  return Stat::stat(normalized_path).same_inode_as(Stat::stat(path))
+           ? normalized_path
+           : path;
 }
 
 uint64_t
@@ -1051,13 +1059,13 @@ parse_size(const std::string& value)
     switch (*p) {
     case 'T':
       result *= multiplier;
-    // Fallthrough.
+      [[fallthrough]];
     case 'G':
       result *= multiplier;
-    // Fallthrough.
+      [[fallthrough]];
     case 'M':
       result *= multiplier;
-    // Fallthrough.
+      [[fallthrough]];
     case 'K':
     case 'k':
       result *= multiplier;
@@ -1215,8 +1223,8 @@ read_text_file(const std::string& path, size_t size_hint)
   return result;
 }
 
-string_view
-remove_extension(string_view path)
+std::string_view
+remove_extension(std::string_view path)
 {
   return path.substr(0, path.length() - get_extension(path).length());
 }
@@ -1243,19 +1251,6 @@ rename(const std::string& oldpath, const std::string& newpath)
 #endif
 }
 
-bool
-same_program_name(nonstd::string_view program_name,
-                  nonstd::string_view canonical_program_name)
-{
-#ifdef _WIN32
-  std::string lowercase_program_name = Util::to_lowercase(program_name);
-  return lowercase_program_name == canonical_program_name
-         || lowercase_program_name == FMT("{}.exe", canonical_program_name);
-#else
-  return program_name == canonical_program_name;
-#endif
-}
-
 void
 send_to_fd(const Context& ctx, const std::string& text, int fd)
 {
@@ -1275,7 +1270,7 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
       modified_text = strip_ansi_csi_seqs(text);
       text_to_send = &modified_text;
     } catch (const core::Error&) {
-      // Fall through
+      // Ignore.
     }
   }
 
@@ -1304,6 +1299,13 @@ set_cloexec_flag(int fd)
 #endif
 }
 
+mode_t
+set_umask(mode_t mask)
+{
+  g_umask = mask;
+  return umask(mask);
+}
+
 void
 setenv(const std::string& name, const std::string& value)
 {
@@ -1316,17 +1318,18 @@ setenv(const std::string& name, const std::string& value)
 #endif
 }
 
-std::vector<string_view>
-split_into_views(string_view string,
+std::vector<std::string_view>
+split_into_views(std::string_view string,
                  const char* separators,
                  util::Tokenizer::Mode mode,
                  IncludeDelimiter include_delimiter)
 {
-  return split_into<string_view>(string, separators, mode, include_delimiter);
+  return split_into<std::string_view>(
+    string, separators, mode, include_delimiter);
 }
 
 std::vector<std::string>
-split_into_strings(string_view string,
+split_into_strings(std::string_view string,
                    const char* separators,
                    util::Tokenizer::Mode mode,
                    IncludeDelimiter include_delimiter)
@@ -1335,7 +1338,7 @@ split_into_strings(string_view string,
 }
 
 std::string
-strip_ansi_csi_seqs(string_view string)
+strip_ansi_csi_seqs(std::string_view string)
 {
   size_t pos = 0;
   std::string result;
@@ -1357,7 +1360,7 @@ strip_ansi_csi_seqs(string_view string)
 }
 
 std::string
-to_lowercase(string_view string)
+to_lowercase(std::string_view string)
 {
   std::string result;
   result.resize(string.length());
@@ -1499,16 +1502,6 @@ unsetenv(const std::string& name)
   ::unsetenv(name.c_str());
 #else
   putenv(strdup(name.c_str())); // Leak to environment.
-#endif
-}
-
-void
-update_mtime(const std::string& path)
-{
-#ifdef HAVE_UTIMES
-  utimes(path.c_str(), nullptr);
-#else
-  utime(path.c_str(), nullptr);
 #endif
 }
 

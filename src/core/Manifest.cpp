@@ -65,7 +65,7 @@ template<> struct hash<core::Manifest::FileInfo>
   size_t
   operator()(const core::Manifest::FileInfo& file_info) const
   {
-    static_assert(sizeof(file_info) == 48, "unexpected size"); // No padding.
+    static_assert(sizeof(file_info) == 48); // No padding.
     util::XXH3_64 hash;
     hash.update(&file_info, sizeof(file_info));
     return hash.digest();
@@ -119,7 +119,7 @@ Manifest::read(Reader& reader)
   }
 }
 
-nonstd::optional<Digest>
+std::optional<Digest>
 Manifest::look_up_result_digest(const Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
@@ -133,14 +133,15 @@ Manifest::look_up_result_digest(const Context& ctx) const
     }
   }
 
-  return nonstd::nullopt;
+  return std::nullopt;
 }
 
 bool
-Manifest::add_result(const Digest& result_key,
-                     std::unordered_map<std::string, Digest>& included_files,
-                     const time_t time_of_compilation,
-                     const bool save_timestamp)
+Manifest::add_result(
+  const Digest& result_key,
+  const std::unordered_map<std::string, Digest>& included_files,
+  const time_t time_of_compilation,
+  const bool save_timestamp)
 {
   if (m_results.size() > k_max_manifest_entries) {
     // Normally, there shouldn't be many result entries in the manifest since
@@ -178,9 +179,9 @@ Manifest::add_result(const Digest& result_key,
   std::vector<uint32_t> file_info_indexes;
   file_info_indexes.reserve(included_files.size());
 
-  for (const auto& item : included_files) {
-    file_info_indexes.push_back(get_file_info_index(item.first,
-                                                    item.second,
+  for (const auto& [path, digest] : included_files) {
+    file_info_indexes.push_back(get_file_info_index(path,
+                                                    digest,
                                                     mf_files,
                                                     mf_file_infos,
                                                     time_of_compilation,

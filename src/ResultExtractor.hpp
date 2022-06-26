@@ -32,7 +32,7 @@ public:
   void on_entry_start(uint8_t entry_number,
                       Result::FileType file_type,
                       uint64_t file_len,
-                      nonstd::optional<std::string> raw_file) override;
+                      std::optional<std::string> raw_file) override;
   void on_entry_data(const uint8_t* data, size_t size) override;
   void on_entry_end() override;
 

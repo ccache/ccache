@@ -23,6 +23,7 @@
 # 3.
 
 set(version_info "$Format:%H %D$")
+set(CCACHE_VERSION "unknown")
 
 if(version_info MATCHES "^([0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])[0-9a-f]* (.*)")
   # Scenario 1.
@@ -43,12 +44,12 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 
   find_package(Git QUIET)
   if(NOT GIT_FOUND)
-    set(CCACHE_VERSION "unknown")
     message(WARNING "Could not find git")
   else()
     macro(git)
       execute_process(
-        COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_SOURCE_DIR}" ${ARGN}
+        COMMAND "${GIT_EXECUTABLE}" ${ARGN}
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
     endmacro()
@@ -72,9 +73,9 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   endif()
 endif()
 
-if(CCACHE_VERSION STREQUAL "")
+if("${CCACHE_VERSION}" STREQUAL "unknown")
   # Scenario 2 or unexpected error.
-  message(SEND_ERROR "Cannot determine Ccache version")
+  message(WARNING "Could not determine ccache version")
 endif()
 
 message(STATUS "Ccache version: ${CCACHE_VERSION}")

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,9 +23,8 @@
 #include <vector>
 
 static bool
-operator==(
-  std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>> left,
-  std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>> right)
+operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
+           std::pair<std::string_view, std::optional<std::string_view>> right)
 {
   return left.first == right.first && left.second == right.second;
 }
@@ -67,7 +66,7 @@ TEST_CASE("util::join")
     CHECK(util::join(v.begin() + 1, v.end(), "|") == " b |c|");
   }
   {
-    std::vector<nonstd::string_view> v{"1", "2"};
+    std::vector<std::string_view> v{"1", "2"};
     CHECK(util::join(v, " ") == "1 2");
   }
 }
@@ -100,9 +99,9 @@ TEST_CASE("util::parse_signed")
   CHECK(util::parse_signed("0x4").error() == "invalid integer: \"0x4\"");
 
   // Custom description not used for invalid value.
-  CHECK(util::parse_signed("apple", nonstd::nullopt, nonstd::nullopt, "banana")
-          .error()
-        == "invalid integer: \"apple\"");
+  CHECK(
+    util::parse_signed("apple", std::nullopt, std::nullopt, "banana").error()
+    == "invalid integer: \"apple\"");
 
   // Boundary values.
   CHECK(util::parse_signed("-9223372036854775809").error()
@@ -128,10 +127,10 @@ TEST_CASE("util::parse_signed")
 
 TEST_CASE("util::parse_umask")
 {
-  CHECK(util::parse_umask("1") == 01u);
-  CHECK(util::parse_umask("002") == 2u);
-  CHECK(util::parse_umask("777") == 0777u);
-  CHECK(util::parse_umask("0777") == 0777u);
+  CHECK(util::parse_umask("1") == 1U);
+  CHECK(util::parse_umask("002") == 002U);
+  CHECK(util::parse_umask("777") == 0777U);
+  CHECK(util::parse_umask("0777") == 0777U);
 
   CHECK(util::parse_umask("").error()
         == "invalid unsigned octal integer: \"\"");
@@ -158,8 +157,7 @@ TEST_CASE("util::parse_unsigned")
 
   // Custom description not used for invalid value.
   CHECK(
-    util::parse_unsigned("apple", nonstd::nullopt, nonstd::nullopt, "banana")
-      .error()
+    util::parse_unsigned("apple", std::nullopt, std::nullopt, "banana").error()
     == "invalid unsigned integer: \"apple\"");
 
   // Boundary values.
@@ -171,11 +169,11 @@ TEST_CASE("util::parse_unsigned")
         == "invalid unsigned integer: \"18446744073709551616\"");
 
   // Base
-  CHECK(*util::parse_unsigned("0666", nonstd::nullopt, nonstd::nullopt, "", 8)
+  CHECK(*util::parse_unsigned("0666", std::nullopt, std::nullopt, "", 8)
         == 0666);
-  CHECK(*util::parse_unsigned("0666", nonstd::nullopt, nonstd::nullopt, "", 10)
+  CHECK(*util::parse_unsigned("0666", std::nullopt, std::nullopt, "", 10)
         == 666);
-  CHECK(*util::parse_unsigned("0666", nonstd::nullopt, nonstd::nullopt, "", 16)
+  CHECK(*util::parse_unsigned("0666", std::nullopt, std::nullopt, "", 16)
         == 0x666);
 }
 
@@ -227,8 +225,8 @@ TEST_CASE("util::replace_first")
 
 TEST_CASE("util::split_once")
 {
-  using nonstd::nullopt;
   using std::make_pair;
+  using std::nullopt;
   using util::split_once;
 
   CHECK(split_once("", '=') == make_pair("", nullopt));

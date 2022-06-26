@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "third_party/nonstd/string_view.hpp"
-
 #include <cstddef>
 #include <string>
+#include <string_view>
 
 class Config;
 class Context;
@@ -39,12 +38,12 @@ const int HASH_SOURCE_CODE_FOUND_TIMESTAMP = (1 << 3);
 // Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE,
 // HASH_SOURCE_CODE_FOUND_TIME and HASH_SOURCE_CODE_FOUND_TIMESTAMP set
 // appropriately.
-int check_for_temporal_macros(nonstd::string_view str);
+int check_for_temporal_macros(std::string_view str);
 
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int hash_source_code_string(const Context& ctx,
                             Hash& hash,
-                            nonstd::string_view str,
+                            std::string_view str,
                             const std::string& path);
 
 // Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*

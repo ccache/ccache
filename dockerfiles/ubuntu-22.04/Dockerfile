@@ -1,14 +1,20 @@
-FROM debian:10
+FROM ubuntu:22.04
 
+# Non-interactive: do not set up timezone settings.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
+ && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
+        asciidoctor \
         bash \
         build-essential \
         ccache \
         clang \
         cmake \
+        docbook-xml \
+        docbook-xsl \
         elfutils \
         gcc-multilib \
+        gcc-12 \
+        g++-12 \
         libhiredis-dev \
         libzstd-dev \
         python3 \

@@ -21,10 +21,10 @@
 #include <core/Reader.hpp>
 
 #include "third_party/nonstd/expected.hpp"
-#include "third_party/nonstd/optional.hpp"
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -112,7 +112,7 @@ public:
     virtual void on_entry_start(uint8_t entry_number,
                                 FileType file_type,
                                 uint64_t file_len,
-                                nonstd::optional<std::string> raw_file) = 0;
+                                std::optional<std::string> raw_file) = 0;
     virtual void on_entry_data(const uint8_t* data, size_t size) = 0;
     virtual void on_entry_end() = 0;
   };

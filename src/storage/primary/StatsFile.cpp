@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,8 +25,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 StatsFile::StatsFile(const std::string& path) : m_path(path)
 {
@@ -61,14 +60,14 @@ StatsFile::read() const
   return counters;
 }
 
-nonstd::optional<core::StatisticsCounters>
+std::optional<core::StatisticsCounters>
 StatsFile::update(
   std::function<void(core::StatisticsCounters& counters)> function) const
 {
   Lockfile lock(m_path);
   if (!lock.acquired()) {
     LOG("Failed to acquire lock for {}", m_path);
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   auto counters = read();
@@ -90,5 +89,4 @@ StatsFile::update(
   return counters;
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

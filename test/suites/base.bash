@@ -345,14 +345,14 @@ fi
     unset CCACHE_LOGFILE
     unset CCACHE_NODIRECT
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c
-    if ! grep -q Result: test1.o.ccache-log; then
+    if ! grep -q Result: test1.o.*.ccache-log; then
         test_failed "Unexpected data in <obj>.ccache-log"
     fi
-    if ! grep -q "PREPROCESSOR MODE" test1.o.ccache-input-text; then
-        test_failed "Unexpected data in <obj>.ccache-input-text"
+    if ! grep -q "PREPROCESSOR MODE" test1.o.*.ccache-input-text; then
+        test_failed "Unexpected data in <obj>.<timestamp>.ccache-input-text"
     fi
     for ext in c p d; do
-        if ! [ -f test1.o.ccache-input-$ext ]; then
+        if ! [ -f test1.o.*.ccache-input-$ext ]; then
             test_failed "<obj>.ccache-input-$ext missing"
         fi
     done
@@ -362,13 +362,13 @@ fi
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c -save-temps
     expect_stat unsupported_compiler_option 1
-    expect_exists test1.o.ccache-log
+    expect_exists test1.o.*.ccache-log
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DEBUGDIR"
 
     CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
-    expect_contains debugdir"$(pwd -P)"/test1.o.ccache-log "Result: cache_miss"
+    expect_contains debugdir"$(pwd -P)"/test1.o.*.ccache-log "Result: cache_miss"
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
@@ -789,6 +789,21 @@ b"
     fi
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DISABLE set when executing compiler"
+
+    cat >compiler.sh <<EOF
+#!/bin/sh
+printf "%s" "\${CCACHE_DISABLE}" >>CCACHE_DISABLE.value
+exec $COMPILER "\$@"
+EOF
+    chmod +x compiler.sh
+    backdate compiler.sh
+    $CCACHE ./compiler.sh -c test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content CCACHE_DISABLE.value '11' # preprocessor + compiler
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_COMPILER"
 
     $COMPILER -c -o reference_test1.o test1.c
@@ -834,15 +849,15 @@ EOF
     chmod +x gcc
 
     CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.*.ccache-log)
     if [ "$compiler_type" != gcc ]; then
         test_failed "Compiler type $compiler_type != gcc"
     fi
 
-    rm test1.o.ccache-log
+    rm test1.o.*.ccache-log
 
     CCACHE_COMPILERTYPE=clang CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.*.ccache-log)
     if [ "$compiler_type" != clang ]; then
         test_failed "Compiler type $compiler_type != clang"
     fi
@@ -867,8 +882,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 # A comment
 EOF
@@ -896,8 +909,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -920,8 +931,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -944,8 +953,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -971,8 +978,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1005,8 +1010,6 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1255,8 +1258,6 @@ if [ \$1 != -E ]; then
     printf "cc_err|" >&2
     printf "cc_out|"
 fi
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1322,6 +1323,30 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 0
     expect_stat called_for_preprocessing 1
+
+    # -------------------------------------------------------------------------
+    if $COMPILER -c -Wa,-a test1.c >&/dev/null; then
+        TEST "-Wa,-a"
+
+        $CCACHE_COMPILE -c -Wa,-a test1.c >first.lst
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -Wa,-a test1.c >second.lst
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+        expect_equal_content first.lst second.lst
+    fi
+
+    # -------------------------------------------------------------------------
+    if $COMPILER -c -Wa,-a=test1.lst test1.c >&/dev/null; then
+        TEST "-Wa,-a=file"
+
+        $CCACHE_COMPILE -c -Wa,-a=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 0
+        expect_stat unsupported_compiler_option 1
+    fi
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-P"
@@ -1426,8 +1451,6 @@ EOF
 
     cat >buggy-cpp <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
 if echo "\$*" | grep -- -D >/dev/null; then
   $COMPILER "\$@"
 else

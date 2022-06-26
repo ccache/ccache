@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,28 +18,28 @@
 
 #pragma once
 
-#include "third_party/nonstd/optional.hpp"
-
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <optional>
 
 // This class sets a new (process-global) umask and restores the previous umask
 // when destructed.
 class UmaskScope
 {
 public:
-  UmaskScope(nonstd::optional<mode_t> new_umask);
+  UmaskScope(std::optional<mode_t> new_umask);
   ~UmaskScope();
 
 private:
-  nonstd::optional<mode_t> m_saved_umask;
+  std::optional<mode_t> m_saved_umask = std::nullopt;
 };
 
-inline UmaskScope::UmaskScope(nonstd::optional<mode_t> new_umask)
+inline UmaskScope::UmaskScope(std::optional<mode_t> new_umask)
 {
 #ifndef _WIN32
   if (new_umask) {
-    m_saved_umask = umask(*new_umask);
+    m_saved_umask = Util::set_umask(*new_umask);
   }
 #else
   (void)new_umask;
@@ -50,7 +50,15 @@ inline UmaskScope::~UmaskScope()
 {
 #ifndef _WIN32
   if (m_saved_umask) {
-    umask(*m_saved_umask);
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80635
+#  if defined(__GNUC__) && !defined(__clang__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#  endif
+    Util::set_umask(*m_saved_umask);
+#  if defined(__GNUC__) && !defined(__clang__)
+#    pragma GCC diagnostic pop
+#  endif
   }
 #endif
 }

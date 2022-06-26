@@ -20,9 +20,8 @@
 
 #include "Fd.hpp"
 
-#include "third_party/nonstd/string_view.hpp"
-
 #include <string>
+#include <string_view>
 
 // This class represents a unique temporary file created by mkstemp. The file is
 // not deleted by the destructor.
@@ -30,9 +29,9 @@ class TemporaryFile
 {
 public:
   // `path_prefix` is the base path. The resulting filename will be this path
-  //  plus a unique suffix. If `path_prefix` refers to a nonexistent directory
-  //  the directory will be created if possible.`
-  TemporaryFile(nonstd::string_view path_prefix);
+  //  plus a unique string plus `suffix`. If `path_prefix` refers to a
+  //  nonexistent directory the directory will be created if possible.`
+  TemporaryFile(std::string_view path_prefix, std::string_view suffix = {});
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 

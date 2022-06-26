@@ -2,7 +2,7 @@
 normalize_gcno_file() {
     local from="$1"
     local to="$2"
-    cut -b 13- "${from}" >"${to}"
+    tail -c +13 "${from}" >"${to}"
 }
 
 

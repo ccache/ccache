@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,18 +21,17 @@
 #include <storage/types.hpp>
 
 #include <third_party/nonstd/expected.hpp>
-#include <third_party/nonstd/optional.hpp>
 #include <third_party/url.hpp>
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 class Digest;
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 constexpr auto k_redacted_password = "********";
 const auto k_default_connect_timeout = std::chrono::milliseconds{100};
@@ -78,8 +77,8 @@ public:
     virtual ~Backend() = default;
 
     // Get the value associated with `key`. Returns the value on success or
-    // nonstd::nullopt if the entry is not present.
-    virtual nonstd::expected<nonstd::optional<std::string>, Failure>
+    // std::nullopt if the entry is not present.
+    virtual nonstd::expected<std::optional<std::string>, Failure>
     get(const Digest& key) = 0;
 
     // Put `value` associated to `key` in the storage. A true `only_if_missing`
@@ -143,5 +142,4 @@ SecondaryStorage::Backend::Failed::failure() const
   return m_failure;
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

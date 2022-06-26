@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,8 +21,8 @@
 #include <assertions.hpp>
 
 #include <third_party/fmt/core.h>
-#include <third_party/nonstd/optional.hpp>
-#include <third_party/nonstd/string_view.hpp>
+
+#include <string_view>
 
 namespace util {
 
@@ -40,7 +40,7 @@ public:
 
   // Split `string` into tokens at any of the characters in `separators` which
   // must neither be the empty string nor a nullptr.
-  Tokenizer(nonstd::string_view string,
+  Tokenizer(std::string_view string,
             const char* delimiters,
             Mode mode = Mode::skip_empty,
             IncludeDelimiter include_delimiter = IncludeDelimiter::no);
@@ -52,7 +52,7 @@ public:
 
     Iterator operator++();
     bool operator!=(const Iterator& other) const;
-    nonstd::string_view operator*() const;
+    std::string_view operator*() const;
 
   private:
     const Tokenizer& m_tokenizer;
@@ -68,13 +68,13 @@ public:
 private:
   friend Iterator;
 
-  const nonstd::string_view m_string;
+  const std::string_view m_string;
   const char* const m_delimiters;
   const Mode m_mode;
   const IncludeDelimiter m_include_delimiter;
 };
 
-inline Tokenizer::Tokenizer(const nonstd::string_view string,
+inline Tokenizer::Tokenizer(const std::string_view string,
                             const char* const delimiters,
                             Tokenizer::Mode mode,
                             Tokenizer::IncludeDelimiter include_delimiter)
@@ -95,7 +95,7 @@ inline Tokenizer::Iterator::Iterator(const Tokenizer& tokenizer,
   if (start_pos == 0) {
     advance(true);
   } else {
-    DEBUG_ASSERT(start_pos == nonstd::string_view::npos);
+    DEBUG_ASSERT(start_pos == std::string_view::npos);
   }
 }
 
@@ -121,7 +121,7 @@ Tokenizer::begin()
 inline Tokenizer::Iterator
 Tokenizer::end()
 {
-  return Iterator(*this, nonstd::string_view::npos);
+  return Iterator(*this, std::string_view::npos);
 }
 
 } // namespace util

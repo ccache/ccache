@@ -20,7 +20,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
     - name: Checkout repository
@@ -34,7 +34,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install ninja-build elfutils libzstd-dev pkg-config libhiredis-dev
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: cpp
         queries: +security-and-quality
@@ -46,4 +46,4 @@ jobs:
         CMAKE_GENERATOR: Ninja
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2

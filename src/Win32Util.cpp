@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -97,10 +97,12 @@ argv_to_string(const char* const* argv,
           ++bs;
           break;
         }
-        // Fallthrough.
+        [[fallthrough]];
+
       case '"':
         bs = (bs << 1) + 1;
-      // Fallthrough.
+        [[fallthrough]];
+
       default:
         while (bs > 0) {
           result += '\\';

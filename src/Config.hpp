@@ -23,11 +23,10 @@
 
 #include <core/Sloppiness.hpp>
 
-#include "third_party/nonstd/optional.hpp"
-
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -83,13 +82,15 @@ public:
   const std::string& stats_log() const;
   const std::string& namespace_() const;
   const std::string& temporary_dir() const;
-  nonstd::optional<mode_t> umask() const;
+  std::optional<mode_t> umask() const;
 
   // Return true for Clang and clang-cl.
   bool is_compiler_group_clang() const;
 
   // Return true for MSVC (cl.exe) and clang-cl.
   bool is_compiler_group_msvc() const;
+
+  std::string default_temporary_dir() const;
 
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
@@ -187,7 +188,7 @@ private:
   std::string m_stats_log;
   std::string m_namespace;
   std::string m_temporary_dir;
-  nonstd::optional<mode_t> m_umask;
+  std::optional<mode_t> m_umask;
 
   bool m_temporary_dir_configured_explicitly = false;
 
@@ -195,11 +196,9 @@ private:
 
   void set_item(const std::string& key,
                 const std::string& value,
-                const nonstd::optional<std::string>& env_var_key,
+                const std::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
-
-  static std::string default_temporary_dir(const std::string& cache_dir);
 };
 
 inline bool
@@ -462,7 +461,7 @@ Config::temporary_dir() const
   return m_temporary_dir;
 }
 
-inline nonstd::optional<mode_t>
+inline std::optional<mode_t>
 Config::umask() const
 {
   return m_umask;
@@ -479,7 +478,7 @@ Config::set_cache_dir(const std::string& value)
 {
   m_cache_dir = value;
   if (!m_temporary_dir_configured_explicitly) {
-    m_temporary_dir = default_temporary_dir(m_cache_dir);
+    m_temporary_dir = default_temporary_dir();
   }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,9 +20,9 @@
 
 #include <Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/string.hpp>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 void
 for_each_level_1_subdir(const std::string& cache_dir,
@@ -54,7 +54,8 @@ get_level_1_files(const std::string& dir,
 
   Util::traverse(dir, [&](const std::string& path, bool is_dir) {
     auto name = Util::base_name(path);
-    if (name == "CACHEDIR.TAG" || name == "stats" || name.starts_with(".nfs")) {
+    if (name == "CACHEDIR.TAG" || name == "stats"
+        || util::starts_with(name, ".nfs")) {
       return;
     }
 
@@ -71,5 +72,4 @@ get_level_1_files(const std::string& dir,
   return files;
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

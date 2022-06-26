@@ -46,12 +46,12 @@
 #include <unordered_map>
 #include <vector>
 
-using nonstd::nullopt;
-using nonstd::optional;
-
 #ifndef environ
 DLLIMPORT extern char** environ;
 #endif
+
+// Make room for binary patching at install time.
+const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
 
 namespace {
 
@@ -193,7 +193,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
 
 bool
 parse_bool(const std::string& value,
-           const optional<std::string> env_var_key,
+           const std::optional<std::string> env_var_key,
            bool negate)
 {
   if (env_var_key) {
@@ -345,7 +345,7 @@ format_sloppiness(core::Sloppiness sloppiness)
 }
 
 std::string
-format_umask(nonstd::optional<mode_t> umask)
+format_umask(std::optional<mode_t> umask)
 {
   if (umask) {
     return FMT("{:03o}", *umask);
@@ -489,7 +489,7 @@ Config::read()
 
     set_secondary_config_path(env_ccache_configpath2
                                 ? env_ccache_configpath2
-                                : FMT("{}/ccache.conf", SYSCONFDIR));
+                                : FMT("{}/ccache.conf", k_sysconfdir));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     update_from_file(secondary_config_path());
@@ -571,7 +571,7 @@ Config::update_from_file(const std::string& path)
   return parse_config_file(
     path, [&](const auto& /*line*/, const auto& key, const auto& value) {
       if (!key.empty()) {
-        this->set_item(key, value, nullopt, false, path);
+        this->set_item(key, value, std::nullopt, false, path);
       }
     });
 }
@@ -764,7 +764,7 @@ Config::set_value_in_file(const std::string& path,
 
   // Verify that the value is valid; set_item will throw if not.
   Config dummy_config;
-  dummy_config.set_item(key, value, nullopt, false, "");
+  dummy_config.set_item(key, value, std::nullopt, false, "");
 
   const auto resolved_path = Util::real_path(path);
   const auto st = Stat::stat(resolved_path);
@@ -806,8 +806,8 @@ Config::visit_items(const ItemVisitor& item_visitor) const
   std::vector<std::string> keys;
   keys.reserve(k_config_key_table.size());
 
-  for (const auto& item : k_config_key_table) {
-    keys.emplace_back(item.first);
+  for (const auto& [key, value] : k_config_key_table) {
+    keys.emplace_back(key);
   }
   std::sort(keys.begin(), keys.end());
   for (const auto& key : keys) {
@@ -820,7 +820,7 @@ Config::visit_items(const ItemVisitor& item_visitor) const
 void
 Config::set_item(const std::string& key,
                  const std::string& value,
-                 const optional<std::string>& env_var_key,
+                 const std::optional<std::string>& env_var_key,
                  bool negate,
                  const std::string& origin)
 {
@@ -839,7 +839,7 @@ Config::set_item(const std::string& key,
     m_base_dir = Util::expand_environment_variables(value);
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
-      m_base_dir = Util::normalize_absolute_path(m_base_dir);
+      m_base_dir = Util::normalize_abstract_absolute_path(m_base_dir);
     }
     break;
 
@@ -925,7 +925,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::limit_multiple:
-    m_limit_multiple = Util::clamp(
+    m_limit_multiple = std::clamp(
       util::value_or_throw<core::Error>(util::parse_double(value)), 0.0, 1.0);
     break;
 
@@ -935,7 +935,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::max_files:
     m_max_files = util::value_or_throw<core::Error>(
-      util::parse_unsigned(value, nullopt, nullopt, "max_files"));
+      util::parse_unsigned(value, std::nullopt, std::nullopt, "max_files"));
     break;
 
   case ConfigItem::max_size:
@@ -1014,27 +1014,27 @@ Config::set_item(const std::string& key,
     break;
   }
 
-  auto result = m_origins.emplace(key, origin);
-  if (!result.second) {
-    result.first->second = origin;
+  const auto& [element, inserted] = m_origins.emplace(key, origin);
+  if (!inserted) {
+    element->second = origin;
   }
 }
 
 void
 Config::check_key_tables_consistency()
 {
-  for (const auto& item : k_env_variable_table) {
-    if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
+  for (const auto& [key, value] : k_env_variable_table) {
+    if (k_config_key_table.find(value) == k_config_key_table.end()) {
       throw core::Error(
         "env var {} mapped to {} which is missing from k_config_key_table",
-        item.first,
-        item.second);
+        key,
+        value);
     }
   }
 }
 
 std::string
-Config::default_temporary_dir(const std::string& cache_dir)
+Config::default_temporary_dir() const
 {
   static const std::string run_user_tmp_dir = [] {
 #ifdef HAVE_GETEUID
@@ -1045,5 +1045,5 @@ Config::default_temporary_dir(const std::string& cache_dir)
 #endif
     return std::string();
   }();
-  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : cache_dir + "/tmp";
+  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : m_cache_dir + "/tmp";
 }

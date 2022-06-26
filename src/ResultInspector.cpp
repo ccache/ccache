@@ -22,8 +22,6 @@
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
 
-using nonstd::optional;
-
 ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
 {
 }
@@ -32,7 +30,7 @@ void
 ResultInspector::on_entry_start(uint8_t entry_number,
                                 Result::FileType file_type,
                                 uint64_t file_len,
-                                optional<std::string> raw_file)
+                                std::optional<std::string> raw_file)
 {
   PRINT(m_stream,
         "{} file #{}: {} ({} bytes)\n",

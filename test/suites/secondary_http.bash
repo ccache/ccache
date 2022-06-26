@@ -146,7 +146,7 @@ SUITE_secondary_http() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_file_count 2 '*' secondary # result + manifest
-    expect_not_contains test.o.ccache-log secret123
+    expect_not_contains test.o.*.ccache-log secret123
 
     # -------------------------------------------------------------------------
     TEST "Basic auth required"
@@ -160,7 +160,7 @@ SUITE_secondary_http() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_file_count 0 '*' secondary # result + manifest
-    expect_contains test.o.ccache-log "status code: 401"
+    expect_contains test.o.*.ccache-log "status code: 401"
 
     # -------------------------------------------------------------------------
     TEST "Basic auth failed"
@@ -173,8 +173,8 @@ SUITE_secondary_http() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_file_count 0 '*' secondary # result + manifest
-    expect_not_contains test.o.ccache-log secret123
-    expect_contains test.o.ccache-log "status code: 401"
+    expect_not_contains test.o.*.ccache-log secret123
+    expect_contains test.o.*.ccache-log "status code: 401"
 
      # -------------------------------------------------------------------------
     TEST "IPv6 address"

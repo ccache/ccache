@@ -40,8 +40,8 @@ SUITE_multi_arch() {
     CCACHE_DEBUG=1 $CCACHE_COMPILE -arch x86_64 -Xarch_x86_64 -I. -c test1.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 4
-    expect_contains     test1.o.ccache-log "clang -Xarch_x86_64 -I. -arch x86_64 -E test1.c"
-    expect_not_contains test1.o.ccache-log "clang -Xarch_x86_64 -I. -I. -arch x86_64 -E test1.c"
+    expect_contains     test1.o.*.ccache-log "clang -Xarch_x86_64 -I. -arch x86_64 -E test1.c"
+    expect_not_contains test1.o.*.ccache-log "clang -Xarch_x86_64 -I. -I. -arch x86_64 -E test1.c"
 
     $CCACHE_COMPILE -arch x86_64 -Xarch_x86_64 -I. -c test1.c
     expect_stat direct_cache_hit 3

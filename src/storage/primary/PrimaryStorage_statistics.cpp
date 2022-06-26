@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,8 +25,7 @@
 
 #include <algorithm>
 
-namespace storage {
-namespace primary {
+namespace storage::primary {
 
 static void
 for_each_level_1_and_2_stats_file(
@@ -82,5 +81,4 @@ PrimaryStorage::get_all_statistics() const
   return std::make_pair(counters, last_updated);
 }
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::primary

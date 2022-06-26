@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,8 +46,7 @@
 #include <map>
 #include <memory>
 
-namespace storage {
-namespace secondary {
+namespace storage::secondary {
 
 namespace {
 
@@ -61,7 +60,7 @@ class RedisStorageBackend : public SecondaryStorage::Backend
 public:
   RedisStorageBackend(const SecondaryStorage::Backend::Params& params);
 
-  nonstd::expected<nonstd::optional<std::string>, Failure>
+  nonstd::expected<std::optional<std::string>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
@@ -91,19 +90,19 @@ to_timeval(const uint32_t ms)
   return tv;
 }
 
-std::pair<nonstd::optional<std::string>, nonstd::optional<std::string>>
+std::pair<std::optional<std::string>, std::optional<std::string>>
 split_user_info(const std::string& user_info)
 {
-  const auto pair = util::split_once(user_info, ':');
-  if (pair.first.empty()) {
+  const auto [left, right] = util::split_once(user_info, ':');
+  if (left.empty()) {
     // redis://HOST
-    return {nonstd::nullopt, nonstd::nullopt};
-  } else if (pair.second) {
+    return {std::nullopt, std::nullopt};
+  } else if (right) {
     // redis://USERNAME:PASSWORD@HOST
-    return {std::string(*pair.second), std::string(pair.first)};
+    return {std::string(left), std::string(*right)};
   } else {
     // redis://PASSWORD@HOST
-    return {std::string(pair.first), nonstd::nullopt};
+    return {std::nullopt, std::string(left)};
   }
 }
 
@@ -164,8 +163,7 @@ is_timeout(int err)
 #endif
 }
 
-nonstd::expected<nonstd::optional<std::string>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
 RedisStorageBackend::get(const Digest& key)
 {
   const auto key_string = get_key_string(key);
@@ -176,7 +174,7 @@ RedisStorageBackend::get(const Digest& key)
   } else if ((*reply)->type == REDIS_REPLY_STRING) {
     return std::string((*reply)->str, (*reply)->len);
   } else if ((*reply)->type == REDIS_REPLY_NIL) {
-    return nonstd::nullopt;
+    return std::nullopt;
   } else {
     LOG("Unknown reply type: {}", (*reply)->type);
     return nonstd::make_unexpected(Failure::error);
@@ -195,11 +193,11 @@ RedisStorageBackend::put(const Digest& key,
     const auto reply = redis_command("EXISTS %s", key_string.c_str());
     if (!reply) {
       return nonstd::make_unexpected(reply.error());
-    } else if ((*reply)->type == REDIS_REPLY_INTEGER && (*reply)->integer > 0) {
+    } else if ((*reply)->type != REDIS_REPLY_INTEGER) {
+      LOG("Unknown reply type: {}", (*reply)->type);
+    } else if ((*reply)->integer > 0) {
       LOG("Entry {} already in Redis", key_string);
       return false;
-    } else {
-      LOG("Unknown reply type: {}", (*reply)->type);
     }
   }
 
@@ -252,11 +250,11 @@ RedisStorageBackend::connect(const Url& url,
     ASSERT(url.path().empty() || url.path()[0] == '/');
 
     LOG("Redis connecting to {}:{} (connect timeout {} ms)",
-        url.host(),
+        host,
         port,
         connect_timeout);
-    m_context.reset(redisConnectWithTimeout(
-      url.host().c_str(), port, to_timeval(connect_timeout)));
+    m_context.reset(
+      redisConnectWithTimeout(host.c_str(), port, to_timeval(connect_timeout)));
   }
 
   if (!m_context) {
@@ -301,35 +299,29 @@ RedisStorageBackend::select_database(const Url& url)
 
   if (db_number != 0) {
     LOG("Redis SELECT {}", db_number);
-    const auto reply =
-      util::value_or_throw<Failed>(redis_command("SELECT %d", db_number));
+    util::value_or_throw<Failed>(redis_command("SELECT %d", db_number));
   }
 }
 
 void
 RedisStorageBackend::authenticate(const Url& url)
 {
-  nonstd::optional<std::string> username;
-  nonstd::optional<std::string> password;
-
+  auto [user, password] = split_user_info(url.user_info());
   if (url.scheme() == "redis+unix") {
     const auto parameters_map = split_parameters(url.query());
     auto search = parameters_map.find("password");
     if (search != parameters_map.end()) {
       password = search->second;
     }
-  } else {
-    const auto password_username_pair = split_user_info(url.user_info());
-    password = password_username_pair.first;
-    username = password_username_pair.second;
   }
-
   if (password) {
-    if (username) {
-      LOG("Redis AUTH {} {}", *username, k_redacted_password);
+    if (user) {
+      // redis://user:password@host
+      LOG("Redis AUTH {} {}", *user, k_redacted_password);
       util::value_or_throw<Failed>(
-        redis_command("AUTH %s %s", username->c_str(), password->c_str()));
+        redis_command("AUTH %s %s", user->c_str(), password->c_str()));
     } else {
+      // redis://password@host
       LOG("Redis AUTH {}", k_redacted_password);
       util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
     }
@@ -374,13 +366,15 @@ void
 RedisStorage::redact_secrets(Backend::Params& params) const
 {
   auto& url = params.url;
-  const auto user_info = util::split_once(url.user_info(), ':');
-  if (user_info.second) {
-    // redis://username:password@host
-    url.user_info(FMT("{}:{}", user_info.first, k_redacted_password));
-  } else if (!user_info.first.empty()) {
-    // redis://password@host
-    url.user_info(k_redacted_password);
+  const auto [user, password] = split_user_info(url.user_info());
+  if (password) {
+    if (user) {
+      // redis://user:password@host
+      url.user_info(FMT("{}:{}", *user, k_redacted_password));
+    } else {
+      // redis://password@host
+      url.user_info(k_redacted_password);
+    }
   }
   if (!url.query().empty()) {
     auto query = url.set_query();
@@ -395,5 +389,4 @@ RedisStorage::redact_secrets(Backend::Params& params) const
   }
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

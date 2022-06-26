@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -45,7 +46,7 @@ void
 ResultRetriever::on_entry_start(uint8_t entry_number,
                                 FileType file_type,
                                 uint64_t file_len,
-                                nonstd::optional<std::string> raw_file)
+                                std::optional<std::string> raw_file)
 {
   LOG("Reading {} entry #{} {} ({} bytes)",
       raw_file ? "raw" : "embedded",
@@ -121,7 +122,7 @@ ResultRetriever::on_entry_start(uint8_t entry_number,
 
     // Update modification timestamp to save the file from LRU cleanup (and, if
     // hard-linked, to make the object file newer than the source file).
-    Util::update_mtime(*raw_file);
+    util::set_timestamps(*raw_file);
   } else {
     LOG("Writing to {}", dest_path);
     m_dest_fd = Fd(

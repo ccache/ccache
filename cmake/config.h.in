@@ -172,8 +172,8 @@
 // Define if you have the "unsetenv" function.
 #cmakedefine HAVE_UNSETENV
 
-// Define if you have the "utimes" function.
-#cmakedefine HAVE_UTIMES
+// Define if you have the "utimensat" function.
+#cmakedefine HAVE_UTIMENSAT
 
 // Define if you have the "PTHREAD_MUTEX_ROBUST" constant.
 #cmakedefine HAVE_PTHREAD_MUTEX_ROBUST
@@ -192,12 +192,6 @@ typedef unsigned __int32 mode_t;
 typedef int pid_t;
 #  endif // _MSC_VER
 #endif   // _WIN32
-
-// GCC version of a couple of standard C++ attributes.
-#ifdef __GNUC__
-#  define nodiscard gnu::warn_unused_result
-#  define maybe_unused gnu::unused
-#endif
 
 // O_BINARY is needed when reading binary data on Windows, so use it everywhere
 // with a compatibility define for Unix platforms.

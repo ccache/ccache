@@ -20,6 +20,8 @@
 
 #include "third_party/doctest.h"
 
+#include <ostream> // https://github.com/doctest/doctest/issues/618
+
 TEST_CASE("util::Tokenizer")
 {
   using Mode = util::Tokenizer::Mode;

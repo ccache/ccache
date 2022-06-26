@@ -42,10 +42,10 @@
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
-#include <third_party/nonstd/optional.hpp>
-
 #include <fcntl.h>
 
+#include <algorithm>
+#include <optional>
 #include <string>
 
 #ifdef HAVE_UNISTD_H
@@ -83,7 +83,7 @@ constexpr const char USAGE_TEXT[] =
   R"(Usage:
     {0} [options]
     {0} compiler [compiler options]
-    compiler [compiler options]          (via symbolic link)
+    compiler [compiler options]            (ccache masquerading as the compiler)
 
 Common options:
     -c, --cleanup              delete old files and recalculate size counters
@@ -113,7 +113,8 @@ Common options:
         --show-log-stats       print statistics counters from the stats log
                                in human-readable format
     -s, --show-stats           show summary of configuration and statistics
-                               counters in human-readable format
+                               counters in human-readable format (use
+                               -v/--verbose once or twice for more details)
     -v, --verbose              increase verbosity
     -z, --zero-stats           zero statistics counters
 
@@ -282,16 +283,16 @@ trim_dir(const std::string& dir,
 }
 
 static std::string
-get_version_text()
+get_version_text(const std::string_view ccache_name)
 {
   return FMT(
-    VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION, storage::get_features());
+    VERSION_TEXT, ccache_name, CCACHE_VERSION, storage::get_features());
 }
 
 std::string
-get_usage_text()
+get_usage_text(const std::string_view ccache_name)
 {
-  return FMT(USAGE_TEXT, CCACHE_NAME);
+  return FMT(USAGE_TEXT, ccache_name);
 }
 
 enum {
@@ -349,11 +350,11 @@ int
 process_main_options(int argc, const char* const* argv)
 {
   int c;
-  nonstd::optional<uint64_t> trim_max_size;
+  std::optional<uint64_t> trim_max_size;
   bool trim_lru_mtime = false;
   uint8_t verbosity = 0;
-  nonstd::optional<std::string> evict_namespace;
-  nonstd::optional<uint64_t> evict_max_age;
+  std::optional<std::string> evict_namespace;
+  std::optional<uint64_t> evict_max_age;
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -499,7 +500,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      PRINT(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+      PRINT(stdout, USAGE_TEXT, Util::base_name(argv[0]));
       return EXIT_SUCCESS;
 
     case 'k': // --get-config
@@ -557,9 +558,6 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(
         stdout,
         statistics.format_human_readable(config, timestamp, verbosity, true));
-      if (verbosity == 0) {
-        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
-      }
       break;
     }
 
@@ -572,9 +570,6 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(stdout,
                 statistics.format_human_readable(
                   config, last_updated, verbosity, false));
-      if (verbosity == 0) {
-        PRINT_RAW(stdout, "\nUse the -v/--verbose option for more details.\n");
-      }
       break;
     }
 
@@ -586,7 +581,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      PRINT_RAW(stdout, get_version_text());
+      PRINT_RAW(stdout, get_version_text(Util::base_name(argv[0])));
       break;
 
     case 'x': // --show-compression
@@ -604,9 +599,9 @@ process_main_options(int argc, const char* const* argv)
 
     case 'X': // --recompress
     {
-      nonstd::optional<int8_t> wanted_level;
+      std::optional<int8_t> wanted_level;
       if (arg == "uncompressed") {
-        wanted_level = nonstd::nullopt;
+        wanted_level = std::nullopt;
       } else {
         wanted_level = util::value_or_throw<Error>(
           util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));
@@ -624,7 +619,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+      PRINT(stderr, USAGE_TEXT, Util::base_name(argv[0]));
       return EXIT_FAILURE;
     }
   }

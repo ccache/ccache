@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,7 @@
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <iostream>
 
@@ -48,9 +49,9 @@ parse_double(const std::string& value)
 
 nonstd::expected<int64_t, std::string>
 parse_signed(const std::string& value,
-             const nonstd::optional<int64_t> min_value,
-             const nonstd::optional<int64_t> max_value,
-             const nonstd::string_view description)
+             const std::optional<int64_t> min_value,
+             const std::optional<int64_t> max_value,
+             const std::string_view description)
 {
   const std::string stripped_value = strip_whitespace(value);
 
@@ -86,9 +87,9 @@ parse_umask(const std::string& value)
 
 nonstd::expected<uint64_t, std::string>
 parse_unsigned(const std::string& value,
-               const nonstd::optional<uint64_t> min_value,
-               const nonstd::optional<uint64_t> max_value,
-               const nonstd::string_view description,
+               const std::optional<uint64_t> min_value,
+               const std::optional<uint64_t> max_value,
+               const std::string_view description,
                const int base)
 {
   const std::string stripped_value = strip_whitespace(value);
@@ -124,7 +125,7 @@ parse_unsigned(const std::string& value,
 }
 
 nonstd::expected<std::string, std::string>
-percent_decode(nonstd::string_view string)
+percent_decode(std::string_view string)
 {
   const auto from_hex = [](const char digit) {
     return static_cast<uint8_t>(
@@ -152,9 +153,9 @@ percent_decode(nonstd::string_view string)
 }
 
 std::string
-replace_all(const nonstd::string_view string,
-            const nonstd::string_view from,
-            const nonstd::string_view to)
+replace_all(const std::string_view string,
+            const std::string_view from,
+            const std::string_view to)
 {
   if (from.empty()) {
     return std::string(string);
@@ -165,7 +166,7 @@ replace_all(const nonstd::string_view string,
   size_t right = 0;
   while (left < string.size()) {
     right = string.find(from, left);
-    if (right == nonstd::string_view::npos) {
+    if (right == std::string_view::npos) {
       result.append(string.data() + left);
       break;
     }
@@ -177,9 +178,9 @@ replace_all(const nonstd::string_view string,
 }
 
 std::string
-replace_first(const nonstd::string_view string,
-              const nonstd::string_view from,
-              const nonstd::string_view to)
+replace_first(const std::string_view string,
+              const std::string_view from,
+              const std::string_view to)
 {
   if (from.empty()) {
     return std::string(string);
@@ -187,7 +188,7 @@ replace_first(const nonstd::string_view string,
 
   std::string result;
   const auto pos = string.find(from);
-  if (pos != nonstd::string_view::npos) {
+  if (pos != std::string_view::npos) {
     result.append(string.data(), pos);
     result.append(to.data(), to.length());
     result.append(string.data() + pos + from.size());
@@ -197,12 +198,12 @@ replace_first(const nonstd::string_view string,
   return result;
 }
 
-std::pair<nonstd::string_view, nonstd::optional<nonstd::string_view>>
-split_once(const nonstd::string_view string, const char split_char)
+std::pair<std::string_view, std::optional<std::string_view>>
+split_once(const std::string_view string, const char split_char)
 {
   const size_t sep_pos = string.find(split_char);
-  if (sep_pos == nonstd::string_view::npos) {
-    return std::make_pair(string, nonstd::nullopt);
+  if (sep_pos == std::string_view::npos) {
+    return std::make_pair(string, std::nullopt);
   } else {
     return std::make_pair(string.substr(0, sep_pos),
                           string.substr(sep_pos + 1));
@@ -210,7 +211,7 @@ split_once(const nonstd::string_view string, const char split_char)
 }
 
 std::string
-strip_whitespace(const nonstd::string_view string)
+strip_whitespace(const std::string_view string)
 {
   const auto is_space = [](const int ch) { return std::isspace(ch); };
   const auto start = std::find_if_not(string.begin(), string.end(), is_space);

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,9 +23,13 @@
 #include "Util.hpp"
 #include "hashutil.hpp"
 
+#include <Win32Util.hpp>
 #include <core/wincompat.hpp>
 #include <util/path.hpp>
 
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -33,8 +37,6 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-
-using nonstd::string_view;
 
 Context::Context()
   : actual_cwd(Util::get_actual_cwd()),
@@ -45,6 +47,7 @@ Context::Context()
     inode_cache(config)
 #endif
 {
+  gettimeofday(&time_of_invocation, nullptr);
 }
 
 void
@@ -64,7 +67,7 @@ Context::initialize()
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
   if (config.umask()) {
-    original_umask = umask(*config.umask());
+    original_umask = Util::set_umask(*config.umask());
   }
 }
 

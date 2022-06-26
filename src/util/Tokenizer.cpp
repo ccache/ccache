@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,7 +23,7 @@ namespace util {
 void
 Tokenizer::Iterator::advance(bool initial)
 {
-  constexpr auto npos = nonstd::string_view::npos;
+  constexpr auto npos = std::string_view::npos;
   const auto string = m_tokenizer.m_string;
   const auto delimiters = m_tokenizer.m_delimiters;
   const auto mode = m_tokenizer.m_mode;
@@ -46,7 +46,7 @@ Tokenizer::Iterator::advance(bool initial)
   } while (mode == Mode::skip_empty && m_left == m_right);
 }
 
-nonstd::sv_lite::string_view
+std::string_view
 Tokenizer::Iterator::operator*() const
 {
   DEBUG_ASSERT(m_left <= m_right);

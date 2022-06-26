@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,12 +19,13 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace core {
 
 // The main program when not doing a compile.
 int process_main_options(int argc, const char* const* argv);
 
-std::string get_usage_text();
+std::string get_usage_text(std::string_view ccache_name);
 
 } // namespace core

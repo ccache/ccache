@@ -26,9 +26,10 @@
 #include <core/wincompat.hpp>
 
 #include "third_party/doctest.h"
-#include "third_party/nonstd/optional.hpp"
 
 #include <fcntl.h>
+
+#include <optional>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -37,7 +38,6 @@
 #include <algorithm>
 
 using doctest::Approx;
-using nonstd::nullopt;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Util");
@@ -102,18 +102,6 @@ TEST_CASE("Util::change_extension")
   CHECK(Util::change_extension("foo.ext", "e2") == "fooe2");
   CHECK(Util::change_extension("bar.txt", ".o") == "bar.o");
   CHECK(Util::change_extension("foo.bar.txt", ".o") == "foo.bar.o");
-}
-
-TEST_CASE("Util::clamp")
-{
-  CHECK(Util::clamp(0, 1, 2) == 1);
-  CHECK(Util::clamp(1, 1, 2) == 1);
-  CHECK(Util::clamp(2, 1, 2) == 2);
-  CHECK(Util::clamp(3, 1, 2) == 2);
-
-  CHECK(Util::clamp(7.0, 7.7, 8.8) == Approx(7.7));
-  CHECK(Util::clamp(8.0, 7.7, 8.8) == Approx(8.0));
-  CHECK(Util::clamp(9.0, 7.7, 8.8) == Approx(8.8));
 }
 
 TEST_CASE("Util::common_dir_prefix_length")
@@ -450,6 +438,21 @@ TEST_CASE("Util::is_absolute_path_with_prefix")
 #endif
 }
 
+TEST_CASE("Util::is_ccache_executable")
+{
+  CHECK(Util::is_ccache_executable("ccache"));
+  CHECK(Util::is_ccache_executable("ccache-1.2.3"));
+  CHECK(!Util::is_ccache_executable("fooccache"));
+  CHECK(!Util::is_ccache_executable("gcc"));
+#ifdef _WIN32
+  CHECK(Util::is_ccache_executable("CCACHE"));
+  CHECK(Util::is_ccache_executable("CCACHE.exe"));
+  CHECK(Util::is_ccache_executable("CCACHE-1.2.3"));
+  CHECK(Util::is_ccache_executable("CCACHE.EXE"));
+  CHECK(Util::is_ccache_executable("CCACHE-1.2.3.EXE"));
+#endif
+}
+
 TEST_CASE("Util::is_dir_separator")
 {
   CHECK(!Util::is_dir_separator('x'));
@@ -561,33 +564,53 @@ TEST_CASE("Util::matches_dir_prefix_or_file")
 #endif
 }
 
-TEST_CASE("Util::normalize_absolute_path")
+TEST_CASE("Util::normalize_abstract_absolute_path")
 {
-  CHECK(Util::normalize_absolute_path("") == "");
-  CHECK(Util::normalize_absolute_path(".") == ".");
-  CHECK(Util::normalize_absolute_path("..") == "..");
-  CHECK(Util::normalize_absolute_path("...") == "...");
-  CHECK(Util::normalize_absolute_path("x/./") == "x/./");
+  CHECK(Util::normalize_abstract_absolute_path("") == "");
+  CHECK(Util::normalize_abstract_absolute_path(".") == ".");
+  CHECK(Util::normalize_abstract_absolute_path("..") == "..");
+  CHECK(Util::normalize_abstract_absolute_path("...") == "...");
+  CHECK(Util::normalize_abstract_absolute_path("x/./") == "x/./");
 
 #ifdef _WIN32
-  CHECK(Util::normalize_absolute_path("c:/") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:/.") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\..") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\x/..") == "c:/");
-  CHECK(Util::normalize_absolute_path("c:\\x/./y\\..\\\\z") == "c:/x/z");
+  CHECK(Util::normalize_abstract_absolute_path("c:/") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:/.") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\..") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\x/..") == "c:/");
+  CHECK(Util::normalize_abstract_absolute_path("c:\\x/./y\\..\\\\z")
+        == "c:/x/z");
 #else
-  CHECK(Util::normalize_absolute_path("/") == "/");
-  CHECK(Util::normalize_absolute_path("/.") == "/");
-  CHECK(Util::normalize_absolute_path("/..") == "/");
-  CHECK(Util::normalize_absolute_path("/./") == "/");
-  CHECK(Util::normalize_absolute_path("//") == "/");
-  CHECK(Util::normalize_absolute_path("/../x") == "/x");
-  CHECK(Util::normalize_absolute_path("/x/./y/z") == "/x/y/z");
-  CHECK(Util::normalize_absolute_path("/x/../y/z/") == "/y/z");
-  CHECK(Util::normalize_absolute_path("/x/.../y/z") == "/x/.../y/z");
-  CHECK(Util::normalize_absolute_path("/x/yyy/../zz") == "/x/zz");
-  CHECK(Util::normalize_absolute_path("//x/yyy///.././zz") == "/x/zz");
+  CHECK(Util::normalize_abstract_absolute_path("/") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/.") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/..") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/./") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("//") == "/");
+  CHECK(Util::normalize_abstract_absolute_path("/../x") == "/x");
+  CHECK(Util::normalize_abstract_absolute_path("/x/./y/z") == "/x/y/z");
+  CHECK(Util::normalize_abstract_absolute_path("/x/../y/z/") == "/y/z");
+  CHECK(Util::normalize_abstract_absolute_path("/x/.../y/z") == "/x/.../y/z");
+  CHECK(Util::normalize_abstract_absolute_path("/x/yyy/../zz") == "/x/zz");
+  CHECK(Util::normalize_abstract_absolute_path("//x/yyy///.././zz") == "/x/zz");
+#endif
+}
+
+TEST_CASE("Util::normalize_concrete_absolute_path")
+{
+#ifndef _WIN32
+  TestContext test_context;
+
+  Util::write_file("file", "");
+  REQUIRE(Util::create_dir("dir1/dir2"));
+  REQUIRE(symlink("dir1/dir2", "symlink") == 0);
+  const auto cwd = Util::get_actual_cwd();
+
+  CHECK(Util::normalize_concrete_absolute_path(FMT("{}/file", cwd))
+        == FMT("{}/file", cwd));
+  CHECK(Util::normalize_concrete_absolute_path(FMT("{}/dir1/../file", cwd))
+        == FMT("{}/file", cwd));
+  CHECK(Util::normalize_concrete_absolute_path(FMT("{}/symlink/../file", cwd))
+        == FMT("{}/symlink/../file", cwd));
 #endif
 }
 
@@ -722,18 +745,6 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("f.abc.txt") == "f.abc");
   CHECK(Util::remove_extension("/foo/bar/f.txt") == "/foo/bar/f");
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
-}
-
-TEST_CASE("Util::same_program_name")
-{
-  CHECK(Util::same_program_name("foo", "foo"));
-#ifdef _WIN32
-  CHECK(Util::same_program_name("FOO", "foo"));
-  CHECK(Util::same_program_name("FOO.exe", "foo"));
-#else
-  CHECK(!Util::same_program_name("FOO", "foo"));
-  CHECK(!Util::same_program_name("FOO.exe", "foo"));
-#endif
 }
 
 // Util::split_into_strings and Util::split_into_views are tested implicitly in

@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+# Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 #
 # See doc/AUTHORS.adoc for a complete list of contributors.
 #
@@ -603,7 +603,7 @@ cat >"$COMPILER" <<EOF
 #!/bin/sh
 
 CCACHE_DISABLE=1 CCACHE_COMPILER= CCACHE_PREFIX= \
-  exec $COMPILER_BIN$COMPILER_ARGS "\$@"
+  exec $REAL_COMPILER_BIN$COMPILER_ARGS "\$@"
 EOF
 chmod +x "$COMPILER"
 

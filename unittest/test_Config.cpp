@@ -75,7 +75,7 @@ TEST_CASE("Config: default values")
   CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
-  CHECK(config.umask() == nonstd::nullopt);
+  CHECK(config.umask() == std::nullopt);
 }
 
 TEST_CASE("Config::update_from_file")
@@ -181,7 +181,7 @@ TEST_CASE("Config::update_from_file")
             | static_cast<uint32_t>(core::Sloppy::time_macros)));
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == FMT("{}_foo", user));
-  CHECK(config.umask() == 0777u);
+  CHECK(config.umask() == 0777U);
 }
 
 TEST_CASE("Config::update_from_file, error handling")
@@ -227,7 +227,7 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "umask = ");
     CHECK(config.update_from_file("ccache.conf"));
-    CHECK(config.umask() == nonstd::nullopt);
+    CHECK(config.umask() == std::nullopt);
   }
 
   SUBCASE("invalid size")

@@ -27,11 +27,11 @@
 #include <util/string.hpp>
 
 #include <third_party/httplib.h>
-#include <third_party/nonstd/string_view.hpp>
 #include <third_party/url.hpp>
 
-namespace storage {
-namespace secondary {
+#include <string_view>
+
+namespace storage::secondary {
 
 namespace {
 
@@ -40,7 +40,7 @@ class HttpStorageBackend : public SecondaryStorage::Backend
 public:
   HttpStorageBackend(const Params& params);
 
-  nonstd::expected<nonstd::optional<std::string>, Failure>
+  nonstd::expected<std::optional<std::string>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
@@ -98,17 +98,17 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
     m_http_client(get_url(params.url))
 {
   if (!params.url.user_info().empty()) {
-    const auto pair = util::split_once(params.url.user_info(), ':');
-    if (!pair.second) {
+    const auto [user, password] = util::split_once(params.url.user_info(), ':');
+    if (!password) {
       throw core::Fatal("Expected username:password in URL but got \"{}\"",
                         params.url.user_info());
     }
-    m_http_client.set_basic_auth(std::string(pair.first).c_str(),
-                                 std::string(*pair.second).c_str());
+    m_http_client.set_basic_auth(std::string(user).c_str(),
+                                 std::string(*password).c_str());
   }
 
   m_http_client.set_default_headers({
-    {"User-Agent", FMT("{}/{}", CCACHE_NAME, CCACHE_VERSION)},
+    {"User-Agent", FMT("ccache/{}", CCACHE_VERSION)},
   });
   m_http_client.set_keep_alive(true);
 
@@ -144,8 +144,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<nonstd::optional<std::string>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -161,7 +160,7 @@ HttpStorageBackend::get(const Digest& key)
 
   if (result->status < 200 || result->status >= 300) {
     // Don't log failure if the entry doesn't exist.
-    return nonstd::nullopt;
+    return std::nullopt;
   }
 
   return result->body;
@@ -279,9 +278,9 @@ void
 HttpStorage::redact_secrets(Backend::Params& params) const
 {
   auto& url = params.url;
-  const auto user_info = util::split_once(url.user_info(), ':');
-  if (user_info.second) {
-    url.user_info(FMT("{}:{}", user_info.first, k_redacted_password));
+  const auto [user, password] = util::split_once(url.user_info(), ':');
+  if (password) {
+    url.user_info(FMT("{}:{}", user, k_redacted_password));
   }
 
   auto bearer_token_attribute =
@@ -294,5 +293,4 @@ HttpStorage::redact_secrets(Backend::Params& params) const
   }
 }
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::secondary

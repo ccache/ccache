@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,7 +22,7 @@
 
 #include <core/Statistic.hpp>
 
-#include "third_party/nonstd/optional.hpp"
+#include <optional>
 
 class Context;
 
@@ -35,7 +35,7 @@ struct ProcessArgsResult
 
   // nullopt on success, otherwise the statistics counter that should be
   // incremented.
-  nonstd::optional<core::Statistic> error;
+  std::optional<core::Statistic> error;
 
   // Arguments (except -E) to send to the preprocessor.
   Args preprocessor_args;

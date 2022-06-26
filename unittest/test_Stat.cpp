@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -197,6 +197,8 @@ TEST_CASE("Same i-node as")
   Util::write_file("a", "change size");
   auto new_a_stat = Stat::stat("a");
   CHECK(new_a_stat.same_inode_as(a_stat));
+
+  CHECK(!Stat::stat("nonexistent").same_inode_as(Stat::stat("nonexistent")));
 }
 
 TEST_CASE("Return values when file is missing")
