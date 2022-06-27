@@ -522,6 +522,8 @@ _<<Using ccache with other compiler wrappers>>_.
     clang-cl.
 *gcc*::
     GCC-based compiler.
+*icl*::
+    Intel compiler on Windows.
 *msvc*::
     Microsoft Visual C++ (MSVC).
 *nvcc*::
