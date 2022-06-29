@@ -30,7 +30,16 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, clang_cl, gcc, msvc, nvcc, other };
+enum class CompilerType {
+  auto_guess,
+  clang,
+  clang_cl,
+  gcc,
+  icl,
+  msvc,
+  nvcc,
+  other
+};
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
@@ -87,7 +96,7 @@ public:
   // Return true for Clang and clang-cl.
   bool is_compiler_group_clang() const;
 
-  // Return true for MSVC (cl.exe) and clang-cl.
+  // Return true for MSVC (cl.exe), clang-cl, and icl.
   bool is_compiler_group_msvc() const;
 
   std::string default_temporary_dir() const;
@@ -248,7 +257,8 @@ inline bool
 Config::is_compiler_group_msvc() const
 {
   return m_compiler_type == CompilerType::msvc
-         || m_compiler_type == CompilerType::clang_cl;
+         || m_compiler_type == CompilerType::clang_cl
+         || m_compiler_type == CompilerType::icl;
 }
 
 inline bool
