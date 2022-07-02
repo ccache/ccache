@@ -26,6 +26,8 @@
 #ifdef HAVE_UTIMENSAT
 #  include <fcntl.h>
 #  include <sys/stat.h>
+#elif defined(HAVE_UTIMES)
+#  include <sys/time.h>
 #else
 #  include <sys/types.h>
 #  ifdef HAVE_UTIME_H
@@ -69,8 +71,16 @@ set_timestamps(const std::string& path,
     atime_mtime[0] = atime ? *atime : *mtime;
     atime_mtime[1] = *mtime;
   }
-  const timespec* const timespecs = mtime ? atime_mtime : nullptr;
-  utimensat(AT_FDCWD, path.c_str(), timespecs, 0);
+  utimensat(AT_FDCWD, path.c_str(), mtime ? atime_mtime : nullptr, 0);
+#elif defined(HAVE_UTIMES)
+  timeval atime_mtime[2];
+  if (mtime) {
+    atime_mtime[0].tv_sec = atime ? atime->tv_sec : mtime->tv_sec;
+    atime_mtime[0].tv_usec = (atime ? atime->tv_nsec : mtime->tv_nsec) / 1000;
+    atime_mtime[1].tv_sec = mtime->tv_sec;
+    atime_mtime[1].tv_usec = mtime->tv_nsec / 1000;
+  }
+  utimes(path.c_str(), mtime ? atime_mtime : nullptr);
 #else
   utimbuf atime_mtime;
   if (mtime) {
