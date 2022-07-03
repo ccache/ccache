@@ -61,15 +61,18 @@ target_link_libraries(
   PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
 )
 
-target_include_directories(ccache_framework PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(REDIS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_framework PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(
     ccache_framework
     PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
   )
 endif()
+
+add_executable(test-lockfile test_lockfile.cpp)
+target_link_libraries(test-lockfile PRIVATE ccache_framework)
 
 add_subdirectory(compression)
 add_subdirectory(core)
