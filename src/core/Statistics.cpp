@@ -319,7 +319,7 @@ Statistics::format_human_readable(const Config& config,
       }
       table.add_row(cells);
     }
-    if (cleanups > 0) {
+    if (cleanups > 0 || verbosity > 1) {
       table.add_row({"  Cleanups:", cleanups});
     }
   }
