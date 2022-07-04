@@ -313,14 +313,7 @@ RedisStorageBackend::select_database(const Url& url)
 void
 RedisStorageBackend::authenticate(const Url& url)
 {
-  auto [user, password] = split_user_info(url.user_info());
-  if (url.scheme() == "redis+unix") {
-    const auto parameters_map = split_parameters(url.query());
-    auto search = parameters_map.find("password");
-    if (search != parameters_map.end()) {
-      password = search->second;
-    }
-  }
+  const auto [user, password] = split_user_info(url.user_info());
   if (password) {
     if (user) {
       // redis://user:password@host
@@ -382,17 +375,6 @@ RedisStorage::redact_secrets(Backend::Params& params) const
       // redis://password@host
       url.user_info(k_redacted_password);
     }
-  }
-  if (!url.query().empty()) {
-    auto query = url.set_query();
-    auto it = query.begin();
-    auto end = query.end();
-    do {
-      if (it->key() == "password") {
-        it->val(k_redacted_password);
-      }
-    } while (++it != end);
-    url.set_query(query);
   }
 }
 

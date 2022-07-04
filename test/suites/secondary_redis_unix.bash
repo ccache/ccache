@@ -51,6 +51,8 @@ expect_number_of_redis_unix_cache_entries() {
     local url=$2
     local socket=${url}
     socket=${socket/#redis+unix:\/\//}
+    socket=${socket/#redis+unix:/}
+    socket=${socket/#*@localhost/}
     socket=${socket/%\?*/} # remove query
     local actual
 
@@ -65,7 +67,7 @@ SUITE_secondary_redis_unix() {
     TEST "Base case"
 
     socket=$(mktemp)
-    redis_url="redis+unix://${socket}"
+    redis_url="redis+unix:${socket}"
     export CCACHE_SECONDARY_STORAGE="${redis_url}"
 
     start_redis_unix_server "${socket}"
@@ -96,18 +98,12 @@ SUITE_secondary_redis_unix() {
     expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
-    redis_url="redis+unix:${socket}"
-    export CCACHE_SECONDARY_STORAGE="${redis_url}"
-
-    $CCACHE_COMPILE -c test.c
-    expect_stat direct_cache_hit 3
-
     # -------------------------------------------------------------------------
     TEST "Password"
 
     socket=$(mktemp)
     password=secret123
-    redis_url="redis+unix://${socket}?password=${password}"
+    redis_url="redis+unix://${password}@localhost${socket}"
     export CCACHE_SECONDARY_STORAGE="${redis_url}"
 
     start_redis_unix_server "${socket}" "${password}"
@@ -138,12 +134,6 @@ SUITE_secondary_redis_unix() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from secondary
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
-
-    redis_url="redis+unix://${password}@localhost${socket}"
-    export CCACHE_SECONDARY_STORAGE="${redis_url}"
-
-    $CCACHE_COMPILE -c test.c
-    expect_stat direct_cache_hit 3
 
     # -------------------------------------------------------------------------
     TEST "Unreachable server"

@@ -360,19 +360,6 @@ static void
 redact_url_for_logging(Url& url_for_logging)
 {
   url_for_logging.user_info("");
-  // remove any "password" from query
-  auto query = url_for_logging.query();
-  if (!query.empty()) {
-    Url::Query new_query;
-    auto it = query.begin();
-    auto end = query.end();
-    do {
-      if (it->key() != "password") {
-        new_query.push_back(*it);
-      }
-    } while (++it != end);
-    url_for_logging.set_query(new_query);
-  }
 }
 
 void
