@@ -121,8 +121,8 @@ Common options:
     -V, --version              print version and copyright information
 
 Options for secondary storage:
-        --trim-dir PATH        remove old files from directory _PATH_ until it
-                               is at most the size specified by --trim-max-size
+        --trim-dir PATH        remove old files from directory PATH until it is
+                               at most the size specified by --trim-max-size
                                (note: don't use this option to trim the primary
                                cache)
         --trim-max-size SIZE   specify the maximum size for --trim-dir;
