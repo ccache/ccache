@@ -278,23 +278,29 @@ Statistics::format_human_readable(const Config& config,
     percent(pri_hits, pri_hits + pri_misses),
   });
   table.add_row({"  Misses:", pri_misses});
+
   if (!from_log) {
-    table.add_row({
+    std::vector<C> size_cells{
       "  Cache size (GB):",
-      C(FMT("{:.2f}", static_cast<double>(pri_size) / g)).right_align(),
-      "/",
-      C(FMT("{:.2f}", static_cast<double>(config.max_size()) / g))
-        .right_align(),
-      percent(pri_size, config.max_size()),
-    });
+      C(FMT("{:.2f}", static_cast<double>(pri_size) / g)).right_align()};
+    if (config.max_size() != 0) {
+      size_cells.emplace_back("/");
+      size_cells.emplace_back(
+        C(FMT("{:.2f}", static_cast<double>(config.max_size()) / g))
+          .right_align());
+      size_cells.emplace_back(percent(pri_size, config.max_size()));
+    }
+    table.add_row(size_cells);
+
     if (verbosity > 0) {
-      std::vector<C> cells{"  Files:", S(files_in_cache)};
+      std::vector<C> files_cells{"  Files:", S(files_in_cache)};
       if (config.max_files() > 0) {
-        cells.emplace_back("/");
-        cells.emplace_back(config.max_files());
-        cells.emplace_back(percent(S(files_in_cache), config.max_files()));
+        files_cells.emplace_back("/");
+        files_cells.emplace_back(config.max_files());
+        files_cells.emplace_back(
+          percent(S(files_in_cache), config.max_files()));
       }
-      table.add_row(cells);
+      table.add_row(files_cells);
     }
     if (cleanups > 0) {
       table.add_row({"  Cleanups:", cleanups});
