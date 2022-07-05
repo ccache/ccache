@@ -43,6 +43,7 @@
 #endif
 
 #include <cstdarg>
+#include <map>
 #include <memory>
 
 namespace storage::secondary {
@@ -105,12 +106,33 @@ split_user_info(const std::string& user_info)
   }
 }
 
+std::map<std::string, std::string>
+split_parameters(const Url::Query& query)
+{
+  std::map<std::string, std::string> m;
+  if (!query.empty()) {
+    auto it = query.begin();
+    auto end = query.end();
+    do {
+      m[it->key()] = it->val();
+    } while (++it != end);
+  }
+  return m;
+}
+
 RedisStorageBackend::RedisStorageBackend(const Params& params)
   : m_prefix("ccache"), // TODO: attribute
     m_context(nullptr, redisFree)
 {
   const auto& url = params.url;
-  ASSERT(url.scheme() == "redis");
+  ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix");
+  if (url.scheme() == "redis+unix" && !params.url.host().empty()
+      && params.url.host() != "localhost") {
+    throw core::Fatal(FMT(
+      "invalid file path \"{}\": specifying a host (\"{}\") is not supported",
+      params.url.str(),
+      params.url.host()));
+  }
 
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
@@ -220,19 +242,27 @@ RedisStorageBackend::connect(const Url& url,
                              const uint32_t connect_timeout,
                              const uint32_t operation_timeout)
 {
-  const std::string host = url.host().empty() ? "localhost" : url.host();
-  const uint32_t port = url.port().empty()
-                          ? DEFAULT_PORT
-                          : util::value_or_throw<core::Fatal>(
-                            util::parse_unsigned(url.port(), 1, 65535, "port"));
-  ASSERT(url.path().empty() || url.path()[0] == '/');
+  if (url.scheme() == "redis+unix") {
+    LOG("Redis connecting to unix://{} (connect timeout {} ms)",
+        url.path(),
+        connect_timeout);
+    m_context.reset(redisConnectUnixWithTimeout(url.path().c_str(),
+                                                to_timeval(connect_timeout)));
+  } else {
+    const std::string host = url.host().empty() ? "localhost" : url.host();
+    const uint32_t port =
+      url.port().empty() ? DEFAULT_PORT
+                         : util::value_or_throw<core::Fatal>(
+                           util::parse_unsigned(url.port(), 1, 65535, "port"));
+    ASSERT(url.path().empty() || url.path()[0] == '/');
 
-  LOG("Redis connecting to {}:{} (connect timeout {} ms)",
-      host,
-      port,
-      connect_timeout);
-  m_context.reset(
-    redisConnectWithTimeout(host.c_str(), port, to_timeval(connect_timeout)));
+    LOG("Redis connecting to {}:{} (connect timeout {} ms)",
+        host,
+        port,
+        connect_timeout);
+    m_context.reset(
+      redisConnectWithTimeout(host.c_str(), port, to_timeval(connect_timeout)));
+  }
 
   if (!m_context) {
     throw Failed("Redis context construction error");
@@ -257,13 +287,22 @@ RedisStorageBackend::connect(const Url& url,
 void
 RedisStorageBackend::select_database(const Url& url)
 {
+  std::optional<std::string> db;
+  if (url.scheme() == "redis+unix") {
+    const auto parameters_map = split_parameters(url.query());
+    auto search = parameters_map.find("db");
+    if (search != parameters_map.end()) {
+      db = search->second;
+    }
+  } else {
+    if (!url.path().empty()) {
+      db = url.path().substr(1);
+    }
+  }
   const uint32_t db_number =
-    url.path().empty() ? 0
-                       : util::value_or_throw<core::Fatal>(util::parse_unsigned(
-                         url.path().substr(1),
-                         0,
-                         std::numeric_limits<uint32_t>::max(),
-                         "db number"));
+    !db ? 0
+        : util::value_or_throw<core::Fatal>(util::parse_unsigned(
+          *db, 0, std::numeric_limits<uint32_t>::max(), "db number"));
 
   if (db_number != 0) {
     LOG("Redis SELECT {}", db_number);
