@@ -21,6 +21,8 @@
 #include <compression/types.hpp>
 #include <core/types.hpp>
 
+#include <cstdint>
+
 // Cache entry format
 // ==================
 //
