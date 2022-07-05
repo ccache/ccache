@@ -27,7 +27,6 @@
 #include "File.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
-#include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "MiniTrace.hpp"
 #include "Result.hpp"

@@ -7,7 +7,6 @@ set(
   Depfile.cpp
   Fd.cpp
   Hash.cpp
-  Lockfile.cpp
   Logging.cpp
   ProgressBar.cpp
   Result.cpp

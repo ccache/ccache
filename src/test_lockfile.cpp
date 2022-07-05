@@ -17,44 +17,63 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <Config.hpp>
-#include <Lockfile.hpp>
 #include <Logging.hpp>
 #include <fmtmacros.hpp>
+#include <util/LockFile.hpp>
 #include <util/string.hpp>
 
+#include <memory>
 #include <string>
 #include <thread>
 
 int
 main(int argc, char** argv)
 {
-  if (argc != 3) {
-    PRINT_RAW(stderr, "Usage: test-lockfile PATH SECONDS\n");
+  if (argc != 5) {
+    PRINT_RAW(stderr,
+              "Usage: test-lockfile PATH SECONDS <short|long>"
+              " <blocking|non-blocking>\n");
     return 1;
   }
   Config config;
   config.update_from_environment();
   Logging::init(config);
 
-  std::string path(argv[1]);
-  auto seconds = util::parse_signed(argv[2]);
+  const std::string path(argv[1]);
+  const auto seconds = util::parse_signed(argv[2]);
+  const bool long_lived = std::string(argv[3]) == "long";
+  const bool blocking = std::string(argv[4]) == "blocking";
   if (!seconds) {
     PRINT_RAW(stderr, "Error: Failed to parse seconds\n");
     return 1;
   }
 
-  PRINT_RAW(stdout, "Acquiring\n");
+  std::unique_ptr<util::LockFile> lock_file;
+  lock_file = long_lived ? std::unique_ptr<
+                util::LockFile>{std::make_unique<util::LongLivedLockFile>(path)}
+                         : std::unique_ptr<util::LockFile>{
+                           std::make_unique<util::ShortLivedLockFile>(path)};
+  const auto mode = blocking ? util::LockFileGuard::Mode::blocking
+                             : util::LockFileGuard::Mode::non_blocking;
+
+  PRINT(stdout, "{}\n", blocking ? "Acquiring" : "Trying to acquire");
+  bool acquired = false;
   {
-    Lockfile lock(path);
-    if (lock.acquired()) {
+    util::LockFileGuard lock(*lock_file, mode);
+    acquired = lock.acquired();
+    if (acquired) {
       PRINT_RAW(stdout, "Acquired\n");
       PRINT(
         stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
       std::this_thread::sleep_for(std::chrono::seconds{*seconds});
     } else {
-      PRINT_RAW(stdout, "Failed to acquire\n");
+      PRINT(stdout, "{} acquire\n", blocking ? "Failed to" : "Did not");
     }
-    PRINT_RAW(stdout, "Releasing\n");
+    if (acquired) {
+      PRINT_RAW(stdout, "Releasing\n");
+    }
   }
-  PRINT_RAW(stdout, "Released\n");
+  if (acquired) {
+    PRINT_RAW(stdout, "Released\n");
+  }
 }

@@ -19,11 +19,11 @@
 #include "StatsFile.hpp"
 
 #include <AtomicFile.hpp>
-#include <Lockfile.hpp>
 #include <Logging.hpp>
 #include <Util.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/LockFile.hpp>
 
 namespace storage::primary {
 
@@ -64,7 +64,8 @@ std::optional<core::StatisticsCounters>
 StatsFile::update(
   std::function<void(core::StatisticsCounters& counters)> function) const
 {
-  Lockfile lock(m_path);
+  util::ShortLivedLockFile lock_file(m_path);
+  util::LockFileGuard lock(lock_file);
   if (!lock.acquired()) {
     LOG("Failed to acquire lock for {}", m_path);
     return std::nullopt;

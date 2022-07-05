@@ -7,7 +7,6 @@ set(
   test_Config.cpp
   test_Depfile.cpp
   test_Hash.cpp
-  test_Lockfile.cpp
   test_NullCompression.cpp
   test_Stat.cpp
   test_Util.cpp
@@ -22,6 +21,7 @@ set(
   test_hashutil.cpp
   test_storage_primary_StatsFile.cpp
   test_storage_primary_util.cpp
+  test_util_LockFile.cpp
   test_util_TextTable.cpp
   test_util_Tokenizer.cpp
   test_util_XXH3_128.cpp

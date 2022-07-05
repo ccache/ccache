@@ -1,5 +1,6 @@
 set(
   sources
+  ${CMAKE_CURRENT_SOURCE_DIR}/LockFile.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/TextTable.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tokenizer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/file.cpp

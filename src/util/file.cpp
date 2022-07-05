@@ -86,8 +86,10 @@ set_timestamps(const std::string& path,
   if (mtime) {
     atime_mtime.actime = atime ? atime->tv_sec : mtime->tv_sec;
     atime_mtime.modtime = mtime->tv_sec;
+    utime(path.c_str(), &atime_mtime);
+  } else {
+    utime(path.c_str(), nullptr);
   }
-  utime(path.c_str(), &atime_mtime);
 #endif
 }
 
