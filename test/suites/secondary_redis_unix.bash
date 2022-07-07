@@ -7,7 +7,7 @@ SUITE_secondary_redis_unix_PROBE() {
         echo "redis-server not found"
         return
     fi
-    if redis-server --unixsocket /foo/redis.sock 2>&1 | grep "FATAL CONFIG FILE ERROR" &> /dev/null; then
+    if redis-server --unixsocket /foo/redis.sock |& grep -q "FATAL CONFIG FILE ERROR"; then
         # "Bad directive or wrong number of arguments"
         echo "redis-server without unixsocket"
         return
@@ -48,17 +48,12 @@ SUITE_secondary_redis_unix_SETUP() {
 
 expect_number_of_redis_unix_cache_entries() {
     local expected=$1
-    local url=$2
-    local socket=${url}
-    socket=${socket/#redis+unix:\/\//}
-    socket=${socket/#redis+unix:/}
-    socket=${socket/#*@localhost/}
-    socket=${socket/%\?*/} # remove query
+    local socket=$2
     local actual
 
     actual=$(redis-cli -s "$socket" keys "ccache:*" 2>/dev/null | wc -l)
     if [ "$actual" -ne "$expected" ]; then
-        test_failed_internal "Found $actual (expected $expected) entries in $url"
+        test_failed_internal "Found $actual (expected $expected) entries in $socket"
     fi
 }
 
@@ -71,32 +66,28 @@ SUITE_secondary_redis_unix() {
     export CCACHE_SECONDARY_STORAGE="${redis_url}"
 
     start_redis_unix_server "${socket}"
-    function expect_number_of_redis_cache_entries()
-    {
-       expect_number_of_redis_unix_cache_entries "$@"
-    }
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     $CCACHE -C >/dev/null
     expect_stat files_in_cache 0
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from secondary
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     # -------------------------------------------------------------------------
     TEST "Password"
@@ -107,33 +98,29 @@ SUITE_secondary_redis_unix() {
     export CCACHE_SECONDARY_STORAGE="${redis_url}"
 
     start_redis_unix_server "${socket}" "${password}"
-    function expect_number_of_redis_cache_entries()
-    {
-       expect_number_of_redis_unix_cache_entries "$@"
-    }
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
     expect_not_contains test.o.*.ccache-log "${password}"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     $CCACHE -C >/dev/null
     expect_stat files_in_cache 0
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from secondary
-    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+    expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     # -------------------------------------------------------------------------
     TEST "Unreachable server"
