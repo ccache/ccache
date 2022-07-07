@@ -30,9 +30,17 @@ namespace compression {
 class ZstdDecompressor : public Decompressor
 {
 public:
-  explicit ZstdDecompressor(core::Reader& reader, int8_t entry_type);
+  explicit ZstdDecompressor(core::Reader& reader,
+                            std::string dict_dir,
+                            int8_t entry_type);
 
   ~ZstdDecompressor() override;
+
+  virtual unsigned
+  dict_id() override
+  {
+    return m_zstd_dict_id;
+  }
 
   size_t read(void* data, size_t count) override;
   void finalize() override;
@@ -44,6 +52,10 @@ private:
   size_t m_input_size;
   size_t m_input_consumed;
   ZSTD_DStream* m_zstd_stream;
+  unsigned m_zstd_dict_id;
+#if ZSTD_VERSION_NUMBER >= 10400 /* 1.4.0 */
+  ZSTD_DDict_s* m_zstd_dict;
+#endif
   ZSTD_inBuffer m_zstd_in;
   ZSTD_outBuffer m_zstd_out;
   bool m_reached_stream_end;

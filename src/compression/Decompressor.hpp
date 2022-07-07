@@ -33,8 +33,17 @@ public:
   // Create a decompressor for the specified type.
   static std::unique_ptr<Decompressor> create_from_type(Type type,
                                                         core::Reader& reader);
-  static std::unique_ptr<Decompressor>
-  create_from_type(Type type, core::Reader& reader, int8_t entry_type);
+  static std::unique_ptr<Decompressor> create_from_type(Type type,
+                                                        core::Reader& reader,
+                                                        std::string dict_dir,
+                                                        int8_t entry_type);
+
+  // Dictionary ID (required to decompress), or 0 if not using a dictionary.
+  virtual unsigned
+  dict_id()
+  {
+    return 0;
+  }
 
   // Finalize decompression.
   //

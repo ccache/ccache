@@ -30,9 +30,14 @@ enum class Type : uint8_t {
   zstd = 1,
 };
 
+std::string dict_dir_from_config(const Config& config);
+
 int8_t level_from_config(const Config& config);
 
 Type type_from_config(const Config& config);
+
+std::string dict_path_from_entry_type(const std::string dict_dir,
+                                      int8_t entry_type);
 
 Type type_from_int(uint8_t type);
 

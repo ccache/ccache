@@ -32,7 +32,7 @@ class CacheEntryReader : public Reader
 {
 public:
   // Read cache entry data from `reader`.
-  CacheEntryReader(Reader& reader);
+  CacheEntryReader(Reader& reader, const std::string dict_dir);
 
   size_t read(void* data, size_t count) override;
   using Reader::read;
@@ -45,6 +45,8 @@ public:
 
   const CacheEntryHeader& header() const;
 
+  unsigned dict_id();
+
 private:
   ChecksummingReader m_checksumming_reader;
   std::unique_ptr<CacheEntryHeader> m_header;
@@ -56,6 +58,12 @@ inline const CacheEntryHeader&
 CacheEntryReader::header() const
 {
   return *m_header;
+}
+
+inline unsigned
+CacheEntryReader::dict_id()
+{
+  return m_decompressor->dict_id();
 }
 
 } // namespace core

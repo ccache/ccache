@@ -41,7 +41,8 @@ cache_entry_type_from_int(const uint8_t entry_type)
 
 namespace core {
 
-CacheEntryReader::CacheEntryReader(core::Reader& reader)
+CacheEntryReader::CacheEntryReader(core::Reader& reader,
+                                   const std::string dict_dir)
   : m_checksumming_reader(reader)
 {
   const auto magic = m_checksumming_reader.read_int<uint16_t>();
@@ -74,7 +75,10 @@ CacheEntryReader::CacheEntryReader(core::Reader& reader)
     entry_size);
 
   m_decompressor = compression::Decompressor::create_from_type(
-    m_header->compression_type, reader, static_cast<int8_t>(entry_type));
+    m_header->compression_type,
+    reader,
+    dict_dir,
+    static_cast<int8_t>(entry_type));
   m_checksumming_reader.set_reader(*m_decompressor);
 }
 

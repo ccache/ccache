@@ -157,7 +157,7 @@ configuration_printer(const std::string& key,
 }
 
 static int
-inspect_path(const std::string& path)
+inspect_path(const Config& config, const std::string& path)
 {
   File file = path == "-" ? File(stdin) : File(path, "rb");
   if (!file) {
@@ -165,10 +165,19 @@ inspect_path(const std::string& path)
     return EXIT_FAILURE;
   }
   core::FileReader file_reader(file.get());
-  core::CacheEntryReader cache_entry_reader(file_reader);
+  std::string dict_dir = compression::dict_dir_from_config(config);
+  core::CacheEntryReader cache_entry_reader(file_reader, dict_dir);
 
   const auto& header = cache_entry_reader.header();
   header.inspect(stdout);
+
+  if (!dict_dir.empty() && cache_entry_reader.dict_id()) {
+    PRINT(stdout,
+          "Compression dictionary: {}\n",
+          compression::dict_path_from_entry_type(
+            dict_dir, static_cast<int8_t>(header.entry_type)));
+    PRINT(stdout, "Dictionary ID: {}\n", cache_entry_reader.dict_id());
+  }
 
   switch (header.entry_type) {
   case core::CacheEntryType::manifest: {
@@ -442,7 +451,8 @@ process_main_options(int argc, const char* const* argv)
         return EXIT_FAILURE;
       }
       core::FileReader file_reader(file.get());
-      core::CacheEntryReader cache_entry_reader(file_reader);
+      std::string dict_dir = compression::dict_dir_from_config(config);
+      core::CacheEntryReader cache_entry_reader(file_reader, dict_dir);
       Result::Reader result_reader(cache_entry_reader, arg);
       result_reader.read(result_extractor);
       return EXIT_SUCCESS;
@@ -462,7 +472,7 @@ process_main_options(int argc, const char* const* argv)
     case INSPECT:
     case DUMP_MANIFEST: // Backward compatibility
     case DUMP_RESULT:   // Backward compatibility
-      return inspect_path(arg);
+      return inspect_path(config, arg);
 
     case PRINT_STATS: {
       StatisticsCounters counters;

@@ -22,13 +22,15 @@
 
 namespace core {
 
-CacheEntryWriter::CacheEntryWriter(core::Writer& writer,
+CacheEntryWriter::CacheEntryWriter(Writer& writer,
+                                   const std::string dict_dir,
                                    const CacheEntryHeader& header)
   : m_checksumming_writer(writer),
     m_compressor(compression::Compressor::create_from_type(
       header.compression_type,
       writer,
       header.compression_level,
+      dict_dir,
       static_cast<int8_t>(header.entry_type)))
 {
   m_checksumming_writer.write_int(header.magic);

@@ -335,7 +335,8 @@ Writer::do_finalize()
   header.set_entry_size_from_payload_size(payload_size);
 
   core::FileWriter file_writer(atomic_result_file.stream());
-  core::CacheEntryWriter writer(file_writer, header);
+  std::string dict_dir = compression::dict_dir_from_config(m_ctx.config);
+  core::CacheEntryWriter writer(file_writer, dict_dir, header);
 
   writer.write_int(k_result_format_version);
   writer.write_int<uint8_t>(m_entries_to_write.size());

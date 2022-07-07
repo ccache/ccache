@@ -23,18 +23,19 @@
 
 #include <core/exceptions.hpp>
 
-#include <zstd.h>
-
 #include <algorithm>
 
 namespace compression {
 
 ZstdCompressor::ZstdCompressor(core::Writer& writer,
                                int8_t compression_level,
+                               std::string dict_dir,
                                int8_t entry_type)
   : m_writer(writer),
     m_entry_type(entry_type),
     m_zstd_stream(ZSTD_createCStream()),
+    m_zstd_dict_id(0),
+    m_zstd_dict(nullptr),
     m_zstd_in(std::make_unique<ZSTD_inBuffer_s>()),
     m_zstd_out(std::make_unique<ZSTD_outBuffer_s>())
 {
@@ -66,10 +67,33 @@ ZstdCompressor::ZstdCompressor(core::Writer& writer,
     ZSTD_freeCStream(m_zstd_stream);
     throw core::Error("error initializing zstd compression stream");
   }
+
+#if ZSTD_VERSION_NUMBER >= 10400
+  if (!dict_dir.empty() && entry_type != -1) {
+    std::string dict_path = dict_path_from_entry_type(dict_dir, entry_type);
+    auto st = Stat::stat(dict_path);
+    if (st) {
+      LOG("Using zstd compression dictionary from {}", dict_path);
+      auto dict = Util::read_file(dict_path);
+      m_zstd_dict =
+        ZSTD_createCDict(dict.data(), dict.length(), m_compression_level);
+#  if ZSTD_VERSION_NUMBER >= 10500
+      m_zstd_dict_id = ZSTD_getDictID_fromCDict(m_zstd_dict);
+#  else
+      m_zstd_dict_id = ZSTD_getDictID_fromDict(dict.data(), dict.length());
+#  endif
+      LOG("Dictionary ID: {}", m_zstd_dict_id);
+    }
+    ZSTD_CCtx_refCDict(m_zstd_stream, m_zstd_dict);
+  }
+#endif
 }
 
 ZstdCompressor::~ZstdCompressor()
 {
+#if ZSTD_VERSION_NUMBER >= 10400
+  ZSTD_freeCDict(m_zstd_dict);
+#endif
   ZSTD_freeCStream(m_zstd_stream);
 }
 

@@ -18,18 +18,23 @@
 
 #include "ZstdDecompressor.hpp"
 
+#include "Logging.hpp"
 #include "assertions.hpp"
 
 #include <core/exceptions.hpp>
 
 namespace compression {
 
-ZstdDecompressor::ZstdDecompressor(core::Reader& reader, int8_t entry_type)
+ZstdDecompressor::ZstdDecompressor(core::Reader& reader,
+                                   std::string dict_dir,
+                                   int8_t entry_type)
   : m_reader(reader),
     m_entry_type(entry_type),
     m_input_size(0),
     m_input_consumed(0),
     m_zstd_stream(ZSTD_createDStream()),
+    m_zstd_dict_id(0),
+    m_zstd_dict(nullptr),
     m_reached_stream_end(false)
 {
   const size_t ret = ZSTD_initDStream(m_zstd_stream);
@@ -37,10 +42,28 @@ ZstdDecompressor::ZstdDecompressor(core::Reader& reader, int8_t entry_type)
     ZSTD_freeDStream(m_zstd_stream);
     throw core::Error("failed to initialize zstd decompression stream");
   }
+
+#if ZSTD_VERSION_NUMBER >= 10400
+  if (!dict_dir.empty() && entry_type != -1) {
+    std::string dict_path = dict_path_from_entry_type(dict_dir, entry_type);
+    auto st = Stat::stat(dict_path);
+    if (st) {
+      LOG("Using zstd decompression dictionary from {}", dict_path);
+      auto dict = Util::read_file(dict_path);
+      m_zstd_dict = ZSTD_createDDict(dict.data(), dict.length());
+      m_zstd_dict_id = ZSTD_getDictID_fromDDict(m_zstd_dict);
+      LOG("Dictionary ID: {}", m_zstd_dict_id);
+    }
+  }
+  ZSTD_DCtx_refDDict(m_zstd_stream, m_zstd_dict);
+#endif
 }
 
 ZstdDecompressor::~ZstdDecompressor()
 {
+#if ZSTD_VERSION_NUMBER >= 10400
+  ZSTD_freeDDict(m_zstd_dict);
+#endif
   ZSTD_freeDStream(m_zstd_stream);
 }
 

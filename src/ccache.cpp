@@ -730,14 +730,15 @@ do_execute(Context& ctx,
 }
 
 static core::Manifest
-read_manifest(const std::string& path)
+read_manifest(const Config& config, const std::string& path)
 {
   core::Manifest manifest;
   File file(path, "rb");
   if (file) {
     try {
       core::FileReader file_reader(*file);
-      core::CacheEntryReader reader(file_reader);
+      std::string dict_dir = compression::dict_dir_from_config(config);
+      core::CacheEntryReader reader(file_reader, dict_dir);
       manifest.read(reader);
       reader.finalize();
     } catch (const core::Error& e) {
@@ -762,7 +763,8 @@ save_manifest(const Config& config,
                                 config.namespace_());
   header.set_entry_size_from_payload_size(manifest.serialized_size());
 
-  core::CacheEntryWriter writer(file_writer, header);
+  std::string dict_dir = compression::dict_dir_from_config(config);
+  core::CacheEntryWriter writer(file_writer, dict_dir, header);
   manifest.write(writer);
   writer.finalize();
   atomic_manifest_file.commit();
@@ -792,7 +794,7 @@ update_manifest_file(Context& ctx,
     manifest_key, core::CacheEntryType::manifest, [&](const auto& path) {
       LOG("Adding result key to {}", path);
       try {
-        auto manifest = read_manifest(path);
+        auto manifest = read_manifest(ctx.config, path);
         const bool added = manifest.add_result(result_key,
                                                ctx.included_files,
                                                ctx.time_of_compilation,
@@ -1814,7 +1816,7 @@ calculate_result_and_manifest_key(Context& ctx,
       LOG("Looking for result key in {}", *manifest_path);
       MTR_BEGIN("manifest", "manifest_get");
       try {
-        const auto manifest = read_manifest(*manifest_path);
+        const auto manifest = read_manifest(ctx.config, *manifest_path);
         result_key = manifest.look_up_result_digest(ctx);
       } catch (const core::Error& e) {
         LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
@@ -1836,7 +1838,7 @@ calculate_result_and_manifest_key(Context& ctx,
             *manifest_path);
         MTR_BEGIN("manifest", "secondary_manifest_get");
         try {
-          const auto manifest = read_manifest(*manifest_path);
+          const auto manifest = read_manifest(ctx.config, *manifest_path);
           result_key = manifest.look_up_result_digest(ctx);
         } catch (const core::Error& e) {
           LOG(
@@ -1919,7 +1921,8 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   try {
     File file(*result_path, "rb");
     core::FileReader file_reader(file.get());
-    core::CacheEntryReader cache_entry_reader(file_reader);
+    std::string dict_dir = compression::dict_dir_from_config(ctx.config);
+    core::CacheEntryReader cache_entry_reader(file_reader, dict_dir);
     Result::Reader result_reader(cache_entry_reader, *result_path);
     ResultRetriever result_retriever(
       ctx, should_rewrite_dependency_target(ctx.args_info));

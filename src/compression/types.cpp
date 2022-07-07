@@ -22,6 +22,7 @@
 #include <Context.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
 
 namespace compression {
 
@@ -31,10 +32,22 @@ level_from_config(const Config& config)
   return config.compression() ? config.compression_level() : 0;
 }
 
+std::string
+dict_dir_from_config(const Config& config)
+{
+  return config.cache_dir();
+}
+
 Type
 type_from_config(const Config& config)
 {
   return config.compression() ? Type::zstd : Type::none;
+}
+
+std::string
+dict_path_from_entry_type(const std::string dict_dir, int8_t entry_type)
+{
+  return FMT("{}/{}.dict", dict_dir, entry_type ? "M" : "R");
 }
 
 Type

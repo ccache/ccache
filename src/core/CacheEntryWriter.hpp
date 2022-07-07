@@ -31,7 +31,9 @@ struct CacheEntryHeader;
 class CacheEntryWriter : public Writer
 {
 public:
-  CacheEntryWriter(Writer& writer, const CacheEntryHeader& header);
+  CacheEntryWriter(Writer& writer,
+                   const std::string dict_dir,
+                   const CacheEntryHeader& header);
 
   void write(const void* data, size_t count) override;
   using Writer::write;

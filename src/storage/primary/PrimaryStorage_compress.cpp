@@ -127,30 +127,35 @@ open_file(const std::string& path, const char* const mode)
 }
 
 static std::unique_ptr<core::CacheEntryReader>
-create_reader(const CacheFile& cache_file, core::Reader& reader)
+create_reader(const CacheFile& cache_file,
+              core::Reader& reader,
+              const std::string dict_dir)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
     throw core::Error("unknown file type for {}", cache_file.path());
   }
 
-  return std::make_unique<core::CacheEntryReader>(reader);
+  return std::make_unique<core::CacheEntryReader>(reader, dict_dir);
 }
 
 static std::unique_ptr<core::CacheEntryWriter>
-create_writer(core::Writer& writer, const core::CacheEntryHeader& header)
+create_writer(core::Writer& writer,
+              const std::string dict_dir,
+              const core::CacheEntryHeader& header)
 {
-  return std::make_unique<core::CacheEntryWriter>(writer, header);
+  return std::make_unique<core::CacheEntryWriter>(writer, dict_dir, header);
 }
 
 static void
 recompress_file(RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
-                const std::optional<int8_t> level)
+                const std::optional<int8_t> level,
+                const std::string dict_dir)
 {
   auto file = open_file(cache_file.path(), "rb");
   core::FileReader file_reader(file.get());
-  auto reader = create_reader(cache_file, file_reader);
+  auto reader = create_reader(cache_file, file_reader, dict_dir);
 
   const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
   const uint64_t content_size = reader->header().entry_size;
@@ -174,7 +179,7 @@ recompress_file(RecompressionStatistics& statistics,
   header.compression_type =
     level ? compression::Type::zstd : compression::Type::none;
   header.compression_level = wanted_level;
-  auto writer = create_writer(file_writer, header);
+  auto writer = create_writer(file_writer, dict_dir, header);
 
   char buffer[CCACHE_READ_BUFFER_SIZE];
   size_t bytes_left = reader->header().payload_size();
@@ -209,6 +214,7 @@ PrimaryStorage::get_compression_statistics(
 {
   CompressionStatistics cs{};
 
+  std::string dict_dir = compression::dict_dir_from_config(m_config);
   for_each_level_1_subdir(
     m_config.cache_dir(),
     [&](const auto& subdir, const auto& sub_progress_receiver) {
@@ -222,7 +228,7 @@ PrimaryStorage::get_compression_statistics(
         try {
           auto file = open_file(cache_file.path(), "rb");
           core::FileReader file_reader(file.get());
-          auto reader = create_reader(cache_file, file_reader);
+          auto reader = create_reader(cache_file, file_reader, dict_dir);
           cs.compr_size += cache_file.lstat().size();
           cs.content_size += reader->header().entry_size;
         } catch (core::Error&) {
@@ -246,6 +252,7 @@ PrimaryStorage::recompress(const std::optional<int8_t> level,
   ThreadPool thread_pool(threads, read_ahead);
   RecompressionStatistics statistics;
 
+  std::string dict_dir = compression::dict_dir_from_config(m_config);
   for_each_level_1_subdir(
     m_config.cache_dir(),
     [&](const auto& subdir, const auto& sub_progress_receiver) {
@@ -260,9 +267,9 @@ PrimaryStorage::recompress(const std::optional<int8_t> level,
         const auto& file = files[i];
 
         if (file.type() != CacheFile::Type::unknown) {
-          thread_pool.enqueue([&statistics, stats_file, file, level] {
+          thread_pool.enqueue([&statistics, stats_file, file, level, dict_dir] {
             try {
-              recompress_file(statistics, stats_file, file, level);
+              recompress_file(statistics, stats_file, file, level, dict_dir);
             } catch (core::Error&) {
               // Ignore for now.
             }

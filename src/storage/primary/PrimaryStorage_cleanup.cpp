@@ -173,7 +173,8 @@ PrimaryStorage::clean_dir(const std::string& subdir,
       try {
         File file_stream(file.path(), "rb");
         core::FileReader file_reader(*file_stream);
-        core::CacheEntryReader reader(file_reader);
+        // Don't need compression dictionary for looking at the header.
+        core::CacheEntryReader reader(file_reader, "");
         if (reader.header().namespace_ != *namespace_) {
           continue;
         }
