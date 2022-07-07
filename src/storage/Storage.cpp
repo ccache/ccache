@@ -122,12 +122,15 @@ parse_storage_config(const std::string_view entry)
   }
 
   SecondaryStorageConfig result;
-  result.params.url = std::string(parts[0]);
-  // The Url class is parsing the URL object lazily; check if successful.
+  const auto url_str = std::string(parts[0]);
+  result.params.url = url_str;
+
+  // The Url class is parsing the URL object lazily. Check if the URL is valid
+  // now to avoid exceptions later.
   try {
-    std::ignore = result.params.url.host();
-  } catch (const Url::parse_error& e) {
-    throw core::Error("Cannot parse URL: {}", e.what());
+    std::ignore = result.params.url.str();
+  } catch (const std::exception& e) {
+    throw core::Error("Cannot parse URL {}: {}", url_str, e.what());
   }
 
   if (result.params.url.scheme().empty()) {
@@ -145,7 +148,6 @@ parse_storage_config(const std::string_view entry)
     if (key == "read-only") {
       result.read_only = (value == "true");
     } else if (key == "shards") {
-      const auto url_str = result.params.url.str();
       if (url_str.find('*') == std::string::npos) {
         throw core::Error(R"(Missing "*" in URL when using shards: "{}")",
                           url_str);
