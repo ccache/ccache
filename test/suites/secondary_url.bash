@@ -30,4 +30,18 @@ SUITE_secondary_url() {
     export CCACHE_SECONDARY_STORAGE="/qwerty"
     $CCACHE_COMPILE -c test.c 2>stderr.log
     expect_contains stderr.log "URL scheme must not be empty"
+
+    # -------------------------------------------------------------------------
+    TEST "Reject user info defined but no host"
+
+    export CCACHE_SECONDARY_STORAGE="http://foo@"
+    $CCACHE_COMPILE -c test.c 2>stderr.log
+    expect_contains stderr.log "User info defined, but host is empty"
+
+    # -------------------------------------------------------------------------
+    TEST "Reject relative path with colon in first part"
+
+    export CCACHE_SECONDARY_STORAGE="file:foo:bar"
+    $CCACHE_COMPILE -c test.c 2>stderr.log
+    expect_contains stderr.log "The first segment of the relative path can't contain ':'"
 }
