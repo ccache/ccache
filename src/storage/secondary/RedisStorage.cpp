@@ -114,10 +114,11 @@ RedisStorageBackend::RedisStorageBackend(const Params& params)
   ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix");
   if (url.scheme() == "redis+unix" && !params.url.host().empty()
       && params.url.host() != "localhost") {
-    throw core::Fatal(FMT(
-      "invalid file path \"{}\": specifying a host (\"{}\") is not supported",
-      params.url.str(),
-      params.url.host()));
+    throw core::Fatal(
+      FMT("invalid file path \"{}\": specifying a host other than localhost is"
+          " not supported",
+          params.url.str(),
+          params.url.host()));
   }
 
   auto connect_timeout = k_default_connect_timeout;
@@ -229,7 +230,7 @@ RedisStorageBackend::connect(const Url& url,
                              const uint32_t operation_timeout)
 {
   if (url.scheme() == "redis+unix") {
-    LOG("Redis connecting to unix://{} (connect timeout {} ms)",
+    LOG("Redis connecting to {} (connect timeout {} ms)",
         url.path(),
         connect_timeout);
     m_context.reset(redisConnectUnixWithTimeout(url.path().c_str(),
