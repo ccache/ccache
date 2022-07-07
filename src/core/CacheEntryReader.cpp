@@ -74,7 +74,7 @@ CacheEntryReader::CacheEntryReader(core::Reader& reader)
     entry_size);
 
   m_decompressor = compression::Decompressor::create_from_type(
-    m_header->compression_type, reader);
+    m_header->compression_type, reader, static_cast<int8_t>(entry_type));
   m_checksumming_reader.set_reader(*m_decompressor);
 }
 

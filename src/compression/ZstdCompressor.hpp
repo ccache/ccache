@@ -35,7 +35,9 @@ namespace compression {
 class ZstdCompressor : public Compressor, NonCopyable
 {
 public:
-  ZstdCompressor(core::Writer& writer, int8_t compression_level);
+  ZstdCompressor(core::Writer& writer,
+                 int8_t compression_level,
+                 int8_t entry_type);
 
   ~ZstdCompressor() override;
 
@@ -47,6 +49,7 @@ public:
 
 private:
   core::Writer& m_writer;
+  int8_t m_entry_type;
   ZSTD_CCtx_s* m_zstd_stream;
   std::unique_ptr<ZSTD_inBuffer_s> m_zstd_in;
   std::unique_ptr<ZSTD_outBuffer_s> m_zstd_out;

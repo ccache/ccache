@@ -27,12 +27,20 @@ namespace compression {
 std::unique_ptr<Decompressor>
 Decompressor::create_from_type(Type type, core::Reader& reader)
 {
+  return create_from_type(type, reader, -1);
+}
+
+std::unique_ptr<Decompressor>
+Decompressor::create_from_type(Type type,
+                               core::Reader& reader,
+                               int8_t entry_type)
+{
   switch (type) {
   case compression::Type::none:
     return std::make_unique<NullDecompressor>(reader);
 
   case compression::Type::zstd:
-    return std::make_unique<ZstdDecompressor>(reader);
+    return std::make_unique<ZstdDecompressor>(reader, entry_type);
   }
 
   ASSERT(false);

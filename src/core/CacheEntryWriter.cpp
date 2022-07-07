@@ -26,7 +26,10 @@ CacheEntryWriter::CacheEntryWriter(core::Writer& writer,
                                    const CacheEntryHeader& header)
   : m_checksumming_writer(writer),
     m_compressor(compression::Compressor::create_from_type(
-      header.compression_type, writer, header.compression_level))
+      header.compression_type,
+      writer,
+      header.compression_level,
+      static_cast<int8_t>(header.entry_type)))
 {
   m_checksumming_writer.write_int(header.magic);
   m_checksumming_writer.write_int(header.entry_format_version);

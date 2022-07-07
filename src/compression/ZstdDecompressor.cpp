@@ -24,8 +24,9 @@
 
 namespace compression {
 
-ZstdDecompressor::ZstdDecompressor(core::Reader& reader)
+ZstdDecompressor::ZstdDecompressor(core::Reader& reader, int8_t entry_type)
   : m_reader(reader),
+    m_entry_type(entry_type),
     m_input_size(0),
     m_input_consumed(0),
     m_zstd_stream(ZSTD_createDStream()),

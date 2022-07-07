@@ -39,6 +39,10 @@ public:
 
   static std::unique_ptr<Compressor>
   create_from_type(Type type, core::Writer& writer, int8_t compression_level);
+  static std::unique_ptr<Compressor> create_from_type(Type type,
+                                                      core::Writer& writer,
+                                                      int8_t compression_level,
+                                                      int8_t entry_type);
 
   virtual int8_t actual_compression_level() const = 0;
 };

@@ -29,8 +29,11 @@
 
 namespace compression {
 
-ZstdCompressor::ZstdCompressor(core::Writer& writer, int8_t compression_level)
+ZstdCompressor::ZstdCompressor(core::Writer& writer,
+                               int8_t compression_level,
+                               int8_t entry_type)
   : m_writer(writer),
+    m_entry_type(entry_type),
     m_zstd_stream(ZSTD_createCStream()),
     m_zstd_in(std::make_unique<ZSTD_inBuffer_s>()),
     m_zstd_out(std::make_unique<ZSTD_outBuffer_s>())

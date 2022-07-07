@@ -33,12 +33,22 @@ Compressor::create_from_type(const Type type,
                              core::Writer& writer,
                              const int8_t compression_level)
 {
+  return create_from_type(type, writer, compression_level, -1);
+}
+
+std::unique_ptr<Compressor>
+Compressor::create_from_type(const Type type,
+                             core::Writer& writer,
+                             const int8_t compression_level,
+                             const int8_t entry_type)
+{
   switch (type) {
   case compression::Type::none:
     return std::make_unique<NullCompressor>(writer);
 
   case compression::Type::zstd:
-    return std::make_unique<ZstdCompressor>(writer, compression_level);
+    return std::make_unique<ZstdCompressor>(
+      writer, compression_level, entry_type);
   }
 
   ASSERT(false);

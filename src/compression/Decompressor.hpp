@@ -33,6 +33,8 @@ public:
   // Create a decompressor for the specified type.
   static std::unique_ptr<Decompressor> create_from_type(Type type,
                                                         core::Reader& reader);
+  static std::unique_ptr<Decompressor>
+  create_from_type(Type type, core::Reader& reader, int8_t entry_type);
 
   // Finalize decompression.
   //
