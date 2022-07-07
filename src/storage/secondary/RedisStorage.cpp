@@ -106,20 +106,6 @@ split_user_info(const std::string& user_info)
   }
 }
 
-std::map<std::string, std::string>
-split_parameters(const Url::Query& query)
-{
-  std::map<std::string, std::string> m;
-  if (!query.empty()) {
-    auto it = query.begin();
-    auto end = query.end();
-    do {
-      m[it->key()] = it->val();
-    } while (++it != end);
-  }
-  return m;
-}
-
 RedisStorageBackend::RedisStorageBackend(const Params& params)
   : m_prefix("ccache"), // TODO: attribute
     m_context(nullptr, redisFree)
@@ -289,15 +275,14 @@ RedisStorageBackend::select_database(const Url& url)
 {
   std::optional<std::string> db;
   if (url.scheme() == "redis+unix") {
-    const auto parameters_map = split_parameters(url.query());
-    auto search = parameters_map.find("db");
-    if (search != parameters_map.end()) {
-      db = search->second;
+    for (const auto& param : url.query()) {
+      if (param.key() == "db") {
+        db = param.val();
+        break;
+      }
     }
-  } else {
-    if (!url.path().empty()) {
-      db = url.path().substr(1);
-    }
+  } else if (!url.path().empty()) {
+    db = url.path().substr(1);
   }
   const uint32_t db_number =
     !db ? 0
