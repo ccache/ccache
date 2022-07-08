@@ -48,11 +48,11 @@ main(int argc, char** argv)
     return 1;
   }
 
-  std::unique_ptr<util::LockFile> lock_file;
-  lock_file = long_lived ? std::unique_ptr<
-                util::LockFile>{std::make_unique<util::LongLivedLockFile>(path)}
-                         : std::unique_ptr<util::LockFile>{
-                           std::make_unique<util::ShortLivedLockFile>(path)};
+  using LockFilePtr = std::unique_ptr<util::LockFile>;
+  LockFilePtr lock_file;
+  lock_file = long_lived
+                ? LockFilePtr{std::make_unique<util::LongLivedLockFile>(path)}
+                : LockFilePtr{std::make_unique<util::ShortLivedLockFile>(path)};
   const auto mode = blocking ? util::LockFileGuard::Mode::blocking
                              : util::LockFileGuard::Mode::non_blocking;
 
