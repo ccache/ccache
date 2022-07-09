@@ -1289,6 +1289,35 @@ are currently compressed with a different level than the target level will be
 recompressed.
 
 
+== Compression dictionary
+
+Zstandard supports using a dictionary compression, for better performance and
+also compression ratio, by using a "dictionary" pre-trained from sample files.
+Different data types using different dictionaries, so for ccache there is one
+file for the manifest cache entries and one file for the result cache entries.
+
+In order to train a dictionary, the cache must be filled with enough samples.
+The contents must be uncompressed, to generate the compression dictionary !
+Typically the dictionary files are generated once, based on the compiler etc.
+There are _lots_ of training parameters that can be tweaked, see zstd help.
+
+Example script, for generating the Zstandard dictionary files:
+
+-------------------------------------------------------------------------------
+ccache -X uncompressed
+find $CCACHE_DIR -type f -name '*M' | xargs zstd --train -o $CCACHE_DIR/M.dict
+find $CCACHE_DIR -type f -name '*R' | xargs zstd --train -o $CCACHE_DIR/R.dict
+ccache -X 0 # compress
+-------------------------------------------------------------------------------
+
+Notes:
+
+* Dictionary compression support requires zstd version 1.4.0 or later.
+* The dictionary files are **required** to access the compressed data.
+* Dictionary compression is most effective for small files, <100 KiB.
+* The dictionary files are rather small, the default size is 110 KiB.
+
+
 == Cache statistics
 
 `ccache --show-stats` shows a summary of statistics, including cache size,
