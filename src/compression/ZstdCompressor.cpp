@@ -32,7 +32,6 @@ ZstdCompressor::ZstdCompressor(core::Writer& writer,
                                std::string dict_dir,
                                int8_t entry_type)
   : m_writer(writer),
-    m_entry_type(entry_type),
     m_zstd_stream(ZSTD_createCStream()),
     m_zstd_dict_id(0),
     m_zstd_dict(nullptr),

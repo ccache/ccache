@@ -58,7 +58,6 @@ public:
 
 private:
   core::Writer& m_writer;
-  int8_t m_entry_type;
   ZSTD_CCtx_s* m_zstd_stream;
   unsigned m_zstd_dict_id;
 #if ZSTD_VERSION_NUMBER >= 10400 /* 1.4.0 */

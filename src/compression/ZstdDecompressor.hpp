@@ -47,7 +47,6 @@ public:
 
 private:
   core::Reader& m_reader;
-  int8_t m_entry_type;
   char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
   size_t m_input_size;
   size_t m_input_consumed;
