@@ -95,6 +95,9 @@ struct ArgumentProcessingState
 
   // Whether to include the full command line in the hash.
   bool hash_full_command_line = false;
+
+  // Whether to include the actual CWD in the hash.
+  bool hash_actual_cwd = false;
 };
 
 bool
@@ -676,6 +679,15 @@ process_option_arg(const Context& ctx,
     args_info.profile_arcs = true;
     args_info.generating_coverage = true;
     state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
+  if (args[i] == "-fprofile-abs-path") {
+    if (!config.sloppiness().is_enabled(core::Sloppy::gcno_cwd)) {
+      // -fprofile-abs-path makes the compiler include absolute paths based on
+      // the actual CWD in the .gcno file.
+      state.hash_actual_cwd = true;
+    }
     return Statistic::none;
   }
 
@@ -1470,5 +1482,10 @@ process_args(Context& ctx)
     }
   }
 
-  return {preprocessor_args, extra_args_to_hash, compiler_args};
+  return {
+    preprocessor_args,
+    extra_args_to_hash,
+    compiler_args,
+    state.hash_actual_cwd,
+  };
 }

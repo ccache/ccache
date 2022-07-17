@@ -115,4 +115,49 @@ SUITE_profiling_gcc() {
     $CCACHE_COMPILE -fprofile-dir=data2 -fprofile-use=data -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-abs-path"
+
+    if $COMPILER -fprofile-abs-path -c test.c 2>/dev/null; then
+        mkdir a b
+
+        cd a
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        cd ../b
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+
+        export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS gcno_cwd"
+
+        cd ../a
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 3
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 3
+
+        cd ../b
+
+        $CCACHE_COMPILE -fprofile-abs-path -ftest-coverage -c ../test.c
+        expect_stat direct_cache_hit 4
+        expect_stat cache_miss 3
+    fi
 }

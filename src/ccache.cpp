@@ -2274,6 +2274,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       ctx, processed.preprocessor_args, common_hash, ctx.args_info));
   }
 
+  if (processed.hash_actual_cwd) {
+    common_hash.hash_delimiter("actual_cwd");
+    common_hash.hash(ctx.actual_cwd);
+  }
+
   // Try to find the hash using the manifest.
   Hash direct_hash = common_hash;
   init_hash_debug(ctx, direct_hash, 'd', "DIRECT MODE", debug_text_file);
