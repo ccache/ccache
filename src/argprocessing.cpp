@@ -809,43 +809,39 @@ process_arg(const Context& ctx,
     return nullopt;
   }
 
-  if (config.compiler_type() == CompilerType::gcc
-      && (args[i] == "-fcolor-diagnostics"
-          || args[i] == "-fno-color-diagnostics")) {
-    // Special case: If a GCC compiler gets -f(no-)color-diagnostics we'll bail
-    // out and just execute the compiler. The reason is that we don't include
-    // -f(no-)color-diagnostics in the hash so there can be a false cache hit in
-    // the following scenario:
-    //
-    //   1. ccache gcc -c example.c                      # adds a cache entry
-    //   2. ccache gcc -c example.c -fcolor-diagnostics  # unexpectedly succeeds
-    return Statistic::unsupported_compiler_option;
-  }
-
-  // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
-  // -fcolor-diagnostics argument which is passed to cc1 is handled below.
-  if (args[i] == "-Xclang" && i + 1 < args.size()
-      && args[i + 1] == "-fcolor-diagnostics") {
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    ++i;
-  }
-
-  if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
-      || args[i] == "-fdiagnostics-color=always") {
-    state.color_diagnostics = ColorDiagnostics::always;
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    return nullopt;
-  }
-  if (args[i] == "-fno-color-diagnostics" || args[i] == "-fno-diagnostics-color"
-      || args[i] == "-fdiagnostics-color=never") {
-    state.color_diagnostics = ColorDiagnostics::never;
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    return nullopt;
-  }
-  if (args[i] == "-fdiagnostics-color=auto") {
-    state.color_diagnostics = ColorDiagnostics::automatic;
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    return nullopt;
+  if (config.compiler_type() == CompilerType::gcc) {
+    if (args[i] == "-fdiagnostics-color"
+        || args[i] == "-fdiagnostics-color=always") {
+      state.color_diagnostics = ColorDiagnostics::always;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return nullopt;
+    } else if (args[i] == "-fno-diagnostics-color"
+               || args[i] == "-fdiagnostics-color=never") {
+      state.color_diagnostics = ColorDiagnostics::never;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return nullopt;
+    } else if (args[i] == "-fdiagnostics-color=auto") {
+      state.color_diagnostics = ColorDiagnostics::automatic;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return nullopt;
+    }
+  } else if (config.is_compiler_group_clang()) {
+    // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
+    // -fcolor-diagnostics argument which is passed to cc1 is handled below.
+    if (args[i] == "-Xclang" && i + 1 < args.size()
+        && args[i + 1] == "-fcolor-diagnostics") {
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      ++i;
+    }
+    if (args[i] == "-fcolor-diagnostics") {
+      state.color_diagnostics = ColorDiagnostics::always;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return nullopt;
+    } else if (args[i] == "-fno-color-diagnostics") {
+      state.color_diagnostics = ColorDiagnostics::never;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return nullopt;
+    }
   }
 
   // GCC

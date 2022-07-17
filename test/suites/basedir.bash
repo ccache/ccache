@@ -296,7 +296,7 @@ EOF
     expect_stat cache_miss 1
     expect_equal_content reference.stderr ccache.stderr
 
-    if $COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
+    if $COMPILER_TYPE_GCC && $COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
         $COMPILER -fdiagnostics-color=always -c $pwd/test.c 2>reference.stderr
 
         CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
