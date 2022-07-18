@@ -43,7 +43,7 @@ endif()
 add_library(ccache_framework STATIC ${source_files})
 
 if(WIN32)
-  list(APPEND CCACHE_EXTRA_LIBS psapi ws2_32)
+  list(APPEND CCACHE_EXTRA_LIBS psapi)
 endif()
 
 if(CCACHE_EXTRA_LIBS)
