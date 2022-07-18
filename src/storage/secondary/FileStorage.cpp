@@ -71,7 +71,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
 #ifdef _WIN32
   m_dir = util::replace_all(params.url.path(), "/", "\\");
   if (!host.empty()) {
-    m_dir = FMT("\\\\{}\\{}", host, m_dir);
+    m_dir = FMT("\\\\{}{}", host, m_dir);
   }
 #else
   if (!host.empty() && host != "localhost") {
