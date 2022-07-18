@@ -41,6 +41,11 @@ endif()
 
 add_executable(unittest ${source_files})
 
+if(MSVC)
+  # Turn off /Zc:preprocessor for this test because it triggers a bug in some older Windows 10 SDK headers.
+  set_source_files_properties(test_Stat.cpp PROPERTIES COMPILE_FLAGS /Zc:preprocessor-)
+endif()
+
 target_link_libraries(
   unittest
   PRIVATE standard_settings standard_warnings ccache_framework third_party)
