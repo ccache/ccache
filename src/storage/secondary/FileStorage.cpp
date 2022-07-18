@@ -55,7 +55,7 @@ public:
 private:
   enum class Layout { flat, subdirs };
 
-  const std::string m_dir;
+  std::string m_dir;
   std::optional<mode_t> m_umask;
   bool m_update_mtime = false;
   Layout m_layout = Layout::subdirs;
@@ -64,15 +64,24 @@ private:
 };
 
 FileStorageBackend::FileStorageBackend(const Params& params)
-  : m_dir(params.url.path())
 {
   ASSERT(params.url.scheme() == "file");
-  if (!params.url.host().empty()) {
-    throw core::Fatal(FMT(
-      "invalid file path \"{}\": specifying a host (\"{}\") is not supported",
-      params.url.str(),
-      params.url.host()));
+
+  const auto& host = params.url.host();
+#ifdef _WIN32
+  m_dir = util::replace_all(params.url.path(), "/", "\\");
+  if (!host.empty()) {
+    m_dir = FMT("\\\\{}\\{}", host, m_dir);
   }
+#else
+  if (!host.empty() && host != "localhost") {
+    throw core::Fatal(
+      FMT("invalid file URL \"{}\": specifying a host other than localhost is"
+          " not supported",
+          params.url.str()));
+  }
+  m_dir = params.url.path();
+#endif
 
   for (const auto& attr : params.attributes) {
     if (attr.key == "layout") {
