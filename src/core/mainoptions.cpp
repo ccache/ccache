@@ -493,9 +493,6 @@ process_main_options(int argc, const char* const* argv)
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
       }
-#ifdef INODE_CACHE_SUPPORTED
-      InodeCache(config).drop();
-#endif
       break;
     }
 
