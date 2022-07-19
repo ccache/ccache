@@ -465,8 +465,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       "# 32 \"<command-line>\" 2\n";
     // Note: Intentionally not using the string form to avoid false positive
     // match by ccache itself.
-    static const char incbin_prefix[] = {
-      '.', 'i', 'n', 'c', 'b', 'i', 'n', ' '};
+    static const char incbin_directive[] = {'.', 'i', 'n', 'c', 'b', 'i', 'n'};
 
     // Check if we look at a line containing the file name of an included file.
     // At least the following formats exist (where N is a positive integer):
@@ -570,14 +569,16 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
           Statistic::could_not_use_precompiled_header);
       }
       p = q; // Everything of interest between p and q has been hashed now.
-    } else if (strncmp(q, incbin_prefix, sizeof(incbin_prefix)) == 0
-               && (q[8] == '"' || (q[8] == '\\' && q[9] == '"'))) {
+    } else if (strncmp(q, incbin_directive, sizeof(incbin_directive)) == 0
+               && ((q[7] == ' '
+                    && (q[8] == '"' || (q[8] == '\\' && q[9] == '"')))
+                   || q[7] == '"')) {
       // An assembler .inc bin (without the space) statement, which could be
       // part of inline assembly, refers to an external file. If the file
       // changes, the hash should change as well, but finding out what file to
       // hash is too hard for ccache, so just bail out.
       LOG_RAW(
-        "Found unsupported .inc"
+        "Found potential unsupported .inc"
         "bin directive in source code");
       return nonstd::make_unexpected(
         Failure(Statistic::unsupported_code_directive));
