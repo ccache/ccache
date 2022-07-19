@@ -18,9 +18,9 @@ To build ccache you need:
   also install zstd in a custom path and pass
   `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
 
-  To link libzstd statically, if you have a static libzstd available pass
-  `-DSTATIC_LINK=ON` to cmake, this is the default on Windows. Or use
-  `-DZSTD_LIBRARY=/path/to/libzstd.a`.
+  To link libzstd statically (and you have a static libzstd available), pass
+  `-DSTATIC_LINK=ON` to `cmake`. This is the default on Windows. Alternatively,
+  use `-DZSTD_LIBRARY=/path/to/libzstd.a`.
 
 Optional:
 
@@ -31,9 +31,9 @@ Optional:
   `-DHIREDIS_FROM_INTERNET=OFF` to cmake. You can also install hiredis in a
   custom path and pass `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
 
-  To link libhiredis statically, if you have a static libhiredis available pass
-  `-DSTATIC_LINK=ON` to cmake, this is the default on Windows. Or use
-  `-DHIREDIS_LIBRARY=/path/to/libhiredis.a`.
+  To link libhiredis statically (and you have a static libhiredis available),
+  pass `-DSTATIC_LINK=ON` to `cmake`. This is the default on Windows.
+  Alternatively, use `-DHIREDIS_LIBRARY=/path/to/libhiredis.a`.
 - GNU Bourne Again SHell (bash) for tests.
 - [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
 - [Python](https://www.python.org) to debug and run the performance test suite.
@@ -69,23 +69,23 @@ There are two different ways to use ccache to cache a compilation:
    projects.
 2. Let ccache masquerade as the compiler. This method is most useful when you
    wish to use ccache for all your compilations. To do this, create a symbolic
-   link to ccache named as the compiler. For example, here is set up ccache to
-   masquerade as `gcc` and `g++`:
+   link to ccache named as the compiler. For example, here is how to set up
+   ccache to masquerade as `gcc` and `g++`:
 
-```bash
-cp ccache /usr/local/bin/
-ln -s ccache /usr/local/bin/gcc
-ln -s ccache /usr/local/bin/g++
-```
+   ```bash
+   cp ccache /usr/local/bin/
+   ln -s ccache /usr/local/bin/gcc
+   ln -s ccache /usr/local/bin/g++
+   ```
 
-. On platforms that don't support symbolic links you can simply copy ccache to the
-compiler name instead for a similar effect:
+   On platforms that don't support symbolic links you can simply copy ccache to the
+   compiler name instead for a similar effect:
 
-```bash
-cp ccache /usr/local/bin/gcc
-cp ccache /usr/local/bin/g++
-```
+   ```bash
+   cp ccache /usr/local/bin/gcc
+   cp ccache /usr/local/bin/g++
+   ```
 
-. And so forth. This will work as long as the directory with symbolic links or
-ccache copies comes before the directory with the compiler (typically
-`/usr/bin`) in `PATH`.
+   And so forth. This will work as long as the directory with symbolic links or
+   ccache copies comes before the directory with the compiler (typically
+   `/usr/bin`) in `PATH`.
