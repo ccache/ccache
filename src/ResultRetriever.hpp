@@ -21,12 +21,19 @@
 #include "Fd.hpp"
 #include "Result.hpp"
 
+#include <core/exceptions.hpp>
+
 class Context;
 
 // This class retrieves a result entry to the local file system.
 class ResultRetriever : public Result::Reader::Consumer
 {
 public:
+  class WriteError : public core::Error
+  {
+    using core::Error::Error;
+  };
+
   ResultRetriever(Context& ctx, bool rewrite_dependency_target);
 
   void on_entry_start(uint8_t entry_number,

@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/file.hpp>
 
 #include <fcntl.h>
@@ -128,8 +129,8 @@ ResultRetriever::on_entry_start(uint8_t entry_number,
     m_dest_fd = Fd(
       open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!m_dest_fd) {
-      throw core::Error(
-        "Failed to open {} for writing: {}", dest_path, strerror(errno));
+      throw WriteError(
+        FMT("Failed to open {} for writing: {}", dest_path, strerror(errno)));
     }
     m_dest_path = dest_path;
   }
@@ -150,7 +151,7 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
     try {
       Util::write_fd(*m_dest_fd, data, size);
     } catch (core::Error& e) {
-      throw core::Error("Failed to write to {}: {}", m_dest_path, e.what());
+      throw WriteError(FMT("Failed to write to {}: {}", m_dest_path, e.what()));
     }
   }
 }
@@ -195,6 +196,6 @@ ResultRetriever::write_dependency_file()
                    m_dest_data.data() + start_pos,
                    m_dest_data.length() - start_pos);
   } catch (core::Error& e) {
-    throw core::Error("Failed to write to {}: {}", m_dest_path, e.what());
+    throw WriteError(FMT("Failed to write to {}: {}", m_dest_path, e.what()));
   }
 }

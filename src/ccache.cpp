@@ -1844,7 +1844,7 @@ calculate_result_and_manifest_key(Context& ctx,
 enum class FromCacheCallMode { direct, cpp };
 
 // Try to return the compile result from cache.
-static bool
+static nonstd::expected<bool, Failure>
 from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 {
   UmaskScope umask_scope(ctx.original_umask);
@@ -1887,6 +1887,10 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
       ctx, should_rewrite_dependency_target(ctx.args_info));
 
     result_reader.read(result_retriever);
+  } catch (ResultRetriever::WriteError& e) {
+    LOG(
+      "Write error when retrieving result from {}: {}", *result_path, e.what());
+    return nonstd::make_unexpected(Statistic::bad_output_file);
   } catch (core::Error& e) {
     LOG("Failed to get result from {}: {}", *result_path, e.what());
     return false;
@@ -2256,9 +2260,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     std::tie(result_key, manifest_key) = *result_and_manifest_key;
     if (result_key) {
       // If we can return from cache at this point then do so.
-      const bool found =
+      const auto from_cache_result =
         from_cache(ctx, FromCacheCallMode::direct, *result_key);
-      if (found) {
+      if (!from_cache_result) {
+        return nonstd::make_unexpected(from_cache_result.error());
+      } else if (*from_cache_result) {
         return Statistic::direct_cache_hit;
       }
 
@@ -2323,8 +2329,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
 
     // If we can return from cache at this point then do.
-    const auto found = from_cache(ctx, FromCacheCallMode::cpp, *result_key);
-    if (found) {
+    const auto from_cache_result =
+      from_cache(ctx, FromCacheCallMode::cpp, *result_key);
+    if (!from_cache_result) {
+      return nonstd::make_unexpected(from_cache_result.error());
+    } else if (*from_cache_result) {
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest_file(ctx, *manifest_key, *result_key);
       }
