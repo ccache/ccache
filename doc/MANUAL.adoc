@@ -1332,8 +1332,7 @@ Preconditions for using <<Precompiled headers,precompiled headers>> were not
 fulfilled.
 
 | Could not write to output file |
-The output path specified with `-o` is not a file (e.g. a directory or a device
-node).
+The output path specified with `-o` could not be written to.
 
 | Compilation failed |
 The compilation failed. No result stored in the cache.

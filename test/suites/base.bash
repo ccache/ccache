@@ -1185,6 +1185,24 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
+    TEST "Failure to write output file"
+
+    mkdir dir
+
+    $CCACHE_COMPILE -c test1.c -o dir/test1.o
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat bad_output_file 0
+
+    rm dir/test1.o
+    chmod a-w dir
+
+    $CCACHE_COMPILE -c test1.c -o dir/test1.o 2>/dev/null
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat bad_output_file 1
+
+    # -------------------------------------------------------------------------
     TEST "Caching stderr"
 
     cat <<EOF >stderr.c
