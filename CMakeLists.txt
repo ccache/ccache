@@ -109,21 +109,16 @@ endif()
 #
 # Third party
 #
-set(HIREDIS_FROM_INTERNET_DEFAULT OFF)
-set(ZSTD_FROM_INTERNET_DEFAULT OFF)
+option(ZSTD_FROM_INTERNET
+  "Download and use libzstd from the Internet if not available" ON)
+option(HIREDIS_FROM_INTERNET
+  "Download and use libhiredis from the Internet if not available" ON)
 
-# Default to downloading deps for Visual Studio, unless using a package manager.
-if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg|conan")
-  set(HIREDIS_FROM_INTERNET_DEFAULT ON)
-  set(ZSTD_FROM_INTERNET_DEFAULT ON)
-endif()
-
-option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 MODULE REQUIRED)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
+
 if(REDIS_STORAGE_BACKEND)
-  option(HIREDIS_FROM_INTERNET "Download and use libhiredis from the Internet" ${HIREDIS_FROM_INTERNET_DEFAULT})
   find_package(hiredis 0.13.3 MODULE REQUIRED)
 endif()
 
