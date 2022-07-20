@@ -22,12 +22,20 @@
 #include <fmtmacros.hpp>
 
 #ifdef _WIN32
+const char k_dev_null_path[] = "nul:";
 const char k_path_delimiter[] = ";";
 #else
+const char k_dev_null_path[] = "/dev/null";
 const char k_path_delimiter[] = ":";
 #endif
 
 namespace util {
+
+const char*
+get_dev_null_path()
+{
+  return k_dev_null_path;
+}
 
 bool
 is_absolute_path(std::string_view path)

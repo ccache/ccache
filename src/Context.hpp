@@ -86,8 +86,8 @@ public:
   // The name of the temporary preprocessed file.
   std::string i_tmpfile;
 
-  // The name of the cpp stderr file.
-  std::string cpp_stderr;
+  // The preprocessor's stderr output.
+  std::string cpp_stderr_data;
 
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;

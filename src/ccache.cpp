@@ -676,13 +676,40 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 
   return hash.digest();
 }
+
+struct GetTmpFdResult
+{
+  Fd fd;
+  std::string path;
+};
+
+static GetTmpFdResult
+get_tmp_fd(Context& ctx,
+           const std::string_view description,
+           const bool capture_output)
+{
+  if (capture_output) {
+    TemporaryFile tmp_stdout(
+      FMT("{}/tmp.{}", ctx.config.temporary_dir(), description));
+    ctx.register_pending_tmp_file(tmp_stdout.path);
+    return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
+  } else {
+    const auto dev_null_path = util::get_dev_null_path();
+    return {Fd(open(dev_null_path, O_WRONLY | O_BINARY)), dev_null_path};
+  }
+}
+
+struct DoExecuteResult
+{
+  int exit_status;
+  std::string stdout_data;
+  std::string stderr_data;
+};
+
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
-static nonstd::expected<int, Failure>
-do_execute(Context& ctx,
-           Args& args,
-           TemporaryFile&& tmp_stdout,
-           TemporaryFile&& tmp_stderr)
+static nonstd::expected<DoExecuteResult, Failure>
+do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
 {
   UmaskScope umask_scope(ctx.original_umask);
 
@@ -690,6 +717,10 @@ do_execute(Context& ctx,
     DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
     args.erase_last("-fdiagnostics-color");
   }
+
+  auto tmp_stdout = get_tmp_fd(ctx, "stdout", capture_stdout);
+  auto tmp_stderr = get_tmp_fd(ctx, "stderr", true);
+
   int status = execute(ctx,
                        args.to_argv().data(),
                        std::move(tmp_stdout.fd),
@@ -708,26 +739,22 @@ do_execute(Context& ctx,
       // error message.)
       LOG_RAW("-fdiagnostics-color is unsupported; trying again without it");
 
-      tmp_stdout.fd = Fd(open(
-        tmp_stdout.path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0600));
-      if (!tmp_stdout.fd) {
-        LOG("Failed to truncate {}: {}", tmp_stdout.path, strerror(errno));
-        return nonstd::make_unexpected(Statistic::internal_error);
-      }
-
-      tmp_stderr.fd = Fd(open(
-        tmp_stderr.path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0600));
-      if (!tmp_stderr.fd) {
-        LOG("Failed to truncate {}: {}", tmp_stderr.path, strerror(errno));
-        return nonstd::make_unexpected(Statistic::internal_error);
-      }
-
       ctx.diagnostics_color_failed = true;
-      return do_execute(
-        ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
+      return do_execute(ctx, args, capture_stdout);
     }
   }
-  return status;
+
+  try {
+    return DoExecuteResult{
+      status,
+      capture_stdout ? Util::read_file(tmp_stdout.path) : std::string(),
+      Util::read_file(tmp_stderr.path),
+    };
+  } catch (core::Error&) {
+    // The stdout or stderr file was removed - cleanup in progress? Better bail
+    // out.
+    return nonstd::make_unexpected(Statistic::missing_cache_file);
+  }
 }
 
 static core::Manifest
@@ -1005,18 +1032,9 @@ to_cache(Context& ctx,
   LOG_RAW("Running real compiler");
   MTR_BEGIN("execute", "compiler");
 
-  TemporaryFile tmp_stdout(FMT("{}/tmp.stdout", ctx.config.temporary_dir()));
-  ctx.register_pending_tmp_file(tmp_stdout.path);
-  std::string tmp_stdout_path = tmp_stdout.path;
-
-  TemporaryFile tmp_stderr(FMT("{}/tmp.stderr", ctx.config.temporary_dir()));
-  ctx.register_pending_tmp_file(tmp_stderr.path);
-  std::string tmp_stderr_path = tmp_stderr.path;
-
-  nonstd::expected<int, Failure> status;
+  nonstd::expected<DoExecuteResult, Failure> result;
   if (!ctx.config.depend_mode()) {
-    status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
+    result = do_execute(ctx, args);
     args.pop_back(3);
   } else {
     // Use the original arguments (including dependency options) in depend
@@ -1027,45 +1045,32 @@ to_cache(Context& ctx,
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
-    status = do_execute(
-      ctx, depend_mode_args, std::move(tmp_stdout), std::move(tmp_stderr));
+    result = do_execute(ctx, depend_mode_args);
   }
   MTR_END("execute", "compiler");
 
-  if (!status) {
-    return nonstd::make_unexpected(status.error());
+  if (!result) {
+    return nonstd::make_unexpected(result.error());
   }
 
-  // Merge stderr from the preprocessor (if any) and stderr from
-  // the real compiler into tmp_stderr.
-  if (!ctx.cpp_stderr.empty()) {
-    std::string combined_stderr =
-      Util::read_file(ctx.cpp_stderr) + Util::read_file(tmp_stderr_path);
-    Util::write_file(tmp_stderr_path, combined_stderr);
+  // Merge stderr from the preprocessor (if any) and stderr from the real
+  // compiler.
+  if (!ctx.cpp_stderr_data.empty()) {
+    result->stderr_data = ctx.cpp_stderr_data + result->stderr_data;
   }
 
-  std::string stdout_data;
-  std::string stderr_data;
-  try {
-    stdout_data = Util::read_file(tmp_stdout_path);
-    stderr_data = Util::read_file(tmp_stderr_path);
-  } catch (core::Error&) {
-    // The stdout or stderr file was removed - cleanup in progress? Better bail
-    // out.
-    return nonstd::make_unexpected(Statistic::missing_cache_file);
-  }
+  result->stdout_data =
+    rewrite_stdout_from_compiler(ctx, std::move(result->stdout_data));
 
-  stdout_data = rewrite_stdout_from_compiler(ctx, std::move(stdout_data));
-
-  if (status != 0) {
-    LOG("Compiler gave exit status {}", *status);
+  if (result->exit_status != 0) {
+    LOG("Compiler gave exit status {}", result->exit_status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_fd(ctx, stderr_data, STDERR_FILENO);
-    Util::send_to_fd(ctx, stdout_data, STDOUT_FILENO);
+    Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
+    Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
-    failure.set_exit_code(*status);
+    failure.set_exit_code(result->exit_status);
     return nonstd::make_unexpected(failure);
   }
 
@@ -1105,7 +1110,8 @@ to_cache(Context& ctx,
   MTR_BEGIN("result", "result_put");
   const bool added = ctx.storage.put(
     *result_key, core::CacheEntryType::result, [&](const auto& path) {
-      return write_result(ctx, path, obj_stat, stdout_data, stderr_data);
+      return write_result(
+        ctx, path, obj_stat, result->stdout_data, result->stderr_data);
     });
   MTR_END("result", "result_put");
   if (!added) {
@@ -1113,9 +1119,9 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  Util::send_to_fd(ctx, stderr_data, STDERR_FILENO);
+  Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
-  Util::send_to_fd(ctx, stdout_data, STDOUT_FILENO);
+  Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
 
   return *result_key;
 }
@@ -1127,76 +1133,69 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
   ctx.time_of_compilation = time(nullptr);
 
-  std::string stderr_path;
-  std::string stdout_path;
+  std::string preprocessed_path;
+  std::string cpp_stderr_data;
+
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
-    stdout_path = ctx.args_info.input_file;
+    preprocessed_path = ctx.args_info.input_file;
+    cpp_stderr_data = "";
   } else {
     // Run cpp on the input file to obtain the .i.
 
-    // stdout_path needs the proper cpp_extension for the compiler to do its
-    // thing correctly.
+    // preprocessed_path needs the proper cpp_extension for the compiler to do
+    // its thing correctly.
     TemporaryFile tmp_stdout(
       FMT("{}/tmp.cpp_stdout", ctx.config.temporary_dir()),
       FMT(".{}", ctx.config.cpp_extension()));
-    stdout_path = tmp_stdout.path;
-    ctx.register_pending_tmp_file(stdout_path);
+    preprocessed_path = tmp_stdout.path;
+    tmp_stdout.fd.close(); // We're only using the path.
+    ctx.register_pending_tmp_file(preprocessed_path);
 
-    TemporaryFile tmp_stderr(
-      FMT("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
-    stderr_path = tmp_stderr.path;
-    ctx.register_pending_tmp_file(stderr_path);
-
-    size_t args_added = 2;
+    const size_t orig_args_size = args.size();
     args.push_back("-E");
-    if (ctx.args_info.actual_language == "hip") {
-      args.push_back("-o");
-      args.push_back("-");
-      args_added += 2;
-    }
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
-      args_added++;
     }
+
+    // Pass -o instead of sending the preprocessor output to stdout to work
+    // around compilers that don't exit with a proper status on write error to
+    // stdout. See also <https://github.com/llvm/llvm-project/issues/56499>.
+    args.push_back("-o");
+    args.push_back(preprocessed_path);
+
     args.push_back(ctx.args_info.input_file);
+
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
-    const auto status =
-      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
+    const auto result = do_execute(ctx, args, false);
     MTR_END("execute", "preprocessor");
-    args.pop_back(args_added);
+    args.pop_back(args.size() - orig_args_size);
 
-    if (!status) {
-      return nonstd::make_unexpected(status.error());
-    } else if (*status != 0) {
-      LOG("Preprocessor gave exit status {}", *status);
+    if (!result) {
+      return nonstd::make_unexpected(result.error());
+    } else if (result->exit_status != 0) {
+      LOG("Preprocessor gave exit status {}", result->exit_status);
       return nonstd::make_unexpected(Statistic::preprocessor_error);
     }
-  }
 
-  hash.hash_delimiter("cpp");
-  TRY(process_preprocessed_file(ctx, hash, stdout_path));
+    cpp_stderr_data = result->stderr_data;
+  }
 
   hash.hash_delimiter("cppstderr");
-  if (!ctx.args_info.direct_i_file && !hash.hash_file(stderr_path)) {
-    // Somebody removed the temporary file?
-    LOG("Failed to open {}: {}", stderr_path, strerror(errno));
-    return nonstd::make_unexpected(Statistic::internal_error);
-  }
+  hash.hash(cpp_stderr_data);
 
-  if (ctx.args_info.direct_i_file) {
-    ctx.i_tmpfile = ctx.args_info.input_file;
-  } else {
-    ctx.i_tmpfile = stdout_path;
-  }
+  hash.hash_delimiter("cpp");
+  TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
+
+  ctx.i_tmpfile = preprocessed_path;
 
   if (!ctx.config.run_second_cpp()) {
     // If we are using the CPP trick, we need to remember this stderr data and
     // output it just before the main stderr from the compiler pass.
-    ctx.cpp_stderr = stderr_path;
+    ctx.cpp_stderr_data = std::move(cpp_stderr_data);
     hash.hash_delimiter("runsecondcpp");
     hash.hash("false");
   }

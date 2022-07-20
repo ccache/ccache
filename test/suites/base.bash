@@ -1417,7 +1417,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-printf "[%s]" "\$*" >>compiler.args
+printf "(%s)" "\$*" >>compiler.args
 [ \$1 = -E ] && echo test || echo test >test1.o
 EOF
     chmod +x compiler.sh
@@ -1428,7 +1428,7 @@ EOF
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     if [ -z "$CCACHE_NOCPP2" ]; then
-        expect_content compiler.args "[-E test1.c][-c -o test1.o test1.c]"
+        expect_content_pattern compiler.args "(-E -o * test1.c)(-c -o test1.o test1.c)"
     fi
     rm compiler.args
 
@@ -1436,7 +1436,7 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_content compiler.args "[-E test1.c]"
+    expect_content_pattern compiler.args "(-E -o * test1.c)"
     rm compiler.args
 
     # Even though -Werror is not passed to the preprocessor, it should be part
@@ -1446,7 +1446,7 @@ EOF
     expect_stat cache_miss 2
     expect_stat files_in_cache 2
     if [ -z "$CCACHE_NOCPP2" ]; then
-        expect_content compiler.args "[-E test1.c][-Werror -rdynamic -c -o test1.o test1.c]"
+        expect_content_pattern compiler.args "(-E -o * test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
     fi
     rm compiler.args
 
