@@ -33,19 +33,19 @@ if [[ -t 1 ]]; then
 fi
 
 green() {
-    printf "$ansi_boldgreen%s$ansi_reset\n" "$*"
+    echo -e "$ansi_boldgreen$*$ansi_reset"
 }
 
 red() {
-    printf "$ansi_boldred%s$ansi_reset\n" "$*"
+    echo -e "$ansi_boldred$*$ansi_reset"
 }
 
 yellow() {
-    printf "$ansi_boldyellow%s$ansi_reset\n" "$*"
+    echo -e "$ansi_boldyellow$*$ansi_reset"
 }
 
 bold() {
-    printf "$ansi_bold%s$ansi_reset\n" "$*"
+    echo -e "$ansi_bold$*$ansi_reset"
 }
 
 test_failed_internal() {
