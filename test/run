@@ -271,6 +271,18 @@ expect_content() {
     fi
 }
 
+expect_content_pattern() {
+    local file="$1"
+    local pattern="$2"
+
+    if [ ! -e "$file" ]; then
+        test_failed_internal "$file not found"
+    fi
+    if [[ "$(<$file)" != $pattern ]]; then
+        test_failed_internal "Bad content of $file\nExpected pattern: $pattern\nActual: $(<$file)"
+    fi
+}
+
 expect_contains() {
     local file="$1"
     local string="$2"

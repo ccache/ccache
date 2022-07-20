@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,6 +26,8 @@
 namespace util {
 
 // --- Interface ---
+
+const char* get_dev_null_path();
 
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
