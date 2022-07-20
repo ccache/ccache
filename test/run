@@ -267,7 +267,7 @@ expect_content() {
         test_failed_internal "$file not found"
     fi
     if [ "$(cat $file)" != "$content" ]; then
-        test_failed_internal "Bad content of $file.\nExpected: $content\nActual: $(cat $file)"
+        test_failed_internal "Bad content of $file\nExpected: $content\nActual: $(cat $file)"
     fi
 }
 
