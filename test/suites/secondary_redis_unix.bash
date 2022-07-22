@@ -7,7 +7,7 @@ SUITE_secondary_redis_unix_PROBE() {
         echo "redis-server not found"
         return
     fi
-    if redis-server --unixsocket /foo/redis.sock |& grep -q "FATAL CONFIG FILE ERROR"; then
+    if redis-server --unixsocket /foo/redis.sock 2>&1 | grep -q "FATAL CONFIG FILE ERROR"; then
         # "Bad directive or wrong number of arguments"
         echo "redis-server without unixsocket"
         return

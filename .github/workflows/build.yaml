@@ -66,11 +66,11 @@ jobs:
             compiler: gcc
             version: "11"
 
-          - os: macOS-10.15
+          - os: macOS-11
             compiler: xcode
             version: "11.7"
 
-          - os: macOS-10.15
+          - os: macOS-11
             compiler: xcode
             version: "12.4"
     steps:
