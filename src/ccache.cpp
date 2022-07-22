@@ -1170,11 +1170,11 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     cpp_stderr_data = result->stderr_data;
   }
 
-  hash.hash_delimiter("cppstderr");
-  hash.hash(cpp_stderr_data);
-
   hash.hash_delimiter("cpp");
   TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
+
+  hash.hash_delimiter("cppstderr");
+  hash.hash(cpp_stderr_data);
 
   ctx.i_tmpfile = preprocessed_path;
 
