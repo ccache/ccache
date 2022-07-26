@@ -278,9 +278,19 @@ expect_content_pattern() {
     if [ ! -e "$file" ]; then
         test_failed_internal "$file not found"
     fi
-    if [[ "$(<$file)" != $pattern ]]; then
-        test_failed_internal "Bad content of $file\nExpected pattern: $pattern\nActual: $(<$file)"
+
+    local content="$(<$file)"
+    if [[ $pattern == !* ]]; then
+        pattern=${pattern:1}
+        if [[ "${content}" == $pattern ]]; then
+            test_failed_internal "Bad content of $file\nContent: $(<$file)\nMatched pattern: $pattern"
+        fi
+    else
+        if [[ "${content}" != $pattern ]]; then
+            test_failed_internal "Bad content of $file\nContent: $(<$file)\nDid not match pattern: $pattern"
+        fi
     fi
+
 }
 
 expect_contains() {
