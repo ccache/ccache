@@ -1323,8 +1323,8 @@ process_args(Context& ctx)
   // Some options shouldn't be passed to the real compiler when it compiles
   // preprocessed code:
   //
-  // -finput-charset=XXX (otherwise conversion happens twice)
-  // -x XXX (otherwise the wrong language is selected)
+  // -finput-charset=CHARSET (otherwise conversion happens twice)
+  // -x CHARSET (otherwise the wrong language is selected)
   if (!state.input_charset_option.empty()) {
     state.cpp_args.push_back(state.input_charset_option);
   }
