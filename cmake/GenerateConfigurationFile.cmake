@@ -87,12 +87,6 @@ check_cxx_source_compiles(
   ]=]
   HAVE_AVX2)
 
-list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
-list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES ws2_32)
-
-include(CheckTypeSize)
-check_type_size("long long" HAVE_LONG_LONG)
-
 if(WIN32)
   set(_WIN32_WINNT 0x0600)
 endif()
