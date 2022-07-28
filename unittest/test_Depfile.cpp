@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -38,7 +38,7 @@ TEST_CASE("Depfile::escape_filename")
   CHECK(Depfile::escape_filename("foo$bar") == "foo$$bar");
 }
 
-TEST_CASE("Depfile::rewrite_paths")
+TEST_CASE("Depfile::rewrite_source_paths")
 {
   Context ctx;
 
@@ -46,30 +46,32 @@ TEST_CASE("Depfile::rewrite_paths")
   ctx.has_absolute_include_headers = true;
 
   const auto content =
-    FMT("foo.o: bar.c {0}/bar.h \\\n\n {1}/fie.h {0}/fum.h\n",
+    FMT("{0}/foo.o {0}/foo.o: bar.c {0}/bar.h \\\n\n {1}/fie.h {0}/fum.h\n",
         cwd,
         Util::dir_name(cwd));
 
   SUBCASE("Base directory not in dep file content")
   {
     ctx.config.set_base_dir("/foo/bar");
-    CHECK(!Depfile::rewrite_paths(ctx, ""));
-    CHECK(!Depfile::rewrite_paths(ctx, content));
+    CHECK(!Depfile::rewrite_source_paths(ctx, ""));
+    CHECK(!Depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Base directory in dep file content but not matching")
   {
     ctx.config.set_base_dir(FMT("{}/other", Util::dir_name(cwd)));
-    CHECK(!Depfile::rewrite_paths(ctx, ""));
-    CHECK(!Depfile::rewrite_paths(ctx, content));
+    CHECK(!Depfile::rewrite_source_paths(ctx, ""));
+    CHECK(!Depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Absolute paths under base directory rewritten")
   {
     ctx.config.set_base_dir(cwd);
-    const auto actual = Depfile::rewrite_paths(ctx, content);
-    const auto expected = FMT("foo.o: bar.c ./bar.h \\\n\n {}/fie.h ./fum.h\n",
-                              Util::dir_name(cwd));
+    const auto actual = Depfile::rewrite_source_paths(ctx, content);
+    const auto expected =
+      FMT("{0}/foo.o {0}/foo.o: bar.c ./bar.h \\\n\n {1}/fie.h ./fum.h\n",
+          cwd,
+          Util::dir_name(cwd));
     REQUIRE(actual);
     CHECK(*actual == expected);
   }

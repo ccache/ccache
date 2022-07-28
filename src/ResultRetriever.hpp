@@ -34,7 +34,7 @@ public:
     using core::Error::Error;
   };
 
-  ResultRetriever(Context& ctx, bool rewrite_dependency_target);
+  ResultRetriever(Context& ctx);
 
   void on_entry_start(uint8_t entry_number,
                       Result::FileType file_type,
@@ -54,10 +54,6 @@ private:
   // potentially want to rewrite the dependency target which in theory can span
   // a chunk boundary).
   std::string m_dest_data;
-
-  // Whether to rewrite the first part of the dependency file data to the
-  // destination object file.
-  const bool m_rewrite_dependency_target;
 
   void write_dependency_file();
 };

@@ -37,9 +37,7 @@
 
 using Result::FileType;
 
-ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
-  : m_ctx(ctx),
-    m_rewrite_dependency_target(rewrite_dependency_target)
+ResultRetriever::ResultRetriever(Context& ctx) : m_ctx(ctx)
 {
 }
 
@@ -179,15 +177,17 @@ ResultRetriever::on_entry_end()
 void
 ResultRetriever::write_dependency_file()
 {
+  ASSERT(m_ctx.args_info.dependency_target);
+  const auto& dep_target = *m_ctx.args_info.dependency_target;
+
   try {
     size_t start_pos = 0;
-    if (m_rewrite_dependency_target) {
-      size_t colon_pos = m_dest_data.find(':');
-      if (colon_pos != std::string::npos) {
-        const auto escaped_output_obj =
-          Depfile::escape_filename(m_ctx.args_info.output_obj);
-        Util::write_fd(
-          *m_dest_fd, escaped_output_obj.data(), escaped_output_obj.length());
+    const size_t colon_pos = m_dest_data.find(": ");
+    if (colon_pos != std::string::npos) {
+      const auto obj_in_dep_file =
+        std::string_view(m_dest_data).substr(0, colon_pos);
+      if (obj_in_dep_file != dep_target) {
+        Util::write_fd(*m_dest_fd, dep_target.data(), dep_target.length());
         start_pos = colon_pos;
       }
     }

@@ -60,7 +60,7 @@ escape_filename(std::string_view filename)
 }
 
 std::optional<std::string>
-rewrite_paths(const Context& ctx, const std::string& file_content)
+rewrite_source_paths(const Context& ctx, const std::string& file_content)
 {
   ASSERT(!ctx.config.base_dir().empty());
   ASSERT(ctx.has_absolute_include_headers);
@@ -74,6 +74,8 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
   adjusted_file_content.reserve(file_content.size());
 
   bool content_rewritten = false;
+  bool seen_target_token = false;
+
   using util::Tokenizer;
   for (const auto line : Tokenizer(file_content,
                                    "\n",
@@ -82,13 +84,15 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
     const auto tokens = Util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
       DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
+      DEBUG_ASSERT(!tokens[i].empty());
+
       if (i > 0 || line[0] == ' ' || line[0] == '\t') {
         adjusted_file_content.push_back(' ');
       }
 
       const auto& token = tokens[i];
       bool token_rewritten = false;
-      if (util::is_absolute_path(token)) {
+      if (seen_target_token && util::is_absolute_path(token)) {
         const auto new_path = Util::make_relative_path(ctx, token);
         if (new_path != token) {
           adjusted_file_content.append(new_path);
@@ -99,6 +103,10 @@ rewrite_paths(const Context& ctx, const std::string& file_content)
         content_rewritten = true;
       } else {
         adjusted_file_content.append(token.begin(), token.end());
+      }
+
+      if (tokens[i].back() == ':') {
+        seen_target_token = true;
       }
     }
   }
@@ -132,7 +140,7 @@ make_paths_relative_in_output_dep(const Context& ctx)
     LOG("Cannot open dependency file {}: {}", output_dep, e.what());
     return;
   }
-  const auto new_content = rewrite_paths(ctx, file_content);
+  const auto new_content = rewrite_source_paths(ctx, file_content);
   if (new_content) {
     Util::write_file(output_dep, *new_content);
   } else {

@@ -140,45 +140,43 @@ EOF
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
-    TEST "Calculation of dependency file names"
-
-    i=0
     for ext in .o .obj "" . .foo.bar; do
-        rm -rf testdir
-        mkdir testdir
+        TEST "Calculation of dependency file names, ext=\"${ext}\""
 
+        mkdir testdir
         dep_file=testdir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
 
-        $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
-        expect_stat direct_cache_hit $((3 * i))
-        expect_stat cache_miss $((i + 1))
+        # No -MQ/-MT:
+        $CCACHE_COMPILE -MMD -c test.c -o testdir/test$ext
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+        expect_content_pattern "${dep_file}" "testdir/test${ext}:*"
         rm -f $dep_file
 
-        $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
-        expect_stat direct_cache_hit $((3 * i + 1))
-        expect_stat cache_miss $((i + 1))
-        expect_exists $dep_file
-        if ! grep "test$ext:" $dep_file >/dev/null 2>&1; then
-            test_failed "$dep_file does not contain \"test$ext:\""
-        fi
+        $CCACHE_COMPILE -MMD -c test.c -o testdir/test$ext
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+        expect_content_pattern "${dep_file}" "testdir/test${ext}:*"
 
+        # -MQ:
         dep_target=foo.bar
-        $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
-        expect_stat direct_cache_hit $((3 * i + 1))
-        expect_stat cache_miss $((i + 2))
+        $CCACHE_COMPILE -MMD -MQ $dep_target -c test.c -o testdir/test$ext
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+        expect_content_pattern "${dep_file}" "${dep_target}:*"
         rm -f $dep_target
 
-        $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
-        expect_stat direct_cache_hit $((3 * i + 2))
-        expect_stat cache_miss $((i + 2))
-        expect_exists $dep_file
-        if ! grep $dep_target $dep_file >/dev/null 2>&1; then
-            test_failed "$dep_file does not contain $dep_target"
-        fi
+        $CCACHE_COMPILE -MMD -MQ $dep_target -c test.c -o testdir/test$ext
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+        expect_content_pattern "${dep_file}" "${dep_target}:*"
 
-        i=$((i + 1))
+        dep_target=foo.bar
+        $CCACHE_COMPILE -MMD -MQ $dep_target -c test.c -o testdir/test$ext
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 2
+        expect_content_pattern "${dep_file}" "${dep_target}:*"
     done
-    expect_stat files_in_cache $((2 * i + 2))
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
@@ -196,16 +194,28 @@ EOF
     expect_content a/source.d "a/source.o: a/source.c"
 
     # -------------------------------------------------------------------------
-    for dep_args in "-MMD" "-MMD -MF foo.d" "-Wp,-MMD,foo.d"; do
-        for obj_args in "" "-o bar.o"; do
-            if [ "$dep_args" != "-MMD" ]; then
-                dep_file=foo.d
-                another_dep_file=foo.d
-            elif [ -z "$obj_args" ]; then
-                dep_file=test.d
+    dep_args_combinations=(
+        "-MMD"
+        "-MMD -MF a.d -MF mf.d"
+        "-MFmf.d -MMD"
+        "-MMD -Wp,-MMD,wp.d"
+        "-Wp,-MMD,wp.d -MMD"
+        "-MT foo.o -Wp,-MMD,wp.d"
+        "-MQ foo.o -Wp,-MMD,wp.d"
+    )
+    for dep_args in "${dep_args_combinations[@]}"; do
+        for obj_args in "" "-o obj.o"; do
+            if [[ ${dep_args} == *-Wp,* ]]; then
+                dep_file=wp.d
+                another_dep_file=wp.d
+            elif [[ ${dep_args} == *-MF* ]]; then
+                dep_file=mf.d
+                another_dep_file=mf.d
+            elif [[ -n ${obj_args} ]]; then
+                dep_file=obj.d
                 another_dep_file=another.d
             else
-                dep_file=bar.d
+                dep_file=test.d
                 another_dep_file=another.d
             fi
 
@@ -213,28 +223,42 @@ EOF
             # -----------------------------------------------------------------
 
             $COMPILER -c test.c $dep_args $obj_args
-            mv $dep_file $dep_file.real
+            mv $dep_file $dep_file.reference
 
             $COMPILER -c test.c $dep_args -o another.o
-            mv $another_dep_file another.d.real
+            mv $another_dep_file another.d.reference
 
             # cache miss
             $CCACHE_COMPILE -c test.c $dep_args $obj_args
             expect_stat direct_cache_hit 0
             expect_stat cache_miss 1
-            expect_equal_content $dep_file.real $dep_file
+            expect_equal_content $dep_file.reference $dep_file
 
             # cache hit
             $CCACHE_COMPILE -c test.c $dep_args $obj_args
             expect_stat direct_cache_hit 1
             expect_stat cache_miss 1
-            expect_equal_content $dep_file.real $dep_file
+            expect_equal_content $dep_file.reference $dep_file
 
             # change object file name
             $CCACHE_COMPILE -c test.c $dep_args -o another.o
-            expect_equal_content another.d.real $another_dep_file
+            expect_stat direct_cache_hit 2
+            expect_stat cache_miss 1
+            expect_equal_content another.d.reference $another_dep_file
         done
     done
+
+    # -----------------------------------------------------------------
+    TEST "Unsupported -Wp,-MMD with -o without -MMD/-MT/-MQ"
+
+    $CCACHE_COMPILE -c test.c -Wp,-MMD,wp.d -o object.o
+    expect_stat unsupported_compiler_option 1
+
+    # -----------------------------------------------------------------
+    TEST "Unsupported -Wp,-MMD with -MF"
+
+    $CCACHE_COMPILE -c test.c -Wp,-MMD,wp.d -MF mf.d -o object.o
+    expect_stat unsupported_compiler_option 1
 
     # -------------------------------------------------------------------------
     TEST "-MD/-MMD dependency target rewriting"
@@ -608,6 +632,89 @@ EOF
     expect_stat cache_miss 2
     expect_stat files_in_cache 4
     expect_equal_content test.d expected.d
+
+    # -------------------------------------------------------------------------
+    TEST "Handling of -MT/-MQ"
+
+    echo '#include "test3.h"' >test.c
+
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content test.d "test.o: test.c test3.h"
+
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_content test.d "test.o: test.c test3.h"
+
+    # -MQ
+
+    $CCACHE_COMPILE -MMD -MQ '$mq1' -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_content test.d '$$mq1: test.c test3.h'
+
+    $CCACHE_COMPILE -MMD -MQ '$mq2' -c test.c
+    expect_stat direct_cache_hit 2 # New dependency target but still a cache hit
+    expect_stat cache_miss 2
+    expect_content test.d '$$mq2: test.c test3.h'
+
+    # -MT
+
+    $CCACHE_COMPILE -MMD -MT '$mt1' -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
+    expect_content test.d '$mt1: test.c test3.h'
+
+    $CCACHE_COMPILE -MMD -MT '$mt2' -c test.c
+    expect_stat direct_cache_hit 3 # New dependency target but still a cache hit
+    expect_stat cache_miss 3
+    expect_content test.d '$mt2: test.c test3.h'
+
+    # -MQ -MT
+
+    $CCACHE_COMPILE -MMD -MQ '$mq1' -MT '$mt1' -c test.c
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 4
+    content=$(<test.d)
+    expected_1='$$mq1 $mt1: test.c test3.h'
+    expected_2='$mt1 $$mq1: test.c test3.h'
+    if [[ $content != "${expected_1}" && $content != "${expected_2}" ]]; then
+        test_failed "Bad content of test.d\nExpected: ${expected_1} or ${expected_2}\nActual: ${content}"
+    fi
+
+    $CCACHE_COMPILE -MMD -MQ '$mq2' -MT '$mt2' -c test.c
+    expect_stat direct_cache_hit 4 # New dependency targets but still a cache hit
+    expect_stat cache_miss 4
+    content=$(<test.d)
+    expected_1='$$mq2 $mt2: test.c test3.h'
+    expected_2='$mt2 $$mq2: test.c test3.h'
+    if [[ $content != "${expected_1}" && $content != "${expected_2}" ]]; then
+        test_failed "Bad content of test.d\nExpected: ${expected_1} or ${expected_2}\nActual: ${content}"
+    fi
+
+    # -MQ -MT -Wp,-MMD,
+
+    $CCACHE_COMPILE -MMD -MQ '$mq1' -MT '$mt1' -Wp,-MMD,foo.d -c test.c
+    expect_stat direct_cache_hit 4
+    expect_stat cache_miss 5
+    content=$(<foo.d)
+    expected_1='$$mq1 $mt1: test.c test3.h'
+    expected_2='$mt1 $$mq1: test.c test3.h'
+    if [[ $content != "${expected_1}" && $content != "${expected_2}" ]]; then
+        test_failed "Bad content of foo.d\nExpected: ${expected_1} or ${expected_2}\nActual: ${content}"
+    fi
+
+    $CCACHE_COMPILE -MMD -MQ '$mq2' -MT '$mt2' -Wp,-MMD,foo.d -c test.c
+    expect_stat direct_cache_hit 5 # New dependency targets but still a cache hit
+    expect_stat cache_miss 5
+    content=$(<foo.d)
+    expected_1='$$mq2 $mt2: test.c test3.h'
+    expected_2='$mt2 $$mq2: test.c test3.h'
+    if [[ $content != "${expected_1}" && $content != "${expected_2}" ]]; then
+        test_failed "Bad content of test.d\nExpected: ${expected_1} or ${expected_2}\nActual: ${content}"
+    fi
 
     # -------------------------------------------------------------------------
     TEST "stderr from both preprocessor and compiler"

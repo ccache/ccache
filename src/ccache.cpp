@@ -1004,13 +1004,6 @@ to_cache(Context& ctx,
     args.push_back(ctx.args_info.output_dia);
   }
 
-  // Turn off DEPENDENCIES_OUTPUT when running cc1, because otherwise it will
-  // emit a line like this:
-  //
-  //   tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
-  Util::unsetenv("DEPENDENCIES_OUTPUT");
-  Util::unsetenv("SUNPRO_DEPENDENCIES");
-
   if (ctx.config.run_second_cpp()) {
     args.push_back(ctx.args_info.input_file);
   } else {
@@ -1288,12 +1281,6 @@ hash_nvcc_host_compiler(const Context& ctx,
   return {};
 }
 
-static bool
-should_rewrite_dependency_target(const ArgsInfo& args_info)
-{
-  return !args_info.dependency_target_specified && args_info.seen_MD_MMD;
-}
-
 // update a hash with information common for the direct and preprocessor modes.
 static nonstd::expected<void, Failure>
 hash_common_info(const Context& ctx,
@@ -1397,12 +1384,7 @@ hash_common_info(const Context& ctx,
     hash.hash(output_obj_dir);
   }
 
-  if ((!should_rewrite_dependency_target(ctx.args_info)
-       && ctx.args_info.generating_dependencies)
-      || ctx.args_info.seen_split_dwarf || ctx.args_info.profile_arcs) {
-    // If generating dependencies: The output object file name is part of the .d
-    // file, so include the path in the hash.
-    //
+  if (ctx.args_info.seen_split_dwarf || ctx.args_info.profile_arcs) {
     // When using -gsplit-dwarf: Object files include a link to the
     // corresponding .dwo file based on the target object filename, so hashing
     // the object file path will do it, although just hashing the object file
@@ -1524,6 +1506,24 @@ option_should_be_ignored(const std::string& arg,
     });
 }
 
+static std::tuple<std::optional<std::string_view>,
+                  std::optional<std::string_view>>
+get_option_and_value(std::string_view option, const Args& args, size_t& i)
+{
+  if (args[i] == option) {
+    if (i + 1 < args.size()) {
+      ++i;
+      return {option, args[i]};
+    } else {
+      return {std::nullopt, std::nullopt};
+    }
+  } else if (util::starts_with(args[i], option)) {
+    return {option, std::string_view(args[i]).substr(option.length())};
+  } else {
+    return {std::nullopt, std::nullopt};
+  }
+}
+
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result key. Returns the result key on success, and
 // if direct_mode is true also the manifest key.
@@ -1613,10 +1613,12 @@ calculate_result_and_manifest_key(Context& ctx,
       }
     }
 
-    // If we're generating dependencies, we make sure to skip the filename of
-    // the dependency file, since it doesn't impact the output.
     if (ctx.args_info.generating_dependencies) {
+      std::optional<std::string_view> option;
+      std::optional<std::string_view> value;
+
       if (util::starts_with(args[i], "-Wp,")) {
+        // Skip the dependency filename since it doesn't impact the output.
         if (util::starts_with(args[i], "-Wp,-MD,")
             && args[i].find(',', 8) == std::string::npos) {
           hash.hash(args[i].data(), 8);
@@ -1626,18 +1628,22 @@ calculate_result_and_manifest_key(Context& ctx,
           hash.hash(args[i].data(), 9);
           continue;
         }
-      } else if (util::starts_with(args[i], "-MF")) {
-        // In either case, hash the "-MF" part.
-        hash.hash_delimiter("arg");
-        hash.hash(args[i].data(), 3);
-
-        if (ctx.args_info.output_dep != "/dev/null") {
-          bool separate_argument = (args[i].size() == 3);
-          if (separate_argument) {
-            // Next argument is dependency name, so skip it.
-            i++;
-          }
-        }
+      } else if (std::tie(option, value) = get_option_and_value("-MF", args, i);
+                 option) {
+        // Skip the dependency filename since it doesn't impact the output.
+        hash.hash(*option);
+        continue;
+      } else if (std::tie(option, value) = get_option_and_value("-MQ", args, i);
+                 option) {
+        hash.hash(*option);
+        // No need to hash the dependency target since we always calculate it on
+        // a cache hit.
+        continue;
+      } else if (std::tie(option, value) = get_option_and_value("-MT", args, i);
+                 option) {
+        hash.hash(*option);
+        // No need to hash the dependency target since we always calculate it on
+        // a cache hit.
         continue;
       }
     }
@@ -1921,8 +1927,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     core::FileReader file_reader(file.get());
     core::CacheEntryReader cache_entry_reader(file_reader);
     Result::Reader result_reader(cache_entry_reader, *result_path);
-    ResultRetriever result_retriever(
-      ctx, should_rewrite_dependency_target(ctx.args_info));
+    ResultRetriever result_retriever(ctx);
 
     result_reader.read(result_retriever);
   } catch (ResultRetriever::WriteError& e) {
@@ -2199,6 +2204,13 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   TRY(set_up_uncached_err());
 
+  for (const auto& name : {"DEPENDENCIES_OUTPUT", "SUNPRO_DEPENDENCIES"}) {
+    if (getenv(name)) {
+      LOG("Unsupported environment variable: {}", name);
+      return Statistic::unsupported_environment_variable;
+    }
+  }
+
   if (ctx.config.is_compiler_group_msvc()) {
     for (const auto& name : {"CL", "_CL_"}) {
       if (getenv(name)) {
@@ -2255,7 +2267,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   if (ctx.config.debug()) {
     const auto path = prepare_debug_path(ctx.config.debug_dir(),
                                          ctx.time_of_invocation,
-                                         ctx.args_info.output_obj,
+                                         ctx.args_info.orig_output_obj,
                                          "input-text");
     File debug_text_file(path, "w");
     if (debug_text_file) {

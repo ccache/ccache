@@ -370,7 +370,9 @@ reset_environment() {
         fi
     done < <(compgen -e)
 
+    unset DEPENDENCIES_OUTPUT
     unset GCC_COLORS
+    unset SUNPRO_DEPENDENCIES
     unset TERM
     unset XDG_CACHE_HOME
     unset XDG_CONFIG_HOME

@@ -115,8 +115,8 @@ TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
 {
   TestContext test_context;
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
   ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
   Util::write_file("foo.c", "");
@@ -134,8 +134,8 @@ TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
 {
   TestContext test_context;
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
   ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
   Util::write_file("foo.c", "");
@@ -157,8 +157,8 @@ TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
     " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."
     " -trigraphs -fworking-directory -fno-working-directory";
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
   ctx.orig_args =
     Args::from_string("cc " + cpp_args + " " + dep_args + " -c foo.c -o foo.o");
@@ -184,8 +184,7 @@ TEST_CASE(
     " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."
     " -trigraphs -fworking-directory -fno-working-directory";
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2";
   Context ctx;
   ctx.orig_args =
     Args::from_string("cc " + cpp_args + " " + dep_args + " -c foo.c -o foo.o");

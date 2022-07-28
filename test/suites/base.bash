@@ -175,6 +175,15 @@ base_tests() {
     expect_stat unsupported_compiler_option 1
 
     # -------------------------------------------------------------------------
+    for variable in DEPENDENCIES_OUTPUT SUNPRO_DEPENDENCIES; do
+        TEST "Unsupported environment variable ${variable}"
+
+        eval "export ${variable}=1"
+        $CCACHE_COMPILE -c test1.c
+        expect_stat unsupported_environment_variable 1
+    done
+
+    # -------------------------------------------------------------------------
     TEST "Output to directory"
 
     mkdir testd
@@ -1451,13 +1460,12 @@ EOF
     rm compiler.args
 
     # -------------------------------------------------------------------------
-    TEST "Dependency file content"
-
-    mkdir build
-    cp test1.c build
 
     for src in test1.c build/test1.c; do
         for obj in test1.o build/test1.o; do
+            TEST "Dependency file content, $src -o $obj"
+            mkdir build
+            cp test1.c build
             $CCACHE_COMPILE -c -MMD $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
             expect_content $dep "$obj: $src"

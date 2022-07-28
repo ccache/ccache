@@ -219,22 +219,44 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
-    TEST "-MF/-MQ/-MT with absolute paths"
+    for option in MF "MF "; do
+        TEST "-${option}/absolute/path"
 
-    for option in MF "MF " MQ "MQ " MT "MT "; do
-        clear_cache
         cd dir1
-        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.d" -c src/test.c
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
+        expect_content_pattern foo.d "test.o:*"
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.d" -c src/test.c
         expect_stat direct_cache_hit 1
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
+        expect_content_pattern foo.d "test.o:*"
+        cd ..
+    done
+
+    # -------------------------------------------------------------------------
+    for option in MQ "MQ " MT "MT "; do
+        TEST "-${option}/absolute/path"
+
+        cd dir1
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.o" -c src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_content_pattern test.d "$(pwd)/foo.o:*"
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.o" -c src/test.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_content_pattern test.d "$(pwd)/foo.o:*"
         cd ..
     done
 
@@ -253,10 +275,10 @@ EOF
         expect_stat cache_miss 1
         # Check that there is no absolute path in the dependency file:
         while read line; do
-            for file in $line; do
-                case $file in /*)
-                    test_failed "Absolute file path '$file' found in dependency file '`pwd`/test.d'"
-                esac
+            for token in $line; do
+                if [[ $token == /* && $token != *: ]]; then
+                    test_failed "Absolute file path '$token' found in dependency file '$(pwd)/test.d'"
+                fi
             done
         done <test.d
         cd ..
@@ -343,4 +365,36 @@ EOF
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "Object token path in dependency file"
+
+    cd dir1
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c src/test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content_pattern test.d "test.o:*"
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c src/test.c -o test.o
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains test.d test.o:
+    expect_content_pattern test.d "test.o:*"
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c src/test.c -o $(pwd)/test.o
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains test.d test.o:
+    expect_content_pattern test.d "$(pwd)/test.o:*"
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c $(pwd)/src/test.c
+    expect_stat direct_cache_hit 3
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains test.d test.o:
+    expect_content_pattern test.d "test.o:*"
 }

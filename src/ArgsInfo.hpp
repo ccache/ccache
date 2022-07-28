@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include "Args.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,6 +28,9 @@
 struct ArgsInfo
 {
   // The source file path.
+  std::string orig_input_file;
+
+  // The source file path, potentially rewritten into relative.
   std::string input_file;
 
   // The source file path run through Util::normalize_concrete_absolute_path.
@@ -38,9 +42,13 @@ struct ArgsInfo
   bool expect_output_obj = true;
 
   // The output file being compiled to.
+  std::string orig_output_obj;
+
+  // The output file being compiled to, potentially rewritten into relative.
   std::string output_obj;
 
-  // The path to the dependency file (implicit or specified with -MF).
+  // The path to the dependency file (implicit or specified with -MFdepfile,
+  // -Wp,-MD,depfile or -Wp,-MMD,depfile).
   std::string output_dep;
 
   // The path to the stack usage (implicit when using -fstack-usage).
@@ -64,11 +72,9 @@ struct ArgsInfo
   // Is the compiler being asked to output dependencies?
   bool generating_dependencies = false;
 
-  // Seen -MD or -MMD?
-  bool seen_MD_MMD = false;
-
-  // Is the dependency makefile target name specified with -MT or -MQ?
-  bool dependency_target_specified = false;
+  // The dependency target in the dependency file (the object file unless
+  // overridden via e.g. -MT or -MQ).
+  std::optional<std::string> dependency_target;
 
   // Is the compiler being asked to output coverage?
   bool generating_coverage = false;
