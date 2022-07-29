@@ -32,8 +32,6 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 
-#include <algorithm>
-
 extern "C" {
 #include "third_party/base32hex.h"
 }
@@ -47,12 +45,6 @@ extern "C" {
 #endif
 
 #include <fcntl.h>
-
-#include <algorithm>
-#include <climits>
-#include <codecvt>
-#include <fstream>
-#include <locale>
 
 #ifndef HAVE_DIRENT_H
 #  include <filesystem>
@@ -95,6 +87,12 @@ extern "C" {
 #    endif
 #  endif
 #endif
+
+#include <algorithm>
+#include <climits>
+#include <codecvt>
+#include <fstream>
+#include <locale>
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
