@@ -415,11 +415,16 @@ process_main_options(int argc, const char* const* argv)
     case CHECKSUM_FILE: {
       util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
-      Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
-        checksum.update(data, size);
-      });
-      const auto digest = checksum.digest();
-      PRINT(stdout, "{}\n", Util::format_base16(digest.bytes(), digest.size()));
+      if (fd) {
+        Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
+          checksum.update(data, size);
+        });
+        const auto digest = checksum.digest();
+        PRINT(
+          stdout, "{}\n", Util::format_base16(digest.bytes(), digest.size()));
+      } else {
+        PRINT(stderr, "Error: Failed to checksum {}\n", arg);
+      }
       break;
     }
 
@@ -449,12 +454,14 @@ process_main_options(int argc, const char* const* argv)
 
     case HASH_FILE: {
       Hash hash;
-      if (arg == "-") {
-        hash.hash_fd(STDIN_FILENO);
+      const bool ok =
+        arg == "-" ? hash.hash_fd(STDIN_FILENO) : hash.hash_file(arg);
+      if (ok) {
+        PRINT(stdout, "{}\n", hash.digest().to_string());
       } else {
-        hash.hash_file(arg);
+        PRINT(stderr, "Error: Failed to hash {}\n", arg);
+        return EXIT_FAILURE;
       }
-      PRINT(stdout, "{}\n", hash.digest().to_string());
       break;
     }
 
