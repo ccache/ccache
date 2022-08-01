@@ -46,10 +46,6 @@ extern "C" {
 
 #include <fcntl.h>
 
-#ifndef HAVE_DIRENT_H
-#  include <filesystem>
-#endif
-
 #ifdef HAVE_PWD_H
 #  include <pwd.h>
 #endif
@@ -663,26 +659,28 @@ get_extension(std::string_view path)
 std::string
 get_home_directory()
 {
-  const char* p = getenv("HOME");
-  if (p) {
-    return p;
-  }
 #ifdef _WIN32
-  p = getenv("APPDATA");
-  if (p) {
+  if (const char* p = getenv("USERPROFILE")) {
     return p;
   }
-#endif
-#ifdef HAVE_GETPWUID
+  throw core::Fatal(
+    "The USERPROFILE environment variable must be set to your user profile "
+    "folder");
+#else
+  if (const char* p = getenv("HOME")) {
+    return p;
+  }
+#  ifdef HAVE_GETPWUID
   {
     struct passwd* pwd = getpwuid(getuid());
     if (pwd) {
       return pwd->pw_dir;
     }
   }
-#endif
+#  endif
   throw core::Fatal(
     "Could not determine home directory from $HOME or getpwuid(3)");
+#endif
 }
 
 const char*

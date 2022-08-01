@@ -75,7 +75,8 @@ include(DefaultBuildType)
 #
 # Configuration
 #
-include(GNUInstallDirs)
+
+include(InstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 

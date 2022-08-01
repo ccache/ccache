@@ -22,6 +22,7 @@
 #include <util/Tokenizer.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <ios>
 #include <memory>
@@ -244,6 +245,15 @@ bool is_precompiled_header(std::string_view path);
 // Thread-safe version of `localtime(3)`. If `time` is not specified the current
 // time of day is used.
 std::optional<tm> localtime(std::optional<time_t> time = {});
+
+// Construct a normalized native path, used like:
+// std::string path = Util::make_path("usr", "local", "bin");
+template<typename... T>
+std::string
+make_path(const T&... args)
+{
+  return (std::filesystem::path{} / ... / args).lexically_normal().string();
+}
 
 // Make a relative path from current working directory (either `actual_cwd` or
 // `apparent_cwd`) to `path` if `path` is under `base_dir`.
