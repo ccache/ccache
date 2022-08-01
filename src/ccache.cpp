@@ -553,9 +553,6 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       }
       // p and q span the include file path.
       std::string inc_path(p, q - p);
-      if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = util::is_absolute_path(inc_path);
-      }
       inc_path = Util::normalize_concrete_absolute_path(inc_path);
       inc_path = Util::make_relative_path(ctx, inc_path);
 
@@ -638,9 +635,6 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   for (string_view token : Depfile::tokenize(file_content)) {
     if (token.ends_with(":")) {
       continue;
-    }
-    if (!ctx.has_absolute_include_headers) {
-      ctx.has_absolute_include_headers = util::is_absolute_path(token);
     }
     std::string path = Util::make_relative_path(ctx, token);
     remember_include_file(ctx, path, hash, false, &hash);
