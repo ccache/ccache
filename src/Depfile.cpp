@@ -63,7 +63,6 @@ std::optional<std::string>
 rewrite_source_paths(const Context& ctx, const std::string& file_content)
 {
   ASSERT(!ctx.config.base_dir().empty());
-  ASSERT(ctx.has_absolute_include_headers);
 
   // Fast path for the common case:
   if (file_content.find(ctx.config.base_dir()) == std::string::npos) {
@@ -124,11 +123,6 @@ make_paths_relative_in_output_dep(const Context& ctx)
 {
   if (ctx.config.base_dir().empty()) {
     LOG_RAW("Base dir not set, skip using relative paths");
-    return; // nothing to do
-  }
-  if (!ctx.has_absolute_include_headers) {
-    LOG_RAW(
-      "No absolute path for included files found, skip using relative paths");
     return; // nothing to do
   }
 

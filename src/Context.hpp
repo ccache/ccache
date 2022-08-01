@@ -77,9 +77,6 @@ public:
   // Files included by the preprocessor and their hashes.
   std::unordered_map<std::string, Digest> included_files;
 
-  // Uses absolute path for some include files.
-  bool has_absolute_include_headers = false;
-
   // Have we tried and failed to get colored diagnostics?
   bool diagnostics_color_failed = false;
 

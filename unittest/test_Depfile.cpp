@@ -43,7 +43,6 @@ TEST_CASE("Depfile::rewrite_source_paths")
   Context ctx;
 
   const auto cwd = ctx.actual_cwd;
-  ctx.has_absolute_include_headers = true;
 
   const auto content =
     FMT("{0}/foo.o {0}/foo.o: bar.c {0}/bar.h \\\n\n {1}/fie.h {0}/fum.h\n",
