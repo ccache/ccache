@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -96,11 +96,13 @@ public:
   // Returns true on success, otherwise false.
   bool hash_file(const std::string& path);
 
+  // Add `text` to the text debug file.
+  void add_debug_text(std::string_view text);
+
 private:
   blake3_hasher m_hasher;
   FILE* m_debug_binary = nullptr;
   FILE* m_debug_text = nullptr;
 
   void hash_buffer(std::string_view buffer);
-  void add_debug_text(std::string_view text);
 };
