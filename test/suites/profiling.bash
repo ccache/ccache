@@ -157,36 +157,36 @@ SUITE_profiling() {
     # check that the compiler doesn't warn about not finding the profile data.
 
     # -------------------------------------------------------------------------
-    TEST "-ftest-coverage with -fprofile-dir"
+    if $COMPILER_TYPE_GCC; then
+        # GCC 9 and newer creates a mangled .gcno filename (still in the current
+        # working directory) if -fprofile-dir is given.
+        for flag in "" -fprofile-dir=dir; do
+            for dir in . subdir; do
+                TEST "-ftest-coverage with -fprofile-dir=$flag, dir=$dir"
+                $CCACHE -z >/dev/null
 
-    # GCC 9 and newer creates a mangled .gcno filename (still in the current
-    # working directory) if -fprofile-dir is given.
+                mkdir -p "$dir"
+                touch "$dir/test.c"
+                find -name '*.gcno' -delete
 
-    for flag in "" -fprofile-dir=dir; do
-        for dir in . subdir; do
-            $CCACHE -z >/dev/null
+                $COMPILER $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+                gcno_name=$(find -name '*.gcno')
+                rm "$gcno_name"
 
-            mkdir -p "$dir"
-            touch "$dir/test.c"
-            find -name '*.gcno' -delete
+                $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+                expect_stat direct_cache_hit 0
+                expect_stat cache_miss 1
+                expect_exists "$gcno_name"
+                rm "$gcno_name"
 
-            $COMPILER $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
-            gcno_name=$(find -name '*.gcno')
-            rm "$gcno_name"
-
-            $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
-            expect_stat direct_cache_hit 0
-            expect_stat cache_miss 1
-            expect_exists "$gcno_name"
-            rm "$gcno_name"
-
-            $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
-            expect_stat direct_cache_hit 1
-            expect_stat cache_miss 1
-            expect_exists "$gcno_name"
-            rm "$gcno_name"
+                $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+                expect_stat direct_cache_hit 1
+                expect_stat cache_miss 1
+                expect_exists "$gcno_name"
+                rm "$gcno_name"
+            done
         done
-    done
+    fi
 
     # -------------------------------------------------------------------------
     TEST "-fprofile-arcs for different object file paths"
