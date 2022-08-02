@@ -1424,7 +1424,7 @@ hash_common_info(const Context& ctx,
   // Possibly hash the sanitize blacklist file path.
   for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
     LOG("Hashing sanitize blacklist {}", sanitize_blacklist);
-    hash.hash("sanitizeblacklist");
+    hash.hash_delimiter("sanitizeblacklist");
     if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
       return nonstd::make_unexpected(Statistic::error_hashing_extra_file);
     }
