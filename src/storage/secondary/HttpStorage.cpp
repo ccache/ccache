@@ -103,8 +103,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
       throw core::Fatal("Expected username:password in URL but got \"{}\"",
                         params.url.user_info());
     }
-    m_http_client.set_basic_auth(std::string(user).c_str(),
-                                 std::string(*password).c_str());
+    m_http_client.set_basic_auth(std::string(user), std::string(*password));
   }
 
   m_http_client.set_default_headers({
@@ -117,7 +116,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
 
   for (const auto& attr : params.attributes) {
     if (attr.key == "bearer-token") {
-      m_http_client.set_bearer_token_auth(attr.value.c_str());
+      m_http_client.set_bearer_token_auth(attr.value);
     } else if (attr.key == "connect-timeout") {
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "keep-alive") {
@@ -148,7 +147,7 @@ nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
-  const auto result = m_http_client.Get(url_path.c_str());
+  const auto result = m_http_client.Get(url_path);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to get {} from http storage: {} ({})",
@@ -174,7 +173,7 @@ HttpStorageBackend::put(const Digest& key,
   const auto url_path = get_entry_path(key);
 
   if (only_if_missing) {
-    const auto result = m_http_client.Head(url_path.c_str());
+    const auto result = m_http_client.Head(url_path);
 
     if (result.error() != httplib::Error::Success || !result) {
       LOG("Failed to check for {} in http storage: {} ({})",
@@ -193,8 +192,8 @@ HttpStorageBackend::put(const Digest& key,
   }
 
   static const auto content_type = "application/octet-stream";
-  const auto result = m_http_client.Put(
-    url_path.c_str(), value.data(), value.size(), content_type);
+  const auto result =
+    m_http_client.Put(url_path, value.data(), value.size(), content_type);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to put {} to http storage: {} ({})",
@@ -218,7 +217,7 @@ nonstd::expected<bool, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::remove(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
-  const auto result = m_http_client.Delete(url_path.c_str());
+  const auto result = m_http_client.Delete(url_path);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to delete {} from http storage: {} ({})",
