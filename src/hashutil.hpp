@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,7 @@
 
 class Config;
 class Context;
+class Digest;
 class Hash;
 
 const int HASH_SOURCE_CODE_OK = 0;
@@ -40,20 +41,24 @@ const int HASH_SOURCE_CODE_FOUND_TIMESTAMP = (1 << 3);
 // appropriately.
 int check_for_temporal_macros(std::string_view str);
 
-// Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
-int hash_source_code_string(const Context& ctx,
-                            Hash& hash,
-                            std::string_view str,
-                            const std::string& path);
-
-// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
-// results.
+// Hash a source code file using the inode cache if enabled. Returns a bitmask
+// of HASH_SOURCE_CODE_* results.
 int hash_source_code_file(const Context& ctx,
-                          Hash& hash,
+                          Digest& digest,
                           const std::string& path,
                           size_t size_hint = 0);
 
-// Hash a binary file using the inode cache if enabled.
+// Hash a binary file (using the inode cache if enabled) and put its digest in
+// `digest`
+//
+// Returns true on success, otherwise false.
+bool hash_binary_file(const Context& ctx,
+                      Digest& digest,
+                      const std::string& path,
+                      size_t size_hint = 0);
+
+// Hash a binary file (using the inode cache if enabled) and hash the digest to
+// `hash`.
 //
 // Returns true on success, otherwise false.
 bool hash_binary_file(const Context& ctx, Hash& hash, const std::string& path);

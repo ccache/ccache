@@ -70,16 +70,10 @@ static_assert(std::is_trivially_copyable<Digest>::value,
               "Digest is expected to be trivially copyable.");
 
 static_assert(
-  static_cast<int>(InodeCache::ContentType::binary) == 0,
+  static_cast<int>(InodeCache::ContentType::raw) == 0,
   "Numeric value is part of key, increment version number if changed.");
 static_assert(
-  static_cast<int>(InodeCache::ContentType::code) == 1,
-  "Numeric value is part of key, increment version number if changed.");
-static_assert(
-  static_cast<int>(InodeCache::ContentType::code_with_sloppy_time_macros) == 2,
-  "Numeric value is part of key, increment version number if changed.");
-static_assert(
-  static_cast<int>(InodeCache::ContentType::precompiled_header) == 3,
+  static_cast<int>(InodeCache::ContentType::checked_for_temporal_macros) == 1,
   "Numeric value is part of key, increment version number if changed.");
 
 const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here

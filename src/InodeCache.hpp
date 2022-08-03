@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -29,21 +29,23 @@ class Digest;
 class InodeCache
 {
 public:
-  // Specifies in which role a file was hashed, since the hash result does not
-  // only depend on the actual content but also what we used it for. Source code
-  // files are scanned for macros while binary files are not as one example.
+  // Specifies in which mode a file was hashed since the hash result does not
+  // only depend on the actual content but also on operations that were
+  // performed that affect the return value. For example, source code files are
+  // normally scanned for macros while binary files are not.
   enum class ContentType {
-    binary = 0,
-    code = 1,
-    code_with_sloppy_time_macros = 2,
-    precompiled_header = 3,
+    // The file was not scanned for temporal macros.
+    raw = 0,
+    // The file was checked for temporal macros (see check_for_temporal_macros
+    // in hashutil).
+    checked_for_temporal_macros = 1,
   };
 
   InodeCache(const Config& config);
   ~InodeCache();
 
   // Get saved hash digest and return value from a previous call to
-  // hash_source_code_file().
+  // do_hash_file() in hashutil.cpp.
   //
   // Returns true if saved values could be retrieved from the cache, false
   // otherwise.
@@ -52,8 +54,8 @@ public:
            Digest& file_digest,
            int* return_value = nullptr);
 
-  // Put hash digest and return value from a successful call to
-  // hash_source_code_file().
+  // Put hash digest and return value from a successful call to do_hash_file()
+  // in hashutil.cpp.
   //
   // Returns true if values could be stored in the cache, false otherwise.
   bool put(const std::string& path,

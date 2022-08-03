@@ -388,8 +388,8 @@ Manifest::result_matches(
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      Hash hash;
-      int ret = hash_source_code_file(ctx, hash, path, fs.size);
+      Digest actual_digest;
+      int ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
       if (ret & HASH_SOURCE_CODE_ERROR) {
         LOG("Failed hashing {}", path);
         return false;
@@ -398,8 +398,7 @@ Manifest::result_matches(
         return false;
       }
 
-      Digest actual = hash.digest();
-      hashed_files_iter = hashed_files.emplace(path, actual).first;
+      hashed_files_iter = hashed_files.emplace(path, actual_digest).first;
     }
 
     if (fi.digest != hashed_files_iter->second) {
