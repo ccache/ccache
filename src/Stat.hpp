@@ -270,6 +270,8 @@ Stat::atim() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_ATIM)
   return m_stat.st_atim;
+#elif defined(HAVE_STRUCT_STAT_ST_ATIMESPEC)
+  return m_stat.st_atimespec;
 #else
   return {m_stat.st_atime, 0};
 #endif
@@ -280,6 +282,8 @@ Stat::ctim() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_CTIM)
   return m_stat.st_ctim;
+#elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+  return m_stat.st_ctimespec;
 #else
   return {m_stat.st_ctime, 0};
 #endif
@@ -290,6 +294,8 @@ Stat::mtim() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_MTIM)
   return m_stat.st_mtim;
+#elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+  return m_stat.st_mtimespec;
 #else
   return {m_stat.st_mtime, 0};
 #endif

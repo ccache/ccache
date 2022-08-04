@@ -284,6 +284,9 @@ TEST_CASE("Return values when file exists")
 #  ifdef HAVE_STRUCT_STAT_ST_CTIM
   CHECK(stat.ctim().tv_sec == st.st_ctim.tv_sec);
   CHECK(stat.ctim().tv_nsec == st.st_ctim.tv_nsec);
+#  elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+  CHECK(stat.ctim().tv_sec == st.st_ctimespec.tv_sec);
+  CHECK(stat.ctim().tv_nsec == st.st_ctimespec.tv_nsec);
 #  else
   CHECK(stat.ctim().tv_sec == st.st_ctime);
   CHECK(stat.ctim().tv_nsec == 0);
@@ -292,6 +295,9 @@ TEST_CASE("Return values when file exists")
 #  ifdef HAVE_STRUCT_STAT_ST_MTIM
   CHECK(stat.mtim().tv_sec == st.st_mtim.tv_sec);
   CHECK(stat.mtim().tv_nsec == st.st_mtim.tv_nsec);
+#  elif defined(HAVE_STRUCT_STAT_ST_MTIMESPEC)
+  CHECK(stat.mtim().tv_sec == st.st_mtimespec.tv_sec);
+  CHECK(stat.mtim().tv_nsec == st.st_mtimespec.tv_nsec);
 #  else
   CHECK(stat.mtim().tv_sec == st.st_mtime);
   CHECK(stat.mtim().tv_nsec == 0);

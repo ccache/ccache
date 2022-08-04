@@ -90,17 +90,9 @@ struct InodeCache::Key
   dev_t st_dev;
   ino_t st_ino;
   mode_t st_mode;
-#ifdef HAVE_STRUCT_STAT_ST_MTIM
   timespec st_mtim;
-#else
-  time_t st_mtim;
-#endif
-#ifdef HAVE_STRUCT_STAT_ST_CTIM
   timespec st_ctim; // Included for sanity checking.
-#else
-  time_t st_ctim; // Included for sanity checking.
-#endif
-  off_t st_size; // Included for sanity checking.
+  off_t st_size;    // Included for sanity checking.
   bool sloppy_time_macros;
 };
 
@@ -188,16 +180,8 @@ InodeCache::hash_inode(const std::string& path,
   key.st_dev = stat.device();
   key.st_ino = stat.inode();
   key.st_mode = stat.mode();
-#ifdef HAVE_STRUCT_STAT_ST_MTIM
   key.st_mtim = stat.mtim();
-#else
-  key.st_mtim = stat.mtime();
-#endif
-#ifdef HAVE_STRUCT_STAT_ST_CTIM
   key.st_ctim = stat.ctim();
-#else
-  key.st_ctim = stat.ctime();
-#endif
   key.st_size = stat.size();
 
   Hash hash;
