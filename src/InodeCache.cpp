@@ -93,7 +93,6 @@ struct InodeCache::Key
   timespec st_mtim;
   timespec st_ctim; // Included for sanity checking.
   off_t st_size;    // Included for sanity checking.
-  bool sloppy_time_macros;
 };
 
 struct InodeCache::Entry
