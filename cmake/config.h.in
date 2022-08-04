@@ -124,6 +124,15 @@
 // Define if "st_mtim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
 
+// Define if "st_atimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIMESPEC
+
+// Define if "st_ctimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIMESPEC
+
+// Define if "st_mtimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIMESPEC
+
 // Define if you have the "syslog" function.
 #cmakedefine HAVE_SYSLOG
 
