@@ -116,6 +116,7 @@ public:
   void set_max_files(uint64_t value);
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
+  void set_temporary_dir(const std::string& value);
 
   // Where to write configuration changes.
   const std::string& primary_config_path() const;
@@ -568,4 +569,10 @@ inline void
 Config::set_run_second_cpp(bool value)
 {
   m_run_second_cpp = value;
+}
+
+inline void
+Config::set_temporary_dir(const std::string& value)
+{
+  m_temporary_dir = value;
 }
