@@ -34,6 +34,14 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#ifdef HAVE_LINUX_FS_H
+#  include <linux/magic.h>
+#  include <sys/statfs.h>
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+#  include <sys/mount.h>
+#  include <sys/param.h>
+#endif
+
 #include <atomic>
 #include <type_traits>
 
@@ -77,6 +85,54 @@ static_assert(
   "Numeric value is part of key, increment version number if changed.");
 
 const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here
+
+bool
+fd_is_on_known_to_work_file_system(int fd)
+{
+  bool known_to_work = false;
+  struct statfs buf;
+  if (fstatfs(fd, &buf) != 0) {
+    LOG("fstatfs failed: {}", strerror(errno));
+  } else {
+#ifdef HAVE_LINUX_FS_H
+    switch (buf.f_type) {
+      // Is a filesystem you know works with the inode cache missing in this
+      // list? Please submit an issue or pull request to the ccache project.
+    case 0x9123683e: // BTRFS_SUPER_MAGIC
+    case 0xef53:     // EXT2_SUPER_MAGIC
+    case 0x01021994: // TMPFS_MAGIC
+    case 0x58465342: // XFS_SUPER_MAGIC
+      known_to_work = true;
+      break;
+    default:
+      LOG("Filesystem type 0x{:x} not known to work for the inode cache",
+          buf.f_type);
+    }
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME) // macOS X and some BSDs
+    static const std::vector<std::string> known_to_work_filesystems = {
+      // Is a filesystem you know works with the inode cache missing in this
+      // list? Please submit an issue or pull request to the ccache project.
+      "apfs",
+      "xfs",
+    };
+    if (std::find(known_to_work_filesystems.begin(),
+                  known_to_work_filesystems.end(),
+                  buf.f_fstypename)
+        != known_to_work_filesystems.end()) {
+      known_to_work = true;
+    } else {
+      LOG("Filesystem type {} not known to work for the inode cache",
+          buf.f_fstypename);
+    }
+#else
+#  error Inconsistency: INODE_CACHE_SUPPORTED is set but we should not get here
+#endif
+  }
+  if (!known_to_work) {
+    LOG_RAW("Not using the inode cache");
+  }
+  return known_to_work;
+}
 
 } // namespace
 
@@ -125,11 +181,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
-  bool is_nfs;
-  if (Util::is_nfs_fd(*fd, &is_nfs) == 0 && is_nfs) {
-    LOG(
-      "Inode cache not supported because the cache file is located on nfs: {}",
-      inode_cache_file);
+  if (!fd_is_on_known_to_work_file_system(*fd)) {
     return false;
   }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
@@ -239,12 +291,7 @@ InodeCache::create_new_file(const std::string& filename)
 
   Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
 
-  bool is_nfs;
-  if (Util::is_nfs_fd(*tmp_file.fd, &is_nfs) == 0 && is_nfs) {
-    LOG(
-      "Inode cache not supported because the cache file would be located on"
-      " nfs: {}",
-      filename);
+  if (!fd_is_on_known_to_work_file_system(*tmp_file.fd)) {
     return false;
   }
   int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
@@ -333,6 +380,12 @@ InodeCache::~InodeCache()
   if (m_sr) {
     munmap(m_sr, sizeof(SharedRegion));
   }
+}
+
+bool
+InodeCache::available(int fd)
+{
+  return fd_is_on_known_to_work_file_system(fd);
 }
 
 bool

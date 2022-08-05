@@ -54,14 +54,6 @@ extern "C" {
 #  include <sys/time.h>
 #endif
 
-#ifdef HAVE_LINUX_FS_H
-#  include <linux/magic.h>
-#  include <sys/statfs.h>
-#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
-#  include <sys/mount.h>
-#  include <sys/param.h>
-#endif
-
 #ifdef __linux__
 #  ifdef HAVE_SYS_IOCTL_H
 #    include <sys/ioctl.h>
@@ -807,29 +799,6 @@ is_ccache_executable(const std::string_view path)
 #endif
   return util::starts_with(name, "ccache");
 }
-
-#if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
-int
-is_nfs_fd(int fd, bool* is_nfs)
-{
-  struct statfs buf;
-  if (fstatfs(fd, &buf) != 0) {
-    return errno;
-  }
-#  ifdef HAVE_LINUX_FS_H
-  *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
-#  else // Mac OS X and some other BSD flavors
-  *is_nfs = strcmp(buf.f_fstypename, "nfs") == 0;
-#  endif
-  return 0;
-}
-#else
-int
-is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
-{
-  return -1;
-}
-#endif
 
 bool
 is_precompiled_header(std::string_view path)

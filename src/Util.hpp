@@ -218,14 +218,6 @@ std::optional<size_t> is_absolute_path_with_prefix(std::string_view path);
 // Detmine if `path` refers to a ccache executable.
 bool is_ccache_executable(std::string_view path);
 
-// Test if a file is on nfs.
-//
-// Sets is_nfs to the result if fstatfs is available and no error occurred.
-//
-// Returns 0 if is_nfs was set, -1 if fstatfs is not available or errno if an
-// error occurred.
-int is_nfs_fd(int fd, bool* is_nfs);
-
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.
 inline bool

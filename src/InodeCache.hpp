@@ -44,6 +44,10 @@ public:
   InodeCache(const Config& config);
   ~InodeCache();
 
+  // Return whether it's possible to use the inode cache on the filesystem
+  // associated with `fd`.
+  static bool available(int fd);
+
   // Get saved hash digest and return value from a previous call to
   // do_hash_file() in hashutil.cpp.
   //

@@ -23,11 +23,24 @@
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
+#include <Fd.hpp>
+
 #include "third_party/doctest.h"
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 using TestUtil::TestContext;
 
 namespace {
+
+bool
+inode_cache_available()
+{
+  Fd fd(open(Util::get_actual_cwd().c_str(), O_RDONLY));
+  return fd && InodeCache::available(*fd);
+}
 
 void
 init(Config& config)
@@ -51,7 +64,7 @@ put(InodeCache& inode_cache,
 
 } // namespace
 
-TEST_SUITE_BEGIN("InodeCache");
+TEST_SUITE_BEGIN("InodeCache" * doctest::skip(!inode_cache_available()));
 
 TEST_CASE("Test disabled")
 {
