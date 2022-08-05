@@ -774,14 +774,13 @@ might be incorrect.
 [#config_inode_cache]
 *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see _<<Boolean values>>_ above)::
 
-    If true, enables caching of source file hashes based on device, inode and
-    timestamps. This will reduce the time spent on hashing included files as
-    the result can be resused between compilations.
+    If true, ccache will cache source file hashes based on device, inode and
+    timestamps. This reduces the time spent on hashing include files since the
+    result can be resused between compilations. The default is true. The feature
+    requires <<config_temporary_dir,*temporary_dir*>> to be located on a local
+    filesystem of a supported type.
 +
-The feature is still experimental and thus off by default. It is currently not
-available on Windows.
-+
-The feature requires *temporary_dir* to be located on a local filesystem.
+NOTE: The inode cache feature is currently not available on Windows.
 
 [#config_keep_comments_cpp]
 *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see _<<Boolean values>>_ above)::

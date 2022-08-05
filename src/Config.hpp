@@ -177,7 +177,7 @@ private:
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest;
   std::string m_ignore_options;
-  bool m_inode_cache = false;
+  bool m_inode_cache = true;
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file;
