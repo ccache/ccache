@@ -79,6 +79,8 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
+const uint8_t k_max_raw_file_entries = 10;
+
 std::string
 get_raw_file_path(std::string_view result_path, uint8_t entry_number)
 {
@@ -213,8 +215,9 @@ Reader::read(Consumer& consumer)
   }
 
   const auto n_entries = m_reader.read_int<uint8_t>();
-  if (n_entries >= 10) {
-    throw core::Error("Too many entries raw file entries: {}", n_entries);
+  if (n_entries >= k_max_raw_file_entries) {
+    throw core::Error(
+      "Too many raw file entries: {} > {}", n_entries, k_max_raw_file_entries);
   }
 
   uint8_t i;
