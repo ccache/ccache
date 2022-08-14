@@ -60,7 +60,7 @@ base_tests() {
     # and not random memory.
     local version_pattern=$'^ccache version [a-zA-Z0-9_./+-]*\r?$'
     if [ $($CCACHE --version | grep -E -c "$version_pattern") -ne 1 ]; then
-        test_failed "Unexpected output of --version"
+        test_failed "Unexpected output of --version. Output is '$($CCACHE --version)'"
     fi
 
     # -------------------------------------------------------------------------
