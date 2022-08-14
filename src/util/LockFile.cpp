@@ -43,10 +43,12 @@
 // Seconds.
 const double k_min_sleep_time = 0.010;
 const double k_max_sleep_time = 0.050;
+#ifndef _WIN32
 const double k_staleness_limit = 2;
 const double k_keep_alive_interval = k_staleness_limit / 4;
 const auto k_keep_alive_interval_ms = std::chrono::milliseconds{
   static_cast<uint64_t>(k_keep_alive_interval * 1000)};
+#endif
 
 namespace {
 
