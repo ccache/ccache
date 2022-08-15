@@ -20,7 +20,7 @@
 
 #include <Fd.hpp>
 #include <Logging.hpp>
-#include <Util.hpp>
+#include <Stat.hpp>
 #include <fmtmacros.hpp>
 
 #ifdef HAVE_UNISTD_H

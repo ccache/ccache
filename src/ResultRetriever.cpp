@@ -146,10 +146,10 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
       || (m_dest_file_type == FileType::dependency && !m_dest_path.empty())) {
     m_dest_data.append(reinterpret_cast<const char*>(data), size);
   } else if (m_dest_fd) {
-    try {
-      Util::write_fd(*m_dest_fd, data, size);
-    } catch (core::Error& e) {
-      throw WriteError(FMT("Failed to write to {}: {}", m_dest_path, e.what()));
+    const auto result = util::write_fd(*m_dest_fd, data, size);
+    if (!result) {
+      throw WriteError(
+        FMT("Failed to write to {}: {}", m_dest_path, result.error()));
     }
   }
 }
@@ -178,24 +178,26 @@ void
 ResultRetriever::write_dependency_file()
 {
   ASSERT(m_ctx.args_info.dependency_target);
-  const auto& dep_target = *m_ctx.args_info.dependency_target;
 
-  try {
-    size_t start_pos = 0;
-    const size_t colon_pos = m_dest_data.find(": ");
-    if (colon_pos != std::string::npos) {
-      const auto obj_in_dep_file =
-        std::string_view(m_dest_data).substr(0, colon_pos);
-      if (obj_in_dep_file != dep_target) {
-        Util::write_fd(*m_dest_fd, dep_target.data(), dep_target.length());
-        start_pos = colon_pos;
-      }
+  auto write_data = [&](auto data, auto size) {
+    const auto result = util::write_fd(*m_dest_fd, data, size);
+    if (!result) {
+      throw WriteError(
+        FMT("Failed to write to {}: {}", m_dest_path, result.error()));
     }
+  };
 
-    Util::write_fd(*m_dest_fd,
-                   m_dest_data.data() + start_pos,
-                   m_dest_data.length() - start_pos);
-  } catch (core::Error& e) {
-    throw WriteError(FMT("Failed to write to {}: {}", m_dest_path, e.what()));
+  size_t start_pos = 0;
+  const size_t colon_pos = m_dest_data.find(": ");
+  if (colon_pos != std::string::npos) {
+    const auto obj_in_dep_file =
+      std::string_view(m_dest_data).substr(0, colon_pos);
+    const auto& dep_target = *m_ctx.args_info.dependency_target;
+    if (obj_in_dep_file != dep_target) {
+      write_data(dep_target.data(), dep_target.length());
+      start_pos = colon_pos;
+    }
   }
+
+  write_data(m_dest_data.data() + start_pos, m_dest_data.length() - start_pos);
 }

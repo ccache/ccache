@@ -20,6 +20,7 @@
 
 #include <Util.hpp>
 #include <storage/primary/util.hpp>
+#include <util/file.hpp>
 
 #include <third_party/doctest.h>
 
@@ -77,10 +78,10 @@ TEST_CASE("storage::primary::get_level_1_files")
 
   Util::create_dir("0/1");
   Util::create_dir("0/f/c");
-  Util::write_file("0/file_a", "");
-  Util::write_file("0/1/file_b", "1");
-  Util::write_file("0/1/file_c", "12");
-  Util::write_file("0/f/c/file_d", "123");
+  util::write_file("0/file_a", "");
+  util::write_file("0/1/file_b", "1");
+  util::write_file("0/1/file_c", "12");
+  util::write_file("0/f/c/file_d", "123");
 
   auto null_receiver = [](double) {};
 

@@ -364,11 +364,11 @@ LongLivedLockFile::LongLivedLockFile(const std::string& path)
 void
 LongLivedLockFile::on_after_acquire()
 {
-  try {
-    Util::write_file(m_alive_file, "");
-  } catch (const core::Error& e) {
-    LOG("Failed to create {}: {}", m_alive_file, e.what());
+  const auto result = util::write_file(m_alive_file, "");
+  if (!result) {
+    LOG("Failed to write {}: {}", m_alive_file, result.error());
   }
+
   LOG_RAW("Starting keep-alive thread");
   m_keep_alive_thread = std::thread([=] {
     while (true) {

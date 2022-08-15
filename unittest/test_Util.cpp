@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -131,7 +132,7 @@ TEST_CASE("Util::create_dir")
   CHECK(Util::create_dir("create/dir"));
   CHECK(Stat::stat("create/dir").is_directory());
 
-  Util::write_file("create/dir/file", "");
+  util::write_file("create/dir/file", "");
   CHECK(!Util::create_dir("create/dir/file"));
 }
 
@@ -175,7 +176,7 @@ TEST_CASE("Util::ensure_dir_exists")
   CHECK_NOTHROW(Util::ensure_dir_exists("create/dir"));
   CHECK(Stat::stat("create/dir").is_directory());
 
-  Util::write_file("create/dir/file", "");
+  util::write_file("create/dir/file", "");
   CHECK_THROWS_WITH(
     Util::ensure_dir_exists("create/dir/file"),
     "Failed to create directory create/dir/file: Not a directory");
@@ -346,17 +347,17 @@ TEST_CASE("Util::hard_link")
 
   SUBCASE("Link file to nonexistent destination")
   {
-    Util::write_file("old", "content");
+    util::write_file("old", "content");
     CHECK_NOTHROW(Util::hard_link("old", "new"));
-    CHECK(Util::read_file("new") == "content");
+    CHECK(*util::read_file<std::string>("new") == "content");
   }
 
   SUBCASE("Link file to existing destination")
   {
-    Util::write_file("old", "content");
-    Util::write_file("new", "other content");
+    util::write_file("old", "content");
+    util::write_file("new", "other content");
     CHECK_NOTHROW(Util::hard_link("old", "new"));
-    CHECK(Util::read_file("new") == "content");
+    CHECK(*util::read_file<std::string>("new") == "content");
   }
 
   SUBCASE("Link nonexistent file")
@@ -600,7 +601,7 @@ TEST_CASE("Util::normalize_concrete_absolute_path")
 #ifndef _WIN32
   TestContext test_context;
 
-  Util::write_file("file", "");
+  util::write_file("file", "");
   REQUIRE(Util::create_dir("dir1/dir2"));
   REQUIRE(symlink("dir1/dir2", "symlink") == 0);
   const auto cwd = Util::get_actual_cwd();

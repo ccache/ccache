@@ -29,6 +29,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
@@ -811,10 +812,10 @@ Config::set_value_in_file(const std::string& path,
   const auto st = Stat::stat(resolved_path);
   if (!st) {
     Util::ensure_dir_exists(Util::dir_name(resolved_path));
-    try {
-      Util::write_file(resolved_path, "");
-    } catch (const core::Error& e) {
-      throw core::Error("failed to write to {}: {}", resolved_path, e.what());
+    const auto result = util::write_file(resolved_path, "");
+    if (!result) {
+      throw core::Error(
+        "failed to write to {}: {}", resolved_path, result.error());
     }
   }
 

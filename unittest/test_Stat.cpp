@@ -23,6 +23,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -186,15 +187,15 @@ TEST_CASE("Same i-node as")
 {
   TestContext test_context;
 
-  Util::write_file("a", "");
-  Util::write_file("b", "");
+  util::write_file("a", "");
+  util::write_file("b", "");
   auto a_stat = Stat::stat("a");
   auto b_stat = Stat::stat("b");
 
   CHECK(a_stat.same_inode_as(a_stat));
   CHECK(!a_stat.same_inode_as(b_stat));
 
-  Util::write_file("a", "change size");
+  util::write_file("a", "change size");
   auto new_a_stat = Stat::stat("a");
   CHECK(new_a_stat.same_inode_as(a_stat));
 
@@ -233,7 +234,7 @@ TEST_CASE("Return values when file exists")
 {
   TestContext test_context;
 
-  Util::write_file("file", "1234567");
+  util::write_file("file", "1234567");
 
   auto stat = Stat::stat("file");
   CHECK(stat);
@@ -330,7 +331,7 @@ TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
 {
   TestContext test_context;
 
-  Util::write_file("file", "1234567");
+  util::write_file("file", "1234567");
 
 #ifdef _WIN32
   REQUIRE(CreateSymbolicLinkA(
@@ -413,7 +414,7 @@ TEST_CASE("Hard links")
 {
   TestContext test_context;
 
-  Util::write_file("a", "");
+  util::write_file("a", "");
 
 #ifdef _WIN32
   REQUIRE(CreateHardLinkA("b", "a", nullptr));
@@ -441,7 +442,7 @@ TEST_CASE("Hard links")
   CHECK(stat_a.inode() == stat_b.inode());
   CHECK(stat_a.same_inode_as(stat_b));
 
-  Util::write_file("a", "1234567");
+  util::write_file("a", "1234567");
   stat_a = Stat::stat("a");
   stat_b = Stat::stat("b");
 
@@ -532,7 +533,7 @@ TEST_CASE("Win32 Readonly File")
 {
   TestContext test_context;
 
-  Util::write_file("file", "");
+  util::write_file("file", "");
 
   DWORD prev_attrs = GetFileAttributesA("file");
   REQUIRE(prev_attrs != INVALID_FILE_ATTRIBUTES);
@@ -629,7 +630,7 @@ TEST_CASE("Win32 No Sharing")
   Finalizer cleanup([&] { CloseHandle(handle); });
 
   // Sanity check we can't open the file for read/write access.
-  REQUIRE_THROWS_AS(Util::read_file("file"), const core::Error&);
+  REQUIRE(!util::read_file<std::string>("file"));
 
   SUBCASE("stat file no sharing")
   {

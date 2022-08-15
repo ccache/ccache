@@ -321,7 +321,7 @@ PrimaryStorage::clean_internal_tempdir()
                    }
                  });
 
-  Util::write_file(cleaned_stamp, "");
+  util::write_file(cleaned_stamp, "");
 }
 
 std::optional<core::StatisticsCounters>

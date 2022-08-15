@@ -29,6 +29,7 @@
 #include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
@@ -354,8 +355,9 @@ common_dir_prefix_length(std::string_view dir, std::string_view path)
 void
 copy_fd(int fd_in, int fd_out)
 {
-  read_fd(fd_in,
-          [=](const void* data, size_t size) { write_fd(fd_out, data, size); });
+  util::read_fd(fd_in, [=](const void* data, size_t size) {
+    util::write_fd(fd_out, data, size);
+  });
 }
 
 void
@@ -511,7 +513,7 @@ fallocate(int fd, long new_size)
   }
   int err = 0;
   try {
-    write_fd(fd, buf, bytes_to_write);
+    util::write_fd(fd, buf, bytes_to_write);
   } catch (core::Error&) {
     err = errno;
   }
@@ -1244,10 +1246,10 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
     text_to_send = &modified_text;
   }
 
-  try {
-    write_fd(fd, text_to_send->data(), text_to_send->length());
-  } catch (core::Error& e) {
-    throw core::Error("Failed to write to {}: {}", fd, e.what());
+  const auto result =
+    util::write_fd(fd, text_to_send->data(), text_to_send->length());
+  if (!result) {
+    throw core::Error("Failed to write to {}: {}", fd, result.error());
   }
 }
 

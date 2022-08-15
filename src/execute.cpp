@@ -32,6 +32,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 
 #ifdef HAVE_UNISTD_H
@@ -148,7 +149,7 @@ win32execute(const char* path,
   if (args.length() > 8192) {
     TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
     args = Win32Util::argv_to_string(argv + 1, sh, true);
-    Util::write_fd(*tmp_file.fd, args.data(), args.length());
+    util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;
     LOG("Arguments from {}", tmp_file.path);

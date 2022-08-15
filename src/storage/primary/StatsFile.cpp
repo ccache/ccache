@@ -20,10 +20,10 @@
 
 #include <AtomicFile.hpp>
 #include <Logging.hpp>
-#include <Util.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
+#include <util/file.hpp>
 
 namespace storage::primary {
 
@@ -36,16 +36,14 @@ StatsFile::read() const
 {
   core::StatisticsCounters counters;
 
-  std::string data;
-  try {
-    data = Util::read_file(m_path);
-  } catch (const core::Error&) {
+  const auto data = util::read_file<std::string>(m_path);
+  if (!data) {
     // Ignore.
     return counters;
   }
 
   size_t i = 0;
-  const char* str = data.c_str();
+  const char* str = data->c_str();
   while (true) {
     char* end;
     const uint64_t value = std::strtoull(str, &end, 10);

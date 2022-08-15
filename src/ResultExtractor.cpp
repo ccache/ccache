@@ -23,6 +23,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -75,10 +76,9 @@ ResultExtractor::on_entry_data(const uint8_t* data, size_t size)
 {
   ASSERT(m_dest_fd);
 
-  try {
-    Util::write_fd(*m_dest_fd, data, size);
-  } catch (core::Error& e) {
-    throw core::Error("Failed to write to {}: {}", m_dest_path, e.what());
+  const auto result = util::write_fd(*m_dest_fd, data, size);
+  if (!result) {
+    throw core::Error("Failed to write to {}: {}", m_dest_path, result.error());
   }
 }
 

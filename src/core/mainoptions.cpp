@@ -40,6 +40,7 @@
 #include <util/TextTable.hpp>
 #include <util/XXH3_128.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 #include <fcntl.h>
@@ -417,7 +418,7 @@ process_main_options(int argc, const char* const* argv)
       util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
-        Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
+        util::read_fd(*fd, [&checksum](const void* data, size_t size) {
           checksum.update(data, size);
         });
         const auto digest = checksum.digest();
@@ -455,12 +456,12 @@ process_main_options(int argc, const char* const* argv)
 
     case HASH_FILE: {
       Hash hash;
-      const bool ok =
+      const auto result =
         arg == "-" ? hash.hash_fd(STDIN_FILENO) : hash.hash_file(arg);
-      if (ok) {
+      if (result) {
         PRINT(stdout, "{}\n", hash.digest().to_string());
       } else {
-        PRINT(stderr, "Error: Failed to hash {}\n", arg);
+        PRINT(stderr, "Error: Failed to hash {}: {}\n", arg, result.error());
         return EXIT_FAILURE;
       }
       break;

@@ -24,6 +24,7 @@
 #include "assertions.hpp"
 
 #include <core/exceptions.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 
 #include <algorithm>
@@ -127,16 +128,14 @@ make_paths_relative_in_output_dep(const Context& ctx)
   }
 
   const std::string& output_dep = ctx.args_info.output_dep;
-  std::string file_content;
-  try {
-    file_content = Util::read_file(output_dep);
-  } catch (const core::Error& e) {
-    LOG("Cannot open dependency file {}: {}", output_dep, e.what());
+  const auto file_content = util::read_file<std::string>(output_dep);
+  if (!file_content) {
+    LOG("Cannot open dependency file {}: {}", output_dep, file_content.error());
     return;
   }
-  const auto new_content = rewrite_source_paths(ctx, file_content);
+  const auto new_content = rewrite_source_paths(ctx, *file_content);
   if (new_content) {
-    Util::write_file(output_dep, *new_content);
+    util::write_file(output_dep, *new_content);
   } else {
     LOG("No paths in dependency file {} made relative", output_dep);
   }

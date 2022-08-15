@@ -23,6 +23,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -110,24 +111,23 @@ Hash::hash(int64_t x)
   return *this;
 }
 
-bool
+nonstd::expected<void, std::string>
 Hash::hash_fd(int fd)
 {
-  return Util::read_fd(
+  return util::read_fd(
     fd, [this](const void* data, size_t size) { hash(data, size); });
 }
 
-bool
+nonstd::expected<void, std::string>
 Hash::hash_file(const std::string& path)
 {
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
-    return false;
+    return nonstd::make_unexpected(strerror(errno));
   }
 
-  bool ret = hash_fd(*fd);
-  return ret;
+  return hash_fd(*fd);
 }
 
 void

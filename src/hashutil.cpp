@@ -32,6 +32,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -199,20 +200,18 @@ do_hash_file(const Context& ctx,
   (void)ctx;
 #endif
 
-  std::string data;
-  try {
-    data = Util::read_file(path, size_hint);
-  } catch (core::Error&) {
+  const auto data = util::read_file<std::string>(path, size_hint);
+  if (!data) {
     return HASH_SOURCE_CODE_ERROR;
   }
 
   int result = HASH_SOURCE_CODE_OK;
   if (check_temporal_macros) {
-    result |= check_for_temporal_macros(data);
+    result |= check_for_temporal_macros(*data);
   }
 
   Hash hash;
-  hash.hash(data);
+  hash.hash(*data);
   digest = hash.digest();
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -424,9 +423,10 @@ hash_command_output(Hash& hash,
     return false;
   }
   int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
-  bool ok = hash.hash_fd(fd);
-  if (!ok) {
-    LOG("Error hashing compiler check command output: {}", strerror(errno));
+  const auto compiler_check_result = hash.hash_fd(fd);
+  if (!compiler_check_result) {
+    LOG("Error hashing compiler check command output: {}",
+        compiler_check_result.error());
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
   DWORD exitcode;
@@ -438,7 +438,7 @@ hash_command_output(Hash& hash,
     LOG("Compiler check command returned {}", exitcode);
     return false;
   }
-  return ok;
+  return bool(compiler_check_result);
 #else
   int pipefd[2];
   if (pipe(pipefd) == -1) {
@@ -461,9 +461,10 @@ hash_command_output(Hash& hash,
   } else {
     // Parent.
     close(pipefd[1]);
-    bool ok = hash.hash_fd(pipefd[0]);
-    if (!ok) {
-      LOG("Error hashing compiler check command output: {}", strerror(errno));
+    const auto hash_result = hash.hash_fd(pipefd[0]);
+    if (!hash_result) {
+      LOG("Error hashing compiler check command output: {}",
+          hash_result.error());
     }
     close(pipefd[0]);
 
@@ -480,7 +481,7 @@ hash_command_output(Hash& hash,
       LOG("Compiler check command returned {}", WEXITSTATUS(status));
       return false;
     }
-    return ok;
+    return bool(hash_result);
   }
 #endif
 }

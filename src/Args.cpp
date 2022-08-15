@@ -21,6 +21,7 @@
 #include "Util.hpp"
 
 #include <core/exceptions.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
@@ -48,17 +49,15 @@ Args::from_string(const std::string& command)
 std::optional<Args>
 Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
-  std::string argtext;
-  try {
-    argtext = Util::read_text_file(filename);
-  } catch (core::Error&) {
+  const auto argtext = util::read_file<std::string>(filename);
+  if (!argtext) {
     return std::nullopt;
   }
 
   Args args;
-  auto pos = argtext.c_str();
+  auto pos = argtext->c_str();
   std::string argbuf;
-  argbuf.resize(argtext.length() + 1);
+  argbuf.resize(argtext->length() + 1);
   auto argpos = argbuf.begin();
 
   // Used to track quoting state; if \0 we are not inside quotes. Otherwise

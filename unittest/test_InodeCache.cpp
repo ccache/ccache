@@ -24,6 +24,7 @@
 #include "TestUtil.hpp"
 
 #include <Fd.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -99,7 +100,7 @@ TEST_CASE("Test lookup nonexistent")
   init(config);
 
   InodeCache inode_cache(config);
-  Util::write_file("a", "");
+  util::write_file("a", "");
 
   Digest digest;
   int return_value;
@@ -121,7 +122,7 @@ TEST_CASE("Test put and lookup")
   init(config);
 
   InodeCache inode_cache(config);
-  Util::write_file("a", "a text");
+  util::write_file("a", "a text");
 
   CHECK(put(inode_cache, "a", "a text", 1));
 
@@ -138,7 +139,7 @@ TEST_CASE("Test put and lookup")
   CHECK(inode_cache.get_misses() == 0);
   CHECK(inode_cache.get_errors() == 0);
 
-  Util::write_file("a", "something else");
+  util::write_file("a", "something else");
 
   CHECK(!inode_cache.get("a",
                          InodeCache::ContentType::checked_for_temporal_macros,
@@ -187,7 +188,7 @@ TEST_CASE("Test content type")
   init(config);
 
   InodeCache inode_cache(config);
-  Util::write_file("a", "a text");
+  util::write_file("a", "a text");
   Digest binary_digest = Hash().hash("binary").digest();
   Digest code_digest = Hash().hash("code").digest();
 

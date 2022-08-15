@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,6 +22,7 @@
 #include <core/Statistic.hpp>
 #include <fmtmacros.hpp>
 #include <storage/primary/StatsFile.hpp>
+#include <util/file.hpp>
 
 #include <third_party/doctest.h>
 
@@ -45,7 +46,7 @@ TEST_CASE("Read bad")
 {
   TestContext test_context;
 
-  Util::write_file("test", "bad 1 2 3 4 5\n");
+  util::write_file("test", "bad 1 2 3 4 5\n");
   const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == static_cast<size_t>(Statistic::END));
@@ -56,7 +57,7 @@ TEST_CASE("Read existing")
 {
   TestContext test_context;
 
-  Util::write_file("test", "0 1 2 3 27 5\n");
+  util::write_file("test", "0 1 2 3 27 5\n");
   const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == static_cast<size_t>(Statistic::END));
@@ -74,7 +75,7 @@ TEST_CASE("Read future counters")
     content += FMT("{}\n", i);
   }
 
-  Util::write_file("test", content);
+  util::write_file("test", content);
   const auto counters = StatsFile("test").read();
 
   REQUIRE(counters.size() == count);
@@ -87,7 +88,7 @@ TEST_CASE("Update")
 {
   TestContext test_context;
 
-  Util::write_file("test", "0 1 2 3 27 5\n");
+  util::write_file("test", "0 1 2 3 27 5\n");
 
   auto counters = StatsFile("test").update([](auto& cs) {
     cs.increment(Statistic::internal_error, 1);

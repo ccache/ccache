@@ -58,6 +58,7 @@
 #include <core/wincompat.hpp>
 #include <storage/Storage.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
@@ -455,17 +456,16 @@ print_included_files(const Context& ctx, FILE* fp)
 static nonstd::expected<void, Failure>
 process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 {
-  std::string data;
-  try {
-    data = Util::read_file(path);
-  } catch (core::Error&) {
+  auto data = util::read_file<std::string>(path);
+  if (!data) {
+    LOG("Failed reading {}: {}", path, data.error());
     return nonstd::make_unexpected(Statistic::internal_error);
   }
 
   // Bytes between p and q are pending to be hashed.
-  const char* p = &data[0];
-  char* q = &data[0];
-  const char* end = p + data.length();
+  char* q = &(*data)[0];
+  const char* p = q;
+  const char* end = p + data->length();
 
   // There must be at least 7 characters (# 1 "x") left to potentially find an
   // include file path.
@@ -508,7 +508,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
-        && (q == data.data() || q[-1] == '\n')) {
+        && (q == data->data() || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
         if (util::starts_with(q, hash_31_command_line_newline)) {
@@ -593,7 +593,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       return nonstd::make_unexpected(
         Failure(Statistic::unsupported_code_directive));
     } else if (strncmp(q, "___________", 10) == 0
-               && (q == data.data() || q[-1] == '\n')) {
+               && (q == data->data() || q[-1] == '\n')) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
       // __________Using # distcc servers in pump mode
@@ -636,16 +636,16 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 static std::optional<Digest>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
-  std::string file_content;
-  try {
-    file_content = Util::read_file(ctx.args_info.output_dep);
-  } catch (const core::Error& e) {
-    LOG(
-      "Cannot open dependency file {}: {}", ctx.args_info.output_dep, e.what());
+  const auto file_content =
+    util::read_file<std::string>(ctx.args_info.output_dep);
+  if (!file_content) {
+    LOG("Cannot open dependency file {}: {}",
+        ctx.args_info.output_dep,
+        file_content.error());
     return std::nullopt;
   }
 
-  for (std::string_view token : Depfile::tokenize(file_content)) {
+  for (std::string_view token : Depfile::tokenize(*file_content)) {
     if (util::ends_with(token, ":")) {
       continue;
     }
@@ -720,8 +720,8 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.config.compiler_type() == CompilerType::gcc) {
-    auto errors = Util::read_file(tmp_stderr.path);
-    if (errors.find("fdiagnostics-color") != std::string::npos) {
+    const auto errors = util::read_file<std::string>(tmp_stderr.path);
+    if (errors && errors->find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
       // non-GCC compilers misclassified as CompilerType::gcc might not do it
       // either. We assume that if the error message contains
@@ -737,17 +737,23 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
     }
   }
 
-  try {
-    return DoExecuteResult{
-      status,
-      capture_stdout ? Util::read_file(tmp_stdout.path) : std::string(),
-      Util::read_file(tmp_stderr.path),
-    };
-  } catch (core::Error&) {
-    // The stdout or stderr file was removed - cleanup in progress? Better bail
-    // out.
+  std::string stdout_data;
+  if (capture_stdout) {
+    auto stdout_data_result = util::read_file<std::string>(tmp_stdout.path);
+    if (!stdout_data_result) {
+      // The stdout file was removed - cleanup in progress? Better bail out.
+      return nonstd::make_unexpected(Statistic::missing_cache_file);
+    }
+    stdout_data = std::move(*stdout_data_result);
+  }
+
+  auto stderr_data_result = util::read_file<std::string>(tmp_stderr.path);
+  if (!stderr_data_result) {
+    // The stdout file was removed - cleanup in progress? Better bail out.
     return nonstd::make_unexpected(Statistic::missing_cache_file);
   }
+
+  return DoExecuteResult{status, stdout_data, *stderr_data_result};
 }
 
 static core::Manifest
