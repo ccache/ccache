@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,7 +50,7 @@ AtomicFile::write(const std::string& data)
 }
 
 void
-AtomicFile::write(const std::vector<uint8_t>& data)
+AtomicFile::write(const util::Blob& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(

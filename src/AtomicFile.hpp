@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,10 +18,11 @@
 
 #pragma once
 
+#include <util/types.hpp>
+
 #include <cstdint>
 #include <cstdio>
 #include <string>
-#include <vector>
 
 // This class represents a file whose data will be atomically written to a path
 // by renaming a temporary file in place.
@@ -36,7 +37,7 @@ public:
   FILE* stream();
 
   void write(const std::string& data);
-  void write(const std::vector<uint8_t>& data);
+  void write(const util::Blob& data);
 
   // Close the temporary file and rename it to the destination file. Note: The
   // destructor will not do this automatically to avoid half-written data in the
