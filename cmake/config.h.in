@@ -210,6 +210,9 @@ typedef int pid_t;
 #if !defined(_WIN32) && !defined(O_BINARY)
 #  define O_BINARY 0
 #endif
+#if !defined(_WIN32) && !defined(O_TEXT)
+#  define O_TEXT 0
+#endif
 
 #ifndef ESTALE
 #  define ESTALE -1

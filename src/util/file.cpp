@@ -18,10 +18,14 @@
 
 #include "file.hpp"
 
+#include <Fd.hpp>
 #include <Logging.hpp>
 #include <Util.hpp>
-#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #ifdef HAVE_UTIMENSAT
 #  include <fcntl.h>
@@ -36,6 +40,13 @@
 #    include <sys/utime.h>
 #  endif
 #endif
+
+#include <cerrno>
+#include <codecvt>
+#include <cstring>
+#include <fstream>
+#include <locale>
+#include <type_traits>
 
 namespace util {
 
@@ -53,12 +64,125 @@ create_cachedir_tag(const std::string& dir)
   if (stat) {
     return;
   }
-  try {
-    Util::write_file(path, cachedir_tag);
-  } catch (const core::Error& e) {
-    LOG("Failed to create {}: {}", path, e.what());
+  const auto result = util::write_file(path, cachedir_tag);
+  if (!result) {
+    LOG("Failed to create {}: {}", path, result.error());
   }
 }
+
+nonstd::expected<void, std::string>
+read_fd(int fd, DataReceiver data_receiver)
+{
+  int64_t n;
+  char buffer[CCACHE_READ_BUFFER_SIZE];
+  while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
+    if (n == -1 && errno != EINTR) {
+      break;
+    }
+    if (n > 0) {
+      data_receiver(buffer, n);
+    }
+  }
+  if (n == -1) {
+    return nonstd::make_unexpected(strerror(errno));
+  }
+  return {};
+}
+
+#ifdef _WIN32
+static bool
+has_utf16_le_bom(std::string_view text)
+{
+  return text.size() > 1
+         && ((static_cast<uint8_t>(text[0]) == 0xff
+              && static_cast<uint8_t>(text[1]) == 0xfe));
+}
+#endif
+
+template<typename T>
+nonstd::expected<T, std::string>
+read_file(const std::string& path, size_t size_hint)
+{
+  if (size_hint == 0) {
+    const auto stat = Stat::stat(path);
+    if (!stat) {
+      LOG("Failed to stat {}: {}", path, strerror(errno));
+      return nonstd::make_unexpected(strerror(errno));
+    }
+    size_hint = stat.size();
+  }
+
+  // +1 to be able to detect EOF in the first read call
+  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
+
+  const int open_flags = [] {
+    if constexpr (std::is_same<T, std::string>::value) {
+      return O_RDONLY | O_TEXT;
+    } else {
+      return O_RDONLY | O_BINARY;
+    }
+  }();
+  Fd fd(open(path.c_str(), open_flags));
+  if (!fd) {
+    LOG("Failed to open {}: {}", path, strerror(errno));
+    return nonstd::make_unexpected(strerror(errno));
+  }
+
+  int64_t ret = 0;
+  size_t pos = 0;
+  T result;
+  result.resize(size_hint);
+
+  while (true) {
+    if (pos == result.size()) {
+      result.resize(2 * result.size());
+    }
+    const size_t max_read = result.size() - pos;
+    ret = read(*fd, &result[pos], max_read);
+    if (ret == 0 || (ret == -1 && errno != EINTR)) {
+      break;
+    }
+    if (ret > 0) {
+      pos += ret;
+      if (static_cast<size_t>(ret) < max_read) {
+        break;
+      }
+    }
+  }
+
+  if (ret == -1) {
+    LOG("Failed to read {}: {}", path, strerror(errno));
+    return nonstd::make_unexpected(strerror(errno));
+  }
+
+  result.resize(pos);
+
+#ifdef _WIN32
+  if constexpr (std::is_same<T, std::string>::value) {
+    // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
+    //
+    // Note that this code assumes a little-endian machine, which is why it's
+    // #ifdef-ed to only run on Windows (which is always little-endian) where
+    // it's actually needed.
+    if (has_utf16_le_bom(result)) {
+      result.erase(0, 2); // Remove BOM.
+      std::u16string result_as_u16((result.size() / 2) + 1, '\0');
+      result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
+      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>
+        converter;
+      result = converter.to_bytes(result_as_u16);
+    }
+  }
+#endif
+
+  return result;
+}
+
+template nonstd::expected<std::string, std::string>
+read_file(const std::string& path, size_t size_hint);
+
+template nonstd::expected<util::Blob, std::string>
+read_file(const std::string& path, size_t size_hint);
 
 void
 set_timestamps(const std::string& path,
@@ -91,6 +215,44 @@ set_timestamps(const std::string& path,
     utime(path.c_str(), nullptr);
   }
 #endif
+}
+
+nonstd::expected<void, std::string>
+write_fd(int fd, const void* data, size_t size)
+{
+  int64_t written = 0;
+  do {
+    const auto count =
+      write(fd, static_cast<const uint8_t*>(data) + written, size - written);
+    if (count == -1) {
+      if (errno != EAGAIN && errno != EINTR) {
+        return nonstd::make_unexpected(strerror(errno));
+      }
+    } else {
+      written += count;
+    }
+  } while (static_cast<size_t>(written) < size);
+  return {};
+}
+
+nonstd::expected<void, std::string>
+write_file(const std::string& path, const std::string& data)
+{
+  Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
+  if (!fd) {
+    return nonstd::make_unexpected(strerror(errno));
+  }
+  return write_fd(*fd, data.data(), data.size());
+}
+
+nonstd::expected<void, std::string>
+write_file(const std::string& path, const util::Blob& data)
+{
+  Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  if (!fd) {
+    return nonstd::make_unexpected(strerror(errno));
+  }
+  return write_fd(*fd, data.data(), data.size());
 }
 
 } // namespace util
