@@ -22,6 +22,7 @@
 #include <storage/primary/PrimaryStorage.hpp>
 #include <storage/secondary/SecondaryStorage.hpp>
 #include <storage/types.hpp>
+#include <util/types.hpp>
 
 #include <functional>
 #include <memory>
@@ -81,11 +82,11 @@ private:
               const Digest& key,
               std::string_view operation_description,
               const bool for_writing);
-  std::optional<std::pair<std::string, bool>>
+  std::optional<std::pair<util::Blob, bool>>
   get_from_secondary_storage(const Digest& key);
 
   void put_in_secondary_storage(const Digest& key,
-                                const std::string& value,
+                                const util::Blob& value,
                                 bool only_if_missing);
 
   void remove_from_secondary_storage(const Digest& key);

@@ -36,6 +36,7 @@
 #include <util/Tokenizer.hpp>
 #include <util/XXH3_64.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 #include <third_party/url.hpp>
@@ -248,14 +249,12 @@ Storage::get(const Digest& key,
           m_secondary_storages.end(),
           [](const auto& entry) { return !entry->config.read_only; });
         if (should_put_in_secondary_storage) {
-          std::string value;
-          try {
-            value = Util::read_file(*path);
-          } catch (const core::Error& e) {
-            LOG("Failed to read {}: {}", *path, e.what());
+          const auto value = util::read_file<util::Blob>(*path);
+          if (!value) {
+            LOG("Failed to read {}: {}", *path, value.error());
             return path; // Don't indicate failure since primary storage was OK.
           }
-          put_in_secondary_storage(key, value, true);
+          put_in_secondary_storage(key, *value, true);
         }
       }
 
@@ -277,7 +276,7 @@ Storage::get(const Digest& key,
   TemporaryFile tmp_file(FMT("{}/tmp.get", m_config.temporary_dir()));
   m_tmp_files.push_back(tmp_file.path);
   try {
-    Util::write_file(tmp_file.path, value);
+    util::write_file(tmp_file.path, value);
   } catch (const core::Error& e) {
     throw core::Fatal("Error writing to {}: {}", tmp_file.path, e.what());
   }
@@ -317,14 +316,12 @@ Storage::put(const Digest& key,
                 m_secondary_storages.end(),
                 [](const auto& entry) { return !entry->config.read_only; });
   if (should_put_in_secondary_storage) {
-    std::string value;
-    try {
-      value = Util::read_file(*path);
-    } catch (const core::Error& e) {
-      LOG("Failed to read {}: {}", *path, e.what());
+    const auto value = util::read_file<util::Blob>(*path);
+    if (!value) {
+      LOG("Failed to read {}: {}", *path, value.error());
       return true; // Don't indicate failure since primary storage was OK.
     }
-    put_in_secondary_storage(key, value, false);
+    put_in_secondary_storage(key, *value, false);
   }
 
   return true;
@@ -479,7 +476,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-std::optional<std::pair<std::string, bool>>
+std::optional<std::pair<util::Blob, bool>>
 Storage::get_from_secondary_storage(const Digest& key)
 {
   MTR_SCOPE("secondary_storage", "get");
@@ -520,7 +517,7 @@ Storage::get_from_secondary_storage(const Digest& key)
 
 void
 Storage::put_in_secondary_storage(const Digest& key,
-                                  const std::string& value,
+                                  const util::Blob& value,
                                   bool only_if_missing)
 {
   MTR_SCOPE("secondary_storage", "put");

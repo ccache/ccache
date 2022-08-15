@@ -43,11 +43,11 @@ class FileStorageBackend : public SecondaryStorage::Backend
 public:
   FileStorageBackend(const Params& params);
 
-  nonstd::expected<std::optional<std::string>, Failure>
+  nonstd::expected<std::optional<util::Blob>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
-                                      const std::string& value,
+                                      const util::Blob& value,
                                       bool only_if_missing) override;
 
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
@@ -103,7 +103,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 }
 
-nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Blob>, SecondaryStorage::Backend::Failure>
 FileStorageBackend::get(const Digest& key)
 {
   const auto path = get_entry_path(key);
@@ -120,18 +120,17 @@ FileStorageBackend::get(const Digest& key)
     util::set_timestamps(path);
   }
 
-  try {
-    LOG("Reading {}", path);
-    return Util::read_file(path);
-  } catch (const core::Error& e) {
-    LOG("Failed to read {}: {}", path, e.what());
+  auto value = util::read_file<util::Blob>(path);
+  if (!value) {
+    LOG("Failed to read {}: {}", path, value.error());
     return nonstd::make_unexpected(Failure::error);
   }
+  return std::move(*value);
 }
 
 nonstd::expected<bool, SecondaryStorage::Backend::Failure>
 FileStorageBackend::put(const Digest& key,
-                        const std::string& value,
+                        const util::Blob& value,
                         const bool only_if_missing)
 {
   const auto path = get_entry_path(key);

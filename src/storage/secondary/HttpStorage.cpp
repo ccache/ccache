@@ -25,6 +25,7 @@
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
+#include <util/types.hpp>
 
 #include <third_party/httplib.h>
 #include <third_party/url.hpp>
@@ -40,11 +41,11 @@ class HttpStorageBackend : public SecondaryStorage::Backend
 public:
   HttpStorageBackend(const Params& params);
 
-  nonstd::expected<std::optional<std::string>, Failure>
+  nonstd::expected<std::optional<util::Blob>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
-                                      const std::string& value,
+                                      const util::Blob& value,
                                       bool only_if_missing) override;
 
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
@@ -143,7 +144,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<std::optional<std::string>, SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Blob>, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -162,12 +163,12 @@ HttpStorageBackend::get(const Digest& key)
     return std::nullopt;
   }
 
-  return result->body;
+  return util::Blob(result->body.begin(), result->body.end());
 }
 
 nonstd::expected<bool, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::put(const Digest& key,
-                        const std::string& value,
+                        const util::Blob& value,
                         const bool only_if_missing)
 {
   const auto url_path = get_entry_path(key);
@@ -193,7 +194,10 @@ HttpStorageBackend::put(const Digest& key,
 
   static const auto content_type = "application/octet-stream";
   const auto result =
-    m_http_client.Put(url_path, value.data(), value.size(), content_type);
+    m_http_client.Put(url_path,
+                      reinterpret_cast<const char*>(value.data()),
+                      value.size(),
+                      content_type);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to put {} to http storage: {} ({})",

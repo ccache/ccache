@@ -19,6 +19,7 @@
 #pragma once
 
 #include <storage/types.hpp>
+#include <util/types.hpp>
 
 #include <third_party/nonstd/expected.hpp>
 #include <third_party/url.hpp>
@@ -78,7 +79,7 @@ public:
 
     // Get the value associated with `key`. Returns the value on success or
     // std::nullopt if the entry is not present.
-    virtual nonstd::expected<std::optional<std::string>, Failure>
+    virtual nonstd::expected<std::optional<util::Blob>, Failure>
     get(const Digest& key) = 0;
 
     // Put `value` associated to `key` in the storage. A true `only_if_missing`
@@ -86,7 +87,7 @@ public:
     // Returns true if the entry was stored, otherwise false.
     virtual nonstd::expected<bool, Failure>
     put(const Digest& key,
-        const std::string& value,
+        const util::Blob& value,
         bool only_if_missing = false) = 0;
 
     // Remove `key` and its associated value. Returns true if the entry was
