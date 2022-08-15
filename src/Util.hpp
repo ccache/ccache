@@ -24,7 +24,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
-#include <ios>
 #include <memory>
 #include <optional>
 #include <string>
@@ -36,7 +35,6 @@ class Context;
 
 namespace Util {
 
-using DataReceiver = std::function<void(const void* data, size_t size)>;
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
 
@@ -285,18 +283,6 @@ uint64_t parse_duration(const std::string& duration);
 // is also recognized as a synonym of k. Throws `core::Error` on parse error.
 uint64_t parse_size(const std::string& value);
 
-// Read data from `fd` until end of file and call `data_receiver` with the read
-// data. Returns whether reading was successful, i.e. whether the read(2) call
-// did not return -1.
-bool read_fd(int fd, DataReceiver data_receiver);
-
-// Return `path`'s content as a string. If `size_hint` is not 0 then assume that
-// `path` has this size (this saves system calls).
-//
-// Throws `core::Error` on error. The description contains the error message
-// without the path.
-std::string read_file(const std::string& path, size_t size_hint = 0);
-
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
 std::string read_link(const std::string& path);
@@ -307,12 +293,6 @@ std::string read_link(const std::string& path);
 // otherwise `path` unmodified.
 std::string real_path(const std::string& path,
                       bool return_empty_on_error = false);
-
-// Return contents of a text file as a UTF-8 encoded string.
-//
-// Throws `core::Error` on error. The description contains the error message
-// without the path.
-std::string read_text_file(const std::string& path, size_t size_hint = 0);
 
 // Return a view into `path` containing the given path without the filename
 // extension as determined by `get_extension()`.
@@ -399,18 +379,5 @@ void unsetenv(const std::string& name);
 //
 // Throws core::Error on error.
 void wipe_path(const std::string& path);
-
-// Write `size` bytes from `data` to `fd`. Throws `core::Error` on error.
-void write_fd(int fd, const void* data, size_t size);
-
-// Write `data` to `path`. The file will be opened according to `open_mode`,
-// which always will include `std::ios::out` even if not specified at the call
-// site.
-//
-// Throws `core::Error` on error. The description contains the error message
-// without the path.
-void write_file(const std::string& path,
-                const std::string& data,
-                std::ios_base::openmode open_mode = std::ios::binary);
 
 } // namespace Util

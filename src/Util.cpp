@@ -77,12 +77,6 @@ extern "C" {
 #  endif
 #endif
 
-#include <algorithm>
-#include <climits>
-#include <codecvt>
-#include <fstream>
-#include <locale>
-
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace {
@@ -201,16 +195,6 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
   }
   return result;
 }
-
-#ifdef _WIN32
-bool
-has_utf16_le_bom(std::string_view text)
-{
-  return text.size() > 1
-         && ((static_cast<uint8_t>(text[0]) == 0xff
-              && static_cast<uint8_t>(text[1]) == 0xfe));
-}
-#endif
 
 } // namespace
 
@@ -1047,72 +1031,6 @@ parse_size(const std::string& value)
   return static_cast<uint64_t>(result);
 }
 
-bool
-read_fd(int fd, DataReceiver data_receiver)
-{
-  int64_t n;
-  char buffer[CCACHE_READ_BUFFER_SIZE];
-  while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
-    if (n == -1 && errno != EINTR) {
-      break;
-    }
-    if (n > 0) {
-      data_receiver(buffer, n);
-    }
-  }
-  return n >= 0;
-}
-
-std::string
-read_file(const std::string& path, size_t size_hint)
-{
-  if (size_hint == 0) {
-    auto stat = Stat::stat(path);
-    if (!stat) {
-      throw core::Error(strerror(errno));
-    }
-    size_hint = stat.size();
-  }
-
-  // +1 to be able to detect EOF in the first read call
-  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
-
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
-  if (!fd) {
-    throw core::Error(strerror(errno));
-  }
-
-  int64_t ret = 0;
-  size_t pos = 0;
-  std::string result;
-  result.resize(size_hint);
-
-  while (true) {
-    if (pos == result.size()) {
-      result.resize(2 * result.size());
-    }
-    const size_t max_read = result.size() - pos;
-    ret = read(*fd, &result[pos], max_read);
-    if (ret == 0 || (ret == -1 && errno != EINTR)) {
-      break;
-    }
-    if (ret > 0) {
-      pos += ret;
-      if (static_cast<size_t>(ret) < max_read) {
-        break;
-      }
-    }
-  }
-
-  if (ret == -1) {
-    LOG("Failed reading {}", path);
-    throw core::Error(strerror(errno));
-  }
-
-  result.resize(pos);
-  return result;
-}
-
 #ifndef _WIN32
 std::string
 read_link(const std::string& path)
@@ -1167,27 +1085,6 @@ real_path(const std::string& path, bool return_empty_on_error)
 #endif
 
   return resolved ? resolved : (return_empty_on_error ? "" : path);
-}
-
-std::string
-read_text_file(const std::string& path, size_t size_hint)
-{
-  std::string result = read_file(path, size_hint);
-#ifdef _WIN32
-  // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
-  //
-  // Note that this code assumes a little-endian machine, which is why it's
-  // #ifdef-ed to only run on Windows (which is always little-endian) where it's
-  // actually needed.
-  if (has_utf16_le_bom(result)) {
-    result.erase(0, 2); // Remove BOM.
-    std::u16string result_as_u16((result.size() / 2) + 1, '\0');
-    result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
-    result = converter.to_bytes(result_as_u16);
-  }
-#endif
-  return result;
 }
 
 std::string_view
@@ -1487,40 +1384,6 @@ wipe_path(const std::string& path)
       throw core::Error("failed to unlink {}: {}", p, strerror(errno));
     }
   });
-}
-
-void
-write_fd(int fd, const void* data, size_t size)
-{
-  int64_t written = 0;
-  do {
-    const auto count =
-      write(fd, static_cast<const uint8_t*>(data) + written, size - written);
-    if (count == -1) {
-      if (errno != EAGAIN && errno != EINTR) {
-        throw core::Error(strerror(errno));
-      }
-    } else {
-      written += count;
-    }
-  } while (static_cast<size_t>(written) < size);
-}
-
-void
-write_file(const std::string& path,
-           const std::string& data,
-           std::ios_base::openmode open_mode)
-{
-  if (path.empty()) {
-    throw core::Error("No such file or directory");
-  }
-
-  open_mode |= std::ios::out;
-  std::ofstream file(path, open_mode);
-  if (!file) {
-    throw core::Error(strerror(errno));
-  }
-  file << data;
 }
 
 } // namespace Util
