@@ -55,7 +55,9 @@ SUITE_pch() {
 
     pch_suite_common
     if $COMPILER_TYPE_CLANG; then
-        pch_suite_clang
+        if ! [ $COMPILER_BIN = "gcc" ] || $RUN_WIN_XFAIL; then
+            pch_suite_clang
+        fi
     else
         pch_suite_gcc
     fi
