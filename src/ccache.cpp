@@ -1926,6 +1926,9 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 
   try {
     File file(*result_path, "rb");
+    if (!file) {
+      throw core::Error("Failed to open {}: {}", strerror(errno));
+    }
     core::FileReader file_reader(file.get());
     core::CacheEntryReader cache_entry_reader(file_reader);
     Result::Reader result_reader(cache_entry_reader, *result_path);
