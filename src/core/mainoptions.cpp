@@ -586,8 +586,14 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      PRINT_RAW(stdout, get_version_text(Util::base_name(argv[0])));
+    {
+      std::string_view name = Util::base_name(argv[0]);
+#ifdef _WIN32
+      name = Util::remove_extension(name);
+#endif
+      PRINT_RAW(stdout, get_version_text(name));
       break;
+    }
 
     case 'x': // --show-compression
     {
