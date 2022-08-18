@@ -99,11 +99,13 @@ if(STATIC_LINK)
   if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   # Link MINGW runtime statically.
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
-  # Link WIN32 clang libs statically.
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    list(APPEND CCACHE_EXTRA_LIBS -Wl,-Bstatic -lc++ -lunwind -Wl,-Bdynamic)
+  elseif(WIN32)
+    if((CMAKE_CXX_COMPILER_ID STREQUAL GNU) OR (CMAKE_CXX_COMPILER_ID STREQUAL Clang))
+      list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
+    endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+      list(APPEND CCACHE_EXTRA_LIBS -fuse-ld=lld)
+    endif()
   endif()
 endif()
 
