@@ -20,6 +20,7 @@
 
 #include <third_party/nonstd/optional.hpp>
 
+#include <ctime>
 #include <string>
 
 namespace util {
