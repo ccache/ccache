@@ -529,8 +529,8 @@ Config::read()
       primary_config_dir = Util::make_path(env_local_appdata, "ccache");
     } else {
       throw core::Fatal(
-        "could not find config file and the LOCALAPPDATA "
-        "environment variable is not set");
+        "could not find configuration file and the LOCALAPPDATA environment"
+        " variable is not set");
     }
 #else
     } else if (env_xdg_config_home) {
@@ -564,8 +564,8 @@ Config::read()
       set_cache_dir(Util::make_path(env_local_appdata, "ccache"));
     } else {
       throw core::Fatal(
-        "could not find cache dir and the LOCALAPPDATA "
-        "environment variable is not set");
+        "could not find cache directory and the LOCALAPPDATA environment"
+        " variable is not set");
     }
 #else
     } else if (env_xdg_cache_home) {
@@ -575,7 +575,6 @@ Config::read()
     }
 #endif
   }
-
   // else: cache_dir was set explicitly via environment or via secondary
   // config.
 
