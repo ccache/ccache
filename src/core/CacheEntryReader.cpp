@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,7 @@
 #include "CacheEntryReader.hpp"
 
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
 
 namespace {
 
@@ -33,7 +34,7 @@ cache_entry_type_from_int(const uint8_t entry_type)
     return core::CacheEntryType::manifest;
     break;
   default:
-    throw core::Error("Unknown entry type: {}", entry_type);
+    throw core::Error(FMT("Unknown entry type: {}", entry_type));
   }
 }
 
@@ -46,12 +47,13 @@ CacheEntryReader::CacheEntryReader(core::Reader& reader)
 {
   const auto magic = m_checksumming_reader.read_int<uint16_t>();
   if (magic != core::k_ccache_magic) {
-    throw core::Error("Bad magic value: 0x{:04x}", magic);
+    throw core::Error(FMT("Bad magic value: 0x{:04x}", magic));
   }
 
   const auto entry_format_version = m_checksumming_reader.read_int<uint8_t>();
   if (entry_format_version != core::k_entry_format_version) {
-    throw core::Error("Unknown entry format version: {}", entry_format_version);
+    throw core::Error(
+      FMT("Unknown entry format version: {}", entry_format_version));
   }
 
   const auto entry_type = m_checksumming_reader.read_int<uint8_t>();
@@ -97,9 +99,10 @@ CacheEntryReader::finalize()
   const util::XXH3_128::Digest null_digest;
 
   if (actual != expected && actual != null_digest && expected != null_digest) {
-    throw core::Error("Incorrect checksum (actual {}, expected {})",
-                      Util::format_base16(actual.bytes(), actual.size()),
-                      Util::format_base16(expected.bytes(), expected.size()));
+    throw core::Error(
+      FMT("Incorrect checksum (actual {}, expected {})",
+          Util::format_base16(actual.bytes(), actual.size()),
+          Util::format_base16(expected.bytes(), expected.size())));
   }
 
   m_decompressor->finalize();

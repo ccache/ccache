@@ -85,8 +85,8 @@ Manifest::read(Reader& reader)
 
   const auto format_version = reader.read_int<uint8_t>();
   if (format_version != k_format_version) {
-    throw core::Error(
-      "Unknown format version: {} != {}", format_version, k_format_version);
+    throw core::Error(FMT(
+      "Unknown format version: {} != {}", format_version, k_format_version));
   }
 
   const auto file_count = reader.read_int<uint32_t>();

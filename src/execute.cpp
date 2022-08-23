@@ -28,10 +28,10 @@
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 
@@ -203,7 +203,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
   }
 
   if (ctx.compiler_pid == -1) {
-    throw core::Fatal("Failed to fork: {}", strerror(errno));
+    throw core::Fatal(FMT("Failed to fork: {}", strerror(errno)));
   }
 
   if (ctx.compiler_pid == 0) {
@@ -225,7 +225,7 @@ execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
     if (result == -1 && errno == EINTR) {
       continue;
     }
-    throw core::Fatal("waitpid failed: {}", strerror(errno));
+    throw core::Fatal(FMT("waitpid failed: {}", strerror(errno)));
   }
 
   {

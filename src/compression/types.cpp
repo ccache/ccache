@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,6 +22,7 @@
 #include <Context.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
 
 namespace compression {
 
@@ -48,7 +49,7 @@ type_from_int(const uint8_t type)
     return Type::zstd;
   }
 
-  throw core::Error("Unknown type: {}", type);
+  throw core::Error(FMT("Unknown type: {}", type));
 }
 
 std::string

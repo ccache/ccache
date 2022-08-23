@@ -51,7 +51,7 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
 #endif
   if (!fd) {
     throw core::Fatal(
-      "Failed to create temporary file for {}: {}", path, strerror(errno));
+      FMT("Failed to create temporary file for {}: {}", path, strerror(errno)));
   }
 
   Util::set_cloexec_flag(*fd);

@@ -151,7 +151,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
     std::string path = find_executable(ctx, word, ctx.orig_args[0]);
     if (path.empty()) {
-      throw core::Fatal("{}: {}", word, strerror(errno));
+      throw core::Fatal(FMT("{}: {}", word, strerror(errno)));
     }
 
     prefix.push_back(path);
@@ -1927,7 +1927,8 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   try {
     File file(*result_path, "rb");
     if (!file) {
-      throw core::Error("Failed to open {}: {}", *result_path, strerror(errno));
+      throw core::Error(
+        FMT("Failed to open {}: {}", *result_path, strerror(errno)));
     }
     core::FileReader file_reader(file.get());
     core::CacheEntryReader cache_entry_reader(file_reader);
@@ -1978,7 +1979,7 @@ find_compiler(Context& ctx,
       : find_executable_function(ctx, compiler, ctx.orig_args[0]);
 
   if (resolved_compiler.empty()) {
-    throw core::Fatal("Could not find compiler \"{}\" in PATH", compiler);
+    throw core::Fatal(FMT("Could not find compiler \"{}\" in PATH", compiler));
   }
 
   if (Util::is_ccache_executable(resolved_compiler)) {
@@ -2148,7 +2149,7 @@ cache_compilation(int argc, const char* const* argv)
     auto execv_argv = saved_orig_args.to_argv();
     execute_noreturn(execv_argv.data(), saved_temp_dir);
     throw core::Fatal(
-      "execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno));
+      FMT("execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno)));
   }
 
   return EXIT_SUCCESS;

@@ -24,11 +24,11 @@
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
 #include "Win32Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
@@ -226,7 +226,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #  if defined(__linux__)
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
-    throw core::Error("{}: {}", src, strerror(errno));
+    throw core::Error(FMT("{}: {}", src, strerror(errno)));
   }
 
   Fd dest_fd;
@@ -239,7 +239,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw core::Error("{}: {}", src, strerror(errno));
+      throw core::Error(FMT("{}: {}", src, strerror(errno)));
     }
   }
 
@@ -349,7 +349,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
   if (!src_fd) {
-    throw core::Error("{}: {}", src, strerror(errno));
+    throw core::Error(FMT("{}: {}", src, strerror(errno)));
   }
 
   Fd dest_fd;
@@ -362,7 +362,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw core::Error("{}: {}", dest, strerror(errno));
+      throw core::Error(FMT("{}: {}", dest, strerror(errno)));
     }
   }
 
@@ -448,7 +448,7 @@ expand_environment_variables(const std::string& str)
         ++right;
       }
       if (curly && *right != '}') {
-        throw core::Error("syntax error: missing '}}' after \"{}\"", left);
+        throw core::Error(FMT("syntax error: missing '}}' after \"{}\"", left));
       }
       if (right == left) {
         // Special case: don't consider a single $ the left of a variable.
@@ -458,7 +458,7 @@ expand_environment_variables(const std::string& str)
         std::string name(left, right - left);
         const char* value = getenv(name.c_str());
         if (!value) {
-          throw core::Error("environment variable \"{}\" not set", name);
+          throw core::Error(FMT("environment variable \"{}\" not set", name));
         }
         result += value;
         if (!curly) {
@@ -574,7 +574,7 @@ ensure_dir_exists(std::string_view dir)
 {
   if (!create_dir(dir)) {
     throw core::Fatal(
-      "Failed to create directory {}: {}", dir, strerror(errno));
+      FMT("Failed to create directory {}: {}", dir, strerror(errno)));
   }
 }
 
@@ -738,15 +738,15 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 #ifndef _WIN32
   if (link(oldpath.c_str(), newpath.c_str()) != 0) {
     throw core::Error(
-      "failed to link {} to {}: {}", oldpath, newpath, strerror(errno));
+      FMT("failed to link {} to {}: {}", oldpath, newpath, strerror(errno)));
   }
 #else
   if (!CreateHardLink(newpath.c_str(), oldpath.c_str(), nullptr)) {
     DWORD error = GetLastError();
-    throw core::Error("failed to link {} to {}: {}",
-                      oldpath,
-                      newpath,
-                      Win32Util::error_message(error));
+    throw core::Error(FMT("failed to link {} to {}: {}",
+                          oldpath,
+                          newpath,
+                          Win32Util::error_message(error)));
   }
 #endif
 }
@@ -977,8 +977,8 @@ parse_duration(const std::string& duration)
     factor = 1;
     break;
   default:
-    throw core::Error(
-      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration);
+    throw core::Error(FMT(
+      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
   }
 
   const auto value =
@@ -998,7 +998,7 @@ parse_size(const std::string& value)
   char* p;
   double result = strtod(value.c_str(), &p);
   if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
-    throw core::Error("invalid size: \"{}\"", value);
+    throw core::Error(FMT("invalid size: \"{}\"", value));
   }
 
   while (isspace(*p)) {
@@ -1022,7 +1022,7 @@ parse_size(const std::string& value)
       result *= multiplier;
       break;
     default:
-      throw core::Error("invalid size: \"{}\"", value);
+      throw core::Error(FMT("invalid size: \"{}\"", value));
     }
   } else {
     // Default suffix: G.
@@ -1099,7 +1099,7 @@ rename(const std::string& oldpath, const std::string& newpath)
 #ifndef _WIN32
   if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
     throw core::Error(
-      "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno));
+      FMT("failed to rename {} to {}: {}", oldpath, newpath, strerror(errno)));
   }
 #else
   // Windows' rename() won't overwrite an existing file, so need to use
@@ -1107,10 +1107,10 @@ rename(const std::string& oldpath, const std::string& newpath)
   if (!MoveFileExA(
         oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
     DWORD error = GetLastError();
-    throw core::Error("failed to rename {} to {}: {}",
-                      oldpath,
-                      newpath,
-                      Win32Util::error_message(error));
+    throw core::Error(FMT("failed to rename {} to {}: {}",
+                          oldpath,
+                          newpath,
+                          Win32Util::error_message(error)));
   }
 #endif
 }
@@ -1146,7 +1146,7 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
   const auto result =
     util::write_fd(fd, text_to_send->data(), text_to_send->length());
   if (!result) {
-    throw core::Error("Failed to write to {}: {}", fd, result.error());
+    throw core::Error(FMT("Failed to write to {}: {}", fd, result.error()));
   }
 }
 
@@ -1259,9 +1259,9 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
           if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
             continue;
           }
-          throw core::Error("failed to lstat {}: {}",
-                            entry_path,
-                            strerror(stat.error_number()));
+          throw core::Error(FMT("failed to lstat {}: {}",
+                                entry_path,
+                                strerror(stat.error_number())));
         }
         is_dir = stat.is_directory();
       }
@@ -1276,7 +1276,8 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (errno == ENOTDIR) {
     visitor(path, false);
   } else {
-    throw core::Error("failed to open directory {}: {}", path, strerror(errno));
+    throw core::Error(
+      FMT("failed to open directory {}: {}", path, strerror(errno)));
   }
 }
 
@@ -1299,7 +1300,8 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (std::filesystem::exists(path)) {
     visitor(path, false);
   } else {
-    throw core::Error("failed to open directory {}: {}", path, strerror(errno));
+    throw core::Error(
+      FMT("failed to open directory {}: {}", path, strerror(errno)));
   }
 }
 
@@ -1378,10 +1380,10 @@ wipe_path(const std::string& path)
   traverse(path, [](const std::string& p, bool is_dir) {
     if (is_dir) {
       if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-        throw core::Error("failed to rmdir {}: {}", p, strerror(errno));
+        throw core::Error(FMT("failed to rmdir {}: {}", p, strerror(errno)));
       }
     } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-      throw core::Error("failed to unlink {}: {}", p, strerror(errno));
+      throw core::Error(FMT("failed to unlink {}: {}", p, strerror(errno)));
     }
   });
 }

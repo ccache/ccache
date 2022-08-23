@@ -23,6 +23,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/file.hpp>
 
 #include <fcntl.h>
@@ -56,7 +57,7 @@ ResultExtractor::on_entry_start(uint8_t /*entry_number*/,
       open(m_dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!m_dest_fd) {
       throw core::Error(
-        "Failed to open {} for writing: {}", m_dest_path, strerror(errno));
+        FMT("Failed to open {} for writing: {}", m_dest_path, strerror(errno)));
     }
   } else if (raw_file->empty()) {
     PRINT_RAW(stderr,
@@ -66,7 +67,7 @@ ResultExtractor::on_entry_start(uint8_t /*entry_number*/,
       Util::copy_file(*raw_file, m_dest_path, false);
     } catch (core::Error& e) {
       throw core::Error(
-        "Failed to copy {} to {}: {}", *raw_file, m_dest_path, e.what());
+        FMT("Failed to copy {} to {}: {}", *raw_file, m_dest_path, e.what()));
     }
   }
 }
@@ -78,7 +79,8 @@ ResultExtractor::on_entry_data(const uint8_t* data, size_t size)
 
   const auto result = util::write_fd(*m_dest_fd, data, size);
   if (!result) {
-    throw core::Error("Failed to write to {}: {}", m_dest_path, result.error());
+    throw core::Error(
+      FMT("Failed to write to {}: {}", m_dest_path, result.error()));
   }
 }
 

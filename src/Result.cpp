@@ -26,7 +26,6 @@
 #include "Logging.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <ccache.hpp>
 #include <core/CacheEntryReader.hpp>
@@ -36,6 +35,7 @@
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/path.hpp>
 
 #include <fcntl.h>
@@ -88,7 +88,7 @@ get_raw_file_path(std::string_view result_path, uint8_t entry_number)
     // To support more entries in the future, encode to [0-9a-z]. Note that
     // PrimaryStorage::evict currently assumes that the entry number is
     // represented as one character.
-    throw core::Error("Too high raw file entry number: {}", entry_number);
+    throw core::Error(FMT("Too high raw file entry number: {}", entry_number));
   }
 
   const auto prefix = result_path.substr(
@@ -204,20 +204,20 @@ void
 Reader::read(Consumer& consumer)
 {
   if (m_reader.header().entry_type != core::CacheEntryType::result) {
-    throw core::Error("Unexpected cache entry type: {}",
-                      to_string(m_reader.header().entry_type));
+    throw core::Error(FMT("Unexpected cache entry type: {}",
+                          to_string(m_reader.header().entry_type)));
   }
 
   const auto result_format_version = m_reader.read_int<uint8_t>();
   if (result_format_version != k_result_format_version) {
-    throw core::Error("Unknown result format version: {}",
-                      result_format_version);
+    throw core::Error(
+      FMT("Unknown result format version: {}", result_format_version));
   }
 
   const auto n_entries = m_reader.read_int<uint8_t>();
   if (n_entries >= k_max_raw_file_entries) {
-    throw core::Error(
-      "Too many raw file entries: {} > {}", n_entries, k_max_raw_file_entries);
+    throw core::Error(FMT(
+      "Too many raw file entries: {} > {}", n_entries, k_max_raw_file_entries));
   }
 
   uint8_t i;
@@ -226,7 +226,8 @@ Reader::read(Consumer& consumer)
   }
 
   if (i != n_entries) {
-    throw core::Error("Too few entries (read {}, expected {})", i, n_entries);
+    throw core::Error(
+      FMT("Too few entries (read {}, expected {})", i, n_entries));
   }
 
   m_reader.finalize();
@@ -243,7 +244,7 @@ Reader::read_entry(uint8_t entry_number, Reader::Consumer& consumer)
     break;
 
   default:
-    throw core::Error("Unknown entry type: {}", marker);
+    throw core::Error(FMT("Unknown entry type: {}", marker));
   }
 
   const auto type = m_reader.read_int<UnderlyingFileTypeInt>();
@@ -270,10 +271,10 @@ Reader::read_entry(uint8_t entry_number, Reader::Consumer& consumer)
       auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
       if (st.size() != file_len) {
         throw core::Error(
-          "Bad file size of {} (actual {} bytes, expected {} bytes)",
-          raw_path,
-          st.size(),
-          file_len);
+          FMT("Bad file size of {} (actual {} bytes, expected {} bytes)",
+              raw_path,
+              st.size(),
+              file_len));
       }
     }
 
@@ -391,7 +392,7 @@ Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
 {
   Fd file(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!file) {
-    throw core::Error("Failed to open {} for reading", path);
+    throw core::Error(FMT("Failed to open {} for reading", path));
   }
 
   uint64_t remain = file_size;
@@ -403,10 +404,11 @@ Result::Writer::write_embedded_file_entry(core::CacheEntryWriter& writer,
       if (errno == EINTR) {
         continue;
       }
-      throw core::Error("Error reading from {}: {}", path, strerror(errno));
+      throw core::Error(
+        FMT("Error reading from {}: {}", path, strerror(errno)));
     }
     if (bytes_read == 0) {
-      throw core::Error("Error reading from {}: end of file", path);
+      throw core::Error(FMT("Error reading from {}: end of file", path));
     }
     writer.write(buf, bytes_read);
     remain -= bytes_read;
@@ -423,7 +425,7 @@ Result::Writer::write_raw_file_entry(const std::string& path,
     Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
   } catch (core::Error& e) {
     throw core::Error(
-      "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
+      FMT("Failed to store {} as raw file {}: {}", path, raw_file, e.what()));
   }
   const auto new_stat = Stat::stat(raw_file);
   return {

@@ -22,12 +22,12 @@
 #include "MiniTrace.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
-#include "fmtmacros.hpp"
 
 #include <UmaskScope.hpp>
 #include <compression/types.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
@@ -209,11 +209,11 @@ parse_bool(const std::string& value,
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw core::Error(
-        "invalid boolean environment variable value \"{}\" (did you mean to"
-        " set \"CCACHE_{}{}=true\"?)",
-        value,
-        negate ? "" : "NO",
-        *env_var_key);
+        FMT("invalid boolean environment variable value \"{}\" (did you mean to"
+            " set \"CCACHE_{}{}=true\"?)",
+            value,
+            negate ? "" : "NO",
+            *env_var_key));
     }
     return !negate;
   } else if (value == "true") {
@@ -221,7 +221,7 @@ parse_bool(const std::string& value,
   } else if (value == "false") {
     return false;
   } else {
-    throw core::Error("not a boolean value: \"{}\"", value);
+    throw core::Error(FMT("not a boolean value: \"{}\"", value));
   }
 }
 
@@ -361,7 +361,7 @@ void
 verify_absolute_path(const std::string& value)
 {
   if (!util::is_absolute_path(value)) {
-    throw core::Error("not an absolute path: \"{}\"", value);
+    throw core::Error(FMT("not an absolute path: \"{}\"", value));
   }
 }
 
@@ -417,7 +417,7 @@ parse_config_file(const std::string& path,
       }
       config_line_handler(line, key, value);
     } catch (const core::Error& e) {
-      throw core::Error("{}:{}: {}", path, line_number, e.what());
+      throw core::Error(FMT("{}:{}: {}", path, line_number, e.what()));
     }
   }
   return true;
@@ -649,7 +649,8 @@ Config::update_from_environment()
     try {
       set_item(config_key, value, key, negate, "environment");
     } catch (const core::Error& e) {
-      throw core::Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
+      throw core::Error(
+        FMT("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what()));
     }
   }
 }
@@ -659,7 +660,7 @@ Config::get_string_value(const std::string& key) const
 {
   auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
-    throw core::Error("unknown configuration option \"{}\"", key);
+    throw core::Error(FMT("unknown configuration option \"{}\"", key));
   }
 
   switch (it->second) {
@@ -801,7 +802,7 @@ Config::set_value_in_file(const std::string& path,
   UmaskScope umask_scope(m_umask);
 
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
-    throw core::Error("unknown configuration option \"{}\"", key);
+    throw core::Error(FMT("unknown configuration option \"{}\"", key));
   }
 
   // Verify that the value is valid; set_item will throw if not.
@@ -815,7 +816,7 @@ Config::set_value_in_file(const std::string& path,
     const auto result = util::write_file(resolved_path, "");
     if (!result) {
       throw core::Error(
-        "failed to write to {}: {}", resolved_path, result.error());
+        FMT("failed to write to {}: {}", resolved_path, result.error()));
     }
   }
 
@@ -832,7 +833,7 @@ Config::set_value_in_file(const std::string& path,
             output.write(FMT("{}\n", c_line));
           }
         })) {
-    throw core::Error("failed to open {}: {}", path, strerror(errno));
+    throw core::Error(FMT("failed to open {}: {}", path, strerror(errno)));
   }
 
   if (!found) {
@@ -1068,9 +1069,9 @@ Config::check_key_tables_consistency()
   for (const auto& [key, value] : k_env_variable_table) {
     if (k_config_key_table.find(value) == k_config_key_table.end()) {
       throw core::Error(
-        "env var {} mapped to {} which is missing from k_config_key_table",
-        key,
-        value);
+        FMT("env var {} mapped to {} which is missing from k_config_key_table",
+            key,
+            value));
     }
   }
 }

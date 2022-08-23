@@ -121,7 +121,7 @@ open_file(const std::string& path, const char* const mode)
   File f(path, mode);
   if (!f) {
     throw core::Error(
-      "failed to open {} for reading: {}", path, strerror(errno));
+      FMT("failed to open {} for reading: {}", path, strerror(errno)));
   }
   return f;
 }
@@ -130,7 +130,7 @@ static std::unique_ptr<core::CacheEntryReader>
 create_reader(const CacheFile& cache_file, core::Reader& reader)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
-    throw core::Error("unknown file type for {}", cache_file.path());
+    throw core::Error(FMT("unknown file type for {}", cache_file.path()));
   }
 
   return std::make_unique<core::CacheEntryReader>(reader);

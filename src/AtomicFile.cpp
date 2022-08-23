@@ -23,6 +23,7 @@
 #include "assertions.hpp"
 
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
@@ -45,7 +46,7 @@ AtomicFile::write(const std::string& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
-      "failed to write data to {}: {}", m_path, strerror(errno));
+      FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
 }
 
@@ -54,7 +55,7 @@ AtomicFile::write(const util::Blob& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
-      "failed to write data to {}: {}", m_path, strerror(errno));
+      FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
 }
 
@@ -67,7 +68,7 @@ AtomicFile::commit()
   if (result == EOF) {
     Util::unlink_tmp(m_tmp_path);
     throw core::Error(
-      "failed to write data to {}: {}", m_path, strerror(errno));
+      FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
   Util::rename(m_tmp_path, m_path);
 }

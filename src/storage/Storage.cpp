@@ -119,7 +119,8 @@ parse_storage_config(const std::string_view entry)
     Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
 
   if (parts.empty() || parts.front().empty()) {
-    throw core::Error("secondary storage config must provide a URL: {}", entry);
+    throw core::Error(
+      FMT("secondary storage config must provide a URL: {}", entry));
   }
 
   SecondaryStorageConfig result;
@@ -131,11 +132,11 @@ parse_storage_config(const std::string_view entry)
   try {
     std::ignore = result.params.url.str();
   } catch (const std::exception& e) {
-    throw core::Error("Cannot parse URL {}: {}", url_str, e.what());
+    throw core::Error(FMT("Cannot parse URL {}: {}", url_str, e.what()));
   }
 
   if (result.params.url.scheme().empty()) {
-    throw core::Error("URL scheme must not be empty: {}", entry);
+    throw core::Error(FMT("URL scheme must not be empty: {}", entry));
   }
 
   for (size_t i = 1; i < parts.size(); ++i) {
@@ -150,8 +151,8 @@ parse_storage_config(const std::string_view entry)
       result.read_only = (value == "true");
     } else if (key == "shards") {
       if (url_str.find('*') == std::string::npos) {
-        throw core::Error(R"(Missing "*" in URL when using shards: "{}")",
-                          url_str);
+        throw core::Error(
+          FMT(R"(Missing "*" in URL when using shards: "{}")", url_str));
       }
       for (const auto& shard : util::Tokenizer(value, ",")) {
         double weight = 1.0;
@@ -159,13 +160,13 @@ parse_storage_config(const std::string_view entry)
         const auto lp_pos = shard.find('(');
         if (lp_pos != std::string_view::npos) {
           if (shard.back() != ')') {
-            throw core::Error("Invalid shard name: \"{}\"", shard);
+            throw core::Error(FMT("Invalid shard name: \"{}\"", shard));
           }
           weight =
             util::value_or_throw<core::Error>(util::parse_double(std::string(
               shard.substr(lp_pos + 1, shard.length() - lp_pos - 2))));
           if (weight < 0.0) {
-            throw core::Error("Invalid shard weight: \"{}\"", weight);
+            throw core::Error(FMT("Invalid shard weight: \"{}\"", weight));
           }
           name = shard.substr(0, lp_pos);
         } else {
@@ -278,7 +279,7 @@ Storage::get(const Digest& key,
   try {
     util::write_file(tmp_file.path, value);
   } catch (const core::Error& e) {
-    throw core::Fatal("Error writing to {}: {}", tmp_file.path, e.what());
+    throw core::Fatal(FMT("Error writing to {}: {}", tmp_file.path, e.what()));
   }
 
   if (share_hits) {
@@ -370,8 +371,8 @@ Storage::add_secondary_storages()
     redact_url_for_logging(url_for_logging);
     const auto storage = get_storage(config.params.url);
     if (!storage) {
-      throw core::Error("unknown secondary storage URL: {}",
-                        url_for_logging.str());
+      throw core::Error(
+        FMT("unknown secondary storage URL: {}", url_for_logging.str()));
     }
     m_secondary_storages.push_back(std::make_unique<SecondaryStorageEntry>(
       SecondaryStorageEntry{config, url_for_logging.str(), storage, {}}));

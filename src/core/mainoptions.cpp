@@ -251,8 +251,8 @@ trim_dir(const std::string& dir,
     if (!is_dir) {
       const auto name = Util::base_name(path);
       if (name == "ccache.conf" || name == "stats") {
-        throw Fatal("this looks like a primary cache directory (found {})",
-                    path);
+        throw Fatal(
+          FMT("this looks like a primary cache directory (found {})", path));
       }
       files.push_back({path, stat});
     }
@@ -541,7 +541,7 @@ process_main_options(int argc, const char* const* argv)
       // for the -o=K=V case (key "=K" and value "V").
       size_t eq_pos = arg.find('=', 1);
       if (eq_pos == std::string::npos) {
-        throw Error("missing equal sign in \"{}\"", arg);
+        throw Error(FMT("missing equal sign in \"{}\"", arg));
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);

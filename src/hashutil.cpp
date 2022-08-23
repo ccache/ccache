@@ -27,11 +27,11 @@
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "execute.hpp"
-#include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 
@@ -442,12 +442,12 @@ hash_command_output(Hash& hash,
 #else
   int pipefd[2];
   if (pipe(pipefd) == -1) {
-    throw core::Fatal("pipe failed: {}", strerror(errno));
+    throw core::Fatal(FMT("pipe failed: {}", strerror(errno)));
   }
 
   pid_t pid = fork();
   if (pid == -1) {
-    throw core::Fatal("fork failed: {}", strerror(errno));
+    throw core::Fatal(FMT("fork failed: {}", strerror(errno)));
   }
 
   if (pid == 0) {

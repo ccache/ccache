@@ -86,8 +86,8 @@ std::string
 get_url(const Url& url)
 {
   if (url.host().empty()) {
-    throw core::Fatal("A host is required in HTTP storage URL \"{}\"",
-                      url.str());
+    throw core::Fatal(
+      FMT("A host is required in HTTP storage URL \"{}\"", url.str()));
   }
 
   // httplib requires a partial URL with just scheme, host and port.
@@ -101,8 +101,8 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   if (!params.url.user_info().empty()) {
     const auto [user, password] = util::split_once(params.url.user_info(), ':');
     if (!password) {
-      throw core::Fatal("Expected username:password in URL but got \"{}\"",
-                        params.url.user_info());
+      throw core::Fatal(FMT("Expected username:password in URL but got \"{}\"",
+                            params.url.user_info()));
     }
     m_http_client.set_basic_auth(std::string(user), std::string(*password));
   }

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 
 #ifdef _WIN32
 #  include <third_party/win32/winerror_to_errno.h>
@@ -212,7 +213,7 @@ Stat::Stat(StatFunction stat_function,
   } else {
     m_errno = errno;
     if (on_error == OnError::throw_error) {
-      throw core::Error("failed to stat {}: {}", path, strerror(errno));
+      throw core::Error(FMT("failed to stat {}: {}", path, strerror(errno)));
     }
     if (on_error == OnError::log) {
       LOG("Failed to stat {}: {}", path, strerror(errno));
