@@ -302,8 +302,8 @@ configuration file won't be read.
 
 === Location of the primary configuration file
 
-The location of the primary (cache-specific) configuration is determined as
-follows on non-Windows systems:
+The location of the primary (cache-specific) configuration is determined like
+this on non-Windows systems:
 
 1. If `CCACHE_CONFIGPATH` is set, use that path.
 2. Otherwise, if the environment variable `CCACHE_DIR` is set then use
@@ -326,15 +326,16 @@ On Windows, this is the method used to find the configuration file:
 3. Otherwise, if <<config_cache_dir,*cache_dir*>> is set in the secondary
    (system-wide) configuration file then use `<cache_dir>\ccache.conf`. The
    system-wide configuration on Windows is
-   `%ALLUSERSPROFILE%\ccache\ccache.conf` by default, the `ALLUSERSPROFILE`
+   `%ALLUSERSPROFILE%\ccache\ccache.conf` by default. The `ALLUSERSPROFILE`
    environment variable is usually `C:\ProgramData`.
 4. Otherwise, if there is a legacy `%USERPROFILE%\.ccache` directory then use
    `%USERPROFILE%\.ccache\ccache.conf`.
-5. Otherwise, if `%LOCALAPPDATA%\ccache\ccache.conf` exists it is used.
-6. Otherwise, if `%APPDATA%\ccache\ccache.conf` exists it is used.
+5. Otherwise, use `%LOCALAPPDATA%\ccache\ccache.conf` if it exists.
+6. Otherwise, use `%APPDATA%\ccache\ccache.conf`.
 
 See also the <<config_cache_dir,*cache_dir*>> configuration option for how the
 cache directory location is determined.
+
 
 === Configuration file syntax
 
@@ -445,40 +446,22 @@ relative paths in the first place instead instead of using *base_dir*.
 [#config_cache_dir]
 *cache_dir* (*CCACHE_DIR*)::
 
-    This option specifies where ccache will keep its cached compiler outputs if
-    specified in the first found configuration files, with the `$CCACHE_DIR`
-    environment variable taking precedence over it.
+    This option specifies where ccache will keep its cached compiler outputs.
 +
-The location of the cache directory is determined as follows on non-Windows
-systems:
+On non-Windows systems, the default is `$HOME/.ccache` if such a directory
+exists, otherwise `$XDG_CACHE_HOME/ccache` if `XDG_CACHE_HOME` is set, otherwise
+`$HOME/Library/Caches/ccache` (macOS) or `$HOME/.config/ccache` (other systems).
 +
---
-1. `$CCACHE_DIR` if set.
-2. `cache_dir` in the first found configuration if specified.
-3. `$HOME/.ccache` if it exists.
-4. `$XDG_CACHE_HOME/ccache` if `$XDG_CACHE_HOME` is set.
-5. Otherwise `~/.cache/ccache` or `~/Library/Caches/ccache` on Apple systems.
---
+On Windows, the default is `%USERPROFILE%\.ccache` if such a directory exists,
+otherwise `%LOCALAPPDATA%\ccache`.
 +
-The cache directory on Windows is determined as follows:
-+
---
-1. `%CCACHE_DIR%` if set.
-2. `cache_dir` in the first found configuration if specified.
-3. `%USERPROFILE%\.ccache` if it exists.
-4. Otherwise `%LOCALAPPDATA%\ccache`.
---
-+
-WARNING: Previous builds of ccache for Windows defaulted to storing the cache in
-`%APPDATA%\ccache`. This can result in large network file transfers of the cache
-in domain environments and similar problems. Please check this directory for
-cache directories and either delete them or the whole directory, or move them to
-the `%LOCALAPPDATA%\ccache` directory.
+WARNING: Previous ccache versions defaulted to storing the cache in
+`%APPDATA%\ccache` on Windows. This can result in large network file transfers
+of the cache in domain environments and similar problems. Please check this
+directory for cache directories and either delete them or the whole directory,
+or move them to the `%LOCALAPPDATA%\ccache` directory.
 +
 See also _<<Location of the primary configuration file>>_.
-+
-If you want to use another `CCACHE_DIR` value temporarily for one ccache
-invocation you can use the `-d`/`--dir` command line option instead.
 
 [#config_compiler]
 *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
