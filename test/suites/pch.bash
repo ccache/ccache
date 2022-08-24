@@ -134,17 +134,23 @@ pch_suite_common() {
     expect_stat preprocessor_error 1
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -include, no sloppiness"
+    include_pch_variants=(
+        "-include pch.h"
+        "-includepch.h"
+    )
+    for args in "${include_pch_variants[@]}"; do
+        TEST "Use .gch, $args, no sloppiness"
 
-    $COMPILER $SYSROOT -c pch.h
-    backdate pch.h.gch
+        $COMPILER $SYSROOT -c pch.h
+        backdate pch.h.gch
 
-    $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 0
-    # Must enable sloppy time macros:
-    expect_stat could_not_use_precompiled_header 1
+        $CCACHE_COMPILE $SYSROOT -c $args pch2.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 0
+        # Must enable sloppy time macros:
+        expect_stat could_not_use_precompiled_header 1
+    done
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include"
