@@ -925,8 +925,10 @@ process_arg(const Context& ctx,
   }
 
   // Detect PCH for options with concatenated path (relative or absolute).
-  if (util::starts_with(args[i], "-Fp") || util::starts_with(args[i], "-Yu")) {
-    const size_t path_pos = 3;
+  if (util::starts_with(args[i], "-include")
+      || util::starts_with(args[i], "-Fp")
+      || util::starts_with(args[i], "-Yu")) {
+    const size_t path_pos = util::starts_with(args[i], "-include") ? 8 : 3;
     if (!detect_pch(args[i].substr(0, path_pos),
                     args[i].substr(path_pos),
                     args_info.included_pch_file,
