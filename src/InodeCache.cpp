@@ -95,7 +95,11 @@ fd_is_on_known_to_work_file_system(int fd)
     LOG("fstatfs failed: {}", strerror(errno));
   } else {
 #ifdef HAVE_LINUX_FS_H
-    switch (buf.f_type) {
+    // statfs's f_type field is a signed 32-bit integer on some platforms. Large
+    // values therefore cause narrowing warnings, so cast the value to a large
+    // unsigned type.
+    const auto f_type = static_cast<uintmax_t>(buf.f_type);
+    switch (f_type) {
       // Is a filesystem you know works with the inode cache missing in this
       // list? Please submit an issue or pull request to the ccache project.
     case 0x9123683e: // BTRFS_SUPER_MAGIC
@@ -106,7 +110,7 @@ fd_is_on_known_to_work_file_system(int fd)
       break;
     default:
       LOG("Filesystem type 0x{:x} not known to work for the inode cache",
-          buf.f_type);
+          f_type);
     }
 #elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME) // macOS X and some BSDs
     static const std::vector<std::string> known_to_work_filesystems = {
