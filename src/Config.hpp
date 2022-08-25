@@ -22,6 +22,8 @@
 
 #include <core/Sloppiness.hpp>
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <functional>
 #include <limits>
