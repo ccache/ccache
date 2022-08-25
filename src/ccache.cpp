@@ -1134,16 +1134,22 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     ctx.register_pending_tmp_file(preprocessed_path);
 
     const size_t orig_args_size = args.size();
-    args.push_back("-E");
+
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
     }
 
-    // Pass -o instead of sending the preprocessor output to stdout to work
-    // around compilers that don't exit with a proper status on write error to
-    // stdout. See also <https://github.com/llvm/llvm-project/issues/56499>.
-    args.push_back("-o");
-    args.push_back(preprocessed_path);
+    // Send preprocessor output to a file instead of stdout to work around
+    // compilers that don't exit with a proper status on write error to stdout.
+    // See also <https://github.com/llvm/llvm-project/issues/56499>.
+    if (ctx.config.is_compiler_group_msvc()) {
+      args.push_back("-P");
+      args.push_back(FMT("-Fi{}", preprocessed_path));
+    } else {
+      args.push_back("-E");
+      args.push_back("-o");
+      args.push_back(preprocessed_path);
+    }
 
     args.push_back(ctx.args_info.input_file);
 
