@@ -25,6 +25,8 @@
 
 #include "third_party/nonstd/optional.hpp"
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <functional>
 #include <limits>
