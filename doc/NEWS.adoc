@@ -1,5 +1,26 @@
 = Ccache news
 
+== Ccache 4.6.3
+
+Release date: 2022-08-27
+
+
+=== Bug fixes
+
+- Fixed MSVC support (regression in ccache 4.6.2). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed detection of PCH header for concatenated `-include` option (e.g.,
+  `-includepch.h` instead of `-include pch.h`). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements ===
+
+- Fixed build with musl when using GCC 12. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.6.2
 
 Release date: 2022-08-22
