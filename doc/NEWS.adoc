@@ -15,9 +15,16 @@ Release date: 2022-08-27
   [small]#_[contributed by Joel Rosdahl]_#
 
 
-=== Build improvements ===
+=== Build improvements
 
 - Fixed build with musl when using GCC 12. +
+  [small]#_[contributed by Khem Raj]_#
+
+
+=== Test improvements
+
+- Disabled the `"Failure to write output file"` when running on a filesystem
+  that doesn't support read-only directories. +
   [small]#_[contributed by Joel Rosdahl]_#
 
 
