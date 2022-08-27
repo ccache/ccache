@@ -66,10 +66,14 @@ bool debug_log_enabled = false;
 print_fatal_error_and_exit()
 {
   // Note: Can't throw Fatal since that would lead to recursion.
-  PRINT(stderr,
-        "ccache: error: Failed to write to {}: {}\n",
-        logfile_path,
-        strerror(errno));
+  try {
+    PRINT(stderr,
+          "ccache: error: Failed to write to {}: {}\n",
+          logfile_path,
+          strerror(errno));
+  } catch (std::runtime_error&) {
+    // Ignore since we can't do anything about it.
+  }
   exit(EXIT_FAILURE);
 }
 
