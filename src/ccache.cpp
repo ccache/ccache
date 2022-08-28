@@ -1592,14 +1592,13 @@ calculate_result_and_manifest_key(Context& ctx,
       // Case 2: -Wa,-a=     (write to stdout and stderr)
       // Case 3: -Wa,-a=file (write to file)
       //
-      // No need to include the file part in case 3 since the filename is not
-      // part of the output.
+      // No need to include the file part in case 3 in the hash since the
+      // filename is not part of the output.
 
-      using util::Tokenizer;
       hash.hash_delimiter("arg");
       bool first = true;
-      for (const auto part :
-           Tokenizer(args[i], ",", Tokenizer::Mode::include_empty)) {
+      for (const auto part : util::Tokenizer(
+             args[i], ",", util::Tokenizer::Mode::include_empty)) {
         if (first) {
           first = false;
         } else {
