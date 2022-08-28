@@ -60,6 +60,9 @@ struct ArgsInfo
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::string output_dwo;
 
+  // Assembler listing file.
+  std::string output_al;
+
   // The .gch/.pch/.pth file used for compilation.
   std::string included_pch_file;
 

@@ -922,6 +922,10 @@ write_result(Context& ctx,
     result_writer.write_file(Result::FileType::dwarf_object,
                              ctx.args_info.output_dwo);
   }
+  if (!ctx.args_info.output_al.empty()) {
+    result_writer.write_file(Result::FileType::assembler_listing,
+                             ctx.args_info.output_al);
+  }
 
   const auto file_size_and_count_diff = result_writer.finalize();
   if (file_size_and_count_diff) {
@@ -1578,6 +1582,41 @@ calculate_result_and_manifest_key(Context& ctx,
 
     // -Wl,... doesn't affect compilation (except for clang).
     if (util::starts_with(args[i], "-Wl,") && !is_clang) {
+      continue;
+    }
+
+    if (util::starts_with(args[i], "-Wa,")) {
+      // We have to distinguish between three cases:
+      //
+      // Case 1: -Wa,-a      (write to stdout)
+      // Case 2: -Wa,-a=     (write to stdout and stderr)
+      // Case 3: -Wa,-a=file (write to file)
+      //
+      // No need to include the file part in case 3 since the filename is not
+      // part of the output.
+
+      using util::Tokenizer;
+      hash.hash_delimiter("arg");
+      bool first = true;
+      for (const auto part :
+           Tokenizer(args[i], ",", Tokenizer::Mode::include_empty)) {
+        if (first) {
+          first = false;
+        } else {
+          hash.hash(",");
+        }
+        if (util::starts_with(part, "-a")) {
+          const auto eq_pos = part.find('=');
+          if (eq_pos < part.size() - 1) {
+            // Case 3:
+            hash.hash(part.substr(0, eq_pos + 1));
+            hash.hash("file");
+            continue;
+          }
+        }
+        // Case 1 and 2:
+        hash.hash(part);
+      }
       continue;
     }
 

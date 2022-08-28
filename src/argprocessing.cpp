@@ -69,6 +69,7 @@ struct ArgumentProcessingState
   bool found_mf_opt = false;
   bool found_wp_md_or_mmd_opt = false;
   bool found_md_or_mmd_opt = false;
+  bool found_opt_Wa_a = false;
 
   std::string explicit_language;    // As specified with -x.
   std::string input_charset_option; // -finput-charset=...
@@ -416,11 +417,22 @@ process_option_arg(const Context& ctx,
     ++i;
   }
 
-  if (util::starts_with(args[i], "-Wa,")
-      && args[i].find('=') != std::string::npos) {
-    LOG("Assembler listing file (-Wa,...=file) is currently not supported: {}",
-        args[i]);
-    return Statistic::unsupported_compiler_option;
+  if (util::starts_with(args[i], "-Wa,")) {
+    for (const auto part : util::Tokenizer(&args[i][4], ",")) {
+      if (util::starts_with(part, "-a")) {
+        if (state.found_opt_Wa_a) {
+          LOG_RAW(
+            "Multiple assembler listing options (-Wa,-a) are not supported");
+          return Statistic::unsupported_compiler_option;
+        }
+        state.found_opt_Wa_a = true;
+
+        const auto eq_pos = part.find('=');
+        if (eq_pos != std::string_view::npos) {
+          args_info.output_al = part.substr(eq_pos + 1);
+        }
+      }
+    }
   }
 
   // Handle options that should not be passed to the preprocessor.

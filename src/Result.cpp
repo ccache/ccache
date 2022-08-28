@@ -161,6 +161,9 @@ file_type_to_string(FileType type)
 
   case FileType::stdout_output:
     return "<stdout>";
+
+  case FileType::assembler_listing:
+    return ".al";
   }
 
   return k_unknown_file_type;

@@ -107,6 +107,10 @@ ResultRetriever::on_entry_start(uint8_t entry_number,
       dest_path = Result::gcno_file_in_mangled_form(m_ctx);
     }
     break;
+
+  case FileType::assembler_listing:
+    dest_path = m_ctx.args_info.output_al;
+    break;
   }
 
   if (file_type == FileType::stdout_output

@@ -82,6 +82,9 @@ enum class FileType : UnderlyingFileTypeInt {
 
   // Text sent to standard output.
   stdout_output = 8,
+
+  // Assembler listing file from -Wa,-a=file.
+  assembler_listing = 9,
 };
 
 const char* file_type_to_string(FileType type);

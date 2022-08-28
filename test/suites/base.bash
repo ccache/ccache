@@ -1371,13 +1371,59 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
-    if $COMPILER -c -Wa,-a=test1.lst test1.c >&/dev/null; then
+    if $COMPILER -c -Wa,-a=test1.lst,-L test1.c >&/dev/null && [ -e test1.lst ]; then
         TEST "-Wa,-a=file"
 
-        $CCACHE_COMPILE -c -Wa,-a=test1.lst test1.c
+        # Check that -Wa options after -a are handled.
+
+        $CCACHE_COMPILE -c -Wa,-a=test1.lst,-L test1.c
         expect_stat preprocessed_cache_hit 0
-        expect_stat cache_miss 0
+        expect_stat cache_miss 1
+        rm test1.lst
+
+        $CCACHE_COMPILE -c -Wa,-a=test1.lst,-L test1.c
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+        rm test1.lst
+
+        # Check that the filename can be changed without changing the hash.
+
+        $CCACHE_COMPILE -c -Wa,-a=test2.lst,-L test1.c
+        expect_stat preprocessed_cache_hit 2
+        expect_stat cache_miss 1
+        rm test2.lst
+
+        # Check that -Wa options before -a are handled.
+
+        $CCACHE_COMPILE -c -Wa,-L,-a=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 2
+        expect_stat cache_miss 2
+        rm test1.lst
+
+        $CCACHE_COMPILE -c -Wa,-L,-a=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 3
+        expect_stat cache_miss 2
+        rm test1.lst
+
+        # Check that -Wa,-aOPTIONS=file is different than -Wa,-a=file.
+
+        $CCACHE_COMPILE -c -Wa,-as=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 3
+        expect_stat cache_miss 3
+        rm test1.lst
+
+        $CCACHE_COMPILE -c -Wa,-as=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 4
+        expect_stat cache_miss 3
+        rm test1.lst
+
+        # Multiple -Wa,-a options are not supported.
+
+        $CCACHE_COMPILE -c -Wa,-a=test1.lst -Wa,-as=test1.lst test1.c
+        expect_stat preprocessed_cache_hit 4
+        expect_stat cache_miss 3
         expect_stat unsupported_compiler_option 1
+        rm test1.lst
     fi
 
     # -------------------------------------------------------------------------
