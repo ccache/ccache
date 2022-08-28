@@ -1473,6 +1473,19 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
+    if touch empty.c && $COMPILER -c -- empty.c 2>/dev/null; then
+        TEST "--"
+
+        $CCACHE_COMPILE -c -- test1.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -- test1.c
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Handling of compiler-only arguments"
 
     cat >compiler.sh <<EOF

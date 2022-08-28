@@ -1027,6 +1027,11 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (args[i] == "--") {
+    args_info.seen_double_dash = true;
+    return Statistic::none;
+  }
+
   // Other options.
   if (args[i][0] == '-') {
     if (compopt_affects_cpp_output(args[i])

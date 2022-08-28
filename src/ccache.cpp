@@ -1007,6 +1007,10 @@ to_cache(Context& ctx,
     args.push_back(ctx.args_info.output_dia);
   }
 
+  if (ctx.args_info.seen_double_dash) {
+    args.push_back("--");
+  }
+
   if (ctx.config.run_second_cpp()) {
     args.push_back(ctx.args_info.input_file);
   } else {
