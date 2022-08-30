@@ -28,7 +28,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 class Digest;
@@ -82,8 +81,7 @@ private:
               const Digest& key,
               std::string_view operation_description,
               const bool for_writing);
-  std::optional<std::pair<util::Blob, bool>>
-  get_from_secondary_storage(const Digest& key);
+  std::optional<util::Blob> get_from_secondary_storage(const Digest& key);
 
   void put_in_secondary_storage(const Digest& key,
                                 const util::Blob& value,

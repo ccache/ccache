@@ -26,7 +26,7 @@ namespace storage::secondary {
 bool
 SecondaryStorage::Backend::is_framework_attribute(const std::string& name)
 {
-  return name == "read-only" || name == "shards" || name == "share-hits";
+  return name == "read-only" || name == "shards";
 }
 
 std::chrono::milliseconds

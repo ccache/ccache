@@ -1072,8 +1072,6 @@ Examples:
 * `+http://example.com/*|shards=alpha,beta+` will put 50% of the cache on
   `+http://example.com/alpha+` and 50% on `+http://example.com/beta+`.
 --
-* *share-hits*: If *true*, write hits for this backend to primary storage. The
-  default is *true*.
 
 
 === Storage interaction
@@ -1086,14 +1084,13 @@ on cache hits and misses:
 | *Primary storage* | *Secondary storage* | *What happens*
 
 | miss | miss | Compile, write to primary, write to secondary^[1]^
-| miss | hit  | Read from secondary, write to primary^[2]^
-| hit  | -    | Read from primary, don't write to secondary^[3]^
+| miss | hit  | Read from secondary, write to primary
+| hit  | -    | Read from primary, don't write to secondary^[2]^
 
 |==============================================================================
 
 ^[1]^ Unless secondary storage has attribute `read-only=true`. +
-^[2]^ Unless secondary storage has attribute `share-hits=false`. +
-^[3]^ Unless primary storage is set to share its cache hits with the
+^[2]^ Unless primary storage is set to share its cache hits with the
 <<config_reshare,*reshare*>> option.
 
 

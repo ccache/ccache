@@ -41,7 +41,6 @@
 
 #include <third_party/url.hpp>
 
-#include <algorithm>
 #include <cmath>
 #include <unordered_map>
 #include <vector>
@@ -83,7 +82,6 @@ struct SecondaryStorageConfig
   std::vector<SecondaryStorageShardConfig> shards;
   secondary::SecondaryStorage::Backend::Params params;
   bool read_only = false;
-  bool share_hits = true;
 };
 
 struct SecondaryStorageBackendEntry
@@ -175,8 +173,6 @@ parse_storage_config(const std::string_view entry)
 
         result.shards.push_back({std::string(name), weight});
       }
-    } else if (key == "share-hits") {
-      result.share_hits = (value == "true");
     }
 
     result.params.attributes.push_back(
@@ -267,33 +263,29 @@ Storage::get(const Digest& key,
     return std::nullopt;
   }
 
-  const auto value_and_share_hits = get_from_secondary_storage(key);
-  if (!value_and_share_hits) {
+  const auto value = get_from_secondary_storage(key);
+  if (!value) {
     return std::nullopt;
   }
-  const auto& value = value_and_share_hits->first;
-  const auto& share_hits = value_and_share_hits->second;
 
   TemporaryFile tmp_file(FMT("{}/tmp.get", m_config.temporary_dir()));
   m_tmp_files.push_back(tmp_file.path);
   try {
-    util::write_file(tmp_file.path, value);
+    util::write_file(tmp_file.path, *value);
   } catch (const core::Error& e) {
     throw core::Fatal(FMT("Error writing to {}: {}", tmp_file.path, e.what()));
   }
 
-  if (share_hits) {
-    primary.put(key, type, [&](const auto& path) {
-      try {
-        Util::ensure_dir_exists(Util::dir_name(path));
-        Util::copy_file(tmp_file.path, path);
-      } catch (const core::Error& e) {
-        LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
-        // Don't indicate failure since get from primary storage was OK.
-      }
-      return true;
-    });
-  }
+  primary.put(key, type, [&](const auto& path) {
+    try {
+      Util::ensure_dir_exists(Util::dir_name(path));
+      Util::copy_file(tmp_file.path, path);
+    } catch (const core::Error& e) {
+      LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
+      // Don't indicate failure since get from primary storage was OK.
+    }
+    return true;
+  });
 
   return tmp_file.path;
 }
@@ -477,7 +469,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-std::optional<std::pair<util::Blob, bool>>
+std::optional<util::Blob>
 Storage::get_from_secondary_storage(const Digest& key)
 {
   MTR_SCOPE("secondary_storage", "get");
@@ -503,7 +495,7 @@ Storage::get_from_secondary_storage(const Digest& key)
           backend->url_for_logging,
           ms);
       primary.increment_statistic(core::Statistic::secondary_storage_hit);
-      return std::make_pair(*value, entry->config.share_hits);
+      return *value;
     } else {
       LOG("No {} in {} ({:.2f} ms)",
           key.to_string(),
