@@ -77,7 +77,7 @@ CheckOptions:
   - key:             readability-function-size.BranchThreshold
     value:           999999
   - key:             readability-function-size.ParameterThreshold
-    value:           6
+    value:           7
   - key:             readability-function-size.NestingThreshold
     value:           999999
   - key:             readability-function-size.VariableThreshold

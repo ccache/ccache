@@ -1469,6 +1469,345 @@ hash_common_info(const Context& ctx,
 }
 
 static bool
+option_should_be_ignored(const std::string& arg,
+                         const std::vector<std::string>& patterns)
+{
+  return std::any_of(
+    patterns.cbegin(), patterns.cend(), [&arg](const auto& pattern) {
+      const auto& prefix =
+        std::string_view(pattern).substr(0, pattern.length() - 1);
+      return (
+        pattern == arg
+        || (util::ends_with(pattern, "*") && util::starts_with(arg, prefix)));
+    });
+}
+
+static std::tuple<std::optional<std::string_view>,
+                  std::optional<std::string_view>>
+get_option_and_value(std::string_view option, const Args& args, size_t& i)
+{
+  if (args[i] == option) {
+    if (i + 1 < args.size()) {
+      ++i;
+      return {option, args[i]};
+    } else {
+      return {std::nullopt, std::nullopt};
+    }
+  } else if (util::starts_with(args[i], option)) {
+    return {option, std::string_view(args[i]).substr(option.length())};
+  } else {
+    return {std::nullopt, std::nullopt};
+  }
+}
+
+static nonstd::expected<void, Failure>
+hash_argument(const Context& ctx,
+              const Args& args,
+              size_t& i,
+              Hash& hash,
+              const bool is_clang,
+              const bool direct_mode,
+              bool& found_ccbin)
+{
+  // Trust the user if they've said we should not hash a given option.
+  if (option_should_be_ignored(args[i], ctx.ignore_options())) {
+    LOG("Not hashing ignored option: {}", args[i]);
+    if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
+      i++;
+      LOG("Not hashing argument of ignored option: {}", args[i]);
+    }
+    return {};
+  }
+
+  // -L doesn't affect compilation (except for clang).
+  if (i < args.size() - 1 && args[i] == "-L" && !is_clang) {
+    i++;
+    return {};
+  }
+  if (util::starts_with(args[i], "-L") && !is_clang) {
+    return {};
+  }
+
+  // -Wl,... doesn't affect compilation (except for clang).
+  if (util::starts_with(args[i], "-Wl,") && !is_clang) {
+    return {};
+  }
+
+  if (util::starts_with(args[i], "-Wa,")) {
+    // We have to distinguish between three cases:
+    //
+    // Case 1: -Wa,-a      (write to stdout)
+    // Case 2: -Wa,-a=     (write to stdout and stderr)
+    // Case 3: -Wa,-a=file (write to file)
+    //
+    // No need to include the file part in case 3 in the hash since the filename
+    // is not part of the output.
+
+    hash.hash_delimiter("arg");
+    bool first = true;
+    for (const auto part :
+         util::Tokenizer(args[i], ",", util::Tokenizer::Mode::include_empty)) {
+      if (first) {
+        first = false;
+      } else {
+        hash.hash(",");
+      }
+      if (util::starts_with(part, "-a")) {
+        const auto eq_pos = part.find('=');
+        if (eq_pos < part.size() - 1) {
+          // Case 3:
+          hash.hash(part.substr(0, eq_pos + 1));
+          hash.hash("file");
+          continue;
+        }
+      }
+      // Case 1 and 2:
+      hash.hash(part);
+    }
+    return {};
+  }
+
+  // The -fdebug-prefix-map option may be used in combination with
+  // CCACHE_BASEDIR to reuse results across different directories. Skip using
+  // the value of the option from hashing but still hash the existence of the
+  // option.
+  if (util::starts_with(args[i], "-fdebug-prefix-map=")) {
+    hash.hash_delimiter("arg");
+    hash.hash("-fdebug-prefix-map=");
+    return {};
+  }
+  if (util::starts_with(args[i], "-ffile-prefix-map=")) {
+    hash.hash_delimiter("arg");
+    hash.hash("-ffile-prefix-map=");
+    return {};
+  }
+  if (util::starts_with(args[i], "-fmacro-prefix-map=")) {
+    hash.hash_delimiter("arg");
+    hash.hash("-fmacro-prefix-map=");
+    return {};
+  }
+
+  // When using the preprocessor, some arguments don't contribute to the hash.
+  // The theory is that these arguments will change the output of -E if they are
+  // going to have any effect at all. For precompiled headers this might not be
+  // the case.
+  if (!direct_mode && !ctx.args_info.output_is_precompiled_header
+      && !ctx.args_info.using_precompiled_header) {
+    if (compopt_affects_cpp_output(args[i])) {
+      if (compopt_takes_arg(args[i])) {
+        i++;
+      }
+      return {};
+    }
+    if (compopt_affects_cpp_output(args[i].substr(0, 2))) {
+      return {};
+    }
+  }
+
+  if (ctx.args_info.generating_dependencies) {
+    std::optional<std::string_view> option;
+    std::optional<std::string_view> value;
+
+    if (util::starts_with(args[i], "-Wp,")) {
+      // Skip the dependency filename since it doesn't impact the output.
+      if (util::starts_with(args[i], "-Wp,-MD,")
+          && args[i].find(',', 8) == std::string::npos) {
+        hash.hash(args[i].data(), 8);
+        return {};
+      } else if (util::starts_with(args[i], "-Wp,-MMD,")
+                 && args[i].find(',', 9) == std::string::npos) {
+        hash.hash(args[i].data(), 9);
+        return {};
+      }
+    } else if (std::tie(option, value) = get_option_and_value("-MF", args, i);
+               option) {
+      // Skip the dependency filename since it doesn't impact the output.
+      hash.hash(*option);
+      return {};
+    } else if (std::tie(option, value) = get_option_and_value("-MQ", args, i);
+               option) {
+      hash.hash(*option);
+      // No need to hash the dependency target since we always calculate it on
+      // a cache hit.
+      return {};
+    } else if (std::tie(option, value) = get_option_and_value("-MT", args, i);
+               option) {
+      hash.hash(*option);
+      // No need to hash the dependency target since we always calculate it on
+      // a cache hit.
+      return {};
+    }
+  }
+
+  if (util::starts_with(args[i], "-specs=")
+      || util::starts_with(args[i], "--specs=")
+      || (args[i] == "-specs" || args[i] == "--specs")
+      || args[i] == "--config") {
+    std::string path;
+    size_t eq_pos = args[i].find('=');
+    if (eq_pos == std::string::npos) {
+      if (i + 1 >= args.size()) {
+        LOG("missing argument for \"{}\"", args[i]);
+        return nonstd::make_unexpected(Statistic::bad_compiler_arguments);
+      }
+      path = args[i + 1];
+      i++;
+    } else {
+      path = args[i].substr(eq_pos + 1);
+    }
+    auto st = Stat::stat(path, Stat::OnError::log);
+    if (st) {
+      // If given an explicit specs file, then hash that file, but don't
+      // include the path to it in the hash.
+      hash.hash_delimiter("specs");
+      TRY(hash_compiler(ctx, hash, st, path, false));
+      return {};
+    }
+  }
+
+  if (util::starts_with(args[i], "-fplugin=")) {
+    auto st = Stat::stat(&args[i][9], Stat::OnError::log);
+    if (st) {
+      hash.hash_delimiter("plugin");
+      TRY(hash_compiler(ctx, hash, st, &args[i][9], false));
+      return {};
+    }
+  }
+
+  if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
+      && args[i + 2] == "-Xclang") {
+    auto st = Stat::stat(args[i + 3], Stat::OnError::log);
+    if (st) {
+      hash.hash_delimiter("plugin");
+      TRY(hash_compiler(ctx, hash, st, args[i + 3], false));
+      i += 3;
+      return {};
+    }
+  }
+
+  if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
+      && i + 1 < args.size()) {
+    auto st = Stat::stat(args[i + 1]);
+    if (st) {
+      found_ccbin = true;
+      hash.hash_delimiter("ccbin");
+      TRY(hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1]));
+      i++;
+      return {};
+    }
+  }
+
+  // All other arguments are included in the hash.
+  hash.hash_delimiter("arg");
+  hash.hash(args[i]);
+  if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
+    i++;
+    hash.hash_delimiter("arg");
+    hash.hash(args[i]);
+  }
+
+  return {};
+}
+
+static nonstd::expected<void, Failure>
+hash_direct_mode_specific_data(Context& ctx,
+                               Hash& hash,
+                               std::optional<Digest>& result_key,
+                               std::optional<Digest>& manifest_key)
+{
+  // Hash environment variables that affect the preprocessor output.
+  const char* envvars[] = {"CPATH",
+                           "C_INCLUDE_PATH",
+                           "CPLUS_INCLUDE_PATH",
+                           "OBJC_INCLUDE_PATH",
+                           "OBJCPLUS_INCLUDE_PATH", // clang
+                           nullptr};
+  for (const char** p = envvars; *p; ++p) {
+    const char* v = getenv(*p);
+    if (v) {
+      hash.hash_delimiter(*p);
+      hash.hash(v);
+    }
+  }
+
+  // Make sure that the direct mode hash is unique for the input file path. If
+  // this would not be the case:
+  //
+  // * A false cache hit may be produced. Scenario:
+  //   - a/r.h exists.
+  //   - a/x.c has #include "r.h".
+  //   - b/x.c is identical to a/x.c.
+  //   - Compiling a/x.c records a/r.h in the manifest.
+  //   - Compiling b/x.c results in a false cache hit since a/x.c and b/x.c
+  //     share manifests and a/r.h exists.
+  // * The expansion of __FILE__ may be incorrect.
+  hash.hash_delimiter("inputfile");
+  hash.hash(ctx.args_info.input_file);
+
+  hash.hash_delimiter("sourcecode hash");
+  Digest input_file_digest;
+  int result =
+    hash_source_code_file(ctx, input_file_digest, ctx.args_info.input_file);
+  if (result & HASH_SOURCE_CODE_ERROR) {
+    return nonstd::make_unexpected(Statistic::internal_error);
+  }
+  if (result & HASH_SOURCE_CODE_FOUND_TIME) {
+    LOG_RAW("Disabling direct mode");
+    ctx.config.set_direct_mode(false);
+    return {};
+  }
+  hash.hash(input_file_digest.to_string());
+
+  manifest_key = hash.digest();
+
+  auto manifest_path = ctx.storage.get(*manifest_key,
+                                       core::CacheEntryType::manifest,
+                                       storage::Storage::Mode::primary_only);
+
+  if (manifest_path) {
+    LOG("Looking for result key in {}", *manifest_path);
+    MTR_BEGIN("manifest", "manifest_get");
+    try {
+      const auto manifest = read_manifest(*manifest_path);
+      result_key = manifest.look_up_result_digest(ctx);
+    } catch (const core::Error& e) {
+      LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
+    }
+    MTR_END("manifest", "manifest_get");
+    if (result_key) {
+      LOG_RAW("Got result key from manifest");
+    } else {
+      LOG_RAW("Did not find result key in manifest");
+    }
+  }
+  // Check secondary storage if not found in primary
+  if (!result_key) {
+    manifest_path = ctx.storage.get(*manifest_key,
+                                    core::CacheEntryType::manifest,
+                                    storage::Storage::Mode::secondary_only);
+    if (manifest_path) {
+      LOG("Looking for result key in fetched secondary manifest {}",
+          *manifest_path);
+      MTR_BEGIN("manifest", "secondary_manifest_get");
+      try {
+        const auto manifest = read_manifest(*manifest_path);
+        result_key = manifest.look_up_result_digest(ctx);
+      } catch (const core::Error& e) {
+        LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
+      }
+      MTR_END("manifest", "secondary_manifest_get");
+      if (result_key) {
+        LOG_RAW("Got result key from fetched secondary manifest");
+      } else {
+        LOG_RAW("Did not find result key in fetched secondary manifest");
+      }
+    }
+  }
+
+  return {};
+}
+
+static bool
 hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
@@ -1505,275 +1844,9 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
   return found;
 }
 
-static bool
-option_should_be_ignored(const std::string& arg,
-                         const std::vector<std::string>& patterns)
+static nonstd::expected<void, Failure>
+hash_profiling_related_data(const Context& ctx, Hash& hash)
 {
-  return std::any_of(
-    patterns.cbegin(), patterns.cend(), [&arg](const auto& pattern) {
-      const auto& prefix =
-        std::string_view(pattern).substr(0, pattern.length() - 1);
-      return (
-        pattern == arg
-        || (util::ends_with(pattern, "*") && util::starts_with(arg, prefix)));
-    });
-}
-
-static std::tuple<std::optional<std::string_view>,
-                  std::optional<std::string_view>>
-get_option_and_value(std::string_view option, const Args& args, size_t& i)
-{
-  if (args[i] == option) {
-    if (i + 1 < args.size()) {
-      ++i;
-      return {option, args[i]};
-    } else {
-      return {std::nullopt, std::nullopt};
-    }
-  } else if (util::starts_with(args[i], option)) {
-    return {option, std::string_view(args[i]).substr(option.length())};
-  } else {
-    return {std::nullopt, std::nullopt};
-  }
-}
-
-// Update a hash sum with information specific to the direct and preprocessor
-// modes and calculate the result key. Returns the result key on success, and
-// if direct_mode is true also the manifest key.
-static nonstd::expected<std::pair<std::optional<Digest>, std::optional<Digest>>,
-                        Failure>
-calculate_result_and_manifest_key(Context& ctx,
-                                  const Args& args,
-                                  Args& preprocessor_args,
-                                  Hash& hash,
-                                  bool direct_mode)
-{
-  bool found_ccbin = false;
-
-  hash.hash_delimiter("result version");
-  hash.hash(Result::k_version);
-
-  if (direct_mode) {
-    hash.hash_delimiter("manifest version");
-    hash.hash(core::Manifest::k_format_version);
-  }
-
-  // clang will emit warnings for unused linker flags, so we shouldn't skip
-  // those arguments.
-  int is_clang = ctx.config.is_compiler_group_clang()
-                 || ctx.config.compiler_type() == CompilerType::other;
-
-  // First the arguments.
-  for (size_t i = 1; i < args.size(); i++) {
-    // Trust the user if they've said we should not hash a given option.
-    if (option_should_be_ignored(args[i], ctx.ignore_options())) {
-      LOG("Not hashing ignored option: {}", args[i]);
-      if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
-        i++;
-        LOG("Not hashing argument of ignored option: {}", args[i]);
-      }
-      continue;
-    }
-
-    // -L doesn't affect compilation (except for clang).
-    if (i < args.size() - 1 && args[i] == "-L" && !is_clang) {
-      i++;
-      continue;
-    }
-    if (util::starts_with(args[i], "-L") && !is_clang) {
-      continue;
-    }
-
-    // -Wl,... doesn't affect compilation (except for clang).
-    if (util::starts_with(args[i], "-Wl,") && !is_clang) {
-      continue;
-    }
-
-    if (util::starts_with(args[i], "-Wa,")) {
-      // We have to distinguish between three cases:
-      //
-      // Case 1: -Wa,-a      (write to stdout)
-      // Case 2: -Wa,-a=     (write to stdout and stderr)
-      // Case 3: -Wa,-a=file (write to file)
-      //
-      // No need to include the file part in case 3 in the hash since the
-      // filename is not part of the output.
-
-      hash.hash_delimiter("arg");
-      bool first = true;
-      for (const auto part : util::Tokenizer(
-             args[i], ",", util::Tokenizer::Mode::include_empty)) {
-        if (first) {
-          first = false;
-        } else {
-          hash.hash(",");
-        }
-        if (util::starts_with(part, "-a")) {
-          const auto eq_pos = part.find('=');
-          if (eq_pos < part.size() - 1) {
-            // Case 3:
-            hash.hash(part.substr(0, eq_pos + 1));
-            hash.hash("file");
-            continue;
-          }
-        }
-        // Case 1 and 2:
-        hash.hash(part);
-      }
-      continue;
-    }
-
-    // The -fdebug-prefix-map option may be used in combination with
-    // CCACHE_BASEDIR to reuse results across different directories. Skip using
-    // the value of the option from hashing but still hash the existence of the
-    // option.
-    if (util::starts_with(args[i], "-fdebug-prefix-map=")) {
-      hash.hash_delimiter("arg");
-      hash.hash("-fdebug-prefix-map=");
-      continue;
-    }
-    if (util::starts_with(args[i], "-ffile-prefix-map=")) {
-      hash.hash_delimiter("arg");
-      hash.hash("-ffile-prefix-map=");
-      continue;
-    }
-    if (util::starts_with(args[i], "-fmacro-prefix-map=")) {
-      hash.hash_delimiter("arg");
-      hash.hash("-fmacro-prefix-map=");
-      continue;
-    }
-
-    // When using the preprocessor, some arguments don't contribute to the
-    // hash. The theory is that these arguments will change the output of -E if
-    // they are going to have any effect at all. For precompiled headers this
-    // might not be the case.
-    if (!direct_mode && !ctx.args_info.output_is_precompiled_header
-        && !ctx.args_info.using_precompiled_header) {
-      if (compopt_affects_cpp_output(args[i])) {
-        if (compopt_takes_arg(args[i])) {
-          i++;
-        }
-        continue;
-      }
-      if (compopt_affects_cpp_output(args[i].substr(0, 2))) {
-        continue;
-      }
-    }
-
-    if (ctx.args_info.generating_dependencies) {
-      std::optional<std::string_view> option;
-      std::optional<std::string_view> value;
-
-      if (util::starts_with(args[i], "-Wp,")) {
-        // Skip the dependency filename since it doesn't impact the output.
-        if (util::starts_with(args[i], "-Wp,-MD,")
-            && args[i].find(',', 8) == std::string::npos) {
-          hash.hash(args[i].data(), 8);
-          continue;
-        } else if (util::starts_with(args[i], "-Wp,-MMD,")
-                   && args[i].find(',', 9) == std::string::npos) {
-          hash.hash(args[i].data(), 9);
-          continue;
-        }
-      } else if (std::tie(option, value) = get_option_and_value("-MF", args, i);
-                 option) {
-        // Skip the dependency filename since it doesn't impact the output.
-        hash.hash(*option);
-        continue;
-      } else if (std::tie(option, value) = get_option_and_value("-MQ", args, i);
-                 option) {
-        hash.hash(*option);
-        // No need to hash the dependency target since we always calculate it on
-        // a cache hit.
-        continue;
-      } else if (std::tie(option, value) = get_option_and_value("-MT", args, i);
-                 option) {
-        hash.hash(*option);
-        // No need to hash the dependency target since we always calculate it on
-        // a cache hit.
-        continue;
-      }
-    }
-
-    if (util::starts_with(args[i], "-specs=")
-        || util::starts_with(args[i], "--specs=")
-        || (args[i] == "-specs" || args[i] == "--specs")
-        || args[i] == "--config") {
-      std::string path;
-      size_t eq_pos = args[i].find('=');
-      if (eq_pos == std::string::npos) {
-        if (i + 1 >= args.size()) {
-          LOG("missing argument for \"{}\"", args[i]);
-          return nonstd::make_unexpected(Statistic::bad_compiler_arguments);
-        }
-        path = args[i + 1];
-        i++;
-      } else {
-        path = args[i].substr(eq_pos + 1);
-      }
-      auto st = Stat::stat(path, Stat::OnError::log);
-      if (st) {
-        // If given an explicit specs file, then hash that file, but don't
-        // include the path to it in the hash.
-        hash.hash_delimiter("specs");
-        TRY(hash_compiler(ctx, hash, st, path, false));
-        continue;
-      }
-    }
-
-    if (util::starts_with(args[i], "-fplugin=")) {
-      auto st = Stat::stat(&args[i][9], Stat::OnError::log);
-      if (st) {
-        hash.hash_delimiter("plugin");
-        TRY(hash_compiler(ctx, hash, st, &args[i][9], false));
-        continue;
-      }
-    }
-
-    if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
-        && args[i + 2] == "-Xclang") {
-      auto st = Stat::stat(args[i + 3], Stat::OnError::log);
-      if (st) {
-        hash.hash_delimiter("plugin");
-        TRY(hash_compiler(ctx, hash, st, args[i + 3], false));
-        i += 3;
-        continue;
-      }
-    }
-
-    if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
-        && i + 1 < args.size()) {
-      auto st = Stat::stat(args[i + 1]);
-      if (st) {
-        found_ccbin = true;
-        hash.hash_delimiter("ccbin");
-        TRY(hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1]));
-        i++;
-        continue;
-      }
-    }
-
-    // All other arguments are included in the hash.
-    hash.hash_delimiter("arg");
-    hash.hash(args[i]);
-    if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
-      i++;
-      hash.hash_delimiter("arg");
-      hash.hash(args[i]);
-    }
-  }
-
-  // Make results with dependency file /dev/null different from those without
-  // it.
-  if (ctx.args_info.generating_dependencies
-      && ctx.args_info.output_dep == "/dev/null") {
-    hash.hash_delimiter("/dev/null dependency file");
-  }
-
-  if (!found_ccbin && ctx.args_info.actual_language == "cu") {
-    TRY(hash_nvcc_host_compiler(ctx, hash));
-  }
-
   // For profile generation (-fprofile(-instr)-generate[=path])
   // - hash profile path
   //
@@ -1807,6 +1880,53 @@ calculate_result_and_manifest_key(Context& ctx,
     return nonstd::make_unexpected(Statistic::no_input_file);
   }
 
+  return {};
+}
+
+// Update a hash sum with information specific to the direct and preprocessor
+// modes and calculate the result key. Returns the result key on success, and
+// if direct_mode is true also the manifest key.
+static nonstd::expected<std::pair<std::optional<Digest>, std::optional<Digest>>,
+                        Failure>
+calculate_result_and_manifest_key(Context& ctx,
+                                  const Args& args,
+                                  Args& preprocessor_args,
+                                  Hash& hash,
+                                  bool direct_mode)
+{
+  bool found_ccbin = false;
+
+  hash.hash_delimiter("result version");
+  hash.hash(Result::k_version);
+
+  if (direct_mode) {
+    hash.hash_delimiter("manifest version");
+    hash.hash(core::Manifest::k_format_version);
+  }
+
+  // clang will emit warnings for unused linker flags, so we shouldn't skip
+  // those arguments.
+  int is_clang = ctx.config.is_compiler_group_clang()
+                 || ctx.config.compiler_type() == CompilerType::other;
+
+  // First the arguments.
+  for (size_t i = 1; i < args.size(); i++) {
+    TRY(hash_argument(ctx, args, i, hash, is_clang, direct_mode, found_ccbin));
+  }
+
+  // Make results with dependency file /dev/null different from those without
+  // it.
+  if (ctx.args_info.generating_dependencies
+      && ctx.args_info.output_dep == "/dev/null") {
+    hash.hash_delimiter("/dev/null dependency file");
+  }
+
+  if (!found_ccbin && ctx.args_info.actual_language == "cu") {
+    TRY(hash_nvcc_host_compiler(ctx, hash));
+  }
+
+  TRY(hash_profiling_related_data(ctx, hash));
+
   // Adding -arch to hash since cpp output is affected.
   for (const auto& arch : ctx.args_info.arch_args) {
     hash.hash_delimiter("-arch");
@@ -1817,95 +1937,7 @@ calculate_result_and_manifest_key(Context& ctx,
   std::optional<Digest> manifest_key;
 
   if (direct_mode) {
-    // Hash environment variables that affect the preprocessor output.
-    const char* envvars[] = {"CPATH",
-                             "C_INCLUDE_PATH",
-                             "CPLUS_INCLUDE_PATH",
-                             "OBJC_INCLUDE_PATH",
-                             "OBJCPLUS_INCLUDE_PATH", // clang
-                             nullptr};
-    for (const char** p = envvars; *p; ++p) {
-      const char* v = getenv(*p);
-      if (v) {
-        hash.hash_delimiter(*p);
-        hash.hash(v);
-      }
-    }
-
-    // Make sure that the direct mode hash is unique for the input file path.
-    // If this would not be the case:
-    //
-    // * An false cache hit may be produced. Scenario:
-    //   - a/r.h exists.
-    //   - a/x.c has #include "r.h".
-    //   - b/x.c is identical to a/x.c.
-    //   - Compiling a/x.c records a/r.h in the manifest.
-    //   - Compiling b/x.c results in a false cache hit since a/x.c and b/x.c
-    //     share manifests and a/r.h exists.
-    // * The expansion of __FILE__ may be incorrect.
-    hash.hash_delimiter("inputfile");
-    hash.hash(ctx.args_info.input_file);
-
-    hash.hash_delimiter("sourcecode hash");
-    Digest input_file_digest;
-    int result =
-      hash_source_code_file(ctx, input_file_digest, ctx.args_info.input_file);
-    if (result & HASH_SOURCE_CODE_ERROR) {
-      return nonstd::make_unexpected(Statistic::internal_error);
-    }
-    if (result & HASH_SOURCE_CODE_FOUND_TIME) {
-      LOG_RAW("Disabling direct mode");
-      ctx.config.set_direct_mode(false);
-      return std::make_pair(std::nullopt, std::nullopt);
-    }
-    hash.hash(input_file_digest.to_string());
-
-    manifest_key = hash.digest();
-
-    auto manifest_path = ctx.storage.get(*manifest_key,
-                                         core::CacheEntryType::manifest,
-                                         storage::Storage::Mode::primary_only);
-
-    if (manifest_path) {
-      LOG("Looking for result key in {}", *manifest_path);
-      MTR_BEGIN("manifest", "manifest_get");
-      try {
-        const auto manifest = read_manifest(*manifest_path);
-        result_key = manifest.look_up_result_digest(ctx);
-      } catch (const core::Error& e) {
-        LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
-      }
-      MTR_END("manifest", "manifest_get");
-      if (result_key) {
-        LOG_RAW("Got result key from manifest");
-      } else {
-        LOG_RAW("Did not find result key in manifest");
-      }
-    }
-    // Check secondary storage if not found in primary
-    if (!result_key) {
-      manifest_path = ctx.storage.get(*manifest_key,
-                                      core::CacheEntryType::manifest,
-                                      storage::Storage::Mode::secondary_only);
-      if (manifest_path) {
-        LOG("Looking for result key in fetched secondary manifest {}",
-            *manifest_path);
-        MTR_BEGIN("manifest", "secondary_manifest_get");
-        try {
-          const auto manifest = read_manifest(*manifest_path);
-          result_key = manifest.look_up_result_digest(ctx);
-        } catch (const core::Error& e) {
-          LOG(
-            "Failed to look up result key in {}: {}", *manifest_path, e.what());
-        }
-        MTR_END("manifest", "secondary_manifest_get");
-        if (result_key) {
-          LOG_RAW("Got result key from fetched secondary manifest");
-        } else {
-          LOG_RAW("Did not find result key in fetched secondary manifest");
-        }
-      }
-    }
+    TRY(hash_direct_mode_specific_data(ctx, hash, result_key, manifest_key));
   } else if (ctx.args_info.arch_args.empty()) {
     const auto digest = get_result_key_from_cpp(ctx, preprocessor_args, hash);
     if (!digest) {
