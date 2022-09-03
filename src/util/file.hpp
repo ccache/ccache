@@ -21,6 +21,7 @@
 #include <util/types.hpp>
 
 #include <third_party/nonstd/expected.hpp>
+#include <third_party/nonstd/span.hpp>
 
 #include <ctime>
 #include <optional>
@@ -60,7 +61,7 @@ nonstd::expected<void, std::string> write_file(const std::string& path,
                                                const std::string& data);
 
 // Write binary `data` to `path`.
-nonstd::expected<void, std::string> write_file(const std::string& path,
-                                               const util::Blob& data);
+nonstd::expected<void, std::string>
+write_file(const std::string& path, nonstd::span<const uint8_t> data);
 
 } // namespace util

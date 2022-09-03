@@ -246,7 +246,7 @@ write_file(const std::string& path, const std::string& data)
 }
 
 nonstd::expected<void, std::string>
-write_file(const std::string& path, const util::Blob& data)
+write_file(const std::string& path, nonstd::span<const uint8_t> data)
 {
   Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
