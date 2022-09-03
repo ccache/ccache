@@ -25,7 +25,6 @@
 
 namespace util {
 
-using Blob = std::vector<uint8_t>;
 using DataReceiver = std::function<void(const void* data, size_t size)>;
 
 } // namespace util

@@ -181,7 +181,7 @@ read_file(const std::string& path, size_t size_hint)
 template nonstd::expected<std::string, std::string>
 read_file(const std::string& path, size_t size_hint);
 
-template nonstd::expected<util::Blob, std::string>
+template nonstd::expected<std::vector<uint8_t>, std::string>
 read_file(const std::string& path, size_t size_hint);
 
 void

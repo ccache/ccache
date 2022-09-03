@@ -51,7 +51,7 @@ AtomicFile::write(const std::string& data)
 }
 
 void
-AtomicFile::write(const util::Blob& data)
+AtomicFile::write(nonstd::span<const uint8_t> data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(

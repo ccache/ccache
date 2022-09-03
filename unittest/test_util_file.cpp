@@ -42,7 +42,7 @@ TEST_CASE("util::read_file and util::write_file, text data")
 
   // Newline handling
   REQUIRE(util::write_file("test", "foo\r\nbar\n"));
-  auto bin_data = util::read_file<util::Blob>("test");
+  auto bin_data = util::read_file<std::vector<uint8_t>>("test");
   REQUIRE(bin_data);
 #ifdef _WIN32
   const std::string expected_bin_data = "foo\r\r\nbar\r\n";
@@ -50,7 +50,8 @@ TEST_CASE("util::read_file and util::write_file, text data")
   const std::string expected_bin_data = "foo\r\nbar\n";
 #endif
   CHECK(*bin_data
-        == util::Blob(expected_bin_data.begin(), expected_bin_data.end()));
+        == std::vector<uint8_t>(expected_bin_data.begin(),
+                                expected_bin_data.end()));
 
   REQUIRE(util::write_file("size_hint_test", std::string(8192, '\0')));
   data = util::read_file<std::string>("size_hint_test", 8191 /*size_hint*/);
@@ -77,21 +78,23 @@ TEST_CASE("util::read_file and util::write_file, binary data")
 {
   TestContext test_context;
 
-  util::Blob expected;
+  std::vector<uint8_t> expected;
   for (size_t i = 0; i < 512; ++i) {
     expected.push_back((32 + i) % 256);
   }
 
   CHECK(util::write_file("test", expected));
-  auto actual = util::read_file<util::Blob>("test");
+  auto actual = util::read_file<std::vector<uint8_t>>("test");
   REQUIRE(actual);
   CHECK(*actual == expected);
 
-  REQUIRE(util::write_file("size_hint_test", util::Blob(8192, 0)));
-  auto data = util::read_file<util::Blob>("size_hint_test", 8191 /*size_hint*/);
+  REQUIRE(util::write_file("size_hint_test", std::vector<uint8_t>(8192, 0)));
+  auto data =
+    util::read_file<std::vector<uint8_t>>("size_hint_test", 8191 /*size_hint*/);
   REQUIRE(data);
   CHECK(data->size() == 8192);
-  data = util::read_file<util::Blob>("size_hint_test", 8193 /*size_hint*/);
+  data =
+    util::read_file<std::vector<uint8_t>>("size_hint_test", 8193 /*size_hint*/);
   REQUIRE(data);
   CHECK(data->size() == 8192);
 }

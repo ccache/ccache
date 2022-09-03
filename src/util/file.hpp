@@ -38,10 +38,10 @@ void create_cachedir_tag(const std::string& dir);
 nonstd::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
 
 // Return data from `path`, where `T` is `std::string` for text data and
-// `util::Blob` for binary data. If `T` is `std::string` and the content starts
-// with a UTF-16 little-endian BOM on Windows then it will be converted to
-// UTF-8. If `size_hint` is not 0 then it is assumed that `path` has this size
-// (this saves system calls).
+// `std::vector<uint8_t>` for binary data. If `T` is `std::string` and the
+// content starts with a UTF-16 little-endian BOM on Windows then it will be
+// converted to UTF-8. If `size_hint` is not 0 then it is assumed that `path`
+// has this size (this saves system calls).
 template<typename T>
 nonstd::expected<T, std::string> read_file(const std::string& path,
                                            size_t size_hint = 0);

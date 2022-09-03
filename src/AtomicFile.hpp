@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <util/types.hpp>
+#include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -37,7 +37,7 @@ public:
   FILE* stream();
 
   void write(const std::string& data);
-  void write(const util::Blob& data);
+  void write(nonstd::span<const uint8_t> data);
 
   // Close the temporary file and rename it to the destination file. Note: The
   // destructor will not do this automatically to avoid half-written data in the

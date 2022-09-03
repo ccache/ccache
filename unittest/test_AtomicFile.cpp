@@ -34,7 +34,7 @@ TEST_CASE("Base case")
 
   AtomicFile atomic_file("test", AtomicFile::Mode::text);
   atomic_file.write("h");
-  atomic_file.write(util::Blob{0x65, 0x6c});
+  atomic_file.write(std::vector<uint8_t>{0x65, 0x6c});
   fputs("lo", atomic_file.stream());
   atomic_file.commit();
   CHECK(*util::read_file<std::string>("test") == "hello");
