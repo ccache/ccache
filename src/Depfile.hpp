@@ -32,8 +32,8 @@ namespace Depfile {
 
 std::string escape_filename(std::string_view filename);
 
-std::optional<std::string>
-rewrite_source_paths(const Context& ctx, const std::string& file_content);
+std::optional<std::string> rewrite_source_paths(const Context& ctx,
+                                                std::string_view file_content);
 
 void make_paths_relative_in_output_dep(const Context& ctx);
 

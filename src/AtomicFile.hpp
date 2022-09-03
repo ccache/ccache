@@ -36,7 +36,7 @@ public:
 
   FILE* stream();
 
-  void write(const std::string& data);
+  void write(std::string_view data);
   void write(nonstd::span<const uint8_t> data);
 
   // Close the temporary file and rename it to the destination file. Note: The

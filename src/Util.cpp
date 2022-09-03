@@ -966,7 +966,7 @@ normalize_concrete_absolute_path(const std::string& path)
 }
 
 uint64_t
-parse_duration(const std::string& duration)
+parse_duration(std::string_view duration)
 {
   uint64_t factor = 0;
   char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
@@ -1118,9 +1118,9 @@ rename(const std::string& oldpath, const std::string& newpath)
 }
 
 void
-send_to_fd(const Context& ctx, const std::string& text, int fd)
+send_to_fd(const Context& ctx, std::string_view text, int fd)
 {
-  const std::string* text_to_send = &text;
+  std::string_view text_to_send = text;
   std::string modified_text;
 
 #ifdef _WIN32
@@ -1134,19 +1134,19 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
   if (ctx.args_info.strip_diagnostics_colors) {
     try {
       modified_text = strip_ansi_csi_seqs(text);
-      text_to_send = &modified_text;
+      text_to_send = modified_text;
     } catch (const core::Error&) {
       // Ignore.
     }
   }
 
   if (ctx.config.absolute_paths_in_stderr()) {
-    modified_text = rewrite_stderr_to_absolute_paths(*text_to_send);
-    text_to_send = &modified_text;
+    modified_text = rewrite_stderr_to_absolute_paths(text_to_send);
+    text_to_send = modified_text;
   }
 
   const auto result =
-    util::write_fd(fd, text_to_send->data(), text_to_send->length());
+    util::write_fd(fd, text_to_send.data(), text_to_send.length());
   if (!result) {
     throw core::Error(FMT("Failed to write to {}: {}", fd, result.error()));
   }

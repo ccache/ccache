@@ -61,7 +61,7 @@ escape_filename(std::string_view filename)
 }
 
 std::optional<std::string>
-rewrite_source_paths(const Context& ctx, const std::string& file_content)
+rewrite_source_paths(const Context& ctx, std::string_view file_content)
 {
   ASSERT(!ctx.config.base_dir().empty());
 

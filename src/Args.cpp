@@ -37,7 +37,7 @@ Args::from_argv(int argc, const char* const* argv)
 }
 
 Args
-Args::from_string(const std::string& command)
+Args::from_string(std::string_view command)
 {
   Args args;
   for (const std::string& word : Util::split_into_strings(command, " \t\r\n")) {

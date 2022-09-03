@@ -59,13 +59,13 @@ nonstd::expected<double, std::string> parse_double(const std::string& value);
 // `max_value` default to min and max values of int64_t. `description` is
 // included in the error message for range violations.
 nonstd::expected<int64_t, std::string>
-parse_signed(const std::string& value,
+parse_signed(std::string_view value,
              std::optional<int64_t> min_value = std::nullopt,
              std::optional<int64_t> max_value = std::nullopt,
              std::string_view description = "integer");
 
 // Parse `value` (an octal integer).
-nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
+nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
 
 // Parse a string into an unsigned integer.
 //
@@ -74,7 +74,7 @@ nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
 // `min_value` and `max_value` default to min and max values of uint64_t.
 // `description` is included in the error message for range violations.
 nonstd::expected<uint64_t, std::string>
-parse_unsigned(const std::string& value,
+parse_unsigned(std::string_view value,
                std::optional<uint64_t> min_value = std::nullopt,
                std::optional<uint64_t> max_value = std::nullopt,
                std::string_view description = "integer",

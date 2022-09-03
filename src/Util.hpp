@@ -279,7 +279,7 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 
 // Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
 // into seconds. Throws `core::Error` on error.
-uint64_t parse_duration(const std::string& duration);
+uint64_t parse_duration(std::string_view duration);
 
 // Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
 // suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
@@ -309,7 +309,7 @@ void rename(const std::string& oldpath, const std::string& newpath);
 // sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
 // paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws
 // `core::Error` on error.
-void send_to_fd(const Context& ctx, const std::string& text, int fd);
+void send_to_fd(const Context& ctx, std::string_view text, int fd);
 
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
 void set_cloexec_flag(int fd);

@@ -42,7 +42,7 @@ AtomicFile::~AtomicFile()
 }
 
 void
-AtomicFile::write(const std::string& data)
+AtomicFile::write(std::string_view data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
