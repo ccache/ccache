@@ -287,8 +287,8 @@ Reader::read_entry(uint8_t entry_number, Reader::Consumer& consumer)
   consumer.on_entry_end();
 }
 
-Writer::Writer(Context& ctx, const std::string& result_path)
-  : m_ctx(ctx),
+Writer::Writer(const Config& config, const std::string& result_path)
+  : m_config(config),
     m_result_path(result_path)
 {
 }
@@ -334,11 +334,11 @@ Writer::do_finalize()
 
   AtomicFile atomic_result_file(m_result_path, AtomicFile::Mode::binary);
   core::CacheEntryHeader header(core::CacheEntryType::result,
-                                compression::type_from_config(m_ctx.config),
-                                compression::level_from_config(m_ctx.config),
+                                compression::type_from_config(m_config),
+                                compression::level_from_config(m_config),
                                 time(nullptr),
                                 CCACHE_VERSION,
-                                m_ctx.config.namespace_());
+                                m_config.namespace_());
   header.set_entry_size_from_payload_size(payload_size);
 
   core::FileWriter file_writer(atomic_result_file.stream());
@@ -349,9 +349,8 @@ Writer::do_finalize()
 
   uint8_t entry_number = 0;
   for (const auto& entry : m_entries_to_write) {
-    const bool store_raw =
-      entry.value_type == ValueType::path
-      && should_store_raw_file(m_ctx.config, entry.file_type);
+    const bool store_raw = entry.value_type == ValueType::path
+                           && should_store_raw_file(m_config, entry.file_type);
     const uint64_t entry_size =
       entry.value_type == ValueType::data
         ? entry.value.size()
@@ -425,7 +424,7 @@ Result::Writer::write_raw_file_entry(const std::string& path,
   const auto raw_file = get_raw_file_path(m_result_path, entry_number);
   const auto old_stat = Stat::stat(raw_file);
   try {
-    Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
+    Util::clone_hard_link_or_copy_file(m_config, path, raw_file, true);
   } catch (core::Error& e) {
     throw core::Error(
       FMT("Failed to store {} as raw file {}: {}", path, raw_file, e.what()));

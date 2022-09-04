@@ -25,6 +25,7 @@
 #include "TemporaryFile.hpp"
 #include "Win32Util.hpp"
 
+#include <Config.hpp>
 #include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
@@ -268,12 +269,12 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #endif // FILE_CLONING_SUPPORTED
 
 void
-clone_hard_link_or_copy_file(const Context& ctx,
+clone_hard_link_or_copy_file(const Config& config,
                              const std::string& source,
                              const std::string& dest,
                              bool via_tmp_file)
 {
-  if (ctx.config.file_clone()) {
+  if (config.file_clone()) {
 #ifdef FILE_CLONING_SUPPORTED
     LOG("Cloning {} to {}", source, dest);
     try {
@@ -286,7 +287,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
     LOG("Not cloning {} to {} since it's unsupported", source, dest);
 #endif
   }
-  if (ctx.config.hard_link()) {
+  if (config.hard_link()) {
     LOG("Hard linking {} to {}", source, dest);
     try {
       Util::hard_link(source, dest);

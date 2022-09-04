@@ -134,7 +134,7 @@ private:
 class Writer
 {
 public:
-  Writer(Context& ctx, const std::string& result_path);
+  Writer(const Config& config, const std::string& result_path);
 
   // Register content to include in the result. Does not throw.
   void write_data(FileType file_type, const std::string& data);
@@ -155,7 +155,7 @@ private:
     std::string value;
   };
 
-  Context& m_ctx;
+  const Config& m_config;
   const std::string m_result_path;
   std::vector<Entry> m_entries_to_write;
 

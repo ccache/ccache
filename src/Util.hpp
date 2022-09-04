@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+class Config;
 class Context;
 
 namespace Util {
@@ -87,7 +88,7 @@ void clone_file(const std::string& src,
 // Clone, hard link or copy a file from `source` to `dest` depending on settings
 // in `ctx`. If cloning or hard linking cannot and should not be done the file
 // will be copied instead. Throws `core::Error` on error.
-void clone_hard_link_or_copy_file(const Context& ctx,
+void clone_hard_link_or_copy_file(const Config& config,
                                   const std::string& source,
                                   const std::string& dest,
                                   bool via_tmp_file = false);

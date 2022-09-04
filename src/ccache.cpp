@@ -880,7 +880,7 @@ write_result(Context& ctx,
              const std::string& stdout_data,
              const std::string& stderr_data)
 {
-  Result::Writer result_writer(ctx, result_path);
+  Result::Writer result_writer(ctx.config, result_path);
 
   if (!stderr_data.empty()) {
     result_writer.write_data(Result::FileType::stderr_output, stderr_data);
