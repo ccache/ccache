@@ -35,18 +35,6 @@ jobs:
 
           - os: ubuntu-18.04
             compiler: clang
-            version: "5.0"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "6.0"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "7"
-
-          - os: ubuntu-18.04
-            compiler: clang
             version: "8"
 
           - os: ubuntu-20.04

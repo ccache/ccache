@@ -18,24 +18,28 @@
 
 #pragma once
 
-#include "Result.hpp"
+#include <core/Result.hpp>
 
 #include <cstdint>
 #include <cstdio>
 
+namespace core {
+
 // This class writes information about the result entry to `stream`.
-class ResultInspector : public Result::Reader::Consumer
+class ResultInspector : public Result::Deserializer::Visitor
 {
 public:
   ResultInspector(FILE* stream);
 
-  void on_entry_start(uint8_t entry_number,
-                      Result::FileType file_type,
-                      uint64_t file_len,
-                      std::optional<std::string> raw_file) override;
-  void on_entry_data(const uint8_t* data, size_t size) override;
-  void on_entry_end() override;
+  void on_embedded_file(uint8_t file_number,
+                        Result::FileType file_type,
+                        nonstd::span<const uint8_t> data) override;
+  void on_raw_file(uint8_t file_number,
+                   Result::FileType file_type,
+                   uint64_t file_size) override;
 
 private:
   FILE* m_stream;
 };
+
+} // namespace core

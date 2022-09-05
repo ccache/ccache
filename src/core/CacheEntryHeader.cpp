@@ -18,6 +18,7 @@
 
 #include "CacheEntryHeader.hpp"
 
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 
 const size_t k_static_header_fields_size =
@@ -57,10 +58,19 @@ CacheEntryHeader::CacheEntryHeader(const core::CacheEntryType entry_type_,
 {
 }
 
-uint64_t
+uint32_t
 CacheEntryHeader::payload_size() const
 {
-  return entry_size - non_payload_size();
+  const auto payload_size = entry_size - non_payload_size();
+  // In order to support 32-bit ccache builds, restrict size to uint32_t for
+  // now. This restriction can be lifted when we drop 32-bit support.
+  const auto max = std::numeric_limits<uint32_t>::max();
+  if (payload_size > max) {
+    throw core::Error(
+      FMT("Serialized result too large ({} > {})", payload_size, max));
+  }
+
+  return payload_size;
 }
 
 void

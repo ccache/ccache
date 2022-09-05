@@ -19,41 +19,45 @@
 #pragma once
 
 #include "Fd.hpp"
-#include "Result.hpp"
 
+#include <core/Result.hpp>
 #include <core/exceptions.hpp>
+
+#include <optional>
 
 class Context;
 
+namespace core {
+
 // This class retrieves a result entry to the local file system.
-class ResultRetriever : public Result::Reader::Consumer
+class ResultRetriever : public Result::Deserializer::Visitor
 {
 public:
-  class WriteError : public core::Error
+  class WriteError : public Error
   {
-    using core::Error::Error;
+    using Error::Error;
   };
 
-  ResultRetriever(Context& ctx);
+  //`path` should be the path to the local result entry file if the result comes
+  // from primary storage.
+  ResultRetriever(const Context& ctx,
+                  std::optional<std::string> path = std::nullopt);
 
-  void on_entry_start(uint8_t entry_number,
-                      Result::FileType file_type,
-                      uint64_t file_len,
-                      std::optional<std::string> raw_file) override;
-  void on_entry_data(const uint8_t* data, size_t size) override;
-  void on_entry_end() override;
+  void on_embedded_file(uint8_t file_number,
+                        Result::FileType file_type,
+                        nonstd::span<const uint8_t> data) override;
+  void on_raw_file(uint8_t file_number,
+                   Result::FileType file_type,
+                   uint64_t file_size) override;
 
 private:
-  Context& m_ctx;
-  Result::FileType m_dest_file_type{};
-  Fd m_dest_fd;
-  std::string m_dest_path;
+  const Context& m_ctx;
+  std::optional<std::string> m_path;
 
-  // Collects the full data of stderr output (since we want to potentially strip
-  // color codes which could span chunk boundaries) or dependency data (since we
-  // potentially want to rewrite the dependency target which in theory can span
-  // a chunk boundary).
-  std::string m_dest_data;
+  std::string get_dest_path(Result::FileType file_type) const;
 
-  void write_dependency_file();
+  void write_dependency_file(const std::string& path,
+                             nonstd::span<const uint8_t> data);
 };
+
+} // namespace core

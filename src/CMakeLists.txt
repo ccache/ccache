@@ -9,10 +9,6 @@ set(
   Hash.cpp
   Logging.cpp
   ProgressBar.cpp
-  Result.cpp
-  ResultExtractor.cpp
-  ResultInspector.cpp
-  ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
   TemporaryFile.cpp

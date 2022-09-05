@@ -18,29 +18,25 @@
 
 #pragma once
 
-#include <core/Reader.hpp>
+#include <util/types.hpp>
 
-#include "third_party/nonstd/expected.hpp"
+#include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
-#include <map>
-#include <optional>
 #include <string>
+#include <unordered_map>
+#include <variant>
 #include <vector>
+
+class Config;
+class Context;
 
 namespace core {
 
-class CacheEntryReader;
-class CacheEntryWriter;
-
-} // namespace core
-
-class Context;
+class CacheEntryDataParser;
 
 namespace Result {
 
-extern const std::string k_file_suffix;
-extern const uint8_t k_magic[4];
 extern const uint8_t k_version;
 
 extern const char* const k_unknown_file_type;
@@ -92,79 +88,71 @@ const char* file_type_to_string(FileType type);
 std::string gcno_file_in_mangled_form(const Context& ctx);
 std::string gcno_file_in_unmangled_form(const Context& ctx);
 
-struct FileSizeAndCountDiff
-{
-  int64_t size_kibibyte;
-  int64_t count;
-
-  FileSizeAndCountDiff& operator+=(const FileSizeAndCountDiff& other);
-};
-
-// This class knows how to read a result cache entry.
-class Reader
+// This class knows how to deserializer a result cache entry.
+class Deserializer
 {
 public:
-  Reader(core::CacheEntryReader& cache_entry_reader,
-         const std::string& result_path);
+  // Read a result from `data`.
+  Deserializer(nonstd::span<const uint8_t> data);
 
-  class Consumer
+  class Visitor
   {
   public:
-    virtual ~Consumer() = default;
+    virtual ~Visitor() = default;
 
-    virtual void on_entry_start(uint8_t entry_number,
-                                FileType file_type,
-                                uint64_t file_len,
-                                std::optional<std::string> raw_file) = 0;
-    virtual void on_entry_data(const uint8_t* data, size_t size) = 0;
-    virtual void on_entry_end() = 0;
+    virtual void on_embedded_file(uint8_t file_number,
+                                  FileType file_type,
+                                  nonstd::span<const uint8_t> data) = 0;
+    virtual void on_raw_file(uint8_t file_number,
+                             FileType file_type,
+                             uint64_t file_size) = 0;
   };
 
   // Throws core::Error on error.
-  void read(Consumer& consumer);
+  void visit(Visitor& visitor) const;
 
 private:
-  core::CacheEntryReader& m_reader;
-  const std::string m_result_path;
+  nonstd::span<const uint8_t> m_data;
 
-  void read_entry(uint8_t entry_number, Reader::Consumer& consumer);
+  void parse_file_entry(CacheEntryDataParser& parser,
+                        uint8_t file_number) const;
 };
 
-// This class knows how to write a result cache entry.
-class Writer
+// This class knows how to serialize a result cache entry.
+class Serializer
 {
 public:
-  Writer(const Config& config, const std::string& result_path);
+  Serializer(const Config& config);
 
-  // Register content to include in the result. Does not throw.
-  void write_data(FileType file_type, const std::string& data);
+  // Register data to include in the result. The data must live until
+  // serialize() has been called.
+  void add_data(FileType file_type, std::string_view data);
 
-  // Register a file path whose content should be included in the result. Does
-  // not throw.
-  void write_file(FileType file_type, const std::string& path);
+  // Register a file path whose content should be included in the result.
+  void add_file(FileType file_type, const std::string& path);
 
-  // Write registered entries to the result. Returns an error message on error.
-  nonstd::expected<FileSizeAndCountDiff, std::string> finalize();
+  uint32_t serialized_size() const;
 
-private:
-  enum class ValueType { data, path };
-  struct Entry
+  struct SerializeResult
   {
-    FileType file_type;
-    ValueType value_type;
-    std::string value;
+    // Raw files to store in primary storage.
+    std::unordered_map<uint8_t /*index*/, std::string /*path*/> raw_files;
   };
 
-  const Config& m_config;
-  const std::string m_result_path;
-  std::vector<Entry> m_entries_to_write;
+  SerializeResult serialize(std::vector<uint8_t>& output);
 
-  FileSizeAndCountDiff do_finalize();
-  static void write_embedded_file_entry(core::CacheEntryWriter& writer,
-                                        const std::string& path,
-                                        uint64_t file_size);
-  FileSizeAndCountDiff write_raw_file_entry(const std::string& path,
-                                            uint8_t entry_number);
+private:
+  const Config& m_config;
+  uint64_t m_serialized_size;
+
+  struct FileEntry
+  {
+    FileType file_type;
+    std::variant<nonstd::span<const uint8_t>, std::string> data;
+  };
+  std::vector<FileEntry> m_file_entries;
 };
 
 } // namespace Result
+
+} // namespace core

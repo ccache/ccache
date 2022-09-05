@@ -22,30 +22,34 @@
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
 
+namespace core {
+
 ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
 {
 }
 
 void
-ResultInspector::on_entry_start(uint8_t entry_number,
-                                Result::FileType file_type,
-                                uint64_t file_len,
-                                std::optional<std::string> raw_file)
+ResultInspector::on_embedded_file(uint8_t file_number,
+                                  Result::FileType file_type,
+                                  nonstd::span<const uint8_t> data)
 {
   PRINT(m_stream,
-        "{} file #{}: {} ({} bytes)\n",
-        raw_file ? "Raw" : "Embedded",
-        entry_number,
+        "Embedded file #{}: {} ({} bytes)\n",
+        file_number,
         Result::file_type_to_string(file_type),
-        file_len);
+        data.size());
 }
 
 void
-ResultInspector::on_entry_data(const uint8_t* /*data*/, size_t /*size*/)
+ResultInspector::on_raw_file(uint8_t file_number,
+                             Result::FileType file_type,
+                             uint64_t file_size)
 {
+  PRINT(m_stream,
+        "Raw file #{}: {} ({} bytes)\n",
+        file_number,
+        Result::file_type_to_string(file_type),
+        file_size);
 }
 
-void
-ResultInspector::on_entry_end()
-{
-}
+} // namespace core

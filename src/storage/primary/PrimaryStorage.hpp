@@ -59,6 +59,9 @@ public:
 
   void remove(const Digest& key, core::CacheEntryType type);
 
+  static std::string get_raw_file_path(std::string_view result_path,
+                                       uint8_t file_number);
+
   // --- Statistics ---
 
   void increment_statistic(core::Statistic statistic, int64_t value = 1);

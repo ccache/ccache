@@ -19,25 +19,37 @@
 #pragma once
 
 #include "Fd.hpp"
-#include "Result.hpp"
 
-class Context;
+#include <core/Result.hpp>
+
+#include <functional>
+#include <optional>
+#include <string>
+
+namespace core {
 
 // This class extracts the parts of a result entry to a directory.
-class ResultExtractor : public Result::Reader::Consumer
+class ResultExtractor : public Result::Deserializer::Visitor
 {
 public:
-  ResultExtractor(const std::string& directory);
+  using GetRawFilePathFunction = std::function<std::string(uint8_t)>;
 
-  void on_entry_start(uint8_t entry_number,
-                      Result::FileType file_type,
-                      uint64_t file_len,
-                      std::optional<std::string> raw_file) override;
-  void on_entry_data(const uint8_t* data, size_t size) override;
-  void on_entry_end() override;
+  //`result_path` should be the path to the local result entry file if the
+  // result comes from primary storage.
+  ResultExtractor(
+    const std::string& output_directory,
+    std::optional<GetRawFilePathFunction> get_raw_file_path = std::nullopt);
+
+  void on_embedded_file(uint8_t file_number,
+                        Result::FileType file_type,
+                        nonstd::span<const uint8_t> data) override;
+  void on_raw_file(uint8_t file_number,
+                   Result::FileType file_type,
+                   uint64_t file_size) override;
 
 private:
-  const std::string m_directory;
-  Fd m_dest_fd;
-  std::string m_dest_path;
+  std::string m_output_directory;
+  std::optional<GetRawFilePathFunction> m_get_raw_file_path;
 };
+
+} // namespace core

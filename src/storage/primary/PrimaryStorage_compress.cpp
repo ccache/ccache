@@ -22,7 +22,6 @@
 #include <Context.hpp>
 #include <File.hpp>
 #include <Logging.hpp>
-#include <Result.hpp>
 #include <ThreadPool.hpp>
 #include <assertions.hpp>
 #include <compression/ZstdCompressor.hpp>
@@ -31,6 +30,7 @@
 #include <core/FileReader.hpp>
 #include <core/FileWriter.hpp>
 #include <core/Manifest.hpp>
+#include <core/Result.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>

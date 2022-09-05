@@ -24,13 +24,13 @@
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
-#include <Result.hpp>
-#include <ResultExtractor.hpp>
-#include <ResultInspector.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntryReader.hpp>
 #include <core/FileReader.hpp>
 #include <core/Manifest.hpp>
+#include <core/Result.hpp>
+#include <core/ResultExtractor.hpp>
+#include <core/ResultInspector.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
@@ -175,16 +175,20 @@ inspect_path(const std::string& path)
   case core::CacheEntryType::manifest: {
     core::Manifest manifest;
     manifest.read(cache_entry_reader);
-    cache_entry_reader.finalize();
     manifest.dump(stdout);
     break;
   }
   case core::CacheEntryType::result:
-    Result::Reader result_reader(cache_entry_reader, path);
+    std::vector<uint8_t> data;
+    data.resize(cache_entry_reader.header().payload_size());
+    cache_entry_reader.read(data.data(), data.size());
+    Result::Deserializer result_deserializer(data);
     ResultInspector result_inspector(stdout);
-    result_reader.read(result_inspector);
+    result_deserializer.visit(result_inspector);
     break;
   }
+
+  cache_entry_reader.finalize();
 
   return EXIT_SUCCESS;
 }
@@ -441,16 +445,27 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EXTRACT_RESULT: {
-      ResultExtractor result_extractor(".");
       File file = arg == "-" ? File(stdin) : File(arg, "rb");
       if (!file) {
         PRINT(stderr, "Error: Failed to open \"{}\"", arg);
         return EXIT_FAILURE;
       }
+      std::optional<ResultExtractor::GetRawFilePathFunction> get_raw_file_path;
+      if (arg == "-") {
+        get_raw_file_path = [&](uint8_t file_number) {
+          return storage::primary::PrimaryStorage::get_raw_file_path(
+            arg, file_number);
+        };
+      }
+      ResultExtractor result_extractor(".", get_raw_file_path);
       core::FileReader file_reader(file.get());
       core::CacheEntryReader cache_entry_reader(file_reader);
-      Result::Reader result_reader(cache_entry_reader, arg);
-      result_reader.read(result_extractor);
+      std::vector<uint8_t> data;
+      data.resize(cache_entry_reader.header().payload_size());
+      cache_entry_reader.read(data.data(), data.size());
+      Result::Deserializer result_deserializer(data);
+      result_deserializer.visit(result_extractor);
+      cache_entry_reader.finalize();
       return EXIT_SUCCESS;
     }
 

@@ -76,7 +76,7 @@ struct CacheEntryHeader
   std::string namespace_;
   uint64_t entry_size;
 
-  uint64_t payload_size() const;
+  uint32_t payload_size() const;
   void set_entry_size_from_payload_size(uint64_t payload_size);
   void inspect(FILE* stream) const;
 

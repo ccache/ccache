@@ -29,8 +29,6 @@
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "MiniTrace.hpp"
-#include "Result.hpp"
-#include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
@@ -50,6 +48,8 @@
 #include <core/FileReader.hpp>
 #include <core/FileWriter.hpp>
 #include <core/Manifest.hpp>
+#include <core/Result.hpp>
+#include <core/ResultRetriever.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
@@ -849,8 +849,8 @@ find_coverage_file(const Context& ctx)
   // (in CWD) if -fprofile-dir=DIR is present (regardless of DIR) instead of the
   // traditional /dir/to/example.gcno.
 
-  std::string mangled_form = Result::gcno_file_in_mangled_form(ctx);
-  std::string unmangled_form = Result::gcno_file_in_unmangled_form(ctx);
+  std::string mangled_form = core::Result::gcno_file_in_mangled_form(ctx);
+  std::string unmangled_form = core::Result::gcno_file_in_unmangled_form(ctx);
   std::string found_file;
   if (Stat::stat(mangled_form)) {
     LOG("Found coverage file {}", mangled_form);
@@ -880,63 +880,93 @@ write_result(Context& ctx,
              const std::string& stdout_data,
              const std::string& stderr_data)
 {
-  Result::Writer result_writer(ctx.config, result_path);
+  core::Result::Serializer serializer(ctx.config);
 
   if (!stderr_data.empty()) {
-    result_writer.write_data(Result::FileType::stderr_output, stderr_data);
+    serializer.add_data(core::Result::FileType::stderr_output, stderr_data);
   }
   // Write stdout only after stderr (better with MSVC), as ResultRetriever
   // will later print process them in the order they are read.
   if (!stdout_data.empty()) {
-    result_writer.write_data(Result::FileType::stdout_output, stdout_data);
+    serializer.add_data(core::Result::FileType::stdout_output, stdout_data);
   }
   if (obj_stat) {
-    result_writer.write_file(Result::FileType::object,
-                             ctx.args_info.output_obj);
+    serializer.add_file(core::Result::FileType::object,
+                        ctx.args_info.output_obj);
   }
   if (ctx.args_info.generating_dependencies) {
-    result_writer.write_file(Result::FileType::dependency,
-                             ctx.args_info.output_dep);
+    serializer.add_file(core::Result::FileType::dependency,
+                        ctx.args_info.output_dep);
   }
   if (ctx.args_info.generating_coverage) {
     const auto coverage_file = find_coverage_file(ctx);
     if (!coverage_file.found) {
       return false;
     }
-    result_writer.write_file(coverage_file.mangled
-                               ? Result::FileType::coverage_mangled
-                               : Result::FileType::coverage_unmangled,
-                             coverage_file.path);
+    serializer.add_file(coverage_file.mangled
+                          ? core::Result::FileType::coverage_mangled
+                          : core::Result::FileType::coverage_unmangled,
+                        coverage_file.path);
   }
   if (ctx.args_info.generating_stackusage) {
-    result_writer.write_file(Result::FileType::stackusage,
-                             ctx.args_info.output_su);
+    serializer.add_file(core::Result::FileType::stackusage,
+                        ctx.args_info.output_su);
   }
   if (ctx.args_info.generating_diagnostics) {
-    result_writer.write_file(Result::FileType::diagnostic,
-                             ctx.args_info.output_dia);
+    serializer.add_file(core::Result::FileType::diagnostic,
+                        ctx.args_info.output_dia);
   }
   if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
     // Only store .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_writer.write_file(Result::FileType::dwarf_object,
-                             ctx.args_info.output_dwo);
+    serializer.add_file(core::Result::FileType::dwarf_object,
+                        ctx.args_info.output_dwo);
   }
   if (!ctx.args_info.output_al.empty()) {
-    result_writer.write_file(Result::FileType::assembler_listing,
-                             ctx.args_info.output_al);
+    serializer.add_file(core::Result::FileType::assembler_listing,
+                        ctx.args_info.output_al);
   }
 
-  const auto file_size_and_count_diff = result_writer.finalize();
-  if (file_size_and_count_diff) {
+  AtomicFile atomic_result_file(result_path, AtomicFile::Mode::binary);
+  core::CacheEntryHeader header(core::CacheEntryType::result,
+                                compression::type_from_config(ctx.config),
+                                compression::level_from_config(ctx.config),
+                                time(nullptr),
+                                CCACHE_VERSION,
+                                ctx.config.namespace_());
+  header.set_entry_size_from_payload_size(serializer.serialized_size());
+
+  core::FileWriter file_writer(atomic_result_file.stream());
+  core::CacheEntryWriter writer(file_writer, header);
+
+  std::vector<uint8_t> payload;
+  payload.reserve(serializer.serialized_size());
+  const auto serialize_result = serializer.serialize(payload);
+  for (auto [file_number, source_path] : serialize_result.raw_files) {
+    const auto dest_path = storage::primary::PrimaryStorage::get_raw_file_path(
+      result_path, file_number);
+    const auto old_stat = Stat::stat(dest_path);
+    try {
+      Util::clone_hard_link_or_copy_file(
+        ctx.config, source_path, dest_path, true);
+    } catch (core::Error& e) {
+      LOG("Failed to store {} as raw file {}: {}",
+          source_path,
+          dest_path,
+          e.what());
+      throw;
+    }
+    const auto new_stat = Stat::stat(dest_path);
     ctx.storage.primary.increment_statistic(
-      Statistic::cache_size_kibibyte, file_size_and_count_diff->size_kibibyte);
-    ctx.storage.primary.increment_statistic(Statistic::files_in_cache,
-                                            file_size_and_count_diff->count);
-  } else {
-    LOG("Error: {}", file_size_and_count_diff.error());
-    return false;
+      Statistic::cache_size_kibibyte,
+      Util::size_change_kibibyte(old_stat, new_stat));
+    ctx.storage.primary.increment_statistic(
+      Statistic::files_in_cache, (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
   }
+
+  writer.write(payload.data(), payload.size());
+  writer.finalize();
+  atomic_result_file.commit();
 
   return true;
 }
@@ -1110,8 +1140,13 @@ to_cache(Context& ctx,
   MTR_BEGIN("result", "result_put");
   const bool added = ctx.storage.put(
     *result_key, core::CacheEntryType::result, [&](const auto& path) {
-      return write_result(
-        ctx, path, obj_stat, result->stdout_data, result->stderr_data);
+      try {
+        return write_result(
+          ctx, path, obj_stat, result->stdout_data, result->stderr_data);
+      } catch (core::Error& e) {
+        LOG("Error writing to {}: {}", path, e.what());
+        return false;
+      }
     });
   MTR_END("result", "result_put");
   if (!added) {
@@ -1897,7 +1932,7 @@ calculate_result_and_manifest_key(Context& ctx,
   bool found_ccbin = false;
 
   hash.hash_delimiter("result version");
-  hash.hash(Result::k_version);
+  hash.hash(core::Result::k_version);
 
   if (direct_mode) {
     hash.hash_delimiter("manifest version");
@@ -2012,11 +2047,14 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     }
     core::FileReader file_reader(file.get());
     core::CacheEntryReader cache_entry_reader(file_reader);
-    Result::Reader result_reader(cache_entry_reader, *result_path);
-    ResultRetriever result_retriever(ctx);
-
-    result_reader.read(result_retriever);
-  } catch (ResultRetriever::WriteError& e) {
+    std::vector<uint8_t> payload;
+    payload.resize(cache_entry_reader.header().payload_size());
+    cache_entry_reader.read(payload.data(), payload.size());
+    core::Result::Deserializer deserializer(payload);
+    core::ResultRetriever result_retriever(ctx, result_path);
+    deserializer.visit(result_retriever);
+    cache_entry_reader.finalize();
+  } catch (core::ResultRetriever::WriteError& e) {
     LOG(
       "Write error when retrieving result from {}: {}", *result_path, e.what());
     return nonstd::make_unexpected(Statistic::bad_output_file);

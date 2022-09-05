@@ -4,6 +4,10 @@ set(
   CacheEntryReader.cpp
   CacheEntryWriter.cpp
   Manifest.cpp
+  Result.cpp
+  ResultExtractor.cpp
+  ResultInspector.cpp
+  ResultRetriever.cpp
   Statistics.cpp
   StatisticsCounters.cpp
   StatsLog.cpp

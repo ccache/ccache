@@ -259,6 +259,21 @@ PrimaryStorage::remove(const Digest& key, const core::CacheEntryType type)
   }
 }
 
+std::string
+PrimaryStorage::get_raw_file_path(std::string_view result_path,
+                                  uint8_t file_number)
+{
+  if (file_number >= 10) {
+    // To support more entries in the future, encode to [0-9a-z]. Note that
+    // PrimaryStorage::evict currently assumes that the entry number is
+    // represented as one character.
+    throw core::Error(FMT("Too high raw file entry number: {}", file_number));
+  }
+
+  const auto prefix = result_path.substr(0, result_path.length() - 1);
+  return FMT("{}{}W", prefix, file_number);
+}
+
 void
 PrimaryStorage::increment_statistic(const Statistic statistic,
                                     const int64_t value)
