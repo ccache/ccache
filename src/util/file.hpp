@@ -32,6 +32,8 @@ namespace util {
 
 // --- Interface ---
 
+enum class InPlace { yes, no };
+
 void create_cachedir_tag(const std::string& dir);
 
 // Read data from `fd` until end of file and call `data_receiver` with the read
@@ -57,12 +59,16 @@ void set_timestamps(const std::string& path,
 nonstd::expected<void, std::string>
 write_fd(int fd, const void* data, size_t size);
 
-// Write text `data` to `path`.
+// Write text `data` to `path`. If `in_place` is no, unlink any existing file
+// first (i.e., break hard links).
 nonstd::expected<void, std::string> write_file(const std::string& path,
-                                               std::string_view data);
+                                               std::string_view data,
+                                               InPlace in_place = InPlace::no);
 
-// Write binary `data` to `path`.
-nonstd::expected<void, std::string>
-write_file(const std::string& path, nonstd::span<const uint8_t> data);
+// Write binary `data` to `path`. If `in_place` is no, unlink any existing
+// file first (i.e., break hard links).
+nonstd::expected<void, std::string> write_file(const std::string& path,
+                                               nonstd::span<const uint8_t> data,
+                                               InPlace in_place = InPlace::no);
 
 } // namespace util

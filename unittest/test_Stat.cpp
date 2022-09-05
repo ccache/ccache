@@ -195,7 +195,7 @@ TEST_CASE("Same i-node as")
   CHECK(a_stat.same_inode_as(a_stat));
   CHECK(!a_stat.same_inode_as(b_stat));
 
-  util::write_file("a", "change size");
+  util::write_file("a", "change size", util::InPlace::yes);
   auto new_a_stat = Stat::stat("a");
   CHECK(new_a_stat.same_inode_as(a_stat));
 
@@ -442,7 +442,7 @@ TEST_CASE("Hard links")
   CHECK(stat_a.inode() == stat_b.inode());
   CHECK(stat_a.same_inode_as(stat_b));
 
-  util::write_file("a", "1234567");
+  util::write_file("a", "1234567", util::InPlace::yes);
   stat_a = Stat::stat("a");
   stat_b = Stat::stat("b");
 

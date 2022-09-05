@@ -236,8 +236,11 @@ write_fd(int fd, const void* data, size_t size)
 }
 
 nonstd::expected<void, std::string>
-write_file(const std::string& path, std::string_view data)
+write_file(const std::string& path, std::string_view data, InPlace in_place)
 {
+  if (in_place == InPlace::no) {
+    unlink(path.c_str());
+  }
   Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
   if (!fd) {
     return nonstd::make_unexpected(strerror(errno));
@@ -246,8 +249,13 @@ write_file(const std::string& path, std::string_view data)
 }
 
 nonstd::expected<void, std::string>
-write_file(const std::string& path, nonstd::span<const uint8_t> data)
+write_file(const std::string& path,
+           nonstd::span<const uint8_t> data,
+           InPlace in_place)
 {
+  if (in_place == InPlace::no) {
+    unlink(path.c_str());
+  }
   Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
     return nonstd::make_unexpected(strerror(errno));
