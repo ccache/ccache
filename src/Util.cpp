@@ -350,7 +350,8 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
   if (!src_fd) {
-    throw core::Error(FMT("{}: {}", src, strerror(errno)));
+    throw core::Error(
+      FMT("Failed to open {} for reading: {}", src, strerror(errno)));
   }
 
   unlink(dest.c_str());
@@ -365,7 +366,8 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw core::Error(FMT("{}: {}", dest, strerror(errno)));
+      throw core::Error(
+        FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
     }
   }
 
