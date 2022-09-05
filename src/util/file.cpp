@@ -236,7 +236,7 @@ write_fd(int fd, const void* data, size_t size)
 }
 
 nonstd::expected<void, std::string>
-write_file(const std::string& path, const std::string& data)
+write_file(const std::string& path, std::string_view data)
 {
   Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
   if (!fd) {

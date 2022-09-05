@@ -26,6 +26,7 @@
 #include <ctime>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace util {
 
@@ -52,13 +53,13 @@ void set_timestamps(const std::string& path,
                     std::optional<timespec> mtime = std::nullopt,
                     std::optional<timespec> atime = std::nullopt);
 
-// Write `size` bytes from `data` to `fd`. Returns errno on error.
+// Write `size` bytes from binary `data` to `fd`.
 nonstd::expected<void, std::string>
 write_fd(int fd, const void* data, size_t size);
 
 // Write text `data` to `path`.
 nonstd::expected<void, std::string> write_file(const std::string& path,
-                                               const std::string& data);
+                                               std::string_view data);
 
 // Write binary `data` to `path`.
 nonstd::expected<void, std::string>
