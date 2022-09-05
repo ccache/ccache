@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -78,6 +78,9 @@ StatisticsCounters::set_raw(size_t index, uint64_t value)
 void
 StatisticsCounters::increment(Statistic statistic, int64_t value)
 {
+  if (value == 0) {
+    return;
+  }
   const auto i = static_cast<size_t>(statistic);
   if (i >= m_counters.size()) {
     m_counters.resize(i + 1);
