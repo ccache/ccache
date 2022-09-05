@@ -19,9 +19,11 @@
 #pragma once
 
 #include <third_party/nonstd/expected.hpp>
+#include <third_party/nonstd/span.hpp>
 
 #include <sys/stat.h> // for mode_t
 
+#include <cstdint>
 #include <cstring>
 #include <optional>
 #include <string>
@@ -110,9 +112,15 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
+// Convert `value` to a `nonstd::span<const uint8_t>`.
+nonstd::span<const uint8_t> to_span(std::string_view value);
+
 // Convert `value` to a string. This function is used when joining
 // `std::string`s with `util::join`.
 template<typename T> std::string to_string(const T& value);
+
+// Convert `data` to a `std::string_view`.
+std::string_view to_string_view(nonstd::span<const uint8_t> data);
 
 // --- Inline implementations ---
 
@@ -158,6 +166,13 @@ starts_with(const std::string_view string, const std::string_view prefix)
   return string.substr(0, prefix.size()) == prefix;
 }
 
+inline nonstd::span<const uint8_t>
+to_span(std::string_view data)
+{
+  return nonstd::span<const uint8_t>(
+    reinterpret_cast<const uint8_t*>(data.data()), data.size());
+}
+
 template<typename T>
 inline std::string
 to_string(const T& t)
@@ -178,6 +193,13 @@ inline std::string
 to_string(const std::string_view& sv)
 {
   return std::string(sv);
+}
+
+inline std::string_view
+to_string_view(nonstd::span<const uint8_t> data)
+{
+  return std::string_view(reinterpret_cast<const char*>(data.data()),
+                          data.size());
 }
 
 } // namespace util
