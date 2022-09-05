@@ -352,6 +352,8 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     throw core::Error(FMT("{}: {}", src, strerror(errno)));
   }
 
+  unlink(dest.c_str());
+
   Fd dest_fd;
   std::string tmp_file;
   if (via_tmp_file) {

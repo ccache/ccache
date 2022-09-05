@@ -31,6 +31,15 @@ SUITE_hardlink() {
         test_failed "Object files not hard linked"
     fi
 
+    $CCACHE_COMPILE -c test1.c
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+
+    if [ test1.o -ef test1.o.saved ]; then
+        test_failed "Object files are hard linked"
+    fi
+
     # -------------------------------------------------------------------------
     TEST "Corrupted file size is detected"
 
