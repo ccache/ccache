@@ -171,17 +171,18 @@ inspect_path(const std::string& path)
   const auto& header = cache_entry_reader.header();
   header.inspect(stdout);
 
+  std::vector<uint8_t> data;
+  data.resize(cache_entry_reader.header().payload_size());
+  cache_entry_reader.read(data.data(), data.size());
+
   switch (header.entry_type) {
   case core::CacheEntryType::manifest: {
     core::Manifest manifest;
-    manifest.read(cache_entry_reader);
-    manifest.dump(stdout);
+    manifest.read(data);
+    manifest.inspect(stdout);
     break;
   }
   case core::CacheEntryType::result:
-    std::vector<uint8_t> data;
-    data.resize(cache_entry_reader.header().payload_size());
-    cache_entry_reader.read(data.data(), data.size());
     Result::Deserializer result_deserializer(data);
     ResultInspector result_inspector(stdout);
     result_deserializer.visit(result_inspector);

@@ -765,7 +765,10 @@ read_manifest(const std::string& path)
     try {
       core::FileReader file_reader(*file);
       core::CacheEntryReader reader(file_reader);
-      manifest.read(reader);
+      std::vector<uint8_t> payload;
+      payload.resize(reader.header().payload_size());
+      reader.read(payload.data(), payload.size());
+      manifest.read(payload);
       reader.finalize();
     } catch (const core::Error& e) {
       LOG("Error reading {}: {}", path, e.what());
@@ -790,7 +793,10 @@ save_manifest(const Config& config,
   header.set_entry_size_from_payload_size(manifest.serialized_size());
 
   core::CacheEntryWriter writer(file_writer, header);
-  manifest.write(writer);
+  std::vector<uint8_t> payload;
+  payload.reserve(header.payload_size());
+  manifest.serialize(payload);
+  writer.write(payload.data(), payload.size());
   writer.finalize();
   atomic_manifest_file.commit();
 }

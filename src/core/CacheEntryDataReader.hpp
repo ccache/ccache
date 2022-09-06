@@ -38,6 +38,10 @@ public:
   // Read `size` bytes. Throws `core::Error` on failure.
   nonstd::span<const uint8_t> read_bytes(size_t size);
 
+  // Read and copy `buffer.size()` bytes into `buffer`. Throws `core::Error` on
+  // failure.
+  void read_and_copy_bytes(nonstd::span<uint8_t> buffer);
+
   // Read a string of length `length`. Throws `core::Error` on failure.
   std::string_view read_str(size_t length);
 
@@ -67,6 +71,13 @@ CacheEntryDataReader::read_bytes(size_t size)
   const auto bytes = m_data.first(size);
   m_data = m_data.subspan(size);
   return bytes;
+}
+
+inline void
+CacheEntryDataReader::read_and_copy_bytes(nonstd::span<uint8_t> buffer)
+{
+  const auto span = read_bytes(buffer.size());
+  memcpy(buffer.data(), span.data(), span.size());
 }
 
 inline std::string_view

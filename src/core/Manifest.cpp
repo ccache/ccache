@@ -21,8 +21,8 @@
 #include <Context.hpp>
 #include <Hash.hpp>
 #include <Logging.hpp>
-#include <core/Reader.hpp>
-#include <core/Writer.hpp>
+#include <core/CacheEntryDataReader.hpp>
+#include <core/CacheEntryDataWriter.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <hashutil.hpp>
@@ -79,19 +79,23 @@ namespace core {
 const uint8_t Manifest::k_format_version = 0;
 
 void
-Manifest::read(Reader& reader)
+Manifest::read(nonstd::span<const uint8_t> data)
 {
   clear();
 
+  core::CacheEntryDataReader reader(data);
+
   const auto format_version = reader.read_int<uint8_t>();
   if (format_version != k_format_version) {
-    throw core::Error(FMT(
-      "Unknown format version: {} != {}", format_version, k_format_version));
+    throw core::Error(FMT("Unknown manifest format version: {} != {}",
+                          format_version,
+                          k_format_version));
   }
 
   const auto file_count = reader.read_int<uint32_t>();
   for (uint32_t i = 0; i < file_count; ++i) {
-    m_files.push_back(reader.read_str(reader.read_int<uint16_t>()));
+    m_files.push_back(
+      std::string(reader.read_str(reader.read_int<uint16_t>())));
   }
 
   const auto file_info_count = reader.read_int<uint32_t>();
@@ -100,7 +104,7 @@ Manifest::read(Reader& reader)
     auto& entry = m_file_infos.back();
 
     reader.read_int(entry.index);
-    reader.read(entry.digest.bytes(), Digest::size());
+    reader.read_and_copy_bytes({entry.digest.bytes(), Digest::size()});
     reader.read_int(entry.fsize);
     reader.read_int(entry.mtime);
     reader.read_int(entry.ctime);
@@ -115,7 +119,7 @@ Manifest::read(Reader& reader)
     for (uint32_t j = 0; j < file_info_index_count; ++j) {
       entry.file_info_indexes.push_back(reader.read_int<uint32_t>());
     }
-    reader.read(entry.key.bytes(), Digest::size());
+    reader.read_and_copy_bytes({entry.key.bytes(), Digest::size()});
   }
 }
 
@@ -197,7 +201,7 @@ Manifest::add_result(
   }
 }
 
-size_t
+uint32_t
 Manifest::serialized_size() const
 {
   uint64_t size = 0;
@@ -216,12 +220,21 @@ Manifest::serialized_size() const
     size += Digest::size();
   }
 
+  // In order to support 32-bit ccache builds, restrict size to uint32_t for
+  // now. This restriction can be lifted when we drop 32-bit support.
+  const auto max = std::numeric_limits<uint32_t>::max();
+  if (size > max) {
+    throw core::Error(
+      FMT("Serialized manifest too large ({} > {})", size, max));
+  }
   return size;
 }
 
 void
-Manifest::write(Writer& writer) const
+Manifest::serialize(std::vector<uint8_t>& output) const
 {
+  core::CacheEntryDataWriter writer(output);
+
   writer.write_int(k_format_version);
   writer.write_int<uint32_t>(m_files.size());
   for (const auto& file : m_files) {
@@ -232,7 +245,7 @@ Manifest::write(Writer& writer) const
   writer.write_int<uint32_t>(m_file_infos.size());
   for (const auto& file_info : m_file_infos) {
     writer.write_int<uint32_t>(file_info.index);
-    writer.write(file_info.digest.bytes(), Digest::size());
+    writer.write_bytes({file_info.digest.bytes(), Digest::size()});
     writer.write_int(file_info.fsize);
     writer.write_int(file_info.mtime);
     writer.write_int(file_info.ctime);
@@ -244,7 +257,7 @@ Manifest::write(Writer& writer) const
     for (auto index : result.file_info_indexes) {
       writer.write_int(index);
     }
-    writer.write(result.key.bytes(), Digest::size());
+    writer.write_bytes({result.key.bytes(), Digest::size()});
   }
 }
 
@@ -410,7 +423,7 @@ Manifest::result_matches(
 }
 
 void
-Manifest::dump(FILE* const stream) const
+Manifest::inspect(FILE* const stream) const
 {
   PRINT(stream, "Manifest format version: {}\n", k_format_version);
 

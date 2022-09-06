@@ -20,6 +20,8 @@
 
 #include <Digest.hpp>
 
+#include <third_party/nonstd/span.hpp>
+
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -30,9 +32,6 @@ class Context;
 
 namespace core {
 
-class Reader;
-class Writer;
-
 class Manifest
 {
 public:
@@ -40,17 +39,19 @@ public:
 
   Manifest() = default;
 
-  void read(Reader& reader);
+  void read(nonstd::span<const uint8_t> data);
+
   std::optional<Digest> look_up_result_digest(const Context& ctx) const;
 
   bool add_result(const Digest& result_key,
                   const std::unordered_map<std::string, Digest>& included_files,
                   time_t time_of_compilation,
                   bool save_timestamp);
-  size_t serialized_size() const;
-  void write(Writer& writer) const;
 
-  void dump(FILE* stream) const;
+  uint32_t serialized_size() const;
+  void serialize(std::vector<uint8_t>& output) const;
+
+  void inspect(FILE* stream) const;
 
 private:
   struct FileStats
@@ -86,6 +87,7 @@ private:
   std::vector<ResultEntry> m_results;
 
   void clear();
+
   uint32_t get_file_info_index(
     const std::string& path,
     const Digest& digest,
@@ -93,6 +95,7 @@ private:
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
     time_t time_of_compilation,
     bool save_timestamp);
+
   bool
   result_matches(const Context& ctx,
                  const ResultEntry& result,
