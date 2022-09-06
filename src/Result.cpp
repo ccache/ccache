@@ -164,6 +164,9 @@ file_type_to_string(FileType type)
 
   case FileType::assembler_listing:
     return ".al";
+
+  case FileType::yacc_header:
+    return ".h";
   }
 
   return k_unknown_file_type;

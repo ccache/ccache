@@ -718,6 +718,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (args[i] == "-d") {
+    args_info.generating_yacc_header = true;
+    state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
   if (args[i] == "-fprofile-abs-path") {
     if (!config.sloppiness().is_enabled(core::Sloppy::gcno_cwd)) {
       // -fprofile-abs-path makes the compiler include absolute paths based on
@@ -1270,7 +1276,7 @@ process_args(Context& ctx)
 
   // -fsyntax-only/-Zs does not need -c
   if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt
-      && !state.found_syntax_only) {
+      && !state.found_syntax_only && args_info.actual_language != "yacc") {
     if (args_info.output_is_precompiled_header) {
       state.common_args.push_back("-c");
     } else {
@@ -1403,6 +1409,13 @@ process_args(Context& ctx)
     auto default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");
     args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
+  }
+
+  if (args_info.generating_yacc_header) {
+    auto default_yacc_header_name =
+      Util::change_extension(args_info.output_obj, ".h");
+    args_info.output_yacc_header =
+      Util::make_relative_path(ctx, default_yacc_header_name);
   }
 
   Args compiler_args = state.common_args;

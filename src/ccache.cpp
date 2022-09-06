@@ -908,6 +908,10 @@ write_result(Context& ctx,
                                : Result::FileType::coverage_unmangled,
                              coverage_file.path);
   }
+  if (ctx.args_info.generating_yacc_header) {
+    result_writer.write_file(Result::FileType::yacc_header,
+                             ctx.args_info.output_yacc_header);
+  }
   if (ctx.args_info.generating_stackusage) {
     result_writer.write_file(Result::FileType::stackusage,
                              ctx.args_info.output_su);
@@ -2343,6 +2347,10 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   if (ctx.args_info.generating_stackusage) {
     LOG("Stack usage file: {}", ctx.args_info.output_su);
   }
+  if (ctx.args_info.generating_yacc_header) {
+    LOG("Yacc/bison header file: {}", ctx.args_info.output_yacc_header);
+  }
+
   if (ctx.args_info.generating_diagnostics) {
     LOG("Diagnostics file: {}", ctx.args_info.output_dia);
   }

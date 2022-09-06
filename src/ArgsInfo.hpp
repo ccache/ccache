@@ -63,6 +63,9 @@ struct ArgsInfo
   // Assembler listing file.
   std::string output_al;
 
+  // Yacc/bison header file.
+  std::string output_yacc_header;
+
   // The .gch/.pch/.pth file used for compilation.
   std::string included_pch_file;
 
@@ -91,6 +94,9 @@ struct ArgsInfo
 
   // Whether to strip color codes from diagnostic messages on output.
   bool strip_diagnostics_colors = false;
+
+  // Is yacc/bison being asked to generate a header file?
+  bool generating_yacc_header = false;
 
   // Have we seen --?
   bool seen_double_dash = false;

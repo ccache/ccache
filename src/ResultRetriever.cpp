@@ -111,6 +111,12 @@ ResultRetriever::on_entry_start(uint8_t entry_number,
   case FileType::assembler_listing:
     dest_path = m_ctx.args_info.output_al;
     break;
+
+  case FileType::yacc_header:
+    if (m_ctx.args_info.generating_yacc_header) {
+      dest_path = m_ctx.args_info.output_yacc_header;
+    }
+    break;
   }
 
   if (file_type == FileType::stdout_output

@@ -46,6 +46,7 @@ const struct
   {".mm", "objective-c++"},
   {".sx", "assembler-with-cpp"},
   {".S", "assembler-with-cpp"},
+  {".y", "yacc"},
   // Preprocessed:
   {".i", "cpp-output"},
   {".ii", "c++-cpp-output"},
@@ -97,6 +98,7 @@ const struct
   {"objective-c++-cpp-output", "objective-c++-cpp-output"},
   {"assembler-with-cpp", "assembler"},
   {"assembler", "assembler"},
+  {"yacc", "yacc"},
   {nullptr, nullptr},
 };
 
