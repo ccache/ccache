@@ -512,9 +512,9 @@ TEST_CASE("Special" * doctest::skip(running_under_wine()))
 #endif
   }
 
-#ifdef _WIN32
   SUBCASE("block device")
   {
+#ifdef _WIN32
     auto stat = Stat::stat("\\\\.\\C:");
     CHECK(stat);
     CHECK(stat.error_number() == 0);
@@ -524,8 +524,8 @@ TEST_CASE("Special" * doctest::skip(running_under_wine()))
     CHECK(S_ISBLK(stat.mode()));
     CHECK(stat.file_attributes() == 0);
     CHECK(stat.reparse_tag() == 0);
-  }
 #endif
+  }
 }
 
 #ifdef _WIN32
