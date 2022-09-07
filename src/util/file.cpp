@@ -188,6 +188,54 @@ read_file(const std::string& path, size_t size_hint);
 template nonstd::expected<std::vector<uint8_t>, std::string>
 read_file(const std::string& path, size_t size_hint);
 
+template<typename T>
+nonstd::expected<T, std::string>
+read_file_part(const std::string& path, size_t pos, size_t count)
+{
+  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  if (!fd) {
+    LOG("Failed to open {}: {}", path, strerror(errno));
+    return nonstd::make_unexpected(strerror(errno));
+  }
+
+  if (pos != 0 && lseek(*fd, pos, SEEK_SET) != static_cast<off_t>(pos)) {
+    return nonstd::make_unexpected(strerror(errno));
+  }
+
+  int64_t ret = 0;
+  size_t bytes_read = 0;
+  T result;
+  result.resize(count);
+
+  while (true) {
+    const size_t max_read = count - bytes_read;
+    ret = read(*fd, &result[bytes_read], max_read);
+    if (ret == 0 || (ret == -1 && errno != EINTR)) {
+      break;
+    }
+    if (ret > 0) {
+      bytes_read += ret;
+      if (bytes_read == count) {
+        break;
+      }
+    }
+  }
+
+  if (ret == -1) {
+    LOG("Failed to read {}: {}", path, strerror(errno));
+    return nonstd::make_unexpected(strerror(errno));
+  }
+
+  result.resize(bytes_read);
+  return result;
+}
+
+template nonstd::expected<util::Bytes, std::string>
+read_file_part(const std::string& path, size_t pos, size_t count);
+
+template nonstd::expected<std::vector<uint8_t>, std::string>
+read_file_part(const std::string& path, size_t pos, size_t count);
+
 void
 set_timestamps(const std::string& path,
                std::optional<timespec> mtime,

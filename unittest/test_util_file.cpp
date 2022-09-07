@@ -18,11 +18,13 @@
 
 #include "TestUtil.hpp"
 
+#include <util/Bytes.hpp>
 #include <util/file.hpp>
 
 #include <third_party/doctest.h>
 
 #include <cstring>
+#include <string_view>
 
 using TestUtil::TestContext;
 
@@ -120,3 +122,26 @@ TEST_CASE("util::read_file<std::string> with UTF-16 little endian encoding")
   CHECK(*read_data == "abc");
 }
 #endif
+
+TEST_CASE("util::read_file_part")
+{
+  auto arr_from_str = [](std::string_view str) {
+    return util::Bytes(str.data(), str.size());
+  };
+
+  CHECK(util::write_file("test", "banana"));
+
+  CHECK(util::read_file_part<util::Bytes>("test", 0, 0) == arr_from_str(""));
+  CHECK(util::read_file_part<util::Bytes>("test", 0, 6)
+        == arr_from_str("banana"));
+  CHECK(util::read_file_part<util::Bytes>("test", 0, 1000)
+        == arr_from_str("banana"));
+
+  CHECK(util::read_file_part<util::Bytes>("test", 3, 0) == arr_from_str(""));
+  CHECK(util::read_file_part<util::Bytes>("test", 3, 2) == arr_from_str("an"));
+  CHECK(util::read_file_part<util::Bytes>("test", 3, 1000)
+        == arr_from_str("ana"));
+
+  CHECK(util::read_file_part<util::Bytes>("test", 1000, 1000)
+        == arr_from_str(""));
+}

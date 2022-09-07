@@ -23,6 +23,8 @@
 #include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <ctime>
 #include <optional>
 #include <string>
@@ -52,6 +54,15 @@ nonstd::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
 template<typename T>
 nonstd::expected<T, std::string> read_file(const std::string& path,
                                            size_t size_hint = 0);
+
+// Return (at most) `count` bytes from `path` starting at position `pos`.
+//
+// `T` should be `util::Bytes` or `std::vector<uint8_t>`. If `T` is
+// `std::string` and the content starts with a UTF-16 little-endian BOM on
+// Windows then it will be converted to UTF-8.
+template<typename T>
+nonstd::expected<T, std::string>
+read_file_part(const std::string& path, size_t pos, size_t count);
 
 // Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
 // time. If `atime` is std::nullopt, set to what `mtime` specifies.
