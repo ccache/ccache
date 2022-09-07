@@ -32,6 +32,7 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
+#include <util/Bytes.hpp>
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/XXH3_64.hpp>
@@ -246,7 +247,7 @@ Storage::get(const Digest& key,
           m_secondary_storages.end(),
           [](const auto& entry) { return !entry->config.read_only; });
         if (should_put_in_secondary_storage) {
-          const auto value = util::read_file<std::vector<uint8_t>>(*path);
+          const auto value = util::read_file<util::Bytes>(*path);
           if (!value) {
             LOG("Failed to read {}: {}", *path, value.error());
             return path; // Don't indicate failure since primary storage was OK.
@@ -309,7 +310,7 @@ Storage::put(const Digest& key,
                 m_secondary_storages.end(),
                 [](const auto& entry) { return !entry->config.read_only; });
   if (should_put_in_secondary_storage) {
-    const auto value = util::read_file<std::vector<uint8_t>>(*path);
+    const auto value = util::read_file<util::Bytes>(*path);
     if (!value) {
       LOG("Failed to read {}: {}", *path, value.error());
       return true; // Don't indicate failure since primary storage was OK.
@@ -469,7 +470,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-std::optional<std::vector<uint8_t>>
+std::optional<util::Bytes>
 Storage::get_from_secondary_storage(const Digest& key)
 {
   MTR_SCOPE("secondary_storage", "get");
@@ -510,7 +511,7 @@ Storage::get_from_secondary_storage(const Digest& key)
 
 void
 Storage::put_in_secondary_storage(const Digest& key,
-                                  const std::vector<uint8_t>& value,
+                                  nonstd::span<const uint8_t> value,
                                   bool only_if_missing)
 {
   MTR_SCOPE("secondary_storage", "put");

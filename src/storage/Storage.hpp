@@ -23,6 +23,8 @@
 #include <storage/secondary/SecondaryStorage.hpp>
 #include <storage/types.hpp>
 
+#include <third_party/nonstd/span.hpp>
+
 #include <functional>
 #include <memory>
 #include <optional>
@@ -81,11 +83,10 @@ private:
               std::string_view operation_description,
               const bool for_writing);
 
-  std::optional<std::vector<uint8_t>>
-  get_from_secondary_storage(const Digest& key);
+  std::optional<util::Bytes> get_from_secondary_storage(const Digest& key);
 
   void put_in_secondary_storage(const Digest& key,
-                                const std::vector<uint8_t>& value,
+                                nonstd::span<const uint8_t> value,
                                 bool only_if_missing);
 
   void remove_from_secondary_storage(const Digest& key);

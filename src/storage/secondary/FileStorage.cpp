@@ -26,6 +26,7 @@
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/Bytes.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
@@ -43,11 +44,11 @@ class FileStorageBackend : public SecondaryStorage::Backend
 public:
   FileStorageBackend(const Params& params);
 
-  nonstd::expected<std::optional<std::vector<uint8_t>>, Failure>
+  nonstd::expected<std::optional<util::Bytes>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
-                                      const std::vector<uint8_t>& value,
+                                      nonstd::span<const uint8_t> value,
                                       bool only_if_missing) override;
 
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
@@ -103,8 +104,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 }
 
-nonstd::expected<std::optional<std::vector<uint8_t>>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Bytes>, SecondaryStorage::Backend::Failure>
 FileStorageBackend::get(const Digest& key)
 {
   const auto path = get_entry_path(key);
@@ -121,7 +121,7 @@ FileStorageBackend::get(const Digest& key)
     util::set_timestamps(path);
   }
 
-  auto value = util::read_file<std::vector<uint8_t>>(path);
+  auto value = util::read_file<util::Bytes>(path);
   if (!value) {
     LOG("Failed to read {}: {}", path, value.error());
     return nonstd::make_unexpected(Failure::error);
@@ -131,7 +131,7 @@ FileStorageBackend::get(const Digest& key)
 
 nonstd::expected<bool, SecondaryStorage::Backend::Failure>
 FileStorageBackend::put(const Digest& key,
-                        const std::vector<uint8_t>& value,
+                        const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
 {
   const auto path = get_entry_path(key);

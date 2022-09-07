@@ -60,11 +60,11 @@ class RedisStorageBackend : public SecondaryStorage::Backend
 public:
   RedisStorageBackend(const SecondaryStorage::Backend::Params& params);
 
-  nonstd::expected<std::optional<std::vector<uint8_t>>, Failure>
+  nonstd::expected<std::optional<util::Bytes>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
-                                      const std::vector<uint8_t>& value,
+                                      nonstd::span<const uint8_t> value,
                                       bool only_if_missing) override;
 
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
@@ -157,8 +157,7 @@ is_timeout(int err)
 #endif
 }
 
-nonstd::expected<std::optional<std::vector<uint8_t>>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Bytes>, SecondaryStorage::Backend::Failure>
 RedisStorageBackend::get(const Digest& key)
 {
   const auto key_string = get_key_string(key);
@@ -167,7 +166,7 @@ RedisStorageBackend::get(const Digest& key)
   if (!reply) {
     return nonstd::make_unexpected(reply.error());
   } else if ((*reply)->type == REDIS_REPLY_STRING) {
-    return std::vector<uint8_t>((*reply)->str, (*reply)->str + (*reply)->len);
+    return util::Bytes((*reply)->str, (*reply)->len);
   } else if ((*reply)->type == REDIS_REPLY_NIL) {
     return std::nullopt;
   } else {
@@ -178,7 +177,7 @@ RedisStorageBackend::get(const Digest& key)
 
 nonstd::expected<bool, SecondaryStorage::Backend::Failure>
 RedisStorageBackend::put(const Digest& key,
-                         const std::vector<uint8_t>& value,
+                         nonstd::span<const uint8_t> value,
                          bool only_if_missing)
 {
   const auto key_string = get_key_string(key);

@@ -41,11 +41,11 @@ class HttpStorageBackend : public SecondaryStorage::Backend
 public:
   HttpStorageBackend(const Params& params);
 
-  nonstd::expected<std::optional<std::vector<uint8_t>>, Failure>
+  nonstd::expected<std::optional<util::Bytes>, Failure>
   get(const Digest& key) override;
 
   nonstd::expected<bool, Failure> put(const Digest& key,
-                                      const std::vector<uint8_t>& value,
+                                      nonstd::span<const uint8_t> value,
                                       bool only_if_missing) override;
 
   nonstd::expected<bool, Failure> remove(const Digest& key) override;
@@ -144,8 +144,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<std::optional<std::vector<uint8_t>>,
-                 SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Bytes>, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -164,12 +163,12 @@ HttpStorageBackend::get(const Digest& key)
     return std::nullopt;
   }
 
-  return std::vector<uint8_t>(result->body.begin(), result->body.end());
+  return util::Bytes(result->body.data(), result->body.size());
 }
 
 nonstd::expected<bool, SecondaryStorage::Backend::Failure>
 HttpStorageBackend::put(const Digest& key,
-                        const std::vector<uint8_t>& value,
+                        const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
 {
   const auto url_path = get_entry_path(key);

@@ -24,6 +24,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/Bytes.hpp>
 #include <util/file.hpp>
 
 #include <fcntl.h>
@@ -80,8 +81,7 @@ ResultExtractor::on_raw_file(uint8_t file_number,
                     file_size));
   }
 
-  const auto data =
-    util::read_file<std::vector<uint8_t>>(raw_file_path, file_size);
+  const auto data = util::read_file<util::Bytes>(raw_file_path, file_size);
   if (!data) {
     throw Error(FMT("Failed to read {}: {}", raw_file_path, data.error()));
   }

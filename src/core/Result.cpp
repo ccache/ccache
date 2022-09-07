@@ -33,6 +33,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/Bytes.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
@@ -298,7 +299,7 @@ Serializer::serialize(std::vector<uint8_t>& output)
                                          std::get<std::string>(entry.data));
     } else if (is_file_entry) {
       const auto& path = std::get<std::string>(entry.data);
-      const auto data = util::read_file<std::vector<uint8_t>>(path);
+      const auto data = util::read_file<util::Bytes>(path);
       if (!data) {
         throw Error(FMT("Failed to read {}: {}", path, data.error()));
       }
