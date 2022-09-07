@@ -22,6 +22,7 @@
 #include <Logging.hpp>
 #include <Stat.hpp>
 #include <fmtmacros.hpp>
+#include <util/Bytes.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -177,6 +178,9 @@ read_file(const std::string& path, size_t size_hint)
 
   return result;
 }
+
+template nonstd::expected<util::Bytes, std::string>
+read_file(const std::string& path, size_t size_hint);
 
 template nonstd::expected<std::string, std::string>
 read_file(const std::string& path, size_t size_hint);

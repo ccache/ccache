@@ -1,5 +1,6 @@
 set(
   sources
+  Bytes.cpp
   LockFile.cpp
   TextTable.cpp
   Tokenizer.cpp
