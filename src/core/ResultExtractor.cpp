@@ -25,6 +25,7 @@
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 
 #include <fcntl.h>
@@ -58,10 +59,8 @@ ResultExtractor::on_embedded_file(uint8_t /*file_number*/,
   }
 
   const auto dest_path = FMT("{}/ccache-result{}", m_output_directory, suffix);
-  const auto result = util::write_file(dest_path, data);
-  if (!result) {
-    throw Error(FMT("Failed to write to {}: {}", dest_path, result.error()));
-  }
+  util::throw_on_error<Error>(util::write_file(dest_path, data),
+                              FMT("Failed to write to {}: ", dest_path));
 }
 
 void
@@ -81,11 +80,10 @@ ResultExtractor::on_raw_file(uint8_t file_number,
                     file_size));
   }
 
-  const auto data = util::read_file<util::Bytes>(raw_file_path, file_size);
-  if (!data) {
-    throw Error(FMT("Failed to read {}: {}", raw_file_path, data.error()));
-  }
-  on_embedded_file(file_number, file_type, *data);
+  const auto data = util::value_or_throw<Error>(
+    util::read_file<util::Bytes>(raw_file_path, file_size),
+    FMT("Failed to read {}: ", raw_file_path));
+  on_embedded_file(file_number, file_type, data);
 }
 
 } // namespace core

@@ -27,6 +27,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 
@@ -74,11 +75,9 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       if (file_type == FileType::dependency) {
         write_dependency_file(dest_path, data);
       } else {
-        const auto result = util::write_file(dest_path, data);
-        if (!result) {
-          throw WriteError(
-            FMT("Failed to write to {}: {}", dest_path, result.error()));
-        }
+        util::throw_on_error<WriteError>(
+          util::write_file(dest_path, data),
+          FMT("Failed to write to {}: ", dest_path));
       }
     }
   }
@@ -192,10 +191,8 @@ ResultRetriever::write_dependency_file(const std::string& path,
   }
 
   auto write_data = [&](auto data, auto size) {
-    const auto result = util::write_fd(*fd, data, size);
-    if (!result) {
-      throw WriteError(FMT("Failed to write to {}: {}", path, result.error()));
-    }
+    util::throw_on_error<WriteError>(util::write_fd(*fd, data, size),
+                                     FMT("Failed to write to {}: ", path));
   };
 
   std::string_view str_data = util::to_string_view(data);
