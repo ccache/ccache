@@ -33,16 +33,17 @@ class TestException : public std::runtime_error
 
 TEST_CASE("util::value_or_throw")
 {
+  using util::throw_on_error;
   using util::value_or_throw;
 
   SUBCASE("const ref")
   {
     const nonstd::expected<int, const char*> with_value = 42;
-    const nonstd::expected<int, const char*> without_value =
+    const nonstd::expected<int, const char*> with_error =
       nonstd::make_unexpected("no value");
 
     CHECK(value_or_throw<TestException>(with_value) == 42);
-    CHECK_THROWS_WITH(value_or_throw<TestException>(without_value), "no value");
+    CHECK_THROWS_WITH(value_or_throw<TestException>(with_error), "no value");
   }
 
   SUBCASE("move")
@@ -50,22 +51,22 @@ TEST_CASE("util::value_or_throw")
     const std::string value = "value";
     nonstd::expected<std::unique_ptr<std::string>, const char*> with_value =
       std::make_unique<std::string>(value);
-    const nonstd::expected<int, const char*> without_value =
+    const nonstd::expected<int, const char*> with_error =
       nonstd::make_unexpected("no value");
 
     CHECK(*value_or_throw<TestException>(std::move(with_value)) == value);
-    CHECK_THROWS_WITH(value_or_throw<TestException>(std::move(without_value)),
+    CHECK_THROWS_WITH(value_or_throw<TestException>(std::move(with_error)),
                       "no value");
   }
 
   SUBCASE("const ref with prefix")
   {
     const nonstd::expected<int, const char*> with_value = 42;
-    const nonstd::expected<int, const char*> without_value =
+    const nonstd::expected<int, const char*> with_error =
       nonstd::make_unexpected("no value");
 
     CHECK(value_or_throw<TestException>(with_value, "prefix: ") == 42);
-    CHECK_THROWS_WITH(value_or_throw<TestException>(without_value, "prefix: "),
+    CHECK_THROWS_WITH(value_or_throw<TestException>(with_error, "prefix: "),
                       "prefix: no value");
   }
 
@@ -74,13 +75,34 @@ TEST_CASE("util::value_or_throw")
     const std::string value = "value";
     nonstd::expected<std::unique_ptr<std::string>, const char*> with_value =
       std::make_unique<std::string>(value);
-    const nonstd::expected<int, const char*> without_value =
+    const nonstd::expected<int, const char*> with_error =
       nonstd::make_unexpected("no value");
 
     CHECK(*value_or_throw<TestException>(std::move(with_value), "prefix: ")
           == value);
     CHECK_THROWS_WITH(
-      value_or_throw<TestException>(std::move(without_value), "prefix: "),
+      value_or_throw<TestException>(std::move(with_error), "prefix: "),
       "prefix: no value");
+  }
+
+  SUBCASE("void T::value_type")
+  {
+    const nonstd::expected<void, const char*> without_error;
+    const nonstd::expected<void, const char*> with_error =
+      nonstd::make_unexpected("no value");
+
+    CHECK_NOTHROW(throw_on_error<TestException>(without_error));
+    CHECK_THROWS_WITH(throw_on_error<TestException>(with_error), "no value");
+  }
+
+  SUBCASE("void T::value_type with prefix")
+  {
+    const nonstd::expected<void, const char*> without_error;
+    const nonstd::expected<void, const char*> with_error =
+      nonstd::make_unexpected("no value");
+
+    CHECK_NOTHROW(throw_on_error<TestException>(without_error, "prefix: "));
+    CHECK_THROWS_WITH(throw_on_error<TestException>(with_error, "prefix: "),
+                      "prefix: no value");
   }
 }
