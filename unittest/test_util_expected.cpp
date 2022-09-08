@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,6 +50,37 @@ TEST_CASE("util::value_or_throw")
     const std::string value = "value";
     nonstd::expected<std::unique_ptr<std::string>, const char*> with_value =
       std::make_unique<std::string>(value);
+    const nonstd::expected<int, const char*> without_value =
+      nonstd::make_unexpected("no value");
+
     CHECK(*value_or_throw<TestException>(std::move(with_value)) == value);
+    CHECK_THROWS_WITH(value_or_throw<TestException>(std::move(without_value)),
+                      "no value");
+  }
+
+  SUBCASE("const ref with prefix")
+  {
+    const nonstd::expected<int, const char*> with_value = 42;
+    const nonstd::expected<int, const char*> without_value =
+      nonstd::make_unexpected("no value");
+
+    CHECK(value_or_throw<TestException>(with_value, "prefix: ") == 42);
+    CHECK_THROWS_WITH(value_or_throw<TestException>(without_value, "prefix: "),
+                      "prefix: no value");
+  }
+
+  SUBCASE("move with prefix")
+  {
+    const std::string value = "value";
+    nonstd::expected<std::unique_ptr<std::string>, const char*> with_value =
+      std::make_unique<std::string>(value);
+    const nonstd::expected<int, const char*> without_value =
+      nonstd::make_unexpected("no value");
+
+    CHECK(*value_or_throw<TestException>(std::move(with_value), "prefix: ")
+          == value);
+    CHECK_THROWS_WITH(
+      value_or_throw<TestException>(std::move(without_value), "prefix: "),
+      "prefix: no value");
   }
 }
