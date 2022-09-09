@@ -52,6 +52,9 @@ is_absolute_path(std::string_view path)
 bool
 path_starts_with(std::string_view path, std::string_view prefix)
 {
+  if (path.empty()) {
+    return false;
+  }
   for (size_t i = 0, j = 0; i < path.length() && j < prefix.length();
        ++i, ++j) {
 #ifdef _WIN32

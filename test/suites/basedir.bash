@@ -17,6 +17,9 @@ SUITE_basedir() {
     # -------------------------------------------------------------------------
     TEST "Enabled CCACHE_BASEDIR"
 
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE --version
+    expect_stat no_input_file 1
+
     cd dir1
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
     expect_stat direct_cache_hit 0

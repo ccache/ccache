@@ -120,6 +120,8 @@ TEST_CASE("util::to_absolute_path_no_drive")
 
 TEST_CASE("util::path_starts_with")
 {
+  CHECK(!util::path_starts_with("", ""));
+  CHECK(!util::path_starts_with("", "/"));
   CHECK(util::path_starts_with("/foo/bar", "/foo"));
   CHECK(!util::path_starts_with("/batz/bar", "/foo"));
   CHECK(!util::path_starts_with("/foo/bar", "/foo/baz"));
