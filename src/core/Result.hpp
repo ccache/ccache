@@ -95,10 +95,18 @@ public:
   // Read a result from `data`.
   Deserializer(nonstd::span<const uint8_t> data);
 
+  struct Header
+  {
+    uint8_t format_version = 0;
+    uint8_t n_files = 0;
+  };
+
   class Visitor
   {
   public:
     virtual ~Visitor() = default;
+
+    virtual void on_header(const Header& header);
 
     virtual void on_embedded_file(uint8_t file_number,
                                   FileType file_type,
@@ -117,6 +125,11 @@ private:
   void parse_file_entry(CacheEntryDataParser& parser,
                         uint8_t file_number) const;
 };
+
+inline void
+Deserializer::Visitor::on_header(const Header& /*header*/)
+{
+}
 
 // This class knows how to serialize a result cache entry.
 class Serializer : public core::Serializer

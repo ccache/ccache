@@ -31,6 +31,8 @@ class ResultInspector : public Result::Deserializer::Visitor
 public:
   ResultInspector(FILE* stream);
 
+  void on_header(const Result::Deserializer::Header& header) override;
+
   void on_embedded_file(uint8_t file_number,
                         Result::FileType file_type,
                         nonstd::span<const uint8_t> data) override;

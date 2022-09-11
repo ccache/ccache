@@ -176,22 +176,29 @@ Deserializer::Deserializer(nonstd::span<const uint8_t> data) : m_data(data)
 void
 Deserializer::visit(Deserializer::Visitor& visitor) const
 {
+  Header header;
+
   CacheEntryDataReader reader(m_data);
-  const auto result_format_version = reader.read_int<uint8_t>();
-  if (result_format_version != k_format_version) {
+  header.format_version = reader.read_int<uint8_t>();
+  if (header.format_version != k_format_version) {
+    visitor.on_header(header);
     throw Error(FMT("Unknown result format version: {} != {}",
-                    result_format_version,
+                    header.format_version,
                     k_format_version));
   }
 
-  const auto n_files = reader.read_int<uint8_t>();
-  if (n_files >= k_max_raw_file_entries) {
-    throw Error(FMT(
-      "Too many raw file entries: {} > {}", n_files, k_max_raw_file_entries));
+  header.n_files = reader.read_int<uint8_t>();
+  if (header.n_files >= k_max_raw_file_entries) {
+    visitor.on_header(header);
+    throw Error(FMT("Too many raw file entries: {} > {}",
+                    header.n_files,
+                    k_max_raw_file_entries));
   }
 
+  visitor.on_header(header);
+
   uint8_t file_number;
-  for (file_number = 0; file_number < n_files; ++file_number) {
+  for (file_number = 0; file_number < header.n_files; ++file_number) {
     const auto marker = reader.read_int<uint8_t>();
     switch (marker) {
     case k_embedded_file_marker:
@@ -215,9 +222,9 @@ Deserializer::visit(Deserializer::Visitor& visitor) const
     }
   }
 
-  if (file_number != n_files) {
-    throw Error(
-      FMT("Too few entries (read {}, expected {})", file_number, n_files));
+  if (file_number != header.n_files) {
+    throw Error(FMT(
+      "Too few entries (read {}, expected {})", file_number, header.n_files));
   }
 }
 

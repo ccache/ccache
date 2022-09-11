@@ -29,6 +29,13 @@ ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
 }
 
 void
+ResultInspector::on_header(const Result::Deserializer::Header& header)
+{
+  PRINT(m_stream, "Result format version: {}\n", header.format_version);
+  PRINT(m_stream, "Number of files: {}\n", header.n_files);
+}
+
+void
 ResultInspector::on_embedded_file(uint8_t file_number,
                                   Result::FileType file_type,
                                   nonstd::span<const uint8_t> data)
