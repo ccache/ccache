@@ -109,8 +109,15 @@ ResultRetriever::on_raw_file(uint8_t file_number,
 
   const auto dest_path = get_dest_path(file_type);
   if (!dest_path.empty()) {
-    Util::clone_hard_link_or_copy_file(
-      m_ctx.config, raw_file_path, dest_path, false);
+    try {
+      Util::clone_hard_link_or_copy_file(
+        m_ctx.config, raw_file_path, dest_path, false);
+    } catch (core::Error& e) {
+      throw WriteError(FMT("Failed to clone/link/copy {} to {}: {}",
+                           raw_file_path,
+                           dest_path,
+                           e.what()));
+    }
 
     // Update modification timestamp to save the file from LRU cleanup (and, if
     // hard-linked, to make the object file newer than the source file).

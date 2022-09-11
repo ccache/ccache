@@ -293,12 +293,12 @@ clone_hard_link_or_copy_file(const Config& config,
       Util::hard_link(source, dest);
 #ifndef _WIN32
       if (chmod(dest.c_str(), 0444 & ~Util::get_umask()) != 0) {
-        LOG("Failed to chmod: {}", strerror(errno));
+        LOG("Failed to chmod {}: {}", dest.c_str(), strerror(errno));
       }
 #endif
       return;
     } catch (const core::Error& e) {
-      LOG_RAW(e.what());
+      LOG("Failed to hard link {} to {}: {}", source, dest, e.what());
       // Fall back to copying.
     }
   }
@@ -742,16 +742,11 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 
 #ifndef _WIN32
   if (link(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw core::Error(
-      FMT("failed to link {} to {}: {}", oldpath, newpath, strerror(errno)));
+    throw core::Error(strerror(errno));
   }
 #else
   if (!CreateHardLink(newpath.c_str(), oldpath.c_str(), nullptr)) {
-    DWORD error = GetLastError();
-    throw core::Error(FMT("failed to link {} to {}: {}",
-                          oldpath,
-                          newpath,
-                          Win32Util::error_message(error)));
+    throw core::Error(Win32Util::error_message(GetLastError()));
   }
 #endif
 }
