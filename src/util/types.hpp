@@ -25,6 +25,6 @@
 
 namespace util {
 
-using DataReceiver = std::function<void(const void* data, size_t size)>;
+using DataReceiver = std::function<void(const uint8_t* data, size_t size)>;
 
 } // namespace util

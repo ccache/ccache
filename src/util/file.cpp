@@ -75,7 +75,7 @@ nonstd::expected<void, std::string>
 read_fd(int fd, DataReceiver data_receiver)
 {
   int64_t n;
-  char buffer[CCACHE_READ_BUFFER_SIZE];
+  uint8_t buffer[CCACHE_READ_BUFFER_SIZE];
   while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
     if (n == -1 && errno != EINTR) {
       break;
