@@ -231,7 +231,7 @@ Manifest::serialized_size() const
 }
 
 void
-Manifest::serialize(std::vector<uint8_t>& output) const
+Manifest::serialize(util::Bytes& output) const
 {
   core::CacheEntryDataWriter writer(output);
 

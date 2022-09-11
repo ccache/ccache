@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <util/Bytes.hpp>
 #include <util/types.hpp>
 
 #include <third_party/nonstd/span.hpp>
@@ -139,7 +140,7 @@ public:
     std::unordered_map<uint8_t /*index*/, std::string /*path*/> raw_files;
   };
 
-  SerializeResult serialize(std::vector<uint8_t>& output);
+  SerializeResult serialize(util::Bytes& output);
 
 private:
   const Config& m_config;

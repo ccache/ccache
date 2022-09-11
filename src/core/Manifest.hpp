@@ -19,6 +19,7 @@
 #pragma once
 
 #include <Digest.hpp>
+#include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
@@ -49,7 +50,7 @@ public:
                   bool save_timestamp);
 
   uint32_t serialized_size() const;
-  void serialize(std::vector<uint8_t>& output) const;
+  void serialize(util::Bytes& output) const;
 
   void inspect(FILE* stream) const;
 

@@ -793,7 +793,7 @@ save_manifest(const Config& config,
   header.set_entry_size_from_payload_size(manifest.serialized_size());
 
   core::CacheEntryWriter writer(file_writer, header);
-  std::vector<uint8_t> payload;
+  util::Bytes payload;
   payload.reserve(header.payload_size());
   manifest.serialize(payload);
   writer.write(payload.data(), payload.size());
@@ -945,7 +945,7 @@ write_result(Context& ctx,
   core::FileWriter file_writer(atomic_result_file.stream());
   core::CacheEntryWriter writer(file_writer, header);
 
-  std::vector<uint8_t> payload;
+  util::Bytes payload;
   payload.reserve(serializer.serialized_size());
   const auto serialize_result = serializer.serialize(payload);
   for (auto [file_number, source_path] : serialize_result.raw_files) {

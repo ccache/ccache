@@ -28,14 +28,13 @@
 #include <cstddef>
 #include <cstring>
 #include <string_view>
-#include <vector>
 
 namespace core {
 
 class CacheEntryDataWriter
 {
 public:
-  CacheEntryDataWriter(std::vector<uint8_t>& output);
+  CacheEntryDataWriter(util::Bytes& output);
 
   // Write `data`. Throws `core::Error` on failure.
   void write_bytes(nonstd::span<const uint8_t> data);
@@ -47,10 +46,10 @@ public:
   template<typename T> void write_int(T value);
 
 private:
-  std::vector<uint8_t>& m_output;
+  util::Bytes& m_output;
 };
 
-inline CacheEntryDataWriter::CacheEntryDataWriter(std::vector<uint8_t>& output)
+inline CacheEntryDataWriter::CacheEntryDataWriter(util::Bytes& output)
   : m_output(output)
 {
 }

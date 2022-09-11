@@ -263,7 +263,7 @@ Serializer::serialized_size() const
 }
 
 Serializer::SerializeResult
-Serializer::serialize(std::vector<uint8_t>& output)
+Serializer::serialize(util::Bytes& output)
 {
   SerializeResult serialize_result;
   CacheEntryDataWriter writer(output);
