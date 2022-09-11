@@ -19,7 +19,7 @@
 #pragma once
 
 #include <Digest.hpp>
-#include <util/Bytes.hpp>
+#include <core/Serializer.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
@@ -33,7 +33,7 @@ class Context;
 
 namespace core {
 
-class Manifest
+class Manifest : public Serializer
 {
 public:
   static const uint8_t k_format_version;
@@ -49,8 +49,9 @@ public:
                   time_t time_of_compilation,
                   bool save_timestamp);
 
-  uint32_t serialized_size() const;
-  void serialize(util::Bytes& output) const;
+  // core::Serializer
+  uint32_t serialized_size() const override;
+  void serialize(util::Bytes& output) override;
 
   void inspect(FILE* stream) const;
 

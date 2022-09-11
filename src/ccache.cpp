@@ -42,11 +42,7 @@
 #include "language.hpp"
 
 #include <AtomicFile.hpp>
-#include <compression/types.hpp>
-#include <core/CacheEntryReader.hpp>
-#include <core/CacheEntryWriter.hpp>
-#include <core/FileReader.hpp>
-#include <core/FileWriter.hpp>
+#include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
 #include <core/Result.hpp>
 #include <core/ResultRetriever.hpp>
@@ -760,44 +756,27 @@ static core::Manifest
 read_manifest(const std::string& path)
 {
   core::Manifest manifest;
-  File file(path, "rb");
-  if (file) {
-    try {
-      core::FileReader file_reader(*file);
-      core::CacheEntryReader reader(file_reader);
-      std::vector<uint8_t> payload;
-      payload.resize(reader.header().payload_size());
-      reader.read(payload.data(), payload.size());
-      manifest.read(payload);
-      reader.finalize();
-    } catch (const core::Error& e) {
-      LOG("Error reading {}: {}", path, e.what());
-    }
+  try {
+    const auto cache_entry_data =
+      util::value_or_throw<core::Error>(util::read_file<util::Bytes>(path));
+    core::CacheEntry cache_entry(cache_entry_data);
+    cache_entry.verify_checksum();
+    manifest.read(cache_entry.payload());
+  } catch (const core::Error& e) {
+    LOG("Error reading {}: {}", path, e.what());
   }
   return manifest;
 }
 
 static void
 save_manifest(const Config& config,
-              const core::Manifest& manifest,
+              core::Manifest& manifest,
               const std::string& path)
 {
+  core::CacheEntry::Header header(config, core::CacheEntryType::manifest);
+  const auto cache_entry_data = core::CacheEntry::serialize(header, manifest);
   AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
-  core::FileWriter file_writer(atomic_manifest_file.stream());
-  core::CacheEntryHeader header(core::CacheEntryType::manifest,
-                                compression::type_from_config(config),
-                                compression::level_from_config(config),
-                                time(nullptr),
-                                CCACHE_VERSION,
-                                config.namespace_());
-  header.set_entry_size_from_payload_size(manifest.serialized_size());
-
-  core::CacheEntryWriter writer(file_writer, header);
-  util::Bytes payload;
-  payload.reserve(header.payload_size());
-  manifest.serialize(payload);
-  writer.write(payload.data(), payload.size());
-  writer.finalize();
+  atomic_manifest_file.write(cache_entry_data);
   atomic_manifest_file.commit();
 }
 
@@ -933,22 +912,14 @@ write_result(Context& ctx,
                         ctx.args_info.output_al);
   }
 
-  AtomicFile atomic_result_file(result_path, AtomicFile::Mode::binary);
-  core::CacheEntryHeader header(core::CacheEntryType::result,
-                                compression::type_from_config(ctx.config),
-                                compression::level_from_config(ctx.config),
-                                time(nullptr),
-                                CCACHE_VERSION,
-                                ctx.config.namespace_());
-  header.set_entry_size_from_payload_size(serializer.serialized_size());
+  core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
+  const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
 
-  core::FileWriter file_writer(atomic_result_file.stream());
-  core::CacheEntryWriter writer(file_writer, header);
-
-  util::Bytes payload;
-  payload.reserve(serializer.serialized_size());
-  const auto serialize_result = serializer.serialize(payload);
-  for (auto [file_number, source_path] : serialize_result.raw_files) {
+  const auto raw_files = serializer.get_raw_files();
+  if (!raw_files.empty()) {
+    Util::ensure_dir_exists(Util::dir_name(result_path));
+  }
+  for (auto [file_number, source_path] : raw_files) {
     const auto dest_path = storage::primary::PrimaryStorage::get_raw_file_path(
       result_path, file_number);
     const auto old_stat = Stat::stat(dest_path);
@@ -970,8 +941,8 @@ write_result(Context& ctx,
       Statistic::files_in_cache, (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
   }
 
-  writer.write(payload.data(), payload.size());
-  writer.finalize();
+  AtomicFile atomic_result_file(result_path, AtomicFile::Mode::binary);
+  atomic_result_file.write(cache_entry_data);
   atomic_result_file.commit();
 
   return true;
@@ -1937,8 +1908,11 @@ calculate_result_and_manifest_key(Context& ctx,
 {
   bool found_ccbin = false;
 
+  hash.hash_delimiter("cache entry version");
+  hash.hash(core::k_cache_entry_format_version);
+
   hash.hash_delimiter("result version");
-  hash.hash(core::Result::k_version);
+  hash.hash(core::Result::k_format_version);
 
   if (direct_mode) {
     hash.hash_delimiter("manifest version");
@@ -2046,20 +2020,15 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   }
 
   try {
-    File file(*result_path, "rb");
-    if (!file) {
-      throw core::Error(
-        FMT("Failed to open {}: {}", *result_path, strerror(errno)));
-    }
-    core::FileReader file_reader(file.get());
-    core::CacheEntryReader cache_entry_reader(file_reader);
-    std::vector<uint8_t> payload;
-    payload.resize(cache_entry_reader.header().payload_size());
-    cache_entry_reader.read(payload.data(), payload.size());
-    core::Result::Deserializer deserializer(payload);
+    const auto cache_entry_data = util::value_or_throw<core::Error>(
+      util::read_file<util::Bytes>(*result_path),
+      FMT("Failed to read {}: ", *result_path));
+
+    core::CacheEntry cache_entry(cache_entry_data);
+    cache_entry.verify_checksum();
+    core::Result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_path);
     deserializer.visit(result_retriever);
-    cache_entry_reader.finalize();
   } catch (core::ResultRetriever::WriteError& e) {
     LOG(
       "Write error when retrieving result from {}: {}", *result_path, e.what());

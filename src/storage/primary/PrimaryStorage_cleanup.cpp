@@ -24,12 +24,13 @@
 #include <File.hpp>
 #include <Logging.hpp>
 #include <Util.hpp>
-#include <core/CacheEntryReader.hpp>
-#include <core/FileReader.hpp>
+#include <core/CacheEntry.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/primary/CacheFile.hpp>
 #include <storage/primary/StatsFile.hpp>
 #include <storage/primary/util.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -171,10 +172,8 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
     if (namespace_) {
       try {
-        File file_stream(file.path(), "rb");
-        core::FileReader file_reader(*file_stream);
-        core::CacheEntryReader reader(file_reader);
-        if (reader.header().namespace_ != *namespace_) {
+        core::CacheEntry::Header header(file.path());
+        if (header.namespace_ != *namespace_) {
           continue;
         }
       } catch (core::Error&) {

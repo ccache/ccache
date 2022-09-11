@@ -24,8 +24,8 @@
 #include "assertions.hpp"
 
 #include <UmaskScope.hpp>
-#include <compression/types.hpp>
 #include <core/exceptions.hpp>
+#include <core/types.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,34 +18,20 @@
 
 #pragma once
 
-#include "Decompressor.hpp"
+#include <util/Bytes.hpp>
 
-#include <zstd.h>
+#include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
 
-namespace compression {
+namespace core {
 
-// A decompressor of a Zstandard stream.
-class ZstdDecompressor : public Decompressor
+class Serializer
 {
 public:
-  explicit ZstdDecompressor(core::Reader& reader);
-
-  ~ZstdDecompressor() override;
-
-  size_t read(void* data, size_t count) override;
-  void finalize() override;
-
-private:
-  core::Reader& m_reader;
-  char m_input_buffer[CCACHE_READ_BUFFER_SIZE];
-  size_t m_input_size;
-  size_t m_input_consumed;
-  ZSTD_DStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
-  bool m_reached_stream_end;
+  virtual ~Serializer() = default;
+  virtual uint32_t serialized_size() const = 0;
+  virtual void serialize(util::Bytes& output) = 0;
 };
 
-} // namespace compression
+} // namespace core

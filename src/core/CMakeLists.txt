@@ -1,8 +1,6 @@
 set(
   sources
-  CacheEntryHeader.cpp
-  CacheEntryReader.cpp
-  CacheEntryWriter.cpp
+  CacheEntry.cpp
   Manifest.cpp
   Result.cpp
   ResultExtractor.cpp

@@ -70,8 +70,6 @@
 
 namespace {
 
-const uint8_t k_result_format_version = 0;
-
 // File data stored inside the result file.
 const uint8_t k_embedded_file_marker = 0;
 
@@ -83,7 +81,7 @@ const uint8_t k_max_raw_file_entries = 10;
 bool
 should_store_raw_file(const Config& config, core::Result::FileType type)
 {
-  if (!config.file_clone() && !config.hard_link()) {
+  if (!core::Result::Serializer::use_raw_files(config)) {
     return false;
   }
 
@@ -108,11 +106,9 @@ should_store_raw_file(const Config& config, core::Result::FileType type)
 
 } // namespace
 
-namespace core {
+namespace core::Result {
 
-namespace Result {
-
-const uint8_t k_version = 1;
+const uint8_t k_format_version = 0;
 
 const char* const k_unknown_file_type = "<unknown type>";
 
@@ -182,10 +178,10 @@ Deserializer::visit(Deserializer::Visitor& visitor) const
 {
   CacheEntryDataReader reader(m_data);
   const auto result_format_version = reader.read_int<uint8_t>();
-  if (result_format_version != k_result_format_version) {
+  if (result_format_version != k_format_version) {
     throw Error(FMT("Unknown result format version: {} != {}",
                     result_format_version,
-                    k_result_format_version));
+                    k_format_version));
   }
 
   const auto n_files = reader.read_int<uint8_t>();
@@ -262,13 +258,12 @@ Serializer::serialized_size() const
   return m_serialized_size;
 }
 
-Serializer::SerializeResult
+void
 Serializer::serialize(util::Bytes& output)
 {
-  SerializeResult serialize_result;
   CacheEntryDataWriter writer(output);
 
-  writer.write_int(k_result_format_version);
+  writer.write_int(k_format_version);
   writer.write_int<uint8_t>(m_file_entries.size());
 
   uint8_t file_number = 0;
@@ -296,8 +291,8 @@ Serializer::serialize(util::Bytes& output)
     writer.write_int(file_size);
 
     if (store_raw) {
-      serialize_result.raw_files.emplace(file_number,
-                                         std::get<std::string>(entry.data));
+      m_raw_files.push_back(
+        RawFile{file_number, std::get<std::string>(entry.data)});
     } else if (is_file_entry) {
       const auto& path = std::get<std::string>(entry.data);
       const auto data = util::value_or_throw<Error>(
@@ -309,10 +304,18 @@ Serializer::serialize(util::Bytes& output)
 
     ++file_number;
   }
-
-  return serialize_result;
 }
 
-} // namespace Result
+bool
+Serializer::use_raw_files(const Config& config)
+{
+  return config.file_clone() || config.hard_link();
+}
 
-} // namespace core
+const std::vector<Serializer::RawFile>&
+Serializer::get_raw_files() const
+{
+  return m_raw_files;
+}
+
+} // namespace core::Result

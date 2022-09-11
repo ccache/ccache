@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <util/XXH3_128.hpp>
+#include <util/string.hpp>
 
 #include <third_party/doctest.h>
 
@@ -26,22 +27,22 @@ TEST_CASE("util::XXH3_128")
 {
   util::XXH3_128 checksum;
   auto digest = checksum.digest();
-  CHECK(Util::format_base16(digest.bytes(), 16)
+  CHECK(Util::format_base16(digest.data(), 16)
         == "99aa06d3014798d86001c324468d497f");
 
-  checksum.update("foo", 3);
+  checksum.update(util::to_span("foo"));
   digest = checksum.digest();
-  CHECK(Util::format_base16(digest.bytes(), 16)
+  CHECK(Util::format_base16(digest.data(), 16)
         == "79aef92e83454121ab6e5f64077e7d8a");
 
-  checksum.update("t", 1);
+  checksum.update(util::to_span("t"));
   digest = checksum.digest();
-  CHECK(Util::format_base16(digest.bytes(), 16)
+  CHECK(Util::format_base16(digest.data(), 16)
         == "e6045075b5bf1ae7a3e4c87775e6c97f");
 
   checksum.reset();
   digest = checksum.digest();
-  CHECK(Util::format_base16(digest.bytes(), 16)
+  CHECK(Util::format_base16(digest.data(), 16)
         == "99aa06d3014798d86001c324468d497f");
 }
 

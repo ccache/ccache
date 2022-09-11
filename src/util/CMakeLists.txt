@@ -7,6 +7,7 @@ set(
   file.cpp
   path.cpp
   string.cpp
+  zstd.cpp
 )
 
 target_sources(ccache_framework PRIVATE ${sources})

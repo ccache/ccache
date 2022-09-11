@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,35 +18,36 @@
 
 #include "../src/Config.hpp"
 
-#include <compression/types.hpp>
+#include <core/types.hpp>
 
 #include "third_party/doctest.h"
 
 TEST_SUITE_BEGIN("compression");
 
-TEST_CASE("compression::level_from_config")
+TEST_CASE("compression_level_from_config")
 {
   Config config;
-  CHECK(compression::level_from_config(config) == 0);
+  CHECK(core::compression_level_from_config(config) == 0);
 }
 
-TEST_CASE("compression::type_from_config")
+TEST_CASE("compression_type_from_config")
 {
   Config config;
-  CHECK(compression::type_from_config(config) == compression::Type::zstd);
+  CHECK(core::compression_type_from_config(config)
+        == core::CompressionType::zstd);
 }
 
-TEST_CASE("compression::type_from_int")
+TEST_CASE("compression_type_from_int")
 {
-  CHECK(compression::type_from_int(0) == compression::Type::none);
-  CHECK(compression::type_from_int(1) == compression::Type::zstd);
-  CHECK_THROWS_WITH(compression::type_from_int(2), "Unknown type: 2");
+  CHECK(core::compression_type_from_int(0) == core::CompressionType::none);
+  CHECK(core::compression_type_from_int(1) == core::CompressionType::zstd);
+  CHECK_THROWS_WITH(core::compression_type_from_int(2), "Unknown type: 2");
 }
 
-TEST_CASE("compression::type_to_string")
+TEST_CASE("to_string(CompressionType)")
 {
-  CHECK(compression::type_to_string(compression::Type::none) == "none");
-  CHECK(compression::type_to_string(compression::Type::zstd) == "zstd");
+  CHECK(core::to_string(core::CompressionType::none) == "none");
+  CHECK(core::to_string(core::CompressionType::zstd) == "zstd");
 }
 
 TEST_SUITE_END();

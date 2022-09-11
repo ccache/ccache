@@ -94,8 +94,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
 
   const auto file_count = reader.read_int<uint32_t>();
   for (uint32_t i = 0; i < file_count; ++i) {
-    m_files.push_back(
-      std::string(reader.read_str(reader.read_int<uint16_t>())));
+    m_files.emplace_back(reader.read_str(reader.read_int<uint16_t>()));
   }
 
   const auto file_info_count = reader.read_int<uint32_t>();
@@ -231,7 +230,7 @@ Manifest::serialized_size() const
 }
 
 void
-Manifest::serialize(util::Bytes& output) const
+Manifest::serialize(util::Bytes& output)
 {
   core::CacheEntryDataWriter writer(output);
 

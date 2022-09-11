@@ -24,17 +24,14 @@
 #include <Logging.hpp>
 #include <ThreadPool.hpp>
 #include <assertions.hpp>
-#include <compression/ZstdCompressor.hpp>
-#include <core/CacheEntryReader.hpp>
-#include <core/CacheEntryWriter.hpp>
-#include <core/FileReader.hpp>
-#include <core/FileWriter.hpp>
+#include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <storage/primary/StatsFile.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 
@@ -115,80 +112,39 @@ RecompressionStatistics::incompressible_size() const
 
 } // namespace
 
-static File
-open_file(const std::string& path, const char* const mode)
-{
-  File f(path, mode);
-  if (!f) {
-    throw core::Error(
-      FMT("failed to open {} for reading: {}", path, strerror(errno)));
-  }
-  return f;
-}
-
-static std::unique_ptr<core::CacheEntryReader>
-create_reader(const CacheFile& cache_file, core::Reader& reader)
-{
-  if (cache_file.type() == CacheFile::Type::unknown) {
-    throw core::Error(FMT("unknown file type for {}", cache_file.path()));
-  }
-
-  return std::make_unique<core::CacheEntryReader>(reader);
-}
-
-static std::unique_ptr<core::CacheEntryWriter>
-create_writer(core::Writer& writer, const core::CacheEntryHeader& header)
-{
-  return std::make_unique<core::CacheEntryWriter>(writer, header);
-}
-
 static void
 recompress_file(RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
                 const std::optional<int8_t> level)
 {
-  auto file = open_file(cache_file.path(), "rb");
-  core::FileReader file_reader(file.get());
-  auto reader = create_reader(cache_file, file_reader);
+  core::CacheEntry::Header header(cache_file.path());
 
-  const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
-  const uint64_t content_size = reader->header().entry_size;
   const int8_t wanted_level =
-    level
-      ? (*level == 0 ? compression::ZstdCompressor::default_compression_level
-                     : *level)
-      : 0;
+    level ? (*level == 0 ? core::CacheEntry::default_compression_level : *level)
+          : 0;
+  const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
-  if (reader->header().compression_level == wanted_level) {
-    statistics.update(content_size, old_stat.size(), old_stat.size(), 0);
+  if (header.compression_level == wanted_level) {
+    statistics.update(header.entry_size, old_stat.size(), old_stat.size(), 0);
     return;
   }
 
-  LOG("Recompressing {} to {}",
-      cache_file.path(),
-      level ? FMT("level {}", wanted_level) : "uncompressed");
-  AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
-  core::FileWriter file_writer(atomic_new_file.stream());
-  auto header = reader->header();
+  const auto cache_file_data = util::value_or_throw<core::Error>(
+    util::read_file<util::Bytes>(cache_file.path()),
+    FMT("Failed to read {}: ", cache_file.path()));
+  core::CacheEntry cache_entry(cache_file_data);
+  cache_entry.verify_checksum();
+
+  header.entry_format_version = core::k_cache_entry_format_version;
   header.compression_type =
-    level ? compression::Type::zstd : compression::Type::none;
+    level ? core::CompressionType::zstd : core::CompressionType::none;
   header.compression_level = wanted_level;
-  auto writer = create_writer(file_writer, header);
 
-  char buffer[CCACHE_READ_BUFFER_SIZE];
-  size_t bytes_left = reader->header().payload_size();
-  while (bytes_left > 0) {
-    size_t bytes_to_read = std::min(bytes_left, sizeof(buffer));
-    reader->read(buffer, bytes_to_read);
-    writer->write(buffer, bytes_to_read);
-    bytes_left -= bytes_to_read;
-  }
-  reader->finalize();
-  writer->finalize();
-
-  file.close();
-  atomic_new_file.commit();
+  AtomicFile new_cache_file(cache_file.path(), AtomicFile::Mode::binary);
+  new_cache_file.write(
+    core::CacheEntry::serialize(header, cache_entry.payload()));
+  new_cache_file.commit();
 
   // Restore mtime/atime to keep cache LRU cleanup working as expected:
   util::set_timestamps(cache_file.path(), old_stat.mtim(), old_stat.atim());
@@ -198,9 +154,7 @@ recompress_file(RecompressionStatistics& statistics,
     cs.increment(core::Statistic::cache_size_kibibyte,
                  Util::size_change_kibibyte(old_stat, new_stat));
   });
-  statistics.update(content_size, old_stat.size(), new_stat.size(), 0);
-
-  LOG("Recompression of {} done", cache_file.path());
+  statistics.update(header.entry_size, old_stat.size(), new_stat.size(), 0);
 }
 
 CompressionStatistics
@@ -220,11 +174,9 @@ PrimaryStorage::get_compression_statistics(
         cs.on_disk_size += cache_file.lstat().size_on_disk();
 
         try {
-          auto file = open_file(cache_file.path(), "rb");
-          core::FileReader file_reader(file.get());
-          auto reader = create_reader(cache_file, file_reader);
+          core::CacheEntry::Header header(cache_file.path());
           cs.compr_size += cache_file.lstat().size();
-          cs.content_size += reader->header().entry_size;
+          cs.content_size += header.entry_size;
         } catch (core::Error&) {
           cs.incompr_size += cache_file.lstat().size();
         }

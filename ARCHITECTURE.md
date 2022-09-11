@@ -25,7 +25,6 @@ to understand and work with. In other words, this is work in progress.
   preprocessor output format, etc. Ideally this code should in the future be
   refactored into compiler-specific frontends, such as GCC, Clang, NVCC, MSVC,
   etc.
-* `compression`: Compression formats.
 * `core`: Everything not part of other directories.
 * `storage`: Storage backends.
 * `storage/primary`: Code for the primary storage backend.

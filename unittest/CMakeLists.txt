@@ -7,10 +7,8 @@ set(
   test_Config.cpp
   test_Depfile.cpp
   test_Hash.cpp
-  test_NullCompression.cpp
   test_Stat.cpp
   test_Util.cpp
-  test_ZstdCompression.cpp
   test_argprocessing.cpp
   test_ccache.cpp
   test_compopt.cpp
@@ -31,6 +29,7 @@ set(
   test_util_file.cpp
   test_util_path.cpp
   test_util_string.cpp
+  test_util_zstd.cpp
 )
 
 if(INODE_CACHE_SUPPORTED)

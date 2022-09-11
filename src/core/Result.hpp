@@ -18,14 +18,13 @@
 
 #pragma once
 
-#include <util/Bytes.hpp>
+#include <core/Serializer.hpp>
 #include <util/types.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -38,7 +37,7 @@ class CacheEntryDataParser;
 
 namespace Result {
 
-extern const uint8_t k_version;
+extern const uint8_t k_format_version;
 
 extern const char* const k_unknown_file_type;
 
@@ -120,7 +119,7 @@ private:
 };
 
 // This class knows how to serialize a result cache entry.
-class Serializer
+class Serializer : public core::Serializer
 {
 public:
   Serializer(const Config& config);
@@ -132,15 +131,20 @@ public:
   // Register a file path whose content should be included in the result.
   void add_file(FileType file_type, const std::string& path);
 
-  uint32_t serialized_size() const;
+  // core::Serializer
+  uint32_t serialized_size() const override;
+  void serialize(util::Bytes& output) override;
 
-  struct SerializeResult
+  static bool use_raw_files(const Config& config);
+
+  struct RawFile
   {
-    // Raw files to store in primary storage.
-    std::unordered_map<uint8_t /*index*/, std::string /*path*/> raw_files;
+    uint8_t file_number;
+    std::string path;
   };
 
-  SerializeResult serialize(util::Bytes& output);
+  // Get raw files to store in primary storage.
+  const std::vector<RawFile>& get_raw_files() const;
 
 private:
   const Config& m_config;
@@ -152,6 +156,8 @@ private:
     std::variant<nonstd::span<const uint8_t>, std::string> data;
   };
   std::vector<FileEntry> m_file_entries;
+
+  std::vector<RawFile> m_raw_files;
 };
 
 } // namespace Result

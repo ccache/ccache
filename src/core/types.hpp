@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,10 +21,25 @@
 #include <cstdint>
 #include <string>
 
+class Config;
+
 namespace core {
 
 enum class CacheEntryType : uint8_t { result = 0, manifest = 1 };
 
 std::string to_string(CacheEntryType type);
+
+enum class CompressionType : uint8_t {
+  none = 0,
+  zstd = 1,
+};
+
+int8_t compression_level_from_config(const Config& config);
+
+CompressionType compression_type_from_config(const Config& config);
+
+CompressionType compression_type_from_int(uint8_t type);
+
+std::string to_string(CompressionType type);
 
 } // namespace core

@@ -25,8 +25,7 @@
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
 #include <ccache.hpp>
-#include <core/CacheEntryReader.hpp>
-#include <core/FileReader.hpp>
+#include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
 #include <core/Result.hpp>
 #include <core/ResultExtractor.hpp>
@@ -157,39 +156,59 @@ configuration_printer(const std::string& key,
   PRINT(stdout, "({}) {} = {}\n", origin, key, value);
 }
 
+static nonstd::expected<std::vector<uint8_t>, std::string>
+read_from_path_or_stdin(const std::string& path)
+{
+  if (path == "-") {
+    std::vector<uint8_t> output;
+    const auto result =
+      util::read_fd(STDIN_FILENO, [&](const uint8_t* data, size_t size) {
+        output.insert(output.end(), data, data + size);
+      });
+    if (!result) {
+      return nonstd::make_unexpected(
+        FMT("Failed to read from stdin: {}", result.error()));
+    }
+    return output;
+  } else {
+    const auto result = util::read_file<std::vector<uint8_t>>(path);
+    if (!result) {
+      return nonstd::make_unexpected(
+        FMT("Failed to read from {}: {}", path, result.error()));
+    }
+    return *result;
+  }
+}
+
 static int
 inspect_path(const std::string& path)
 {
-  File file = path == "-" ? File(stdin) : File(path, "rb");
-  if (!file) {
-    PRINT(stderr, "Error: Failed to open \"{}\"", path);
+  const auto cache_entry_data = read_from_path_or_stdin(path);
+  if (!cache_entry_data) {
+    PRINT(stderr, "Error: {}\n", cache_entry_data.error());
     return EXIT_FAILURE;
   }
-  core::FileReader file_reader(file.get());
-  core::CacheEntryReader cache_entry_reader(file_reader);
 
-  const auto& header = cache_entry_reader.header();
-  header.inspect(stdout);
+  core::CacheEntry cache_entry(*cache_entry_data);
+  fputs(cache_entry.header().inspect().c_str(), stdout);
 
-  std::vector<uint8_t> data;
-  data.resize(cache_entry_reader.header().payload_size());
-  cache_entry_reader.read(data.data(), data.size());
+  const auto payload = cache_entry.payload();
 
-  switch (header.entry_type) {
+  switch (cache_entry.header().entry_type) {
   case core::CacheEntryType::manifest: {
     core::Manifest manifest;
-    manifest.read(data);
+    manifest.read(payload);
     manifest.inspect(stdout);
     break;
   }
   case core::CacheEntryType::result:
-    Result::Deserializer result_deserializer(data);
+    Result::Deserializer result_deserializer(payload);
     ResultInspector result_inspector(stdout);
     result_deserializer.visit(result_inspector);
     break;
   }
 
-  cache_entry_reader.finalize();
+  cache_entry.verify_checksum();
 
   return EXIT_SUCCESS;
 }
@@ -423,12 +442,12 @@ process_main_options(int argc, const char* const* argv)
       util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
-        util::read_fd(*fd, [&checksum](const void* data, size_t size) {
-          checksum.update(data, size);
+        util::read_fd(*fd, [&checksum](const uint8_t* data, size_t size) {
+          checksum.update({data, size});
         });
         const auto digest = checksum.digest();
         PRINT(
-          stdout, "{}\n", Util::format_base16(digest.bytes(), digest.size()));
+          stdout, "{}\n", Util::format_base16(digest.data(), digest.size()));
       } else {
         PRINT(stderr, "Error: Failed to checksum {}\n", arg);
       }
@@ -446,27 +465,25 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EXTRACT_RESULT: {
-      File file = arg == "-" ? File(stdin) : File(arg, "rb");
-      if (!file) {
-        PRINT(stderr, "Error: Failed to open \"{}\"", arg);
+      const auto cache_entry_data = read_from_path_or_stdin(arg);
+      if (!cache_entry_data) {
+        PRINT(stderr, "Error: \"{}\"", cache_entry_data.error());
         return EXIT_FAILURE;
       }
       std::optional<ResultExtractor::GetRawFilePathFunction> get_raw_file_path;
-      if (arg == "-") {
+      if (arg != "-") {
         get_raw_file_path = [&](uint8_t file_number) {
           return storage::primary::PrimaryStorage::get_raw_file_path(
             arg, file_number);
         };
       }
       ResultExtractor result_extractor(".", get_raw_file_path);
-      core::FileReader file_reader(file.get());
-      core::CacheEntryReader cache_entry_reader(file_reader);
-      std::vector<uint8_t> data;
-      data.resize(cache_entry_reader.header().payload_size());
-      cache_entry_reader.read(data.data(), data.size());
-      Result::Deserializer result_deserializer(data);
+      core::CacheEntry cache_entry(*cache_entry_data);
+      const auto payload = cache_entry.payload();
+
+      Result::Deserializer result_deserializer(payload);
       result_deserializer.visit(result_extractor);
-      cache_entry_reader.finalize();
+      cache_entry.verify_checksum();
       return EXIT_SUCCESS;
     }
 
