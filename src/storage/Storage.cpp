@@ -32,6 +32,7 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/secondary/RedisStorage.hpp>
 #endif
+#include <core/CacheEntry.hpp>
 #include <util/Bytes.hpp>
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
@@ -464,6 +465,12 @@ Storage::put_in_secondary_storage(const Digest& key,
                                   bool only_if_missing)
 {
   MTR_SCOPE("secondary_storage", "put");
+
+  if (!core::CacheEntry::Header(value).self_contained) {
+    LOG("Not putting {} in secondary storage since it's not self-contained",
+        key.to_string());
+    return;
+  }
 
   for (const auto& entry : m_secondary_storages) {
     auto backend = get_backend(*entry, key, "putting in", true);
