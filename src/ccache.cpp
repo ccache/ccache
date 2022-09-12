@@ -679,7 +679,7 @@ get_tmp_fd(Context& ctx,
 {
   if (capture_output) {
     TemporaryFile tmp_stdout(
-      FMT("{}/tmp.{}", ctx.config.temporary_dir(), description));
+      FMT("{}/{}", ctx.config.temporary_dir(), description));
     ctx.register_pending_tmp_file(tmp_stdout.path);
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
@@ -1158,9 +1158,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     // preprocessed_path needs the proper cpp_extension for the compiler to do
     // its thing correctly.
-    TemporaryFile tmp_stdout(
-      FMT("{}/tmp.cpp_stdout", ctx.config.temporary_dir()),
-      FMT(".{}", ctx.config.cpp_extension()));
+    TemporaryFile tmp_stdout(FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
+                             FMT(".{}", ctx.config.cpp_extension()));
     preprocessed_path = tmp_stdout.path;
     tmp_stdout.fd.close(); // We're only using the path.
     ctx.register_pending_tmp_file(preprocessed_path);

@@ -23,6 +23,7 @@
 #include <Context.hpp>
 #include <File.hpp>
 #include <Logging.hpp>
+#include <TemporaryFile.hpp>
 #include <Util.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/exceptions.hpp>
@@ -124,7 +125,7 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
     // Delete any tmp files older than 1 hour right away.
     if (file.lstat().mtime() + 3600 < current_time
-        && Util::base_name(file.path()).find(".tmp.") != std::string::npos) {
+        && TemporaryFile::is_tmp_file(file.path())) {
       Util::unlink_tmp(file.path());
       continue;
     }

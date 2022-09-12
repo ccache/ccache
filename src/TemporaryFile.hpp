@@ -28,14 +28,18 @@
 class TemporaryFile
 {
 public:
+  static constexpr char tmp_file_infix[] = ".tmp.";
+
   // `path_prefix` is the base path. The resulting filename will be this path
-  //  plus a unique string plus `suffix`. If `path_prefix` refers to a
-  //  nonexistent directory the directory will be created if possible.`
-  TemporaryFile(std::string_view path_prefix, std::string_view suffix = {});
+  // plus a unique string plus `suffix`. If `path_prefix` refers to a
+  // nonexistent directory the directory will be created if possible.
+  TemporaryFile(std::string_view path_prefix, std::string_view suffix = ".tmp");
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 
   TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
+
+  static bool is_tmp_file(std::string_view path);
 
   // The resulting open file descriptor in read/write mode. Unset on error.
   Fd fd;

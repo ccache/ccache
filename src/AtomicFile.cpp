@@ -27,7 +27,7 @@
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
-  TemporaryFile tmp_file(path + ".tmp");
+  TemporaryFile tmp_file(path);
   m_stream = fdopen(tmp_file.fd.release(), mode == Mode::binary ? "w+b" : "w+");
   m_tmp_path = std::move(tmp_file.path);
 }

@@ -1315,7 +1315,8 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
   // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
   // file. We don't care if the temp file is trashed, so it's always safe to
   // unlink it first.
-  std::string tmp_name = path + ".ccache.rm.tmp";
+  const std::string tmp_name =
+    FMT("{}.ccache{}unlink", path, TemporaryFile::tmp_file_infix);
 
   bool success = true;
   try {
