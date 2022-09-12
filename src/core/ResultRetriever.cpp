@@ -44,9 +44,9 @@ namespace core {
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(const Context& ctx,
-                                 std::optional<std::string> path)
+                                 std::optional<Digest> result_key)
   : m_ctx(ctx),
-    m_path(path)
+    m_result_key(result_key)
 {
 }
 
@@ -93,11 +93,11 @@ ResultRetriever::on_raw_file(uint8_t file_number,
       Result::file_type_to_string(file_type),
       file_size);
 
-  if (!m_path) {
+  if (!m_result_key) {
     throw core::Error("Raw entry for non-local result");
   }
   const auto raw_file_path =
-    storage::primary::PrimaryStorage::get_raw_file_path(*m_path, file_number);
+    m_ctx.storage.primary.get_raw_file_path(*m_result_key, file_number);
   const auto st = Stat::stat(raw_file_path, Stat::OnError::throw_error);
   if (st.size() != file_size) {
     throw core::Error(

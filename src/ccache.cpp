@@ -752,39 +752,22 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
   return DoExecuteResult{status, stdout_data, *stderr_data_result};
 }
 
-static core::Manifest
-read_manifest(const std::string& path)
+static void
+read_manifest(Context& ctx, nonstd::span<const uint8_t> cache_entry_data)
 {
-  core::Manifest manifest;
   try {
-    const auto cache_entry_data =
-      util::value_or_throw<core::Error>(util::read_file<util::Bytes>(path));
     core::CacheEntry cache_entry(cache_entry_data);
     cache_entry.verify_checksum();
-    manifest.read(cache_entry.payload());
+    ctx.manifest.read(cache_entry.payload());
   } catch (const core::Error& e) {
-    LOG("Error reading {}: {}", path, e.what());
+    LOG("Error reading manifest: {}", e.what());
   }
-  return manifest;
 }
 
 static void
-save_manifest(const Config& config,
-              core::Manifest& manifest,
-              const std::string& path)
-{
-  core::CacheEntry::Header header(config, core::CacheEntryType::manifest);
-  const auto cache_entry_data = core::CacheEntry::serialize(header, manifest);
-  AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
-  atomic_manifest_file.write(cache_entry_data);
-  atomic_manifest_file.commit();
-}
-
-// Create or update the manifest file.
-static void
-update_manifest_file(Context& ctx,
-                     const Digest& manifest_key,
-                     const Digest& result_key)
+update_manifest(Context& ctx,
+                const Digest& manifest_key,
+                const Digest& result_key)
 {
   if (ctx.config.read_only() || ctx.config.read_only_direct()) {
     return;
@@ -800,24 +783,17 @@ update_manifest_file(Context& ctx,
     (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
-  ctx.storage.put(
-    manifest_key, core::CacheEntryType::manifest, [&](const auto& path) {
-      LOG("Adding result key to {}", path);
-      try {
-        auto manifest = read_manifest(path);
-        const bool added = manifest.add_result(result_key,
-                                               ctx.included_files,
-                                               ctx.time_of_compilation,
-                                               save_timestamp);
-        if (added) {
-          save_manifest(ctx.config, manifest, path);
-        }
-        return added;
-      } catch (const core::Error& e) {
-        LOG("Failed to add result key to {}: {}", path, e.what());
-        return false;
-      }
-    });
+  const bool added = ctx.manifest.add_result(
+    result_key, ctx.included_files, ctx.time_of_compilation, save_timestamp);
+  if (added) {
+    core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
+    ctx.storage.put(manifest_key,
+                    core::CacheEntryType::manifest,
+                    core::CacheEntry::serialize(header, ctx.manifest));
+    LOG("Added result key to manifest {}", manifest_key.to_string());
+  } else {
+    LOG("Did not add result key to manifest {}", manifest_key.to_string());
+  }
 }
 
 struct FindCoverageFileResult
@@ -860,7 +836,7 @@ find_coverage_file(const Context& ctx)
 
 static bool
 write_result(Context& ctx,
-             const std::string& result_path,
+             const Digest& result_key,
              const Stat& obj_stat,
              const std::string& stdout_data,
              const std::string& stderr_data)
@@ -914,36 +890,11 @@ write_result(Context& ctx,
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
-
   const auto raw_files = serializer.get_raw_files();
   if (!raw_files.empty()) {
-    Util::ensure_dir_exists(Util::dir_name(result_path));
+    ctx.storage.primary.put_raw_files(result_key, raw_files);
   }
-  for (auto [file_number, source_path] : raw_files) {
-    const auto dest_path = storage::primary::PrimaryStorage::get_raw_file_path(
-      result_path, file_number);
-    const auto old_stat = Stat::stat(dest_path);
-    try {
-      Util::clone_hard_link_or_copy_file(
-        ctx.config, source_path, dest_path, true);
-    } catch (core::Error& e) {
-      LOG("Failed to store {} as raw file {}: {}",
-          source_path,
-          dest_path,
-          e.what());
-      throw;
-    }
-    const auto new_stat = Stat::stat(dest_path);
-    ctx.storage.primary.increment_statistic(
-      Statistic::cache_size_kibibyte,
-      Util::size_change_kibibyte(old_stat, new_stat));
-    ctx.storage.primary.increment_statistic(
-      Statistic::files_in_cache, (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
-  }
-
-  AtomicFile atomic_result_file(result_path, AtomicFile::Mode::binary);
-  atomic_result_file.write(cache_entry_data);
-  atomic_result_file.commit();
+  ctx.storage.put(result_key, core::CacheEntryType::result, cache_entry_data);
 
   return true;
 }
@@ -1115,20 +1066,9 @@ to_cache(Context& ctx,
   }
 
   MTR_BEGIN("result", "result_put");
-  const bool added = ctx.storage.put(
-    *result_key, core::CacheEntryType::result, [&](const auto& path) {
-      try {
-        return write_result(
-          ctx, path, obj_stat, result->stdout_data, result->stderr_data);
-      } catch (core::Error& e) {
-        LOG("Error writing to {}: {}", path, e.what());
-        return false;
-      }
-    });
+  write_result(
+    ctx, *result_key, obj_stat, result->stdout_data, result->stderr_data);
   MTR_END("result", "result_put");
-  if (!added) {
-    return nonstd::make_unexpected(Statistic::internal_error);
-  }
 
   // Everything OK.
   Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
@@ -1771,18 +1711,17 @@ hash_direct_mode_specific_data(Context& ctx,
 
   manifest_key = hash.digest();
 
-  auto manifest_path = ctx.storage.get(*manifest_key,
-                                       core::CacheEntryType::manifest,
-                                       storage::Storage::Mode::primary_only);
+  auto cache_entry_data = ctx.storage.get(*manifest_key,
+                                          core::CacheEntryType::manifest,
+                                          storage::Storage::Mode::primary_only);
 
-  if (manifest_path) {
-    LOG("Looking for result key in {}", *manifest_path);
+  if (cache_entry_data) {
     MTR_BEGIN("manifest", "manifest_get");
     try {
-      const auto manifest = read_manifest(*manifest_path);
-      result_key = manifest.look_up_result_digest(ctx);
+      read_manifest(ctx, *cache_entry_data);
+      result_key = ctx.manifest.look_up_result_digest(ctx);
     } catch (const core::Error& e) {
-      LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
+      LOG("Failed to look up result key in manifest: {}", e.what());
     }
     MTR_END("manifest", "manifest_get");
     if (result_key) {
@@ -1793,18 +1732,17 @@ hash_direct_mode_specific_data(Context& ctx,
   }
   // Check secondary storage if not found in primary
   if (!result_key) {
-    manifest_path = ctx.storage.get(*manifest_key,
-                                    core::CacheEntryType::manifest,
-                                    storage::Storage::Mode::secondary_only);
-    if (manifest_path) {
-      LOG("Looking for result key in fetched secondary manifest {}",
-          *manifest_path);
+    cache_entry_data = ctx.storage.get(*manifest_key,
+                                       core::CacheEntryType::manifest,
+                                       storage::Storage::Mode::secondary_only);
+    if (cache_entry_data) {
+      LOG_RAW("Looking for result key in fetched secondary manifest");
       MTR_BEGIN("manifest", "secondary_manifest_get");
       try {
-        const auto manifest = read_manifest(*manifest_path);
-        result_key = manifest.look_up_result_digest(ctx);
+        read_manifest(ctx, *cache_entry_data);
+        result_key = ctx.manifest.look_up_result_digest(ctx);
       } catch (const core::Error& e) {
-        LOG("Failed to look up result key in {}: {}", *manifest_path, e.what());
+        LOG("Failed to look up result key in manifest: {}", e.what());
       }
       MTR_END("manifest", "secondary_manifest_get");
       if (result_key) {
@@ -2012,28 +1950,25 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   MTR_SCOPE("cache", "from_cache");
 
   // Get result from cache.
-  const auto result_path =
+  const auto cache_entry_data =
     ctx.storage.get(result_key, core::CacheEntryType::result);
-  if (!result_path) {
+  if (!cache_entry_data) {
     return false;
   }
 
   try {
-    const auto cache_entry_data = util::value_or_throw<core::Error>(
-      util::read_file<util::Bytes>(*result_path),
-      FMT("Failed to read {}: ", *result_path));
-
-    core::CacheEntry cache_entry(cache_entry_data);
+    core::CacheEntry cache_entry(*cache_entry_data);
     cache_entry.verify_checksum();
     core::Result::Deserializer deserializer(cache_entry.payload());
-    core::ResultRetriever result_retriever(ctx, result_path);
+    core::ResultRetriever result_retriever(ctx, result_key);
     deserializer.visit(result_retriever);
   } catch (core::ResultRetriever::WriteError& e) {
-    LOG(
-      "Write error when retrieving result from {}: {}", *result_path, e.what());
+    LOG("Write error when retrieving result from {}: {}",
+        result_key.to_string(),
+        e.what());
     return nonstd::make_unexpected(Statistic::bad_output_file);
   } catch (core::Error& e) {
-    LOG("Failed to get result from {}: {}", *result_path, e.what());
+    LOG("Failed to get result from {}: {}", result_key.to_string(), e.what());
     return false;
   }
 
@@ -2496,7 +2431,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       return nonstd::make_unexpected(from_cache_result.error());
     } else if (*from_cache_result) {
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
-        update_manifest_file(ctx, *manifest_key, *result_key);
+        MTR_SCOPE("cache", "update_manifest");
+        update_manifest(ctx, *manifest_key, *result_key);
       }
       return Statistic::preprocessed_cache_hit;
     }
@@ -2529,7 +2465,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   if (ctx.config.direct_mode()) {
     ASSERT(manifest_key);
     MTR_SCOPE("cache", "update_manifest");
-    update_manifest_file(ctx, *manifest_key, *result_key);
+    update_manifest(ctx, *manifest_key, *result_key);
   }
 
   return ctx.config.recache() ? Statistic::recache : Statistic::cache_miss;

@@ -22,10 +22,10 @@
 #include <storage/primary/PrimaryStorage.hpp>
 #include <storage/secondary/SecondaryStorage.hpp>
 #include <storage/types.hpp>
+#include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -51,15 +51,14 @@ public:
 
   primary::PrimaryStorage primary;
 
-  // Returns a path to a file containing the value.
   enum class Mode { secondary_fallback, secondary_only, primary_only };
-  std::optional<std::string> get(const Digest& key,
+  std::optional<util::Bytes> get(const Digest& key,
                                  core::CacheEntryType type,
                                  const Mode mode = Mode::secondary_fallback);
 
-  bool put(const Digest& key,
+  void put(const Digest& key,
            core::CacheEntryType type,
-           const storage::EntryWriter& entry_writer);
+           nonstd::span<const uint8_t> value);
 
   void remove(const Digest& key, core::CacheEntryType type);
 
@@ -69,7 +68,6 @@ public:
 private:
   const Config& m_config;
   std::vector<std::unique_ptr<SecondaryStorageEntry>> m_secondary_storages;
-  std::vector<std::string> m_tmp_files;
 
   void add_secondary_storages();
 

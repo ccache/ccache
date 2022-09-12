@@ -43,6 +43,8 @@
 #include <third_party/url.hpp>
 
 #include <cmath>
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -208,11 +210,11 @@ Storage::Storage(const Config& config) : primary(config), m_config(config)
 {
 }
 
+// Define the destructor in the implementation file to avoid having to declare
+// SecondaryStorageEntry and its constituents in the header file.
+// NOLINTNEXTLINE(modernize-use-equals-default)
 Storage::~Storage()
 {
-  for (const auto& tmp_file : m_tmp_files) {
-    Util::unlink_tmp(tmp_file);
-  }
 }
 
 void
@@ -227,7 +229,7 @@ Storage::finalize()
   primary.finalize();
 }
 
-std::optional<std::string>
+std::optional<util::Bytes>
 Storage::get(const Digest& key,
              const core::CacheEntryType type,
              const Mode mode)
@@ -235,28 +237,14 @@ Storage::get(const Digest& key,
   MTR_SCOPE("storage", "get");
 
   if (mode != Mode::secondary_only) {
-    auto path = primary.get(key, type);
-    primary.increment_statistic(path ? core::Statistic::primary_storage_hit
-                                     : core::Statistic::primary_storage_miss);
-    if (path) {
+    auto value = primary.get(key, type);
+    primary.increment_statistic(value ? core::Statistic::primary_storage_hit
+                                      : core::Statistic::primary_storage_miss);
+    if (value) {
       if (m_config.reshare()) {
-        // Temporary optimization until primary storage API has been refactored
-        // to pass data via memory instead of files.
-        const bool should_put_in_secondary_storage = std::any_of(
-          m_secondary_storages.begin(),
-          m_secondary_storages.end(),
-          [](const auto& entry) { return !entry->config.read_only; });
-        if (should_put_in_secondary_storage) {
-          const auto value = util::read_file<util::Bytes>(*path);
-          if (!value) {
-            LOG("Failed to read {}: {}", *path, value.error());
-            return path; // Don't indicate failure since primary storage was OK.
-          }
-          put_in_secondary_storage(key, *value, true);
-        }
+        put_in_secondary_storage(key, *value, true);
       }
-
-      return path;
+      return value;
     }
   }
 
@@ -264,61 +252,22 @@ Storage::get(const Digest& key,
     return std::nullopt;
   }
 
-  const auto value = get_from_secondary_storage(key);
-  if (!value) {
-    return std::nullopt;
+  auto value = get_from_secondary_storage(key);
+  if (value) {
+    primary.put(key, type, *value);
   }
-
-  TemporaryFile tmp_file(FMT("{}/tmp.get", m_config.temporary_dir()));
-  m_tmp_files.push_back(tmp_file.path);
-  try {
-    util::write_file(tmp_file.path, *value);
-  } catch (const core::Error& e) {
-    throw core::Fatal(FMT("Error writing to {}: {}", tmp_file.path, e.what()));
-  }
-
-  primary.put(key, type, [&](const auto& path) {
-    try {
-      Util::ensure_dir_exists(Util::dir_name(path));
-      Util::copy_file(tmp_file.path, path);
-    } catch (const core::Error& e) {
-      LOG("Failed to copy {} to {}: {}", tmp_file.path, path, e.what());
-      // Don't indicate failure since get from primary storage was OK.
-    }
-    return true;
-  });
-
-  return tmp_file.path;
+  return value;
 }
 
-bool
+void
 Storage::put(const Digest& key,
              const core::CacheEntryType type,
-             const storage::EntryWriter& entry_writer)
+             nonstd::span<const uint8_t> value)
 {
   MTR_SCOPE("storage", "put");
 
-  const auto path = primary.put(key, type, entry_writer);
-  if (!path) {
-    return false;
-  }
-
-  // Temporary optimization until primary storage API has been refactored to
-  // pass data via memory instead of files.
-  const bool should_put_in_secondary_storage =
-    std::any_of(m_secondary_storages.begin(),
-                m_secondary_storages.end(),
-                [](const auto& entry) { return !entry->config.read_only; });
-  if (should_put_in_secondary_storage) {
-    const auto value = util::read_file<util::Bytes>(*path);
-    if (!value) {
-      LOG("Failed to read {}: {}", *path, value.error());
-      return true; // Don't indicate failure since primary storage was OK.
-    }
-    put_in_secondary_storage(key, *value, false);
-  }
-
-  return true;
+  primary.put(key, type, value);
+  put_in_secondary_storage(key, value, false);
 }
 
 void

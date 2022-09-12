@@ -19,13 +19,18 @@
 #pragma once
 
 #include <Digest.hpp>
+#include <core/Result.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
 #include <storage/primary/util.hpp>
 #include <storage/types.hpp>
+#include <util/Bytes.hpp>
+
+#include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 class Config;
 
@@ -49,18 +54,23 @@ public:
 
   // --- Cache entry handling ---
 
-  // Returns a path to a file containing the value.
-  std::optional<std::string> get(const Digest& key,
+  std::optional<util::Bytes> get(const Digest& key,
                                  core::CacheEntryType type) const;
 
-  std::optional<std::string> put(const Digest& key,
-                                 core::CacheEntryType type,
-                                 const storage::EntryWriter& entry_writer);
+  void put(const Digest& key,
+           core::CacheEntryType type,
+           nonstd::span<const uint8_t> value);
 
   void remove(const Digest& key, core::CacheEntryType type);
 
   static std::string get_raw_file_path(std::string_view result_path,
                                        uint8_t file_number);
+  std::string get_raw_file_path(const Digest& result_key,
+                                uint8_t file_number) const;
+
+  void
+  put_raw_files(const Digest& key,
+                const std::vector<core::Result::Serializer::RawFile> raw_files);
 
   // --- Statistics ---
 
@@ -112,6 +122,8 @@ private:
   std::optional<Digest> m_result_key;
   std::string m_manifest_path;
   std::string m_result_path;
+
+  std::vector<std::string> m_added_raw_files;
 
   struct LookUpCacheFileResult
   {

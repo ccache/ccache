@@ -18,6 +18,7 @@
 
 #include "PrimaryStorage.hpp"
 
+#include <AtomicFile.hpp>
 #include <Config.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
@@ -175,14 +176,19 @@ PrimaryStorage::finalize()
   }
 }
 
-std::optional<std::string>
+std::optional<util::Bytes>
 PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 {
   MTR_SCOPE("primary_storage", "get");
 
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
-    LOG("No {} in primary storage", key.to_string());
+    LOG("No {} {} in primary storage", key.to_string(), core::to_string(type));
+    return std::nullopt;
+  }
+  const auto value = util::read_file<util::Bytes>(cache_file.path);
+  if (!value) {
+    LOG("Failed to read {}: {}", cache_file.path, value.error());
     return std::nullopt;
   }
 
@@ -191,13 +197,14 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 
   // Update modification timestamp to save file from LRU cleanup.
   util::set_timestamps(cache_file.path);
-  return cache_file.path;
+
+  return *value;
 }
 
-std::optional<std::string>
+void
 PrimaryStorage::put(const Digest& key,
                     const core::CacheEntryType type,
-                    const storage::EntryWriter& entry_writer)
+                    nonstd::span<const uint8_t> value)
 {
   MTR_SCOPE("primary_storage", "put");
 
@@ -214,15 +221,21 @@ PrimaryStorage::put(const Digest& key,
     break;
   }
 
-  if (!entry_writer(cache_file.path)) {
-    LOG("Did not store {} in primary storage", key.to_string());
-    return std::nullopt;
+  try {
+    AtomicFile result_file(cache_file.path, AtomicFile::Mode::binary);
+    result_file.write(value);
+    result_file.commit();
+  }
+
+  catch (core::Error& e) {
+    LOG("Failed to write to {}: {}", cache_file.path, e.what());
+    return;
   }
 
   const auto new_stat = Stat::stat(cache_file.path, Stat::OnError::log);
   if (!new_stat) {
     LOG("Failed to stat {}: {}", cache_file.path, strerror(errno));
-    return std::nullopt;
+    return;
   }
 
   LOG("Stored {} in primary storage ({})", key.to_string(), cache_file.path);
@@ -240,8 +253,6 @@ PrimaryStorage::put(const Digest& key,
   // the stat call if we exit early.
   util::create_cachedir_tag(
     FMT("{}/{}", m_config.cache_dir(), key.to_string()[0]));
-
-  return cache_file.path;
 }
 
 void
@@ -272,6 +283,45 @@ PrimaryStorage::get_raw_file_path(std::string_view result_path,
 
   const auto prefix = result_path.substr(0, result_path.length() - 1);
   return FMT("{}{}W", prefix, file_number);
+}
+
+std::string
+PrimaryStorage::get_raw_file_path(const Digest& result_key,
+                                  uint8_t file_number) const
+{
+  const auto cache_file =
+    look_up_cache_file(result_key, core::CacheEntryType::result);
+  return get_raw_file_path(cache_file.path, file_number);
+}
+
+void
+PrimaryStorage::put_raw_files(
+  const Digest& key,
+  const std::vector<core::Result::Serializer::RawFile> raw_files)
+{
+  const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
+  Util::ensure_dir_exists(Util::dir_name(cache_file.path));
+
+  for (auto [file_number, source_path] : raw_files) {
+    const auto dest_path = get_raw_file_path(cache_file.path, file_number);
+    const auto old_stat = Stat::stat(dest_path);
+    try {
+      Util::clone_hard_link_or_copy_file(
+        m_config, source_path, dest_path, true);
+      m_added_raw_files.push_back(dest_path);
+    } catch (core::Error& e) {
+      LOG("Failed to store {} as raw file {}: {}",
+          source_path,
+          dest_path,
+          e.what());
+      throw;
+    }
+    const auto new_stat = Stat::stat(dest_path);
+    increment_statistic(Statistic::cache_size_kibibyte,
+                        Util::size_change_kibibyte(old_stat, new_stat));
+    increment_statistic(Statistic::files_in_cache,
+                        (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
+  }
 }
 
 void
@@ -386,6 +436,17 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
       } catch (const core::Error&) {
         // Two ccache processes may move the file at the same time, so failure
         // to rename is OK.
+      }
+      for (const auto& raw_file : m_added_raw_files) {
+        try {
+          Util::rename(raw_file,
+                       FMT("{}/{}",
+                           Util::dir_name(wanted_path),
+                           Util::base_name(raw_file)));
+        } catch (const core::Error&) {
+          // Two ccache processes may move the file at the same time, so failure
+          // to rename is OK.
+        }
       }
     }
   }

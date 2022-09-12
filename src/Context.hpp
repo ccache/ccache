@@ -30,6 +30,7 @@
 #  include "InodeCache.hpp"
 #endif
 
+#include <core/Manifest.hpp>
 #include <storage/Storage.hpp>
 
 #include <ctime>
@@ -91,6 +92,9 @@ public:
 
   // Storage (fronting primary and secondary storage backends).
   storage::Storage storage;
+
+  // Direct mode manifest.
+  core::Manifest manifest;
 
 #ifdef INODE_CACHE_SUPPORTED
   // InodeCache that caches source file hashes when enabled.

@@ -20,6 +20,7 @@
 
 #include "Fd.hpp"
 
+#include <Digest.hpp>
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
 
@@ -41,7 +42,7 @@ public:
   //`path` should be the path to the local result entry file if the result comes
   // from primary storage.
   ResultRetriever(const Context& ctx,
-                  std::optional<std::string> path = std::nullopt);
+                  std::optional<Digest> result_key = std::nullopt);
 
   void on_embedded_file(uint8_t file_number,
                         Result::FileType file_type,
@@ -52,7 +53,7 @@ public:
 
 private:
   const Context& m_ctx;
-  std::optional<std::string> m_path;
+  std::optional<Digest> m_result_key;
 
   std::string get_dest_path(Result::FileType file_type) const;
 
