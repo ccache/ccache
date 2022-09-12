@@ -26,6 +26,7 @@
 
 #include <third_party/nonstd/span.hpp>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -51,10 +52,11 @@ public:
 
   primary::PrimaryStorage primary;
 
-  enum class Mode { secondary_fallback, secondary_only, primary_only };
-  std::optional<util::Bytes> get(const Digest& key,
-                                 core::CacheEntryType type,
-                                 const Mode mode = Mode::secondary_fallback);
+  using EntryReceiver = std::function<bool(util::Bytes&&)>;
+
+  void get(const Digest& key,
+           core::CacheEntryType type,
+           const EntryReceiver& entry_receiver);
 
   void put(const Digest& key,
            core::CacheEntryType type,
@@ -81,7 +83,8 @@ private:
               std::string_view operation_description,
               const bool for_writing);
 
-  std::optional<util::Bytes> get_from_secondary_storage(const Digest& key);
+  void get_from_secondary_storage(const Digest& key,
+                                  const EntryReceiver& entry_receiver);
 
   void put_in_secondary_storage(const Digest& key,
                                 nonstd::span<const uint8_t> value,

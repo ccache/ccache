@@ -204,11 +204,17 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 void
 PrimaryStorage::put(const Digest& key,
                     const core::CacheEntryType type,
-                    nonstd::span<const uint8_t> value)
+                    nonstd::span<const uint8_t> value,
+                    bool only_if_missing)
 {
   MTR_SCOPE("primary_storage", "put");
 
   const auto cache_file = look_up_cache_file(key, type);
+  if (only_if_missing && cache_file.stat) {
+    LOG("Not storing {} since it already exists", cache_file.path);
+    return;
+  }
+
   switch (type) {
   case core::CacheEntryType::manifest:
     m_manifest_key = key;

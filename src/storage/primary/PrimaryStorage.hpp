@@ -59,7 +59,8 @@ public:
 
   void put(const Digest& key,
            core::CacheEntryType type,
-           nonstd::span<const uint8_t> value);
+           nonstd::span<const uint8_t> value,
+           bool only_if_missing = false);
 
   void remove(const Digest& key, core::CacheEntryType type);
 

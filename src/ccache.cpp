@@ -1711,47 +1711,24 @@ hash_direct_mode_specific_data(Context& ctx,
 
   manifest_key = hash.digest();
 
-  auto cache_entry_data = ctx.storage.get(*manifest_key,
-                                          core::CacheEntryType::manifest,
-                                          storage::Storage::Mode::primary_only);
-
-  if (cache_entry_data) {
-    MTR_BEGIN("manifest", "manifest_get");
-    try {
-      read_manifest(ctx, *cache_entry_data);
-      result_key = ctx.manifest.look_up_result_digest(ctx);
-    } catch (const core::Error& e) {
-      LOG("Failed to look up result key in manifest: {}", e.what());
-    }
-    MTR_END("manifest", "manifest_get");
-    if (result_key) {
-      LOG_RAW("Got result key from manifest");
-    } else {
-      LOG_RAW("Did not find result key in manifest");
-    }
-  }
-  // Check secondary storage if not found in primary
-  if (!result_key) {
-    cache_entry_data = ctx.storage.get(*manifest_key,
-                                       core::CacheEntryType::manifest,
-                                       storage::Storage::Mode::secondary_only);
-    if (cache_entry_data) {
-      LOG_RAW("Looking for result key in fetched secondary manifest");
-      MTR_BEGIN("manifest", "secondary_manifest_get");
+  MTR_BEGIN("manifest", "manifest_get");
+  ctx.storage.get(
+    *manifest_key, core::CacheEntryType::manifest, [&](util::Bytes&& value) {
       try {
-        read_manifest(ctx, *cache_entry_data);
+        read_manifest(ctx, value);
         result_key = ctx.manifest.look_up_result_digest(ctx);
       } catch (const core::Error& e) {
         LOG("Failed to look up result key in manifest: {}", e.what());
       }
-      MTR_END("manifest", "secondary_manifest_get");
       if (result_key) {
-        LOG_RAW("Got result key from fetched secondary manifest");
+        LOG_RAW("Got result key from manifest");
+        return true;
       } else {
-        LOG_RAW("Did not find result key in fetched secondary manifest");
+        LOG_RAW("Did not find result key in manifest");
+        return false;
       }
-    }
-  }
+    });
+  MTR_END("manifest", "manifest_get");
 
   return {};
 }
@@ -1950,14 +1927,18 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
   MTR_SCOPE("cache", "from_cache");
 
   // Get result from cache.
-  const auto cache_entry_data =
-    ctx.storage.get(result_key, core::CacheEntryType::result);
-  if (!cache_entry_data) {
+  util::Bytes cache_entry_data;
+  ctx.storage.get(
+    result_key, core::CacheEntryType::result, [&](util::Bytes&& value) {
+      cache_entry_data = std::move(value);
+      return true;
+    });
+  if (cache_entry_data.empty()) {
     return false;
   }
 
   try {
-    core::CacheEntry cache_entry(*cache_entry_data);
+    core::CacheEntry cache_entry(cache_entry_data);
     cache_entry.verify_checksum();
     core::Result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_key);

@@ -230,34 +230,29 @@ Storage::finalize()
   primary.finalize();
 }
 
-std::optional<util::Bytes>
+void
 Storage::get(const Digest& key,
              const core::CacheEntryType type,
-             const Mode mode)
+             const EntryReceiver& entry_receiver)
 {
   MTR_SCOPE("storage", "get");
 
-  if (mode != Mode::secondary_only) {
-    auto value = primary.get(key, type);
-    primary.increment_statistic(value ? core::Statistic::primary_storage_hit
-                                      : core::Statistic::primary_storage_miss);
-    if (value) {
-      if (m_config.reshare()) {
-        put_in_secondary_storage(key, *value, true);
-      }
-      return value;
+  auto value = primary.get(key, type);
+  primary.increment_statistic(value ? core::Statistic::primary_storage_hit
+                                    : core::Statistic::primary_storage_miss);
+  if (value) {
+    if (m_config.reshare()) {
+      put_in_secondary_storage(key, *value, true);
+    }
+    if (entry_receiver(std::move(*value))) {
+      return;
     }
   }
 
-  if (mode == Mode::primary_only) {
-    return std::nullopt;
-  }
-
-  auto value = get_from_secondary_storage(key);
-  if (value) {
-    primary.put(key, type, *value);
-  }
-  return value;
+  get_from_secondary_storage(key, [&](util::Bytes&& data) {
+    primary.put(key, type, data, true);
+    return entry_receiver(std::move(data));
+  });
 }
 
 void
@@ -420,8 +415,9 @@ Storage::get_backend(SecondaryStorageEntry& entry,
   }
 }
 
-std::optional<util::Bytes>
-Storage::get_from_secondary_storage(const Digest& key)
+void
+Storage::get_from_secondary_storage(const Digest& key,
+                                    const EntryReceiver& entry_receiver)
 {
   MTR_SCOPE("secondary_storage", "get");
 
@@ -432,21 +428,23 @@ Storage::get_from_secondary_storage(const Digest& key)
     }
 
     Timer timer;
-    const auto result = backend->impl->get(key);
+    auto result = backend->impl->get(key);
     const auto ms = timer.measure_ms();
     if (!result) {
       mark_backend_as_failed(*backend, result.error());
       continue;
     }
 
-    const auto& value = *result;
+    auto& value = *result;
     if (value) {
       LOG("Retrieved {} from {} ({:.2f} ms)",
           key.to_string(),
           backend->url_for_logging,
           ms);
       primary.increment_statistic(core::Statistic::secondary_storage_hit);
-      return *value;
+      if (entry_receiver(std::move(*value))) {
+        return;
+      }
     } else {
       LOG("No {} in {} ({:.2f} ms)",
           key.to_string(),
@@ -455,8 +453,6 @@ Storage::get_from_secondary_storage(const Digest& key)
       primary.increment_statistic(core::Statistic::secondary_storage_miss);
     }
   }
-
-  return std::nullopt;
 }
 
 void
