@@ -53,4 +53,26 @@ tokenize(std::string_view file_content, std::string_view prefix)
   return result;
 }
 
+std::string
+strip_includes(const Context& ctx, std::string&& stdout_data)
+{
+  using util::Tokenizer;
+  using Mode = Tokenizer::Mode;
+  using IncludeDelimiter = Tokenizer::IncludeDelimiter;
+
+  if (stdout_data.empty() || !ctx.auto_depend_mode
+      || ctx.config.compiler_type() != CompilerType::msvc) {
+    return std::move(stdout_data);
+  }
+
+  std::string new_stdout_text;
+  for (const auto line : Tokenizer(
+         stdout_data, "\n", Mode::include_empty, IncludeDelimiter::yes)) {
+    if (!util::starts_with(line, "Note: including file:")) {
+      new_stdout_text.append(line.data(), line.length());
+    }
+  }
+  return new_stdout_text;
+}
+
 } // namespace core::ShowIncludesParser

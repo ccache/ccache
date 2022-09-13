@@ -1071,7 +1071,10 @@ to_cache(Context& ctx,
 
     // We can output stderr immediately instead of rerunning the compiler.
     Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
-    Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
+    Util::send_to_fd(ctx,
+                     core::ShowIncludesParser::strip_includes(
+                       ctx, std::move(result->stdout_data)),
+                     STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(result->exit_status);
@@ -1128,7 +1131,10 @@ to_cache(Context& ctx,
   // Everything OK.
   Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
-  Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
+  Util::send_to_fd(ctx,
+                   core::ShowIncludesParser::strip_includes(
+                     ctx, std::move(result->stdout_data)),
+                   STDOUT_FILENO);
 
   return *result_key;
 }
