@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <util/Bytes.hpp>
+
 #include <string_view>
 #include <vector>
 
@@ -27,5 +29,7 @@ namespace core::ShowIncludesParser {
 
 std::vector<std::string_view> tokenize(std::string_view file_content,
                                        std::string_view prefix);
+
+util::Bytes strip_includes(const Context& ctx, util::Bytes&& stdout_data);
 
 } // namespace core::ShowIncludesParser

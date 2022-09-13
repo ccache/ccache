@@ -120,6 +120,7 @@ public:
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
   void set_temporary_dir(const std::string& value);
+  void set_msvc_dep_prefix(const std::string& value);
 
   // Where to write configuration changes.
   const std::string& config_path() const;
@@ -592,4 +593,10 @@ inline void
 Config::set_temporary_dir(const std::string& value)
 {
   m_temporary_dir = value;
+}
+
+inline void
+Config::set_msvc_dep_prefix(const std::string& value)
+{
+  m_msvc_dep_prefix = value;
 }

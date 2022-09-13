@@ -1583,7 +1583,7 @@ The depend mode will be disabled if any of the following holds:
 * <<config_depend_mode,*depend_mode*>> is false.
 * <<config_run_second_cpp,*run_second_cpp*>> is false.
 * The compiler is not generating dependencies using `-MD` or `-MMD` (for MSVC,
-  /showIncludes).
+  /showIncludes is added automatically if not specified by the user).
 
 
 == Handling of newly created header files
