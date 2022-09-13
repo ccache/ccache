@@ -24,6 +24,7 @@
 #include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -38,6 +39,15 @@ class Manifest : public Serializer
 public:
   static const uint8_t k_format_version;
 
+  struct FileStats
+  {
+    uint64_t size;
+    int64_t mtime;
+    int64_t ctime;
+  };
+
+  using FileStater = std::function<FileStats(std::string)>;
+
   Manifest() = default;
 
   void read(nonstd::span<const uint8_t> data);
@@ -46,8 +56,7 @@ public:
 
   bool add_result(const Digest& result_key,
                   const std::unordered_map<std::string, Digest>& included_files,
-                  time_t time_of_compilation,
-                  bool save_timestamp);
+                  const FileStater& stat_file);
 
   // core::Serializer
   uint32_t serialized_size() const override;
@@ -56,13 +65,6 @@ public:
   void inspect(FILE* stream) const;
 
 private:
-  struct FileStats
-  {
-    uint64_t size;
-    int64_t mtime;
-    int64_t ctime;
-  };
-
   struct FileInfo
   {
     uint32_t index; // Index to m_files.
@@ -95,8 +97,7 @@ private:
     const Digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
-    time_t time_of_compilation,
-    bool save_timestamp);
+    const FileStater& file_state);
 
   bool
   result_matches(const Context& ctx,

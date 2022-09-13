@@ -143,8 +143,7 @@ bool
 Manifest::add_result(
   const Digest& result_key,
   const std::unordered_map<std::string, Digest>& included_files,
-  const time_t time_of_compilation,
-  const bool save_timestamp)
+  const FileStater& stat_file_function)
 {
   if (m_results.size() > k_max_manifest_entries) {
     // Normally, there shouldn't be many result entries in the manifest since
@@ -183,12 +182,8 @@ Manifest::add_result(
   file_info_indexes.reserve(included_files.size());
 
   for (const auto& [path, digest] : included_files) {
-    file_info_indexes.push_back(get_file_info_index(path,
-                                                    digest,
-                                                    mf_files,
-                                                    mf_file_infos,
-                                                    time_of_compilation,
-                                                    save_timestamp));
+    file_info_indexes.push_back(get_file_info_index(
+      path, digest, mf_files, mf_file_infos, stat_file_function));
   }
 
   ResultEntry entry{std::move(file_info_indexes), result_key};
@@ -287,8 +282,7 @@ Manifest::get_file_info_index(
   const Digest& digest,
   const std::unordered_map<std::string, uint32_t>& mf_files,
   const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
-  const time_t time_of_compilation,
-  const bool save_timestamp)
+  const FileStater& file_stater)
 {
   FileInfo fi;
 
@@ -302,34 +296,10 @@ Manifest::get_file_info_index(
 
   fi.digest = digest;
 
-  // file_stat.{m,c}time() have a resolution of 1 second, so we can cache the
-  // file's mtime and ctime only if they're at least one second older than
-  // time_of_compilation.
-  //
-  // file_stat.ctime() may be 0, so we have to check time_of_compilation against
-  // MAX(mtime, ctime).
-  //
-  // ccache only reads mtime/ctime if file_stat_match sloppiness is enabled, so
-  // mtimes/ctimes are stored as a dummy value (-1) if not enabled. This reduces
-  // the number of file_info entries for the common case.
-
-  const auto file_stat = Stat::stat(path, Stat::OnError::log);
-  if (file_stat) {
-    if (save_timestamp
-        && time_of_compilation
-             > std::max(file_stat.mtime(), file_stat.ctime())) {
-      fi.mtime = file_stat.mtime();
-      fi.ctime = file_stat.ctime();
-    } else {
-      fi.mtime = -1;
-      fi.ctime = -1;
-    }
-    fi.fsize = file_stat.size();
-  } else {
-    fi.mtime = -1;
-    fi.ctime = -1;
-    fi.fsize = 0;
-  }
+  const auto file_stat = file_stater(path);
+  fi.mtime = file_stat.mtime;
+  fi.ctime = file_stat.ctime;
+  fi.fsize = file_stat.size;
 
   const auto fi_it = mf_file_infos.find(fi);
   if (fi_it != mf_file_infos.end()) {

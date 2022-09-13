@@ -777,14 +777,32 @@ update_manifest(Context& ctx,
 
   MTR_SCOPE("manifest", "manifest_put");
 
-  // See comment in core::Manifest::get_file_info_index for why saving of
-  // timestamps is forced for precompiled headers.
+  // {m,c}time() have a resolution of 1 second, so we can cache the file's mtime
+  // and ctime only if they're at least one second older than
+  // time_of_compilation.
+  //
+  // ctime() may be 0, so we have to check time_of_compilation against
+  // MAX(mtime, ctime).
+  //
+  // ccache only reads mtime/ctime if file_stat_matches sloppiness is enabled,
+  // so mtimes/ctimes are stored as a dummy value (-1) if not enabled. This
+  // reduces the number of file_info entries for the common case.
   const bool save_timestamp =
     (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
   const bool added = ctx.manifest.add_result(
-    result_key, ctx.included_files, ctx.time_of_compilation, save_timestamp);
+    result_key, ctx.included_files, [&](const std::string& path) {
+      auto stat = Stat::stat(path, Stat::OnError::log);
+      bool cache_time =
+        save_timestamp
+        && ctx.time_of_compilation > std::max(stat.mtime(), stat.ctime());
+      return core::Manifest::FileStats{
+        stat.size(),
+        stat && cache_time ? stat.mtime() : -1,
+        stat && cache_time ? stat.ctime() : -1,
+      };
+    });
   if (added) {
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.put(manifest_key,
