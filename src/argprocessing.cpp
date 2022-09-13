@@ -1134,8 +1134,7 @@ process_args(Context& ctx)
 
   std::optional<Statistic> argument_error;
   for (size_t i = 1; i < args.size(); i++) {
-    const auto error =
-      process_arg(ctx, ctx.args_info, ctx.config, args, i, state);
+    const auto error = process_arg(ctx, args_info, ctx.config, args, i, state);
     if (error != Statistic::none && !argument_error) {
       argument_error = error;
     }
@@ -1490,7 +1489,7 @@ process_args(Context& ctx)
     }
     if (ctx.config.depend_mode()) {
       // The compiler is invoked with the original arguments in the depend mode.
-      ctx.args_info.depend_extra_args.push_back(*diagnostics_color_arg);
+      args_info.depend_extra_args.push_back(*diagnostics_color_arg);
     }
   }
 
