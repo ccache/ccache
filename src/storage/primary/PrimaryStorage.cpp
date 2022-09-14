@@ -211,7 +211,8 @@ PrimaryStorage::put(const Digest& key,
 
   const auto cache_file = look_up_cache_file(key, type);
   if (only_if_missing && cache_file.stat) {
-    LOG("Not storing {} since it already exists", cache_file.path);
+    LOG("Not storing {} in primary storage since it already exists",
+        cache_file.path);
     return;
   }
 

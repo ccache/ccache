@@ -81,7 +81,9 @@ const uint8_t Manifest::k_format_version = 0;
 void
 Manifest::read(nonstd::span<const uint8_t> data)
 {
-  clear();
+  std::vector<std::string> files;
+  std::vector<FileInfo> file_infos;
+  std::vector<ResultEntry> results;
 
   core::CacheEntryDataReader reader(data);
 
@@ -94,13 +96,13 @@ Manifest::read(nonstd::span<const uint8_t> data)
 
   const auto file_count = reader.read_int<uint32_t>();
   for (uint32_t i = 0; i < file_count; ++i) {
-    m_files.emplace_back(reader.read_str(reader.read_int<uint16_t>()));
+    files.emplace_back(reader.read_str(reader.read_int<uint16_t>()));
   }
 
   const auto file_info_count = reader.read_int<uint32_t>();
   for (uint32_t i = 0; i < file_info_count; ++i) {
-    m_file_infos.emplace_back();
-    auto& entry = m_file_infos.back();
+    file_infos.emplace_back();
+    auto& entry = file_infos.back();
 
     reader.read_int(entry.index);
     reader.read_and_copy_bytes({entry.digest.bytes(), Digest::size()});
@@ -111,14 +113,35 @@ Manifest::read(nonstd::span<const uint8_t> data)
 
   const auto result_count = reader.read_int<uint32_t>();
   for (uint32_t i = 0; i < result_count; ++i) {
-    m_results.emplace_back();
-    auto& entry = m_results.back();
+    results.emplace_back();
+    auto& entry = results.back();
 
     const auto file_info_index_count = reader.read_int<uint32_t>();
     for (uint32_t j = 0; j < file_info_index_count; ++j) {
       entry.file_info_indexes.push_back(reader.read_int<uint32_t>());
     }
     reader.read_and_copy_bytes({entry.key.bytes(), Digest::size()});
+  }
+
+  if (m_results.empty()) {
+    m_files = std::move(files);
+    m_file_infos = std::move(file_infos);
+    m_results = std::move(results);
+  } else {
+    for (const auto& result : results) {
+      std::unordered_map<std::string, Digest> included_files;
+      std::unordered_map<std::string, FileStats> included_files_stats;
+      for (auto file_info_index : result.file_info_indexes) {
+        const auto& file_info = file_infos[file_info_index];
+        included_files.emplace(files[file_info.index], file_info.digest);
+        included_files_stats.emplace(
+          files[file_info.index],
+          FileStats{file_info.fsize, file_info.mtime, file_info.ctime});
+      }
+      add_result(result.key, included_files, [&](const std::string& path) {
+        return included_files_stats[path];
+      });
+    }
   }
 }
 

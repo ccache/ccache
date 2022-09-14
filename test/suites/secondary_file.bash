@@ -292,4 +292,131 @@ SUITE_secondary_file() {
         expect_stat secondary_storage_miss 0
         expect_file_count 2 '*' secondary # CACHEDIR.TAG + manifest, not result
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Manifest handling"
+
+    echo 'int x;' >test.h
+    backdate test.h
+    echo '#include "test.h"' >test.c
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat primary_storage_hit 0
+    expect_stat primary_storage_miss 2 # miss: manifest + result
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 2 # miss: manifest + result
+
+    # Both primary and secondary now have an "int x;" key in the manifest.
+
+    echo 'int y;' >test.h
+    backdate test.h
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 1 # hit: manifest without key
+    expect_stat primary_storage_miss 3 # miss: result
+    expect_stat secondary_storage_hit 1 # his: manifest without key
+    expect_stat secondary_storage_miss 3 # miss: result
+
+    # Both primary and secondary now have "int x;" and "int y;" keys in the manifest.
+
+    $CCACHE -C >/dev/null
+
+    # Now only secondary has "int x;" and "int y;" keys in the manifest. We
+    # should now be able to get secondary hit without involving primary.
+
+    echo 'int x;' >test.h
+    backdate test.h
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 1
+    expect_stat primary_storage_miss 5 # miss: manifest + result
+    expect_stat secondary_storage_hit 3 # hit: manifest + result
+    expect_stat secondary_storage_miss 3
+
+    # Should be able to get secondary hit without involving primary.
+
+    echo 'int y;' >test.h
+    backdate test.h
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 2 # hit: manifest with key (downloaded from previous step)
+    expect_stat primary_storage_miss 6 # miss: result
+    expect_stat secondary_storage_hit 4 # hit: result
+    expect_stat secondary_storage_miss 3
+
+    # -------------------------------------------------------------------------
+    TEST "Manifest merging"
+
+    echo 'int x;' >test.h
+    backdate test.h
+    echo '#include "test.h"' >test.c
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat primary_storage_hit 0
+    expect_stat primary_storage_miss 2 # miss: manifest + result
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 2 # miss: manifest + result
+
+    $CCACHE -C >/dev/null
+
+    # Now secondary has an "int x;" key in the manifest and primary has none.
+
+    echo 'int y;' >test.h
+    backdate test.h
+
+    CCACHE_SECONDARY_STORAGE= $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 0
+    expect_stat primary_storage_miss 4 # miss: manifest + result
+    expect_stat secondary_storage_hit 0
+    expect_stat secondary_storage_miss 2
+
+    # Now primary has "int y;" while secondary still has "int x;".
+
+    echo 'int x;' >test.h
+    backdate test.h
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 1 # hit: manifest without key
+    expect_stat primary_storage_miss 5 # miss: result
+    expect_stat secondary_storage_hit 2 # hit: manifest + result
+    expect_stat secondary_storage_miss 2
+
+    # Primary's manifest with "int y;" was merged with secondary's "int x;"
+    # above, so we should now be able to get "int x;" and "int y;" hits locally.
+
+    echo 'int y;' >test.h
+    backdate test.h
+
+    CCACHE_SECONDARY_STORAGE= $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 3 # hit: manifest + result
+    expect_stat primary_storage_miss 5
+    expect_stat secondary_storage_hit 2
+    expect_stat secondary_storage_miss 2
+
+    echo 'int x;' >test.h
+    backdate test.h
+
+    CCACHE_SECONDARY_STORAGE= $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 2
+    expect_stat primary_storage_hit 5 # hit: manifest + result
+    expect_stat primary_storage_miss 5
+    expect_stat secondary_storage_hit 2
+    expect_stat secondary_storage_miss 2
 }

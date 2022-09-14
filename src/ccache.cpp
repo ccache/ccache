@@ -1730,10 +1730,12 @@ hash_direct_mode_specific_data(Context& ctx,
   manifest_key = hash.digest();
 
   MTR_BEGIN("manifest", "manifest_get");
+  size_t read_manifests = 0;
   ctx.storage.get(
     *manifest_key, core::CacheEntryType::manifest, [&](util::Bytes&& value) {
       try {
         read_manifest(ctx, value);
+        ++read_manifests;
         result_key = ctx.manifest.look_up_result_digest(ctx);
       } catch (const core::Error& e) {
         LOG("Failed to look up result key in manifest: {}", e.what());
@@ -1747,6 +1749,14 @@ hash_direct_mode_specific_data(Context& ctx,
       }
     });
   MTR_END("manifest", "manifest_get");
+  if (read_manifests > 1) {
+    MTR_SCOPE("manifest", "merge");
+    LOG("Storing merged manifest {} locally", manifest_key->to_string());
+    core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
+    ctx.storage.primary.put(*manifest_key,
+                            core::CacheEntryType::manifest,
+                            core::CacheEntry::serialize(header, ctx.manifest));
+  }
 
   return {};
 }
