@@ -17,7 +17,7 @@ SUITE_basedir() {
     # -------------------------------------------------------------------------
     TEST "Enabled CCACHE_BASEDIR"
 
-    CCACHE_BASEDIR=/ $CCACHE_COMPILE --version
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE --version >/dev/null
     expect_stat no_input_file 1
 
     cd dir1
