@@ -22,6 +22,7 @@ set(
   test_util_Bytes.cpp
   test_util_LockFile.cpp
   test_util_TextTable.cpp
+  test_util_TimePoint.cpp
   test_util_Tokenizer.cpp
   test_util_XXH3_128.cpp
   test_util_XXH3_64.cpp
