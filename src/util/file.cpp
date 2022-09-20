@@ -42,6 +42,10 @@
 #  endif
 #endif
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <cerrno>
 #include <codecvt>
 #include <cstring>
@@ -238,30 +242,31 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 
 void
 set_timestamps(const std::string& path,
-               std::optional<timespec> mtime,
-               std::optional<timespec> atime)
+               std::optional<util::TimePoint> mtime,
+               std::optional<util::TimePoint> atime)
 {
 #ifdef HAVE_UTIMENSAT
   timespec atime_mtime[2];
   if (mtime) {
-    atime_mtime[0] = atime ? *atime : *mtime;
-    atime_mtime[1] = *mtime;
+    atime_mtime[0] = (atime ? *atime : *mtime).to_timespec();
+    atime_mtime[1] = mtime->to_timespec();
   }
   utimensat(AT_FDCWD, path.c_str(), mtime ? atime_mtime : nullptr, 0);
 #elif defined(HAVE_UTIMES)
   timeval atime_mtime[2];
   if (mtime) {
-    atime_mtime[0].tv_sec = atime ? atime->tv_sec : mtime->tv_sec;
-    atime_mtime[0].tv_usec = (atime ? atime->tv_nsec : mtime->tv_nsec) / 1000;
-    atime_mtime[1].tv_sec = mtime->tv_sec;
-    atime_mtime[1].tv_usec = mtime->tv_nsec / 1000;
+    atime_mtime[0].tv_sec = atime ? atime->sec() : mtime->sec();
+    atime_mtime[0].tv_usec =
+      (atime ? atime->nsec_decimal_part() : mtime->nsec_decimal_part()) / 1000;
+    atime_mtime[1].tv_sec = mtime->sec();
+    atime_mtime[1].tv_usec = mtime->nsec_decimal_part() / 1000;
   }
   utimes(path.c_str(), mtime ? atime_mtime : nullptr);
 #else
   utimbuf atime_mtime;
   if (mtime) {
-    atime_mtime.actime = atime ? atime->tv_sec : mtime->tv_sec;
-    atime_mtime.modtime = mtime->tv_sec;
+    atime_mtime.actime = atime ? atime->sec() : mtime->sec();
+    atime_mtime.modtime = mtime->sec();
     utime(path.c_str(), &atime_mtime);
   } else {
     utime(path.c_str(), nullptr);

@@ -30,6 +30,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/TimePoint.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
@@ -50,10 +51,6 @@ extern "C" {
 
 #ifdef HAVE_PWD_H
 #  include <pwd.h>
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
 #endif
 
 #ifdef __linux__
@@ -795,9 +792,9 @@ is_precompiled_header(std::string_view path)
 }
 
 std::optional<tm>
-localtime(std::optional<time_t> time)
+localtime(std::optional<util::TimePoint> time)
 {
-  time_t timestamp = time ? *time : ::time(nullptr);
+  time_t timestamp = time ? time->sec() : util::TimePoint::now().sec();
   tm result;
   if (localtime_r(&timestamp, &result)) {
     return result;

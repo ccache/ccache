@@ -65,9 +65,6 @@
 #include <optional>
 #include <string_view>
 
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-#endif
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -161,7 +158,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
 static std::string
 prepare_debug_path(const std::string& debug_dir,
-                   const timeval& time_of_invocation,
+                   const util::TimePoint& time_of_invocation,
                    const std::string& output_obj,
                    std::string_view suffix)
 {
@@ -174,19 +171,19 @@ prepare_debug_path(const std::string& debug_dir,
   }
 
   char timestamp[100];
-  const auto tm = Util::localtime(time_of_invocation.tv_sec);
+  const auto tm = Util::localtime(time_of_invocation);
   if (tm) {
     strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &*tm);
   } else {
     snprintf(timestamp,
              sizeof(timestamp),
              "%llu",
-             static_cast<long long unsigned int>(time_of_invocation.tv_sec));
+             static_cast<long long unsigned int>(time_of_invocation.sec()));
   }
   return FMT("{}.{}_{:06}.ccache-{}",
              prefix,
              timestamp,
-             time_of_invocation.tv_usec,
+             time_of_invocation.nsec_decimal_part() / 1000,
              suffix);
 }
 
@@ -265,14 +262,14 @@ include_file_too_new(const Context& ctx,
   // starting compilation and writing the include file. See also the notes under
   // "Performance" in doc/MANUAL.adoc.
   if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_mtime))
-      && path_stat.mtime() >= ctx.time_of_compilation) {
+      && path_stat.mtime().sec() >= ctx.time_of_compilation.sec()) {
     LOG("Include file {} too new", path);
     return true;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_ctime))
-      && path_stat.ctime() >= ctx.time_of_compilation) {
+      && path_stat.ctime().sec() >= ctx.time_of_compilation.sec()) {
     LOG("Include file {} ctime too new", path);
     return true;
   }
@@ -799,8 +796,8 @@ update_manifest(Context& ctx,
         && ctx.time_of_compilation > std::max(stat.mtime(), stat.ctime());
       return core::Manifest::FileStats{
         stat.size(),
-        stat && cache_time ? stat.mtime() : -1,
-        stat && cache_time ? stat.ctime() : -1,
+        stat && cache_time ? stat.mtime() : util::TimePoint(),
+        stat && cache_time ? stat.ctime() : util::TimePoint(),
       };
     });
   if (added) {
@@ -1020,7 +1017,7 @@ to_cache(Context& ctx,
     depend_mode_args.push_back(depend_extra_args);
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
-    ctx.time_of_compilation = time(nullptr);
+    ctx.time_of_compilation = util::TimePoint::now();
     result = do_execute(ctx, depend_mode_args);
   }
   MTR_END("execute", "compiler");
@@ -1101,7 +1098,7 @@ to_cache(Context& ctx,
 static nonstd::expected<Digest, Failure>
 get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
-  ctx.time_of_compilation = time(nullptr);
+  ctx.time_of_compilation = util::TimePoint::now();
 
   std::string preprocessed_path;
   std::string cpp_stderr_data;
@@ -1192,7 +1189,7 @@ hash_compiler(const Context& ctx,
   } else if (ctx.config.compiler_check() == "mtime") {
     hash.hash_delimiter("cc_mtime");
     hash.hash(st.size());
-    hash.hash(st.mtime());
+    hash.hash(st.mtime().nsec());
   } else if (util::starts_with(ctx.config.compiler_check(), "string:")) {
     hash.hash_delimiter("cc_hash");
     hash.hash(&ctx.config.compiler_check()[7]);
@@ -1851,7 +1848,7 @@ calculate_result_and_manifest_key(Context& ctx,
   bool found_ccbin = false;
 
   hash.hash_delimiter("cache entry version");
-  hash.hash(core::k_cache_entry_format_version);
+  hash.hash(core::CacheEntry::k_format_version);
 
   hash.hash_delimiter("result version");
   hash.hash(core::Result::k_format_version);

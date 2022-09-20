@@ -38,7 +38,6 @@
 
 #include <algorithm>
 
-using doctest::Approx;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Util");

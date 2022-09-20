@@ -136,7 +136,7 @@ TEST_CASE("Break stale lock, blocking")
   TestContext test_context;
 
   util::write_file("test.alive", "");
-  const timespec long_time_ago{0, 0};
+  const util::TimePoint long_time_ago(0, 0);
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 
@@ -150,7 +150,7 @@ TEST_CASE("Break stale lock, non-blocking")
   TestContext test_context;
 
   util::write_file("test.alive", "");
-  const timespec long_time_ago{0, 0};
+  const util::TimePoint long_time_ago(0, 0);
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 

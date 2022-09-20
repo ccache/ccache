@@ -25,6 +25,7 @@
 #include <storage/primary/util.hpp>
 #include <storage/types.hpp>
 #include <util/Bytes.hpp>
+#include <util/TimePoint.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
@@ -85,7 +86,8 @@ public:
   void zero_all_statistics();
 
   // Get statistics and last time of update for the whole primary storage cache.
-  std::pair<core::StatisticsCounters, time_t> get_all_statistics() const;
+  std::pair<core::StatisticsCounters, util::TimePoint>
+  get_all_statistics() const;
 
   // --- Cleanup ---
 

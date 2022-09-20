@@ -231,8 +231,8 @@ InodeCache::hash_inode(const std::string& path,
   key.st_dev = stat.device();
   key.st_ino = stat.inode();
   key.st_mode = stat.mode();
-  key.st_mtim = stat.mtim();
-  key.st_ctim = stat.ctim();
+  key.st_mtim = stat.mtime().to_timespec();
+  key.st_ctim = stat.ctime().to_timespec();
   key.st_size = stat.size();
 
   Hash hash;

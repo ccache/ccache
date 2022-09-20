@@ -127,9 +127,9 @@ static_assert(sizeof(k_statistics_fields) / sizeof(k_statistics_fields[0])
               == static_cast<size_t>(Statistic::END) - 1);
 
 static std::string
-format_timestamp(const uint64_t value)
+format_timestamp(const util::TimePoint& value)
 {
-  if (value == 0) {
+  if (value.sec() == 0) {
     return "never";
   } else {
     const auto tm = Util::localtime(value);
@@ -219,7 +219,7 @@ add_ratio_row(util::TextTable& table,
 
 std::string
 Statistics::format_human_readable(const Config& config,
-                                  const time_t last_updated,
+                                  const util::TimePoint& last_updated,
                                   const uint8_t verbosity,
                                   const bool from_log) const
 {
@@ -251,7 +251,7 @@ Statistics::format_human_readable(const Config& config,
     table.add_row(
       {"Stats updated:", C(format_timestamp(last_updated)).colspan(4)});
     if (verbosity > 1) {
-      const uint64_t last_zeroed = S(stats_zeroed_timestamp);
+      const util::TimePoint last_zeroed(S(stats_zeroed_timestamp));
       table.add_row(
         {"Stats zeroed:", C(format_timestamp(last_zeroed)).colspan(4)});
     }
@@ -351,11 +351,11 @@ Statistics::format_human_readable(const Config& config,
 }
 
 std::string
-Statistics::format_machine_readable(const time_t last_updated) const
+Statistics::format_machine_readable(const util::TimePoint& last_updated) const
 {
   std::vector<std::string> lines;
 
-  lines.push_back(FMT("stats_updated_timestamp\t{}\n", last_updated));
+  lines.push_back(FMT("stats_updated_timestamp\t{}\n", last_updated.sec()));
 
   for (const auto& field : k_statistics_fields) {
     if (!(field.flags & FLAG_NEVER)) {

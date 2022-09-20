@@ -63,18 +63,10 @@ namespace core {
 
 const uint16_t k_ccache_magic = 0xccac;
 
-// Version 0:
-//   - First version.
-// Version 1:
-//   - Added self_contained field.
-//   - The checksum is now for the (potentially) compressed payload instead of
-//     the uncompressed payload, and the checksum is now always stored
-//     uncompressed.
-const uint16_t k_cache_entry_format_version = 1;
-
 class CacheEntry
 {
 public:
+  static const uint8_t k_format_version;
   constexpr static uint8_t default_compression_level = 1;
 
   class Header

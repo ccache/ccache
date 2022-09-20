@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <util/TimePoint.hpp>
 #include <util/types.hpp>
 
 #include <third_party/nonstd/expected.hpp>
@@ -67,8 +68,8 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 // Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
 // time. If `atime` is std::nullopt, set to what `mtime` specifies.
 void set_timestamps(const std::string& path,
-                    std::optional<timespec> mtime = std::nullopt,
-                    std::optional<timespec> atime = std::nullopt);
+                    std::optional<util::TimePoint> mtime = std::nullopt,
+                    std::optional<util::TimePoint> atime = std::nullopt);
 
 // Write `size` bytes from binary `data` to `fd`.
 nonstd::expected<void, std::string>

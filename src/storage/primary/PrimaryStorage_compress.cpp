@@ -136,7 +136,7 @@ recompress_file(RecompressionStatistics& statistics,
   core::CacheEntry cache_entry(cache_file_data);
   cache_entry.verify_checksum();
 
-  header.entry_format_version = core::k_cache_entry_format_version;
+  header.entry_format_version = core::CacheEntry::k_format_version;
   header.compression_type =
     level ? core::CompressionType::zstd : core::CompressionType::none;
   header.compression_level = wanted_level;
@@ -147,7 +147,7 @@ recompress_file(RecompressionStatistics& statistics,
   new_cache_file.commit();
 
   // Restore mtime/atime to keep cache LRU cleanup working as expected:
-  util::set_timestamps(cache_file.path(), old_stat.mtim(), old_stat.atim());
+  util::set_timestamps(cache_file.path(), old_stat.mtime(), old_stat.atime());
 
   const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
   StatsFile(stats_file).update([=](auto& cs) {

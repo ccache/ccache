@@ -283,11 +283,8 @@ trim_dir(const std::string& dir,
   });
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
-    const auto ts_1 = trim_lru_mtime ? f1.stat.mtim() : f1.stat.atim();
-    const auto ts_2 = trim_lru_mtime ? f2.stat.mtim() : f2.stat.atim();
-    const auto ns_1 = 1'000'000'000ULL * ts_1.tv_sec + ts_1.tv_nsec;
-    const auto ns_2 = 1'000'000'000ULL * ts_2.tv_sec + ts_2.tv_nsec;
-    return ns_1 < ns_2;
+    return trim_lru_mtime ? f1.stat.mtime() < f2.stat.mtime()
+                          : f1.stat.atime() < f2.stat.atime();
   });
 
   uint64_t size_after = size_before;
@@ -506,9 +503,7 @@ process_main_options(int argc, const char* const* argv)
       return inspect_path(arg);
 
     case PRINT_STATS: {
-      StatisticsCounters counters;
-      time_t last_updated;
-      std::tie(counters, last_updated) =
+      const auto [counters, last_updated] =
         storage::primary::PrimaryStorage(config).get_all_statistics();
       Statistics statistics(counters);
       PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
@@ -600,9 +595,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 's': { // --show-stats
-      StatisticsCounters counters;
-      time_t last_updated;
-      std::tie(counters, last_updated) =
+      const auto [counters, last_updated] =
         storage::primary::PrimaryStorage(config).get_all_statistics();
       Statistics statistics(counters);
       PRINT_RAW(stdout,

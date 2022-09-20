@@ -28,6 +28,7 @@
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <storage/primary/StatsFile.hpp>
+#include <util/Duration.hpp>
 #include <util/file.hpp>
 
 #ifdef HAVE_UNISTD_H
@@ -40,7 +41,7 @@ namespace storage::primary {
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
-const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
+const util::Duration k_tempdir_cleanup_interval(2 * 24 * 60 * 60); // 2 days
 
 // Maximum files per cache directory. This constant is somewhat arbitrarily
 // chosen to be large enough to avoid unnecessary cache levels but small enough
@@ -371,7 +372,7 @@ PrimaryStorage::clean_internal_tempdir()
 {
   MTR_SCOPE("primary_storage", "clean_internal_tempdir");
 
-  const time_t now = time(nullptr);
+  const auto now = util::TimePoint::now();
   const auto cleaned_stamp = FMT("{}/.cleaned", m_config.temporary_dir());
   const auto cleaned_stat = Stat::stat(cleaned_stamp);
   if (cleaned_stat

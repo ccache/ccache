@@ -19,6 +19,7 @@
 #pragma once
 
 #include <core/StatisticsCounters.hpp>
+#include <util/TimePoint.hpp>
 
 #include <cstdint>
 #include <ctime>
@@ -40,12 +41,13 @@ public:
 
   // Format cache statistics in human-readable format.
   std::string format_human_readable(const Config& config,
-                                    time_t last_updated,
+                                    const util::TimePoint& last_updated,
                                     uint8_t verbosity,
                                     bool from_log) const;
 
   // Format cache statistics in machine-readable format.
-  std::string format_machine_readable(time_t last_updated) const;
+  std::string
+  format_machine_readable(const util::TimePoint& last_updated) const;
 
   const StatisticsCounters& counters() const;
 

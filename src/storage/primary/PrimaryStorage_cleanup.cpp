@@ -109,7 +109,7 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
   uint64_t cache_size = 0;
   uint64_t files_in_cache = 0;
-  time_t current_time = time(nullptr);
+  auto current_time = util::TimePoint::now();
   std::unordered_map<std::string /*result_file*/,
                      std::vector<std::string> /*associated_raw_files*/>
     raw_files_map;
@@ -124,7 +124,7 @@ PrimaryStorage::clean_dir(const std::string& subdir,
     }
 
     // Delete any tmp files older than 1 hour right away.
-    if (file.lstat().mtime() + 3600 < current_time
+    if (file.lstat().mtime() + util::Duration(3600) < current_time
         && TemporaryFile::is_tmp_file(file.path())) {
       Util::unlink_tmp(file.path());
       continue;
@@ -142,11 +142,7 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
   // Sort according to modification time, oldest first.
   std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
-    const auto ts_1 = f1.lstat().mtim();
-    const auto ts_2 = f2.lstat().mtim();
-    const auto ns_1 = 1'000'000'000ULL * ts_1.tv_sec + ts_1.tv_nsec;
-    const auto ns_2 = 1'000'000'000ULL * ts_2.tv_sec + ts_2.tv_nsec;
-    return ns_1 < ns_2;
+    return f1.lstat().mtime() < f2.lstat().mtime();
   });
 
   LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
@@ -165,8 +161,7 @@ PrimaryStorage::clean_dir(const std::string& subdir,
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
         && (!max_age
-            || file.lstat().mtime()
-                 > (current_time - static_cast<int64_t>(*max_age)))
+            || file.lstat().mtime() > (current_time - util::Duration(*max_age)))
         && (!namespace_ || max_age)) {
       break;
     }

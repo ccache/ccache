@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,10 +24,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
-
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-#endif
+#include <util/TimePoint.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -53,18 +50,6 @@ get_system_tmp_dir()
   return "/tmp";
 }
 
-double
-time_seconds()
-{
-#ifdef HAVE_GETTIMEOFDAY
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
-#else
-  return (double)time(nullptr);
-#endif
-}
-
 } // namespace
 
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
@@ -75,7 +60,8 @@ MiniTrace::MiniTrace(const ArgsInfo& args_info)
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
-  m_start_time = FMT("{:f}", time_seconds());
+  auto now = util::TimePoint::now();
+  m_start_time = FMT("{}.{:06}", now.sec(), now.nsec_decimal_part() / 1000);
   MTR_INSTANT_C("", "", "time", m_start_time.c_str());
   MTR_META_PROCESS_NAME("ccache");
   MTR_START("program", "ccache", m_trace_id);

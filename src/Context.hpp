@@ -32,6 +32,7 @@
 
 #include <core/Manifest.hpp>
 #include <storage/Storage.hpp>
+#include <util/TimePoint.hpp>
 
 #include <ctime>
 #include <optional>
@@ -39,10 +40,6 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-#endif
 
 class SignalHandler;
 
@@ -69,11 +66,11 @@ public:
   Args orig_args;
 
   // Time of ccache invocation.
-  timeval time_of_invocation;
+  util::TimePoint time_of_invocation;
 
   // Time of compilation. Used to see if include files have changed after
   // compilation.
-  time_t time_of_compilation = 0;
+  util::TimePoint time_of_compilation;
 
   // Files included by the preprocessor and their hashes.
   std::unordered_map<std::string, Digest> included_files;

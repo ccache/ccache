@@ -26,6 +26,7 @@
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <fmtmacros.hpp>
+#include <util/TimePoint.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/zstd.hpp>
@@ -69,16 +70,25 @@ cache_entry_type_from_int(const uint8_t entry_type)
 
 namespace core {
 
+// Version 0:
+//   - First version.
+// Version 1:
+//   - Added self_contained field.
+//   - The checksum is now for the (potentially) compressed payload instead of
+//     the uncompressed payload, and the checksum is now always stored
+//     uncompressed.
+const uint8_t CacheEntry::k_format_version = 1;
+
 CacheEntry::Header::Header(const Config& config,
                            core::CacheEntryType entry_type)
   : magic(k_ccache_magic),
-    entry_format_version(k_cache_entry_format_version),
+    entry_format_version(k_format_version),
     entry_type(entry_type),
     compression_type(compression_type_from_config(config)),
     compression_level(compression_level_from_config(config)),
     self_contained(entry_type != CacheEntryType::result
                    || !core::Result::Serializer::use_raw_files(config)),
-    creation_time(time(nullptr)),
+    creation_time(util::TimePoint::now().sec()),
     ccache_version(CCACHE_VERSION),
     namespace_(config.namespace_()),
     entry_size(0)
@@ -132,7 +142,7 @@ CacheEntry::Header::parse(nonstd::span<const uint8_t> data)
   }
 
   reader.read_int(entry_format_version);
-  if (entry_format_version != core::k_cache_entry_format_version) {
+  if (entry_format_version != k_format_version) {
     throw core::Error(
       FMT("Unknown entry format version: {}", entry_format_version));
   }

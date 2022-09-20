@@ -29,7 +29,6 @@ set(functions
     geteuid
     getopt_long
     getpwuid
-    gettimeofday
     posix_fallocate
     realpath
     setenv

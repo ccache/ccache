@@ -29,9 +29,6 @@
 
 #include "third_party/fmt/core.h"
 
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-#endif
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -44,10 +41,8 @@
 const double k_min_sleep_time = 0.010;
 const double k_max_sleep_time = 0.050;
 #ifndef _WIN32
-const double k_staleness_limit = 2;
-const double k_keep_alive_interval = k_staleness_limit / 4;
-const auto k_keep_alive_interval_ms = std::chrono::milliseconds{
-  static_cast<uint64_t>(k_keep_alive_interval * 1000)};
+const util::Duration k_staleness_limit(2);
+const util::Duration k_keep_alive_interval(k_staleness_limit / 4);
 #endif
 
 namespace {
@@ -155,21 +150,6 @@ LockFile::acquire(const bool blocking)
 
 #ifndef _WIN32
 
-static double
-time_from_clock()
-{
-  timeval tv;
-  gettimeofday(&tv, nullptr);
-  return tv.tv_sec + static_cast<double>(tv.tv_usec) / 1'000'000;
-}
-
-static double
-time_from_stat(const Stat& stat)
-{
-  const auto mtime = stat.mtim();
-  return mtime.tv_sec + static_cast<double>(mtime.tv_nsec) / 1'000'000'000;
-}
-
 bool
 LockFile::do_acquire(const bool blocking)
 {
@@ -178,9 +158,9 @@ LockFile::do_acquire(const bool blocking)
      << std::this_thread::get_id();
   const auto content_prefix = ss.str();
 
-  double last_seen_activity = [this] {
+  util::TimePoint last_seen_activity = [this] {
     const auto last_lock_update = get_last_lock_update();
-    return last_lock_update ? *last_lock_update : time_from_clock();
+    return last_lock_update ? *last_lock_update : util::TimePoint::now();
   }();
 
   std::string initial_content;
@@ -188,7 +168,9 @@ LockFile::do_acquire(const bool blocking)
                                            k_max_sleep_time * 1000);
 
   while (true) {
-    const auto my_content = FMT("{}-{}", content_prefix, time_from_clock());
+    const auto now = util::TimePoint::now();
+    const auto my_content =
+      FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec());
 
     if (symlink(my_content.c_str(), m_lock_file.c_str()) == 0) {
       // We got the lock.
@@ -245,20 +227,23 @@ LockFile::do_acquire(const bool blocking)
       last_seen_activity = std::max(last_seen_activity, *last_lock_update);
     }
 
-    const double inactive_duration = time_from_clock() - last_seen_activity;
+    const util::Duration inactive_duration =
+      util::TimePoint::now() - last_seen_activity;
 
     if (inactive_duration < k_staleness_limit) {
-      LOG("Lock {} held by another process active {:.3f} seconds ago",
+      LOG("Lock {} held by another process active {}.{:03} seconds ago",
           m_lock_file,
-          inactive_duration);
+          inactive_duration.sec(),
+          inactive_duration.nsec() / 1'000'000);
       if (!blocking) {
         return false;
       }
     } else if (content == initial_content) {
       // The lock seems to be stale -- break it and try again.
-      LOG("Breaking {} since it has been inactive for {:.3f} seconds",
+      LOG("Breaking {} since it has been inactive for {}.{:03} seconds",
           m_lock_file,
-          inactive_duration);
+          inactive_duration.sec(),
+          inactive_duration.nsec() / 1'000'000);
       if (!on_before_break() || !Util::unlink_tmp(m_lock_file)) {
         return false;
       }
@@ -376,7 +361,10 @@ LongLivedLockFile::on_after_acquire()
     while (true) {
       std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
       m_stop_keep_alive_condition.wait_for(
-        lock, k_keep_alive_interval_ms, [this] { return m_stop_keep_alive; });
+        lock,
+        std::chrono::seconds(k_keep_alive_interval.sec())
+          + std::chrono::nanoseconds(k_keep_alive_interval.nsec()),
+        [this] { return m_stop_keep_alive; });
       if (m_stop_keep_alive) {
         return;
       }
@@ -407,11 +395,11 @@ LongLivedLockFile::on_before_break()
   return Util::unlink_tmp(m_alive_file);
 }
 
-std::optional<double>
+std::optional<util::TimePoint>
 LongLivedLockFile::get_last_lock_update()
 {
   if (const auto stat = Stat::stat(m_alive_file); stat) {
-    return time_from_stat(stat);
+    return stat.mtime();
   } else {
     return std::nullopt;
   }

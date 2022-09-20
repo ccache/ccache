@@ -76,7 +76,7 @@ template<> struct hash<core::Manifest::FileInfo>
 
 namespace core {
 
-const uint8_t Manifest::k_format_version = 0;
+const uint8_t Manifest::k_format_version = 1;
 
 void
 Manifest::read(nonstd::span<const uint8_t> data)
@@ -107,8 +107,8 @@ Manifest::read(nonstd::span<const uint8_t> data)
     reader.read_int(entry.index);
     reader.read_and_copy_bytes({entry.digest.bytes(), Digest::size()});
     reader.read_int(entry.fsize);
-    reader.read_int(entry.mtime);
-    reader.read_int(entry.ctime);
+    entry.mtime.set_sec(reader.read_int<int64_t>());
+    entry.ctime.set_sec(reader.read_int<int64_t>());
   }
 
   const auto result_count = reader.read_int<uint32_t>();
@@ -264,8 +264,8 @@ Manifest::serialize(util::Bytes& output)
     writer.write_int<uint32_t>(file_info.index);
     writer.write_bytes({file_info.digest.bytes(), Digest::size()});
     writer.write_int(file_info.fsize);
-    writer.write_int(file_info.mtime);
-    writer.write_int(file_info.ctime);
+    writer.write_int(file_info.mtime.sec());
+    writer.write_int(file_info.ctime.sec());
   }
 
   writer.write_int<uint32_t>(m_results.size());
@@ -430,8 +430,16 @@ Manifest::inspect(FILE* const stream) const
     PRINT(stream, "    Path index: {}\n", m_file_infos[i].index);
     PRINT(stream, "    Hash: {}\n", m_file_infos[i].digest.to_string());
     PRINT(stream, "    File size: {}\n", m_file_infos[i].fsize);
-    PRINT(stream, "    Mtime: {}\n", m_file_infos[i].mtime);
-    PRINT(stream, "    Ctime: {}\n", m_file_infos[i].ctime);
+    if (m_file_infos[i].mtime == util::TimePoint(-1)) {
+      PRINT_RAW(stream, "    Mtime: -\n");
+    } else {
+      PRINT(stream, "    Mtime: {}\n", m_file_infos[i].mtime.sec());
+    }
+    if (m_file_infos[i].ctime == util::TimePoint(-1)) {
+      PRINT_RAW(stream, "    Ctime: -\n");
+    } else {
+      PRINT(stream, "    Ctime: {}\n", m_file_infos[i].ctime.sec());
+    }
   }
 
   PRINT(stream, "Results ({}):\n", m_results.size());

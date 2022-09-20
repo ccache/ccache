@@ -154,19 +154,15 @@ TEST_CASE("Default constructor")
   CHECK(stat.device() == 0);
   CHECK(stat.inode() == 0);
   CHECK(stat.mode() == 0);
-  CHECK(stat.ctime() == 0);
-  CHECK(stat.mtime() == 0);
+  CHECK(stat.ctime().sec() == 0);
+  CHECK(stat.ctime().nsec() == 0);
+  CHECK(stat.mtime().sec() == 0);
+  CHECK(stat.mtime().nsec() == 0);
   CHECK(stat.size() == 0);
   CHECK(stat.size_on_disk() == 0);
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
-
-  CHECK(stat.ctim().tv_sec == 0);
-  CHECK(stat.ctim().tv_nsec == 0);
-
-  CHECK(stat.mtim().tv_sec == 0);
-  CHECK(stat.mtim().tv_nsec == 0);
 
 #ifdef _WIN32
   CHECK(stat.file_attributes() == 0);
@@ -210,19 +206,15 @@ TEST_CASE("Return values when file is missing")
   CHECK(stat.device() == 0);
   CHECK(stat.inode() == 0);
   CHECK(stat.mode() == 0);
-  CHECK(stat.ctime() == 0);
-  CHECK(stat.mtime() == 0);
+  CHECK(stat.ctime().sec() == 0);
+  CHECK(stat.ctime().nsec() == 0);
+  CHECK(stat.mtime().sec() == 0);
+  CHECK(stat.mtime().nsec() == 0);
   CHECK(stat.size() == 0);
   CHECK(stat.size_on_disk() == 0);
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
-
-  CHECK(stat.ctim().tv_sec == 0);
-  CHECK(stat.ctim().tv_nsec == 0);
-
-  CHECK(stat.mtim().tv_sec == 0);
-  CHECK(stat.mtim().tv_nsec == 0);
 
 #ifdef _WIN32
   CHECK(stat.file_attributes() == 0);
@@ -259,13 +251,10 @@ TEST_CASE("Return values when file exists")
   struct timespec last_write_time =
     win32_filetime_to_timespec(info.ftLastWriteTime);
 
-  CHECK(stat.ctime() == creation_time.tv_sec);
-  CHECK(stat.mtime() == last_write_time.tv_sec);
-
-  CHECK(stat.ctim().tv_sec == creation_time.tv_sec);
-  CHECK(stat.ctim().tv_nsec == creation_time.tv_nsec);
-  CHECK(stat.mtim().tv_sec == last_write_time.tv_sec);
-  CHECK(stat.mtim().tv_nsec == last_write_time.tv_nsec);
+  CHECK(stat.ctime().sec() == creation_time.tv_sec);
+  CHECK(stat.ctime().nsec_decimal_part() == creation_time.tv_nsec);
+  CHECK(stat.mtime().sec() == last_write_time.tv_sec);
+  CHECK(stat.mtime().nsec_decimal_part() == last_write_time.tv_nsec);
 
   CHECK(stat.size_on_disk() == ((stat.size() + 1023) & ~1023));
   CHECK(stat.file_attributes() == info.dwFileAttributes);
@@ -278,30 +267,28 @@ TEST_CASE("Return values when file exists")
   CHECK(stat.device() == st.st_dev);
   CHECK(stat.inode() == st.st_ino);
   CHECK(stat.mode() == st.st_mode);
-  CHECK(stat.ctime() == st.st_ctime);
-  CHECK(stat.mtime() == st.st_mtime);
   CHECK(stat.size_on_disk() == st.st_blocks * 512);
 
 #  ifdef HAVE_STRUCT_STAT_ST_CTIM
-  CHECK(stat.ctim().tv_sec == st.st_ctim.tv_sec);
-  CHECK(stat.ctim().tv_nsec == st.st_ctim.tv_nsec);
+  CHECK(stat.ctime().sec() == st.st_ctim.tv_sec);
+  CHECK(stat.ctime().nsec_decimal_part() == st.st_ctim.tv_nsec);
 #  elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
-  CHECK(stat.ctim().tv_sec == st.st_ctimespec.tv_sec);
-  CHECK(stat.ctim().tv_nsec == st.st_ctimespec.tv_nsec);
+  CHECK(stat.ctime().sec() == st.st_ctimespec.tv_sec);
+  CHECK(stat.ctime().nsec_decimal_part() == st.st_ctimespec.tv_nsec);
 #  else
-  CHECK(stat.ctim().tv_sec == st.st_ctime);
-  CHECK(stat.ctim().tv_nsec == 0);
+  CHECK(stat.ctime().sec() == st.st_ctime);
+  CHECK(stat.ctime().nsec_decimal_part() == 0);
 #  endif
 
 #  ifdef HAVE_STRUCT_STAT_ST_MTIM
-  CHECK(stat.mtim().tv_sec == st.st_mtim.tv_sec);
-  CHECK(stat.mtim().tv_nsec == st.st_mtim.tv_nsec);
+  CHECK(stat.mtime().sec() == st.st_mtim.tv_sec);
+  CHECK(stat.mtime().nsec_decimal_part() == st.st_mtim.tv_nsec);
 #  elif defined(HAVE_STRUCT_STAT_ST_MTIMESPEC)
-  CHECK(stat.mtim().tv_sec == st.st_mtimespec.tv_sec);
-  CHECK(stat.mtim().tv_nsec == st.st_mtimespec.tv_nsec);
+  CHECK(stat.mtime().sec() == st.st_mtimespec.tv_sec);
+  CHECK(stat.mtime().nsec_decimal_part() == st.st_mtimespec.tv_nsec);
 #  else
-  CHECK(stat.mtim().tv_sec == st.st_mtime);
-  CHECK(stat.mtim().tv_nsec == 0);
+  CHECK(stat.mtime().sec() == st.st_mtime);
+  CHECK(stat.mtime().nsec_decimal_part() == 0);
 #  endif
 #endif
 }

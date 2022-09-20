@@ -85,9 +85,6 @@
 // Define if you have the "getpwuid" function.
 #cmakedefine HAVE_GETPWUID
 
-// Define if you have the "gettimeofday" function.
-#cmakedefine HAVE_GETTIMEOFDAY
-
 // Define if you have the <linux/fs.h> header file.
 #cmakedefine HAVE_LINUX_FS_H
 

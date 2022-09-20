@@ -20,6 +20,7 @@
 
 #include <Digest.hpp>
 #include <core/Serializer.hpp>
+#include <util/TimePoint.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
@@ -42,8 +43,8 @@ public:
   struct FileStats
   {
     uint64_t size;
-    int64_t mtime;
-    int64_t ctime;
+    util::TimePoint mtime;
+    util::TimePoint ctime;
   };
 
   using FileStater = std::function<FileStats(std::string)>;
@@ -67,11 +68,11 @@ public:
 private:
   struct FileInfo
   {
-    uint32_t index; // Index to m_files.
-    Digest digest;  // Digest of referenced file.
-    uint64_t fsize; // Size of referenced file.
-    int64_t mtime;  // mtime of referenced file.
-    int64_t ctime;  // ctime of referenced file.
+    uint32_t index;        // Index to m_files.
+    Digest digest;         // Digest of referenced file.
+    uint64_t fsize;        // Size of referenced file.
+    util::TimePoint mtime; // mtime of referenced file.
+    util::TimePoint ctime; // ctime of referenced file.
 
     bool operator==(const FileInfo& other) const;
   };

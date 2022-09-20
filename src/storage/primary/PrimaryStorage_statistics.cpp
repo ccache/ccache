@@ -45,7 +45,7 @@ for_each_level_1_and_2_stats_file(
 void
 PrimaryStorage::zero_all_statistics()
 {
-  const time_t timestamp = time(nullptr);
+  const auto now = util::TimePoint::now();
   const auto zeroable_fields = core::Statistics::get_zeroable_fields();
 
   for_each_level_1_and_2_stats_file(
@@ -54,18 +54,18 @@ PrimaryStorage::zero_all_statistics()
         for (const auto statistic : zeroable_fields) {
           cs.set(statistic, 0);
         }
-        cs.set(core::Statistic::stats_zeroed_timestamp, timestamp);
+        cs.set(core::Statistic::stats_zeroed_timestamp, now.sec());
       });
     });
 }
 
 // Get statistics and last time of update for the whole primary storage cache.
-std::pair<core::StatisticsCounters, time_t>
+std::pair<core::StatisticsCounters, util::TimePoint>
 PrimaryStorage::get_all_statistics() const
 {
   core::StatisticsCounters counters;
   uint64_t zero_timestamp = 0;
-  time_t last_updated = 0;
+  util::TimePoint last_updated;
 
   // Add up the stats in each directory.
   for_each_level_1_and_2_stats_file(

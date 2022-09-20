@@ -3,6 +3,7 @@ set(
   Bytes.cpp
   LockFile.cpp
   TextTable.cpp
+  TimePoint.cpp
   Tokenizer.cpp
   file.cpp
   path.cpp

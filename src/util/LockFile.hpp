@@ -19,6 +19,7 @@
 #pragma once
 
 #include <NonCopyable.hpp>
+#include <util/TimePoint.hpp>
 
 #include <condition_variable>
 #include <cstdint>
@@ -62,7 +63,7 @@ private:
 #ifndef _WIN32
   bool do_acquire(bool blocking);
   virtual bool on_before_break();
-  virtual std::optional<double> get_last_lock_update();
+  virtual std::optional<util::TimePoint> get_last_lock_update();
 #else
   void* do_acquire(bool blocking);
 #endif
@@ -98,7 +99,7 @@ private:
   void on_after_acquire() override;
   void on_before_release() override;
   bool on_before_break() override;
-  std::optional<double> get_last_lock_update() override;
+  std::optional<util::TimePoint> get_last_lock_update() override;
 #endif
 };
 
@@ -134,7 +135,7 @@ LockFile::on_before_break()
   return true;
 }
 
-inline std::optional<double>
+inline std::optional<util::TimePoint>
 LockFile::get_last_lock_update()
 {
   return std::nullopt;
