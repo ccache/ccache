@@ -262,14 +262,14 @@ include_file_too_new(const Context& ctx,
   // starting compilation and writing the include file. See also the notes under
   // "Performance" in doc/MANUAL.adoc.
   if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_mtime))
-      && path_stat.mtime().sec() >= ctx.time_of_compilation.sec()) {
+      && path_stat.mtime() >= ctx.time_of_compilation) {
     LOG("Include file {} too new", path);
     return true;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_ctime))
-      && path_stat.ctime().sec() >= ctx.time_of_compilation.sec()) {
+      && path_stat.ctime() >= ctx.time_of_compilation) {
     LOG("Include file {} ctime too new", path);
     return true;
   }
@@ -774,10 +774,6 @@ update_manifest(Context& ctx,
 
   MTR_SCOPE("manifest", "manifest_put");
 
-  // {m,c}time() have a resolution of 1 second, so we can cache the file's mtime
-  // and ctime only if they're at least one second older than
-  // time_of_compilation.
-  //
   // ctime() may be 0, so we have to check time_of_compilation against
   // MAX(mtime, ctime).
   //

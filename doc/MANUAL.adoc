@@ -962,13 +962,13 @@ Examples:
     directory in the `.gcno` file. *gcno_cwd* also disables hashing of the
     current working directory if `-fprofile-abs-path` is used.
 *include_file_ctime*::
-    By default, ccache will not cache a file if it includes a header whose ctime
-    is too new. This sloppiness disables that check. See also
-    _<<Handling of newly created header files>>_.
+    By default, ccache will disable the direct mode if an include file has too
+    new ctime. This sloppiness disables that check. See also _<<Handling of
+    newly created header files>>_.
 *include_file_mtime*::
-    By default, ccache will not cache a file if it includes a header whose mtime
-    is too new. This sloppiness disables that check. See also
-    _<<Handling of newly created header files>>_.
+    By default, ccache will disable the direct mode if an include file has too
+    new mtime. This sloppiness disables that check. See also _<<Handling of
+    newly created header files>>_.
 *ivfsoverlay*::
     Ignore the Clang compiler option `-ivfsoverlay` and its argument. This is
     useful if you use Xcode, which uses a virtual file system (VFS) for things
