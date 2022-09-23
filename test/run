@@ -449,9 +449,15 @@ TEST() {
     remove_cache
     rm -rf $ABS_TESTDIR/run $ABS_TESTDIR/run.real
 
+if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     # Verify that tests behave well when apparent CWD != actual CWD.
     mkdir $ABS_TESTDIR/run.real
+
     ln -s run.real $ABS_TESTDIR/run
+else
+    # on windows, ln -s is not supported well
+    mkdir $ABS_TESTDIR/run
+fi
 
     cd $ABS_TESTDIR/run
     if type SUITE_${suite_name}_SETUP >/dev/null 2>&1; then
@@ -623,6 +629,11 @@ cd $TESTDIR || exit 1
 
 mkdir compiler
 COMPILER="$(pwd)/compiler/$(basename "$REAL_COMPILER_BIN")"
+if $HOST_OS_WINDOWS; then
+    # on windows, if the compiler executable has no extension, ccache will automatically
+    # add a .exe before invoking it and on a script, this fails
+    COMPILER="$COMPILER.sh"
+fi
 cat >"$COMPILER" <<EOF
 #!/bin/sh
 
