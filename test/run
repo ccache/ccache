@@ -649,7 +649,7 @@ for suite in $suites; do
 done
 
 cd /
-if [ -z "$KEEP_TESTDIR"]; then
+if [ -z "$KEEP_TESTDIR" ]; then
     rm -rf $ABS_TESTDIR
 fi
 if $skipped; then
