@@ -244,10 +244,9 @@ Statistics::format_human_readable(const Config& config,
 
   if (verbosity > 0 && !from_log) {
     table.add_row({"Cache directory:", C(config.cache_dir()).colspan(4)});
+    table.add_row({"Config file:", C(config.config_path()).colspan(4)});
     table.add_row(
-      {"Primary config:", C(config.primary_config_path()).colspan(4)});
-    table.add_row(
-      {"Secondary config:", C(config.secondary_config_path()).colspan(4)});
+      {"System config file:", C(config.system_config_path()).colspan(4)});
     table.add_row(
       {"Stats updated:", C(format_timestamp(last_updated)).colspan(4)});
     if (verbosity > 1) {

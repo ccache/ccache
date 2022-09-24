@@ -289,27 +289,26 @@ file. The priorities of configuration options are as follows (where 1 is
 highest):
 
 1. Environment variables.
-2. The primary (cache-specific) configuration file (see below).
-3. The secondary (system-wide read-only) configuration file
-   `<sysconfdir>/ccache.conf` (typically `/etc/ccache.conf` or
-   `/usr/local/etc/ccache.conf`).
+2. The cache-specific configuration file (see below).
+3. The system (read-only) configuration file `<sysconfdir>/ccache.conf`
+   (typically `/etc/ccache.conf` or `/usr/local/etc/ccache.conf`).
 4. Compile-time defaults.
 
-As a special case, if the the environment variable `CCACHE_CONFIGPATH` is set
-it specifies the primary configuration file and the secondary (system-wide)
-configuration file won't be read.
+As a special case, if the environment variable `CCACHE_CONFIGPATH` is set it
+specifies the configuration file, and the system configuration file won't be
+read.
 
 
-=== Location of the primary configuration file
+=== Location of the configuration file
 
-The location of the primary (cache-specific) configuration is determined like
-this on non-Windows systems:
+The location of the cache-specific configuration file is determined like this on
+non-Windows systems:
 
 1. If `CCACHE_CONFIGPATH` is set, use that path.
 2. Otherwise, if the environment variable `CCACHE_DIR` is set then use
    `$CCACHE_DIR/ccache.conf`.
-3. Otherwise, if <<config_cache_dir,*cache_dir*>> is set in the secondary
-   (system-wide) configuration file then use `<cache_dir>/ccache.conf`.
+3. Otherwise, if <<config_cache_dir,*cache_dir*>> is set in the system
+   configuration file then use `<cache_dir>/ccache.conf`.
 4. Otherwise, if there is a legacy `$HOME/.ccache` directory then use
    `$HOME/.ccache/ccache.conf`.
 5. Otherwise, if `XDG_CONFIG_HOME` is set then use
@@ -323,8 +322,8 @@ On Windows, this is the method used to find the configuration file:
 1. If `CCACHE_CONFIGPATH` is set, use that path.
 2. Otherwise, if the environment variable `CCACHE_DIR` is set then use
    `%CCACHE_DIR%/ccache.conf`.
-3. Otherwise, if <<config_cache_dir,*cache_dir*>> is set in the secondary
-   (system-wide) configuration file then use `<cache_dir>\ccache.conf`. The
+3. Otherwise, if <<config_cache_dir,*cache_dir*>> is set in the system
+   configuration file then use `<cache_dir>\ccache.conf`. The
    system-wide configuration on Windows is
    `%ALLUSERSPROFILE%\ccache\ccache.conf` by default. The `ALLUSERSPROFILE`
    environment variable is usually `C:\ProgramData`.
@@ -461,7 +460,7 @@ of the cache in domain environments and similar problems. Please check this
 directory for cache directories and either delete them or the whole directory,
 or move them to the `%LOCALAPPDATA%\ccache` directory.
 +
-See also _<<Location of the primary configuration file>>_.
+See also _<<Location of the configuration file>>_.
 
 [#config_compiler]
 *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::

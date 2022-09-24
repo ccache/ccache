@@ -489,7 +489,7 @@ Config::read()
 
   const char* env_ccache_configpath = getenv("CCACHE_CONFIGPATH");
   if (env_ccache_configpath) {
-    set_primary_config_path(env_ccache_configpath);
+    set_config_path(env_ccache_configpath);
   } else {
     // Only used for ccache tests:
     const char* const env_ccache_configpath2 = getenv("CCACHE_CONFIGPATH2");
@@ -500,33 +500,33 @@ Config::read()
       sysconfdir = Util::make_path(program_data, "ccache");
 #endif
 
-    set_secondary_config_path(env_ccache_configpath2
-                                ? env_ccache_configpath2
-                                : Util::make_path(sysconfdir, "ccache.conf"));
-    MTR_BEGIN("config", "conf_read_secondary");
+    set_system_config_path(env_ccache_configpath2
+                             ? env_ccache_configpath2
+                             : Util::make_path(sysconfdir, "ccache.conf"));
+    MTR_BEGIN("config", "conf_read_system");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
-    update_from_file(secondary_config_path());
-    MTR_END("config", "conf_read_secondary");
+    update_from_file(system_config_path());
+    MTR_END("config", "conf_read_system");
 
     const char* const env_ccache_dir = getenv("CCACHE_DIR");
-    std::string primary_config_dir;
+    std::string config_dir;
     if (env_ccache_dir && *env_ccache_dir) {
-      primary_config_dir = env_ccache_dir;
+      config_dir = env_ccache_dir;
     } else if (!cache_dir().empty() && !env_ccache_dir) {
-      primary_config_dir = cache_dir();
+      config_dir = cache_dir();
     } else if (legacy_ccache_dir_exists) {
-      primary_config_dir = legacy_ccache_dir;
+      config_dir = legacy_ccache_dir;
 #ifdef _WIN32
     } else if (env_local_appdata
                && Stat::stat(
                  Util::make_path(env_local_appdata, "ccache", "ccache.conf"))) {
-      primary_config_dir = Util::make_path(env_local_appdata, "ccache");
+      config_dir = Util::make_path(env_local_appdata, "ccache");
     } else if (env_appdata
                && Stat::stat(
                  Util::make_path(env_appdata, "ccache", "ccache.conf"))) {
-      primary_config_dir = Util::make_path(env_appdata, "ccache");
+      config_dir = Util::make_path(env_appdata, "ccache");
     } else if (env_local_appdata) {
-      primary_config_dir = Util::make_path(env_local_appdata, "ccache");
+      config_dir = Util::make_path(env_local_appdata, "ccache");
     } else {
       throw core::Fatal(
         "could not find configuration file and the LOCALAPPDATA environment"
@@ -534,22 +534,22 @@ Config::read()
     }
 #else
     } else if (env_xdg_config_home) {
-      primary_config_dir = Util::make_path(env_xdg_config_home, "ccache");
+      config_dir = Util::make_path(env_xdg_config_home, "ccache");
     } else {
-      primary_config_dir = default_config_dir(home_dir);
+      config_dir = default_config_dir(home_dir);
     }
 #endif
-    set_primary_config_path(Util::make_path(primary_config_dir, "ccache.conf"));
+    set_config_path(Util::make_path(config_dir, "ccache.conf"));
   }
 
-  const std::string& cache_dir_before_primary_config = cache_dir();
+  const std::string& cache_dir_before_config_file_was_read = cache_dir();
 
-  MTR_BEGIN("config", "conf_read_primary");
-  update_from_file(primary_config_path());
-  MTR_END("config", "conf_read_primary");
+  MTR_BEGIN("config", "conf_read");
+  update_from_file(config_path());
+  MTR_END("config", "conf_read");
 
-  // Ignore cache_dir set in primary
-  set_cache_dir(cache_dir_before_primary_config);
+  // Ignore cache_dir set in configuration file
+  set_cache_dir(cache_dir_before_config_file_was_read);
 
   MTR_BEGIN("config", "conf_update_from_environment");
   update_from_environment();
@@ -575,35 +575,34 @@ Config::read()
     }
 #endif
   }
-  // else: cache_dir was set explicitly via environment or via secondary
-  // config.
+  // else: cache_dir was set explicitly via environment or via system config.
 
-  // We have now determined config.cache_dir and populated the rest of config
-  // in prio order (1. environment, 2. primary config, 3. secondary config).
+  // We have now determined config.cache_dir and populated the rest of config in
+  // prio order (1. environment, 2. cache-specific config, 3. system config).
 }
 
 const std::string&
-Config::primary_config_path() const
+Config::config_path() const
 {
-  return m_primary_config_path;
+  return m_config_path;
 }
 
 const std::string&
-Config::secondary_config_path() const
+Config::system_config_path() const
 {
-  return m_secondary_config_path;
+  return m_system_config_path;
 }
 
 void
-Config::set_primary_config_path(std::string path)
+Config::set_config_path(std::string path)
 {
-  m_primary_config_path = std::move(path);
+  m_config_path = std::move(path);
 }
 
 void
-Config::set_secondary_config_path(std::string path)
+Config::set_system_config_path(std::string path)
 {
-  m_secondary_config_path = std::move(path);
+  m_system_config_path = std::move(path);
 }
 
 bool

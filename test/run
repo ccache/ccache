@@ -380,7 +380,7 @@ reset_environment() {
 
     export CCACHE_DETECT_SHEBANG=1
     export CCACHE_DIR=$ABS_TESTDIR/.ccache
-    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip secondary config
+    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip system config
     export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
     export CCACHE_NODIRECT=1
 

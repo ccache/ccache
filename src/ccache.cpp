@@ -2029,8 +2029,8 @@ initialize(Context& ctx, int argc, const char* const* argv)
   LOG("=== CCACHE {} STARTED =========================================",
       CCACHE_VERSION);
 
-  LOG("Primary configuration file: {}", ctx.config.primary_config_path());
-  LOG("Secondary configuration file: {}", ctx.config.secondary_config_path());
+  LOG("Configuration file: {}", ctx.config.config_path());
+  LOG("System configuration file: {}", ctx.config.system_config_path());
 
   if (getenv("CCACHE_INTERNAL_TRACE")) {
 #ifdef MTR_ENABLED

@@ -21,9 +21,9 @@ SUITE_upgrade() {
     else
         expected=$HOME/.config/ccache/ccache.conf
     fi
-    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
+    actual=$($CCACHE -sv | sed -n 's/^Config file: *//p')
     if [ "$actual" != "$expected" ]; then
-        test_failed "expected primary config $expected actual $actual"
+        test_failed "expected config $expected, actual $actual"
     fi
 
     # -------------------------------------------------------------------------
@@ -42,9 +42,9 @@ SUITE_upgrade() {
     fi
 
     expected=$XDG_CONFIG_HOME/ccache/ccache.conf
-    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
+    actual=$($CCACHE -sv | sed -n 's/^Config file: *//p')
     if [ "$actual" != "$expected" ]; then
-        test_failed "expected primary config $expected actual $actual"
+        test_failed "expected config $expected, actual $actual"
     fi
 
     # -------------------------------------------------------------------------
@@ -64,9 +64,9 @@ SUITE_upgrade() {
     fi
 
     expected=$HOME/.ccache/ccache.conf
-    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
+    actual=$($CCACHE -sv | sed -n 's/^Config file: *//p')
     if [ "$actual" != "$expected" ]; then
-        test_failed "expected primary config $expected actual $actual"
+        test_failed "expected config $expected, actual $actual"
     fi
 
     # -------------------------------------------------------------------------
@@ -85,16 +85,16 @@ SUITE_upgrade() {
     fi
 
     expected=$CCACHE_DIR/ccache.conf
-    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
+    actual=$($CCACHE -sv | sed -n 's/^Config file: *//p')
     if [ "$actual" != "$expected" ]; then
-        test_failed "expected primary config $expected actual $actual"
+        test_failed "expected config $expected, actual $actual"
     fi
 
     # -------------------------------------------------------------------------
     TEST "Cache config/directory with empty CCACHE_DIR"
 
     # Empty (but set) CCACHE_DIR means "use defaults" and should thus override
-    # cache_dir set in the secondary config.
+    # cache_dir set in the system config.
 
     unset CCACHE_CONFIGPATH
     export CCACHE_CONFIGPATH2=$PWD/ccache.conf2
@@ -111,8 +111,8 @@ SUITE_upgrade() {
     fi
 
     expected=$XDG_CONFIG_HOME/ccache/ccache.conf
-    actual=$($CCACHE -sv | sed -n 's/ *Primary config: *//p')
+    actual=$($CCACHE -sv | sed -n 's/^Config file: *//p')
     if [ "$actual" != "$expected" ]; then
-        test_failed "expected primary config $expected actual $actual"
+        test_failed "expected config $expected, actual $actual"
     fi
 }

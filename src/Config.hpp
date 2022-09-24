@@ -120,12 +120,12 @@ public:
   void set_temporary_dir(const std::string& value);
 
   // Where to write configuration changes.
-  const std::string& primary_config_path() const;
-  // Secondary, read-only configuration file (if any).
-  const std::string& secondary_config_path() const;
+  const std::string& config_path() const;
+  // System (read-only) configuration file (if any).
+  const std::string& system_config_path() const;
 
-  void set_primary_config_path(std::string path);
-  void set_secondary_config_path(std::string path);
+  void set_config_path(std::string path);
+  void set_system_config_path(std::string path);
 
   using ItemVisitor = std::function<void(const std::string& key,
                                          const std::string& value,
@@ -155,8 +155,8 @@ public:
   static void check_key_tables_consistency();
 
 private:
-  std::string m_primary_config_path;
-  std::string m_secondary_config_path;
+  std::string m_config_path;
+  std::string m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
   std::string m_base_dir;
