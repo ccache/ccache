@@ -16,16 +16,16 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "PrimaryStorage.hpp"
+#include "LocalStorage.hpp"
 
 #include <Config.hpp>
 #include <core/Statistics.hpp>
 #include <fmtmacros.hpp>
-#include <storage/primary/StatsFile.hpp>
+#include <storage/local/StatsFile.hpp>
 
 #include <algorithm>
 
-namespace storage::primary {
+namespace storage::local {
 
 static void
 for_each_level_1_and_2_stats_file(
@@ -43,7 +43,7 @@ for_each_level_1_and_2_stats_file(
 // Zero all statistics counters except those tracking cache size and number of
 // files in the cache.
 void
-PrimaryStorage::zero_all_statistics()
+LocalStorage::zero_all_statistics()
 {
   const auto now = util::TimePoint::now();
   const auto zeroable_fields = core::Statistics::get_zeroable_fields();
@@ -59,9 +59,9 @@ PrimaryStorage::zero_all_statistics()
     });
 }
 
-// Get statistics and last time of update for the whole primary storage cache.
+// Get statistics and last time of update for the whole local storage cache.
 std::pair<core::StatisticsCounters, util::TimePoint>
-PrimaryStorage::get_all_statistics() const
+LocalStorage::get_all_statistics() const
 {
   core::StatisticsCounters counters;
   uint64_t zero_timestamp = 0;
@@ -81,4 +81,4 @@ PrimaryStorage::get_all_statistics() const
   return std::make_pair(counters, last_updated);
 }
 
-} // namespace storage::primary
+} // namespace storage::local

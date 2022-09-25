@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This script downloads the contents of the cache from a Redis secondary
+# This script downloads the contents of the local cache from a Redis remote
 # storage.
 
 import redis

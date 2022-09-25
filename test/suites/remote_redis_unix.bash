@@ -1,4 +1,4 @@
-SUITE_secondary_redis_unix_PROBE() {
+SUITE_remote_redis_unix_PROBE() {
     if ! $CCACHE --version | fgrep -q -- redis-storage &> /dev/null; then
         echo "redis-storage not available"
         return
@@ -40,7 +40,7 @@ start_redis_unix_server() {
     fi
 }
 
-SUITE_secondary_redis_unix_SETUP() {
+SUITE_remote_redis_unix_SETUP() {
     unset CCACHE_NODIRECT
 
     generate_code 1 test.c
@@ -57,13 +57,13 @@ expect_number_of_redis_unix_cache_entries() {
     fi
 }
 
-SUITE_secondary_redis_unix() {
+SUITE_remote_redis_unix() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
     socket=$(mktemp)
     redis_url="redis+unix:${socket}"
-    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+    export CCACHE_REMOTE_STORAGE="${redis_url}"
 
     start_redis_unix_server "${socket}"
 
@@ -86,7 +86,7 @@ SUITE_secondary_redis_unix() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
-    expect_stat files_in_cache 2 # fetched from secondary
+    expect_stat files_in_cache 2 # fetched from remote
     expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     # -------------------------------------------------------------------------
@@ -95,7 +95,7 @@ SUITE_secondary_redis_unix() {
     socket=$(mktemp)
     password=secret123
     redis_url="redis+unix://${password}@localhost${socket}"
-    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+    export CCACHE_REMOTE_STORAGE="${redis_url}"
 
     start_redis_unix_server "${socket}" "${password}"
 
@@ -119,17 +119,17 @@ SUITE_secondary_redis_unix() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
-    expect_stat files_in_cache 2 # fetched from secondary
+    expect_stat files_in_cache 2 # fetched from remote
     expect_number_of_redis_unix_cache_entries 2 "${socket}" # result + manifest
 
     # -------------------------------------------------------------------------
     TEST "Unreachable server"
 
-    export CCACHE_SECONDARY_STORAGE="redis+unix:///foo"
+    export CCACHE_REMOTE_STORAGE="redis+unix:///foo"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_stat secondary_storage_error 1
+    expect_stat remote_storage_error 1
 }

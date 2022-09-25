@@ -35,7 +35,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
-#include <storage/primary/PrimaryStorage.hpp>
+#include <storage/local/LocalStorage.hpp>
 #include <util/TextTable.hpp>
 #include <util/XXH3_128.hpp>
 #include <util/expected.hpp>
@@ -121,10 +121,10 @@ Common options:
     -h, --help                 print this help text
     -V, --version              print version and copyright information
 
-Options for secondary storage:
+Options for remote file-based storage:
         --trim-dir PATH        remove old files from directory PATH until it is
                                at most the size specified by --trim-max-size
-                               (note: don't use this option to trim the primary
+                               (note: don't use this option to trim the local
                                cache)
         --trim-max-size SIZE   specify the maximum size for --trim-dir;
                                available suffixes: k, M, G, T (decimal) and Ki,
@@ -214,7 +214,7 @@ inspect_path(const std::string& path)
 }
 
 static void
-print_compression_statistics(const storage::primary::CompressionStatistics& cs)
+print_compression_statistics(const storage::local::CompressionStatistics& cs)
 {
   const double ratio = cs.compr_size > 0
                          ? static_cast<double>(cs.content_size) / cs.compr_size
@@ -276,7 +276,7 @@ trim_dir(const std::string& dir,
       const auto name = Util::base_name(path);
       if (name == "ccache.conf" || name == "stats") {
         throw Fatal(
-          FMT("this looks like a primary cache directory (found {})", path));
+          FMT("this looks like a local cache directory (found {})", path));
       }
       files.push_back({path, stat});
     }
@@ -470,8 +470,8 @@ process_main_options(int argc, const char* const* argv)
       std::optional<ResultExtractor::GetRawFilePathFunction> get_raw_file_path;
       if (arg != "-") {
         get_raw_file_path = [&](uint8_t file_number) {
-          return storage::primary::PrimaryStorage::get_raw_file_path(
-            arg, file_number);
+          return storage::local::LocalStorage::get_raw_file_path(arg,
+                                                                 file_number);
         };
       }
       ResultExtractor result_extractor(".", get_raw_file_path);
@@ -504,7 +504,7 @@ process_main_options(int argc, const char* const* argv)
 
     case PRINT_STATS: {
       const auto [counters, last_updated] =
-        storage::primary::PrimaryStorage(config).get_all_statistics();
+        storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
       PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
       break;
@@ -513,7 +513,7 @@ process_main_options(int argc, const char* const* argv)
     case 'c': // --cleanup
     {
       ProgressBar progress_bar("Cleaning...");
-      storage::primary::PrimaryStorage(config).clean_all(
+      storage::local::LocalStorage(config).clean_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
@@ -524,7 +524,7 @@ process_main_options(int argc, const char* const* argv)
     case 'C': // --clear
     {
       ProgressBar progress_bar("Clearing...");
-      storage::primary::PrimaryStorage(config).wipe_all(
+      storage::local::LocalStorage(config).wipe_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
@@ -596,7 +596,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 's': { // --show-stats
       const auto [counters, last_updated] =
-        storage::primary::PrimaryStorage(config).get_all_statistics();
+        storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
       PRINT_RAW(stdout,
                 statistics.format_human_readable(
@@ -625,7 +625,7 @@ process_main_options(int argc, const char* const* argv)
     {
       ProgressBar progress_bar("Scanning...");
       const auto compression_statistics =
-        storage::primary::PrimaryStorage(config).get_compression_statistics(
+        storage::local::LocalStorage(config).get_compression_statistics(
           [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n\n");
@@ -645,13 +645,13 @@ process_main_options(int argc, const char* const* argv)
       }
 
       ProgressBar progress_bar("Recompressing...");
-      storage::primary::PrimaryStorage(config).recompress(
+      storage::local::LocalStorage(config).recompress(
         wanted_level, [&](double progress) { progress_bar.update(progress); });
       break;
     }
 
     case 'z': // --zero-stats
-      storage::primary::PrimaryStorage(config).zero_all_statistics();
+      storage::local::LocalStorage(config).zero_all_statistics();
       PRINT_RAW(stdout, "Statistics zeroed\n");
       break;
 
@@ -666,7 +666,7 @@ process_main_options(int argc, const char* const* argv)
     config.read();
 
     ProgressBar progress_bar("Evicting...");
-    storage::primary::PrimaryStorage(config).evict(
+    storage::local::LocalStorage(config).evict(
       [&](double progress) { progress_bar.update(progress); },
       evict_max_age,
       evict_namespace);

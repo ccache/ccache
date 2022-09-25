@@ -2,7 +2,7 @@ set(
   sources
   FileStorage.cpp
   HttpStorage.cpp
-  SecondaryStorage.cpp
+  RemoteStorage.cpp
 )
 
 if(REDIS_STORAGE_BACKEND)

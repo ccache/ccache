@@ -119,7 +119,7 @@ option(HIREDIS_FROM_INTERNET
 
 find_package(zstd 1.1.2 MODULE REQUIRED)
 
-option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
+option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
 
 if(REDIS_STORAGE_BACKEND)
   find_package(hiredis 0.13.3 MODULE REQUIRED)

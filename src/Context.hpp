@@ -87,7 +87,7 @@ public:
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;
 
-  // Storage (fronting primary and secondary storage backends).
+  // Storage (fronting local and remote storage backends).
   storage::Storage storage;
 
   // Direct mode manifest.

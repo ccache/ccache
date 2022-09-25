@@ -102,13 +102,13 @@ const StatisticsField k_statistics_fields[] = {
   FIELD(preprocessed_cache_hit, nullptr),
   FIELD(preprocessed_cache_miss, nullptr),
   FIELD(preprocessor_error, "Preprocessing failed", FLAG_UNCACHEABLE),
-  FIELD(primary_storage_hit, nullptr),
-  FIELD(primary_storage_miss, nullptr),
+  FIELD(local_storage_hit, nullptr),
+  FIELD(local_storage_miss, nullptr),
   FIELD(recache, "Forced recache", FLAG_UNCACHEABLE),
-  FIELD(secondary_storage_error, nullptr),
-  FIELD(secondary_storage_hit, nullptr),
-  FIELD(secondary_storage_miss, nullptr),
-  FIELD(secondary_storage_timeout, nullptr),
+  FIELD(remote_storage_error, nullptr),
+  FIELD(remote_storage_hit, nullptr),
+  FIELD(remote_storage_miss, nullptr),
+  FIELD(remote_storage_timeout, nullptr),
   FIELD(stats_zeroed_timestamp, nullptr),
   FIELD(
     unsupported_code_directive, "Unsupported code directive", FLAG_UNCACHEABLE),
@@ -293,24 +293,24 @@ Statistics::format_human_readable(const Config& config,
   }
 
   const uint64_t g = 1'000'000'000;
-  const uint64_t pri_hits = S(primary_storage_hit);
-  const uint64_t pri_misses = S(primary_storage_miss);
-  const uint64_t pri_size = S(cache_size_kibibyte) * 1024;
+  const uint64_t local_hits = S(local_storage_hit);
+  const uint64_t local_misses = S(local_storage_miss);
+  const uint64_t local_size = S(cache_size_kibibyte) * 1024;
   const uint64_t cleanups = S(cleanups_performed);
-  table.add_heading("Primary storage:");
-  add_ratio_row(table, "  Hits:", pri_hits, pri_hits + pri_misses);
-  add_ratio_row(table, "  Misses:", pri_misses, pri_hits + pri_misses);
+  table.add_heading("Local storage:");
+  add_ratio_row(table, "  Hits:", local_hits, local_hits + local_misses);
+  add_ratio_row(table, "  Misses:", local_misses, local_hits + local_misses);
 
   if (!from_log) {
     std::vector<C> size_cells{
       "  Cache size (GB):",
-      C(FMT("{:.2f}", static_cast<double>(pri_size) / g)).right_align()};
+      C(FMT("{:.2f}", static_cast<double>(local_size) / g)).right_align()};
     if (config.max_size() != 0) {
       size_cells.emplace_back("/");
       size_cells.emplace_back(
         C(FMT("{:.2f}", static_cast<double>(config.max_size()) / g))
           .right_align());
-      size_cells.emplace_back(percent(pri_size, config.max_size()));
+      size_cells.emplace_back(percent(local_size, config.max_size()));
     }
     table.add_row(size_cells);
 
@@ -329,20 +329,22 @@ Statistics::format_human_readable(const Config& config,
     }
   }
 
-  const uint64_t sec_hits = S(secondary_storage_hit);
-  const uint64_t sec_misses = S(secondary_storage_miss);
-  const uint64_t sec_errors = S(secondary_storage_error);
-  const uint64_t sec_timeouts = S(secondary_storage_timeout);
+  const uint64_t remote_hits = S(remote_storage_hit);
+  const uint64_t remote_misses = S(remote_storage_miss);
+  const uint64_t remote_errors = S(remote_storage_error);
+  const uint64_t remote_timeouts = S(remote_storage_timeout);
 
-  if (verbosity > 1 || sec_hits + sec_misses + sec_errors + sec_timeouts > 0) {
-    table.add_heading("Secondary storage:");
-    add_ratio_row(table, "  Hits:", sec_hits, sec_hits + sec_misses);
-    add_ratio_row(table, "  Misses:", sec_misses, sec_hits + sec_misses);
-    if (verbosity > 1 || sec_errors > 0) {
-      table.add_row({"  Errors:", sec_errors});
+  if (verbosity > 1
+      || remote_hits + remote_misses + remote_errors + remote_timeouts > 0) {
+    table.add_heading("Remote storage:");
+    add_ratio_row(table, "  Hits:", remote_hits, remote_hits + remote_misses);
+    add_ratio_row(
+      table, "  Misses:", remote_misses, remote_hits + remote_misses);
+    if (verbosity > 1 || remote_errors > 0) {
+      table.add_row({"  Errors:", remote_errors});
     }
-    if (verbosity > 1 || sec_timeouts > 0) {
-      table.add_row({"  Timeouts:", sec_timeouts});
+    if (verbosity > 1 || remote_timeouts > 0) {
+      table.add_row({"  Timeouts:", remote_timeouts});
     }
   }
 

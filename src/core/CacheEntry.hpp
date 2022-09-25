@@ -43,7 +43,7 @@
 // <entry_type>       ::= <result_entry> | <manifest_entry>
 // <result_entry>     ::= 0 (uint8_t)
 // <manifest_entry>   ::= 1 (uint8_t)
-// <self_contained>   ::= 0/1 (uint8_t) ; whether suitable for secondary storage
+// <self_contained>   ::= 0/1 (uint8_t) ; whether suitable for remote storage
 // <compr_type>       ::= <compr_none> | <compr_zstd>
 // <compr_none>       ::= 0 (uint8_t)
 // <compr_zstd>       ::= 1 (uint8_t)

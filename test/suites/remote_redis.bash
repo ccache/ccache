@@ -1,4 +1,4 @@
-SUITE_secondary_redis_PROBE() {
+SUITE_remote_redis_PROBE() {
     if ! $CCACHE --version | fgrep -q -- redis-storage &> /dev/null; then
         echo "redis-storage not available"
         return
@@ -30,7 +30,7 @@ start_redis_server() {
     fi
 }
 
-SUITE_secondary_redis_SETUP() {
+SUITE_remote_redis_SETUP() {
     unset CCACHE_NODIRECT
 
     generate_code 1 test.c
@@ -47,13 +47,13 @@ expect_number_of_redis_cache_entries() {
     fi
 }
 
-SUITE_secondary_redis() {
+SUITE_remote_redis() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
     port=7777
     redis_url="redis://localhost:${port}"
-    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+    export CCACHE_REMOTE_STORAGE="${redis_url}"
 
     start_redis_server "${port}"
 
@@ -76,7 +76,7 @@ SUITE_secondary_redis() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
-    expect_stat files_in_cache 2 # fetched from secondary
+    expect_stat files_in_cache 2 # fetched from remote
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     # -------------------------------------------------------------------------
@@ -85,7 +85,7 @@ SUITE_secondary_redis() {
     port=7777
     password=secret123
     redis_url="redis://${password}@localhost:${port}"
-    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+    export CCACHE_REMOTE_STORAGE="${redis_url}"
 
     start_redis_server "${port}" "${password}"
 
@@ -109,17 +109,17 @@ SUITE_secondary_redis() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
-    expect_stat files_in_cache 2 # fetched from secondary
+    expect_stat files_in_cache 2 # fetched from remote
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     # -------------------------------------------------------------------------
     TEST "Unreachable server"
 
-    export CCACHE_SECONDARY_STORAGE="redis://localhost:1"
+    export CCACHE_REMOTE_STORAGE="redis://localhost:1"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_stat secondary_storage_error 1
+    expect_stat remote_storage_error 1
 }

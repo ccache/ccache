@@ -25,7 +25,7 @@
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
 
-namespace storage::primary {
+namespace storage::local {
 
 StatsFile::StatsFile(const std::string& path) : m_path(path)
 {
@@ -88,4 +88,4 @@ StatsFile::update(
   return counters;
 }
 
-} // namespace storage::primary
+} // namespace storage::local

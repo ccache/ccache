@@ -19,8 +19,8 @@
 #pragma once
 
 #include <core/types.hpp>
-#include <storage/primary/PrimaryStorage.hpp>
-#include <storage/secondary/SecondaryStorage.hpp>
+#include <storage/local/LocalStorage.hpp>
+#include <storage/remote/RemoteStorage.hpp>
 #include <storage/types.hpp>
 #include <util/Bytes.hpp>
 
@@ -38,8 +38,8 @@ namespace storage {
 
 std::string get_features();
 
-struct SecondaryStorageBackendEntry;
-struct SecondaryStorageEntry;
+struct RemoteStorageBackendEntry;
+struct RemoteStorageEntry;
 
 class Storage
 {
@@ -50,7 +50,7 @@ public:
   void initialize();
   void finalize();
 
-  primary::PrimaryStorage primary;
+  local::LocalStorage local;
 
   using EntryReceiver = std::function<bool(util::Bytes&&)>;
 
@@ -64,33 +64,31 @@ public:
 
   void remove(const Digest& key, core::CacheEntryType type);
 
-  bool has_secondary_storage() const;
-  std::string get_secondary_storage_config_for_logging() const;
+  bool has_remote_storage() const;
+  std::string get_remote_storage_config_for_logging() const;
 
 private:
   const Config& m_config;
-  std::vector<std::unique_ptr<SecondaryStorageEntry>> m_secondary_storages;
+  std::vector<std::unique_ptr<RemoteStorageEntry>> m_remote_storages;
 
-  void add_secondary_storages();
+  void add_remote_storages();
 
-  void
-  mark_backend_as_failed(SecondaryStorageBackendEntry& backend_entry,
-                         secondary::SecondaryStorage::Backend::Failure failure);
+  void mark_backend_as_failed(RemoteStorageBackendEntry& backend_entry,
+                              remote::RemoteStorage::Backend::Failure failure);
 
-  SecondaryStorageBackendEntry*
-  get_backend(SecondaryStorageEntry& entry,
-              const Digest& key,
-              std::string_view operation_description,
-              const bool for_writing);
+  RemoteStorageBackendEntry* get_backend(RemoteStorageEntry& entry,
+                                         const Digest& key,
+                                         std::string_view operation_description,
+                                         const bool for_writing);
 
-  void get_from_secondary_storage(const Digest& key,
-                                  const EntryReceiver& entry_receiver);
+  void get_from_remote_storage(const Digest& key,
+                               const EntryReceiver& entry_receiver);
 
-  void put_in_secondary_storage(const Digest& key,
-                                nonstd::span<const uint8_t> value,
-                                bool only_if_missing);
+  void put_in_remote_storage(const Digest& key,
+                             nonstd::span<const uint8_t> value,
+                             bool only_if_missing);
 
-  void remove_from_secondary_storage(const Digest& key);
+  void remove_from_remote_storage(const Digest& key);
 };
 
 } // namespace storage

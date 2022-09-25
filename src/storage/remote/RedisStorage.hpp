@@ -18,31 +18,17 @@
 
 #pragma once
 
-#include <core/StatisticsCounters.hpp>
+#include <storage/remote/RemoteStorage.hpp>
 
-#include <functional>
-#include <optional>
-#include <string>
+namespace storage::remote {
 
-namespace storage::primary {
-
-class StatsFile
+class RedisStorage : public RemoteStorage
 {
 public:
-  StatsFile(const std::string& path);
+  std::unique_ptr<Backend>
+  create_backend(const Backend::Params& params) const override;
 
-  // Read counters. No lock is acquired. If the file doesn't exist all returned
-  // counters will be zero.
-  core::StatisticsCounters read() const;
-
-  // Acquire a lock, read counters, call `function` with the counters, write the
-  // counters and release the lock. Returns the resulting counters or nullopt on
-  // error (e.g. if the lock could not be acquired).
-  std::optional<core::StatisticsCounters>
-    update(std::function<void(core::StatisticsCounters& counters)>) const;
-
-private:
-  const std::string m_path;
+  void redact_secrets(Backend::Params& params) const override;
 };
 
-} // namespace storage::primary
+} // namespace storage::remote

@@ -17,8 +17,8 @@ set(
   test_core_StatisticsCounters.cpp
   test_core_StatsLog.cpp
   test_hashutil.cpp
-  test_storage_primary_StatsFile.cpp
-  test_storage_primary_util.cpp
+  test_storage_local_StatsFile.cpp
+  test_storage_local_util.cpp
   test_util_Bytes.cpp
   test_util_LockFile.cpp
   test_util_TextTable.cpp

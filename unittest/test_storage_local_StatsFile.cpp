@@ -21,16 +21,16 @@
 #include <Util.hpp>
 #include <core/Statistic.hpp>
 #include <fmtmacros.hpp>
-#include <storage/primary/StatsFile.hpp>
+#include <storage/local/StatsFile.hpp>
 #include <util/file.hpp>
 
 #include <third_party/doctest.h>
 
 using core::Statistic;
-using storage::primary::StatsFile;
+using storage::local::StatsFile;
 using TestUtil::TestContext;
 
-TEST_SUITE_BEGIN("storage::primary::StatsFile");
+TEST_SUITE_BEGIN("storage::local::StatsFile");
 
 TEST_CASE("Read nonexistent")
 {

@@ -16,24 +16,24 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "SecondaryStorage.hpp"
+#include "RemoteStorage.hpp"
 
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
-namespace storage::secondary {
+namespace storage::remote {
 
 bool
-SecondaryStorage::Backend::is_framework_attribute(const std::string& name)
+RemoteStorage::Backend::is_framework_attribute(const std::string& name)
 {
   return name == "read-only" || name == "shards";
 }
 
 std::chrono::milliseconds
-SecondaryStorage::Backend::parse_timeout_attribute(const std::string& value)
+RemoteStorage::Backend::parse_timeout_attribute(const std::string& value)
 {
   return std::chrono::milliseconds(util::value_or_throw<Failed>(
     util::parse_unsigned(value, 1, 60 * 1000, "timeout")));
 }
 
-} // namespace storage::secondary
+} // namespace storage::remote

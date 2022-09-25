@@ -16,7 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "PrimaryStorage.hpp"
+#include "LocalStorage.hpp"
 
 #include <AtomicFile.hpp>
 #include <Config.hpp>
@@ -27,7 +27,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
-#include <storage/primary/StatsFile.hpp>
+#include <storage/local/StatsFile.hpp>
 #include <util/Duration.hpp>
 #include <util/file.hpp>
 
@@ -37,7 +37,7 @@
 
 using core::Statistic;
 
-namespace storage::primary {
+namespace storage::local {
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
@@ -91,12 +91,12 @@ calculate_wanted_cache_level(const uint64_t files_in_level_1)
   return k_max_cache_levels;
 }
 
-PrimaryStorage::PrimaryStorage(const Config& config) : m_config(config)
+LocalStorage::LocalStorage(const Config& config) : m_config(config)
 {
 }
 
 void
-PrimaryStorage::finalize()
+LocalStorage::finalize()
 {
   if (m_config.temporary_dir() == m_config.default_temporary_dir()) {
     clean_internal_tempdir();
@@ -178,13 +178,13 @@ PrimaryStorage::finalize()
 }
 
 std::optional<util::Bytes>
-PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
+LocalStorage::get(const Digest& key, const core::CacheEntryType type) const
 {
-  MTR_SCOPE("primary_storage", "get");
+  MTR_SCOPE("local_storage", "get");
 
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
-    LOG("No {} {} in primary storage", key.to_string(), core::to_string(type));
+    LOG("No {} {} in local storage", key.to_string(), core::to_string(type));
     return std::nullopt;
   }
   const auto value = util::read_file<util::Bytes>(cache_file.path);
@@ -193,8 +193,7 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
     return std::nullopt;
   }
 
-  LOG(
-    "Retrieved {} from primary storage ({})", key.to_string(), cache_file.path);
+  LOG("Retrieved {} from local storage ({})", key.to_string(), cache_file.path);
 
   // Update modification timestamp to save file from LRU cleanup.
   util::set_timestamps(cache_file.path);
@@ -203,16 +202,16 @@ PrimaryStorage::get(const Digest& key, const core::CacheEntryType type) const
 }
 
 void
-PrimaryStorage::put(const Digest& key,
-                    const core::CacheEntryType type,
-                    nonstd::span<const uint8_t> value,
-                    bool only_if_missing)
+LocalStorage::put(const Digest& key,
+                  const core::CacheEntryType type,
+                  nonstd::span<const uint8_t> value,
+                  bool only_if_missing)
 {
-  MTR_SCOPE("primary_storage", "put");
+  MTR_SCOPE("local_storage", "put");
 
   const auto cache_file = look_up_cache_file(key, type);
   if (only_if_missing && cache_file.stat) {
-    LOG("Not storing {} in primary storage since it already exists",
+    LOG("Not storing {} in local storage since it already exists",
         cache_file.path);
     return;
   }
@@ -246,7 +245,7 @@ PrimaryStorage::put(const Digest& key,
     return;
   }
 
-  LOG("Stored {} in primary storage ({})", key.to_string(), cache_file.path);
+  LOG("Stored {} in local storage ({})", key.to_string(), cache_file.path);
 
   auto& counter_updates = (type == core::CacheEntryType::manifest)
                             ? m_manifest_counter_updates
@@ -264,27 +263,26 @@ PrimaryStorage::put(const Digest& key,
 }
 
 void
-PrimaryStorage::remove(const Digest& key, const core::CacheEntryType type)
+LocalStorage::remove(const Digest& key, const core::CacheEntryType type)
 {
-  MTR_SCOPE("primary_storage", "remove");
+  MTR_SCOPE("local_storage", "remove");
 
   const auto cache_file = look_up_cache_file(key, type);
   if (cache_file.stat) {
     Util::unlink_safe(cache_file.path);
-    LOG(
-      "Removed {} from primary storage ({})", key.to_string(), cache_file.path);
+    LOG("Removed {} from local storage ({})", key.to_string(), cache_file.path);
   } else {
-    LOG("No {} to remove from primary storage", key.to_string());
+    LOG("No {} to remove from local storage", key.to_string());
   }
 }
 
 std::string
-PrimaryStorage::get_raw_file_path(std::string_view result_path,
-                                  uint8_t file_number)
+LocalStorage::get_raw_file_path(std::string_view result_path,
+                                uint8_t file_number)
 {
   if (file_number >= 10) {
     // To support more entries in the future, encode to [0-9a-z]. Note that
-    // PrimaryStorage::evict currently assumes that the entry number is
+    // LocalStorage::evict currently assumes that the entry number is
     // represented as one character.
     throw core::Error(FMT("Too high raw file entry number: {}", file_number));
   }
@@ -294,8 +292,8 @@ PrimaryStorage::get_raw_file_path(std::string_view result_path,
 }
 
 std::string
-PrimaryStorage::get_raw_file_path(const Digest& result_key,
-                                  uint8_t file_number) const
+LocalStorage::get_raw_file_path(const Digest& result_key,
+                                uint8_t file_number) const
 {
   const auto cache_file =
     look_up_cache_file(result_key, core::CacheEntryType::result);
@@ -303,7 +301,7 @@ PrimaryStorage::get_raw_file_path(const Digest& result_key,
 }
 
 void
-PrimaryStorage::put_raw_files(
+LocalStorage::put_raw_files(
   const Digest& key,
   const std::vector<core::Result::Serializer::RawFile> raw_files)
 {
@@ -333,23 +331,23 @@ PrimaryStorage::put_raw_files(
 }
 
 void
-PrimaryStorage::increment_statistic(const Statistic statistic,
-                                    const int64_t value)
+LocalStorage::increment_statistic(const Statistic statistic,
+                                  const int64_t value)
 {
   m_result_counter_updates.increment(statistic, value);
 }
 
 void
-PrimaryStorage::increment_statistics(const core::StatisticsCounters& statistics)
+LocalStorage::increment_statistics(const core::StatisticsCounters& statistics)
 {
   m_result_counter_updates.increment(statistics);
 }
 
 // Private methods
 
-PrimaryStorage::LookUpCacheFileResult
-PrimaryStorage::look_up_cache_file(const Digest& key,
-                                   const core::CacheEntryType type) const
+LocalStorage::LookUpCacheFileResult
+LocalStorage::look_up_cache_file(const Digest& key,
+                                 const core::CacheEntryType type) const
 {
   const auto key_string = FMT("{}{}", key.to_string(), suffix_from_type(type));
 
@@ -368,9 +366,9 @@ PrimaryStorage::look_up_cache_file(const Digest& key,
 }
 
 void
-PrimaryStorage::clean_internal_tempdir()
+LocalStorage::clean_internal_tempdir()
 {
-  MTR_SCOPE("primary_storage", "clean_internal_tempdir");
+  MTR_SCOPE("local_storage", "clean_internal_tempdir");
 
   const auto now = util::TimePoint::now();
   const auto cleaned_stamp = FMT("{}/.cleaned", m_config.temporary_dir());
@@ -398,7 +396,7 @@ PrimaryStorage::clean_internal_tempdir()
 }
 
 std::optional<core::StatisticsCounters>
-PrimaryStorage::update_stats_and_maybe_move_cache_file(
+LocalStorage::update_stats_and_maybe_move_cache_file(
   const Digest& key,
   const std::string& current_path,
   const core::StatisticsCounters& counter_updates,
@@ -462,8 +460,8 @@ PrimaryStorage::update_stats_and_maybe_move_cache_file(
 }
 
 std::string
-PrimaryStorage::get_path_in_cache(const uint8_t level,
-                                  const std::string_view name) const
+LocalStorage::get_path_in_cache(const uint8_t level,
+                                const std::string_view name) const
 {
   ASSERT(level >= 1 && level <= 8);
   ASSERT(name.length() >= level);
@@ -483,4 +481,4 @@ PrimaryStorage::get_path_in_cache(const uint8_t level,
   return path;
 }
 
-} // namespace storage::primary
+} // namespace storage::local

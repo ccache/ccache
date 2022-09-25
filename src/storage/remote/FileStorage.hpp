@@ -18,17 +18,15 @@
 
 #pragma once
 
-#include <storage/secondary/SecondaryStorage.hpp>
+#include <storage/remote/RemoteStorage.hpp>
 
-namespace storage::secondary {
+namespace storage::remote {
 
-class HttpStorage : public SecondaryStorage
+class FileStorage : public RemoteStorage
 {
 public:
   std::unique_ptr<Backend>
   create_backend(const Backend::Params& params) const override;
-
-  void redact_secrets(Backend::Params& params) const override;
 };
 
-} // namespace storage::secondary
+} // namespace storage::remote

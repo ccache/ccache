@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,17 +18,17 @@
 
 #pragma once
 
-#include <storage/secondary/SecondaryStorage.hpp>
+#include <storage/remote/RemoteStorage.hpp>
 
-namespace storage {
-namespace secondary {
+namespace storage::remote {
 
-class FileStorage : public SecondaryStorage
+class HttpStorage : public RemoteStorage
 {
 public:
   std::unique_ptr<Backend>
   create_backend(const Backend::Params& params) const override;
+
+  void redact_secrets(Backend::Params& params) const override;
 };
 
-} // namespace secondary
-} // namespace storage
+} // namespace storage::remote

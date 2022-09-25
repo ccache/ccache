@@ -17,7 +17,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "PrimaryStorage.hpp"
+#include "LocalStorage.hpp"
 
 #include <Config.hpp>
 #include <Context.hpp>
@@ -28,9 +28,9 @@
 #include <core/CacheEntry.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
-#include <storage/primary/CacheFile.hpp>
-#include <storage/primary/StatsFile.hpp>
-#include <storage/primary/util.hpp>
+#include <storage/local/CacheFile.hpp>
+#include <storage/local/StatsFile.hpp>
+#include <storage/local/util.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 
@@ -42,7 +42,7 @@
 
 using core::Statistic;
 
-namespace storage::primary {
+namespace storage::local {
 
 static void
 delete_file(const std::string& path,
@@ -80,9 +80,9 @@ update_counters(const std::string& dir,
 }
 
 void
-PrimaryStorage::evict(const ProgressReceiver& progress_receiver,
-                      std::optional<uint64_t> max_age,
-                      std::optional<std::string> namespace_)
+LocalStorage::evict(const ProgressReceiver& progress_receiver,
+                    std::optional<uint64_t> max_age,
+                    std::optional<std::string> namespace_)
 {
   for_each_level_1_subdir(
     m_config.cache_dir(),
@@ -95,12 +95,12 @@ PrimaryStorage::evict(const ProgressReceiver& progress_receiver,
 
 // Clean up one cache subdirectory.
 void
-PrimaryStorage::clean_dir(const std::string& subdir,
-                          const uint64_t max_size,
-                          const uint64_t max_files,
-                          const std::optional<uint64_t> max_age,
-                          const std::optional<std::string> namespace_,
-                          const ProgressReceiver& progress_receiver)
+LocalStorage::clean_dir(const std::string& subdir,
+                        const uint64_t max_size,
+                        const uint64_t max_files,
+                        const std::optional<uint64_t> max_age,
+                        const std::optional<std::string> namespace_,
+                        const ProgressReceiver& progress_receiver)
 {
   LOG("Cleaning up cache directory {}", subdir);
 
@@ -228,7 +228,7 @@ PrimaryStorage::clean_dir(const std::string& subdir,
 
 // Clean up all cache subdirectories.
 void
-PrimaryStorage::clean_all(const ProgressReceiver& progress_receiver)
+LocalStorage::clean_all(const ProgressReceiver& progress_receiver)
 {
   for_each_level_1_subdir(
     m_config.cache_dir(),
@@ -267,9 +267,9 @@ wipe_dir(const std::string& subdir, const ProgressReceiver& progress_receiver)
 
 // Wipe all cached files in all subdirectories.
 void
-PrimaryStorage::wipe_all(const ProgressReceiver& progress_receiver)
+LocalStorage::wipe_all(const ProgressReceiver& progress_receiver)
 {
   for_each_level_1_subdir(m_config.cache_dir(), wipe_dir, progress_receiver);
 }
 
-} // namespace storage::primary
+} // namespace storage::local

@@ -46,7 +46,7 @@
 #include <map>
 #include <memory>
 
-namespace storage::secondary {
+namespace storage::remote {
 
 namespace {
 
@@ -55,10 +55,10 @@ using RedisReply = std::unique_ptr<redisReply, decltype(&freeReplyObject)>;
 
 const uint32_t DEFAULT_PORT = 6379;
 
-class RedisStorageBackend : public SecondaryStorage::Backend
+class RedisStorageBackend : public RemoteStorage::Backend
 {
 public:
-  RedisStorageBackend(const SecondaryStorage::Backend::Params& params);
+  RedisStorageBackend(const RemoteStorage::Backend::Params& params);
 
   nonstd::expected<std::optional<util::Bytes>, Failure>
   get(const Digest& key) override;
@@ -157,7 +157,7 @@ is_timeout(int err)
 #endif
 }
 
-nonstd::expected<std::optional<util::Bytes>, SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 RedisStorageBackend::get(const Digest& key)
 {
   const auto key_string = get_key_string(key);
@@ -175,7 +175,7 @@ RedisStorageBackend::get(const Digest& key)
   }
 }
 
-nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+nonstd::expected<bool, RemoteStorage::Backend::Failure>
 RedisStorageBackend::put(const Digest& key,
                          nonstd::span<const uint8_t> value,
                          bool only_if_missing)
@@ -208,7 +208,7 @@ RedisStorageBackend::put(const Digest& key,
   }
 }
 
-nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+nonstd::expected<bool, RemoteStorage::Backend::Failure>
 RedisStorageBackend::remove(const Digest& key)
 {
   const auto key_string = get_key_string(key);
@@ -314,7 +314,7 @@ RedisStorageBackend::authenticate(const Url& url)
   }
 }
 
-nonstd::expected<RedisReply, SecondaryStorage::Backend::Failure>
+nonstd::expected<RedisReply, RemoteStorage::Backend::Failure>
 RedisStorageBackend::redis_command(const char* format, ...)
 {
   va_list ap;
@@ -342,7 +342,7 @@ RedisStorageBackend::get_key_string(const Digest& digest) const
 
 } // namespace
 
-std::unique_ptr<SecondaryStorage::Backend>
+std::unique_ptr<RemoteStorage::Backend>
 RedisStorage::create_backend(const Backend::Params& params) const
 {
   return std::make_unique<RedisStorageBackend>(params);
@@ -364,4 +364,4 @@ RedisStorage::redact_secrets(Backend::Params& params) const
   }
 }
 
-} // namespace storage::secondary
+} // namespace storage::remote

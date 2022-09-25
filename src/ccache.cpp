@@ -903,7 +903,7 @@ write_result(Context& ctx,
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
   const auto raw_files = serializer.get_raw_files();
   if (!raw_files.empty()) {
-    ctx.storage.primary.put_raw_files(result_key, raw_files);
+    ctx.storage.local.put_raw_files(result_key, raw_files);
   }
   ctx.storage.put(result_key, core::CacheEntryType::result, cache_entry_data);
 
@@ -1746,9 +1746,9 @@ hash_direct_mode_specific_data(Context& ctx,
     MTR_SCOPE("manifest", "merge");
     LOG("Storing merged manifest {} locally", manifest_key->to_string());
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
-    ctx.storage.primary.put(*manifest_key,
-                            core::CacheEntryType::manifest,
-                            core::CacheEntry::serialize(header, ctx.manifest));
+    ctx.storage.local.put(*manifest_key,
+                          core::CacheEntryType::manifest,
+                          core::CacheEntry::serialize(header, ctx.manifest));
   }
 
   return {};
@@ -2069,7 +2069,7 @@ log_result_to_debug_log(Context& ctx)
     return;
   }
 
-  core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
+  core::Statistics statistics(ctx.storage.local.get_statistics_updates());
   for (const auto& message : statistics.get_statistics_ids()) {
     LOG("Result: {}", message);
   }
@@ -2082,7 +2082,7 @@ log_result_to_stats_log(Context& ctx)
     return;
   }
 
-  core::Statistics statistics(ctx.storage.primary.get_statistics_updates());
+  core::Statistics statistics(ctx.storage.local.get_statistics_updates());
   const auto ids = statistics.get_statistics_ids();
   if (ids.empty()) {
     return;
@@ -2145,7 +2145,7 @@ cache_compilation(int argc, const char* const* argv)
 
     const auto result = do_cache_compilation(ctx, argv);
     const auto& counters = result ? *result : result.error().counters();
-    ctx.storage.primary.increment_statistics(counters);
+    ctx.storage.local.increment_statistics(counters);
     if (!result) {
       if (result.error().exit_code()) {
         return *result.error().exit_code();
@@ -2197,8 +2197,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                                   const std::string& value,
                                   const std::string& origin) {
       const auto& log_value =
-        key == "secondary_storage"
-          ? ctx.storage.get_secondary_storage_config_for_logging()
+        key == "remote_storage"
+          ? ctx.storage.get_remote_storage_config_for_logging()
           : value;
       BULK_LOG("Config: ({}) {} = {}", origin, key, log_value);
     });
@@ -2271,13 +2271,13 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx.config.set_depend_mode(false);
   }
 
-  if (ctx.storage.has_secondary_storage()) {
+  if (ctx.storage.has_remote_storage()) {
     if (ctx.config.file_clone()) {
-      LOG_RAW("Disabling file clone mode since secondary storage is enabled");
+      LOG_RAW("Disabling file clone mode since remote storage is enabled");
       ctx.config.set_file_clone(false);
     }
     if (ctx.config.hard_link()) {
-      LOG_RAW("Disabling hard link mode since secondary storage is enabled");
+      LOG_RAW("Disabling hard link mode since remote storage is enabled");
       ctx.config.set_hard_link(false);
     }
   }
@@ -2377,7 +2377,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
 
     if (!ctx.config.recache()) {
-      ctx.storage.primary.increment_statistic(Statistic::direct_cache_miss);
+      ctx.storage.local.increment_statistic(Statistic::direct_cache_miss);
     }
   }
 
@@ -2439,7 +2439,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       return Statistic::preprocessed_cache_hit;
     }
 
-    ctx.storage.primary.increment_statistic(Statistic::preprocessed_cache_miss);
+    ctx.storage.local.increment_statistic(Statistic::preprocessed_cache_miss);
   }
 
   if (ctx.config.read_only()) {

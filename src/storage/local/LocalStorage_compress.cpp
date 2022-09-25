@@ -16,7 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "PrimaryStorage.hpp"
+#include "LocalStorage.hpp"
 
 #include <AtomicFile.hpp>
 #include <Context.hpp>
@@ -30,7 +30,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
-#include <storage/primary/StatsFile.hpp>
+#include <storage/local/StatsFile.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
@@ -45,7 +45,7 @@
 #include <string>
 #include <thread>
 
-namespace storage::primary {
+namespace storage::local {
 
 namespace {
 
@@ -158,7 +158,7 @@ recompress_file(RecompressionStatistics& statistics,
 }
 
 CompressionStatistics
-PrimaryStorage::get_compression_statistics(
+LocalStorage::get_compression_statistics(
   const ProgressReceiver& progress_receiver) const
 {
   CompressionStatistics cs{};
@@ -190,8 +190,8 @@ PrimaryStorage::get_compression_statistics(
 }
 
 void
-PrimaryStorage::recompress(const std::optional<int8_t> level,
-                           const ProgressReceiver& progress_receiver)
+LocalStorage::recompress(const std::optional<int8_t> level,
+                         const ProgressReceiver& progress_receiver)
 {
   const size_t threads = std::thread::hardware_concurrency();
   const size_t read_ahead = 2 * threads;
@@ -287,4 +287,4 @@ PrimaryStorage::recompress(const std::optional<int8_t> level,
   PRINT(stdout, "Size change:          {:>9s}\n", size_difference_str);
 }
 
-} // namespace storage::primary
+} // namespace storage::local

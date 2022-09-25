@@ -18,17 +18,31 @@
 
 #pragma once
 
-#include <storage/secondary/SecondaryStorage.hpp>
+#include <core/StatisticsCounters.hpp>
 
-namespace storage::secondary {
+#include <functional>
+#include <optional>
+#include <string>
 
-class RedisStorage : public SecondaryStorage
+namespace storage::local {
+
+class StatsFile
 {
 public:
-  std::unique_ptr<Backend>
-  create_backend(const Backend::Params& params) const override;
+  StatsFile(const std::string& path);
 
-  void redact_secrets(Backend::Params& params) const override;
+  // Read counters. No lock is acquired. If the file doesn't exist all returned
+  // counters will be zero.
+  core::StatisticsCounters read() const;
+
+  // Acquire a lock, read counters, call `function` with the counters, write the
+  // counters and release the lock. Returns the resulting counters or nullopt on
+  // error (e.g. if the lock could not be acquired).
+  std::optional<core::StatisticsCounters>
+    update(std::function<void(core::StatisticsCounters& counters)>) const;
+
+private:
+  const std::string m_path;
 };
 
-} // namespace storage::secondary
+} // namespace storage::local

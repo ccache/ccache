@@ -1,10 +1,10 @@
 set(
   sources
   CacheFile.cpp
-  PrimaryStorage.cpp
-  PrimaryStorage_cleanup.cpp
-  PrimaryStorage_compress.cpp
-  PrimaryStorage_statistics.cpp
+  LocalStorage.cpp
+  LocalStorage_cleanup.cpp
+  LocalStorage_compress.cpp
+  LocalStorage_statistics.cpp
   StatsFile.cpp
   util.cpp
 )

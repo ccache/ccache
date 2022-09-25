@@ -35,11 +35,11 @@
 
 #include <string_view>
 
-namespace storage::secondary {
+namespace storage::remote {
 
 namespace {
 
-class FileStorageBackend : public SecondaryStorage::Backend
+class FileStorageBackend : public RemoteStorage::Backend
 {
 public:
   FileStorageBackend(const Params& params);
@@ -104,7 +104,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 }
 
-nonstd::expected<std::optional<util::Bytes>, SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 FileStorageBackend::get(const Digest& key)
 {
   const auto path = get_entry_path(key);
@@ -129,7 +129,7 @@ FileStorageBackend::get(const Digest& key)
   return std::move(*value);
 }
 
-nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+nonstd::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::put(const Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
@@ -165,7 +165,7 @@ FileStorageBackend::put(const Digest& key,
   }
 }
 
-nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+nonstd::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::remove(const Digest& key)
 {
   return Util::unlink_safe(get_entry_path(key));
@@ -191,10 +191,10 @@ FileStorageBackend::get_entry_path(const Digest& key) const
 
 } // namespace
 
-std::unique_ptr<SecondaryStorage::Backend>
+std::unique_ptr<RemoteStorage::Backend>
 FileStorage::create_backend(const Backend::Params& params) const
 {
   return std::make_unique<FileStorageBackend>(params);
 }
 
-} // namespace storage::secondary
+} // namespace storage::remote

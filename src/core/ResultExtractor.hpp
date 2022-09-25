@@ -35,7 +35,7 @@ public:
   using GetRawFilePathFunction = std::function<std::string(uint8_t)>;
 
   //`result_path` should be the path to the local result entry file if the
-  // result comes from primary storage.
+  // result comes from local storage.
   ResultExtractor(
     const std::string& output_directory,
     std::optional<GetRawFilePathFunction> get_raw_file_path = std::nullopt);

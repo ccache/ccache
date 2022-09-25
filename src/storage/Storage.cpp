@@ -27,10 +27,10 @@
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
-#include <storage/secondary/FileStorage.hpp>
-#include <storage/secondary/HttpStorage.hpp>
+#include <storage/remote/FileStorage.hpp>
+#include <storage/remote/HttpStorage.hpp>
 #ifdef HAVE_REDIS_STORAGE_BACKEND
-#  include <storage/secondary/RedisStorage.hpp>
+#  include <storage/remote/RedisStorage.hpp>
 #endif
 #include <core/CacheEntry.hpp>
 #include <util/Bytes.hpp>
@@ -52,13 +52,13 @@
 namespace storage {
 
 const std::unordered_map<std::string /*scheme*/,
-                         std::shared_ptr<secondary::SecondaryStorage>>
-  k_secondary_storage_implementations = {
-    {"file", std::make_shared<secondary::FileStorage>()},
-    {"http", std::make_shared<secondary::HttpStorage>()},
+                         std::shared_ptr<remote::RemoteStorage>>
+  k_remote_storage_implementations = {
+    {"file", std::make_shared<remote::FileStorage>()},
+    {"http", std::make_shared<remote::HttpStorage>()},
 #ifdef HAVE_REDIS_STORAGE_BACKEND
-    {"redis", std::make_shared<secondary::RedisStorage>()},
-    {"redis+unix", std::make_shared<secondary::RedisStorage>()},
+    {"redis", std::make_shared<remote::RedisStorage>()},
+    {"redis+unix", std::make_shared<remote::RedisStorage>()},
 #endif
 };
 
@@ -66,46 +66,46 @@ std::string
 get_features()
 {
   std::vector<std::string> features;
-  features.reserve(k_secondary_storage_implementations.size());
-  std::transform(k_secondary_storage_implementations.begin(),
-                 k_secondary_storage_implementations.end(),
+  features.reserve(k_remote_storage_implementations.size());
+  std::transform(k_remote_storage_implementations.begin(),
+                 k_remote_storage_implementations.end(),
                  std::back_inserter(features),
                  [](auto& entry) { return FMT("{}-storage", entry.first); });
   std::sort(features.begin(), features.end());
   return util::join(features, " ");
 }
 
-struct SecondaryStorageShardConfig
+struct RemoteStorageShardConfig
 {
   std::string name;
   double weight;
 };
 
-struct SecondaryStorageConfig
+struct RemoteStorageConfig
 {
-  std::vector<SecondaryStorageShardConfig> shards;
-  secondary::SecondaryStorage::Backend::Params params;
+  std::vector<RemoteStorageShardConfig> shards;
+  remote::RemoteStorage::Backend::Params params;
   bool read_only = false;
 };
 
-struct SecondaryStorageBackendEntry
+struct RemoteStorageBackendEntry
 {
   Url url;                     // With expanded "*".
   std::string url_for_logging; // With expanded "*".
-  std::unique_ptr<secondary::SecondaryStorage::Backend> impl;
+  std::unique_ptr<remote::RemoteStorage::Backend> impl;
   bool failed = false;
 };
 
-struct SecondaryStorageEntry
+struct RemoteStorageEntry
 {
-  SecondaryStorageConfig config;
+  RemoteStorageConfig config;
   std::string url_for_logging; // With unexpanded "*".
-  std::shared_ptr<secondary::SecondaryStorage> storage;
-  std::vector<SecondaryStorageBackendEntry> backends;
+  std::shared_ptr<remote::RemoteStorage> storage;
+  std::vector<RemoteStorageBackendEntry> backends;
 };
 
 static std::string
-to_string(const SecondaryStorageConfig& entry)
+to_string(const RemoteStorageConfig& entry)
 {
   std::string result = entry.params.url.str();
   for (const auto& attr : entry.params.attributes) {
@@ -114,7 +114,7 @@ to_string(const SecondaryStorageConfig& entry)
   return result;
 }
 
-static SecondaryStorageConfig
+static RemoteStorageConfig
 parse_storage_config(const std::string_view entry)
 {
   const auto parts =
@@ -122,10 +122,10 @@ parse_storage_config(const std::string_view entry)
 
   if (parts.empty() || parts.front().empty()) {
     throw core::Error(
-      FMT("secondary storage config must provide a URL: {}", entry));
+      FMT("remote storage config must provide a URL: {}", entry));
   }
 
-  SecondaryStorageConfig result;
+  RemoteStorageConfig result;
   const auto url_str = std::string(parts[0]);
   result.params.url = url_str;
 
@@ -186,33 +186,33 @@ parse_storage_config(const std::string_view entry)
   return result;
 }
 
-static std::vector<SecondaryStorageConfig>
+static std::vector<RemoteStorageConfig>
 parse_storage_configs(const std::string_view& configs)
 {
-  std::vector<SecondaryStorageConfig> result;
+  std::vector<RemoteStorageConfig> result;
   for (const auto& config : util::Tokenizer(configs, " ")) {
     result.push_back(parse_storage_config(config));
   }
   return result;
 }
 
-static std::shared_ptr<secondary::SecondaryStorage>
+static std::shared_ptr<remote::RemoteStorage>
 get_storage(const Url& url)
 {
-  const auto it = k_secondary_storage_implementations.find(url.scheme());
-  if (it != k_secondary_storage_implementations.end()) {
+  const auto it = k_remote_storage_implementations.find(url.scheme());
+  if (it != k_remote_storage_implementations.end()) {
     return it->second;
   } else {
     return {};
   }
 }
 
-Storage::Storage(const Config& config) : primary(config), m_config(config)
+Storage::Storage(const Config& config) : local(config), m_config(config)
 {
 }
 
 // Define the destructor in the implementation file to avoid having to declare
-// SecondaryStorageEntry and its constituents in the header file.
+// RemoteStorageEntry and its constituents in the header file.
 // NOLINTNEXTLINE(modernize-use-equals-default)
 Storage::~Storage()
 {
@@ -221,13 +221,13 @@ Storage::~Storage()
 void
 Storage::initialize()
 {
-  add_secondary_storages();
+  add_remote_storages();
 }
 
 void
 Storage::finalize()
 {
-  primary.finalize();
+  local.finalize();
 }
 
 void
@@ -237,20 +237,20 @@ Storage::get(const Digest& key,
 {
   MTR_SCOPE("storage", "get");
 
-  auto value = primary.get(key, type);
-  primary.increment_statistic(value ? core::Statistic::primary_storage_hit
-                                    : core::Statistic::primary_storage_miss);
+  auto value = local.get(key, type);
+  local.increment_statistic(value ? core::Statistic::local_storage_hit
+                                  : core::Statistic::local_storage_miss);
   if (value) {
     if (m_config.reshare()) {
-      put_in_secondary_storage(key, *value, true);
+      put_in_remote_storage(key, *value, true);
     }
     if (entry_receiver(std::move(*value))) {
       return;
     }
   }
 
-  get_from_secondary_storage(key, [&](util::Bytes&& data) {
-    primary.put(key, type, data, true);
+  get_from_remote_storage(key, [&](util::Bytes&& data) {
+    local.put(key, type, data, true);
     return entry_receiver(std::move(data));
   });
 }
@@ -262,8 +262,8 @@ Storage::put(const Digest& key,
 {
   MTR_SCOPE("storage", "put");
 
-  primary.put(key, type, value);
-  put_in_secondary_storage(key, value, false);
+  local.put(key, type, value);
+  put_in_remote_storage(key, value, false);
 }
 
 void
@@ -271,20 +271,20 @@ Storage::remove(const Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("storage", "remove");
 
-  primary.remove(key, type);
-  remove_from_secondary_storage(key);
+  local.remove(key, type);
+  remove_from_remote_storage(key);
 }
 
 bool
-Storage::has_secondary_storage() const
+Storage::has_remote_storage() const
 {
-  return !m_secondary_storages.empty();
+  return !m_remote_storages.empty();
 }
 
 std::string
-Storage::get_secondary_storage_config_for_logging() const
+Storage::get_remote_storage_config_for_logging() const
 {
-  auto configs = parse_storage_configs(m_config.secondary_storage());
+  auto configs = parse_storage_configs(m_config.remote_storage());
   for (auto& config : configs) {
     const auto storage = get_storage(config.params.url);
     if (storage) {
@@ -301,33 +301,33 @@ redact_url_for_logging(Url& url_for_logging)
 }
 
 void
-Storage::add_secondary_storages()
+Storage::add_remote_storages()
 {
-  const auto configs = parse_storage_configs(m_config.secondary_storage());
+  const auto configs = parse_storage_configs(m_config.remote_storage());
   for (const auto& config : configs) {
     auto url_for_logging = config.params.url;
     redact_url_for_logging(url_for_logging);
     const auto storage = get_storage(config.params.url);
     if (!storage) {
       throw core::Error(
-        FMT("unknown secondary storage URL: {}", url_for_logging.str()));
+        FMT("unknown remote storage URL: {}", url_for_logging.str()));
     }
-    m_secondary_storages.push_back(std::make_unique<SecondaryStorageEntry>(
-      SecondaryStorageEntry{config, url_for_logging.str(), storage, {}}));
+    m_remote_storages.push_back(std::make_unique<RemoteStorageEntry>(
+      RemoteStorageEntry{config, url_for_logging.str(), storage, {}}));
   }
 }
 
 void
 Storage::mark_backend_as_failed(
-  SecondaryStorageBackendEntry& backend_entry,
-  const secondary::SecondaryStorage::Backend::Failure failure)
+  RemoteStorageBackendEntry& backend_entry,
+  const remote::RemoteStorage::Backend::Failure failure)
 {
   // The backend is expected to log details about the error.
   backend_entry.failed = true;
-  primary.increment_statistic(
-    failure == secondary::SecondaryStorage::Backend::Failure::timeout
-      ? core::Statistic::secondary_storage_timeout
-      : core::Statistic::secondary_storage_error);
+  local.increment_statistic(
+    failure == remote::RemoteStorage::Backend::Failure::timeout
+      ? core::Statistic::remote_storage_timeout
+      : core::Statistic::remote_storage_error);
 }
 
 static double
@@ -342,7 +342,7 @@ to_half_open_unit_interval(uint64_t value)
 static Url
 get_shard_url(const Digest& key,
               const std::string& url,
-              const std::vector<SecondaryStorageShardConfig>& shards)
+              const std::vector<RemoteStorageShardConfig>& shards)
 {
   ASSERT(!shards.empty());
 
@@ -366,8 +366,8 @@ get_shard_url(const Digest& key,
   return util::replace_first(url, "*", best_shard);
 }
 
-SecondaryStorageBackendEntry*
-Storage::get_backend(SecondaryStorageEntry& entry,
+RemoteStorageBackendEntry*
+Storage::get_backend(RemoteStorageEntry& entry,
                      const Digest& key,
                      const std::string_view operation_description,
                      const bool for_writing)
@@ -397,7 +397,7 @@ Storage::get_backend(SecondaryStorageEntry& entry,
     shard_params.url = shard_url;
     try {
       entry.backends.back().impl = entry.storage->create_backend(shard_params);
-    } catch (const secondary::SecondaryStorage::Backend::Failed& e) {
+    } catch (const remote::RemoteStorage::Backend::Failed& e) {
       LOG("Failed to construct backend for {}{}",
           entry.url_for_logging,
           std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
@@ -416,12 +416,12 @@ Storage::get_backend(SecondaryStorageEntry& entry,
 }
 
 void
-Storage::get_from_secondary_storage(const Digest& key,
-                                    const EntryReceiver& entry_receiver)
+Storage::get_from_remote_storage(const Digest& key,
+                                 const EntryReceiver& entry_receiver)
 {
-  MTR_SCOPE("secondary_storage", "get");
+  MTR_SCOPE("remote_storage", "get");
 
-  for (const auto& entry : m_secondary_storages) {
+  for (const auto& entry : m_remote_storages) {
     auto backend = get_backend(*entry, key, "getting from", false);
     if (!backend) {
       continue;
@@ -441,7 +441,7 @@ Storage::get_from_secondary_storage(const Digest& key,
           key.to_string(),
           backend->url_for_logging,
           ms);
-      primary.increment_statistic(core::Statistic::secondary_storage_hit);
+      local.increment_statistic(core::Statistic::remote_storage_hit);
       if (entry_receiver(std::move(*value))) {
         return;
       }
@@ -450,25 +450,25 @@ Storage::get_from_secondary_storage(const Digest& key,
           key.to_string(),
           backend->url_for_logging,
           ms);
-      primary.increment_statistic(core::Statistic::secondary_storage_miss);
+      local.increment_statistic(core::Statistic::remote_storage_miss);
     }
   }
 }
 
 void
-Storage::put_in_secondary_storage(const Digest& key,
-                                  nonstd::span<const uint8_t> value,
-                                  bool only_if_missing)
+Storage::put_in_remote_storage(const Digest& key,
+                               nonstd::span<const uint8_t> value,
+                               bool only_if_missing)
 {
-  MTR_SCOPE("secondary_storage", "put");
+  MTR_SCOPE("remote_storage", "put");
 
   if (!core::CacheEntry::Header(value).self_contained) {
-    LOG("Not putting {} in secondary storage since it's not self-contained",
+    LOG("Not putting {} in remote storage since it's not self-contained",
         key.to_string());
     return;
   }
 
-  for (const auto& entry : m_secondary_storages) {
+  for (const auto& entry : m_remote_storages) {
     auto backend = get_backend(*entry, key, "putting in", true);
     if (!backend) {
       continue;
@@ -493,11 +493,11 @@ Storage::put_in_secondary_storage(const Digest& key,
 }
 
 void
-Storage::remove_from_secondary_storage(const Digest& key)
+Storage::remove_from_remote_storage(const Digest& key)
 {
-  MTR_SCOPE("secondary_storage", "remove");
+  MTR_SCOPE("remote_storage", "remove");
 
-  for (const auto& entry : m_secondary_storages) {
+  for (const auto& entry : m_remote_storages) {
     auto backend = get_backend(*entry, key, "removing from", true);
     if (!backend) {
       continue;

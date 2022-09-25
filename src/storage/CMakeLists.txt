@@ -1,5 +1,5 @@
-add_subdirectory(primary)
-add_subdirectory(secondary)
+add_subdirectory(local)
+add_subdirectory(remote)
 
 set(
   sources

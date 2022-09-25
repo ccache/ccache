@@ -22,7 +22,7 @@
 #include <core/Result.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
-#include <storage/primary/util.hpp>
+#include <storage/local/util.hpp>
 #include <storage/types.hpp>
 #include <util/Bytes.hpp>
 #include <util/TimePoint.hpp>
@@ -36,7 +36,7 @@
 class Config;
 
 namespace storage {
-namespace primary {
+namespace local {
 
 struct CompressionStatistics
 {
@@ -46,10 +46,10 @@ struct CompressionStatistics
   uint64_t on_disk_size;
 };
 
-class PrimaryStorage
+class LocalStorage
 {
 public:
-  PrimaryStorage(const Config& config);
+  LocalStorage(const Config& config);
 
   void finalize();
 
@@ -85,7 +85,7 @@ public:
   // files in the cache.
   void zero_all_statistics();
 
-  // Get statistics and last time of update for the whole primary storage cache.
+  // Get statistics and last time of update for the whole local storage cache.
   std::pair<core::StatisticsCounters, util::TimePoint>
   get_all_statistics() const;
 
@@ -163,10 +163,10 @@ private:
 // --- Inline implementations ---
 
 inline const core::StatisticsCounters&
-PrimaryStorage::get_statistics_updates() const
+LocalStorage::get_statistics_updates() const
 {
   return m_result_counter_updates;
 }
 
-} // namespace primary
+} // namespace local
 } // namespace storage

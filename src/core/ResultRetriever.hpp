@@ -40,7 +40,7 @@ public:
   };
 
   //`path` should be the path to the local result entry file if the result comes
-  // from primary storage.
+  // from local storage.
   ResultRetriever(const Context& ctx,
                   std::optional<Digest> result_key = std::nullopt);
 

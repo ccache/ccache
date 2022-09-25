@@ -156,7 +156,7 @@ public:
     std::string path;
   };
 
-  // Get raw files to store in primary storage.
+  // Get raw files to store in local storage.
   const std::vector<RawFile>& get_raw_files() const;
 
 private:

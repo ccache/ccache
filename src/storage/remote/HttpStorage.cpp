@@ -32,11 +32,11 @@
 
 #include <string_view>
 
-namespace storage::secondary {
+namespace storage::remote {
 
 namespace {
 
-class HttpStorageBackend : public SecondaryStorage::Backend
+class HttpStorageBackend : public RemoteStorage::Backend
 {
 public:
   HttpStorageBackend(const Params& params);
@@ -144,7 +144,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<std::optional<util::Bytes>, SecondaryStorage::Backend::Failure>
+nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 HttpStorageBackend::get(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -166,7 +166,7 @@ HttpStorageBackend::get(const Digest& key)
   return util::Bytes(result->body.data(), result->body.size());
 }
 
-nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+nonstd::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::put(const Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
@@ -217,7 +217,7 @@ HttpStorageBackend::put(const Digest& key,
   return true;
 }
 
-nonstd::expected<bool, SecondaryStorage::Backend::Failure>
+nonstd::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::remove(const Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -271,7 +271,7 @@ HttpStorageBackend::get_entry_path(const Digest& key) const
 
 } // namespace
 
-std::unique_ptr<SecondaryStorage::Backend>
+std::unique_ptr<RemoteStorage::Backend>
 HttpStorage::create_backend(const Backend::Params& params) const
 {
   return std::make_unique<HttpStorageBackend>(params);
@@ -296,4 +296,4 @@ HttpStorage::redact_secrets(Backend::Params& params) const
   }
 }
 
-} // namespace storage::secondary
+} // namespace storage::remote

@@ -187,15 +187,15 @@ documentation.
     Zero the cache statistics (but not the configuration options).
 
 
-=== Options for secondary storage
+=== Options for remote file-based storage
 
 *--trim-dir* _PATH_::
 
    Remove old files from directory _PATH_ until it is at most the size specified
    by `--trim-max-size`.
 +
-WARNING: Don't use this option to trim the primary cache. To trim the primary
-cache directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
+WARNING: Don't use this option to trim the local cache. To trim the local cache
+directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
 *--trim-max-size* _SIZE_::
 
@@ -814,11 +814,11 @@ file in `/etc/rsyslog.d`:
     If set, the namespace string will be added to the hashed data for each
     compilation. This will make the associated cache entries logically separate
     from cache entries with other namespaces, but they will still share the same
-    storage space. Cache entries can also be selectively removed from the
-    primary cache with the command line option `--evict-namespace`, potentially
-    in combination with `--evict-older-than`.
+    storage space. Cache entries can also be selectively removed from the local
+    cache with the command line option `--evict-namespace`, potentially in
+    combination with `--evict-older-than`.
 +
-For instance, if you use the same primary cache for several disparate projects,
+For instance, if you use the same local cache for several disparate projects,
 you can use a unique namespace string for each one. This allows you to remove
 cache entries that belong to a certain project if you stop working with that
 project.
@@ -881,11 +881,28 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
 
+[#config_remote_storage]
+*remote_storage* (*CCACHE_REMOTE_STORAGE*)::
+
+    This option specifies one or several storage backends (separated by space)
+    to query after checking the local cache. See _<<Remote storage backends>>_
+    for documentation of syntax and available backends.
++
+Examples:
++
+* `+file:/shared/nfs/directory+`
+* `+file:///shared/nfs/one|read-only file:///shared/nfs/two+`
+* `+http://example.com/cache+`
+* `+redis://example.com+`
++
+NOTE: In previous ccache versions this option was called *secondary_storage*
+(*CCACHE_SECONDARY_STORAGE*), which can still be used as an alias.
+
 [#config_reshare]
 *reshare* (*CCACHE_RESHARE* or *CCACHE_NORESHARE*, see _<<Boolean values>>_ above)::
 
-    If true, ccache will write results to secondary storage even for primary
-    storage cache hits. The default is false.
+    If true, ccache will write results to remote storage even for local storage
+    cache hits. The default is false.
 
 [#config_run_second_cpp]
 *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see _<<Boolean values>>_ above)::
@@ -911,21 +928,6 @@ still has to do _some_ preprocessing (like macros).
 +
 This option is ignored with MSVC, as there is no way to make it compile without
 preprocessing first.
-
-[#config_secondary_storage]
-*secondary_storage* (*CCACHE_SECONDARY_STORAGE*)::
-
-    This option specifies one or several storage backends (separated by space)
-    to query after the primary cache storage. See
-    _<<Secondary storage backends>>_ for documentation of syntax and available
-    backends.
-+
-Examples:
-+
-* `+file:/shared/nfs/directory+`
-* `+file:///shared/nfs/one|read-only file:///shared/nfs/two+`
-* `+http://example.com/cache+`
-* `+redis://example.com+`
 
 [#config_sloppiness]
 *sloppiness* (*CCACHE_SLOPPINESS*)::
@@ -1029,23 +1031,23 @@ filesystem as the `CCACHE_DIR` path, but this requirement has been relaxed.
     cache with other users.
 
 
-== Secondary storage backends
+== Remote storage backends
 
-The <<config_secondary_storage,*secondary_storage*>> option lets you configure
-ccache to use one or several other storage backends in addition to the primary
-cache storage located in <<config_cache_dir,*cache_dir*>>. Note that cache
-statistics counters will still be kept in the primary cache directory --
-secondary storage backends only store cache results and manifests.
+The <<config_remote_storage,*remote_storage*>> option lets you configure ccache
+to use one or several other storage backends in addition to the local cache
+storage located in <<config_cache_dir,*cache_dir*>>. Note that cache statistics
+counters will still be kept in the local cache directory -- remote storage
+backends only store compilation results and manifests.
 
-A secondary storage backend is specified with a URL, optionally followed by a
-pipe (`|`) and a pipe-separated list of attributes. An attribute is
-_key_=_value_ or just _key_ as a short form of _key_=*true*. Attribute values
-must be https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they
-contain percent, pipe or space characters.
+A remote storage backend is specified with a URL, optionally followed by a pipe
+(`|`) and a pipe-separated list of attributes. An attribute is _key_=_value_ or
+just _key_ as a short form of _key_=*true*. Attribute values must be
+https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
+percent, pipe or space characters.
 
 === Attributes for all backends
 
-These optional attributes are available for all secondary storage backends:
+These optional attributes are available for all remote storage backends:
 
 * *read-only*: If *true*, only read from this backend, don't write. The default
   is *false*.
@@ -1075,21 +1077,21 @@ Examples:
 
 === Storage interaction
 
-The table below describes the interaction between primary and secondary storage
-on cache hits and misses:
+The table below describes the interaction between local and remote storage on
+cache hits and misses:
 
 [options="header",cols="20%,20%,60%"]
 |==============================================================================
-| *Primary storage* | *Secondary storage* | *What happens*
+| *Local storage* | *Remote storage* | *What happens*
 
-| miss | miss | Compile, write to primary, write to secondary^[1]^
-| miss | hit  | Read from secondary, write to primary
-| hit  | -    | Read from primary, don't write to secondary^[2]^
+| miss | miss | Compile, write to local, write to remote^[1]^
+| miss | hit  | Read from remote, write to local
+| hit  | -    | Read from local, don't write to remote^[2]^
 
 |==============================================================================
 
-^[1]^ Unless secondary storage has attribute `read-only=true`. +
-^[2]^ Unless primary storage is set to share its cache hits with the
+^[1]^ Unless remote storage has attribute `read-only=true`. +
+^[2]^ Unless local storage is set to share its cache hits with the
 <<config_reshare,*reshare*>> option.
 
 
@@ -1098,7 +1100,7 @@ on cache hits and misses:
 URL format: `+file:DIRECTORY+` or `+file://[HOST]DIRECTORY+`
 
 This backend stores data as separate files in a directory structure below
-*DIRECTORY*, similar (but not identical) to the primary cache storage. A typical
+*DIRECTORY*, similar (but not identical) to the local cache storage. A typical
 use case for this backend would be sharing a cache on an NFS directory.
 *DIRECTORY* must start with a slash. *HOST* can be the empty string or
 localhost. On Windows, *HOST* can also be the name of a server hosting a shared
@@ -1196,7 +1198,7 @@ TIP: See https://ccache.dev/howto/redis-storage.html[How to set up Redis
 storage] for hints on setting up a Redis server for use with ccache.
 
 TIP: You can set up a cluster of Redis servers using the `shards` attribute
-described in _<<Secondary storage backends>>_.
+described in _<<Remote storage backends>>_.
 
 Examples:
 
@@ -1317,7 +1319,7 @@ recompressed.
 cleanups (number of performed cleanups, either implicitly due to a cache size
 limit being reached or due to explicit `ccache -c` calls), overall hit rate, hit
 rate for <<The direct mode,direct>>/<<The preprocessor mode,preprocessed>> modes
-and hit rate for primary and <<config_secondary_storage,secondary>> storage.
+and hit rate for local and <<config_remote_storage,remote storage>>.
 
 The summary also includes counters called "`Errors`" and "`Uncacheable`", which
 are sums of more detailed counters. To see those detailed counters, use the
@@ -1770,7 +1772,7 @@ systems. One way of improving cache hit rate in that case is to set
 headers.
 
 An alternative to putting the main cache directory on NFS is to set up a
-<<config_secondary_storage,secondary storage>> file cache.
+<<config_remote_storage,remote storage>> file cache.
 
 
 == Using ccache with other compiler wrappers

@@ -33,14 +33,14 @@
 
 class Digest;
 
-namespace storage::secondary {
+namespace storage::remote {
 
 constexpr auto k_redacted_password = "********";
 const auto k_default_connect_timeout = std::chrono::milliseconds{100};
 const auto k_default_operation_timeout = std::chrono::milliseconds{10000};
 
-// This class defines the API that a secondary storage must implement.
-class SecondaryStorage
+// This class defines the API that a remote storage must implement.
+class RemoteStorage
 {
 public:
   class Backend
@@ -95,7 +95,7 @@ public:
     // removed, otherwise false.
     virtual nonstd::expected<bool, Failure> remove(const Digest& key) = 0;
 
-    // Determine whether an attribute is handled by the secondary storage
+    // Determine whether an attribute is handled by the remote storage
     // framework itself.
     static bool is_framework_attribute(const std::string& name);
 
@@ -104,7 +104,7 @@ public:
     parse_timeout_attribute(const std::string& value);
   };
 
-  virtual ~SecondaryStorage() = default;
+  virtual ~RemoteStorage() = default;
 
   // Create an instance of the backend. The instance is created just before the
   // first call to a backend method, so the backend constructor can open a
@@ -121,27 +121,26 @@ public:
 // --- Inline implementations ---
 
 inline void
-SecondaryStorage::redact_secrets(
-  SecondaryStorage::Backend::Params& /*config*/) const
+RemoteStorage::redact_secrets(RemoteStorage::Backend::Params& /*config*/) const
 {
 }
 
-inline SecondaryStorage::Backend::Failed::Failed(Failure failure)
+inline RemoteStorage::Backend::Failed::Failed(Failure failure)
   : Failed("", failure)
 {
 }
 
-inline SecondaryStorage::Backend::Failed::Failed(const std::string& message,
-                                                 Failure failure)
+inline RemoteStorage::Backend::Failed::Failed(const std::string& message,
+                                              Failure failure)
   : std::runtime_error::runtime_error(message),
     m_failure(failure)
 {
 }
 
-inline SecondaryStorage::Backend::Failure
-SecondaryStorage::Backend::Failed::failure() const
+inline RemoteStorage::Backend::Failure
+RemoteStorage::Backend::Failed::failure() const
 {
   return m_failure;
 }
 
-} // namespace storage::secondary
+} // namespace storage::remote

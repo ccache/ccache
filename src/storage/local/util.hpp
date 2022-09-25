@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,14 +18,13 @@
 
 #pragma once
 
-#include <storage/primary/CacheFile.hpp>
+#include <storage/local/CacheFile.hpp>
 
 #include <functional>
 #include <string>
 #include <vector>
 
-namespace storage {
-namespace primary {
+namespace storage::local {
 
 using ProgressReceiver = std::function<void(double progress)>;
 using SubdirVisitor = std::function<void(
@@ -60,5 +59,4 @@ std::vector<CacheFile>
 get_level_1_files(const std::string& dir,
                   const ProgressReceiver& progress_receiver);
 
-} // namespace primary
-} // namespace storage
+} // namespace storage::local

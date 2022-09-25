@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-# This script uploads the contents of the cache from primary storage to a Redis
-# secondary storage.
+# This script uploads the contents of the local cache to a Redis remote storage.
 
 import redis
 import os

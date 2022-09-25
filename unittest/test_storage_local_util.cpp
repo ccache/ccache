@@ -19,7 +19,7 @@
 #include "TestUtil.hpp"
 
 #include <Util.hpp>
-#include <storage/primary/util.hpp>
+#include <storage/local/util.hpp>
 #include <util/file.hpp>
 
 #include <third_party/doctest.h>
@@ -39,12 +39,12 @@ os_path(std::string path)
   return path;
 }
 
-TEST_SUITE_BEGIN("storage::primary::util");
+TEST_SUITE_BEGIN("storage::local::util");
 
-TEST_CASE("storage::primary::for_each_level_1_subdir")
+TEST_CASE("storage::local::for_each_level_1_subdir")
 {
   std::vector<std::string> actual;
-  storage::primary::for_each_level_1_subdir(
+  storage::local::for_each_level_1_subdir(
     "cache_dir",
     [&](const auto& subdir, const auto&) { actual.push_back(subdir); },
     [](double) {});
@@ -70,7 +70,7 @@ TEST_CASE("storage::primary::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
-TEST_CASE("storage::primary::get_level_1_files")
+TEST_CASE("storage::local::get_level_1_files")
 {
   TestContext test_context;
 
@@ -87,19 +87,19 @@ TEST_CASE("storage::primary::get_level_1_files")
 
   SUBCASE("nonexistent subdirectory")
   {
-    const auto files = storage::primary::get_level_1_files("2", null_receiver);
+    const auto files = storage::local::get_level_1_files("2", null_receiver);
     CHECK(files.empty());
   }
 
   SUBCASE("empty subdirectory")
   {
-    const auto files = storage::primary::get_level_1_files("e", null_receiver);
+    const auto files = storage::local::get_level_1_files("e", null_receiver);
     CHECK(files.empty());
   }
 
   SUBCASE("simple case")
   {
-    auto files = storage::primary::get_level_1_files("0", null_receiver);
+    auto files = storage::local::get_level_1_files("0", null_receiver);
     REQUIRE(files.size() == 4);
 
     // Files within a level are in arbitrary order, sort them to be able to

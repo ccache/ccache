@@ -91,9 +91,9 @@ enum class ConfigItem {
   read_only,
   read_only_direct,
   recache,
+  remote_storage,
   reshare,
   run_second_cpp,
-  secondary_storage,
   sloppiness,
   stats,
   stats_log,
@@ -101,49 +101,59 @@ enum class ConfigItem {
   umask,
 };
 
-const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
-  {"absolute_paths_in_stderr", ConfigItem::absolute_paths_in_stderr},
-  {"base_dir", ConfigItem::base_dir},
-  {"cache_dir", ConfigItem::cache_dir},
-  {"compiler", ConfigItem::compiler},
-  {"compiler_check", ConfigItem::compiler_check},
-  {"compiler_type", ConfigItem::compiler_type},
-  {"compression", ConfigItem::compression},
-  {"compression_level", ConfigItem::compression_level},
-  {"cpp_extension", ConfigItem::cpp_extension},
-  {"debug", ConfigItem::debug},
-  {"debug_dir", ConfigItem::debug_dir},
-  {"depend_mode", ConfigItem::depend_mode},
-  {"direct_mode", ConfigItem::direct_mode},
-  {"disable", ConfigItem::disable},
-  {"extra_files_to_hash", ConfigItem::extra_files_to_hash},
-  {"file_clone", ConfigItem::file_clone},
-  {"hard_link", ConfigItem::hard_link},
-  {"hash_dir", ConfigItem::hash_dir},
-  {"ignore_headers_in_manifest", ConfigItem::ignore_headers_in_manifest},
-  {"ignore_options", ConfigItem::ignore_options},
-  {"inode_cache", ConfigItem::inode_cache},
-  {"keep_comments_cpp", ConfigItem::keep_comments_cpp},
-  {"limit_multiple", ConfigItem::limit_multiple},
-  {"log_file", ConfigItem::log_file},
-  {"max_files", ConfigItem::max_files},
-  {"max_size", ConfigItem::max_size},
-  {"namespace", ConfigItem::namespace_},
-  {"path", ConfigItem::path},
-  {"pch_external_checksum", ConfigItem::pch_external_checksum},
-  {"prefix_command", ConfigItem::prefix_command},
-  {"prefix_command_cpp", ConfigItem::prefix_command_cpp},
-  {"read_only", ConfigItem::read_only},
-  {"read_only_direct", ConfigItem::read_only_direct},
-  {"recache", ConfigItem::recache},
-  {"reshare", ConfigItem::reshare},
-  {"run_second_cpp", ConfigItem::run_second_cpp},
-  {"secondary_storage", ConfigItem::secondary_storage},
-  {"sloppiness", ConfigItem::sloppiness},
-  {"stats", ConfigItem::stats},
-  {"stats_log", ConfigItem::stats_log},
-  {"temporary_dir", ConfigItem::temporary_dir},
-  {"umask", ConfigItem::umask},
+enum class ConfigKeyType { normal, alias };
+
+struct ConfigKeyTableEntry
+{
+  ConfigItem item;
+  std::optional<std::string> alias = std::nullopt;
+};
+
+const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
+  {
+    {"absolute_paths_in_stderr", {ConfigItem::absolute_paths_in_stderr}},
+    {"base_dir", {ConfigItem::base_dir}},
+    {"cache_dir", {ConfigItem::cache_dir}},
+    {"compiler", {ConfigItem::compiler}},
+    {"compiler_check", {ConfigItem::compiler_check}},
+    {"compiler_type", {ConfigItem::compiler_type}},
+    {"compression", {ConfigItem::compression}},
+    {"compression_level", {ConfigItem::compression_level}},
+    {"cpp_extension", {ConfigItem::cpp_extension}},
+    {"debug", {ConfigItem::debug}},
+    {"debug_dir", {ConfigItem::debug_dir}},
+    {"depend_mode", {ConfigItem::depend_mode}},
+    {"direct_mode", {ConfigItem::direct_mode}},
+    {"disable", {ConfigItem::disable}},
+    {"extra_files_to_hash", {ConfigItem::extra_files_to_hash}},
+    {"file_clone", {ConfigItem::file_clone}},
+    {"hard_link", {ConfigItem::hard_link}},
+    {"hash_dir", {ConfigItem::hash_dir}},
+    {"ignore_headers_in_manifest", {ConfigItem::ignore_headers_in_manifest}},
+    {"ignore_options", {ConfigItem::ignore_options}},
+    {"inode_cache", {ConfigItem::inode_cache}},
+    {"keep_comments_cpp", {ConfigItem::keep_comments_cpp}},
+    {"limit_multiple", {ConfigItem::limit_multiple}},
+    {"log_file", {ConfigItem::log_file}},
+    {"max_files", {ConfigItem::max_files}},
+    {"max_size", {ConfigItem::max_size}},
+    {"namespace", {ConfigItem::namespace_}},
+    {"path", {ConfigItem::path}},
+    {"pch_external_checksum", {ConfigItem::pch_external_checksum}},
+    {"prefix_command", {ConfigItem::prefix_command}},
+    {"prefix_command_cpp", {ConfigItem::prefix_command_cpp}},
+    {"read_only", {ConfigItem::read_only}},
+    {"read_only_direct", {ConfigItem::read_only_direct}},
+    {"recache", {ConfigItem::recache}},
+    {"remote_storage", {ConfigItem::remote_storage}},
+    {"reshare", {ConfigItem::reshare}},
+    {"run_second_cpp", {ConfigItem::run_second_cpp}},
+    {"secondary_storage", {ConfigItem::remote_storage, "remote_storage"}},
+    {"sloppiness", {ConfigItem::sloppiness}},
+    {"stats", {ConfigItem::stats}},
+    {"stats_log", {ConfigItem::stats_log}},
+    {"temporary_dir", {ConfigItem::temporary_dir}},
+    {"umask", {ConfigItem::umask}},
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
@@ -183,8 +193,9 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
+  {"REMOTE_STORAGE", "remote_storage"},
   {"RESHARE", "reshare"},
-  {"SECONDARY_STORAGE", "secondary_storage"},
+  {"SECONDARY_STORAGE", "remote_storage"}, // Alias for CCACHE_REMOTE_STORAGE
   {"SLOPPINESS", "sloppiness"},
   {"STATS", "stats"},
   {"STATSLOG", "stats_log"},
@@ -661,7 +672,7 @@ Config::get_string_value(const std::string& key) const
     throw core::Error(FMT("unknown configuration option \"{}\"", key));
   }
 
-  switch (it->second) {
+  switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
     return format_bool(m_absolute_paths_in_stderr);
 
@@ -764,14 +775,14 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::recache:
     return format_bool(m_recache);
 
+  case ConfigItem::remote_storage:
+    return m_remote_storage;
+
   case ConfigItem::reshare:
     return format_bool(m_reshare);
 
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
-
-  case ConfigItem::secondary_storage:
-    return m_secondary_storage;
 
   case ConfigItem::sloppiness:
     return format_sloppiness(m_sloppiness);
@@ -847,8 +858,10 @@ Config::visit_items(const ItemVisitor& item_visitor) const
   std::vector<std::string> keys;
   keys.reserve(k_config_key_table.size());
 
-  for (const auto& [key, value] : k_config_key_table) {
-    keys.emplace_back(key);
+  for (const auto& [key, entry] : k_config_key_table) {
+    if (!entry.alias) {
+      keys.emplace_back(key);
+    }
   }
   std::sort(keys.begin(), keys.end());
   for (const auto& key : keys) {
@@ -871,7 +884,7 @@ Config::set_item(const std::string& key,
     return;
   }
 
-  switch (it->second) {
+  switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
     m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
     break;
@@ -1015,16 +1028,16 @@ Config::set_item(const std::string& key,
     m_recache = parse_bool(value, env_var_key, negate);
     break;
 
+  case ConfigItem::remote_storage:
+    m_remote_storage = Util::expand_environment_variables(value);
+    break;
+
   case ConfigItem::reshare:
     m_reshare = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::run_second_cpp:
     m_run_second_cpp = parse_bool(value, env_var_key, negate);
-    break;
-
-  case ConfigItem::secondary_storage:
-    m_secondary_storage = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::sloppiness:
@@ -1055,7 +1068,8 @@ Config::set_item(const std::string& key,
     break;
   }
 
-  const auto& [element, inserted] = m_origins.emplace(key, origin);
+  const std::string canonical_key = it->second.alias ? *it->second.alias : key;
+  const auto& [element, inserted] = m_origins.emplace(canonical_key, origin);
   if (!inserted) {
     element->second = origin;
   }
