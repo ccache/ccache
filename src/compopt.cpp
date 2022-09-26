@@ -110,6 +110,8 @@ const CompOpt compopts[] = {
   {"-ccbin", AFFECTS_CPP | TAKES_ARG}, // nvcc
   {"-emit-pch", AFFECTS_COMP},         // Clang
   {"-emit-pth", AFFECTS_COMP},         // Clang
+  {"-external:I",
+   AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},
