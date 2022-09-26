@@ -267,7 +267,7 @@ EOF
     cd $BASEDIR2
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR2 $CCACHE_COMPILE $DEPFLAGS -c test.c
-    expect_equal_object_files test.o test.o
+    expect_equal_object_files reference_test.o test.o
     expect_equal_content reference_test.d test.d
     expect_stat direct_cache_hit 3
     expect_stat preprocessed_cache_hit 0
