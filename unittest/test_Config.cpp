@@ -71,6 +71,7 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.read_only());
   CHECK_FALSE(config.read_only_direct());
   CHECK_FALSE(config.recache());
+  CHECK_FALSE(config.remote_only());
   CHECK(config.remote_storage().empty());
   CHECK_FALSE(config.reshare());
   CHECK(config.run_second_cpp());
@@ -413,6 +414,7 @@ TEST_CASE("Config::visit_items")
     "read_only = true\n"
     "read_only_direct = true\n"
     "recache = true\n"
+    "remote_only = true\n"
     "remote_storage = rs\n"
     "reshare = true\n"
     "run_second_cpp = false\n"
@@ -473,6 +475,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) read_only = true",
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
+    "(test.conf) remote_only = true",
     "(test.conf) remote_storage = rs",
     "(test.conf) reshare = true",
     "(test.conf) run_second_cpp = false",

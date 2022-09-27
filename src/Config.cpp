@@ -91,6 +91,7 @@ enum class ConfigItem {
   read_only,
   read_only_direct,
   recache,
+  remote_only,
   remote_storage,
   reshare,
   run_second_cpp,
@@ -145,6 +146,7 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"read_only", {ConfigItem::read_only}},
     {"read_only_direct", {ConfigItem::read_only_direct}},
     {"recache", {ConfigItem::recache}},
+    {"remote_only", {ConfigItem::remote_only}},
     {"remote_storage", {ConfigItem::remote_storage}},
     {"reshare", {ConfigItem::reshare}},
     {"run_second_cpp", {ConfigItem::run_second_cpp}},
@@ -193,6 +195,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"READONLY", "read_only"},
   {"READONLY_DIRECT", "read_only_direct"},
   {"RECACHE", "recache"},
+  {"REMOTE_ONLY", "remote_only"},
   {"REMOTE_STORAGE", "remote_storage"},
   {"RESHARE", "reshare"},
   {"SECONDARY_STORAGE", "remote_storage"}, // Alias for CCACHE_REMOTE_STORAGE
@@ -775,6 +778,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::recache:
     return format_bool(m_recache);
 
+  case ConfigItem::remote_only:
+    return format_bool(m_remote_only);
+
   case ConfigItem::remote_storage:
     return m_remote_storage;
 
@@ -1026,6 +1032,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::recache:
     m_recache = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::remote_only:
+    m_remote_only = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::remote_storage:

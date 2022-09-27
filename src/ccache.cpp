@@ -901,10 +901,14 @@ write_result(Context& ctx,
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
-  const auto raw_files = serializer.get_raw_files();
-  if (!raw_files.empty()) {
-    ctx.storage.local.put_raw_files(result_key, raw_files);
+
+  if (!ctx.config.remote_only()) {
+    const auto& raw_files = serializer.get_raw_files();
+    if (!raw_files.empty()) {
+      ctx.storage.local.put_raw_files(result_key, raw_files);
+    }
   }
+
   ctx.storage.put(result_key, core::CacheEntryType::result, cache_entry_data);
 
   return true;
@@ -1742,7 +1746,7 @@ hash_direct_mode_specific_data(Context& ctx,
       }
     });
   MTR_END("manifest", "manifest_get");
-  if (read_manifests > 1) {
+  if (read_manifests > 1 && !ctx.config.remote_only()) {
     MTR_SCOPE("manifest", "merge");
     LOG("Storing merged manifest {} locally", manifest_key->to_string());
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);

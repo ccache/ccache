@@ -84,6 +84,7 @@ public:
   bool read_only() const;
   bool read_only_direct() const;
   bool recache() const;
+  bool remote_only() const;
   const std::string& remote_storage() const;
   bool reshare() const;
   bool run_second_cpp() const;
@@ -193,6 +194,7 @@ private:
   bool m_recache = false;
   bool m_reshare = false;
   bool m_run_second_cpp = true;
+  bool m_remote_only = false;
   std::string m_remote_storage;
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
@@ -435,6 +437,12 @@ inline bool
 Config::run_second_cpp() const
 {
   return m_run_second_cpp;
+}
+
+inline bool
+Config::remote_only() const
+{
+  return m_remote_only;
 }
 
 inline const std::string&

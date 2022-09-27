@@ -881,12 +881,20 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
 
+[#config_remote_only]
+*remote_only* (*CCACHE_REMOTE_ONLY* or *CCACHE_NOREMOTE_ONLY*, see _<<Boolean values>>_ above)::
+
+    If true, ccache will only use <<config_remote_storage,remote storage>>. The
+    default is false. Note that cache statistics counters will still be kept in
+    the local cache directory unless <<config_stats,*stats*>> is false.
+
 [#config_remote_storage]
 *remote_storage* (*CCACHE_REMOTE_STORAGE*)::
 
     This option specifies one or several storage backends (separated by space)
-    to query after checking the local cache. See _<<Remote storage backends>>_
-    for documentation of syntax and available backends.
+    to query after checking the local cache (unless
+    <<config_remote_only,*remote_only*>> is true). See _<<Remote storage
+    backends>>_ for documentation of syntax and available backends.
 +
 Examples:
 +
@@ -1034,10 +1042,12 @@ filesystem as the `CCACHE_DIR` path, but this requirement has been relaxed.
 == Remote storage backends
 
 The <<config_remote_storage,*remote_storage*>> option lets you configure ccache
-to use one or several other storage backends in addition to the local cache
-storage located in <<config_cache_dir,*cache_dir*>>. Note that cache statistics
-counters will still be kept in the local cache directory -- remote storage
-backends only store compilation results and manifests.
+to use one or several remote storage backends. By default, the local cache
+directory located in <<config_cache_dir,*cache_dir*>> will be queried first and
+remote storage second, but <<config_remote_only,*remote_only*>> can be set to
+true to disable local storage. Note that cache statistics counters will still be
+kept in the local cache directory -- remote storage backends only store
+compilation results and manifests.
 
 A remote storage backend is specified with a URL, optionally followed by a pipe
 (`|`) and a pipe-separated list of attributes. An attribute is _key_=_value_ or
@@ -1078,7 +1088,8 @@ Examples:
 === Storage interaction
 
 The table below describes the interaction between local and remote storage on
-cache hits and misses:
+cache hits and misses if <<config_remote_only,*remote_only*>> is false (which is
+the default):
 
 [options="header",cols="20%,20%,60%"]
 |==============================================================================
@@ -1094,6 +1105,16 @@ cache hits and misses:
 ^[2]^ Unless local storage is set to share its cache hits with the
 <<config_reshare,*reshare*>> option.
 
+If <<config_remote_only,*remote_only*>> is true:
+
+[options="header",cols="20%,20%,60%"]
+|==============================================================================
+| *Local storage* | *Remote storage* | *What happens*
+
+| - | miss | Compile, write to remote, don't write to local
+| - | hit  | Read from remote, don't write to local
+
+|==============================================================================
 
 === File storage backend
 

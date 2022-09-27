@@ -237,20 +237,24 @@ Storage::get(const Digest& key,
 {
   MTR_SCOPE("storage", "get");
 
-  auto value = local.get(key, type);
-  local.increment_statistic(value ? core::Statistic::local_storage_hit
-                                  : core::Statistic::local_storage_miss);
-  if (value) {
-    if (m_config.reshare()) {
-      put_in_remote_storage(key, *value, true);
-    }
-    if (entry_receiver(std::move(*value))) {
-      return;
+  if (!m_config.remote_only()) {
+    auto value = local.get(key, type);
+    local.increment_statistic(value ? core::Statistic::local_storage_hit
+                                    : core::Statistic::local_storage_miss);
+    if (value) {
+      if (m_config.reshare()) {
+        put_in_remote_storage(key, *value, true);
+      }
+      if (entry_receiver(std::move(*value))) {
+        return;
+      }
     }
   }
 
   get_from_remote_storage(key, [&](util::Bytes&& data) {
-    local.put(key, type, data, true);
+    if (!m_config.remote_only()) {
+      local.put(key, type, data, true);
+    }
     return entry_receiver(std::move(data));
   });
 }
@@ -262,7 +266,9 @@ Storage::put(const Digest& key,
 {
   MTR_SCOPE("storage", "put");
 
-  local.put(key, type, value);
+  if (!m_config.remote_only()) {
+    local.put(key, type, value);
+  }
   put_in_remote_storage(key, value, false);
 }
 
@@ -271,7 +277,9 @@ Storage::remove(const Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("storage", "remove");
 
-  local.remove(key, type);
+  if (!m_config.remote_only()) {
+    local.remove(key, type);
+  }
   remove_from_remote_storage(key);
 }
 
