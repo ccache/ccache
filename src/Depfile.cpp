@@ -159,6 +159,20 @@ tokenize(std::string_view file_content)
         ++p;
       }
       if (!is_blank(token)) {
+        // if there were spaces between a token and the : sign, the :
+        // must be added to the same token to make sure it is seen as
+        // a target and not as a dependency
+        if (p < length) {
+          const char c = file_content[p];
+          if (c == ':') {
+            token.push_back(c);
+            ++p;
+            // chomp all spaces before next char
+            while (p < length && isspace(file_content[p])) {
+              ++p;
+            }
+          }
+        }
         result.push_back(token);
       }
       token.clear();
@@ -182,7 +196,7 @@ tokenize(std::string_view file_content)
           ++p;
           break;
         // Backslash followed by newline is interpreted like a space, so simply
-        // the backslash.
+        // discard the backslash.
         case '\n':
           ++p;
           continue;

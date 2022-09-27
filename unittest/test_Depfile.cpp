@@ -202,6 +202,30 @@ TEST_CASE("Depfile::tokenize")
     CHECK(result[0] == "cat.o:");
     CHECK(result[1] == "meow");
   }
+
+  SUBCASE("Parse depfile with a one space before colon")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o : meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE("Parse depfile with a two spaces before colon")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o  : meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE("Parse depfile with a plenty of spaces before colon")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o    :    meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
 }
 
 TEST_SUITE_END();
