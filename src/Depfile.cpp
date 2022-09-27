@@ -146,6 +146,30 @@ tokenize(std::string_view file_content)
 {
   // A dependency file uses Makefile syntax. This is not perfect parser but
   // should be enough for parsing a regular dependency file.
+  // enhancement:
+  // - space between target and colon
+  // - no space between colon and first pre-requisite
+  // the later is pretty complex because of the windows paths which are
+  // identical to a target-colon-prerequisite without spaces (e.g. cat:/meow vs.
+  // c:/meow) here are the tests on windows gnu make 4.3 how it handles this:
+  //  + cat:/meow -> sees "cat" and "/meow"
+  //  + cat:\meow -> sees "cat" and "\meow"
+  //  + cat:\ meow -> sees "cat" and " meow"
+  //  + cat:c:/meow -> sees "cat" and "c:/meow"
+  //  + cat:c:\meow -> sees "cat" and "c:\meow"
+  //  + cat:c: -> target pattern contains no '%'.  Stop.
+  //  + cat:c:\ -> target pattern contains no '%'.  Stop.
+  //  + cat:c:/ -> sees "cat" and "c:/"
+  //  + cat:c:meow -> target pattern contains no '%'.  Stop.
+  //  + c:c:/meow -> sees "c" and "c:/meow"
+  //  + c:c:\meow -> sees "c" and "c:\meow"
+  //  + c:z:\meow -> sees "c" and "z:\meow"
+  //  + c:cd:\meow -> target pattern contains no '%'.  Stop.
+
+  // the logic for a windows path is:
+  //  - if there is a colon, if the previous token is 1 char long
+  //    and that the following char is a slash (fw or bw), then it is
+  //    a windows path
 
   std::vector<std::string> result;
   const size_t length = file_content.size();
@@ -153,19 +177,34 @@ tokenize(std::string_view file_content)
   size_t p = 0;
 
   while (p < length) {
-    // Each token is separated by whitespace.
-    if (isspace(file_content[p])) {
+    char c = file_content[p];
+
+    if (c == ':') {
+      if (p + 1 < length && !is_blank(token) && token.length() == 1) {
+        const char next = file_content[p + 1];
+        if (next == '/' || next == '\\') {
+          // only in this case, this is not a separator and colon is
+          // added to token
+          token.push_back(c);
+          ++p;
+          continue;
+        }
+      }
+    }
+    // Each token is separated by whitespace or a colon.
+    if (isspace(c) || c == ':') {
+      // chomp all spaces before next char
       while (p < length && isspace(file_content[p])) {
         ++p;
       }
       if (!is_blank(token)) {
         // if there were spaces between a token and the : sign, the :
         // must be added to the same token to make sure it is seen as
-        // a target and not as a dependency
+        // a target and not as a dependency (ccache requirement)
         if (p < length) {
-          const char c = file_content[p];
-          if (c == ':') {
-            token.push_back(c);
+          const char next = file_content[p];
+          if (next == ':') {
+            token.push_back(next);
             ++p;
             // chomp all spaces before next char
             while (p < length && isspace(file_content[p])) {
@@ -179,7 +218,6 @@ tokenize(std::string_view file_content)
       continue;
     }
 
-    char c = file_content[p];
     switch (c) {
     case '\\':
       if (p + 1 < length) {
