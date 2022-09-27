@@ -797,11 +797,11 @@ update_manifest(Context& ctx,
       };
     });
   if (added) {
+    LOG("Added result key to manifest {}", manifest_key.to_string());
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.put(manifest_key,
                     core::CacheEntryType::manifest,
                     core::CacheEntry::serialize(header, ctx.manifest));
-    LOG("Added result key to manifest {}", manifest_key.to_string());
   } else {
     LOG("Did not add result key to manifest {}", manifest_key.to_string());
   }
@@ -1053,6 +1053,8 @@ to_cache(Context& ctx,
     if (!result_key) {
       return nonstd::make_unexpected(Statistic::internal_error);
     }
+    LOG_RAW("Got result key from dependency file");
+    LOG("Result key: {}", result_key->to_string());
   }
 
   ASSERT(result_key);
@@ -1675,11 +1677,8 @@ hash_argument(const Context& ctx,
   return {};
 }
 
-static nonstd::expected<void, Failure>
-hash_direct_mode_specific_data(Context& ctx,
-                               Hash& hash,
-                               std::optional<Digest>& result_key,
-                               std::optional<Digest>& manifest_key)
+static nonstd::expected<std::optional<Digest>, Failure>
+get_manifest_key(Context& ctx, Hash& hash)
 {
   // Hash environment variables that affect the preprocessor output.
   const char* envvars[] = {"CPATH",
@@ -1723,39 +1722,7 @@ hash_direct_mode_specific_data(Context& ctx,
     return {};
   }
   hash.hash(input_file_digest.to_string());
-
-  manifest_key = hash.digest();
-
-  MTR_BEGIN("manifest", "manifest_get");
-  size_t read_manifests = 0;
-  ctx.storage.get(
-    *manifest_key, core::CacheEntryType::manifest, [&](util::Bytes&& value) {
-      try {
-        read_manifest(ctx, value);
-        ++read_manifests;
-        result_key = ctx.manifest.look_up_result_digest(ctx);
-      } catch (const core::Error& e) {
-        LOG("Failed to look up result key in manifest: {}", e.what());
-      }
-      if (result_key) {
-        LOG_RAW("Got result key from manifest");
-        return true;
-      } else {
-        LOG_RAW("Did not find result key in manifest");
-        return false;
-      }
-    });
-  MTR_END("manifest", "manifest_get");
-  if (read_manifests > 1 && !ctx.config.remote_only()) {
-    MTR_SCOPE("manifest", "merge");
-    LOG("Storing merged manifest {} locally", manifest_key->to_string());
-    core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
-    ctx.storage.local.put(*manifest_key,
-                          core::CacheEntryType::manifest,
-                          core::CacheEntry::serialize(header, ctx.manifest));
-  }
-
-  return {};
+  return hash.digest();
 }
 
 static bool
@@ -1834,6 +1801,42 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
   return {};
 }
 
+static std::optional<Digest>
+get_result_key_from_manifest(Context& ctx, const Digest& manifest_key)
+{
+  MTR_BEGIN("manifest", "manifest_get");
+  std::optional<Digest> result_key;
+  size_t read_manifests = 0;
+  ctx.storage.get(
+    manifest_key, core::CacheEntryType::manifest, [&](util::Bytes&& value) {
+      try {
+        read_manifest(ctx, value);
+        ++read_manifests;
+        result_key = ctx.manifest.look_up_result_digest(ctx);
+      } catch (const core::Error& e) {
+        LOG("Failed to look up result key in manifest: {}", e.what());
+      }
+      if (result_key) {
+        LOG_RAW("Got result key from manifest");
+        return true;
+      } else {
+        LOG_RAW("Did not find result key in manifest");
+        return false;
+      }
+    });
+  MTR_END("manifest", "manifest_get");
+  if (read_manifests > 1 && !ctx.config.remote_only()) {
+    MTR_SCOPE("manifest", "merge");
+    LOG("Storing merged manifest {} locally", manifest_key.to_string());
+    core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
+    ctx.storage.local.put(manifest_key,
+                          core::CacheEntryType::manifest,
+                          core::CacheEntry::serialize(header, ctx.manifest));
+  }
+
+  return result_key;
+}
+
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result key. Returns the result key on success, and
 // if direct_mode is true also the manifest key.
@@ -1891,7 +1894,15 @@ calculate_result_and_manifest_key(Context& ctx,
   std::optional<Digest> manifest_key;
 
   if (direct_mode) {
-    TRY(hash_direct_mode_specific_data(ctx, hash, result_key, manifest_key));
+    const auto manifest_key_result = get_manifest_key(ctx, hash);
+    if (!manifest_key_result) {
+      return nonstd::make_unexpected(manifest_key_result.error());
+    }
+    manifest_key = *manifest_key_result;
+    if (manifest_key) {
+      LOG("Manifest key: {}", manifest_key->to_string());
+      result_key = get_result_key_from_manifest(ctx, *manifest_key);
+    }
   } else if (ctx.args_info.arch_args.empty()) {
     const auto digest = get_result_key_from_cpp(ctx, preprocessor_args, hash);
     if (!digest) {
@@ -1918,6 +1929,9 @@ calculate_result_and_manifest_key(Context& ctx,
     preprocessor_args.pop_back();
   }
 
+  if (result_key) {
+    LOG("Result key: {}", result_key->to_string());
+  }
   return std::make_pair(result_key, manifest_key);
 }
 

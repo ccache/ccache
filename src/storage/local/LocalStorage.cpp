@@ -184,7 +184,7 @@ LocalStorage::get(const Digest& key, const core::CacheEntryType type) const
 
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
-    LOG("No {} {} in local storage", key.to_string(), core::to_string(type));
+    LOG("No {} in local storage", key.to_string());
     return std::nullopt;
   }
   const auto value = util::read_file<util::Bytes>(cache_file.path);
