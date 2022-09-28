@@ -304,6 +304,8 @@ parse_sloppiness(const std::string& value)
       result.enable(core::Sloppy::modules);
     } else if (token == "pch_defines") {
       result.enable(core::Sloppy::pch_defines);
+    } else if (token == "random_seed") {
+      result.enable(core::Sloppy::random_seed);
     } else if (token == "system_headers" || token == "no_system_headers") {
       result.enable(core::Sloppy::system_headers);
     } else if (token == "time_macros") {
@@ -347,6 +349,9 @@ format_sloppiness(core::Sloppiness sloppiness)
   }
   if (sloppiness.is_enabled(core::Sloppy::pch_defines)) {
     result += "pch_defines, ";
+  }
+  if (sloppiness.is_enabled(core::Sloppy::random_seed)) {
+    result += "random_seed, ";
   }
   if (sloppiness.is_enabled(core::Sloppy::system_headers)) {
     result += "system_headers, ";
