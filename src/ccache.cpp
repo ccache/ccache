@@ -2260,6 +2260,12 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   TRY(set_up_uncached_err());
 
+  // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
+  // directly to Visual Studio.
+  if (ctx.config.compiler_type() == CompilerType::msvc) {
+    Util::unsetenv("VS_UNICODE_OUTPUT");
+  }
+
   for (const auto& name : {"DEPENDENCIES_OUTPUT", "SUNPRO_DEPENDENCIES"}) {
     if (getenv(name)) {
       LOG("Unsupported environment variable: {}", name);
