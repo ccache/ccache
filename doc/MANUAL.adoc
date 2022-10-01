@@ -1002,6 +1002,9 @@ preprocessing first.
 *time_macros*::
     Ignore `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+` being present in the
     source code.
+*random_seed*::
+    By default, ccache will respect argument changes with `-frandom-seed`. This
+    sloppiness will allow cache hits even if the seed value is different.
 --
 +
 See the discussion under _<<Troubleshooting>>_ for more information.
