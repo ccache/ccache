@@ -1364,6 +1364,8 @@ unsetenv(const std::string& name)
 {
 #ifdef HAVE_UNSETENV
   ::unsetenv(name.c_str());
+#elif defined(_WIN32)
+  SetEnvironmentVariable(name.c_str(), NULL);
 #else
   putenv(strdup(name.c_str())); // Leak to environment.
 #endif
