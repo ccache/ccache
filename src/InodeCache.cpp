@@ -209,7 +209,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   }
   m_sr = sr;
   if (m_config.debug()) {
-    LOG("inode cache file loaded: {}", inode_cache_file);
+    LOG("Inode cache file loaded: {}", inode_cache_file);
   }
   return true;
 }
@@ -430,7 +430,7 @@ InodeCache::get(const std::string& path,
     return false;
   }
 
-  LOG("inode cache {}: {}", found ? "hit" : "miss", path);
+  LOG("Inode cache {}: {}", found ? "hit" : "miss", path);
 
   if (m_config.debug()) {
     if (found) {
@@ -475,7 +475,7 @@ InodeCache::put(const std::string& path,
     return false;
   }
 
-  LOG("inode cache insert: {}", path);
+  LOG("Inode cache insert: {}", path);
 
   return true;
 }

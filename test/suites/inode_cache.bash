@@ -30,7 +30,7 @@ expect_inode_cache_type() {
     local source_file=$2
     local type=$3
 
-    local actual=$(grep -c "inode cache $type: $source_file" ${source_file/%.c/.o}.*.ccache-log)
+    local actual=$(grep -c "Inode cache $type: $source_file" ${source_file/%.c/.o}.*.ccache-log)
     if [ $actual -ne $expected ]; then
         test_failed_internal "Found $actual (expected $expected) $type for $source_file"
     fi
