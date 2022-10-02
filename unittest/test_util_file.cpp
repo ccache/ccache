@@ -120,6 +120,14 @@ TEST_CASE("util::read_file<std::string> with UTF-16 little endian encoding")
   auto read_data = util::read_file<std::string>("test");
   REQUIRE(read_data);
   CHECK(*read_data == "abc");
+
+  data.push_back('\0');
+  data.push_back(static_cast<unsigned char>(0xd8));
+  data.push_back('d');
+  data.push_back('\0');
+  CHECK(util::write_file("test", data));
+  read_data = util::read_file<std::string>("test");
+  REQUIRE(!read_data);
 }
 #endif
 
