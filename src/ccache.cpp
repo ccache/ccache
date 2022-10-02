@@ -2457,7 +2457,9 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       return Statistic::preprocessed_cache_hit;
     }
 
-    ctx.storage.local.increment_statistic(Statistic::preprocessed_cache_miss);
+    if (!ctx.config.recache()) {
+      ctx.storage.local.increment_statistic(Statistic::preprocessed_cache_miss);
+    }
   }
 
   if (ctx.config.read_only()) {
