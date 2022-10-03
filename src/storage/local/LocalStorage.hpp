@@ -55,8 +55,7 @@ public:
 
   // --- Cache entry handling ---
 
-  std::optional<util::Bytes> get(const Digest& key,
-                                 core::CacheEntryType type) const;
+  std::optional<util::Bytes> get(const Digest& key, core::CacheEntryType type);
 
   void put(const Digest& key,
            core::CacheEntryType type,

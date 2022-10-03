@@ -95,6 +95,9 @@ const StatisticsField k_statistics_fields[] = {
   FIELD(internal_error, "Internal error", FLAG_ERROR),
   FIELD(local_storage_hit, nullptr),
   FIELD(local_storage_miss, nullptr),
+  FIELD(local_storage_read_hit, nullptr),
+  FIELD(local_storage_read_miss, nullptr),
+  FIELD(local_storage_write, nullptr),
   FIELD(missing_cache_file, "Missing cache file", FLAG_ERROR),
   FIELD(multiple_source_files, "Multiple source files", FLAG_UNCACHEABLE),
   FIELD(no_input_file, "No input file", FLAG_UNCACHEABLE),
@@ -108,6 +111,9 @@ const StatisticsField k_statistics_fields[] = {
   FIELD(remote_storage_error, nullptr),
   FIELD(remote_storage_hit, nullptr),
   FIELD(remote_storage_miss, nullptr),
+  FIELD(remote_storage_read_hit, nullptr),
+  FIELD(remote_storage_read_miss, nullptr),
+  FIELD(remote_storage_write, nullptr),
   FIELD(remote_storage_timeout, nullptr),
   FIELD(stats_zeroed_timestamp, nullptr),
   FIELD(
@@ -295,12 +301,20 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t g = 1'000'000'000;
   const uint64_t local_hits = S(local_storage_hit);
   const uint64_t local_misses = S(local_storage_miss);
+  const uint64_t local_reads =
+    S(local_storage_read_hit) + S(local_storage_read_miss);
+  const uint64_t local_writes = S(local_storage_write);
   const uint64_t local_size = S(cache_size_kibibyte) * 1024;
   const uint64_t cleanups = S(cleanups_performed);
-  table.add_heading("Local storage:");
-  add_ratio_row(table, "  Hits:", local_hits, local_hits + local_misses);
-  add_ratio_row(table, "  Misses:", local_misses, local_hits + local_misses);
+  const uint64_t remote_hits = S(remote_storage_hit);
+  const uint64_t remote_misses = S(remote_storage_miss);
+  const uint64_t remote_reads =
+    S(remote_storage_read_hit) + S(remote_storage_read_miss);
+  const uint64_t remote_writes = S(remote_storage_write);
+  const uint64_t remote_errors = S(remote_storage_error);
+  const uint64_t remote_timeouts = S(remote_storage_timeout);
 
+  table.add_heading("Local storage:");
   if (!from_log) {
     std::vector<C> size_cells{
       "  Cache size (GB):",
@@ -328,11 +342,14 @@ Statistics::format_human_readable(const Config& config,
       table.add_row({"  Cleanups:", cleanups});
     }
   }
-
-  const uint64_t remote_hits = S(remote_storage_hit);
-  const uint64_t remote_misses = S(remote_storage_miss);
-  const uint64_t remote_errors = S(remote_storage_error);
-  const uint64_t remote_timeouts = S(remote_storage_timeout);
+  if (verbosity > 0 || (remote_hits + remote_misses) > 0) {
+    add_ratio_row(table, "  Hits:", local_hits, local_hits + local_misses);
+    add_ratio_row(table, "  Misses:", local_misses, local_hits + local_misses);
+  }
+  if (verbosity > 0) {
+    table.add_row({"  Reads:", local_reads});
+    table.add_row({"  Writes:", local_writes});
+  }
 
   if (verbosity > 1
       || remote_hits + remote_misses + remote_errors + remote_timeouts > 0) {
@@ -340,6 +357,10 @@ Statistics::format_human_readable(const Config& config,
     add_ratio_row(table, "  Hits:", remote_hits, remote_hits + remote_misses);
     add_ratio_row(
       table, "  Misses:", remote_misses, remote_hits + remote_misses);
+    if (verbosity > 0) {
+      table.add_row({"  Reads:", remote_reads});
+      table.add_row({"  Writes:", remote_writes});
+    }
     if (verbosity > 1 || remote_errors > 0) {
       table.add_row({"  Errors:", remote_errors});
     }

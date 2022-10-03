@@ -82,6 +82,7 @@ private:
                                          const bool for_writing);
 
   void get_from_remote_storage(const Digest& key,
+                               core::CacheEntryType type,
                                const EntryReceiver& entry_receiver);
 
   void put_in_remote_storage(const Digest& key,

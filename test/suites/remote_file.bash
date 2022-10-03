@@ -18,9 +18,15 @@ SUITE_remote_file() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 2 # result + manifest
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 2 # result + manifest
+    expect_stat local_storage_write 2 # result + manifest
     expect_stat remote_storage_hit 0
-    expect_stat remote_storage_miss 2 # result + manifest
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 2 # result + manifest
+    expect_stat remote_storage_write 2 # result + manifest
     expect_exists remote/CACHEDIR.TAG
     subdirs=$(find remote -type d | wc -l)
     if [ "${subdirs}" -lt 2 ]; then # "remote" itself counts as one
@@ -32,10 +38,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
-    expect_stat local_storage_hit 2 # result + manifest
-    expect_stat local_storage_miss 2 # result + manifest
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 2 # result + manifest
+    expect_stat local_storage_read_miss 2 # result + manifest
+    expect_stat local_storage_write 2 # result + manifest
     expect_stat remote_storage_hit 0
-    expect_stat remote_storage_miss 2 # result + manifest
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 2
+    expect_stat remote_storage_write 2
     expect_stat files_in_cache 2
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
@@ -48,10 +60,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
-    expect_stat local_storage_hit 2
-    expect_stat local_storage_miss 4 # 2 * (result + manifest)
-    expect_stat remote_storage_hit 2 # result + manifest
-    expect_stat remote_storage_miss 2 # result + manifest
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 2
+    expect_stat local_storage_read_hit 2 # result + manifest
+    expect_stat local_storage_read_miss 4 # 2 * (result + manifest)
+    expect_stat local_storage_write 4 # 2 * (result + manifest)
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 2 # result + manifest
+    expect_stat remote_storage_read_miss 2 # result + manifest
+    expect_stat remote_storage_write 2 # result + manifest
     expect_stat files_in_cache 2 # fetched from remote
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
@@ -59,10 +77,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 3
     expect_stat cache_miss 1
-    expect_stat local_storage_hit 4
-    expect_stat local_storage_miss 4 # 2 * (result + manifest)
-    expect_stat remote_storage_hit 2 # result + manifest
-    expect_stat remote_storage_miss 2 # result + manifest
+    expect_stat local_storage_hit 2
+    expect_stat local_storage_miss 2
+    expect_stat local_storage_read_hit 4 # 2 * (result + manifest)
+    expect_stat local_storage_read_miss 4 # 2 * (result + manifest)
+    expect_stat local_storage_write 4 # 2 * (result + manifest)
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 2 # result + manifest
+    expect_stat remote_storage_read_miss 2 # result + manifest
+    expect_stat remote_storage_write 2 # result + manifest
     expect_stat files_in_cache 2 # fetched from remote
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
@@ -205,27 +229,45 @@ SUITE_remote_file() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 2
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 2
+    expect_stat local_storage_write 2
     expect_stat remote_storage_hit 0
     expect_stat remote_storage_miss 0
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 0
+    expect_stat remote_storage_write 0
     expect_missing remote
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
-    expect_stat local_storage_hit 2
-    expect_stat local_storage_miss 2
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 2
+    expect_stat local_storage_read_miss 2
+    expect_stat local_storage_write 2
     expect_stat remote_storage_hit 0
     expect_stat remote_storage_miss 0
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 0
+    expect_stat remote_storage_write 0
     expect_missing remote
 
     CCACHE_RESHARE=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
-    expect_stat local_storage_hit 4
-    expect_stat local_storage_miss 2
+    expect_stat local_storage_hit 2
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 4
+    expect_stat local_storage_read_miss 2
+    expect_stat local_storage_write 2
     expect_stat remote_storage_hit 0
     expect_stat remote_storage_miss 0
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 0
+    expect_stat remote_storage_write 2
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
     $CCACHE -C >/dev/null
@@ -233,10 +275,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 3
     expect_stat cache_miss 1
-    expect_stat local_storage_hit 4
-    expect_stat local_storage_miss 4
-    expect_stat remote_storage_hit 2
+    expect_stat local_storage_hit 2
+    expect_stat local_storage_miss 2
+    expect_stat local_storage_read_hit 4
+    expect_stat local_storage_read_miss 4
+    expect_stat local_storage_write 4
+    expect_stat remote_storage_hit 1
     expect_stat remote_storage_miss 0
+    expect_stat remote_storage_read_hit 2
+    expect_stat remote_storage_read_miss 0
+    expect_stat remote_storage_write 2
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
     # -------------------------------------------------------------------------
@@ -245,13 +293,20 @@ SUITE_remote_file() {
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat direct_cache_miss 0
+    expect_stat preprocessed_cache_miss 0
     expect_stat cache_miss 0
     expect_stat recache 1
     expect_stat files_in_cache 2
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 1 # Try to read manifest for updating
+    expect_stat local_storage_miss 0
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 1 # Try to read manifest for updating
+    expect_stat local_storage_write 2
     expect_stat remote_storage_hit 0
-    expect_stat remote_storage_miss 1 # Try to read manifest for updating
+    expect_stat remote_storage_miss 0
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 1 # Try to read manifest for updating
+    expect_stat remote_storage_write 2
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
     $CCACHE -C >/dev/null
@@ -260,14 +315,22 @@ SUITE_remote_file() {
 
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
+
     expect_stat direct_cache_miss 0
+    expect_stat preprocessed_cache_miss 0
     expect_stat cache_miss 0
     expect_stat recache 2
     expect_stat files_in_cache 2
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 2 # Try to read manifest for updating
-    expect_stat remote_storage_hit 1 # Read manifest for updating
-    expect_stat remote_storage_miss 1
+    expect_stat local_storage_miss 0
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 2 # Try to read manifest for updating
+    expect_stat local_storage_write 4
+    expect_stat remote_storage_hit 0
+    expect_stat remote_storage_miss 0
+    expect_stat remote_storage_read_hit 1 # Read manifest for updating
+    expect_stat remote_storage_read_miss 1
+    expect_stat remote_storage_write 3 # Not 4 since result key already present
 
     # -------------------------------------------------------------------------
     if touch test.c && ln test.c test-if-fs-supports-hard-links.c 2>/dev/null; then
@@ -278,18 +341,30 @@ SUITE_remote_file() {
         expect_stat cache_miss 1
         expect_stat files_in_cache 3
         expect_stat local_storage_hit 0
-        expect_stat local_storage_miss 2 # result + manifest
+        expect_stat local_storage_miss 1
+        expect_stat local_storage_read_hit 0
+        expect_stat local_storage_read_miss 2
+        expect_stat local_storage_write 2
         expect_stat remote_storage_hit 0
         expect_stat remote_storage_miss 0
+        expect_stat remote_storage_read_hit 0
+        expect_stat remote_storage_read_miss 0
+        expect_stat remote_storage_write 0
 
         CCACHE_RESHARE=1 $CCACHE_COMPILE -c test.c
         expect_stat direct_cache_hit 1
         expect_stat cache_miss 1
         expect_stat files_in_cache 3
-        expect_stat local_storage_hit 2
-        expect_stat local_storage_miss 2 # result + manifest
+        expect_stat local_storage_hit 1
+        expect_stat local_storage_miss 1
+        expect_stat local_storage_read_hit 2
+        expect_stat local_storage_read_miss 2
+        expect_stat local_storage_write 2
         expect_stat remote_storage_hit 0
         expect_stat remote_storage_miss 0
+        expect_stat remote_storage_read_hit 0
+        expect_stat remote_storage_read_miss 0
+        expect_stat remote_storage_write 1 # result not saved since not self-contained
         expect_file_count 2 '*' remote # CACHEDIR.TAG + manifest, not result
     fi
 
@@ -304,9 +379,15 @@ SUITE_remote_file() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 2 # miss: manifest + result
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 2 # miss: manifest + result
+    expect_stat local_storage_write 2 # manifest + result
     expect_stat remote_storage_hit 0
-    expect_stat remote_storage_miss 2 # miss: manifest + result
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 2
+    expect_stat remote_storage_write 2 # miss: manifest + result
 
     # Both local and remote now have an "int x;" key in the manifest.
 
@@ -316,10 +397,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 2
-    expect_stat local_storage_hit 1 # hit: manifest without key
-    expect_stat local_storage_miss 3 # miss: result
-    expect_stat remote_storage_hit 1 # his: manifest without key
-    expect_stat remote_storage_miss 3 # miss: result
+    expect_stat local_storage_hit 0
+    expect_stat local_storage_miss 2
+    expect_stat local_storage_read_hit 1 # hit: manifest without key
+    expect_stat local_storage_read_miss 3 # miss: result
+    expect_stat local_storage_write 5 # miss: merged manifest + new manifest entry + result
+    expect_stat remote_storage_hit 0
+    expect_stat remote_storage_miss 2
+    expect_stat remote_storage_read_hit 1 # # hit: manifest without key
+    expect_stat remote_storage_read_miss 3 # miss: result
+    expect_stat remote_storage_write 4 # miss: manifest + result
 
     # Both local and remote now have "int x;" and "int y;" keys in the manifest.
 
@@ -334,10 +421,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
-    expect_stat local_storage_hit 1
-    expect_stat local_storage_miss 5 # miss: manifest + result
-    expect_stat remote_storage_hit 3 # hit: manifest + result
-    expect_stat remote_storage_miss 3
+    expect_stat local_storage_hit 0
+    expect_stat local_storage_miss 3
+    expect_stat local_storage_read_hit 1
+    expect_stat local_storage_read_miss 5 # miss: manifest + result
+    expect_stat local_storage_write 7 # miss: manifest + result
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 2
+    expect_stat remote_storage_read_hit 3
+    expect_stat remote_storage_read_miss 3
+    expect_stat remote_storage_write 4
 
     # Should be able to get remote hit without involving local.
 
@@ -347,10 +440,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 2
-    expect_stat local_storage_hit 2 # hit: manifest with key (downloaded from previous step)
-    expect_stat local_storage_miss 6 # miss: result
-    expect_stat remote_storage_hit 4 # hit: result
-    expect_stat remote_storage_miss 3
+    expect_stat local_storage_hit 0
+    expect_stat local_storage_miss 4
+    expect_stat local_storage_read_hit 2 # hit: manifest with key (downloaded from previous step)
+    expect_stat local_storage_read_miss 6 # miss: manifest + result
+    expect_stat local_storage_write 8 # miss: result
+    expect_stat remote_storage_hit 2
+    expect_stat remote_storage_miss 2
+    expect_stat remote_storage_read_hit 4 # hit: result
+    expect_stat remote_storage_read_miss 3
+    expect_stat remote_storage_write 4
 
     # -------------------------------------------------------------------------
     TEST "Manifest merging"
@@ -363,9 +462,15 @@ SUITE_remote_file() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 2 # miss: manifest + result
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 2 # miss: manifest + result
+    expect_stat local_storage_write 2
     expect_stat remote_storage_hit 0
-    expect_stat remote_storage_miss 2 # miss: manifest + result
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 2 # miss: manifest + result 3
+    expect_stat remote_storage_write 2
 
     $CCACHE -C >/dev/null
 
@@ -378,9 +483,15 @@ SUITE_remote_file() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 2
     expect_stat local_storage_hit 0
-    expect_stat local_storage_miss 4 # miss: manifest + result
+    expect_stat local_storage_miss 2
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 4 # miss: manifest + result
+    expect_stat local_storage_write 4
     expect_stat remote_storage_hit 0
-    expect_stat remote_storage_miss 2
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 2
+    expect_stat remote_storage_write 2
 
     # Now local has "int y;" while remote still has "int x;".
 
@@ -390,10 +501,16 @@ SUITE_remote_file() {
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
-    expect_stat local_storage_hit 1 # hit: manifest without key
-    expect_stat local_storage_miss 5 # miss: result
-    expect_stat remote_storage_hit 2 # hit: manifest + result
-    expect_stat remote_storage_miss 2
+    expect_stat local_storage_hit 0
+    expect_stat local_storage_miss 3
+    expect_stat local_storage_read_hit 1 # hit: manifest without key
+    expect_stat local_storage_read_miss 5 # miss: result
+    expect_stat local_storage_write 6
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 2 # hit: manifest + result
+    expect_stat remote_storage_read_miss 2
+    expect_stat remote_storage_write 2
 
     # Local manifest with "int y;" was merged with remote's "int x;" above, so
     # we should now be able to get "int x;" and "int y;" hits locally.
@@ -404,10 +521,16 @@ SUITE_remote_file() {
     CCACHE_REMOTE_STORAGE= $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 2
-    expect_stat local_storage_hit 3 # hit: manifest + result
-    expect_stat local_storage_miss 5
-    expect_stat remote_storage_hit 2
-    expect_stat remote_storage_miss 2
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 3
+    expect_stat local_storage_read_hit 3 # hit: manifest + result
+    expect_stat local_storage_read_miss 5 # miss: result
+    expect_stat local_storage_write 6
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 2
+    expect_stat remote_storage_read_miss 2
+    expect_stat remote_storage_write 2
 
     echo 'int x;' >test.h
     backdate test.h
@@ -415,8 +538,14 @@ SUITE_remote_file() {
     CCACHE_REMOTE_STORAGE= $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 3
     expect_stat cache_miss 2
-    expect_stat local_storage_hit 5 # hit: manifest + result
-    expect_stat local_storage_miss 5
-    expect_stat remote_storage_hit 2
-    expect_stat remote_storage_miss 2
+    expect_stat local_storage_hit 2
+    expect_stat local_storage_miss 3
+    expect_stat local_storage_read_hit 5 # hit: manifest + result
+    expect_stat local_storage_read_miss 5 # miss: result
+    expect_stat local_storage_write 6
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 2
+    expect_stat remote_storage_read_miss 2
+    expect_stat remote_storage_write 2
 }

@@ -239,8 +239,6 @@ Storage::get(const Digest& key,
 
   if (!m_config.remote_only()) {
     auto value = local.get(key, type);
-    local.increment_statistic(value ? core::Statistic::local_storage_hit
-                                    : core::Statistic::local_storage_miss);
     if (value) {
       if (m_config.reshare()) {
         put_in_remote_storage(key, *value, true);
@@ -251,7 +249,7 @@ Storage::get(const Digest& key,
     }
   }
 
-  get_from_remote_storage(key, [&](util::Bytes&& data) {
+  get_from_remote_storage(key, type, [&](util::Bytes&& data) {
     if (!m_config.remote_only()) {
       local.put(key, type, data, true);
     }
@@ -425,6 +423,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
 
 void
 Storage::get_from_remote_storage(const Digest& key,
+                                 const core::CacheEntryType type,
                                  const EntryReceiver& entry_receiver)
 {
   MTR_SCOPE("remote_storage", "get");
@@ -449,7 +448,10 @@ Storage::get_from_remote_storage(const Digest& key,
           key.to_string(),
           backend->url_for_logging,
           ms);
-      local.increment_statistic(core::Statistic::remote_storage_hit);
+      local.increment_statistic(core::Statistic::remote_storage_read_hit);
+      if (type == core::CacheEntryType::result) {
+        local.increment_statistic(core::Statistic::remote_storage_hit);
+      }
       if (entry_receiver(std::move(*value))) {
         return;
       }
@@ -458,7 +460,10 @@ Storage::get_from_remote_storage(const Digest& key,
           key.to_string(),
           backend->url_for_logging,
           ms);
-      local.increment_statistic(core::Statistic::remote_storage_miss);
+      local.increment_statistic(core::Statistic::remote_storage_read_miss);
+      if (type == core::CacheEntryType::result) {
+        local.increment_statistic(core::Statistic::remote_storage_miss);
+      }
     }
   }
 }
@@ -497,6 +502,7 @@ Storage::put_in_remote_storage(const Digest& key,
         key.to_string(),
         backend->url_for_logging,
         ms);
+    local.increment_statistic(core::Statistic::remote_storage_write);
   }
 }
 
@@ -531,6 +537,8 @@ Storage::remove_from_remote_storage(const Digest& key)
           backend->url_for_logging,
           ms);
     }
+
+    local.increment_statistic(core::Statistic::remote_storage_write);
   }
 }
 

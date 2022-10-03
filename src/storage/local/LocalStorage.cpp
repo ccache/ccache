@@ -178,27 +178,39 @@ LocalStorage::finalize()
 }
 
 std::optional<util::Bytes>
-LocalStorage::get(const Digest& key, const core::CacheEntryType type) const
+LocalStorage::get(const Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("local_storage", "get");
 
+  std::optional<util::Bytes> return_value;
+
   const auto cache_file = look_up_cache_file(key, type);
-  if (!cache_file.stat) {
+  if (cache_file.stat) {
+    const auto value = util::read_file<util::Bytes>(cache_file.path);
+    if (value) {
+      LOG("Retrieved {} from local storage ({})",
+          key.to_string(),
+          cache_file.path);
+
+      // Update modification timestamp to save file from LRU cleanup.
+      util::set_timestamps(cache_file.path);
+
+      return_value = *value;
+    } else {
+      LOG("Failed to read {}: {}", cache_file.path, value.error());
+    }
+  } else {
     LOG("No {} in local storage", key.to_string());
-    return std::nullopt;
-  }
-  const auto value = util::read_file<util::Bytes>(cache_file.path);
-  if (!value) {
-    LOG("Failed to read {}: {}", cache_file.path, value.error());
-    return std::nullopt;
   }
 
-  LOG("Retrieved {} from local storage ({})", key.to_string(), cache_file.path);
+  increment_statistic(return_value ? core::Statistic::local_storage_read_hit
+                                   : core::Statistic::local_storage_read_miss);
+  if (type == core::CacheEntryType::result) {
+    increment_statistic(return_value ? core::Statistic::local_storage_hit
+                                     : core::Statistic::local_storage_miss);
+  }
 
-  // Update modification timestamp to save file from LRU cleanup.
-  util::set_timestamps(cache_file.path);
-
-  return *value;
+  return return_value;
 }
 
 void
@@ -229,12 +241,11 @@ LocalStorage::put(const Digest& key,
   }
 
   try {
+    increment_statistic(core::Statistic::local_storage_write);
     AtomicFile result_file(cache_file.path, AtomicFile::Mode::binary);
     result_file.write(value);
     result_file.commit();
-  }
-
-  catch (core::Error& e) {
+  } catch (core::Error& e) {
     LOG("Failed to write to {}: {}", cache_file.path, e.what());
     return;
   }
@@ -269,6 +280,7 @@ LocalStorage::remove(const Digest& key, const core::CacheEntryType type)
 
   const auto cache_file = look_up_cache_file(key, type);
   if (cache_file.stat) {
+    increment_statistic(core::Statistic::local_storage_write);
     Util::unlink_safe(cache_file.path);
     LOG("Removed {} from local storage ({})", key.to_string(), cache_file.path);
   } else {
