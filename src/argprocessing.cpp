@@ -1252,9 +1252,10 @@ process_args(Context& ctx)
         Util::change_extension(Util::base_name(args_info.input_file), ".elf");
     } else {
       std::string_view extension =
-        state.found_S_opt ? ".s" : get_default_object_file_extension(ctx.config);
-      args_info.output_obj +=
-        Util::change_extension(Util::base_name(args_info.input_file), extension);
+        state.found_S_opt ? ".s"
+                          : get_default_object_file_extension(ctx.config);
+      args_info.output_obj += Util::change_extension(
+        Util::base_name(args_info.input_file), extension);
     }
   }
 
