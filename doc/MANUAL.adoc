@@ -987,14 +987,18 @@ preprocessing first.
     `LC_MESSAGES` in the hash by default since they may affect localization of
     compiler warning messages. Set this sloppiness to tell ccache not to do
     that.
-*pch_defines*::
-    Be sloppy about `#define` directives when precompiling a header file. See
-    _<<Precompiled headers>>_ for more information.
 *modules*::
     By default, ccache will not cache compilations if `-fmodules` is used since
     it cannot hash the state of compiler's internal representation of relevant
     modules. This sloppiness allows caching in such a case. See
     _<<C++ modules>>_ for more information.
+*pch_defines*::
+    Be sloppy about `#define` directives when precompiling a header file. See
+    _<<Precompiled headers>>_ for more information.
+*random_seed*::
+    Ignore the `-frandom-seed` option and its arguments when computing the input
+    hash. This is useful if your build system generates different seeds between
+    builds and you are OK with reusing cached results.
 *system_headers*::
     By default, ccache will also include all system headers in the manifest.
     With this sloppiness set, ccache will only include system headers in the
@@ -1002,10 +1006,6 @@ preprocessing first.
 *time_macros*::
     Ignore `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+` being present in the
     source code.
-*random_seed*::
-    Ignore the `-frandom-seed` option and its arguments when computing the input
-    hash. This is useful if your build system generates different seeds between
-    builds and you are OK with reusing cached results.
 --
 +
 See the discussion under _<<Troubleshooting>>_ for more information.
