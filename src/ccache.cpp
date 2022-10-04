@@ -1555,6 +1555,15 @@ hash_argument(const Context& ctx,
     return {};
   }
 
+  // If we treat random_seed sloppily we ignore the argument when
+  // hashing.
+  if (util::starts_with(args[i], "-frandom-seed=")
+      && ctx.config.sloppiness().is_enabled(core::Sloppy::random_seed)) {
+    hash.hash_delimiter("arg");
+    hash.hash("-frandom-seed=");
+    return {};
+  }
+
   // When using the preprocessor, some arguments don't contribute to the hash.
   // The theory is that these arguments will change the output of -E if they are
   // going to have any effect at all. For precompiled headers this might not be
