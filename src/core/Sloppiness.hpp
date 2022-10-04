@@ -49,7 +49,7 @@ enum class Sloppy : uint32_t {
   ivfsoverlay = 1U << 10,
   // Allow us to include incorrect working directory in .gcno files.
   gcno_cwd = 1U << 11,
-  // Ignore changes in -frandom-seed
+  // Ignore -frandom-seed=*string*.
   random_seed = 1U << 12,
 };
 

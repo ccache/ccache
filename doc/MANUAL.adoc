@@ -1003,8 +1003,9 @@ preprocessing first.
     Ignore `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+` being present in the
     source code.
 *random_seed*::
-    By default, ccache will respect argument changes with `-frandom-seed`. This
-    sloppiness will allow cache hits even if the seed value is different.
+    Ignore the `-frandom-seed` option and its arguments when computing the input
+    hash. This is useful if your build system generates different seeds between
+    builds and you are OK with reusing cached results.
 --
 +
 See the discussion under _<<Troubleshooting>>_ for more information.

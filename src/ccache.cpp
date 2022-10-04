@@ -1555,12 +1555,9 @@ hash_argument(const Context& ctx,
     return {};
   }
 
-  // If we treat random_seed sloppily we ignore the argument when
-  // hashing.
   if (util::starts_with(args[i], "-frandom-seed=")
       && ctx.config.sloppiness().is_enabled(core::Sloppy::random_seed)) {
-    hash.hash_delimiter("arg");
-    hash.hash("-frandom-seed=");
+    LOG("Ignoring {} since random_seed sloppiness is requested", args[i]);
     return {};
   }
 
