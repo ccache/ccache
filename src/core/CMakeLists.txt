@@ -6,7 +6,6 @@ set(
   ResultExtractor.cpp
   ResultInspector.cpp
   ResultRetriever.cpp
-  ShowIncludesParser.cpp
   Statistics.cpp
   StatisticsCounters.cpp
   StatsLog.cpp

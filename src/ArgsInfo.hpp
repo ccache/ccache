@@ -75,9 +75,6 @@ struct ArgsInfo
   // Is the compiler being asked to output dependencies?
   bool generating_dependencies = false;
 
-  // Is the compiler being asked to output includes (MSVC -showIncludes)?
-  bool generating_includes = false;
-
   // The dependency target in the dependency file (the object file unless
   // overridden via e.g. -MT or -MQ).
   std::optional<std::string> dependency_target;

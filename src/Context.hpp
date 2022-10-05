@@ -118,8 +118,6 @@ public:
   std::unique_ptr<MiniTrace> mini_trace;
 #endif
 
-  bool auto_depend_mode = false;
-
   // Register a temporary file to remove at program exit.
   void register_pending_tmp_file(const std::string& path);
 
