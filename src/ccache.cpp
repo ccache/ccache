@@ -688,8 +688,8 @@ get_tmp_fd(Context& ctx,
 struct DoExecuteResult
 {
   int exit_status;
-  std::string stdout_data;
-  std::string stderr_data;
+  util::Bytes stdout_data;
+  util::Bytes stderr_data;
 };
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -730,14 +730,14 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
     }
   }
 
-  std::string stdout_data;
+  util::Bytes stdout_data;
   if (capture_stdout) {
     auto stdout_data_result = util::read_file<util::Bytes>(tmp_stdout.path);
     if (!stdout_data_result) {
       // The stdout file was removed - cleanup in progress? Better bail out.
       return nonstd::make_unexpected(Statistic::missing_cache_file);
     }
-    stdout_data = util::to_string(util::to_string_view(*stdout_data_result));
+    stdout_data = *stdout_data_result;
   }
 
   auto stderr_data_result = util::read_file<util::Bytes>(tmp_stderr.path);
@@ -746,10 +746,7 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
     return nonstd::make_unexpected(Statistic::missing_cache_file);
   }
 
-  return DoExecuteResult{
-    status,
-    stdout_data,
-    util::to_string(util::to_string_view(*stderr_data_result))};
+  return DoExecuteResult{status, stdout_data, *stderr_data_result};
 }
 
 static void
@@ -852,8 +849,8 @@ static bool
 write_result(Context& ctx,
              const Digest& result_key,
              const Stat& obj_stat,
-             const std::string& stdout_data,
-             const std::string& stderr_data)
+             const util::Bytes& stdout_data,
+             const util::Bytes& stderr_data)
 {
   core::Result::Serializer serializer(ctx.config);
 
@@ -917,18 +914,20 @@ write_result(Context& ctx,
   return true;
 }
 
-static std::string
-rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
+static util::Bytes
+rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
 {
   using util::Tokenizer;
   using Mode = Tokenizer::Mode;
   using IncludeDelimiter = Tokenizer::IncludeDelimiter;
   if (!stdout_data.empty()) {
     std::string new_stdout_text;
-    for (const auto line : Tokenizer(
-           stdout_data, "\n", Mode::include_empty, IncludeDelimiter::yes)) {
+    for (const auto line : Tokenizer(util::to_string_view(stdout_data),
+                                     "\n",
+                                     Mode::include_empty,
+                                     IncludeDelimiter::yes)) {
       if (util::starts_with(line, "__________")) {
-        Util::send_to_fd(ctx, std::string(line), STDOUT_FILENO);
+        Util::send_to_fd(ctx, line, STDOUT_FILENO);
       }
       // Ninja uses the lines with 'Note: including file: ' to determine the
       // used headers. Headers within basedir need to be changed into relative
@@ -950,7 +949,7 @@ rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
         new_stdout_text.append(line.data(), line.length());
       }
     }
-    return new_stdout_text;
+    return util::Bytes(new_stdout_text.data(), new_stdout_text.size());
   } else {
     return std::move(stdout_data);
   }
@@ -1032,7 +1031,9 @@ to_cache(Context& ctx,
   // Merge stderr from the preprocessor (if any) and stderr from the real
   // compiler.
   if (!ctx.cpp_stderr_data.empty()) {
-    result->stderr_data = ctx.cpp_stderr_data + result->stderr_data;
+    result->stderr_data.insert(result->stderr_data.begin(),
+                               ctx.cpp_stderr_data.begin(),
+                               ctx.cpp_stderr_data.end());
   }
 
   result->stdout_data =
@@ -1042,8 +1043,10 @@ to_cache(Context& ctx,
     LOG("Compiler gave exit status {}", result->exit_status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
-    Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
+    Util::send_to_fd(
+      ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
+    Util::send_to_fd(
+      ctx, util::to_string_view(result->stdout_data), STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(result->exit_status);
@@ -1091,9 +1094,11 @@ to_cache(Context& ctx,
   MTR_END("result", "result_put");
 
   // Everything OK.
-  Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
+  Util::send_to_fd(
+    ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
-  Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
+  Util::send_to_fd(
+    ctx, util::to_string_view(result->stdout_data), STDOUT_FILENO);
 
   return *result_key;
 }
@@ -1106,13 +1111,12 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   ctx.time_of_compilation = util::TimePoint::now();
 
   std::string preprocessed_path;
-  std::string cpp_stderr_data;
+  util::Bytes cpp_stderr_data;
 
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
     preprocessed_path = ctx.args_info.input_file;
-    cpp_stderr_data = "";
   } else {
     // Run cpp on the input file to obtain the .i.
 
@@ -1165,7 +1169,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
 
   hash.hash_delimiter("cppstderr");
-  hash.hash(cpp_stderr_data);
+  hash.hash(util::to_string_view(cpp_stderr_data));
 
   ctx.i_tmpfile = preprocessed_path;
 

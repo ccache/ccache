@@ -235,11 +235,11 @@ Serializer::Serializer(const Config& config)
 }
 
 void
-Serializer::add_data(const FileType file_type, std::string_view data)
+Serializer::add_data(const FileType file_type, nonstd::span<const uint8_t> data)
 {
   m_serialized_size += 1 + 1 + 8; // marker + file_type + file_size
   m_serialized_size += data.size();
-  m_file_entries.push_back(FileEntry{file_type, util::to_span(data)});
+  m_file_entries.push_back(FileEntry{file_type, data});
 }
 
 void

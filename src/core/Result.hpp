@@ -139,7 +139,7 @@ public:
 
   // Register data to include in the result. The data must live until
   // serialize() has been called.
-  void add_data(FileType file_type, std::string_view data);
+  void add_data(FileType file_type, nonstd::span<const uint8_t> data);
 
   // Register a file path whose content should be included in the result.
   void add_file(FileType file_type, const std::string& path);
