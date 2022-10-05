@@ -4,8 +4,15 @@ endif()
 
 set(zstd_FOUND FALSE)
 
-find_library(ZSTD_LIBRARY zstd)
-find_path(ZSTD_INCLUDE_DIR zstd.h)
+find_package(PkgConfig)
+if(PKG_CONFIG_FOUND)
+  pkg_search_module(PC_ZSTD libzstd)
+  find_library(ZSTD_LIBRARY zstd HINTS ${PC_ZSTD_LIBDIR} ${PC_ZSTD_LIBRARY_DIRS})
+  find_path(ZSTD_INCLUDE_DIR zstd.h HINTS ${PC_ZSTD_INCLUDEDIR} ${PC_ZSTD_INCLUDE_DIRS})
+else()
+  find_library(ZSTD_LIBRARY zstd)
+  find_path(ZSTD_INCLUDE_DIR zstd.h)
+endif()
 
 if(ZSTD_LIBRARY AND ZSTD_INCLUDE_DIR)
   mark_as_advanced(ZSTD_INCLUDE_DIR ZSTD_LIBRARY)
