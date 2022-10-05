@@ -684,6 +684,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (args[i] == "-showIncludes") {
+    args_info.generating_includes = true;
+    state.dep_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
   if (args[i] == "-fprofile-arcs") {
     args_info.profile_arcs = true;
     state.common_args.push_back(args[i]);
@@ -1491,6 +1497,13 @@ process_args(Context& ctx)
       // The compiler is invoked with the original arguments in the depend mode.
       args_info.depend_extra_args.push_back(*diagnostics_color_arg);
     }
+  }
+
+  if (ctx.config.depend_mode() && !args_info.generating_includes
+      && ctx.config.compiler_type() == CompilerType::msvc) {
+    ctx.auto_depend_mode = true;
+    args_info.generating_includes = true;
+    args_info.depend_extra_args.push_back("-showIncludes");
   }
 
   return {
