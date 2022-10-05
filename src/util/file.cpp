@@ -21,6 +21,7 @@
 #include <Fd.hpp>
 #include <Logging.hpp>
 #include <Stat.hpp>
+#include <Win32Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 
@@ -47,7 +48,6 @@
 #include <sys/types.h>
 
 #include <cerrno>
-#include <codecvt>
 #include <cstring>
 #include <fstream>
 #include <locale>
@@ -171,11 +171,35 @@ read_file(const std::string& path, size_t size_hint)
     // it's actually needed.
     if (has_utf16_le_bom(result)) {
       result.erase(0, 2); // Remove BOM.
-      std::u16string result_as_u16((result.size() / 2) + 1, '\0');
-      result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
-      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>
-        converter;
-      result = converter.to_bytes(result_as_u16);
+      if (result.empty())
+        return result;
+
+      std::wstring result_as_u16((result.size() / 2) + 1, '\0');
+      result_as_u16 = reinterpret_cast<const wchar_t*>(result.c_str());
+
+      const int size = WideCharToMultiByte(CP_UTF8,
+                                           WC_ERR_INVALID_CHARS,
+                                           result_as_u16.c_str(),
+                                           int(result_as_u16.size()),
+                                           nullptr,
+                                           0,
+                                           nullptr,
+                                           nullptr);
+      if (size <= 0)
+        return nonstd::make_unexpected(
+          FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
+              path,
+              Win32Util::error_message(GetLastError())));
+
+      result = std::string(size, '\0');
+      WideCharToMultiByte(CP_UTF8,
+                          0,
+                          result_as_u16.c_str(),
+                          int(result_as_u16.size()),
+                          &result.at(0),
+                          size,
+                          nullptr,
+                          nullptr);
     }
   }
 #endif
