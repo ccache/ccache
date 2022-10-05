@@ -20,6 +20,7 @@
 
 #include <third_party/doctest.h>
 
+#include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>
 
 static bool
@@ -284,6 +285,22 @@ TEST_CASE("util::strip_whitespace")
   CHECK(util::strip_whitespace(" x ") == "x");
   CHECK(util::strip_whitespace(" \n\tx \n\t") == "x");
   CHECK(util::strip_whitespace("  x  y  ") == "x  y");
+}
+
+TEST_CASE("util::to_string")
+{
+  const char str[] = "foo";
+
+  CHECK(util::to_string(std::string(str)) == std::string(str));
+  CHECK(util::to_string(std::string_view(str)) == std::string(str));
+}
+
+TEST_CASE("util::to_string_view")
+{
+  uint8_t bytes[] = {'f', 'o', 'o'};
+  char str[] = "foo";
+
+  CHECK(util::to_string_view(nonstd::span(bytes)) == std::string(str));
 }
 
 TEST_SUITE_END();
