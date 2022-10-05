@@ -732,21 +732,24 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
 
   std::string stdout_data;
   if (capture_stdout) {
-    auto stdout_data_result = util::read_file<std::string>(tmp_stdout.path);
+    auto stdout_data_result = util::read_file<util::Bytes>(tmp_stdout.path);
     if (!stdout_data_result) {
       // The stdout file was removed - cleanup in progress? Better bail out.
       return nonstd::make_unexpected(Statistic::missing_cache_file);
     }
-    stdout_data = std::move(*stdout_data_result);
+    stdout_data = util::to_string(util::to_string_view(*stdout_data_result));
   }
 
-  auto stderr_data_result = util::read_file<std::string>(tmp_stderr.path);
+  auto stderr_data_result = util::read_file<util::Bytes>(tmp_stderr.path);
   if (!stderr_data_result) {
     // The stdout file was removed - cleanup in progress? Better bail out.
     return nonstd::make_unexpected(Statistic::missing_cache_file);
   }
 
-  return DoExecuteResult{status, stdout_data, *stderr_data_result};
+  return DoExecuteResult{
+    status,
+    stdout_data,
+    util::to_string(util::to_string_view(*stderr_data_result))};
 }
 
 static void
