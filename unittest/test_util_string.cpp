@@ -289,10 +289,14 @@ TEST_CASE("util::strip_whitespace")
 
 TEST_CASE("util::to_string")
 {
+  const uint8_t bytes[] = {'f', 'o', 'o'};
   const char str[] = "foo";
 
   CHECK(util::to_string(std::string(str)) == std::string(str));
   CHECK(util::to_string(std::string_view(str)) == std::string(str));
+  CHECK(util::to_string(nonstd::span<const uint8_t>(bytes))
+        == std::string(str));
+  CHECK(util::to_string(util::Bytes(bytes, 3)) == std::string(str));
 }
 
 TEST_CASE("util::to_string_view")

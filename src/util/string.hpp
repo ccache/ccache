@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <util/Bytes.hpp>
+
 #include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
 
@@ -193,6 +195,20 @@ inline std::string
 to_string(const std::string_view& sv)
 {
   return std::string(sv);
+}
+
+template<>
+inline std::string
+to_string(const nonstd::span<const uint8_t>& bytes)
+{
+  return std::string(to_string_view(bytes));
+}
+
+template<>
+inline std::string
+to_string(const util::Bytes& bytes)
+{
+  return std::string(to_string_view(bytes));
 }
 
 inline std::string_view
