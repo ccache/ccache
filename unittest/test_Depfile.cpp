@@ -202,6 +202,195 @@ TEST_CASE("Depfile::tokenize")
     CHECK(result[0] == "cat.o:");
     CHECK(result[1] == "meow");
   }
+
+  SUBCASE("Parse depfile with a one space before colon")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o : meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE("Parse depfile with a two spaces before colon")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o  : meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE("Parse depfile with a plenty of spaces before colon")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o    :    meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE("Parse depfile with no space between colon and dependency")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o:meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE(
+    "Parse depfile with windows formatted filename (with backslashes in "
+    "target)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("e:\\cat.o: meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "e:\\cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE(
+    "Parse depfile with windows formatted filename (with backslashes in "
+    "prerequisite)")
+  {
+    std::vector<std::string> result =
+      Depfile::tokenize("cat.o: c:\\meow\\purr");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "c:\\meow\\purr");
+  }
+
+  SUBCASE(
+    "Parse depfile with windows formatted filename (with slashes in target)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("e:/cat.o: meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "e:/cat.o:");
+    CHECK(result[1] == "meow");
+  }
+
+  SUBCASE(
+    "Parse depfile with windows formatted filename (with slashes in "
+    "prerequisite)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o: c:/meow/purr");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "c:/meow/purr");
+  }
+
+  SUBCASE(
+    "Parse depfile with windows formatted filename (with slashes and trailing "
+    "colon)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat.o: c: /meow/purr");
+    REQUIRE(result.size() == 3);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "c:");
+    CHECK(result[2] == "/meow/purr");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest1)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:/meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "/meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest2)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:\\meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "\\meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest3)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:\\ meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == " meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest4)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:c:/meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "c:/meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest5)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:c:\\meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "c:\\meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest6)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:c:");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "c:");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest7)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:c:\\");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "c:\\");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest8)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:c:/");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "c:/");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest9)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("cat:c:meow");
+    REQUIRE(result.size() == 3);
+    CHECK(result[0] == "cat:");
+    CHECK(result[1] == "c:");
+    CHECK(result[2] == "meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest10)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("c:c:/meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "c:");
+    CHECK(result[1] == "c:/meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest11)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("c:c:\\meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "c:");
+    CHECK(result[1] == "c:\\meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest12)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("c:z:\\meow");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "c:");
+    CHECK(result[1] == "z:\\meow");
+  }
+
+  SUBCASE("Parse depfile with windows formatted filename (subtest13)")
+  {
+    std::vector<std::string> result = Depfile::tokenize("c:cd:\\meow");
+    REQUIRE(result.size() == 3);
+    CHECK(result[0] == "c:");
+    CHECK(result[1] == "cd:");
+    CHECK(result[2] == "\\meow");
+  }
 }
 
 TEST_SUITE_END();
