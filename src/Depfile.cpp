@@ -146,30 +146,30 @@ tokenize(std::string_view file_content)
 {
   // A dependency file uses Makefile syntax. This is not perfect parser but
   // should be enough for parsing a regular dependency file.
-  // enhancement:
-  // - space between target and colon
-  // - no space between colon and first pre-requisite
-  // the later is pretty complex because of the windows paths which are
+  //
+  // Note that this is pretty complex because of Windows paths that can be
   // identical to a target-colon-prerequisite without spaces (e.g. cat:/meow vs.
-  // c:/meow) here are the tests on windows gnu make 4.3 how it handles this:
-  //  + cat:/meow -> sees "cat" and "/meow"
-  //  + cat:\meow -> sees "cat" and "\meow"
-  //  + cat:\ meow -> sees "cat" and " meow"
-  //  + cat:c:/meow -> sees "cat" and "c:/meow"
-  //  + cat:c:\meow -> sees "cat" and "c:\meow"
-  //  + cat:c: -> target pattern contains no '%'.  Stop.
-  //  + cat:c:\ -> target pattern contains no '%'.  Stop.
-  //  + cat:c:/ -> sees "cat" and "c:/"
-  //  + cat:c:meow -> target pattern contains no '%'.  Stop.
-  //  + c:c:/meow -> sees "c" and "c:/meow"
-  //  + c:c:\meow -> sees "c" and "c:\meow"
-  //  + c:z:\meow -> sees "c" and "z:\meow"
-  //  + c:cd:\meow -> target pattern contains no '%'.  Stop.
-
-  // the logic for a windows path is:
-  //  - if there is a colon, if the previous token is 1 char long
-  //    and that the following char is a slash (fw or bw), then it is
-  //    a windows path
+  // c:/meow).
+  //
+  // Here are tests on Windows on how GNU Make 4.3 handles different scenarios:
+  //
+  //   cat:/meow   -> sees "cat" and "/meow"
+  //   cat:\meow   -> sees "cat" and "\meow"
+  //   cat:\ meow  -> sees "cat" and " meow"
+  //   cat:c:/meow -> sees "cat" and "c:/meow"
+  //   cat:c:\meow -> sees "cat" and "c:\meow"
+  //   cat:c:      -> target pattern contains no '%'.  Stop.
+  //   cat:c:\     -> target pattern contains no '%'.  Stop.
+  //   cat:c:/     -> sees "cat" and "c:/"
+  //   cat:c:meow  -> target pattern contains no '%'.  Stop.
+  //   c:c:/meow   -> sees "c" and "c:/meow"
+  //   c:c:\meow   -> sees "c" and "c:\meow"
+  //   c:z:\meow   -> sees "c" and "z:\meow"
+  //   c:cd:\meow  -> target pattern contains no '%'.  Stop.
+  //
+  // Thus, if there is a colon and the previous token is one character long and
+  // the following character is a slash (forward or backward), then it is
+  // interpreted as a Windows path.
 
   std::vector<std::string> result;
   const size_t length = file_content.size();
@@ -179,34 +179,32 @@ tokenize(std::string_view file_content)
   while (p < length) {
     char c = file_content[p];
 
-    if (c == ':') {
-      if (p + 1 < length && !is_blank(token) && token.length() == 1) {
-        const char next = file_content[p + 1];
-        if (next == '/' || next == '\\') {
-          // only in this case, this is not a separator and colon is
-          // added to token
-          token.push_back(c);
-          ++p;
-          continue;
-        }
+    if (c == ':' && p + 1 < length && !is_blank(token) && token.length() == 1) {
+      const char next = file_content[p + 1];
+      if (next == '/' || next == '\\') {
+        // It's a Windows path, so the colon is not a separator and instead
+        // added to the token.
+        token.push_back(c);
+        ++p;
+        continue;
       }
     }
+
     // Each token is separated by whitespace or a colon.
     if (isspace(c) || c == ':') {
-      // chomp all spaces before next char
+      // Chomp all spaces before next character.
       while (p < length && isspace(file_content[p])) {
         ++p;
       }
       if (!is_blank(token)) {
-        // if there were spaces between a token and the : sign, the :
-        // must be added to the same token to make sure it is seen as
-        // a target and not as a dependency (ccache requirement)
+        // If there were spaces between a token and the colon, add the colon the
+        // token to make sure it is seen as a target and not as a dependency.
         if (p < length) {
           const char next = file_content[p];
           if (next == ':') {
             token.push_back(next);
             ++p;
-            // chomp all spaces before next char
+            // Chomp all spaces before next character.
             while (p < length && isspace(file_content[p])) {
               ++p;
             }

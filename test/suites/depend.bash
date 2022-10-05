@@ -90,8 +90,7 @@ EOF
 
 generate_reference_compiler_output() {
     local filename
-    if [[ $# -gt 0 ]]
-    then
+    if [[ $# -gt 0 ]]; then
         filename=$1
     else
         filename=test.c
@@ -204,7 +203,7 @@ EOF
     # dir2 has a change in header which affects object file
     # dir3 has a change in header which does not affect object file
     # dir4 has an additional include header which should change the dependency file
-    # dir5 has no changes, only a different base dir
+    # dir5 has no changes, only a different base directory
     TEST "Different sets of headers for the same source code"
 
     set_up_different_sets_of_headers_test
@@ -329,7 +328,8 @@ EOF
     generate_reference_compiler_output `pwd`/test.c
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR5 $CCACHE_COMPILE $DEPFLAGS -c `pwd`/test.c
     expect_equal_object_files reference_test.o test.o
-    # from the ccache doc: One known issue is that absolute paths are not reproduced in dependency files
+    # From the manual: "One known issue is that absolute paths are not
+    # reproduced in dependency files":
     # expect_equal_content reference_test.d test.d
     expect_equal_content test.d $BASEDIR1/test.d
     expect_stat direct_cache_hit 7

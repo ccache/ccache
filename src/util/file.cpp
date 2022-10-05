@@ -165,18 +165,14 @@ read_file(const std::string& path, size_t size_hint)
 #ifdef _WIN32
   if constexpr (std::is_same<T, std::string>::value) {
     // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
-    //
-    // Note that this code assumes a little-endian machine, which is why it's
-    // #ifdef-ed to only run on Windows (which is always little-endian) where
-    // it's actually needed.
     if (has_utf16_le_bom(result)) {
       result.erase(0, 2); // Remove BOM.
-      if (result.empty())
+      if (result.empty()) {
         return result;
+      }
 
       std::wstring result_as_u16((result.size() / 2) + 1, '\0');
       result_as_u16 = reinterpret_cast<const wchar_t*>(result.c_str());
-
       const int size = WideCharToMultiByte(CP_UTF8,
                                            WC_ERR_INVALID_CHARS,
                                            result_as_u16.c_str(),
@@ -185,11 +181,12 @@ read_file(const std::string& path, size_t size_hint)
                                            0,
                                            nullptr,
                                            nullptr);
-      if (size <= 0)
+      if (size <= 0) {
         return nonstd::make_unexpected(
           FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
               path,
               Win32Util::error_message(GetLastError())));
+      }
 
       result = std::string(size, '\0');
       WideCharToMultiByte(CP_UTF8,

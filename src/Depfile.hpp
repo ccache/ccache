@@ -37,6 +37,8 @@ std::optional<std::string> rewrite_source_paths(const Context& ctx,
 
 void make_paths_relative_in_output_dep(const Context& ctx);
 
+// Tokenize `file_content` into a list of files, where the first token is the
+// target and ends with a colon.
 std::vector<std::string> tokenize(std::string_view file_content);
 
 } // namespace Depfile
