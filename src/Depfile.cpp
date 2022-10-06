@@ -251,6 +251,24 @@ tokenize(std::string_view file_content)
         }
       }
       break;
+    // this is specific to TASKING compiler: filenames are quoted (not
+    // supported by gnu make)
+    case '"':
+      // quotes should take everything until next quotes
+      // skip the first quote
+      ++p;
+      while (p < length) {
+        const char next = file_content[p];
+        if (next == '"') {
+          // skip the last quote
+          ++p;
+          break;
+        } else {
+          token.push_back(next);
+          ++p;
+        }
+      }
+      continue;
     }
 
     token.push_back(c);

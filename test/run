@@ -604,6 +604,8 @@ COMPILER_ARGS=$(echo $CC | awk '{$1 = ""; print}')
 REAL_COMPILER_BIN=$(find_compiler $COMPILER_BIN)
 REAL_COMPILER="$REAL_COMPILER_BIN$COMPILER_ARGS"
 REAL_NVCC=$(find_compiler nvcc)
+REAL_CTC=$(find_compiler ctc)
+REAL_CCTC=$(find_compiler cctc)
 
 if [ "$REAL_COMPILER_BIN" = "$COMPILER_BIN" ]; then
     echo "Compiler:         $CC"
@@ -616,6 +618,18 @@ if [ -n "$REAL_NVCC" ]; then
     echo "CUDA compiler:    $($REAL_NVCC --version | tail -n 1) ($REAL_NVCC)"
 else
     echo "CUDA compiler:    not available"
+fi
+
+if [ -n "$REAL_CTC" ]; then
+    echo "Tasking compiler:    $($REAL_CTC --version | tail -n 1) ($REAL_CTC)"
+else
+    echo "Tasking compiler:    not available"
+fi
+
+if [ -n "$REAL_CCTC" ]; then
+    echo "Tasking control program:    $($REAL_CCTC --version | tail -n 1) ($REAL_CCTC)"
+else
+    echo "Tasking control program:    not available"
 fi
 echo
 
