@@ -36,6 +36,9 @@ if(WIN32)
   list(APPEND source_files Win32Util.cpp)
 endif()
 
+file(GLOB headers *.hpp)
+list(APPEND source_files ${headers})
+
 add_library(ccache_framework STATIC ${source_files})
 
 if(WIN32)
