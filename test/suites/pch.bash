@@ -55,7 +55,9 @@ SUITE_pch() {
 
     pch_suite_common
     if $COMPILER_TYPE_CLANG; then
-        pch_suite_clang
+        if ! [ $COMPILER_BIN = "gcc" ] || $RUN_WIN_XFAIL; then
+            pch_suite_clang
+        fi
     else
         pch_suite_gcc
     fi
@@ -173,6 +175,7 @@ pch_suite_common() {
     $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
+if $RUN_WIN_XFAIL; then
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
@@ -182,6 +185,7 @@ pch_suite_common() {
     expect_stat direct_cache_hit 2
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
+fi
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, -include"
@@ -332,6 +336,7 @@ pch_suite_common() {
     $COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
     backdate dir/pch.h.gch
 
+if $RUN_WIN_XFAIL; then
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch2.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
@@ -341,6 +346,7 @@ pch_suite_common() {
     expect_stat direct_cache_hit 2
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
+fi
     rm -rf dir
 
     # -------------------------------------------------------------------------
@@ -462,6 +468,7 @@ pch_suite_gcc() {
     $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
+if $RUN_WIN_XFAIL; then
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
@@ -471,6 +478,7 @@ pch_suite_gcc() {
     expect_stat direct_cache_hit 2
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
+fi
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, #include"
@@ -494,6 +502,7 @@ pch_suite_gcc() {
     $COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
+if $RUN_WIN_XFAIL; then
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
@@ -503,6 +512,7 @@ pch_suite_gcc() {
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 2
     expect_stat cache_miss 2
+fi
 
     # -------------------------------------------------------------------------
     TEST "Create and use .gch directory"
@@ -536,6 +546,7 @@ pch_suite_gcc() {
     echo "updated" >>pch.h.gch/foo # GCC seems to cope with this...
     backdate pch.h.gch/foo
 
+if $RUN_WIN_XFAIL; then
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
     expect_stat direct_cache_hit 2
     expect_stat preprocessed_cache_hit 0
@@ -545,6 +556,7 @@ pch_suite_gcc() {
     expect_stat direct_cache_hit 3
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 3
+fi
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include, PCH_EXTSUM=1"

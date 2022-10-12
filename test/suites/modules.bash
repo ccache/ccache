@@ -1,9 +1,9 @@
 SUITE_modules_PROBE() {
-    if ! $COMPILER_TYPE_CLANG; then
+    if ! $COMPILER_TYPE_CLANG || $COMPILER_USES_MSVC; then
         echo "-fmodules/-fcxx-modules not supported by compiler"
     else
-        touch test.c
-        $COMPILER -fmodules test.c -S || echo "compiler does not support modules"
+        echo '#include <string>' >testmodules.cpp
+        $COMPILER -x c++ -fmodules testmodules.cpp -S || echo "compiler does not support modules"
     fi
 }
 

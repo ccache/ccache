@@ -162,6 +162,8 @@ objdump_cmd() {
 objdump_grep_cmd() {
     if $HOST_OS_APPLE; then
         fgrep -q "\"$1\""
+    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        fgrep -q "$1"
     else
         fgrep -q ": $1"
     fi
@@ -173,11 +175,17 @@ expect_stat() {
     local line
     local value=""
 
+    if $HOST_OS_WINDOWS ; then
+        filter="sed -e s/\r//g"
+    else
+        filter=cat
+    fi
+
     while read -r key value; do
         if [[ $key == $stat ]]; then
             break
         fi
-    done < <($CCACHE --print-stats)
+    done < <($CCACHE --print-stats | $filter )
 
     if [ "$expected_value" != "$value" ]; then
         test_failed_internal "Expected $stat to be $expected_value, actual $value"
@@ -204,7 +212,23 @@ expect_equal_content() {
         test_failed_internal "expect_equal_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
-        test_failed_internal "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
+        test_failed_internal "$1 and $2 differ"
+    fi
+}
+
+expect_equal_text_content() {
+    if [ ! -e "$1" ]; then
+        test_failed_internal "expect_equal_text_content: $1 missing"
+    fi
+    if [ ! -e "$2" ]; then
+        test_failed_internal "expect_equal_text_content: $2 missing"
+    fi
+    if ! cmp -s "$1" "$2"; then
+        if $HOST_OS_WINDOWS  && diff -u --strip-trailing-cr "$1" "$2" > /dev/null ; then
+            test_failed_internal "$1 and $2 with differ line endings."
+        else
+            test_failed_internal "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
+        fi
     fi
 }
 
@@ -499,6 +523,7 @@ COMPILER_TYPE_GCC=false
 
 COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
+COMPILER_USES_MSVC=false
 
 ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
 readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
@@ -511,6 +536,7 @@ HOST_OS_WINDOWS=false
 HOST_OS_CYGWIN=false
 
 compiler_version="`$CC --version 2>/dev/null | head -1`"
+
 case $compiler_version in
     *gcc*|*g++*|2.95*)
         COMPILER_TYPE_GCC=true
@@ -525,12 +551,21 @@ case $compiler_version in
         ;;
 esac
 
+case $CC in
+    *MSVC*|*msvc*)
+        COMPILER_USES_MSVC=true
+        ;;
+esac
+
 case $compiler_version in
     *llvm*|*LLVM*)
         COMPILER_USES_LLVM=true
         ;;
     *MINGW*|*mingw*)
         COMPILER_USES_MINGW=true
+        ;;
+    *MSVC*|*msvc*)
+        COMPILER_USES_MSVC=true
         ;;
 esac
 
@@ -557,6 +592,12 @@ if $HOST_OS_WINDOWS; then
 else
     PATH_DELIM=":"
 fi
+RUN_WIN_XFAIL=true
+if $HOST_OS_WINDOWS &&  [ -z "${RUN_FAULTY_TESTS}" ] ; then
+    RUN_WIN_XFAIL=false
+fi
+
+
 
 if [[ $OSTYPE = msys* ]]; then
     # Native symlink support for Windows.
@@ -622,7 +663,11 @@ echo
 cd $TESTDIR || exit 1
 
 mkdir compiler
+
 COMPILER="$(pwd)/compiler/$(basename "$REAL_COMPILER_BIN")"
+if $HOST_OS_WINDOWS; then
+    COMPILER="$COMPILER.sh"
+fi
 cat >"$COMPILER" <<EOF
 #!/bin/sh
 

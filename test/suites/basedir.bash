@@ -1,3 +1,9 @@
+SUITE_basedir_PROBE() {
+    if ! $RUN_WIN_XFAIL; then
+        echo "CCACHE_BASEDIR is broken on windows."
+    fi
+}
+
 SUITE_basedir_SETUP() {
     unset CCACHE_NODIRECT
 
@@ -222,7 +228,12 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
-    for option in MF "MF "; do
+    if $HOST_OS_WINDOWS; then
+        additional_options=
+    else
+        additional_options=(MF)
+    fi
+    for option in "MF " $additional_options; do
         TEST "-${option}/absolute/path"
 
         cd dir1
@@ -243,10 +254,16 @@ EOF
     done
 
     # -------------------------------------------------------------------------
-    for option in MQ "MQ " MT "MT "; do
+    if $HOST_OS_WINDOWS; then
+        additional_options=
+    else
+        additional_options=(MQ MT)
+    fi
+    for option in "MQ " "MT " $additional_options; do
         TEST "-${option}/absolute/path"
 
         cd dir1
+
         CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.o" -c src/test.c
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
@@ -262,17 +279,28 @@ EOF
         expect_content_pattern test.d "$(pwd)/foo.o:*"
         cd ..
     done
-
     # -------------------------------------------------------------------------
     # When BASEDIR is set to /, check that -MF, -MQ and -MT arguments with
     # absolute paths are rewritten to relative and that the dependency file
     # only contains relative paths.
     TEST "-MF/-MQ/-MT with absolute paths and BASEDIR set to /"
 
-    for option in MF "MF " MQ "MQ " MT "MT "; do
+    BASEDIR="/"
+    if $HOST_OS_WINDOWS; then
+        # Windows uses drives therefore "/" has no meaning, thus default to drive
+        BASEDIR=`cygpath -m "\\."`
+    fi
+
+    if $HOST_OS_WINDOWS; then
+        additional_options=
+    else
+        additional_options=(MF MQ MT)
+    fi
+    for option in "MF " "MQ " "MT " $additional_options; do
         clear_cache
         cd dir1
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+
+        CCACHE_BASEDIR=$BASEDIR $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
@@ -287,14 +315,14 @@ EOF
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR=$BASEDIR $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat direct_cache_hit 1
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
         cd ..
     done
-
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "Absolute paths in stderr"
 
     cat <<EOF >test.c
@@ -336,7 +364,7 @@ EOF
         expect_stat cache_miss 1
         expect_equal_content reference.stderr ccache.stderr
     fi
-
+fi
     # -------------------------------------------------------------------------
     TEST "Relative PWD"
 

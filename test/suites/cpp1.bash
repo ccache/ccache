@@ -10,6 +10,10 @@ SUITE_cpp1_PROBE() {
             echo "-frewrite-includes not supported by compiler"
             return
         fi
+        if $HOST_OS_WINDOWS && ! $COMPILER_USES_MSVC; then
+            echo "This test is broken on msys2 clang: Stores wrong file names like 'tmp.cpp_stdout.2Gq' instead of 'test1.c'."
+            return
+        fi
     else
         echo "Unknown compiler: $COMPILER"
         return

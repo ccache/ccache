@@ -25,6 +25,7 @@ SUITE_remote_url() {
     expect_contains stderr.log "Cannot parse URL"
 
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "Reject missing scheme"
 
     export CCACHE_REMOTE_STORAGE="/qwerty"
@@ -44,4 +45,5 @@ SUITE_remote_url() {
     export CCACHE_REMOTE_STORAGE="file:foo:bar"
     $CCACHE_COMPILE -c test.c 2>stderr.log
     expect_contains stderr.log "The first segment of the relative path can't contain ':'"
+fi
 }

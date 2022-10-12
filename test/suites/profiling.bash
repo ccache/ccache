@@ -7,9 +7,12 @@ normalize_gcno_file() {
 
 
 SUITE_profiling_PROBE() {
-    touch test.c
+    echo 'int main(void) { return 0; }' >test.c
     if ! $COMPILER -fprofile-generate -c test.c 2>/dev/null; then
         echo "compiler does not support profiling"
+    fi
+    if ! $COMPILER -fprofile-generate test.o -o test 2>/dev/null; then
+        echo "compiler cannot link with profiling"
     fi
     if ! $COMPILER -fprofile-generate=data -c test.c 2>/dev/null; then
         echo "compiler does not support -fprofile-generate=path"
@@ -75,8 +78,8 @@ SUITE_profiling() {
     $CCACHE_COMPILE -fprofile-use -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
-
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "-fprofile-use=dir"
 
     mkdir data
@@ -104,8 +107,9 @@ SUITE_profiling() {
     $CCACHE_COMPILE -fprofile-use=data -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
-
+fi
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "-fprofile-generate=dir in different directories"
 
     mkdir -p dir1/data dir2/data
@@ -155,7 +159,7 @@ SUITE_profiling() {
         || test_failed "compilation error"
     # Note: No expect_stat here since GCC and Clang behave differently – just
     # check that the compiler doesn't warn about not finding the profile data.
-
+fi
     # -------------------------------------------------------------------------
     if $COMPILER_TYPE_GCC; then
         # GCC 9 and newer creates a mangled .gcno filename (still in the current

@@ -124,6 +124,79 @@ jobs:
           name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}-testdir.tar.xz
           path: testdir.tar.xz
 
+  build_and_test_msys:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - sys: mingw64
+            env: x86_64
+            compiler: gcc
+
+          - sys: mingw64
+            env: x86_64
+            compiler: clang
+
+          - sys: clang64
+            env: clang-x86_64
+            compiler: clang
+
+    name: 'Windows ${{ matrix.config.sys }} ${{ matrix.config.compiler }}'
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: '${{ matrix.config.sys }} Setup MSYS2'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.config.sys}}
+          update: true
+          install: >-
+            git
+            diffutils
+            tar
+            mingw-w64-${{matrix.config.env}}-toolchain
+            mingw-w64-${{matrix.config.env}}-cmake
+            mingw-w64-${{matrix.config.env}}-ninja
+            mingw-w64-${{matrix.config.env}}-hiredis
+            mingw-w64-${{matrix.config.env}}-lld
+            mingw-w64-${{matrix.config.env}}-${{matrix.config.compiler}}
+
+      - name: setup env
+        run: |
+          if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          else
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          fi
+
+      - name: Get source
+        uses: actions/checkout@v2
+
+      - name: Build and test
+        run: ci/build
+        continue-on-error: ${{ matrix.config.allow_test_failures == true &&
+          steps.build-and-test.outputs.exit_status == 8 }}
+        env:
+          ENABLE_CACHE_CLEANUP_TESTS: 1
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
+          TEST_CC: gcc
+
+      - name: Collect testdir from failed tests
+        if: failure()
+        run: ci/collect-testdir
+
+      - name: Upload testdir from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config.sys}}-${{ matrix.config.env }}-${{ matrix.config.compiler }}-testdir.tar.xz
+          path: testdir.tar.xz
+
   specific_tests:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -181,7 +254,6 @@ jobs:
           - name: Windows VS2019 32-bit Ninja
             os: windows-2019
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
@@ -203,7 +275,6 @@ jobs:
           - name: Windows VS2019 64-bit Ninja
             os: windows-2019
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             ENABLE_CACHE_CLEANUP_TESTS: 1
