@@ -27,9 +27,9 @@ namespace core::ShowIncludesParser {
 std::vector<std::string_view>
 tokenize(std::string_view file_content, std::string_view prefix)
 {
-  // -showIncludes output is written to stdout together with other messages.
-  // Every line of it is '<prefix> <spaces> <file>', prefix is 'Note: including
-  // file:' in English but can be localized.
+  // /showIncludes output is written to stdout together with other messages.
+  // Every line of it is "<prefix> <spaces> <file>" where the prefix is "Note:
+  // including file:" in English but can be localized.
 
   std::vector<std::string_view> result;
   // This will split at each \r or \n, but that simply means there will be empty

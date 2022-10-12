@@ -693,7 +693,7 @@ struct DoExecuteResult
   util::Bytes stderr_data;
 };
 
-// Extract the used includes from -showIncludes output in stdout. Note that we
+// Extract the used includes from /showIncludes output in stdout. Note that we
 // cannot distinguish system headers from other includes here.
 static std::optional<Digest>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
