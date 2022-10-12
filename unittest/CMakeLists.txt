@@ -13,7 +13,7 @@ set(
   test_ccache.cpp
   test_compopt.cpp
   test_compression_types.cpp
-  test_core_ShowIncludesParser
+  test_core_ShowIncludesParser.cpp
   test_core_Statistics.cpp
   test_core_StatisticsCounters.cpp
   test_core_StatsLog.cpp
