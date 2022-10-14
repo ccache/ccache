@@ -25,17 +25,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - os: ubuntu-18.04
-            compiler: gcc
-            version: "9"
-
           - os: ubuntu-20.04
             compiler: gcc
             version: "10"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "8"
 
           - os: ubuntu-20.04
             compiler: clang
@@ -57,6 +49,10 @@ jobs:
             compiler: gcc
             version: "11"
 
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: "12"
+
           - os: macOS-11
             compiler: xcode
             version: "11.7"
@@ -72,7 +68,7 @@ jobs:
 
             packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools"
             # Install ld.gold (binutils) and ld.lld (lld) on different runs.
-            if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
+            if [ "${{ matrix.config.os }}" = "ubuntu-20.04" ]; then
               sudo apt-get install -y $packages binutils
             else
               sudo apt-get install -y $packages lld
