@@ -16,16 +16,16 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "ShowIncludesParser.hpp"
+#include "MsvcShowIncludesOutput.hpp"
 
 #include <Context.hpp>
 #include <Util.hpp>
 #include <util/string.hpp>
 
-namespace core::ShowIncludesParser {
+namespace core::MsvcShowIncludesOutput {
 
 std::vector<std::string_view>
-tokenize(std::string_view file_content, std::string_view prefix)
+get_includes(std::string_view file_content, std::string_view prefix)
 {
   // /showIncludes output is written to stdout together with other messages.
   // Every line of it is "<prefix> <spaces> <file>" where the prefix is "Note:
@@ -73,4 +73,4 @@ strip_includes(const Context& ctx, util::Bytes&& stdout_data)
   return util::Bytes(new_stdout_text.data(), new_stdout_text.size());
 }
 
-} // namespace core::ShowIncludesParser
+} // namespace core::MsvcShowIncludesOutput

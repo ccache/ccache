@@ -44,9 +44,9 @@
 #include <AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
+#include <core/MsvcShowIncludesOutput.hpp>
 #include <core/Result.hpp>
 #include <core/ResultRetriever.hpp>
-#include <core/ShowIncludesParser.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
@@ -698,7 +698,7 @@ struct DoExecuteResult
 static std::optional<Digest>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
-  for (std::string_view token : core::ShowIncludesParser::tokenize(
+  for (std::string_view token : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
     const std::string path = Util::make_relative_path(ctx, token);
     remember_include_file(ctx, path, hash, false, &hash);
@@ -1076,7 +1076,7 @@ to_cache(Context& ctx,
       ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
     Util::send_to_fd(
       ctx,
-      util::to_string_view(core::ShowIncludesParser::strip_includes(
+      util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
         ctx, std::move(result->stdout_data))),
       STDOUT_FILENO);
 
@@ -1138,7 +1138,7 @@ to_cache(Context& ctx,
   // Send stdout after stderr, it makes the output clearer with MSVC.
   Util::send_to_fd(
     ctx,
-    util::to_string_view(core::ShowIncludesParser::strip_includes(
+    util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
       ctx, std::move(result->stdout_data))),
     STDOUT_FILENO);
 

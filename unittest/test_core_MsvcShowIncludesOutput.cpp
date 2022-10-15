@@ -17,7 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Context.hpp"
-#include "../src/core/ShowIncludesParser.hpp"
+#include "../src/core/MsvcShowIncludesOutput.hpp"
 #include "../src/util/string.hpp"
 #include "TestUtil.hpp"
 
@@ -25,15 +25,15 @@
 
 static const std::string defaultPrefix = "Note: including file:";
 
-TEST_SUITE_BEGIN("ShowIncludesParser");
+TEST_SUITE_BEGIN("MsvcShowIncludesOutput");
 
-TEST_CASE("ShowIncludesParser::tokenize")
+TEST_CASE("MsvcShowIncludesOutput::get_includes")
 {
   SUBCASE("Parse empty output")
   {
     std::string contents;
     const auto result =
-      core::ShowIncludesParser::tokenize(contents, defaultPrefix);
+      core::MsvcShowIncludesOutput::get_includes(contents, defaultPrefix);
     CHECK(result.size() == 0);
   }
 
@@ -47,7 +47,7 @@ Note: including file:   F:\Projects\ccache\src\NonCopyable.hpp
 Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.33.31629\include\deque
 )";
     const auto result =
-      core::ShowIncludesParser::tokenize(contents, defaultPrefix);
+      core::MsvcShowIncludesOutput::get_includes(contents, defaultPrefix);
     REQUIRE(result.size() == 5);
     CHECK(result[0] == "F:/Projects/ccache/build-msvc/config.h");
     CHECK(result[1] == R"(F:\Projects\ccache\unittest\../src/Context.hpp)");
@@ -64,7 +64,7 @@ Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\
       "Note: including file: foo\r\n"
       "Note: including file: bar\r\n";
     const auto result =
-      core::ShowIncludesParser::tokenize(contents, defaultPrefix);
+      core::MsvcShowIncludesOutput::get_includes(contents, defaultPrefix);
     REQUIRE(result.size() == 2);
     CHECK(result[0] == "foo");
     CHECK(result[1] == "bar");
@@ -77,7 +77,7 @@ Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\
       "Note: including file: \n"
       "Note: including file:  bar\n";
     const auto result =
-      core::ShowIncludesParser::tokenize(contents, defaultPrefix);
+      core::MsvcShowIncludesOutput::get_includes(contents, defaultPrefix);
     REQUIRE(result.size() == 2);
     CHECK(result[0] == "foo");
     CHECK(result[1] == "bar");
@@ -88,14 +88,15 @@ Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\
     std::string contents = R"(custom foo
 custom   bar
 Just a line with custom in the middle)";
-    const auto result = core::ShowIncludesParser::tokenize(contents, "custom");
+    const auto result =
+      core::MsvcShowIncludesOutput::get_includes(contents, "custom");
     REQUIRE(result.size() == 2);
     CHECK(result[0] == "foo");
     CHECK(result[1] == "bar");
   }
 }
 
-TEST_CASE("ShowIncludesParser::strip_includes")
+TEST_CASE("MsvcShowIncludesOutput::strip_includes")
 {
   Context ctx;
   const util::Bytes input = util::to_span(
@@ -106,14 +107,14 @@ TEST_CASE("ShowIncludesParser::strip_includes")
   SUBCASE("Empty output")
   {
     const util::Bytes result =
-      core::ShowIncludesParser::strip_includes(ctx, {});
+      core::MsvcShowIncludesOutput::strip_includes(ctx, {});
     CHECK(result.size() == 0);
   }
 
   SUBCASE("Feature disabled")
   {
     const util::Bytes result =
-      core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
+      core::MsvcShowIncludesOutput::strip_includes(ctx, util::Bytes(input));
     CHECK(result == input);
   }
 
@@ -122,7 +123,7 @@ TEST_CASE("ShowIncludesParser::strip_includes")
   SUBCASE("Wrong compiler")
   {
     const util::Bytes result =
-      core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
+      core::MsvcShowIncludesOutput::strip_includes(ctx, util::Bytes(input));
     CHECK(result == input);
   }
 
@@ -131,13 +132,13 @@ TEST_CASE("ShowIncludesParser::strip_includes")
   SUBCASE("Simple output")
   {
     const util::Bytes result =
-      core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
+      core::MsvcShowIncludesOutput::strip_includes(ctx, util::Bytes(input));
     CHECK(result == util::to_span("First\nSecond\n"));
   }
 
   SUBCASE("Empty lines")
   {
-    const util::Bytes result = core::ShowIncludesParser::strip_includes(
+    const util::Bytes result = core::MsvcShowIncludesOutput::strip_includes(
       ctx,
       util::to_span("First\n"
                     "\n"
@@ -150,7 +151,7 @@ TEST_CASE("ShowIncludesParser::strip_includes")
 
   SUBCASE("CRLF")
   {
-    const util::Bytes result = core::ShowIncludesParser::strip_includes(
+    const util::Bytes result = core::MsvcShowIncludesOutput::strip_includes(
       ctx,
       util::to_span("First\r\n"
                     "Note: including file: foo\r\n"
@@ -161,7 +162,7 @@ TEST_CASE("ShowIncludesParser::strip_includes")
   SUBCASE("Custom prefix")
   {
     ctx.config.set_msvc_dep_prefix("custom");
-    const util::Bytes result = core::ShowIncludesParser::strip_includes(
+    const util::Bytes result = core::MsvcShowIncludesOutput::strip_includes(
       ctx,
       util::to_span("First\n"
                     "custom: including file: foo\n"

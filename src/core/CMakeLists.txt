@@ -6,7 +6,7 @@ set(
   ResultExtractor.cpp
   ResultInspector.cpp
   ResultRetriever.cpp
-  ShowIncludesParser.cpp
+  MsvcShowIncludesOutput.cpp
   Statistics.cpp
   StatisticsCounters.cpp
   StatsLog.cpp

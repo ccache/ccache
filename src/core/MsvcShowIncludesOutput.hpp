@@ -25,11 +25,11 @@
 
 class Context;
 
-namespace core::ShowIncludesParser {
+namespace core::MsvcShowIncludesOutput {
 
-std::vector<std::string_view> tokenize(std::string_view file_content,
-                                       std::string_view prefix);
+std::vector<std::string_view> get_includes(std::string_view file_content,
+                                           std::string_view prefix);
 
 util::Bytes strip_includes(const Context& ctx, util::Bytes&& stdout_data);
 
-} // namespace core::ShowIncludesParser
+} // namespace core::MsvcShowIncludesOutput

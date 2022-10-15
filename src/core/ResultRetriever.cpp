@@ -24,7 +24,7 @@
 
 #include <Context.hpp>
 #include <Stat.hpp>
-#include <core/ShowIncludesParser.hpp>
+#include <core/MsvcShowIncludesOutput.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -64,7 +64,7 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
   if (file_type == FileType::stdout_output) {
     Util::send_to_fd(
       m_ctx,
-      util::to_string_view(ShowIncludesParser::strip_includes(m_ctx, data)),
+      util::to_string_view(MsvcShowIncludesOutput::strip_includes(m_ctx, data)),
       STDOUT_FILENO);
   } else if (file_type == FileType::stderr_output) {
     Util::send_to_fd(m_ctx, util::to_string_view(data), STDERR_FILENO);
