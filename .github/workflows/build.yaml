@@ -138,10 +138,6 @@ jobs:
             env: x86_64
             compiler: clang
 
-          - sys: clang64
-            env: clang-x86_64
-            compiler: clang
-
     name: 'Windows ${{ matrix.config.sys }} ${{ matrix.config.compiler }}'
     defaults:
       run:
