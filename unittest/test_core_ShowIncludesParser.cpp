@@ -103,14 +103,14 @@ TEST_CASE("ShowIncludesParser::strip_includes")
     "Note: including file: foo\n"
     "Second\n");
 
-  SUBCASE("empty output")
+  SUBCASE("Empty output")
   {
     const util::Bytes result =
       core::ShowIncludesParser::strip_includes(ctx, {});
     CHECK(result.size() == 0);
   }
 
-  SUBCASE("feature disabled")
+  SUBCASE("Feature disabled")
   {
     const util::Bytes result =
       core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
@@ -119,7 +119,7 @@ TEST_CASE("ShowIncludesParser::strip_includes")
 
   ctx.auto_depend_mode = true;
 
-  SUBCASE("wrong compiler")
+  SUBCASE("Wrong compiler")
   {
     const util::Bytes result =
       core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));

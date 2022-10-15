@@ -1503,7 +1503,7 @@ process_args(Context& ctx)
       && ctx.config.compiler_type() == CompilerType::msvc) {
     ctx.auto_depend_mode = true;
     args_info.generating_includes = true;
-    args_info.depend_extra_args.push_back("-showIncludes");
+    args_info.depend_extra_args.push_back("/showIncludes");
   }
 
   return {

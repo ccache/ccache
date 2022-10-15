@@ -118,6 +118,8 @@ public:
   std::unique_ptr<MiniTrace> mini_trace;
 #endif
 
+  // Whether we have added "/showIncludes" ourselves since it's missing and
+  // depend mode is enabled.
   bool auto_depend_mode = false;
 
   // Register a temporary file to remove at program exit.

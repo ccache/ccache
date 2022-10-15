@@ -118,9 +118,9 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_max_size(uint64_t value);
+  void set_msvc_dep_prefix(const std::string& value);
   void set_run_second_cpp(bool value);
   void set_temporary_dir(const std::string& value);
-  void set_msvc_dep_prefix(const std::string& value);
 
   // Where to write configuration changes.
   const std::string& config_path() const;
@@ -584,6 +584,12 @@ Config::set_max_size(uint64_t value)
 }
 
 inline void
+Config::set_msvc_dep_prefix(const std::string& value)
+{
+  m_msvc_dep_prefix = value;
+}
+
+inline void
 Config::set_run_second_cpp(bool value)
 {
   m_run_second_cpp = value;
@@ -593,10 +599,4 @@ inline void
 Config::set_temporary_dir(const std::string& value)
 {
   m_temporary_dir = value;
-}
-
-inline void
-Config::set_msvc_dep_prefix(const std::string& value)
-{
-  m_msvc_dep_prefix = value;
 }
