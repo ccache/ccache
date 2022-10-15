@@ -115,3 +115,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     target_compile_definitions(blake3 PRIVATE BLAKE3_USE_NEON)
   endif()
 endif()
+
+file(GLOB headers *.h)
+target_sources(blake3 PRIVATE ${headers})

@@ -42,6 +42,9 @@ if(WIN32)
   list(APPEND source_files test_bsdmkstemp.cpp test_Win32Util.cpp)
 endif()
 
+file(GLOB headers *.hpp)
+list(APPEND source_files ${headers})
+
 add_executable(unittest ${source_files})
 
 if(MSVC)
