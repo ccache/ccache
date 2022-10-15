@@ -1075,7 +1075,10 @@ to_cache(Context& ctx,
     Util::send_to_fd(
       ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
     Util::send_to_fd(
-      ctx, util::to_string_view(result->stdout_data), STDOUT_FILENO);
+      ctx,
+      util::to_string_view(core::ShowIncludesParser::strip_includes(
+        ctx, std::move(result->stdout_data))),
+      STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(result->exit_status);
@@ -1134,7 +1137,10 @@ to_cache(Context& ctx,
     ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
   Util::send_to_fd(
-    ctx, util::to_string_view(result->stdout_data), STDOUT_FILENO);
+    ctx,
+    util::to_string_view(core::ShowIncludesParser::strip_includes(
+      ctx, std::move(result->stdout_data))),
+    STDOUT_FILENO);
 
   return *result_key;
 }

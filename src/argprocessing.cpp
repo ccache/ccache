@@ -1499,6 +1499,13 @@ process_args(Context& ctx)
     }
   }
 
+  if (ctx.config.depend_mode() && !args_info.generating_includes
+      && ctx.config.compiler_type() == CompilerType::msvc) {
+    ctx.auto_depend_mode = true;
+    args_info.generating_includes = true;
+    args_info.depend_extra_args.push_back("-showIncludes");
+  }
+
   return {
     preprocessor_args,
     extra_args_to_hash,

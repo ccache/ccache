@@ -16,7 +16,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "../src/Context.hpp"
 #include "../src/core/ShowIncludesParser.hpp"
+#include "../src/util/string.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
@@ -90,6 +92,82 @@ Just a line with custom in the middle)";
     REQUIRE(result.size() == 2);
     CHECK(result[0] == "foo");
     CHECK(result[1] == "bar");
+  }
+}
+
+TEST_CASE("ShowIncludesParser::strip_includes")
+{
+  Context ctx;
+  const util::Bytes input = util::to_span(
+    "First\n"
+    "Note: including file: foo\n"
+    "Second\n");
+
+  SUBCASE("empty output")
+  {
+    const util::Bytes result =
+      core::ShowIncludesParser::strip_includes(ctx, {});
+    CHECK(result.size() == 0);
+  }
+
+  SUBCASE("feature disabled")
+  {
+    const util::Bytes result =
+      core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
+    CHECK(result == input);
+  }
+
+  ctx.auto_depend_mode = true;
+
+  SUBCASE("wrong compiler")
+  {
+    const util::Bytes result =
+      core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
+    CHECK(result == input);
+  }
+
+  ctx.config.set_compiler_type(CompilerType::msvc);
+
+  SUBCASE("Simple output")
+  {
+    const util::Bytes result =
+      core::ShowIncludesParser::strip_includes(ctx, util::Bytes(input));
+    CHECK(result == util::to_span("First\nSecond\n"));
+  }
+
+  SUBCASE("Empty lines")
+  {
+    const util::Bytes result = core::ShowIncludesParser::strip_includes(
+      ctx,
+      util::to_span("First\n"
+                    "\n"
+                    "Note: including file: foo\n"
+                    "\n"
+                    "Second\n"
+                    "\n"));
+    CHECK(result == util::to_span("First\n\n\nSecond\n\n"));
+  }
+
+  SUBCASE("CRLF")
+  {
+    const util::Bytes result = core::ShowIncludesParser::strip_includes(
+      ctx,
+      util::to_span("First\r\n"
+                    "Note: including file: foo\r\n"
+                    "Second\r\n"));
+    CHECK(result == util::to_span("First\r\nSecond\r\n"));
+  }
+
+  SUBCASE("Custom prefix")
+  {
+    ctx.config.set_msvc_dep_prefix("custom");
+    const util::Bytes result = core::ShowIncludesParser::strip_includes(
+      ctx,
+      util::to_span("First\n"
+                    "custom: including file: foo\n"
+                    "Second\n"
+                    "Third custom line\n"));
+    CHECK(result == util::to_span("First\nSecond\nThird custom line\n"));
   }
 }
 
