@@ -74,10 +74,15 @@ public:
   void reserve(size_t size) noexcept;
 
   void clear() noexcept;
+  void resize(size_t size) noexcept; // Note: New bytes will be uninitialized.
+
   void insert(const uint8_t* pos,
               const uint8_t* first,
               const uint8_t* last) noexcept;
-  void resize(size_t size) noexcept; // Note: New bytes will be uninitialized.
+  void
+  insert(const uint8_t* pos, const uint8_t* data, const size_t size) noexcept;
+  void insert(const uint8_t* pos, const char* first, const char* last) noexcept;
+  void insert(const uint8_t* pos, const char* data, size_t size) noexcept;
 
 private:
   uint8_t* m_data = nullptr;
@@ -211,6 +216,28 @@ inline void
 Bytes::clear() noexcept
 {
   m_size = 0;
+}
+
+inline void
+Bytes::insert(const uint8_t* pos,
+              const uint8_t* data,
+              const size_t size) noexcept
+{
+  return insert(pos, data, data + size);
+}
+
+inline void
+Bytes::insert(const uint8_t* pos, const char* first, const char* last) noexcept
+{
+  return insert(pos,
+                reinterpret_cast<const uint8_t*>(first),
+                reinterpret_cast<const uint8_t*>(last));
+}
+
+inline void
+Bytes::insert(const uint8_t* pos, const char* data, size_t size) noexcept
+{
+  return insert(pos, data, data + size);
 }
 
 } // namespace util

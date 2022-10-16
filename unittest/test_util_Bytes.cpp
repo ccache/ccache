@@ -331,6 +331,44 @@ TEST_CASE("Basics")
     CHECK(bytes2[12] == 'a');
     CHECK(bytes2[13] == 'x');
   }
+
+  SUBCASE("Insert util::Bytes data and size")
+  {
+    Bytes bytes2;
+
+    bytes2.insert(bytes2.end(), bytes1.data(), bytes1.size());
+    CHECK(bytes2.size() == 3);
+    CHECK(bytes2.capacity() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
+  SUBCASE("Insert const char* first and last")
+  {
+    Bytes bytes2;
+    std::string data("abc");
+
+    bytes2.insert(bytes2.end(), data.data(), data.data() + data.size());
+    CHECK(bytes2.size() == 3);
+    CHECK(bytes2.capacity() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
+  SUBCASE("Insert const char* data and size")
+  {
+    Bytes bytes2;
+    std::string data("abc");
+
+    bytes2.insert(bytes2.end(), data.data(), data.size());
+    CHECK(bytes2.size() == 3);
+    CHECK(bytes2.capacity() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
 }
 
 TEST_CASE("Conversion to span")
