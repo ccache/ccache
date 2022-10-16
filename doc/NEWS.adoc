@@ -800,7 +800,7 @@ Release date: 2021-02-02
 - The value of the `SOURCE_DATE_EPOCH` variable is now only hashed if it
   potentially affects the output from ccache. This means that ccache now (like
   before version 4.0) will be able to produce cache hits for source code that
-  doesn't contain `__DATE__` or `__TIME__` macros regardless of the value of
+  doesn't contain `+__DATE__+` or `+__TIME__+` macros regardless of the value of
   `SOURCE_DATE_EPOCH`.
 
 
@@ -1102,9 +1102,9 @@ Release date: 2020-10-18
   `-x/--show-compression` and `-X/--recompress`.
 
 - When supported by the CPU, a SIMD-friendly (using AVX2) algorithm is now used
-  to scan input source code for `__DATE__`, `__TIME__` and `__TIMESTAMP__`
-  macros. This can decrease the number of CPU cycles for a direct cache hit
-  with up to 15% in some cases.
+  to scan input source code for `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+`
+  macros. This can decrease the number of CPU cycles for a direct cache hit with
+  up to 15% in some cases.
 
 - Some unnecessary `stat(2)` system calls are now avoided when verifying header
   files.
@@ -1157,10 +1157,10 @@ Release date: 2020-10-18
 
 - The manifest format now allows for header files larger than 4 GiB.
 
-- Made it possible to once again cache compilations with `__DATE__` in the
+- Made it possible to once again cache compilations with `+__DATE__+` in the
   source code.
 
-- Added handling of the `__TIMESTAMP__` macro.
+- Added handling of the `+__TIMESTAMP__+` macro.
 
 - An absolute input source path is now rewritten to a relative path when using
   `base_dir`.
@@ -1643,9 +1643,9 @@ Release date: 2019-01-14
 - The GCC variables "`DEPENDENCIES_OUTPUT`" and "`SUNPRO_DEPENDENCIES`" are now
   supported correctly.
 
-- The algorithm that scans for `__DATE_` and `__TIME__` tokens in the hashed
-  source code now doesn't produce false positives for tokens where `__DATE__`
-  or `__TIME__` is a substring.
+- The algorithm that scans for `__DATE_` and `+__TIME__+` tokens in the hashed
+  source code now doesn't produce false positives for tokens where `+__DATE__+`
+  or `+__TIME__+` is a substring.
 
 
 == Ccache 3.5.1
@@ -2112,7 +2112,7 @@ Release date: 2016-04-17
 - Include m4 files used by configure.ac in the source dist archives.
 
 - Corrected "`Performance`" section in the manual regarding `__DATE_`,
-  `__TIME__` and `__FILE__` macros.
+  `+__TIME__+` and `+__FILE__+` macros.
 
 - Fixed build on Solaris 10+ and AIX 7.
 
@@ -2263,7 +2263,7 @@ Release date: 2014-11-17
 - Made creation of temporary directories and cache directories smarter to avoid
   unnecessary `stat` calls.
 
-- Improved efficiency of the algorithm that scans for `__DATE_` and `__TIME__`
+- Improved efficiency of the algorithm that scans for `__DATE_` and `+__TIME__+`
   tokens in the hashed source code.
 
 - Added support for several binaries (separated by space) in `CCACHE_PREFIX`.
