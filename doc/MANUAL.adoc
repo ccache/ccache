@@ -893,7 +893,8 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
 
     If true, ccache will only use <<config_remote_storage,remote storage>>. The
     default is false. Note that cache statistics counters will still be kept in
-    the local cache directory unless <<config_stats,*stats*>> is false.
+    the local cache directory unless <<config_stats,*stats*>> is false. See also
+    _<<Storage interaction>>_.
 
 [#config_remote_storage]
 *remote_storage* (*CCACHE_REMOTE_STORAGE*)::
@@ -1753,10 +1754,10 @@ You must use both <<The direct mode,*direct mode*>> and
 information to allow hashing of `module.modulemap` files.
 
 
-== Sharing a cache
+== Sharing a local cache
 
-A group of developers can increase the cache hit rate by sharing a cache
-directory. To share a cache without unpleasant side effects, the following
+A group of developers can increase the cache hit rate by sharing a local cache
+directory. To share a local cache without unpleasant side effects, the following
 conditions should to be met:
 
 * Use the same cache directory.
