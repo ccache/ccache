@@ -61,16 +61,16 @@ strip_includes(const Context& ctx, util::Bytes&& stdout_data)
     return std::move(stdout_data);
   }
 
-  std::string new_stdout_text;
+  util::Bytes new_stdout_data;
   for (const auto line : Tokenizer(util::to_string_view(stdout_data),
                                    "\n",
                                    Mode::include_empty,
                                    IncludeDelimiter::yes)) {
     if (!util::starts_with(line, ctx.config.msvc_dep_prefix())) {
-      new_stdout_text.append(line.data(), line.length());
+      new_stdout_data.insert(new_stdout_data.end(), line.data(), line.size());
     }
   }
-  return util::Bytes(new_stdout_text.data(), new_stdout_text.size());
+  return new_stdout_data;
 }
 
 } // namespace core::MsvcShowIncludesOutput

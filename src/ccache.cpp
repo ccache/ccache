@@ -950,7 +950,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
   using Mode = Tokenizer::Mode;
   using IncludeDelimiter = Tokenizer::IncludeDelimiter;
   if (!stdout_data.empty()) {
-    std::string new_stdout_text;
+    util::Bytes new_stdout_data;
     for (const auto line : Tokenizer(util::to_string_view(stdout_data),
                                      "\n",
                                      Mode::include_empty,
@@ -973,12 +973,14 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
           ctx, Util::normalize_concrete_absolute_path(abs_inc_path));
         std::string line_with_rel_inc =
           util::replace_first(orig_line, abs_inc_path, rel_inc_path);
-        new_stdout_text.append(line_with_rel_inc);
+        new_stdout_data.insert(new_stdout_data.begin(),
+                               line_with_rel_inc.data(),
+                               line_with_rel_inc.size());
       } else {
-        new_stdout_text.append(line.data(), line.length());
+        new_stdout_data.insert(new_stdout_data.end(), line.data(), line.size());
       }
     }
-    return util::Bytes(new_stdout_text.data(), new_stdout_text.size());
+    return new_stdout_data;
   } else {
     return std::move(stdout_data);
   }
