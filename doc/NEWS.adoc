@@ -303,8 +303,8 @@ Release date: 2022-08-27
 
 === Test improvements
 
-- Disabled the `"Failure to write output file"` when running on a filesystem
-  that doesn't support read-only directories. +
+- Disabled the "`Failure to write output file`" test when running on a
+  filesystem that doesn't support read-only directories. +
   [small]#_[contributed by Joel Rosdahl]_#
 
 
