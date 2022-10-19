@@ -874,7 +874,7 @@ find_coverage_file(const Context& ctx)
   return {true, found_file, found_file == mangled_form};
 }
 
-static bool
+[[nodiscard]] static bool
 write_result(Context& ctx,
              const Digest& result_key,
              const Stat& obj_stat,
@@ -891,41 +891,58 @@ write_result(Context& ctx,
   if (!stdout_data.empty()) {
     serializer.add_data(core::Result::FileType::stdout_output, stdout_data);
   }
-  if (obj_stat) {
-    serializer.add_file(core::Result::FileType::object,
-                        ctx.args_info.output_obj);
+  if (obj_stat
+      && !serializer.add_file(core::Result::FileType::object,
+                              ctx.args_info.output_obj)) {
+    LOG("Object file {} missing", ctx.args_info.output_obj);
+    return false;
   }
-  if (ctx.args_info.generating_dependencies) {
-    serializer.add_file(core::Result::FileType::dependency,
-                        ctx.args_info.output_dep);
+  if (ctx.args_info.generating_dependencies
+      && !serializer.add_file(core::Result::FileType::dependency,
+                              ctx.args_info.output_dep)) {
+    LOG("Dependency file {} missing", ctx.args_info.output_dep);
+    return false;
   }
   if (ctx.args_info.generating_coverage) {
     const auto coverage_file = find_coverage_file(ctx);
     if (!coverage_file.found) {
+      LOG_RAW("Coverage file not found");
       return false;
     }
-    serializer.add_file(coverage_file.mangled
-                          ? core::Result::FileType::coverage_mangled
-                          : core::Result::FileType::coverage_unmangled,
-                        coverage_file.path);
+    if (!serializer.add_file(coverage_file.mangled
+                               ? core::Result::FileType::coverage_mangled
+                               : core::Result::FileType::coverage_unmangled,
+                             coverage_file.path)) {
+      LOG("Coverage file {} missing", coverage_file.path);
+      return false;
+    }
   }
-  if (ctx.args_info.generating_stackusage) {
-    serializer.add_file(core::Result::FileType::stackusage,
-                        ctx.args_info.output_su);
+  if (ctx.args_info.generating_stackusage
+      && !serializer.add_file(core::Result::FileType::stackusage,
+                              ctx.args_info.output_su)) {
+    LOG("Stack usage file {} missing", ctx.args_info.output_su);
+    return false;
   }
-  if (ctx.args_info.generating_diagnostics) {
-    serializer.add_file(core::Result::FileType::diagnostic,
-                        ctx.args_info.output_dia);
+  if (ctx.args_info.generating_diagnostics
+      && !serializer.add_file(core::Result::FileType::diagnostic,
+                              ctx.args_info.output_dia)) {
+    LOG("Diagnostics file {} missing", ctx.args_info.output_dia);
+    return false;
   }
-  if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
-    // Only store .dwo file if it was created by the compiler (GCC and Clang
-    // behave differently e.g. for "-gsplit-dwarf -g1").
-    serializer.add_file(core::Result::FileType::dwarf_object,
-                        ctx.args_info.output_dwo);
+  if (ctx.args_info.seen_split_dwarf
+      // Only store .dwo file if it was created by the compiler (GCC and Clang
+      // behave differently e.g. for "-gsplit-dwarf -g1").
+      && Stat::stat(ctx.args_info.output_dwo)
+      && !serializer.add_file(core::Result::FileType::dwarf_object,
+                              ctx.args_info.output_dwo)) {
+    LOG("Split dwarf file {} missing", ctx.args_info.output_dwo);
+    return false;
   }
-  if (!ctx.args_info.output_al.empty()) {
-    serializer.add_file(core::Result::FileType::assembler_listing,
-                        ctx.args_info.output_al);
+  if (!ctx.args_info.output_al.empty()
+      && !serializer.add_file(core::Result::FileType::assembler_listing,
+                              ctx.args_info.output_al)) {
+    LOG("Assembler listing file {} missing", ctx.args_info.output_al);
+    return false;
   }
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
@@ -1130,8 +1147,10 @@ to_cache(Context& ctx,
   }
 
   MTR_BEGIN("result", "result_put");
-  write_result(
-    ctx, *result_key, obj_stat, result->stdout_data, result->stderr_data);
+  if (!write_result(
+        ctx, *result_key, obj_stat, result->stdout_data, result->stderr_data)) {
+    return nonstd::make_unexpected(Statistic::compiler_produced_no_output);
+  }
   MTR_END("result", "result_put");
 
   // Everything OK.

@@ -499,6 +499,39 @@ fi
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
+    TEST "-MD for assembler file with missing dependency file"
+
+    $COMPILER -S test.c
+
+    $CCACHE_COMPILE -c -MD test.s
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -MD test.s
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "-MD for assembler file with existing dependency file"
+
+    $COMPILER -S test.c
+    echo foo >test.d
+
+    $CCACHE_COMPILE -c -MD test.s
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    rm test.d
+
+    $CCACHE_COMPILE -c -MD test.s
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_missing test.d
+
+    # -------------------------------------------------------------------------
     TEST "-ftest-coverage"
 
     cat <<EOF >code.c

@@ -1293,6 +1293,11 @@ process_args(Context& ctx)
     return Statistic::unsupported_source_language;
   }
 
+  if (args_info.actual_language == "assembler") {
+    // -MD/-MMD for assembler file does not produce a dependency file.
+    args_info.generating_dependencies = false;
+  }
+
   if (!config.run_second_cpp()
       && (args_info.actual_language == "cu"
           || args_info.actual_language == "cuda")) {

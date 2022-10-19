@@ -142,7 +142,7 @@ public:
   void add_data(FileType file_type, nonstd::span<const uint8_t> data);
 
   // Register a file path whose content should be included in the result.
-  void add_file(FileType file_type, const std::string& path);
+  [[nodiscard]] bool add_file(FileType file_type, const std::string& path);
 
   // core::Serializer
   uint32_t serialized_size() const override;

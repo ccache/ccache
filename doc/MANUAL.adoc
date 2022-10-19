@@ -1395,12 +1395,12 @@ The compilation failed. No result stored in the cache.
 A compiler check program specified by
 <<config_compiler_check,*compiler_check*>> (*CCACHE_COMPILERCHECK*) failed.
 
-| Compiler produced empty output |
-The compiler's output file (typically an object file) was empty after
+| Compiler output file missing |
+One of the files expected to be produced by the compiler was missing after
 compilation.
 
-| Compiler produced no output |
-The compiler's output file (typically an object file) was missing after
+| Compiler produced empty output |
+The compiler's output file (typically an object file) was empty after
 compilation.
 
 | Could not find the compiler |
