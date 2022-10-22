@@ -2,7 +2,6 @@
 
 include(CheckCXXSourceCompiles)
 
-set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX11_STANDARD_COMPILE_OPTION})
 set(
   check_std_atomic_source_code
   [=[
@@ -28,5 +27,3 @@ if(NOT std_atomic_without_libatomic)
     target_link_libraries(standard_settings INTERFACE atomic)
   endif()
 endif()
-
-set(CMAKE_REQUIRED_FLAGS)
