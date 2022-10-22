@@ -54,6 +54,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
   endforeach()
 
   include(StdAtomic)
+  include(StdFilesystem)
 
 elseif(MSVC)
   target_compile_options(
