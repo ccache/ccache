@@ -27,6 +27,14 @@ jobs:
         config:
           - os: ubuntu-20.04
             compiler: gcc
+            version: "8"
+
+          - os: ubuntu-20.04
+            compiler: gcc
+            version: "9"
+
+          - os: ubuntu-20.04
+            compiler: gcc
             version: "10"
 
           - os: ubuntu-20.04
@@ -68,7 +76,7 @@ jobs:
 
             packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools"
             # Install ld.gold (binutils) and ld.lld (lld) on different runs.
-            if [ "${{ matrix.config.os }}" = "ubuntu-20.04" ]; then
+            if [ "${{ matrix.config.os }}" = "ubuntu-22.04" ]; then
               sudo apt-get install -y $packages binutils
             else
               sudo apt-get install -y $packages lld
@@ -79,6 +87,13 @@ jobs:
               echo "CXX=g++-${{ matrix.config.version }}" >> $GITHUB_ENV
 
               sudo apt install -y g++-${{ matrix.config.version }} g++-${{ matrix.config.version }}-multilib
+              if [ "${{ matrix.config.version }}" = 8 ]; then
+                # The compilation test in StdFilesystem.cmake doesn't work when
+                # GCC 9 is installed as well, so need to force linking with
+                # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
+                # work.
+                echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
+              fi
             else
               echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
               echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
