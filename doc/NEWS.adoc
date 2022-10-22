@@ -18,7 +18,7 @@ Release date: 2022-10-22
   [small]#_[contributed by Orgad Shaneh]_#
 
 - Removed unneeded C++11 flag in libatomic test. +
-  [small]#_[contributed by Joel Rosdahl]_#
+  [small]#_[contributed by Orgad Shaneh]_#
 
 
 == Ccache 4.7
