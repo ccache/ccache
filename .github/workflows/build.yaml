@@ -455,7 +455,7 @@ jobs:
         run: |
           rc=0
           ci/build || rc=$?
-          echo "::set-output name=exit_status::$rc"
+          echo "exit_status=$rc" >> $GITHUB_OUTPUT
           exit $rc
         # CTest exits with return code 8 on test failure.
         continue-on-error: ${{ matrix.config.allow_test_failures == true &&
