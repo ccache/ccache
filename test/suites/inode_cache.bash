@@ -9,7 +9,7 @@ SUITE_inode_cache_PROBE() {
 
     touch test.c
     $CCACHE $COMPILER -c test.c
-    if [[ ! -f "${CCACHE_TEMPDIR}/inode-cache.v1" ]]; then
+    if [[ ! -f "${CCACHE_TEMPDIR}/inode-cache-32.v1" && ! -f "${CCACHE_TEMPDIR}/inode-cache-64.v1" ]]; then
         local fs_type=$(stat -fLc %T "${CCACHE_DIR}")
         echo "inode cache not supported on ${fs_type}"
     fi

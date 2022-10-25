@@ -498,7 +498,9 @@ InodeCache::drop()
 std::string
 InodeCache::get_file()
 {
-  return FMT("{}/inode-cache.v{}", m_config.temporary_dir(), k_version);
+  const uint8_t arch_bits = 8 * sizeof(void*);
+  return FMT(
+    "{}/inode-cache-{}.v{}", m_config.temporary_dir(), arch_bits, k_version);
 }
 
 int64_t
