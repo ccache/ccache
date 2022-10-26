@@ -35,6 +35,8 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 
+#include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
+
 extern "C" {
 #include "third_party/base32hex.h"
 }

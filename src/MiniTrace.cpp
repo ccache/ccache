@@ -26,6 +26,8 @@
 #include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
 
+#include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
