@@ -47,6 +47,10 @@ SUITE_multi_arch() {
     expect_stat direct_cache_hit 3
     expect_stat cache_miss 4
 
+    # The parameter following -Xarch should be processed.
+    $CCACHE_COMPILE -arch x86_64 -Xarch_x86_64 -analyze -I. -c test1.c
+    expect_stat unsupported_compiler_option 1
+
     # -------------------------------------------------------------------------
     TEST "cache hit, preprocessor mode"
 
