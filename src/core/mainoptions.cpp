@@ -24,6 +24,7 @@
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
+#include <UmaskScope.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
@@ -424,6 +425,8 @@ process_main_options(int argc, const char* const* argv)
     Config config;
     config.read();
 
+    UmaskScope umask_scope(config.umask());
+
     const std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
@@ -462,6 +465,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EXTRACT_RESULT: {
+      umask_scope.release(); // Use original umask for files outside cache dir
       const auto cache_entry_data = read_from_path_or_stdin(arg);
       if (!cache_entry_data) {
         PRINT(stderr, "Error: \"{}\"", cache_entry_data.error());

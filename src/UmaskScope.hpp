@@ -31,6 +31,8 @@ public:
   UmaskScope(std::optional<mode_t> new_umask);
   ~UmaskScope();
 
+  void release();
+
 private:
   std::optional<mode_t> m_saved_umask = std::nullopt;
 };
@@ -48,6 +50,12 @@ inline UmaskScope::UmaskScope(std::optional<mode_t> new_umask)
 
 inline UmaskScope::~UmaskScope()
 {
+  release();
+}
+
+inline void
+UmaskScope::release()
+{
 #ifndef _WIN32
   if (m_saved_umask) {
     // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80635
@@ -59,6 +67,7 @@ inline UmaskScope::~UmaskScope()
 #  if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic pop
 #  endif
+    m_saved_umask = std::nullopt;
   }
 #endif
 }

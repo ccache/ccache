@@ -1069,6 +1069,24 @@ if ! $HOST_OS_WINDOWS; then
     export CCACHE_UMASK=002
     export CCACHE_TEMPDIR=$CCACHE_DIR/tmp
 
+    $CCACHE -C
+    expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/0" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
+    rm -rf $CCACHE_DIR
+
+    $CCACHE -c
+    expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/0" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
+    rm -rf $CCACHE_DIR
+
+    $CCACHE -z
+    expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/0" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
+    rm -rf $CCACHE_DIR
+
     cat <<EOF >test.c
 int main() {}
 EOF
