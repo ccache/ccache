@@ -53,6 +53,7 @@ SUITE_profiling() {
     expect_stat no_input_file 1
 
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "-fprofile-use"
 
     $CCACHE_COMPILE -fprofile-generate -c test.c
@@ -78,6 +79,8 @@ SUITE_profiling() {
     $CCACHE_COMPILE -fprofile-use -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
+fi
+
     # -------------------------------------------------------------------------
 if $RUN_WIN_XFAIL; then
     TEST "-fprofile-use=dir"

@@ -2,6 +2,9 @@ SUITE_profiling_gcc_PROBE() {
     if ! $COMPILER_TYPE_GCC; then
         echo "compiler is not GCC"
     fi
+    if ! $RUN_WIN_XFAIL; then
+        echo "this suite does not work on Windows"
+    fi
 }
 
 SUITE_profiling_gcc_SETUP() {
@@ -36,7 +39,6 @@ SUITE_profiling_gcc() {
     expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
-if $RUN_WIN_XFAIL; then
     TEST "-fprofile-dir=dir + -fprofile-use"
 
     mkdir data
@@ -62,9 +64,8 @@ if $RUN_WIN_XFAIL; then
     $CCACHE_COMPILE -fprofile-dir=data -fprofile-use -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
-fi
+
     # -------------------------------------------------------------------------
-if $RUN_WIN_XFAIL; then
     TEST "-fprofile-use + -fprofile-dir=dir"
 
     mkdir data
@@ -90,9 +91,8 @@ if $RUN_WIN_XFAIL; then
     $CCACHE_COMPILE -fprofile-use -fprofile-dir=data -c test.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
-fi
+
     # -------------------------------------------------------------------------
-if $RUN_WIN_XFAIL; then
     TEST "-fprofile-dir=path1 + -fprofile-use=path2"
 
     mkdir data
