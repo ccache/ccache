@@ -1,5 +1,37 @@
 = Ccache news
 
+== Ccache 4.7.2
+
+Release date: 2022-10-29
+
+
+=== Bug fixes
+
+- Fixed a problem when using 32-bit and 64-bit ccache binaries with the same
+  inode cache file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Ccache now processes the argument following a `-Xarch` option. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Made sure to use the configured umask for command line operations like
+  `--zero-stats` so that newly created cache directories will have correct
+  permissions. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Include `limits.h` for `PATH_MAX`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Disabled flaky Windows profiling tests. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.7.1
 
 Release date: 2022-10-22
