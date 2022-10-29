@@ -1,6 +1,6 @@
 #!/bin/sh
 
-anonymous="^(6d5CfLQ3dYAb|bengtj|Delgan|luzpaz|RW|vsplesk)$"
+anonymous="^(6d5CfLQ3dYAb|bengtj|Delgan|luzpaz|rblx-kbuck|RW|vsplesk)$"
 
 if [ -d .git ]; then
     # Fetch full Git history if needed, e.g. when run via CI.
