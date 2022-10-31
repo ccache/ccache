@@ -56,6 +56,7 @@ private:
   const std::string m_url_path;
   httplib::Client m_http_client;
   Layout m_layout = Layout::subdirs;
+  uint8_t m_levels = 1;
 
   std::string get_entry_path(const Digest& key) const;
 };
@@ -132,6 +133,9 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
       } else {
         LOG("Unknown layout: {}", attr.value);
       }
+    } else if (attr.key == "levels") {
+      m_levels =
+        util::value_or_throw<core::Fatal>(util::parse_unsigned(attr.value, 1));
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
     } else if (!is_framework_attribute(attr.key)) {
@@ -262,7 +266,7 @@ HttpStorageBackend::get_entry_path(const Digest& key) const
     const auto key_str = key.to_string();
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
-    return FMT("{}/{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
+    return get_path_in_cache(m_url_path, m_levels, digits, key_str);
   }
   }
 

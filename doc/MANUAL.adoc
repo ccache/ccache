@@ -1158,6 +1158,8 @@ Optional attributes:
 --
 +
 The default is *subdirs*.
+* *levels*: The number of levels of subdirectories to use for *subdirs*. The
+  default is 1.
 * *umask*: This attribute (an octal integer) overrides the umask to use for
   files and directories in the cache directory.
 * *update-mtime*: If *true*, update the modification time (mtime) of cache
@@ -1209,6 +1211,8 @@ values.
 --
 +
 The default is *subdirs*.
+* *levels*: The number of levels of subdirectories to use for *subdirs*. The
+  default is 1.
 * *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
 
 

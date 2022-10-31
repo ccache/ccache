@@ -102,6 +102,14 @@ public:
     // Parse a timeout `value`, throwing `Failed` on error.
     static std::chrono::milliseconds
     parse_timeout_attribute(const std::string& value);
+
+    // Join the cache directory, a '/' and `name` into a single path and return
+    // it. Additionally, `level` `digits`-character, '/'-separated subpaths are
+    // split from the beginning of `name` before joining them all.
+    std::string get_path_in_cache(const std::string& dir,
+                                  uint8_t level,
+                                  uint8_t digits,
+                                  std::string_view name) const;
   };
 
   virtual ~RemoteStorage() = default;

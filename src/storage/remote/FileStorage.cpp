@@ -60,6 +60,7 @@ private:
   std::optional<mode_t> m_umask;
   bool m_update_mtime = false;
   Layout m_layout = Layout::subdirs;
+  uint8_t m_levels = 1;
 
   std::string get_entry_path(const Digest& key) const;
 };
@@ -93,6 +94,9 @@ FileStorageBackend::FileStorageBackend(const Params& params)
       } else {
         LOG("Unknown layout: {}", attr.value);
       }
+    } else if (attr.key == "levels") {
+      m_levels =
+        util::value_or_throw<core::Fatal>(util::parse_unsigned(attr.value, 1));
     } else if (attr.key == "umask") {
       m_umask =
         util::value_or_throw<core::Fatal>(util::parse_umask(attr.value));
@@ -182,7 +186,7 @@ FileStorageBackend::get_entry_path(const Digest& key) const
     const auto key_str = key.to_string();
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
-    return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);
+    return get_path_in_cache(m_dir, m_levels, digits, key_str);
   }
   }
 

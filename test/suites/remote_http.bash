@@ -136,6 +136,38 @@ SUITE_remote_http() {
     expect_file_count 2 '*' remote/ac # result + manifest
 
     # -------------------------------------------------------------------------
+    TEST "Multiple levels"
+
+    start_http_server 12780 remote
+    export CCACHE_REMOTE_STORAGE="http://localhost:12780|levels=2"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_file_count 2 '*' remote # result + manifest
+    subdirs=$(find remote -type d | wc -l)
+    if [ "${subdirs}" -lt 5 ]; then # "remote" itself counts as one
+        test_failed "Expected 2 levels of subdirectories in remote"
+    fi
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_file_count 2 '*' remote # result + manifest
+
+    $CCACHE -C >/dev/null
+    expect_stat files_in_cache 0
+    expect_file_count 2 '*' remote # result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from remote
+    expect_file_count 2 '*' remote # result + manifest
+
+    # -------------------------------------------------------------------------
     TEST "Basic auth"
 
     start_http_server 12780 remote "somebody:secret123"
