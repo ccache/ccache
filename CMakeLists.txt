@@ -125,6 +125,12 @@ if(REDIS_STORAGE_BACKEND)
   find_package(hiredis 0.13.3 MODULE REQUIRED)
 endif()
 
+option(RPC_STORAGE_BACKEND "Enable RPC remote storage" OFF)
+
+if(RPC_STORAGE_BACKEND)
+  find_package(rpclib 2.3.0 MODULE REQUIRED)
+endif()
+
 #
 # Special flags
 #

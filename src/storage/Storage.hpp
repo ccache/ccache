@@ -37,6 +37,7 @@ class Digest;
 namespace storage {
 
 std::string get_features();
+std::string get_features_excluding(const std::string& exclude);
 
 struct RemoteStorageBackendEntry;
 struct RemoteStorageEntry;

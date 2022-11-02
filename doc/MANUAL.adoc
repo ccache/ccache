@@ -1246,6 +1246,30 @@ Optional attributes:
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
 
+=== RPC storage backend
+
+URL formats:
+
+`+rpc://HOST:PORT+`
+
+This backend stores data using a http://rpclib.net[rpclib] "rpc-server".
+
+The server is configured with one of the *other* ccache storage backends:
+
+-------------------------------------------------------------------------------
+CCACHE_REMOTE_ONLY=true CCACHE_REMOTE_STORAGE=file://var/tmp/storage rpc-server
+-------------------------------------------------------------------------------
+
+It can keep connections open, to one of the more expensive storage backends.
+
+Examples:
+
+* `+rpc://localhost:8080+`
+
+Optional attributes:
+
+* *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
+* *operation-timeout*: Timeout (in ms) for RPC connections. The default is 10000.
 
 == Cache size management
 

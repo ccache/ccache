@@ -32,6 +32,9 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/remote/RedisStorage.hpp>
 #endif
+#ifdef HAVE_RPC_STORAGE_BACKEND
+#  include <storage/remote/RpcStorage.hpp>
+#endif
 #include <core/CacheEntry.hpp>
 #include <util/Bytes.hpp>
 #include <util/Timer.hpp>
@@ -60,10 +63,13 @@ const std::unordered_map<std::string /*scheme*/,
     {"redis", std::make_shared<remote::RedisStorage>()},
     {"redis+unix", std::make_shared<remote::RedisStorage>()},
 #endif
+#ifdef HAVE_RPC_STORAGE_BACKEND
+    {"rpc", std::make_shared<remote::RpcStorage>()},
+#endif
 };
 
-std::string
-get_features()
+static std::vector<std::string>
+get_all_features()
 {
   std::vector<std::string> features;
   features.reserve(k_remote_storage_implementations.size());
@@ -72,7 +78,28 @@ get_features()
                  std::back_inserter(features),
                  [](auto& entry) { return FMT("{}-storage", entry.first); });
   std::sort(features.begin(), features.end());
+  return features;
+}
+
+std::string
+get_features()
+{
+  auto features = get_all_features();
   return util::join(features, " ");
+}
+
+std::string
+get_features_excluding(const std::string& exclude)
+{
+  auto features = get_all_features();
+  auto x = FMT("{}-storage", exclude);
+  std::vector<std::string> result;
+  result.reserve(features.size());
+  std::remove_copy_if(features.begin(),
+                      features.end(),
+                      std::back_inserter(result),
+                      [&x](auto& entry) { return (entry == x); });
+  return util::join(result, " ");
 }
 
 struct RemoteStorageShardConfig
