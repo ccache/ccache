@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,7 @@
 #include "Digest.hpp"
 
 #include "third_party/blake3/blake3.h"
+#include <third_party/nonstd/expected.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -80,21 +81,20 @@ public:
   // text input file followed by a newline.
   Hash& hash(int64_t x);
 
-  // Add contents read from an open file descriptor to the hash.
-  //
-  // If hash debugging is enabled, the data is written verbatim to the text
-  // input file.
-  //
-  // Returns true on success, otherwise false.
-  bool hash_fd(int fd);
-
   // Add file contents to the hash.
   //
   // If hash debugging is enabled, the data is written verbatim to the text
   // input file.
+  nonstd::expected<void, std::string> hash_file(const std::string& path);
+
+  // Add contents read from an open file descriptor to the hash.
   //
-  // Returns true on success, otherwise false.
-  bool hash_file(const std::string& path);
+  // If hash debugging is enabled, the data is written verbatim to the text
+  // input file.
+  nonstd::expected<void, std::string> hash_fd(int fd);
+
+  // Add `text` to the text debug file.
+  void add_debug_text(std::string_view text);
 
 private:
   blake3_hasher m_hasher;
@@ -102,5 +102,4 @@ private:
   FILE* m_debug_text = nullptr;
 
   void hash_buffer(std::string_view buffer);
-  void add_debug_text(std::string_view text);
 };

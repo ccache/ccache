@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,10 @@
 #pragma once
 
 #include <core/StatisticsCounters.hpp>
+#include <util/TimePoint.hpp>
 
+#include <cstdint>
+#include <ctime>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -38,12 +41,13 @@ public:
 
   // Format cache statistics in human-readable format.
   std::string format_human_readable(const Config& config,
-                                    time_t last_updated,
+                                    const util::TimePoint& last_updated,
                                     uint8_t verbosity,
                                     bool from_log) const;
 
   // Format cache statistics in machine-readable format.
-  std::string format_machine_readable(time_t last_updated) const;
+  std::string
+  format_machine_readable(const util::TimePoint& last_updated) const;
 
   const StatisticsCounters& counters() const;
 

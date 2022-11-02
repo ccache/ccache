@@ -85,9 +85,6 @@
 // Define if you have the "getpwuid" function.
 #cmakedefine HAVE_GETPWUID
 
-// Define if you have the "gettimeofday" function.
-#cmakedefine HAVE_GETTIMEOFDAY
-
 // Define if you have the <linux/fs.h> header file.
 #cmakedefine HAVE_LINUX_FS_H
 
@@ -123,6 +120,15 @@
 
 // Define if "st_mtim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
+
+// Define if "st_atimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIMESPEC
+
+// Define if "st_ctimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIMESPEC
+
+// Define if "st_mtimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIMESPEC
 
 // Define if you have the "syslog" function.
 #cmakedefine HAVE_SYSLOG
@@ -175,6 +181,9 @@
 // Define if you have the "utimensat" function.
 #cmakedefine HAVE_UTIMENSAT
 
+// Define if you have the "utimes" function.
+#cmakedefine HAVE_UTIMES
+
 // Define if you have the "PTHREAD_MUTEX_ROBUST" constant.
 #cmakedefine HAVE_PTHREAD_MUTEX_ROBUST
 
@@ -198,12 +207,15 @@ typedef int pid_t;
 #if !defined(_WIN32) && !defined(O_BINARY)
 #  define O_BINARY 0
 #endif
+#if !defined(_WIN32) && !defined(O_TEXT)
+#  define O_TEXT 0
+#endif
 
 #ifndef ESTALE
 #  define ESTALE -1
 #endif
 
-#define SYSCONFDIR "@CMAKE_INSTALL_FULL_SYSCONFDIR@"
+#define SYSCONFDIR "@CONFIG_SYSCONFDIR_C_ESCAPED@"
 
 #cmakedefine INODE_CACHE_SUPPORTED
 

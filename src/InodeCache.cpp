@@ -34,6 +34,14 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#ifdef HAVE_LINUX_FS_H
+#  include <linux/magic.h>
+#  include <sys/statfs.h>
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+#  include <sys/mount.h>
+#  include <sys/param.h>
+#endif
+
 #include <atomic>
 #include <type_traits>
 
@@ -70,19 +78,65 @@ static_assert(std::is_trivially_copyable<Digest>::value,
               "Digest is expected to be trivially copyable.");
 
 static_assert(
-  static_cast<int>(InodeCache::ContentType::binary) == 0,
+  static_cast<int>(InodeCache::ContentType::raw) == 0,
   "Numeric value is part of key, increment version number if changed.");
 static_assert(
-  static_cast<int>(InodeCache::ContentType::code) == 1,
-  "Numeric value is part of key, increment version number if changed.");
-static_assert(
-  static_cast<int>(InodeCache::ContentType::code_with_sloppy_time_macros) == 2,
-  "Numeric value is part of key, increment version number if changed.");
-static_assert(
-  static_cast<int>(InodeCache::ContentType::precompiled_header) == 3,
+  static_cast<int>(InodeCache::ContentType::checked_for_temporal_macros) == 1,
   "Numeric value is part of key, increment version number if changed.");
 
 const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here
+
+bool
+fd_is_on_known_to_work_file_system(int fd)
+{
+  bool known_to_work = false;
+  struct statfs buf;
+  if (fstatfs(fd, &buf) != 0) {
+    LOG("fstatfs failed: {}", strerror(errno));
+  } else {
+#ifdef HAVE_LINUX_FS_H
+    // statfs's f_type field is a signed 32-bit integer on some platforms. Large
+    // values therefore cause narrowing warnings, so cast the value to a large
+    // unsigned type.
+    const auto f_type = static_cast<uintmax_t>(buf.f_type);
+    switch (f_type) {
+      // Is a filesystem you know works with the inode cache missing in this
+      // list? Please submit an issue or pull request to the ccache project.
+    case 0x9123683e: // BTRFS_SUPER_MAGIC
+    case 0xef53:     // EXT2_SUPER_MAGIC
+    case 0x01021994: // TMPFS_MAGIC
+    case 0x58465342: // XFS_SUPER_MAGIC
+      known_to_work = true;
+      break;
+    default:
+      LOG("Filesystem type 0x{:x} not known to work for the inode cache",
+          f_type);
+    }
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME) // macOS X and some BSDs
+    static const std::vector<std::string> known_to_work_filesystems = {
+      // Is a filesystem you know works with the inode cache missing in this
+      // list? Please submit an issue or pull request to the ccache project.
+      "apfs",
+      "xfs",
+    };
+    if (std::find(known_to_work_filesystems.begin(),
+                  known_to_work_filesystems.end(),
+                  buf.f_fstypename)
+        != known_to_work_filesystems.end()) {
+      known_to_work = true;
+    } else {
+      LOG("Filesystem type {} not known to work for the inode cache",
+          buf.f_fstypename);
+    }
+#else
+#  error Inconsistency: INODE_CACHE_SUPPORTED is set but we should not get here
+#endif
+  }
+  if (!known_to_work) {
+    LOG_RAW("Not using the inode cache");
+  }
+  return known_to_work;
+}
 
 } // namespace
 
@@ -92,18 +146,9 @@ struct InodeCache::Key
   dev_t st_dev;
   ino_t st_ino;
   mode_t st_mode;
-#ifdef HAVE_STRUCT_STAT_ST_MTIM
   timespec st_mtim;
-#else
-  time_t st_mtim;
-#endif
-#ifdef HAVE_STRUCT_STAT_ST_CTIM
   timespec st_ctim; // Included for sanity checking.
-#else
-  time_t st_ctim; // Included for sanity checking.
-#endif
-  off_t st_size; // Included for sanity checking.
-  bool sloppy_time_macros;
+  off_t st_size;    // Included for sanity checking.
 };
 
 struct InodeCache::Entry
@@ -140,11 +185,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
-  bool is_nfs;
-  if (Util::is_nfs_fd(*fd, &is_nfs) == 0 && is_nfs) {
-    LOG(
-      "Inode cache not supported because the cache file is located on nfs: {}",
-      inode_cache_file);
+  if (!fd_is_on_known_to_work_file_system(*fd)) {
     return false;
   }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
@@ -168,7 +209,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   }
   m_sr = sr;
   if (m_config.debug()) {
-    LOG("inode cache file loaded: {}", inode_cache_file);
+    LOG("Inode cache file loaded: {}", inode_cache_file);
   }
   return true;
 }
@@ -190,16 +231,8 @@ InodeCache::hash_inode(const std::string& path,
   key.st_dev = stat.device();
   key.st_ino = stat.inode();
   key.st_mode = stat.mode();
-#ifdef HAVE_STRUCT_STAT_ST_MTIM
-  key.st_mtim = stat.mtim();
-#else
-  key.st_mtim = stat.mtime();
-#endif
-#ifdef HAVE_STRUCT_STAT_ST_CTIM
-  key.st_ctim = stat.ctim();
-#else
-  key.st_ctim = stat.ctime();
-#endif
+  key.st_mtim = stat.mtime().to_timespec();
+  key.st_ctim = stat.ctime().to_timespec();
   key.st_size = stat.size();
 
   Hash hash;
@@ -262,12 +295,7 @@ InodeCache::create_new_file(const std::string& filename)
 
   Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
 
-  bool is_nfs;
-  if (Util::is_nfs_fd(*tmp_file.fd, &is_nfs) == 0 && is_nfs) {
-    LOG(
-      "Inode cache not supported because the cache file would be located on"
-      " nfs: {}",
-      filename);
+  if (!fd_is_on_known_to_work_file_system(*tmp_file.fd)) {
     return false;
   }
   int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
@@ -359,6 +387,12 @@ InodeCache::~InodeCache()
 }
 
 bool
+InodeCache::available(int fd)
+{
+  return fd_is_on_known_to_work_file_system(fd);
+}
+
+bool
 InodeCache::get(const std::string& path,
                 ContentType type,
                 Digest& file_digest,
@@ -396,7 +430,7 @@ InodeCache::get(const std::string& path,
     return false;
   }
 
-  LOG("inode cache {}: {}", found ? "hit" : "miss", path);
+  LOG("Inode cache {}: {}", found ? "hit" : "miss", path);
 
   if (m_config.debug()) {
     if (found) {
@@ -441,7 +475,7 @@ InodeCache::put(const std::string& path,
     return false;
   }
 
-  LOG("inode cache insert: {}", path);
+  LOG("Inode cache insert: {}", path);
 
   return true;
 }
@@ -464,7 +498,9 @@ InodeCache::drop()
 std::string
 InodeCache::get_file()
 {
-  return FMT("{}/inode-cache.v{}", m_config.temporary_dir(), k_version);
+  const uint8_t arch_bits = 8 * sizeof(void*);
+  return FMT(
+    "{}/inode-cache-{}.v{}", m_config.temporary_dir(), arch_bits, k_version);
 }
 
 int64_t

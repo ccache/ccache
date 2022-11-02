@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,10 +23,11 @@
 #include "assertions.hpp"
 
 #include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
-  TemporaryFile tmp_file(path + ".tmp");
+  TemporaryFile tmp_file(path);
   m_stream = fdopen(tmp_file.fd.release(), mode == Mode::binary ? "w+b" : "w+");
   m_tmp_path = std::move(tmp_file.path);
 }
@@ -41,20 +42,20 @@ AtomicFile::~AtomicFile()
 }
 
 void
-AtomicFile::write(const std::string& data)
+AtomicFile::write(std::string_view data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
-      "failed to write data to {}: {}", m_path, strerror(errno));
+      FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
 }
 
 void
-AtomicFile::write(const std::vector<uint8_t>& data)
+AtomicFile::write(nonstd::span<const uint8_t> data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
-      "failed to write data to {}: {}", m_path, strerror(errno));
+      FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
 }
 
@@ -67,7 +68,7 @@ AtomicFile::commit()
   if (result == EOF) {
     Util::unlink_tmp(m_tmp_path);
     throw core::Error(
-      "failed to write data to {}: {}", m_path, strerror(errno));
+      FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
   Util::rename(m_tmp_path, m_path);
 }

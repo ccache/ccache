@@ -23,6 +23,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -153,19 +154,15 @@ TEST_CASE("Default constructor")
   CHECK(stat.device() == 0);
   CHECK(stat.inode() == 0);
   CHECK(stat.mode() == 0);
-  CHECK(stat.ctime() == 0);
-  CHECK(stat.mtime() == 0);
+  CHECK(stat.ctime().sec() == 0);
+  CHECK(stat.ctime().nsec() == 0);
+  CHECK(stat.mtime().sec() == 0);
+  CHECK(stat.mtime().nsec() == 0);
   CHECK(stat.size() == 0);
   CHECK(stat.size_on_disk() == 0);
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
-
-  CHECK(stat.ctim().tv_sec == 0);
-  CHECK(stat.ctim().tv_nsec == 0);
-
-  CHECK(stat.mtim().tv_sec == 0);
-  CHECK(stat.mtim().tv_nsec == 0);
 
 #ifdef _WIN32
   CHECK(stat.file_attributes() == 0);
@@ -186,15 +183,15 @@ TEST_CASE("Same i-node as")
 {
   TestContext test_context;
 
-  Util::write_file("a", "");
-  Util::write_file("b", "");
+  util::write_file("a", "");
+  util::write_file("b", "");
   auto a_stat = Stat::stat("a");
   auto b_stat = Stat::stat("b");
 
   CHECK(a_stat.same_inode_as(a_stat));
   CHECK(!a_stat.same_inode_as(b_stat));
 
-  Util::write_file("a", "change size");
+  util::write_file("a", "change size", util::InPlace::yes);
   auto new_a_stat = Stat::stat("a");
   CHECK(new_a_stat.same_inode_as(a_stat));
 
@@ -209,19 +206,15 @@ TEST_CASE("Return values when file is missing")
   CHECK(stat.device() == 0);
   CHECK(stat.inode() == 0);
   CHECK(stat.mode() == 0);
-  CHECK(stat.ctime() == 0);
-  CHECK(stat.mtime() == 0);
+  CHECK(stat.ctime().sec() == 0);
+  CHECK(stat.ctime().nsec() == 0);
+  CHECK(stat.mtime().sec() == 0);
+  CHECK(stat.mtime().nsec() == 0);
   CHECK(stat.size() == 0);
   CHECK(stat.size_on_disk() == 0);
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
-
-  CHECK(stat.ctim().tv_sec == 0);
-  CHECK(stat.ctim().tv_nsec == 0);
-
-  CHECK(stat.mtim().tv_sec == 0);
-  CHECK(stat.mtim().tv_nsec == 0);
 
 #ifdef _WIN32
   CHECK(stat.file_attributes() == 0);
@@ -233,7 +226,7 @@ TEST_CASE("Return values when file exists")
 {
   TestContext test_context;
 
-  Util::write_file("file", "1234567");
+  util::write_file("file", "1234567");
 
   auto stat = Stat::stat("file");
   CHECK(stat);
@@ -258,13 +251,10 @@ TEST_CASE("Return values when file exists")
   struct timespec last_write_time =
     win32_filetime_to_timespec(info.ftLastWriteTime);
 
-  CHECK(stat.ctime() == creation_time.tv_sec);
-  CHECK(stat.mtime() == last_write_time.tv_sec);
-
-  CHECK(stat.ctim().tv_sec == creation_time.tv_sec);
-  CHECK(stat.ctim().tv_nsec == creation_time.tv_nsec);
-  CHECK(stat.mtim().tv_sec == last_write_time.tv_sec);
-  CHECK(stat.mtim().tv_nsec == last_write_time.tv_nsec);
+  CHECK(stat.ctime().sec() == creation_time.tv_sec);
+  CHECK(stat.ctime().nsec_decimal_part() == creation_time.tv_nsec);
+  CHECK(stat.mtime().sec() == last_write_time.tv_sec);
+  CHECK(stat.mtime().nsec_decimal_part() == last_write_time.tv_nsec);
 
   CHECK(stat.size_on_disk() == ((stat.size() + 1023) & ~1023));
   CHECK(stat.file_attributes() == info.dwFileAttributes);
@@ -277,24 +267,28 @@ TEST_CASE("Return values when file exists")
   CHECK(stat.device() == st.st_dev);
   CHECK(stat.inode() == st.st_ino);
   CHECK(stat.mode() == st.st_mode);
-  CHECK(stat.ctime() == st.st_ctime);
-  CHECK(stat.mtime() == st.st_mtime);
   CHECK(stat.size_on_disk() == st.st_blocks * 512);
 
 #  ifdef HAVE_STRUCT_STAT_ST_CTIM
-  CHECK(stat.ctim().tv_sec == st.st_ctim.tv_sec);
-  CHECK(stat.ctim().tv_nsec == st.st_ctim.tv_nsec);
+  CHECK(stat.ctime().sec() == st.st_ctim.tv_sec);
+  CHECK(stat.ctime().nsec_decimal_part() == st.st_ctim.tv_nsec);
+#  elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+  CHECK(stat.ctime().sec() == st.st_ctimespec.tv_sec);
+  CHECK(stat.ctime().nsec_decimal_part() == st.st_ctimespec.tv_nsec);
 #  else
-  CHECK(stat.ctim().tv_sec == st.st_ctime);
-  CHECK(stat.ctim().tv_nsec == 0);
+  CHECK(stat.ctime().sec() == st.st_ctime);
+  CHECK(stat.ctime().nsec_decimal_part() == 0);
 #  endif
 
 #  ifdef HAVE_STRUCT_STAT_ST_MTIM
-  CHECK(stat.mtim().tv_sec == st.st_mtim.tv_sec);
-  CHECK(stat.mtim().tv_nsec == st.st_mtim.tv_nsec);
+  CHECK(stat.mtime().sec() == st.st_mtim.tv_sec);
+  CHECK(stat.mtime().nsec_decimal_part() == st.st_mtim.tv_nsec);
+#  elif defined(HAVE_STRUCT_STAT_ST_MTIMESPEC)
+  CHECK(stat.mtime().sec() == st.st_mtimespec.tv_sec);
+  CHECK(stat.mtime().nsec_decimal_part() == st.st_mtimespec.tv_nsec);
 #  else
-  CHECK(stat.mtim().tv_sec == st.st_mtime);
-  CHECK(stat.mtim().tv_nsec == 0);
+  CHECK(stat.mtime().sec() == st.st_mtime);
+  CHECK(stat.mtime().nsec_decimal_part() == 0);
 #  endif
 #endif
 }
@@ -324,7 +318,7 @@ TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
 {
   TestContext test_context;
 
-  Util::write_file("file", "1234567");
+  util::write_file("file", "1234567");
 
 #ifdef _WIN32
   REQUIRE(CreateSymbolicLinkA(
@@ -407,7 +401,7 @@ TEST_CASE("Hard links")
 {
   TestContext test_context;
 
-  Util::write_file("a", "");
+  util::write_file("a", "");
 
 #ifdef _WIN32
   REQUIRE(CreateHardLinkA("b", "a", nullptr));
@@ -435,7 +429,7 @@ TEST_CASE("Hard links")
   CHECK(stat_a.inode() == stat_b.inode());
   CHECK(stat_a.same_inode_as(stat_b));
 
-  Util::write_file("a", "1234567");
+  util::write_file("a", "1234567", util::InPlace::yes);
   stat_a = Stat::stat("a");
   stat_b = Stat::stat("b");
 
@@ -505,9 +499,9 @@ TEST_CASE("Special" * doctest::skip(running_under_wine()))
 #endif
   }
 
-#ifdef _WIN32
   SUBCASE("block device")
   {
+#ifdef _WIN32
     auto stat = Stat::stat("\\\\.\\C:");
     CHECK(stat);
     CHECK(stat.error_number() == 0);
@@ -517,8 +511,8 @@ TEST_CASE("Special" * doctest::skip(running_under_wine()))
     CHECK(S_ISBLK(stat.mode()));
     CHECK(stat.file_attributes() == 0);
     CHECK(stat.reparse_tag() == 0);
-  }
 #endif
+  }
 }
 
 #ifdef _WIN32
@@ -526,7 +520,7 @@ TEST_CASE("Win32 Readonly File")
 {
   TestContext test_context;
 
-  Util::write_file("file", "");
+  util::write_file("file", "");
 
   DWORD prev_attrs = GetFileAttributesA("file");
   REQUIRE(prev_attrs != INVALID_FILE_ATTRIBUTES);
@@ -623,7 +617,7 @@ TEST_CASE("Win32 No Sharing")
   Finalizer cleanup([&] { CloseHandle(handle); });
 
   // Sanity check we can't open the file for read/write access.
-  REQUIRE_THROWS_AS(Util::read_file("file"), const core::Error&);
+  REQUIRE(!util::read_file<std::string>("file"));
 
   SUBCASE("stat file no sharing")
   {

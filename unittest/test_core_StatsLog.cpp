@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <Util.hpp>
 #include <core/StatsLog.hpp>
+#include <util/file.hpp>
 
 #include <third_party/doctest.h>
 
@@ -33,7 +34,7 @@ TEST_CASE("read")
 {
   TestContext test_context;
 
-  Util::write_file("stats.log", "# comment\ndirect_cache_hit\n");
+  util::write_file("stats.log", "# comment\ndirect_cache_hit\n");
   const auto counters = StatsLog("stats.log").read();
 
   CHECK(counters.get(Statistic::direct_cache_hit) == 1);
@@ -48,7 +49,7 @@ TEST_CASE("log_result")
   stats_log.log_result("foo.c", {"cache_miss"});
   stats_log.log_result("bar.c", {"preprocessed_cache_hit"});
 
-  CHECK(Util::read_file("stats.log")
+  CHECK(*util::read_file<std::string>("stats.log")
         == "# foo.c\ncache_miss\n# bar.c\npreprocessed_cache_hit\n");
 }
 

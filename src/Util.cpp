@@ -24,15 +24,18 @@
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
 #include "Win32Util.hpp"
-#include "fmtmacros.hpp"
 
+#include <Config.hpp>
 #include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
+#include <util/TimePoint.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
-#include <algorithm>
+#include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
 
 extern "C" {
 #include "third_party/base32hex.h"
@@ -48,30 +51,8 @@ extern "C" {
 
 #include <fcntl.h>
 
-#include <algorithm>
-#include <climits>
-#include <codecvt>
-#include <fstream>
-#include <locale>
-
-#ifndef HAVE_DIRENT_H
-#  include <filesystem>
-#endif
-
 #ifdef HAVE_PWD_H
 #  include <pwd.h>
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-#endif
-
-#ifdef HAVE_LINUX_FS_H
-#  include <linux/magic.h>
-#  include <sys/statfs.h>
-#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
-#  include <sys/mount.h>
-#  include <sys/param.h>
 #endif
 
 #ifdef __linux__
@@ -215,16 +196,6 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
   return result;
 }
 
-#ifdef _WIN32
-bool
-has_utf16_le_bom(std::string_view text)
-{
-  return text.size() > 1
-         && ((static_cast<uint8_t>(text[0]) == 0xff
-              && static_cast<uint8_t>(text[1]) == 0xfe));
-}
-#endif
-
 } // namespace
 
 namespace Util {
@@ -255,7 +226,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #  if defined(__linux__)
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
-    throw core::Error("{}: {}", src, strerror(errno));
+    throw core::Error(FMT("{}: {}", src, strerror(errno)));
   }
 
   Fd dest_fd;
@@ -268,7 +239,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw core::Error("{}: {}", src, strerror(errno));
+      throw core::Error(FMT("{}: {}", src, strerror(errno)));
     }
   }
 
@@ -297,12 +268,12 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #endif // FILE_CLONING_SUPPORTED
 
 void
-clone_hard_link_or_copy_file(const Context& ctx,
+clone_hard_link_or_copy_file(const Config& config,
                              const std::string& source,
                              const std::string& dest,
                              bool via_tmp_file)
 {
-  if (ctx.config.file_clone()) {
+  if (config.file_clone()) {
 #ifdef FILE_CLONING_SUPPORTED
     LOG("Cloning {} to {}", source, dest);
     try {
@@ -315,18 +286,18 @@ clone_hard_link_or_copy_file(const Context& ctx,
     LOG("Not cloning {} to {} since it's unsupported", source, dest);
 #endif
   }
-  if (ctx.config.hard_link()) {
+  if (config.hard_link()) {
     LOG("Hard linking {} to {}", source, dest);
     try {
       Util::hard_link(source, dest);
 #ifndef _WIN32
       if (chmod(dest.c_str(), 0444 & ~Util::get_umask()) != 0) {
-        LOG("Failed to chmod: {}", strerror(errno));
+        LOG("Failed to chmod {}: {}", dest.c_str(), strerror(errno));
       }
 #endif
       return;
     } catch (const core::Error& e) {
-      LOG_RAW(e.what());
+      LOG("Failed to hard link {} to {}: {}", source, dest, e.what());
       // Fall back to copying.
     }
   }
@@ -368,8 +339,9 @@ common_dir_prefix_length(std::string_view dir, std::string_view path)
 void
 copy_fd(int fd_in, int fd_out)
 {
-  read_fd(fd_in,
-          [=](const void* data, size_t size) { write_fd(fd_out, data, size); });
+  util::read_fd(fd_in, [=](const void* data, size_t size) {
+    util::write_fd(fd_out, data, size);
+  });
 }
 
 void
@@ -377,8 +349,11 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
   if (!src_fd) {
-    throw core::Error("{}: {}", src, strerror(errno));
+    throw core::Error(
+      FMT("Failed to open {} for reading: {}", src, strerror(errno)));
   }
+
+  unlink(dest.c_str());
 
   Fd dest_fd;
   std::string tmp_file;
@@ -390,7 +365,8 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw core::Error("{}: {}", dest, strerror(errno));
+      throw core::Error(
+        FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
     }
   }
 
@@ -476,7 +452,7 @@ expand_environment_variables(const std::string& str)
         ++right;
       }
       if (curly && *right != '}') {
-        throw core::Error("syntax error: missing '}}' after \"{}\"", left);
+        throw core::Error(FMT("syntax error: missing '}}' after \"{}\"", left));
       }
       if (right == left) {
         // Special case: don't consider a single $ the left of a variable.
@@ -486,7 +462,7 @@ expand_environment_variables(const std::string& str)
         std::string name(left, right - left);
         const char* value = getenv(name.c_str());
         if (!value) {
-          throw core::Error("environment variable \"{}\" not set", name);
+          throw core::Error(FMT("environment variable \"{}\" not set", name));
         }
         result += value;
         if (!curly) {
@@ -525,7 +501,7 @@ fallocate(int fd, long new_size)
   }
   int err = 0;
   try {
-    write_fd(fd, buf, bytes_to_write);
+    util::write_fd(fd, buf, bytes_to_write);
   } catch (core::Error&) {
     err = errno;
   }
@@ -602,7 +578,7 @@ ensure_dir_exists(std::string_view dir)
 {
   if (!create_dir(dir)) {
     throw core::Fatal(
-      "Failed to create directory {}: {}", dir, strerror(errno));
+      FMT("Failed to create directory {}: {}", dir, strerror(errno)));
   }
 }
 
@@ -665,26 +641,28 @@ get_extension(std::string_view path)
 std::string
 get_home_directory()
 {
-  const char* p = getenv("HOME");
-  if (p) {
-    return p;
-  }
 #ifdef _WIN32
-  p = getenv("APPDATA");
-  if (p) {
+  if (const char* p = getenv("USERPROFILE")) {
     return p;
   }
-#endif
-#ifdef HAVE_GETPWUID
+  throw core::Fatal(
+    "The USERPROFILE environment variable must be set to your user profile "
+    "folder");
+#else
+  if (const char* p = getenv("HOME")) {
+    return p;
+  }
+#  ifdef HAVE_GETPWUID
   {
     struct passwd* pwd = getpwuid(getuid());
     if (pwd) {
       return pwd->pw_dir;
     }
   }
-#endif
+#  endif
   throw core::Fatal(
     "Could not determine home directory from $HOME or getpwuid(3)");
+#endif
 }
 
 const char*
@@ -763,16 +741,11 @@ hard_link(const std::string& oldpath, const std::string& newpath)
 
 #ifndef _WIN32
   if (link(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw core::Error(
-      "failed to link {} to {}: {}", oldpath, newpath, strerror(errno));
+    throw core::Error(strerror(errno));
   }
 #else
   if (!CreateHardLink(newpath.c_str(), oldpath.c_str(), nullptr)) {
-    DWORD error = GetLastError();
-    throw core::Error("failed to link {} to {}: {}",
-                      oldpath,
-                      newpath,
-                      Win32Util::error_message(error));
+    throw core::Error(Win32Util::error_message(GetLastError()));
   }
 #endif
 }
@@ -812,29 +785,6 @@ is_ccache_executable(const std::string_view path)
   return util::starts_with(name, "ccache");
 }
 
-#if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
-int
-is_nfs_fd(int fd, bool* is_nfs)
-{
-  struct statfs buf;
-  if (fstatfs(fd, &buf) != 0) {
-    return errno;
-  }
-#  ifdef HAVE_LINUX_FS_H
-  *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
-#  else // Mac OS X and some other BSD flavors
-  *is_nfs = strcmp(buf.f_fstypename, "nfs") == 0;
-#  endif
-  return 0;
-}
-#else
-int
-is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
-{
-  return -1;
-}
-#endif
-
 bool
 is_precompiled_header(std::string_view path)
 {
@@ -844,9 +794,9 @@ is_precompiled_header(std::string_view path)
 }
 
 std::optional<tm>
-localtime(std::optional<time_t> time)
+localtime(std::optional<util::TimePoint> time)
 {
-  time_t timestamp = time ? *time : ::time(nullptr);
+  time_t timestamp = time ? time->sec() : util::TimePoint::now().sec();
   tm result;
   if (localtime_r(&timestamp, &result)) {
     return result;
@@ -1013,7 +963,7 @@ normalize_concrete_absolute_path(const std::string& path)
 }
 
 uint64_t
-parse_duration(const std::string& duration)
+parse_duration(std::string_view duration)
 {
   uint64_t factor = 0;
   char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
@@ -1026,8 +976,8 @@ parse_duration(const std::string& duration)
     factor = 1;
     break;
   default:
-    throw core::Error(
-      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration);
+    throw core::Error(FMT(
+      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
   }
 
   const auto value =
@@ -1047,7 +997,7 @@ parse_size(const std::string& value)
   char* p;
   double result = strtod(value.c_str(), &p);
   if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
-    throw core::Error("invalid size: \"{}\"", value);
+    throw core::Error(FMT("invalid size: \"{}\"", value));
   }
 
   while (isspace(*p)) {
@@ -1071,79 +1021,13 @@ parse_size(const std::string& value)
       result *= multiplier;
       break;
     default:
-      throw core::Error("invalid size: \"{}\"", value);
+      throw core::Error(FMT("invalid size: \"{}\"", value));
     }
   } else {
     // Default suffix: G.
     result *= 1000 * 1000 * 1000;
   }
   return static_cast<uint64_t>(result);
-}
-
-bool
-read_fd(int fd, DataReceiver data_receiver)
-{
-  int64_t n;
-  char buffer[CCACHE_READ_BUFFER_SIZE];
-  while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
-    if (n == -1 && errno != EINTR) {
-      break;
-    }
-    if (n > 0) {
-      data_receiver(buffer, n);
-    }
-  }
-  return n >= 0;
-}
-
-std::string
-read_file(const std::string& path, size_t size_hint)
-{
-  if (size_hint == 0) {
-    auto stat = Stat::stat(path);
-    if (!stat) {
-      throw core::Error(strerror(errno));
-    }
-    size_hint = stat.size();
-  }
-
-  // +1 to be able to detect EOF in the first read call
-  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
-
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
-  if (!fd) {
-    throw core::Error(strerror(errno));
-  }
-
-  int64_t ret = 0;
-  size_t pos = 0;
-  std::string result;
-  result.resize(size_hint);
-
-  while (true) {
-    if (pos == result.size()) {
-      result.resize(2 * result.size());
-    }
-    const size_t max_read = result.size() - pos;
-    ret = read(*fd, &result[pos], max_read);
-    if (ret == 0 || (ret == -1 && errno != EINTR)) {
-      break;
-    }
-    if (ret > 0) {
-      pos += ret;
-      if (static_cast<size_t>(ret) < max_read) {
-        break;
-      }
-    }
-  }
-
-  if (ret == -1) {
-    LOG("Failed reading {}", path);
-    throw core::Error(strerror(errno));
-  }
-
-  result.resize(pos);
-  return result;
 }
 
 #ifndef _WIN32
@@ -1202,27 +1086,6 @@ real_path(const std::string& path, bool return_empty_on_error)
   return resolved ? resolved : (return_empty_on_error ? "" : path);
 }
 
-std::string
-read_text_file(const std::string& path, size_t size_hint)
-{
-  std::string result = read_file(path, size_hint);
-#ifdef _WIN32
-  // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
-  //
-  // Note that this code assumes a little-endian machine, which is why it's
-  // #ifdef-ed to only run on Windows (which is always little-endian) where it's
-  // actually needed.
-  if (has_utf16_le_bom(result)) {
-    result.erase(0, 2); // Remove BOM.
-    std::u16string result_as_u16((result.size() / 2) + 1, '\0');
-    result_as_u16 = reinterpret_cast<const char16_t*>(result.c_str());
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
-    result = converter.to_bytes(result_as_u16);
-  }
-#endif
-  return result;
-}
-
 std::string_view
 remove_extension(std::string_view path)
 {
@@ -1235,7 +1098,7 @@ rename(const std::string& oldpath, const std::string& newpath)
 #ifndef _WIN32
   if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
     throw core::Error(
-      "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno));
+      FMT("failed to rename {} to {}: {}", oldpath, newpath, strerror(errno)));
   }
 #else
   // Windows' rename() won't overwrite an existing file, so need to use
@@ -1243,18 +1106,18 @@ rename(const std::string& oldpath, const std::string& newpath)
   if (!MoveFileExA(
         oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
     DWORD error = GetLastError();
-    throw core::Error("failed to rename {} to {}: {}",
-                      oldpath,
-                      newpath,
-                      Win32Util::error_message(error));
+    throw core::Error(FMT("failed to rename {} to {}: {}",
+                          oldpath,
+                          newpath,
+                          Win32Util::error_message(error)));
   }
 #endif
 }
 
 void
-send_to_fd(const Context& ctx, const std::string& text, int fd)
+send_to_fd(const Context& ctx, std::string_view text, int fd)
 {
-  const std::string* text_to_send = &text;
+  std::string_view text_to_send = text;
   std::string modified_text;
 
 #ifdef _WIN32
@@ -1268,21 +1131,21 @@ send_to_fd(const Context& ctx, const std::string& text, int fd)
   if (ctx.args_info.strip_diagnostics_colors) {
     try {
       modified_text = strip_ansi_csi_seqs(text);
-      text_to_send = &modified_text;
+      text_to_send = modified_text;
     } catch (const core::Error&) {
       // Ignore.
     }
   }
 
   if (ctx.config.absolute_paths_in_stderr()) {
-    modified_text = rewrite_stderr_to_absolute_paths(*text_to_send);
-    text_to_send = &modified_text;
+    modified_text = rewrite_stderr_to_absolute_paths(text_to_send);
+    text_to_send = modified_text;
   }
 
-  try {
-    write_fd(fd, text_to_send->data(), text_to_send->length());
-  } catch (core::Error& e) {
-    throw core::Error("Failed to write to {}: {}", fd, e.what());
+  const auto result =
+    util::write_fd(fd, text_to_send.data(), text_to_send.length());
+  if (!result) {
+    throw core::Error(FMT("Failed to write to {}: {}", fd, result.error()));
   }
 }
 
@@ -1395,9 +1258,9 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
           if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
             continue;
           }
-          throw core::Error("failed to lstat {}: {}",
-                            entry_path,
-                            strerror(stat.error_number()));
+          throw core::Error(FMT("failed to lstat {}: {}",
+                                entry_path,
+                                strerror(stat.error_number())));
         }
         is_dir = stat.is_directory();
       }
@@ -1412,7 +1275,8 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (errno == ENOTDIR) {
     visitor(path, false);
   } else {
-    throw core::Error("failed to open directory {}: {}", path, strerror(errno));
+    throw core::Error(
+      FMT("failed to open directory {}: {}", path, strerror(errno)));
   }
 }
 
@@ -1435,7 +1299,8 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (std::filesystem::exists(path)) {
     visitor(path, false);
   } else {
-    throw core::Error("failed to open directory {}: {}", path, strerror(errno));
+    throw core::Error(
+      FMT("failed to open directory {}: {}", path, strerror(errno)));
   }
 }
 
@@ -1449,7 +1314,8 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
   // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
   // file. We don't care if the temp file is trashed, so it's always safe to
   // unlink it first.
-  std::string tmp_name = path + ".ccache.rm.tmp";
+  const std::string tmp_name =
+    FMT("{}.ccache{}unlink", path, TemporaryFile::tmp_file_infix);
 
   bool success = true;
   try {
@@ -1500,6 +1366,8 @@ unsetenv(const std::string& name)
 {
 #ifdef HAVE_UNSETENV
   ::unsetenv(name.c_str());
+#elif defined(_WIN32)
+  SetEnvironmentVariable(name.c_str(), NULL);
 #else
   putenv(strdup(name.c_str())); // Leak to environment.
 #endif
@@ -1514,46 +1382,12 @@ wipe_path(const std::string& path)
   traverse(path, [](const std::string& p, bool is_dir) {
     if (is_dir) {
       if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-        throw core::Error("failed to rmdir {}: {}", p, strerror(errno));
+        throw core::Error(FMT("failed to rmdir {}: {}", p, strerror(errno)));
       }
     } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-      throw core::Error("failed to unlink {}: {}", p, strerror(errno));
+      throw core::Error(FMT("failed to unlink {}: {}", p, strerror(errno)));
     }
   });
-}
-
-void
-write_fd(int fd, const void* data, size_t size)
-{
-  int64_t written = 0;
-  do {
-    const auto count =
-      write(fd, static_cast<const uint8_t*>(data) + written, size - written);
-    if (count == -1) {
-      if (errno != EAGAIN && errno != EINTR) {
-        throw core::Error(strerror(errno));
-      }
-    } else {
-      written += count;
-    }
-  } while (static_cast<size_t>(written) < size);
-}
-
-void
-write_file(const std::string& path,
-           const std::string& data,
-           std::ios_base::openmode open_mode)
-{
-  if (path.empty()) {
-    throw core::Error("No such file or directory");
-  }
-
-  open_mode |= std::ios::out;
-  std::ofstream file(path, open_mode);
-  if (!file) {
-    throw core::Error(strerror(errno));
-  }
-  file << data;
 }
 
 } // namespace Util

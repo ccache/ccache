@@ -25,6 +25,7 @@
 #include "fmtmacros.hpp"
 #include "language.hpp"
 
+#include <Depfile.hpp>
 #include <core/wincompat.hpp>
 #include <util/string.hpp>
 
@@ -40,6 +41,17 @@ namespace {
 
 enum class ColorDiagnostics : int8_t { never, automatic, always };
 
+// The dependency target in the dependency file is taken from the highest
+// priority source.
+enum class OutputDepOrigin : uint8_t {
+  // Not set
+  none = 0,
+  // From -MF target
+  mf = 1,
+  // From -Wp,-MD,target or -Wp,-MMD,target
+  wp = 2
+};
+
 struct ArgumentProcessingState
 {
   bool found_c_opt = false;
@@ -54,16 +66,16 @@ struct ArgumentProcessingState
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
   std::optional<std::string> found_xarch_arch;
+  bool found_mf_opt = false;
+  bool found_wp_md_or_mmd_opt = false;
+  bool found_md_or_mmd_opt = false;
+  bool found_Wa_a_opt = false;
 
   std::string explicit_language;    // As specified with -x.
   std::string input_charset_option; // -finput-charset=...
 
-  // Is the dependency makefile name overridden with -MF?
-  bool dependency_filename_specified = false;
-
-  // Is the dependency target name implicitly specified using
-  // DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
-  bool dependency_implicit_target_specified = false;
+  // Is the dependency file set via -Wp,-M[M]D,target or -MFtarget?
+  OutputDepOrigin output_dep_origin = OutputDepOrigin::none;
 
   // Is the compiler being asked to output debug info on level 3?
   bool generating_debuginfo_level_3 = false;
@@ -95,6 +107,9 @@ struct ArgumentProcessingState
 
   // Whether to include the full command line in the hash.
   bool hash_full_command_line = false;
+
+  // Whether to include the actual CWD in the hash.
+  bool hash_actual_cwd = false;
 };
 
 bool
@@ -370,8 +385,6 @@ process_option_arg(const Context& ctx,
       return Statistic::unsupported_compiler_option;
     }
     state.common_args.push_back(args[i]);
-    state.common_args.push_back(args[i + 1]);
-    ++i;
     return Statistic::none;
   }
 
@@ -402,11 +415,22 @@ process_option_arg(const Context& ctx,
     ++i;
   }
 
-  if (util::starts_with(args[i], "-Wa,")
-      && args[i].find('=') != std::string::npos) {
-    LOG("Assembler listing file (-Wa,...=file) is currently not supported: {}",
-        args[i]);
-    return Statistic::unsupported_compiler_option;
+  if (util::starts_with(args[i], "-Wa,")) {
+    for (const auto part : util::Tokenizer(&args[i][4], ",")) {
+      if (util::starts_with(part, "-a")) {
+        if (state.found_Wa_a_opt) {
+          LOG_RAW(
+            "Multiple assembler listing options (-Wa,-a) are not supported");
+          return Statistic::unsupported_compiler_option;
+        }
+        state.found_Wa_a_opt = true;
+
+        const auto eq_pos = part.find('=');
+        if (eq_pos != std::string_view::npos) {
+          args_info.output_al = part.substr(eq_pos + 1);
+        }
+      }
+    }
   }
 
   // Handle options that should not be passed to the preprocessor.
@@ -458,8 +482,7 @@ process_option_arg(const Context& ctx,
 
   // MSVC -Fo with no space.
   if (util::starts_with(args[i], "-Fo") && config.is_compiler_group_msvc()) {
-    args_info.output_obj =
-      Util::make_relative_path(ctx, std::string_view(args[i]).substr(3));
+    args_info.output_obj = args[i].substr(3);
     return Statistic::none;
   }
 
@@ -514,7 +537,7 @@ process_option_arg(const Context& ctx,
       LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
-    args_info.output_obj = Util::make_relative_path(ctx, args[i + 1]);
+    args_info.output_obj = args[i + 1];
     i++;
     return Statistic::none;
   }
@@ -526,8 +549,7 @@ process_option_arg(const Context& ctx,
   if (util::starts_with(args[i], "-o")
       && config.compiler_type() != CompilerType::nvcc
       && config.compiler_type() != CompilerType::msvc) {
-    args_info.output_obj =
-      Util::make_relative_path(ctx, std::string_view(args[i]).substr(2));
+    args_info.output_obj = args[i].substr(2);
     return Statistic::none;
   }
 
@@ -577,14 +599,14 @@ process_option_arg(const Context& ctx,
   // with gcc -E, when the output file is not specified.
   if ((args[i] == "-MD" || args[i] == "-MMD")
       && !config.is_compiler_group_msvc()) {
+    state.found_md_or_mmd_opt = true;
     args_info.generating_dependencies = true;
-    args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
     return Statistic::none;
   }
 
   if (util::starts_with(args[i], "-MF")) {
-    state.dependency_filename_specified = true;
+    state.found_mf_opt = true;
 
     std::string dep_file;
     bool separate_argument = (args[i].size() == 3);
@@ -600,7 +622,11 @@ process_option_arg(const Context& ctx,
       // -MFarg or -MF=arg (EDG-based compilers)
       dep_file = args[i].substr(args[i][3] == '=' ? 4 : 3);
     }
-    args_info.output_dep = Util::make_relative_path(ctx, dep_file);
+
+    if (state.output_dep_origin <= OutputDepOrigin::mf) {
+      state.output_dep_origin = OutputDepOrigin::mf;
+      args_info.output_dep = Util::make_relative_path(ctx, dep_file);
+    }
     // Keep the format of the args the same.
     if (separate_argument) {
       state.dep_args.push_back("-MF");
@@ -613,8 +639,9 @@ process_option_arg(const Context& ctx,
 
   if ((util::starts_with(args[i], "-MQ") || util::starts_with(args[i], "-MT"))
       && !config.is_compiler_group_msvc()) {
-    args_info.dependency_target_specified = true;
+    const bool is_mq = args[i][2] == 'Q';
 
+    std::string_view dep_target;
     if (args[i].size() == 3) {
       // -MQ arg or -MT arg
       if (i == args.size() - 1) {
@@ -622,15 +649,25 @@ process_option_arg(const Context& ctx,
         return Statistic::bad_compiler_arguments;
       }
       state.dep_args.push_back(args[i]);
-      std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
-      state.dep_args.push_back(relpath);
+      state.dep_args.push_back(args[i + 1]);
+      dep_target = args[i + 1];
       i++;
     } else {
-      auto arg_opt = std::string_view(args[i]).substr(0, 3);
-      auto option = std::string_view(args[i]).substr(3);
-      auto relpath = Util::make_relative_path(ctx, option);
-      state.dep_args.push_back(FMT("{}{}", arg_opt, relpath));
+      // -MQarg or -MTarg
+      const std::string_view arg_view(args[i]);
+      const auto arg_opt = arg_view.substr(0, 3);
+      dep_target = arg_view.substr(3);
+      state.dep_args.push_back(FMT("{}{}", arg_opt, dep_target));
     }
+
+    if (args_info.dependency_target) {
+      args_info.dependency_target->push_back(' ');
+    } else {
+      args_info.dependency_target = "";
+    }
+    *args_info.dependency_target +=
+      is_mq ? Depfile::escape_filename(dep_target) : dep_target;
+
     return Statistic::none;
   }
 
@@ -642,6 +679,12 @@ process_option_arg(const Context& ctx,
     // These affect compiler but also #define some things.
     state.cpp_args.push_back(args[i]);
     state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
+  if (args[i] == "-showIncludes") {
+    args_info.generating_includes = true;
+    state.dep_args.push_back(args[i]);
     return Statistic::none;
   }
 
@@ -676,6 +719,15 @@ process_option_arg(const Context& ctx,
     args_info.profile_arcs = true;
     args_info.generating_coverage = true;
     state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
+  if (args[i] == "-fprofile-abs-path") {
+    if (!config.sloppiness().is_enabled(core::Sloppy::gcno_cwd)) {
+      // -fprofile-abs-path makes the compiler include absolute paths based on
+      // the actual CWD in the .gcno file.
+      state.hash_actual_cwd = true;
+    }
     return Statistic::none;
   }
 
@@ -745,18 +797,22 @@ process_option_arg(const Context& ctx,
       return Statistic::unsupported_compiler_option;
     } else if (util::starts_with(args[i], "-Wp,-MD,")
                && args[i].find(',', 8) == std::string::npos) {
+      state.found_wp_md_or_mmd_opt = true;
       args_info.generating_dependencies = true;
-      state.dependency_filename_specified = true;
-      args_info.output_dep =
-        Util::make_relative_path(ctx, std::string_view(args[i]).substr(8));
+      if (state.output_dep_origin <= OutputDepOrigin::wp) {
+        state.output_dep_origin = OutputDepOrigin::wp;
+        args_info.output_dep = args[i].substr(8);
+      }
       state.dep_args.push_back(args[i]);
       return Statistic::none;
     } else if (util::starts_with(args[i], "-Wp,-MMD,")
                && args[i].find(',', 9) == std::string::npos) {
+      state.found_wp_md_or_mmd_opt = true;
       args_info.generating_dependencies = true;
-      state.dependency_filename_specified = true;
-      args_info.output_dep =
-        Util::make_relative_path(ctx, std::string_view(args[i]).substr(9));
+      if (state.output_dep_origin <= OutputDepOrigin::wp) {
+        state.output_dep_origin = OutputDepOrigin::wp;
+        args_info.output_dep = args[i].substr(9);
+      }
       state.dep_args.push_back(args[i]);
       return Statistic::none;
     } else if (util::starts_with(args[i], "-Wp,-D")
@@ -770,7 +826,6 @@ process_option_arg(const Context& ctx,
                    && (args[i][6] == 'F' || args[i][6] == 'Q'
                        || args[i][6] == 'T')
                    && args[i].find(',', 8) == std::string::npos)) {
-      // TODO: Make argument to MF/MQ/MT relative.
       state.dep_args.push_back(args[i]);
       return Statistic::none;
     } else if (config.direct_mode()) {
@@ -807,43 +862,39 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.compiler_type() == CompilerType::gcc
-      && (args[i] == "-fcolor-diagnostics"
-          || args[i] == "-fno-color-diagnostics")) {
-    // Special case: If a GCC compiler gets -f(no-)color-diagnostics we'll bail
-    // out and just execute the compiler. The reason is that we don't include
-    // -f(no-)color-diagnostics in the hash so there can be a false cache hit in
-    // the following scenario:
-    //
-    //   1. ccache gcc -c example.c                      # adds a cache entry
-    //   2. ccache gcc -c example.c -fcolor-diagnostics  # unexpectedly succeeds
-    return Statistic::unsupported_compiler_option;
-  }
-
-  // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
-  // -fcolor-diagnostics argument which is passed to cc1 is handled below.
-  if (args[i] == "-Xclang" && i + 1 < args.size()
-      && args[i + 1] == "-fcolor-diagnostics") {
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    ++i;
-  }
-
-  if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
-      || args[i] == "-fdiagnostics-color=always") {
-    state.color_diagnostics = ColorDiagnostics::always;
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    return Statistic::none;
-  }
-  if (args[i] == "-fno-color-diagnostics" || args[i] == "-fno-diagnostics-color"
-      || args[i] == "-fdiagnostics-color=never") {
-    state.color_diagnostics = ColorDiagnostics::never;
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    return Statistic::none;
-  }
-  if (args[i] == "-fdiagnostics-color=auto") {
-    state.color_diagnostics = ColorDiagnostics::automatic;
-    state.compiler_only_args_no_hash.push_back(args[i]);
-    return Statistic::none;
+  if (config.compiler_type() == CompilerType::gcc) {
+    if (args[i] == "-fdiagnostics-color"
+        || args[i] == "-fdiagnostics-color=always") {
+      state.color_diagnostics = ColorDiagnostics::always;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return Statistic::none;
+    } else if (args[i] == "-fno-diagnostics-color"
+               || args[i] == "-fdiagnostics-color=never") {
+      state.color_diagnostics = ColorDiagnostics::never;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return Statistic::none;
+    } else if (args[i] == "-fdiagnostics-color=auto") {
+      state.color_diagnostics = ColorDiagnostics::automatic;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return Statistic::none;
+    }
+  } else if (config.is_compiler_group_clang()) {
+    // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the
+    // -fcolor-diagnostics argument which is passed to cc1 is handled below.
+    if (args[i] == "-Xclang" && i + 1 < args.size()
+        && args[i + 1] == "-fcolor-diagnostics") {
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      ++i;
+    }
+    if (args[i] == "-fcolor-diagnostics") {
+      state.color_diagnostics = ColorDiagnostics::always;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return Statistic::none;
+    } else if (args[i] == "-fno-color-diagnostics") {
+      state.color_diagnostics = ColorDiagnostics::never;
+      state.compiler_only_args_no_hash.push_back(args[i]);
+      return Statistic::none;
+    }
   }
 
   // GCC
@@ -927,8 +978,10 @@ process_option_arg(const Context& ctx,
   }
 
   // Detect PCH for options with concatenated path (relative or absolute).
-  if (util::starts_with(args[i], "-Fp") || util::starts_with(args[i], "-Yu")) {
-    const size_t path_pos = 3;
+  if (util::starts_with(args[i], "-include")
+      || util::starts_with(args[i], "-Fp")
+      || util::starts_with(args[i], "-Yu")) {
+    const size_t path_pos = util::starts_with(args[i], "-include") ? 8 : 3;
     if (!detect_pch(args[i].substr(0, path_pos),
                     args[i].substr(path_pos),
                     args_info.included_pch_file,
@@ -975,6 +1028,11 @@ process_option_arg(const Context& ctx,
     }
 
     i++;
+    return Statistic::none;
+  }
+
+  if (args[i] == "--") {
+    args_info.seen_double_dash = true;
     return Statistic::none;
   }
 
@@ -1046,6 +1104,7 @@ process_arg(const Context& ctx,
   }
 
   // Rewrite to relative to increase hit rate.
+  args_info.orig_input_file = args[i];
   args_info.input_file = Util::make_relative_path(ctx, args[i]);
   args_info.normalized_input_file =
     Util::normalize_concrete_absolute_path(args_info.input_file);
@@ -1053,60 +1112,10 @@ process_arg(const Context& ctx,
   return Statistic::none;
 }
 
-void
-handle_dependency_environment_variables(Context& ctx,
-                                        ArgumentProcessingState& state)
+const char*
+get_default_object_file_extension(const Config& config)
 {
-  ArgsInfo& args_info = ctx.args_info;
-
-  // See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
-  // Contrary to what the documentation seems to imply the compiler still
-  // creates object files with these defined (confirmed with GCC 8.2.1), i.e.
-  // they work as -MMD/-MD, not -MM/-M. These environment variables do nothing
-  // on Clang.
-  const char* dependencies_env = getenv("DEPENDENCIES_OUTPUT");
-  bool using_sunpro_dependencies = false;
-  if (!dependencies_env) {
-    dependencies_env = getenv("SUNPRO_DEPENDENCIES");
-    using_sunpro_dependencies = true;
-  }
-  if (!dependencies_env) {
-    return;
-  }
-
-  args_info.generating_dependencies = true;
-  state.dependency_filename_specified = true;
-
-  auto dependencies = Util::split_into_views(dependencies_env, " ");
-
-  if (!dependencies.empty()) {
-    auto abspath_file = dependencies[0];
-    args_info.output_dep = Util::make_relative_path(ctx, abspath_file);
-  }
-
-  // Specifying target object is optional.
-  if (dependencies.size() > 1) {
-    // It's the "file target" form.
-    ctx.args_info.dependency_target_specified = true;
-    std::string_view abspath_obj = dependencies[1];
-    std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
-    // Ensure that the compiler gets a relative path.
-    std::string relpath_both = FMT("{} {}", args_info.output_dep, relpath_obj);
-    if (using_sunpro_dependencies) {
-      Util::setenv("SUNPRO_DEPENDENCIES", relpath_both);
-    } else {
-      Util::setenv("DEPENDENCIES_OUTPUT", relpath_both);
-    }
-  } else {
-    // It's the "file" form.
-    state.dependency_implicit_target_specified = true;
-    // Ensure that the compiler gets a relative path.
-    if (using_sunpro_dependencies) {
-      Util::setenv("SUNPRO_DEPENDENCIES", args_info.output_dep);
-    } else {
-      Util::setenv("DEPENDENCIES_OUTPUT", args_info.output_dep);
-    }
-  }
+  return config.is_compiler_group_msvc() ? ".obj" : ".o";
 }
 
 } // namespace
@@ -1129,11 +1138,30 @@ process_args(Context& ctx)
 
   std::optional<Statistic> argument_error;
   for (size_t i = 1; i < args.size(); i++) {
-    const auto error =
-      process_arg(ctx, ctx.args_info, ctx.config, args, i, state);
+    const auto error = process_arg(ctx, args_info, ctx.config, args, i, state);
     if (error != Statistic::none && !argument_error) {
       argument_error = error;
     }
+  }
+
+  // Bail out on too hard combinations of options.
+  if (state.found_mf_opt && state.found_wp_md_or_mmd_opt) {
+    // GCC and Clang behave differently when "-Wp,-M[M]D,wp.d" and "-MF mf.d"
+    // are used: GCC writes to wp.d but Clang writes to mf.d. We could
+    // potentially support this by behaving differently depending on the
+    // compiler type, but let's just bail out for now.
+    LOG_RAW("-Wp,-M[M]D in combination with -MF is not supported");
+    return Statistic::unsupported_compiler_option;
+  }
+  if (state.found_wp_md_or_mmd_opt && !args_info.output_obj.empty()
+      && !state.found_md_or_mmd_opt && !args_info.dependency_target) {
+    // GCC and Clang behave differently when "-Wp,-M[M]D,wp.d" is used with "-o"
+    // but with neither "-MMD" nor "-MT"/"-MQ": GCC uses a dependency target
+    // based on the source filename but Clang bases it on the output filename.
+    // We could potentially support by behaving differently depending on the
+    // compiler type, but let's just bail out for now.
+    LOG_RAW("-Wp,-M[M]D with -o without -MMD, -MQ or -MT is not supported");
+    return Statistic::unsupported_compiler_option;
   }
 
   // Don't try to second guess the compiler's heuristics for stdout handling.
@@ -1157,17 +1185,16 @@ process_args(Context& ctx)
   }
 
   if (output_obj_by_source && !args_info.input_file.empty()) {
-    std::string_view extension;
-    if (state.found_S_opt) {
-      extension = ".s";
-    } else if (!ctx.config.is_compiler_group_msvc()) {
-      extension = ".o";
-    } else {
-      extension = ".obj";
-    }
+    std::string_view extension =
+      state.found_S_opt ? ".s" : get_default_object_file_extension(ctx.config);
     args_info.output_obj +=
       Util::change_extension(Util::base_name(args_info.input_file), extension);
   }
+
+  args_info.orig_output_obj = args_info.output_obj;
+  args_info.output_obj = Util::make_relative_path(ctx, args_info.output_obj);
+
+  // Determine output dependency file.
 
   // On argument processing error, return now since we have determined
   // args_info.output_obj which is needed to determine the log filename in
@@ -1191,8 +1218,6 @@ process_args(Context& ctx)
     config.set_run_second_cpp(true);
   }
 #endif
-
-  handle_dependency_environment_variables(ctx, state);
 
   if (args_info.input_file.empty()) {
     LOG_RAW("No input file found");
@@ -1233,7 +1258,9 @@ process_args(Context& ctx)
     || Util::is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
-    args_info.output_obj = args_info.input_file + ".gch";
+    args_info.orig_output_obj = args_info.orig_input_file + ".gch";
+    args_info.output_obj =
+      Util::make_relative_path(ctx, args_info.orig_output_obj);
   }
 
   if (args_info.output_is_precompiled_header
@@ -1262,6 +1289,11 @@ process_args(Context& ctx)
   if (args_info.actual_language.empty()) {
     LOG("Unsupported source extension: {}", args_info.input_file);
     return Statistic::unsupported_source_language;
+  }
+
+  if (args_info.actual_language == "assembler") {
+    // -MD/-MMD for assembler file does not produce a dependency file.
+    args_info.generating_dependencies = false;
   }
 
   if (!config.run_second_cpp()
@@ -1315,8 +1347,8 @@ process_args(Context& ctx)
   // Some options shouldn't be passed to the real compiler when it compiles
   // preprocessed code:
   //
-  // -finput-charset=XXX (otherwise conversion happens twice)
-  // -x XXX (otherwise the wrong language is selected)
+  // -finput-charset=CHARSET (otherwise conversion happens twice)
+  // -x CHARSET (otherwise the wrong language is selected)
   if (!state.input_charset_option.empty()) {
     state.cpp_args.push_back(state.input_charset_option);
   }
@@ -1350,28 +1382,28 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_dependencies) {
-    if (!state.dependency_filename_specified) {
-      auto default_depfile_name =
-        Util::change_extension(args_info.output_obj, ".d");
-      args_info.output_dep =
-        Util::make_relative_path(ctx, default_depfile_name);
+    if (state.output_dep_origin == OutputDepOrigin::none) {
+      args_info.output_dep = Util::change_extension(args_info.output_obj, ".d");
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
         // location since the preprocessor doesn't know the final object path.
         state.dep_args.push_back("-MF");
-        state.dep_args.push_back(default_depfile_name);
+        state.dep_args.push_back(args_info.output_dep);
       }
     }
 
-    if (!ctx.args_info.dependency_target_specified
-        && !state.dependency_implicit_target_specified
-        && !config.run_second_cpp()) {
+    if (!args_info.dependency_target && !config.run_second_cpp()) {
       // If we're compiling preprocessed code we're sending dep_args to the
       // preprocessor so we need to use -MQ to get the correct target object
       // file in the .d file.
       state.dep_args.push_back("-MQ");
       state.dep_args.push_back(args_info.output_obj);
+    }
+
+    if (!args_info.dependency_target) {
+      args_info.dependency_target =
+        Depfile::escape_filename(args_info.orig_output_obj);
     }
   }
 
@@ -1466,9 +1498,21 @@ process_args(Context& ctx)
     }
     if (ctx.config.depend_mode()) {
       // The compiler is invoked with the original arguments in the depend mode.
-      ctx.args_info.depend_extra_args.push_back(*diagnostics_color_arg);
+      args_info.depend_extra_args.push_back(*diagnostics_color_arg);
     }
   }
 
-  return {preprocessor_args, extra_args_to_hash, compiler_args};
+  if (ctx.config.depend_mode() && !args_info.generating_includes
+      && ctx.config.compiler_type() == CompilerType::msvc) {
+    ctx.auto_depend_mode = true;
+    args_info.generating_includes = true;
+    args_info.depend_extra_args.push_back("/showIncludes");
+  }
+
+  return {
+    preprocessor_args,
+    extra_args_to_hash,
+    compiler_args,
+    state.hash_actual_cwd,
+  };
 }

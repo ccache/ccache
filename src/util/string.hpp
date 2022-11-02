@@ -18,10 +18,14 @@
 
 #pragma once
 
+#include <util/Bytes.hpp>
+
 #include <third_party/nonstd/expected.hpp>
+#include <third_party/nonstd/span.hpp>
 
 #include <sys/stat.h> // for mode_t
 
+#include <cstdint>
 #include <cstring>
 #include <optional>
 #include <string>
@@ -59,13 +63,13 @@ nonstd::expected<double, std::string> parse_double(const std::string& value);
 // `max_value` default to min and max values of int64_t. `description` is
 // included in the error message for range violations.
 nonstd::expected<int64_t, std::string>
-parse_signed(const std::string& value,
+parse_signed(std::string_view value,
              std::optional<int64_t> min_value = std::nullopt,
              std::optional<int64_t> max_value = std::nullopt,
              std::string_view description = "integer");
 
 // Parse `value` (an octal integer).
-nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
+nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
 
 // Parse a string into an unsigned integer.
 //
@@ -74,7 +78,7 @@ nonstd::expected<mode_t, std::string> parse_umask(const std::string& value);
 // `min_value` and `max_value` default to min and max values of uint64_t.
 // `description` is included in the error message for range violations.
 nonstd::expected<uint64_t, std::string>
-parse_unsigned(const std::string& value,
+parse_unsigned(std::string_view value,
                std::optional<uint64_t> min_value = std::nullopt,
                std::optional<uint64_t> max_value = std::nullopt,
                std::string_view description = "integer",
@@ -110,9 +114,15 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
+// Convert `value` to a `nonstd::span<const uint8_t>`.
+nonstd::span<const uint8_t> to_span(std::string_view value);
+
 // Convert `value` to a string. This function is used when joining
 // `std::string`s with `util::join`.
 template<typename T> std::string to_string(const T& value);
+
+// Convert `data` to a `std::string_view`.
+std::string_view to_string_view(nonstd::span<const uint8_t> data);
 
 // --- Inline implementations ---
 
@@ -158,6 +168,13 @@ starts_with(const std::string_view string, const std::string_view prefix)
   return string.substr(0, prefix.size()) == prefix;
 }
 
+inline nonstd::span<const uint8_t>
+to_span(std::string_view data)
+{
+  return nonstd::span<const uint8_t>(
+    reinterpret_cast<const uint8_t*>(data.data()), data.size());
+}
+
 template<typename T>
 inline std::string
 to_string(const T& t)
@@ -178,6 +195,27 @@ inline std::string
 to_string(const std::string_view& sv)
 {
   return std::string(sv);
+}
+
+template<>
+inline std::string
+to_string(const nonstd::span<const uint8_t>& bytes)
+{
+  return std::string(to_string_view(bytes));
+}
+
+template<>
+inline std::string
+to_string(const util::Bytes& bytes)
+{
+  return std::string(to_string_view(bytes));
+}
+
+inline std::string_view
+to_string_view(nonstd::span<const uint8_t> data)
+{
+  return std::string_view(reinterpret_cast<const char*>(data.data()),
+                          data.size());
 }
 
 } // namespace util

@@ -75,7 +75,8 @@ include(DefaultBuildType)
 #
 # Configuration
 #
-include(GNUInstallDirs)
+
+include(InstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 
@@ -98,45 +99,39 @@ if(STATIC_LINK)
   if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   # Link MINGW runtime statically.
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
-  # Link WIN32 clang libs statically.
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    list(APPEND CCACHE_EXTRA_LIBS -Wl,-Bstatic -lc++ -lunwind -Wl,-Bdynamic)
+  elseif(WIN32)
+    if((CMAKE_CXX_COMPILER_ID STREQUAL GNU) OR (CMAKE_CXX_COMPILER_ID STREQUAL Clang))
+      list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
+    endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+      list(APPEND CCACHE_EXTRA_LIBS -fuse-ld=lld)
+    endif()
   endif()
 endif()
 
 #
 # Third party
 #
-set(HIREDIS_FROM_INTERNET_DEFAULT OFF)
-set(ZSTD_FROM_INTERNET_DEFAULT OFF)
+option(ZSTD_FROM_INTERNET
+  "Download and use libzstd from the Internet if not available" ON)
+option(HIREDIS_FROM_INTERNET
+  "Download and use libhiredis from the Internet if not available" ON)
 
-# Default to downloading deps for Visual Studio, unless using a package manager.
-if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg|conan")
-  set(HIREDIS_FROM_INTERNET_DEFAULT ON)
-  set(ZSTD_FROM_INTERNET_DEFAULT ON)
-endif()
-
-option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 MODULE REQUIRED)
 
-option(REDIS_STORAGE_BACKEND "Enable Redis secondary storage" ON)
+option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
+
 if(REDIS_STORAGE_BACKEND)
-  option(HIREDIS_FROM_INTERNET "Download and use libhiredis from the Internet" ${HIREDIS_FROM_INTERNET_DEFAULT})
   find_package(hiredis 0.13.3 MODULE REQUIRED)
 endif()
 
-option(REDISS_STORAGE_BACKEND "Enable Redis SSL secondary storage" OFF)
+option(REDISS_STORAGE_BACKEND "Enable Redis SSL remote storage" OFF)
 if(REDISS_STORAGE_BACKEND)
   message(WARNING
     "Linking against OpenSSL doubles ccache startup time. Distributions are "
     "encouraged to provide two ccache binaries: one without any extra "
     "backends and one with the all the desired backends enabled.")
   find_package(hiredis 1.0.0 REQUIRED)
-  if(NOT hiredis_ssl_FOUND)
-    message(FATAL_ERROR "hiredis_ssl not found")
-  endif()
 endif()
 
 #

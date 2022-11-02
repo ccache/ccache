@@ -25,11 +25,10 @@ to understand and work with. In other words, this is work in progress.
   preprocessor output format, etc. Ideally this code should in the future be
   refactored into compiler-specific frontends, such as GCC, Clang, NVCC, MSVC,
   etc.
-* `compression`: Compression formats.
 * `core`: Everything not part of other directories.
 * `storage`: Storage backends.
-* `storage/primary`: Code for the primary storage backend.
-* `storage/secondary`: Code for secondary storage backends.
+* `storage/local`: Code for the local storage backend.
+* `storage/remote`: Code for remote storage backends.
 * `third_party`: Bundled third party code.
 * `util`: Generic utility functionality that does not depend on ccache-specific
   things.

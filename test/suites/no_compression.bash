@@ -66,7 +66,8 @@ SUITE_no_compression() {
     expect_stat files_in_cache 2
 
     result_file=$(find $CCACHE_DIR -name '*R')
-    printf foo | dd of=$result_file bs=3 count=1 seek=20 conv=notrunc >&/dev/null
+    # Write BAD at byte 300.
+    printf BAD | dd of=$result_file bs=3 count=1 seek=100 conv=notrunc >&/dev/null
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1

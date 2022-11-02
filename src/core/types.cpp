@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,11 @@
 
 #include "types.hpp"
 
+#include <Config.hpp>
+#include <assertions.hpp>
+#include <core/exceptions.hpp>
+#include <fmtmacros.hpp>
+
 namespace core {
 
 std::string
@@ -33,6 +38,46 @@ to_string(const CacheEntryType type)
   default:
     return "unknown";
   }
+}
+
+int8_t
+compression_level_from_config(const Config& config)
+{
+  return config.compression() ? config.compression_level() : 0;
+}
+
+CompressionType
+compression_type_from_config(const Config& config)
+{
+  return config.compression() ? CompressionType::zstd : CompressionType::none;
+}
+
+CompressionType
+compression_type_from_int(const uint8_t type)
+{
+  switch (type) {
+  case static_cast<uint8_t>(CompressionType::none):
+    return CompressionType::none;
+
+  case static_cast<uint8_t>(CompressionType::zstd):
+    return CompressionType::zstd;
+  }
+
+  throw core::Error(FMT("Unknown type: {}", type));
+}
+
+std::string
+to_string(const CompressionType type)
+{
+  switch (type) {
+  case CompressionType::none:
+    return "none";
+
+  case CompressionType::zstd:
+    return "zstd";
+  }
+
+  ASSERT(false);
 }
 
 } // namespace core

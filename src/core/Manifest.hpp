@@ -19,8 +19,13 @@
 #pragma once
 
 #include <Digest.hpp>
+#include <core/Serializer.hpp>
+#include <util/TimePoint.hpp>
+
+#include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -30,43 +35,44 @@ class Context;
 
 namespace core {
 
-class Reader;
-class Writer;
-
-class Manifest
+class Manifest : public Serializer
 {
 public:
   static const uint8_t k_format_version;
 
+  struct FileStats
+  {
+    uint64_t size;
+    util::TimePoint mtime;
+    util::TimePoint ctime;
+  };
+
+  using FileStater = std::function<FileStats(std::string)>;
+
   Manifest() = default;
 
-  void read(Reader& reader);
+  void read(nonstd::span<const uint8_t> data);
+
   std::optional<Digest> look_up_result_digest(const Context& ctx) const;
 
   bool add_result(const Digest& result_key,
                   const std::unordered_map<std::string, Digest>& included_files,
-                  time_t time_of_compilation,
-                  bool save_timestamp);
-  size_t serialized_size() const;
-  void write(Writer& writer) const;
+                  const FileStater& stat_file);
 
-  void dump(FILE* stream) const;
+  // core::Serializer
+  uint32_t serialized_size() const override;
+  void serialize(util::Bytes& output) override;
+
+  void inspect(FILE* stream) const;
 
 private:
-  struct FileStats
-  {
-    uint64_t size;
-    int64_t mtime;
-    int64_t ctime;
-  };
-
   struct FileInfo
   {
-    uint32_t index; // Index to m_files.
-    Digest digest;  // Digest of referenced file.
-    uint64_t fsize; // Size of referenced file.
-    int64_t mtime;  // mtime of referenced file.
-    int64_t ctime;  // ctime of referenced file.
+    uint32_t index;        // Index to m_files.
+    Digest digest;         // Digest of referenced file.
+    uint64_t fsize;        // Size of referenced file.
+    util::TimePoint mtime; // mtime of referenced file.
+    util::TimePoint ctime; // ctime of referenced file.
 
     bool operator==(const FileInfo& other) const;
   };
@@ -86,13 +92,14 @@ private:
   std::vector<ResultEntry> m_results;
 
   void clear();
+
   uint32_t get_file_info_index(
     const std::string& path,
     const Digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
-    time_t time_of_compilation,
-    bool save_timestamp);
+    const FileStater& file_state);
+
   bool
   result_matches(const Context& ctx,
                  const ResultEntry& result,

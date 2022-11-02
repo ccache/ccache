@@ -44,9 +44,10 @@ SUITE_serialize_diagnostics() {
     expect_stat cache_miss 0
     expect_stat files_in_cache 0
     expect_equal_content expected.dia test.dia
-    expect_equal_content expected.stderr test.stderr
+    expect_equal_text_content expected.stderr test.stderr
 
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "--serialize-diagnostics + CCACHE_BASEDIR"
 
     mkdir -p dir1/src dir1/include
@@ -82,4 +83,5 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
+fi
 }

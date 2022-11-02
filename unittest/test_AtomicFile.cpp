@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,8 +17,10 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/AtomicFile.hpp"
-#include "../src/Util.hpp"
 #include "TestUtil.hpp"
+
+#include <Stat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -35,7 +37,7 @@ TEST_CASE("Base case")
   atomic_file.write(std::vector<uint8_t>{0x65, 0x6c});
   fputs("lo", atomic_file.stream());
   atomic_file.commit();
-  CHECK(Util::read_file("test") == "hello");
+  CHECK(*util::read_file<std::string>("test") == "hello");
 }
 
 TEST_CASE("Not committing")
@@ -46,7 +48,7 @@ TEST_CASE("Not committing")
     AtomicFile atomic_file("test", AtomicFile::Mode::text);
     atomic_file.write("hello");
   }
-  CHECK_THROWS_WITH(Util::read_file("test"), "No such file or directory");
+  CHECK(!Stat::stat("test"));
 }
 
 TEST_SUITE_END();

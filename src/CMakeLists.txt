@@ -7,13 +7,8 @@ set(
   Depfile.cpp
   Fd.cpp
   Hash.cpp
-  Lockfile.cpp
   Logging.cpp
   ProgressBar.cpp
-  Result.cpp
-  ResultExtractor.cpp
-  ResultInspector.cpp
-  ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
   TemporaryFile.cpp
@@ -41,10 +36,13 @@ if(WIN32)
   list(APPEND source_files Win32Util.cpp)
 endif()
 
+file(GLOB headers *.hpp)
+list(APPEND source_files ${headers})
+
 add_library(ccache_framework STATIC ${source_files})
 
 if(WIN32)
-  list(APPEND CCACHE_EXTRA_LIBS psapi ws2_32)
+  list(APPEND CCACHE_EXTRA_LIBS psapi)
 endif()
 
 if(CCACHE_EXTRA_LIBS)
@@ -61,10 +59,10 @@ target_link_libraries(
   PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
 )
 
-target_include_directories(ccache_framework PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(REDIS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_framework PRIVATE -DHAVE_REDIS_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(
     ccache_framework
     PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
@@ -75,7 +73,9 @@ if(REDISS_STORAGE_BACKEND)
   target_link_libraries(ccache_framework PUBLIC HIREDIS::HIREDIS HIREDIS::HIREDIS_SSL)
 endif()
 
-add_subdirectory(compression)
+add_executable(test-lockfile test_lockfile.cpp)
+target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
+
 add_subdirectory(core)
 add_subdirectory(storage)
 add_subdirectory(third_party)

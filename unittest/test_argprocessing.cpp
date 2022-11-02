@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,6 +26,7 @@
 
 #include <core/Statistic.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -79,7 +80,7 @@ TEST_CASE("pass -fsyntax-only to compiler only")
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c foo.c -fsyntax-only");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -96,7 +97,7 @@ TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c foo.c -E");
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   CHECK(process_args(ctx).error == Statistic::called_for_preprocessing);
 }
 
@@ -107,7 +108,7 @@ TEST_CASE("dash_M_should_be_unsupported")
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c foo.c -M");
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   CHECK(process_args(ctx).error == Statistic::unsupported_compiler_option);
 }
 
@@ -115,11 +116,11 @@ TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
 {
   TestContext test_context;
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
   ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_run_second_cpp(false);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -134,11 +135,11 @@ TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
 {
   TestContext test_context;
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
   ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -157,12 +158,12 @@ TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
     " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."
     " -trigraphs -fworking-directory -fno-working-directory";
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
   ctx.orig_args =
     Args::from_string("cc " + cpp_args + " " + dep_args + " -c foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_run_second_cpp(false);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -184,12 +185,11 @@ TEST_CASE(
     " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."
     " -trigraphs -fworking-directory -fno-working-directory";
   const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
-    " -Wp,-MMD,wpmmd";
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2";
   Context ctx;
   ctx.orig_args =
     Args::from_string("cc " + cpp_args + " " + dep_args + " -c foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -207,7 +207,7 @@ TEST_CASE(
   const std::string dep_args = "-MMD -MFfoo.d -MT mt -MTmt -MQmq";
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c " + dep_args + " foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -222,7 +222,7 @@ TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -237,7 +237,7 @@ TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_run_second_cpp(false);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -253,7 +253,7 @@ TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_run_second_cpp(false);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -269,7 +269,7 @@ TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -284,7 +284,7 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -c -MF=path foo.c -o foo.o");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -300,7 +300,7 @@ TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
 
   Context ctx;
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string =
     FMT("cc --sysroot={}/foo/bar -c foo.c", ctx.actual_cwd);
@@ -318,7 +318,7 @@ TEST_CASE(
 
   Context ctx;
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string = FMT("cc --sysroot {}/foo -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
@@ -337,7 +337,7 @@ TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
   ctx.orig_args =
     Args::from_string("cc -c foo.c -o foo.o -MMD -MT bar -MFfoo.d");
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
@@ -354,7 +354,7 @@ TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
   ctx.orig_args =
     Args::from_string("cc -c foo.c -o foo.o -MMD -MFfoo.d -MT foo -MTbar");
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
@@ -373,7 +373,7 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
   ctx.orig_args =
     Args::from_string("cc -c foo.c -o foo.o -MMD -MFfoo.d -MQ foo -MQbar");
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
@@ -389,7 +389,7 @@ TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -405,7 +405,7 @@ TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -421,7 +421,7 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -436,7 +436,7 @@ TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -453,7 +453,7 @@ TEST_CASE(
 
   Context ctx;
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string = FMT("cc -isystem {}/foo -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
@@ -469,7 +469,7 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   Context ctx;
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
@@ -487,7 +487,7 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   Context ctx;
 
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
   ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
@@ -504,7 +504,7 @@ TEST_CASE("debug_flag_order_with_known_option_first")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -g1 -gsplit-dwarf foo.c -c");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -519,7 +519,7 @@ TEST_CASE("debug_flag_order_with_known_option_last")
   TestContext test_context;
   Context ctx;
   ctx.orig_args = Args::from_string("cc -gsplit-dwarf -g1 foo.c -c");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -535,7 +535,7 @@ TEST_CASE("options_not_to_be_passed_to_the_preprocessor")
   Context ctx;
   ctx.orig_args = Args::from_string(
     "cc -Wa,foo foo.c -g -c -DX -Werror -Xlinker fie -Xlinker,fum -Wno-error");
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -553,9 +553,9 @@ TEST_CASE("cuda_option_file")
   Context ctx;
   ctx.config.set_compiler_type(CompilerType::nvcc);
   ctx.orig_args = Args::from_string("nvcc -optf foo.optf,bar.optf");
-  Util::write_file("foo.c", "");
-  Util::write_file("foo.optf", "-c foo.c -g -Wall -o");
-  Util::write_file("bar.optf", "out -DX");
+  util::write_file("foo.c", "");
+  util::write_file("foo.optf", "-c foo.c -g -Wall -o");
+  util::write_file("bar.optf", "out -DX");
 
   const ProcessArgsResult result = process_args(ctx);
 
@@ -569,6 +569,8 @@ TEST_CASE("-Xclang")
 {
   TestContext test_context;
   Context ctx;
+  ctx.config.set_compiler_type(CompilerType::clang);
+
   const std::string common_args =
     "-Xclang -fno-pch-timestamp"
     " -Xclang unsupported";
@@ -586,24 +588,24 @@ TEST_CASE("-Xclang")
     " -Xclang -include-pth -Xclang pth_path2";
 
   ctx.orig_args =
-    Args::from_string("gcc -c foo.c " + common_args + " " + color_diag + " "
+    Args::from_string("clang -c foo.c " + common_args + " " + color_diag + " "
                       + extra_args + " " + pch_pth_variants);
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(result.preprocessor_args.to_string()
-        == "gcc " + common_args + " " + pch_pth_variants);
+        == "clang " + common_args + " " + pch_pth_variants);
   CHECK(result.extra_args_to_hash.to_string() == extra_args);
   CHECK(result.compiler_args.to_string()
-        == "gcc " + common_args + " " + color_diag + " " + extra_args + " "
-             + pch_pth_variants + " -c");
+        == "clang " + common_args + " " + color_diag + " " + extra_args + " "
+             + pch_pth_variants + " -c -fcolor-diagnostics");
 }
 
 TEST_CASE("-x")
 {
   TestContext test_context;
   Context ctx;
-  Util::write_file("foo.c", "");
+  util::write_file("foo.c", "");
 
   SUBCASE("intel option")
   {

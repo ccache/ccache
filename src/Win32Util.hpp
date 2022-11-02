@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -27,7 +27,6 @@
 struct tm* localtime_r(time_t* _clock, struct tm* _result);
 
 #  ifdef _MSC_VER
-int gettimeofday(struct timeval* tp, struct timezone* tzp);
 int asprintf(char** strp, const char* fmt, ...);
 #  endif
 

@@ -48,7 +48,7 @@ parse_double(const std::string& value)
 }
 
 nonstd::expected<int64_t, std::string>
-parse_signed(const std::string& value,
+parse_signed(std::string_view value,
              const std::optional<int64_t> min_value,
              const std::optional<int64_t> max_value,
              const std::string_view description)
@@ -80,13 +80,13 @@ parse_signed(const std::string& value,
 }
 
 nonstd::expected<mode_t, std::string>
-parse_umask(const std::string& value)
+parse_umask(std::string_view value)
 {
   return util::parse_unsigned(value, 0, 0777, "umask", 8);
 }
 
 nonstd::expected<uint64_t, std::string>
-parse_unsigned(const std::string& value,
+parse_unsigned(std::string_view value,
                const std::optional<uint64_t> min_value,
                const std::optional<uint64_t> max_value,
                const std::string_view description,

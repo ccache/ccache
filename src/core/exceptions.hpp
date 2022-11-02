@@ -38,44 +38,14 @@ class ErrorBase : public std::runtime_error
 // treated similar to Fatal.
 class Error : public ErrorBase
 {
-public:
-  // Special case: If given only one string, don't parse it as a format string.
-  Error(const std::string& message);
-
-  // `args` are forwarded to `fmt::format`.
-  template<typename... T> inline Error(const char* format, T&&... args);
+  using ErrorBase::ErrorBase;
 };
-
-inline Error::Error(const std::string& message) : ErrorBase(message)
-{
-}
-
-template<typename... T>
-inline Error::Error(const char* format, T&&... args)
-  : ErrorBase(fmt::format(format, std::forward<T>(args)...))
-{
-}
 
 // Throw a Fatal to make ccache print the error message to stderr and exit
 // with a non-zero exit code.
 class Fatal : public ErrorBase
 {
-public:
-  // Special case: If given only one string, don't parse it as a format string.
-  Fatal(const std::string& message);
-
-  // `args` are forwarded to `fmt::format`.
-  template<typename... T> inline Fatal(const char* format, T&&... args);
+  using ErrorBase::ErrorBase;
 };
-
-inline Fatal::Fatal(const std::string& message) : ErrorBase(message)
-{
-}
-
-template<typename... T>
-inline Fatal::Fatal(const char* format, T&&... args)
-  : ErrorBase(fmt::format(format, std::forward<T>(args)...))
-{
-}
 
 } // namespace core

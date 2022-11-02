@@ -33,19 +33,19 @@ if [[ -t 1 ]]; then
 fi
 
 green() {
-    printf "$ansi_boldgreen%s$ansi_reset\n" "$*"
+    echo -e "$ansi_boldgreen$*$ansi_reset"
 }
 
 red() {
-    printf "$ansi_boldred%s$ansi_reset\n" "$*"
+    echo -e "$ansi_boldred$*$ansi_reset"
 }
 
 yellow() {
-    printf "$ansi_boldyellow%s$ansi_reset\n" "$*"
+    echo -e "$ansi_boldyellow$*$ansi_reset"
 }
 
 bold() {
-    printf "$ansi_bold%s$ansi_reset\n" "$*"
+    echo -e "$ansi_bold$*$ansi_reset"
 }
 
 test_failed_internal() {
@@ -162,6 +162,8 @@ objdump_cmd() {
 objdump_grep_cmd() {
     if $HOST_OS_APPLE; then
         fgrep -q "\"$1\""
+    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        fgrep -q "$1"
     else
         fgrep -q ": $1"
     fi
@@ -173,11 +175,17 @@ expect_stat() {
     local line
     local value=""
 
+    if $HOST_OS_WINDOWS ; then
+        filter="sed -e s/\r//g"
+    else
+        filter=cat
+    fi
+
     while read -r key value; do
         if [[ $key == $stat ]]; then
             break
         fi
-    done < <($CCACHE --print-stats)
+    done < <($CCACHE --print-stats | $filter )
 
     if [ "$expected_value" != "$value" ]; then
         test_failed_internal "Expected $stat to be $expected_value, actual $value"
@@ -204,7 +212,23 @@ expect_equal_content() {
         test_failed_internal "expect_equal_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
-        test_failed_internal "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
+        test_failed_internal "$1 and $2 differ"
+    fi
+}
+
+expect_equal_text_content() {
+    if [ ! -e "$1" ]; then
+        test_failed_internal "expect_equal_text_content: $1 missing"
+    fi
+    if [ ! -e "$2" ]; then
+        test_failed_internal "expect_equal_text_content: $2 missing"
+    fi
+    if ! cmp -s "$1" "$2"; then
+        if $HOST_OS_WINDOWS  && diff -u --strip-trailing-cr "$1" "$2" > /dev/null ; then
+            test_failed_internal "$1 and $2 with differ line endings."
+        else
+            test_failed_internal "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
+        fi
     fi
 }
 
@@ -267,8 +291,30 @@ expect_content() {
         test_failed_internal "$file not found"
     fi
     if [ "$(cat $file)" != "$content" ]; then
-        test_failed_internal "Bad content of $file.\nExpected: $content\nActual: $(cat $file)"
+        test_failed_internal "Bad content of $file\nExpected: $content\nActual: $(cat $file)"
     fi
+}
+
+expect_content_pattern() {
+    local file="$1"
+    local pattern="$2"
+
+    if [ ! -e "$file" ]; then
+        test_failed_internal "$file not found"
+    fi
+
+    local content="$(<$file)"
+    if [[ $pattern == !* ]]; then
+        pattern=${pattern:1}
+        if [[ "${content}" == $pattern ]]; then
+            test_failed_internal "Bad content of $file\nContent: $(<$file)\nMatched pattern: $pattern"
+        fi
+    else
+        if [[ "${content}" != $pattern ]]; then
+            test_failed_internal "Bad content of $file\nContent: $(<$file)\nDid not match pattern: $pattern"
+        fi
+    fi
+
 }
 
 expect_contains() {
@@ -348,7 +394,9 @@ reset_environment() {
         fi
     done < <(compgen -e)
 
+    unset DEPENDENCIES_OUTPUT
     unset GCC_COLORS
+    unset SUNPRO_DEPENDENCIES
     unset TERM
     unset XDG_CACHE_HOME
     unset XDG_CONFIG_HOME
@@ -356,7 +404,7 @@ reset_environment() {
 
     export CCACHE_DETECT_SHEBANG=1
     export CCACHE_DIR=$ABS_TESTDIR/.ccache
-    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip secondary config
+    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip system config
     export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
     export CCACHE_NODIRECT=1
 
@@ -475,6 +523,7 @@ COMPILER_TYPE_GCC=false
 
 COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
+COMPILER_USES_MSVC=false
 
 ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
 readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
@@ -487,6 +536,7 @@ HOST_OS_WINDOWS=false
 HOST_OS_CYGWIN=false
 
 compiler_version="`$CC --version 2>/dev/null | head -1`"
+
 case $compiler_version in
     *gcc*|*g++*|2.95*)
         COMPILER_TYPE_GCC=true
@@ -501,12 +551,21 @@ case $compiler_version in
         ;;
 esac
 
+case $CC in
+    *MSVC*|*msvc*)
+        COMPILER_USES_MSVC=true
+        ;;
+esac
+
 case $compiler_version in
     *llvm*|*LLVM*)
         COMPILER_USES_LLVM=true
         ;;
     *MINGW*|*mingw*)
         COMPILER_USES_MINGW=true
+        ;;
+    *MSVC*|*msvc*)
+        COMPILER_USES_MSVC=true
         ;;
 esac
 
@@ -533,6 +592,12 @@ if $HOST_OS_WINDOWS; then
 else
     PATH_DELIM=":"
 fi
+RUN_WIN_XFAIL=true
+if $HOST_OS_WINDOWS &&  [ -z "${RUN_FAULTY_TESTS}" ] ; then
+    RUN_WIN_XFAIL=false
+fi
+
+
 
 if [[ $OSTYPE = msys* ]]; then
     # Native symlink support for Windows.
@@ -598,7 +663,11 @@ echo
 cd $TESTDIR || exit 1
 
 mkdir compiler
+
 COMPILER="$(pwd)/compiler/$(basename "$REAL_COMPILER_BIN")"
+if $HOST_OS_WINDOWS; then
+    COMPILER="$COMPILER.sh"
+fi
 cat >"$COMPILER" <<EOF
 #!/bin/sh
 
@@ -625,7 +694,7 @@ for suite in $suites; do
 done
 
 cd /
-if [ -z "$KEEP_TESTDIR"]; then
+if [ -z "$KEEP_TESTDIR" ]; then
     rm -rf $ABS_TESTDIR
 fi
 if $skipped; then

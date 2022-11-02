@@ -19,9 +19,10 @@
 #pragma once
 
 #include "NonCopyable.hpp"
-#include "Util.hpp"
 
 #include <core/Sloppiness.hpp>
+
+#include <sys/types.h>
 
 #include <cstdint>
 #include <functional>
@@ -30,7 +31,16 @@
 #include <string>
 #include <unordered_map>
 
-enum class CompilerType { auto_guess, clang, clang_cl, gcc, msvc, nvcc, other };
+enum class CompilerType {
+  auto_guess,
+  clang,
+  clang_cl,
+  gcc,
+  icl,
+  msvc,
+  nvcc,
+  other
+};
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
@@ -67,6 +77,7 @@ public:
   const std::string& log_file() const;
   uint64_t max_files() const;
   uint64_t max_size() const;
+  const std::string& msvc_dep_prefix() const;
   const std::string& path() const;
   bool pch_external_checksum() const;
   const std::string& prefix_command() const;
@@ -74,9 +85,10 @@ public:
   bool read_only() const;
   bool read_only_direct() const;
   bool recache() const;
+  bool remote_only() const;
+  const std::string& remote_storage() const;
   bool reshare() const;
   bool run_second_cpp() const;
-  const std::string& secondary_storage() const;
   core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::string& stats_log() const;
@@ -87,7 +99,7 @@ public:
   // Return true for Clang and clang-cl.
   bool is_compiler_group_clang() const;
 
-  // Return true for MSVC (cl.exe) and clang-cl.
+  // Return true for MSVC (cl.exe), clang-cl, and icl.
   bool is_compiler_group_msvc() const;
 
   std::string default_temporary_dir() const;
@@ -106,15 +118,17 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_max_size(uint64_t value);
+  void set_msvc_dep_prefix(const std::string& value);
   void set_run_second_cpp(bool value);
+  void set_temporary_dir(const std::string& value);
 
   // Where to write configuration changes.
-  const std::string& primary_config_path() const;
-  // Secondary, read-only configuration file (if any).
-  const std::string& secondary_config_path() const;
+  const std::string& config_path() const;
+  // System (read-only) configuration file (if any).
+  const std::string& system_config_path() const;
 
-  void set_primary_config_path(std::string path);
-  void set_secondary_config_path(std::string path);
+  void set_config_path(std::string path);
+  void set_system_config_path(std::string path);
 
   using ItemVisitor = std::function<void(const std::string& key,
                                          const std::string& value,
@@ -144,8 +158,8 @@ public:
   static void check_key_tables_consistency();
 
 private:
-  std::string m_primary_config_path;
-  std::string m_secondary_config_path;
+  std::string m_config_path;
+  std::string m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
   std::string m_base_dir;
@@ -167,12 +181,13 @@ private:
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest;
   std::string m_ignore_options;
-  bool m_inode_cache = false;
+  bool m_inode_cache = true;
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file;
   uint64_t m_max_files = 0;
   uint64_t m_max_size = 5ULL * 1000 * 1000 * 1000;
+  std::string m_msvc_dep_prefix = "Note: including file:";
   std::string m_path;
   bool m_pch_external_checksum = false;
   std::string m_prefix_command;
@@ -182,7 +197,8 @@ private:
   bool m_recache = false;
   bool m_reshare = false;
   bool m_run_second_cpp = true;
-  std::string m_secondary_storage;
+  bool m_remote_only = false;
+  std::string m_remote_storage;
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
   std::string m_stats_log;
@@ -248,7 +264,8 @@ inline bool
 Config::is_compiler_group_msvc() const
 {
   return m_compiler_type == CompilerType::msvc
-         || m_compiler_type == CompilerType::clang_cl;
+         || m_compiler_type == CompilerType::clang_cl
+         || m_compiler_type == CompilerType::icl;
 }
 
 inline bool
@@ -372,6 +389,12 @@ Config::max_size() const
 }
 
 inline const std::string&
+Config::msvc_dep_prefix() const
+{
+  return m_msvc_dep_prefix;
+}
+
+inline const std::string&
 Config::path() const
 {
   return m_path;
@@ -425,10 +448,16 @@ Config::run_second_cpp() const
   return m_run_second_cpp;
 }
 
-inline const std::string&
-Config::secondary_storage() const
+inline bool
+Config::remote_only() const
 {
-  return m_secondary_storage;
+  return m_remote_only;
+}
+
+inline const std::string&
+Config::remote_storage() const
+{
+  return m_remote_storage;
 }
 
 inline core::Sloppiness
@@ -555,7 +584,19 @@ Config::set_max_size(uint64_t value)
 }
 
 inline void
+Config::set_msvc_dep_prefix(const std::string& value)
+{
+  m_msvc_dep_prefix = value;
+}
+
+inline void
 Config::set_run_second_cpp(bool value)
 {
   m_run_second_cpp = value;
+}
+
+inline void
+Config::set_temporary_dir(const std::string& value)
+{
+  m_temporary_dir = value;
 }

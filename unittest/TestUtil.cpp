@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,10 +19,10 @@
 #include "TestUtil.hpp"
 
 #include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <fmtmacros.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -57,7 +57,7 @@ check_chdir(const std::string& dir)
 {
   if (chdir(dir.c_str()) != 0) {
     throw core::Error(
-      "failed to change directory to {}: {}", dir, strerror(errno));
+      FMT("failed to change directory to {}: {}", dir, strerror(errno)));
   }
 }
 

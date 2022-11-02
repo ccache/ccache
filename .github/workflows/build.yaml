@@ -11,6 +11,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
   build_and_test:
     env:
@@ -22,29 +25,17 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
+            compiler: gcc
+            version: "8"
+
+          - os: ubuntu-20.04
             compiler: gcc
             version: "9"
 
           - os: ubuntu-20.04
             compiler: gcc
             version: "10"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "5.0"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "6.0"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "7"
-
-          - os: ubuntu-18.04
-            compiler: clang
-            version: "8"
 
           - os: ubuntu-20.04
             compiler: clang
@@ -66,11 +57,15 @@ jobs:
             compiler: gcc
             version: "11"
 
-          - os: macOS-10.15
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: "12"
+
+          - os: macOS-11
             compiler: xcode
             version: "11.7"
 
-          - os: macOS-10.15
+          - os: macOS-11
             compiler: xcode
             version: "12.4"
     steps:
@@ -81,7 +76,7 @@ jobs:
 
             packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools openssl"
             # Install ld.gold (binutils) and ld.lld (lld) on different runs.
-            if [ "${{ matrix.config.os }}" = "ubuntu-18.04" ]; then
+            if [ "${{ matrix.config.os }}" = "ubuntu-22.04" ]; then
               sudo apt-get install -y $packages binutils
             else
               sudo apt-get install -y $packages lld
@@ -92,6 +87,13 @@ jobs:
               echo "CXX=g++-${{ matrix.config.version }}" >> $GITHUB_ENV
 
               sudo apt install -y g++-${{ matrix.config.version }} g++-${{ matrix.config.version }}-multilib
+              if [ "${{ matrix.config.version }}" = 8 ]; then
+                # The compilation test in StdFilesystem.cmake doesn't work when
+                # GCC 9 is installed as well, so need to force linking with
+                # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
+                # work.
+                echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
+              fi
             else
               echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
               echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
@@ -131,6 +133,75 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}-testdir.tar.xz
+          path: testdir.tar.xz
+
+  build_and_test_msys:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - sys: mingw64
+            env: x86_64
+            compiler: gcc
+
+          - sys: mingw64
+            env: x86_64
+            compiler: clang
+
+    name: 'Windows ${{ matrix.config.sys }} ${{ matrix.config.compiler }}'
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: '${{ matrix.config.sys }} Setup MSYS2'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.config.sys}}
+          update: true
+          install: >-
+            git
+            diffutils
+            tar
+            mingw-w64-${{matrix.config.env}}-toolchain
+            mingw-w64-${{matrix.config.env}}-cmake
+            mingw-w64-${{matrix.config.env}}-ninja
+            mingw-w64-${{matrix.config.env}}-hiredis
+            mingw-w64-${{matrix.config.env}}-lld
+            mingw-w64-${{matrix.config.env}}-${{matrix.config.compiler}}
+
+      - name: setup env
+        run: |
+          if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          else
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          fi
+
+      - name: Get source
+        uses: actions/checkout@v2
+
+      - name: Build and test
+        run: ci/build
+        continue-on-error: ${{ matrix.config.allow_test_failures == true &&
+          steps.build-and-test.outputs.exit_status == 8 }}
+        env:
+          ENABLE_CACHE_CLEANUP_TESTS: 1
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
+          TEST_CC: gcc
+
+      - name: Collect testdir from failed tests
+        if: failure()
+        run: ci/collect-testdir
+
+      - name: Upload testdir from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config.sys}}-${{ matrix.config.env }}-${{ matrix.config.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
   specific_tests:
@@ -187,8 +258,50 @@ jobs:
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
-          - name: Windows VS2019 32-bit
+          - name: Windows VS2019 32-bit Ninja
             os: windows-2019
+            msvc_arch: x64_x86
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Ninja
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            TEST_CC: clang -target i686-pc-windows-msvc
+
+          - name: Windows VS2019 32-bit MSBuild
+            os: windows-2019
+            msvc_arch: x64_x86
+            allow_test_failures: true  # For now, don't fail the build on failure
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Visual Studio 16 2019
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
+            TEST_CC: clang -target i686-pc-windows-msvc
+
+          - name: Windows VS2019 64-bit Ninja
+            os: windows-2019
+            msvc_arch: x64
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Ninja
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            TEST_CC: clang -target x86_64-pc-windows-msvc
+
+          - name: Windows VS2019 64-bit MSBuild
+            os: windows-2019
+            msvc_arch: x64
+            allow_test_failures: true  # For now, don't fail the build on failure
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Visual Studio 16 2019
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
+            TEST_CC: clang -target x86_64-pc-windows-msvc
+
+          - name: Windows VS2022 32-bit Ninja
+            os: windows-2022
             msvc_arch: x64_x86
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
@@ -198,8 +311,19 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target i686-pc-windows-msvc
 
-          - name: Windows VS2019 64-bit
-            os: windows-2019
+          - name: Windows VS2022 32-bit MSBuild
+            os: windows-2022
+            msvc_arch: x64_x86
+            allow_test_failures: true  # For now, don't fail the build on failure
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Visual Studio 17 2022
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
+            TEST_CC: clang -target i686-pc-windows-msvc
+
+          - name: Windows VS2022 64-bit Ninja
+            os: windows-2022
             msvc_arch: x64
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
@@ -207,6 +331,17 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            TEST_CC: clang -target x86_64-pc-windows-msvc
+
+          - name: Windows VS2022 64-bit MSBuild
+            os: windows-2022
+            msvc_arch: x64
+            allow_test_failures: true  # For now, don't fail the build on failure
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Visual Studio 17 2022
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
@@ -320,7 +455,7 @@ jobs:
         run: |
           rc=0
           ci/build || rc=$?
-          echo "::set-output name=exit_status::$rc"
+          echo "exit_status=$rc" >> $GITHUB_OUTPUT
           exit $rc
         # CTest exits with return code 8 on test failure.
         continue-on-error: ${{ matrix.config.allow_test_failures == true &&

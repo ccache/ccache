@@ -1,9 +1,12 @@
-add_subdirectory(primary)
-add_subdirectory(secondary)
+add_subdirectory(local)
+add_subdirectory(remote)
 
 set(
   sources
-  ${CMAKE_CURRENT_SOURCE_DIR}/Storage.cpp
+  Storage.cpp
 )
+
+file(GLOB headers *.hpp)
+list(APPEND sources ${headers})
 
 target_sources(ccache_framework PRIVATE ${sources})

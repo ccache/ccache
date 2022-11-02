@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,13 +18,15 @@
 
 #pragma once
 
-#ifdef USE_XXH_DISPATCH
-#  include "third_party/xxh_x86dispatch.h"
-#else
-#  include "third_party/xxhash.h"
-#endif
-
 #include <Util.hpp>
+#include <util/Bytes.hpp>
+
+#include <third_party/nonstd/span.hpp>
+#ifdef USE_XXH_DISPATCH
+#  include <third_party/xxh_x86dispatch.h>
+#else
+#  include <third_party/xxhash.h>
+#endif
 
 #include <cstdint>
 #include <cstring>
@@ -34,60 +36,18 @@ namespace util {
 class XXH3_128
 {
 public:
-  struct Digest
-  {
-  public:
-    const uint8_t* bytes() const;
-    uint8_t* bytes();
-    constexpr static size_t size();
-
-    bool operator==(const Digest& other) const;
-    bool operator!=(const Digest& other) const;
-
-  private:
-    uint8_t m_bytes[16] = {};
-  };
+  static constexpr size_t k_digest_size = 16;
 
   XXH3_128();
   ~XXH3_128();
 
   void reset();
-  void update(const void* data, size_t length);
-  Digest digest() const;
+  void update(nonstd::span<const uint8_t> data);
+  util::Bytes digest() const;
 
 private:
   XXH3_state_t* m_state;
 };
-
-inline const uint8_t*
-XXH3_128::Digest::bytes() const
-{
-  return m_bytes;
-}
-
-inline uint8_t*
-XXH3_128::Digest::bytes()
-{
-  return m_bytes;
-}
-
-inline constexpr size_t
-XXH3_128::Digest::size()
-{
-  return sizeof(m_bytes);
-}
-
-inline bool
-XXH3_128::Digest::operator==(const XXH3_128::Digest& other) const
-{
-  return memcmp(bytes(), other.bytes(), size()) == 0;
-}
-
-inline bool
-XXH3_128::Digest::operator!=(const XXH3_128::Digest& other) const
-{
-  return !(*this == other);
-}
 
 inline XXH3_128::XXH3_128() : m_state(XXH3_createState())
 {
@@ -106,18 +66,18 @@ XXH3_128::reset()
 }
 
 inline void
-XXH3_128::update(const void* data, size_t length)
+XXH3_128::update(nonstd::span<const uint8_t> data)
 {
-  XXH3_128bits_update(m_state, data, length);
+  XXH3_128bits_update(m_state, data.data(), data.size());
 }
 
-inline XXH3_128::Digest
+inline util::Bytes
 XXH3_128::digest() const
 {
   const auto result = XXH3_128bits_digest(m_state);
-  XXH3_128::Digest digest;
-  Util::int_to_big_endian(result.high64, digest.bytes());
-  Util::int_to_big_endian(result.low64, digest.bytes() + 8);
+  util::Bytes digest(k_digest_size);
+  Util::int_to_big_endian(result.high64, &digest[0]);
+  Util::int_to_big_endian(result.low64, &digest[8]);
   return digest;
 }
 

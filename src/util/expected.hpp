@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <fmtmacros.hpp>
+
+#include <string_view>
 #include <utility>
 
 namespace util {
@@ -30,6 +33,20 @@ template<typename E, typename T>
 typename T::value_type value_or_throw(const T& value);
 template<typename E, typename T>
 typename T::value_type value_or_throw(T&& value);
+
+// Like above for with `prefix` added to the error message.
+template<typename E, typename T>
+typename T::value_type value_or_throw(const T& value, std::string_view prefix);
+template<typename E, typename T>
+typename T::value_type value_or_throw(T&& value, std::string_view prefix);
+
+// Throw an exception of type `E` with a `T::error_type` as the argument if
+// `value` is false.
+template<typename E, typename T> void throw_on_error(const T& value);
+
+// Like above for with `prefix` added to the error message.
+template<typename E, typename T>
+void throw_on_error(const T& value, std::string_view prefix);
 
 #define TRY(x_)                                                                \
   do {                                                                         \
@@ -60,6 +77,47 @@ value_or_throw(T&& value)
     return std::move(*value);
   } else {
     throw E(value.error());
+  }
+}
+
+template<typename E, typename T>
+inline typename T::value_type
+value_or_throw(const T& value, std::string_view prefix)
+{
+  if (value) {
+    return *value;
+  } else {
+    throw E(FMT("{}{}", prefix, value.error()));
+  }
+}
+
+template<typename E, typename T>
+inline typename T::value_type
+value_or_throw(T&& value, std::string_view prefix)
+{
+  if (value) {
+    return std::move(*value);
+  } else {
+    throw E(FMT("{}{}", prefix, value.error()));
+  }
+}
+
+template<typename E, typename T>
+inline void
+throw_on_error(const T& value)
+{
+  if (!value) {
+    throw E(value.error());
+  }
+}
+
+// Like above for with `prefix` added to the error message.
+template<typename E, typename T>
+inline void
+throw_on_error(const T& value, std::string_view prefix)
+{
+  if (!value) {
+    throw E(FMT("{}{}", prefix, value.error()));
   }
 }
 

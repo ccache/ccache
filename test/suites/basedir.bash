@@ -1,3 +1,9 @@
+SUITE_basedir_PROBE() {
+    if ! $RUN_WIN_XFAIL; then
+        echo "CCACHE_BASEDIR is broken on windows."
+    fi
+}
+
 SUITE_basedir_SETUP() {
     unset CCACHE_NODIRECT
 
@@ -16,6 +22,9 @@ EOF
 SUITE_basedir() {
     # -------------------------------------------------------------------------
     TEST "Enabled CCACHE_BASEDIR"
+
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE --version >/dev/null
+    expect_stat no_input_file 1
 
     cd dir1
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
@@ -219,57 +228,101 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
-    TEST "-MF/-MQ/-MT with absolute paths"
+    if $HOST_OS_WINDOWS; then
+        additional_options=
+    else
+        additional_options=(MF)
+    fi
+    for option in "MF " $additional_options; do
+        TEST "-${option}/absolute/path"
 
-    for option in MF "MF " MQ "MQ " MT "MT "; do
-        clear_cache
         cd dir1
-        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.d" -c src/test.c
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
+        expect_content_pattern foo.d "test.o:*"
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.d" -c src/test.c
         expect_stat direct_cache_hit 1
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
+        expect_content_pattern foo.d "test.o:*"
         cd ..
     done
 
+    # -------------------------------------------------------------------------
+    if $HOST_OS_WINDOWS; then
+        additional_options=
+    else
+        additional_options=(MQ MT)
+    fi
+    for option in "MQ " "MT " $additional_options; do
+        TEST "-${option}/absolute/path"
+
+        cd dir1
+
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.o" -c src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_content_pattern test.d "$(pwd)/foo.o:*"
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -MMD -${option}"$(pwd)/foo.o" -c src/test.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_content_pattern test.d "$(pwd)/foo.o:*"
+        cd ..
+    done
     # -------------------------------------------------------------------------
     # When BASEDIR is set to /, check that -MF, -MQ and -MT arguments with
     # absolute paths are rewritten to relative and that the dependency file
     # only contains relative paths.
     TEST "-MF/-MQ/-MT with absolute paths and BASEDIR set to /"
 
-    for option in MF "MF " MQ "MQ " MT "MT "; do
+    BASEDIR="/"
+    if $HOST_OS_WINDOWS; then
+        # Windows uses drives therefore "/" has no meaning, thus default to drive
+        BASEDIR=`cygpath -m "\\."`
+    fi
+
+    if $HOST_OS_WINDOWS; then
+        additional_options=
+    else
+        additional_options=(MF MQ MT)
+    fi
+    for option in "MF " "MQ " "MT " $additional_options; do
         clear_cache
         cd dir1
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+
+        CCACHE_BASEDIR=$BASEDIR $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
         # Check that there is no absolute path in the dependency file:
         while read line; do
-            for file in $line; do
-                case $file in /*)
-                    test_failed "Absolute file path '$file' found in dependency file '`pwd`/test.d'"
-                esac
+            for token in $line; do
+                if [[ $token == /* && $token != *: ]]; then
+                    test_failed "Absolute file path '$token' found in dependency file '$(pwd)/test.d'"
+                fi
             done
         done <test.d
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR=$BASEDIR $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat direct_cache_hit 1
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
         cd ..
     done
-
     # -------------------------------------------------------------------------
+if $RUN_WIN_XFAIL; then
     TEST "Absolute paths in stderr"
 
     cat <<EOF >test.c
@@ -296,7 +349,7 @@ EOF
     expect_stat cache_miss 1
     expect_equal_content reference.stderr ccache.stderr
 
-    if $COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
+    if $COMPILER_TYPE_GCC && $COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
         $COMPILER -fdiagnostics-color=always -c $pwd/test.c 2>reference.stderr
 
         CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
@@ -311,7 +364,7 @@ EOF
         expect_stat cache_miss 1
         expect_equal_content reference.stderr ccache.stderr
     fi
-
+fi
     # -------------------------------------------------------------------------
     TEST "Relative PWD"
 
@@ -343,4 +396,36 @@ EOF
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "Object token path in dependency file"
+
+    cd dir1
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c src/test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_content_pattern test.d "test.o:*"
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c src/test.c -o test.o
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains test.d test.o:
+    expect_content_pattern test.d "test.o:*"
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c src/test.c -o $(pwd)/test.o
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains test.d test.o:
+    expect_content_pattern test.d "$(pwd)/test.o:*"
+
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -MMD -I$(pwd)/include -c $(pwd)/src/test.c
+    expect_stat direct_cache_hit 3
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains test.d test.o:
+    expect_content_pattern test.d "test.o:*"
 }

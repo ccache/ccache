@@ -19,11 +19,12 @@
 #pragma once
 
 #include <Stat.hpp>
+#include <util/TimePoint.hpp>
 #include <util/Tokenizer.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
-#include <ios>
 #include <memory>
 #include <optional>
 #include <string>
@@ -31,11 +32,11 @@
 #include <utility>
 #include <vector>
 
+class Config;
 class Context;
 
 namespace Util {
 
-using DataReceiver = std::function<void(const void* data, size_t size)>;
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
 
@@ -88,7 +89,7 @@ void clone_file(const std::string& src,
 // Clone, hard link or copy a file from `source` to `dest` depending on settings
 // in `ctx`. If cloning or hard linking cannot and should not be done the file
 // will be copied instead. Throws `core::Error` on error.
-void clone_hard_link_or_copy_file(const Context& ctx,
+void clone_hard_link_or_copy_file(const Config& config,
                                   const std::string& source,
                                   const std::string& dest,
                                   bool via_tmp_file = false);
@@ -217,14 +218,6 @@ std::optional<size_t> is_absolute_path_with_prefix(std::string_view path);
 // Detmine if `path` refers to a ccache executable.
 bool is_ccache_executable(std::string_view path);
 
-// Test if a file is on nfs.
-//
-// Sets is_nfs to the result if fstatfs is available and no error occurred.
-//
-// Returns 0 if is_nfs was set, -1 if fstatfs is not available or errno if an
-// error occurred.
-int is_nfs_fd(int fd, bool* is_nfs);
-
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.
 inline bool
@@ -243,7 +236,19 @@ bool is_precompiled_header(std::string_view path);
 
 // Thread-safe version of `localtime(3)`. If `time` is not specified the current
 // time of day is used.
-std::optional<tm> localtime(std::optional<time_t> time = {});
+std::optional<tm> localtime(std::optional<util::TimePoint> time = {});
+
+// Construct a normalized native path.
+//
+// Example:
+//
+//   std::string path = Util::make_path("usr", "local", "bin");
+template<typename... T>
+std::string
+make_path(const T&... args)
+{
+  return (std::filesystem::path{} / ... / args).lexically_normal().string();
+}
 
 // Make a relative path from current working directory (either `actual_cwd` or
 // `apparent_cwd`) to `path` if `path` is under `base_dir`.
@@ -276,24 +281,12 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 
 // Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
 // into seconds. Throws `core::Error` on error.
-uint64_t parse_duration(const std::string& duration);
+uint64_t parse_duration(std::string_view duration);
 
 // Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
 // suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
 // is also recognized as a synonym of k. Throws `core::Error` on parse error.
 uint64_t parse_size(const std::string& value);
-
-// Read data from `fd` until end of file and call `data_receiver` with the read
-// data. Returns whether reading was successful, i.e. whether the read(2) call
-// did not return -1.
-bool read_fd(int fd, DataReceiver data_receiver);
-
-// Return `path`'s content as a string. If `size_hint` is not 0 then assume that
-// `path` has this size (this saves system calls).
-//
-// Throws `core::Error` on error. The description contains the error message
-// without the path.
-std::string read_file(const std::string& path, size_t size_hint = 0);
 
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
@@ -305,12 +298,6 @@ std::string read_link(const std::string& path);
 // otherwise `path` unmodified.
 std::string real_path(const std::string& path,
                       bool return_empty_on_error = false);
-
-// Return contents of a text file as a UTF-8 encoded string.
-//
-// Throws `core::Error` on error. The description contains the error message
-// without the path.
-std::string read_text_file(const std::string& path, size_t size_hint = 0);
 
 // Return a view into `path` containing the given path without the filename
 // extension as determined by `get_extension()`.
@@ -324,7 +311,7 @@ void rename(const std::string& oldpath, const std::string& newpath);
 // sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
 // paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws
 // `core::Error` on error.
-void send_to_fd(const Context& ctx, const std::string& text, int fd);
+void send_to_fd(const Context& ctx, std::string_view text, int fd);
 
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
 void set_cloexec_flag(int fd);
@@ -397,18 +384,5 @@ void unsetenv(const std::string& name);
 //
 // Throws core::Error on error.
 void wipe_path(const std::string& path);
-
-// Write `size` bytes from `data` to `fd`. Throws `core::Error` on error.
-void write_fd(int fd, const void* data, size_t size);
-
-// Write `data` to `path`. The file will be opened according to `open_mode`,
-// which always will include `std::ios::out` even if not specified at the call
-// site.
-//
-// Throws `core::Error` on error. The description contains the error message
-// without the path.
-void write_file(const std::string& path,
-                const std::string& data,
-                std::ios_base::openmode open_mode = std::ios::binary);
 
 } // namespace Util

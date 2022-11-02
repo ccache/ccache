@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,175 +23,193 @@
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
+#include <Fd.hpp>
+#include <util/file.hpp>
+
 #include "third_party/doctest.h"
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 using TestUtil::TestContext;
 
 namespace {
 
-void
-init(Context& ctx)
+bool
+inode_cache_available()
 {
-  ctx.config.set_debug(true);
-  ctx.config.set_inode_cache(true);
-  ctx.config.set_cache_dir(Util::get_home_directory());
+  Fd fd(open(Util::get_actual_cwd().c_str(), O_RDONLY));
+  return fd && InodeCache::available(*fd);
+}
+
+void
+init(Config& config)
+{
+  config.set_debug(true);
+  config.set_inode_cache(true);
+  config.set_temporary_dir(Util::get_actual_cwd());
 }
 
 bool
-put(const Context& ctx,
+put(InodeCache& inode_cache,
     const std::string& filename,
     const std::string& str,
     int return_value)
 {
-  return ctx.inode_cache.put(filename,
-                             InodeCache::ContentType::code,
-                             Hash().hash(str).digest(),
-                             return_value);
+  return inode_cache.put(filename,
+                         InodeCache::ContentType::checked_for_temporal_macros,
+                         Hash().hash(str).digest(),
+                         return_value);
 }
 
 } // namespace
 
-TEST_SUITE_BEGIN("InodeCache");
+TEST_SUITE_BEGIN("InodeCache" * doctest::skip(!inode_cache_available()));
 
 TEST_CASE("Test disabled")
 {
   TestContext test_context;
 
-  Context ctx;
-  init(ctx);
-  ctx.config.set_inode_cache(false);
+  Config config;
+  init(config);
+  config.set_inode_cache(false);
+  InodeCache inode_cache(config);
 
   Digest digest;
   int return_value;
 
-  CHECK(!ctx.inode_cache.get(
-    "a", InodeCache::ContentType::code, digest, &return_value));
-  CHECK(!ctx.inode_cache.put(
-    "a", InodeCache::ContentType::code, digest, return_value));
-  CHECK(ctx.inode_cache.get_hits() == -1);
-  CHECK(ctx.inode_cache.get_misses() == -1);
-  CHECK(ctx.inode_cache.get_errors() == -1);
+  CHECK(!inode_cache.get("a",
+                         InodeCache::ContentType::checked_for_temporal_macros,
+                         digest,
+                         &return_value));
+  CHECK(!inode_cache.put("a",
+                         InodeCache::ContentType::checked_for_temporal_macros,
+                         digest,
+                         return_value));
+  CHECK(inode_cache.get_hits() == -1);
+  CHECK(inode_cache.get_misses() == -1);
+  CHECK(inode_cache.get_errors() == -1);
 }
 
 TEST_CASE("Test lookup nonexistent")
 {
   TestContext test_context;
 
-  Context ctx;
-  init(ctx);
-  ctx.inode_cache.drop();
-  Util::write_file("a", "");
+  Config config;
+  init(config);
+
+  InodeCache inode_cache(config);
+  util::write_file("a", "");
 
   Digest digest;
   int return_value;
 
-  CHECK(!ctx.inode_cache.get(
-    "a", InodeCache::ContentType::code, digest, &return_value));
-  CHECK(ctx.inode_cache.get_hits() == 0);
-  CHECK(ctx.inode_cache.get_misses() == 1);
-  CHECK(ctx.inode_cache.get_errors() == 0);
+  CHECK(!inode_cache.get("a",
+                         InodeCache::ContentType::checked_for_temporal_macros,
+                         digest,
+                         &return_value));
+  CHECK(inode_cache.get_hits() == 0);
+  CHECK(inode_cache.get_misses() == 1);
+  CHECK(inode_cache.get_errors() == 0);
 }
 
 TEST_CASE("Test put and lookup")
 {
   TestContext test_context;
 
-  Context ctx;
-  init(ctx);
-  ctx.inode_cache.drop();
-  Util::write_file("a", "a text");
+  Config config;
+  init(config);
 
-  CHECK(put(ctx, "a", "a text", 1));
+  InodeCache inode_cache(config);
+  util::write_file("a", "a text");
+
+  CHECK(put(inode_cache, "a", "a text", 1));
 
   Digest digest;
   int return_value;
 
-  CHECK(ctx.inode_cache.get(
-    "a", InodeCache::ContentType::code, digest, &return_value));
+  CHECK(inode_cache.get("a",
+                        InodeCache::ContentType::checked_for_temporal_macros,
+                        digest,
+                        &return_value));
   CHECK(digest == Hash().hash("a text").digest());
   CHECK(return_value == 1);
-  CHECK(ctx.inode_cache.get_hits() == 1);
-  CHECK(ctx.inode_cache.get_misses() == 0);
-  CHECK(ctx.inode_cache.get_errors() == 0);
+  CHECK(inode_cache.get_hits() == 1);
+  CHECK(inode_cache.get_misses() == 0);
+  CHECK(inode_cache.get_errors() == 0);
 
-  Util::write_file("a", "something else");
+  util::write_file("a", "something else");
 
-  CHECK(!ctx.inode_cache.get(
-    "a", InodeCache::ContentType::code, digest, &return_value));
-  CHECK(ctx.inode_cache.get_hits() == 1);
-  CHECK(ctx.inode_cache.get_misses() == 1);
-  CHECK(ctx.inode_cache.get_errors() == 0);
+  CHECK(!inode_cache.get("a",
+                         InodeCache::ContentType::checked_for_temporal_macros,
+                         digest,
+                         &return_value));
+  CHECK(inode_cache.get_hits() == 1);
+  CHECK(inode_cache.get_misses() == 1);
+  CHECK(inode_cache.get_errors() == 0);
 
-  CHECK(put(ctx, "a", "something else", 2));
+  CHECK(put(inode_cache, "a", "something else", 2));
 
-  CHECK(ctx.inode_cache.get(
-    "a", InodeCache::ContentType::code, digest, &return_value));
+  CHECK(inode_cache.get("a",
+                        InodeCache::ContentType::checked_for_temporal_macros,
+                        digest,
+                        &return_value));
   CHECK(digest == Hash().hash("something else").digest());
   CHECK(return_value == 2);
-  CHECK(ctx.inode_cache.get_hits() == 2);
-  CHECK(ctx.inode_cache.get_misses() == 1);
-  CHECK(ctx.inode_cache.get_errors() == 0);
+  CHECK(inode_cache.get_hits() == 2);
+  CHECK(inode_cache.get_misses() == 1);
+  CHECK(inode_cache.get_errors() == 0);
 }
 
 TEST_CASE("Drop file")
 {
   TestContext test_context;
 
-  Context ctx;
-  init(ctx);
+  Config config;
+  init(config);
+
+  InodeCache inode_cache(config);
 
   Digest digest;
 
-  ctx.inode_cache.get("a", InodeCache::ContentType::binary, digest);
-  CHECK(Stat::stat(ctx.inode_cache.get_file()));
-  CHECK(ctx.inode_cache.drop());
-  CHECK(!Stat::stat(ctx.inode_cache.get_file()));
-  CHECK(!ctx.inode_cache.drop());
+  inode_cache.get("a", InodeCache::ContentType::raw, digest);
+  CHECK(Stat::stat(inode_cache.get_file()));
+  CHECK(inode_cache.drop());
+  CHECK(!Stat::stat(inode_cache.get_file()));
+  CHECK(!inode_cache.drop());
 }
 
 TEST_CASE("Test content type")
 {
   TestContext test_context;
 
-  Context ctx;
-  init(ctx);
-  ctx.inode_cache.drop();
-  Util::write_file("a", "a text");
+  Config config;
+  init(config);
+
+  InodeCache inode_cache(config);
+  util::write_file("a", "a text");
   Digest binary_digest = Hash().hash("binary").digest();
   Digest code_digest = Hash().hash("code").digest();
-  Digest code_with_sloppy_time_macros_digest =
-    Hash().hash("sloppy_time_macros").digest();
 
-  CHECK(ctx.inode_cache.put(
-    "a", InodeCache::ContentType::binary, binary_digest, 1));
-  CHECK(
-    ctx.inode_cache.put("a", InodeCache::ContentType::code, code_digest, 2));
-  CHECK(
-    ctx.inode_cache.put("a",
-                        InodeCache::ContentType::code_with_sloppy_time_macros,
-                        code_with_sloppy_time_macros_digest,
-                        3));
+  CHECK(inode_cache.put("a", InodeCache::ContentType::raw, binary_digest, 1));
+  CHECK(inode_cache.put(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, code_digest, 2));
 
   Digest digest;
   int return_value;
 
-  CHECK(ctx.inode_cache.get(
-    "a", InodeCache::ContentType::binary, digest, &return_value));
+  CHECK(
+    inode_cache.get("a", InodeCache::ContentType::raw, digest, &return_value));
   CHECK(digest == binary_digest);
   CHECK(return_value == 1);
 
-  CHECK(ctx.inode_cache.get(
-    "a", InodeCache::ContentType::code, digest, &return_value));
-  CHECK(digest == code_digest);
-  CHECK(return_value == 2);
-
-  CHECK(
-    ctx.inode_cache.get("a",
-                        InodeCache::ContentType::code_with_sloppy_time_macros,
+  CHECK(inode_cache.get("a",
+                        InodeCache::ContentType::checked_for_temporal_macros,
                         digest,
                         &return_value));
-  CHECK(digest == code_with_sloppy_time_macros_digest);
-  CHECK(return_value == 3);
+  CHECK(digest == code_digest);
+  CHECK(return_value == 2);
 }
 
 TEST_SUITE_END();

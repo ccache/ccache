@@ -24,22 +24,23 @@
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
-#include <Result.hpp>
-#include <ResultExtractor.hpp>
-#include <ResultInspector.hpp>
+#include <UmaskScope.hpp>
 #include <ccache.hpp>
-#include <core/CacheEntryReader.hpp>
-#include <core/FileReader.hpp>
+#include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
+#include <core/Result.hpp>
+#include <core/ResultExtractor.hpp>
+#include <core/ResultInspector.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
-#include <storage/primary/PrimaryStorage.hpp>
+#include <storage/local/LocalStorage.hpp>
 #include <util/TextTable.hpp>
 #include <util/XXH3_128.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 #include <fcntl.h>
@@ -121,10 +122,10 @@ Common options:
     -h, --help                 print this help text
     -V, --version              print version and copyright information
 
-Options for secondary storage:
-        --trim-dir PATH        remove old files from directory _PATH_ until it
-                               is at most the size specified by --trim-max-size
-                               (note: don't use this option to trim the primary
+Options for remote file-based storage:
+        --trim-dir PATH        remove old files from directory PATH until it is
+                               at most the size specified by --trim-max-size
+                               (note: don't use this option to trim the local
                                cache)
         --trim-max-size SIZE   specify the maximum size for --trim-dir;
                                available suffixes: k, M, G, T (decimal) and Ki,
@@ -156,40 +157,65 @@ configuration_printer(const std::string& key,
   PRINT(stdout, "({}) {} = {}\n", origin, key, value);
 }
 
+static nonstd::expected<std::vector<uint8_t>, std::string>
+read_from_path_or_stdin(const std::string& path)
+{
+  if (path == "-") {
+    std::vector<uint8_t> output;
+    const auto result =
+      util::read_fd(STDIN_FILENO, [&](const uint8_t* data, size_t size) {
+        output.insert(output.end(), data, data + size);
+      });
+    if (!result) {
+      return nonstd::make_unexpected(
+        FMT("Failed to read from stdin: {}", result.error()));
+    }
+    return output;
+  } else {
+    const auto result = util::read_file<std::vector<uint8_t>>(path);
+    if (!result) {
+      return nonstd::make_unexpected(
+        FMT("Failed to read from {}: {}", path, result.error()));
+    }
+    return *result;
+  }
+}
+
 static int
 inspect_path(const std::string& path)
 {
-  File file = path == "-" ? File(stdin) : File(path, "rb");
-  if (!file) {
-    PRINT(stderr, "Error: Failed to open \"{}\"", path);
+  const auto cache_entry_data = read_from_path_or_stdin(path);
+  if (!cache_entry_data) {
+    PRINT(stderr, "Error: {}\n", cache_entry_data.error());
     return EXIT_FAILURE;
   }
-  core::FileReader file_reader(file.get());
-  core::CacheEntryReader cache_entry_reader(file_reader);
 
-  const auto& header = cache_entry_reader.header();
-  header.inspect(stdout);
+  core::CacheEntry cache_entry(*cache_entry_data);
+  fputs(cache_entry.header().inspect().c_str(), stdout);
 
-  switch (header.entry_type) {
+  const auto payload = cache_entry.payload();
+
+  switch (cache_entry.header().entry_type) {
   case core::CacheEntryType::manifest: {
     core::Manifest manifest;
-    manifest.read(cache_entry_reader);
-    cache_entry_reader.finalize();
-    manifest.dump(stdout);
+    manifest.read(payload);
+    manifest.inspect(stdout);
     break;
   }
   case core::CacheEntryType::result:
-    Result::Reader result_reader(cache_entry_reader, path);
+    Result::Deserializer result_deserializer(payload);
     ResultInspector result_inspector(stdout);
-    result_reader.read(result_inspector);
+    result_deserializer.visit(result_inspector);
     break;
   }
+
+  cache_entry.verify_checksum();
 
   return EXIT_SUCCESS;
 }
 
 static void
-print_compression_statistics(const storage::primary::CompressionStatistics& cs)
+print_compression_statistics(const storage::local::CompressionStatistics& cs)
 {
   const double ratio = cs.compr_size > 0
                          ? static_cast<double>(cs.content_size) / cs.compr_size
@@ -250,19 +276,16 @@ trim_dir(const std::string& dir,
     if (!is_dir) {
       const auto name = Util::base_name(path);
       if (name == "ccache.conf" || name == "stats") {
-        throw Fatal("this looks like a primary cache directory (found {})",
-                    path);
+        throw Fatal(
+          FMT("this looks like a local cache directory (found {})", path));
       }
       files.push_back({path, stat});
     }
   });
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
-    const auto ts_1 = trim_lru_mtime ? f1.stat.mtim() : f1.stat.atim();
-    const auto ts_2 = trim_lru_mtime ? f2.stat.mtim() : f2.stat.atim();
-    const auto ns_1 = 1'000'000'000ULL * ts_1.tv_sec + ts_1.tv_nsec;
-    const auto ns_2 = 1'000'000'000ULL * ts_2.tv_sec + ts_2.tv_nsec;
-    return ns_1 < ns_2;
+    return trim_lru_mtime ? f1.stat.mtime() < f2.stat.mtime()
+                          : f1.stat.atime() < f2.stat.atime();
   });
 
   uint64_t size_after = size_before;
@@ -402,6 +425,8 @@ process_main_options(int argc, const char* const* argv)
     Config config;
     config.read();
 
+    UmaskScope umask_scope(config.umask());
+
     const std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
@@ -416,11 +441,16 @@ process_main_options(int argc, const char* const* argv)
     case CHECKSUM_FILE: {
       util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
-      Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
-        checksum.update(data, size);
-      });
-      const auto digest = checksum.digest();
-      PRINT(stdout, "{}\n", Util::format_base16(digest.bytes(), digest.size()));
+      if (fd) {
+        util::read_fd(*fd, [&checksum](const uint8_t* data, size_t size) {
+          checksum.update({data, size});
+        });
+        const auto digest = checksum.digest();
+        PRINT(
+          stdout, "{}\n", Util::format_base16(digest.data(), digest.size()));
+      } else {
+        PRINT(stderr, "Error: Failed to checksum {}\n", arg);
+      }
       break;
     }
 
@@ -435,27 +465,39 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EXTRACT_RESULT: {
-      ResultExtractor result_extractor(".");
-      File file = arg == "-" ? File(stdin) : File(arg, "rb");
-      if (!file) {
-        PRINT(stderr, "Error: Failed to open \"{}\"", arg);
+      umask_scope.release(); // Use original umask for files outside cache dir
+      const auto cache_entry_data = read_from_path_or_stdin(arg);
+      if (!cache_entry_data) {
+        PRINT(stderr, "Error: \"{}\"", cache_entry_data.error());
         return EXIT_FAILURE;
       }
-      core::FileReader file_reader(file.get());
-      core::CacheEntryReader cache_entry_reader(file_reader);
-      Result::Reader result_reader(cache_entry_reader, arg);
-      result_reader.read(result_extractor);
+      std::optional<ResultExtractor::GetRawFilePathFunction> get_raw_file_path;
+      if (arg != "-") {
+        get_raw_file_path = [&](uint8_t file_number) {
+          return storage::local::LocalStorage::get_raw_file_path(arg,
+                                                                 file_number);
+        };
+      }
+      ResultExtractor result_extractor(".", get_raw_file_path);
+      core::CacheEntry cache_entry(*cache_entry_data);
+      const auto payload = cache_entry.payload();
+
+      Result::Deserializer result_deserializer(payload);
+      result_deserializer.visit(result_extractor);
+      cache_entry.verify_checksum();
       return EXIT_SUCCESS;
     }
 
     case HASH_FILE: {
       Hash hash;
-      if (arg == "-") {
-        hash.hash_fd(STDIN_FILENO);
+      const auto result =
+        arg == "-" ? hash.hash_fd(STDIN_FILENO) : hash.hash_file(arg);
+      if (result) {
+        PRINT(stdout, "{}\n", hash.digest().to_string());
       } else {
-        hash.hash_file(arg);
+        PRINT(stderr, "Error: Failed to hash {}: {}\n", arg, result.error());
+        return EXIT_FAILURE;
       }
-      PRINT(stdout, "{}\n", hash.digest().to_string());
       break;
     }
 
@@ -465,10 +507,8 @@ process_main_options(int argc, const char* const* argv)
       return inspect_path(arg);
 
     case PRINT_STATS: {
-      StatisticsCounters counters;
-      time_t last_updated;
-      std::tie(counters, last_updated) =
-        storage::primary::PrimaryStorage(config).get_all_statistics();
+      const auto [counters, last_updated] =
+        storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
       PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
       break;
@@ -477,7 +517,7 @@ process_main_options(int argc, const char* const* argv)
     case 'c': // --cleanup
     {
       ProgressBar progress_bar("Cleaning...");
-      storage::primary::PrimaryStorage(config).clean_all(
+      storage::local::LocalStorage(config).clean_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
@@ -488,14 +528,11 @@ process_main_options(int argc, const char* const* argv)
     case 'C': // --clear
     {
       ProgressBar progress_bar("Clearing...");
-      storage::primary::PrimaryStorage(config).wipe_all(
+      storage::local::LocalStorage(config).wipe_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n");
       }
-#ifdef INODE_CACHE_SUPPORTED
-      InodeCache(config).drop();
-#endif
       break;
     }
 
@@ -509,7 +546,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'F': { // --max-files
       auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
-      config.set_value_in_file(config.primary_config_path(), "max_files", arg);
+      config.set_value_in_file(config.config_path(), "max_files", arg);
       if (files == 0) {
         PRINT_RAW(stdout, "Unset cache file limit\n");
       } else {
@@ -520,7 +557,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'M': { // --max-size
       uint64_t size = Util::parse_size(arg);
-      config.set_value_in_file(config.primary_config_path(), "max_size", arg);
+      config.set_value_in_file(config.config_path(), "max_size", arg);
       if (size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");
       } else {
@@ -536,11 +573,11 @@ process_main_options(int argc, const char* const* argv)
       // for the -o=K=V case (key "=K" and value "V").
       size_t eq_pos = arg.find('=', 1);
       if (eq_pos == std::string::npos) {
-        throw Error("missing equal sign in \"{}\"", arg);
+        throw Error(FMT("missing equal sign in \"{}\"", arg));
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);
-      config.set_value_in_file(config.primary_config_path(), key, value);
+      config.set_value_in_file(config.config_path(), key, value);
       break;
     }
 
@@ -562,10 +599,8 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 's': { // --show-stats
-      StatisticsCounters counters;
-      time_t last_updated;
-      std::tie(counters, last_updated) =
-        storage::primary::PrimaryStorage(config).get_all_statistics();
+      const auto [counters, last_updated] =
+        storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
       PRINT_RAW(stdout,
                 statistics.format_human_readable(
@@ -581,14 +616,20 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      PRINT_RAW(stdout, get_version_text(Util::base_name(argv[0])));
+    {
+      std::string_view name = Util::base_name(argv[0]);
+#ifdef _WIN32
+      name = Util::remove_extension(name);
+#endif
+      PRINT_RAW(stdout, get_version_text(name));
       break;
+    }
 
     case 'x': // --show-compression
     {
       ProgressBar progress_bar("Scanning...");
       const auto compression_statistics =
-        storage::primary::PrimaryStorage(config).get_compression_statistics(
+        storage::local::LocalStorage(config).get_compression_statistics(
           [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n\n");
@@ -608,13 +649,13 @@ process_main_options(int argc, const char* const* argv)
       }
 
       ProgressBar progress_bar("Recompressing...");
-      storage::primary::PrimaryStorage(config).recompress(
+      storage::local::LocalStorage(config).recompress(
         wanted_level, [&](double progress) { progress_bar.update(progress); });
       break;
     }
 
     case 'z': // --zero-stats
-      storage::primary::PrimaryStorage(config).zero_all_statistics();
+      storage::local::LocalStorage(config).zero_all_statistics();
       PRINT_RAW(stdout, "Statistics zeroed\n");
       break;
 
@@ -629,7 +670,7 @@ process_main_options(int argc, const char* const* argv)
     config.read();
 
     ProgressBar progress_bar("Evicting...");
-    storage::primary::PrimaryStorage(config).evict(
+    storage::local::LocalStorage(config).evict(
       [&](double progress) { progress_bar.update(progress); },
       evict_max_age,
       evict_namespace);

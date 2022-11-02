@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -37,7 +38,6 @@
 
 #include <algorithm>
 
-using doctest::Approx;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Util");
@@ -131,7 +131,7 @@ TEST_CASE("Util::create_dir")
   CHECK(Util::create_dir("create/dir"));
   CHECK(Stat::stat("create/dir").is_directory());
 
-  Util::write_file("create/dir/file", "");
+  util::write_file("create/dir/file", "");
   CHECK(!Util::create_dir("create/dir/file"));
 }
 
@@ -175,7 +175,7 @@ TEST_CASE("Util::ensure_dir_exists")
   CHECK_NOTHROW(Util::ensure_dir_exists("create/dir"));
   CHECK(Stat::stat("create/dir").is_directory());
 
-  Util::write_file("create/dir/file", "");
+  util::write_file("create/dir/file", "");
   CHECK_THROWS_WITH(
     Util::ensure_dir_exists("create/dir/file"),
     "Failed to create directory create/dir/file: Not a directory");
@@ -346,17 +346,17 @@ TEST_CASE("Util::hard_link")
 
   SUBCASE("Link file to nonexistent destination")
   {
-    Util::write_file("old", "content");
+    util::write_file("old", "content");
     CHECK_NOTHROW(Util::hard_link("old", "new"));
-    CHECK(Util::read_file("new") == "content");
+    CHECK(*util::read_file<std::string>("new") == "content");
   }
 
   SUBCASE("Link file to existing destination")
   {
-    Util::write_file("old", "content");
-    Util::write_file("new", "other content");
+    util::write_file("old", "content");
+    util::write_file("new", "other content");
     CHECK_NOTHROW(Util::hard_link("old", "new"));
-    CHECK(Util::read_file("new") == "content");
+    CHECK(*util::read_file<std::string>("new") == "content");
   }
 
   SUBCASE("Link nonexistent file")
@@ -600,7 +600,7 @@ TEST_CASE("Util::normalize_concrete_absolute_path")
 #ifndef _WIN32
   TestContext test_context;
 
-  Util::write_file("file", "");
+  util::write_file("file", "");
   REQUIRE(Util::create_dir("dir1/dir2"));
   REQUIRE(symlink("dir1/dir2", "symlink") == 0);
   const auto cwd = Util::get_actual_cwd();
@@ -655,83 +655,6 @@ TEST_CASE("Util::parse_size")
   CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
 }
 
-TEST_CASE("Util::read_file and Util::write_file")
-{
-  TestContext test_context;
-
-  Util::write_file("test", "foo\nbar\n");
-  std::string data = Util::read_file("test");
-  CHECK(data == "foo\nbar\n");
-
-  Util::write_file("test", "car");
-  data = Util::read_file("test");
-  CHECK(data == "car");
-
-  Util::write_file("test", "pet", std::ios::app);
-  data = Util::read_file("test");
-  CHECK(data == "carpet");
-
-  Util::write_file("test", "\n", std::ios::app | std::ios::binary);
-  data = Util::read_file("test");
-  CHECK(data == "carpet\n");
-
-  Util::write_file("test", "\n", std::ios::app); // text mode
-  data = Util::read_file("test");
-#ifdef _WIN32
-  CHECK(data == "carpet\n\r\n");
-#else
-  CHECK(data == "carpet\n\n");
-#endif
-
-  Util::write_file("size_hint_test", std::string(8192, '\0'));
-  CHECK(Util::read_file("size_hint_test", 4096 /*size_hint*/).size() == 8192);
-
-  CHECK_THROWS_WITH(Util::read_file("does/not/exist"),
-                    "No such file or directory");
-
-  CHECK_THROWS_WITH(Util::write_file("", "does/not/exist"),
-                    "No such file or directory");
-
-  CHECK_THROWS_WITH(Util::write_file("does/not/exist", "does/not/exist"),
-                    "No such file or directory");
-}
-
-TEST_CASE("Util::{read,write,copy}_file with binary files")
-{
-  TestContext test_context;
-
-  std::string data;
-  for (size_t i = 0; i < 512; ++i) {
-    data.push_back(static_cast<char>((32 + i) % 256));
-  }
-
-  Util::write_file("test", data);
-  CHECK(Util::read_file("test") == data);
-
-  Util::copy_file("test", "copy");
-  CHECK(Util::read_file("copy") == data);
-}
-
-#ifdef _WIN32
-TEST_CASE("Util::read_text_file with UTF-16 little endian encoding")
-{
-  TestContext test_context;
-
-  std::string data;
-  data.push_back(static_cast<unsigned char>(0xff));
-  data.push_back(static_cast<unsigned char>(0xfe));
-  data.push_back('a');
-  data.push_back('\0');
-  data.push_back('b');
-  data.push_back('\0');
-  data.push_back('c');
-  data.push_back('\0');
-
-  Util::write_file("test", data);
-  CHECK(Util::read_text_file("test") == "abc");
-}
-#endif
-
 TEST_CASE("Util::remove_extension")
 {
   CHECK(Util::remove_extension("") == "");
@@ -763,10 +686,10 @@ TEST_CASE("Util::traverse")
   TestContext test_context;
 
   REQUIRE(Util::create_dir("dir-with-subdir-and-file/subdir"));
-  Util::write_file("dir-with-subdir-and-file/subdir/f", "");
+  util::write_file("dir-with-subdir-and-file/subdir/f", "");
   REQUIRE(Util::create_dir("dir-with-files"));
-  Util::write_file("dir-with-files/f1", "");
-  Util::write_file("dir-with-files/f2", "");
+  util::write_file("dir-with-files/f1", "");
+  util::write_file("dir-with-files/f2", "");
   REQUIRE(Util::create_dir("empty-dir"));
 
   std::vector<std::string> visited;
@@ -827,7 +750,7 @@ TEST_CASE("Util::wipe_path")
 
   SUBCASE("Wipe file")
   {
-    Util::write_file("a", "");
+    util::write_file("a", "");
     CHECK_NOTHROW(Util::wipe_path("a"));
     CHECK(!Stat::stat("a"));
   }
@@ -835,8 +758,8 @@ TEST_CASE("Util::wipe_path")
   SUBCASE("Wipe directory")
   {
     REQUIRE(Util::create_dir("a/b"));
-    Util::write_file("a/1", "");
-    Util::write_file("a/b/1", "");
+    util::write_file("a/1", "");
+    util::write_file("a/b/1", "");
     CHECK_NOTHROW(Util::wipe_path("a"));
     CHECK(!Stat::stat("a"));
   }

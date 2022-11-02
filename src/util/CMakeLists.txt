@@ -1,10 +1,17 @@
 set(
   sources
-  ${CMAKE_CURRENT_SOURCE_DIR}/TextTable.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Tokenizer.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/file.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/path.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/string.cpp
+  Bytes.cpp
+  LockFile.cpp
+  TextTable.cpp
+  TimePoint.cpp
+  Tokenizer.cpp
+  file.cpp
+  path.cpp
+  string.cpp
+  zstd.cpp
 )
+
+file(GLOB headers *.hpp)
+list(APPEND sources ${headers})
 
 target_sources(ccache_framework PRIVATE ${sources})

@@ -7,7 +7,7 @@ Ccache – a fast compiler cache
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5057/badge)](https://bestpractices.coreinfrastructure.org/projects/5057)
 [![Gitter](https://img.shields.io/gitter/room/ccache/ccache.svg)](https://gitter.im/ccache/ccache)
 
-Ccache (or “ccache”) is a compiler cache. It [speeds up
+Ccache is a compiler cache. It [speeds up
 recompilation](https://ccache.dev/performance.html) by caching previous
 compilations and detecting when the same compilation is being done again.
 

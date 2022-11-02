@@ -35,7 +35,7 @@
 
 TemporaryFile::TemporaryFile(std::string_view path_prefix,
                              std::string_view suffix)
-  : path(FMT("{}.XXXXXX{}", path_prefix, suffix))
+  : path(FMT("{}{}XXXXXX{}", path_prefix, tmp_file_infix, suffix))
 {
   Util::ensure_dir_exists(Util::dir_name(path));
 #ifdef _WIN32
@@ -51,11 +51,17 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
 #endif
   if (!fd) {
     throw core::Fatal(
-      "Failed to create temporary file for {}: {}", path, strerror(errno));
+      FMT("Failed to create temporary file for {}: {}", path, strerror(errno)));
   }
 
   Util::set_cloexec_flag(*fd);
 #ifndef _WIN32
   fchmod(*fd, 0666 & ~Util::get_umask());
 #endif
+}
+
+bool
+TemporaryFile::is_tmp_file(std::string_view path)
+{
+  return Util::base_name(path).find(tmp_file_infix) != std::string::npos;
 }

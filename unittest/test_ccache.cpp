@@ -22,6 +22,7 @@
 #include "TestUtil.hpp"
 
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #include "third_party/doctest.h"
 
@@ -186,7 +187,7 @@ TEST_CASE("guess_compiler")
   SUBCASE("Follow symlink to actual compiler")
   {
     const auto cwd = Util::get_actual_cwd();
-    Util::write_file(FMT("{}/gcc", cwd), "");
+    util::write_file(FMT("{}/gcc", cwd), "");
     CHECK(symlink("gcc", FMT("{}/intermediate", cwd).c_str()) == 0);
     const auto cc = FMT("{}/cc", cwd);
     CHECK(symlink("intermediate", cc.c_str()) == 0);

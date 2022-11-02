@@ -19,10 +19,12 @@
 #pragma once
 
 #include <core/wincompat.hpp>
+#include <util/TimePoint.hpp>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <cstdint>
 #include <ctime>
 #include <string>
 
@@ -124,9 +126,9 @@ public:
   dev_t device() const;
   ino_t inode() const;
   mode_t mode() const;
-  time_t atime() const;
-  time_t ctime() const;
-  time_t mtime() const;
+  util::TimePoint atime() const;
+  util::TimePoint ctime() const;
+  util::TimePoint mtime() const;
   uint64_t size() const;
 
   uint64_t size_on_disk() const;
@@ -139,10 +141,6 @@ public:
   uint32_t file_attributes() const;
   uint32_t reparse_tag() const;
 #endif
-
-  timespec atim() const;
-  timespec ctim() const;
-  timespec mtim() const;
 
 protected:
   using StatFunction = int (*)(const char*, stat_t*);
@@ -196,22 +194,40 @@ Stat::mode() const
   return m_stat.st_mode;
 }
 
-inline time_t
+inline util::TimePoint
 Stat::atime() const
 {
-  return atim().tv_sec;
+#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_ATIM)
+  return util::TimePoint(m_stat.st_atim);
+#elif defined(HAVE_STRUCT_STAT_ST_ATIMESPEC)
+  return util::TimePoint(m_stat.st_atimespec);
+#else
+  return util::TimePoint(m_stat.st_atime, 0);
+#endif
 }
 
-inline time_t
+inline util::TimePoint
 Stat::ctime() const
 {
-  return ctim().tv_sec;
+#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_CTIM)
+  return util::TimePoint(m_stat.st_ctim);
+#elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+  return util::TimePoint(m_stat.st_ctimespec);
+#else
+  return util::TimePoint(m_stat.st_ctime, 0);
+#endif
 }
 
-inline time_t
+inline util::TimePoint
 Stat::mtime() const
 {
-  return mtim().tv_sec;
+#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_MTIM)
+  return util::TimePoint(m_stat.st_mtim);
+#elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+  return util::TimePoint(m_stat.st_mtimespec);
+#else
+  return util::TimePoint(m_stat.st_mtime, 0);
+#endif
 }
 
 inline uint64_t
@@ -261,33 +277,3 @@ Stat::reparse_tag() const
   return m_stat.st_reparse_tag;
 }
 #endif
-
-inline timespec
-Stat::atim() const
-{
-#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_ATIM)
-  return m_stat.st_atim;
-#else
-  return {m_stat.st_atime, 0};
-#endif
-}
-
-inline timespec
-Stat::ctim() const
-{
-#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_CTIM)
-  return m_stat.st_ctim;
-#else
-  return {m_stat.st_ctime, 0};
-#endif
-}
-
-inline timespec
-Stat::mtim() const
-{
-#if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_MTIM)
-  return m_stat.st_mtim;
-#else
-  return {m_stat.st_mtime, 0};
-#endif
-}

@@ -4,14 +4,18 @@ SUITE_inode_cache_PROBE() {
         return
     fi
 
-    mkdir -p "${CCACHE_DIR}"
-    if [ "$(stat -fLc %T "${CCACHE_DIR}")" = "nfs" ]; then
-        echo "ccache directory is on NFS"
+    unset CCACHE_NODIRECT
+    export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"
+
+    touch test.c
+    $CCACHE $COMPILER -c test.c
+    if [[ ! -f "${CCACHE_TEMPDIR}/inode-cache-32.v1" && ! -f "${CCACHE_TEMPDIR}/inode-cache-64.v1" ]]; then
+        local fs_type=$(stat -fLc %T "${CCACHE_DIR}")
+        echo "inode cache not supported on ${fs_type}"
     fi
 }
 
 SUITE_inode_cache_SETUP() {
-    export CCACHE_INODECACHE=1
     export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
     export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"  # isolate inode cache file
@@ -26,7 +30,7 @@ expect_inode_cache_type() {
     local source_file=$2
     local type=$3
 
-    local actual=$(grep -c "inode cache $type: $source_file" ${source_file/%.c/.o}.*.ccache-log)
+    local actual=$(grep -c "Inode cache $type: $source_file" ${source_file/%.c/.o}.*.ccache-log)
     if [ $actual -ne $expected ]; then
         test_failed_internal "Found $actual (expected $expected) $type for $source_file"
     fi

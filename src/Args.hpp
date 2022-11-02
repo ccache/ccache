@@ -19,12 +19,12 @@
 #pragma once
 
 #include "NonCopyable.hpp"
-#include "Util.hpp"
 
 #include <deque>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 class Args
 {
@@ -39,7 +39,7 @@ public:
   Args(Args&& other) noexcept;
 
   static Args from_argv(int argc, const char* const* argv);
-  static Args from_string(const std::string& command);
+  static Args from_string(std::string_view command);
 
   static std::optional<Args>
   from_atfile(const std::string& filename,
