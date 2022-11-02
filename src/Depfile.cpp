@@ -130,7 +130,9 @@ make_paths_relative_in_output_dep(const Context& ctx)
   const std::string& output_dep = ctx.args_info.output_dep;
   const auto file_content = util::read_file<std::string>(output_dep);
   if (!file_content) {
-    LOG("Cannot open dependency file {}: {}", output_dep, file_content.error());
+    LOG("Failed to read dependency file {}: {}",
+        output_dep,
+        file_content.error());
     return;
   }
   const auto new_content = rewrite_source_paths(ctx, *file_content);

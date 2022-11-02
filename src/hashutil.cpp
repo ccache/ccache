@@ -202,6 +202,7 @@ do_hash_file(const Context& ctx,
 
   const auto data = util::read_file<std::string>(path, size_hint);
   if (!data) {
+    LOG("Failed to read {}: {}", path, data.error());
     return HASH_SOURCE_CODE_ERROR;
   }
 

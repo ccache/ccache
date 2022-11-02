@@ -175,7 +175,7 @@ read_from_path_or_stdin(const std::string& path)
     const auto result = util::read_file<std::vector<uint8_t>>(path);
     if (!result) {
       return nonstd::make_unexpected(
-        FMT("Failed to read from {}: {}", path, result.error()));
+        FMT("Failed to read {}: {}", path, result.error()));
     }
     return *result;
   }

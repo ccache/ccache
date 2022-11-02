@@ -111,7 +111,6 @@ read_file(const std::string& path, size_t size_hint)
   if (size_hint == 0) {
     const auto stat = Stat::stat(path);
     if (!stat) {
-      LOG("Failed to stat {}: {}", path, strerror(errno));
       return nonstd::make_unexpected(strerror(errno));
     }
     size_hint = stat.size();
@@ -129,7 +128,6 @@ read_file(const std::string& path, size_t size_hint)
   }();
   Fd fd(open(path.c_str(), open_flags));
   if (!fd) {
-    LOG("Failed to open {}: {}", path, strerror(errno));
     return nonstd::make_unexpected(strerror(errno));
   }
 
@@ -156,7 +154,6 @@ read_file(const std::string& path, size_t size_hint)
   }
 
   if (ret == -1) {
-    LOG("Failed to read {}: {}", path, strerror(errno));
     return nonstd::make_unexpected(strerror(errno));
   }
 

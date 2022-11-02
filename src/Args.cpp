@@ -20,6 +20,7 @@
 
 #include "Util.hpp"
 
+#include <Logging.hpp>
 #include <core/exceptions.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
@@ -51,6 +52,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
   const auto argtext = util::read_file<std::string>(filename);
   if (!argtext) {
+    LOG("Failed to read atfile {}: {}", filename, argtext.error());
     return std::nullopt;
   }
 

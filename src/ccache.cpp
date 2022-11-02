@@ -452,7 +452,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 {
   auto data = util::read_file<std::string>(path);
   if (!data) {
-    LOG("Failed reading {}: {}", path, data.error());
+    LOG("Failed to read {}: {}", path, data.error());
     return nonstd::make_unexpected(Statistic::internal_error);
   }
 
@@ -633,7 +633,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   const auto file_content =
     util::read_file<std::string>(ctx.args_info.output_dep);
   if (!file_content) {
-    LOG("Cannot open dependency file {}: {}",
+    LOG("Failed to read dependency file {}: {}",
         ctx.args_info.output_dep,
         file_content.error());
     return std::nullopt;
@@ -763,7 +763,9 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
   if (capture_stdout) {
     auto stdout_data_result = util::read_file<util::Bytes>(tmp_stdout.path);
     if (!stdout_data_result) {
-      // The stdout file was removed - cleanup in progress? Better bail out.
+      LOG("Failed to read {} (cleanup in progress?): {}",
+          tmp_stdout.path,
+          stdout_data_result.error());
       return nonstd::make_unexpected(Statistic::missing_cache_file);
     }
     stdout_data = *stdout_data_result;
@@ -771,7 +773,9 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
 
   auto stderr_data_result = util::read_file<util::Bytes>(tmp_stderr.path);
   if (!stderr_data_result) {
-    // The stdout file was removed - cleanup in progress? Better bail out.
+    LOG("Failed to read {} (cleanup in progress?): {}",
+        tmp_stderr.path,
+        stderr_data_result.error());
     return nonstd::make_unexpected(Statistic::missing_cache_file);
   }
 

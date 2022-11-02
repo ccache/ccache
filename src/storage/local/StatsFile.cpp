@@ -38,7 +38,7 @@ StatsFile::read() const
 
   const auto data = util::read_file<std::string>(m_path);
   if (!data) {
-    // Ignore.
+    // A nonexistent stats file is OK.
     return counters;
   }
 
