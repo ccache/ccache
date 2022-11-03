@@ -1376,11 +1376,17 @@ hash_common_info(const Context& ctx,
 
   // Hash variables that may affect the compilation.
   const char* always_hash_env_vars[] = {
-    // From <https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html>:
+    // From <https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html>
+    // (note: SOURCE_DATE_EPOCH is handled in hash_source_code_string()):
     "COMPILER_PATH",
     "GCC_COMPARE_DEBUG",
     "GCC_EXEC_PREFIX",
-    // Note: SOURCE_DATE_EPOCH is handled in hash_source_code_string().
+#ifdef __APPLE__
+    // On macOS, /usr/bin/clang is a compiler wrapper that switches compiler
+    // based on at least these variables:
+    "DEVELOPER_DIR",
+    "MACOSX_DEPLOYMENT_TARGET",
+#endif
   };
   for (const char* name : always_hash_env_vars) {
     const char* value = getenv(name);
