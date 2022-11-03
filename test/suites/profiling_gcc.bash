@@ -163,5 +163,4 @@ SUITE_profiling_gcc() {
         expect_stat direct_cache_hit 4
         expect_stat cache_miss 3
     fi
-fi
 }
