@@ -262,12 +262,6 @@ fi
     done
 
     # -----------------------------------------------------------------
-    TEST "Unsupported -Wp,-MMD with -o without -MMD/-MT/-MQ"
-
-    $CCACHE_COMPILE -c test.c -Wp,-MMD,wp.d -o object.o
-    expect_stat unsupported_compiler_option 1
-
-    # -----------------------------------------------------------------
     TEST "Unsupported -Wp,-MMD with -MF"
 
     $CCACHE_COMPILE -c test.c -Wp,-MMD,wp.d -MF mf.d -o object.o
@@ -416,6 +410,30 @@ fi
     expect_stat cache_miss 1
     expect_equal_content different_name.d expected_mmd.d
     expect_equal_object_files reference_test.o test.o
+
+    # -------------------------------------------------------------------------
+    TEST "-Wp,-MMD with -o without -MMD/-MT/-MQ"
+
+    $COMPILER -c -Wp,-MMD,expected.d -o out.o "$(pwd)/test.c"
+
+    $CCACHE_COMPILE -c -Wp,-MMD,other.d -o out.o "$(pwd)/test.c"
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_equal_text_content other.d expected.d
+
+    rm -f other.d
+    $CCACHE_COMPILE -c -Wp,-MMD,other.d -o out.o "$(pwd)/test.c"
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_equal_text_content other.d expected.d
+
+    $CCACHE_COMPILE -c -Wp,-MMD,different_name.d -o out.o "$(pwd)/test.c"
+    expect_stat direct_cache_hit 2
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_equal_text_content different_name.d expected.d
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-D"

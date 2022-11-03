@@ -1153,16 +1153,6 @@ process_args(Context& ctx)
     LOG_RAW("-Wp,-M[M]D in combination with -MF is not supported");
     return Statistic::unsupported_compiler_option;
   }
-  if (state.found_wp_md_or_mmd_opt && !args_info.output_obj.empty()
-      && !state.found_md_or_mmd_opt && !args_info.dependency_target) {
-    // GCC and Clang behave differently when "-Wp,-M[M]D,wp.d" is used with "-o"
-    // but with neither "-MMD" nor "-MT"/"-MQ": GCC uses a dependency target
-    // based on the source filename but Clang bases it on the output filename.
-    // We could potentially support by behaving differently depending on the
-    // compiler type, but let's just bail out for now.
-    LOG_RAW("-Wp,-M[M]D with -o without -MMD, -MQ or -MT is not supported");
-    return Statistic::unsupported_compiler_option;
-  }
 
   // Don't try to second guess the compiler's heuristics for stdout handling.
   if (args_info.output_obj == "-") {
@@ -1402,8 +1392,33 @@ process_args(Context& ctx)
     }
 
     if (!args_info.dependency_target) {
-      args_info.dependency_target =
-        Depfile::escape_filename(args_info.orig_output_obj);
+      std::string dep_target = args_info.orig_output_obj;
+
+      // GCC and Clang behave differently when "-Wp,-M[M]D,wp.d" is used with
+      // "-o" but with neither "-MMD" nor "-MT"/"-MQ": GCC uses a dependency
+      // target based on the source filename but Clang bases it on the output
+      // filename.
+      if (state.found_wp_md_or_mmd_opt && !args_info.output_obj.empty()
+          && !state.found_md_or_mmd_opt) {
+        if (config.compiler_type() == CompilerType::clang) {
+          // Clang does the sane thing: the dependency target is the output file
+          // so that the dependency file actually makes sense.
+        } else if (config.compiler_type() == CompilerType::gcc) {
+          // GCC strangely uses the base name of the source file but with a .o
+          // extension.
+          dep_target = Util::change_extension(
+            Util::base_name(args_info.orig_input_file),
+            get_default_object_file_extension(ctx.config));
+        } else {
+          // How other compilers behave is currently unknown, so bail out.
+          LOG_RAW(
+            "-Wp,-M[M]D with -o without -MMD, -MQ or -MT is only supported for"
+            " GCC or Clang");
+          return Statistic::unsupported_compiler_option;
+        }
+      }
+
+      args_info.dependency_target = Depfile::escape_filename(dep_target);
     }
   }
 
