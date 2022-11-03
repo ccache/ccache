@@ -45,9 +45,9 @@ const util::Duration k_tempdir_cleanup_interval(2 * 24 * 60 * 60); // 2 days
 
 // Maximum files per cache directory. This constant is somewhat arbitrarily
 // chosen to be large enough to avoid unnecessary cache levels but small enough
-// not to make esoteric file systems (with bad performance for large
-// directories) too slow. It could be made configurable, but hopefully there
-// will be no need to do that.
+// not to make it too slow for legacy file systems with bad performance for
+// large directories. It could be made configurable, but hopefully there will be
+// no need to do that.
 const uint64_t k_max_cache_files_per_directory = 2000;
 
 // Minimum number of cache levels ($CCACHE_DIR/1/2/stored_file).

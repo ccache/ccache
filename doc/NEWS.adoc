@@ -2948,7 +2948,7 @@ Release date: 2010-11-28
 
 === Other
 
-- Portability fixes for HP-UX 11.00 and other esoteric systems.
+- Portability fixes for HP-UX 11.00 and other less common systems.
 
 
 == Ccache 3.1.2
