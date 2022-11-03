@@ -503,12 +503,12 @@ fi
 
     $COMPILER -S test.c
 
-    $CCACHE_COMPILE -c -MD test.s
+    $CCACHE_COMPILE -c -MD test.s 2>/dev/null
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -c -MD test.s
+    $CCACHE_COMPILE -c -MD test.s 2>/dev/null
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
@@ -519,13 +519,13 @@ fi
     $COMPILER -S test.c
     echo foo >test.d
 
-    $CCACHE_COMPILE -c -MD test.s
+    $CCACHE_COMPILE -c -MD test.s 2>/dev/null
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     rm test.d
 
-    $CCACHE_COMPILE -c -MD test.s
+    $CCACHE_COMPILE -c -MD test.s 2>/dev/null
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
