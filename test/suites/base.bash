@@ -1069,19 +1069,19 @@ if ! $HOST_OS_WINDOWS; then
     export CCACHE_UMASK=002
     export CCACHE_TEMPDIR=$CCACHE_DIR/tmp
 
-    $CCACHE -C
+    $CCACHE -C >/dev/null
     expect_perm "$CCACHE_DIR" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
     rm -rf $CCACHE_DIR
 
-    $CCACHE -c
+    $CCACHE -c >/dev/null
     expect_perm "$CCACHE_DIR" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
     rm -rf $CCACHE_DIR
 
-    $CCACHE -z
+    $CCACHE -z >/dev/null
     expect_perm "$CCACHE_DIR" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
