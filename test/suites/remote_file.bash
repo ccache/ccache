@@ -138,8 +138,8 @@ SUITE_remote_file() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_exists remote/CACHEDIR.TAG
-    subdirs=$(find remote -type d | wc -l)
-    if [ "${subdirs}" -lt 5 ]; then # "remote" itself counts as one
+    subdirs=$(find remote -mindepth 2 -type d | wc -l)
+    if [ "${subdirs}" -lt 1 ]; then
         test_failed "Expected 2 levels of subdirectories in remote"
     fi
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
