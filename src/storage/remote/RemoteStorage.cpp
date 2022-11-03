@@ -44,7 +44,7 @@ RemoteStorage::Backend::get_path_in_cache(const std::string& dir,
                                           const std::string_view name)
 {
   ASSERT(level >= 1 && level <= 8 / digits);
-  ASSERT(name.length() >= level * digits);
+  ASSERT(name.length() >= static_cast<uint16_t>(level * digits));
 
   std::string path(dir);
   path.reserve(path.size() + level * (digits + 1) + 1 + name.length()
