@@ -106,10 +106,10 @@ public:
     // Join the cache directory, a '/' and `name` into a single path and return
     // it. Additionally, `level` `digits`-character, '/'-separated subpaths are
     // split from the beginning of `name` before joining them all.
-    std::string get_path_in_cache(const std::string& dir,
-                                  uint8_t level,
-                                  uint8_t digits,
-                                  std::string_view name) const;
+    static std::string get_path_in_cache(const std::string& dir,
+                                         uint8_t level,
+                                         uint8_t digits,
+                                         std::string_view name);
   };
 
   virtual ~RemoteStorage() = default;
