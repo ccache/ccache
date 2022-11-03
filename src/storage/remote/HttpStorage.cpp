@@ -262,7 +262,7 @@ HttpStorageBackend::get_entry_path(const Digest& key) const
     const auto key_str = key.to_string();
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
-    return FMT("{}/{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
+    return FMT("{}{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
   }
   }
 
