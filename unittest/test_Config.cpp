@@ -135,7 +135,8 @@ TEST_CASE("Config::update_from_file")
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,gcno_cwd\n"
+    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,"
+    " gcno_cwd,\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777"); // Note: no newline.
@@ -424,7 +425,7 @@ TEST_CASE("Config::visit_items")
     "run_second_cpp = false\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
-    " clang_index_store, ivfsoverlay, gcno_cwd\n"
+    " clang_index_store, ivfsoverlay, gcno_cwd \n"
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"

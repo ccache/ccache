@@ -28,6 +28,7 @@
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
@@ -280,13 +281,9 @@ parse_compiler_type(const std::string& value)
 core::Sloppiness
 parse_sloppiness(const std::string& value)
 {
-  size_t start = 0;
-  size_t end = 0;
   core::Sloppiness result;
-  while (end != std::string::npos) {
-    end = value.find_first_of(", ", start);
-    std::string token =
-      util::strip_whitespace(value.substr(start, end - start));
+
+  for (const auto token : util::Tokenizer(value, ", ")) {
     if (token == "clang_index_store") {
       result.enable(core::Sloppy::clang_index_store);
     } else if (token == "file_stat_matches") {
@@ -314,8 +311,8 @@ parse_sloppiness(const std::string& value)
     } else if (token == "time_macros") {
       result.enable(core::Sloppy::time_macros);
     } // else: ignore unknown value for forward compatibility
-    start = value.find_first_not_of(", ", end);
   }
+
   return result;
 }
 
