@@ -1030,6 +1030,18 @@ parse_size(const std::string& value)
   return static_cast<uint64_t>(result);
 }
 
+uint32_t
+parse_unsigned(const std::string& value)
+{
+  const auto result =
+    util::parse_unsigned(value, 0, std::numeric_limits<uint32_t>::max());
+  if (result) {
+    return static_cast<uint32_t>(*result);
+  } else {
+    throw core::Error(result.error());
+  }
+}
+
 #ifndef _WIN32
 std::string
 read_link(const std::string& path)

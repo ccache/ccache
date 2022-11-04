@@ -655,6 +655,16 @@ TEST_CASE("Util::parse_size")
   CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
 }
 
+TEST_CASE("Util::parse_unsigned")
+{
+  CHECK(Util::parse_unsigned("0") == 0);
+  CHECK(Util::parse_unsigned("1") == 1);
+  CHECK_THROWS_WITH(Util::parse_unsigned("x"),
+                    "invalid unsigned integer: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_unsigned("12354567890"),
+                    "integer must be between 0 and 4294967295");
+}
+
 TEST_CASE("Util::remove_extension")
 {
   CHECK(Util::remove_extension("") == "");

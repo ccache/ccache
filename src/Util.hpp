@@ -288,6 +288,9 @@ uint64_t parse_duration(std::string_view duration);
 // is also recognized as a synonym of k. Throws `core::Error` on parse error.
 uint64_t parse_size(const std::string& value);
 
+// Parse an unsigned integer. Throws `core::Error` on parse error.
+uint32_t parse_unsigned(const std::string& value);
+
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
 std::string read_link(const std::string& path);
