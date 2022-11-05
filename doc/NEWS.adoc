@@ -1,5 +1,54 @@
 = Ccache news
 
+== Ccache 4.7.3
+
+Release date: 2022-11-05
+
+
+=== New features and improvements
+
+- Re-added support for handling a `-Wp,-MD` or `-Wp,-MMD` option with `-o` but
+  without `-MMD`, `-MQ` or `-MT` for GCC and Clang. (This combination of options
+  is used by the Linux kernel build system and became unsupported as a
+  side-effect of a feature added in ccache 4.7.) +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Variables that affect Clang version on macOS are now added to the input
+  hash. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Variables that affect the underlying compiler used by ICC (the Intel compiler)
+  are now added to the input hash. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed parsing of sloppiness with a trailing delimiter. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Other minor improvements
+
+- Removed a redundant slash in URLs when querying remote HTTP storage. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved logging related to the inode cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Added documentation of the default value of *keep_comments_cpp*. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Silenced various benign test warnings. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.7.2
 
 Release date: 2022-10-29
