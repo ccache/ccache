@@ -768,7 +768,8 @@ NOTE: The inode cache feature is currently not available on Windows.
 *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see _<<Boolean values>>_ above)::
 
     If true, ccache will not discard the comments before hashing preprocessor
-    output. This can be used to check documentation with `-Wdocumentation`.
+    output. The default is false. This can be used to check documentation with
+    `-Wdocumentation`.
 
 [#config_limit_multiple]
 *limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
