@@ -1381,6 +1381,12 @@ hash_common_info(const Context& ctx,
     "COMPILER_PATH",
     "GCC_COMPARE_DEBUG",
     "GCC_EXEC_PREFIX",
+    // Variables that affect which underlying compiler ICC uses. Reference:
+    // <https://www.intel.com/content/www/us/en/develop/documentation/
+    // mpi-developer-reference-windows/top/environment-variable-reference/
+    // compilation-environment-variables.html>
+    "I_MPI_CC",
+    "I_MPI_CXX",
 #ifdef __APPLE__
     // On macOS, /usr/bin/clang is a compiler wrapper that switches compiler
     // based on at least these variables:
