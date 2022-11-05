@@ -382,6 +382,10 @@ InodeCache::InodeCache(const Config& config) : m_config(config)
 InodeCache::~InodeCache()
 {
   if (m_sr) {
+    LOG("Accumulated stats for inode cache: hits={}, misses={}, errors={}",
+        m_sr->hits.load(),
+        m_sr->misses.load(),
+        m_sr->errors.load());
     munmap(m_sr, sizeof(SharedRegion));
   }
 }
@@ -430,18 +434,13 @@ InodeCache::get(const std::string& path,
     return false;
   }
 
-  LOG("Inode cache {}: {}", found ? "hit" : "miss", path);
-
   if (m_config.debug()) {
+    LOG("Inode cache {}: {}", found ? "hit" : "miss", path);
     if (found) {
       ++m_sr->hits;
     } else {
       ++m_sr->misses;
     }
-    LOG("Accumulated stats for inode cache: hits={}, misses={}, errors={}",
-        m_sr->hits.load(),
-        m_sr->misses.load(),
-        m_sr->errors.load());
   }
   return found;
 }
