@@ -89,8 +89,8 @@ should_store_raw_file(const Config& config, core::Result::FileType type)
   // storing other file types:
   //
   // 1. The compiler unlinks object files before writing to them but it doesn't
-  //    unlink .d files, so just it's possible to corrupt .d files just by
-  //    running the compiler (see ccache issue 599).
+  //    unlink .d files, so it's possible to corrupt .d files just by running
+  //    the compiler (see ccache issue 599).
   // 2. .d files cause trouble for automake if hard-linked (see ccache issue
   //    378).
   // 3. It's unknown how the compiler treats other file types, so better safe
