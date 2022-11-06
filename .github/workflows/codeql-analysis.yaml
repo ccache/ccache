@@ -51,6 +51,7 @@ jobs:
       env:
         RUN_TESTS: none
         CMAKE_GENERATOR: Ninja
+        EXTRA_CMAKE_BUILD_FLAGS: --target ccache
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
