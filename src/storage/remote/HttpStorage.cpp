@@ -94,6 +94,14 @@ get_url(const Url& url)
   return get_partial_url(url).str();
 }
 
+RemoteStorage::Backend::Failure
+failure_from_httplib_error(httplib::Error error)
+{
+  return error == httplib::Error::ConnectionTimeout
+           ? RemoteStorage::Backend::Failure::timeout
+           : RemoteStorage::Backend::Failure::error;
+}
+
 HttpStorageBackend::HttpStorageBackend(const Params& params)
   : m_url_path(get_url_path(params.url)),
     m_http_client(get_url(params.url))
@@ -155,7 +163,7 @@ HttpStorageBackend::get(const Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(Failure::error);
+    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
@@ -181,7 +189,8 @@ HttpStorageBackend::put(const Digest& key,
           url_path,
           to_string(result.error()),
           static_cast<int>(result.error()));
-      return nonstd::make_unexpected(Failure::error);
+      return nonstd::make_unexpected(
+        failure_from_httplib_error(result.error()));
     }
 
     if (result->status >= 200 && result->status < 300) {
@@ -204,14 +213,14 @@ HttpStorageBackend::put(const Digest& key,
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(Failure::error);
+    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to put {} to http storage: status code: {}",
         url_path,
         result->status);
-    return nonstd::make_unexpected(Failure::error);
+    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
   }
 
   return true;
@@ -228,14 +237,14 @@ HttpStorageBackend::remove(const Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(Failure::error);
+    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to delete {} from http storage: status code: {}",
         url_path,
         result->status);
-    return nonstd::make_unexpected(Failure::error);
+    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
   }
 
   return true;
