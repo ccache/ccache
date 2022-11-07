@@ -191,17 +191,17 @@ documentation.
 
 *--trim-dir* _PATH_::
 
-   Remove old files from directory _PATH_ until it is at most the size specified
-   by `--trim-max-size`.
+    Remove old files from directory _PATH_ until it is at most the size
+    specified by `--trim-max-size`.
 +
 WARNING: Don't use this option to trim the local cache. To trim the local cache
 directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
 *--trim-max-size* _SIZE_::
 
-   Specify the maximum size for `--trim-dir`. _SIZE_ should be a number followed
-   by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or Ti (binary). The
-   default suffix is G.
+    Specify the maximum size for `--trim-dir`. _SIZE_ should be a number
+    followed by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or Ti
+    (binary). The default suffix is G.
 
 *--trim-method* _METHOD_::
 
