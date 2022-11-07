@@ -562,8 +562,12 @@ format_human_readable_size(uint64_t size)
     return FMT("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
   } else if (size >= 1000 * 1000) {
     return FMT("{:.1f} MB", size / ((double)(1000 * 1000)));
-  } else {
+  } else if (size >= 1000) {
     return FMT("{:.1f} kB", size / 1000.0);
+  } else if (size == 1) {
+    return "1 byte";
+  } else {
+    return FMT("{} bytes", size);
   }
 }
 
