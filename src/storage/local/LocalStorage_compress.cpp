@@ -44,7 +44,6 @@
 
 #include <memory>
 #include <string>
-#include <thread>
 
 namespace storage::local {
 
@@ -192,10 +191,11 @@ LocalStorage::get_compression_statistics(
 
 void
 LocalStorage::recompress(const std::optional<int8_t> level,
+                         const uint32_t threads,
                          const ProgressReceiver& progress_receiver)
 {
-  const size_t threads = std::thread::hardware_concurrency();
-  const size_t read_ahead = 2 * threads;
+  const size_t read_ahead =
+    std::max(static_cast<size_t>(10), 2 * static_cast<size_t>(threads));
   ThreadPool thread_pool(threads, read_ahead);
   RecompressionStatistics statistics;
 

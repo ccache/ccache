@@ -48,6 +48,7 @@
 #include <algorithm>
 #include <optional>
 #include <string>
+#include <thread>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -107,6 +108,9 @@ Common options:
     -X, --recompress LEVEL     recompress the cache to level LEVEL (integer or
                                "uncompressed") using the Zstandard algorithm;
                                see "Cache compression" in the manual for details
+        --recompress-threads THREADS
+                               use up to THREADS threads when recompressing the
+                               cache; default: number of CPUs
     -o, --set-config KEY=VAL   set configuration item KEY to value VAL
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
@@ -329,6 +333,7 @@ enum {
   HASH_FILE,
   INSPECT,
   PRINT_STATS,
+  RECOMPRESS_THREADS,
   SHOW_LOG_STATS,
   TRIM_DIR,
   TRIM_MAX_SIZE,
@@ -356,6 +361,7 @@ const option long_options[] = {
   {"max-size", required_argument, nullptr, 'M'},
   {"print-stats", no_argument, nullptr, PRINT_STATS},
   {"recompress", required_argument, nullptr, 'X'},
+  {"recompress-threads", required_argument, nullptr, RECOMPRESS_THREADS},
   {"set-config", required_argument, nullptr, 'o'},
   {"show-compression", no_argument, nullptr, 'x'},
   {"show-config", no_argument, nullptr, 'p'},
@@ -378,6 +384,7 @@ process_main_options(int argc, const char* const* argv)
   uint8_t verbosity = 0;
   std::optional<std::string> evict_namespace;
   std::optional<uint64_t> evict_max_age;
+  uint32_t recompress_threads = std::thread::hardware_concurrency();
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -395,6 +402,11 @@ process_main_options(int argc, const char* const* argv)
 
     case CONFIG_PATH:
       Util::setenv("CCACHE_CONFIGPATH", arg);
+      break;
+
+    case RECOMPRESS_THREADS:
+      recompress_threads = util::value_or_throw<Error>(util::parse_unsigned(
+        arg, 1, std::numeric_limits<uint32_t>::max(), "threads"));
       break;
 
     case TRIM_MAX_SIZE:
@@ -432,6 +444,7 @@ process_main_options(int argc, const char* const* argv)
     switch (c) {
     case CONFIG_PATH:
     case 'd': // --dir
+    case RECOMPRESS_THREADS:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
     case 'v': // --verbose
@@ -650,7 +663,9 @@ process_main_options(int argc, const char* const* argv)
 
       ProgressBar progress_bar("Recompressing...");
       storage::local::LocalStorage(config).recompress(
-        wanted_level, [&](double progress) { progress_bar.update(progress); });
+        wanted_level, recompress_threads, [&](double progress) {
+          progress_bar.update(progress);
+        });
       break;
     }
 
