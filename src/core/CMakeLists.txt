@@ -2,11 +2,11 @@ set(
   sources
   CacheEntry.cpp
   Manifest.cpp
+  MsvcShowIncludesOutput.cpp
   Result.cpp
   ResultExtractor.cpp
   ResultInspector.cpp
   ResultRetriever.cpp
-  MsvcShowIncludesOutput.cpp
   Statistics.cpp
   StatisticsCounters.cpp
   StatsLog.cpp
