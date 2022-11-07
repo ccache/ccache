@@ -26,6 +26,7 @@
 #include <ThreadPool.hpp>
 #include <assertions.hpp>
 #include <core/CacheEntry.hpp>
+#include <core/FileRecompressor.hpp>
 #include <core/Manifest.hpp>
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
@@ -38,124 +39,15 @@
 
 #include <third_party/fmt/core.h>
 
+#include <atomic>
+#include <memory>
+#include <string>
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
 
-#include <memory>
-#include <string>
-
 namespace storage::local {
-
-namespace {
-
-class RecompressionStatistics
-{
-public:
-  void update(uint64_t content_size,
-              uint64_t old_size,
-              uint64_t new_size,
-              uint64_t incompressible_size);
-  uint64_t content_size() const;
-  uint64_t old_size() const;
-  uint64_t new_size() const;
-  uint64_t incompressible_size() const;
-
-private:
-  mutable std::mutex m_mutex;
-  uint64_t m_content_size = 0;
-  uint64_t m_old_size = 0;
-  uint64_t m_new_size = 0;
-  uint64_t m_incompressible_size = 0;
-};
-
-void
-RecompressionStatistics::update(const uint64_t content_size,
-                                const uint64_t old_size,
-                                const uint64_t new_size,
-                                const uint64_t incompressible_size)
-{
-  std::unique_lock<std::mutex> lock(m_mutex);
-  m_incompressible_size += incompressible_size;
-  m_content_size += content_size;
-  m_old_size += old_size;
-  m_new_size += new_size;
-}
-
-uint64_t
-RecompressionStatistics::content_size() const
-{
-  std::unique_lock<std::mutex> lock(m_mutex);
-  return m_content_size;
-}
-
-uint64_t
-RecompressionStatistics::old_size() const
-{
-  std::unique_lock<std::mutex> lock(m_mutex);
-  return m_old_size;
-}
-
-uint64_t
-RecompressionStatistics::new_size() const
-{
-  std::unique_lock<std::mutex> lock(m_mutex);
-  return m_new_size;
-}
-
-uint64_t
-RecompressionStatistics::incompressible_size() const
-{
-  std::unique_lock<std::mutex> lock(m_mutex);
-  return m_incompressible_size;
-}
-
-} // namespace
-
-static void
-recompress_file(RecompressionStatistics& statistics,
-                const std::string& stats_file,
-                const CacheFile& cache_file,
-                const std::optional<int8_t> level)
-{
-  core::CacheEntry::Header header(cache_file.path());
-
-  const int8_t wanted_level =
-    level ? (*level == 0 ? core::CacheEntry::default_compression_level : *level)
-          : 0;
-  const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
-
-  if (header.compression_level == wanted_level) {
-    statistics.update(header.entry_size, old_stat.size(), old_stat.size(), 0);
-    return;
-  }
-
-  const auto cache_file_data = util::value_or_throw<core::Error>(
-    util::read_file<util::Bytes>(cache_file.path()),
-    FMT("Failed to read {}: ", cache_file.path()));
-  core::CacheEntry cache_entry(cache_file_data);
-  cache_entry.verify_checksum();
-
-  header.entry_format_version = core::CacheEntry::k_format_version;
-  header.compression_type =
-    level ? core::CompressionType::zstd : core::CompressionType::none;
-  header.compression_level = wanted_level;
-
-  AtomicFile new_cache_file(cache_file.path(), AtomicFile::Mode::binary);
-  new_cache_file.write(
-    core::CacheEntry::serialize(header, cache_entry.payload()));
-  new_cache_file.commit();
-
-  // Restore mtime/atime to keep cache LRU cleanup working as expected:
-  util::set_timestamps(cache_file.path(), old_stat.mtime(), old_stat.atime());
-
-  const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
-  StatsFile(stats_file).update([=](auto& cs) {
-    cs.increment(core::Statistic::cache_size_kibibyte,
-                 Util::size_change_kibibyte(old_stat, new_stat));
-  });
-  statistics.update(header.entry_size, old_stat.size(), new_stat.size(), 0);
-}
 
 CompressionStatistics
 LocalStorage::get_compression_statistics(
@@ -197,7 +89,9 @@ LocalStorage::recompress(const std::optional<int8_t> level,
   const size_t read_ahead =
     std::max(static_cast<size_t>(10), 2 * static_cast<size_t>(threads));
   ThreadPool thread_pool(threads, read_ahead);
-  RecompressionStatistics statistics;
+  core::FileRecompressor recompressor;
+
+  std::atomic<uint64_t> incompressible_size = 0;
 
   for_each_level_1_subdir(
     m_config.cache_dir(),
@@ -213,15 +107,22 @@ LocalStorage::recompress(const std::optional<int8_t> level,
         const auto& file = files[i];
 
         if (file.type() != CacheFile::Type::unknown) {
-          thread_pool.enqueue([&statistics, stats_file, file, level] {
-            try {
-              recompress_file(statistics, stats_file, file, level);
-            } catch (core::Error&) {
-              // Ignore for now.
-            }
-          });
+          thread_pool.enqueue(
+            [&recompressor, &incompressible_size, level, stats_file, file] {
+              try {
+                int64_t size_change_kibibyte =
+                  recompressor.recompress(file.path(), level);
+                StatsFile(stats_file).update([=](auto& cs) {
+                  cs.increment(core::Statistic::cache_size_kibibyte,
+                               size_change_kibibyte);
+                });
+              } catch (core::Error&) {
+                // Ignore for now.
+                incompressible_size += file.lstat().size_on_disk();
+              }
+            });
         } else if (!TemporaryFile::is_tmp_file(file.path())) {
-          statistics.update(0, 0, 0, file.lstat().size());
+          incompressible_size += file.lstat().size_on_disk();
         }
 
         sub_progress_receiver(0.1 + 0.9 * i / files.size());
@@ -242,29 +143,30 @@ LocalStorage::recompress(const std::optional<int8_t> level,
     PRINT_RAW(stdout, "\n\n");
   }
 
-  const double old_ratio =
-    statistics.old_size() > 0
-      ? static_cast<double>(statistics.content_size()) / statistics.old_size()
-      : 0.0;
+  const double old_ratio = recompressor.old_size() > 0
+                             ? static_cast<double>(recompressor.content_size())
+                                 / recompressor.old_size()
+                             : 0.0;
   const double old_savings =
     old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
-  const double new_ratio =
-    statistics.new_size() > 0
-      ? static_cast<double>(statistics.content_size()) / statistics.new_size()
-      : 0.0;
+  const double new_ratio = recompressor.new_size() > 0
+                             ? static_cast<double>(recompressor.content_size())
+                                 / recompressor.new_size()
+                             : 0.0;
   const double new_savings =
     new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
-  const int64_t size_difference = static_cast<int64_t>(statistics.new_size())
-                                  - static_cast<int64_t>(statistics.old_size());
+  const int64_t size_difference =
+    static_cast<int64_t>(recompressor.new_size())
+    - static_cast<int64_t>(recompressor.old_size());
 
   const std::string old_compr_size_str =
-    Util::format_human_readable_size(statistics.old_size());
+    Util::format_human_readable_size(recompressor.old_size());
   const std::string new_compr_size_str =
-    Util::format_human_readable_size(statistics.new_size());
+    Util::format_human_readable_size(recompressor.new_size());
   const std::string content_size_str =
-    Util::format_human_readable_size(statistics.content_size());
+    Util::format_human_readable_size(recompressor.content_size());
   const std::string incompr_size_str =
-    Util::format_human_readable_size(statistics.incompressible_size());
+    Util::format_human_readable_size(incompressible_size);
   const std::string size_difference_str =
     FMT("{}{}",
         size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
