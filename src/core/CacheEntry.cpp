@@ -117,7 +117,7 @@ std::string
 CacheEntry::Header::inspect() const
 {
   std::string result;
-  result += result += FMT("Magic: {:04x}\n", magic);
+  result += FMT("Magic: {:04x}\n", magic);
   result += FMT("Entry format version: {}\n", entry_format_version);
   result += FMT("Entry type: {} ({})\n",
                 static_cast<uint8_t>(entry_type),
