@@ -474,8 +474,9 @@ InodeCache::put(const std::string& path,
     return false;
   }
 
-  LOG("Inode cache insert: {}", path);
-
+  if (m_config.debug()) {
+    LOG("Inode cache insert: {}", path);
+  }
   return true;
 }
 
