@@ -140,10 +140,10 @@ documentation.
     Recompress the cache to level _LEVEL_ using the Zstandard algorithm. The
     level can be an integer, with the same semantics as the
     <<config_compression_level,*compression_level*>> configuration option, or
-    the special value *uncompressed* for no compression. See
-    _<<Cache compression>>_ for more information. This can potentionally take a
-    long time since all files in the cache need to be visited. Only files that
-    are currently compressed with a different level than _LEVEL_ will be
+    the special value *uncompressed* for no compression. See _<<Cache
+    compression>>_ for more information. This can potentially take a long time
+    since all files in the cache need to be visited. Only files that are
+    currently compressed with a different level than _LEVEL_ will be
     recompressed.
 
 *--recompress-threads* _THREADS_::
@@ -220,6 +220,23 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 *mtime*::
     LRU (least recently used) using the file modification timestamp.
 --
+
+*--trim-recompress* _LEVEL_::
+
+    Recompress to level _LEVEL_ using the Zstandard algorithm when using
+    `--trim-dir`. The level can be an integer, with the same semantics as the
+    <<config_compression_level,*compression_level*>> configuration option), or
+    the special value *uncompressed* for no compression. See _<<Cache
+    compression>>_ for more information. This can potentionally take a long time
+    since all files in the cache need to be visited. Only files that are
+    currently compressed with a different level than _LEVEL_ will be
+    recompressed.
+
+*--trim-recompress-threads* _THREADS_::
+
+    Recompress using up to _THREADS_ threads with `--trim-recompress`. The
+    default is to use one thread per CPU.
+
 
 === Options for scripting or debugging
 

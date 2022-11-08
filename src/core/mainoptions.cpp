@@ -24,9 +24,12 @@
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
+#include <TemporaryFile.hpp>
+#include <ThreadPool.hpp>
 #include <UmaskScope.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntry.hpp>
+#include <core/FileRecompressor.hpp>
 #include <core/Manifest.hpp>
 #include <core/Result.hpp>
 #include <core/ResultExtractor.hpp>
@@ -46,6 +49,7 @@
 #include <fcntl.h>
 
 #include <algorithm>
+#include <atomic>
 #include <optional>
 #include <string>
 #include <thread>
@@ -106,8 +110,7 @@ Common options:
                                limit); available suffixes: k, M, G, T (decimal)
                                and Ki, Mi, Gi, Ti (binary); default suffix: G
     -X, --recompress LEVEL     recompress the cache to level LEVEL (integer or
-                               "uncompressed") using the Zstandard algorithm;
-                               see "Cache compression" in the manual for details
+                               "uncompressed")
         --recompress-threads THREADS
                                use up to THREADS threads when recompressing the
                                cache; default: number of CPUs
@@ -136,6 +139,12 @@ Options for remote file-based storage:
                                Mi, Gi, Ti (binary); default suffix: G
         --trim-method METHOD   specify the method (atime or mtime) for
                                --trim-dir; default: atime
+        --trim-recompress LEVEL
+                               recompress to level LEVEL (integer or
+                               "uncompressed")
+        --trim-recompress-threads THREADS
+                               use up to THREADS threads when recompressing;
+                               default: number of CPUs
 
 Options for scripting or debugging:
         --checksum-file PATH   print the checksum (128 bit XXH3) of the file at
@@ -260,7 +269,9 @@ print_compression_statistics(const storage::local::CompressionStatistics& cs)
 static void
 trim_dir(const std::string& dir,
          const uint64_t trim_max_size,
-         const bool trim_lru_mtime)
+         const bool trim_lru_mtime,
+         std::optional<std::optional<int8_t>> recompress_level,
+         uint32_t recompress_threads)
 {
   struct File
   {
@@ -268,23 +279,24 @@ trim_dir(const std::string& dir,
     Stat stat;
   };
   std::vector<File> files;
-  uint64_t size_before = 0;
+  uint64_t initial_size = 0;
 
   Util::traverse(dir, [&](const std::string& path, const bool is_dir) {
+    if (is_dir || TemporaryFile::is_tmp_file(path)) {
+      return;
+    }
     const auto stat = Stat::lstat(path);
     if (!stat) {
       // Probably some race, ignore.
       return;
     }
-    size_before += stat.size_on_disk();
-    if (!is_dir) {
-      const auto name = Util::base_name(path);
-      if (name == "ccache.conf" || name == "stats") {
-        throw Fatal(
-          FMT("this looks like a local cache directory (found {})", path));
-      }
-      files.push_back({path, stat});
+    initial_size += stat.size_on_disk();
+    const auto name = Util::base_name(path);
+    if (name == "ccache.conf" || name == "stats") {
+      throw Fatal(
+        FMT("this looks like a local cache directory (found {})", path));
     }
+    files.push_back({path, stat});
   });
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
@@ -292,21 +304,70 @@ trim_dir(const std::string& dir,
                           : f1.stat.atime() < f2.stat.atime();
   });
 
-  uint64_t size_after = size_before;
+  int64_t recompression_diff = 0;
 
+  if (recompress_level) {
+    const size_t read_ahead = std::max(
+      static_cast<size_t>(10), 2 * static_cast<size_t>(recompress_threads));
+    ThreadPool thread_pool(recompress_threads, read_ahead);
+    core::FileRecompressor recompressor;
+
+    std::atomic<uint64_t> incompressible_size = 0;
+    for (const auto& file : files) {
+      thread_pool.enqueue([&] {
+        try {
+          recompressor.recompress(file.path, *recompress_level);
+        } catch (core::Error&) {
+          // Ignore for now.
+          incompressible_size += file.stat.size_on_disk();
+        }
+      });
+    }
+
+    thread_pool.shut_down();
+    recompression_diff = recompressor.new_size() - recompressor.old_size();
+    PRINT(stdout,
+          "Recompressed {} to {} ({})\n",
+          Util::format_human_readable_size(incompressible_size
+                                           + recompressor.old_size()),
+          Util::format_human_readable_size(incompressible_size
+                                           + recompressor.new_size()),
+          Util::format_human_readable_diff(recompression_diff));
+  }
+
+  uint64_t size_after_recompression = initial_size + recompression_diff;
+  uint64_t final_size = size_after_recompression;
+
+  size_t removed_files = 0;
   for (const auto& file : files) {
-    if (size_after <= trim_max_size) {
+    if (final_size <= trim_max_size) {
       break;
     }
-    Util::unlink_tmp(file.path);
-    size_after -= file.stat.size();
+    if (Util::unlink_tmp(file.path)) {
+      ++removed_files;
+      final_size -= file.stat.size_on_disk();
+    }
   }
 
   PRINT(stdout,
-        "Removed {} ({} -> {})\n",
-        Util::format_human_readable_size(size_before - size_after),
-        Util::format_human_readable_size(size_before),
-        Util::format_human_readable_size(size_after));
+        "Trimmed {} to {} ({}, {}{} file{})\n",
+        Util::format_human_readable_size(size_after_recompression),
+        Util::format_human_readable_size(final_size),
+        Util::format_human_readable_diff(final_size - size_after_recompression),
+        removed_files == 0 ? "" : "-",
+        removed_files,
+        removed_files == 1 ? "" : "s");
+}
+
+std::optional<int8_t>
+parse_compression_level(std::string_view level)
+{
+  if (level == "uncompressed") {
+    return std::nullopt;
+  } else {
+    return util::value_or_throw<Error>(
+      util::parse_signed(level, INT8_MIN, INT8_MAX, "compression level"));
+  }
 }
 
 static std::string
@@ -338,6 +399,8 @@ enum {
   TRIM_DIR,
   TRIM_MAX_SIZE,
   TRIM_METHOD,
+  TRIM_RECOMPRESS,
+  TRIM_RECOMPRESS_THREADS,
 };
 
 const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
@@ -370,6 +433,11 @@ const option long_options[] = {
   {"trim-dir", required_argument, nullptr, TRIM_DIR},
   {"trim-max-size", required_argument, nullptr, TRIM_MAX_SIZE},
   {"trim-method", required_argument, nullptr, TRIM_METHOD},
+  {"trim-recompress", required_argument, nullptr, TRIM_RECOMPRESS},
+  {"trim-recompress-threads",
+   required_argument,
+   nullptr,
+   TRIM_RECOMPRESS_THREADS},
   {"verbose", no_argument, nullptr, 'v'},
   {"version", no_argument, nullptr, 'V'},
   {"zero-stats", no_argument, nullptr, 'z'},
@@ -379,11 +447,17 @@ int
 process_main_options(int argc, const char* const* argv)
 {
   int c;
+
+  uint8_t verbosity = 0;
+
   std::optional<uint64_t> trim_max_size;
   bool trim_lru_mtime = false;
-  uint8_t verbosity = 0;
+  std::optional<std::optional<int8_t>> trim_recompress;
+  uint32_t trim_recompress_threads = std::thread::hardware_concurrency();
+
   std::optional<std::string> evict_namespace;
   std::optional<uint64_t> evict_max_age;
+
   uint32_t recompress_threads = std::thread::hardware_concurrency();
 
   // First pass: Handle non-command options that affect command options.
@@ -417,6 +491,16 @@ process_main_options(int argc, const char* const* argv)
       trim_lru_mtime = (arg == "ctime");
       break;
 
+    case TRIM_RECOMPRESS:
+      trim_recompress = parse_compression_level(arg);
+      break;
+
+    case TRIM_RECOMPRESS_THREADS:
+      trim_recompress_threads =
+        util::value_or_throw<Error>(util::parse_unsigned(
+          arg, 1, std::numeric_limits<uint32_t>::max(), "threads"));
+      break;
+
     case 'v': // --verbose
       ++verbosity;
       break;
@@ -447,6 +531,8 @@ process_main_options(int argc, const char* const* argv)
     case RECOMPRESS_THREADS:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
+    case TRIM_RECOMPRESS:
+    case TRIM_RECOMPRESS_THREADS:
     case 'v': // --verbose
       // Already handled in the first pass.
       break;
@@ -625,7 +711,11 @@ process_main_options(int argc, const char* const* argv)
       if (!trim_max_size) {
         throw Error("please specify --trim-max-size when using --trim-dir");
       }
-      trim_dir(arg, *trim_max_size, trim_lru_mtime);
+      trim_dir(arg,
+               *trim_max_size,
+               trim_lru_mtime,
+               trim_recompress,
+               trim_recompress_threads);
       break;
 
     case 'V': // --version
@@ -653,13 +743,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'X': // --recompress
     {
-      std::optional<int8_t> wanted_level;
-      if (arg == "uncompressed") {
-        wanted_level = std::nullopt;
-      } else {
-        wanted_level = util::value_or_throw<Error>(
-          util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));
-      }
+      auto wanted_level = parse_compression_level(arg);
 
       ProgressBar progress_bar("Recompressing...");
       storage::local::LocalStorage(config).recompress(

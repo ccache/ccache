@@ -56,10 +56,10 @@ FileRecompressor::recompress(const std::string& cache_file,
       core::CacheEntry::serialize(header, cache_entry.payload()));
     new_cache_file.commit();
     new_stat = Stat::lstat(cache_file, Stat::OnError::log);
-
-    // Restore mtime/atime to keep cache LRU cleanup working as expected:
-    util::set_timestamps(cache_file, old_stat.mtime(), old_stat.atime());
   }
+
+  // Restore mtime/atime to keep cache LRU cleanup working as expected:
+  util::set_timestamps(cache_file, old_stat.mtime(), old_stat.atime());
 
   m_content_size += header.entry_size;
   m_old_size += old_stat.size_on_disk();
