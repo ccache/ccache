@@ -134,7 +134,8 @@ percent_decode(std::string_view string)
 
   std::string result;
   result.reserve(string.size());
-  for (size_t i = 0; i < string.size(); ++i) {
+  size_t i = 0;
+  while (i < string.size()) {
     if (string[i] != '%') {
       result += string[i];
     } else if (i + 2 >= string.size() || !std::isxdigit(string[i + 1])
@@ -147,6 +148,7 @@ percent_decode(std::string_view string)
       result += ch;
       i += 2;
     }
+    ++i;
   }
 
   return result;

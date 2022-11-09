@@ -438,7 +438,8 @@ expand_environment_variables(const std::string& str)
 {
   std::string result;
   const char* left = str.c_str();
-  for (const char* right = left; *right; ++right) {
+  const char* right = left;
+  while (*right) {
     if (*right == '$') {
       result.append(left, right - left);
 
@@ -471,6 +472,7 @@ expand_environment_variables(const std::string& str)
         left = right + 1;
       }
     }
+    ++right;
   }
   result += left;
   return result;
