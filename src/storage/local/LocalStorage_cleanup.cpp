@@ -191,24 +191,6 @@ LocalStorage::clean_dir(const std::string& subdir,
       }
     }
 
-    if (util::ends_with(file.path(), ".stderr")) {
-      // In order to be nice to legacy ccache versions, make sure that the .o
-      // file is deleted before .stderr, because if the ccache process gets
-      // killed after deleting the .stderr but before deleting the .o, the
-      // cached result will be inconsistent. (.stderr is the only file that is
-      // optional for legacy ccache versions; any other file missing from the
-      // cache will be detected.)
-      std::string o_file = file.path().substr(0, file.path().size() - 6) + "o";
-
-      // Don't subtract this extra deletion from the cache size; that
-      // bookkeeping will be done when the loop reaches the .o file. If the
-      // loop doesn't reach the .o file since the target limits have been
-      // reached, the bookkeeping won't happen, but that small counter
-      // discrepancy won't do much harm and it will correct itself in the next
-      // cleanup.
-      delete_file(o_file, 0, nullptr, nullptr);
-    }
-
     delete_file(file.path(), file.size_on_disk(), &cache_size, &files_in_cache);
     cleaned = true;
   }
