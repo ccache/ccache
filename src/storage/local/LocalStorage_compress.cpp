@@ -58,19 +58,19 @@ LocalStorage::get_compression_statistics(
   for_each_level_1_subdir(
     m_config.cache_dir(),
     [&](const auto& subdir, const auto& sub_progress_receiver) {
-      const std::vector<CacheFile> files = get_level_1_files(
+      const auto files = get_level_1_files(
         subdir, [&](double progress) { sub_progress_receiver(progress / 2); });
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& cache_file = files[i];
-        cs.on_disk_size += cache_file.lstat().size_on_disk();
+        cs.on_disk_size += cache_file.size_on_disk();
 
         try {
           core::CacheEntry::Header header(cache_file.path());
-          cs.compr_size += cache_file.lstat().size();
+          cs.compr_size += cache_file.size();
           cs.content_size += header.entry_size;
         } catch (core::Error&) {
-          cs.incompr_size += cache_file.lstat().size();
+          cs.incompr_size += cache_file.size();
         }
 
         sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
@@ -96,17 +96,16 @@ LocalStorage::recompress(const std::optional<int8_t> level,
   for_each_level_1_subdir(
     m_config.cache_dir(),
     [&](const auto& subdir, const auto& sub_progress_receiver) {
-      std::vector<CacheFile> files =
-        get_level_1_files(subdir, [&](double progress) {
-          sub_progress_receiver(0.1 * progress);
-        });
+      auto files = get_level_1_files(subdir, [&](double progress) {
+        sub_progress_receiver(0.1 * progress);
+      });
 
       auto stats_file = subdir + "/stats";
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& file = files[i];
 
-        if (file.type() != CacheFile::Type::unknown) {
+        if (file_type_from_path(file.path()) != FileType::unknown) {
           thread_pool.enqueue(
             [&recompressor, &incompressible_size, level, stats_file, file] {
               try {
@@ -118,11 +117,11 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                 });
               } catch (core::Error&) {
                 // Ignore for now.
-                incompressible_size += file.lstat().size_on_disk();
+                incompressible_size += file.size_on_disk();
               }
             });
         } else if (!TemporaryFile::is_tmp_file(file.path())) {
-          incompressible_size += file.lstat().size_on_disk();
+          incompressible_size += file.size_on_disk();
         }
 
         sub_progress_receiver(0.1 + 0.9 * i / files.size());

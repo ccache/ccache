@@ -30,6 +30,7 @@
 #include <storage/local/StatsFile.hpp>
 #include <util/Duration.hpp>
 #include <util/file.hpp>
+#include <util/string.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -89,6 +90,20 @@ calculate_wanted_cache_level(const uint64_t files_in_level_1)
     files_per_directory /= 16;
   }
   return k_max_cache_levels;
+}
+
+FileType
+file_type_from_path(std::string_view path)
+{
+  if (util::ends_with(path, "M")) {
+    return FileType::manifest;
+  } else if (util::ends_with(path, "R")) {
+    return FileType::result;
+  } else if (util::ends_with(path, "W")) {
+    return FileType::raw;
+  } else {
+    return FileType::unknown;
+  }
 }
 
 LocalStorage::LocalStorage(const Config& config) : m_config(config)

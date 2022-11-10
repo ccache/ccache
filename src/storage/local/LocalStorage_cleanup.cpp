@@ -28,7 +28,6 @@
 #include <core/CacheEntry.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
-#include <storage/local/CacheFile.hpp>
 #include <storage/local/StatsFile.hpp>
 #include <storage/local/util.hpp>
 #include <util/file.hpp>
@@ -104,7 +103,7 @@ LocalStorage::clean_dir(const std::string& subdir,
 {
   LOG("Cleaning up cache directory {}", subdir);
 
-  std::vector<CacheFile> files = get_level_1_files(
+  auto files = get_level_1_files(
     subdir, [&](double progress) { progress_receiver(progress / 3); });
 
   uint64_t cache_size = 0;
@@ -118,31 +117,31 @@ LocalStorage::clean_dir(const std::string& subdir,
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!file.lstat().is_regular()) {
+    if (!file.is_regular()) {
       // Not a file or missing file.
       continue;
     }
 
     // Delete any tmp files older than 1 hour right away.
-    if (file.lstat().mtime() + util::Duration(3600) < current_time
+    if (file.mtime() + util::Duration(3600) < current_time
         && TemporaryFile::is_tmp_file(file.path())) {
       Util::unlink_tmp(file.path());
       continue;
     }
 
-    if (namespace_ && file.type() == CacheFile::Type::raw) {
+    if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
       const auto result_filename =
         FMT("{}R", file.path().substr(0, file.path().length() - 2));
       raw_files_map[result_filename].push_back(file.path());
     }
 
-    cache_size += file.lstat().size_on_disk();
+    cache_size += file.size_on_disk();
     files_in_cache += 1;
   }
 
   // Sort according to modification time, oldest first.
   std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
-    return f1.lstat().mtime() < f2.lstat().mtime();
+    return f1.mtime() < f2.mtime();
   });
 
   LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
@@ -154,14 +153,14 @@ LocalStorage::clean_dir(const std::string& subdir,
        ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!file.lstat() || file.lstat().is_directory()) {
+    if (!file || file.is_directory()) {
       continue;
     }
 
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
         && (!max_age
-            || file.lstat().mtime() > (current_time - util::Duration(*max_age)))
+            || file.mtime() > (current_time - util::Duration(*max_age)))
         && (!namespace_ || max_age)) {
       break;
     }
@@ -179,7 +178,7 @@ LocalStorage::clean_dir(const std::string& subdir,
 
       // For namespace eviction we need to remove raw files based on result
       // filename since they don't have a header.
-      if (file.type() == CacheFile::Type::result) {
+      if (file_type_from_path(file.path()) == FileType::result) {
         const auto entry = raw_files_map.find(file.path());
         if (entry != raw_files_map.end()) {
           for (const auto& raw_file : entry->second) {
@@ -210,8 +209,7 @@ LocalStorage::clean_dir(const std::string& subdir,
       delete_file(o_file, 0, nullptr, nullptr);
     }
 
-    delete_file(
-      file.path(), file.lstat().size_on_disk(), &cache_size, &files_in_cache);
+    delete_file(file.path(), file.size_on_disk(), &cache_size, &files_in_cache);
     cleaned = true;
   }
 
@@ -250,7 +248,7 @@ wipe_dir(const std::string& subdir, const ProgressReceiver& progress_receiver)
 {
   LOG("Clearing out cache directory {}", subdir);
 
-  const std::vector<CacheFile> files = get_level_1_files(
+  const auto files = get_level_1_files(
     subdir, [&](double progress) { progress_receiver(progress / 2); });
 
   for (size_t i = 0; i < files.size(); ++i) {

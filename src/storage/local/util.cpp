@@ -40,11 +40,11 @@ for_each_level_1_subdir(const std::string& cache_dir,
   progress_receiver(1.0);
 }
 
-std::vector<CacheFile>
+std::vector<Stat>
 get_level_1_files(const std::string& dir,
                   const ProgressReceiver& progress_receiver)
 {
-  std::vector<CacheFile> files;
+  std::vector<Stat> files;
 
   if (!Stat::stat(dir)) {
     return files;
@@ -60,7 +60,7 @@ get_level_1_files(const std::string& dir,
     }
 
     if (!is_dir) {
-      files.emplace_back(path);
+      files.emplace_back(Stat::lstat(path));
     } else if (path != dir
                && path.find('/', dir.size() + 1) == std::string::npos) {
       ++level_2_directories;

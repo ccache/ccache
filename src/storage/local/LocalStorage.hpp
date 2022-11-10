@@ -31,6 +31,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 class Config;
@@ -45,6 +46,10 @@ struct CompressionStatistics
   uint64_t incompr_size;
   uint64_t on_disk_size;
 };
+
+enum class FileType { result, manifest, raw, unknown };
+
+FileType file_type_from_path(std::string_view path);
 
 class LocalStorage
 {

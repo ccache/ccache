@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <storage/local/CacheFile.hpp>
+#include <Stat.hpp>
 
 #include <functional>
 #include <string>
@@ -55,8 +55,7 @@ void for_each_level_1_subdir(const std::string& cache_dir,
 // Parameters:
 // - dir: The directory to traverse recursively.
 // - progress_receiver: Function that will be called for progress updates.
-std::vector<CacheFile>
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver);
+std::vector<Stat> get_level_1_files(const std::string& dir,
+                                    const ProgressReceiver& progress_receiver);
 
 } // namespace storage::local
