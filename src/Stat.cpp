@@ -207,6 +207,7 @@ Stat::Stat(StatFunction stat_function,
            const std::string& path,
            Stat::OnError on_error)
 {
+  m_path = path;
   int result = stat_function(path.c_str(), &m_stat);
   if (result == 0) {
     m_errno = 0;

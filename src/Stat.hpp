@@ -116,6 +116,9 @@ public:
   // otherwise false.
   operator bool() const;
 
+  // Return the path that this stat result refers to.
+  const std::string& path() const;
+
   // Return whether this object refers to the same device and i-node as `other`
   // does.
   bool same_inode_as(const Stat& other) const;
@@ -148,6 +151,7 @@ protected:
   Stat(StatFunction stat_function, const std::string& path, OnError on_error);
 
 private:
+  std::string m_path;
   stat_t m_stat;
   int m_errno;
 
@@ -168,6 +172,12 @@ inline bool
 Stat::same_inode_as(const Stat& other) const
 {
   return m_errno == 0 && device() == other.device() && inode() == other.inode();
+}
+
+inline const std::string&
+Stat::path() const
+{
+  return m_path;
 }
 
 inline int

@@ -198,6 +198,15 @@ TEST_CASE("Same i-node as")
   CHECK(!Stat::stat("nonexistent").same_inode_as(Stat::stat("nonexistent")));
 }
 
+TEST_CASE("Get path")
+{
+  TestContext test_context;
+
+  util::write_file("a", "");
+  CHECK(Stat::stat("a").path() == "a");
+  CHECK(Stat::stat("does_not_exist").path() == "does_not_exist");
+}
+
 TEST_CASE("Return values when file is missing")
 {
   auto stat = Stat::stat("does_not_exist");
