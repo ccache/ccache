@@ -22,6 +22,7 @@
 #include <Context.hpp>
 #include <File.hpp>
 #include <Logging.hpp>
+#include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
 #include <assertions.hpp>
 #include <core/CacheEntry.hpp>
@@ -219,7 +220,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
               // Ignore for now.
             }
           });
-        } else {
+        } else if (!TemporaryFile::is_tmp_file(file.path())) {
           statistics.update(0, 0, 0, file.lstat().size());
         }
 
