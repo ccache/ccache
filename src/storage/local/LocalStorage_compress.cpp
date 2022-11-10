@@ -234,6 +234,9 @@ LocalStorage::recompress(const std::optional<int8_t> level,
     },
     progress_receiver);
 
+  // In case there was no f subdir, shut down the thread pool now.
+  thread_pool.shut_down();
+
   if (isatty(STDOUT_FILENO)) {
     PRINT_RAW(stdout, "\n\n");
   }
