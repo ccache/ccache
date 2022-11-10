@@ -73,7 +73,11 @@ private:
 namespace util {
 
 LockFile::LockFile(const std::string& path)
-  : m_lock_file(path + ".lock"),
+  :
+#ifndef _WIN32
+    m_alive_file(path + ".alive"),
+#endif
+    m_lock_file(path + ".lock"),
 #ifndef _WIN32
     m_acquired(false)
 #else
@@ -274,6 +278,16 @@ LockFile::do_acquire(const bool blocking)
   }
 }
 
+std::optional<util::TimePoint>
+LockFile::get_last_lock_update()
+{
+  if (const auto stat = Stat::stat(m_alive_file); stat) {
+    return stat.mtime();
+  } else {
+    return std::nullopt;
+  }
+}
+
 #else // !_WIN32
 
 void*
@@ -337,12 +351,7 @@ ShortLivedLockFile::ShortLivedLockFile(const std::string& path) : LockFile(path)
 {
 }
 
-LongLivedLockFile::LongLivedLockFile(const std::string& path)
-  : LockFile(path)
-#ifndef _WIN32
-    ,
-    m_alive_file(path + ".alive")
-#endif
+LongLivedLockFile::LongLivedLockFile(const std::string& path) : LockFile(path)
 {
 }
 
@@ -393,16 +402,6 @@ bool
 LongLivedLockFile::on_before_break()
 {
   return Util::unlink_tmp(m_alive_file);
-}
-
-std::optional<util::TimePoint>
-LongLivedLockFile::get_last_lock_update()
-{
-  if (const auto stat = Stat::stat(m_alive_file); stat) {
-    return stat.mtime();
-  } else {
-    return std::nullopt;
-  }
 }
 
 #endif
