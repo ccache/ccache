@@ -27,23 +27,23 @@
 
 namespace core {
 
-int64_t
-FileRecompressor::recompress(const std::string& cache_file,
+Stat
+FileRecompressor::recompress(const Stat& stat,
                              std::optional<int8_t> level,
                              KeepAtime keep_atime)
 {
-  core::CacheEntry::Header header(cache_file);
+  core::CacheEntry::Header header(stat.path());
 
   const int8_t wanted_level =
     level ? (*level == 0 ? core::CacheEntry::default_compression_level : *level)
           : 0;
-  const auto old_stat = Stat::lstat(cache_file, Stat::OnError::log);
-  Stat new_stat(old_stat);
+
+  std::optional<Stat> new_stat;
 
   if (header.compression_level != wanted_level) {
     const auto cache_file_data = util::value_or_throw<core::Error>(
-      util::read_file<util::Bytes>(cache_file),
-      FMT("Failed to read {}: ", cache_file));
+      util::read_file<util::Bytes>(stat.path()),
+      FMT("Failed to read {}: ", stat.path()));
     core::CacheEntry cache_entry(cache_file_data);
     cache_entry.verify_checksum();
 
@@ -52,23 +52,23 @@ FileRecompressor::recompress(const std::string& cache_file,
       level ? core::CompressionType::zstd : core::CompressionType::none;
     header.compression_level = wanted_level;
 
-    AtomicFile new_cache_file(cache_file, AtomicFile::Mode::binary);
+    AtomicFile new_cache_file(stat.path(), AtomicFile::Mode::binary);
     new_cache_file.write(
       core::CacheEntry::serialize(header, cache_entry.payload()));
     new_cache_file.commit();
-    new_stat = Stat::lstat(cache_file, Stat::OnError::log);
+    new_stat = Stat::lstat(stat.path(), Stat::OnError::log);
   }
 
   // Restore mtime/atime to keep cache LRU cleanup working as expected:
   if (keep_atime == KeepAtime::yes || new_stat) {
-    util::set_timestamps(cache_file, old_stat.mtime(), old_stat.atime());
+    util::set_timestamps(stat.path(), stat.mtime(), stat.atime());
   }
 
   m_content_size += header.entry_size;
-  m_old_size += old_stat.size_on_disk();
-  m_new_size += new_stat.size_on_disk();
+  m_old_size += stat.size_on_disk();
+  m_new_size += (new_stat ? *new_stat : stat).size_on_disk();
 
-  return Util::size_change_kibibyte(old_stat, new_stat);
+  return new_stat ? *new_stat : stat;
 }
 
 uint64_t

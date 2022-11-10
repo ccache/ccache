@@ -273,19 +273,14 @@ trim_dir(const std::string& dir,
          std::optional<std::optional<int8_t>> recompress_level,
          uint32_t recompress_threads)
 {
-  struct File
-  {
-    std::string path;
-    Stat stat;
-  };
-  std::vector<File> files;
+  std::vector<Stat> files;
   uint64_t initial_size = 0;
 
   Util::traverse(dir, [&](const std::string& path, const bool is_dir) {
     if (is_dir || TemporaryFile::is_tmp_file(path)) {
       return;
     }
-    const auto stat = Stat::lstat(path);
+    auto stat = Stat::lstat(path);
     if (!stat) {
       // Probably some race, ignore.
       return;
@@ -296,12 +291,11 @@ trim_dir(const std::string& dir,
       throw Fatal(
         FMT("this looks like a local cache directory (found {})", path));
     }
-    files.push_back({path, stat});
+    files.emplace_back(std::move(stat));
   });
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
-    return trim_lru_mtime ? f1.stat.mtime() < f2.stat.mtime()
-                          : f1.stat.atime() < f2.stat.atime();
+    return trim_lru_mtime ? f1.mtime() < f2.mtime() : f1.atime() < f2.atime();
   });
 
   int64_t recompression_diff = 0;
@@ -313,15 +307,15 @@ trim_dir(const std::string& dir,
     core::FileRecompressor recompressor;
 
     std::atomic<uint64_t> incompressible_size = 0;
-    for (const auto& file : files) {
+    for (auto& file : files) {
       thread_pool.enqueue([&] {
         try {
-          recompressor.recompress(file.path,
-                                  *recompress_level,
-                                  core::FileRecompressor::KeepAtime::yes);
+          auto new_stat = recompressor.recompress(
+            file, *recompress_level, core::FileRecompressor::KeepAtime::yes);
+          file = std::move(new_stat); // Remember new size, if any.
         } catch (core::Error&) {
           // Ignore for now.
-          incompressible_size += file.stat.size_on_disk();
+          incompressible_size += file.size_on_disk();
         }
       });
     }
@@ -345,9 +339,9 @@ trim_dir(const std::string& dir,
     if (final_size <= trim_max_size) {
       break;
     }
-    if (Util::unlink_tmp(file.path)) {
+    if (Util::unlink_tmp(file.path())) {
       ++removed_files;
-      final_size -= file.stat.size_on_disk();
+      final_size -= file.size_on_disk();
     }
   }
 

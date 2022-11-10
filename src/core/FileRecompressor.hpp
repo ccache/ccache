@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <Stat.hpp>
+
 #include <atomic>
 #include <cstdint>
 #include <mutex>
@@ -33,10 +35,10 @@ public:
 
   FileRecompressor() = default;
 
-  // Returns on-disk size change in KiB.
-  int64_t recompress(const std::string& cache_file,
-                     const std::optional<int8_t> level,
-                     KeepAtime keep_atime);
+  // Returns stat after recompression.
+  Stat recompress(const Stat& stat,
+                  std::optional<int8_t> level,
+                  KeepAtime keep_atime);
 
   uint64_t content_size() const;
   uint64_t old_size() const;

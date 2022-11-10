@@ -109,12 +109,16 @@ LocalStorage::recompress(const std::optional<int8_t> level,
           thread_pool.enqueue(
             [&recompressor, &incompressible_size, level, stats_file, file] {
               try {
-                int64_t size_change_kibibyte = recompressor.recompress(
-                  file.path(), level, core::FileRecompressor::KeepAtime::no);
-                StatsFile(stats_file).update([=](auto& cs) {
-                  cs.increment(core::Statistic::cache_size_kibibyte,
-                               size_change_kibibyte);
-                });
+                Stat new_stat = recompressor.recompress(
+                  file, level, core::FileRecompressor::KeepAtime::no);
+                auto size_change_kibibyte =
+                  Util::size_change_kibibyte(file, new_stat);
+                if (size_change_kibibyte != 0) {
+                  StatsFile(stats_file).update([=](auto& cs) {
+                    cs.increment(core::Statistic::cache_size_kibibyte,
+                                 size_change_kibibyte);
+                  });
+                }
               } catch (core::Error&) {
                 // Ignore for now.
                 incompressible_size += file.size_on_disk();
