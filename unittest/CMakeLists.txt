@@ -21,6 +21,7 @@ set(
   test_storage_local_StatsFile.cpp
   test_storage_local_util.cpp
   test_util_Bytes.cpp
+  test_util_Duration.cpp
   test_util_LockFile.cpp
   test_util_TextTable.cpp
   test_util_TimePoint.cpp

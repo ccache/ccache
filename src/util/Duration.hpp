@@ -93,25 +93,25 @@ Duration::operator>=(const Duration& other) const
 inline Duration
 Duration::operator+(const Duration& other) const
 {
-  return Duration(m_ns + other.m_ns);
+  return Duration(0, m_ns + other.m_ns);
 }
 
 inline Duration
 Duration::operator-(const Duration& other) const
 {
-  return Duration(m_ns - other.m_ns);
+  return Duration(0, m_ns - other.m_ns);
 }
 
 inline Duration
 Duration::operator*(double factor) const
 {
-  return Duration(factor * m_ns);
+  return Duration(0, factor * m_ns);
 }
 
 inline Duration
 Duration::operator/(double factor) const
 {
-  return Duration(m_ns / factor);
+  return Duration(0, m_ns / factor);
 }
 
 inline int64_t
