@@ -110,8 +110,8 @@ LocalStorage::recompress(const std::optional<int8_t> level,
           thread_pool.enqueue(
             [&recompressor, &incompressible_size, level, stats_file, file] {
               try {
-                int64_t size_change_kibibyte =
-                  recompressor.recompress(file.path(), level);
+                int64_t size_change_kibibyte = recompressor.recompress(
+                  file.path(), level, core::FileRecompressor::KeepAtime::no);
                 StatsFile(stats_file).update([=](auto& cs) {
                   cs.increment(core::Statistic::cache_size_kibibyte,
                                size_change_kibibyte);

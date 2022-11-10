@@ -29,11 +29,14 @@ namespace core {
 class FileRecompressor
 {
 public:
+  enum class KeepAtime { yes, no };
+
   FileRecompressor() = default;
 
   // Returns on-disk size change in KiB.
   int64_t recompress(const std::string& cache_file,
-                     const std::optional<int8_t> level);
+                     const std::optional<int8_t> level,
+                     KeepAtime keep_atime);
 
   uint64_t content_size() const;
   uint64_t old_size() const;

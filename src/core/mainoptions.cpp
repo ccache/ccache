@@ -316,7 +316,9 @@ trim_dir(const std::string& dir,
     for (const auto& file : files) {
       thread_pool.enqueue([&] {
         try {
-          recompressor.recompress(file.path, *recompress_level);
+          recompressor.recompress(file.path,
+                                  *recompress_level,
+                                  core::FileRecompressor::KeepAtime::yes);
         } catch (core::Error&) {
           // Ignore for now.
           incompressible_size += file.stat.size_on_disk();

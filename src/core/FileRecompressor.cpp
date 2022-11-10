@@ -29,7 +29,8 @@ namespace core {
 
 int64_t
 FileRecompressor::recompress(const std::string& cache_file,
-                             const std::optional<int8_t> level)
+                             std::optional<int8_t> level,
+                             KeepAtime keep_atime)
 {
   core::CacheEntry::Header header(cache_file);
 
@@ -59,7 +60,9 @@ FileRecompressor::recompress(const std::string& cache_file,
   }
 
   // Restore mtime/atime to keep cache LRU cleanup working as expected:
-  util::set_timestamps(cache_file, old_stat.mtime(), old_stat.atime());
+  if (keep_atime == KeepAtime::yes || new_stat) {
+    util::set_timestamps(cache_file, old_stat.mtime(), old_stat.atime());
+  }
 
   m_content_size += header.entry_size;
   m_old_size += old_stat.size_on_disk();
