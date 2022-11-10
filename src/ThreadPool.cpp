@@ -51,6 +51,10 @@ ThreadPool::shut_down()
 {
   {
     std::unique_lock<std::mutex> lock(m_mutex);
+    if (m_shutting_down) {
+      // Already called shut_down.
+      return;
+    }
     m_shutting_down = true;
   }
   m_task_enqueued_or_shutting_down_condition.notify_all();
