@@ -1250,7 +1250,7 @@ Optional attributes:
 
 URL formats:
 
-`+rpc://HOST:PORT+`
+`+rpc://[[USERNAME:]PASSWORD@]HOST[:PORT]+`
 
 This backend stores data using a http://rpclib.net[rpclib] "rpc-server".
 
@@ -1264,7 +1264,8 @@ It can keep connections open, to one of the more expensive storage backends.
 
 Examples:
 
-* `+rpc://localhost:8080+`
+* `+rpc://localhost+`
+* `+rpc://p4ssw0rd@cache.example.com:8080|connect-timeout=50+`
 
 Optional attributes:
 

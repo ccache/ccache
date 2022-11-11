@@ -59,7 +59,24 @@ private:
 
   void
   connect(const Url& url, uint32_t connect_timeout, uint32_t operation_timeout);
+  void authenticate(const Url& url);
 };
+
+std::pair<std::optional<std::string>, std::optional<std::string>>
+split_user_info(const std::string& user_info)
+{
+  const auto [left, right] = util::split_once(user_info, ':');
+  if (left.empty()) {
+    // rpc://HOST
+    return {std::nullopt, std::nullopt};
+  } else if (right) {
+    // rpc://USERNAME:PASSWORD@HOST
+    return {std::string(left), std::string(*right)};
+  } else {
+    // rpc://PASSWORD@HOST
+    return {std::nullopt, std::string(left)};
+  }
+}
 
 RpcStorageBackend::RpcStorageBackend(const Params& params)
   : m_rpc_client(nullptr)
@@ -81,6 +98,7 @@ RpcStorageBackend::RpcStorageBackend(const Params& params)
   }
 
   connect(url, connect_timeout.count(), operation_timeout.count());
+  authenticate(url);
 }
 
 nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
@@ -187,12 +205,48 @@ RpcStorageBackend::connect(const Url& url,
   m_rpc_client->set_timeout(operation_timeout);
 }
 
+void
+RpcStorageBackend::authenticate(const Url& url)
+{
+  const auto [user, password] = split_user_info(url.user_info());
+  if (password) {
+    LOG("RPC auth {}", k_redacted_password);
+    try {
+      auto auth = m_rpc_client->call("auth", password).as<bool>();
+      if (!auth) {
+        throw Failed("authentication failed", Failure::error);
+      }
+    } catch (rpc::timeout&) {
+      throw Failed("connection timeout", Failure::timeout);
+    } catch (std::runtime_error& e) {
+      LOG("RPC error: {}", e.what());
+      throw Failed(e.what(), Failure::error);
+    }
+  }
+}
+
 } // namespace
 
 std::unique_ptr<RemoteStorage::Backend>
 RpcStorage::create_backend(const Backend::Params& params) const
 {
   return std::make_unique<RpcStorageBackend>(params);
+}
+
+void
+RpcStorage::redact_secrets(Backend::Params& params) const
+{
+  auto& url = params.url;
+  const auto [user, password] = split_user_info(url.user_info());
+  if (password) {
+    if (user) {
+      // rpc://user:password@host
+      url.user_info(FMT("{}:{}", *user, k_redacted_password));
+    } else {
+      // rpc://password@host
+      url.user_info(k_redacted_password);
+    }
+  }
 }
 
 } // namespace storage::remote

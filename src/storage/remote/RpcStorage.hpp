@@ -27,6 +27,8 @@ class RpcStorage : public RemoteStorage
 public:
   std::unique_ptr<Backend>
   create_backend(const Backend::Params& params) const override;
+
+  void redact_secrets(Backend::Params& params) const override;
 };
 
 } // namespace storage::remote
