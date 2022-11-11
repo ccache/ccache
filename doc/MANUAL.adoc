@@ -553,8 +553,6 @@ _<<Using ccache with other compiler wrappers>>_.
     NVCC (CUDA) compiler.
 *other*::
     Any compiler other than the known types.
-*pump*::
-    distcc's "`pump`" script.
 --
 
 [#config_compression]
