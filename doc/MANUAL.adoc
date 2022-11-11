@@ -1591,8 +1591,8 @@ The depend mode will be disabled if any of the following holds:
 == Handling of newly created header files
 
 If modification time (mtime) or status change time (ctime) of one of the include
-files is the same second as the time compilation is being done, ccache disables
-the direct mode (or, in the case of a <<Precompiled headers,precompiled
+files is equal to (or newer than) the time compilation is being done, ccache
+disables the direct mode (or, in the case of a <<Precompiled headers,precompiled
 header>>, disables caching completely). This done as a safety measure to avoid a
 race condition (see below).
 
