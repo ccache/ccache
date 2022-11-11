@@ -27,6 +27,9 @@
 
 #include <rpc/server.h>
 
+#include <iostream>
+#include <thread>
+
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #elif defined(_WIN32)
@@ -115,16 +118,18 @@ constexpr const char USAGE_TEXT[] =
 Options:
     -b, --bind                 address to bind to (default: 127.0.0.1)
     -p, --port                 tcp port to bind to (default: {1})
+    -n, --threads              number of worker threads (default: 1)
     -h, --help                 print this help text
     -V, --version              print version and copyright information
 
 See also the manual on <https://ccache.dev/documentation.html>.
 )";
 
-const char options_string[] = "b:hp:V";
+const char options_string[] = "b:hp:n:V";
 const option long_options[] = {{"bind", required_argument, nullptr, 'b'},
                                {"help", no_argument, nullptr, 'h'},
                                {"port", required_argument, nullptr, 'p'},
+                               {"threads", required_argument, nullptr, 'n'},
                                {"version", no_argument, nullptr, 'V'},
                                {nullptr, 0, nullptr, 0}};
 
@@ -136,6 +141,7 @@ main(int argc, char* const* argv)
 
   std::string bind = "127.0.0.1";
   uint32_t port = DEFAULT_PORT;
+  uint32_t threads = 1;
 
   int c;
   while ((c = getopt_long(argc, argv, options_string, long_options, nullptr))
@@ -153,6 +159,10 @@ main(int argc, char* const* argv)
 
     case 'p': // --port
       port = Util::parse_unsigned(arg);
+      break;
+
+    case 'n': // --threads
+      threads = Util::parse_unsigned(arg);
       break;
 
     case 'V': // --version
@@ -185,7 +195,16 @@ main(int argc, char* const* argv)
   });
   srv.bind("remove", [&s](const Digest& key) { return s.remove(key); });
 
-  srv.run();
+  if (threads == 1) {
+    srv.run();
+  } else {
+    if (threads == 0) {
+      threads = std::thread::hardware_concurrency();
+    }
+    LOG("RPC using {} worker threads", threads);
+    srv.async_run(threads);
+    std::cin.ignore();
+  }
 
   return EXIT_SUCCESS;
 }
