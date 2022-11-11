@@ -95,6 +95,10 @@ RpcStorageBackend::get(const Digest& key)
     return reply;
   } catch (rpc::timeout&) {
     return nonstd::make_unexpected(Failure::timeout);
+  } catch (rpc::rpc_error& e) {
+    auto err = e.get_error().as<std::string>();
+    LOG("RPC error: {}", err);
+    return nonstd::make_unexpected(Failure::error);
   } catch (std::runtime_error& e) {
     LOG("RPC error: {}", e.what());
     return nonstd::make_unexpected(Failure::error);
@@ -114,6 +118,10 @@ RpcStorageBackend::put(const Digest& key,
       }
     } catch (rpc::timeout&) {
       return nonstd::make_unexpected(Failure::timeout);
+    } catch (rpc::rpc_error& e) {
+      auto err = e.get_error().as<std::string>();
+      LOG("RPC error: {}", err);
+      return nonstd::make_unexpected(Failure::error);
     } catch (std::runtime_error& e) {
       LOG("RPC error: {}", e.what());
       return nonstd::make_unexpected(Failure::error);
@@ -124,6 +132,10 @@ RpcStorageBackend::put(const Digest& key,
     return m_rpc_client->call("put", key, value).as<bool>();
   } catch (rpc::timeout&) {
     return nonstd::make_unexpected(Failure::timeout);
+  } catch (rpc::rpc_error& e) {
+    auto err = e.get_error().as<std::string>();
+    LOG("RPC error: {}", err);
+    return nonstd::make_unexpected(Failure::error);
   } catch (std::runtime_error& e) {
     LOG("RPC error: {}", e.what());
     return nonstd::make_unexpected(Failure::error);
@@ -138,6 +150,10 @@ RpcStorageBackend::remove(const Digest& key)
     return m_rpc_client->call("remove", key).as<bool>();
   } catch (rpc::timeout&) {
     return nonstd::make_unexpected(Failure::timeout);
+  } catch (rpc::rpc_error& e) {
+    auto err = e.get_error().as<std::string>();
+    LOG("RPC error: {}", err);
+    return nonstd::make_unexpected(Failure::error);
   } catch (std::runtime_error& e) {
     LOG("RPC error: {}", e.what());
     return nonstd::make_unexpected(Failure::error);
