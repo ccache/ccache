@@ -1710,8 +1710,8 @@ directories:
 
 == Precompiled headers
 
-Ccache has support for GCC's precompiled headers. However, you have to do some
-things to make it work properly:
+Ccache has support for precompiled headers with GCC and Clang. However, you have
+to do some things to make it work properly:
 
 * You must set <<config_sloppiness,*sloppiness*>> to *pch_defines,time_macros*.
   The reason is that ccache can't tell whether `+__TIME__+`, `+__DATE__+` or
@@ -1734,6 +1734,8 @@ things to make it work properly:
    compiling.
 --
 +
+* If you use Clang, you must compile with `-fno-pch-timestamp`.
+
 If you don't do this, either the non-precompiled version of the header file will
 be used (if available) or ccache will fall back to running the real compiler and
 increase the statistics counter "`Preprocessing failed`" (if the non-precompiled
