@@ -72,13 +72,11 @@ private:
 
 namespace util {
 
-LockFile::LockFile(const std::string& path)
-  :
+LockFile::LockFile(const std::string& path, [[maybe_unused]] Type type)
+  : m_lock_file(path + ".lock"),
 #ifndef _WIN32
+    m_type(type),
     m_alive_file(path + ".alive"),
-#endif
-    m_lock_file(path + ".lock"),
-#ifndef _WIN32
     m_acquired(false)
 #else
     m_handle(INVALID_HANDLE_VALUE)
@@ -109,7 +107,16 @@ LockFile::release()
 
   LOG("Releasing {}", m_lock_file);
 #ifndef _WIN32
-  on_before_release();
+  if (m_type == Type::long_lived && m_keep_alive_thread.joinable()) {
+    {
+      std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
+      m_stop_keep_alive = true;
+    }
+    m_stop_keep_alive_condition.notify_one();
+    m_keep_alive_thread.join();
+
+    Util::unlink_tmp(m_alive_file);
+  }
   Util::unlink_tmp(m_lock_file);
 #else
   CloseHandle(m_handle);
@@ -142,9 +149,34 @@ LockFile::acquire(const bool blocking)
 #else
   m_handle = do_acquire(blocking);
 #endif
+
   if (acquired()) {
     LOG("Acquired {}", m_lock_file);
-    on_after_acquire();
+#ifndef _WIN32
+    if (m_type == Type::long_lived) {
+      const auto result = util::write_file(m_alive_file, "");
+      if (!result) {
+        LOG("Failed to write {}: {}", m_alive_file, result.error());
+      }
+
+      LOG_RAW("Starting keep-alive thread");
+      m_keep_alive_thread = std::thread([&] {
+        while (true) {
+          std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
+          m_stop_keep_alive_condition.wait_for(
+            lock,
+            std::chrono::seconds(k_keep_alive_interval.sec())
+              + std::chrono::nanoseconds(k_keep_alive_interval.nsec()),
+            [this] { return m_stop_keep_alive; });
+          if (m_stop_keep_alive) {
+            return;
+          }
+          util::set_timestamps(m_alive_file);
+        }
+      });
+      LOG_RAW("Started keep-alive thread");
+    }
+#endif
   } else {
     LOG("Failed to acquire lock {}", m_lock_file);
   }
@@ -248,7 +280,7 @@ LockFile::do_acquire(const bool blocking)
           m_lock_file,
           inactive_duration.sec(),
           inactive_duration.nsec() / 1'000'000);
-      if (!on_before_break() || !Util::unlink_tmp(m_lock_file)) {
+      if (!Util::unlink_tmp(m_alive_file) || !Util::unlink_tmp(m_lock_file)) {
         return false;
       }
 
@@ -346,85 +378,5 @@ LockFile::do_acquire(const bool blocking)
 }
 
 #endif // !_WIN32
-
-ShortLivedLockFile::ShortLivedLockFile(const std::string& path) : LockFile(path)
-{
-}
-
-LongLivedLockFile::LongLivedLockFile(const std::string& path) : LockFile(path)
-{
-}
-
-#ifndef _WIN32
-
-void
-LongLivedLockFile::on_after_acquire()
-{
-  const auto result = util::write_file(m_alive_file, "");
-  if (!result) {
-    LOG("Failed to write {}: {}", m_alive_file, result.error());
-  }
-
-  LOG_RAW("Starting keep-alive thread");
-  m_keep_alive_thread = std::thread([&] {
-    while (true) {
-      std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
-      m_stop_keep_alive_condition.wait_for(
-        lock,
-        std::chrono::seconds(k_keep_alive_interval.sec())
-          + std::chrono::nanoseconds(k_keep_alive_interval.nsec()),
-        [this] { return m_stop_keep_alive; });
-      if (m_stop_keep_alive) {
-        return;
-      }
-      util::set_timestamps(m_alive_file);
-    }
-  });
-  LOG_RAW("Started keep-alive thread");
-}
-
-void
-LongLivedLockFile::on_before_release()
-{
-  if (m_keep_alive_thread.joinable()) {
-    {
-      std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
-      m_stop_keep_alive = true;
-    }
-    m_stop_keep_alive_condition.notify_one();
-    m_keep_alive_thread.join();
-
-    Util::unlink_tmp(m_alive_file);
-  }
-}
-
-bool
-LongLivedLockFile::on_before_break()
-{
-  return Util::unlink_tmp(m_alive_file);
-}
-
-#endif
-
-LockFileGuard::LockFileGuard(LockFile& lock_file, Mode mode)
-  : m_lock_file(lock_file)
-{
-  if (mode == Mode::blocking) {
-    lock_file.acquire();
-  } else {
-    lock_file.try_acquire();
-  }
-}
-
-LockFileGuard::~LockFileGuard() noexcept
-{
-  m_lock_file.release();
-}
-
-bool
-LockFileGuard::acquired() const
-{
-  return m_lock_file.acquired();
-}
 
 } // namespace util

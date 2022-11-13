@@ -32,7 +32,12 @@ namespace util {
 class LockFile : NonCopyable
 {
 public:
-  virtual ~LockFile() noexcept = default;
+  enum class Type { long_lived, short_lived };
+
+  LockFile(const std::string& path, Type type);
+
+  // Release the lock if previously acquired.
+  ~LockFile();
 
   // Acquire lock, blocking. Returns true if acquired, otherwise false.
   bool acquire();
@@ -40,33 +45,30 @@ public:
   // Acquire lock, non-blocking. Returns true if acquired, otherwise false.
   bool try_acquire();
 
-  // Release lock. If not previously acquired, nothing happens.
+  // Release lock early. If not previously acquired, nothing happens.
   void release();
 
-  // Return whether the lock was acquired successfully.
+  // Return whether the lock is acquired successfully.
   bool acquired() const;
-
-protected:
-  LockFile(const std::string& path);
-#ifndef _WIN32
-  std::string m_alive_file;
-#endif
 
 private:
   std::string m_lock_file;
 #ifndef _WIN32
+  Type m_type;
+  std::string m_alive_file;
   bool m_acquired;
+  std::thread m_keep_alive_thread;
+  std::mutex m_stop_keep_alive_mutex;
+  bool m_stop_keep_alive = false;
+  std::condition_variable m_stop_keep_alive_condition;
 #else
   void* m_handle;
 #endif
 
   bool acquire(bool blocking);
-  virtual void on_after_acquire();
-  virtual void on_before_release();
 #ifndef _WIN32
   bool do_acquire(bool blocking);
   std::optional<util::TimePoint> get_last_lock_update();
-  virtual bool on_before_break();
 #else
   void* do_acquire(bool blocking);
 #endif
@@ -90,52 +92,21 @@ class LongLivedLockFile : public LockFile
 {
 public:
   LongLivedLockFile(const std::string& path);
-
-private:
-#ifndef _WIN32
-  std::thread m_keep_alive_thread;
-  std::mutex m_stop_keep_alive_mutex;
-  bool m_stop_keep_alive = false;
-  std::condition_variable m_stop_keep_alive_condition;
-
-  void on_after_acquire() override;
-  void on_before_release() override;
-  bool on_before_break() override;
-#endif
 };
 
-class LockFileGuard : NonCopyable
+inline LockFile::~LockFile()
 {
-public:
-  enum class Mode { blocking, non_blocking };
+  release();
+}
 
-  LockFileGuard(LockFile& lock_file, Mode mode = Mode::blocking);
-  ~LockFileGuard() noexcept;
-
-  bool acquired() const;
-
-private:
-  LockFile& m_lock_file;
-};
-
-inline void
-LockFile::on_after_acquire()
+inline ShortLivedLockFile::ShortLivedLockFile(const std::string& path)
+  : LockFile(path, Type::short_lived)
 {
 }
 
-inline void
-LockFile::on_before_release()
+inline LongLivedLockFile::LongLivedLockFile(const std::string& path)
+  : LockFile(path, Type::long_lived)
 {
 }
-
-#ifndef _WIN32
-
-inline bool
-LockFile::on_before_break()
-{
-  return true;
-}
-
-#endif
 
 } // namespace util

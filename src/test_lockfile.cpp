@@ -41,39 +41,33 @@ main(int argc, char** argv)
 
   const std::string path(argv[1]);
   const auto seconds = util::parse_signed(argv[2]);
-  const bool long_lived = std::string(argv[3]) == "long";
+  const auto lock_type = std::string(argv[3]) == "long"
+                           ? util::LockFile::Type::long_lived
+                           : util::LockFile::Type::short_lived;
   const bool blocking = std::string(argv[4]) == "blocking";
   if (!seconds) {
     PRINT_RAW(stderr, "Error: Failed to parse seconds\n");
     return 1;
   }
 
-  using LockFilePtr = std::unique_ptr<util::LockFile>;
-  LockFilePtr lock_file;
-  lock_file = long_lived
-                ? LockFilePtr{std::make_unique<util::LongLivedLockFile>(path)}
-                : LockFilePtr{std::make_unique<util::ShortLivedLockFile>(path)};
-  const auto mode = blocking ? util::LockFileGuard::Mode::blocking
-                             : util::LockFileGuard::Mode::non_blocking;
-
-  PRINT(stdout, "{}\n", blocking ? "Acquiring" : "Trying to acquire");
-  bool acquired = false;
-  {
-    util::LockFileGuard lock(*lock_file, mode);
-    acquired = lock.acquired();
-    if (acquired) {
-      PRINT_RAW(stdout, "Acquired\n");
-      PRINT(
-        stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
-      std::this_thread::sleep_for(std::chrono::seconds{*seconds});
-    } else {
-      PRINT(stdout, "{} acquire\n", blocking ? "Failed to" : "Did not");
-    }
-    if (acquired) {
-      PRINT_RAW(stdout, "Releasing\n");
-    }
+  util::LockFile lock(path, lock_type);
+  if (blocking) {
+    PRINT_RAW(stdout, "Acquiring\n");
+    lock.acquire();
+  } else {
+    PRINT_RAW(stdout, "Trying to acquire\n");
+    lock.try_acquire();
   }
-  if (acquired) {
+  if (lock.acquired()) {
+    PRINT_RAW(stdout, "Acquired\n");
+    PRINT(stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
+    std::this_thread::sleep_for(std::chrono::seconds{*seconds});
+  } else {
+    PRINT(stdout, "{} acquire\n", blocking ? "Failed to" : "Did not");
+  }
+  if (lock.acquired()) {
+    PRINT_RAW(stdout, "Releasing\n");
+    lock.release();
     PRINT_RAW(stdout, "Released\n");
   }
 }
