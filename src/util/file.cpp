@@ -296,7 +296,7 @@ nonstd::expected<void, std::string>
 write_fd(int fd, const void* data, size_t size)
 {
   int64_t written = 0;
-  do {
+  while (static_cast<size_t>(written) < size) {
     const auto count =
       write(fd, static_cast<const uint8_t*>(data) + written, size - written);
     if (count == -1) {
@@ -306,7 +306,7 @@ write_fd(int fd, const void* data, size_t size)
     } else {
       written += count;
     }
-  } while (static_cast<size_t>(written) < size);
+  }
   return {};
 }
 
