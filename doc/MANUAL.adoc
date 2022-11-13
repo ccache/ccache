@@ -1036,7 +1036,8 @@ NOTE: Lines in the stats log starting with a hash sign (`#`) are comments.
 *temporary_dir* (*CCACHE_TEMPDIR*)::
 
     This option specifies where ccache will put temporary files. The default is
-    `/run/user/<UID>/ccache-tmp` if `/run/user/<UID>` exists, otherwise
+    `$XDG_RUNTIME_DIR/ccache-tmp` (typically `/run/user/<UID>/ccache-tmp`) if
+    `XDG_RUNTIME_DIR` is set and the directory exists, otherwise
     `<cache_dir>/tmp`.
 +
 NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same

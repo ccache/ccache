@@ -1114,9 +1114,10 @@ std::string
 Config::default_temporary_dir() const
 {
   static const std::string run_user_tmp_dir = [] {
-#ifdef HAVE_GETEUID
-    if (Stat::stat("/run").is_directory()) {
-      auto dir = FMT("/run/user/{}/ccache-tmp", geteuid());
+#ifndef _WIN32
+    const char* const xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
+    if (xdg_runtime_dir && Stat::stat(xdg_runtime_dir).is_directory()) {
+      auto dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
       if (Util::create_dir(dir) && access(dir.c_str(), W_OK) == 0) {
         return dir;
       }

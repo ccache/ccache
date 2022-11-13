@@ -26,7 +26,6 @@ endforeach()
 include(CheckFunctionExists)
 set(functions
     asctime_r
-    geteuid
     getopt_long
     getpwuid
     posix_fallocate
