@@ -184,7 +184,7 @@ See also the manual on <https://ccache.dev/documentation.html>.
 )";
 
 const char options_string[] = "ab:hP:p:n:V";
-const option long_options[] = {{"auth", required_argument, nullptr, 'a'},
+const option long_options[] = {{"auth", no_argument, nullptr, 'a'},
                                {"bind", required_argument, nullptr, 'b'},
                                {"help", no_argument, nullptr, 'h'},
                                {"passwd", required_argument, nullptr, 'P'},
@@ -224,6 +224,7 @@ main(int argc, char* const* argv)
     case 'a': // --auth
       auth = true;
       break;
+
     case 'b': // --bind
       bind = arg;
       break;
