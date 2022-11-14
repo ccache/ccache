@@ -256,6 +256,34 @@ TEST_CASE("Util::format_base32hex")
   CHECK(Util::format_base32hex(input, 6) == "cpnmuoj1e8");
 }
 
+TEST_CASE("Util::format_human_readable_diff")
+{
+  CHECK(Util::format_human_readable_diff(0) == "0 bytes");
+  CHECK(Util::format_human_readable_diff(1) == "+1 byte");
+  CHECK(Util::format_human_readable_diff(42) == "+42 bytes");
+  CHECK(Util::format_human_readable_diff(1949) == "+1.9 kB");
+  CHECK(Util::format_human_readable_diff(1951) == "+2.0 kB");
+  CHECK(Util::format_human_readable_diff(499.7 * 1000) == "+499.7 kB");
+  CHECK(Util::format_human_readable_diff(1000 * 1000) == "+1.0 MB");
+  CHECK(Util::format_human_readable_diff(1234 * 1000) == "+1.2 MB");
+  CHECK(Util::format_human_readable_diff(438.5 * 1000 * 1000) == "+438.5 MB");
+  CHECK(Util::format_human_readable_diff(1000 * 1000 * 1000) == "+1.0 GB");
+  CHECK(Util::format_human_readable_diff(17.11 * 1000 * 1000 * 1000)
+        == "+17.1 GB");
+
+  CHECK(Util::format_human_readable_diff(-1) == "-1 byte");
+  CHECK(Util::format_human_readable_diff(-42) == "-42 bytes");
+  CHECK(Util::format_human_readable_diff(-1949) == "-1.9 kB");
+  CHECK(Util::format_human_readable_diff(-1951) == "-2.0 kB");
+  CHECK(Util::format_human_readable_diff(-499.7 * 1000) == "-499.7 kB");
+  CHECK(Util::format_human_readable_diff(-1000 * 1000) == "-1.0 MB");
+  CHECK(Util::format_human_readable_diff(-1234 * 1000) == "-1.2 MB");
+  CHECK(Util::format_human_readable_diff(-438.5 * 1000 * 1000) == "-438.5 MB");
+  CHECK(Util::format_human_readable_diff(-1000 * 1000 * 1000) == "-1.0 GB");
+  CHECK(Util::format_human_readable_diff(-17.11 * 1000 * 1000 * 1000)
+        == "-17.1 GB");
+}
+
 TEST_CASE("Util::format_human_readable_size")
 {
   CHECK(Util::format_human_readable_size(0) == "0 bytes");

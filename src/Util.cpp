@@ -556,6 +556,13 @@ format_base32hex(const uint8_t* data, size_t size)
 }
 
 std::string
+format_human_readable_diff(int64_t diff)
+{
+  const char* sign = diff == 0 ? "" : (diff > 0 ? "+" : "-");
+  return FMT("{}{}", sign, format_human_readable_size(std::abs(diff)));
+}
+
+std::string
 format_human_readable_size(uint64_t size)
 {
   if (size >= 1000 * 1000 * 1000) {

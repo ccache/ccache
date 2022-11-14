@@ -143,6 +143,9 @@ std::string format_base16(const uint8_t* data, size_t size);
 // padding characters will be added.
 std::string format_base32hex(const uint8_t* data, size_t size);
 
+// Format `diff` as a human-readable string.
+std::string format_human_readable_diff(int64_t diff);
+
 // Format `size` as a human-readable string.
 std::string format_human_readable_size(uint64_t size);
 
