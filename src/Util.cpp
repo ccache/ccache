@@ -486,7 +486,8 @@ fallocate(int fd, long new_size)
   if (posix_fallocate_err == 0 || posix_fallocate_err != EINVAL) {
     return posix_fallocate_err;
   }
-  //  the underlying filesystem does not support the operation so fallback to lseeks 
+  // the underlying filesystem does not support the operation so fallback to
+  // lseeks 
 #endif
   off_t saved_pos = lseek(fd, 0, SEEK_END);
   off_t old_size = lseek(fd, 0, SEEK_END);
