@@ -74,7 +74,7 @@ TEST_CASE("Test disabled")
   Config config;
   init(config);
   config.set_inode_cache(false);
-  InodeCache inode_cache(config);
+  InodeCache inode_cache(config, util::Duration(0));
 
   Digest digest;
   int return_value;
@@ -99,7 +99,7 @@ TEST_CASE("Test lookup nonexistent")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config);
+  InodeCache inode_cache(config, util::Duration(0));
   util::write_file("a", "");
 
   Digest digest;
@@ -121,7 +121,7 @@ TEST_CASE("Test put and lookup")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config);
+  InodeCache inode_cache(config, util::Duration(0));
   util::write_file("a", "a text");
 
   CHECK(put(inode_cache, "a", "a text", 1));
@@ -169,7 +169,7 @@ TEST_CASE("Drop file")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config);
+  InodeCache inode_cache(config, util::Duration(0));
 
   Digest digest;
 
@@ -187,7 +187,7 @@ TEST_CASE("Test content type")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config);
+  InodeCache inode_cache(config, util::Duration(0));
   util::write_file("a", "a text");
   Digest binary_digest = Hash().hash("binary").digest();
   Digest code_digest = Hash().hash("code").digest();

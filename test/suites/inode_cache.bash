@@ -19,6 +19,11 @@ SUITE_inode_cache_SETUP() {
     export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
     export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"  # isolate inode cache file
+
+    # Disable safety guard against race condition in InodeCache. This is OK
+    # since files used in the tests have different sizes and thus will have
+    # different cache keys even if ctime/mtime are not updated quickly enough.
+    export CCACHE_DISABLE_INODE_CACHE_MIN_AGE=1
 }
 
 SUITE_inode_cache() {

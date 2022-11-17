@@ -29,6 +29,8 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/TimePoint.hpp>
+
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/mman.h>
@@ -225,6 +227,13 @@ InodeCache::hash_inode(const std::string& path,
     return false;
   }
 
+  // See comment for InodeCache::InodeCache why this check is done.
+  auto now = util::TimePoint::now();
+  if (now - stat.ctime() < m_min_age || now - stat.mtime() < m_min_age) {
+    LOG("Too new ctime or mtime of {}, not considering for inode cache", path);
+    return false;
+  }
+
   Key key;
   memset(&key, 0, sizeof(Key));
   key.type = type;
@@ -375,7 +384,12 @@ InodeCache::initialize()
   return false;
 }
 
-InodeCache::InodeCache(const Config& config) : m_config(config)
+InodeCache::InodeCache(const Config& config, util::Duration min_age)
+  : m_config(config),
+    // CCACHE_DISABLE_INODE_CACHE_MIN_AGE is only for testing purposes; see
+    // test/suites/inode_cache.bash.
+    m_min_age(getenv("CCACHE_DISABLE_INODE_CACHE_MIN_AGE") ? util::Duration(0)
+                                                           : min_age)
 {
 }
 
