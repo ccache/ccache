@@ -49,7 +49,7 @@ public:
   //
   // 1. A file is written with content C1, size S and timestamp (ctime/mtime) T.
   // 2. Ccache hashes the file content and asks the inode cache to store the
-  //    digest with a hash of S and T (and some other dataa) as the key.
+  //    digest with a hash of S and T (and some other data) as the key.
   // 3. The file is quickly thereafter written with content C2 without changing
   //    size S and timestamp T. The timestamp is not updated since the file
   //    writes are made within a time interval smaller than the granularity of
