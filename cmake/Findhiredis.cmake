@@ -33,7 +33,7 @@ if(HIREDIS_INCLUDE_DIR AND HIREDIS_LIBRARY)
 elseif(HIREDIS_FROM_INTERNET)
   message(STATUS "*** WARNING ***: Using hiredis from the internet because it was NOT found and HIREDIS_FROM_INTERNET is TRUE")
 
-  set(hiredis_version "1.0.2")
+  set(hiredis_version "1.1.0")
 
   set(hiredis_dir   ${CMAKE_BINARY_DIR}/hiredis-${hiredis_version})
   set(hiredis_build ${CMAKE_BINARY_DIR}/hiredis-build)
@@ -43,7 +43,7 @@ elseif(HIREDIS_FROM_INTERNET)
   FetchContent_Declare(
     hiredis
     URL         https://github.com/redis/hiredis/archive/v${hiredis_version}.tar.gz
-    URL_HASH    SHA256=e0ab696e2f07deb4252dda45b703d09854e53b9703c7d52182ce5a22616c3819
+    URL_HASH    SHA256=fe6d21741ec7f3fc9df409d921f47dfc73a4d8ff64f4ac6f1d95f951bf7f53d6
     SOURCE_DIR  ${hiredis_dir}
     BINARY_DIR  ${hiredis_build}
   )
