@@ -1,5 +1,64 @@
 = Ccache news
 
+== Ccache 4.7.4
+
+Release date: 2022-11-21
+
+
+=== Bug fixes
+
+- Fixed an inode cache race condition. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- The default temporary directory is now `$XDG_RUNTIME_DIR/ccache-tmp` instead
+  of a hardcoded `/run/user/<UID>/ccache-tmp`. If `XDG_RUNTIME_DIR` is not set,
+  `<cache_dir>/tmp` is used. This avoids creating `/run/user/<UID>` on systems
+  that don't have it if compiling as root. +
+  [small]#_[contributed by Joel Rosdahl and Oleg Sidorkin]_#
+
+- Added a fallback in case `posix_fallocate` returns `EINVAL` when creating the
+  inode cache file. +
+  [small]#_[contributed by Oleg Sidorkin]_#
+
+- Connection timeout for an HTTP connection is now reported as a timeout instead
+  of an error. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Temporary files found in the cache are no longer counted in
+  `--show-compression`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Removed duplicate magic header in output from `--inspect`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Ccache now properly waits for all recompression jobs to finish when there is
+  no `f` subdirectory in the cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Other minor improvements
+
+- Improved inode cache logging. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Removed stray parenthesis. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved description of how header files are handled. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a hint about using `-fno-pch-timestamp` for precompiled headers with
+  Clang. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Removed obsolete description of compiler type "`pump`". +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+
 == Ccache 4.7.3
 
 Release date: 2022-11-05
