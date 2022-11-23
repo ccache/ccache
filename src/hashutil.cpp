@@ -93,14 +93,14 @@ check_for_temporal_macros_helper(std::string_view str, size_t pos)
 }
 
 int
-check_for_temporal_macros_bmh(std::string_view str)
+check_for_temporal_macros_bmh(std::string_view str, size_t start = 0)
 {
   int result = 0;
 
   // We're using the Boyer-Moore-Horspool algorithm, which searches starting
   // from the *end* of the needle. Our needles are 8 characters long, so i
   // starts at 7.
-  size_t i = 7;
+  size_t i = start + 7;
 
   while (i < str.length()) {
     // Check whether the substring ending at str[i] has the form "_....E..". On
@@ -173,7 +173,7 @@ check_for_temporal_macros_avx2(std::string_view str)
     }
   }
 
-  result |= check_for_temporal_macros_bmh(str.substr(pos));
+  result |= check_for_temporal_macros_bmh(str, pos);
 
   return result;
 }

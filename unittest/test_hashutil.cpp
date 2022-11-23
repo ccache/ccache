@@ -167,6 +167,10 @@ TEST_CASE("check_for_temporal_macros")
     "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
     "__DATE__";
 
+  const std::string_view no_temporal_at_avx_boundary =
+    "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
+    "a__DATE__";
+
   CHECK(check_for_temporal_macros(time_start));
   CHECK(!check_for_temporal_macros(time_start.substr(1)));
 
@@ -226,8 +230,11 @@ TEST_CASE("check_for_temporal_macros")
   CHECK(!check_for_temporal_macros(no_temporal.substr(6)));
   CHECK(!check_for_temporal_macros(no_temporal.substr(7)));
 
-  for (size_t i = 0; i < sizeof(temporal_at_avx_boundary) - 8; ++i) {
+  for (size_t i = 0; i < temporal_at_avx_boundary.size() - 8; ++i) {
     CHECK(check_for_temporal_macros(temporal_at_avx_boundary.substr(i)));
+  }
+  for (size_t i = 0; i < no_temporal_at_avx_boundary.size() - 8; ++i) {
+    CHECK(!check_for_temporal_macros(no_temporal_at_avx_boundary.substr(i)));
   }
 }
 
