@@ -366,7 +366,7 @@ LongLivedLockFile::on_after_acquire()
   }
 
   LOG_RAW("Starting keep-alive thread");
-  m_keep_alive_thread = std::thread([=] {
+  m_keep_alive_thread = std::thread([&] {
     while (true) {
       std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
       m_stop_keep_alive_condition.wait_for(
