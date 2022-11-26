@@ -114,7 +114,7 @@ Common options:
         --recompress-threads THREADS
                                use up to THREADS threads when recompressing the
                                cache; default: number of CPUs
-    -o, --set-config KEY=VAL   set configuration item KEY to value VAL
+    -o, --set-config KEY=VAL   set configuration option KEY to value VAL
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
                                human-readable format
