@@ -25,12 +25,12 @@
 namespace storage::local {
 
 void
-for_each_level_1_subdir(const std::string& cache_dir,
-                        const SubdirVisitor& visitor,
-                        const ProgressReceiver& progress_receiver)
+for_each_cache_subdir(const std::string& cache_dir,
+                      const ProgressReceiver& progress_receiver,
+                      const SubdirVisitor& visitor)
 {
-  for (int i = 0; i <= 0xF; i++) {
-    double progress = 1.0 * i / 16;
+  for (uint8_t i = 0; i < 16; ++i) {
+    double progress = i / 16.0;
     progress_receiver(progress);
     std::string subdir_path = FMT("{}/{:x}", cache_dir, i);
     visitor(subdir_path, [&](double inner_progress) {
@@ -54,16 +54,13 @@ for_each_level_1_and_2_stats_file(
 }
 
 std::vector<Stat>
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver)
+get_cache_dir_files(const std::string& dir)
 {
   std::vector<Stat> files;
 
   if (!Stat::stat(dir)) {
     return files;
   }
-
-  size_t level_2_directories = 0;
 
   Util::traverse(dir, [&](const std::string& path, bool is_dir) {
     auto name = Util::base_name(path);
@@ -74,14 +71,9 @@ get_level_1_files(const std::string& dir,
 
     if (!is_dir) {
       files.emplace_back(Stat::lstat(path));
-    } else if (path != dir
-               && path.find('/', dir.size() + 1) == std::string::npos) {
-      ++level_2_directories;
-      progress_receiver(level_2_directories / 16.0);
     }
   });
 
-  progress_receiver(1.0);
   return files;
 }
 

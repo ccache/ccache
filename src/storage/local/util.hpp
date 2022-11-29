@@ -30,22 +30,16 @@ using ProgressReceiver = std::function<void(double progress)>;
 using SubdirVisitor = std::function<void(
   const std::string& dir_path, const ProgressReceiver& progress_receiver)>;
 
-// Call a function for each subdir (0-9a-f) in the cache.
-//
-// Parameters:
-// - cache_dir: Path to the cache directory.
-// - visitor: Function to call with directory path and progress_receiver as
-//   arguments.
-// - progress_receiver: Function that will be called for progress updates.
-void for_each_level_1_subdir(const std::string& cache_dir,
-                             const SubdirVisitor& visitor,
-                             const ProgressReceiver& progress_receiver);
+// Call `visitor` for each subdirectory (0-9a-f) in `cache_dir`.
+void for_each_cache_subdir(const std::string& cache_dir,
+                           const ProgressReceiver& progress_receiver,
+                           const SubdirVisitor& visitor);
 
 void for_each_level_1_and_2_stats_file(
   const std::string& cache_dir,
   const std::function<void(const std::string& path)> function);
 
-// Get a list of files in a level 1 subdirectory of the cache.
+// Get a list of files in a subdirectory of the cache.
 //
 // The function works under the assumption that directory entries with one
 // character names (except ".") are subdirectories and that there are no other
@@ -55,11 +49,6 @@ void for_each_level_1_and_2_stats_file(
 // - CACHEDIR.TAG
 // - stats
 // - .nfs* (temporary NFS files that may be left for open but deleted files).
-//
-// Parameters:
-// - dir: The directory to traverse recursively.
-// - progress_receiver: Function that will be called for progress updates.
-std::vector<Stat> get_level_1_files(const std::string& dir,
-                                    const ProgressReceiver& progress_receiver);
+std::vector<Stat> get_cache_dir_files(const std::string& dir);
 
 } // namespace storage::local

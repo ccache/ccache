@@ -87,6 +87,37 @@ const uint8_t k_min_cache_levels = 2;
 // k_max_cache_files_per_directory.
 const uint8_t k_max_cache_levels = 4;
 
+namespace {
+
+struct SubdirCounters
+{
+  uint64_t files = 0;
+  uint64_t size = 0;
+  uint64_t cleanups_performed = 0;
+
+  SubdirCounters&
+  operator+=(const SubdirCounters& other)
+  {
+    files += other.files;
+    size += other.size;
+    cleanups_performed += other.cleanups_performed;
+    return *this;
+  }
+};
+
+} // namespace
+
+static void
+set_counters(const std::string& level_1_dir, const SubdirCounters& level_1_cs)
+{
+  const std::string stats_file = level_1_dir + "/stats";
+  StatsFile(stats_file).update([&](auto& cs) {
+    cs.increment(Statistic::cleanups_performed, level_1_cs.cleanups_performed);
+    cs.set(Statistic::files_in_cache, level_1_cs.files);
+    cs.set(Statistic::cache_size_kibibyte, level_1_cs.size / 1024);
+  });
+}
+
 static std::string
 suffix_from_type(const core::CacheEntryType type)
 {
@@ -112,6 +143,138 @@ calculate_wanted_cache_level(const uint64_t files_in_level_1)
     files_per_directory /= 16;
   }
   return k_max_cache_levels;
+}
+
+static void
+delete_file(const std::string& path,
+            const uint64_t size,
+            uint64_t* cache_size,
+            uint64_t* files_in_cache)
+{
+  const bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
+  if (!deleted && errno != ENOENT && errno != ESTALE) {
+    LOG("Failed to unlink {} ({})", path, strerror(errno));
+  } else if (cache_size && files_in_cache) {
+    // The counters are intentionally subtracted even if there was no file to
+    // delete since the final cache size calculation will be incorrect if they
+    // aren't. (This can happen when there are several parallel ongoing
+    // cleanups of the same directory.)
+    *cache_size -= size;
+    --*files_in_cache;
+  }
+}
+
+static SubdirCounters
+clean_dir(const std::string& subdir,
+          const uint64_t max_size,
+          const uint64_t max_files,
+          const std::optional<uint64_t> max_age,
+          const std::optional<std::string> namespace_,
+          const ProgressReceiver& progress_receiver)
+{
+  LOG("Cleaning up cache directory {}", subdir);
+
+  auto files = get_cache_dir_files(subdir);
+  progress_receiver(1.0 / 3);
+
+  uint64_t cache_size = 0;
+  uint64_t files_in_cache = 0;
+  auto current_time = util::TimePoint::now();
+  std::unordered_map<std::string /*result_file*/,
+                     std::vector<std::string> /*associated_raw_files*/>
+    raw_files_map;
+
+  for (size_t i = 0; i < files.size();
+       ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
+    const auto& file = files[i];
+
+    if (!file.is_regular()) {
+      // Not a file or missing file.
+      continue;
+    }
+
+    // Delete any tmp files older than 1 hour right away.
+    if (file.mtime() + util::Duration(3600) < current_time
+        && TemporaryFile::is_tmp_file(file.path())) {
+      Util::unlink_tmp(file.path());
+      continue;
+    }
+
+    if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
+      const auto result_filename =
+        FMT("{}R", file.path().substr(0, file.path().length() - 2));
+      raw_files_map[result_filename].push_back(file.path());
+    }
+
+    cache_size += file.size_on_disk();
+    files_in_cache += 1;
+  }
+
+  // Sort according to modification time, oldest first.
+  std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
+    return f1.mtime() < f2.mtime();
+  });
+
+  LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
+      static_cast<double>(cache_size) / 1024,
+      static_cast<double>(files_in_cache));
+
+  bool cleaned = false;
+  for (size_t i = 0; i < files.size();
+       ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
+    const auto& file = files[i];
+
+    if (!file || file.is_directory()) {
+      continue;
+    }
+
+    if ((max_size == 0 || cache_size <= max_size)
+        && (max_files == 0 || files_in_cache <= max_files)
+        && (!max_age
+            || file.mtime() > (current_time - util::Duration(*max_age)))
+        && (!namespace_ || max_age)) {
+      break;
+    }
+
+    if (namespace_) {
+      try {
+        core::CacheEntry::Header header(file.path());
+        if (header.namespace_ != *namespace_) {
+          continue;
+        }
+      } catch (core::Error&) {
+        // Failed to read header: ignore.
+        continue;
+      }
+
+      // For namespace eviction we need to remove raw files based on result
+      // filename since they don't have a header.
+      if (file_type_from_path(file.path()) == FileType::result) {
+        const auto entry = raw_files_map.find(file.path());
+        if (entry != raw_files_map.end()) {
+          for (const auto& raw_file : entry->second) {
+            delete_file(raw_file,
+                        Stat::lstat(raw_file).size_on_disk(),
+                        &cache_size,
+                        &files_in_cache);
+          }
+        }
+      }
+    }
+
+    delete_file(file.path(), file.size_on_disk(), &cache_size, &files_in_cache);
+    cleaned = true;
+  }
+
+  LOG("After cleanup: {:.0f} KiB, {:.0f} files",
+      static_cast<double>(cache_size) / 1024,
+      static_cast<double>(files_in_cache));
+
+  if (cleaned) {
+    LOG("Cleaned up cache directory {}", subdir);
+  }
+
+  return SubdirCounters{files_in_cache, cache_size, cleaned ? 1U : 0U};
 }
 
 FileType
@@ -204,13 +367,14 @@ LocalStorage::finalize()
   if (need_cleanup) {
     const double factor = m_config.limit_multiple() / 16;
     const uint64_t max_size = round(m_config.max_size() * factor);
-    const uint32_t max_files = round(m_config.max_files() * factor);
-    clean_dir(subdir,
-              max_size,
-              max_files,
-              std::nullopt,
-              std::nullopt,
-              [](double /*progress*/) {});
+    const uint64_t max_files = round(m_config.max_files() * factor);
+    auto level_1_cs = clean_dir(subdir,
+                                max_size,
+                                max_files,
+                                std::nullopt,
+                                std::nullopt,
+                                [](double /*progress*/) {});
+    set_counters(subdir, level_1_cs);
   }
 }
 
@@ -432,213 +596,86 @@ LocalStorage::get_all_statistics() const
   return std::make_pair(counters, last_updated);
 }
 
-static void
-delete_file(const std::string& path,
-            const uint64_t size,
-            uint64_t* cache_size,
-            uint64_t* files_in_cache)
-{
-  const bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
-  if (!deleted && errno != ENOENT && errno != ESTALE) {
-    LOG("Failed to unlink {} ({})", path, strerror(errno));
-  } else if (cache_size && files_in_cache) {
-    // The counters are intentionally subtracted even if there was no file to
-    // delete since the final cache size calculation will be incorrect if they
-    // aren't. (This can happen when there are several parallel ongoing
-    // cleanups of the same directory.)
-    *cache_size -= size;
-    --*files_in_cache;
-  }
-}
-
-static void
-update_counters(const std::string& dir,
-                const uint64_t files_in_cache,
-                const uint64_t cache_size,
-                const bool cleanup_performed)
-{
-  const std::string stats_file = dir + "/stats";
-  StatsFile(stats_file).update([=](auto& cs) {
-    if (cleanup_performed) {
-      cs.increment(Statistic::cleanups_performed);
-    }
-    cs.set(Statistic::files_in_cache, files_in_cache);
-    cs.set(Statistic::cache_size_kibibyte, cache_size / 1024);
-  });
-}
-
 void
 LocalStorage::evict(const ProgressReceiver& progress_receiver,
                     std::optional<uint64_t> max_age,
                     std::optional<std::string> namespace_)
 {
-  for_each_level_1_subdir(
+  for_each_cache_subdir(
     m_config.cache_dir(),
-    [&](const std::string& subdir,
-        const ProgressReceiver& sub_progress_receiver) {
-      clean_dir(subdir, 0, 0, max_age, namespace_, sub_progress_receiver);
-    },
-    progress_receiver);
-}
+    progress_receiver,
+    [&](const auto& level_1_dir, const auto& level_1_progress_receiver) {
+      SubdirCounters counters;
+      for_each_cache_subdir(
+        level_1_dir,
+        level_1_progress_receiver,
+        [&](const std::string& level_2_dir,
+            const ProgressReceiver& level_2_progress_receiver) {
+          counters += clean_dir(
+            level_2_dir, 0, 0, max_age, namespace_, level_2_progress_receiver);
+        });
 
-// Clean up one cache subdirectory.
-void
-LocalStorage::clean_dir(const std::string& subdir,
-                        const uint64_t max_size,
-                        const uint64_t max_files,
-                        const std::optional<uint64_t> max_age,
-                        const std::optional<std::string> namespace_,
-                        const ProgressReceiver& progress_receiver)
-{
-  LOG("Cleaning up cache directory {}", subdir);
-
-  auto files = get_level_1_files(
-    subdir, [&](double progress) { progress_receiver(progress / 3); });
-
-  uint64_t cache_size = 0;
-  uint64_t files_in_cache = 0;
-  auto current_time = util::TimePoint::now();
-  std::unordered_map<std::string /*result_file*/,
-                     std::vector<std::string> /*associated_raw_files*/>
-    raw_files_map;
-
-  for (size_t i = 0; i < files.size();
-       ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
-    const auto& file = files[i];
-
-    if (!file.is_regular()) {
-      // Not a file or missing file.
-      continue;
-    }
-
-    // Delete any tmp files older than 1 hour right away.
-    if (file.mtime() + util::Duration(3600) < current_time
-        && TemporaryFile::is_tmp_file(file.path())) {
-      Util::unlink_tmp(file.path());
-      continue;
-    }
-
-    if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
-      const auto result_filename =
-        FMT("{}R", file.path().substr(0, file.path().length() - 2));
-      raw_files_map[result_filename].push_back(file.path());
-    }
-
-    cache_size += file.size_on_disk();
-    files_in_cache += 1;
-  }
-
-  // Sort according to modification time, oldest first.
-  std::sort(files.begin(), files.end(), [](const auto& f1, const auto& f2) {
-    return f1.mtime() < f2.mtime();
-  });
-
-  LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
-      static_cast<double>(cache_size) / 1024,
-      static_cast<double>(files_in_cache));
-
-  bool cleaned = false;
-  for (size_t i = 0; i < files.size();
-       ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
-    const auto& file = files[i];
-
-    if (!file || file.is_directory()) {
-      continue;
-    }
-
-    if ((max_size == 0 || cache_size <= max_size)
-        && (max_files == 0 || files_in_cache <= max_files)
-        && (!max_age
-            || file.mtime() > (current_time - util::Duration(*max_age)))
-        && (!namespace_ || max_age)) {
-      break;
-    }
-
-    if (namespace_) {
-      try {
-        core::CacheEntry::Header header(file.path());
-        if (header.namespace_ != *namespace_) {
-          continue;
-        }
-      } catch (core::Error&) {
-        // Failed to read header: ignore.
-        continue;
-      }
-
-      // For namespace eviction we need to remove raw files based on result
-      // filename since they don't have a header.
-      if (file_type_from_path(file.path()) == FileType::result) {
-        const auto entry = raw_files_map.find(file.path());
-        if (entry != raw_files_map.end()) {
-          for (const auto& raw_file : entry->second) {
-            delete_file(raw_file,
-                        Stat::lstat(raw_file).size_on_disk(),
-                        &cache_size,
-                        &files_in_cache);
-          }
-        }
-      }
-    }
-
-    delete_file(file.path(), file.size_on_disk(), &cache_size, &files_in_cache);
-    cleaned = true;
-  }
-
-  LOG("After cleanup: {:.0f} KiB, {:.0f} files",
-      static_cast<double>(cache_size) / 1024,
-      static_cast<double>(files_in_cache));
-
-  if (cleaned) {
-    LOG("Cleaned up cache directory {}", subdir);
-  }
-
-  update_counters(subdir, files_in_cache, cache_size, cleaned);
+      set_counters(level_1_dir, counters);
+    });
 }
 
 // Clean up all cache subdirectories.
 void
 LocalStorage::clean_all(const ProgressReceiver& progress_receiver)
 {
-  for_each_level_1_subdir(
+  for_each_cache_subdir(
     m_config.cache_dir(),
-    [&](const std::string& subdir,
-        const ProgressReceiver& sub_progress_receiver) {
-      clean_dir(subdir,
-                m_config.max_size() / 16,
-                m_config.max_files() / 16,
-                std::nullopt,
-                std::nullopt,
-                sub_progress_receiver);
-    },
-    progress_receiver);
-}
-
-// Wipe one cache subdirectory.
-static void
-wipe_dir(const std::string& subdir, const ProgressReceiver& progress_receiver)
-{
-  LOG("Clearing out cache directory {}", subdir);
-
-  const auto files = get_level_1_files(
-    subdir, [&](double progress) { progress_receiver(progress / 2); });
-
-  for (size_t i = 0; i < files.size(); ++i) {
-    Util::unlink_safe(files[i].path());
-    progress_receiver(0.5 + 0.5 * i / files.size());
-  }
-
-  const bool cleared = !files.empty();
-  if (cleared) {
-    LOG("Cleared out cache directory {}", subdir);
-  }
-  update_counters(subdir, 0, 0, cleared);
+    progress_receiver,
+    [&](const auto& level_1_dir, const auto& level_1_progress_receiver) {
+      SubdirCounters counters;
+      for_each_cache_subdir(
+        level_1_dir,
+        level_1_progress_receiver,
+        [&](const std::string& level_2_dir,
+            const ProgressReceiver& level_2_progress_receiver) {
+          counters += clean_dir(level_2_dir,
+                                m_config.max_size() / 256,
+                                m_config.max_files() / 16,
+                                std::nullopt,
+                                std::nullopt,
+                                level_2_progress_receiver);
+        });
+      set_counters(level_1_dir, counters);
+    });
 }
 
 // Wipe all cached files in all subdirectories.
 void
 LocalStorage::wipe_all(const ProgressReceiver& progress_receiver)
 {
-  for_each_level_1_subdir(m_config.cache_dir(), wipe_dir, progress_receiver);
+  for_each_cache_subdir(
+    m_config.cache_dir(),
+    progress_receiver,
+    [&](const auto& level_1_dir, const auto& level_1_progress_receiver) {
+      uint64_t cleanups = 0;
+      for_each_cache_subdir(
+        level_1_dir,
+        level_1_progress_receiver,
+        [&](const std::string& level_2_dir,
+            const ProgressReceiver& level_2_progress_receiver) {
+          LOG("Clearing out cache directory {}", level_2_dir);
+
+          const auto files = get_cache_dir_files(level_2_dir);
+          level_2_progress_receiver(0.5);
+
+          for (size_t i = 0; i < files.size(); ++i) {
+            Util::unlink_safe(files[i].path());
+            level_2_progress_receiver(0.5 + 0.5 * i / files.size());
+          }
+
+          if (!files.empty()) {
+            ++cleanups;
+            LOG("Cleared out cache directory {}", level_2_dir);
+          }
+        });
+
+      set_counters(level_1_dir, SubdirCounters{0, 0, cleanups});
+    });
 }
 
 CompressionStatistics
@@ -647,28 +684,31 @@ LocalStorage::get_compression_statistics(
 {
   CompressionStatistics cs{};
 
-  for_each_level_1_subdir(
+  for_each_cache_subdir(
     m_config.cache_dir(),
-    [&](const auto& subdir, const auto& sub_progress_receiver) {
-      const auto files = get_level_1_files(
-        subdir, [&](double progress) { sub_progress_receiver(progress / 2); });
+    progress_receiver,
+    [&](const auto& level_1_dir, const auto& level_1_progress_receiver) {
+      for_each_cache_subdir(
+        level_1_dir,
+        level_1_progress_receiver,
+        [&](const auto& level_2_dir, const auto& level_2_progress_receiver) {
+          const auto files = get_cache_dir_files(level_2_dir);
+          level_2_progress_receiver(0.2);
 
-      for (size_t i = 0; i < files.size(); ++i) {
-        const auto& cache_file = files[i];
-        cs.on_disk_size += cache_file.size_on_disk();
-
-        try {
-          core::CacheEntry::Header header(cache_file.path());
-          cs.compr_size += cache_file.size();
-          cs.content_size += header.entry_size;
-        } catch (core::Error&) {
-          cs.incompr_size += cache_file.size();
-        }
-
-        sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
-      }
-    },
-    progress_receiver);
+          for (size_t i = 0; i < files.size(); ++i) {
+            const auto& cache_file = files[i];
+            cs.on_disk_size += cache_file.size_on_disk();
+            try {
+              core::CacheEntry::Header header(cache_file.path());
+              cs.compr_size += cache_file.size();
+              cs.content_size += header.entry_size;
+            } catch (core::Error&) {
+              cs.incompr_size += cache_file.size();
+            }
+            level_2_progress_receiver(0.2 + 0.8 * i / files.size());
+          }
+        });
+    });
 
   return cs;
 }
@@ -685,53 +725,59 @@ LocalStorage::recompress(const std::optional<int8_t> level,
 
   std::atomic<uint64_t> incompressible_size = 0;
 
-  for_each_level_1_subdir(
+  for_each_cache_subdir(
     m_config.cache_dir(),
-    [&](const auto& subdir, const auto& sub_progress_receiver) {
-      auto files = get_level_1_files(subdir, [&](double progress) {
-        sub_progress_receiver(0.1 * progress);
-      });
+    progress_receiver,
+    [&](const auto& level_1_dir, const auto& level_1_progress_receiver) {
+      for_each_cache_subdir(
+        level_1_dir,
+        level_1_progress_receiver,
+        [&](const auto& level_2_dir, const auto& level_2_progress_receiver) {
+          (void)level_2_progress_receiver;
+          (void)level_2_dir;
+          auto files = get_cache_dir_files(level_2_dir);
+          level_2_progress_receiver(0.1);
 
-      auto stats_file = subdir + "/stats";
+          auto stats_file = FMT("{}/stats", Util::dir_name(level_1_dir));
 
-      for (size_t i = 0; i < files.size(); ++i) {
-        const auto& file = files[i];
+          for (size_t i = 0; i < files.size(); ++i) {
+            const auto& file = files[i];
 
-        if (file_type_from_path(file.path()) != FileType::unknown) {
-          thread_pool.enqueue(
-            [&recompressor, &incompressible_size, level, stats_file, file] {
-              try {
-                Stat new_stat = recompressor.recompress(
-                  file, level, core::FileRecompressor::KeepAtime::no);
-                auto size_change_kibibyte =
-                  Util::size_change_kibibyte(file, new_stat);
-                if (size_change_kibibyte != 0) {
-                  StatsFile(stats_file).update([=](auto& cs) {
-                    cs.increment(core::Statistic::cache_size_kibibyte,
-                                 size_change_kibibyte);
-                  });
-                }
-              } catch (core::Error&) {
-                // Ignore for now.
-                incompressible_size += file.size_on_disk();
-              }
-            });
-        } else if (!TemporaryFile::is_tmp_file(file.path())) {
-          incompressible_size += file.size_on_disk();
-        }
+            if (file_type_from_path(file.path()) != FileType::unknown) {
+              thread_pool.enqueue(
+                [&recompressor, &incompressible_size, level, stats_file, file] {
+                  try {
+                    Stat new_stat = recompressor.recompress(
+                      file, level, core::FileRecompressor::KeepAtime::no);
+                    auto size_change_kibibyte =
+                      Util::size_change_kibibyte(file, new_stat);
+                    if (size_change_kibibyte != 0) {
+                      StatsFile(stats_file).update([=](auto& cs) {
+                        cs.increment(core::Statistic::cache_size_kibibyte,
+                                     size_change_kibibyte);
+                      });
+                    }
+                  } catch (core::Error&) {
+                    // Ignore for now.
+                    incompressible_size += file.size_on_disk();
+                  }
+                });
+            } else if (!TemporaryFile::is_tmp_file(file.path())) {
+              incompressible_size += file.size_on_disk();
+            }
 
-        sub_progress_receiver(0.1 + 0.9 * i / files.size());
-      }
+            level_2_progress_receiver(0.1 + 0.9 * i / files.size());
+          }
 
-      if (util::ends_with(subdir, "f")) {
-        // Wait here instead of after for_each_level_1_subdir to avoid
-        // updating the progress bar to 100% before all work is done.
-        thread_pool.shut_down();
-      }
-    },
-    progress_receiver);
+          if (util::ends_with(level_2_dir, "f/f")) {
+            // Wait here instead of after for_each_cache_subdir to avoid
+            // updating the progress bar to 100% before all work is done.
+            thread_pool.shut_down();
+          }
+        });
+    });
 
-  // In case there was no f subdir, shut down the thread pool now.
+  // In case there was no f/f subdir, shut down the thread pool now.
   thread_pool.shut_down();
 
   if (isatty(STDOUT_FILENO)) {

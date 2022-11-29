@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -156,13 +156,6 @@ private:
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
   std::string get_path_in_cache(uint8_t level, std::string_view name) const;
-
-  static void clean_dir(const std::string& subdir,
-                        uint64_t max_size,
-                        uint64_t max_files,
-                        std::optional<uint64_t> max_age,
-                        std::optional<std::string> namespace_,
-                        const ProgressReceiver& progress_receiver);
 };
 
 // --- Inline implementations ---

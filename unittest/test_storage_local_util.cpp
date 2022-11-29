@@ -19,6 +19,7 @@
 #include "TestUtil.hpp"
 
 #include <Util.hpp>
+#include <fmtmacros.hpp>
 #include <storage/local/util.hpp>
 #include <util/file.hpp>
 
@@ -41,13 +42,13 @@ os_path(std::string path)
 
 TEST_SUITE_BEGIN("storage::local::util");
 
-TEST_CASE("storage::local::for_each_level_1_subdir")
+TEST_CASE("storage::local::for_each_cache_subdir")
 {
   std::vector<std::string> actual;
-  storage::local::for_each_level_1_subdir(
+  storage::local::for_each_cache_subdir(
     "cache_dir",
-    [&](const auto& subdir, const auto&) { actual.push_back(subdir); },
-    [](double) {});
+    [](double) {},
+    [&](const auto& subdir, const auto&) { actual.push_back(subdir); });
 
   std::vector<std::string> expected = {
     "cache_dir/0",
@@ -70,7 +71,7 @@ TEST_CASE("storage::local::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
-TEST_CASE("storage::local::get_level_1_files")
+TEST_CASE("storage::local::get_cache_dir_files")
 {
   TestContext test_context;
 
@@ -83,23 +84,21 @@ TEST_CASE("storage::local::get_level_1_files")
   util::write_file("0/1/file_c", "12");
   util::write_file("0/f/c/file_d", "123");
 
-  auto null_receiver = [](double) {};
-
   SUBCASE("nonexistent subdirectory")
   {
-    const auto files = storage::local::get_level_1_files("2", null_receiver);
+    const auto files = storage::local::get_cache_dir_files("2");
     CHECK(files.empty());
   }
 
   SUBCASE("empty subdirectory")
   {
-    const auto files = storage::local::get_level_1_files("e", null_receiver);
+    const auto files = storage::local::get_cache_dir_files("e");
     CHECK(files.empty());
   }
 
   SUBCASE("simple case")
   {
-    auto files = storage::local::get_level_1_files("0", null_receiver);
+    auto files = storage::local::get_cache_dir_files("0");
     REQUIRE(files.size() == 4);
 
     // Files within a level are in arbitrary order, sort them to be able to
