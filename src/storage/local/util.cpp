@@ -40,6 +40,19 @@ for_each_level_1_subdir(const std::string& cache_dir,
   progress_receiver(1.0);
 }
 
+void
+for_each_level_1_and_2_stats_file(
+  const std::string& cache_dir,
+  const std::function<void(const std::string& path)> function)
+{
+  for (size_t level_1 = 0; level_1 <= 0xF; ++level_1) {
+    function(FMT("{}/{:x}/stats", cache_dir, level_1));
+    for (size_t level_2 = 0; level_2 <= 0xF; ++level_2) {
+      function(FMT("{}/{:x}/{:x}/stats", cache_dir, level_1, level_2));
+    }
+  }
+}
+
 std::vector<Stat>
 get_level_1_files(const std::string& dir,
                   const ProgressReceiver& progress_receiver)

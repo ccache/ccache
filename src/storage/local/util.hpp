@@ -41,6 +41,10 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+void for_each_level_1_and_2_stats_file(
+  const std::string& cache_dir,
+  const std::function<void(const std::string& path)> function);
+
 // Get a list of files in a level 1 subdirectory of the cache.
 //
 // The function works under the assumption that directory entries with one
