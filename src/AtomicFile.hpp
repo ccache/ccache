@@ -38,6 +38,7 @@ public:
 
   void write(std::string_view data);
   void write(nonstd::span<const uint8_t> data);
+  void flush();
 
   // Close the temporary file and rename it to the destination file. Note: The
   // destructor will not do this automatically to avoid half-written data in the

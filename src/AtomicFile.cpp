@@ -60,6 +60,15 @@ AtomicFile::write(nonstd::span<const uint8_t> data)
 }
 
 void
+AtomicFile::flush()
+{
+  if (fflush(m_stream) != 0) {
+    throw core::Error(
+      FMT("failed to flush data to {}: {}", m_path, strerror(errno)));
+  }
+}
+
+void
 AtomicFile::commit()
 {
   ASSERT(m_stream);
