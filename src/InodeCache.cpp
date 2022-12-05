@@ -33,6 +33,7 @@
 
 #include <fcntl.h>
 #include <libgen.h>
+#include <sched.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -67,7 +68,7 @@ namespace {
 // Note: The key is hashed using the main hash algorithm, so the version number
 // does not need to be incremented if said algorithm is changed (except if the
 // digest size changes since that affects the entry format).
-const uint32_t k_version = 1;
+const uint32_t k_version = 2;
 
 // Note: Increment the version number if constants affecting storage size are
 // changed.
@@ -87,6 +88,8 @@ static_assert(
   "Numeric value is part of key, increment version number if changed.");
 
 const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here
+
+const auto MAX_LOCK_DURATION = util::Duration(5);
 
 bool
 fd_is_on_known_to_work_file_system(int fd)
@@ -119,7 +122,10 @@ fd_is_on_known_to_work_file_system(int fd)
       // Is a filesystem you know works with the inode cache missing in this
       // list? Please submit an issue or pull request to the ccache project.
       "apfs",
+      "tmpfs",
+      "ufs",
       "xfs",
+      "zfs",
     };
     if (std::find(known_to_work_filesystems.begin(),
                   known_to_work_filesystems.end(),
@@ -138,6 +144,48 @@ fd_is_on_known_to_work_file_system(int fd)
     LOG_RAW("Not using the inode cache");
   }
   return known_to_work;
+}
+
+bool
+spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
+{
+  pid_t prev_pid = 0;
+  pid_t lock_pid = 0;
+  bool reset_timer = false;
+  util::TimePoint lock_time;
+  for (;;) {
+    for (int i = 0; i < 10000; ++i) {
+      lock_pid = owner_pid.load(std::memory_order_relaxed);
+      if (lock_pid == 0
+          && owner_pid.compare_exchange_weak(
+            lock_pid, self_pid, std::memory_order_acquire)) {
+        return false;
+      }
+
+      if (prev_pid != lock_pid) {
+        // Check for changing pid here so ABA locking is detected with better
+        // probability
+        prev_pid = lock_pid;
+        reset_timer = true;
+      }
+      sched_yield();
+    }
+    // If everything is ok, we should never hit this
+    if (reset_timer) {
+      lock_time = util::TimePoint::now();
+      reset_timer = false;
+    } else {
+      if (util::TimePoint::now() - lock_time > MAX_LOCK_DURATION) {
+        return true;
+      }
+    }
+  }
+}
+
+void
+spin_unlock(std::atomic<pid_t>& owner_pid)
+{
+  owner_pid.store(0, std::memory_order_release);
 }
 
 } // namespace
@@ -162,7 +210,7 @@ struct InodeCache::Entry
 
 struct InodeCache::Bucket
 {
-  pthread_mutex_t mt;
+  std::atomic<pid_t> owner_pid;
   Entry entries[k_num_entries];
 };
 
@@ -258,40 +306,25 @@ InodeCache::with_bucket(const Digest& key_digest,
   Util::big_endian_to_int(key_digest.bytes(), hash);
   const uint32_t index = hash % k_num_buckets;
   Bucket* bucket = &m_sr->buckets[index];
-  int err = pthread_mutex_lock(&bucket->mt);
-#ifdef HAVE_PTHREAD_MUTEX_ROBUST
-  if (err == EOWNERDEAD) {
+  bool broken_lock = spin_lock(bucket->owner_pid, m_self_pid);
+  while (broken_lock) {
+    LOG("Wiping inodes cache because of stale mutex at index {}", index);
+    if (!drop() || !initialize()) {
+      return false;
+    }
     if (m_config.debug()) {
       ++m_sr->errors;
     }
-    err = pthread_mutex_consistent(&bucket->mt);
-    if (err) {
-      LOG(
-        "Can't consolidate stale mutex at index {}: {}", index, strerror(err));
-      LOG_RAW("Consider removing the inode cache file if the problem persists");
-      return false;
-    }
-    LOG("Wiping bucket at index {} because of stale mutex", index);
-    memset(bucket->entries, 0, sizeof(Bucket::entries));
-  } else {
-#endif
-    if (err != 0) {
-      LOG("Failed to lock mutex at index {}: {}", index, strerror(err));
-      LOG_RAW("Consider removing the inode cache file if problem persists");
-      ++m_sr->errors;
-      return false;
-    }
-#ifdef HAVE_PTHREAD_MUTEX_ROBUST
+    bucket = &m_sr->buckets[index];
+    broken_lock = spin_lock(bucket->owner_pid, m_self_pid);
   }
-#endif
-
   try {
     bucket_handler(bucket);
   } catch (...) {
-    pthread_mutex_unlock(&bucket->mt);
+    spin_unlock(bucket->owner_pid);
     throw;
   }
-  pthread_mutex_unlock(&bucket->mt);
+  spin_unlock(bucket->owner_pid);
   return true;
 }
 
@@ -326,14 +359,9 @@ InodeCache::create_new_file(const std::string& filename)
 
   // Initialize new shared region.
   sr->version = k_version;
-  pthread_mutexattr_t mattr;
-  pthread_mutexattr_init(&mattr);
-  pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-#ifdef HAVE_PTHREAD_MUTEX_ROBUST
-  pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
-#endif
   for (auto& bucket : sr->buckets) {
-    pthread_mutex_init(&bucket.mt, &mattr);
+    bucket.owner_pid = 0;
+    memset(bucket.entries, 0, sizeof(Bucket::entries));
   }
 
   munmap(sr, sizeof(SharedRegion));
@@ -389,7 +417,8 @@ InodeCache::InodeCache(const Config& config, util::Duration min_age)
     // CCACHE_DISABLE_INODE_CACHE_MIN_AGE is only for testing purposes; see
     // test/suites/inode_cache.bash.
     m_min_age(getenv("CCACHE_DISABLE_INODE_CACHE_MIN_AGE") ? util::Duration(0)
-                                                           : min_age)
+                                                           : min_age),
+    m_self_pid(getpid())
 {
 }
 
@@ -498,7 +527,7 @@ bool
 InodeCache::drop()
 {
   std::string file = get_file();
-  if (unlink(file.c_str()) != 0) {
+  if (unlink(file.c_str()) != 0 && errno != ENOENT) {
     return false;
   }
   LOG("Dropped inode cache {}", file);

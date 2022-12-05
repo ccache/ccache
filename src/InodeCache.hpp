@@ -132,4 +132,5 @@ private:
   util::Duration m_min_age;
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
+  const pid_t m_self_pid;
 };
