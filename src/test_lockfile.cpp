@@ -20,6 +20,7 @@
 #include <Logging.hpp>
 #include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
+#include <util/LongLivedLockFileManager.hpp>
 #include <util/string.hpp>
 
 #include <memory>
@@ -41,16 +42,19 @@ main(int argc, char** argv)
 
   const std::string path(argv[1]);
   const auto seconds = util::parse_signed(argv[2]);
-  const auto lock_type = std::string(argv[3]) == "long"
-                           ? util::LockFile::Type::long_lived
-                           : util::LockFile::Type::short_lived;
+  const bool long_lived = std::string(argv[3]) == "long";
   const bool blocking = std::string(argv[4]) == "blocking";
   if (!seconds) {
     PRINT_RAW(stderr, "Error: Failed to parse seconds\n");
     return 1;
   }
 
-  util::LockFile lock(path, lock_type);
+  std::unique_ptr<util::LongLivedLockFileManager> lock_manager;
+  util::LockFile lock(path);
+  if (long_lived) {
+    lock_manager = std::make_unique<util::LongLivedLockFileManager>();
+    lock.make_long_lived(*lock_manager);
+  }
   if (blocking) {
     PRINT_RAW(stdout, "Acquiring\n");
     lock.acquire();

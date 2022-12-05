@@ -2,6 +2,7 @@ set(
   sources
   Bytes.cpp
   LockFile.cpp
+  LongLivedLockFileManager.cpp
   TextTable.cpp
   TimePoint.cpp
   Tokenizer.cpp

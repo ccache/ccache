@@ -62,7 +62,7 @@ std::optional<core::StatisticsCounters>
 StatsFile::update(
   std::function<void(core::StatisticsCounters& counters)> function) const
 {
-  util::ShortLivedLockFile lock(m_path);
+  util::LockFile lock(m_path);
   if (!lock.acquire()) {
     LOG("Failed to acquire lock for {}", m_path);
     return std::nullopt;

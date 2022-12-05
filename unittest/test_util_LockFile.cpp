@@ -40,7 +40,7 @@ TEST_CASE("Acquire and release short-lived lock file")
 {
   TestContext test_context;
 
-  util::ShortLivedLockFile lock("test");
+  util::LockFile lock("test");
   {
     CHECK(!lock.acquired());
     CHECK(!Stat::lstat("test.lock"));
@@ -69,10 +69,10 @@ TEST_CASE("Non-blocking short-lived lock")
 {
   TestContext test_context;
 
-  util::ShortLivedLockFile lock_file_1("test");
+  util::LockFile lock_file_1("test");
   CHECK(!lock_file_1.acquired());
 
-  util::ShortLivedLockFile lock_file_2("test");
+  util::LockFile lock_file_2("test");
   CHECK(!lock_file_2.acquired());
 
   CHECK(lock_file_1.try_acquire());
@@ -95,7 +95,9 @@ TEST_CASE("Acquire and release long-lived lock file")
 {
   TestContext test_context;
 
-  util::LongLivedLockFile lock("test");
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("test");
+  lock.make_long_lived(lock_manager);
   {
     CHECK(!lock.acquired());
     CHECK(!Stat::lstat("test.lock"));
@@ -126,7 +128,9 @@ TEST_CASE("LockFile creates missing directories")
 {
   TestContext test_context;
 
-  util::ShortLivedLockFile lock("a/b/c/test");
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("a/b/c/test");
+  lock.make_long_lived(lock_manager);
   CHECK(lock.acquire());
   CHECK(Stat::lstat("a/b/c/test.lock"));
 }
@@ -141,7 +145,9 @@ TEST_CASE("Break stale lock, blocking")
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 
-  util::LongLivedLockFile lock("test");
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("test");
+  lock.make_long_lived(lock_manager);
   CHECK(lock.acquire());
 }
 
@@ -154,7 +160,9 @@ TEST_CASE("Break stale lock, non-blocking")
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 
-  util::LongLivedLockFile lock("test");
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("test");
+  lock.make_long_lived(lock_manager);
   CHECK(lock.try_acquire());
   CHECK(lock.acquired());
 }

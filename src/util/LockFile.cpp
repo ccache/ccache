@@ -42,7 +42,6 @@ const double k_min_sleep_time = 0.010;
 const double k_max_sleep_time = 0.050;
 #ifndef _WIN32
 const util::Duration k_staleness_limit(2);
-const util::Duration k_keep_alive_interval(k_staleness_limit / 4);
 #endif
 
 namespace {
@@ -72,16 +71,24 @@ private:
 
 namespace util {
 
-LockFile::LockFile(const std::string& path, [[maybe_unused]] Type type)
+LockFile::LockFile(const std::string& path)
   : m_lock_file(path + ".lock"),
 #ifndef _WIN32
-    m_type(type),
     m_alive_file(path + ".alive"),
     m_acquired(false)
 #else
     m_handle(INVALID_HANDLE_VALUE)
 #endif
 {
+}
+
+void
+LockFile::make_long_lived(
+  [[maybe_unused]] LongLivedLockFileManager& lock_manager)
+{
+#ifndef _WIN32
+  m_lock_manager = &lock_manager;
+#endif
 }
 
 bool
@@ -107,14 +114,8 @@ LockFile::release()
 
   LOG("Releasing {}", m_lock_file);
 #ifndef _WIN32
-  if (m_type == Type::long_lived && m_keep_alive_thread.joinable()) {
-    {
-      std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
-      m_stop_keep_alive = true;
-    }
-    m_stop_keep_alive_condition.notify_one();
-    m_keep_alive_thread.join();
-
+  if (m_lock_manager) {
+    m_lock_manager->deregister_alive_file(m_alive_file);
     Util::unlink_tmp(m_alive_file);
   }
   Util::unlink_tmp(m_lock_file);
@@ -153,28 +154,12 @@ LockFile::acquire(const bool blocking)
   if (acquired()) {
     LOG("Acquired {}", m_lock_file);
 #ifndef _WIN32
-    if (m_type == Type::long_lived) {
+    if (m_lock_manager) {
       const auto result = util::write_file(m_alive_file, "");
       if (!result) {
         LOG("Failed to write {}: {}", m_alive_file, result.error());
       }
-
-      LOG_RAW("Starting keep-alive thread");
-      m_keep_alive_thread = std::thread([&] {
-        while (true) {
-          std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
-          m_stop_keep_alive_condition.wait_for(
-            lock,
-            std::chrono::seconds(k_keep_alive_interval.sec())
-              + std::chrono::nanoseconds(k_keep_alive_interval.nsec()),
-            [this] { return m_stop_keep_alive; });
-          if (m_stop_keep_alive) {
-            return;
-          }
-          util::set_timestamps(m_alive_file);
-        }
-      });
-      LOG_RAW("Started keep-alive thread");
+      m_lock_manager->register_alive_file(m_alive_file);
     }
 #endif
   } else {

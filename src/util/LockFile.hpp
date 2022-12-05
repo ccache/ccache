@@ -19,25 +19,28 @@
 #pragma once
 
 #include <NonCopyable.hpp>
+#include <util/LongLivedLockFileManager.hpp>
 #include <util/TimePoint.hpp>
 
-#include <condition_variable>
-#include <cstdint>
 #include <optional>
 #include <string>
-#include <thread>
 
 namespace util {
 
+// Unless make_long_lived is called, the lock is expected to be released shortly
+// after being acquired - if it is held for more than two seconds it risks being
+// considered stale by another client.
 class LockFile : NonCopyable
 {
 public:
-  enum class Type { long_lived, short_lived };
-
-  LockFile(const std::string& path, Type type);
+  LockFile(const std::string& path);
 
   // Release the lock if previously acquired.
   ~LockFile();
+
+  // Make this lock long-lived. Depending on implementation, it will be kept
+  // alive by a helper thread.
+  void make_long_lived(LongLivedLockFileManager& lock_manager);
 
   // Acquire lock, blocking. Returns true if acquired, otherwise false.
   bool acquire();
@@ -54,13 +57,9 @@ public:
 private:
   std::string m_lock_file;
 #ifndef _WIN32
-  Type m_type;
+  LongLivedLockFileManager* m_lock_manager = nullptr;
   std::string m_alive_file;
   bool m_acquired;
-  std::thread m_keep_alive_thread;
-  std::mutex m_stop_keep_alive_mutex;
-  bool m_stop_keep_alive = false;
-  std::condition_variable m_stop_keep_alive_condition;
 #else
   void* m_handle;
 #endif
@@ -74,39 +73,9 @@ private:
 #endif
 };
 
-// A short-lived lock.
-//
-// The lock is expected to be released shortly after being acquired - if it is
-// held for more than two seconds it risks being considered stale by another
-// client.
-class ShortLivedLockFile : public LockFile
-{
-public:
-  ShortLivedLockFile(const std::string& path);
-};
-
-// A long-lived lock.
-//
-// The lock will (depending on implementation) be kept alive by a helper thread.
-class LongLivedLockFile : public LockFile
-{
-public:
-  LongLivedLockFile(const std::string& path);
-};
-
 inline LockFile::~LockFile()
 {
   release();
-}
-
-inline ShortLivedLockFile::ShortLivedLockFile(const std::string& path)
-  : LockFile(path, Type::short_lived)
-{
-}
-
-inline LongLivedLockFile::LongLivedLockFile(const std::string& path)
-  : LockFile(path, Type::long_lived)
-{
 }
 
 } // namespace util
