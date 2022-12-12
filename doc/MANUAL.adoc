@@ -1595,7 +1595,7 @@ Disadvantages:
   or source code will make the hash different. Compare this with the default
   setup where ccache will fall back to the preprocessor mode, which is tolerant
   to some types of changes of compiler options and source code changes.
-* If -MD is used, the manifest entries will include system header files as
+* If `-MD` is used, the manifest entries will include system header files as
   well, thus slowing down cache hits slightly, just as using `-MD` slows down
   make. This is also the case for MSVC with `/showIncludes`.
 * If `-MMD` is used, the manifest entries will not include system header files,
