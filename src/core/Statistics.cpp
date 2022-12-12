@@ -314,7 +314,9 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t remote_errors = S(remote_storage_error);
   const uint64_t remote_timeouts = S(remote_storage_timeout);
 
-  table.add_heading("Local storage:");
+  if (!from_log || verbosity > 0 || (local_hits + local_misses) > 0) {
+    table.add_heading("Local storage:");
+  }
   if (!from_log) {
     std::vector<C> size_cells{
       "  Cache size (GB):",
@@ -342,7 +344,7 @@ Statistics::format_human_readable(const Config& config,
       table.add_row({"  Cleanups:", cleanups});
     }
   }
-  if (verbosity > 0 || (remote_hits + remote_misses) > 0) {
+  if (verbosity > 0 || (local_hits + local_misses) > 0) {
     add_ratio_row(table, "  Hits:", local_hits, local_hits + local_misses);
     add_ratio_row(table, "  Misses:", local_misses, local_hits + local_misses);
   }
