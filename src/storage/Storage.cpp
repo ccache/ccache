@@ -463,6 +463,11 @@ Storage::get_from_remote_storage(const Digest& key,
       local.increment_statistic(core::Statistic::remote_storage_read_miss);
       if (type == core::CacheEntryType::result) {
         local.increment_statistic(core::Statistic::remote_storage_miss);
+      } else if (m_config.depend_mode()) {
+        // With the depend mode enabled, a missing manifest means that we can't
+        // even try to look up a result, so note the miss already now.
+        ASSERT(type == core::CacheEntryType::manifest);
+        local.increment_statistic(core::Statistic::remote_storage_miss);
       }
     }
   }

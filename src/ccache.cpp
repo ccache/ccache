@@ -631,6 +631,11 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 static std::optional<Digest>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
+  // Make sure that result hash will always be different from the manifest hash
+  // since there otherwise may a storage key collision (in case the dependency
+  // file is empty).
+  hash.hash_delimiter("result");
+
   const auto file_content =
     util::read_file<std::string>(ctx.args_info.output_dep);
   if (!file_content) {
