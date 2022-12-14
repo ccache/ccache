@@ -42,7 +42,7 @@ public:
     update(std::function<void(core::StatisticsCounters& counters)>) const;
 
 private:
-  const std::string m_path;
+  std::string m_path;
 };
 
 } // namespace storage::local
