@@ -1042,8 +1042,8 @@ See the discussion under _<<Troubleshooting>>_ for more information.
 [#config_stats]
 *stats* (*CCACHE_STATS* or *CCACHE_NOSTATS*, see _<<Boolean values>>_ above)::
 
-    If true, ccache will update the statistics counters on each compilation.
-    The default is true.
+    If true, ccache will update the statistics counters on each compilation. The
+    default is true. If false, _<<automatic cleanup>>_ will be disabled as well.
 
 [#config_stats_log]
 *stats_log* (*CCACHE_STATSLOG*)::
