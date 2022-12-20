@@ -11,7 +11,9 @@ SUITE_remote_file_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_REMOTE_STORAGE="file:$PWD/remote"
 
-    generate_code 1 test.c
+    touch test.h
+    echo '#include "test.h"' >test.c
+    backdate test.h
 }
 
 SUITE_remote_file() {
@@ -239,7 +241,7 @@ SUITE_remote_file() {
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
     expect_stat local_storage_hit 1
-    expect_stat local_storage_miss 3
+    expect_stat local_storage_miss 2
     expect_stat local_storage_read_hit 2
     expect_stat local_storage_read_miss 3
     expect_stat local_storage_write 4
@@ -248,6 +250,24 @@ SUITE_remote_file() {
     expect_stat remote_storage_read_hit 2 # result + manifest
     expect_stat remote_storage_read_miss 1
     expect_stat remote_storage_write 2 # result + manifest
+
+    # Remote cache read hit for the manifest but no manifest entry matches.
+    $CCACHE -C >/dev/null
+    echo 'int x;' >>test.h
+    backdate test.h
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 3
+    expect_stat local_storage_read_hit 2
+    expect_stat local_storage_read_miss 4 # one manifest read miss
+    expect_stat local_storage_write 7 # download+store manifest, update+store manifest, write result
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 2
+    expect_stat remote_storage_read_hit 3
+    expect_stat remote_storage_read_miss 1 # original manifest didn't match -> no read
+    expect_stat remote_storage_write 4
 
     # -------------------------------------------------------------------------
     TEST "umask"

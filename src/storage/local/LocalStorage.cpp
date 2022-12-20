@@ -220,14 +220,8 @@ LocalStorage::get(const Digest& key, const core::CacheEntryType type)
 
   increment_statistic(return_value ? core::Statistic::local_storage_read_hit
                                    : core::Statistic::local_storage_read_miss);
-  if (type == core::CacheEntryType::result) {
-    increment_statistic(return_value ? core::Statistic::local_storage_hit
-                                     : core::Statistic::local_storage_miss);
-  } else if (m_config.depend_mode() && !return_value) {
-    // With the depend mode enabled, a missing manifest means that we can't even
-    // try to look up a result, so note the miss already now.
-    ASSERT(type == core::CacheEntryType::manifest);
-    increment_statistic(core::Statistic::local_storage_miss);
+  if (return_value && type == core::CacheEntryType::result) {
+    increment_statistic(core::Statistic::local_storage_hit);
   }
 
   return return_value;

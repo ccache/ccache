@@ -2260,8 +2260,24 @@ cache_compilation(int argc, const char* const* argv)
     MTR_END("main", "find_compiler");
 
     const auto result = do_cache_compilation(ctx, argv);
-    const auto& counters = result ? *result : result.error().counters();
-    ctx.storage.local.increment_statistics(counters);
+    ctx.storage.local.increment_statistics(result ? *result
+                                                  : result.error().counters());
+    const auto& counters = ctx.storage.local.get_statistics_updates();
+
+    if (counters.get(Statistic::cache_miss) > 0) {
+      if (!ctx.config.remote_only()) {
+        ctx.storage.local.increment_statistic(Statistic::local_storage_miss);
+      }
+      if (ctx.storage.has_remote_storage()) {
+        ctx.storage.local.increment_statistic(Statistic::remote_storage_miss);
+      }
+    } else if ((counters.get(Statistic::direct_cache_hit) > 0
+                || counters.get(Statistic::preprocessed_cache_hit) > 0)
+               && counters.get(Statistic::remote_storage_hit) > 0
+               && !ctx.config.remote_only()) {
+      ctx.storage.local.increment_statistic(Statistic::local_storage_miss);
+    }
+
     if (!result) {
       if (result.error().exit_code()) {
         return *result.error().exit_code();
