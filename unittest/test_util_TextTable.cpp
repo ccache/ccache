@@ -33,6 +33,12 @@ TEST_CASE("TextTable")
     CHECK(table.render() == "");
   }
 
+  SUBCASE("only a heading")
+  {
+    table.add_heading("heading");
+    CHECK(table.render() == "heading\n");
+  }
+
   SUBCASE("1x1")
   {
     table.add_row({"a"});

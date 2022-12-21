@@ -32,6 +32,7 @@ TextTable::add_heading(const std::string& text)
   Cell cell(text);
   cell.m_heading = true;
   m_rows.push_back({cell});
+  m_columns = std::max(m_columns, size_t(1));
 }
 
 void
@@ -86,6 +87,8 @@ TextTable::render() const
 
   std::string result;
   for (const auto& row : m_rows) {
+    ASSERT(column_widths.size() >= row.size());
+
     std::string r;
     bool first = true;
     for (size_t i = 0; i < row.size(); ++i) {
