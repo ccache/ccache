@@ -139,12 +139,12 @@ TEST_CASE("Args::from_atfile")
     CHECK(args[6] == "seve\nth");
   }
 
-  SUBCASE("Only escape double quote and backslash in alternate format")
+  SUBCASE("Only escape double quote in alternate format")
   {
-    util::write_file("at_file", "\"\\\"\\a\\ \\\\\\ \\b\\\"\"\\");
+    util::write_file("at_file", "\"\\\"\\a\\ \\b\\\"\"\\");
     args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
     CHECK(args.size() == 1);
-    CHECK(args[0] == "\"\\a\\ \\\\ \\b\"\\");
+    CHECK(args[0] == "\"\\a\\ \\b\"\\");
   }
 
   SUBCASE("Ignore single quote in alternate format")
@@ -154,6 +154,14 @@ TEST_CASE("Args::from_atfile")
     CHECK(args.size() == 2);
     CHECK(args[0] == "'a");
     CHECK(args[1] == "b'");
+  }
+
+  SUBCASE("Do not escape backslash in alternate format")
+  {
+    util::write_file("at_file", "\"-DDIRSEP='\\\\'\"");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 1);
+    CHECK(args[0] == "-DDIRSEP='\\\\'");
   }
 }
 
