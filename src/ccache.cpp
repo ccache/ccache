@@ -704,9 +704,10 @@ struct DoExecuteResult
 static std::optional<Digest>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
-  for (std::string_view token : core::MsvcShowIncludesOutput::get_includes(
+  for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
-    const std::string path = Util::make_relative_path(ctx, token);
+    const std::string path = Util::make_relative_path(
+      ctx, Util::normalize_abstract_absolute_path(include));
     remember_include_file(ctx, path, hash, false, &hash);
   }
 

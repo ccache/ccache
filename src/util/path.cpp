@@ -73,10 +73,14 @@ path_starts_with(std::string_view path, std::string_view prefix)
     if (path[i] == '\\' && prefix[j] == '/') {
       continue;
     }
-#endif
+    if (std::tolower(path[i]) != std::tolower(prefix[j])) {
+      return false;
+    }
+#else
     if (path[i] != prefix[j]) {
       return false;
     }
+#endif
   }
   return true;
 }

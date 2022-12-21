@@ -131,6 +131,8 @@ TEST_CASE("util::path_starts_with")
   CHECK(util::path_starts_with("C:/foo/bar", "C:\\\\foo"));
   CHECK(util::path_starts_with("C:\\foo\\bar", "C:/foo"));
   CHECK(util::path_starts_with("C:\\\\foo\\\\bar", "C:/foo"));
+  CHECK(util::path_starts_with("C:/FOO/BAR", "c:\\foo"));
+  CHECK(util::path_starts_with("c:/foo/bar", "C:\\FOO"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "/foo/baz"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "C:/foo/baz"));
   CHECK(!util::path_starts_with("C:\\beh\\foo", "/foo"));

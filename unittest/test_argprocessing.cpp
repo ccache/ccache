@@ -59,7 +59,9 @@ get_posix_path(const std::string& path)
   std::string posix;
 
   // /-escape volume.
-  if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
+  if (path[1] == ':'
+      && ((path[0] >= 'A' && path[0] <= 'Z')
+          || (path[0] >= 'a' && path[0] <= 'z'))) {
     posix = "/" + path;
   } else {
     posix = path;

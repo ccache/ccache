@@ -910,20 +910,14 @@ matches_dir_prefix_or_file(std::string_view dir_prefix_or_file,
              || is_dir_separator(dir_prefix_or_file.back()));
 }
 
-std::string
-normalize_abstract_absolute_path(std::string_view path)
+static std::string
+do_normalize_abstract_absolute_path(std::string_view path)
 {
   if (!util::is_absolute_path(path)) {
     return std::string(path);
   }
 
 #ifdef _WIN32
-  if (path.find("\\") != std::string_view::npos) {
-    std::string new_path(path);
-    std::replace(new_path.begin(), new_path.end(), '\\', '/');
-    return normalize_abstract_absolute_path(new_path);
-  }
-
   std::string drive(path.substr(0, 2));
   path = path.substr(2);
 #endif
@@ -967,6 +961,18 @@ normalize_abstract_absolute_path(std::string_view path)
   return drive + result;
 #else
   return result;
+#endif
+}
+
+std::string
+normalize_abstract_absolute_path(std::string_view path)
+{
+#ifdef _WIN32
+  std::string new_path(path);
+  std::replace(new_path.begin(), new_path.end(), '\\', '/');
+  return do_normalize_abstract_absolute_path(new_path);
+#else
+  return do_normalize_abstract_absolute_path(path);
 #endif
 }
 
