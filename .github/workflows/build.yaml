@@ -72,6 +72,10 @@ jobs:
           - os: macOS-12
             compiler: xcode
             version: "13.4.1"
+
+          - os: macOS-12
+            compiler: xcode
+            version: "14.2"
     steps:
       - name: Install dependencies
         run: |
