@@ -58,6 +58,10 @@ jobs:
             version: "13"
 
           - os: ubuntu-22.04
+            compiler: clang
+            version: "14"
+
+          - os: ubuntu-22.04
             compiler: gcc
             version: "11"
 
