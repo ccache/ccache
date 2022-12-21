@@ -67,7 +67,7 @@ jobs:
 
           - os: macOS-11
             compiler: xcode
-            version: "12.4"
+            version: "12.5.1"
     steps:
       - name: Install dependencies
         run: |
