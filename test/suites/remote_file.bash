@@ -274,7 +274,8 @@ SUITE_remote_file() {
 
     export CCACHE_UMASK=042
     CCACHE_REMOTE_STORAGE="file://$PWD/remote|umask=024"
-    rm -rf remote
+
+    # local -> remote, cache miss
     $CCACHE_COMPILE -c test.c
     expect_perm remote drwxr-x-wx # 777 & 024
     expect_perm remote/CACHEDIR.TAG -rw-r---w- # 666 & 024
@@ -282,12 +283,25 @@ SUITE_remote_file() {
     expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
     expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
+    # local -> remote, local cache hit
     CCACHE_REMOTE_STORAGE="file://$PWD/remote|umask=026"
     $CCACHE -C >/dev/null
     rm -rf remote
     $CCACHE_COMPILE -c test.c
     expect_perm remote drwxr-x--x # 777 & 026
     expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
+    result_file=$(find $CCACHE_DIR -name '*R')
+    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
+
+    # remote -> local, remote cache hit
+    $CCACHE -C >/dev/null
+    $CCACHE_COMPILE -c test.c
+    expect_perm remote drwxr-x--x # 777 & 026
+    expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
+    result_file=$(find $CCACHE_DIR -name '*R')
+    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
     # -------------------------------------------------------------------------
     TEST "Sharding"

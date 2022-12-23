@@ -2040,8 +2040,6 @@ enum class FromCacheCallMode { direct, cpp };
 static nonstd::expected<bool, Failure>
 from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 {
-  UmaskScope umask_scope(ctx.original_umask);
-
   // The user might be disabling cache hits.
   if (ctx.config.recache()) {
     return false;
@@ -2080,6 +2078,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     cache_entry.verify_checksum();
     core::Result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_key);
+    UmaskScope umask_scope(ctx.original_umask);
     deserializer.visit(result_retriever);
   } catch (core::ResultRetriever::WriteError& e) {
     LOG("Write error when retrieving result from {}: {}",
