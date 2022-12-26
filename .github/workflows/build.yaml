@@ -54,6 +54,14 @@ jobs:
             version: "12"
 
           - os: ubuntu-22.04
+            compiler: clang
+            version: "13"
+
+          - os: ubuntu-22.04
+            compiler: clang
+            version: "14"
+
+          - os: ubuntu-22.04
             compiler: gcc
             version: "11"
 
@@ -67,7 +75,15 @@ jobs:
 
           - os: macOS-11
             compiler: xcode
-            version: "12.4"
+            version: "12.5.1"
+
+          - os: macOS-12
+            compiler: xcode
+            version: "13.4.1"
+
+          - os: macOS-12
+            compiler: xcode
+            version: "14.2"
     steps:
       - name: Install dependencies
         run: |
