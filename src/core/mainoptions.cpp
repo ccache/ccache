@@ -23,6 +23,7 @@
 #include <File.hpp>
 #include <Hash.hpp>
 #include <InodeCache.hpp>
+#include <Logging.hpp>
 #include <ProgressBar.hpp>
 #include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
@@ -516,6 +517,7 @@ process_main_options(int argc, const char* const* argv)
          != -1) {
     Config config;
     config.read();
+    Logging::init(config);
 
     UmaskScope umask_scope(config.umask());
 
