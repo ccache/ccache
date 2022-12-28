@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -37,13 +37,16 @@ public:
   StatisticsCounters(std::initializer_list<Statistic> statistics);
 
   uint64_t get(Statistic statistic) const;
-  void set(Statistic statistic, uint64_t value);
-
+  uint64_t get_offsetted(Statistic statistic, size_t offset) const;
   uint64_t get_raw(size_t index) const;
+
+  void set(Statistic statistic, uint64_t value);
+  void set_offsetted(Statistic statistic, size_t offset, uint64_t value);
   void set_raw(size_t index, uint64_t value);
 
   void increment(Statistic statistic, int64_t value = 1);
   void increment(const StatisticsCounters& other);
+  void increment_offsetted(Statistic statistic, size_t offset, int64_t value);
 
   size_t size() const;
 
