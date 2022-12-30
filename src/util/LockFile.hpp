@@ -34,6 +34,9 @@ class LockFile : NonCopyable
 {
 public:
   explicit LockFile(const std::string& path);
+  LockFile(LockFile&& other) noexcept;
+
+  LockFile& operator=(LockFile&& other) noexcept;
 
   // Release the lock if previously acquired.
   ~LockFile();

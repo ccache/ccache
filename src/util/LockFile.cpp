@@ -82,6 +82,43 @@ LockFile::LockFile(const std::string& path)
 {
 }
 
+LockFile::LockFile(LockFile&& other) noexcept
+  : m_lock_file(std::move(other.m_lock_file)),
+#ifndef _WIN32
+    m_lock_manager(other.m_lock_manager),
+    m_alive_file(std::move(other.m_alive_file)),
+    m_acquired(other.m_acquired)
+#else
+    m_handle(other.m_handle)
+#endif
+{
+#ifndef _WIN32
+  other.m_lock_manager = nullptr;
+  other.m_acquired = false;
+#else
+  other.m_handle = INVALID_HANDLE_VALUE;
+#endif
+}
+
+LockFile&
+LockFile::operator=(LockFile&& other) noexcept
+{
+  if (&other != this) {
+    m_lock_file = std::move(other.m_lock_file);
+#ifndef _WIN32
+    m_lock_manager = other.m_lock_manager;
+    other.m_lock_manager = nullptr;
+    m_alive_file = std::move(other.m_alive_file);
+    m_acquired = other.m_acquired;
+    other.m_acquired = false;
+#else
+    m_handle = other.m_handle;
+    other.m_handle = INVALID_HANDLE_VALUE;
+#endif
+  }
+  return *this;
+}
+
 void
 LockFile::make_long_lived(
   [[maybe_unused]] LongLivedLockFileManager& lock_manager)
