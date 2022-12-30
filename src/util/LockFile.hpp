@@ -33,7 +33,7 @@ namespace util {
 class LockFile : NonCopyable
 {
 public:
-  LockFile(const std::string& path);
+  explicit LockFile(const std::string& path);
 
   // Release the lock if previously acquired.
   ~LockFile();

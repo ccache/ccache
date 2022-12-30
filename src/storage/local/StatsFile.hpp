@@ -29,7 +29,7 @@ namespace storage::local {
 class StatsFile
 {
 public:
-  StatsFile(const std::string& path);
+  explicit StatsFile(const std::string& path);
 
   // Read counters. No lock is acquired. If the file doesn't exist all returned
   // counters will be zero.
