@@ -152,10 +152,13 @@ percent(const uint64_t nominator, const uint64_t denominator)
 {
   if (denominator == 0) {
     return "";
-  } else if (nominator >= denominator) {
-    return FMT("({:5.1f}%)", (100.0 * nominator) / denominator);
+  }
+
+  std::string result = FMT("({:5.2f}%)", (100.0 * nominator) / denominator);
+  if (result.length() <= 8) {
+    return result;
   } else {
-    return FMT("({:5.2f}%)", (100.0 * nominator) / denominator);
+    return FMT("({:5.1f}%)", (100.0 * nominator) / denominator);
   }
 }
 
