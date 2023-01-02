@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -323,11 +323,11 @@ Statistics::format_human_readable(const Config& config,
   if (!from_log) {
     std::vector<C> size_cells{
       "  Cache size (GB):",
-      C(FMT("{:.2f}", static_cast<double>(local_size) / g)).right_align()};
+      C(FMT("{:.1f}", static_cast<double>(local_size) / g)).right_align()};
     if (config.max_size() != 0) {
       size_cells.emplace_back("/");
       size_cells.emplace_back(
-        C(FMT("{:.2f}", static_cast<double>(config.max_size()) / g))
+        C(FMT("{:.1f}", static_cast<double>(config.max_size()) / g))
           .right_align());
       size_cells.emplace_back(percent(local_size, config.max_size()));
     }
