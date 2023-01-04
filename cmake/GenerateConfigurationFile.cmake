@@ -43,22 +43,6 @@ foreach(func IN ITEMS ${functions})
   check_function_exists(${func} ${func_var})
 endforeach()
 
-include(CheckCXXSourceCompiles)
-set(CMAKE_REQUIRED_FLAGS -pthread)
-check_cxx_source_compiles(
-  [=[
-    #include <pthread.h>
-    int main()
-    {
-      pthread_mutexattr_t attr;
-      (void)pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
-      return 0;
-    }
-  ]=]
-  HAVE_PTHREAD_MUTEX_ROBUST)
-check_function_exists(pthread_mutexattr_setpshared HAVE_PTHREAD_MUTEXATTR_SETPSHARED)
-set(CMAKE_REQUIRED_FLAGS)
-
 include(CheckStructHasMember)
 check_struct_has_member("struct stat" st_atim sys/stat.h
                         HAVE_STRUCT_STAT_ST_ATIM LANGUAGE CXX)
@@ -103,7 +87,6 @@ endif()
 set(MTR_ENABLED "${ENABLE_TRACING}")
 
 if(HAVE_SYS_MMAN_H
-   AND HAVE_PTHREAD_MUTEXATTR_SETPSHARED
    AND (HAVE_STRUCT_STAT_ST_MTIM OR HAVE_STRUCT_STAT_ST_MTIMESPEC)
    AND (HAVE_LINUX_FS_H OR HAVE_STRUCT_STATFS_F_FSTYPENAME))
   set(INODE_CACHE_SUPPORTED 1)

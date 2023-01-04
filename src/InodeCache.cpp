@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -153,13 +153,13 @@ spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
   pid_t lock_pid = 0;
   bool reset_timer = false;
   util::TimePoint lock_time;
-  for (;;) {
+  while (true) {
     for (int i = 0; i < 10000; ++i) {
       lock_pid = owner_pid.load(std::memory_order_relaxed);
       if (lock_pid == 0
           && owner_pid.compare_exchange_weak(
             lock_pid, self_pid, std::memory_order_acquire)) {
-        return false;
+        return true;
       }
 
       if (prev_pid != lock_pid) {
@@ -174,10 +174,8 @@ spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
     if (reset_timer) {
       lock_time = util::TimePoint::now();
       reset_timer = false;
-    } else {
-      if (util::TimePoint::now() - lock_time > MAX_LOCK_DURATION) {
-        return true;
-      }
+    } else if (util::TimePoint::now() - lock_time > MAX_LOCK_DURATION) {
+      return false;
     }
   }
 }
@@ -306,9 +304,9 @@ InodeCache::with_bucket(const Digest& key_digest,
   Util::big_endian_to_int(key_digest.bytes(), hash);
   const uint32_t index = hash % k_num_buckets;
   Bucket* bucket = &m_sr->buckets[index];
-  bool broken_lock = spin_lock(bucket->owner_pid, m_self_pid);
-  while (broken_lock) {
-    LOG("Wiping inodes cache because of stale mutex at index {}", index);
+  bool acquired_lock = spin_lock(bucket->owner_pid, m_self_pid);
+  while (!acquired_lock) {
+    LOG("Dropping inode cache file because of stale mutex at index {}", index);
     if (!drop() || !initialize()) {
       return false;
     }
@@ -316,7 +314,7 @@ InodeCache::with_bucket(const Digest& key_digest,
       ++m_sr->errors;
     }
     bucket = &m_sr->buckets[index];
-    broken_lock = spin_lock(bucket->owner_pid, m_self_pid);
+    acquired_lock = spin_lock(bucket->owner_pid, m_self_pid);
   }
   try {
     bucket_handler(bucket);
@@ -341,7 +339,7 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
   int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
-  if (err) {
+  if (err != 0) {
     LOG("Failed to allocate file space for inode cache: {}", strerror(err));
     return false;
   }

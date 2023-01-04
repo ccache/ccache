@@ -91,9 +91,6 @@
 // Define if you have the "posix_fallocate.
 #cmakedefine HAVE_POSIX_FALLOCATE
 
-// Define if you have the "pthread_mutexattr_setpshared" function.
-#cmakedefine HAVE_PTHREAD_MUTEXATTR_SETPSHARED
-
 // Define if you have the <pwd.h> header file.
 #cmakedefine HAVE_PWD_H
 
@@ -180,9 +177,6 @@
 
 // Define if you have the "utimes" function.
 #cmakedefine HAVE_UTIMES
-
-// Define if you have the "PTHREAD_MUTEX_ROBUST" constant.
-#cmakedefine HAVE_PTHREAD_MUTEX_ROBUST
 
 #if defined(__ibmxl__) && defined(__clang__) // Compiler xlclang
 #  undef HAVE_VARARGS_H // varargs.h would hide macros of stdarg.h
