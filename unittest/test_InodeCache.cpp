@@ -177,7 +177,7 @@ TEST_CASE("Drop file")
   CHECK(Stat::stat(inode_cache.get_file()));
   CHECK(inode_cache.drop());
   CHECK(!Stat::stat(inode_cache.get_file()));
-  CHECK(!inode_cache.drop());
+  CHECK(inode_cache.drop());
 }
 
 TEST_CASE("Test content type")
