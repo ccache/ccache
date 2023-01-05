@@ -125,6 +125,9 @@ LockFile::make_long_lived(
 {
 #ifndef _WIN32
   m_lock_manager = &lock_manager;
+  if (acquired()) {
+    m_lock_manager->register_alive_file(m_alive_file);
+  }
 #endif
 }
 

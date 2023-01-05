@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -44,6 +44,8 @@ private:
   std::condition_variable m_stop_condition;
   bool m_stop = false;
   std::set<std::string> m_alive_files;
+
+  void start_thread();
 #endif
 };
 

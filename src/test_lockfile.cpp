@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -49,12 +49,8 @@ main(int argc, char** argv)
     return 1;
   }
 
-  std::unique_ptr<util::LongLivedLockFileManager> lock_manager;
+  util::LongLivedLockFileManager lock_manager;
   util::LockFile lock(path);
-  if (long_lived) {
-    lock_manager = std::make_unique<util::LongLivedLockFileManager>();
-    lock.make_long_lived(*lock_manager);
-  }
   if (blocking) {
     PRINT_RAW(stdout, "Acquiring\n");
     lock.acquire();
@@ -63,6 +59,9 @@ main(int argc, char** argv)
     lock.try_acquire();
   }
   if (lock.acquired()) {
+    if (long_lived) {
+      lock.make_long_lived(lock_manager);
+    }
     PRINT_RAW(stdout, "Acquired\n");
     PRINT(stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
     std::this_thread::sleep_for(std::chrono::seconds{*seconds});

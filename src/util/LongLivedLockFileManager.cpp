@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,7 +32,51 @@ namespace util {
 
 LongLivedLockFileManager::LongLivedLockFileManager()
 {
+}
+
+LongLivedLockFileManager::~LongLivedLockFileManager()
+{
 #ifndef _WIN32
+  if (m_thread.joinable()) {
+    LOG_RAW("Stopping keep-alive thread");
+    {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      m_stop = true;
+    }
+    m_stop_condition.notify_one();
+    m_thread.join();
+    LOG_RAW("Stopped keep-alive thread");
+  }
+#endif
+}
+
+void
+LongLivedLockFileManager::register_alive_file(
+  [[maybe_unused]] const std::string& path)
+{
+#ifndef _WIN32
+  std::unique_lock<std::mutex> lock(m_mutex);
+  if (!m_thread.joinable()) {
+    start_thread();
+  }
+  m_alive_files.insert(path);
+#endif
+}
+
+void
+LongLivedLockFileManager::deregister_alive_file(
+  [[maybe_unused]] const std::string& path)
+{
+#ifndef _WIN32
+  std::unique_lock<std::mutex> lock(m_mutex);
+  m_alive_files.erase(path);
+#endif
+}
+
+#ifndef _WIN32
+void
+LongLivedLockFileManager::start_thread()
+{
   LOG_RAW("Starting keep-alive thread");
   m_thread = std::thread([&] {
     auto awake_time = std::chrono::steady_clock::now();
@@ -49,41 +93,7 @@ LongLivedLockFileManager::LongLivedLockFileManager()
     }
   });
   LOG_RAW("Started keep-alive thread");
-#endif
 }
-
-LongLivedLockFileManager::~LongLivedLockFileManager()
-{
-#ifndef _WIN32
-  LOG_RAW("Stopping keep-alive thread");
-  {
-    std::unique_lock<std::mutex> lock(m_mutex);
-    m_stop = true;
-  }
-  m_stop_condition.notify_one();
-  m_thread.join();
-  LOG_RAW("Stopped keep-alive thread");
 #endif
-}
-
-void
-LongLivedLockFileManager::register_alive_file(
-  [[maybe_unused]] const std::string& path)
-{
-#ifndef _WIN32
-  std::unique_lock<std::mutex> lock(m_mutex);
-  m_alive_files.insert(path);
-#endif
-}
-
-void
-LongLivedLockFileManager::deregister_alive_file(
-  [[maybe_unused]] const std::string& path)
-{
-#ifndef _WIN32
-  std::unique_lock<std::mutex> lock(m_mutex);
-  m_alive_files.erase(path);
-#endif
-}
 
 } // namespace util
