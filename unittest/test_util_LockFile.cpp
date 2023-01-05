@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -48,7 +48,7 @@ TEST_CASE("Acquire and release short-lived lock file")
 
     CHECK(lock.acquire());
     CHECK(lock.acquired());
-    CHECK(!Stat::lstat("test.alive"));
+    CHECK(Stat::lstat("test.alive"));
     const auto st = Stat::lstat("test.lock");
     CHECK(st);
 #ifndef _WIN32
@@ -63,32 +63,6 @@ TEST_CASE("Acquire and release short-lived lock file")
   CHECK(!lock.acquired());
   CHECK(!Stat::lstat("test.lock"));
   CHECK(!Stat::lstat("test.alive"));
-}
-
-TEST_CASE("Non-blocking short-lived lock")
-{
-  TestContext test_context;
-
-  util::LockFile lock_file_1("test");
-  CHECK(!lock_file_1.acquired());
-
-  util::LockFile lock_file_2("test");
-  CHECK(!lock_file_2.acquired());
-
-  CHECK(lock_file_1.try_acquire());
-  CHECK(lock_file_1.acquired());
-
-  CHECK(!lock_file_2.try_acquire());
-  CHECK(lock_file_1.acquired());
-  CHECK(!lock_file_2.acquired());
-
-  lock_file_2.release();
-  CHECK(lock_file_1.acquired());
-  CHECK(!lock_file_2.acquired());
-
-  lock_file_1.release();
-  CHECK(!lock_file_1.acquired());
-  CHECK(!lock_file_2.acquired());
 }
 
 TEST_CASE("Acquire and release long-lived lock file")

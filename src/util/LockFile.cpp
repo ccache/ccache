@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -153,8 +153,8 @@ LockFile::release()
 #ifndef _WIN32
   if (m_lock_manager) {
     m_lock_manager->deregister_alive_file(m_alive_file);
-    Util::unlink_tmp(m_alive_file);
   }
+  Util::unlink_tmp(m_alive_file);
   Util::unlink_tmp(m_lock_file);
 #else
   CloseHandle(m_handle);
@@ -191,11 +191,12 @@ LockFile::acquire(const bool blocking)
   if (acquired()) {
     LOG("Acquired {}", m_lock_file);
 #ifndef _WIN32
+    LOG("Creating {}", m_alive_file);
+    const auto result = util::write_file(m_alive_file, "");
+    if (!result) {
+      LOG("Failed to write {}: {}", m_alive_file, result.error());
+    }
     if (m_lock_manager) {
-      const auto result = util::write_file(m_alive_file, "");
-      if (!result) {
-        LOG("Failed to write {}: {}", m_alive_file, result.error());
-      }
       m_lock_manager->register_alive_file(m_alive_file);
     }
 #endif
@@ -281,8 +282,11 @@ LockFile::do_acquire(const bool blocking)
     }
 
     const auto last_lock_update = get_last_lock_update();
-    if (last_lock_update) {
-      last_seen_activity = std::max(last_seen_activity, *last_lock_update);
+    if (last_lock_update && *last_lock_update > last_seen_activity) {
+      if (!blocking) {
+        return false;
+      }
+      last_seen_activity = *last_lock_update;
     }
 
     const util::Duration inactive_duration =
@@ -293,9 +297,6 @@ LockFile::do_acquire(const bool blocking)
           m_lock_file,
           inactive_duration.sec(),
           inactive_duration.nsec() / 1'000'000);
-      if (!blocking) {
-        return false;
-      }
     } else if (content == initial_content) {
       // The lock seems to be stale -- break it and try again.
       LOG("Breaking {} since it has been inactive for {}.{:03} seconds",
