@@ -229,7 +229,7 @@ LockFile::do_acquire(const bool blocking)
   while (true) {
     const auto now = util::TimePoint::now();
     const auto my_content =
-      FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec());
+      FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
 
     if (symlink(my_content.c_str(), m_lock_file.c_str()) == 0) {
       // We got the lock.
@@ -296,13 +296,13 @@ LockFile::do_acquire(const bool blocking)
       LOG("Lock {} held by another process active {}.{:03} seconds ago",
           m_lock_file,
           inactive_duration.sec(),
-          inactive_duration.nsec() / 1'000'000);
+          inactive_duration.nsec_decimal_part() / 1'000'000);
     } else if (content == initial_content) {
       // The lock seems to be stale -- break it and try again.
       LOG("Breaking {} since it has been inactive for {}.{:03} seconds",
           m_lock_file,
           inactive_duration.sec(),
-          inactive_duration.nsec() / 1'000'000);
+          inactive_duration.nsec_decimal_part() / 1'000'000);
       if (!Util::unlink_tmp(m_alive_file) || !Util::unlink_tmp(m_lock_file)) {
         return false;
       }
