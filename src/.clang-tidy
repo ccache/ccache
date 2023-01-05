@@ -10,6 +10,7 @@
 ---
 Checks:          '-*,
                   readability-*,
+                  -readability-convert-member-functions-to-static,
                   -readability-implicit-bool-conversion,
                   -readability-magic-numbers,
                   -readability-else-after-return,

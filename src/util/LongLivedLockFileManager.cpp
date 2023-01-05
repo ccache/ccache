@@ -30,10 +30,6 @@ std::chrono::milliseconds k_keep_alive_interval{500};
 
 namespace util {
 
-LongLivedLockFileManager::LongLivedLockFileManager()
-{
-}
-
 LongLivedLockFileManager::~LongLivedLockFileManager()
 {
 #ifndef _WIN32

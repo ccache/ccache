@@ -80,7 +80,6 @@ enum class ConfigItem {
   ignore_options,
   inode_cache,
   keep_comments_cpp,
-  limit_multiple,
   log_file,
   max_files,
   max_size,
@@ -136,7 +135,6 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"ignore_options", {ConfigItem::ignore_options}},
     {"inode_cache", {ConfigItem::inode_cache}},
     {"keep_comments_cpp", {ConfigItem::keep_comments_cpp}},
-    {"limit_multiple", {ConfigItem::limit_multiple}},
     {"log_file", {ConfigItem::log_file}},
     {"max_files", {ConfigItem::max_files}},
     {"max_size", {ConfigItem::max_size}},
@@ -186,7 +184,6 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"IGNOREHEADERS", "ignore_headers_in_manifest"},
   {"IGNOREOPTIONS", "ignore_options"},
   {"INODECACHE", "inode_cache"},
-  {"LIMIT_MULTIPLE", "limit_multiple"},
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
   {"MAXSIZE", "max_size"},
@@ -747,9 +744,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::keep_comments_cpp:
     return format_bool(m_keep_comments_cpp);
 
-  case ConfigItem::limit_multiple:
-    return FMT("{:.1f}", m_limit_multiple);
-
   case ConfigItem::log_file:
     return m_log_file;
 
@@ -990,11 +984,6 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::keep_comments_cpp:
     m_keep_comments_cpp = parse_bool(value, env_var_key, negate);
-    break;
-
-  case ConfigItem::limit_multiple:
-    m_limit_multiple = std::clamp(
-      util::value_or_throw<core::Error>(util::parse_double(value)), 0.0, 1.0);
     break;
 
   case ConfigItem::log_file:

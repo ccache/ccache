@@ -48,10 +48,10 @@ TEST_CASE("Acquire and release short-lived lock file")
 
     CHECK(lock.acquire());
     CHECK(lock.acquired());
-    CHECK(Stat::lstat("test.alive"));
     const auto st = Stat::lstat("test.lock");
     CHECK(st);
 #ifndef _WIN32
+    CHECK(Stat::lstat("test.alive"));
     CHECK(st.is_symlink());
 #else
     CHECK(st.is_regular());

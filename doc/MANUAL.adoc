@@ -84,7 +84,7 @@ documentation.
     cache file count and size totals. Normally, there is no need to initiate
     cleanup manually as ccache keeps the cache below the specified limits at
     runtime and keeps statistics up to date on each compilation. Forcing a
-    cleanup is mostly useful if you manually modify the cache contents or
+    cleanup is mostly useful if you have modified the cache contents manually or
     believe that the cache size statistics may be inaccurate.
 
 *-C*, *--clear*::
@@ -791,13 +791,6 @@ NOTE: The inode cache feature is currently not available on Windows.
     output. The default is false. This can be used to check documentation with
     `-Wdocumentation`.
 
-[#config_limit_multiple]
-*limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
-
-    Sets the limit when cleaning up. Files are deleted (in LRU order) until the
-    levels are below the limit. The default is 0.8 (= 80%). See
-    _<<Automatic cleanup>>_ for more information.
-
 [#config_log_file]
 *log_file* (*CCACHE_LOGFILE*)::
 
@@ -1282,45 +1275,20 @@ Cleanup can be triggered in two different ways: automatic and manual.
 
 === Automatic cleanup
 
-Ccache maintains counters for various statistics about the cache, including the
-size and number of all cached files. In order to improve performance and reduce
-issues with concurrent ccache invocations, there is one statistics file for
-each of the sixteen subdirectories in the cache.
-
-After a new compilation result has been written to the cache, ccache will
-update the size and file number statistics for the subdirectory (one of
-sixteen) to which the result was written. Then, if the size counter for said
-subdirectory is greater than *max_size / 16* or the file number counter is
-greater than *max_files / 16*, automatic cleanup is triggered.
-
-When automatic cleanup is triggered for a subdirectory in the cache, ccache
-will:
-
-1. Count all files in the subdirectory and compute their aggregated size.
-2. Remove files in LRU (least recently used) order until the size is at most
-   *limit_multiple * max_size / 16* and the number of files is at most
-   *limit_multiple * max_files / 16*, where
-   <<config_limit_multiple,*limit_multiple*>>, <<config_max_size,*max_size*>>
-   and <<config_max_files,*max_files*>> are configuration options.
-3. Set the size and file number counters to match the files that were kept.
-
-The reason for removing more files than just those needed to not exceed the max
-limits is that a cleanup is a fairly slow operation, so it would not be a good
-idea to trigger it often, like after each cache miss.
-
-The LRU cleanup makes use of the file modification time (mtime) of cache
-entries; ccache updates mtime of the cache entries read on a cache hit to mark
-them as "recently used".
+After a new compilation result has been written to the local cache, ccache will
+trigger an automatic cleanup if <<config_max_size,*max_size*>> or
+<<config_max_files,*max_files*>> is exceeded. The cleanup removes cache entries
+in LRU (least recently used) order based on the modification time (mtime) of
+files in the cache. For this reason, ccache updates mtime of the cache files
+read on a cache hit to mark them as recently used.
 
 
 === Manual cleanup
 
-You can run `ccache -c/--cleanup` to force cleanup of the whole cache, i.e. all
-of the sixteen subdirectories. This will recalculate the statistics counters
-and make sure that the configuration options *max_size* and
-<<config_max_files,*max_files*>> are not exceeded. Note that
-<<config_limit_multiple,*limit_multiple*>> is not taken into account for manual
-cleanup.
+You can run `ccache -c/--cleanup` to force cleanup of the whole cache. This will
+recalculate the cache size information and also make sure that the cache size
+does not exceed <<config_max_size,*max_size*>> and
+<<config_max_files,*max_files*>>.
 
 
 == Cache compression

@@ -73,7 +73,6 @@ public:
   const std::string& ignore_options() const;
   bool inode_cache() const;
   bool keep_comments_cpp() const;
-  double limit_multiple() const;
   const std::string& log_file() const;
   uint64_t max_files() const;
   uint64_t max_size() const;
@@ -183,7 +182,6 @@ private:
   std::string m_ignore_options;
   bool m_inode_cache = true;
   bool m_keep_comments_cpp = false;
-  double m_limit_multiple = 0.8;
   std::string m_log_file;
   uint64_t m_max_files = 0;
   uint64_t m_max_size = 5ULL * 1000 * 1000 * 1000;
@@ -362,12 +360,6 @@ inline bool
 Config::keep_comments_cpp() const
 {
   return m_keep_comments_cpp;
-}
-
-inline double
-Config::limit_multiple() const
-{
-  return m_limit_multiple;
 }
 
 inline const std::string&

@@ -27,13 +27,14 @@
 namespace storage::local {
 
 using ProgressReceiver = std::function<void(double progress)>;
-using SubdirVisitor = std::function<void(
-  const std::string& dir_path, const ProgressReceiver& progress_receiver)>;
+using SubdirVisitor = std::function<void(uint8_t subdir_index)>;
+using SubdirProgressVisitor = std::function<void(
+  uint8_t subdir_index, const ProgressReceiver& progress_receiver)>;
 
 // Call `visitor` for each subdirectory (0-9a-f) in `cache_dir`.
-void for_each_cache_subdir(const std::string& cache_dir,
-                           const ProgressReceiver& progress_receiver,
-                           const SubdirVisitor& visitor);
+void for_each_cache_subdir(const SubdirVisitor& visitor);
+void for_each_cache_subdir(const ProgressReceiver& progress_receiver,
+                           const SubdirProgressVisitor& visitor);
 
 void for_each_level_1_and_2_stats_file(
   const std::string& cache_dir,

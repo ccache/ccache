@@ -25,15 +25,21 @@
 namespace storage::local {
 
 void
-for_each_cache_subdir(const std::string& cache_dir,
-                      const ProgressReceiver& progress_receiver,
-                      const SubdirVisitor& visitor)
+for_each_cache_subdir(const SubdirVisitor& visitor)
+{
+  for (uint8_t i = 0; i < 16; ++i) {
+    visitor(i);
+  }
+}
+
+void
+for_each_cache_subdir(const ProgressReceiver& progress_receiver,
+                      const SubdirProgressVisitor& visitor)
 {
   for (uint8_t i = 0; i < 16; ++i) {
     double progress = i / 16.0;
     progress_receiver(progress);
-    std::string subdir_path = FMT("{}/{:x}", cache_dir, i);
-    visitor(subdir_path, [&](double inner_progress) {
+    visitor(i, [&](double inner_progress) {
       progress_receiver(progress + inner_progress / 16);
     });
   }

@@ -22,9 +22,11 @@
 #include <core/Result.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
+#include <storage/local/StatsFile.hpp>
 #include <storage/local/util.hpp>
 #include <storage/types.hpp>
 #include <util/Bytes.hpp>
+#include <util/LockFile.hpp>
 #include <util/TimePoint.hpp>
 
 #include <third_party/nonstd/span.hpp>
@@ -36,8 +38,7 @@
 
 class Config;
 
-namespace storage {
-namespace local {
+namespace storage::local {
 
 struct CompressionStatistics
 {
@@ -115,23 +116,12 @@ public:
 private:
   const Config& m_config;
 
-  // Main statistics updates (result statistics and size/count change for result
-  // file) which get written into the statistics file belonging to the result
-  // file.
-  core::StatisticsCounters m_result_counter_updates;
-
-  // Statistics updates (only for manifest size/count change) which get written
-  // into the statistics file belonging to the manifest.
-  core::StatisticsCounters m_manifest_counter_updates;
-
-  // The manifest and result keys and paths are stored by put() so that
-  // finalize() can use them to move the files in place.
-  std::optional<Digest> m_manifest_key;
-  std::optional<Digest> m_result_key;
-  std::string m_manifest_path;
-  std::string m_result_path;
+  // Statistics updates (excluding size/count changes) that will get written to
+  // a statistics file in the finalize method.
+  core::StatisticsCounters m_counter_updates;
 
   std::vector<std::string> m_added_raw_files;
+  bool m_stored_data = false;
 
   struct LookUpCacheFileResult
   {
@@ -143,19 +133,63 @@ private:
   LookUpCacheFileResult look_up_cache_file(const Digest& key,
                                            core::CacheEntryType type) const;
 
-  void clean_internal_tempdir();
+  std::string get_subdir(uint8_t l1_index) const;
+  std::string get_subdir(uint8_t l1_index, uint8_t l2_index) const;
 
-  std::optional<core::StatisticsCounters>
-  update_stats_and_maybe_move_cache_file(
-    const Digest& key,
-    const std::string& current_path,
-    const core::StatisticsCounters& counter_updates,
-    core::CacheEntryType type);
+  StatsFile get_stats_file(uint8_t l1_index) const;
+  StatsFile get_stats_file(uint8_t l1_index, uint8_t l2_index) const;
+
+  void move_to_wanted_cache_level(const core::StatisticsCounters& counters,
+                                  const Digest& key,
+                                  core::CacheEntryType type,
+                                  const std::string& cache_file_path);
+
+  void recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
+                           uint8_t l1_index);
+
+  std::optional<core::StatisticsCounters> increment_level_2_counters(
+    const Digest& key, int64_t files, int64_t size_kibibyte);
+
+  void perform_automatic_cleanup();
+
+  void do_clean_all(const ProgressReceiver& progress_receiver,
+                    uint64_t max_size,
+                    uint64_t max_files,
+                    std::optional<uint64_t> max_age,
+                    std::optional<std::string> namespace_);
+
+  struct EvaluateCleanupResult
+  {
+    uint8_t l1_index;
+    std::string l1_path;
+    core::StatisticsCounters l1_counters;
+    uint64_t total_files;
+  };
+
+  std::optional<EvaluateCleanupResult> evaluate_cleanup();
+
+  std::vector<util::LockFile> acquire_all_level_2_content_locks(
+    util::LongLivedLockFileManager& lock_manager, uint8_t l1_index);
+
+  void clean_internal_tempdir();
 
   // Join the cache directory, a '/' and `name` into a single path and return
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
   std::string get_path_in_cache(uint8_t level, std::string_view name) const;
+
+  std::string get_lock_path(const std::string& name) const;
+
+  util::LockFile get_auto_cleanup_lock() const;
+
+  // A level 2 content lock grants exclusive access to a level 2 directory in
+  // the cache. It must be acquired before adding, removing or recounting files
+  // in the directory (including any subdirectories). However, the lock does not
+  // have to be acquired to update a level 2 stats file since level 2 content
+  // size and file count are stored in the parent (level 1) stats file.
+  util::LockFile get_level_2_content_lock(const Digest& key) const;
+  util::LockFile get_level_2_content_lock(uint8_t l1_index,
+                                          uint8_t l2_index) const;
 };
 
 // --- Inline implementations ---
@@ -163,8 +197,7 @@ private:
 inline const core::StatisticsCounters&
 LocalStorage::get_statistics_updates() const
 {
-  return m_result_counter_updates;
+  return m_counter_updates;
 }
 
-} // namespace local
-} // namespace storage
+} // namespace storage::local

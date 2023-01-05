@@ -51,26 +51,27 @@ main(int argc, char** argv)
 
   util::LongLivedLockFileManager lock_manager;
   util::LockFile lock(path);
+  bool acquired = false;
   if (blocking) {
     PRINT_RAW(stdout, "Acquiring\n");
-    lock.acquire();
+    acquired = lock.acquire();
   } else {
     PRINT_RAW(stdout, "Trying to acquire\n");
-    lock.try_acquire();
+    acquired = lock.try_acquire();
   }
-  if (lock.acquired()) {
-    if (long_lived) {
-      lock.make_long_lived(lock_manager);
-    }
-    PRINT_RAW(stdout, "Acquired\n");
-    PRINT(stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
-    std::this_thread::sleep_for(std::chrono::seconds{*seconds});
-  } else {
+
+  if (!acquired) {
     PRINT(stdout, "{} acquire\n", blocking ? "Failed to" : "Did not");
+    return 1;
   }
-  if (lock.acquired()) {
-    PRINT_RAW(stdout, "Releasing\n");
-    lock.release();
-    PRINT_RAW(stdout, "Released\n");
+
+  PRINT_RAW(stdout, "Acquired\n");
+  if (long_lived) {
+    lock.make_long_lived(lock_manager);
   }
+  PRINT(stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
+  std::this_thread::sleep_for(std::chrono::seconds{*seconds});
+  PRINT_RAW(stdout, "Releasing\n");
+  lock.release();
+  PRINT_RAW(stdout, "Released\n");
 }

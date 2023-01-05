@@ -60,7 +60,6 @@ TEST_CASE("Config: default values")
   CHECK(config.ignore_headers_in_manifest().empty());
   CHECK(config.ignore_options().empty());
   CHECK_FALSE(config.keep_comments_cpp());
-  CHECK(config.limit_multiple() == Approx(0.8));
   CHECK(config.log_file().empty());
   CHECK(config.max_files() == 0);
   CHECK(config.max_size() == static_cast<uint64_t>(5) * 1000 * 1000 * 1000);
@@ -119,7 +118,6 @@ TEST_CASE("Config::update_from_file")
     "ignore_headers_in_manifest = a:b/c\n"
     "ignore_options = -a=* -b\n"
     "keep_comments_cpp = true\n"
-    "limit_multiple = 1.0\n"
     "log_file = $USER${USER} \n"
     "max_files = 17\n"
     "max_size = 123M\n"
@@ -161,7 +159,6 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.ignore_headers_in_manifest() == "a:b/c");
   CHECK(config.ignore_options() == "-a=* -b");
   CHECK(config.keep_comments_cpp());
-  CHECK(config.limit_multiple() == Approx(1.0));
   CHECK(config.log_file() == FMT("{0}{0}", user));
   CHECK(config.max_files() == 17);
   CHECK(config.max_size() == 123 * 1000 * 1000);
@@ -406,7 +403,6 @@ TEST_CASE("Config::visit_items")
     "ignore_options = -a=* -b\n"
     "inode_cache = false\n"
     "keep_comments_cpp = true\n"
-    "limit_multiple = 0.0\n"
     "log_file = lf\n"
     "max_files = 4711\n"
     "max_size = 98.7M\n"
@@ -468,7 +464,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) ignore_options = -a=* -b",
     "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
-    "(test.conf) limit_multiple = 0.0",
     "(test.conf) log_file = lf",
     "(test.conf) max_files = 4711",
     "(test.conf) max_size = 98.7M",

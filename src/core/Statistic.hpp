@@ -72,7 +72,13 @@ enum class Statistic {
   remote_storage_hit = 47,
   remote_storage_miss = 48,
 
-  END
+  // 49-64: files in level 2 subdirs 0-f
+  subdir_files_base = 49,
+
+  // 65-80: size (KiB) in level 2 subdirs 0-f
+  subdir_size_kibibyte_base = 65,
+
+  END = 81
 };
 
 } // namespace core

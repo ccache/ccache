@@ -31,7 +31,7 @@ namespace util {
 class LongLivedLockFileManager : NonCopyable
 {
 public:
-  LongLivedLockFileManager();
+  LongLivedLockFileManager() = default;
   ~LongLivedLockFileManager();
 
   void register_alive_file(const std::string& path);

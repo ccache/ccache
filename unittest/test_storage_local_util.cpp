@@ -44,30 +44,13 @@ TEST_SUITE_BEGIN("storage::local::util");
 
 TEST_CASE("storage::local::for_each_cache_subdir")
 {
-  std::vector<std::string> actual;
+  std::vector<uint8_t> actual;
   storage::local::for_each_cache_subdir(
-    "cache_dir",
     [](double) {},
-    [&](const auto& subdir, const auto&) { actual.push_back(subdir); });
+    [&](uint8_t index, const auto&) { actual.push_back(index); });
 
-  std::vector<std::string> expected = {
-    "cache_dir/0",
-    "cache_dir/1",
-    "cache_dir/2",
-    "cache_dir/3",
-    "cache_dir/4",
-    "cache_dir/5",
-    "cache_dir/6",
-    "cache_dir/7",
-    "cache_dir/8",
-    "cache_dir/9",
-    "cache_dir/a",
-    "cache_dir/b",
-    "cache_dir/c",
-    "cache_dir/d",
-    "cache_dir/e",
-    "cache_dir/f",
-  };
+  std::vector<uint8_t> expected = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   CHECK(actual == expected);
 }
 

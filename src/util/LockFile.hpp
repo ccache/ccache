@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,10 +46,10 @@ public:
   void make_long_lived(LongLivedLockFileManager& lock_manager);
 
   // Acquire lock, blocking. Returns true if acquired, otherwise false.
-  bool acquire();
+  [[nodiscard]] bool acquire();
 
   // Acquire lock, non-blocking. Returns true if acquired, otherwise false.
-  bool try_acquire();
+  [[nodiscard]] bool try_acquire();
 
   // Release lock early. If not previously acquired, nothing happens.
   void release();

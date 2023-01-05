@@ -127,10 +127,14 @@ const StatisticsField k_statistics_fields[] = {
   FIELD(unsupported_source_language,
         "Unsupported source language",
         FLAG_UNCACHEABLE),
+
+  // subdir_files_base and subdir_size_kibibyte_base are intentionally omitted
+  // since they are not interesting to show.
 };
 
 static_assert(sizeof(k_statistics_fields) / sizeof(k_statistics_fields[0])
-              == static_cast<size_t>(Statistic::END) - 1);
+              == static_cast<size_t>(Statistic::END)
+                   - (/*none*/ 1 + /*subdir files*/ 16 + /*subdir size*/ 16));
 
 static std::string
 format_timestamp(const util::TimePoint& value)
@@ -333,7 +337,7 @@ Statistics::format_human_readable(const Config& config,
     }
     table.add_row(size_cells);
 
-    if (verbosity > 0) {
+    if (verbosity > 0 || config.max_files() > 0) {
       std::vector<C> files_cells{"  Files:", S(files_in_cache)};
       if (config.max_files() > 0) {
         files_cells.emplace_back("/");
