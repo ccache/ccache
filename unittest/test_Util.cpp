@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -676,6 +676,9 @@ TEST_CASE("Util::parse_size")
   CHECK(Util::parse_size("1Gi") == 1 * 1024 * 1024 * 1024);
   CHECK(Util::parse_size("2 Ti")
         == static_cast<uint64_t>(2) * 1024 * 1024 * 1024 * 1024);
+
+  CHECK(Util::parse_size("9MB") == 9 * 1000 * 1000);
+  CHECK(Util::parse_size("9MiB") == 9 * 1024 * 1024);
 
   CHECK_THROWS_WITH(Util::parse_size(""), "invalid size: \"\"");
   CHECK_THROWS_WITH(Util::parse_size("x"), "invalid size: \"x\"");
