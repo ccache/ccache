@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -44,8 +44,6 @@
 
 // The option only affects compilation; not passed to the preprocessor.
 #define AFFECTS_COMP (1 << 6)
-
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 struct CompOpt
 {
@@ -179,11 +177,8 @@ find(const std::string& option)
 {
   CompOpt key;
   key.name = option.c_str();
-  void* result = bsearch(&key,
-                         compopts,
-                         ARRAY_SIZE(compopts),
-                         sizeof(compopts[0]),
-                         compare_compopts);
+  void* result = bsearch(
+    &key, compopts, std::size(compopts), sizeof(compopts[0]), compare_compopts);
   return static_cast<CompOpt*>(result);
 }
 
@@ -194,7 +189,7 @@ find_prefix(const std::string& option)
   key.name = option.c_str();
   void* result = bsearch(&key,
                          compopts,
-                         ARRAY_SIZE(compopts),
+                         std::size(compopts),
                          sizeof(compopts[0]),
                          compare_prefix_compopts);
   return static_cast<CompOpt*>(result);
@@ -207,7 +202,7 @@ bool compopt_verify_sortedness_and_flags();
 bool
 compopt_verify_sortedness_and_flags()
 {
-  for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
+  for (size_t i = 0; i < std::size(compopts); ++i) {
     if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
       PRINT(stderr,
             "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by {}\n",
