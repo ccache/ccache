@@ -117,6 +117,9 @@ option(ZSTD_FROM_INTERNET
 option(HIREDIS_FROM_INTERNET
   "Download and use libhiredis from the Internet if not available" ON)
 
+option(FORCE_INTERNET_ZSTD
+  "Only use libzstd from the Internet" OFF)
+
 find_package(zstd 1.1.2 MODULE REQUIRED)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
