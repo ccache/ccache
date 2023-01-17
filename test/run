@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+# Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 #
 # See doc/AUTHORS.adoc for a complete list of contributors.
 #
@@ -161,11 +161,11 @@ objdump_cmd() {
 
 objdump_grep_cmd() {
     if $HOST_OS_APPLE; then
-        fgrep -q "\"$1\""
+        grep -Fq "\"$1\""
     elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
-        fgrep -q "$1"
+        grep -Fq "$1"
     else
-        fgrep -q ": $1"
+        grep -Fq ": $1"
     fi
 }
 
@@ -324,7 +324,7 @@ expect_contains() {
     if [ ! -e "$file" ]; then
         test_failed_internal "$file not found"
     fi
-    if ! fgrep -q -- "$string" "$file"; then
+    if ! grep -Fq -- "$string" "$file"; then
         test_failed_internal "File $file does not contain \"$string\"\nActual content: $(cat $file)"
     fi
 }
@@ -336,7 +336,7 @@ expect_not_contains() {
     if [ ! -e "$file" ]; then
         test_failed_internal "$file not found"
     fi
-    if fgrep -q -- "$string" "$file"; then
+    if grep -Fq -- "$string" "$file"; then
         test_failed_internal "File $file contains \"$string\"\nActual content: $(cat $file)"
     fi
 }

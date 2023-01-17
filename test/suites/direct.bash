@@ -1204,7 +1204,7 @@ EOF
 
     manifest=`find $CCACHE_DIR -name '*M'`
     if [ -n "$manifest" ]; then
-        data="`$CCACHE --inspect $manifest | egrep '/dev/(stdout|tty|sda|hda'`"
+        data="`$CCACHE --inspect $manifest | grep -E '/dev/(stdout|tty|sda|hda'`"
         if [ -n "$data" ]; then
             test_failed "$manifest contained troublesome file(s): $data"
         fi

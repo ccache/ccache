@@ -545,7 +545,7 @@ fi
     TEST "Directory is not hashed if using -gz"
 
     $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null
-    if [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
+    if [ -s preprocessed.i ] && ! grep -Fq $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
         cp test1.c dir2
@@ -572,7 +572,7 @@ fi
     if [ $? -eq 0 ]; then
         # run test only if -gz=zlib is supported
         $COMPILER -E test1.c -gz=zlib >preprocessed.i 2>/dev/null
-        if [ "$exit_code" == "0" ] && [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
+        if [ "$exit_code" == "0" ] && [ -s preprocessed.i ] && ! grep -Fq $PWD preprocessed.i; then
             mkdir dir1 dir2
             cp test1.c dir1
             cp test1.c dir2

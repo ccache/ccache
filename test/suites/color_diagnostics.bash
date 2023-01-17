@@ -40,8 +40,8 @@ SUITE_color_diagnostics_SETUP() {
 
 color_diagnostics_expect_color() {
     expect_contains "${1:?}" $'\033['
-    expect_contains <(fgrep 'Wreturn-type' "$1") $'\033['
-    expect_contains <(fgrep 'from preprocessor' "$1") $'\033['
+    expect_contains <(grep -F 'Wreturn-type' "$1") $'\033['
+    expect_contains <(grep -F 'from preprocessor' "$1") $'\033['
 }
 
 color_diagnostics_expect_no_color() {
