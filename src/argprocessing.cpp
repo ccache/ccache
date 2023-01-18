@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -817,8 +817,7 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     } else if (util::starts_with(args[i], "-Wp,-D")
                && args[i].find(',', 6) == std::string::npos) {
-      // Treat it like -D.
-      state.cpp_args.push_back(args[i].substr(4));
+      state.cpp_args.push_back(args[i]);
       return Statistic::none;
     } else if (args[i] == "-Wp,-MP"
                || (args[i].size() > 8 && util::starts_with(args[i], "-Wp,-M")

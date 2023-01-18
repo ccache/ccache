@@ -1520,10 +1520,20 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -c -DFOO test1.c
+    $CCACHE_COMPILE -c -Wp,-DFOO test1.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -DFOO test1.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -DFOO test1.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
     if touch empty.c && $COMPILER -c -- empty.c 2>/dev/null; then
