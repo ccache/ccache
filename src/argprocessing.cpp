@@ -815,7 +815,8 @@ process_option_arg(const Context& ctx,
       }
       state.dep_args.push_back(args[i]);
       return Statistic::none;
-    } else if (util::starts_with(args[i], "-Wp,-D")
+    } else if ((util::starts_with(args[i], "-Wp,-D")
+                || util::starts_with(args[i], "-Wp,-U"))
                && args[i].find(',', 6) == std::string::npos) {
       state.cpp_args.push_back(args[i]);
       return Statistic::none;

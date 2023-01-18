@@ -1536,8 +1536,8 @@ The direct mode will be disabled if any of the following holds:
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
 * a compiler option not supported by the direct mode is used:
-** a `-Wp,++*++` compiler option other than `-Wp,-MD,<path>`, `-Wp,-MMD,<path>`
-   and `-Wp,-D<define>`
+** a `-Wp,++*++` compiler option other than `-Wp,-MD,<path>`, `-Wp,-MMD,<path>`,
+   `-Wp,-D<macro[=defn]>` or `-Wp,-U<macro>`
 ** `-Xpreprocessor`
 * the string `+__TIME__+` is present in the source code
 

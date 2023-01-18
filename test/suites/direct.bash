@@ -459,6 +459,19 @@ fi
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
+    TEST "-Wp,-U"
+
+    $CCACHE_COMPILE -c -Wp,-UFOO test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Wp,-UFOO test.c
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
     TEST "-Wp, with multiple arguments"
 
     # ccache could try to parse and make sense of -Wp, with multiple arguments,
