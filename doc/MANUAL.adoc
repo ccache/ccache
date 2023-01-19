@@ -720,7 +720,7 @@ WARNING: Do not enable this option unless you are aware of these caveats:
   safety measure. Furthermore, a simple integrity check is made for cached
   object files by verifying that their sizes are correct. This means that
   mistakes like `strip file.o` or `echo >file.o` will be detected even if the
-  object file is made writeable, but a modification that doesn't change the file
+  object file is made writable, but a modification that doesn't change the file
   size will not.
 * Programs that don't expect that files from two different identical
   compilations are hard links to each other can fail.
