@@ -75,6 +75,9 @@ const uint32_t k_version = 2;
 const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
+// Maximum time the spin lock loop will try before giving up.
+const auto k_max_lock_duration = util::Duration(5);
+
 static_assert(Digest::size() == 20,
               "Increment version number if size of digest is changed.");
 static_assert(std::is_trivially_copyable<Digest>::value,
@@ -88,8 +91,6 @@ static_assert(
   "Numeric value is part of key, increment version number if changed.");
 
 const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here
-
-const auto MAX_LOCK_DURATION = util::Duration(5);
 
 bool
 fd_is_on_known_to_work_file_system(int fd)
@@ -163,18 +164,18 @@ spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
       }
 
       if (prev_pid != lock_pid) {
-        // Check for changing pid here so ABA locking is detected with better
-        // probability
+        // Check for changing PID here so ABA locking is detected with better
+        // probability.
         prev_pid = lock_pid;
         reset_timer = true;
       }
       sched_yield();
     }
-    // If everything is ok, we should never hit this
+    // If everything is OK, we should never hit this.
     if (reset_timer) {
       lock_time = util::TimePoint::now();
       reset_timer = false;
-    } else if (util::TimePoint::now() - lock_time > MAX_LOCK_DURATION) {
+    } else if (util::TimePoint::now() - lock_time > k_max_lock_duration) {
       return false;
     }
   }
