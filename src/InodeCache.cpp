@@ -20,7 +20,6 @@
 
 #include "Config.hpp"
 #include "Digest.hpp"
-#include "Fd.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
@@ -28,8 +27,6 @@
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "fmtmacros.hpp"
-
-#include <util/TimePoint.hpp>
 
 #include <fcntl.h>
 #include <libgen.h>
@@ -77,6 +74,14 @@ const uint32_t k_num_entries = 4;
 
 // Maximum time the spin lock loop will try before giving up.
 const auto k_max_lock_duration = util::Duration(5);
+
+// The memory-mapped file may reside on a filesystem with compression. Memory
+// accesses to the file risk crashing if such a filesystem gets full, so stop
+// using the inode cache well before this happens.
+const uint64_t k_min_fs_mib_left = 100; // 100 MiB
+
+// How long a filesystem space check is valid before we make a new one.
+const util::Duration k_fs_space_check_valid_duration(1);
 
 static_assert(Digest::size() == 20,
               "Increment version number if size of digest is changed.");
@@ -229,17 +234,21 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
   }
-  Fd fd(open(inode_cache_file.c_str(), O_RDWR));
-  if (!fd) {
+  m_fd = Fd(open(inode_cache_file.c_str(), O_RDWR));
+  if (!m_fd) {
     LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
-  if (!fd_is_on_known_to_work_file_system(*fd)) {
+  if (!fd_is_on_known_to_work_file_system(*m_fd)) {
     return false;
   }
-  SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
-    nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0));
-  fd.close();
+  SharedRegion* sr =
+    reinterpret_cast<SharedRegion*>(mmap(nullptr,
+                                         sizeof(SharedRegion),
+                                         PROT_READ | PROT_WRITE,
+                                         MAP_SHARED,
+                                         *m_fd,
+                                         0));
   if (sr == MMAP_FAILED) {
     LOG("Failed to mmap {}: {}", inode_cache_file, strerror(errno));
     return false;
@@ -385,6 +394,24 @@ InodeCache::initialize()
 {
   if (m_failed || !m_config.inode_cache()) {
     return false;
+  }
+
+  if (m_fd) {
+    auto now = util::TimePoint::now();
+    if (now > m_last_fs_space_check + k_fs_space_check_valid_duration) {
+      m_last_fs_space_check = now;
+
+      struct statfs buf;
+      if (fstatfs(*m_fd, &buf) != 0) {
+        LOG("fstatfs failed: {}", strerror(errno));
+        return false;
+      }
+      if (buf.f_bavail * 512 < k_min_fs_mib_left * 1024 * 1024) {
+        LOG("Filesystem has less than {} MiB free space, not using inode cache",
+            k_min_fs_mib_left);
+        return false;
+      }
+    }
   }
 
   if (m_sr) {

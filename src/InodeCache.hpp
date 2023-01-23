@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include <Fd.hpp>
 #include <util/Duration.hpp>
+#include <util/TimePoint.hpp>
 
 #include <cstdint>
 #include <functional>
@@ -130,7 +132,9 @@ private:
 
   const Config& m_config;
   util::Duration m_min_age;
+  Fd m_fd;
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
   const pid_t m_self_pid;
+  util::TimePoint m_last_fs_space_check;
 };
