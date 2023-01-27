@@ -5,7 +5,13 @@ set -eu
 build() {
     mkdir -p "build_$1"
     cd "build_$1"
-    cmake -DFORCE_INTERNET_ZSTD=ON -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" -DCMAKE_OSX_ARCHITECTURES="$1" -DCMAKE_SYSTEM_PROCESSOR="$1" ..
+    cmake \
+        -DZSTD_FROM_INTERNET=ON \
+        -DHIREDIS_FROM_INTERNET=ON \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
+        -DCMAKE_OSX_ARCHITECTURES="$1" \
+        -DCMAKE_SYSTEM_PROCESSOR="$1" \
+        ..
     cmake --build .
     cd ..
 }

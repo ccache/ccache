@@ -112,13 +112,11 @@ endif()
 #
 # Third party
 #
-option(ZSTD_FROM_INTERNET
-  "Download and use libzstd from the Internet if not available" ON)
-option(HIREDIS_FROM_INTERNET
-  "Download and use libhiredis from the Internet if not available" ON)
+set(ZSTD_FROM_INTERNET AUTO CACHE STRING "Download and use libzstd from the Internet")
+set_property(CACHE ZSTD_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
 
-option(FORCE_INTERNET_ZSTD
-  "Only use libzstd from the Internet" OFF)
+set(HIREDIS_FROM_INTERNET AUTO CACHE STRING "Download and use libhiredis from the Internet")
+set_property(CACHE HIREDIS_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
 
 find_package(zstd 1.1.2 MODULE REQUIRED)
 

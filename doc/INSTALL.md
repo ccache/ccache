@@ -14,9 +14,9 @@ To build ccache you need:
 - [libzstd](http://www.zstd.net). If you don't have libzstd installed and can't
   or don't want to install it in a standard system location, it will be
   automatically downloaded, built and linked statically as part of the build
-  process. To disable this, pass `-DZSTD_FROM_INTERNET=OFF` to `cmake`. You can
-  also install zstd in a custom path and pass
-  `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
+  process. To disable this, pass `-DZSTD_FROM_INTERNET=OFF` to `cmake`, or pass
+  `-DZSTD_FROM_INTERNET=ON` to force downloading. You can also install zstd in a
+  custom path and pass `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
 
   To link libzstd statically (and you have a static libzstd available), pass
   `-DSTATIC_LINK=ON` to `cmake`. This is the default on Windows. Alternatively,
@@ -28,8 +28,9 @@ Optional:
   you don't have libhiredis installed and can't or don't want to install it in a
   standard system location, it will be automatically downloaded, built and
   linked statically as part of the build process. To disable this, pass
-  `-DHIREDIS_FROM_INTERNET=OFF` to cmake. You can also install hiredis in a
-  custom path and pass `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
+  `-DHIREDIS_FROM_INTERNET=OFF` to `cmake`, or pass `-DHIREDIS_FROM_INTERNET=ON`
+  to force downloading.. You can also install hiredis in a custom path and pass
+  `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
 
   To link libhiredis statically (and you have a static libhiredis available),
   pass `-DSTATIC_LINK=ON` to `cmake`. This is the default on Windows.

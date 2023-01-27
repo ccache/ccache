@@ -221,7 +221,7 @@ jobs:
           path: testdir.tar.xz
 
   build_macos_universal:
-    name: MacOS Universal Binary
+    name: macOS universal binary
     runs-on: macos-12
     env:
       CMAKE_GENERATOR: Ninja
