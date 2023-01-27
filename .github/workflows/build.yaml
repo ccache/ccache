@@ -220,6 +220,26 @@ jobs:
           name: ${{ matrix.config.sys}}-${{ matrix.config.env }}-${{ matrix.config.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
+  build_macos_universal:
+    name: MacOS Universal Binary
+    runs-on: macos-12
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Get source
+        uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+              brew install ninja
+      - name: Build macOS universal binary
+        run: ci/build-macos-binary
+      - name: Archive universal binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: macOS-binary
+          path: build_universal/ccache
+
   specific_tests:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
