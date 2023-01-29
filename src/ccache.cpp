@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -74,6 +74,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <unordered_map>
 
 using core::Statistic;
 
@@ -457,6 +458,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
     return nonstd::make_unexpected(Statistic::internal_error);
   }
 
+  std::unordered_map<std::string, std::string> relative_inc_path_cache;
+
   // Bytes between p and q are pending to be hashed.
   char* q = &(*data)[0];
   const char* p = q;
@@ -559,10 +562,18 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
         }
         r++;
       }
+
       // p and q span the include file path.
       std::string inc_path(p, q - p);
-      inc_path = Util::normalize_concrete_absolute_path(inc_path);
-      inc_path = Util::make_relative_path(ctx, inc_path);
+      auto it = relative_inc_path_cache.find(inc_path);
+      if (it == relative_inc_path_cache.end()) {
+        auto rel_inc_path = Util::make_relative_path(
+          ctx, Util::normalize_concrete_absolute_path(inc_path));
+        relative_inc_path_cache.emplace(inc_path, rel_inc_path);
+        inc_path = std::move(rel_inc_path);
+      } else {
+        inc_path = it->second;
+      }
 
       if ((inc_path != ctx.apparent_cwd) || ctx.config.hash_dir()) {
         hash.hash(inc_path);

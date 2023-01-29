@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -980,7 +980,8 @@ std::string
 normalize_concrete_absolute_path(const std::string& path)
 {
   const auto normalized_path = normalize_abstract_absolute_path(path);
-  return Stat::stat(normalized_path).same_inode_as(Stat::stat(path))
+  return (normalized_path == path
+          || Stat::stat(normalized_path).same_inode_as(Stat::stat(path)))
            ? normalized_path
            : path;
 }
