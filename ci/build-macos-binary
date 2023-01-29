@@ -6,6 +6,7 @@ build() {
     mkdir -p "build_$1"
     cd "build_$1"
     cmake \
+        -DCMAKE_BUILD_TYPE=Release \
         -DZSTD_FROM_INTERNET=ON \
         -DHIREDIS_FROM_INTERNET=ON \
         -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
