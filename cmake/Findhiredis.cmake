@@ -57,8 +57,7 @@ if(do_download)
   include(FetchContent)
   FetchContent_Declare(
     hiredis
-    URL https://github.com/redis/hiredis/archive/v${hiredis_version}.tar.gz
-    URL_HASH SHA256=fe6d21741ec7f3fc9df409d921f47dfc73a4d8ff64f4ac6f1d95f951bf7f53d6
+    URL https://github.com/redis/hiredis/archive/refs/tags/v${hiredis_version}.tar.gz
     SOURCE_DIR ${hiredis_dir}
     BINARY_DIR ${hiredis_build}
   )

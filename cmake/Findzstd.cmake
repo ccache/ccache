@@ -55,8 +55,8 @@ if(do_download)
   include(FetchContent)
   FetchContent_Declare(
     zstd
-    URL https://github.com/facebook/zstd/archive/v${zstd_version}.tar.gz
-    URL_HASH SHA256=f7de13462f7a82c29ab865820149e778cbfe01087b3a55b5332707abf9db4a6e
+    URL https://github.com/facebook/zstd/releases/download/v${zstd_version}/zstd-${zstd_version}.tar.gz
+    URL_HASH SHA256=7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0
     SOURCE_DIR ${zstd_dir}
     BINARY_DIR ${zstd_build}
   )
