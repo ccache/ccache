@@ -548,6 +548,7 @@ public:
   ssize_t read(char *ptr, size_t size) override;
   ssize_t write(const char *ptr, size_t size) override;
   void get_remote_ip_and_port(std::string &ip, int &port) const override;
+  void get_local_ip_and_port(std::string &ip, int &port) const override;
   socket_t socket() const override;
 
 private:
@@ -577,6 +578,7 @@ public:
   ssize_t read(char *ptr, size_t size) override;
   ssize_t write(const char *ptr, size_t size) override;
   void get_remote_ip_and_port(std::string &ip, int &port) const override;
+  void get_local_ip_and_port(std::string &ip, int &port) const override;
   socket_t socket() const override;
 
 private:
@@ -697,9 +699,12 @@ socket_t create_socket(const std::string &host, const std::string &ip, int port,
       addr.sun_family = AF_UNIX;
       std::copy(host.begin(), host.end(), addr.sun_path);
 
-      hints.ai_addr = reinterpret_cast<sockaddr*>(&addr);
+      hints.ai_addr = reinterpret_cast<sockaddr *>(&addr);
       hints.ai_addrlen = static_cast<socklen_t>(
           sizeof(addr) - sizeof(addr.sun_path) + addrlen);
+
+      fcntl(sock, F_SETFD, FD_CLOEXEC);
+      if (socket_options) { socket_options(sock); }
 
       if (!bind_or_connect(sock, hints)) {
         close_socket(sock);
@@ -821,7 +826,7 @@ bool bind_ip_address(socket_t sock, const std::string &host) {
   return ret;
 }
 
-#if !defined _WIN32 && !defined ANDROID
+#if !defined _WIN32 && !defined ANDROID && !defined _AIX
 #define USE_IF2IP
 #endif
 
@@ -942,9 +947,8 @@ socket_t create_client_socket(
   return sock;
 }
 
-bool get_remote_ip_and_port(const struct sockaddr_storage &addr,
-                                   socklen_t addr_len, std::string &ip,
-                                   int &port) {
+bool get_ip_and_port(const struct sockaddr_storage &addr,
+                            socklen_t addr_len, std::string &ip, int &port) {
   if (addr.ss_family == AF_INET) {
     port = ntohs(reinterpret_cast<const struct sockaddr_in *>(&addr)->sin_port);
   } else if (addr.ss_family == AF_INET6) {
@@ -965,13 +969,40 @@ bool get_remote_ip_and_port(const struct sockaddr_storage &addr,
   return true;
 }
 
+void get_local_ip_and_port(socket_t sock, std::string &ip, int &port) {
+  struct sockaddr_storage addr;
+  socklen_t addr_len = sizeof(addr);
+  if (!getsockname(sock, reinterpret_cast<struct sockaddr *>(&addr),
+                   &addr_len)) {
+    get_ip_and_port(addr, addr_len, ip, port);
+  }
+}
+
 void get_remote_ip_and_port(socket_t sock, std::string &ip, int &port) {
   struct sockaddr_storage addr;
   socklen_t addr_len = sizeof(addr);
 
   if (!getpeername(sock, reinterpret_cast<struct sockaddr *>(&addr),
                    &addr_len)) {
-    get_remote_ip_and_port(addr, addr_len, ip, port);
+#ifndef _WIN32
+    if (addr.ss_family == AF_UNIX) {
+#if defined(__linux__)
+      struct ucred ucred;
+      socklen_t len = sizeof(ucred);
+      if (getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == 0) {
+        port = ucred.pid;
+      }
+#elif defined(SOL_LOCAL) && defined(SO_PEERPID) // __APPLE__
+      pid_t pid;
+      socklen_t len = sizeof(pid);
+      if (getsockopt(sock, SOL_LOCAL, SO_PEERPID, &pid, &len) == 0) {
+        port = pid;
+      }
+#endif
+      return;
+    }
+#endif
+    get_ip_and_port(addr, addr_len, ip, port);
   }
 }
 
@@ -2179,6 +2210,63 @@ std::string make_multipart_data_boundary() {
   return result;
 }
 
+bool is_multipart_boundary_chars_valid(const std::string &boundary) {
+  auto valid = true;
+  for (size_t i = 0; i < boundary.size(); i++) {
+    auto c = boundary[i];
+    if (!std::isalnum(c) && c != '-' && c != '_') {
+      valid = false;
+      break;
+    }
+  }
+  return valid;
+}
+
+template <typename T>
+std::string
+serialize_multipart_formdata_item_begin(const T &item,
+                                        const std::string &boundary) {
+  std::string body = "--" + boundary + "\r\n";
+  body += "Content-Disposition: form-data; name=\"" + item.name + "\"";
+  if (!item.filename.empty()) {
+    body += "; filename=\"" + item.filename + "\"";
+  }
+  body += "\r\n";
+  if (!item.content_type.empty()) {
+    body += "Content-Type: " + item.content_type + "\r\n";
+  }
+  body += "\r\n";
+
+  return body;
+}
+
+std::string serialize_multipart_formdata_item_end() { return "\r\n"; }
+
+std::string
+serialize_multipart_formdata_finish(const std::string &boundary) {
+  return "--" + boundary + "--\r\n";
+}
+
+std::string
+serialize_multipart_formdata_get_content_type(const std::string &boundary) {
+  return "multipart/form-data; boundary=" + boundary;
+}
+
+std::string
+serialize_multipart_formdata(const MultipartFormDataItems &items,
+                             const std::string &boundary, bool finish = true) {
+  std::string body;
+
+  for (const auto &item : items) {
+    body += serialize_multipart_formdata_item_begin(item, boundary);
+    body += item.content + serialize_multipart_formdata_item_end();
+  }
+
+  if (finish) body += serialize_multipart_formdata_finish(boundary);
+
+  return body;
+}
+
 std::pair<size_t, size_t>
 get_range_offset_and_length(const Request &req, size_t content_length,
                             size_t index) {
@@ -2560,8 +2648,8 @@ void hosted_at(const std::string &hostname,
         *reinterpret_cast<struct sockaddr_storage *>(rp->ai_addr);
     std::string ip;
     int dummy = -1;
-    if (detail::get_remote_ip_and_port(addr, sizeof(struct sockaddr_storage),
-                                       ip, dummy)) {
+    if (detail::get_ip_and_port(addr, sizeof(struct sockaddr_storage), ip,
+                                dummy)) {
       addrs.push_back(ip);
     }
   }
@@ -2785,7 +2873,8 @@ bool SocketStream::is_readable() const {
 }
 
 bool SocketStream::is_writable() const {
-  return select_write(sock_, write_timeout_sec_, write_timeout_usec_) > 0;
+  return select_write(sock_, write_timeout_sec_, write_timeout_usec_) > 0 &&
+         is_socket_alive(sock_);
 }
 
 ssize_t SocketStream::read(char *ptr, size_t size) {
@@ -2850,6 +2939,11 @@ void SocketStream::get_remote_ip_and_port(std::string &ip,
   return detail::get_remote_ip_and_port(sock_, ip, port);
 }
 
+void SocketStream::get_local_ip_and_port(std::string &ip,
+                                                int &port) const {
+  return detail::get_local_ip_and_port(sock_, ip, port);
+}
+
 socket_t SocketStream::socket() const { return sock_; }
 
 // Buffer stream implementation
@@ -2874,6 +2968,9 @@ ssize_t BufferStream::write(const char *ptr, size_t size) {
 
 void BufferStream::get_remote_ip_and_port(std::string & /*ip*/,
                                                  int & /*port*/) const {}
+
+void BufferStream::get_local_ip_and_port(std::string & /*ip*/,
+                                                int & /*port*/) const {}
 
 socket_t BufferStream::socket() const { return 0; }
 
@@ -3322,6 +3419,7 @@ Server::write_content_with_provider(Stream &strm, const Request &req,
 
 bool Server::read_content(Stream &strm, Request &req, Response &res) {
   MultipartFormDataMap::iterator cur;
+  auto file_count = 0;
   if (read_content_core(
           strm, req, res,
           // Regular
@@ -3332,6 +3430,9 @@ bool Server::read_content(Stream &strm, Request &req, Response &res) {
           },
           // Multipart
           [&](const MultipartFormData &file) {
+            if (file_count++ == CPPHTTPLIB_MULTIPART_FORM_DATA_FILE_MAX_COUNT) {
+              return false;
+            }
             cur = req.files.emplace(file.name, file);
             return true;
           },
@@ -3517,6 +3618,8 @@ bool Server::listen_internal() {
           // The per-process limit of open file descriptors has been reached.
           // Try to accept new connections after a short sleep.
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          continue;
+        } else if (errno == EINTR || errno == EAGAIN) {
           continue;
         }
         if (svr_sock_ != INVALID_SOCKET) {
@@ -3850,6 +3953,10 @@ Server::process_request(Stream &strm, bool close_connection,
   req.set_header("REMOTE_ADDR", req.remote_addr);
   req.set_header("REMOTE_PORT", std::to_string(req.remote_port));
 
+  strm.get_local_ip_and_port(req.local_addr, req.local_port);
+  req.set_header("LOCAL_ADDR", req.local_addr);
+  req.set_header("LOCAL_PORT", std::to_string(req.local_port));
+
   if (req.has_header("Range")) {
     const auto &range_header_value = req.get_header_value("Range");
     if (!detail::parse_range_header(range_header_value, req.ranges)) {
@@ -3889,7 +3996,16 @@ Server::process_request(Stream &strm, bool close_connection,
       routed = true;
     } else {
       res.status = 500;
-      res.set_header("EXCEPTION_WHAT", e.what());
+      std::string val;
+      auto s = e.what();
+      for (size_t i = 0; s[i]; i++) {
+        switch (s[i]) {
+        case '\r': val += "\\r"; break;
+        case '\n': val += "\\n"; break;
+        default: val += s[i]; break;
+        }
+      }
+      res.set_header("EXCEPTION_WHAT", val);
     }
   } catch (...) {
     if (exception_handler_) {
@@ -4643,6 +4759,49 @@ bool ClientImpl::process_request(Stream &strm, Request &req,
   return true;
 }
 
+ContentProviderWithoutLength ClientImpl::get_multipart_content_provider(
+    const std::string &boundary, const MultipartFormDataItems &items,
+    const MultipartFormDataProviderItems &provider_items) {
+  size_t cur_item = 0, cur_start = 0;
+  // cur_item and cur_start are copied to within the std::function and maintain
+  // state between successive calls
+  return [&, cur_item, cur_start](size_t offset,
+                                  DataSink &sink) mutable -> bool {
+    if (!offset && items.size()) {
+      sink.os << detail::serialize_multipart_formdata(items, boundary, false);
+      return true;
+    } else if (cur_item < provider_items.size()) {
+      if (!cur_start) {
+        const auto &begin = detail::serialize_multipart_formdata_item_begin(
+            provider_items[cur_item], boundary);
+        offset += begin.size();
+        cur_start = offset;
+        sink.os << begin;
+      }
+
+      DataSink cur_sink;
+      bool has_data = true;
+      cur_sink.write = sink.write;
+      cur_sink.done = [&]() { has_data = false; };
+      cur_sink.is_writable = sink.is_writable;
+
+      if (!provider_items[cur_item].provider(offset - cur_start, cur_sink))
+        return false;
+
+      if (!has_data) {
+        sink.os << detail::serialize_multipart_formdata_item_end();
+        cur_item++;
+        cur_start = 0;
+      }
+      return true;
+    } else {
+      sink.os << detail::serialize_multipart_formdata_finish(boundary);
+      sink.done();
+      return true;
+    }
+  };
+}
+
 bool
 ClientImpl::process_socket(const Socket &socket,
                            std::function<bool(Stream &strm)> callback) {
@@ -4788,6 +4947,11 @@ Result ClientImpl::Post(const std::string &path) {
   return Post(path, std::string(), std::string());
 }
 
+Result ClientImpl::Post(const std::string &path,
+                               const Headers &headers) {
+  return Post(path, headers, nullptr, 0, std::string());
+}
+
 Result ClientImpl::Post(const std::string &path, const char *body,
                                size_t content_length,
                                const std::string &content_type) {
@@ -4860,38 +5024,37 @@ Result ClientImpl::Post(const std::string &path,
 
 Result ClientImpl::Post(const std::string &path, const Headers &headers,
                                const MultipartFormDataItems &items) {
-  return Post(path, headers, items, detail::make_multipart_data_boundary());
+  const auto &boundary = detail::make_multipart_data_boundary();
+  const auto &content_type =
+      detail::serialize_multipart_formdata_get_content_type(boundary);
+  const auto &body = detail::serialize_multipart_formdata(items, boundary);
+  return Post(path, headers, body, content_type.c_str());
 }
+
 Result ClientImpl::Post(const std::string &path, const Headers &headers,
                                const MultipartFormDataItems &items,
                                const std::string &boundary) {
-  for (size_t i = 0; i < boundary.size(); i++) {
-    char c = boundary[i];
-    if (!std::isalnum(c) && c != '-' && c != '_') {
-      return Result{nullptr, Error::UnsupportedMultipartBoundaryChars};
-    }
+  if (!detail::is_multipart_boundary_chars_valid(boundary)) {
+    return Result{nullptr, Error::UnsupportedMultipartBoundaryChars};
   }
 
-  std::string body;
-
-  for (const auto &item : items) {
-    body += "--" + boundary + "\r\n";
-    body += "Content-Disposition: form-data; name=\"" + item.name + "\"";
-    if (!item.filename.empty()) {
-      body += "; filename=\"" + item.filename + "\"";
-    }
-    body += "\r\n";
-    if (!item.content_type.empty()) {
-      body += "Content-Type: " + item.content_type + "\r\n";
-    }
-    body += "\r\n";
-    body += item.content + "\r\n";
-  }
-
-  body += "--" + boundary + "--\r\n";
-
-  std::string content_type = "multipart/form-data; boundary=" + boundary;
+  const auto &content_type =
+      detail::serialize_multipart_formdata_get_content_type(boundary);
+  const auto &body = detail::serialize_multipart_formdata(items, boundary);
   return Post(path, headers, body, content_type.c_str());
+}
+
+Result
+ClientImpl::Post(const std::string &path, const Headers &headers,
+                 const MultipartFormDataItems &items,
+                 const MultipartFormDataProviderItems &provider_items) {
+  const auto &boundary = detail::make_multipart_data_boundary();
+  const auto &content_type =
+      detail::serialize_multipart_formdata_get_content_type(boundary);
+  return send_with_content_provider(
+      "POST", path, headers, nullptr, 0, nullptr,
+      get_multipart_content_provider(boundary, items, provider_items),
+      content_type);
 }
 
 Result ClientImpl::Put(const std::string &path) {
@@ -4963,6 +5126,45 @@ Result ClientImpl::Put(const std::string &path, const Headers &headers,
   return Put(path, headers, query, "application/x-www-form-urlencoded");
 }
 
+Result ClientImpl::Put(const std::string &path,
+                              const MultipartFormDataItems &items) {
+  return Put(path, Headers(), items);
+}
+
+Result ClientImpl::Put(const std::string &path, const Headers &headers,
+                              const MultipartFormDataItems &items) {
+  const auto &boundary = detail::make_multipart_data_boundary();
+  const auto &content_type =
+      detail::serialize_multipart_formdata_get_content_type(boundary);
+  const auto &body = detail::serialize_multipart_formdata(items, boundary);
+  return Put(path, headers, body, content_type);
+}
+
+Result ClientImpl::Put(const std::string &path, const Headers &headers,
+                              const MultipartFormDataItems &items,
+                              const std::string &boundary) {
+  if (!detail::is_multipart_boundary_chars_valid(boundary)) {
+    return Result{nullptr, Error::UnsupportedMultipartBoundaryChars};
+  }
+
+  const auto &content_type =
+      detail::serialize_multipart_formdata_get_content_type(boundary);
+  const auto &body = detail::serialize_multipart_formdata(items, boundary);
+  return Put(path, headers, body, content_type);
+}
+
+Result
+ClientImpl::Put(const std::string &path, const Headers &headers,
+                const MultipartFormDataItems &items,
+                const MultipartFormDataProviderItems &provider_items) {
+  const auto &boundary = detail::make_multipart_data_boundary();
+  const auto &content_type =
+      detail::serialize_multipart_formdata_get_content_type(boundary);
+  return send_with_content_provider(
+      "PUT", path, headers, nullptr, 0, nullptr,
+      get_multipart_content_provider(boundary, items, provider_items),
+      content_type);
+}
 Result ClientImpl::Patch(const std::string &path) {
   return Patch(path, std::string(), std::string());
 }
@@ -5088,9 +5290,7 @@ size_t ClientImpl::is_socket_open() const {
   return socket_.is_open();
 }
 
-socket_t ClientImpl::socket() const {
-  return socket_.sock;
-}
+socket_t ClientImpl::socket() const { return socket_.sock; }
 
 void ClientImpl::stop() {
   std::lock_guard<std::mutex> guard(socket_mutex_);
@@ -5324,55 +5524,12 @@ process_client_socket_ssl(SSL *ssl, socket_t sock, time_t read_timeout_sec,
   return callback(strm);
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static std::shared_ptr<std::vector<std::mutex>> openSSL_locks_;
-
-class SSLThreadLocks {
-public:
-  SSLThreadLocks() {
-    openSSL_locks_ =
-        std::make_shared<std::vector<std::mutex>>(CRYPTO_num_locks());
-    CRYPTO_set_locking_callback(locking_callback);
-  }
-
-  ~SSLThreadLocks() { CRYPTO_set_locking_callback(nullptr); }
-
-private:
-  static void locking_callback(int mode, int type, const char * /*file*/,
-                               int /*line*/) {
-    auto &lk = (*openSSL_locks_)[static_cast<size_t>(type)];
-    if (mode & CRYPTO_LOCK) {
-      lk.lock();
-    } else {
-      lk.unlock();
-    }
-  }
-};
-
-#endif
-
 class SSLInit {
 public:
   SSLInit() {
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-    SSL_load_error_strings();
-    SSL_library_init();
-#else
     OPENSSL_init_ssl(
         OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
-#endif
   }
-
-  ~SSLInit() {
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-    ERR_free_strings();
-#endif
-  }
-
-private:
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-  SSLThreadLocks thread_init_;
-#endif
 };
 
 // SSL socket stream implementation
@@ -5395,8 +5552,8 @@ bool SSLSocketStream::is_readable() const {
 }
 
 bool SSLSocketStream::is_writable() const {
-  return detail::select_write(sock_, write_timeout_sec_, write_timeout_usec_) >
-         0;
+  return select_write(sock_, write_timeout_sec_, write_timeout_usec_) > 0 &&
+         is_socket_alive(sock_);
 }
 
 ssize_t SSLSocketStream::read(char *ptr, size_t size) {
@@ -5465,6 +5622,11 @@ ssize_t SSLSocketStream::write(const char *ptr, size_t size) {
 void SSLSocketStream::get_remote_ip_and_port(std::string &ip,
                                                     int &port) const {
   detail::get_remote_ip_and_port(sock_, ip, port);
+}
+
+void SSLSocketStream::get_local_ip_and_port(std::string &ip,
+                                                   int &port) const {
+  detail::get_local_ip_and_port(sock_, ip, port);
 }
 
 socket_t SSLSocketStream::socket() const { return sock_; }
@@ -5776,7 +5938,7 @@ bool SSLClient::initialize_ssl(Socket &socket, Error &error) {
             return false;
           }
 
-          auto server_cert = SSL_get_peer_certificate(ssl2);
+          auto server_cert = SSL_get1_peer_certificate(ssl2);
 
           if (server_cert == nullptr) {
             error = Error::SSLServerVerification;
@@ -5998,13 +6160,13 @@ Client::Client(const std::string &scheme_host_port,
 
     if (is_ssl) {
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
-      cli_ = detail::make_unique<SSLClient>(host, port,
-                                            client_cert_path, client_key_path);
+      cli_ = detail::make_unique<SSLClient>(host, port, client_cert_path,
+                                            client_key_path);
       is_ssl_ = is_ssl;
 #endif
     } else {
-      cli_ = detail::make_unique<ClientImpl>(host, port,
-                                             client_cert_path, client_key_path);
+      cli_ = detail::make_unique<ClientImpl>(host, port, client_cert_path,
+                                             client_key_path);
     }
   } else {
     cli_ = detail::make_unique<ClientImpl>(scheme_host_port, 80,
@@ -6102,6 +6264,9 @@ Result Client::Head(const std::string &path, const Headers &headers) {
 }
 
 Result Client::Post(const std::string &path) { return cli_->Post(path); }
+Result Client::Post(const std::string &path, const Headers &headers) {
+  return cli_->Post(path, headers);
+}
 Result Client::Post(const std::string &path, const char *body,
                            size_t content_length,
                            const std::string &content_type) {
@@ -6164,6 +6329,12 @@ Result Client::Post(const std::string &path, const Headers &headers,
                            const std::string &boundary) {
   return cli_->Post(path, headers, items, boundary);
 }
+Result
+Client::Post(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items,
+             const MultipartFormDataProviderItems &provider_items) {
+  return cli_->Post(path, headers, items, provider_items);
+}
 Result Client::Put(const std::string &path) { return cli_->Put(path); }
 Result Client::Put(const std::string &path, const char *body,
                           size_t content_length,
@@ -6213,6 +6384,25 @@ Result Client::Put(const std::string &path, const Params &params) {
 Result Client::Put(const std::string &path, const Headers &headers,
                           const Params &params) {
   return cli_->Put(path, headers, params);
+}
+Result Client::Put(const std::string &path,
+                          const MultipartFormDataItems &items) {
+  return cli_->Put(path, items);
+}
+Result Client::Put(const std::string &path, const Headers &headers,
+                          const MultipartFormDataItems &items) {
+  return cli_->Put(path, headers, items);
+}
+Result Client::Put(const std::string &path, const Headers &headers,
+                          const MultipartFormDataItems &items,
+                          const std::string &boundary) {
+  return cli_->Put(path, headers, items, boundary);
+}
+Result
+Client::Put(const std::string &path, const Headers &headers,
+            const MultipartFormDataItems &items,
+            const MultipartFormDataProviderItems &provider_items) {
+  return cli_->Put(path, headers, items, provider_items);
 }
 Result Client::Patch(const std::string &path) {
   return cli_->Patch(path);

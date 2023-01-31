@@ -8,7 +8,7 @@
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#define CPPHTTPLIB_VERSION "0.11.1"
+#define CPPHTTPLIB_VERSION "0.11.4"
 
 /*
  * Configuration
@@ -68,6 +68,10 @@
 
 #ifndef CPPHTTPLIB_REDIRECT_MAX_COUNT
 #define CPPHTTPLIB_REDIRECT_MAX_COUNT 20
+#endif
+
+#ifndef CPPHTTPLIB_MULTIPART_FORM_DATA_FILE_MAX_COUNT
+#define CPPHTTPLIB_MULTIPART_FORM_DATA_FILE_MAX_COUNT 1024
 #endif
 
 #ifndef CPPHTTPLIB_PAYLOAD_MAX_LENGTH
@@ -168,7 +172,9 @@ using socket_t = SOCKET;
 #else // not _WIN32
 
 #include <arpa/inet.h>
+#ifndef _AIX
 #include <ifaddrs.h>
+#endif
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -249,14 +255,10 @@ using socket_t = int;
 
 #if OPENSSL_VERSION_NUMBER < 0x1010100fL
 #error Sorry, OpenSSL versions prior to 1.1.1 are not supported
+#elif OPENSSL_VERSION_NUMBER < 0x30000000L
+#define SSL_get1_peer_certificate SSL_get_peer_certificate
 #endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#include <openssl/crypto.h>
-inline const unsigned char *ASN1_STRING_get0_data(const ASN1_STRING *asn1) {
-  return M_ASN1_STRING_data(asn1);
-}
-#endif
 #endif
 
 #ifdef CPPHTTPLIB_ZLIB_SUPPORT
@@ -367,6 +369,14 @@ using ContentProviderWithoutLength =
 
 using ContentProviderResourceReleaser = std::function<void(bool success)>;
 
+struct MultipartFormDataProvider {
+  std::string name;
+  ContentProviderWithoutLength provider;
+  std::string filename;
+  std::string content_type;
+};
+using MultipartFormDataProviderItems = std::vector<MultipartFormDataProvider>;
+
 using ContentReceiverWithProgress =
     std::function<bool(const char *data, size_t data_length, uint64_t offset,
                        uint64_t total_length)>;
@@ -411,6 +421,8 @@ struct Request {
 
   std::string remote_addr;
   int remote_port = -1;
+  std::string local_addr;
+  int local_port = -1;
 
   // for server
   std::string version;
@@ -512,6 +524,7 @@ public:
   virtual ssize_t read(char *ptr, size_t size) = 0;
   virtual ssize_t write(const char *ptr, size_t size) = 0;
   virtual void get_remote_ip_and_port(std::string &ip, int &port) const = 0;
+  virtual void get_local_ip_and_port(std::string &ip, int &port) const = 0;
   virtual socket_t socket() const = 0;
 
   template <typename... Args>
@@ -544,8 +557,11 @@ public:
   ~ThreadPool() override = default;
 
   void enqueue(std::function<void()> fn) override {
-    std::unique_lock<std::mutex> lock(mutex_);
-    jobs_.push_back(std::move(fn));
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      jobs_.push_back(std::move(fn));
+    }
+
     cond_.notify_one();
   }
 
@@ -579,7 +595,7 @@ private:
 
           if (pool_.shutdown_ && pool_.jobs_.empty()) { break; }
 
-          fn = pool_.jobs_.front();
+          fn = std::move(pool_.jobs_.front());
           pool_.jobs_.pop_front();
         }
 
@@ -897,6 +913,7 @@ public:
   Result Head(const std::string &path, const Headers &headers);
 
   Result Post(const std::string &path);
+  Result Post(const std::string &path, const Headers &headers);
   Result Post(const std::string &path, const char *body, size_t content_length,
               const std::string &content_type);
   Result Post(const std::string &path, const Headers &headers, const char *body,
@@ -925,6 +942,9 @@ public:
               const MultipartFormDataItems &items);
   Result Post(const std::string &path, const Headers &headers,
               const MultipartFormDataItems &items, const std::string &boundary);
+  Result Post(const std::string &path, const Headers &headers,
+              const MultipartFormDataItems &items,
+              const MultipartFormDataProviderItems &provider_items);
 
   Result Put(const std::string &path);
   Result Put(const std::string &path, const char *body, size_t content_length,
@@ -949,6 +969,14 @@ public:
   Result Put(const std::string &path, const Params &params);
   Result Put(const std::string &path, const Headers &headers,
              const Params &params);
+  Result Put(const std::string &path, const MultipartFormDataItems &items);
+  Result Put(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items);
+  Result Put(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items, const std::string &boundary);
+  Result Put(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items,
+             const MultipartFormDataProviderItems &provider_items);
 
   Result Patch(const std::string &path);
   Result Patch(const std::string &path, const char *body, size_t content_length,
@@ -1187,6 +1215,9 @@ private:
       ContentProvider content_provider,
       ContentProviderWithoutLength content_provider_without_length,
       const std::string &content_type);
+  ContentProviderWithoutLength get_multipart_content_provider(
+      const std::string &boundary, const MultipartFormDataItems &items,
+      const MultipartFormDataProviderItems &provider_items);
 
   std::string adjust_host_string(const std::string &host) const;
 
@@ -1253,6 +1284,7 @@ public:
   Result Head(const std::string &path, const Headers &headers);
 
   Result Post(const std::string &path);
+  Result Post(const std::string &path, const Headers &headers);
   Result Post(const std::string &path, const char *body, size_t content_length,
               const std::string &content_type);
   Result Post(const std::string &path, const Headers &headers, const char *body,
@@ -1281,6 +1313,10 @@ public:
               const MultipartFormDataItems &items);
   Result Post(const std::string &path, const Headers &headers,
               const MultipartFormDataItems &items, const std::string &boundary);
+  Result Post(const std::string &path, const Headers &headers,
+              const MultipartFormDataItems &items,
+              const MultipartFormDataProviderItems &provider_items);
+
   Result Put(const std::string &path);
   Result Put(const std::string &path, const char *body, size_t content_length,
              const std::string &content_type);
@@ -1304,6 +1340,15 @@ public:
   Result Put(const std::string &path, const Params &params);
   Result Put(const std::string &path, const Headers &headers,
              const Params &params);
+  Result Put(const std::string &path, const MultipartFormDataItems &items);
+  Result Put(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items);
+  Result Put(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items, const std::string &boundary);
+  Result Put(const std::string &path, const Headers &headers,
+             const MultipartFormDataItems &items,
+             const MultipartFormDataProviderItems &provider_items);
+
   Result Patch(const std::string &path);
   Result Patch(const std::string &path, const char *body, size_t content_length,
                const std::string &content_type);
@@ -1519,7 +1564,7 @@ inline void duration_to_sec_and_usec(const T &duration, U callback) {
   auto usec = std::chrono::duration_cast<std::chrono::microseconds>(
                   duration - std::chrono::seconds(sec))
                   .count();
-  callback(sec, usec);
+  callback(static_cast<time_t>(sec), static_cast<time_t>(usec));
 }
 
 template <typename T>
@@ -1765,6 +1810,7 @@ public:
   ssize_t read(char *ptr, size_t size) override;
   ssize_t write(const char *ptr, size_t size) override;
   void get_remote_ip_and_port(std::string &ip, int &port) const override;
+  void get_local_ip_and_port(std::string &ip, int &port) const override;
   socket_t socket() const override;
 
   const std::string &get_buffer() const;
@@ -1886,5 +1932,9 @@ private:
 
 
 } // namespace httplib
+
+#if defined(_WIN32) && defined(CPPHTTPLIB_USE_POLL)
+#undef poll
+#endif
 
 #endif // CPPHTTPLIB_HTTPLIB_H
