@@ -9,7 +9,6 @@ set(
   Hash.cpp
   Logging.cpp
   ProgressBar.cpp
-  SignalHandler.cpp
   Stat.cpp
   TemporaryFile.cpp
   ThreadPool.cpp
@@ -34,6 +33,8 @@ endif()
 
 if(WIN32)
   list(APPEND source_files Win32Util.cpp)
+else()
+  list(APPEND source_files SignalHandler.cpp)
 endif()
 
 file(GLOB headers *.hpp)

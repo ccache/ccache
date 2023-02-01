@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,7 +31,9 @@ public:
   static void unblock_signals();
 
 private:
+#ifndef _WIN32
   Context& m_ctx;
+#endif
 };
 
 class SignalHandlerBlocker
@@ -40,3 +42,21 @@ public:
   SignalHandlerBlocker();
   ~SignalHandlerBlocker();
 };
+
+#ifdef _WIN32
+inline SignalHandler::SignalHandler(Context&)
+{
+}
+
+inline SignalHandler::~SignalHandler()
+{
+}
+
+inline SignalHandlerBlocker::SignalHandlerBlocker()
+{
+}
+
+inline SignalHandlerBlocker::~SignalHandlerBlocker()
+{
+}
+#endif
