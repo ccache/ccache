@@ -915,8 +915,9 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
 
     This option specifies one or several storage backends (separated by space)
     to query after checking the local cache (unless
-    <<config_remote_only,*remote_only*>> is true). See _<<Remote storage
-    backends>>_ for documentation of syntax and available backends.
+    <<config_remote_only,*remote_only*>> is true). See
+    _<<Remote storage backends>>_ for documentation of syntax and available
+    backends.
 +
 Examples:
 +
