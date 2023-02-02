@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -58,6 +58,8 @@ static int win32execute(const char* path,
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
+  LOG("Executing {}", Util::format_argv_for_logging(argv));
+
   return win32execute(argv[0],
                       argv,
                       1,
