@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,9 +24,11 @@
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
+#include <Util.hpp>
 #include <core/Statistic.hpp>
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/string.hpp>
 
 #include "third_party/doctest.h"
 
@@ -675,6 +677,26 @@ TEST_CASE("-x")
     CHECK(result.error == Statistic::bad_compiler_arguments);
     CHECK(ctx.args_info.actual_language == "");
   }
+}
+
+// On macOS ctx.actual_cwd() typically starts with /Users which clashes with
+// MSVC's /U option, so disable the test case there. This will be possible to
+// improve when/if a compiler abstraction is introduced (issue #956).
+TEST_CASE("MSVC options"
+          * doctest::skip(util::starts_with(Util::get_actual_cwd(), "/U")))
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+
+  util::write_file("foo.c", "");
+
+  ctx.orig_args = Args::from_string(
+    FMT("cl.exe /Fobar.obj /c {}/foo.c /foobar", ctx.actual_cwd));
+  const ProcessArgsResult result = process_args(ctx);
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "cl.exe /foobar");
+  CHECK(result.compiler_args.to_string() == "cl.exe /foobar -c");
 }
 
 TEST_SUITE_END();
