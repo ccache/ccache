@@ -1072,7 +1072,7 @@ process_arg(const Context& ctx,
 
   size_t& i = args_index;
 
-  // If an argument isn't a plain file then assume its an option, not an input
+  // If an argument isn't a plain file then assume it's an option, not an input
   // file. This allows us to cope better with unusual compiler options.
   //
   // Note that "/dev/null" is an exception that is sometimes used as an input
