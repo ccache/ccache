@@ -268,7 +268,7 @@ std::string
 make_dash_option(const Config& config, const std::string& arg)
 {
   std::string new_arg = arg;
-  if (config.is_compiler_group_msvc() && arg[0] == '/') {
+  if (config.is_compiler_group_msvc() && util::starts_with(arg, "/")) {
     // MSVC understands both /option and -option, so convert all /option to
     // -option to simplify our handling.
     new_arg[0] = '-';
@@ -303,7 +303,7 @@ process_option_arg(const Context& ctx,
   std::string arg = make_dash_option(ctx.config, args[i]);
 
   // Exit early if we notice a non-option argument right away.
-  if (arg[0] != '-' && arg[0] != '@') {
+  if (arg.empty() || (arg[0] != '-' && arg[0] != '@')) {
     return std::nullopt;
   }
 
