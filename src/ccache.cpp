@@ -2266,10 +2266,6 @@ cache_compilation(int argc, const char* const* argv)
 
     initialize(ctx, argc, argv);
 
-    MTR_BEGIN("main", "find_compiler");
-    find_compiler(ctx, &find_executable);
-    MTR_END("main", "find_compiler");
-
     const auto result = do_cache_compilation(ctx, argv);
     ctx.storage.local.increment_statistics(result ? *result
                                                   : result.error().counters());
@@ -2330,11 +2326,6 @@ cache_compilation(int argc, const char* const* argv)
 static nonstd::expected<core::StatisticsCounters, Failure>
 do_cache_compilation(Context& ctx, const char* const* argv)
 {
-  if (ctx.actual_cwd.empty()) {
-    LOG("Unable to determine current working directory: {}", strerror(errno));
-    return nonstd::make_unexpected(Statistic::internal_error);
-  }
-
   if (!ctx.config.log_file().empty() || ctx.config.debug()) {
     ctx.config.visit_items([&ctx](const std::string& key,
                                   const std::string& value,
@@ -2347,6 +2338,19 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     });
   }
 
+  LOG("Command line: {}", Util::format_argv_for_logging(argv));
+  LOG("Hostname: {}", Util::get_hostname());
+  LOG("Working directory: {}", ctx.actual_cwd);
+  if (ctx.apparent_cwd != ctx.actual_cwd) {
+    LOG("Apparent working directory: {}", ctx.apparent_cwd);
+  }
+
+  // Note: do_cache_compilation must not return or use ctx.orig_args before
+  // find_compiler is executed.
+  MTR_BEGIN("main", "find_compiler");
+  find_compiler(ctx, &find_executable);
+  MTR_END("main", "find_compiler");
+
   // Guess compiler after logging the config value in order to be able to
   // display "compiler_type = auto" before overwriting the value with the
   // guess.
@@ -2355,19 +2359,17 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
   DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
 
+  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
+
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
     return nonstd::make_unexpected(Statistic::none);
   }
 
-  LOG("Command line: {}", Util::format_argv_for_logging(argv));
-  LOG("Hostname: {}", Util::get_hostname());
-  LOG("Working directory: {}", ctx.actual_cwd);
-  if (ctx.apparent_cwd != ctx.actual_cwd) {
-    LOG("Apparent working directory: {}", ctx.apparent_cwd);
+  if (ctx.actual_cwd.empty()) {
+    LOG("Unable to determine current working directory: {}", strerror(errno));
+    return nonstd::make_unexpected(Statistic::internal_error);
   }
-
-  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
 
   // Set CCACHE_DISABLE so no process ccache executes from now on will risk
   // calling ccache second time. For instance, if the real compiler is a wrapper
