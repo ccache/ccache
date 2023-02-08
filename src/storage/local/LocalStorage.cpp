@@ -340,7 +340,7 @@ LocalStorage::LocalStorage(const Config& config) : m_config(config)
 void
 LocalStorage::finalize()
 {
-  if (m_config.stats()) {
+  if (m_config.stats() && !m_counter_updates.all_zero()) {
     // Pseudo-randomly choose one of the stats files in the 256 level 2
     // directories.
     const auto bucket = getpid() % 256;
