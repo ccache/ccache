@@ -664,7 +664,7 @@ TEST_CASE("-x")
 
   SUBCASE("UNKNOWN -x option (uppercase)")
   {
-    ctx.orig_args = Args::from_string("gcc -x UNSUPPORTED_LANGUGAGE -c foo.c");
+    ctx.orig_args = Args::from_string("gcc -x UNSUPPORTED_LANGUAGE -c foo.c");
     const ProcessArgsResult result = process_args(ctx);
     CHECK(result.error == Statistic::unsupported_source_language);
     CHECK(ctx.args_info.actual_language == "");
