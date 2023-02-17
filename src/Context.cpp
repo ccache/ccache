@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -49,11 +49,12 @@ Context::Context()
 }
 
 void
-Context::initialize()
+Context::initialize(Args&& compiler_and_args,
+                    const std::vector<std::string>& cmdline_config_settings)
 {
-  config.read();
+  orig_args = std::move(compiler_and_args);
+  config.read(cmdline_config_settings);
   Logging::init(config);
-
   ignore_header_paths =
     util::split_path_list(config.ignore_headers_in_manifest());
   set_ignore_options(Util::split_into_strings(config.ignore_options(), " "));

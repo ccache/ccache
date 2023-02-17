@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,7 +51,8 @@ public:
 
   // Read configuration, initialize logging, etc. Typically not called from unit
   // tests.
-  void initialize();
+  void initialize(Args&& compiler_and_args,
+                  const std::vector<std::string>& cmdline_config_settings);
 
   ArgsInfo args_info;
   Config config;

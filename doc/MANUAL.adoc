@@ -9,9 +9,14 @@ ccache - a fast C/C++ compiler cache
 == Synopsis
 
 [verse]
-*ccache* [_options_]
-*ccache* _compiler_ [_compiler options_]
-_compiler_ [_compiler options_]            (ccache masquerading as the compiler)
+*ccache* [_ccache options_]
+*ccache* [_KEY_=_VALUE_ ...] _compiler_ [_compiler options_]
+_compiler_ [_compiler options_]
+
+The first form takes options described in <<Command line options>> below. The
+second form invokes the compiler, optionally using <<Configuration,configuration
+options>> as _KEY_=_VALUE_ arguments. In the third form, ccache is masquerading
+as the compiler as described in <<Run modes>>.
 
 
 == Description
@@ -310,11 +315,16 @@ system-level configuration file and secondly a cache-specific configuration
 file. The priorities of configuration options are as follows (where 1 is
 highest):
 
-1. Environment variables.
-2. The cache-specific configuration file (see below).
-3. The system (read-only) configuration file `<sysconfdir>/ccache.conf`
+1. Command line settings in _KEY_=_VALUE_ form. Example:
++
+-------------------------------------------------------------------------------
+ccache debug=true compiler_check="%compiler% --version" gcc -c example.c
+-------------------------------------------------------------------------------
+2. Environment variables.
+3. The cache-specific configuration file (see below).
+4. The system (read-only) configuration file `<sysconfdir>/ccache.conf`
    (typically `/etc/ccache.conf` or `/usr/local/etc/ccache.conf`).
-4. Compile-time defaults.
+5. Compile-time defaults.
 
 As a special case, if the environment variable `CCACHE_CONFIGPATH` is set it
 specifies the configuration file, and the system configuration file won't be

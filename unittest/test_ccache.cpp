@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -38,7 +38,8 @@ TEST_SUITE_BEGIN("ccache");
 
 // Wraps find_compiler in a test friendly interface.
 static std::string
-helper(const char* args,
+helper(bool masquerading_as_compiler,
+       const char* args,
        const char* config_compiler,
        const char* find_executable_return_string = nullptr)
 {
@@ -51,8 +52,58 @@ helper(const char* args,
   Context ctx;
   ctx.config.set_compiler(config_compiler);
   ctx.orig_args = Args::from_string(args);
-  find_compiler(ctx, find_executable_stub);
+  find_compiler(ctx, find_executable_stub, masquerading_as_compiler);
   return ctx.orig_args.to_string();
+}
+
+TEST_CASE("split_argv")
+{
+  ArgvParts argv_parts;
+
+  SUBCASE("empty")
+  {
+    argv_parts = split_argv(0, nullptr);
+    CHECK(argv_parts.masquerading_as_compiler);
+    CHECK(argv_parts.config_settings.empty());
+    CHECK(argv_parts.compiler_and_args.empty());
+  }
+
+  SUBCASE("ccache")
+  {
+    const char* const argv[] = {"ccache"};
+    argv_parts = split_argv(std::size(argv), argv);
+    CHECK(!argv_parts.masquerading_as_compiler);
+    CHECK(argv_parts.config_settings.empty());
+    CHECK(argv_parts.compiler_and_args.empty());
+  }
+
+  SUBCASE("normal compilation")
+  {
+    const char* const argv[] = {"ccache", "gcc", "-c", "test.c"};
+    argv_parts = split_argv(std::size(argv), argv);
+    CHECK(!argv_parts.masquerading_as_compiler);
+    CHECK(argv_parts.config_settings.empty());
+    CHECK(argv_parts.compiler_and_args == Args::from_string("gcc -c test.c"));
+  }
+
+  SUBCASE("only config options")
+  {
+    const char* const argv[] = {"ccache", "foo=bar"};
+    argv_parts = split_argv(std::size(argv), argv);
+    CHECK(!argv_parts.masquerading_as_compiler);
+    CHECK(argv_parts.config_settings == std::vector<std::string>{"foo=bar"});
+    CHECK(argv_parts.compiler_and_args.empty());
+  }
+
+  SUBCASE("compilation with config options")
+  {
+    const char* const argv[] = {"ccache", "a=b", "c = d", "/usr/bin/gcc"};
+    argv_parts = split_argv(std::size(argv), argv);
+    CHECK(!argv_parts.masquerading_as_compiler);
+    CHECK(argv_parts.config_settings
+          == std::vector<std::string>{"a=b", "c = d"});
+    CHECK(argv_parts.compiler_and_args == Args::from_string("/usr/bin/gcc"));
+  }
 }
 
 TEST_CASE("find_compiler")
@@ -62,60 +113,27 @@ TEST_CASE("find_compiler")
     // In case the first parameter is gcc it must be a link to ccache, so
     // find_compiler should call find_executable to locate the next best "gcc"
     // and return that value.
-    CHECK(helper("gcc", "") == "resolved_gcc");
-    CHECK(helper("relative/gcc", "") == "resolved_gcc");
-    CHECK(helper("/absolute/gcc", "") == "resolved_gcc");
+    CHECK(helper(true, "gcc", "") == "resolved_gcc");
+    CHECK(helper(true, "relative/gcc", "") == "resolved_gcc");
+    CHECK(helper(true, "/absolute/gcc", "") == "resolved_gcc");
 
     // In case the first parameter is ccache, resolve the second parameter to
     // the real compiler unless it's a relative or absolute path.
-    CHECK(helper("ccache gcc", "") == "resolved_gcc");
-    CHECK(helper("ccache rel/gcc", "") == "rel/gcc");
-    CHECK(helper("ccache /abs/gcc", "") == "/abs/gcc");
-
-    CHECK(helper("rel/ccache gcc", "") == "resolved_gcc");
-    CHECK(helper("rel/ccache rel/gcc", "") == "rel/gcc");
-    CHECK(helper("rel/ccache /abs/gcc", "") == "/abs/gcc");
-
-    CHECK(helper("/abs/ccache gcc", "") == "resolved_gcc");
-    CHECK(helper("/abs/ccache rel/gcc", "") == "rel/gcc");
-    CHECK(helper("/abs/ccache /abs/gcc", "") == "/abs/gcc");
+    CHECK(helper(false, "gcc", "") == "resolved_gcc");
+    CHECK(helper(false, "rel/gcc", "") == "rel/gcc");
+    CHECK(helper(false, "/abs/gcc", "") == "/abs/gcc");
 
     // If gcc points back to ccache throw, unless either ccache or gcc is a
     // relative or absolute path.
-    CHECK_THROWS(helper("ccache gcc", "", "ccache"));
-    CHECK(helper("ccache rel/gcc", "", "ccache") == "rel/gcc");
-    CHECK(helper("ccache /abs/gcc", "", "ccache") == "/abs/gcc");
-
-    CHECK_THROWS(helper("rel/ccache gcc", "", "ccache"));
-    CHECK(helper("rel/ccache rel/gcc", "", "ccache") == "rel/gcc");
-    CHECK(helper("rel/ccache /a/gcc", "", "ccache") == "/a/gcc");
-
-    CHECK_THROWS(helper("/abs/ccache gcc", "", "ccache"));
-    CHECK(helper("/abs/ccache rel/gcc", "", "ccache") == "rel/gcc");
-    CHECK(helper("/abs/ccache /a/gcc", "", "ccache") == "/a/gcc");
+    CHECK_THROWS(helper(false, "gcc", "", "ccache"));
+    CHECK(helper(false, "rel/gcc", "", "ccache") == "rel/gcc");
+    CHECK(helper(false, "/abs/gcc", "", "ccache") == "/abs/gcc");
 
     // If compiler is not found then throw, unless the compiler has a relative
     // or absolute path.
-    CHECK_THROWS(helper("ccache gcc", "", ""));
-    CHECK(helper("ccache rel/gcc", "", "") == "rel/gcc");
-    CHECK(helper("ccache /abs/gcc", "", "") == "/abs/gcc");
-
-    CHECK_THROWS(helper("rel/ccache gcc", "", ""));
-    CHECK(helper("rel/ccache rel/gcc", "", "") == "rel/gcc");
-    CHECK(helper("rel/ccache /abs/gcc", "", "") == "/abs/gcc");
-
-    CHECK_THROWS(helper("/abs/ccache gcc", "", ""));
-    CHECK(helper("/abs/ccache rel/gcc", "", "") == "rel/gcc");
-    CHECK(helper("/abs/ccache /abs/gcc", "", "") == "/abs/gcc");
-  }
-
-  SUBCASE("double ccache")
-  {
-    // E.g. due to some suboptimal setup, scripts etc. Source:
-    // https://github.com/ccache/ccache/issues/686
-    CHECK(helper("ccache gcc", "") == "resolved_gcc");
-    CHECK(helper("ccache ccache gcc", "") == "resolved_gcc");
-    CHECK(helper("ccache ccache-1.2.3 ccache gcc", "") == "resolved_gcc");
+    CHECK_THROWS(helper(false, "gcc", "", ""));
+    CHECK(helper(false, "rel/gcc", "", "") == "rel/gcc");
+    CHECK(helper(false, "/abs/gcc", "", "") == "/abs/gcc");
   }
 
   SUBCASE("config")
@@ -123,37 +141,23 @@ TEST_CASE("find_compiler")
     // In case the first parameter is gcc it must be a link to ccache so use
     // config value instead. Don't resolve config if it's a relative or absolute
     // path.
-    CHECK(helper("gcc", "config") == "resolved_config");
-    CHECK(helper("gcc", "rel/config") == "rel/config");
-    CHECK(helper("gcc", "/abs/config") == "/abs/config");
-    CHECK(helper("rel/gcc", "config") == "resolved_config");
-    CHECK(helper("rel/gcc", "rel/config") == "rel/config");
-    CHECK(helper("rel/gcc", "/abs/config") == "/abs/config");
-    CHECK(helper("/abs/gcc", "config") == "resolved_config");
-    CHECK(helper("/abs/gcc", "rel/config") == "rel/config");
-    CHECK(helper("/abs/gcc", "/abs/config") == "/abs/config");
+    CHECK(helper(true, "gcc", "config") == "resolved_config");
+    CHECK(helper(true, "gcc", "rel/config") == "rel/config");
+    CHECK(helper(true, "gcc", "/abs/config") == "/abs/config");
+    CHECK(helper(true, "rel/gcc", "config") == "resolved_config");
+    CHECK(helper(true, "rel/gcc", "rel/config") == "rel/config");
+    CHECK(helper(true, "rel/gcc", "/abs/config") == "/abs/config");
+    CHECK(helper(true, "/abs/gcc", "config") == "resolved_config");
+    CHECK(helper(true, "/abs/gcc", "rel/config") == "rel/config");
+    CHECK(helper(true, "/abs/gcc", "/abs/config") == "/abs/config");
 
     // In case the first parameter is ccache, use the configuration value. Don't
     // resolve configuration value if it's a relative or absolute path.
-    CHECK(helper("ccache gcc", "config") == "resolved_config");
-    CHECK(helper("ccache gcc", "rel/config") == "rel/config");
-    CHECK(helper("ccache gcc", "/abs/config") == "/abs/config");
-    CHECK(helper("ccache rel/gcc", "config") == "resolved_config");
-    CHECK(helper("ccache /abs/gcc", "config") == "resolved_config");
-
-    // Same as above with relative path to ccache.
-    CHECK(helper("r/ccache gcc", "conf") == "resolved_conf");
-    CHECK(helper("r/ccache gcc", "rel/conf") == "rel/conf");
-    CHECK(helper("r/ccache gcc", "/abs/conf") == "/abs/conf");
-    CHECK(helper("r/ccache rel/gcc", "conf") == "resolved_conf");
-    CHECK(helper("r/ccache /abs/gcc", "conf") == "resolved_conf");
-
-    // Same as above with absolute path to ccache.
-    CHECK(helper("/a/ccache gcc", "conf") == "resolved_conf");
-    CHECK(helper("/a/ccache gcc", "rel/conf") == "rel/conf");
-    CHECK(helper("/a/ccache gcc", "/a/conf") == "/a/conf");
-    CHECK(helper("/a/ccache rel/gcc", "conf") == "resolved_conf");
-    CHECK(helper("/a/ccache /abs/gcc", "conf") == "resolved_conf");
+    CHECK(helper(false, "gcc", "config") == "resolved_config");
+    CHECK(helper(false, "gcc", "rel/config") == "rel/config");
+    CHECK(helper(false, "gcc", "/abs/config") == "/abs/config");
+    CHECK(helper(false, "rel/gcc", "config") == "resolved_config");
+    CHECK(helper(false, "/abs/gcc", "config") == "resolved_config");
   }
 }
 

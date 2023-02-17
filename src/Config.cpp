@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -439,6 +439,24 @@ parse_config_file(const std::string& path,
   return true;
 }
 
+std::unordered_map<std::string, std::string>
+create_cmdline_settings_map(const std::vector<std::string>& settings)
+{
+  std::unordered_map<std::string, std::string> result;
+  for (const auto& setting : settings) {
+    DEBUG_ASSERT(setting.find('=') != std::string::npos);
+    std::string key;
+    std::string value;
+    std::string error_message;
+    bool ok = parse_line(setting, &key, &value, &error_message);
+    ASSERT(ok);
+    if (!key.empty()) {
+      result.insert_or_assign(std::move(key), std::move(value));
+    }
+  }
+  return result;
+}
+
 } // namespace
 
 #ifndef _WIN32
@@ -489,8 +507,11 @@ compiler_type_to_string(CompilerType compiler_type)
 }
 
 void
-Config::read()
+Config::read(const std::vector<std::string>& cmdline_config_settings)
 {
+  auto cmdline_settings_map =
+    create_cmdline_settings_map(cmdline_config_settings);
+
   const std::string home_dir = Util::get_home_directory();
   const std::string legacy_ccache_dir = Util::make_path(home_dir, ".ccache");
   const bool legacy_ccache_dir_exists =
@@ -525,8 +546,12 @@ Config::read()
     MTR_END("config", "conf_read_system");
 
     const char* const env_ccache_dir = getenv("CCACHE_DIR");
+    auto cmdline_cache_dir = cmdline_settings_map.find("cache_dir");
+
     std::string config_dir;
-    if (env_ccache_dir && *env_ccache_dir) {
+    if (cmdline_cache_dir != cmdline_settings_map.end()) {
+      config_dir = cmdline_cache_dir->second;
+    } else if (env_ccache_dir && *env_ccache_dir) {
       config_dir = env_ccache_dir;
     } else if (!cache_dir().empty() && !env_ccache_dir) {
       config_dir = cache_dir();
@@ -572,6 +597,8 @@ Config::read()
   // (cache_dir is set above if CCACHE_DIR is set.)
   MTR_END("config", "conf_update_from_environment");
 
+  update_from_map(cmdline_settings_map);
+
   if (cache_dir().empty()) {
     if (legacy_ccache_dir_exists) {
       set_cache_dir(legacy_ccache_dir);
@@ -594,7 +621,8 @@ Config::read()
   // else: cache_dir was set explicitly via environment or via system config.
 
   // We have now determined config.cache_dir and populated the rest of config in
-  // prio order (1. environment, 2. cache-specific config, 3. system config).
+  // prio order (1. command line, 2. environment, 3. cache-specific config, 4.
+  // system config).
 }
 
 const std::string&
@@ -630,6 +658,14 @@ Config::update_from_file(const std::string& path)
         this->set_item(key, value, std::nullopt, false, path);
       }
     });
+}
+
+void
+Config::update_from_map(const std::unordered_map<std::string, std::string>& map)
+{
+  for (const auto& [key, value] : map) {
+    set_item(key, value, std::nullopt, false, "command line");
+  }
 }
 
 void

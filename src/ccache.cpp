@@ -72,6 +72,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <unordered_map>
@@ -2109,25 +2110,18 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
 // PATH to find an executable of the same name that isn't ourselves.
 void
 find_compiler(Context& ctx,
-              const FindExecutableFunction& find_executable_function)
+              const FindExecutableFunction& find_executable_function,
+              bool masquerading_as_compiler)
 {
-  // gcc --> 0
-  // ccache gcc --> 1
-  // ccache ccache gcc --> 2
-  size_t compiler_pos = 0;
-  while (compiler_pos < ctx.orig_args.size()
-         && Util::is_ccache_executable(ctx.orig_args[compiler_pos])) {
-    ++compiler_pos;
-  }
-
   // Support user override of the compiler.
   const std::string compiler =
     !ctx.config.compiler().empty()
       ? ctx.config.compiler()
       // In case ccache is masquerading as the compiler, use only base_name so
       // the real compiler can be determined.
-      : (compiler_pos == 0 ? std::string(Util::base_name(ctx.orig_args[0]))
-                           : ctx.orig_args[compiler_pos]);
+      : (masquerading_as_compiler
+           ? std::string(Util::base_name(ctx.orig_args[0]))
+           : ctx.orig_args[0]);
 
   const std::string resolved_compiler =
     util::is_full_path(compiler)
@@ -2142,17 +2136,12 @@ find_compiler(Context& ctx,
     throw core::Fatal("Recursive invocation of ccache");
   }
 
-  ctx.orig_args.pop_front(compiler_pos);
   ctx.orig_args[0] = resolved_compiler;
 }
 
-// Initialize ccache. Must be called once before anything else is run.
 static void
-initialize(Context& ctx, int argc, const char* const* argv)
+initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
 {
-  ctx.orig_args = Args::from_argv(argc, argv);
-  ctx.storage.initialize();
-
   LOG("=== CCACHE {} STARTED =========================================",
       CCACHE_VERSION);
 
@@ -2166,6 +2155,42 @@ initialize(Context& ctx, int argc, const char* const* argv)
     LOG_RAW("Error: tracing is not enabled!");
 #endif
   }
+
+  if (!ctx.config.log_file().empty() || ctx.config.debug()) {
+    ctx.config.visit_items([&ctx](const std::string& key,
+                                  const std::string& value,
+                                  const std::string& origin) {
+      const auto& log_value =
+        key == "remote_storage"
+          ? ctx.storage.get_remote_storage_config_for_logging()
+          : value;
+      BULK_LOG("Config: ({}) {} = {}", origin, key, log_value);
+    });
+  }
+
+  LOG("Command line: {}", Util::format_argv_for_logging(argv));
+  LOG("Hostname: {}", Util::get_hostname());
+  LOG("Working directory: {}", ctx.actual_cwd);
+  if (ctx.apparent_cwd != ctx.actual_cwd) {
+    LOG("Apparent working directory: {}", ctx.apparent_cwd);
+  }
+
+  ctx.storage.initialize();
+
+  MTR_BEGIN("main", "find_compiler");
+  find_compiler(ctx, &find_executable, masquerading_as_compiler);
+  MTR_END("main", "find_compiler");
+
+  // Guess compiler after logging the config value in order to be able to
+  // display "compiler_type = auto" before overwriting the value with the
+  // guess.
+  if (ctx.config.compiler_type() == CompilerType::auto_guess) {
+    ctx.config.set_compiler_type(guess_compiler(ctx.orig_args[0]));
+  }
+  DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
+
+  LOG("Compiler: {}", ctx.orig_args[0]);
+  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -2187,7 +2212,7 @@ set_up_uncached_err()
 static int cache_compilation(int argc, const char* const* argv);
 
 static nonstd::expected<core::StatisticsCounters, Failure>
-do_cache_compilation(Context& ctx, const char* const* argv);
+do_cache_compilation(Context& ctx);
 
 static void
 log_result_to_debug_log(Context& ctx)
@@ -2247,6 +2272,23 @@ finalize_at_exit(Context& ctx)
   }
 }
 
+ArgvParts
+split_argv(int argc, const char* const* argv)
+{
+  ArgvParts argv_parts;
+  int i = 0;
+  while (i < argc && Util::is_ccache_executable(argv[i])) {
+    argv_parts.masquerading_as_compiler = false;
+    ++i;
+  }
+  while (i < argc && std::strchr(argv[i], '=')) {
+    argv_parts.config_settings.emplace_back(argv[i]);
+    ++i;
+  }
+  argv_parts.compiler_and_args = Args::from_argv(argc - i, argv + i);
+  return argv_parts;
+}
+
 // The entry point when invoked to cache a compilation.
 static int
 cache_compilation(int argc, const char* const* argv)
@@ -2258,15 +2300,21 @@ cache_compilation(int argc, const char* const* argv)
   std::optional<uint32_t> original_umask;
   std::string saved_temp_dir;
 
+  auto argv_parts = split_argv(argc, argv);
+  if (argv_parts.compiler_and_args.empty()) {
+    throw core::Fatal("no compiler given, see \"ccache --help\"");
+  }
+
   {
     Context ctx;
-    ctx.initialize();
+    ctx.initialize(std::move(argv_parts.compiler_and_args),
+                   argv_parts.config_settings);
     SignalHandler signal_handler(ctx);
     Finalizer finalizer([&ctx] { finalize_at_exit(ctx); });
 
-    initialize(ctx, argc, argv);
+    initialize(ctx, argv, argv_parts.masquerading_as_compiler);
 
-    const auto result = do_cache_compilation(ctx, argv);
+    const auto result = do_cache_compilation(ctx);
     ctx.storage.local.increment_statistics(result ? *result
                                                   : result.error().counters());
     const auto& counters = ctx.storage.local.get_statistics_updates();
@@ -2324,43 +2372,8 @@ cache_compilation(int argc, const char* const* argv)
 }
 
 static nonstd::expected<core::StatisticsCounters, Failure>
-do_cache_compilation(Context& ctx, const char* const* argv)
+do_cache_compilation(Context& ctx)
 {
-  if (!ctx.config.log_file().empty() || ctx.config.debug()) {
-    ctx.config.visit_items([&ctx](const std::string& key,
-                                  const std::string& value,
-                                  const std::string& origin) {
-      const auto& log_value =
-        key == "remote_storage"
-          ? ctx.storage.get_remote_storage_config_for_logging()
-          : value;
-      BULK_LOG("Config: ({}) {} = {}", origin, key, log_value);
-    });
-  }
-
-  LOG("Command line: {}", Util::format_argv_for_logging(argv));
-  LOG("Hostname: {}", Util::get_hostname());
-  LOG("Working directory: {}", ctx.actual_cwd);
-  if (ctx.apparent_cwd != ctx.actual_cwd) {
-    LOG("Apparent working directory: {}", ctx.apparent_cwd);
-  }
-
-  // Note: do_cache_compilation must not return or use ctx.orig_args before
-  // find_compiler is executed.
-  MTR_BEGIN("main", "find_compiler");
-  find_compiler(ctx, &find_executable);
-  MTR_END("main", "find_compiler");
-
-  // Guess compiler after logging the config value in order to be able to
-  // display "compiler_type = auto" before overwriting the value with the
-  // guess.
-  if (ctx.config.compiler_type() == CompilerType::auto_guess) {
-    ctx.config.set_compiler_type(guess_compiler(ctx.orig_args[0]));
-  }
-  DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
-
-  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
-
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
     return nonstd::make_unexpected(Statistic::none);

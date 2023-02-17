@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -88,9 +88,13 @@ version.
 
 constexpr const char USAGE_TEXT[] =
   R"(Usage:
-    {0} [options]
-    {0} compiler [compiler options]
-    compiler [compiler options]            (ccache masquerading as the compiler)
+    {0} [ccache options]
+    {0} [KEY=VALUE ...] compiler [compiler options]
+    compiler [compiler options]
+
+    The first form takes options described below. The second form invokes the
+    compiler, optionally using configuration options from KEY=VALUE arguments.
+    In the third form, ccache is masquerading as the compiler.
 
 Common options:
     -c, --cleanup              delete old files and recalculate size counters
@@ -115,7 +119,7 @@ Common options:
         --recompress-threads THREADS
                                use up to THREADS threads when recompressing the
                                cache; default: number of CPUs
-    -o, --set-config KEY=VAL   set configuration option KEY to value VAL
+    -o, --set-config KEY=VALUE set configuration option KEY to value VALUE
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
                                human-readable format

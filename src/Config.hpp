@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -30,6 +30,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 enum class CompilerType {
   auto_guess,
@@ -49,7 +50,7 @@ class Config : NonCopyable
 public:
   Config() = default;
 
-  void read();
+  void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;
@@ -138,6 +139,11 @@ public:
   // Returns false if the file can't be opened, otherwise true. Throws Error on
   // invalid configuration values.
   bool update_from_file(const std::string& path);
+
+  // Set config values from a map with key-value pairs.
+  //
+  // Throws Error on invalid configuration values.
+  void update_from_map(const std::unordered_map<std::string, std::string>& map);
 
   // Set config values from environment variables.
   //
