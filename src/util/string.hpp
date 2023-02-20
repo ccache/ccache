@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -38,6 +38,15 @@ namespace util {
 
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
+
+// Format `diff` as a human-readable string.
+std::string format_human_readable_diff(int64_t diff);
+
+// Format `size` as a human-readable string.
+std::string format_human_readable_size(uint64_t size);
+
+// Format `size` as a parsable string.
+std::string format_parsable_size_with_suffix(uint64_t size);
 
 // Join stringified elements of `container` delimited by `delimiter` into a
 // string. There must exist an `std::string to_string(T::value_type)` function.

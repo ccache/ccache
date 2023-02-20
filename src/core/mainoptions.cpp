@@ -241,7 +241,7 @@ print_compression_statistics(const storage::local::CompressionStatistics& cs)
   const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
   using C = util::TextTable::Cell;
-  auto human_readable = Util::format_human_readable_size;
+  auto human_readable = util::format_human_readable_size;
   util::TextTable table;
 
   table.add_row({
@@ -329,11 +329,11 @@ trim_dir(const std::string& dir,
     recompression_diff = recompressor.new_size() - recompressor.old_size();
     PRINT(stdout,
           "Recompressed {} to {} ({})\n",
-          Util::format_human_readable_size(incompressible_size
+          util::format_human_readable_size(incompressible_size
                                            + recompressor.old_size()),
-          Util::format_human_readable_size(incompressible_size
+          util::format_human_readable_size(incompressible_size
                                            + recompressor.new_size()),
-          Util::format_human_readable_diff(recompression_diff));
+          util::format_human_readable_diff(recompression_diff));
   }
 
   uint64_t size_after_recompression = initial_size + recompression_diff;
@@ -352,9 +352,9 @@ trim_dir(const std::string& dir,
 
   PRINT(stdout,
         "Trimmed {} to {} ({}, {}{} file{})\n",
-        Util::format_human_readable_size(size_after_recompression),
-        Util::format_human_readable_size(final_size),
-        Util::format_human_readable_diff(final_size - size_after_recompression),
+        util::format_human_readable_size(size_after_recompression),
+        util::format_human_readable_size(final_size),
+        util::format_human_readable_diff(final_size - size_after_recompression),
         removed_files == 0 ? "" : "-",
         removed_files,
         removed_files == 1 ? "" : "s");
@@ -664,7 +664,7 @@ process_main_options(int argc, const char* const* argv)
       } else {
         PRINT(stdout,
               "Set cache size limit to {}\n",
-              Util::format_human_readable_size(size));
+              util::format_human_readable_size(size));
       }
       break;
     }

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -142,15 +142,6 @@ std::string format_base16(const uint8_t* data, size_t size);
 // Format a lowercase base32hex string representing `size` bytes of `data`. No
 // padding characters will be added.
 std::string format_base32hex(const uint8_t* data, size_t size);
-
-// Format `diff` as a human-readable string.
-std::string format_human_readable_diff(int64_t diff);
-
-// Format `size` as a human-readable string.
-std::string format_human_readable_size(uint64_t size);
-
-// Format `size` as a parsable string.
-std::string format_parsable_size_with_suffix(uint64_t size);
 
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.

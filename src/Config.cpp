@@ -249,7 +249,7 @@ format_bool(bool value)
 std::string
 format_cache_size(uint64_t value)
 {
-  return Util::format_parsable_size_with_suffix(value);
+  return util::format_parsable_size_with_suffix(value);
 }
 
 CompilerType

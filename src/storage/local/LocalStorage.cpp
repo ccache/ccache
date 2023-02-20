@@ -780,17 +780,17 @@ LocalStorage::recompress(const std::optional<int8_t> level,
     - static_cast<int64_t>(recompressor.old_size());
 
   const std::string old_compr_size_str =
-    Util::format_human_readable_size(recompressor.old_size());
+    util::format_human_readable_size(recompressor.old_size());
   const std::string new_compr_size_str =
-    Util::format_human_readable_size(recompressor.new_size());
+    util::format_human_readable_size(recompressor.new_size());
   const std::string content_size_str =
-    Util::format_human_readable_size(recompressor.content_size());
+    util::format_human_readable_size(recompressor.content_size());
   const std::string incompr_size_str =
-    Util::format_human_readable_size(incompressible_size);
+    util::format_human_readable_size(incompressible_size);
   const std::string size_difference_str =
     FMT("{}{}",
         size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
-        Util::format_human_readable_size(
+        util::format_human_readable_size(
           size_difference < 0 ? -size_difference : size_difference));
 
   PRINT(stdout, "Original data:         {:>8s}\n", content_size_str);
@@ -1174,12 +1174,12 @@ LocalStorage::evaluate_cleanup()
 
   std::string max_size_str =
     m_config.max_size() > 0 ? FMT(
-      ", max size {}", Util::format_human_readable_size(m_config.max_size()))
+      ", max size {}", util::format_human_readable_size(m_config.max_size()))
                             : "";
   std::string max_files_str =
     m_config.max_files() > 0 ? FMT(", max files {}", m_config.max_files()) : "";
   std::string info_str = FMT("size {}, files {}{}{}",
-                             Util::format_human_readable_size(total_size),
+                             util::format_human_readable_size(total_size),
                              total_files,
                              max_size_str,
                              max_files_str);

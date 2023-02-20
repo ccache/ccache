@@ -557,41 +557,6 @@ format_base32hex(const uint8_t* data, size_t size)
   return result;
 }
 
-std::string
-format_human_readable_diff(int64_t diff)
-{
-  const char* sign = diff == 0 ? "" : (diff > 0 ? "+" : "-");
-  return FMT("{}{}", sign, format_human_readable_size(std::abs(diff)));
-}
-
-std::string
-format_human_readable_size(uint64_t size)
-{
-  if (size >= 1000 * 1000 * 1000) {
-    return FMT("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
-  } else if (size >= 1000 * 1000) {
-    return FMT("{:.1f} MB", size / ((double)(1000 * 1000)));
-  } else if (size >= 1000) {
-    return FMT("{:.1f} kB", size / 1000.0);
-  } else if (size == 1) {
-    return "1 byte";
-  } else {
-    return FMT("{} bytes", size);
-  }
-}
-
-std::string
-format_parsable_size_with_suffix(uint64_t size)
-{
-  if (size >= 1000 * 1000 * 1000) {
-    return FMT("{:.1f}G", size / ((double)(1000 * 1000 * 1000)));
-  } else if (size >= 1000 * 1000) {
-    return FMT("{:.1f}M", size / ((double)(1000 * 1000)));
-  } else {
-    return FMT("{}", size);
-  }
-}
-
 void
 ensure_dir_exists(std::string_view dir)
 {

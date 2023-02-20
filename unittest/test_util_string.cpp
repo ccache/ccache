@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -48,6 +48,63 @@ TEST_CASE("util::ends_with")
   CHECK_FALSE(util::ends_with("", "x"));
   CHECK_FALSE(util::ends_with("x", "y"));
   CHECK_FALSE(util::ends_with("x", "xy"));
+}
+
+TEST_CASE("util::format_human_readable_diff")
+{
+  CHECK(util::format_human_readable_diff(0) == "0 bytes");
+  CHECK(util::format_human_readable_diff(1) == "+1 byte");
+  CHECK(util::format_human_readable_diff(42) == "+42 bytes");
+  CHECK(util::format_human_readable_diff(1949) == "+1.9 kB");
+  CHECK(util::format_human_readable_diff(1951) == "+2.0 kB");
+  CHECK(util::format_human_readable_diff(499.7 * 1000) == "+499.7 kB");
+  CHECK(util::format_human_readable_diff(1000 * 1000) == "+1.0 MB");
+  CHECK(util::format_human_readable_diff(1234 * 1000) == "+1.2 MB");
+  CHECK(util::format_human_readable_diff(438.5 * 1000 * 1000) == "+438.5 MB");
+  CHECK(util::format_human_readable_diff(1000 * 1000 * 1000) == "+1.0 GB");
+  CHECK(util::format_human_readable_diff(17.11 * 1000 * 1000 * 1000)
+        == "+17.1 GB");
+
+  CHECK(util::format_human_readable_diff(-1) == "-1 byte");
+  CHECK(util::format_human_readable_diff(-42) == "-42 bytes");
+  CHECK(util::format_human_readable_diff(-1949) == "-1.9 kB");
+  CHECK(util::format_human_readable_diff(-1951) == "-2.0 kB");
+  CHECK(util::format_human_readable_diff(-499.7 * 1000) == "-499.7 kB");
+  CHECK(util::format_human_readable_diff(-1000 * 1000) == "-1.0 MB");
+  CHECK(util::format_human_readable_diff(-1234 * 1000) == "-1.2 MB");
+  CHECK(util::format_human_readable_diff(-438.5 * 1000 * 1000) == "-438.5 MB");
+  CHECK(util::format_human_readable_diff(-1000 * 1000 * 1000) == "-1.0 GB");
+  CHECK(util::format_human_readable_diff(-17.11 * 1000 * 1000 * 1000)
+        == "-17.1 GB");
+}
+
+TEST_CASE("util::format_human_readable_size")
+{
+  CHECK(util::format_human_readable_size(0) == "0 bytes");
+  CHECK(util::format_human_readable_size(1) == "1 byte");
+  CHECK(util::format_human_readable_size(42) == "42 bytes");
+  CHECK(util::format_human_readable_size(1949) == "1.9 kB");
+  CHECK(util::format_human_readable_size(1951) == "2.0 kB");
+  CHECK(util::format_human_readable_size(499.7 * 1000) == "499.7 kB");
+  CHECK(util::format_human_readable_size(1000 * 1000) == "1.0 MB");
+  CHECK(util::format_human_readable_size(1234 * 1000) == "1.2 MB");
+  CHECK(util::format_human_readable_size(438.5 * 1000 * 1000) == "438.5 MB");
+  CHECK(util::format_human_readable_size(1000 * 1000 * 1000) == "1.0 GB");
+  CHECK(util::format_human_readable_size(17.11 * 1000 * 1000 * 1000)
+        == "17.1 GB");
+}
+
+TEST_CASE("util::format_parsable_size_with_suffix")
+{
+  CHECK(util::format_parsable_size_with_suffix(0) == "0");
+  CHECK(util::format_parsable_size_with_suffix(42 * 1000) == "42000");
+  CHECK(util::format_parsable_size_with_suffix(1000 * 1000) == "1.0M");
+  CHECK(util::format_parsable_size_with_suffix(1234 * 1000) == "1.2M");
+  CHECK(util::format_parsable_size_with_suffix(438.5 * 1000 * 1000)
+        == "438.5M");
+  CHECK(util::format_parsable_size_with_suffix(1000 * 1000 * 1000) == "1.0G");
+  CHECK(util::format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000)
+        == "17.1G");
 }
 
 TEST_CASE("util::join")

@@ -256,63 +256,6 @@ TEST_CASE("Util::format_base32hex")
   CHECK(Util::format_base32hex(input, 6) == "cpnmuoj1e8");
 }
 
-TEST_CASE("Util::format_human_readable_diff")
-{
-  CHECK(Util::format_human_readable_diff(0) == "0 bytes");
-  CHECK(Util::format_human_readable_diff(1) == "+1 byte");
-  CHECK(Util::format_human_readable_diff(42) == "+42 bytes");
-  CHECK(Util::format_human_readable_diff(1949) == "+1.9 kB");
-  CHECK(Util::format_human_readable_diff(1951) == "+2.0 kB");
-  CHECK(Util::format_human_readable_diff(499.7 * 1000) == "+499.7 kB");
-  CHECK(Util::format_human_readable_diff(1000 * 1000) == "+1.0 MB");
-  CHECK(Util::format_human_readable_diff(1234 * 1000) == "+1.2 MB");
-  CHECK(Util::format_human_readable_diff(438.5 * 1000 * 1000) == "+438.5 MB");
-  CHECK(Util::format_human_readable_diff(1000 * 1000 * 1000) == "+1.0 GB");
-  CHECK(Util::format_human_readable_diff(17.11 * 1000 * 1000 * 1000)
-        == "+17.1 GB");
-
-  CHECK(Util::format_human_readable_diff(-1) == "-1 byte");
-  CHECK(Util::format_human_readable_diff(-42) == "-42 bytes");
-  CHECK(Util::format_human_readable_diff(-1949) == "-1.9 kB");
-  CHECK(Util::format_human_readable_diff(-1951) == "-2.0 kB");
-  CHECK(Util::format_human_readable_diff(-499.7 * 1000) == "-499.7 kB");
-  CHECK(Util::format_human_readable_diff(-1000 * 1000) == "-1.0 MB");
-  CHECK(Util::format_human_readable_diff(-1234 * 1000) == "-1.2 MB");
-  CHECK(Util::format_human_readable_diff(-438.5 * 1000 * 1000) == "-438.5 MB");
-  CHECK(Util::format_human_readable_diff(-1000 * 1000 * 1000) == "-1.0 GB");
-  CHECK(Util::format_human_readable_diff(-17.11 * 1000 * 1000 * 1000)
-        == "-17.1 GB");
-}
-
-TEST_CASE("Util::format_human_readable_size")
-{
-  CHECK(Util::format_human_readable_size(0) == "0 bytes");
-  CHECK(Util::format_human_readable_size(1) == "1 byte");
-  CHECK(Util::format_human_readable_size(42) == "42 bytes");
-  CHECK(Util::format_human_readable_size(1949) == "1.9 kB");
-  CHECK(Util::format_human_readable_size(1951) == "2.0 kB");
-  CHECK(Util::format_human_readable_size(499.7 * 1000) == "499.7 kB");
-  CHECK(Util::format_human_readable_size(1000 * 1000) == "1.0 MB");
-  CHECK(Util::format_human_readable_size(1234 * 1000) == "1.2 MB");
-  CHECK(Util::format_human_readable_size(438.5 * 1000 * 1000) == "438.5 MB");
-  CHECK(Util::format_human_readable_size(1000 * 1000 * 1000) == "1.0 GB");
-  CHECK(Util::format_human_readable_size(17.11 * 1000 * 1000 * 1000)
-        == "17.1 GB");
-}
-
-TEST_CASE("Util::format_parsable_size_with_suffix")
-{
-  CHECK(Util::format_parsable_size_with_suffix(0) == "0");
-  CHECK(Util::format_parsable_size_with_suffix(42 * 1000) == "42000");
-  CHECK(Util::format_parsable_size_with_suffix(1000 * 1000) == "1.0M");
-  CHECK(Util::format_parsable_size_with_suffix(1234 * 1000) == "1.2M");
-  CHECK(Util::format_parsable_size_with_suffix(438.5 * 1000 * 1000)
-        == "438.5M");
-  CHECK(Util::format_parsable_size_with_suffix(1000 * 1000 * 1000) == "1.0G");
-  CHECK(Util::format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000)
-        == "17.1G");
-}
-
 TEST_CASE("Util::get_extension")
 {
   CHECK(Util::get_extension("") == "");

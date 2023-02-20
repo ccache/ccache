@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,6 +26,41 @@
 #include <iostream>
 
 namespace util {
+
+std::string
+format_human_readable_diff(int64_t diff)
+{
+  const char* sign = diff == 0 ? "" : (diff > 0 ? "+" : "-");
+  return FMT("{}{}", sign, format_human_readable_size(std::abs(diff)));
+}
+
+std::string
+format_human_readable_size(uint64_t size)
+{
+  if (size >= 1000 * 1000 * 1000) {
+    return FMT("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
+  } else if (size >= 1000 * 1000) {
+    return FMT("{:.1f} MB", size / ((double)(1000 * 1000)));
+  } else if (size >= 1000) {
+    return FMT("{:.1f} kB", size / 1000.0);
+  } else if (size == 1) {
+    return "1 byte";
+  } else {
+    return FMT("{} bytes", size);
+  }
+}
+
+std::string
+format_parsable_size_with_suffix(uint64_t size)
+{
+  if (size >= 1000 * 1000 * 1000) {
+    return FMT("{:.1f}G", size / ((double)(1000 * 1000 * 1000)));
+  } else if (size >= 1000 * 1000) {
+    return FMT("{:.1f}M", size / ((double)(1000 * 1000)));
+  } else {
+    return FMT("{}", size);
+  }
+}
 
 nonstd::expected<double, std::string>
 parse_double(const std::string& value)
