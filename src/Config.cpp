@@ -664,7 +664,12 @@ void
 Config::update_from_map(const std::unordered_map<std::string, std::string>& map)
 {
   for (const auto& [key, value] : map) {
-    set_item(key, value, std::nullopt, false, "command line");
+    try {
+      set_item(key, value, std::nullopt, false, "command line");
+    } catch (core::Error& e) {
+      throw core::Error(
+        FMT("when parsing command line config \"{}\": {}", key, e.what()));
+    }
   }
 }
 
