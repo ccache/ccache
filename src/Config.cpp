@@ -655,7 +655,7 @@ Config::update_from_file(const std::string& path)
   return parse_config_file(
     path, [&](const auto& /*line*/, const auto& key, const auto& value) {
       if (!key.empty()) {
-        this->set_item(key, value, std::nullopt, false, path);
+        set_item(key, value, std::nullopt, false, path);
       }
     });
 }
