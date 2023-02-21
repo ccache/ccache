@@ -1037,7 +1037,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_size:
-    m_max_size = Util::parse_size(value);
+    m_max_size = util::value_or_throw<core::Error>(util::parse_size(value));
     break;
 
   case ConfigItem::msvc_dep_prefix:

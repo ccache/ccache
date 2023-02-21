@@ -77,6 +77,11 @@ parse_signed(std::string_view value,
              std::optional<int64_t> max_value = std::nullopt,
              std::string_view description = "integer");
 
+// Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
+// suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
+// is also recognized as a synonym of k.
+nonstd::expected<uint64_t, std::string> parse_size(const std::string& value);
+
 // Parse `value` (an octal integer).
 nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
 

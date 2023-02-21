@@ -485,7 +485,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case TRIM_MAX_SIZE:
-      trim_max_size = Util::parse_size(arg);
+      trim_max_size = util::value_or_throw<Error>(util::parse_size(arg));
       break;
 
     case TRIM_METHOD:
@@ -657,7 +657,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'M': { // --max-size
-      uint64_t size = Util::parse_size(arg);
+      uint64_t size = util::value_or_throw<Error>(util::parse_size(arg));
       config.set_value_in_file(config.config_path(), "max_size", arg);
       if (size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");

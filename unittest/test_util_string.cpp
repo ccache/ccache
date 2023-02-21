@@ -183,6 +183,33 @@ TEST_CASE("util::parse_signed")
         == "banana must be between 1 and 2");
 }
 
+TEST_CASE("util::parse_size")
+{
+  CHECK(*util::parse_size("0") == 0);
+  CHECK(*util::parse_size("42") // Default suffix: G
+        == static_cast<uint64_t>(42) * 1000 * 1000 * 1000);
+  CHECK(*util::parse_size("78k") == 78 * 1000);
+  CHECK(*util::parse_size("78K") == 78 * 1000);
+  CHECK(*util::parse_size("1.1 M") == (int64_t(1.1 * 1000 * 1000)));
+  CHECK(*util::parse_size("438.55M") == (int64_t(438.55 * 1000 * 1000)));
+  CHECK(*util::parse_size("1 G") == 1 * 1000 * 1000 * 1000);
+  CHECK(*util::parse_size("2T")
+        == static_cast<uint64_t>(2) * 1000 * 1000 * 1000 * 1000);
+  CHECK(*util::parse_size("78 Ki") == 78 * 1024);
+  CHECK(*util::parse_size("1.1Mi") == (int64_t(1.1 * 1024 * 1024)));
+  CHECK(*util::parse_size("438.55 Mi") == (int64_t(438.55 * 1024 * 1024)));
+  CHECK(*util::parse_size("1Gi") == 1 * 1024 * 1024 * 1024);
+  CHECK(*util::parse_size("2 Ti")
+        == static_cast<uint64_t>(2) * 1024 * 1024 * 1024 * 1024);
+
+  CHECK(*util::parse_size("9MB") == 9 * 1000 * 1000);
+  CHECK(*util::parse_size("9MiB") == 9 * 1024 * 1024);
+
+  CHECK(util::parse_size("").error() == "invalid size: \"\"");
+  CHECK(util::parse_size("x").error() == "invalid size: \"x\"");
+  CHECK(util::parse_size("10x").error() == "invalid size: \"10x\"");
+}
+
 TEST_CASE("util::parse_umask")
 {
   CHECK(util::parse_umask("1") == 1U);

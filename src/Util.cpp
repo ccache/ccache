@@ -980,47 +980,6 @@ parse_duration(std::string_view duration)
   }
 }
 
-uint64_t
-parse_size(const std::string& value)
-{
-  errno = 0;
-
-  char* p;
-  double result = strtod(value.c_str(), &p);
-  if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
-    throw core::Error(FMT("invalid size: \"{}\"", value));
-  }
-
-  while (isspace(*p)) {
-    ++p;
-  }
-
-  if (*p != '\0') {
-    unsigned multiplier = *(p + 1) == 'i' ? 1024 : 1000;
-    switch (*p) {
-    case 'T':
-      result *= multiplier;
-      [[fallthrough]];
-    case 'G':
-      result *= multiplier;
-      [[fallthrough]];
-    case 'M':
-      result *= multiplier;
-      [[fallthrough]];
-    case 'K':
-    case 'k':
-      result *= multiplier;
-      break;
-    default:
-      throw core::Error(FMT("invalid size: \"{}\"", value));
-    }
-  } else {
-    // Default suffix: G.
-    result *= 1000 * 1000 * 1000;
-  }
-  return static_cast<uint64_t>(result);
-}
-
 #ifndef _WIN32
 std::string
 read_link(const std::string& path)

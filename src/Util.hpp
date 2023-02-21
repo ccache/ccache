@@ -277,11 +277,6 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 // into seconds. Throws `core::Error` on error.
 uint64_t parse_duration(std::string_view duration);
 
-// Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
-// suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
-// is also recognized as a synonym of k. Throws `core::Error` on parse error.
-uint64_t parse_size(const std::string& value);
-
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
 std::string read_link(const std::string& path);
