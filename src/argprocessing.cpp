@@ -1138,6 +1138,11 @@ process_args(Context& ctx)
   // arguments from @file and similar constructs expanded. It's only used as a
   // temporary data structure to loop over.
   Args args = ctx.orig_args;
+
+  // check for append / prepend args
+  args.insert(1, ctx.prepend_args);
+  args.push_back(ctx.append_args);
+
   ArgumentProcessingState state;
 
   state.common_args.push_back(args[0]); // Compiler

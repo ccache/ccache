@@ -2390,6 +2390,18 @@ do_cache_compilation(Context& ctx)
   // be disabled.
   Util::setenv("CCACHE_DISABLE", "1");
 
+  // If on windows check CL and _CL_ env variables and add them to
+  // the argument list
+  if (ctx.config.is_compiler_group_msvc()) {
+    if (getenv("CL")) {
+      ctx.prepend_args = Args::from_string(getenv("CL"));
+    }
+
+    if (getenv("_CL_")) {
+      ctx.append_args = Args::from_string(getenv("_CL_"));
+    }
+  }
+
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);
   MTR_END("main", "process_args");
@@ -2410,15 +2422,6 @@ do_cache_compilation(Context& ctx)
     if (getenv(name)) {
       LOG("Unsupported environment variable: {}", name);
       return Statistic::unsupported_environment_variable;
-    }
-  }
-
-  if (ctx.config.is_compiler_group_msvc()) {
-    for (const auto& name : {"CL", "_CL_"}) {
-      if (getenv(name)) {
-        LOG("Unsupported environment variable: {}", name);
-        return Statistic::unsupported_environment_variable;
-      }
     }
   }
 

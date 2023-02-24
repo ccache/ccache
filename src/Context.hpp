@@ -66,6 +66,12 @@ public:
   // The original argument list.
   Args orig_args;
 
+  // Args from the MSVC CL variable
+  Args prepend_args;
+
+  // Args from the MSVC _CL_ variable
+  Args append_args;
+
   // Time of ccache invocation.
   util::TimePoint time_of_invocation;
 
