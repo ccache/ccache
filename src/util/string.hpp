@@ -117,6 +117,10 @@ std::string replace_first(std::string_view string,
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`
 std::pair<std::string_view, std::optional<std::string_view>>
+split_once(const char* string, char split_char);
+std::pair<std::string, std::optional<std::string>>
+split_once(std::string&& string, char split_char);
+std::pair<std::string_view, std::optional<std::string_view>>
 split_once(std::string_view string, char split_char);
 
 // Return true if `prefix` is a prefix of `string`.

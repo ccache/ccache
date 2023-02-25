@@ -278,6 +278,23 @@ replace_first(const std::string_view string,
 }
 
 std::pair<std::string_view, std::optional<std::string_view>>
+split_once(const char* string, const char split_char)
+{
+  return split_once(std::string_view(string), split_char);
+}
+
+std::pair<std::string, std::optional<std::string>>
+split_once(std::string&& string, const char split_char)
+{
+  const auto [left, right] = split_once(std::string_view(string), split_char);
+  if (right) {
+    return std::make_pair(std::string(left), std::string(*right));
+  } else {
+    return std::make_pair(std::string(left), std::nullopt);
+  }
+}
+
+std::pair<std::string_view, std::optional<std::string_view>>
 split_once(const std::string_view string, const char split_char)
 {
   const size_t sep_pos = string.find(split_char);

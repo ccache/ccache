@@ -24,6 +24,13 @@
 #include <vector>
 
 static bool
+operator==(std::pair<std::string, std::optional<std::string>> left,
+           std::pair<std::string, std::optional<std::string>> right)
+{
+  return left.first == right.first && left.second == right.second;
+}
+
+static bool
 operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
            std::pair<std::string_view, std::optional<std::string_view>> right)
 {
@@ -314,15 +321,44 @@ TEST_CASE("util::split_once")
   using std::nullopt;
   using util::split_once;
 
-  CHECK(split_once("", '=') == make_pair("", nullopt));
-  CHECK(split_once("a", '=') == make_pair("a", nullopt));
-  CHECK(split_once("=a", '=') == make_pair("", "a"));
-  CHECK(split_once("a=", '=') == make_pair("a", ""));
-  CHECK(split_once("a==", '=') == make_pair("a", "="));
-  CHECK(split_once("a=b", '=') == make_pair("a", "b"));
-  CHECK(split_once("a=b=", '=') == make_pair("a", "b="));
-  CHECK(split_once("a=b=c", '=') == make_pair("a", "b=c"));
-  CHECK(split_once("x y", ' ') == make_pair("x", "y"));
+  SUBCASE("const char*")
+  {
+    CHECK(split_once("", '=') == make_pair("", nullopt));
+    CHECK(split_once("a", '=') == make_pair("a", nullopt));
+    CHECK(split_once("=a", '=') == make_pair("", "a"));
+    CHECK(split_once("a=", '=') == make_pair("a", ""));
+    CHECK(split_once("a==", '=') == make_pair("a", "="));
+    CHECK(split_once("a=b", '=') == make_pair("a", "b"));
+    CHECK(split_once("a=b=", '=') == make_pair("a", "b="));
+    CHECK(split_once("a=b=c", '=') == make_pair("a", "b=c"));
+    CHECK(split_once("x y", ' ') == make_pair("x", "y"));
+  }
+
+  SUBCASE("std::string&&")
+  {
+    CHECK(split_once(std::string(""), '=') == make_pair("", nullopt));
+    CHECK(split_once(std::string("a"), '=') == make_pair("a", nullopt));
+    CHECK(split_once(std::string("=a"), '=') == make_pair("", "a"));
+    CHECK(split_once(std::string("a="), '=') == make_pair("a", ""));
+    CHECK(split_once(std::string("a=="), '=') == make_pair("a", "="));
+    CHECK(split_once(std::string("a=b"), '=') == make_pair("a", "b"));
+    CHECK(split_once(std::string("a=b="), '=') == make_pair("a", "b="));
+    CHECK(split_once(std::string("a=b=c"), '=') == make_pair("a", "b=c"));
+    CHECK(split_once(std::string("x y"), ' ') == make_pair("x", "y"));
+  }
+
+  SUBCASE("std::string_view")
+  {
+    CHECK(split_once(std::string_view(""), '=') == make_pair("", nullopt));
+    CHECK(split_once(std::string_view("a"), '=') == make_pair("a", nullopt));
+    CHECK(split_once(std::string_view("=a"), '=') == make_pair("", "a"));
+    CHECK(split_once(std::string_view("a="), '=') == make_pair("a", ""));
+    CHECK(split_once(std::string_view("a=="), '=') == make_pair("a", "="));
+    CHECK(split_once(std::string_view("a=b"), '=') == make_pair("a", "b"));
+    CHECK(split_once(std::string_view("a=b="), '=') == make_pair("a", "b="));
+    CHECK(split_once(std::string_view("a=b=c"), '=') == make_pair("a", "b=c"));
+    CHECK(split_once(std::string_view("x y"), ' ') == make_pair("x", "y"));
+  }
 }
 
 TEST_CASE("util::starts_with")
