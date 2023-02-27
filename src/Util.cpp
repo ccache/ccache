@@ -862,9 +862,9 @@ make_relative_path(const std::string& base_dir,
   const auto path_suffix = std::string(original_path.substr(path.length()));
   const auto real_path = Util::real_path(std::string(path));
 
-  const auto add_relpath_candidates = [&](auto path) {
+  const auto add_relpath_candidates = [&](auto p) {
     const std::string normalized_path =
-      Util::normalize_abstract_absolute_path(path);
+      Util::normalize_abstract_absolute_path(p);
     relpath_candidates.push_back(
       Util::get_relative_path(actual_cwd, normalized_path));
     if (apparent_cwd != actual_cwd) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -80,10 +80,10 @@ namespace core {
 const uint8_t CacheEntry::k_format_version = 1;
 
 CacheEntry::Header::Header(const Config& config,
-                           core::CacheEntryType entry_type)
+                           core::CacheEntryType entry_type_)
   : magic(k_ccache_magic),
     entry_format_version(k_format_version),
-    entry_type(entry_type),
+    entry_type(entry_type_),
     compression_type(compression_type_from_config(config)),
     compression_level(compression_level_from_config(config)),
     self_contained(entry_type != CacheEntryType::result

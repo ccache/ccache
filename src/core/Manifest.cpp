@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -66,9 +66,9 @@ template<> struct hash<core::Manifest::FileInfo>
   operator()(const core::Manifest::FileInfo& file_info) const
   {
     static_assert(sizeof(file_info) == 48); // No padding.
-    util::XXH3_64 hash;
-    hash.update(&file_info, sizeof(file_info));
-    return hash.digest();
+    util::XXH3_64 h;
+    h.update(&file_info, sizeof(file_info));
+    return h.digest();
   }
 };
 

@@ -34,19 +34,19 @@ endmacro()
 
 set(
   _clang_gcc_warnings
+  -Wcast-align
   -Wextra
   -Wnon-virtual-dtor
-  -Wcast-align
-  -Wunused
+  -Wnull-dereference
   -Woverloaded-virtual
   -Wpedantic
+  -Wshadow
+  -Wunused
 
   # Candidates for enabling in the future:
-  # -Wshadow
   # -Wold-style-cast
   # -Wconversion
   # -Wsign-conversion
-  # -Wnull-dereference
   # -Wformat=2
 )
 

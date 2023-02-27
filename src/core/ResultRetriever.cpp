@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -201,8 +201,8 @@ ResultRetriever::write_dependency_file(const std::string& path,
     throw WriteError(FMT("Failed to open {} for writing", path));
   }
 
-  auto write_data = [&](auto data, auto size) {
-    util::throw_on_error<WriteError>(util::write_fd(*fd, data, size),
+  auto write_data = [&](auto d, auto s) {
+    util::throw_on_error<WriteError>(util::write_fd(*fd, d, s),
                                      FMT("Failed to write to {}: ", path));
   };
 
