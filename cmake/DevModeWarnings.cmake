@@ -35,6 +35,7 @@ endmacro()
 set(
   _clang_gcc_warnings
   -Wcast-align
+  -Wdouble-promotion
   -Wextra
   -Wnon-virtual-dtor
   -Wnull-dereference
@@ -49,9 +50,6 @@ set(
   # -Wsign-conversion
   # -Wformat=2
 )
-
-# Tested separately as this is not supported by Clang 3.4.
-add_compile_flag_if_supported(_clang_gcc_warnings "-Wdouble-promotion")
 
 if(WARNINGS_AS_ERRORS)
   list(APPEND _clang_gcc_warnings -Werror)
