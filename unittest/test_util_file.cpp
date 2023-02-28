@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,6 +28,15 @@
 #include <string_view>
 
 using TestUtil::TestContext;
+
+TEST_CASE("util::likely_size_on_disk")
+{
+  CHECK(util::likely_size_on_disk(0) == 0);
+  CHECK(util::likely_size_on_disk(1) == 4096);
+  CHECK(util::likely_size_on_disk(4095) == 4096);
+  CHECK(util::likely_size_on_disk(4096) == 4096);
+  CHECK(util::likely_size_on_disk(4097) == 8192);
+}
 
 TEST_CASE("util::read_file and util::write_file, text data")
 {

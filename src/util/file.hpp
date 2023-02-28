@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -38,6 +38,9 @@ namespace util {
 enum class InPlace { yes, no };
 
 void create_cachedir_tag(const std::string& dir);
+
+// Return how much a file of `size` bytes likely would take on disk.
+uint64_t likely_size_on_disk(uint64_t size);
 
 // Read data from `fd` until end of file and call `data_receiver` with the read
 // data. Returns an error if the underlying read(2) call returned -1.
@@ -86,5 +89,13 @@ nonstd::expected<void, std::string> write_file(const std::string& path,
 nonstd::expected<void, std::string> write_file(const std::string& path,
                                                nonstd::span<const uint8_t> data,
                                                InPlace in_place = InPlace::no);
+
+// --- Inline implementations ---
+
+inline uint64_t
+likely_size_on_disk(uint64_t size)
+{
+  return (size + 4095) & ~4095;
+}
 
 } // namespace util
