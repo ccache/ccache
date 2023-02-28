@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -265,7 +265,7 @@ TEST_CASE("Return values when file exists")
   CHECK(stat.mtime().sec() == last_write_time.tv_sec);
   CHECK(stat.mtime().nsec_decimal_part() == last_write_time.tv_nsec);
 
-  CHECK(stat.size_on_disk() == ((stat.size() + 1023) & ~1023));
+  CHECK(stat.size_on_disk() == ((stat.size() + 4095) & ~4095));
   CHECK(stat.file_attributes() == info.dwFileAttributes);
   CHECK(stat.reparse_tag() == 0);
 

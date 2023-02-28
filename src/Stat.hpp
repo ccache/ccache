@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
+#include <util/file.hpp>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -250,7 +251,7 @@ inline uint64_t
 Stat::size_on_disk() const
 {
 #ifdef _WIN32
-  return (size() + 1023) & ~1023;
+  return util::likely_size_on_disk(size());
 #else
   return m_stat.st_blocks * 512;
 #endif
