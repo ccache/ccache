@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -115,9 +115,11 @@ TextTable::render() const
   return result;
 }
 
-TextTable::Cell::Cell(const std::string& text)
-  : m_text(text),
-    m_right_align(false)
+TextTable::Cell::Cell(const std::string& text) : m_text(text)
+{
+}
+
+TextTable::Cell::Cell(std::string_view text) : Cell(std::string(text))
 {
 }
 
