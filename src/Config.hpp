@@ -21,6 +21,7 @@
 #include "NonCopyable.hpp"
 
 #include <core/Sloppiness.hpp>
+#include <util/string.hpp>
 
 #include <sys/types.h>
 
@@ -102,6 +103,7 @@ public:
   // Return true for MSVC (cl.exe), clang-cl, and icl.
   bool is_compiler_group_msvc() const;
 
+  util::SizeUnitPrefixType size_unit_prefix_type() const;
   std::string default_temporary_dir() const;
 
   void set_base_dir(const std::string& value);
@@ -117,7 +119,6 @@ public:
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
-  void set_max_size(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
   void set_run_second_cpp(bool value);
   void set_temporary_dir(const std::string& value);
@@ -190,7 +191,7 @@ private:
   bool m_keep_comments_cpp = false;
   std::string m_log_file;
   uint64_t m_max_files = 0;
-  uint64_t m_max_size = 5ULL * 1000 * 1000 * 1000;
+  uint64_t m_max_size = 5ULL * 1024 * 1024 * 1024;
   std::string m_msvc_dep_prefix = "Note: including file:";
   std::string m_path;
   bool m_pch_external_checksum = false;
@@ -211,6 +212,8 @@ private:
   std::optional<mode_t> m_umask;
 
   bool m_temporary_dir_configured_explicitly = false;
+  util::SizeUnitPrefixType m_size_suffix_type =
+    util::SizeUnitPrefixType::binary;
 
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
 
@@ -494,6 +497,12 @@ Config::umask() const
   return m_umask;
 }
 
+inline util::SizeUnitPrefixType
+Config::size_unit_prefix_type() const
+{
+  return m_size_suffix_type;
+}
+
 inline void
 Config::set_base_dir(const std::string& value)
 {
@@ -573,12 +582,6 @@ inline void
 Config::set_max_files(uint64_t value)
 {
   m_max_files = value;
-}
-
-inline void
-Config::set_max_size(uint64_t value)
-{
-  m_max_size = value;
 }
 
 inline void

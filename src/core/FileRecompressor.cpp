@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -64,7 +64,7 @@ FileRecompressor::recompress(const Stat& stat,
     util::set_timestamps(stat.path(), stat.mtime(), stat.atime());
   }
 
-  m_content_size += header.entry_size;
+  m_content_size += util::likely_size_on_disk(header.entry_size);
   m_old_size += stat.size_on_disk();
   m_new_size += (new_stat ? *new_stat : stat).size_on_disk();
 

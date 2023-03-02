@@ -42,10 +42,14 @@ namespace storage::local {
 
 struct CompressionStatistics
 {
-  uint64_t compr_size;
+  // Storage that would be needed to store the content of compressible entries
+  // uncompressed (without headers), rounded up to disk blocks.
   uint64_t content_size;
-  uint64_t incompr_size;
-  uint64_t on_disk_size;
+  // Actual size of compressible entries (including headers), rounded up to disk
+  // blocks.
+  uint64_t actual_size;
+  // Actual size of incompressible entries, rounded up to disk blocks.
+  uint64_t incompressible_size;
 };
 
 enum class FileType { result, manifest, raw, unknown };

@@ -36,17 +36,18 @@ namespace util {
 
 // --- Interface ---
 
+enum class SizeUnitPrefixType { binary, decimal };
+
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
 
 // Format `diff` as a human-readable string.
-std::string format_human_readable_diff(int64_t diff);
+std::string format_human_readable_diff(int64_t diff,
+                                       SizeUnitPrefixType prefix_type);
 
 // Format `size` as a human-readable string.
-std::string format_human_readable_size(uint64_t size);
-
-// Format `size` as a parsable string.
-std::string format_parsable_size_with_suffix(uint64_t size);
+std::string format_human_readable_size(uint64_t size,
+                                       SizeUnitPrefixType prefix_type);
 
 // Join stringified elements of `container` delimited by `delimiter` into a
 // string. There must exist an `std::string to_string(T::value_type)` function.
@@ -80,7 +81,8 @@ parse_signed(std::string_view value,
 // Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
 // suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
 // is also recognized as a synonym of k.
-nonstd::expected<uint64_t, std::string> parse_size(const std::string& value);
+nonstd::expected<std::pair<uint64_t, util::SizeUnitPrefixType>, std::string>
+parse_size(const std::string& value);
 
 // Parse `value` (an octal integer).
 nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);

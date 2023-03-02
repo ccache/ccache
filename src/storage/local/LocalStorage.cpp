@@ -39,6 +39,7 @@
 #include <storage/local/StatsFile.hpp>
 #include <storage/local/util.hpp>
 #include <util/Duration.hpp>
+#include <util/TextTable.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
@@ -51,6 +52,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <memory>
 #include <numeric>
 #include <string>
@@ -668,13 +670,12 @@ LocalStorage::get_compression_statistics(
 
           for (size_t i = 0; i < files.size(); ++i) {
             const auto& cache_file = files[i];
-            cs.on_disk_size += cache_file.size_on_disk();
             try {
               core::CacheEntry::Header header(cache_file.path());
-              cs.compr_size += cache_file.size();
-              cs.content_size += header.entry_size;
+              cs.actual_size += cache_file.size_on_disk();
+              cs.content_size += util::likely_size_on_disk(header.entry_size);
             } catch (core::Error&) {
-              cs.incompr_size += cache_file.size();
+              cs.incompressible_size += cache_file.size_on_disk();
             }
             l2_progress_receiver(0.2 + 0.8 * i / files.size());
           }
@@ -775,42 +776,69 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                              : 0.0;
   const double new_savings =
     new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
-  const int64_t size_difference =
-    static_cast<int64_t>(recompressor.new_size())
-    - static_cast<int64_t>(recompressor.old_size());
+  const int64_t size_diff = static_cast<int64_t>(recompressor.new_size())
+                            - static_cast<int64_t>(recompressor.old_size());
 
-  const std::string old_compr_size_str =
-    util::format_human_readable_size(recompressor.old_size());
-  const std::string new_compr_size_str =
-    util::format_human_readable_size(recompressor.new_size());
-  const std::string content_size_str =
-    util::format_human_readable_size(recompressor.content_size());
-  const std::string incompr_size_str =
-    util::format_human_readable_size(incompressible_size);
-  const std::string size_difference_str =
-    FMT("{}{}",
-        size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
-        util::format_human_readable_size(
-          size_difference < 0 ? -size_difference : size_difference));
+  auto human_readable = [&](uint64_t size) {
+    return util::format_human_readable_size(size,
+                                            m_config.size_unit_prefix_type());
+  };
 
-  PRINT(stdout, "Original data:         {:>8s}\n", content_size_str);
-  PRINT(stdout,
-        "Old compressed data:   {:>8s} ({:.1f}% of original size)\n",
-        old_compr_size_str,
-        100.0 - old_savings);
-  PRINT(stdout,
-        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-        old_ratio,
-        old_savings);
-  PRINT(stdout,
-        "New compressed data:   {:>8s} ({:.1f}% of original size)\n",
-        new_compr_size_str,
-        100.0 - new_savings);
-  PRINT(stdout,
-        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-        new_ratio,
-        new_savings);
-  PRINT(stdout, "Size change:          {:>9s}\n", size_difference_str);
+  const auto [old_compr_size_quantity, old_compr_size_unit] =
+    util::split_once(human_readable(recompressor.old_size()), ' ');
+  ASSERT(old_compr_size_unit);
+  const auto [new_compr_size_quantity, new_compr_size_unit] =
+    util::split_once(human_readable(recompressor.new_size()), ' ');
+  ASSERT(new_compr_size_unit);
+  const auto [content_size_quantity, content_size_unit] =
+    util::split_once(human_readable(recompressor.content_size()), ' ');
+  ASSERT(content_size_unit);
+  const auto [incompr_size_quantity, incompr_size_unit] =
+    util::split_once(human_readable(incompressible_size), ' ');
+  ASSERT(incompr_size_unit);
+  const auto [size_diff_quantity, size_diff_unit] =
+    util::split_once(human_readable(std::abs(size_diff)), ' ');
+  ASSERT(size_diff_unit);
+
+  using C = util::TextTable::Cell;
+  util::TextTable table;
+
+  table.add_row({
+    "Original data:",
+    C(content_size_quantity).right_align(),
+    *content_size_unit,
+  });
+  table.add_row({
+    "Old compressed data:",
+    C(old_compr_size_quantity).right_align(),
+    *old_compr_size_unit,
+    FMT("({:.1f}% of original size)", 100.0 - old_savings),
+  });
+  table.add_row({
+    "  Compression ratio:",
+    C(FMT("{:5.3f}", old_ratio)).right_align(),
+    "x",
+    FMT("({:.1f}% space savings)", old_savings),
+  });
+  table.add_row({
+    "New compressed data:",
+    C(new_compr_size_quantity).right_align(),
+    *new_compr_size_unit,
+    FMT("({:.1f}% of original size)", 100.0 - new_savings),
+  });
+  table.add_row({
+    "  Compression ratio:",
+    C(FMT("{:5.3f}", new_ratio)).right_align(),
+    "x",
+    FMT("({:.1f}% space savings)", new_savings),
+  });
+  table.add_row({
+    "Size change:",
+    C(FMT("{}{}", size_diff < 0 ? "-" : "", size_diff_quantity)).right_align(),
+    *size_diff_unit,
+  });
+
+  PRINT_RAW(stdout, table.render());
 }
 
 // Private methods
@@ -1173,13 +1201,16 @@ LocalStorage::evaluate_cleanup()
   });
 
   std::string max_size_str =
-    m_config.max_size() > 0 ? FMT(
-      ", max size {}", util::format_human_readable_size(m_config.max_size()))
-                            : "";
+    m_config.max_size() > 0
+      ? FMT(", max size {}",
+            util::format_human_readable_size(m_config.max_size(),
+                                             m_config.size_unit_prefix_type()))
+      : "";
   std::string max_files_str =
     m_config.max_files() > 0 ? FMT(", max files {}", m_config.max_files()) : "";
   std::string info_str = FMT("size {}, files {}{}{}",
-                             util::format_human_readable_size(total_size),
+                             util::format_human_readable_size(
+                               total_size, m_config.size_unit_prefix_type()),
                              total_files,
                              max_size_str,
                              max_files_str);

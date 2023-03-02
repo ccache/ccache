@@ -247,9 +247,9 @@ format_bool(bool value)
 }
 
 std::string
-format_cache_size(uint64_t value)
+format_cache_size(uint64_t value, util::SizeUnitPrefixType prefix_type)
 {
-  return util::format_parsable_size_with_suffix(value);
+  return util::format_human_readable_size(value, prefix_type);
 }
 
 CompilerType
@@ -792,7 +792,7 @@ Config::get_string_value(const std::string& key) const
     return FMT("{}", m_max_files);
 
   case ConfigItem::max_size:
-    return format_cache_size(m_max_size);
+    return format_cache_size(m_max_size, m_size_suffix_type);
 
   case ConfigItem::msvc_dep_prefix:
     return m_msvc_dep_prefix;
@@ -1036,9 +1036,13 @@ Config::set_item(const std::string& key,
       util::parse_unsigned(value, std::nullopt, std::nullopt, "max_files"));
     break;
 
-  case ConfigItem::max_size:
-    m_max_size = util::value_or_throw<core::Error>(util::parse_size(value));
+  case ConfigItem::max_size: {
+    const auto [size, prefix_type] =
+      util::value_or_throw<core::Error>(util::parse_size(value));
+    m_max_size = size;
+    m_size_suffix_type = prefix_type;
     break;
+  }
 
   case ConfigItem::msvc_dep_prefix:
     m_msvc_dep_prefix = Util::expand_environment_variables(value);

@@ -135,10 +135,10 @@ documentation.
 *-M* _SIZE_, *--max-size* _SIZE_::
 
     Set the maximum size of the files stored in the cache. _SIZE_ should be a
-    number followed by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or
-    Ti (binary). The default suffix is G. Use 0 for no limit. The value is
-    stored in a configuration file in the cache directory and applies to all
-    future compilations.
+    number followed by an optional suffix: kB, MB, GB, TB (decimal), KiB, MiB,
+    GiB or TiB (binary). The default suffix is GiB. Use 0 for no limit. The
+    value is stored in a configuration file in the cache directory and applies
+    to all future compilations.
 
 *-X* _LEVEL_, *--recompress* _LEVEL_::
 
@@ -210,8 +210,8 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 *--trim-max-size* _SIZE_::
 
     Specify the maximum size for `--trim-dir`. _SIZE_ should be a number
-    followed by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or Ti
-    (binary). The default suffix is G.
+    followed by an optional suffix: kB, MB, GB, TB (decimal), KiB, MiB, GiB or
+    TiB (binary). The default suffix is GiB.
 
 *--trim-method* _METHOD_::
 

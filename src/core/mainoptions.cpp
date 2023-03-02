@@ -28,6 +28,7 @@
 #include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
 #include <UmaskScope.hpp>
+#include <assertions.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
@@ -112,8 +113,9 @@ Common options:
     -F, --max-files NUM        set maximum number of files in cache to NUM (use
                                0 for no limit)
     -M, --max-size SIZE        set maximum size of cache to SIZE (use 0 for no
-                               limit); available suffixes: k, M, G, T (decimal)
-                               and Ki, Mi, Gi, Ti (binary); default suffix: G
+                               limit); available suffixes: kB, MB, GB, TB
+                               (decimal) and KiB, MiB, GiB, TiB (binary);
+                               default suffix: GiB
     -X, --recompress LEVEL     recompress the cache to level LEVEL (integer or
                                "uncompressed")
         --recompress-threads THREADS
@@ -140,8 +142,8 @@ Options for remote file-based storage:
                                (note: don't use this option to trim the local
                                cache)
         --trim-max-size SIZE   specify the maximum size for --trim-dir;
-                               available suffixes: k, M, G, T (decimal) and Ki,
-                               Mi, Gi, Ti (binary); default suffix: G
+                               available suffixes: kB, MB, GB, TB (decimal) and
+                               KiB, MiB, GiB, TiB (binary); default suffix: GiB
         --trim-method METHOD   specify the method (atime or mtime) for
                                --trim-dir; default: atime
         --trim-recompress LEVEL
@@ -233,39 +235,61 @@ inspect_path(const std::string& path)
 }
 
 static void
-print_compression_statistics(const storage::local::CompressionStatistics& cs)
+print_compression_statistics(const Config& config,
+                             const storage::local::CompressionStatistics& cs)
 {
-  const double ratio = cs.compr_size > 0
-                         ? static_cast<double>(cs.content_size) / cs.compr_size
+  const double ratio = cs.actual_size > 0
+                         ? static_cast<double>(cs.content_size) / cs.actual_size
                          : 0.0;
   const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
+  auto human_readable = [&](uint64_t size) {
+    return util::format_human_readable_size(size,
+                                            config.size_unit_prefix_type());
+  };
+
+  const auto [total_data_quantity, total_data_unit] = util::split_once(
+    human_readable(cs.actual_size + cs.incompressible_size), ' ');
+  ASSERT(total_data_unit);
+  const auto [compressed_data_quantity, compressed_data_unit] =
+    util::split_once(human_readable(cs.actual_size), ' ');
+  ASSERT(compressed_data_unit);
+  const auto [original_data_quantity, original_data_unit] =
+    util::split_once(human_readable(cs.content_size), ' ');
+  ASSERT(original_data_unit);
+  const auto [incompressible_data_quantity, incompressible_data_unit] =
+    util::split_once(human_readable(cs.incompressible_size), ' ');
+  ASSERT(incompressible_data_unit);
+
   using C = util::TextTable::Cell;
-  auto human_readable = util::format_human_readable_size;
   util::TextTable table;
 
   table.add_row({
     "Total data:",
-    C(human_readable(cs.compr_size + cs.incompr_size)).right_align(),
-    FMT("({} disk blocks)", human_readable(cs.on_disk_size)),
+    C(total_data_quantity).right_align(),
+    *total_data_unit,
   });
   table.add_row({
     "Compressed data:",
-    C(human_readable(cs.compr_size)).right_align(),
+    C(compressed_data_quantity).right_align(),
+    *compressed_data_unit,
     FMT("({:.1f}% of original size)", 100.0 - savings),
   });
   table.add_row({
     "  Original size:",
-    C(human_readable(cs.content_size)).right_align(),
+    C(original_data_quantity).right_align(),
+    *original_data_unit,
   });
   table.add_row({
     "  Compression ratio:",
-    C(FMT("{:.3f} x ", ratio)).right_align(),
+    C(FMT("{:.3f}", ratio)).right_align(),
+    "x",
     FMT("({:.1f}% space savings)", savings),
   });
   table.add_row({
     "Incompressible data:",
-    C(human_readable(cs.incompr_size)).right_align(),
+    C(incompressible_data_quantity).right_align(),
+    *incompressible_data_unit,
   });
 
   PRINT_RAW(stdout, table.render());
@@ -274,6 +298,7 @@ print_compression_statistics(const storage::local::CompressionStatistics& cs)
 static void
 trim_dir(const std::string& dir,
          const uint64_t trim_max_size,
+         const util::SizeUnitPrefixType suffix_type,
          const bool trim_lru_mtime,
          std::optional<std::optional<int8_t>> recompress_level,
          uint32_t recompress_threads)
@@ -329,11 +354,11 @@ trim_dir(const std::string& dir,
     recompression_diff = recompressor.new_size() - recompressor.old_size();
     PRINT(stdout,
           "Recompressed {} to {} ({})\n",
-          util::format_human_readable_size(incompressible_size
-                                           + recompressor.old_size()),
-          util::format_human_readable_size(incompressible_size
-                                           + recompressor.new_size()),
-          util::format_human_readable_diff(recompression_diff));
+          util::format_human_readable_size(
+            incompressible_size + recompressor.old_size(), suffix_type),
+          util::format_human_readable_size(
+            incompressible_size + recompressor.new_size(), suffix_type),
+          util::format_human_readable_diff(recompression_diff, suffix_type));
   }
 
   uint64_t size_after_recompression = initial_size + recompression_diff;
@@ -352,9 +377,10 @@ trim_dir(const std::string& dir,
 
   PRINT(stdout,
         "Trimmed {} to {} ({}, {}{} file{})\n",
-        util::format_human_readable_size(size_after_recompression),
-        util::format_human_readable_size(final_size),
-        util::format_human_readable_diff(final_size - size_after_recompression),
+        util::format_human_readable_size(size_after_recompression, suffix_type),
+        util::format_human_readable_size(final_size, suffix_type),
+        util::format_human_readable_diff(final_size - size_after_recompression,
+                                         suffix_type),
         removed_files == 0 ? "" : "-",
         removed_files,
         removed_files == 1 ? "" : "s");
@@ -452,6 +478,7 @@ process_main_options(int argc, const char* const* argv)
   uint8_t verbosity = 0;
 
   std::optional<uint64_t> trim_max_size;
+  std::optional<util::SizeUnitPrefixType> trim_suffix_type;
   bool trim_lru_mtime = false;
   std::optional<std::optional<int8_t>> trim_recompress;
   uint32_t trim_recompress_threads = std::thread::hardware_concurrency();
@@ -484,9 +511,13 @@ process_main_options(int argc, const char* const* argv)
         arg, 1, std::numeric_limits<uint32_t>::max(), "threads"));
       break;
 
-    case TRIM_MAX_SIZE:
-      trim_max_size = util::value_or_throw<Error>(util::parse_size(arg));
+    case TRIM_MAX_SIZE: {
+      auto [size, suffix_type] =
+        util::value_or_throw<Error>(util::parse_size(arg));
+      trim_max_size = size;
+      trim_suffix_type = suffix_type;
       break;
+    }
 
     case TRIM_METHOD:
       trim_lru_mtime = (arg == "ctime");
@@ -657,14 +688,16 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'M': { // --max-size
-      uint64_t size = util::value_or_throw<Error>(util::parse_size(arg));
+      auto [size, suffix_type] =
+        util::value_or_throw<Error>(util::parse_size(arg));
+      uint64_t max_size = size;
       config.set_value_in_file(config.config_path(), "max_size", arg);
-      if (size == 0) {
+      if (max_size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");
       } else {
         PRINT(stdout,
               "Set cache size limit to {}\n",
-              util::format_human_readable_size(size));
+              util::format_human_readable_size(max_size, suffix_type));
       }
       break;
     }
@@ -715,6 +748,7 @@ process_main_options(int argc, const char* const* argv)
       }
       trim_dir(arg,
                *trim_max_size,
+               *trim_suffix_type,
                trim_lru_mtime,
                trim_recompress,
                trim_recompress_threads);
@@ -739,7 +773,7 @@ process_main_options(int argc, const char* const* argv)
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n\n");
       }
-      print_compression_statistics(compression_statistics);
+      print_compression_statistics(config, compression_statistics);
       break;
     }
 

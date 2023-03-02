@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -62,7 +62,7 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.keep_comments_cpp());
   CHECK(config.log_file().empty());
   CHECK(config.max_files() == 0);
-  CHECK(config.max_size() == static_cast<uint64_t>(5) * 1000 * 1000 * 1000);
+  CHECK(config.max_size() == static_cast<uint64_t>(5) * 1024 * 1024 * 1024);
   CHECK(config.msvc_dep_prefix() == "Note: including file:");
   CHECK(config.path().empty());
   CHECK_FALSE(config.pch_external_checksum());
@@ -466,7 +466,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) keep_comments_cpp = true",
     "(test.conf) log_file = lf",
     "(test.conf) max_files = 4711",
-    "(test.conf) max_size = 98.7M",
+    "(test.conf) max_size = 98.7 MB",
     "(test.conf) msvc_dep_prefix = mdp",
     "(test.conf) namespace = ns",
     "(test.conf) path = p",

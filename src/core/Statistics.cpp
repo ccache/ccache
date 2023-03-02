@@ -305,7 +305,13 @@ Statistics::format_human_readable(const Config& config,
     add_ratio_row(table, "  Preprocessed:", p_hits, p_hits + p_misses);
   }
 
-  const uint64_t g = 1'000'000'000;
+  const char* size_unit =
+    config.size_unit_prefix_type() == util::SizeUnitPrefixType::binary ? "GiB"
+                                                                       : "GB";
+  const uint64_t size_divider =
+    config.size_unit_prefix_type() == util::SizeUnitPrefixType::binary
+      ? 1024 * 1024 * 1024
+      : 1000 * 1000 * 1000;
   const uint64_t local_hits = S(local_storage_hit);
   const uint64_t local_misses = S(local_storage_miss);
   const uint64_t local_reads =
@@ -326,12 +332,13 @@ Statistics::format_human_readable(const Config& config,
   }
   if (!from_log) {
     std::vector<C> size_cells{
-      "  Cache size (GB):",
-      C(FMT("{:.1f}", static_cast<double>(local_size) / g)).right_align()};
+      FMT("  Cache size ({}):", size_unit),
+      C(FMT("{:.1f}", static_cast<double>(local_size) / size_divider))
+        .right_align()};
     if (config.max_size() != 0) {
       size_cells.emplace_back("/");
       size_cells.emplace_back(
-        C(FMT("{:.1f}", static_cast<double>(config.max_size()) / g))
+        C(FMT("{:.1f}", static_cast<double>(config.max_size()) / size_divider))
           .right_align());
       size_cells.emplace_back(percent(local_size, config.max_size()));
     }
