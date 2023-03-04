@@ -412,7 +412,7 @@ express Statement of Purpose.
 === src/third_party/doctest.h
 
 This is the single header version of https://github.com/onqtam/doctest[doctest]
-2.4.8 with the following license:
+2.4.10 with the following license:
 
 ----
 The MIT License (MIT)
