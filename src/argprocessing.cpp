@@ -309,7 +309,7 @@ process_option_arg(const Context& ctx,
 
   // Ignore clang -ivfsoverlay <arg> to not detect multiple input files.
   if (arg == "-ivfsoverlay"
-      && !(config.sloppiness().is_enabled(core::Sloppy::ivfsoverlay))) {
+      && !(config.sloppiness().contains(core::Sloppy::ivfsoverlay))) {
     LOG_RAW(
       "You have to specify \"ivfsoverlay\" sloppiness when using"
       " -ivfsoverlay to get hits");
@@ -478,7 +478,7 @@ process_option_arg(const Context& ctx,
       LOG("Compiler option {} is unsupported without direct depend mode",
           args[i]);
       return Statistic::could_not_use_modules;
-    } else if (!(config.sloppiness().is_enabled(core::Sloppy::modules))) {
+    } else if (!(config.sloppiness().contains(core::Sloppy::modules))) {
       LOG_RAW(
         "You have to specify \"modules\" sloppiness when using"
         " -fmodules to get hits");
@@ -734,7 +734,7 @@ process_option_arg(const Context& ctx,
   }
 
   if (arg == "-fprofile-abs-path") {
-    if (!config.sloppiness().is_enabled(core::Sloppy::gcno_cwd)) {
+    if (!config.sloppiness().contains(core::Sloppy::gcno_cwd)) {
       // -fprofile-abs-path makes the compiler include absolute paths based on
       // the actual CWD in the .gcno file.
       state.hash_actual_cwd = true;
@@ -930,7 +930,7 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.sloppiness().is_enabled(core::Sloppy::clang_index_store)
+  if (config.sloppiness().contains(core::Sloppy::clang_index_store)
       && arg == "-index-store-path") {
     // Xcode 9 or later calls Clang with this option. The given path includes a
     // UUID that might lead to cache misses, especially when cache is shared
@@ -1222,7 +1222,7 @@ process_args(Context& ctx)
 
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
-    if (!(config.sloppiness().is_enabled(core::Sloppy::time_macros))) {
+    if (!(config.sloppiness().contains(core::Sloppy::time_macros))) {
       LOG_RAW(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
@@ -1260,7 +1260,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.output_is_precompiled_header
-      && !(config.sloppiness().is_enabled(core::Sloppy::pch_defines))) {
+      && !(config.sloppiness().contains(core::Sloppy::pch_defines))) {
     LOG_RAW(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");

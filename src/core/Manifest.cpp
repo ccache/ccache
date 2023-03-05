@@ -378,9 +378,9 @@ Manifest::result_matches(
       return false;
     }
 
-    if (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches)) {
-      if (!(ctx.config.sloppiness().is_enabled(
-            core::Sloppy::file_stat_matches_ctime))) {
+    if (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches)) {
+      if (!ctx.config.sloppiness().contains(
+            core::Sloppy::file_stat_matches_ctime)) {
         if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
           LOG("mtime/ctime hit for {}", path);
           continue;

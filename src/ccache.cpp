@@ -265,14 +265,14 @@ include_file_too_new(const Context& ctx,
   // The comparison using >= is intentional, due to a possible race between
   // starting compilation and writing the include file. See also the notes under
   // "Performance" in doc/MANUAL.adoc.
-  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_mtime))
+  if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_mtime))
       && path_stat.mtime() >= ctx.time_of_compilation) {
     LOG("Include file {} too new", path);
     return true;
   }
 
   // The same >= logic as above applies to the change time of the file.
-  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::include_file_ctime))
+  if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_ctime))
       && path_stat.ctime() >= ctx.time_of_compilation) {
     LOG("Include file {} ctime too new", path);
     return true;
@@ -302,7 +302,7 @@ do_remember_include_file(Context& ctx,
   }
 
   if (system
-      && (ctx.config.sloppiness().is_enabled(core::Sloppy::system_headers))) {
+      && (ctx.config.sloppiness().contains(core::Sloppy::system_headers))) {
     // Don't remember this system header.
     return true;
   }
@@ -833,7 +833,7 @@ update_manifest(Context& ctx,
   // so mtimes/ctimes are stored as a dummy value (-1) if not enabled. This
   // reduces the number of file_info entries for the common case.
   const bool save_timestamp =
-    (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches))
+    (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
   const bool added = ctx.manifest.add_result(
@@ -1421,7 +1421,7 @@ hash_common_info(const Context& ctx,
     }
   }
 
-  if (!(ctx.config.sloppiness().is_enabled(core::Sloppy::locale))) {
+  if (!(ctx.config.sloppiness().contains(core::Sloppy::locale))) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
     const char* envvars[] = {
@@ -1483,7 +1483,7 @@ hash_common_info(const Context& ctx,
   }
 
   if (ctx.args_info.generating_coverage
-      && !(ctx.config.sloppiness().is_enabled(core::Sloppy::gcno_cwd))) {
+      && !(ctx.config.sloppiness().contains(core::Sloppy::gcno_cwd))) {
     // GCC 9+ includes $PWD in the .gcno file. Since we don't have knowledge
     // about compiler version we always (unless sloppiness is wanted) include
     // the directory in the hash for now.
@@ -1661,7 +1661,7 @@ hash_argument(const Context& ctx,
   }
 
   if (util::starts_with(args[i], "-frandom-seed=")
-      && ctx.config.sloppiness().is_enabled(core::Sloppy::random_seed)) {
+      && ctx.config.sloppiness().contains(core::Sloppy::random_seed)) {
     LOG("Ignoring {} since random_seed sloppiness is requested", args[i]);
     return {};
   }

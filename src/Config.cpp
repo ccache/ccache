@@ -282,31 +282,31 @@ parse_sloppiness(const std::string& value)
 
   for (const auto token : util::Tokenizer(value, ", ")) {
     if (token == "clang_index_store") {
-      result.enable(core::Sloppy::clang_index_store);
+      result.insert(core::Sloppy::clang_index_store);
     } else if (token == "file_stat_matches") {
-      result.enable(core::Sloppy::file_stat_matches);
+      result.insert(core::Sloppy::file_stat_matches);
     } else if (token == "file_stat_matches_ctime") {
-      result.enable(core::Sloppy::file_stat_matches_ctime);
+      result.insert(core::Sloppy::file_stat_matches_ctime);
     } else if (token == "gcno_cwd") {
-      result.enable(core::Sloppy::gcno_cwd);
+      result.insert(core::Sloppy::gcno_cwd);
     } else if (token == "include_file_ctime") {
-      result.enable(core::Sloppy::include_file_ctime);
+      result.insert(core::Sloppy::include_file_ctime);
     } else if (token == "include_file_mtime") {
-      result.enable(core::Sloppy::include_file_mtime);
+      result.insert(core::Sloppy::include_file_mtime);
     } else if (token == "ivfsoverlay") {
-      result.enable(core::Sloppy::ivfsoverlay);
+      result.insert(core::Sloppy::ivfsoverlay);
     } else if (token == "locale") {
-      result.enable(core::Sloppy::locale);
+      result.insert(core::Sloppy::locale);
     } else if (token == "modules") {
-      result.enable(core::Sloppy::modules);
+      result.insert(core::Sloppy::modules);
     } else if (token == "pch_defines") {
-      result.enable(core::Sloppy::pch_defines);
+      result.insert(core::Sloppy::pch_defines);
     } else if (token == "random_seed") {
-      result.enable(core::Sloppy::random_seed);
+      result.insert(core::Sloppy::random_seed);
     } else if (token == "system_headers" || token == "no_system_headers") {
-      result.enable(core::Sloppy::system_headers);
+      result.insert(core::Sloppy::system_headers);
     } else if (token == "time_macros") {
-      result.enable(core::Sloppy::time_macros);
+      result.insert(core::Sloppy::time_macros);
     } // else: ignore unknown value for forward compatibility
   }
 
@@ -317,43 +317,43 @@ std::string
 format_sloppiness(core::Sloppiness sloppiness)
 {
   std::string result;
-  if (sloppiness.is_enabled(core::Sloppy::clang_index_store)) {
+  if (sloppiness.contains(core::Sloppy::clang_index_store)) {
     result += "clang_index_store, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::file_stat_matches)) {
+  if (sloppiness.contains(core::Sloppy::file_stat_matches)) {
     result += "file_stat_matches, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::file_stat_matches_ctime)) {
+  if (sloppiness.contains(core::Sloppy::file_stat_matches_ctime)) {
     result += "file_stat_matches_ctime, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::gcno_cwd)) {
+  if (sloppiness.contains(core::Sloppy::gcno_cwd)) {
     result += "gcno_cwd, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::include_file_ctime)) {
+  if (sloppiness.contains(core::Sloppy::include_file_ctime)) {
     result += "include_file_ctime, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::include_file_mtime)) {
+  if (sloppiness.contains(core::Sloppy::include_file_mtime)) {
     result += "include_file_mtime, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::ivfsoverlay)) {
+  if (sloppiness.contains(core::Sloppy::ivfsoverlay)) {
     result += "ivfsoverlay, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::locale)) {
+  if (sloppiness.contains(core::Sloppy::locale)) {
     result += "locale, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::modules)) {
+  if (sloppiness.contains(core::Sloppy::modules)) {
     result += "modules, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::pch_defines)) {
+  if (sloppiness.contains(core::Sloppy::pch_defines)) {
     result += "pch_defines, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::random_seed)) {
+  if (sloppiness.contains(core::Sloppy::random_seed)) {
     result += "random_seed, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::system_headers)) {
+  if (sloppiness.contains(core::Sloppy::system_headers)) {
     result += "system_headers, ";
   }
-  if (sloppiness.is_enabled(core::Sloppy::time_macros)) {
+  if (sloppiness.contains(core::Sloppy::time_macros)) {
     result += "time_macros, ";
   }
   if (!result.empty()) {

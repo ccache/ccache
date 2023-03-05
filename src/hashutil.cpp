@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -242,8 +242,8 @@ hash_source_code_file(const Context& ctx,
                       size_t size_hint)
 {
   const bool check_temporal_macros =
-    !ctx.config.sloppiness().is_enabled(core::Sloppy::time_macros);
-  int result =
+    !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
+  auto result =
     do_hash_file(ctx, digest, path, size_hint, check_temporal_macros);
 
   if (!check_temporal_macros || result == HASH_SOURCE_CODE_OK
