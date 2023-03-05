@@ -20,6 +20,7 @@ set(
   test_hashutil.cpp
   test_storage_local_StatsFile.cpp
   test_storage_local_util.cpp
+  test_util_BitSet.cpp
   test_util_Bytes.cpp
   test_util_Duration.cpp
   test_util_LockFile.cpp
