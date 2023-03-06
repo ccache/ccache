@@ -61,9 +61,10 @@ nonstd::expected<T, std::string> read_file(const std::string& path,
 
 // Return (at most) `count` bytes from `path` starting at position `pos`.
 //
-// `T` should be `util::Bytes` or `std::vector<uint8_t>`. If `T` is
-// `std::string` and the content starts with a UTF-16 little-endian BOM on
-// Windows then it will be converted to UTF-8.
+// `T` should be `util::Bytes` or `std::vector<uint8_t>` for binary data and
+// `std::string` for text data. If `T` is `std::string` and the content starts
+// with a UTF-16 little-endian BOM on Windows then it will be converted to
+// UTF-8.
 template<typename T>
 nonstd::expected<T, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -253,6 +253,9 @@ read_file_part(const std::string& path, size_t pos, size_t count)
 }
 
 template nonstd::expected<util::Bytes, std::string>
+read_file_part(const std::string& path, size_t pos, size_t count);
+
+template nonstd::expected<std::string, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
 template nonstd::expected<std::vector<uint8_t>, std::string>

@@ -145,17 +145,32 @@ TEST_CASE("util::read_file_part")
 {
   CHECK(util::write_file("test", "banana"));
 
-  CHECK(util::read_file_part<util::Bytes>("test", 0, 0) == util::to_span(""));
-  CHECK(util::read_file_part<util::Bytes>("test", 0, 6)
-        == util::to_span("banana"));
-  CHECK(util::read_file_part<util::Bytes>("test", 0, 1000)
-        == util::to_span("banana"));
+  SUBCASE("util::Bytes")
+  {
+    CHECK(util::read_file_part<util::Bytes>("test", 0, 0) == util::to_span(""));
+    CHECK(util::read_file_part<util::Bytes>("test", 0, 6)
+          == util::to_span("banana"));
+    CHECK(util::read_file_part<util::Bytes>("test", 0, 1000)
+          == util::to_span("banana"));
 
-  CHECK(util::read_file_part<util::Bytes>("test", 3, 0) == util::to_span(""));
-  CHECK(util::read_file_part<util::Bytes>("test", 3, 2) == util::to_span("an"));
-  CHECK(util::read_file_part<util::Bytes>("test", 3, 1000)
-        == util::to_span("ana"));
+    CHECK(util::read_file_part<util::Bytes>("test", 3, 0) == util::to_span(""));
+    CHECK(util::read_file_part<util::Bytes>("test", 3, 2)
+          == util::to_span("an"));
+    CHECK(util::read_file_part<util::Bytes>("test", 3, 1000)
+          == util::to_span("ana"));
 
-  CHECK(util::read_file_part<util::Bytes>("test", 1000, 1000)
-        == util::to_span(""));
+    CHECK(util::read_file_part<util::Bytes>("test", 1000, 1000)
+          == util::to_span(""));
+  }
+  SUBCASE("std::vector<uint8_t>")
+  {
+    auto data = util::read_file_part<std::vector<uint8_t>>("test", 3, 2);
+    CHECK(*data == std::vector<uint8_t>{'a', 'n'});
+  }
+
+  SUBCASE("std::string")
+  {
+    auto data = util::read_file_part<std::string>("test", 3, 2);
+    CHECK(*data == "an");
+  }
 }
