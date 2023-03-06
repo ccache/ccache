@@ -687,6 +687,9 @@ _<<Cache debugging>>_.
 
     When true, ccache will just call the real compiler, bypassing the cache
     completely. The default is false.
++
+It is also possible to disable ccache for a specific source code file by adding
+the string `ccache:disable` in a comment in the first 4096 bytes of the file.
 
 [#config_extra_files_to_hash]
 *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
@@ -1077,6 +1080,15 @@ filesystem as the `CCACHE_DIR` path, but this requirement has been relaxed.
     cache with other users.
 
 
+=== Disabling ccache
+
+To disable ccache completely for all invocations, set <<config_disable,*disable
+= true*>> (`CCACHE_DISABLE=1`). You can also disable ccache for a certain source
+code file by adding the string `ccache:disable` in a comment in the first 4096
+bytes of the file. In the latter case the `Ccache disabled` statistics counter
+will be increased.
+
+
 == Remote storage backends
 
 The <<config_remote_storage,*remote_storage*>> option lets you configure ccache
@@ -1378,6 +1390,9 @@ produce a single object file from a single source file.
 
 | Called for preprocessing |
 The compiler was called for preprocessing, not compiling.
+
+| Ccache disabled |
+Ccache was disabled by a `ccache:disable` string in the source code file.
 
 | Could not use modules |
 Preconditions for using <<C++ modules>> were not fulfilled.

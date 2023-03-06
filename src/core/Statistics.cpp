@@ -90,6 +90,7 @@ const StatisticsField k_statistics_fields[] = {
         FLAG_UNCACHEABLE),
   FIELD(direct_cache_hit, nullptr),
   FIELD(direct_cache_miss, nullptr),
+  FIELD(disabled, "Ccache disabled", FLAG_UNCACHEABLE),
   FIELD(error_hashing_extra_file, "Error hashing extra file", FLAG_ERROR),
   FIELD(files_in_cache, nullptr, FLAG_NOZERO),
   FIELD(internal_error, "Internal error", FLAG_ERROR),

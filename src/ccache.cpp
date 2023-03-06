@@ -86,6 +86,14 @@ using core::Statistic;
 // stored in the cache changes in a backwards-incompatible way.
 const char HASH_PREFIX[] = "4";
 
+// Search for k_ccache_disable_token within the first
+// k_ccache_disable_search_limit bytes of the input file.
+const size_t k_ccache_disable_search_limit = 4096;
+
+// String to look for when checking whether to disable ccache for the input
+// file.
+const char k_ccache_disable_token[] = "ccache:disable";
+
 namespace {
 
 // Return nonstd::make_unexpected<Failure> if ccache did not succeed in getting
@@ -135,6 +143,14 @@ Failure::set_exit_code(const int exit_code)
 }
 
 } // namespace
+
+static bool
+should_disable_ccache_for_input_file(const std::string& path)
+{
+  auto content =
+    util::read_file_part<std::string>(path, 0, k_ccache_disable_search_limit);
+  return content && content->find(k_ccache_disable_token) != std::string::npos;
+}
 
 static void
 add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
@@ -2487,6 +2503,13 @@ do_cache_compilation(Context& ctx)
 
   Hash common_hash;
   init_hash_debug(ctx, common_hash, 'c', "COMMON", debug_text_file);
+
+  if (should_disable_ccache_for_input_file(ctx.args_info.input_file)) {
+    LOG("{} found in {}, disabling ccache",
+        k_ccache_disable_token,
+        ctx.args_info.input_file);
+    return nonstd::make_unexpected(Statistic::disabled);
+  }
 
   {
     MTR_SCOPE("hash", "common_hash");

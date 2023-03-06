@@ -393,6 +393,7 @@ if $RUN_WIN_XFAIL;then
     CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
     expect_contains debugdir"$(pwd -P)"/test1.o.*.ccache-log "Result: cache_miss"
 fi
+
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
@@ -400,6 +401,13 @@ fi
     if [ -d $CCACHE_DIR ]; then
         test_failed "$CCACHE_DIR created despite CCACHE_DISABLE being set"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "ccache:disable"
+
+    echo '// ccache:disable' >>test1.c
+    $CCACHE_COMPILE -c test1.c 2>/dev/null
+    expect_stat disabled 1
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"

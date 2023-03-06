@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -78,7 +78,8 @@ enum class Statistic {
   // 65-80: size (KiB) in level 2 subdirs 0-f
   subdir_size_kibibyte_base = 65,
 
-  END = 81
+  disabled = 81,
+  END = 82
 };
 
 } // namespace core
