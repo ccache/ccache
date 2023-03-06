@@ -400,12 +400,12 @@ Manifest::result_matches(
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
       Digest actual_digest;
-      int ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
-      if (ret & HASH_SOURCE_CODE_ERROR) {
+      auto ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
+      if (ret.contains(HashSourceCode::error)) {
         LOG("Failed hashing {}", path);
         return false;
       }
-      if (ret & HASH_SOURCE_CODE_FOUND_TIME) {
+      if (ret.contains(HashSourceCode::found_time)) {
         return false;
       }
 

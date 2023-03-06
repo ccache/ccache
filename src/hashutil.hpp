@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <util/BitSet.hpp>
+
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -27,26 +29,24 @@ class Context;
 class Digest;
 class Hash;
 
-const int HASH_SOURCE_CODE_OK = 0;
-const int HASH_SOURCE_CODE_ERROR = (1 << 0);
-const int HASH_SOURCE_CODE_FOUND_DATE = (1 << 1);
-const int HASH_SOURCE_CODE_FOUND_TIME = (1 << 2);
-const int HASH_SOURCE_CODE_FOUND_TIMESTAMP = (1 << 3);
+enum class HashSourceCode {
+  ok = 0,
+  error = 1U << 0,
+  found_date = 1U << 1,
+  found_time = 1U << 2,
+  found_timestamp = 1U << 3,
+};
 
-// Search for the strings "DATE", "TIME" and "TIMESTAMP" with two surrounding
-// underscores in `str`.
-//
-// Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE,
-// HASH_SOURCE_CODE_FOUND_TIME and HASH_SOURCE_CODE_FOUND_TIMESTAMP set
-// appropriately.
-int check_for_temporal_macros(std::string_view str);
+using HashSourceCodeResult = util::BitSet<HashSourceCode>;
 
-// Hash a source code file using the inode cache if enabled. Returns a bitmask
-// of HASH_SOURCE_CODE_* results.
-int hash_source_code_file(const Context& ctx,
-                          Digest& digest,
-                          const std::string& path,
-                          size_t size_hint = 0);
+// Search for tokens (described in HashSourceCode) in `str`.
+HashSourceCodeResult check_for_temporal_macros(std::string_view str);
+
+// Hash a source code file using the inode cache if enabled.
+HashSourceCodeResult hash_source_code_file(const Context& ctx,
+                                           Digest& digest,
+                                           const std::string& path,
+                                           size_t size_hint = 0);
 
 // Hash a binary file (using the inode cache if enabled) and put its digest in
 // `digest`

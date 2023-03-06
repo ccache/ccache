@@ -469,7 +469,7 @@ bool
 InodeCache::get(const std::string& path,
                 ContentType type,
                 Digest& file_digest,
-                int* return_value)
+                HashSourceCodeResult* return_value)
 {
   if (!initialize()) {
     return false;
@@ -492,7 +492,8 @@ InodeCache::get(const std::string& path,
 
         file_digest = bucket->entries[0].file_digest;
         if (return_value) {
-          *return_value = bucket->entries[0].return_value;
+          *return_value =
+            HashSourceCodeResult::from_bitmask(bucket->entries[0].return_value);
         }
         found = true;
         break;
@@ -518,7 +519,7 @@ bool
 InodeCache::put(const std::string& path,
                 ContentType type,
                 const Digest& file_digest,
-                int return_value)
+                HashSourceCodeResult return_value)
 {
   if (!initialize()) {
     return false;
@@ -536,7 +537,7 @@ InodeCache::put(const std::string& path,
 
     bucket->entries[0].key_digest = key_digest;
     bucket->entries[0].file_digest = file_digest;
-    bucket->entries[0].return_value = return_value;
+    bucket->entries[0].return_value = return_value.to_bitmask();
   });
 
   if (!success) {

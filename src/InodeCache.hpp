@@ -19,6 +19,7 @@
 #pragma once
 
 #include <Fd.hpp>
+#include <hashutil.hpp>
 #include <util/Duration.hpp>
 #include <util/TimePoint.hpp>
 
@@ -79,7 +80,7 @@ public:
   bool get(const std::string& path,
            ContentType type,
            Digest& file_digest,
-           int* return_value = nullptr);
+           HashSourceCodeResult* return_value = nullptr);
 
   // Put hash digest and return value from a successful call to do_hash_file()
   // in hashutil.cpp.
@@ -88,7 +89,7 @@ public:
   bool put(const std::string& path,
            ContentType type,
            const Digest& file_digest,
-           int return_value = 0);
+           HashSourceCodeResult return_value);
 
   // Unmaps the current cache and removes the mapped file from disk.
   //

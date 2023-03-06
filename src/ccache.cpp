@@ -394,9 +394,9 @@ do_remember_include_file(Context& ctx,
 
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      int result = hash_source_code_file(ctx, file_digest, path);
-      if (result & HASH_SOURCE_CODE_ERROR
-          || result & HASH_SOURCE_CODE_FOUND_TIME) {
+      auto ret = hash_source_code_file(ctx, file_digest, path);
+      if (ret.contains(HashSourceCode::error)
+          || ret.contains(HashSourceCode::found_time)) {
         return false;
       }
     }
@@ -1822,12 +1822,12 @@ get_manifest_key(Context& ctx, Hash& hash)
 
   hash.hash_delimiter("sourcecode hash");
   Digest input_file_digest;
-  int result =
+  auto ret =
     hash_source_code_file(ctx, input_file_digest, ctx.args_info.input_file);
-  if (result & HASH_SOURCE_CODE_ERROR) {
+  if (ret.contains(HashSourceCode::error)) {
     return nonstd::make_unexpected(Statistic::internal_error);
   }
-  if (result & HASH_SOURCE_CODE_FOUND_TIME) {
+  if (ret.contains(HashSourceCode::found_time)) {
     LOG_RAW("Disabling direct mode");
     ctx.config.set_direct_mode(false);
     return {};
