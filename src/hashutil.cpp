@@ -187,9 +187,9 @@ do_hash_file(const Context& ctx,
     check_temporal_macros ? InodeCache::ContentType::checked_for_temporal_macros
                           : InodeCache::ContentType::raw;
   if (ctx.config.inode_cache()) {
-    HashSourceCodeResult result;
-    if (ctx.inode_cache.get(path, content_type, digest, &result)) {
-      return result;
+    const auto result = ctx.inode_cache.get(path, content_type, digest);
+    if (result) {
+      return *result;
     }
   }
 #else

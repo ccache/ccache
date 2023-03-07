@@ -465,22 +465,19 @@ InodeCache::available(int fd)
   return fd_is_on_known_to_work_file_system(fd);
 }
 
-bool
-InodeCache::get(const std::string& path,
-                ContentType type,
-                Digest& file_digest,
-                HashSourceCodeResult* return_value)
+std::optional<HashSourceCodeResult>
+InodeCache::get(const std::string& path, ContentType type, Digest& file_digest)
 {
   if (!initialize()) {
-    return false;
+    return std::nullopt;
   }
 
   Digest key_digest;
   if (!hash_inode(path, type, key_digest)) {
-    return false;
+    return std::nullopt;
   }
 
-  bool found = false;
+  std::optional<HashSourceCodeResult> result;
   const bool success = with_bucket(key_digest, [&](const auto bucket) {
     for (uint32_t i = 0; i < k_num_entries; ++i) {
       if (bucket->entries[i].key_digest == key_digest) {
@@ -491,28 +488,25 @@ InodeCache::get(const std::string& path,
         }
 
         file_digest = bucket->entries[0].file_digest;
-        if (return_value) {
-          *return_value =
-            HashSourceCodeResult::from_bitmask(bucket->entries[0].return_value);
-        }
-        found = true;
+        result =
+          HashSourceCodeResult::from_bitmask(bucket->entries[0].return_value);
         break;
       }
     }
   });
   if (!success) {
-    return false;
+    return std::nullopt;
   }
 
   if (m_config.debug()) {
-    LOG("Inode cache {}: {}", found ? "hit" : "miss", path);
-    if (found) {
+    LOG("Inode cache {}: {}", result ? "hit" : "miss", path);
+    if (result) {
       ++m_sr->hits;
     } else {
       ++m_sr->misses;
     }
   }
-  return found;
+  return result;
 }
 
 bool

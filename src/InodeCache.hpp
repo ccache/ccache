@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 
 class Config;
@@ -77,10 +78,8 @@ public:
   //
   // Returns true if saved values could be retrieved from the cache, false
   // otherwise.
-  bool get(const std::string& path,
-           ContentType type,
-           Digest& file_digest,
-           HashSourceCodeResult* return_value = nullptr);
+  std::optional<HashSourceCodeResult>
+  get(const std::string& path, ContentType type, Digest& file_digest);
 
   // Put hash digest and return value from a successful call to do_hash_file()
   // in hashutil.cpp.

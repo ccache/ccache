@@ -77,16 +77,13 @@ TEST_CASE("Test disabled")
   InodeCache inode_cache(config, util::Duration(0));
 
   Digest digest;
-  HashSourceCodeResult return_value;
 
-  CHECK(!inode_cache.get("a",
-                         InodeCache::ContentType::checked_for_temporal_macros,
-                         digest,
-                         &return_value));
+  CHECK(!inode_cache.get(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, digest));
   CHECK(!inode_cache.put("a",
                          InodeCache::ContentType::checked_for_temporal_macros,
                          digest,
-                         return_value));
+                         HashSourceCodeResult()));
   CHECK(inode_cache.get_hits() == -1);
   CHECK(inode_cache.get_misses() == -1);
   CHECK(inode_cache.get_errors() == -1);
@@ -103,12 +100,9 @@ TEST_CASE("Test lookup nonexistent")
   util::write_file("a", "");
 
   Digest digest;
-  HashSourceCodeResult return_value;
 
-  CHECK(!inode_cache.get("a",
-                         InodeCache::ContentType::checked_for_temporal_macros,
-                         digest,
-                         &return_value));
+  CHECK(!inode_cache.get(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, digest));
   CHECK(inode_cache.get_hits() == 0);
   CHECK(inode_cache.get_misses() == 1);
   CHECK(inode_cache.get_errors() == 0);
@@ -129,14 +123,11 @@ TEST_CASE("Test put and lookup")
   CHECK(put(inode_cache, "a", "a text", result));
 
   Digest digest;
-  HashSourceCodeResult return_value;
-
-  CHECK(inode_cache.get("a",
-                        InodeCache::ContentType::checked_for_temporal_macros,
-                        digest,
-                        &return_value));
+  auto return_value = inode_cache.get(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, digest);
+  REQUIRE(return_value);
   CHECK(digest == Hash().hash("a text").digest());
-  CHECK(return_value.to_bitmask()
+  CHECK(return_value->to_bitmask()
         == static_cast<int>(HashSourceCode::found_date));
   CHECK(inode_cache.get_hits() == 1);
   CHECK(inode_cache.get_misses() == 0);
@@ -144,10 +135,8 @@ TEST_CASE("Test put and lookup")
 
   util::write_file("a", "something else");
 
-  CHECK(!inode_cache.get("a",
-                         InodeCache::ContentType::checked_for_temporal_macros,
-                         digest,
-                         &return_value));
+  CHECK(!inode_cache.get(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, digest));
   CHECK(inode_cache.get_hits() == 1);
   CHECK(inode_cache.get_misses() == 1);
   CHECK(inode_cache.get_errors() == 0);
@@ -157,12 +146,11 @@ TEST_CASE("Test put and lookup")
             "something else",
             HashSourceCodeResult(HashSourceCode::found_time)));
 
-  CHECK(inode_cache.get("a",
-                        InodeCache::ContentType::checked_for_temporal_macros,
-                        digest,
-                        &return_value));
+  return_value = inode_cache.get(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, digest);
+  REQUIRE(return_value);
   CHECK(digest == Hash().hash("something else").digest());
-  CHECK(return_value.to_bitmask()
+  CHECK(return_value->to_bitmask()
         == static_cast<int>(HashSourceCode::found_time));
   CHECK(inode_cache.get_hits() == 2);
   CHECK(inode_cache.get_misses() == 1);
@@ -209,20 +197,19 @@ TEST_CASE("Test content type")
                         HashSourceCodeResult(HashSourceCode::found_time)));
 
   Digest digest;
-  HashSourceCodeResult return_value;
 
-  CHECK(
-    inode_cache.get("a", InodeCache::ContentType::raw, digest, &return_value));
+  auto return_value =
+    inode_cache.get("a", InodeCache::ContentType::raw, digest);
+  REQUIRE(return_value);
   CHECK(digest == binary_digest);
-  CHECK(return_value.to_bitmask()
+  CHECK(return_value->to_bitmask()
         == static_cast<int>(HashSourceCode::found_date));
 
-  CHECK(inode_cache.get("a",
-                        InodeCache::ContentType::checked_for_temporal_macros,
-                        digest,
-                        &return_value));
+  return_value = inode_cache.get(
+    "a", InodeCache::ContentType::checked_for_temporal_macros, digest);
+  REQUIRE(return_value);
   CHECK(digest == code_digest);
-  CHECK(return_value.to_bitmask()
+  CHECK(return_value->to_bitmask()
         == static_cast<int>(HashSourceCode::found_time));
 }
 
