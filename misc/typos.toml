@@ -1,0 +1,9 @@
+[default.extend-words]
+fo = "fo"
+hda = "hda"
+ot = "ot"
+seve = "seve"
+thi = "thi"
+
+[files]
+extend-exclude = ["misc/codespell-allowlist.txt", "src/third_party"]

@@ -537,4 +537,4 @@ jobs:
           pip3 install codespell==2.1.0
 
       - name: Run codespell
-        run: codespell -q 7 -S ".git,build*,./src/third_party/*" -I misc/codespell-allowlist.txt
+        run: codespell -q 7 -S ".git,build*,./misc/typos.toml,./src/third_party/*" -I misc/codespell-allowlist.txt
