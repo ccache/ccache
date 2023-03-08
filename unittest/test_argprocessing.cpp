@@ -699,4 +699,51 @@ TEST_CASE("MSVC options"
   CHECK(result.compiler_args.to_string() == "cl.exe /foobar -c");
 }
 
+TEST_CASE("MSVC debug information format options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.c", "");
+
+  SUBCASE("Only /Z7")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /Z7");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "cl.exe /Z7");
+    CHECK(result.compiler_args.to_string() == "cl.exe /Z7 -c");
+  }
+
+  SUBCASE("Only /Zi")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /Zi");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Only /ZI")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /ZI");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("/Z7 + /Zi")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Z7 /c foo.c /Zi");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("/Zi + /Z7")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Zi /c foo.c /Z7");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "cl.exe /Zi /Z7");
+    CHECK(result.compiler_args.to_string() == "cl.exe /Zi /Z7 -c");
+  }
+}
+
 TEST_SUITE_END();

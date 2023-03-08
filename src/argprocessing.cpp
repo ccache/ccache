@@ -71,8 +71,9 @@ struct ArgumentProcessingState
   bool found_md_or_mmd_opt = false;
   bool found_Wa_a_opt = false;
 
-  std::string explicit_language;    // As specified with -x.
-  std::string input_charset_option; // -finput-charset=...
+  std::string explicit_language;       // As specified with -x.
+  std::string input_charset_option;    // -finput-charset=...
+  std::string last_seen_msvc_z_option; // /Z7, /Zi or /ZI
 
   // Is the dependency file set via -Wp,-M[M]D,target or -MFtarget?
   OutputDepOrigin output_dep_origin = OutputDepOrigin::none;
@@ -604,6 +605,12 @@ process_option_arg(const Context& ctx,
         args_info.seen_split_dwarf = true;
       }
     }
+    return Statistic::none;
+  }
+
+  if (config.is_compiler_group_msvc() && util::starts_with(arg, "-Z")) {
+    state.last_seen_msvc_z_option = args[i];
+    state.common_args.push_back(args[i]);
     return Statistic::none;
   }
 
@@ -1157,6 +1164,13 @@ process_args(Context& ctx)
     // potentially support this by behaving differently depending on the
     // compiler type, but let's just bail out for now.
     LOG_RAW("-Wp,-M[M]D in combination with -MF is not supported");
+    return Statistic::unsupported_compiler_option;
+  }
+
+  if (!state.last_seen_msvc_z_option.empty()
+      && state.last_seen_msvc_z_option.substr(2) != "7") {
+    // /Zi and /ZI are unsupported, but /Z7 is fine.
+    LOG("Compiler option {} is unsupported", state.last_seen_msvc_z_option);
     return Statistic::unsupported_compiler_option;
   }
 
