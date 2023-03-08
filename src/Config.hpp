@@ -212,7 +212,7 @@ private:
   std::optional<mode_t> m_umask;
 
   bool m_temporary_dir_configured_explicitly = false;
-  util::SizeUnitPrefixType m_size_suffix_type =
+  util::SizeUnitPrefixType m_size_prefix_type =
     util::SizeUnitPrefixType::binary;
 
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
@@ -500,7 +500,7 @@ Config::umask() const
 inline util::SizeUnitPrefixType
 Config::size_unit_prefix_type() const
 {
-  return m_size_suffix_type;
+  return m_size_prefix_type;
 }
 
 inline void

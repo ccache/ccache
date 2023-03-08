@@ -792,7 +792,7 @@ Config::get_string_value(const std::string& key) const
     return FMT("{}", m_max_files);
 
   case ConfigItem::max_size:
-    return format_cache_size(m_max_size, m_size_suffix_type);
+    return format_cache_size(m_max_size, m_size_prefix_type);
 
   case ConfigItem::msvc_dep_prefix:
     return m_msvc_dep_prefix;
@@ -1040,7 +1040,7 @@ Config::set_item(const std::string& key,
     const auto [size, prefix_type] =
       util::value_or_throw<core::Error>(util::parse_size(value));
     m_max_size = size;
-    m_size_suffix_type = prefix_type;
+    m_size_prefix_type = prefix_type;
     break;
   }
 
