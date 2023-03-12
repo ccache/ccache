@@ -48,7 +48,7 @@ if(do_download)
   # Although ${zstd_FIND_VERSION} was requested, let's download a newer version.
   # Note: The directory structure has changed in 1.3.0; we only support 1.3.0
   # and newer.
-  set(zstd_version "1.5.4")
+  set(zstd_version "1.5.2")
   set(zstd_dir   ${CMAKE_BINARY_DIR}/zstd-${zstd_version})
   set(zstd_build ${CMAKE_BINARY_DIR}/zstd-build)
 
@@ -56,7 +56,7 @@ if(do_download)
   FetchContent_Declare(
     zstd
     URL https://github.com/facebook/zstd/releases/download/v${zstd_version}/zstd-${zstd_version}.tar.gz
-    URL_HASH SHA256=0f470992aedad543126d06efab344dc5f3e171893810455787d38347343a4424
+    URL_HASH SHA256=7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0
     SOURCE_DIR ${zstd_dir}
     BINARY_DIR ${zstd_build}
   )
