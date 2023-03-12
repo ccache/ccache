@@ -1,5 +1,146 @@
 = Ccache news
 
+== Ccache 4.8
+
+Release date: 2023-03-12
+
+
+=== New features and improvements
+
+- Improved the automatic cache cleanup mechanism. Automatic cleanups are now
+  performed on 1/256 of the cache instead of 1/16, thus making them much quicker
+  (but naturally more frequent). Cleanups are coordinated between ccache
+  processes so that at most one process will perform cleanup at a time. Also,
+  the actual cache size will stay very close to the configured maximum size
+  instead of staying around 90% as was the case before. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for setting per-compilation configuration options on the command
+  line. Example: `ccache hash_dir=false gcc -c example.c`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made it possible to disable ccache for a certain source code file by embedding
+  the string `ccache:disable` in a comment near the top of the file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made ccache understand that an MSVC `/Z7` option overrides an earlier `/Z*`
+  option and thus is not too hard to cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a `--recompress-threads` command line option for selecting the number of
+  CPU threads to use when recompressing the local cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added `--trim-recompress` and `--trim-recompress-threads` command line options
+  for recompressing file-based remote storage. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added tmpfs, ufs and zfs to the list of supported filesystems on macOS and
+  BSDs for the inode cache. +
+  [small]#_[contributed by Oleg Sidorkin]_#
+
+- Improved progress bars for clean/clear/evict-style operations. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved printing of cache sizes in various outputs. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Activate debug logging for command mode options like `--cleanup`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for `-Wp,-U<macro>` in the direct mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added quotes around arguments with space in logged command lines. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added logging of executed command lines on Windows. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made sure not to update the stats file when there are no incremented
+  counters. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved actual disk size calculation on Windows. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build/CI improvements
+
+- Added CI support for building macOS universal binaries. +
+  [small]#_[contributed by Raihaan Shouhell]_#
+
+- Make it possible to force download of Zstd and Hiredis, e.g. with `cmake -D
+  ZSTD_FROM_INTERNET=ON [...]`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed an edge case where a non-temporal identifier is misidentified. +
+  [small]#_[contributed by Erik Flodin]_#
+
+- Fixed reporting of local/remote cache misses in depend mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed parsing of backslashes in MSVC RSP files. +
+  [small]#_[contributed by Raihaan Shouhell]_#
+
+- Fixed a crash in `--show-log-stats` when the stats log file doesn't exist. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed matching of base directory for MSVC. The base directory will now match
+  case-insensitively with absolute paths in preprocessed output, or from
+  `/showIncludes` in the depend mode case, when compiling with MSVC. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a problem where the original umask would be used when storing a remote
+  cache result in the local cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Changed the inode cache implementation to use spinlocks instead of pthread
+  mutexes. This makes the inode cache work on FreeBSD and similar systems. +
+  [small]#_[contributed by Oleg Sidorkin]_#
+
+- Don't treat `-Wp,-D` as interchangeable with `-D`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Disable the inode cache if the filesystem risks getting full soon. This fixes
+  a problem when the cache is on a filesystem where `posix_fallocate` isn't
+  reliable, like Btrfs with compression enabled. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed performance of cache path relativization in preprocessed output,
+  primarily on Windows where `stat` calls are relatively costly. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed rare crash in the signal handler at process exit. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed handling of Unix-style paths passed to MSVC. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed so that the config options and command line are logged before trying to
+  locate the compiler and exiting early. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Improved description of `--set-config`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed broken markup in the manual. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a note to the manual that `stats = false` will disable automatic
+  cleanup. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fix a bad reference to the "`Remote storage backends`" section. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.7.4
 
 Release date: 2022-11-21
