@@ -246,12 +246,6 @@ format_bool(bool value)
   return value ? "true" : "false";
 }
 
-std::string
-format_cache_size(uint64_t value, util::SizeUnitPrefixType prefix_type)
-{
-  return util::format_human_readable_size(value, prefix_type);
-}
-
 CompilerType
 parse_compiler_type(const std::string& value)
 {
@@ -791,8 +785,15 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::max_files:
     return FMT("{}", m_max_files);
 
-  case ConfigItem::max_size:
-    return format_cache_size(m_max_size, m_size_prefix_type);
+  case ConfigItem::max_size: {
+    auto result =
+      util::format_human_readable_size(m_max_size, m_size_prefix_type);
+    if (util::ends_with(result, " bytes")) {
+      // Special case to make the output parsable by util::parse_size.
+      result.resize(result.size() - 6);
+    }
+    return result;
+  }
 
   case ConfigItem::msvc_dep_prefix:
     return m_msvc_dep_prefix;
