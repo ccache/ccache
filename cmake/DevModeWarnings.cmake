@@ -74,6 +74,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
   # Disable C++20 compatibility for now.
   add_compile_flag_if_supported(CCACHE_COMPILER_WARNINGS "-Wno-c++2a-compat")
+  add_compile_flag_if_supported(CCACHE_COMPILER_WARNINGS "-Wno-c99-extensions")
+  add_compile_flag_if_supported(CCACHE_COMPILER_WARNINGS "-Wno-language-extension-token")
 
   # If compiler supports these warnings they have to be disabled for now.
   add_compile_flag_if_supported(

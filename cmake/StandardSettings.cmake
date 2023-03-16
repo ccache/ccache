@@ -12,7 +12,7 @@ else()
   )
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
+if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$" AND NOT MSVC)
   option(ENABLE_COVERAGE "Enable coverage reporting for GCC/Clang" FALSE)
   if(ENABLE_COVERAGE)
     target_compile_options(standard_settings INTERFACE --coverage -O0 -g)
@@ -55,17 +55,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
 
   include(StdAtomic)
   include(StdFilesystem)
-
-elseif(MSVC)
+elseif(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "^Clang$")
   target_compile_options(
     standard_settings
-    INTERFACE /Zc:preprocessor /Zc:__cplusplus /D_CRT_SECURE_NO_WARNINGS
+    INTERFACE /Zc:preprocessor /Zc:__cplusplus
   )
 endif()
 
 if(WIN32)
   target_compile_definitions(
     standard_settings
-    INTERFACE WIN32_LEAN_AND_MEAN
+    INTERFACE WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS
   )
 endif()
