@@ -29,7 +29,7 @@
 
 #include "third_party/fmt/core.h"
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 

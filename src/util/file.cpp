@@ -25,7 +25,7 @@
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 
@@ -36,9 +36,9 @@
 #  include <sys/time.h>
 #else
 #  include <sys/types.h>
-#  ifdef HAVE_UTIME_H
+#  if __has_include(<utime.h>)
 #    include <utime.h>
-#  elif defined(HAVE_SYS_UTIME_H)
+#  elif __has_include(<sys/utime.h>)
 #    include <sys/utime.h>
 #  endif
 #endif

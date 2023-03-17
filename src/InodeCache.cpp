@@ -34,7 +34,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#ifdef HAVE_LINUX_FS_H
+#if __has_include(<linux/fs.h>)
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
 #elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
@@ -105,7 +105,7 @@ fd_is_on_known_to_work_file_system(int fd)
   if (fstatfs(fd, &buf) != 0) {
     LOG("fstatfs failed: {}", strerror(errno));
   } else {
-#ifdef HAVE_LINUX_FS_H
+#if __has_include(<linux/fs.h>)
     // statfs's f_type field is a signed 32-bit integer on some platforms. Large
     // values therefore cause narrowing warnings, so cast the value to a large
     // unsigned type.

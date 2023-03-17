@@ -41,25 +41,25 @@ extern "C" {
 #include "third_party/base32hex.h"
 }
 
-#ifdef HAVE_DIRENT_H
+#if __has_include(<dirent.h>)
 #  include <dirent.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 
 #include <fcntl.h>
 
-#ifdef HAVE_PWD_H
+#if __has_include(<pwd.h>)
 #  include <pwd.h>
 #endif
 
 #ifdef __linux__
-#  ifdef HAVE_SYS_IOCTL_H
+#  if __has_include(<sys/ioctl.h>)
 #    include <sys/ioctl.h>
 #  endif
-#  ifdef HAVE_LINUX_FS_H
+#  if __has_include(<linux/fs.h>)
 #    include <linux/fs.h>
 #    ifndef FICLONE
 #      define FICLONE _IOW(0x94, 9, int)
@@ -69,7 +69,7 @@ extern "C" {
 #endif
 
 #ifdef __APPLE__
-#  ifdef HAVE_SYS_CLONEFILE_H
+#  if __has_include(<sys/clonefile.h>)
 #    include <sys/clonefile.h>
 #    ifdef CLONE_NOOWNERCOPY
 #      define FILE_CLONING_SUPPORTED 1
@@ -1181,7 +1181,7 @@ to_lowercase(std::string_view string)
   return result;
 }
 
-#ifdef HAVE_DIRENT_H
+#if __has_include(<dirent.h>)
 
 void
 traverse(const std::string& path, const TraverseVisitor& visitor)

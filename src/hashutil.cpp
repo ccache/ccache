@@ -41,11 +41,11 @@
 
 #include "third_party/blake3/blake3_cpu_supports_avx2.h"
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 
-#ifdef HAVE_SYS_WAIT_H
+#if __has_include(<sys/wait.h>)
 #  include <sys/wait.h>
 #endif
 

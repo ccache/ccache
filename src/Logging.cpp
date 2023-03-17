@@ -28,16 +28,16 @@
 
 #include <core/wincompat.hpp>
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 
-#ifdef HAVE_SYSLOG_H
+#if __has_include(<syslog.h>)
 #  include <syslog.h>
 #endif
 
 #ifdef __linux__
-#  ifdef HAVE_SYS_IOCTL_H
+#  if __has_include(<sys/ioctl.h>)
 #    include <sys/ioctl.h>
 #  endif
 #endif

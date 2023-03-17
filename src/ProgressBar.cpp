@@ -34,7 +34,7 @@
 #  include <termios.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 

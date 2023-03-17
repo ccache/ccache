@@ -36,7 +36,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef HAVE_UNISTD_H
+#if __has_include(<unistd.h>)
 #  include <unistd.h>
 #endif
 
