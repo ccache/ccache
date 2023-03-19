@@ -59,6 +59,7 @@ TEST_CASE("Config: default values")
   CHECK(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest().empty());
   CHECK(config.ignore_options().empty());
+  CHECK(config.inode_cache());
   CHECK_FALSE(config.keep_comments_cpp());
   CHECK(config.log_file().empty());
   CHECK(config.max_files() == 0);
