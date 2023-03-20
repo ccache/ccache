@@ -1,4 +1,6 @@
 SUITE_inode_cache_PROBE() {
+    export CCACHE_INODECACHE=1
+
     if $HOST_OS_WINDOWS; then
         echo "inode cache not available on Windows"
         return
@@ -16,6 +18,7 @@ SUITE_inode_cache_PROBE() {
 }
 
 SUITE_inode_cache_SETUP() {
+    export CCACHE_INODECACHE=1
     export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
     export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"  # isolate inode cache file

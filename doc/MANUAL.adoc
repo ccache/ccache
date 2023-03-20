@@ -756,7 +756,7 @@ might be incorrect.
 
     If true, ccache will cache source file hashes based on device, inode and
     timestamps. This reduces the time spent on hashing include files since the
-    result can be resused between compilations. The default is true. The feature
+    result can be resused between compilations. The default is false. The feature
     requires <<config_temporary_dir,*temporary_dir*>> to be located on a local
     filesystem of a supported type.
 +

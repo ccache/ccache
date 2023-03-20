@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -181,7 +181,7 @@ private:
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest;
   std::string m_ignore_options;
-  bool m_inode_cache = true;
+  bool m_inode_cache = false;
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file;
