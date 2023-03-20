@@ -141,6 +141,17 @@ Release date: 2023-03-12
   [small]#_[contributed by Joel Rosdahl]_#
 
 
+== Ccache 4.7.5
+
+Release date: 2023-03-20
+
+=== Bug fixes
+
+- Disabled the inode cache by default again since there have reports of ccache
+  processes hanging on futex calls related to the inode cache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.7.4
 
 Release date: 2022-11-21
