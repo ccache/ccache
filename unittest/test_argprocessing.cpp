@@ -746,4 +746,30 @@ TEST_CASE("MSVC debug information format options")
   }
 }
 
+// Check that clang-cl debug information is parsed different,
+// since for clang-cl /Zi and /Z7 is the same!
+TEST_CASE("ClangCL Debug information options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  util::write_file("foo.c", "");
+
+  SUBCASE("/Z7")
+  {
+    ctx.orig_args = Args::from_string("clang-cl.exe /c foo.c /Z7");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "clang-cl.exe /Z7");
+  }
+
+  SUBCASE("/Zi")
+  {
+    ctx.orig_args = Args::from_string("clang-cl.exe /c foo.c /Zi");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "clang-cl.exe /Zi");
+  }
+}
+
 TEST_SUITE_END();
