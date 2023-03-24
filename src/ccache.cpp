@@ -268,6 +268,8 @@ guess_compiler(std::string_view path)
     return CompilerType::icl;
   } else if (name == "cl") {
     return CompilerType::msvc;
+  } else if (name == "llc") {
+    return CompilerType::llc;
   } else {
     return CompilerType::other;
   }

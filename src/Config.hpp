@@ -41,6 +41,7 @@ enum class CompilerType {
   icl,
   msvc,
   nvcc,
+  llc,
   other
 };
 
@@ -264,7 +265,8 @@ inline bool
 Config::is_compiler_group_clang() const
 {
   return m_compiler_type == CompilerType::clang
-         || m_compiler_type == CompilerType::clang_cl;
+         || m_compiler_type == CompilerType::clang_cl
+         || m_compiler_type == CompilerType::llc;
 }
 
 inline bool

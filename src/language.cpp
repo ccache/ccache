@@ -52,6 +52,7 @@ const struct
   {".mi", "objective-c-cpp-output"},
   {".mii", "objective-c++-cpp-output"},
   {".s", "assembler"},
+  {".ll", "assembler"},
   // Header file (for precompilation):
   {".h", "c-header"},
   {".H", "c++-header"},
