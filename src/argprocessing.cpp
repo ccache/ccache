@@ -608,7 +608,8 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.is_compiler_group_msvc() && util::starts_with(arg, "-Z")) {
+  if (config.is_compiler_group_msvc() && !config.is_compiler_group_clang()
+      && util::starts_with(arg, "-Z")) {
     state.last_seen_msvc_z_option = args[i];
     state.common_args.push_back(args[i]);
     return Statistic::none;
