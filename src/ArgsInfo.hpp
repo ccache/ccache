@@ -22,6 +22,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // This class holds meta-information derived from the compiler arguments.
@@ -130,6 +131,9 @@ struct ArgsInfo
 
   // Architectures from -arch options.
   std::vector<std::string> arch_args;
+
+  // Values for -Xarch_* options.
+  std::unordered_map<std::string, std::vector<std::string>> xarch_args;
 
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;

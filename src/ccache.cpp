@@ -2012,6 +2012,15 @@ calculate_result_and_manifest_key(Context& ctx,
   for (const auto& arch : ctx.args_info.arch_args) {
     hash.hash_delimiter("-arch");
     hash.hash(arch);
+
+    // Adding -Xarch_* to hash since cpp output is affected.
+    auto it = ctx.args_info.xarch_args.find(arch);
+    if (it != ctx.args_info.xarch_args.end()) {
+      for (const auto& xarch : it->second) {
+        hash.hash_delimiter("-Xarch_" + arch);
+        hash.hash(xarch);
+      }
+    }
   }
 
   std::optional<Hash::Digest> result_key;
@@ -2037,19 +2046,31 @@ calculate_result_and_manifest_key(Context& ctx,
   } else {
     preprocessor_args->push_back("-arch");
     for (size_t i = 0; i < ctx.args_info.arch_args.size(); ++i) {
-      preprocessor_args->push_back(ctx.args_info.arch_args[i]);
+      const auto& arch = ctx.args_info.arch_args[i];
+      size_t xarch_count{};
+      preprocessor_args->push_back(arch);
+      auto it = ctx.args_info.xarch_args.find(arch);
+      if (it != ctx.args_info.xarch_args.end()) {
+        for (const auto& xarch : it->second) {
+          preprocessor_args->push_back("-Xarch_" + arch);
+          preprocessor_args->push_back(xarch);
+          xarch_count += 2;
+        }
+      }
       const auto digest =
         get_result_key_from_cpp(ctx, *preprocessor_args, hash);
       if (!digest) {
         return nonstd::make_unexpected(digest.error());
       }
       result_key = *digest;
-      LOG("Got result key from preprocessor with -arch {}",
-          ctx.args_info.arch_args[i]);
+      LOG("Got result key from preprocessor with -arch {}", arch);
       if (i != ctx.args_info.arch_args.size() - 1) {
         result_key = std::nullopt;
       }
       preprocessor_args->pop_back();
+      if (xarch_count > 0) {
+        preprocessor_args->pop_back(xarch_count);
+      }
     }
     preprocessor_args->pop_back();
   }
