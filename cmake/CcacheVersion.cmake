@@ -54,7 +54,7 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
         ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
     endmacro()
 
-    git(describe --abbrev=8 --dirty)
+    git(describe --tags --abbrev=8 --dirty)
     if(git_stdout MATCHES "^v([^-]+)(-dirty)?$")
       set(CCACHE_VERSION "${CMAKE_MATCH_1}")
       if(NOT "${CMAKE_MATCH_2}" STREQUAL "")
