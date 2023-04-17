@@ -1103,7 +1103,9 @@ to_cache(Context& ctx,
     // mode.
     Args depend_mode_args = ctx.orig_args;
     depend_mode_args.erase_with_prefix("--ccache-");
-    depend_mode_args.push_back(depend_extra_args);
+    // Add depend_mode_args directly after the compiler. We can't add them last
+    // since options then may be placed after a "--" option.
+    depend_mode_args.insert(1, depend_extra_args);
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = util::TimePoint::now();
