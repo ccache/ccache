@@ -325,16 +325,17 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
-          - name: Windows VS2019 64-bit MSBuild
-            os: windows-2019
-            msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
-            CC: cl
-            CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_GENERATOR: Visual Studio 16 2019
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
-            TEST_CC: clang -target x86_64-pc-windows-msvc
+          # Issue: #1278
+          # - name: Windows VS2019 64-bit MSBuild
+          #   os: windows-2019
+          #   msvc_arch: x64
+          #   allow_test_failures: true  # For now, don't fail the build on failure
+          #   CC: cl
+          #   CXX: cl
+          #   ENABLE_CACHE_CLEANUP_TESTS: 1
+          #   CMAKE_GENERATOR: Visual Studio 16 2019
+          #   CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
+          #   TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Windows VS2022 32-bit Ninja
             os: windows-2022
@@ -369,16 +370,17 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
-          - name: Windows VS2022 64-bit MSBuild
-            os: windows-2022
-            msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
-            CC: cl
-            CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_GENERATOR: Visual Studio 17 2022
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
-            TEST_CC: clang -target x86_64-pc-windows-msvc
+          # Issue: #1278
+          # - name: Windows VS2022 64-bit MSBuild
+          #   os: windows-2022
+          #   msvc_arch: x64
+          #   allow_test_failures: true  # For now, don't fail the build on failure
+          #   CC: cl
+          #   CXX: cl
+          #   ENABLE_CACHE_CLEANUP_TESTS: 1
+          #   CMAKE_GENERATOR: Visual Studio 17 2022
+          #   CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
+          #   TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
             os: ubuntu-20.04
