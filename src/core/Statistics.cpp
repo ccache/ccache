@@ -66,65 +66,185 @@ struct StatisticsField
 
 const StatisticsField k_statistics_fields[] = {
   // Field "none" intentionally omitted.
+
+  // Uncacheable compilation or linking by an Autoconf test.
   FIELD(autoconf_test, "Autoconf compile/link", FLAG_UNCACHEABLE),
+
+  // Malformed compiler argument, e.g. missing a value for a compiler option
+  // that requires an argument or failure to read a file specified by a compiler
+  // option argument.
   FIELD(bad_compiler_arguments, "Bad compiler arguments", FLAG_UNCACHEABLE),
+
+  // The output path specified with -o could not be written to.
   FIELD(bad_output_file, "Could not write to output file", FLAG_ERROR),
+
+  // A cacheable call resulted in a miss.
   FIELD(cache_miss, nullptr),
+
+  // Size in KiB of a subdirectory of the cache. This is only set for level 1
+  // subdirectories.
   FIELD(cache_size_kibibyte, nullptr, FLAG_NOZERO),
+
+  // The compiler was called for linking, not compiling. Ccache only supports
+  // compilation of a single file, i.e. calling the compiler with the -c option
+  // to produce a single object file from a single source file.
   FIELD(called_for_link, "Called for linking", FLAG_UNCACHEABLE),
+
+  // The compiler was called for preprocessing, not compiling.
   FIELD(called_for_preprocessing, "Called for preprocessing", FLAG_UNCACHEABLE),
+
+  // How many cleanups were performed, either manually or automatically. Only
+  // cleanup operations that actually removed files are counted.
   FIELD(cleanups_performed, nullptr),
+
+  // The compilation failed. No result stored in the cache.
   FIELD(compile_failed, "Compilation failed", FLAG_UNCACHEABLE),
+
+  // A compiler check program specified by compiler_check/CCACHE_COMPILERCHECK
+  // failed.
   FIELD(compiler_check_failed, "Compiler check failed", FLAG_ERROR),
+
+  // One of the files expected to be produced by the compiler was missing after
+  // compilation.
   FIELD(compiler_produced_no_output,
         "Compiler output file missing",
         FLAG_UNCACHEABLE),
+
+  // The compiler's output file (typically an object file) was empty after
+  // compilation.
   FIELD(compiler_produced_empty_output,
         "Compiler produced empty output",
         FLAG_UNCACHEABLE),
+
+  // Compiler produced output. [This field is obsolete since ccache now supports
+  // caching stdout output as well.]
   FIELD(compiler_produced_stdout, "Compiler produced stdout", FLAG_UNCACHEABLE),
+
+  // The compiler to execute could not be found.
   FIELD(could_not_find_compiler, "Could not find compiler", FLAG_ERROR),
+
+  // Preconditions for using C++ modules were not fulfilled.
   FIELD(could_not_use_modules, "Could not use modules", FLAG_UNCACHEABLE),
+
+  // Preconditions for using precompiled headers were not fulfilled.
   FIELD(could_not_use_precompiled_header,
         "Could not use precompiled header",
         FLAG_UNCACHEABLE),
+
+  // A cacheable call resulted in a hit when attempting direct mode lookup.
   FIELD(direct_cache_hit, nullptr),
+
+  // A cacheable call resulted in a miss when attempting direct mode lookup.
   FIELD(direct_cache_miss, nullptr),
+
+  // Ccache was disabled by a ccache:disable string in the source code file.
   FIELD(disabled, "Ccache disabled", FLAG_UNCACHEABLE),
+
+  // Failure reading a file specified by extra_files_to_hash/CCACHE_EXTRAFILES.
   FIELD(error_hashing_extra_file, "Error hashing extra file", FLAG_ERROR),
+
+  // Number of files in a subdirectory of the cache. This is only set for level
+  // 1 subdirectories.
   FIELD(files_in_cache, nullptr, FLAG_NOZERO),
+
+  // Unexpected failure, e.g. due to problems reading/writing the cache.
   FIELD(internal_error, "Internal error", FLAG_ERROR),
+
+  // A cacheable call resulted in a hit when attempting to look up a result from
+  // local storage.
   FIELD(local_storage_hit, nullptr),
+
+  // A cacheable call resulted in a miss when attempting to look up a result
+  // from local storage.
   FIELD(local_storage_miss, nullptr),
+
+  // A read from local storage found an entry (manifest or result file).
   FIELD(local_storage_read_hit, nullptr),
+
+  // A read from local storage did not find an entry (manifest or result file).
   FIELD(local_storage_read_miss, nullptr),
+
+  // An entry (manifest or result file) was written local storage.
   FIELD(local_storage_write, nullptr),
+
+  // A file was unexpectedly missing from the cache. This only happens in rare
+  // situations, e.g. if one ccache instance is about to get a file from the
+  // cache while another instance removed the file as part of cache cleanup.
   FIELD(missing_cache_file, "Missing cache file", FLAG_ERROR),
+
+  // The compiler was called to compile multiple source files in one go. This is
+  // not supported by ccache.
   FIELD(multiple_source_files, "Multiple source files", FLAG_UNCACHEABLE),
+
+  // No input file was specified to the compiler.
   FIELD(no_input_file, "No input file", FLAG_UNCACHEABLE),
+
+  // [Obsolete field used before ccache 3.2.]
   FIELD(obsolete_max_files, nullptr, FLAG_NOZERO | FLAG_NEVER),
+
+  // [Obsolete field used before ccache 3.2.]
   FIELD(obsolete_max_size, nullptr, FLAG_NOZERO | FLAG_NEVER),
+
+  // The compiler was instructed to write its output to standard output using
+  // "-o -". This is not supported by ccache.
   FIELD(output_to_stdout, "Output to stdout", FLAG_UNCACHEABLE),
+
+  // A cacheable call resulted in a hit when attempting preprocessed mode
+  // lookup.
   FIELD(preprocessed_cache_hit, nullptr),
+
+  // A cacheable call resulted in a miss when attempting preprocessed mode
+  // lookup.
   FIELD(preprocessed_cache_miss, nullptr),
+
+  // Preprocessing the source code using the compiler's -E option failed.
   FIELD(preprocessor_error, "Preprocessing failed", FLAG_UNCACHEABLE),
+
+  // recache/CCACHE_RECACHE was used to overwrite an existing result.
   FIELD(recache, "Forced recache", FLAG_UNCACHEABLE),
+
+  // Error when connecting to, reading from or writing to remote storage.
   FIELD(remote_storage_error, nullptr),
+
+  // A cacheable call resulted in a hit when attempting to look up a result from
+  // remote storage.
   FIELD(remote_storage_hit, nullptr),
+
+  // A cacheable call resulted in a miss when attempting to look up a result
+  // from remote storage.
   FIELD(remote_storage_miss, nullptr),
+
+  // A read from remote storage found an entry (manifest or result file).
   FIELD(remote_storage_read_hit, nullptr),
+
+  // A read from remote storage did not find an entry (manifest or result file).
   FIELD(remote_storage_read_miss, nullptr),
+
+  // An entry (manifest or result file) was written remote storage.
   FIELD(remote_storage_write, nullptr),
+
+  // Timeout when connecting to, reading from or writing to remote storage.
   FIELD(remote_storage_timeout, nullptr),
+
+  // Last time statistics counters were zeroed.
   FIELD(stats_zeroed_timestamp, nullptr),
+
+  // Code like the assembler .inc bin (without the space) directive was found.
+  // This is not supported by ccache.
   FIELD(
     unsupported_code_directive, "Unsupported code directive", FLAG_UNCACHEABLE),
+
+  // A compiler option not supported by ccache was found.
   FIELD(unsupported_compiler_option,
         "Unsupported compiler option",
         FLAG_UNCACHEABLE),
+
+  // An environment variable not supported by ccache was set.
   FIELD(unsupported_environment_variable,
         "Unsupported environment variable",
         FLAG_UNCACHEABLE),
+
+  // A source language e.g. specified with -x was unsupported by ccache.
   FIELD(unsupported_source_language,
         "Unsupported source language",
         FLAG_UNCACHEABLE),
