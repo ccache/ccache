@@ -610,9 +610,13 @@ process_option_arg(const Context& ctx,
 
   if (config.is_compiler_group_msvc() && !config.is_compiler_group_clang()
       && util::starts_with(arg, "-Z")) {
-    state.last_seen_msvc_z_option = args[i];
-    state.common_args.push_back(args[i]);
-    return Statistic::none;
+    // Exclude other options starting with /Z (/Zc), which are not debug flags
+    const char debug_mode = arg[2];
+    if (debug_mode == 'i' || debug_mode == '7' || debug_mode == 'I') {
+      state.last_seen_msvc_z_option = args[i];
+      state.common_args.push_back(args[i]);
+      return Statistic::none;
+    }
   }
 
   // These options require special handling, because they behave differently
