@@ -71,9 +71,9 @@ struct ArgumentProcessingState
   bool found_md_or_mmd_opt = false;
   bool found_Wa_a_opt = false;
 
-  std::string explicit_language;       // As specified with -x.
-  std::string input_charset_option;    // -finput-charset=...
-  std::string last_seen_msvc_z_option; // /Z7, /Zi or /ZI
+  std::string explicit_language;             // As specified with -x.
+  std::string input_charset_option;          // -finput-charset=...
+  std::string last_seen_msvc_z_debug_option; // /Z7, /Zi or /ZI
 
   // Is the dependency file set via -Wp,-M[M]D,target or -MFtarget?
   OutputDepOrigin output_dep_origin = OutputDepOrigin::none;
@@ -275,6 +275,14 @@ make_dash_option(const Config& config, const std::string& arg)
     new_arg[0] = '-';
   }
   return new_arg;
+}
+
+bool
+is_msvc_z_debug_option(std::string_view arg)
+{
+  static const char* debug_options[] = {"-Z7", "-ZI", "-Zi"};
+  return std::find(std::begin(debug_options), std::end(debug_options), arg)
+         != std::end(debug_options);
 }
 
 // Returns std::nullopt if the option wasn't recognized, otherwise the error
@@ -609,14 +617,10 @@ process_option_arg(const Context& ctx,
   }
 
   if (config.is_compiler_group_msvc() && !config.is_compiler_group_clang()
-      && util::starts_with(arg, "-Z")) {
-    // Exclude other options starting with /Z (/Zc), which are not debug flags
-    const char debug_mode = arg[2];
-    if (debug_mode == 'i' || debug_mode == '7' || debug_mode == 'I') {
-      state.last_seen_msvc_z_option = args[i];
-      state.common_args.push_back(args[i]);
-      return Statistic::none;
-    }
+      && is_msvc_z_debug_option(arg)) {
+    state.last_seen_msvc_z_debug_option = args[i];
+    state.common_args.push_back(args[i]);
+    return Statistic::none;
   }
 
   // These options require special handling, because they behave differently
@@ -1172,10 +1176,11 @@ process_args(Context& ctx)
     return Statistic::unsupported_compiler_option;
   }
 
-  if (!state.last_seen_msvc_z_option.empty()
-      && state.last_seen_msvc_z_option.substr(2) != "7") {
+  if (!state.last_seen_msvc_z_debug_option.empty()
+      && state.last_seen_msvc_z_debug_option.substr(2) != "7") {
     // /Zi and /ZI are unsupported, but /Z7 is fine.
-    LOG("Compiler option {} is unsupported", state.last_seen_msvc_z_option);
+    LOG("Compiler option {} is unsupported",
+        state.last_seen_msvc_z_debug_option);
     return Statistic::unsupported_compiler_option;
   }
 
