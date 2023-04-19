@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,10 +46,8 @@ private:
   bool m_owned = false;
 };
 
-inline File::File(FILE* const file)
+inline File::File(FILE* const file) : m_file(file), m_owned(false)
 {
-  m_file = file;
-  m_owned = false;
 }
 
 inline File::File(const std::string& path, const char* mode)

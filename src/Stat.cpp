@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -206,8 +206,8 @@ win32_lstat(const char* path, Stat::stat_t* st)
 Stat::Stat(StatFunction stat_function,
            const std::string& path,
            Stat::OnError on_error)
+  : m_path(path)
 {
-  m_path = path;
   int result = stat_function(path.c_str(), &m_stat);
   if (result == 0) {
     m_errno = 0;
