@@ -1184,7 +1184,7 @@ Examples:
 
 * `+file:/shared/nfs/directory+`
 * `+file:///shared/nfs/directory|umask=002|update-mtime=true+`
-* `+file://example.com/shared/folder+`
+* `+file://example.com/shared/ccache%20folder+`
 
 Optional attributes:
 
