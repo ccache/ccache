@@ -552,8 +552,10 @@ fi
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz"
 
-    $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null
-    if [ -s preprocessed.i ] && ! grep -Fq $PWD preprocessed.i; then
+    if $COMPILER -c test1.c -gz 2>/dev/null
+       && $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null \
+       && [ -s preprocessed.i ] \
+       && ! grep -Fq $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
         cp test1.c dir2
