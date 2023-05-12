@@ -23,7 +23,8 @@
 namespace util {
 
 // Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
-// in `str`. Throws `core::Error` if one of the environment variables.
+// in `str`. Throws `core::Error` if one of the referenced variables is not set
+// or a closing '}' is missing after '${'.
 [[nodiscard]] std::string expand_environment_variables(const std::string& str);
 
 // Set environment variable `name` to `value`.
