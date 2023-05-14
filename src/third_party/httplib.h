@@ -1,14 +1,14 @@
 //
 //  httplib.h
 //
-//  Copyright (c) 2022 Yuji Hirose. All rights reserved.
+//  Copyright (c) 2023 Yuji Hirose. All rights reserved.
 //  MIT License
 //
 
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#define CPPHTTPLIB_VERSION "0.11.4"
+#define CPPHTTPLIB_VERSION "0.12.3"
 
 /*
  * Configuration
@@ -239,7 +239,13 @@ using socket_t = int;
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "cryptui.lib")
 #endif
-#endif //_WIN32
+#elif defined(CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN) && defined(__APPLE__)
+#include <TargetConditionals.h>
+#if TARGET_OS_OSX
+#include <CoreFoundation/CoreFoundation.h>
+#include <Security/Security.h>
+#endif // TARGET_OS_OSX
+#endif // _WIN32
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -308,6 +314,34 @@ struct ci {
   }
 };
 
+// This is based on
+// "http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4189".
+
+struct scope_exit {
+  explicit scope_exit(std::function<void(void)> &&f)
+      : exit_function(std::move(f)), execute_on_destruction{true} {}
+
+  scope_exit(scope_exit &&rhs)
+      : exit_function(std::move(rhs.exit_function)),
+        execute_on_destruction{rhs.execute_on_destruction} {
+    rhs.release();
+  }
+
+  ~scope_exit() {
+    if (execute_on_destruction) { this->exit_function(); }
+  }
+
+  void release() { this->execute_on_destruction = false; }
+
+private:
+  scope_exit(const scope_exit &) = delete;
+  void operator=(const scope_exit &) = delete;
+  scope_exit &operator=(scope_exit &&) = delete;
+
+  std::function<void(void)> exit_function;
+  bool execute_on_destruction;
+};
+
 } // namespace detail
 
 using Headers = std::multimap<std::string, std::string, detail::ci>;
@@ -340,7 +374,7 @@ public:
 
   std::function<bool(const char *data, size_t data_len)> write;
   std::function<void()> done;
-  std::function<bool()> is_writable;
+  std::function<void(const Headers &trailer)> done_with_trailer;
   std::ostream os;
 
 private:
@@ -455,6 +489,7 @@ struct Request {
 
   bool has_file(const std::string &key) const;
   MultipartFormData get_file_value(const std::string &key) const;
+  std::vector<MultipartFormData> get_file_values(const std::string &key) const;
 
   // private members...
   size_t redirect_count_ = CPPHTTPLIB_REDIRECT_MAX_COUNT;
@@ -708,6 +743,7 @@ public:
   bool listen(const std::string &host, int port, int socket_flags = 0);
 
   bool is_running() const;
+  void wait_until_ready() const;
   void stop();
 
   std::function<TaskQueue *(void)> new_task_queue;
@@ -717,7 +753,7 @@ protected:
                        bool &connection_closed,
                        const std::function<void(Request &)> &setup_request);
 
-  std::atomic<socket_t> svr_sock_;
+  std::atomic<socket_t> svr_sock_{INVALID_SOCKET};
   size_t keep_alive_max_count_ = CPPHTTPLIB_KEEPALIVE_MAX_COUNT;
   time_t keep_alive_timeout_sec_ = CPPHTTPLIB_KEEPALIVE_TIMEOUT_SECOND;
   time_t read_timeout_sec_ = CPPHTTPLIB_READ_TIMEOUT_SECOND;
@@ -769,7 +805,7 @@ private:
                                      ContentReceiver multipart_receiver);
   bool read_content_core(Stream &strm, Request &req, Response &res,
                          ContentReceiver receiver,
-                         MultipartContentHeader mulitpart_header,
+                         MultipartContentHeader multipart_header,
                          ContentReceiver multipart_receiver);
 
   virtual bool process_and_close_socket(socket_t sock);
@@ -781,7 +817,8 @@ private:
   };
   std::vector<MountPointEntry> base_dirs_;
 
-  std::atomic<bool> is_running_;
+  std::atomic<bool> is_running_{false};
+  std::atomic<bool> done_{false};
   std::map<std::string, std::string> file_extension_and_mimetype_map_;
   Handler file_request_handler_;
   Handlers get_handlers_;
@@ -823,6 +860,9 @@ enum class Error {
   UnsupportedMultipartBoundaryChars,
   Compression,
   ConnectionTimeout,
+
+  // For internal use only
+  SSLPeerCouldBeClosed_,
 };
 
 std::string to_string(const Error error);
@@ -1095,8 +1135,6 @@ protected:
     bool is_open() const { return sock != INVALID_SOCKET; }
   };
 
-  Result send_(Request &&req);
-
   virtual bool create_and_connect_socket(Socket &socket, Error &error);
 
   // All of:
@@ -1118,7 +1156,7 @@ protected:
 
   void copy_settings(const ClientImpl &rhs);
 
-  // Socket endoint information
+  // Socket endpoint information
   const std::string host_;
   const int port_;
   const std::string host_and_port_;
@@ -1197,6 +1235,9 @@ protected:
   Logger logger_;
 
 private:
+  bool send_(Request &req, Response &res, Error &error);
+  Result send_(Request &&req);
+
   socket_t create_client_socket(Error &error) const;
   bool read_response_line(Stream &strm, const Request &req, Response &res);
   bool write_request(Stream &strm, Request &req, bool close_connection,
@@ -1665,20 +1706,20 @@ Server::set_idle_interval(const std::chrono::duration<Rep, Period> &duration) {
 
 inline std::string to_string(const Error error) {
   switch (error) {
-  case Error::Success: return "Success";
-  case Error::Connection: return "Connection";
-  case Error::BindIPAddress: return "BindIPAddress";
-  case Error::Read: return "Read";
-  case Error::Write: return "Write";
-  case Error::ExceedRedirectCount: return "ExceedRedirectCount";
-  case Error::Canceled: return "Canceled";
-  case Error::SSLConnection: return "SSLConnection";
-  case Error::SSLLoadingCerts: return "SSLLoadingCerts";
-  case Error::SSLServerVerification: return "SSLServerVerification";
+  case Error::Success: return "Success (no error)";
+  case Error::Connection: return "Could not establish connection";
+  case Error::BindIPAddress: return "Failed to bind IP address";
+  case Error::Read: return "Failed to read connection";
+  case Error::Write: return "Failed to write connection";
+  case Error::ExceedRedirectCount: return "Maximum redirect count exceeded";
+  case Error::Canceled: return "Connection handling canceled";
+  case Error::SSLConnection: return "SSL connection failed";
+  case Error::SSLLoadingCerts: return "SSL certificate loading failed";
+  case Error::SSLServerVerification: return "SSL server verification failed";
   case Error::UnsupportedMultipartBoundaryChars:
-    return "UnsupportedMultipartBoundaryChars";
-  case Error::Compression: return "Compression";
-  case Error::ConnectionTimeout: return "ConnectionTimeout";
+    return "Unsupported HTTP multipart boundary characters";
+  case Error::Compression: return "Compression failed";
+  case Error::ConnectionTimeout: return "Connection timed out";
   case Error::Unknown: return "Unknown";
   default: break;
   }
@@ -1787,6 +1828,9 @@ const char *get_header_value(const Headers &headers, const std::string &key,
 std::string params_to_query_str(const Params &params);
 
 void parse_query_text(const std::string &s, Params &params);
+
+bool parse_multipart_boundary(const std::string &content_type,
+                              std::string &boundary);
 
 bool parse_range_header(const std::string &s, Ranges &ranges);
 

@@ -695,7 +695,7 @@ socket_t create_socket(const std::string &host, const std::string &ip, int port,
 
     auto sock = socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
     if (sock != INVALID_SOCKET) {
-      sockaddr_un addr;
+      sockaddr_un addr{};
       addr.sun_family = AF_UNIX;
       std::copy(host.begin(), host.end(), addr.sun_path);
 
@@ -753,7 +753,10 @@ socket_t create_socket(const std::string &host, const std::string &ip, int port,
     if (sock == INVALID_SOCKET) { continue; }
 
 #ifndef _WIN32
-    if (fcntl(sock, F_SETFD, FD_CLOEXEC) == -1) { continue; }
+    if (fcntl(sock, F_SETFD, FD_CLOEXEC) == -1) {
+      close_socket(sock);
+      continue;
+    }
 #endif
 
     if (tcp_nodelay) {
@@ -1008,9 +1011,14 @@ void get_remote_ip_and_port(socket_t sock, std::string &ip, int &port) {
 
 constexpr unsigned int str2tag_core(const char *s, size_t l,
                                            unsigned int h) {
-  return (l == 0) ? h
-                  : str2tag_core(s + 1, l - 1,
-                                 (h * 33) ^ static_cast<unsigned char>(*s));
+  return (l == 0)
+             ? h
+             : str2tag_core(
+                   s + 1, l - 1,
+                   // Unsets the 6 high bits of h, therefore no overflow happens
+                   (((std::numeric_limits<unsigned int>::max)() >> 6) &
+                    h * 33) ^
+                       static_cast<unsigned char>(*s));
 }
 
 unsigned int str2tag(const std::string &s) {
@@ -1423,6 +1431,14 @@ const char *get_header_value(const Headers &headers,
   return def;
 }
 
+bool compare_case_ignore(const std::string &a, const std::string &b) {
+  if (a.size() != b.size()) { return false; }
+  for (size_t i = 0; i < b.size(); i++) {
+    if (::tolower(a[i]) != ::tolower(b[i])) { return false; }
+  }
+  return true;
+}
+
 template <typename T>
 bool parse_header(const char *beg, const char *end, T fn) {
   // Skip trailing spaces and tabs.
@@ -1446,7 +1462,11 @@ bool parse_header(const char *beg, const char *end, T fn) {
   }
 
   if (p < end) {
-    fn(std::string(beg, key_end), decode_url(std::string(p, end), false));
+    auto key = std::string(beg, key_end);
+    auto val = compare_case_ignore(key, "Location")
+                   ? std::string(p, end)
+                   : decode_url(std::string(p, end), false);
+    fn(std::move(key), std::move(val));
     return true;
   }
 
@@ -1544,7 +1564,8 @@ bool read_content_without_length(Stream &strm,
   return true;
 }
 
-bool read_content_chunked(Stream &strm,
+template <typename T>
+bool read_content_chunked(Stream &strm, T &x,
                                  ContentReceiverWithProgress out) {
   const auto bufsiz = 16;
   char buf[bufsiz];
@@ -1570,15 +1591,29 @@ bool read_content_chunked(Stream &strm,
 
     if (!line_reader.getline()) { return false; }
 
-    if (strcmp(line_reader.ptr(), "\r\n")) { break; }
+    if (strcmp(line_reader.ptr(), "\r\n")) { return false; }
 
     if (!line_reader.getline()) { return false; }
   }
 
-  if (chunk_len == 0) {
-    // Reader terminator after chunks
-    if (!line_reader.getline() || strcmp(line_reader.ptr(), "\r\n"))
-      return false;
+  assert(chunk_len == 0);
+
+  // Trailer
+  if (!line_reader.getline()) { return false; }
+
+  while (strcmp(line_reader.ptr(), "\r\n")) {
+    if (line_reader.size() > CPPHTTPLIB_HEADER_MAX_LENGTH) { return false; }
+
+    // Exclude line terminator
+    constexpr auto line_terminator_len = 2;
+    auto end = line_reader.ptr() + line_reader.size() - line_terminator_len;
+
+    parse_header(line_reader.ptr(), end,
+                 [&](std::string &&key, std::string &&val) {
+                   x.headers.emplace(std::move(key), std::move(val));
+                 });
+
+    if (!line_reader.getline()) { return false; }
   }
 
   return true;
@@ -1648,7 +1683,7 @@ bool read_content(Stream &strm, T &x, size_t payload_max_length, int &status,
         auto exceed_payload_max_length = false;
 
         if (is_chunked_transfer_encoding(x.headers)) {
-          ret = read_content_chunked(strm, out);
+          ret = read_content_chunked(strm, x, out);
         } else if (!has_header(x.headers, "Content-Length")) {
           ret = read_content_without_length(strm, out);
         } else {
@@ -1701,7 +1736,7 @@ bool write_content(Stream &strm, const ContentProvider &content_provider,
 
   data_sink.write = [&](const char *d, size_t l) -> bool {
     if (ok) {
-      if (write_data(strm, d, l)) {
+      if (strm.is_writable() && write_data(strm, d, l)) {
         offset += l;
       } else {
         ok = false;
@@ -1710,14 +1745,14 @@ bool write_content(Stream &strm, const ContentProvider &content_provider,
     return ok;
   };
 
-  data_sink.is_writable = [&](void) { return ok && strm.is_writable(); };
-
   while (offset < end_offset && !is_shutting_down()) {
-    if (!content_provider(offset, end_offset - offset, data_sink)) {
+    if (!strm.is_writable()) {
+      error = Error::Write;
+      return false;
+    } else if (!content_provider(offset, end_offset - offset, data_sink)) {
       error = Error::Canceled;
       return false;
-    }
-    if (!ok) {
+    } else if (!ok) {
       error = Error::Write;
       return false;
     }
@@ -1749,18 +1784,21 @@ write_content_without_length(Stream &strm,
   data_sink.write = [&](const char *d, size_t l) -> bool {
     if (ok) {
       offset += l;
-      if (!write_data(strm, d, l)) { ok = false; }
+      if (!strm.is_writable() || !write_data(strm, d, l)) { ok = false; }
     }
     return ok;
   };
 
   data_sink.done = [&](void) { data_available = false; };
 
-  data_sink.is_writable = [&](void) { return ok && strm.is_writable(); };
-
   while (data_available && !is_shutting_down()) {
-    if (!content_provider(offset, 0, data_sink)) { return false; }
-    if (!ok) { return false; }
+    if (!strm.is_writable()) {
+      return false;
+    } else if (!content_provider(offset, 0, data_sink)) {
+      return false;
+    } else if (!ok) {
+      return false;
+    }
   }
   return true;
 }
@@ -1789,7 +1827,10 @@ write_content_chunked(Stream &strm, const ContentProvider &content_provider,
           // Emit chunked response header and footer for each chunk
           auto chunk =
               from_i_to_hex(payload.size()) + "\r\n" + payload + "\r\n";
-          if (!write_data(strm, chunk.data(), chunk.size())) { ok = false; }
+          if (!strm.is_writable() ||
+              !write_data(strm, chunk.data(), chunk.size())) {
+            ok = false;
+          }
         }
       } else {
         ok = false;
@@ -1798,7 +1839,7 @@ write_content_chunked(Stream &strm, const ContentProvider &content_provider,
     return ok;
   };
 
-  data_sink.done = [&](void) {
+  auto done_with_trailer = [&](const Headers *trailer) {
     if (!ok) { return; }
 
     data_available = false;
@@ -1816,26 +1857,46 @@ write_content_chunked(Stream &strm, const ContentProvider &content_provider,
     if (!payload.empty()) {
       // Emit chunked response header and footer for each chunk
       auto chunk = from_i_to_hex(payload.size()) + "\r\n" + payload + "\r\n";
-      if (!write_data(strm, chunk.data(), chunk.size())) {
+      if (!strm.is_writable() ||
+          !write_data(strm, chunk.data(), chunk.size())) {
         ok = false;
         return;
       }
     }
 
-    static const std::string done_marker("0\r\n\r\n");
+    static const std::string done_marker("0\r\n");
     if (!write_data(strm, done_marker.data(), done_marker.size())) {
       ok = false;
     }
+
+    // Trailer
+    if (trailer) {
+      for (const auto &kv : *trailer) {
+        std::string field_line = kv.first + ": " + kv.second + "\r\n";
+        if (!write_data(strm, field_line.data(), field_line.size())) {
+          ok = false;
+        }
+      }
+    }
+
+    static const std::string crlf("\r\n");
+    if (!write_data(strm, crlf.data(), crlf.size())) { ok = false; }
   };
 
-  data_sink.is_writable = [&](void) { return ok && strm.is_writable(); };
+  data_sink.done = [&](void) { done_with_trailer(nullptr); };
+
+  data_sink.done_with_trailer = [&](const Headers &trailer) {
+    done_with_trailer(&trailer);
+  };
 
   while (data_available && !is_shutting_down()) {
-    if (!content_provider(offset, 0, data_sink)) {
+    if (!strm.is_writable()) {
+      error = Error::Write;
+      return false;
+    } else if (!content_provider(offset, 0, data_sink)) {
       error = Error::Canceled;
       return false;
-    }
-    if (!ok) {
+    } else if (!ok) {
       error = Error::Write;
       return false;
     }
@@ -1916,9 +1977,12 @@ void parse_query_text(const std::string &s, Params &params) {
 
 bool parse_multipart_boundary(const std::string &content_type,
                                      std::string &boundary) {
-  auto pos = content_type.find("boundary=");
+  auto boundary_keyword = "boundary=";
+  auto pos = content_type.find(boundary_keyword);
   if (pos == std::string::npos) { return false; }
-  boundary = content_type.substr(pos + 9);
+  auto end = content_type.find(';', pos);
+  auto beg = pos + strlen(boundary_keyword);
+  boundary = content_type.substr(beg, end - beg);
   if (boundary.length() >= 2 && boundary.front() == '"' &&
       boundary.back() == '"') {
     boundary = boundary.substr(1, boundary.size() - 2);
@@ -2029,6 +2093,9 @@ public:
             if (std::regex_match(header, m, re_content_disposition)) {
               file_.name = m[1];
               file_.filename = m[2];
+            } else {
+              is_valid_ = false;
+              return false;
             }
           }
           buf_erase(pos + crlf_.size());
@@ -2448,15 +2515,15 @@ std::string SHA_512(const std::string &s) {
 }
 #endif
 
-#ifdef _WIN32
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+#ifdef _WIN32
 // NOTE: This code came up with the following stackoverflow post:
 // https://stackoverflow.com/questions/9507184/can-openssl-on-windows-use-the-system-certificate-store
 bool load_system_certs_on_windows(X509_STORE *store) {
   auto hStore = CertOpenSystemStoreW((HCRYPTPROV_LEGACY)NULL, L"ROOT");
-
   if (!hStore) { return false; }
 
+  auto result = false;
   PCCERT_CONTEXT pContext = NULL;
   while ((pContext = CertEnumCertificatesInStore(hStore, pContext)) !=
          nullptr) {
@@ -2467,16 +2534,109 @@ bool load_system_certs_on_windows(X509_STORE *store) {
     if (x509) {
       X509_STORE_add_cert(store, x509);
       X509_free(x509);
+      result = true;
     }
   }
 
   CertFreeCertificateContext(pContext);
   CertCloseStore(hStore, 0);
 
+  return result;
+}
+#elif defined(CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN) && defined(__APPLE__)
+#if TARGET_OS_OSX
+template <typename T>
+using CFObjectPtr =
+    std::unique_ptr<typename std::remove_pointer<T>::type, void (*)(CFTypeRef)>;
+
+void cf_object_ptr_deleter(CFTypeRef obj) {
+  if (obj) { CFRelease(obj); }
+}
+
+bool retrieve_certs_from_keychain(CFObjectPtr<CFArrayRef> &certs) {
+  CFStringRef keys[] = {kSecClass, kSecMatchLimit, kSecReturnRef};
+  CFTypeRef values[] = {kSecClassCertificate, kSecMatchLimitAll,
+                        kCFBooleanTrue};
+
+  CFObjectPtr<CFDictionaryRef> query(
+      CFDictionaryCreate(nullptr, reinterpret_cast<const void **>(keys), values,
+                         sizeof(keys) / sizeof(keys[0]),
+                         &kCFTypeDictionaryKeyCallBacks,
+                         &kCFTypeDictionaryValueCallBacks),
+      cf_object_ptr_deleter);
+
+  if (!query) { return false; }
+
+  CFTypeRef security_items = nullptr;
+  if (SecItemCopyMatching(query.get(), &security_items) != errSecSuccess ||
+      CFArrayGetTypeID() != CFGetTypeID(security_items)) {
+    return false;
+  }
+
+  certs.reset(reinterpret_cast<CFArrayRef>(security_items));
   return true;
 }
-#endif
 
+bool retrieve_root_certs_from_keychain(CFObjectPtr<CFArrayRef> &certs) {
+  CFArrayRef root_security_items = nullptr;
+  if (SecTrustCopyAnchorCertificates(&root_security_items) != errSecSuccess) {
+    return false;
+  }
+
+  certs.reset(root_security_items);
+  return true;
+}
+
+bool add_certs_to_x509_store(CFArrayRef certs, X509_STORE *store) {
+  auto result = false;
+  for (int i = 0; i < CFArrayGetCount(certs); ++i) {
+    const auto cert = reinterpret_cast<const __SecCertificate *>(
+        CFArrayGetValueAtIndex(certs, i));
+
+    if (SecCertificateGetTypeID() != CFGetTypeID(cert)) { continue; }
+
+    CFDataRef cert_data = nullptr;
+    if (SecItemExport(cert, kSecFormatX509Cert, 0, nullptr, &cert_data) !=
+        errSecSuccess) {
+      continue;
+    }
+
+    CFObjectPtr<CFDataRef> cert_data_ptr(cert_data, cf_object_ptr_deleter);
+
+    auto encoded_cert = static_cast<const unsigned char *>(
+        CFDataGetBytePtr(cert_data_ptr.get()));
+
+    auto x509 =
+        d2i_X509(NULL, &encoded_cert, CFDataGetLength(cert_data_ptr.get()));
+
+    if (x509) {
+      X509_STORE_add_cert(store, x509);
+      X509_free(x509);
+      result = true;
+    }
+  }
+
+  return result;
+}
+
+bool load_system_certs_on_macos(X509_STORE *store) {
+  auto result = false;
+  CFObjectPtr<CFArrayRef> certs(nullptr, cf_object_ptr_deleter);
+  if (retrieve_certs_from_keychain(certs) && certs) {
+    result = add_certs_to_x509_store(certs.get(), store);
+  }
+
+  if (retrieve_root_certs_from_keychain(certs) && certs) {
+    result = add_certs_to_x509_store(certs.get(), store) || result;
+  }
+
+  return result;
+}
+#endif // TARGET_OS_OSX
+#endif // _WIN32
+#endif // CPPHTTPLIB_OPENSSL_SUPPORT
+
+#ifdef _WIN32
 class WSInit {
 public:
   WSInit() {
@@ -2751,6 +2911,16 @@ MultipartFormData Request::get_file_value(const std::string &key) const {
   return MultipartFormData();
 }
 
+std::vector<MultipartFormData>
+Request::get_file_values(const std::string &key) const {
+  std::vector<MultipartFormData> values;
+  auto rng = files.equal_range(key);
+  for (auto it = rng.first; it != rng.second; it++) {
+    values.push_back(it->second);
+  }
+  return values;
+}
+
 // Response implementation
 bool Response::has_header(const std::string &key) const {
   return headers.find(key) != headers.end();
@@ -2801,10 +2971,9 @@ void Response::set_content(const std::string &s,
 void Response::set_content_provider(
     size_t in_length, const std::string &content_type, ContentProvider provider,
     ContentProviderResourceReleaser resource_releaser) {
-  assert(in_length > 0);
   set_header("Content-Type", content_type);
   content_length_ = in_length;
-  content_provider_ = std::move(provider);
+  if (in_length > 0) { content_provider_ = std::move(provider); }
   content_provider_resource_releaser_ = resource_releaser;
   is_chunked_content_provider_ = false;
 }
@@ -2981,8 +3150,7 @@ const std::string &BufferStream::get_buffer() const { return buffer; }
 // HTTP server implementation
 Server::Server()
     : new_task_queue(
-          [] { return new ThreadPool(CPPHTTPLIB_THREAD_POOL_COUNT); }),
-      svr_sock_(INVALID_SOCKET), is_running_(false) {
+          [] { return new ThreadPool(CPPHTTPLIB_THREAD_POOL_COUNT); }) {
 #ifndef _WIN32
   signal(SIGPIPE, SIG_IGN);
 #endif
@@ -3195,14 +3363,24 @@ int Server::bind_to_any_port(const std::string &host, int socket_flags) {
   return bind_internal(host, 0, socket_flags);
 }
 
-bool Server::listen_after_bind() { return listen_internal(); }
+bool Server::listen_after_bind() {
+  auto se = detail::scope_exit([&]() { done_ = true; });
+  return listen_internal();
+}
 
 bool Server::listen(const std::string &host, int port,
                            int socket_flags) {
+  auto se = detail::scope_exit([&]() { done_ = true; });
   return bind_to_port(host, port, socket_flags) && listen_internal();
 }
 
 bool Server::is_running() const { return is_running_; }
+
+void Server::wait_until_ready() const {
+  while (!is_running() && !done_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{1});
+  }
+}
 
 void Server::stop() {
   if (is_running_) {
@@ -3466,7 +3644,7 @@ bool Server::read_content_with_content_receiver(
 
 bool Server::read_content_core(Stream &strm, Request &req, Response &res,
                                       ContentReceiver receiver,
-                                      MultipartContentHeader mulitpart_header,
+                                      MultipartContentHeader multipart_header,
                                       ContentReceiver multipart_receiver) {
   detail::MultipartFormDataParser multipart_form_data_parser;
   ContentReceiverWithProgress out;
@@ -3486,14 +3664,14 @@ bool Server::read_content_core(Stream &strm, Request &req, Response &res,
       while (pos < n) {
         auto read_size = (std::min)<size_t>(1, n - pos);
         auto ret = multipart_form_data_parser.parse(
-            buf + pos, read_size, multipart_receiver, mulitpart_header);
+            buf + pos, read_size, multipart_receiver, multipart_header);
         if (!ret) { return false; }
         pos += read_size;
       }
       return true;
       */
       return multipart_form_data_parser.parse(buf, n, multipart_receiver,
-                                              mulitpart_header);
+                                              multipart_header);
     };
   } else {
     out = [receiver](const char *buf, size_t n, uint64_t /*off*/,
@@ -3594,6 +3772,7 @@ int Server::bind_internal(const std::string &host, int port,
 bool Server::listen_internal() {
   auto ret = true;
   is_running_ = true;
+  auto se = detail::scope_exit([&]() { is_running_ = false; });
 
   {
     std::unique_ptr<TaskQueue> task_queue(new_task_queue());
@@ -3659,17 +3838,12 @@ bool Server::listen_internal() {
 #endif
       }
 
-#if __cplusplus > 201703L
-      task_queue->enqueue([=, this]() { process_and_close_socket(sock); });
-#else
-      task_queue->enqueue([=]() { process_and_close_socket(sock); });
-#endif
+      task_queue->enqueue([this, sock]() { process_and_close_socket(sock); });
     }
 
     task_queue->shutdown();
   }
 
-  is_running_ = false;
   return ret;
 }
 
@@ -4210,7 +4384,15 @@ bool ClientImpl::read_response_line(Stream &strm, const Request &req,
 
 bool ClientImpl::send(Request &req, Response &res, Error &error) {
   std::lock_guard<std::recursive_mutex> request_mutex_guard(request_mutex_);
+  auto ret = send_(req, res, error);
+  if (error == Error::SSLPeerCouldBeClosed_) {
+    assert(!ret);
+    ret = send_(req, res, error);
+  }
+  return ret;
+}
 
+bool ClientImpl::send_(Request &req, Response &res, Error &error) {
   {
     std::lock_guard<std::mutex> guard(socket_mutex_);
 
@@ -4241,7 +4423,7 @@ bool ClientImpl::send(Request &req, Response &res, Error &error) {
       if (is_ssl()) {
         auto &scli = static_cast<SSLClient &>(*this);
         if (!proxy_host_.empty() && proxy_port_ != -1) {
-          bool success = false;
+          auto success = false;
           if (!scli.connect_with_proxy(socket_, res, success, error)) {
             return success;
           }
@@ -4268,13 +4450,11 @@ bool ClientImpl::send(Request &req, Response &res, Error &error) {
     }
   }
 
+  auto ret = false;
   auto close_connection = !keep_alive_;
-  auto ret = process_socket(socket_, [&](Stream &strm) {
-    return handle_request(strm, req, res, close_connection, error);
-  });
 
-  // Briefly lock mutex in order to mark that a request is no longer ongoing
-  {
+  auto se = detail::scope_exit([&]() {
+    // Briefly lock mutex in order to mark that a request is no longer ongoing
     std::lock_guard<std::mutex> guard(socket_mutex_);
     socket_requests_in_flight_ -= 1;
     if (socket_requests_in_flight_ <= 0) {
@@ -4288,7 +4468,11 @@ bool ClientImpl::send(Request &req, Response &res, Error &error) {
       shutdown_socket(socket_);
       close_socket(socket_);
     }
-  }
+  });
+
+  ret = process_socket(socket_, [&](Stream &strm) {
+    return handle_request(strm, req, res, close_connection, error);
+  });
 
   if (!ret) {
     if (error == Error::Success) { error = Error::Unknown; }
@@ -4376,11 +4560,11 @@ bool ClientImpl::redirect(Request &req, Response &res, Error &error) {
     return false;
   }
 
-  auto location = detail::decode_url(res.get_header_value("location"), true);
+  auto location = res.get_header_value("location");
   if (location.empty()) { return false; }
 
   const static std::regex re(
-      R"((?:(https?):)?(?://(?:\[([\d:]+)\]|([^:/?#]+))(?::(\d+))?)?([^?#]*(?:\?[^#]*)?)(?:#.*)?)");
+      R"((?:(https?):)?(?://(?:\[([\d:]+)\]|([^:/?#]+))(?::(\d+))?)?([^?#]*)(\?[^#]*)?(?:#.*)?)");
 
   std::smatch m;
   if (!std::regex_match(location, m, re)) { return false; }
@@ -4392,6 +4576,7 @@ bool ClientImpl::redirect(Request &req, Response &res, Error &error) {
   if (next_host.empty()) { next_host = m[3].str(); }
   auto port_str = m[4].str();
   auto next_path = m[5].str();
+  auto next_query = m[6].str();
 
   auto next_port = port_;
   if (!port_str.empty()) {
@@ -4404,22 +4589,24 @@ bool ClientImpl::redirect(Request &req, Response &res, Error &error) {
   if (next_host.empty()) { next_host = host_; }
   if (next_path.empty()) { next_path = "/"; }
 
+  auto path = detail::decode_url(next_path, true) + next_query;
+
   if (next_scheme == scheme && next_host == host_ && next_port == port_) {
-    return detail::redirect(*this, req, res, next_path, location, error);
+    return detail::redirect(*this, req, res, path, location, error);
   } else {
     if (next_scheme == "https") {
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
       SSLClient cli(next_host.c_str(), next_port);
       cli.copy_settings(*this);
       if (ca_cert_store_) { cli.set_ca_cert_store(ca_cert_store_); }
-      return detail::redirect(cli, req, res, next_path, location, error);
+      return detail::redirect(cli, req, res, path, location, error);
 #else
       return false;
 #endif
     } else {
       ClientImpl cli(next_host.c_str(), next_port);
       cli.copy_settings(*this);
-      return detail::redirect(cli, req, res, next_path, location, error);
+      return detail::redirect(cli, req, res, path, location, error);
     }
   }
 }
@@ -4430,7 +4617,7 @@ bool ClientImpl::write_content_with_provider(Stream &strm,
   auto is_shutting_down = []() { return false; };
 
   if (req.is_chunked_content_provider_) {
-    // TODO: Brotli suport
+    // TODO: Brotli support
     std::unique_ptr<detail::compressor> compressor;
 #ifdef CPPHTTPLIB_ZLIB_SUPPORT
     if (compress_) {
@@ -4447,7 +4634,7 @@ bool ClientImpl::write_content_with_provider(Stream &strm,
     return detail::write_content(strm, req.content_provider_, 0,
                                  req.content_length_, is_shutting_down, error);
   }
-} // namespace httplib
+}
 
 bool ClientImpl::write_request(Stream &strm, Request &req,
                                       bool close_connection, Error &error) {
@@ -4610,8 +4797,6 @@ std::unique_ptr<Response> ClientImpl::send_with_content_provider(
         return ok;
       };
 
-      data_sink.is_writable = [&](void) { return ok && true; };
-
       while (ok && offset < content_length) {
         if (!content_provider(offset, content_length - offset, data_sink)) {
           error = Error::Canceled;
@@ -4681,6 +4866,20 @@ bool ClientImpl::process_request(Stream &strm, Request &req,
                                         Error &error) {
   // Send request
   if (!write_request(strm, req, close_connection, error)) { return false; }
+
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  if (is_ssl()) {
+    auto is_proxy_enabled = !proxy_host_.empty() && proxy_port_ != -1;
+    if (!is_proxy_enabled) {
+      char buf[1];
+      if (SSL_peek(socket_.ssl, buf, 1) == 0 &&
+          SSL_get_error(socket_.ssl, 0) == SSL_ERROR_ZERO_RETURN) {
+        error = Error::SSLPeerCouldBeClosed_;
+        return false;
+      }
+    }
+  }
+#endif
 
   // Receive response and headers
   if (!read_response_line(strm, req, res) ||
@@ -4783,7 +4982,6 @@ ContentProviderWithoutLength ClientImpl::get_multipart_content_provider(
       bool has_data = true;
       cur_sink.write = sink.write;
       cur_sink.done = [&]() { has_data = false; };
-      cur_sink.is_writable = sink.is_writable;
 
       if (!provider_items[cur_item].provider(offset - cur_start, cur_sink))
         return false;
@@ -5309,7 +5507,7 @@ void ClientImpl::stop() {
     return;
   }
 
-  // Otherwise, sitll holding the mutex, we can shut everything down ourselves
+  // Otherwise, still holding the mutex, we can shut everything down ourselves
   shutdown_ssl(socket_, true);
   shutdown_socket(socket_);
   close_socket(socket_);
@@ -5722,7 +5920,7 @@ bool SSLServer::process_and_close_socket(socket_t sock) {
       },
       [](SSL * /*ssl2*/) { return true; });
 
-  bool ret = false;
+  auto ret = false;
   if (ssl) {
     ret = detail::process_server_socket_ssl(
         svr_sock_, ssl, sock, keep_alive_max_count_, keep_alive_timeout_sec_,
@@ -5900,11 +6098,16 @@ bool SSLClient::load_certs() {
         ret = false;
       }
     } else {
+      auto loaded = false;
 #ifdef _WIN32
-      detail::load_system_certs_on_windows(SSL_CTX_get_cert_store(ctx_));
-#else
-      SSL_CTX_set_default_verify_paths(ctx_);
-#endif
+      loaded =
+          detail::load_system_certs_on_windows(SSL_CTX_get_cert_store(ctx_));
+#elif defined(CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN) && defined(__APPLE__)
+#if TARGET_OS_OSX
+      loaded = detail::load_system_certs_on_macos(SSL_CTX_get_cert_store(ctx_));
+#endif // TARGET_OS_OSX
+#endif // _WIN32
+      if (!loaded) { SSL_CTX_set_default_verify_paths(ctx_); }
     }
   });
 
@@ -6049,7 +6252,7 @@ SSLClient::verify_host_with_subject_alt_name(X509 *server_cert) const {
 
   if (alt_names) {
     auto dsn_matched = false;
-    auto ip_mached = false;
+    auto ip_matched = false;
 
     auto count = sk_GENERAL_NAME_num(alt_names);
 
@@ -6065,14 +6268,14 @@ SSLClient::verify_host_with_subject_alt_name(X509 *server_cert) const {
         case GEN_IPADD:
           if (!memcmp(&addr6, name, addr_len) ||
               !memcmp(&addr, name, addr_len)) {
-            ip_mached = true;
+            ip_matched = true;
           }
           break;
         }
       }
     }
 
-    if (dsn_matched || ip_mached) { ret = true; }
+    if (dsn_matched || ip_matched) { ret = true; }
   }
 
   GENERAL_NAMES_free((STACK_OF(GENERAL_NAME) *)alt_names);
