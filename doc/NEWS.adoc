@@ -1,5 +1,45 @@
 = Ccache news
 
+== Ccache 4.8.1
+
+Release date: 2023-05-19
+
+
+=== Bug fixes
+
+- Fixed an issue with the depend mode in combination with `--` on the command
+  line for Clang-based compilers. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved knowledge about MSVC debug flags so that non-debug `/Z*` options are
+  once again supported. +
+  [small]#_[contributed by Stephan Rohmen]_#
+
+- Ccache no longer treats `/Zi` as unsupported for clang-cl. +
+  [small]#_[contributed by Tobias Hieta]_#
+
+- Made the output format of `ccache -k max_size` parsable by ccache itself. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build/CI improvements
+
+- Corrected ccache version in the macOS binary release. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made it possible to build ccache with clang-cl on Windows. +
+  [small]#_[contributed by Tobias Hieta]_#
+
+- Upgraded to doctest 2.4.11, thereby fixing a build issue on Solaris. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Added a remote file storage example with URL-encoded spaces. +
+  [small]#_[contributed by Joel Rosdahl]_
+
+
 == Ccache 4.8
 
 Release date: 2023-03-12
