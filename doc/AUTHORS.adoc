@@ -137,6 +137,7 @@ Ccache is a collective work with contributions from many people, including:
 * Sergei Trofimovich
 * Sergey Semushin
 * Steffen Dettmer
+* Stephan Rohmen
 * Steve Mokris
 * Stuart Henderson
 * Sumit Jamgade
@@ -144,6 +145,7 @@ Ccache is a collective work with contributions from many people, including:
 * Thomas Röfer
 * Timofei Kushnir
 * Tim Potter
+* Tobias Hieta
 * Tomasz Miąsko
 * Tom Hughes
 * Tom Stellard
