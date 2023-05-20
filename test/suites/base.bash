@@ -552,7 +552,7 @@ fi
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz"
 
-    if $COMPILER -c test1.c -gz 2>/dev/null
+    if $COMPILER -c test1.c -gz 2>/dev/null \
        && $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null \
        && [ -s preprocessed.i ] \
        && ! grep -Fq $PWD preprocessed.i; then
