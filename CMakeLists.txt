@@ -66,11 +66,11 @@ if(ENABLE_IPO AND NOT MINGW)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
+include(CIBuildType)
+include(DefaultBuildType)
 include(UseFastestLinker)
 include(StandardSettings)
 include(StandardWarnings)
-include(CIBuildType)
-include(DefaultBuildType)
 
 #
 # Configuration

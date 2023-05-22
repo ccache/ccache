@@ -13,6 +13,10 @@ else()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$" AND NOT MSVC)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(standard_settings INTERFACE _GLIBCXX_ASSERTIONS)
+  endif()
+
   option(ENABLE_COVERAGE "Enable coverage reporting for GCC/Clang" FALSE)
   if(ENABLE_COVERAGE)
     target_compile_options(standard_settings INTERFACE --coverage -O0 -g)
