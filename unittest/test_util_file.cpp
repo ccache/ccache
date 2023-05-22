@@ -147,9 +147,7 @@ TEST_CASE("util::read_file_part")
 
   SUBCASE("util::Bytes")
   {
-    auto lhs = util::read_file_part<util::Bytes>("test", 0, 0);
-    auto rhs = util::to_span("");
-    CHECK(lhs == rhs);
+    CHECK(util::read_file_part<util::Bytes>("test", 0, 0) == util::to_span(""));
     CHECK(util::read_file_part<util::Bytes>("test", 0, 6)
           == util::to_span("banana"));
     CHECK(util::read_file_part<util::Bytes>("test", 0, 1000)
