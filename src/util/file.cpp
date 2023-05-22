@@ -214,6 +214,11 @@ template<typename T>
 nonstd::expected<T, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count)
 {
+  T result;
+  if (count == 0) {
+    return result;
+  }
+
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
@@ -226,7 +231,6 @@ read_file_part(const std::string& path, size_t pos, size_t count)
 
   int64_t ret = 0;
   size_t bytes_read = 0;
-  T result;
   result.resize(count);
 
   while (true) {
