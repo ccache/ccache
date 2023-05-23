@@ -141,9 +141,10 @@ Options for remote file-based storage:
                                at most the size specified by --trim-max-size
                                (note: don't use this option to trim the local
                                cache)
-        --trim-max-size SIZE   specify the maximum size for --trim-dir;
-                               available suffixes: kB, MB, GB, TB (decimal) and
-                               KiB, MiB, GiB, TiB (binary); default suffix: GiB
+        --trim-max-size SIZE   specify the maximum size for --trim-dir (use 0 for
+                               no limit); available suffixes: kB, MB, GB, TB
+                               (decimal) and KiB, MiB, GiB, TiB (binary);
+                               default suffix: GiB
         --trim-method METHOD   specify the method (atime or mtime) for
                                --trim-dir; default: atime
         --trim-recompress LEVEL
@@ -365,13 +366,15 @@ trim_dir(const std::string& dir,
   uint64_t final_size = size_after_recompression;
 
   size_t removed_files = 0;
-  for (const auto& file : files) {
-    if (final_size <= trim_max_size) {
-      break;
-    }
-    if (Util::unlink_tmp(file.path())) {
-      ++removed_files;
-      final_size -= file.size_on_disk();
+  if (trim_max_size > 0) {
+    for (const auto& file : files) {
+      if (final_size <= trim_max_size) {
+        break;
+      }
+      if (Util::unlink_tmp(file.path())) {
+        ++removed_files;
+        final_size -= file.size_on_disk();
+      }
     }
   }
 

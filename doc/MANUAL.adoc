@@ -211,7 +211,7 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
     Specify the maximum size for `--trim-dir`. _SIZE_ should be a number
     followed by an optional suffix: kB, MB, GB, TB (decimal), KiB, MiB, GiB or
-    TiB (binary). The default suffix is GiB.
+    TiB (binary). The default suffix is GiB. Use 0 for no limit.
 
 *--trim-method* _METHOD_::
 
