@@ -2,6 +2,11 @@ if(zstd_FOUND)
   return()
 endif()
 
+if(POLICY CMP0135)
+  # Set timestamps on extracted files to time of extraction.
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 set(zstd_FOUND FALSE)
 
 if(ZSTD_FROM_INTERNET AND NOT ZSTD_FROM_INTERNET STREQUAL "AUTO")

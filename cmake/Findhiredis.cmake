@@ -2,6 +2,11 @@ if(hiredis_FOUND)
   return()
 endif()
 
+if(POLICY CMP0135)
+  # Set timestamps on extracted files to time of extraction.
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 set(hiredis_FOUND FALSE)
 
 if(HIREDIS_FROM_INTERNET AND NOT HIREDIS_FROM_INTERNET STREQUAL "AUTO")
