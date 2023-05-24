@@ -936,6 +936,7 @@ Examples:
 +
 * `+file:/shared/nfs/directory+`
 * `+file:///shared/nfs/one|read-only file:///shared/nfs/two+`
+* `+file:///Z:/example/windows/folder+`
 * `+http://example.com/cache+`
 * `+redis://example.com+`
 +
@@ -1184,6 +1185,7 @@ Examples:
 
 * `+file:/shared/nfs/directory+`
 * `+file:///shared/nfs/directory|umask=002|update-mtime=true+`
+* `+file:///Z:/example/windows/folder+`
 * `+file://example.com/shared/ccache%20folder+`
 
 Optional attributes:

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -71,6 +71,10 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   const auto& host = params.url.host();
 #ifdef _WIN32
   m_dir = util::replace_all(params.url.path(), "/", "\\");
+  if (m_dir.length() >= 3 && m_dir[0] == '\\' && m_dir[2] == ':') {
+    // \X:\foo\bar -> X:\foo\bar according to RFC 8089 appendix E.2.
+    m_dir = m_dir.substr(1);
+  }
   if (!host.empty()) {
     m_dir = FMT("\\\\{}{}", host, m_dir);
   }
