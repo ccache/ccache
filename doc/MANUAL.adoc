@@ -84,13 +84,14 @@ documentation.
 
 *-c*, *--cleanup*::
 
-    Clean up the cache by removing old cached files until the specified file
-    number and cache size limits are not exceeded. This also recalculates the
-    cache file count and size totals. Normally, there is no need to initiate
-    cleanup manually as ccache keeps the cache below the specified limits at
-    runtime and keeps statistics up to date on each compilation. Forcing a
-    cleanup is mostly useful if you have modified the cache contents manually or
-    believe that the cache size statistics may be inaccurate.
+    Clean up the cache by removing not recently used cached files until the
+    specified file number and cache size limits are not exceeded. This also
+    recalculates the cache file count and size totals. Normally, there is no
+    need to initiate cleanup manually as ccache keeps the cache below the
+    specified limits at runtime and keeps statistics up to date on each
+    compilation. Forcing a cleanup is mostly useful if you have modified the
+    cache contents manually or believe that the cache size statistics may be
+    inaccurate.
 
 *-C*, *--clear*::
 
@@ -118,9 +119,9 @@ documentation.
 
 *--evict-older-than* _AGE_::
 
-    Remove files older than _AGE_ from the cache. _AGE_ should be an unsigned
-    integer with a `d` (days) or `s` (seconds) suffix. If combined with
-    `--evict-namespace`, only remove old files within that namespace.
+    Remove files used less recently than _AGE_ from the cache. _AGE_ should be
+    an unsigned integer with a `d` (days) or `s` (seconds) suffix. If combined
+    with `--evict-namespace`, only remove files within that namespace.
 
 *-h*, *--help*::
 
@@ -201,8 +202,8 @@ documentation.
 
 *--trim-dir* _PATH_::
 
-    Remove old files from directory _PATH_ until it is at most the size
-    specified by `--trim-max-size`.
+    Remove not recently used files from directory _PATH_ until it is at most the
+    size specified by `--trim-max-size`.
 +
 WARNING: Don't use this option to trim the local cache. To trim the local cache
 directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
