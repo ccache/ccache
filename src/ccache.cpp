@@ -1029,7 +1029,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
           ctx, Util::normalize_concrete_absolute_path(abs_inc_path));
         std::string line_with_rel_inc =
           util::replace_first(orig_line, abs_inc_path, rel_inc_path);
-        new_stdout_data.insert(new_stdout_data.begin(),
+        new_stdout_data.insert(new_stdout_data.end(),
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
       } else {
