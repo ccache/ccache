@@ -52,6 +52,11 @@ if(do_download)
   set(zstd_dir   ${CMAKE_BINARY_DIR}/zstd-${zstd_version})
   set(zstd_build ${CMAKE_BINARY_DIR}/zstd-build)
 
+  if(XCODE)
+    # See https://github.com/facebook/zstd/pull/3665
+    set(zstd_patch PATCH_COMMAND sed -i .bak -e s/^set_source_files_properties.*PROPERTIES.*LANGUAGE.*C/\#&/ build/cmake/lib/CMakeLists.txt)
+  endif()
+
   include(FetchContent)
   FetchContent_Declare(
     zstd
@@ -59,6 +64,7 @@ if(do_download)
     URL_HASH SHA256=9c4396cc829cfae319a6e2615202e82aad41372073482fce286fac78646d3ee4
     SOURCE_DIR ${zstd_dir}
     BINARY_DIR ${zstd_build}
+    ${zstd_patch}
   )
 
   FetchContent_GetProperties(zstd)
