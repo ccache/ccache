@@ -10,14 +10,14 @@
 #elif defined(__GNUC__)
 #include <immintrin.h>
 #else
-#error "Unimplemented!"
+#undef IS_X86 /* Unimplemented! */
 #endif
 #endif
 
 #define MAYBE_UNUSED(x) (void)((x))
 
 #if defined(IS_X86)
-static uint64_t xgetbv() {
+static uint64_t xgetbv(void) {
 #if defined(_MSC_VER)
   return _xgetbv(0);
 #else
@@ -82,7 +82,7 @@ static /* Allow the variable to be controlled manually for testing */
 static
 #endif
     enum cpu_feature
-    get_cpu_features() {
+    get_cpu_features(void) {
 
   if (g_cpu_features != UNDEFINED) {
     return g_cpu_features;
@@ -101,7 +101,7 @@ static
     if (*edx & (1UL << 26))
       features |= SSE2;
 #endif
-    if (*ecx & (1UL << 0))
+    if (*ecx & (1UL << 9))
       features |= SSSE3;
     if (*ecx & (1UL << 19))
       features |= SSE41;
