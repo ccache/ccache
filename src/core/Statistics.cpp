@@ -253,7 +253,7 @@ const StatisticsField k_statistics_fields[] = {
   // since they are not interesting to show.
 };
 
-static_assert(sizeof(k_statistics_fields) / sizeof(k_statistics_fields[0])
+static_assert(std::size(k_statistics_fields)
               == static_cast<size_t>(Statistic::END)
                    - (/*none*/ 1 + /*subdir files*/ 16 + /*subdir size*/ 16));
 
