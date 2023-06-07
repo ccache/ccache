@@ -77,7 +77,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
         }
         break;
       case AtFileFormat::msvc:
-        if (*pos != '"') {
+        if (*pos != '"' && *pos != '\\') {
           pos--;
         }
         break;

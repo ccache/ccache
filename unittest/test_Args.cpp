@@ -158,10 +158,18 @@ TEST_CASE("Args::from_atfile")
 
   SUBCASE("Do not escape backslash in alternate format")
   {
-    util::write_file("at_file", "\"-DDIRSEP='\\\\'\"");
+    util::write_file("at_file", R"("-DDIRSEP='A\B\C'")");
     args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
     CHECK(args.size() == 1);
-    CHECK(args[0] == "-DDIRSEP='\\\\'");
+    CHECK(args[0] == R"(-DDIRSEP='A\B\C')");
+  }
+
+  SUBCASE("Backslash can escape backslash in alternate format")
+  {
+    util::write_file("at_file", R"(/Fo"N.dir\Release\\")");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 1);
+    CHECK(args[0] == R"(/FoN.dir\Release\)");
   }
 }
 
