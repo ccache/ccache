@@ -72,9 +72,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 === src/third_party/blake3/blake3_*
 
-This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] (git SHA:
-https://github.com/BLAKE3-team/BLAKE3/commit/71a2646180c787e22f8681c5fec7655a0ad51e99[71a2646])
-with the following license:
+This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.4.0 with the
+following license:
 
 ----
 This work is released into the public domain with CC0 1.0. Alternatively, it is
