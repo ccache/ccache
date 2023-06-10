@@ -829,7 +829,7 @@ bool bind_ip_address(socket_t sock, const std::string &host) {
   return ret;
 }
 
-#if !defined _WIN32 && !defined ANDROID && !defined _AIX
+#if !defined _WIN32 && !defined ANDROID && !defined _AIX && !defined __MVS__
 #define USE_IF2IP
 #endif
 
@@ -3297,7 +3297,6 @@ Server &Server::set_logger(Logger logger) {
 Server &
 Server::set_expect_100_continue_handler(Expect100ContinueHandler handler) {
   expect_100_continue_handler_ = std::move(handler);
-
   return *this;
 }
 
@@ -3950,8 +3949,8 @@ void Server::apply_ranges(const Request &req, Response &res,
       res.headers.erase(it);
     }
 
-    res.headers.emplace("Content-Type",
-                        "multipart/byteranges; boundary=" + boundary);
+    res.set_header("Content-Type",
+                   "multipart/byteranges; boundary=" + boundary);
   }
 
   auto type = detail::encoding_type(req, res);
@@ -4641,32 +4640,32 @@ bool ClientImpl::write_request(Stream &strm, Request &req,
   // Prepare additional headers
   if (close_connection) {
     if (!req.has_header("Connection")) {
-      req.headers.emplace("Connection", "close");
+      req.set_header("Connection", "close");
     }
   }
 
   if (!req.has_header("Host")) {
     if (is_ssl()) {
       if (port_ == 443) {
-        req.headers.emplace("Host", host_);
+        req.set_header("Host", host_);
       } else {
-        req.headers.emplace("Host", host_and_port_);
+        req.set_header("Host", host_and_port_);
       }
     } else {
       if (port_ == 80) {
-        req.headers.emplace("Host", host_);
+        req.set_header("Host", host_);
       } else {
-        req.headers.emplace("Host", host_and_port_);
+        req.set_header("Host", host_and_port_);
       }
     }
   }
 
-  if (!req.has_header("Accept")) { req.headers.emplace("Accept", "*/*"); }
+  if (!req.has_header("Accept")) { req.set_header("Accept", "*/*"); }
 
 #ifndef CPPHTTPLIB_NO_DEFAULT_USER_AGENT
   if (!req.has_header("User-Agent")) {
     auto agent = std::string("cpp-httplib/") + CPPHTTPLIB_VERSION;
-    req.headers.emplace("User-Agent", agent);
+    req.set_header("User-Agent", agent);
   }
 #endif
 
@@ -4675,23 +4674,23 @@ bool ClientImpl::write_request(Stream &strm, Request &req,
       if (!req.is_chunked_content_provider_) {
         if (!req.has_header("Content-Length")) {
           auto length = std::to_string(req.content_length_);
-          req.headers.emplace("Content-Length", length);
+          req.set_header("Content-Length", length);
         }
       }
     } else {
       if (req.method == "POST" || req.method == "PUT" ||
           req.method == "PATCH") {
-        req.headers.emplace("Content-Length", "0");
+        req.set_header("Content-Length", "0");
       }
     }
   } else {
     if (!req.has_header("Content-Type")) {
-      req.headers.emplace("Content-Type", "text/plain");
+      req.set_header("Content-Type", "text/plain");
     }
 
     if (!req.has_header("Content-Length")) {
       auto length = std::to_string(req.body.size());
-      req.headers.emplace("Content-Length", length);
+      req.set_header("Content-Length", length);
     }
   }
 
@@ -4759,12 +4758,10 @@ std::unique_ptr<Response> ClientImpl::send_with_content_provider(
     ContentProvider content_provider,
     ContentProviderWithoutLength content_provider_without_length,
     const std::string &content_type, Error &error) {
-  if (!content_type.empty()) {
-    req.headers.emplace("Content-Type", content_type);
-  }
+  if (!content_type.empty()) { req.set_header("Content-Type", content_type); }
 
 #ifdef CPPHTTPLIB_ZLIB_SUPPORT
-  if (compress_) { req.headers.emplace("Content-Encoding", "gzip"); }
+  if (compress_) { req.set_header("Content-Encoding", "gzip"); }
 #endif
 
 #ifdef CPPHTTPLIB_ZLIB_SUPPORT
@@ -4825,10 +4822,9 @@ std::unique_ptr<Response> ClientImpl::send_with_content_provider(
       req.content_provider_ = detail::ContentProviderAdapter(
           std::move(content_provider_without_length));
       req.is_chunked_content_provider_ = true;
-      req.headers.emplace("Transfer-Encoding", "chunked");
+      req.set_header("Transfer-Encoding", "chunked");
     } else {
       req.body.assign(body, content_length);
-      ;
     }
   }
 
@@ -5448,9 +5444,7 @@ Result ClientImpl::Delete(const std::string &path,
   req.headers = headers;
   req.path = path;
 
-  if (!content_type.empty()) {
-    req.headers.emplace("Content-Type", content_type);
-  }
+  if (!content_type.empty()) { req.set_header("Content-Type", content_type); }
   req.body.assign(body, content_length);
 
   return send_(std::move(req));
@@ -5600,9 +5594,7 @@ void ClientImpl::set_proxy_digest_auth(const std::string &username,
   proxy_digest_auth_username_ = username;
   proxy_digest_auth_password_ = password;
 }
-#endif
 
-#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 void ClientImpl::set_ca_cert_path(const std::string &ca_cert_file_path,
                                          const std::string &ca_cert_dir_path) {
   ca_cert_file_path_ = ca_cert_file_path;
@@ -5614,9 +5606,34 @@ void ClientImpl::set_ca_cert_store(X509_STORE *ca_cert_store) {
     ca_cert_store_ = ca_cert_store;
   }
 }
-#endif
 
-#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+X509_STORE *ClientImpl::create_ca_cert_store(const char *ca_cert,
+                                                    std::size_t size) {
+  auto mem = BIO_new_mem_buf(ca_cert, static_cast<int>(size));
+  if (!mem) return nullptr;
+
+  auto inf = PEM_X509_INFO_read_bio(mem, nullptr, nullptr, nullptr);
+  if (!inf) {
+    BIO_free_all(mem);
+    return nullptr;
+  }
+
+  auto cts = X509_STORE_new();
+  if (cts) {
+    for (auto first = 0, last = sk_X509_INFO_num(inf); first < last; ++first) {
+      auto itmp = sk_X509_INFO_value(inf, first);
+      if (!itmp) { continue; }
+
+      if (itmp->x509) { X509_STORE_add_cert(cts, itmp->x509); }
+      if (itmp->crl) { X509_STORE_add_crl(cts, itmp->crl); }
+    }
+  }
+
+  sk_X509_INFO_pop_free(inf, X509_INFO_free);
+  BIO_free_all(mem);
+  return cts;
+}
+
 void ClientImpl::enable_server_certificate_verification(bool enabled) {
   server_certificate_verification_ = enabled;
 }
@@ -6012,6 +6029,11 @@ void SSLClient::set_ca_cert_store(X509_STORE *ca_cert_store) {
       X509_STORE_free(ca_cert_store);
     }
   }
+}
+
+void SSLClient::load_ca_cert_store(const char *ca_cert,
+                                          std::size_t size) {
+  set_ca_cert_store(ClientImpl::create_ca_cert_store(ca_cert, size));
 }
 
 long SSLClient::get_openssl_verify_result() const {
@@ -6779,7 +6801,9 @@ void Client::enable_server_certificate_verification(bool enabled) {
 }
 #endif
 
-void Client::set_logger(Logger logger) { cli_->set_logger(logger); }
+void Client::set_logger(Logger logger) {
+  cli_->set_logger(std::move(logger));
+}
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 void Client::set_ca_cert_path(const std::string &ca_cert_file_path,
@@ -6793,6 +6817,10 @@ void Client::set_ca_cert_store(X509_STORE *ca_cert_store) {
   } else {
     cli_->set_ca_cert_store(ca_cert_store);
   }
+}
+
+void Client::load_ca_cert_store(const char *ca_cert, std::size_t size) {
+  set_ca_cert_store(cli_->create_ca_cert_store(ca_cert, size));
 }
 
 long Client::get_openssl_verify_result() const {

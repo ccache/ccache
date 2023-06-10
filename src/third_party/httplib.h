@@ -8,7 +8,7 @@
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#define CPPHTTPLIB_VERSION "0.12.3"
+#define CPPHTTPLIB_VERSION "0.12.6"
 
 /*
  * Configuration
@@ -172,8 +172,14 @@ using socket_t = SOCKET;
 #else // not _WIN32
 
 #include <arpa/inet.h>
-#ifndef _AIX
+#if !defined(_AIX) && !defined(__MVS__)
 #include <ifaddrs.h>
+#endif
+#ifdef __MVS__
+#include <strings.h>
+#ifndef NI_MAXHOST
+#define NI_MAXHOST 1025
+#endif
 #endif
 #include <net/if.h>
 #include <netdb.h>
@@ -223,6 +229,7 @@ using socket_t = int;
 #include <string>
 #include <sys/stat.h>
 #include <thread>
+#include <utility>
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 #ifdef _WIN32
@@ -1117,6 +1124,7 @@ public:
   void set_ca_cert_path(const std::string &ca_cert_file_path,
                         const std::string &ca_cert_dir_path = std::string());
   void set_ca_cert_store(X509_STORE *ca_cert_store);
+  X509_STORE *create_ca_cert_store(const char *ca_cert, std::size_t size);
 #endif
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
@@ -1497,6 +1505,7 @@ public:
                         const std::string &ca_cert_dir_path = std::string());
 
   void set_ca_cert_store(X509_STORE *ca_cert_store);
+  void load_ca_cert_store(const char *ca_cert, std::size_t size);
 
   long get_openssl_verify_result() const;
 
@@ -1556,6 +1565,7 @@ public:
   bool is_valid() const override;
 
   void set_ca_cert_store(X509_STORE *ca_cert_store);
+  void load_ca_cert_store(const char *ca_cert, std::size_t size);
 
   long get_openssl_verify_result() const;
 
