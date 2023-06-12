@@ -1,5 +1,55 @@
 = Ccache news
 
+== Ccache 4.8.2
+
+Release date: 2023-06-12
+
+
+=== Bug fixes
+
+- Fixed parsing of Windows drive letter in file URLs for remote storage. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a bug affecting depend mode with MSVC. +
+  [small]#_[contributed by Huang Qin Jin]_#
+
+- Ccache no longer passes `-v` to the preprocessor. This improves preprocessor
+  mode hit rate when `-v` is on the compiler command line. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made `--trim-max-size` accept 0 for no limit. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Made various fixes for Windows 64-bit MSBuild builds. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+- Silenced CMake warning for extracted timestamps. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+- Worked around problem with building ZStandard with Xcode. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Fixed undefined behavior (only triggered by unit tests) in
+  `util::read_file_part` for zero count, making the build fail with
+  `+_GLIBCXX_ASSERTIONS+`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Clarified `--evict-older-than` semantics. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Fixed typo in "`Directory is not hashed if using -gz`" test. +
+  [small]#_[contributed by Sam James]_#
+
+
 == Ccache 4.8.1
 
 Release date: 2023-05-19
