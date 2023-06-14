@@ -1,9 +1,11 @@
 [default.extend-words]
+caf = "caf"
 fo = "fo"
 hda = "hda"
 ot = "ot"
 seve = "seve"
 thi = "thi"
+wronly = "wronly"
 
 [files]
 extend-exclude = ["misc/codespell-allowlist.txt", "src/third_party"]
