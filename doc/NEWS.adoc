@@ -87,7 +87,7 @@ Release date: 2023-05-19
 === Documentation improvements
 
 - Added a remote file storage example with URL-encoded spaces. +
-  [small]#_[contributed by Joel Rosdahl]_
+  [small]#_[contributed by Joel Rosdahl]_#
 
 
 == Ccache 4.8
