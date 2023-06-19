@@ -52,9 +52,10 @@ struct CompOpt
 };
 
 const CompOpt compopts[] = {
-  {"--Werror", TAKES_ARG},                             // nvcc
+  {"--Werror", TAKES_ARG | AFFECTS_COMP},              // nvcc
   {"--analyze", TOO_HARD},                             // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
+  {"--compiler-options", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--config", TAKES_ARG},                             // Clang
   {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
   {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG},  // nvcc
@@ -92,6 +93,7 @@ const CompOpt compopts[] = {
   {"-Wno-error", AFFECTS_COMP},
   {"-Xassembler", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xclang", TAKES_ARG},
+  {"-Xcompiler", AFFECTS_CPP | TAKES_ARG}, // nvcc
   {"-Xlinker", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xpreprocessor", AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
   {"-Yc", TAKES_ARG | TOO_HARD},                                    // msvc
