@@ -623,6 +623,17 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (config.is_compiler_group_msvc() && util::starts_with(arg, "-Fd")) {
+    state.compiler_only_args_no_hash.push_back(args[i]);
+    return Statistic::none;
+  }
+
+  if (config.is_compiler_group_msvc()
+      && (util::starts_with(arg, "-MP") || arg == "-FS")) {
+    state.compiler_only_args_no_hash.push_back(args[i]);
+    return Statistic::none;
+  }
+
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
   if ((arg == "-MD" || arg == "-MMD") && !config.is_compiler_group_msvc()) {
