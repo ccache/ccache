@@ -1559,20 +1559,6 @@ hash_common_info(const Context& ctx,
   return {};
 }
 
-static bool
-option_should_be_ignored(const std::string& arg,
-                         const std::vector<std::string>& patterns)
-{
-  return std::any_of(
-    patterns.cbegin(), patterns.cend(), [&arg](const auto& pattern) {
-      const auto& prefix =
-        std::string_view(pattern).substr(0, pattern.length() - 1);
-      return (
-        pattern == arg
-        || (util::ends_with(pattern, "*") && util::starts_with(arg, prefix)));
-    });
-}
-
 static std::tuple<std::optional<std::string_view>,
                   std::optional<std::string_view>>
 get_option_and_value(std::string_view option, const Args& args, size_t& i)

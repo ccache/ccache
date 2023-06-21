@@ -296,7 +296,13 @@ process_option_arg(const Context& ctx,
                    ArgumentProcessingState& state)
 {
   size_t& i = args_index;
-  // The user knows best: just swallow the next arg.
+
+  if (option_should_be_ignored(args[i], ctx.ignore_options())) {
+    LOG("Not processing ignored option: {}", args[i]);
+    state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
   if (args[i] == "--ccache-skip") {
     i++;
     if (i == args.size()) {
@@ -1571,4 +1577,18 @@ process_args(Context& ctx)
     compiler_args,
     state.hash_actual_cwd,
   };
+}
+
+bool
+option_should_be_ignored(const std::string& arg,
+                         const std::vector<std::string>& patterns)
+{
+  return std::any_of(
+    patterns.cbegin(), patterns.cend(), [&arg](const auto& pattern) {
+      const auto& prefix =
+        std::string_view(pattern).substr(0, pattern.length() - 1);
+      return (
+        pattern == arg
+        || (util::ends_with(pattern, "*") && util::starts_with(arg, prefix)));
+    });
 }

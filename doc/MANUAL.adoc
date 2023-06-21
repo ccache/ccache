@@ -306,6 +306,8 @@ Another case where `--ccache-skip` can be useful is if ccache interprets an
 option specially but shouldn't, since the option has another meaning for your
 compiler than what ccache thinks.
 
+See also <<config_ignore_options,*ignore_options*>>.
+
 
 == Configuration
 
@@ -780,12 +782,13 @@ might be incorrect.
 *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
 
     This option is a space-delimited list of compiler options that ccache will
-    exclude from the hash. Excluding a compiler option from the hash can be
-    useful when you know it doesn't affect the result (but ccache doesn't know
-    that), or when it does and you don't care. If a compiler option in the list
-    is suffixed with an asterisk (`*`) it will be matched as a prefix. For
-    example, `+-fmessage-length=*+` will match both `-fmessage-length=20` and
-    `-fmessage-length=70`.
+    ignore. Entries in the list can optionally end with an asterisk (`*`) to
+    matching any option suffix. For example, `+-fmessage-length=*+` will match
+    both `-fmessage-length=20` and `-fmessage-length=70`. A matching compiler
+    option will neither be interpreted specially nor be part of the input hash.
+    Ignoring a compiler option from the hash can be useful when you know it
+    doesn't affect the result (and ccache doesn't know that), or when it does
+    and you don't care. See also _<<Extra options>>_.
 
 [#config_inode_cache]
 *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see _<<Boolean values>>_ above)::
