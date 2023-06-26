@@ -139,15 +139,7 @@ TEST_CASE("Args::from_atfile")
     CHECK(args[6] == "seve\nth");
   }
 
-  SUBCASE("Only escape double quote in alternate format")
-  {
-    util::write_file("at_file", "\"\\\"\\a\\ \\b\\\"\"\\");
-    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
-    CHECK(args.size() == 1);
-    CHECK(args[0] == "\"\\a\\ \\b\"\\");
-  }
-
-  SUBCASE("Ignore single quote in alternate format")
+  SUBCASE("Ignore single quote in MSVC format")
   {
     util::write_file("at_file", "'a b'");
     args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
@@ -156,7 +148,7 @@ TEST_CASE("Args::from_atfile")
     CHECK(args[1] == "b'");
   }
 
-  SUBCASE("Do not escape backslash in alternate format")
+  SUBCASE("Backslash as directory separator in MSVC format")
   {
     util::write_file("at_file", R"("-DDIRSEP='A\B\C'")");
     args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
@@ -164,12 +156,101 @@ TEST_CASE("Args::from_atfile")
     CHECK(args[0] == R"(-DDIRSEP='A\B\C')");
   }
 
-  SUBCASE("Backslash can escape backslash in alternate format")
+  SUBCASE("Backslash before quote in MSVC format")
   {
     util::write_file("at_file", R"(/Fo"N.dir\Release\\")");
     args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
     CHECK(args.size() == 1);
     CHECK(args[0] == R"(/FoN.dir\Release\)");
+  }
+
+  SUBCASE("Arguments on multiple lines in MSVC format")
+  {
+    util::write_file("at_file", "a\nb");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 2);
+    CHECK(args[0] == "a");
+    CHECK(args[1] == "b");
+  }
+
+  SUBCASE("Tricky quoting in MSVC format (#1247)")
+  {
+    util::write_file(
+      "at_file",
+      R"(\ \\ '\\' "\\" '"\\"' "'\\'" '''\\''' ''"\\"'' '"'\\'"' '""\\""' "''\\''" "'"\\"'" ""'\\'"" """\\""" )"
+      R"(\'\' '\'\'' "\'\'" ''\'\''' '"\'\'"' "'\'\''" ""\'\'"" '''\'\'''' ''"\'\'"'' '"'\'\''"' '""\'\'""' "''\'\'''" "'"\'\'"'" ""'\'\''"" """\'\'""" )"
+      R"(\"\" '\"\"' "\"\"" ''\"\"'' '"\"\""' "'\"\"'" ""\"\""" '''\"\"''' ''"\"\""'' '"'\"\"'"' '""\"\"""' "''\"\"''" "'"\"\""'" ""'\"\"'"" """\"\"""")");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 44);
+    CHECK(args[0] == R"(\)");
+    CHECK(args[1] == R"(\\)");
+    CHECK(args[2] == R"('\\')");
+    CHECK(args[3] == R"(\)");
+    CHECK(args[4] == R"('\')");
+    CHECK(args[5] == R"('\\')");
+    CHECK(args[6] == R"('''\\''')");
+    CHECK(args[7] == R"(''\'')");
+    CHECK(args[8] == R"(''\\'')");
+    CHECK(args[9] == R"('\')");
+    CHECK(args[10] == R"(''\\'')");
+    CHECK(args[11] == R"('\')");
+    CHECK(args[12] == R"('\\')");
+    CHECK(args[13] == R"("\")");
+    CHECK(args[14] == R"(\'\')");
+    CHECK(args[15] == R"('\'\'')");
+    CHECK(args[16] == R"(\'\')");
+    CHECK(args[17] == R"(''\'\''')");
+    CHECK(args[18] == R"('\'\'')");
+    CHECK(args[19] == R"('\'\'')");
+    CHECK(args[20] == R"(\'\')");
+    CHECK(args[21] == R"('''\'\'''')");
+    CHECK(args[22] == R"(''\'\''')");
+    CHECK(args[23] == R"(''\'\''')");
+    CHECK(args[24] == R"('\'\'')");
+    CHECK(args[25] == R"(''\'\''')");
+    CHECK(args[26] == R"('\'\'')");
+    CHECK(args[27] == R"('\'\'')");
+    CHECK(args[28] == R"("\'\'")");
+    CHECK(args[29] == R"("")");
+    CHECK(args[30] == R"('""')");
+    CHECK(args[31] == R"("")");
+    CHECK(args[32] == R"(''""'')");
+    CHECK(args[33] == R"('""')");
+    CHECK(args[34] == R"('""')");
+    CHECK(args[35] == R"("")");
+    CHECK(args[36] == R"('''""''')");
+    CHECK(args[37] == R"(''""'')");
+    CHECK(args[38] == R"(''""'')");
+    CHECK(args[39] == R"('""')");
+    CHECK(args[40] == R"(''""'')");
+    CHECK(args[41] == R"('""')");
+    CHECK(args[42] == R"('""')");
+    CHECK(args[43] == R"("""")");
+  }
+
+  SUBCASE("Quoting from Microsoft documentation in MSVC format")
+  {
+    // See
+    // https://learn.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
+    util::write_file("at_file",
+                     R"("abc" d e )"
+                     R"(a\\\b d"e f"g h )"
+                     R"(a\\\"b c d )"
+                     R"(a\\\\"b c" d e)");
+    args = *Args::from_atfile("at_file", Args::AtFileFormat::msvc);
+    CHECK(args.size() == 12);
+    CHECK(args[0] == R"(abc)");
+    CHECK(args[1] == R"(d)");
+    CHECK(args[2] == R"(e)");
+    CHECK(args[3] == R"(a\\\b)");
+    CHECK(args[4] == R"(de fg)");
+    CHECK(args[5] == R"(h)");
+    CHECK(args[6] == R"(a\"b)");
+    CHECK(args[7] == R"(c)");
+    CHECK(args[8] == R"(d)");
+    CHECK(args[9] == R"(a\\b c)");
+    CHECK(args[10] == R"(d)");
+    CHECK(args[11] == R"(e)");
   }
 }
 
