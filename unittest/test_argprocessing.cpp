@@ -569,6 +569,42 @@ TEST_CASE("cuda_option_file")
   CHECK(result.compiler_args.to_string() == "nvcc -g -Wall -DX -c");
 }
 
+TEST_CASE("nvcc_warning_flags_short")
+{
+  // With -Werror. This should conflict with host's -Werror flag.
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.orig_args =
+    Args::from_string("nvcc -Werror all-warnings -Xcompiler -Werror -c foo.cu");
+  util::write_file("foo.cu", "");
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "nvcc -Xcompiler -Werror");
+  CHECK(result.extra_args_to_hash.to_string() == "-Werror all-warnings");
+  CHECK(result.compiler_args.to_string()
+        == "nvcc -Werror all-warnings -Xcompiler -Werror -c");
+}
+
+TEST_CASE("nvcc_warning_flags_long")
+{
+  // With --Werror. This shouldn't conflict with host's -Werror flag.
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.orig_args = Args::from_string(
+    "nvcc --Werror all-warnings -Xcompiler -Werror -c foo.cu");
+  util::write_file("foo.cu", "");
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "nvcc -Xcompiler -Werror");
+  CHECK(result.extra_args_to_hash.to_string() == "--Werror all-warnings");
+  CHECK(result.compiler_args.to_string()
+        == "nvcc --Werror all-warnings -Xcompiler -Werror -c");
+}
+
 TEST_CASE("-Xclang")
 {
   TestContext test_context;
