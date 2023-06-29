@@ -60,7 +60,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
   auto pos = argtext->c_str();
   std::string argbuf;
   argbuf.resize(argtext->length() + 1);
-  auto argpos = argbuf.begin();
+  auto argpos = argbuf.data();
 
   // Used to track quoting state; if \0 we are not inside quotes. Otherwise
   // stores the quoting character that started it for matching the end quote.
@@ -69,17 +69,40 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
   while (true) {
     switch (*pos) {
     case '\\':
-      pos++;
       switch (format) {
       case AtFileFormat::gcc:
+        pos++;
         if (*pos == '\0') {
           continue;
         }
         break;
       case AtFileFormat::msvc:
-        if (*pos != '"') {
-          pos--;
+        size_t count = 0;
+        while (*pos == '\\') {
+          count++;
+          pos++;
         }
+        if (*pos == '"') {
+          if (count == 1) {
+            // simple escape \"
+            break;
+          }
+          if (count % 2 != 0) {
+            // If an odd number of backslashes is followed by a double quotation
+            // mark, one backslash is placed in the argv array for every pair of
+            // backslashes, and the double quotation mark is "escaped" by the
+            // remaining backslash
+            pos--;
+          }
+          std::memset(argpos, '\\', count / 2);
+          argpos += count / 2;
+        } else {
+          // Backslashes are interpreted literally, unless they immediately
+          // precede a double quotation mark.
+          std::memset(argpos, '\\', count);
+          argpos += count;
+        }
+        continue;
         break;
       }
       break;
@@ -95,6 +118,13 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
         if (quoting == *pos) {
           quoting = '\0';
           pos++;
+          if (format == AtFileFormat::msvc && *pos == '"') {
+            // Any double-quote directly following a closing quote is treated as
+            // (or as part of) plain unwrapped text that is adjacent to the
+            // double-quoted group
+            // https://stackoverflow.com/questions/7760545/escape-double-quotes-in-parameter
+            break;
+          }
           continue;
         } else {
           break;
@@ -120,7 +150,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
       if (argbuf[0] != '\0') {
         args.push_back(argbuf.substr(0, argbuf.find('\0')));
       }
-      argpos = argbuf.begin();
+      argpos = argbuf.data();
       if (*pos == '\0') {
         return args;
       } else {
