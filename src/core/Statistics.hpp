@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -34,7 +34,7 @@ namespace core {
 class Statistics
 {
 public:
-  Statistics(const StatisticsCounters& counters);
+  explicit Statistics(const StatisticsCounters& counters);
 
   // Return machine-readable strings representing the statistics counters.
   std::vector<std::string> get_statistics_ids() const;

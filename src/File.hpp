@@ -27,7 +27,7 @@ class File : public NonCopyable
 {
 public:
   File() = default;
-  File(FILE* file);
+  explicit File(FILE* file);
   File(const std::string& path, const char* mode);
   File(File&& other) noexcept;
   ~File();
