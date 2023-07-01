@@ -109,6 +109,7 @@ TEST_CASE("Config::update_from_file")
     "compression=false\n"
     "compression_level= 2\n"
     "cpp_extension = .foo\n"
+    "debug_dir = $USER$/${USER}/.ccache_debug\n"
     "depend_mode = true\n"
     "direct_mode = false\n"
     "disable = true\n"
@@ -150,6 +151,7 @@ TEST_CASE("Config::update_from_file")
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");
+  CHECK(config.debug_dir() == FMT("{0}$/{0}/.ccache_debug", user));
   CHECK(config.depend_mode());
   CHECK_FALSE(config.direct_mode());
   CHECK(config.disable());
