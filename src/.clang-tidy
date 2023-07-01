@@ -12,7 +12,7 @@ Checks: '
   -*,
   bugprone-*,
   -bugprone-branch-clone,
-  -bugprone-easily-swappable-parameters,-warnings-as-errors,
+  -bugprone-easily-swappable-parameters,
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-narrowing-conversions,
   -bugprone-signed-char-misuse,
