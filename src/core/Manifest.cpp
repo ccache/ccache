@@ -352,8 +352,11 @@ Manifest::result_matches(
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {
-      auto file_stat = Stat::stat(path, Stat::OnError::log);
+      const auto file_stat = Stat::stat(path);
       if (!file_stat) {
+        LOG("Info: {} is mentioned in a manifest entry but can't be read ({})",
+            path,
+            strerror(file_stat.error_number()));
         return false;
       }
       FileStats st;
