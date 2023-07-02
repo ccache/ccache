@@ -218,7 +218,7 @@ private:
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
 
   void set_item(const std::string& key,
-                const std::string& value,
+                const std::string& unexpanded_value,
                 const std::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);

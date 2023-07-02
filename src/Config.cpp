@@ -923,7 +923,7 @@ Config::visit_items(const ItemVisitor& item_visitor) const
 
 void
 Config::set_item(const std::string& key,
-                 const std::string& value,
+                 const std::string& unexpanded_value,
                  const std::optional<std::string>& env_var_key,
                  bool negate,
                  const std::string& origin)
@@ -934,13 +934,15 @@ Config::set_item(const std::string& key,
     return;
   }
 
+  std::string value = Util::expand_environment_variables(unexpanded_value);
+
   switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
     m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::base_dir:
-    m_base_dir = Util::expand_environment_variables(value);
+    m_base_dir = value;
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
       m_base_dir = Util::normalize_abstract_absolute_path(m_base_dir);
@@ -948,7 +950,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir:
-    set_cache_dir(Util::expand_environment_variables(value));
+    set_cache_dir(value);
     break;
 
   case ConfigItem::compiler:
@@ -981,7 +983,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::debug_dir:
-    m_debug_dir = Util::expand_environment_variables(value);
+    m_debug_dir = value;
     break;
 
   case ConfigItem::depend_mode:
@@ -997,7 +999,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::extra_files_to_hash:
-    m_extra_files_to_hash = Util::expand_environment_variables(value);
+    m_extra_files_to_hash = value;
     break;
 
   case ConfigItem::file_clone:
@@ -1013,11 +1015,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::ignore_headers_in_manifest:
-    m_ignore_headers_in_manifest = Util::expand_environment_variables(value);
+    m_ignore_headers_in_manifest = value;
     break;
 
   case ConfigItem::ignore_options:
-    m_ignore_options = Util::expand_environment_variables(value);
+    m_ignore_options = value;
     break;
 
   case ConfigItem::inode_cache:
@@ -1029,7 +1031,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::log_file:
-    m_log_file = Util::expand_environment_variables(value);
+    m_log_file = value;
     break;
 
   case ConfigItem::max_files:
@@ -1046,15 +1048,15 @@ Config::set_item(const std::string& key,
   }
 
   case ConfigItem::msvc_dep_prefix:
-    m_msvc_dep_prefix = Util::expand_environment_variables(value);
+    m_msvc_dep_prefix = value;
     break;
 
   case ConfigItem::namespace_:
-    m_namespace = Util::expand_environment_variables(value);
+    m_namespace = value;
     break;
 
   case ConfigItem::path:
-    m_path = Util::expand_environment_variables(value);
+    m_path = value;
     break;
 
   case ConfigItem::pch_external_checksum:
@@ -1062,11 +1064,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::prefix_command:
-    m_prefix_command = Util::expand_environment_variables(value);
+    m_prefix_command = value;
     break;
 
   case ConfigItem::prefix_command_cpp:
-    m_prefix_command_cpp = Util::expand_environment_variables(value);
+    m_prefix_command_cpp = value;
     break;
 
   case ConfigItem::read_only:
@@ -1086,7 +1088,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::remote_storage:
-    m_remote_storage = Util::expand_environment_variables(value);
+    m_remote_storage = value;
     break;
 
   case ConfigItem::reshare:
@@ -1106,11 +1108,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::stats_log:
-    m_stats_log = Util::expand_environment_variables(value);
+    m_stats_log = value;
     break;
 
   case ConfigItem::temporary_dir:
-    m_temporary_dir = Util::expand_environment_variables(value);
+    m_temporary_dir = value;
     m_temporary_dir_configured_explicitly = true;
     break;
 
