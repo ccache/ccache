@@ -981,7 +981,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::debug_dir:
-    m_debug_dir = value;
+    m_debug_dir = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::depend_mode:
