@@ -439,9 +439,17 @@ expand_environment_variables(const std::string& str)
   std::string result;
   const char* left = str.c_str();
   const char* right = left;
+
   while (*right) {
     if (*right == '$') {
       result.append(left, right - left);
+
+      if (*(right + 1) == '$') {
+        result += '$';
+        right += 2;
+        left = right;
+        continue;
+      }
 
       left = right + 1;
       bool curly = *left == '{';
@@ -474,6 +482,7 @@ expand_environment_variables(const std::string& str)
     }
     ++right;
   }
+
   result += left;
   return result;
 }

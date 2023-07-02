@@ -187,7 +187,9 @@ TEST_CASE("Util::expand_environment_variables")
 
   CHECK(Util::expand_environment_variables("") == "");
   CHECK(Util::expand_environment_variables("$FOO") == "bar");
-  CHECK(Util::expand_environment_variables("$") == "$");
+  CHECK(Util::expand_environment_variables("$$FOO") == "$FOO");
+  CHECK(Util::expand_environment_variables("$$$FOO") == "$bar");
+  CHECK(Util::expand_environment_variables("$ $$ $") == "$ $ $");
   CHECK(Util::expand_environment_variables("$FOO $FOO:$FOO") == "bar bar:bar");
   CHECK(Util::expand_environment_variables("x$FOO") == "xbar");
   CHECK(Util::expand_environment_variables("${FOO}x") == "barx");

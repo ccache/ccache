@@ -371,6 +371,15 @@ See also the <<config_cache_dir,*cache_dir*>> configuration option for how the
 cache directory location is determined.
 
 
+=== Configuration value syntax
+
+All configuration values support expansion of environment variables. The syntax
+is similar to POSIX shell syntax: `$VAR` or `${VAR}`. Both variants will expand
+to the value of the environment variable `VAR`.
+
+Two consecutive dollar signs (`$$`) will expand to a single dollar sign (`$`).
+
+
 === Configuration file syntax
 
 Configuration files are in a simple "`key = value`" format, one option per
@@ -381,7 +390,6 @@ is whitespace surrounding keys and values. Example:
 # Set maximum cache size to 10 GB:
 max_size = 10G
 -------------------------------------------------------------------------------
-
 
 === Boolean values
 
