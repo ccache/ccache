@@ -105,26 +105,27 @@ win32execute(const char* path,
              int fd_stderr,
              const std::string& temp_dir)
 {
-  BOOL isProcessInJob;
-  DWORD dwCreationFlags = 0;
+  BOOL is_process_in_job = false;
+  DWORD dw_creation_flags = 0;
+
   {
-    BOOL jobSuccess =
-      IsProcessInJob(GetCurrentProcess(), NULL, &isProcessInJob);
-    if (!jobSuccess) {
+    BOOL job_success =
+      IsProcessInJob(GetCurrentProcess(), nullptr, &is_process_in_job);
+    if (!job_success) {
       DWORD error = GetLastError();
       LOG("failed to IsProcessInJob: {} ({})",
           Win32Util::error_message(error),
           error);
       return 0;
     }
-    if (isProcessInJob) {
+    if (is_process_in_job) {
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = {};
       BOOL querySuccess =
-        QueryInformationJobObject(NULL,
+        QueryInformationJobObject(nullptr,
                                   JobObjectExtendedLimitInformation,
                                   &jobInfo,
                                   sizeof(jobInfo),
-                                  NULL);
+                                  nullptr);
       if (!querySuccess) {
         DWORD error = GetLastError();
         LOG("failed to QueryInformationJobObject: {} ({})",
@@ -133,22 +134,22 @@ win32execute(const char* path,
         return 0;
       }
 
-      bool isKillActive = (jobInfo.BasicLimitInformation.LimitFlags
-                           & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE);
-      bool allowBeakAway = (jobInfo.BasicLimitInformation.LimitFlags
-                            & JOB_OBJECT_LIMIT_BREAKAWAY_OK);
-      if (!isKillActive && allowBeakAway) {
-        isProcessInJob = false;
-        dwCreationFlags = CREATE_BREAKAWAY_FROM_JOB | CREATE_SUSPENDED;
+      const auto& limit_flags = jobInfo.BasicLimitInformation.LimitFlags;
+      bool is_kill_active = limit_flags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+      bool allow_break_away = limit_flags & JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+      if (!is_kill_active && allow_break_away) {
+        is_process_in_job = false;
+        dw_creation_flags = CREATE_BREAKAWAY_FROM_JOB | CREATE_SUSPENDED;
       }
     } else {
-      dwCreationFlags = CREATE_SUSPENDED;
+      dw_creation_flags = CREATE_SUSPENDED;
     }
   }
-  HANDLE hJob = NULL;
-  if (!isProcessInJob) {
-    hJob = CreateJobObject(NULL, NULL);
-    if (hJob == NULL) {
+
+  HANDLE job = nullptr;
+  if (!is_process_in_job) {
+    job = CreateJobObject(nullptr, nullptr);
+    if (job == nullptr) {
       DWORD error = GetLastError();
       LOG("failed to CreateJobObject: {} ({})",
           Win32Util::error_message(error),
@@ -158,13 +159,13 @@ win32execute(const char* path,
 
     {
       // Set the job object to terminate all child processes when the parent
-      // process is killed
+      // process is killed.
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = {};
       jobInfo.BasicLimitInformation.LimitFlags =
         JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-      BOOL jobSuccess = SetInformationJobObject(
-        hJob, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo));
-      if (!jobSuccess) {
+      BOOL job_success = SetInformationJobObject(
+        job, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo));
+      if (!job_success) {
         DWORD error = GetLastError();
         LOG("failed to JobObjectExtendedLimitInformation: {} ({})",
             Win32Util::error_message(error),
@@ -230,7 +231,7 @@ win32execute(const char* path,
                            nullptr,
                            nullptr,
                            1,
-                           dwCreationFlags,
+                           dw_creation_flags,
                            nullptr,
                            nullptr,
                            &si,
@@ -247,9 +248,9 @@ win32execute(const char* path,
         error);
     return -1;
   }
-  if (hJob) {
-    BOOL assignSuccess = AssignProcessToJobObject(hJob, pi.hProcess);
-    if (!assignSuccess) {
+  if (job) {
+    BOOL assign_success = AssignProcessToJobObject(job, pi.hProcess);
+    if (!assign_success) {
       TerminateProcess(pi.hProcess, 1);
 
       DWORD error = GetLastError();
@@ -267,7 +268,7 @@ win32execute(const char* path,
   GetExitCodeProcess(pi.hProcess, &exitcode);
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
-  CloseHandle(hJob);
+  CloseHandle(job);
   if (!doreturn) {
     exit(exitcode);
   }
