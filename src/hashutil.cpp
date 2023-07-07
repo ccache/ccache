@@ -186,9 +186,10 @@ do_hash_file(const Context& ctx,
     check_temporal_macros ? InodeCache::ContentType::checked_for_temporal_macros
                           : InodeCache::ContentType::raw;
   if (ctx.config.inode_cache()) {
-    const auto result = ctx.inode_cache.get(path, content_type, digest);
+    const auto result = ctx.inode_cache.get(path, content_type);
     if (result) {
-      return *result;
+      digest = result->second;
+      return result->first;
     }
   }
 #else

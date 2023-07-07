@@ -466,10 +466,8 @@ InodeCache::available(int fd)
   return fd_is_on_known_to_work_file_system(fd);
 }
 
-std::optional<HashSourceCodeResult>
-InodeCache::get(const std::string& path,
-                ContentType type,
-                Hash::Digest& file_digest)
+std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
+InodeCache::get(const std::string& path, ContentType type)
 {
   if (!initialize()) {
     return std::nullopt;
@@ -481,6 +479,7 @@ InodeCache::get(const std::string& path,
   }
 
   std::optional<HashSourceCodeResult> result;
+  Hash::Digest file_digest;
   const bool success = with_bucket(key_digest, [&](const auto bucket) {
     for (uint32_t i = 0; i < k_num_entries; ++i) {
       if (bucket->entries[i].key_digest == key_digest) {
@@ -509,7 +508,11 @@ InodeCache::get(const std::string& path,
       ++m_sr->misses;
     }
   }
-  return result;
+  if (result) {
+    return std::make_pair(*result, file_digest);
+  } else {
+    return std::nullopt;
+  }
 }
 
 bool

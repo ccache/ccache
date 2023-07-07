@@ -28,6 +28,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 class Config;
 class Context;
@@ -75,11 +76,8 @@ public:
 
   // Get saved hash digest and return value from a previous call to
   // do_hash_file() in hashutil.cpp.
-  //
-  // Returns true if saved values could be retrieved from the cache, false
-  // otherwise.
-  std::optional<HashSourceCodeResult>
-  get(const std::string& path, ContentType type, Hash::Digest& file_digest);
+  std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
+  get(const std::string& path, ContentType type);
 
   // Put hash digest and return value from a successful call to do_hash_file()
   // in hashutil.cpp.
