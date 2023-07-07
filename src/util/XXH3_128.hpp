@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <Util.hpp>
 #include <util/Bytes.hpp>
+#include <util/conversion.hpp>
 
 #include <third_party/nonstd/span.hpp>
 #ifdef USE_XXH_DISPATCH
@@ -76,8 +76,8 @@ XXH3_128::digest() const
 {
   const auto result = XXH3_128bits_digest(m_state);
   util::Bytes digest(k_digest_size);
-  Util::int_to_big_endian(result.high64, &digest[0]);
-  Util::int_to_big_endian(result.low64, &digest[8]);
+  util::int_to_big_endian(result.high64, &digest[0]);
+  util::int_to_big_endian(result.low64, &digest[8]);
   return digest;
 }
 

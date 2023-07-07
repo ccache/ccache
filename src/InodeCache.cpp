@@ -27,6 +27,8 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/conversion.hpp>
+
 #include <fcntl.h>
 #include <libgen.h>
 #include <sched.h>
@@ -312,7 +314,7 @@ InodeCache::with_bucket(const Hash::Digest& key_digest,
                         const BucketHandler& bucket_handler)
 {
   uint32_t hash;
-  Util::big_endian_to_int(key_digest.data(), hash);
+  util::big_endian_to_int(key_digest.data(), hash);
   const uint32_t index = hash % k_num_buckets;
   Bucket* bucket = &m_sr->buckets[index];
   bool acquired_lock = spin_lock(bucket->owner_pid, m_self_pid);

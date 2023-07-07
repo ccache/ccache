@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <Util.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/conversion.hpp>
 #include <util/string.hpp>
 
 #include <third_party/nonstd/span.hpp>
@@ -65,7 +65,7 @@ inline void
 CacheEntryDataWriter::write_int(const T value)
 {
   uint8_t buffer[sizeof(T)];
-  Util::int_to_big_endian(value, buffer);
+  util::int_to_big_endian(value, buffer);
   write_bytes(buffer);
 }
 

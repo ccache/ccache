@@ -30,6 +30,20 @@ namespace util {
 
 // --- Interface ---
 
+// Get an integer value from bytes in big endian order.
+//
+// Parameters:
+// - buffer: Bytes to read.
+// - count: Number of bytes to read.
+template<typename T> void big_endian_to_int(const uint8_t* buffer, T& value);
+
+// Write bytes in big endian order from an integer value.
+//
+// Parameters:
+// - value: Integer value to read.
+// - buffer: Buffer to write bytes to.
+template<typename T> void int_to_big_endian(T value, uint8_t* buffer);
+
 // Convert `data` to a `nonstd::span<const uint8_t>`.
 nonstd::span<const uint8_t> to_span(const void* data, size_t size);
 
@@ -44,6 +58,55 @@ template<typename T> std::string to_string(const T& value);
 std::string_view to_string_view(nonstd::span<const uint8_t> data);
 
 // --- Inline implementations ---
+
+template<typename T>
+void
+big_endian_to_int(const uint8_t* buffer, T& value)
+{
+  value = 0;
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    value <<= 8;
+    value |= buffer[i];
+  }
+}
+
+template<>
+inline void
+big_endian_to_int(const uint8_t* buffer, int8_t& value)
+{
+  value = buffer[0];
+}
+
+template<>
+inline void
+big_endian_to_int(const uint8_t* buffer, uint8_t& value)
+{
+  value = buffer[0];
+}
+
+template<typename T>
+void
+int_to_big_endian(T value, uint8_t* buffer)
+{
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    buffer[sizeof(T) - i - 1] = value & 0xFF;
+    value >>= 8;
+  }
+}
+
+template<>
+inline void
+int_to_big_endian(uint8_t value, uint8_t* buffer)
+{
+  buffer[0] = value;
+}
+
+template<>
+inline void
+int_to_big_endian(int8_t value, uint8_t* buffer)
+{
+  buffer[0] = value;
+}
 
 inline nonstd::span<const uint8_t>
 to_span(const void* data, size_t size)
