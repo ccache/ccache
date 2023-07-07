@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,7 +23,9 @@
 #include "Logging.hpp"
 #include "assertions.hpp"
 
+#include <Util.hpp>
 #include <core/exceptions.hpp>
+#include <util/Tokenizer.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 

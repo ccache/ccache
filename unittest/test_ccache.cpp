@@ -21,6 +21,7 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
+#include <Util.hpp>
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
 

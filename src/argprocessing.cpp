@@ -26,6 +26,7 @@
 #include "language.hpp"
 
 #include <Depfile.hpp>
+#include <Util.hpp>
 #include <core/wincompat.hpp>
 #include <util/string.hpp>
 

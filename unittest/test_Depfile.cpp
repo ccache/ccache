@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,8 @@
 #include "../src/Depfile.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
+
+#include <Util.hpp>
 
 #include "third_party/doctest.h"
 

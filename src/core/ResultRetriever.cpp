@@ -24,6 +24,7 @@
 
 #include <Context.hpp>
 #include <Stat.hpp>
+#include <Util.hpp>
 #include <core/MsvcShowIncludesOutput.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
