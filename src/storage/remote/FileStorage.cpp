@@ -19,7 +19,6 @@
 #include "FileStorage.hpp"
 
 #include <AtomicFile.hpp>
-#include <Digest.hpp>
 #include <Logging.hpp>
 #include <UmaskScope.hpp>
 #include <Util.hpp>
@@ -45,13 +44,13 @@ public:
   FileStorageBackend(const Params& params);
 
   nonstd::expected<std::optional<util::Bytes>, Failure>
-  get(const Digest& key) override;
+  get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Digest& key,
+  nonstd::expected<bool, Failure> put(const Hash::Digest& key,
                                       nonstd::span<const uint8_t> value,
                                       bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Digest& key) override;
+  nonstd::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   enum class Layout { flat, subdirs };
@@ -61,7 +60,7 @@ private:
   bool m_update_mtime = false;
   Layout m_layout = Layout::subdirs;
 
-  std::string get_entry_path(const Digest& key) const;
+  std::string get_entry_path(const Hash::Digest& key) const;
 };
 
 FileStorageBackend::FileStorageBackend(const Params& params)
@@ -109,7 +108,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
 }
 
 nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
-FileStorageBackend::get(const Digest& key)
+FileStorageBackend::get(const Hash::Digest& key)
 {
   const auto path = get_entry_path(key);
   const bool exists = Stat::stat(path);
@@ -134,7 +133,7 @@ FileStorageBackend::get(const Digest& key)
 }
 
 nonstd::expected<bool, RemoteStorage::Backend::Failure>
-FileStorageBackend::put(const Digest& key,
+FileStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
 {
@@ -170,20 +169,20 @@ FileStorageBackend::put(const Digest& key,
 }
 
 nonstd::expected<bool, RemoteStorage::Backend::Failure>
-FileStorageBackend::remove(const Digest& key)
+FileStorageBackend::remove(const Hash::Digest& key)
 {
   return Util::unlink_safe(get_entry_path(key));
 }
 
 std::string
-FileStorageBackend::get_entry_path(const Digest& key) const
+FileStorageBackend::get_entry_path(const Hash::Digest& key) const
 {
   switch (m_layout) {
   case Layout::flat:
-    return FMT("{}/{}", m_dir, key.to_string());
+    return FMT("{}/{}", m_dir, util::format_digest(key));
 
   case Layout::subdirs: {
-    const auto key_str = key.to_string();
+    const auto key_str = util::format_digest(key);
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
     return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);

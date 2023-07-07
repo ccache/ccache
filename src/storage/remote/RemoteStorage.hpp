@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <Hash.hpp>
 #include <storage/types.hpp>
 #include <util/Bytes.hpp>
 
@@ -30,8 +31,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-
-class Digest;
 
 namespace storage::remote {
 
@@ -81,19 +80,19 @@ public:
     // Get the value associated with `key`. Returns the value on success or
     // std::nullopt if the entry is not present.
     virtual nonstd::expected<std::optional<util::Bytes>, Failure>
-    get(const Digest& key) = 0;
+    get(const Hash::Digest& key) = 0;
 
     // Put `value` associated to `key` in the storage. A true `only_if_missing`
     // is a hint that the value does not have to be set if already present.
     // Returns true if the entry was stored, otherwise false.
     virtual nonstd::expected<bool, Failure>
-    put(const Digest& key,
+    put(const Hash::Digest& key,
         nonstd::span<const uint8_t> value,
         bool only_if_missing = false) = 0;
 
     // Remove `key` and its associated value. Returns true if the entry was
     // removed, otherwise false.
-    virtual nonstd::expected<bool, Failure> remove(const Digest& key) = 0;
+    virtual nonstd::expected<bool, Failure> remove(const Hash::Digest& key) = 0;
 
     // Determine whether an attribute is handled by the remote storage
     // framework itself.

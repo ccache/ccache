@@ -19,7 +19,6 @@
 #include "InodeCache.hpp"
 
 #include "Config.hpp"
-#include "Digest.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
@@ -83,9 +82,9 @@ const uint64_t k_min_fs_mib_left = 100; // 100 MiB
 // How long a filesystem space check is valid before we make a new one.
 const util::Duration k_fs_space_check_valid_duration(1);
 
-static_assert(Digest::size() == 20,
+static_assert(std::tuple_size<Hash::Digest>() == 20,
               "Increment version number if size of digest is changed.");
-static_assert(std::is_trivially_copyable<Digest>::value,
+static_assert(std::is_trivially_copyable<Hash::Digest>::value,
               "Digest is expected to be trivially copyable.");
 
 static_assert(
@@ -207,9 +206,9 @@ struct InodeCache::Key
 
 struct InodeCache::Entry
 {
-  Digest key_digest;  // Hashed key
-  Digest file_digest; // Cached file hash
-  int return_value;   // Cached return value
+  Hash::Digest key_digest;  // Hashed key
+  Hash::Digest file_digest; // Cached file hash
+  int return_value;         // Cached return value
 };
 
 struct InodeCache::Bucket
@@ -275,7 +274,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 bool
 InodeCache::hash_inode(const std::string& path,
                        ContentType type,
-                       Digest& digest)
+                       Hash::Digest& digest)
 {
   Stat stat = Stat::stat(path);
   if (!stat) {
@@ -307,11 +306,11 @@ InodeCache::hash_inode(const std::string& path,
 }
 
 bool
-InodeCache::with_bucket(const Digest& key_digest,
+InodeCache::with_bucket(const Hash::Digest& key_digest,
                         const BucketHandler& bucket_handler)
 {
   uint32_t hash;
-  Util::big_endian_to_int(key_digest.bytes(), hash);
+  Util::big_endian_to_int(key_digest.data(), hash);
   const uint32_t index = hash % k_num_buckets;
   Bucket* bucket = &m_sr->buckets[index];
   bool acquired_lock = spin_lock(bucket->owner_pid, m_self_pid);
@@ -466,13 +465,15 @@ InodeCache::available(int fd)
 }
 
 std::optional<HashSourceCodeResult>
-InodeCache::get(const std::string& path, ContentType type, Digest& file_digest)
+InodeCache::get(const std::string& path,
+                ContentType type,
+                Hash::Digest& file_digest)
 {
   if (!initialize()) {
     return std::nullopt;
   }
 
-  Digest key_digest;
+  Hash::Digest key_digest;
   if (!hash_inode(path, type, key_digest)) {
     return std::nullopt;
   }
@@ -512,14 +513,14 @@ InodeCache::get(const std::string& path, ContentType type, Digest& file_digest)
 bool
 InodeCache::put(const std::string& path,
                 ContentType type,
-                const Digest& file_digest,
+                const Hash::Digest& file_digest,
                 HashSourceCodeResult return_value)
 {
   if (!initialize()) {
     return false;
   }
 
-  Digest key_digest;
+  Hash::Digest key_digest;
   if (!hash_inode(path, type, key_digest)) {
     return false;
   }

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <Hash.hpp>
 #include <util/BitSet.hpp>
 
 #include <cstddef>
@@ -26,8 +27,6 @@
 
 class Config;
 class Context;
-class Digest;
-class Hash;
 
 enum class HashSourceCode {
   ok = 0,
@@ -44,7 +43,7 @@ HashSourceCodeResult check_for_temporal_macros(std::string_view str);
 
 // Hash a source code file using the inode cache if enabled.
 HashSourceCodeResult hash_source_code_file(const Context& ctx,
-                                           Digest& digest,
+                                           Hash::Digest& digest,
                                            const std::string& path,
                                            size_t size_hint = 0);
 
@@ -53,7 +52,7 @@ HashSourceCodeResult hash_source_code_file(const Context& ctx,
 //
 // Returns true on success, otherwise false.
 bool hash_binary_file(const Context& ctx,
-                      Digest& digest,
+                      Hash::Digest& digest,
                       const std::string& path,
                       size_t size_hint = 0);
 

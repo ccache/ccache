@@ -65,6 +65,16 @@ format_base32hex(nonstd::span<const uint8_t> data)
 }
 
 std::string
+format_digest(nonstd::span<const uint8_t> data)
+{
+  const size_t base16_bytes = 2;
+  ASSERT(data.size() >= base16_bytes);
+  return util::format_base16({data.data(), base16_bytes})
+         + util::format_base32hex(
+           {data.data() + base16_bytes, data.size() - base16_bytes});
+}
+
+std::string
 format_human_readable_diff(int64_t diff, SizeUnitPrefixType prefix_type)
 {
   const char* sign = diff == 0 ? "" : (diff > 0 ? "+" : "-");

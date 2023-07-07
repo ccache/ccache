@@ -24,6 +24,8 @@
 
 #include "third_party/doctest.h"
 
+#include <sys/stat.h>
+
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("hashutil");

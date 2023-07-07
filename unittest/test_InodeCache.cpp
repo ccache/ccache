@@ -76,7 +76,7 @@ TEST_CASE("Test disabled")
   config.set_inode_cache(false);
   InodeCache inode_cache(config, util::Duration(0));
 
-  Digest digest;
+  Hash::Digest digest;
 
   CHECK(!inode_cache.get(
     "a", InodeCache::ContentType::checked_for_temporal_macros, digest));
@@ -99,7 +99,7 @@ TEST_CASE("Test lookup nonexistent")
   InodeCache inode_cache(config, util::Duration(0));
   util::write_file("a", "");
 
-  Digest digest;
+  Hash::Digest digest;
 
   CHECK(!inode_cache.get(
     "a", InodeCache::ContentType::checked_for_temporal_macros, digest));
@@ -122,7 +122,7 @@ TEST_CASE("Test put and lookup")
   result.insert(HashSourceCode::found_date);
   CHECK(put(inode_cache, "a", "a text", result));
 
-  Digest digest;
+  Hash::Digest digest;
   auto return_value = inode_cache.get(
     "a", InodeCache::ContentType::checked_for_temporal_macros, digest);
   REQUIRE(return_value);
@@ -166,7 +166,7 @@ TEST_CASE("Drop file")
 
   InodeCache inode_cache(config, util::Duration(0));
 
-  Digest digest;
+  Hash::Digest digest;
 
   inode_cache.get("a", InodeCache::ContentType::raw, digest);
   CHECK(Stat::stat(inode_cache.get_file()));
@@ -184,8 +184,8 @@ TEST_CASE("Test content type")
 
   InodeCache inode_cache(config, util::Duration(0));
   util::write_file("a", "a text");
-  Digest binary_digest = Hash().hash("binary").digest();
-  Digest code_digest = Hash().hash("code").digest();
+  auto binary_digest = Hash().hash("binary").digest();
+  auto code_digest = Hash().hash("code").digest();
 
   CHECK(inode_cache.put("a",
                         InodeCache::ContentType::raw,
@@ -196,7 +196,7 @@ TEST_CASE("Test content type")
                         code_digest,
                         HashSourceCodeResult(HashSourceCode::found_time)));
 
-  Digest digest;
+  Hash::Digest digest;
 
   auto return_value =
     inode_cache.get("a", InodeCache::ContentType::raw, digest);

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,7 @@
 #include <TemporaryFile.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <core/CacheEntry.hpp>
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
@@ -32,7 +33,6 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/remote/RedisStorage.hpp>
 #endif
-#include <core/CacheEntry.hpp>
 #include <util/Bytes.hpp>
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
@@ -231,7 +231,7 @@ Storage::finalize()
 }
 
 void
-Storage::get(const Digest& key,
+Storage::get(const Hash::Hash::Digest& key,
              const core::CacheEntryType type,
              const EntryReceiver& entry_receiver)
 {
@@ -258,7 +258,7 @@ Storage::get(const Digest& key,
 }
 
 void
-Storage::put(const Digest& key,
+Storage::put(const Hash::Digest& key,
              const core::CacheEntryType type,
              nonstd::span<const uint8_t> value)
 {
@@ -271,7 +271,7 @@ Storage::put(const Digest& key,
 }
 
 void
-Storage::remove(const Digest& key, const core::CacheEntryType type)
+Storage::remove(const Hash::Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("storage", "remove");
 
@@ -346,7 +346,7 @@ to_half_open_unit_interval(uint64_t value)
 }
 
 static Url
-get_shard_url(const Digest& key,
+get_shard_url(const Hash::Digest& key,
               const std::string& url,
               const std::vector<RemoteStorageShardConfig>& shards)
 {
@@ -357,7 +357,7 @@ get_shard_url(const Digest& key,
   std::string best_shard;
   for (const auto& shard_config : shards) {
     util::XXH3_64 hash;
-    hash.update(key.bytes(), key.size());
+    hash.update(key.data(), key.size());
     hash.update(shard_config.name.data(), shard_config.name.length());
     const double score = to_half_open_unit_interval(hash.digest());
     ASSERT(score >= 0.0 && score < 1.0);
@@ -374,7 +374,7 @@ get_shard_url(const Digest& key,
 
 RemoteStorageBackendEntry*
 Storage::get_backend(RemoteStorageEntry& entry,
-                     const Digest& key,
+                     const Hash::Digest& key,
                      const std::string_view operation_description,
                      const bool for_writing)
 {
@@ -422,7 +422,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
 }
 
 void
-Storage::get_from_remote_storage(const Digest& key,
+Storage::get_from_remote_storage(const Hash::Digest& key,
                                  const core::CacheEntryType type,
                                  const EntryReceiver& entry_receiver)
 {
@@ -445,7 +445,7 @@ Storage::get_from_remote_storage(const Digest& key,
     auto& value = *result;
     if (value) {
       LOG("Retrieved {} from {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_hit);
@@ -457,7 +457,7 @@ Storage::get_from_remote_storage(const Digest& key,
       }
     } else {
       LOG("No {} in {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_miss);
@@ -466,7 +466,7 @@ Storage::get_from_remote_storage(const Digest& key,
 }
 
 void
-Storage::put_in_remote_storage(const Digest& key,
+Storage::put_in_remote_storage(const Hash::Digest& key,
                                nonstd::span<const uint8_t> value,
                                bool only_if_missing)
 {
@@ -474,7 +474,7 @@ Storage::put_in_remote_storage(const Digest& key,
 
   if (!core::CacheEntry::Header(value).self_contained) {
     LOG("Not putting {} in remote storage since it's not self-contained",
-        key.to_string());
+        util::format_digest(key));
     return;
   }
 
@@ -496,7 +496,7 @@ Storage::put_in_remote_storage(const Digest& key,
     const bool stored = *result;
     LOG("{} {} in {} ({:.2f} ms)",
         stored ? "Stored" : "Did not have to store",
-        key.to_string(),
+        util::format_digest(key),
         backend->url_for_logging,
         ms);
     local.increment_statistic(core::Statistic::remote_storage_write);
@@ -504,7 +504,7 @@ Storage::put_in_remote_storage(const Digest& key,
 }
 
 void
-Storage::remove_from_remote_storage(const Digest& key)
+Storage::remove_from_remote_storage(const Hash::Digest& key)
 {
   MTR_SCOPE("remote_storage", "remove");
 
@@ -525,12 +525,12 @@ Storage::remove_from_remote_storage(const Digest& key)
     const bool removed = *result;
     if (removed) {
       LOG("Removed {} from {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
     } else {
       LOG("No {} to remove from {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
     }

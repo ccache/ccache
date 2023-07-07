@@ -383,7 +383,7 @@ do_remember_include_file(Context& ctx,
   }
 
   // Let's hash the include file content.
-  Digest file_digest;
+  Hash::Digest file_digest;
 
   if (is_pch) {
     if (ctx.args_info.included_pch_file.empty()) {
@@ -405,7 +405,7 @@ do_remember_include_file(Context& ctx,
       return false;
     }
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
-    cpp_hash.hash(file_digest.to_string());
+    cpp_hash.hash(util::format_digest(file_digest));
   }
 
   if (ctx.config.direct_mode()) {
@@ -421,7 +421,7 @@ do_remember_include_file(Context& ctx,
 
     if (depend_mode_hash) {
       depend_mode_hash->hash_delimiter("include");
-      depend_mode_hash->hash(file_digest.to_string());
+      depend_mode_hash->hash(util::format_digest(file_digest));
     }
   }
 
@@ -656,7 +656,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static std::optional<Digest>
+static std::optional<Hash::Digest>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
   // Make sure that result hash will always be different from the manifest hash
@@ -729,7 +729,7 @@ struct DoExecuteResult
 
 // Extract the used includes from /showIncludes output in stdout. Note that we
 // cannot distinguish system headers from other includes here.
-static std::optional<Digest>
+static std::optional<Hash::Digest>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
@@ -831,8 +831,8 @@ read_manifest(Context& ctx, nonstd::span<const uint8_t> cache_entry_data)
 
 static void
 update_manifest(Context& ctx,
-                const Digest& manifest_key,
-                const Digest& result_key)
+                const Hash::Digest& manifest_key,
+                const Hash::Digest& result_key)
 {
   if (ctx.config.read_only() || ctx.config.read_only_direct()) {
     return;
@@ -865,13 +865,14 @@ update_manifest(Context& ctx,
       };
     });
   if (added) {
-    LOG("Added result key to manifest {}", manifest_key.to_string());
+    LOG("Added result key to manifest {}", util::format_digest(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.put(manifest_key,
                     core::CacheEntryType::manifest,
                     core::CacheEntry::serialize(header, ctx.manifest));
   } else {
-    LOG("Did not add result key to manifest {}", manifest_key.to_string());
+    LOG("Did not add result key to manifest {}",
+        util::format_digest(manifest_key));
   }
 }
 
@@ -915,7 +916,7 @@ find_coverage_file(const Context& ctx)
 
 [[nodiscard]] static bool
 write_result(Context& ctx,
-             const Digest& result_key,
+             const Hash::Digest& result_key,
              const Stat& obj_stat,
              const util::Bytes& stdout_data,
              const util::Bytes& stderr_data)
@@ -1043,10 +1044,10 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
 }
 
 // Run the real compiler and put the result in cache. Returns the result key.
-static nonstd::expected<Digest, Failure>
+static nonstd::expected<Hash::Digest, Failure>
 to_cache(Context& ctx,
          Args& args,
-         std::optional<Digest> result_key,
+         std::optional<Hash::Digest> result_key,
          const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
@@ -1159,7 +1160,7 @@ to_cache(Context& ctx,
       return nonstd::make_unexpected(Statistic::internal_error);
     }
     LOG_RAW("Got result key from dependency file");
-    LOG("Result key: {}", result_key->to_string());
+    LOG("Result key: {}", util::format_digest(*result_key));
   }
 
   ASSERT(result_key);
@@ -1209,7 +1210,7 @@ to_cache(Context& ctx,
 
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
-static nonstd::expected<Digest, Failure>
+static nonstd::expected<Hash::Digest, Failure>
 get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
   ctx.time_of_compilation = util::TimePoint::now();
@@ -1792,7 +1793,7 @@ hash_argument(const Context& ctx,
   return {};
 }
 
-static nonstd::expected<std::optional<Digest>, Failure>
+static nonstd::expected<std::optional<Hash::Digest>, Failure>
 get_manifest_key(Context& ctx, Hash& hash)
 {
   // Hash environment variables that affect the preprocessor output.
@@ -1825,7 +1826,7 @@ get_manifest_key(Context& ctx, Hash& hash)
   hash.hash(ctx.args_info.input_file);
 
   hash.hash_delimiter("sourcecode hash");
-  Digest input_file_digest;
+  Hash::Digest input_file_digest;
   auto ret =
     hash_source_code_file(ctx, input_file_digest, ctx.args_info.input_file);
   if (ret.contains(HashSourceCode::error)) {
@@ -1836,7 +1837,7 @@ get_manifest_key(Context& ctx, Hash& hash)
     ctx.config.set_direct_mode(false);
     return {};
   }
-  hash.hash(input_file_digest.to_string());
+  hash.hash(util::format_digest(input_file_digest));
   return hash.digest();
 }
 
@@ -1916,11 +1917,11 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
   return {};
 }
 
-static std::optional<Digest>
-get_result_key_from_manifest(Context& ctx, const Digest& manifest_key)
+static std::optional<Hash::Digest>
+get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
 {
   MTR_BEGIN("manifest", "manifest_get");
-  std::optional<Digest> result_key;
+  std::optional<Hash::Digest> result_key;
   size_t read_manifests = 0;
   ctx.storage.get(
     manifest_key, core::CacheEntryType::manifest, [&](util::Bytes&& value) {
@@ -1942,7 +1943,8 @@ get_result_key_from_manifest(Context& ctx, const Digest& manifest_key)
   MTR_END("manifest", "manifest_get");
   if (read_manifests > 1 && !ctx.config.remote_only()) {
     MTR_SCOPE("manifest", "merge");
-    LOG("Storing merged manifest {} locally", manifest_key.to_string());
+    LOG("Storing merged manifest {} locally",
+        util::format_digest(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.local.put(manifest_key,
                           core::CacheEntryType::manifest,
@@ -1955,8 +1957,9 @@ get_result_key_from_manifest(Context& ctx, const Digest& manifest_key)
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result key. Returns the result key on success, and
 // if direct_mode is true also the manifest key.
-static nonstd::expected<std::pair<std::optional<Digest>, std::optional<Digest>>,
-                        Failure>
+static nonstd::expected<
+  std::pair<std::optional<Hash::Digest>, std::optional<Hash::Digest>>,
+  Failure>
 calculate_result_and_manifest_key(Context& ctx,
                                   const Args& args,
                                   Hash& hash,
@@ -2005,8 +2008,8 @@ calculate_result_and_manifest_key(Context& ctx,
     hash.hash(arch);
   }
 
-  std::optional<Digest> result_key;
-  std::optional<Digest> manifest_key;
+  std::optional<Hash::Digest> result_key;
+  std::optional<Hash::Digest> manifest_key;
 
   if (direct_mode) {
     const auto manifest_key_result = get_manifest_key(ctx, hash);
@@ -2015,7 +2018,7 @@ calculate_result_and_manifest_key(Context& ctx,
     }
     manifest_key = *manifest_key_result;
     if (manifest_key) {
-      LOG("Manifest key: {}", manifest_key->to_string());
+      LOG("Manifest key: {}", util::format_digest(*manifest_key));
       result_key = get_result_key_from_manifest(ctx, *manifest_key);
     }
   } else if (ctx.args_info.arch_args.empty()) {
@@ -2046,7 +2049,7 @@ calculate_result_and_manifest_key(Context& ctx,
   }
 
   if (result_key) {
-    LOG("Result key: {}", result_key->to_string());
+    LOG("Result key: {}", util::format_digest(*result_key));
   }
   return std::make_pair(result_key, manifest_key);
 }
@@ -2055,7 +2058,7 @@ enum class FromCacheCallMode { direct, cpp };
 
 // Try to return the compile result from cache.
 static nonstd::expected<bool, Failure>
-from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
+from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
 {
   // The user might be disabling cache hits.
   if (ctx.config.recache()) {
@@ -2099,11 +2102,13 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Digest& result_key)
     deserializer.visit(result_retriever);
   } catch (core::ResultRetriever::WriteError& e) {
     LOG("Write error when retrieving result from {}: {}",
-        result_key.to_string(),
+        util::format_digest(result_key),
         e.what());
     return nonstd::make_unexpected(Statistic::bad_output_file);
   } catch (core::Error& e) {
-    LOG("Failed to get result from {}: {}", result_key.to_string(), e.what());
+    LOG("Failed to get result from {}: {}",
+        util::format_digest(result_key),
+        e.what());
     return false;
   }
 
@@ -2519,9 +2524,9 @@ do_cache_compilation(Context& ctx)
   args_to_hash.push_back(processed.extra_args_to_hash);
 
   bool put_result_in_manifest = false;
-  std::optional<Digest> result_key;
-  std::optional<Digest> result_key_from_manifest;
-  std::optional<Digest> manifest_key;
+  std::optional<Hash::Digest> result_key;
+  std::optional<Hash::Digest> result_key_from_manifest;
+  std::optional<Hash::Digest> manifest_key;
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");

@@ -21,7 +21,6 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
-#include "Digest.hpp"
 #include "File.hpp"
 #include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
@@ -30,6 +29,7 @@
 #  include "InodeCache.hpp"
 #endif
 
+#include <Hash.hpp>
 #include <core/Manifest.hpp>
 #include <storage/Storage.hpp>
 #include <util/TimePoint.hpp>
@@ -74,7 +74,7 @@ public:
   util::TimePoint time_of_compilation;
 
   // Files included by the preprocessor and their hashes.
-  std::unordered_map<std::string, Digest> included_files;
+  std::unordered_map<std::string, Hash::Digest> included_files;
 
   // Have we tried and failed to get colored diagnostics?
   bool diagnostics_color_failed = false;

@@ -21,7 +21,6 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Hash.hpp"
 #include "Logging.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
@@ -177,7 +176,7 @@ check_for_temporal_macros_avx2(std::string_view str)
 
 HashSourceCodeResult
 do_hash_file(const Context& ctx,
-             Digest& digest,
+             Hash::Digest& digest,
              const std::string& path,
              size_t size_hint,
              bool check_temporal_macros)
@@ -233,7 +232,7 @@ check_for_temporal_macros(std::string_view str)
 
 HashSourceCodeResult
 hash_source_code_file(const Context& ctx,
-                      Digest& digest,
+                      Hash::Digest& digest,
                       const std::string& path,
                       size_t size_hint)
 {
@@ -263,7 +262,7 @@ hash_source_code_file(const Context& ctx,
   // macro expansions.
 
   Hash hash;
-  hash.hash(digest.to_string());
+  hash.hash(util::format_digest(digest));
 
   if (result.contains(HashSourceCode::found_date)) {
     LOG("Found __DATE__ in {}", path);
@@ -322,7 +321,7 @@ hash_source_code_file(const Context& ctx,
 
 bool
 hash_binary_file(const Context& ctx,
-                 Digest& digest,
+                 Hash::Digest& digest,
                  const std::string& path,
                  size_t size_hint)
 {
@@ -332,10 +331,10 @@ hash_binary_file(const Context& ctx,
 bool
 hash_binary_file(const Context& ctx, Hash& hash, const std::string& path)
 {
-  Digest digest;
+  Hash::Digest digest;
   const bool success = hash_binary_file(ctx, digest, path);
   if (success) {
-    hash.hash(digest.to_string());
+    hash.hash(util::format_digest(digest));
   }
   return success;
 }

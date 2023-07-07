@@ -628,7 +628,7 @@ process_main_options(int argc, const char* const* argv)
       const auto result =
         arg == "-" ? hash.hash_fd(STDIN_FILENO) : hash.hash_file(arg);
       if (result) {
-        PRINT(stdout, "{}\n", hash.digest().to_string());
+        PRINT(stdout, "{}\n", util::format_digest(hash.digest()));
       } else {
         PRINT(stderr, "Error: Failed to hash {}: {}\n", arg, result.error());
         return EXIT_FAILURE;

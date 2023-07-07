@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Digest.hpp>
+#include <Hash.hpp>
 #include <core/Result.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
@@ -65,22 +65,23 @@ public:
 
   // --- Cache entry handling ---
 
-  std::optional<util::Bytes> get(const Digest& key, core::CacheEntryType type);
+  std::optional<util::Bytes> get(const Hash::Digest& key,
+                                 core::CacheEntryType type);
 
-  void put(const Digest& key,
+  void put(const Hash::Digest& key,
            core::CacheEntryType type,
            nonstd::span<const uint8_t> value,
            bool only_if_missing = false);
 
-  void remove(const Digest& key, core::CacheEntryType type);
+  void remove(const Hash::Digest& key, core::CacheEntryType type);
 
   static std::string get_raw_file_path(std::string_view result_path,
                                        uint8_t file_number);
-  std::string get_raw_file_path(const Digest& result_key,
+  std::string get_raw_file_path(const Hash::Digest& result_key,
                                 uint8_t file_number) const;
 
   void
-  put_raw_files(const Digest& key,
+  put_raw_files(const Hash::Digest& key,
                 const std::vector<core::Result::Serializer::RawFile> raw_files);
 
   // --- Statistics ---
@@ -134,7 +135,7 @@ private:
     uint8_t level;
   };
 
-  LookUpCacheFileResult look_up_cache_file(const Digest& key,
+  LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key,
                                            core::CacheEntryType type) const;
 
   std::string get_subdir(uint8_t l1_index) const;
@@ -144,7 +145,7 @@ private:
   StatsFile get_stats_file(uint8_t l1_index, uint8_t l2_index) const;
 
   void move_to_wanted_cache_level(const core::StatisticsCounters& counters,
-                                  const Digest& key,
+                                  const Hash::Digest& key,
                                   core::CacheEntryType type,
                                   const std::string& cache_file_path);
 
@@ -152,7 +153,7 @@ private:
                            uint8_t l1_index);
 
   std::optional<core::StatisticsCounters> increment_level_2_counters(
-    const Digest& key, int64_t files, int64_t size_kibibyte);
+    const Hash::Digest& key, int64_t files, int64_t size_kibibyte);
 
   void perform_automatic_cleanup();
 
@@ -191,7 +192,7 @@ private:
   // in the directory (including any subdirectories). However, the lock does not
   // have to be acquired to update a level 2 stats file since level 2 content
   // size and file count are stored in the parent (level 1) stats file.
-  util::LockFile get_level_2_content_lock(const Digest& key) const;
+  util::LockFile get_level_2_content_lock(const Hash::Digest& key) const;
   util::LockFile get_level_2_content_lock(uint8_t l1_index,
                                           uint8_t l2_index) const;
 };

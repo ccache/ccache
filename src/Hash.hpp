@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,11 +18,10 @@
 
 #pragma once
 
-#include "Digest.hpp"
-
 #include "third_party/blake3/blake3.h"
 #include <third_party/nonstd/expected.hpp>
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <string_view>
@@ -32,6 +31,8 @@ class Hash
 {
 public:
   enum class HashType { binary, text };
+
+  using Digest = std::array<uint8_t, 20>;
 
   Hash();
   Hash(const Hash& other) = default;

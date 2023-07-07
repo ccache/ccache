@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,7 @@
 
 #include "Fd.hpp"
 
-#include <Digest.hpp>
+#include <Hash.hpp>
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
 
@@ -42,7 +42,7 @@ public:
   //`path` should be the path to the local result entry file if the result comes
   // from local storage.
   ResultRetriever(const Context& ctx,
-                  std::optional<Digest> result_key = std::nullopt);
+                  std::optional<Hash::Digest> result_key = std::nullopt);
 
   void on_embedded_file(uint8_t file_number,
                         Result::FileType file_type,
@@ -53,7 +53,7 @@ public:
 
 private:
   const Context& m_ctx;
-  std::optional<Digest> m_result_key;
+  std::optional<Hash::Digest> m_result_key;
 
   std::string get_dest_path(Result::FileType file_type) const;
 

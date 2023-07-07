@@ -18,7 +18,7 @@
 
 #include "HttpStorage.hpp"
 
-#include <Digest.hpp>
+#include <Hash.hpp>
 #include <Logging.hpp>
 #include <assertions.hpp>
 #include <ccache.hpp>
@@ -43,13 +43,13 @@ public:
   HttpStorageBackend(const Params& params);
 
   nonstd::expected<std::optional<util::Bytes>, Failure>
-  get(const Digest& key) override;
+  get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Digest& key,
+  nonstd::expected<bool, Failure> put(const Hash::Digest& key,
                                       nonstd::span<const uint8_t> value,
                                       bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Digest& key) override;
+  nonstd::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   enum class Layout { bazel, flat, subdirs };
@@ -58,7 +58,7 @@ private:
   httplib::Client m_http_client;
   Layout m_layout = Layout::subdirs;
 
-  std::string get_entry_path(const Digest& key) const;
+  std::string get_entry_path(const Hash::Digest& key) const;
 };
 
 std::string
@@ -154,7 +154,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
 }
 
 nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
-HttpStorageBackend::get(const Digest& key)
+HttpStorageBackend::get(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Get(url_path);
@@ -176,7 +176,7 @@ HttpStorageBackend::get(const Digest& key)
 }
 
 nonstd::expected<bool, RemoteStorage::Backend::Failure>
-HttpStorageBackend::put(const Digest& key,
+HttpStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
 {
@@ -228,7 +228,7 @@ HttpStorageBackend::put(const Digest& key,
 }
 
 nonstd::expected<bool, RemoteStorage::Backend::Failure>
-HttpStorageBackend::remove(const Digest& key)
+HttpStorageBackend::remove(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Delete(url_path);
@@ -252,24 +252,27 @@ HttpStorageBackend::remove(const Digest& key)
 }
 
 std::string
-HttpStorageBackend::get_entry_path(const Digest& key) const
+HttpStorageBackend::get_entry_path(const Hash::Digest& key) const
 {
   switch (m_layout) {
   case Layout::bazel: {
     // Mimic hex representation of a SHA256 hash value.
     const auto sha256_hex_size = 64;
-    static_assert(Digest::size() == 20, "Update below if digest size changes");
-    std::string hex_digits = util::format_base16({key.bytes(), key.size()});
+    static_assert(std::tuple_size<Hash::Digest>() == 20,
+                  "Update below if digest size changes");
+    std::string hex_digits = util::format_base16(key);
     hex_digits.append(hex_digits.data(), sha256_hex_size - hex_digits.size());
-    LOG("Translated key {} to Bazel layout ac/{}", key.to_string(), hex_digits);
+    LOG("Translated key {} to Bazel layout ac/{}",
+        util::format_digest(key),
+        hex_digits);
     return FMT("{}ac/{}", m_url_path, hex_digits);
   }
 
   case Layout::flat:
-    return m_url_path + key.to_string();
+    return m_url_path + util::format_digest(key);
 
   case Layout::subdirs: {
-    const auto key_str = key.to_string();
+    const auto key_str = util::format_digest(key);
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
     return FMT("{}{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);

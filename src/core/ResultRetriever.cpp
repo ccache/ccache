@@ -46,7 +46,7 @@ namespace core {
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(const Context& ctx,
-                                 std::optional<Digest> result_key)
+                                 std::optional<Hash::Digest> result_key)
   : m_ctx(ctx),
     m_result_key(result_key)
 {

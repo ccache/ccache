@@ -18,7 +18,7 @@
 
 #include "RedisStorage.hpp"
 
-#include <Digest.hpp>
+#include <Hash.hpp>
 #include <Logging.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
@@ -67,13 +67,13 @@ public:
   RedisStorageBackend(const RemoteStorage::Backend::Params& params);
 
   nonstd::expected<std::optional<util::Bytes>, Failure>
-  get(const Digest& key) override;
+  get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Digest& key,
+  nonstd::expected<bool, Failure> put(const Hash::Digest& key,
                                       nonstd::span<const uint8_t> value,
                                       bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Digest& key) override;
+  nonstd::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   const std::string m_prefix;
@@ -84,7 +84,7 @@ private:
   void select_database(const Url& url);
   void authenticate(const Url& url);
   nonstd::expected<RedisReply, Failure> redis_command(const char* format, ...);
-  std::string get_key_string(const Digest& digest) const;
+  std::string get_key_string(const Hash::Digest& digest) const;
 };
 
 timeval
@@ -164,7 +164,7 @@ is_timeout(int err)
 }
 
 nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
-RedisStorageBackend::get(const Digest& key)
+RedisStorageBackend::get(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis GET {}", key_string);
@@ -182,7 +182,7 @@ RedisStorageBackend::get(const Digest& key)
 }
 
 nonstd::expected<bool, RemoteStorage::Backend::Failure>
-RedisStorageBackend::put(const Digest& key,
+RedisStorageBackend::put(const Hash::Digest& key,
                          nonstd::span<const uint8_t> value,
                          bool only_if_missing)
 {
@@ -215,7 +215,7 @@ RedisStorageBackend::put(const Digest& key,
 }
 
 nonstd::expected<bool, RemoteStorage::Backend::Failure>
-RedisStorageBackend::remove(const Digest& key)
+RedisStorageBackend::remove(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis DEL {}", key_string);
@@ -341,9 +341,9 @@ RedisStorageBackend::redis_command(const char* format, ...)
 }
 
 std::string
-RedisStorageBackend::get_key_string(const Digest& digest) const
+RedisStorageBackend::get_key_string(const Hash::Digest& digest) const
 {
-  return FMT("{}:{}", m_prefix, digest.to_string());
+  return FMT("{}:{}", m_prefix, util::format_digest(digest));
 }
 
 } // namespace

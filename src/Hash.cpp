@@ -54,13 +54,13 @@ Hash::enable_debug(std::string_view section_name,
   add_debug_text(" ===\n");
 }
 
-Digest
+Hash::Digest
 Hash::digest() const
 {
   // Note that blake3_hasher_finalize doesn't modify the hasher itself, thus it
   // is possible to finalize again after more data has been added.
   Digest digest;
-  blake3_hasher_finalize(&m_hasher, digest.bytes(), digest.size());
+  blake3_hasher_finalize(&m_hasher, digest.data(), digest.size());
   return digest;
 }
 

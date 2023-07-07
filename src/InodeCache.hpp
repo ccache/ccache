@@ -19,6 +19,7 @@
 #pragma once
 
 #include <Fd.hpp>
+#include <Hash.hpp>
 #include <hashutil.hpp>
 #include <util/Duration.hpp>
 #include <util/TimePoint.hpp>
@@ -30,7 +31,6 @@
 
 class Config;
 class Context;
-class Digest;
 
 class InodeCache
 {
@@ -79,7 +79,7 @@ public:
   // Returns true if saved values could be retrieved from the cache, false
   // otherwise.
   std::optional<HashSourceCodeResult>
-  get(const std::string& path, ContentType type, Digest& file_digest);
+  get(const std::string& path, ContentType type, Hash::Digest& file_digest);
 
   // Put hash digest and return value from a successful call to do_hash_file()
   // in hashutil.cpp.
@@ -87,7 +87,7 @@ public:
   // Returns true if values could be stored in the cache, false otherwise.
   bool put(const std::string& path,
            ContentType type,
-           const Digest& file_digest,
+           const Hash::Digest& file_digest,
            HashSourceCodeResult return_value);
 
   // Unmaps the current cache and removes the mapped file from disk.
@@ -124,10 +124,15 @@ private:
   using BucketHandler = std::function<void(Bucket* bucket)>;
 
   bool mmap_file(const std::string& inode_cache_file);
-  bool hash_inode(const std::string& path, ContentType type, Digest& digest);
-  bool with_bucket(const Digest& key_digest,
+
+  bool
+  hash_inode(const std::string& path, ContentType type, Hash::Digest& digest);
+
+  bool with_bucket(const Hash::Digest& key_digest,
                    const BucketHandler& bucket_handler);
+
   static bool create_new_file(const std::string& filename);
+
   bool initialize();
 
   const Config& m_config;

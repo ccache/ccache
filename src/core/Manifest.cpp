@@ -27,6 +27,7 @@
 #include <fmtmacros.hpp>
 #include <hashutil.hpp>
 #include <util/XXH3_64.hpp>
+#include <util/string.hpp>
 
 // Manifest data format
 // ====================
@@ -44,7 +45,7 @@
 // <n_includes>    ::= uint32_t
 // <include_entry> ::= <path_index> <digest> <fsize> <mtime> <ctime>
 // <path_index>    ::= uint32_t
-// <digest>        ::= Digest::size() bytes
+// <digest>        ::= Hash::Digest::size() bytes
 // <fsize>         ::= uint64_t ; file size
 // <mtime>         ::= int64_t ; modification time (ns), 0 = not recorded
 // <ctime>         ::= int64_t ; status change time (ns), 0 = not recorded
@@ -53,7 +54,7 @@
 // <result>        ::= <n_indexes> <include_index>* <key>
 // <n_indexes>     ::= uint32_t
 // <include_index> ::= uint32_t
-// <result_key>    ::= Digest::size() bytes
+// <result_key>    ::= Hash::Digest::size() bytes
 
 const uint32_t k_max_manifest_entries = 100;
 const uint32_t k_max_manifest_file_info_entries = 10000;
@@ -111,7 +112,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
     auto& entry = file_infos.back();
 
     reader.read_int(entry.index);
-    reader.read_and_copy_bytes({entry.digest.bytes(), Digest::size()});
+    reader.read_and_copy_bytes(entry.digest);
     reader.read_int(entry.fsize);
     entry.mtime.set_nsec(reader.read_int<int64_t>());
     entry.ctime.set_nsec(reader.read_int<int64_t>());
@@ -126,7 +127,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
     for (uint32_t j = 0; j < file_info_index_count; ++j) {
       entry.file_info_indexes.push_back(reader.read_int<uint32_t>());
     }
-    reader.read_and_copy_bytes({entry.key.bytes(), Digest::size()});
+    reader.read_and_copy_bytes(entry.key);
   }
 
   if (m_results.empty()) {
@@ -135,7 +136,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
     m_results = std::move(results);
   } else {
     for (const auto& result : results) {
-      std::unordered_map<std::string, Digest> included_files;
+      std::unordered_map<std::string, Hash::Digest> included_files;
       std::unordered_map<std::string, FileStats> included_files_stats;
       for (auto file_info_index : result.file_info_indexes) {
         const auto& file_info = file_infos[file_info_index];
@@ -151,11 +152,11 @@ Manifest::read(nonstd::span<const uint8_t> data)
   }
 }
 
-std::optional<Digest>
+std::optional<Hash::Digest>
 Manifest::look_up_result_digest(const Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
-  std::unordered_map<std::string, Digest> hashed_files;
+  std::unordered_map<std::string, Hash::Digest> hashed_files;
 
   // Check newest result first since it's a more likely to match.
   for (size_t i = m_results.size(); i > 0; i--) {
@@ -170,8 +171,8 @@ Manifest::look_up_result_digest(const Context& ctx) const
 
 bool
 Manifest::add_result(
-  const Digest& result_key,
-  const std::unordered_map<std::string, Digest>& included_files,
+  const Hash::Digest& result_key,
+  const std::unordered_map<std::string, Hash::Digest>& included_files,
   const FileStater& stat_file_function)
 {
   if (m_results.size() > k_max_manifest_entries) {
@@ -235,12 +236,13 @@ Manifest::serialized_size() const
     size += 2 + file.length();
   }
   size += 4; // n_file_infos
-  size += m_file_infos.size() * (4 + Digest::size() + 8 + 8 + 8);
+  size +=
+    m_file_infos.size() * (4 + std::tuple_size<Hash::Digest>() + 8 + 8 + 8);
   size += 4; // n_results
   for (const auto& result : m_results) {
     size += 4; // n_file_info_indexes
     size += result.file_info_indexes.size() * 4;
-    size += Digest::size();
+    size += std::tuple_size<Hash::Digest>();
   }
 
   // In order to support 32-bit ccache builds, restrict size to uint32_t for
@@ -268,7 +270,7 @@ Manifest::serialize(util::Bytes& output)
   writer.write_int<uint32_t>(m_file_infos.size());
   for (const auto& file_info : m_file_infos) {
     writer.write_int<uint32_t>(file_info.index);
-    writer.write_bytes({file_info.digest.bytes(), Digest::size()});
+    writer.write_bytes(file_info.digest);
     writer.write_int(file_info.fsize);
     writer.write_int(file_info.mtime.nsec());
     writer.write_int(file_info.ctime.nsec());
@@ -280,7 +282,7 @@ Manifest::serialize(util::Bytes& output)
     for (auto index : result.file_info_indexes) {
       writer.write_int(index);
     }
-    writer.write_bytes({result.key.bytes(), Digest::size()});
+    writer.write_bytes(result.key);
   }
 }
 
@@ -308,7 +310,7 @@ Manifest::clear()
 uint32_t
 Manifest::get_file_info_index(
   const std::string& path,
-  const Digest& digest,
+  const Hash::Digest& digest,
   const std::unordered_map<std::string, uint32_t>& mf_files,
   const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
   const FileStater& file_stater)
@@ -344,7 +346,7 @@ Manifest::result_matches(
   const Context& ctx,
   const ResultEntry& result,
   std::unordered_map<std::string, FileStats>& stated_files,
-  std::unordered_map<std::string, Digest>& hashed_files) const
+  std::unordered_map<std::string, Hash::Digest>& hashed_files) const
 {
   for (uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = m_file_infos[file_info_index];
@@ -402,7 +404,7 @@ Manifest::result_matches(
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      Digest actual_digest;
+      Hash::Digest actual_digest;
       auto ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
       if (ret.contains(HashSourceCode::error)) {
         LOG("Failed hashing {}", path);
@@ -437,7 +439,8 @@ Manifest::inspect(FILE* const stream) const
   for (size_t i = 0; i < m_file_infos.size(); ++i) {
     PRINT(stream, "  {}:\n", i);
     PRINT(stream, "    Path index: {}\n", m_file_infos[i].index);
-    PRINT(stream, "    Hash: {}\n", m_file_infos[i].digest.to_string());
+    PRINT(
+      stream, "    Hash: {}\n", util::format_digest(m_file_infos[i].digest));
     PRINT(stream, "    File size: {}\n", m_file_infos[i].fsize);
     if (m_file_infos[i].mtime == util::TimePoint()) {
       PRINT_RAW(stream, "    Mtime: -\n");
@@ -465,7 +468,7 @@ Manifest::inspect(FILE* const stream) const
       PRINT(stream, " {}", file_info_index);
     }
     PRINT_RAW(stream, "\n");
-    PRINT(stream, "    Key: {}\n", m_results[i].key.to_string());
+    PRINT(stream, "    Key: {}\n", util::format_digest(m_results[i].key));
   }
 }
 

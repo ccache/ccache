@@ -31,24 +31,21 @@
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
 #include <core/Manifest.hpp>
-#include <core/Result.hpp>
 #include <core/Statistics.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
-#include <storage/local/StatsFile.hpp>
-#include <storage/local/util.hpp>
 #include <util/Duration.hpp>
 #include <util/TextTable.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 
-#include <third_party/fmt/core.h>
-
 #ifdef INODE_CACHE_SUPPORTED
 #  include <InodeCache.hpp>
 #endif
+
+#include <third_party/fmt/core.h>
 
 #include <algorithm>
 #include <atomic>
@@ -363,7 +360,7 @@ LocalStorage::finalize()
 }
 
 std::optional<util::Bytes>
-LocalStorage::get(const Digest& key, const core::CacheEntryType type)
+LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("local_storage", "get");
 
@@ -374,7 +371,7 @@ LocalStorage::get(const Digest& key, const core::CacheEntryType type)
     const auto value = util::read_file<util::Bytes>(cache_file.path);
     if (value) {
       LOG("Retrieved {} from local storage ({})",
-          key.to_string(),
+          util::format_digest(key),
           cache_file.path);
 
       // Update modification timestamp to save file from LRU cleanup.
@@ -385,7 +382,7 @@ LocalStorage::get(const Digest& key, const core::CacheEntryType type)
       LOG("Failed to read {}: {}", cache_file.path, value.error());
     }
   } else {
-    LOG("No {} in local storage", key.to_string());
+    LOG("No {} in local storage", util::format_digest(key));
   }
 
   increment_statistic(return_value ? Statistic::local_storage_read_hit
@@ -398,7 +395,7 @@ LocalStorage::get(const Digest& key, const core::CacheEntryType type)
 }
 
 void
-LocalStorage::put(const Digest& key,
+LocalStorage::put(const Hash::Digest& key,
                   const core::CacheEntryType type,
                   nonstd::span<const uint8_t> value,
                   bool only_if_missing)
@@ -428,7 +425,9 @@ LocalStorage::put(const Digest& key,
     return;
   }
 
-  LOG("Stored {} in local storage ({})", key.to_string(), cache_file.path);
+  LOG("Stored {} in local storage ({})",
+      util::format_digest(key),
+      cache_file.path);
   m_stored_data = true;
 
   if (!m_config.stats()) {
@@ -460,17 +459,17 @@ LocalStorage::put(const Digest& key,
   // be done almost anywhere, but we might as well do it near the end as we save
   // the stat call if we exit early.
   util::create_cachedir_tag(
-    FMT("{}/{}", m_config.cache_dir(), key.to_string()[0]));
+    FMT("{}/{}", m_config.cache_dir(), util::format_digest(key)[0]));
 }
 
 void
-LocalStorage::remove(const Digest& key, const core::CacheEntryType type)
+LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("local_storage", "remove");
 
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.stat) {
-    LOG("No {} to remove from local storage", key.to_string());
+    LOG("No {} to remove from local storage", util::format_digest(key));
     return;
   }
 
@@ -484,7 +483,9 @@ LocalStorage::remove(const Digest& key, const core::CacheEntryType type)
     Util::unlink_safe(cache_file.path);
   }
 
-  LOG("Removed {} from local storage ({})", key.to_string(), cache_file.path);
+  LOG("Removed {} from local storage ({})",
+      util::format_digest(key),
+      cache_file.path);
   increment_level_2_counters(
     key, -1, -static_cast<int64_t>(cache_file.stat.size_on_disk() / 1024));
 }
@@ -505,7 +506,7 @@ LocalStorage::get_raw_file_path(std::string_view result_path,
 }
 
 std::string
-LocalStorage::get_raw_file_path(const Digest& result_key,
+LocalStorage::get_raw_file_path(const Hash::Digest& result_key,
                                 uint8_t file_number) const
 {
   const auto cache_file =
@@ -515,7 +516,7 @@ LocalStorage::get_raw_file_path(const Digest& result_key,
 
 void
 LocalStorage::put_raw_files(
-  const Digest& key,
+  const Hash::Digest& key,
   const std::vector<core::Result::Serializer::RawFile> raw_files)
 {
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
@@ -856,10 +857,11 @@ LocalStorage::get_subdir(uint8_t l1_index, uint8_t l2_index) const
 }
 
 LocalStorage::LookUpCacheFileResult
-LocalStorage::look_up_cache_file(const Digest& key,
+LocalStorage::look_up_cache_file(const Hash::Digest& key,
                                  const core::CacheEntryType type) const
 {
-  const auto key_string = FMT("{}{}", key.to_string(), suffix_from_type(type));
+  const auto key_string =
+    FMT("{}{}", util::format_digest(key), suffix_from_type(type));
 
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
        ++level) {
@@ -890,14 +892,14 @@ LocalStorage::get_stats_file(uint8_t l1_index, uint8_t l2_index) const
 
 void
 LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
-                                         const Digest& key,
+                                         const Hash::Digest& key,
                                          core::CacheEntryType type,
                                          const std::string& cache_file_path)
 {
   const auto wanted_level =
     calculate_wanted_cache_level(counters.get(Statistic::files_in_cache));
-  const auto wanted_path =
-    get_path_in_cache(wanted_level, key.to_string() + suffix_from_type(type));
+  const auto wanted_path = get_path_in_cache(
+    wanted_level, util::format_digest(key) + suffix_from_type(type));
   if (cache_file_path != wanted_path) {
     Util::ensure_dir_exists(Util::dir_name(wanted_path));
     LOG("Moving {} to {}", cache_file_path, wanted_path);
@@ -941,12 +943,12 @@ LocalStorage::recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
 }
 
 std::optional<core::StatisticsCounters>
-LocalStorage::increment_level_2_counters(const Digest& key,
+LocalStorage::increment_level_2_counters(const Hash::Digest& key,
                                          int64_t files,
                                          int64_t size_kibibyte)
 {
-  uint8_t l1_index = key.bytes()[0] >> 4;
-  uint8_t l2_index = key.bytes()[0] & 0xF;
+  uint8_t l1_index = key[0] >> 4;
+  uint8_t l2_index = key[0] & 0xF;
   const auto level_1_stats_file = get_stats_file(l1_index);
   return level_1_stats_file.update([&](auto& cs) {
     // Level 1 counters:
@@ -1326,9 +1328,9 @@ LocalStorage::get_auto_cleanup_lock() const
 }
 
 util::LockFile
-LocalStorage::get_level_2_content_lock(const Digest& key) const
+LocalStorage::get_level_2_content_lock(const Hash::Digest& key) const
 {
-  return get_level_2_content_lock(key.bytes()[0] >> 4, key.bytes()[0] & 0xF);
+  return get_level_2_content_lock(key[0] >> 4, key[0] & 0xF);
 }
 
 util::LockFile
