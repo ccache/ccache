@@ -150,6 +150,9 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
+// Convert `data` to a `nonstd::span<const uint8_t>`.
+nonstd::span<const uint8_t> to_span(const void* data, size_t size);
+
 // Convert `value` to a `nonstd::span<const uint8_t>`.
 nonstd::span<const uint8_t> to_span(std::string_view value);
 
@@ -205,10 +208,15 @@ starts_with(const std::string_view string, const std::string_view prefix)
 }
 
 inline nonstd::span<const uint8_t>
+to_span(const void* data, size_t size)
+{
+  return {reinterpret_cast<const uint8_t*>(data), size};
+}
+
+inline nonstd::span<const uint8_t>
 to_span(std::string_view data)
 {
-  return nonstd::span<const uint8_t>(
-    reinterpret_cast<const uint8_t*>(data.data()), data.size());
+  return to_span(data.data(), data.size());
 }
 
 template<typename T>

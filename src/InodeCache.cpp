@@ -43,6 +43,7 @@
 
 #include <atomic>
 #include <type_traits>
+#include <vector>
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
@@ -300,7 +301,8 @@ InodeCache::hash_inode(const std::string& path,
   key.st_size = stat.size();
 
   Hash hash;
-  hash.hash(&key, sizeof(Key));
+  hash.hash(nonstd::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&key),
+                                        sizeof(key)));
   digest = hash.digest();
   return true;
 }

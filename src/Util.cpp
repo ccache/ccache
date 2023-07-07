@@ -335,8 +335,8 @@ common_dir_prefix_length(std::string_view dir, std::string_view path)
 void
 copy_fd(int fd_in, int fd_out)
 {
-  util::read_fd(fd_in, [=](const void* data, size_t size) {
-    util::write_fd(fd_out, data, size);
+  util::read_fd(fd_in, [=](nonstd::span<const uint8_t> data) {
+    util::write_fd(fd_out, data.data(), data.size());
   });
 }
 

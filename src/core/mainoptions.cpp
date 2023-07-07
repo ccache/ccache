@@ -55,6 +55,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -185,8 +186,8 @@ read_from_path_or_stdin(const std::string& path)
   if (path == "-") {
     std::vector<uint8_t> output;
     const auto result =
-      util::read_fd(STDIN_FILENO, [&](const uint8_t* data, size_t size) {
-        output.insert(output.end(), data, data + size);
+      util::read_fd(STDIN_FILENO, [&](nonstd::span<const uint8_t> data) {
+        output.insert(output.end(), data.begin(), data.end());
       });
     if (!result) {
       return nonstd::make_unexpected(
@@ -578,8 +579,8 @@ process_main_options(int argc, const char* const* argv)
       util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
-        util::read_fd(*fd, [&checksum](const uint8_t* data, size_t size) {
-          checksum.update({data, size});
+        util::read_fd(*fd, [&checksum](nonstd::span<const uint8_t> data) {
+          checksum.update(data);
         });
         const auto digest = checksum.digest();
         PRINT(stdout, "{}\n", util::format_base16(digest));

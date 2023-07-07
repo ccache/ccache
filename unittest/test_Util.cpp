@@ -31,6 +31,8 @@
 #include <fcntl.h>
 
 #include <optional>
+#include <string>
+#include <vector>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

@@ -20,6 +20,7 @@
 
 #include "third_party/blake3/blake3.h"
 #include <third_party/nonstd/expected.hpp>
+#include <third_party/nonstd/span.hpp>
 
 #include <array>
 #include <cstdint>
@@ -67,10 +68,16 @@ public:
   //   verbatim to the text input file.
   //
   // In both cases a newline character is added as well.
-  Hash&
-  hash(const void* data, size_t size, HashType hash_type = HashType::text);
+  Hash& hash(nonstd::span<const uint8_t> data,
+             HashType hash_type = HashType::text);
 
-  // Add a string to the hash.
+  // Add string data to the hash.
+  //
+  // If hash debugging is enabled, the string is written to the text input file
+  // followed by a newline.
+  Hash& hash(const char* data, size_t size);
+
+  // Add string data to the hash.
   //
   // If hash debugging is enabled, the string is written to the text input file
   // followed by a newline.
@@ -102,5 +109,6 @@ private:
   FILE* m_debug_binary = nullptr;
   FILE* m_debug_text = nullptr;
 
+  void hash_buffer(nonstd::span<const uint8_t> buffer);
   void hash_buffer(std::string_view buffer);
 };

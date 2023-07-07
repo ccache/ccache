@@ -52,6 +52,7 @@
 #include <fstream>
 #include <locale>
 #include <type_traits>
+#include <vector>
 
 namespace util {
 
@@ -85,7 +86,7 @@ read_fd(int fd, DataReceiver data_receiver)
       break;
     }
     if (n > 0) {
-      data_receiver(buffer, n);
+      data_receiver({buffer, static_cast<size_t>(n)});
     }
   }
   if (n == -1) {

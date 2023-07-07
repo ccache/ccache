@@ -35,6 +35,8 @@
 #include <util/file.hpp>
 #include <util/path.hpp>
 
+#include <vector>
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif

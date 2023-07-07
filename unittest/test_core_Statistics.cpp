@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,8 @@
 #include <third_party/doctest.h>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
+#include <string>
+#include <vector>
 
 using core::Statistic;
 using core::Statistics;

@@ -25,7 +25,9 @@
 #include <third_party/doctest.h>
 
 #include <cstring>
+#include <string>
 #include <string_view>
+#include <vector>
 
 using TestUtil::TestContext;
 

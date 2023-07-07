@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,6 +23,9 @@
 #include <util/file.hpp>
 
 #include "third_party/doctest.h"
+
+#include <string>
+#include <vector>
 
 using TestUtil::TestContext;
 

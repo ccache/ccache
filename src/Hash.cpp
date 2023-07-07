@@ -34,7 +34,7 @@
 #  include <unistd.h>
 #endif
 
-const std::string_view HASH_DELIMITER("\000cCaChE\000", 8);
+const uint8_t HASH_DELIMITER[] = {0, 'c', 'C', 'a', 'C', 'h', 'E', 0};
 
 Hash::Hash()
 {
@@ -77,19 +77,17 @@ Hash::hash_delimiter(std::string_view type)
 }
 
 Hash&
-Hash::hash(const void* data, size_t size, HashType hash_type)
+Hash::hash(nonstd::span<const uint8_t> data, HashType hash_type)
 {
-  std::string_view buffer(static_cast<const char*>(data), size);
-  hash_buffer(buffer);
+  hash_buffer(data);
 
   switch (hash_type) {
   case HashType::binary:
-    add_debug_text(
-      util::format_base16({static_cast<const uint8_t*>(data), size}));
+    add_debug_text(util::format_base16(data));
     break;
 
   case HashType::text:
-    add_debug_text(buffer);
+    add_debug_text(util::to_string_view(data));
     break;
   }
 
@@ -98,9 +96,16 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
 }
 
 Hash&
+Hash::hash(const char* data, size_t size)
+{
+  hash(util::to_span({data, size}), HashType::text);
+  return *this;
+}
+
+Hash&
 Hash::hash(std::string_view data)
 {
-  hash(data.data(), data.length());
+  hash(util::to_span(data), HashType::text);
   return *this;
 }
 
@@ -116,7 +121,7 @@ nonstd::expected<void, std::string>
 Hash::hash_fd(int fd)
 {
   return util::read_fd(
-    fd, [this](const void* data, size_t size) { hash(data, size); });
+    fd, [this](nonstd::span<const uint8_t> data) { hash(data); });
 }
 
 nonstd::expected<void, std::string>
@@ -132,12 +137,18 @@ Hash::hash_file(const std::string& path)
 }
 
 void
-Hash::hash_buffer(std::string_view buffer)
+Hash::hash_buffer(nonstd::span<const uint8_t> buffer)
 {
   blake3_hasher_update(&m_hasher, buffer.data(), buffer.size());
   if (!buffer.empty() && m_debug_binary) {
     (void)fwrite(buffer.data(), 1, buffer.size(), m_debug_binary);
   }
+}
+
+void
+Hash::hash_buffer(std::string_view buffer)
+{
+  hash_buffer(util::to_span(buffer));
 }
 
 void

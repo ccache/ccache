@@ -25,6 +25,9 @@
 
 #include "third_party/doctest.h"
 
+#include <string>
+#include <vector>
+
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Depfile");
