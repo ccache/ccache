@@ -582,8 +582,7 @@ process_main_options(int argc, const char* const* argv)
           checksum.update({data, size});
         });
         const auto digest = checksum.digest();
-        PRINT(
-          stdout, "{}\n", Util::format_base16(digest.data(), digest.size()));
+        PRINT(stdout, "{}\n", util::format_base16(digest));
       } else {
         PRINT(stderr, "Error: Failed to checksum {}\n", arg);
       }

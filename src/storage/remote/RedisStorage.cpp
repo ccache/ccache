@@ -26,6 +26,8 @@
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
+#include <sys/time.h>
+
 // Ignore "ISO C++ forbids flexible array member ‘buf’" warning from -Wpedantic.
 #ifdef __GNUC__
 #  pragma GCC diagnostic push

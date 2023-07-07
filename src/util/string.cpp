@@ -21,11 +21,38 @@
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
 
+extern "C" {
+#include <third_party/base32hex.h>
+}
+
 #include <algorithm>
 #include <cctype>
 #include <iostream>
 
 namespace util {
+
+std::string
+format_base16(nonstd::span<const uint8_t> data)
+{
+  static const char digits[] = "0123456789abcdef";
+  std::string result;
+  result.resize(2 * data.size());
+  for (size_t i = 0; i < data.size(); ++i) {
+    result[i * 2] = digits[data[i] >> 4];
+    result[i * 2 + 1] = digits[data[i] & 0xF];
+  }
+  return result;
+}
+
+std::string
+format_base32hex(nonstd::span<const uint8_t> data)
+{
+  const size_t bytes_to_reserve = data.size() * 8 / 5 + 1;
+  std::string result(bytes_to_reserve, 0);
+  const size_t actual_size = base32hex(&result[0], data.data(), data.size());
+  result.resize(actual_size);
+  return result;
+}
 
 std::string
 format_human_readable_diff(int64_t diff, SizeUnitPrefixType prefix_type)

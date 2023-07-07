@@ -259,7 +259,7 @@ HttpStorageBackend::get_entry_path(const Digest& key) const
     // Mimic hex representation of a SHA256 hash value.
     const auto sha256_hex_size = 64;
     static_assert(Digest::size() == 20, "Update below if digest size changes");
-    std::string hex_digits = Util::format_base16(key.bytes(), key.size());
+    std::string hex_digits = util::format_base16({key.bytes(), key.size()});
     hex_digits.append(hex_digits.data(), sha256_hex_size - hex_digits.size());
     LOG("Translated key {} to Bazel layout ac/{}", key.to_string(), hex_digits);
     return FMT("{}ac/{}", m_url_path, hex_digits);

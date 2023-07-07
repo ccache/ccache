@@ -226,10 +226,9 @@ CacheEntry::verify_checksum() const
   const auto actual = checksum.digest();
 
   if (actual != m_checksum) {
-    throw core::Error(
-      FMT("Incorrect checksum (actual {}, expected {})",
-          Util::format_base16(actual.data(), actual.size()),
-          Util::format_base16(m_checksum.data(), m_checksum.size())));
+    throw core::Error(FMT("Incorrect checksum (actual {}, expected {})",
+                          util::format_base16(actual),
+                          util::format_base16(m_checksum)));
   }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,7 @@
 
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/string.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -84,7 +85,7 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
   switch (hash_type) {
   case HashType::binary:
     add_debug_text(
-      Util::format_base16(static_cast<const uint8_t*>(data), size));
+      util::format_base16({static_cast<const uint8_t*>(data), size}));
     break;
 
   case HashType::text:

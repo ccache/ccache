@@ -135,14 +135,6 @@ int fallocate(int fd, long new_size);
 // not intended to be machine parsable. `argv` must be terminated by a nullptr.
 std::string format_argv_for_logging(const char* const* argv);
 
-// Format a hexadecimal string representing `size` bytes of `data`. The returned
-// string will be `2 * size` long.
-std::string format_base16(const uint8_t* data, size_t size);
-
-// Format a lowercase base32hex string representing `size` bytes of `data`. No
-// padding characters will be added.
-std::string format_base32hex(const uint8_t* data, size_t size);
-
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.
 std::string get_actual_cwd();

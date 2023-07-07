@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Util.hpp"
+#include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -76,9 +76,9 @@ Digest::to_string() const
   // allow for up to four uniform cache levels. The rest are encoded as
   // lowercase base32hex digits without padding characters.
   const size_t base16_bytes = 2;
-  return Util::format_base16(m_bytes, base16_bytes)
-         + Util::format_base32hex(m_bytes + base16_bytes,
-                                  size() - base16_bytes);
+  return util::format_base16({m_bytes, base16_bytes})
+         + util::format_base32hex(
+           {m_bytes + base16_bytes, size() - base16_bytes});
 }
 
 inline bool

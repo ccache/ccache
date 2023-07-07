@@ -41,6 +41,14 @@ enum class SizeUnitPrefixType { binary, decimal };
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
 
+// Format a hexadecimal string representing `data`. The returned string will be
+// `2 * data.size()` long.
+std::string format_base16(nonstd::span<const uint8_t> data);
+
+// Format a lowercase base32hex string representing `data`. No padding
+// characters will be added.
+std::string format_base32hex(nonstd::span<const uint8_t> data);
+
 // Format `diff` as a human-readable string.
 std::string format_human_readable_diff(int64_t diff,
                                        SizeUnitPrefixType prefix_type);
