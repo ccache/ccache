@@ -22,11 +22,14 @@
 #include <Logging.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
+#include <core/wincompat.hpp> // for timeval
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/string.hpp>
 
-#include <sys/time.h>
+#ifdef HAVE_SYS_UTIME_H
+#  include <sys/utime.h> // for timeval
+#endif
 
 // Ignore "ISO C++ forbids flexible array member ‘buf’" warning from -Wpedantic.
 #ifdef __GNUC__

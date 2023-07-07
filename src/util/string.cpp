@@ -21,10 +21,6 @@
 #include <assertions.hpp>
 #include <fmtmacros.hpp>
 
-extern "C" {
-#include <third_party/base32hex.h>
-}
-
 #include <algorithm>
 #include <cctype>
 #include <iostream>
@@ -36,10 +32,10 @@ format_base16(nonstd::span<const uint8_t> data)
 {
   static const char digits[] = "0123456789abcdef";
   std::string result;
-  result.resize(2 * data.size());
-  for (size_t i = 0; i < data.size(); ++i) {
-    result[i * 2] = digits[data[i] >> 4];
-    result[i * 2 + 1] = digits[data[i] & 0xF];
+  result.reserve(2 * data.size());
+  for (uint8_t b : data) {
+    result += digits[b >> 4];
+    result += digits[b & 0xF];
   }
   return result;
 }
@@ -47,10 +43,24 @@ format_base16(nonstd::span<const uint8_t> data)
 std::string
 format_base32hex(nonstd::span<const uint8_t> data)
 {
-  const size_t bytes_to_reserve = data.size() * 8 / 5 + 1;
-  std::string result(bytes_to_reserve, 0);
-  const size_t actual_size = base32hex(&result[0], data.data(), data.size());
-  result.resize(actual_size);
+  static const char digits[] = "0123456789abcdefghijklmnopqrstuv";
+  std::string result;
+  result.reserve(data.size() * 8 / 5 + 1);
+  uint8_t i = 0;
+  uint16_t bits = 0;
+  for (uint8_t b : data) {
+    bits <<= 8;
+    bits |= b;
+    i += 8;
+    while (i >= 5) {
+      result += digits[(bits >> (i - 5)) & 0x1f];
+      i -= 5;
+    }
+  }
+  if (i > 0) {
+    DEBUG_ASSERT(i < 5);
+    result += digits[(bits << (5 - i)) & 0x1f];
+  }
   return result;
 }
 
