@@ -77,20 +77,10 @@ Hash::hash_delimiter(std::string_view type)
 }
 
 Hash&
-Hash::hash(nonstd::span<const uint8_t> data, HashType hash_type)
+Hash::hash(nonstd::span<const uint8_t> data)
 {
   hash_buffer(data);
-
-  switch (hash_type) {
-  case HashType::binary:
-    add_debug_text(util::format_base16(data));
-    break;
-
-  case HashType::text:
-    add_debug_text(util::to_string_view(data));
-    break;
-  }
-
+  add_debug_text(data);
   add_debug_text("\n");
   return *this;
 }
@@ -98,14 +88,14 @@ Hash::hash(nonstd::span<const uint8_t> data, HashType hash_type)
 Hash&
 Hash::hash(const char* data, size_t size)
 {
-  hash(util::to_span({data, size}), HashType::text);
+  hash(util::to_span({data, size}));
   return *this;
 }
 
 Hash&
 Hash::hash(std::string_view data)
 {
-  hash(util::to_span(data), HashType::text);
+  hash(util::to_span(data));
   return *this;
 }
 
@@ -152,9 +142,15 @@ Hash::hash_buffer(std::string_view buffer)
 }
 
 void
-Hash::add_debug_text(std::string_view text)
+Hash::add_debug_text(nonstd::span<const uint8_t> text)
 {
   if (!text.empty() && m_debug_text) {
-    (void)fwrite(text.data(), 1, text.length(), m_debug_text);
+    (void)fwrite(text.data(), 1, text.size(), m_debug_text);
   }
+}
+
+void
+Hash::add_debug_text(std::string_view text)
+{
+  add_debug_text(util::to_span(text));
 }
