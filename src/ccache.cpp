@@ -54,6 +54,7 @@
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
 #include <storage/Storage.hpp>
+#include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
@@ -2215,7 +2216,7 @@ set_up_uncached_err()
     return nonstd::make_unexpected(Statistic::internal_error);
   }
 
-  Util::setenv("UNCACHED_ERR_FD", FMT("{}", uncached_fd));
+  util::setenv("UNCACHED_ERR_FD", FMT("{}", uncached_fd));
   return {};
 }
 
@@ -2398,7 +2399,7 @@ do_cache_compilation(Context& ctx)
   // calling ccache second time. For instance, if the real compiler is a wrapper
   // script that calls "ccache $compiler ..." we want that inner ccache call to
   // be disabled.
-  Util::setenv("CCACHE_DISABLE", "1");
+  util::setenv("CCACHE_DISABLE", "1");
 
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);
@@ -2413,7 +2414,7 @@ do_cache_compilation(Context& ctx)
   // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
   // directly to Visual Studio.
   if (ctx.config.compiler_type() == CompilerType::msvc) {
-    Util::unsetenv("VS_UNICODE_OUTPUT");
+    util::unsetenv("VS_UNICODE_OUTPUT");
   }
 
   for (const auto& name : {"DEPENDENCIES_OUTPUT", "SUNPRO_DEPENDENCIES"}) {

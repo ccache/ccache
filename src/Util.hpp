@@ -88,10 +88,6 @@ std::string_view dir_name(std::string_view path);
 // Like create_dir but throws Fatal on error.
 void ensure_dir_exists(std::string_view dir);
 
-// Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
-// in `str`. Throws `core::Error` if one of the environment variables.
-[[nodiscard]] std::string expand_environment_variables(const std::string& str);
-
 // Extends file size to at least new_size by calling posix_fallocate() if
 // supported, otherwise by writing zeros last to the file.
 //
@@ -241,9 +237,6 @@ void set_cloexec_flag(int fd);
 // Set process umask. Returns the previous mask.
 mode_t set_umask(mode_t mask);
 
-// Set environment variable `name` to `value`.
-void setenv(const std::string& name, const std::string& value);
-
 // Return size change in KiB between `old_stat`  and `new_stat`.
 inline int64_t
 size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)
@@ -297,9 +290,6 @@ bool unlink_safe(const std::string& path,
 // successful.
 bool unlink_tmp(const std::string& path,
                 UnlinkLog unlink_log = UnlinkLog::log_failure);
-
-// Unset environment variable `name`.
-void unsetenv(const std::string& name);
 
 // Remove `path` (and its contents if it's a directory). A nonexistent path is
 // not considered an error.

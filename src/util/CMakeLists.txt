@@ -6,6 +6,7 @@ set(
   TextTable.cpp
   TimePoint.cpp
   Tokenizer.cpp
+  environment.cpp
   file.cpp
   path.cpp
   string.cpp

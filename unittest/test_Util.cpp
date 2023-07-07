@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/environment.hpp>
 #include <util/file.hpp>
 
 #include "third_party/doctest.h"
@@ -144,29 +145,6 @@ TEST_CASE("Util::ensure_dir_exists")
   CHECK_THROWS_WITH(
     Util::ensure_dir_exists("create/dir/file"),
     "Failed to create directory create/dir/file: Not a directory");
-}
-
-TEST_CASE("Util::expand_environment_variables")
-{
-  Util::setenv("FOO", "bar");
-
-  CHECK(Util::expand_environment_variables("") == "");
-  CHECK(Util::expand_environment_variables("$FOO") == "bar");
-  CHECK(Util::expand_environment_variables("$$FOO") == "$FOO");
-  CHECK(Util::expand_environment_variables("$$$FOO") == "$bar");
-  CHECK(Util::expand_environment_variables("$ $$ $") == "$ $ $");
-  CHECK(Util::expand_environment_variables("$FOO $FOO:$FOO") == "bar bar:bar");
-  CHECK(Util::expand_environment_variables("x$FOO") == "xbar");
-  CHECK(Util::expand_environment_variables("${FOO}x") == "barx");
-
-  DOCTEST_GCC_SUPPRESS_WARNING_PUSH
-  DOCTEST_GCC_SUPPRESS_WARNING("-Wunused-result")
-  CHECK_THROWS_WITH(
-    (void)Util::expand_environment_variables("$surelydoesntexist"),
-    "environment variable \"surelydoesntexist\" not set");
-  CHECK_THROWS_WITH((void)Util::expand_environment_variables("${FOO"),
-                    "syntax error: missing '}' after \"FOO\"");
-  DOCTEST_GCC_SUPPRESS_WARNING_POP
 }
 
 TEST_CASE("Util::fallocate")
@@ -337,7 +315,7 @@ TEST_CASE("Util::make_relative_path")
   REQUIRE(symlink("d", "s") == 0);
 #endif
   REQUIRE(chdir("d") == 0);
-  Util::setenv("PWD", apparent_cwd);
+  util::setenv("PWD", apparent_cwd);
 
   SUBCASE("No base directory")
   {

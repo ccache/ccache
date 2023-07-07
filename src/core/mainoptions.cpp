@@ -44,6 +44,7 @@
 #include <storage/local/LocalStorage.hpp>
 #include <util/TextTable.hpp>
 #include <util/XXH3_128.hpp>
+#include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
@@ -504,11 +505,11 @@ process_main_options(int argc, const char* const* argv)
 
     switch (c) {
     case 'd': // --dir
-      Util::setenv("CCACHE_DIR", arg);
+      util::setenv("CCACHE_DIR", arg);
       break;
 
     case CONFIG_PATH:
-      Util::setenv("CCACHE_CONFIGPATH", arg);
+      util::setenv("CCACHE_CONFIGPATH", arg);
       break;
 
     case RECOMPRESS_THREADS:

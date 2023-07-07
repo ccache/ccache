@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,8 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
+#include <util/environment.hpp>
+
 #include "third_party/fmt/core.h"
 
 #define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug
@@ -30,9 +32,9 @@ int
 main(int argc, char** argv)
 {
 #ifdef _WIN32
-  Util::setenv("CCACHE_DETECT_SHEBANG", "1");
+  util::setenv("CCACHE_DETECT_SHEBANG", "1");
 #endif
-  Util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
+  util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
   std::string dir_before = Util::get_actual_cwd();
   std::string testdir = FMT("testdir/{}", getpid());

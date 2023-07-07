@@ -22,6 +22,7 @@
 #include "TestUtil.hpp"
 
 #include <core/exceptions.hpp>
+#include <util/environment.hpp>
 #include <util/file.hpp>
 
 #include "third_party/doctest.h"
@@ -87,7 +88,7 @@ TEST_CASE("Config::update_from_file")
   TestContext test_context;
 
   const char user[] = "rabbit";
-  Util::setenv("USER", user);
+  util::setenv("USER", user);
 
 #ifndef _WIN32
   std::string base_dir = FMT("/{0}/foo/{0}", user);
@@ -289,13 +290,13 @@ TEST_CASE("Config::update_from_environment")
 {
   Config config;
 
-  Util::setenv("CCACHE_COMPRESS", "1");
+  util::setenv("CCACHE_COMPRESS", "1");
   config.update_from_environment();
   CHECK(config.compression());
 
-  Util::unsetenv("CCACHE_COMPRESS");
+  util::unsetenv("CCACHE_COMPRESS");
 
-  Util::setenv("CCACHE_NOCOMPRESS", "1");
+  util::setenv("CCACHE_NOCOMPRESS", "1");
   config.update_from_environment();
   CHECK(!config.compression());
 }

@@ -23,6 +23,7 @@
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
+#include <util/environment.hpp>
 #include <util/file.hpp>
 
 #include "third_party/doctest.h"
@@ -663,14 +664,14 @@ TEST_CASE("Win32 No Sharing")
 // Instead, test a well-known junction that has existed in all Windows versions
 // since Vista. (Not present on Wine.)
 TEST_CASE("Win32 Directory Junction"
-          * doctest::skip(!win32_is_junction(Util::expand_environment_variables(
+          * doctest::skip(!win32_is_junction(util::expand_environment_variables(
             "${ALLUSERSPROFILE}\\Application Data"))))
 {
   TestContext test_context;
 
   SUBCASE("junction stat")
   {
-    auto stat = Stat::stat(Util::expand_environment_variables(
+    auto stat = Stat::stat(util::expand_environment_variables(
       "${ALLUSERSPROFILE}\\Application Data"));
     CHECK(stat);
     CHECK(stat.error_number() == 0);
@@ -686,7 +687,7 @@ TEST_CASE("Win32 Directory Junction"
 
   SUBCASE("junction lstat")
   {
-    auto stat = Stat::lstat(Util::expand_environment_variables(
+    auto stat = Stat::lstat(util::expand_environment_variables(
       "${ALLUSERSPROFILE}\\Application Data"));
     CHECK(stat);
     CHECK(stat.error_number() == 0);

@@ -429,60 +429,6 @@ dir_name(std::string_view path)
   }
 }
 
-std::string
-expand_environment_variables(const std::string& str)
-{
-  std::string result;
-  const char* left = str.c_str();
-  const char* right = left;
-
-  while (*right) {
-    if (*right == '$') {
-      result.append(left, right - left);
-
-      if (*(right + 1) == '$') {
-        result += '$';
-        right += 2;
-        left = right;
-        continue;
-      }
-
-      left = right + 1;
-      bool curly = *left == '{';
-      if (curly) {
-        ++left;
-      }
-      right = left;
-      while (isalnum(*right) || *right == '_') {
-        ++right;
-      }
-      if (curly && *right != '}') {
-        throw core::Error(FMT("syntax error: missing '}}' after \"{}\"", left));
-      }
-      if (right == left) {
-        // Special case: don't consider a single $ the left of a variable.
-        result += '$';
-        --right;
-      } else {
-        std::string name(left, right - left);
-        const char* value = getenv(name.c_str());
-        if (!value) {
-          throw core::Error(FMT("environment variable \"{}\" not set", name));
-        }
-        result += value;
-        if (!curly) {
-          --right;
-        }
-        left = right + 1;
-      }
-    }
-    ++right;
-  }
-
-  result += left;
-  return result;
-}
-
 int
 fallocate(int fd, long new_size)
 {
@@ -1101,18 +1047,6 @@ set_umask(mode_t mask)
   return umask(mask);
 }
 
-void
-setenv(const std::string& name, const std::string& value)
-{
-#ifdef HAVE_SETENV
-  ::setenv(name.c_str(), value.c_str(), true);
-#else
-  char* string;
-  asprintf(&string, "%s=%s", name.c_str(), value.c_str());
-  putenv(string); // Leak to environment.
-#endif
-}
-
 std::vector<std::string_view>
 split_into_views(std::string_view string,
                  const char* separators,
@@ -1291,18 +1225,6 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
 
   errno = saved_errno;
   return success;
-}
-
-void
-unsetenv(const std::string& name)
-{
-#ifdef HAVE_UNSETENV
-  ::unsetenv(name.c_str());
-#elif defined(_WIN32)
-  SetEnvironmentVariable(name.c_str(), NULL);
-#else
-  putenv(strdup(name.c_str())); // Leak to environment.
-#endif
 }
 
 void

@@ -29,6 +29,7 @@
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Tokenizer.hpp>
+#include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
@@ -934,7 +935,7 @@ Config::set_item(const std::string& key,
     return;
   }
 
-  std::string value = Util::expand_environment_variables(unexpanded_value);
+  std::string value = util::expand_environment_variables(unexpanded_value);
 
   switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
