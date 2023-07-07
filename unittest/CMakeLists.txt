@@ -29,6 +29,7 @@ set(
   test_util_Tokenizer.cpp
   test_util_XXH3_128.cpp
   test_util_XXH3_64.cpp
+  test_util_conversion.cpp
   test_util_expected.cpp
   test_util_file.cpp
   test_util_path.cpp

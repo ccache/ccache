@@ -19,6 +19,7 @@
 #pragma once
 
 #include <util/Bytes.hpp>
+#include <util/conversion.hpp>
 
 #include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
@@ -150,19 +151,6 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
-// Convert `data` to a `nonstd::span<const uint8_t>`.
-nonstd::span<const uint8_t> to_span(const void* data, size_t size);
-
-// Convert `value` to a `nonstd::span<const uint8_t>`.
-nonstd::span<const uint8_t> to_span(std::string_view value);
-
-// Convert `value` to a string. This function is used when joining
-// `std::string`s with `util::join`.
-template<typename T> std::string to_string(const T& value);
-
-// Convert `data` to a `std::string_view`.
-std::string_view to_string_view(nonstd::span<const uint8_t> data);
-
 // --- Inline implementations ---
 
 inline bool
@@ -205,61 +193,6 @@ inline bool
 starts_with(const std::string_view string, const std::string_view prefix)
 {
   return string.substr(0, prefix.size()) == prefix;
-}
-
-inline nonstd::span<const uint8_t>
-to_span(const void* data, size_t size)
-{
-  return {reinterpret_cast<const uint8_t*>(data), size};
-}
-
-inline nonstd::span<const uint8_t>
-to_span(std::string_view data)
-{
-  return to_span(data.data(), data.size());
-}
-
-template<typename T>
-inline std::string
-to_string(const T& t)
-{
-  using std::to_string;
-  return to_string(std::forward<T>(t));
-}
-
-template<>
-inline std::string
-to_string(const std::string& string)
-{
-  return std::string(string);
-}
-
-template<>
-inline std::string
-to_string(const std::string_view& sv)
-{
-  return std::string(sv);
-}
-
-template<>
-inline std::string
-to_string(const nonstd::span<const uint8_t>& bytes)
-{
-  return std::string(to_string_view(bytes));
-}
-
-template<>
-inline std::string
-to_string(const util::Bytes& bytes)
-{
-  return std::string(to_string_view(bytes));
-}
-
-inline std::string_view
-to_string_view(nonstd::span<const uint8_t> data)
-{
-  return std::string_view(reinterpret_cast<const char*>(data.data()),
-                          data.size());
 }
 
 } // namespace util
