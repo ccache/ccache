@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,6 +25,7 @@
 
 #include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
+#include <util/file.hpp>
 
 #include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
 
@@ -76,7 +77,7 @@ MiniTrace::~MiniTrace()
   mtr_shutdown();
 
   if (!m_args_info.output_obj.empty()) {
-    Util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
+    util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
   }
   Util::unlink_tmp(m_tmp_trace_file);
 }

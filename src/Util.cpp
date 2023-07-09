@@ -223,49 +223,6 @@ common_dir_prefix_length(std::string_view dir, std::string_view path)
   return i;
 }
 
-void
-copy_fd(int fd_in, int fd_out)
-{
-  util::read_fd(fd_in, [=](nonstd::span<const uint8_t> data) {
-    util::write_fd(fd_out, data.data(), data.size());
-  });
-}
-
-void
-copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
-{
-  Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
-  if (!src_fd) {
-    throw core::Error(
-      FMT("Failed to open {} for reading: {}", src, strerror(errno)));
-  }
-
-  unlink(dest.c_str());
-
-  Fd dest_fd;
-  std::string tmp_file;
-  if (via_tmp_file) {
-    TemporaryFile temp_file(dest);
-    dest_fd = std::move(temp_file.fd);
-    tmp_file = temp_file.path;
-  } else {
-    dest_fd =
-      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-    if (!dest_fd) {
-      throw core::Error(
-        FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
-    }
-  }
-
-  copy_fd(*src_fd, *dest_fd);
-  dest_fd.close();
-  src_fd.close();
-
-  if (via_tmp_file) {
-    Util::rename(tmp_file, dest);
-  }
-}
-
 bool
 create_dir(std::string_view dir)
 {

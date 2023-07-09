@@ -36,6 +36,14 @@ namespace util {
 // --- Interface ---
 
 enum class InPlace { yes, no };
+enum class ViaTmpFile { yes, no };
+
+// Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
+// to a temporary file and then renamed to dest.
+nonstd::expected<void, std::string>
+copy_file(const std::string& src,
+          const std::string& dest,
+          ViaTmpFile via_tmp_file = ViaTmpFile::no);
 
 void create_cachedir_tag(const std::string& dir);
 

@@ -53,15 +53,6 @@ std::string change_extension(std::string_view path, std::string_view new_ext);
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(std::string_view dir, std::string_view path);
 
-// Copy all data from `fd_in` to `fd_out`. Throws `core::Error` on error.
-void copy_fd(int fd_in, int fd_out);
-
-// Copy a file from `src` to `dest`. If via_tmp_file is true, `src` is copied to
-// a temporary file and then renamed to dest. Throws `core::Error` on error.
-void copy_file(const std::string& src,
-               const std::string& dest,
-               bool via_tmp_file = false);
-
 // Create a directory if needed, including its parents if needed.
 //
 // Returns true if the directory exists or could be created, otherwise false.

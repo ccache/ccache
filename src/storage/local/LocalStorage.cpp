@@ -654,7 +654,8 @@ LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
   }
 
   LOG("Copying {} to {}", source, dest);
-  Util::copy_file(source, dest, via_tmp_file);
+  util::copy_file(
+    source, dest, via_tmp_file ? util::ViaTmpFile::yes : util::ViaTmpFile::no);
 }
 
 void

@@ -21,9 +21,12 @@
 #include <Fd.hpp>
 #include <Logging.hpp>
 #include <Stat.hpp>
+#include <TemporaryFile.hpp>
+#include <Util.hpp>
 #include <Win32Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/expected.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -55,6 +58,47 @@
 #include <vector>
 
 namespace util {
+
+nonstd::expected<void, std::string>
+copy_file(const std::string& src,
+          const std::string& dest,
+          ViaTmpFile via_tmp_file)
+{
+  Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
+  if (!src_fd) {
+    return nonstd::make_unexpected(
+      FMT("Failed to open {} for reading: {}", src, strerror(errno)));
+  }
+
+  unlink(dest.c_str());
+
+  Fd dest_fd;
+  std::string tmp_file;
+  if (via_tmp_file == ViaTmpFile::yes) {
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = temp_file.path;
+  } else {
+    dest_fd =
+      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
+      return nonstd::make_unexpected(
+        FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
+    }
+  }
+  TRY(util::read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
+    util::write_fd(*dest_fd, data.data(), data.size());
+  }));
+
+  dest_fd.close();
+  src_fd.close();
+
+  if (via_tmp_file == ViaTmpFile::yes) {
+    Util::rename(tmp_file, dest);
+  }
+
+  return {};
+}
 
 void
 create_cachedir_tag(const std::string& dir)
