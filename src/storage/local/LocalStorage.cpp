@@ -77,10 +77,13 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
+#include <filesystem>
 #include <memory>
 #include <numeric>
 #include <string>
 #include <utility>
+
+namespace fs = std::filesystem;
 
 using core::Statistic;
 using core::StatisticsCounters;
@@ -638,19 +641,24 @@ LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
 #endif
   }
   if (m_config.hard_link()) {
+    // Assumption: dest may already exist as a left-over file from a previous
+    // run, but it's only we who can create the file entry now so we don't try
+    // to handle a race between remove() and create_hard_link() below.
+
+    std::error_code ec;
+    fs::remove(dest, ec); // Ignore any error.
     LOG("Hard linking {} to {}", source, dest);
-    try {
-      Util::hard_link(source, dest);
+    fs::create_hard_link(source, dest, ec);
+    if (!ec) {
 #ifndef _WIN32
       if (chmod(dest.c_str(), 0444 & ~Util::get_umask()) != 0) {
         LOG("Failed to chmod {}: {}", dest.c_str(), strerror(errno));
       }
 #endif
       return;
-    } catch (const core::Error& e) {
-      LOG("Failed to hard link {} to {}: {}", source, dest, e.what());
-      // Fall back to copying.
     }
+    LOG("Failed to hard link {} to {}: {}", source, dest, ec.message());
+    // Fall back to copying.
   }
 
   LOG("Copying {} to {}", source, dest);

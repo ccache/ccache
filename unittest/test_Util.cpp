@@ -231,31 +231,6 @@ TEST_CASE("Util::get_relative_path")
 #endif
 }
 
-TEST_CASE("Util::hard_link")
-{
-  TestContext test_context;
-
-  SUBCASE("Link file to nonexistent destination")
-  {
-    util::write_file("old", "content");
-    CHECK_NOTHROW(Util::hard_link("old", "new"));
-    CHECK(*util::read_file<std::string>("new") == "content");
-  }
-
-  SUBCASE("Link file to existing destination")
-  {
-    util::write_file("old", "content");
-    util::write_file("new", "other content");
-    CHECK_NOTHROW(Util::hard_link("old", "new"));
-    CHECK(*util::read_file<std::string>("new") == "content");
-  }
-
-  SUBCASE("Link nonexistent file")
-  {
-    CHECK_THROWS_AS(Util::hard_link("old", "new"), core::Error);
-  }
-}
-
 TEST_CASE("Util::is_absolute_path_with_prefix")
 {
   CHECK(*Util::is_absolute_path_with_prefix("-I/c/foo") == 2);

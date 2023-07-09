@@ -491,25 +491,6 @@ get_umask()
   return g_umask;
 }
 
-void
-hard_link(const std::string& oldpath, const std::string& newpath)
-{
-  // Assumption: newpath may already exist as a left-over file from a previous
-  // run, but it's only we who can create the file entry now so we don't try to
-  // handle a race between unlink() and link() below.
-  unlink(newpath.c_str());
-
-#ifndef _WIN32
-  if (link(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw core::Error(strerror(errno));
-  }
-#else
-  if (!CreateHardLink(newpath.c_str(), oldpath.c_str(), nullptr)) {
-    throw core::Error(Win32Util::error_message(GetLastError()));
-  }
-#endif
-}
-
 std::optional<size_t>
 is_absolute_path_with_prefix(std::string_view path)
 {
