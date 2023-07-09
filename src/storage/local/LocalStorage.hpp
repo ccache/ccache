@@ -84,6 +84,13 @@ public:
   put_raw_files(const Hash::Digest& key,
                 const std::vector<core::Result::Serializer::RawFile> raw_files);
 
+  // Clone, hard link or copy a file from `source` to `dest` depending on
+  // settings in `ctx`. If cloning or hard linking cannot and should not be done
+  // the file will be copied instead. Throws `core::Error` on error.
+  void clone_hard_link_or_copy_file(const std::string& source,
+                                    const std::string& dest,
+                                    bool via_tmp_file = false) const;
+
   // --- Statistics ---
 
   void increment_statistic(core::Statistic statistic, int64_t value = 1);

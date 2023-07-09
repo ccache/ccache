@@ -115,8 +115,8 @@ ResultRetriever::on_raw_file(uint8_t file_number,
   const auto dest_path = get_dest_path(file_type);
   if (!dest_path.empty()) {
     try {
-      Util::clone_hard_link_or_copy_file(
-        m_ctx.config, raw_file_path, dest_path, false);
+      m_ctx.storage.local.clone_hard_link_or_copy_file(
+        raw_file_path, dest_path, false);
     } catch (core::Error& e) {
       throw WriteError(FMT("Failed to clone/link/copy {} to {}: {}",
                            raw_file_path,

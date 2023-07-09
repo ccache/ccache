@@ -49,21 +49,6 @@ std::string_view base_name(std::string_view path);
 // should start with a dot, no extra dot is inserted.
 std::string change_extension(std::string_view path, std::string_view new_ext);
 
-// Clone a file from `src` to `dest`. If `via_tmp_file` is true, `src` is cloned
-// to a temporary file and then renamed to `dest`. Throws `core::Error` on
-// error.
-void clone_file(const std::string& src,
-                const std::string& dest,
-                bool via_tmp_file = false);
-
-// Clone, hard link or copy a file from `source` to `dest` depending on settings
-// in `ctx`. If cloning or hard linking cannot and should not be done the file
-// will be copied instead. Throws `core::Error` on error.
-void clone_hard_link_or_copy_file(const Config& config,
-                                  const std::string& source,
-                                  const std::string& dest,
-                                  bool via_tmp_file = false);
-
 // Compute the length of the longest directory path that is common to paths
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(std::string_view dir, std::string_view path);

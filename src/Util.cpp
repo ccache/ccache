@@ -51,28 +51,6 @@
 #  include <pwd.h>
 #endif
 
-#ifdef __linux__
-#  ifdef HAVE_SYS_IOCTL_H
-#    include <sys/ioctl.h>
-#  endif
-#  ifdef HAVE_LINUX_FS_H
-#    include <linux/fs.h>
-#    ifndef FICLONE
-#      define FICLONE _IOW(0x94, 9, int)
-#    endif
-#    define FILE_CLONING_SUPPORTED 1
-#  endif
-#endif
-
-#ifdef __APPLE__
-#  ifdef HAVE_SYS_CLONEFILE_H
-#    include <sys/clonefile.h>
-#    ifdef CLONE_NOOWNERCOPY
-#      define FILE_CLONING_SUPPORTED 1
-#    endif
-#  endif
-#endif
-
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace {
@@ -213,93 +191,6 @@ change_extension(std::string_view path, std::string_view new_ext)
 {
   std::string_view without_ext = Util::remove_extension(path);
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
-}
-
-#ifdef FILE_CLONING_SUPPORTED
-void
-clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
-{
-#  if defined(__linux__)
-  Fd src_fd(open(src.c_str(), O_RDONLY));
-  if (!src_fd) {
-    throw core::Error(FMT("{}: {}", src, strerror(errno)));
-  }
-
-  Fd dest_fd;
-  std::string tmp_file;
-  if (via_tmp_file) {
-    TemporaryFile temp_file(dest);
-    dest_fd = std::move(temp_file.fd);
-    tmp_file = temp_file.path;
-  } else {
-    dest_fd =
-      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-    if (!dest_fd) {
-      throw core::Error(FMT("{}: {}", src, strerror(errno)));
-    }
-  }
-
-  if (ioctl(*dest_fd, FICLONE, *src_fd) != 0) {
-    throw core::Error(strerror(errno));
-  }
-
-  dest_fd.close();
-  src_fd.close();
-
-  if (via_tmp_file) {
-    Util::rename(tmp_file, dest);
-  }
-#  elif defined(__APPLE__)
-  (void)via_tmp_file;
-  if (clonefile(src.c_str(), dest.c_str(), CLONE_NOOWNERCOPY) != 0) {
-    throw core::Error(strerror(errno));
-  }
-#  else
-  (void)src;
-  (void)dest;
-  (void)via_tmp_file;
-  throw core::Error(strerror(EOPNOTSUPP));
-#  endif
-}
-#endif // FILE_CLONING_SUPPORTED
-
-void
-clone_hard_link_or_copy_file(const Config& config,
-                             const std::string& source,
-                             const std::string& dest,
-                             bool via_tmp_file)
-{
-  if (config.file_clone()) {
-#ifdef FILE_CLONING_SUPPORTED
-    LOG("Cloning {} to {}", source, dest);
-    try {
-      clone_file(source, dest, via_tmp_file);
-      return;
-    } catch (core::Error& e) {
-      LOG("Failed to clone: {}", e.what());
-    }
-#else
-    LOG("Not cloning {} to {} since it's unsupported", source, dest);
-#endif
-  }
-  if (config.hard_link()) {
-    LOG("Hard linking {} to {}", source, dest);
-    try {
-      Util::hard_link(source, dest);
-#ifndef _WIN32
-      if (chmod(dest.c_str(), 0444 & ~Util::get_umask()) != 0) {
-        LOG("Failed to chmod {}: {}", dest.c_str(), strerror(errno));
-      }
-#endif
-      return;
-    } catch (const core::Error& e) {
-      LOG("Failed to hard link {} to {}: {}", source, dest, e.what());
-      // Fall back to copying.
-    }
-  }
-
-  LOG("Copying {} to {}", source, dest);
-  copy_file(source, dest, via_tmp_file);
 }
 
 size_t
