@@ -18,7 +18,6 @@
 
 #include "environment.hpp"
 
-#include <Win32Util.hpp> // for asprintf
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -85,9 +84,8 @@ setenv(const std::string& name, const std::string& value)
 #ifdef HAVE_SETENV
   ::setenv(name.c_str(), value.c_str(), true);
 #else
-  char* string;
-  asprintf(&string, "%s=%s", name.c_str(), value.c_str());
-  putenv(string); // Leak to environment.
+  auto string = FMT("{}={}", name, value);
+  putenv(strdup(string.c_str())); // Leak to environment.
 #endif
 }
 
