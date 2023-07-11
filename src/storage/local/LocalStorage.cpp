@@ -258,7 +258,11 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   src_fd.close();
 
   if (via_tmp_file) {
-    Util::rename(tmp_file, dest);
+    const auto result = util::rename(tmp_file, dest);
+    if (!result) {
+      throw core::Error(
+        FMT("failed to rename {} to {}: {}", tmp_file, dest, result.error()));
+    }
   }
 #  elif defined(__APPLE__)
   (void)via_tmp_file;
@@ -1024,22 +1028,15 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     wanted_level, util::format_digest(key) + suffix_from_type(type));
   if (cache_file_path != wanted_path) {
     Util::ensure_dir_exists(Util::dir_name(wanted_path));
+
+    // Note: Two ccache processes may move the file at the same time, so failure
+    // to rename is OK.
     LOG("Moving {} to {}", cache_file_path, wanted_path);
-    try {
-      Util::rename(cache_file_path, wanted_path);
-    } catch (const core::Error&) {
-      // Two ccache processes may move the file at the same time, so failure
-      // to rename is OK.
-    }
+    util::rename(cache_file_path, wanted_path);
     for (const auto& raw_file : m_added_raw_files) {
-      try {
-        Util::rename(
-          raw_file,
-          FMT("{}/{}", Util::dir_name(wanted_path), Util::base_name(raw_file)));
-      } catch (const core::Error&) {
-        // Two ccache processes may move the file at the same time, so failure
-        // to rename is OK.
-      }
+      util::rename(
+        raw_file,
+        FMT("{}/{}", Util::dir_name(wanted_path), Util::base_name(raw_file)));
     }
   }
 }

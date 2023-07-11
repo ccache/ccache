@@ -77,6 +77,14 @@ template<typename T>
 nonstd::expected<T, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
+// Rename `oldpath` to `newpath` (deleting `newpath`).
+//
+// Note: Mingw-w64's std::filesystem::rename is buggy and doesn't properly
+// overwrite an existing file, at least in version 9.1.0, hence this utility
+// function.
+nonstd::expected<void, std::string> rename(const std::string& oldpath,
+                                           const std::string& newpath);
+
 // Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
 // time. If `atime` is std::nullopt, set to what `mtime` specifies.
 void set_timestamps(const std::string& path,

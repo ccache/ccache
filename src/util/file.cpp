@@ -22,11 +22,11 @@
 #include <Logging.hpp>
 #include <Stat.hpp>
 #include <TemporaryFile.hpp>
-#include <Util.hpp>
 #include <Win32Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -94,7 +94,11 @@ copy_file(const std::string& src,
   src_fd.close();
 
   if (via_tmp_file == ViaTmpFile::yes) {
-    Util::rename(tmp_file, dest);
+    const auto result = util::rename(tmp_file, dest);
+    if (!result) {
+      return nonstd::make_unexpected(
+        FMT("Failed to rename {} to {}: {}", tmp_file, dest, result.error()));
+    }
   }
 
   return {};
@@ -309,6 +313,25 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 
 template nonstd::expected<std::vector<uint8_t>, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
+
+nonstd::expected<void, std::string>
+rename(const std::string& oldpath, const std::string& newpath)
+{
+#ifndef _WIN32
+  if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
+    return nonstd::make_unexpected(strerror(errno));
+  }
+#else
+  // Windows' rename() won't overwrite an existing file, so need to use
+  // MoveFileEx instead.
+  if (!MoveFileExA(
+        oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
+    DWORD error = GetLastError();
+    return nonstd::make_unexpected(Win32Util::error_message(error));
+  }
+#endif
+  return {};
+}
 
 void
 set_timestamps(const std::string& path,

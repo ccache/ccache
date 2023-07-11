@@ -785,28 +785,6 @@ remove_extension(std::string_view path)
 }
 
 void
-rename(const std::string& oldpath, const std::string& newpath)
-{
-#ifndef _WIN32
-  if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw core::Error(
-      FMT("failed to rename {} to {}: {}", oldpath, newpath, strerror(errno)));
-  }
-#else
-  // Windows' rename() won't overwrite an existing file, so need to use
-  // MoveFileEx instead.
-  if (!MoveFileExA(
-        oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
-    DWORD error = GetLastError();
-    throw core::Error(FMT("failed to rename {} to {}: {}",
-                          oldpath,
-                          newpath,
-                          Win32Util::error_message(error)));
-  }
-#endif
-}
-
-void
 send_to_fd(const Context& ctx, std::string_view text, int fd)
 {
   std::string_view text_to_send = text;
@@ -998,9 +976,8 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
     FMT("{}.ccache{}unlink", path, TemporaryFile::tmp_file_infix);
 
   bool success = true;
-  try {
-    Util::rename(path, tmp_name);
-  } catch (core::Error&) {
+  const auto result = util::rename(path, tmp_name);
+  if (!result) {
     success = false;
     saved_errno = errno;
   }

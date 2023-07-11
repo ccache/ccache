@@ -189,10 +189,6 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 std::string_view remove_extension(std::string_view path);
 
-// Rename `oldpath` to `newpath` (deleting `newpath`). Throws `core::Error` on
-// error.
-void rename(const std::string& oldpath, const std::string& newpath);
-
 // Send `text` to file descriptor `fd`, optionally stripping ANSI color
 // sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
 // paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws

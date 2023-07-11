@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,7 @@
 
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/file.hpp>
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
@@ -72,12 +73,16 @@ void
 AtomicFile::commit()
 {
   ASSERT(m_stream);
-  int result = fclose(m_stream);
+  int retcode = fclose(m_stream);
   m_stream = nullptr;
-  if (result == EOF) {
+  if (retcode == EOF) {
     Util::unlink_tmp(m_tmp_path);
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
-  Util::rename(m_tmp_path, m_path);
+  const auto result = util::rename(m_tmp_path, m_path);
+  if (!result) {
+    throw core::Error(
+      FMT("failed to rename {} to {}: {}", m_tmp_path, m_path, result.error()));
+  }
 }
