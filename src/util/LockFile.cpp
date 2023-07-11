@@ -44,6 +44,8 @@ const double k_max_sleep_time = 0.050;
 const util::Duration k_staleness_limit(2);
 #endif
 
+namespace fs = std::filesystem;
+
 namespace {
 
 class RandomNumberGenerator
@@ -260,14 +262,15 @@ LockFile::do_acquire(const bool blocking)
       return false;
     }
 
-    std::string content = Util::read_link(m_lock_file);
-    if (content.empty()) {
-      if (errno == ENOENT) {
+    std::error_code ec;
+    std::string content = fs::read_symlink(m_lock_file, ec);
+    if (ec) {
+      if (ec == std::errc::no_such_file_or_directory) {
         // The symlink was removed after the symlink() call above, so retry
         // acquiring it.
         continue;
       } else {
-        LOG("Could not read symlink {}: {}", m_lock_file, strerror(errno));
+        LOG("Could not read symlink {}: {}", m_lock_file, ec.message());
         return false;
       }
     }

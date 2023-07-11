@@ -64,6 +64,7 @@
 
 #include <fcntl.h>
 
+#include <filesystem>
 #include <optional>
 #include <string_view>
 
@@ -77,6 +78,8 @@
 #include <limits>
 #include <memory>
 #include <unordered_map>
+
+namespace fs = std::filesystem;
 
 using core::Statistic;
 
@@ -241,15 +244,17 @@ guess_compiler(std::string_view path)
   // Follow symlinks to the real compiler to learn its name. We're not using
   // Util::real_path in order to save some unnecessary stat calls.
   while (true) {
-    std::string symlink_value = Util::read_link(compiler_path);
-    if (symlink_value.empty()) {
+    std::error_code ec;
+    auto symlink_target = fs::read_symlink(compiler_path, ec);
+    if (ec) {
+      // Not a symlink.
       break;
     }
-    if (util::is_absolute_path(symlink_value)) {
-      compiler_path = symlink_value;
+    if (symlink_target.is_absolute()) {
+      compiler_path = symlink_target;
     } else {
       compiler_path =
-        FMT("{}/{}", Util::dir_name(compiler_path), symlink_value);
+        FMT("{}/{}", Util::dir_name(compiler_path), symlink_target.string());
     }
   }
 #endif

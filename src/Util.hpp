@@ -179,11 +179,6 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 // into seconds. Throws `core::Error` on error.
 uint64_t parse_duration(std::string_view duration);
 
-#ifndef _WIN32
-// Like readlink(2) but returns the string (or the empty string on failure).
-std::string read_link(const std::string& path);
-#endif
-
 // Return a normalized absolute path of `path`. On error (e.g. if the `path`
 // doesn't exist) the empty string is returned if return_empty_on_error is true,
 // otherwise `path` unmodified.
