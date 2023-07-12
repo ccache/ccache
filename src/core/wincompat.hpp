@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,10 +25,6 @@
 #  define STDIN_FILENO 0
 #  define STDOUT_FILENO 1
 #  define STDERR_FILENO 2
-
-#  ifdef _MSC_VER
-#    define PATH_MAX MAX_PATH
-#  endif // _MSC_VER
 
 // From:
 // http://mesos.apache.org/api/latest/c++/3rdparty_2stout_2include_2stout_2windows_8hpp_source.html
@@ -89,10 +85,6 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 
 // Protect against incidental use of MinGW execv.
 #  define execv(a, b) do_not_call_execv_on_windows
-
-#  ifdef _MSC_VER
-#    define PATH_MAX MAX_PATH
-#  endif
 
 #  ifdef _MSC_VER
 #    define DLLIMPORT __declspec(dllimport)

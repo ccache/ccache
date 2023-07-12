@@ -35,8 +35,6 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 
-#include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
-
 #ifdef HAVE_DIRENT_H
 #  include <dirent.h>
 #endif
@@ -330,18 +328,12 @@ ensure_dir_exists(std::string_view dir)
 std::string
 get_actual_cwd()
 {
-  char buffer[PATH_MAX];
-  if (getcwd(buffer, sizeof(buffer))) {
-#ifndef _WIN32
-    return buffer;
-#else
-    std::string cwd = buffer;
-    std::replace(cwd.begin(), cwd.end(), '\\', '/');
-    return cwd;
+  std::error_code ec;
+  auto cwd = fs::current_path(ec).string();
+#ifdef _WIN32
+  std::replace(cwd.begin(), cwd.end(), '\\', '/');
 #endif
-  } else {
-    return {};
-  }
+  return cwd;
 }
 
 std::string
