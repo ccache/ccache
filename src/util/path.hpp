@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -37,6 +37,10 @@ bool is_full_path(std::string_view path);
 // Return whether `path` starts with `prefix` considering path specifics on
 // Windows
 bool path_starts_with(std::string_view path, std::string_view prefix);
+
+// Return a normalized absolute path of `path`. On error (e.g. if the `path`
+// doesn't exist) path is returned unmodified.
+std::string real_path(std::string_view path);
 
 // Split a list of paths (such as the content of $PATH on Unix platforms or
 // %PATH% on Windows platforms) into paths.

@@ -96,21 +96,6 @@ find_first_ansi_csi_seq(std::string_view string)
   }
 }
 
-size_t
-path_max(const std::string& path)
-{
-#ifdef PATH_MAX
-  (void)path;
-  return PATH_MAX;
-#elif defined(MAXPATHLEN)
-  (void)path;
-  return MAXPATHLEN;
-#elif defined(_PC_PATH_MAX)
-  long maxlen = pathconf(path.c_str(), _PC_PATH_MAX);
-  return maxlen >= 4096 ? maxlen : 4096;
-#endif
-}
-
 template<typename T>
 std::vector<T>
 split_into(std::string_view string,
@@ -159,7 +144,7 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
     } else {
       std::string path(line.substr(0, path_end));
       if (Stat::stat(path)) {
-        result += Util::real_path(path);
+        result += util::real_path(path);
         auto tail = line.substr(path_end);
         result.append(tail.data(), tail.length());
       } else {
@@ -582,7 +567,7 @@ make_relative_path(const std::string& base_dir,
     path = Util::dir_name(path);
   }
   const auto path_suffix = std::string(original_path.substr(path.length()));
-  const auto real_path = Util::real_path(std::string(path));
+  const auto real_path = util::real_path(path);
 
   const auto add_relpath_candidates = [&](auto p) {
     const std::string normalized_path =
@@ -735,47 +720,6 @@ parse_duration(std::string_view duration)
   } else {
     throw core::Error(value.error());
   }
-}
-
-std::string
-real_path(const std::string& path, bool return_empty_on_error)
-{
-  size_t buffer_size = path_max(path);
-  std::unique_ptr<char[]> managed_buffer(new char[buffer_size]);
-  char* buffer = managed_buffer.get();
-  char* resolved = nullptr;
-
-#ifdef HAVE_REALPATH
-  resolved = realpath(path.c_str(), buffer);
-#elif defined(_WIN32)
-  const char* c_path = path.c_str();
-  if (c_path[0] == '/') {
-    c_path++; // Skip leading slash.
-  }
-  HANDLE path_handle = CreateFile(c_path,
-                                  GENERIC_READ,
-                                  FILE_SHARE_READ,
-                                  nullptr,
-                                  OPEN_EXISTING,
-                                  FILE_ATTRIBUTE_NORMAL,
-                                  nullptr);
-  if (INVALID_HANDLE_VALUE != path_handle) {
-    bool ok = GetFinalPathNameByHandle(
-      path_handle, buffer, buffer_size, FILE_NAME_NORMALIZED);
-    CloseHandle(path_handle);
-    if (!ok) {
-      return path;
-    }
-    resolved = buffer + 4; // Strip \\?\ from the file name.
-  } else {
-    snprintf(buffer, buffer_size, "%s", c_path);
-    resolved = buffer;
-  }
-#else
-#  error No realpath function available
-#endif
-
-  return resolved ? resolved : (return_empty_on_error ? "" : path);
 }
 
 std::string_view

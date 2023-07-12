@@ -242,7 +242,7 @@ guess_compiler(std::string_view path)
 
 #ifndef _WIN32
   // Follow symlinks to the real compiler to learn its name. We're not using
-  // Util::real_path in order to save some unnecessary stat calls.
+  // util::real_path in order to save some unnecessary stat calls.
   while (true) {
     std::error_code ec;
     auto symlink_target = fs::read_symlink(compiler_path, ec);
@@ -1523,8 +1523,7 @@ hash_common_info(const Context& ctx,
     if (!ctx.args_info.profile_path.empty()) {
       dir = ctx.args_info.profile_path;
     } else {
-      dir =
-        Util::real_path(std::string(Util::dir_name(ctx.args_info.output_obj)));
+      dir = util::real_path(Util::dir_name(ctx.args_info.output_obj));
     }
     std::string_view stem =
       Util::remove_extension(Util::base_name(ctx.args_info.output_obj));

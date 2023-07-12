@@ -869,7 +869,7 @@ Config::set_value_in_file(const std::string& path,
   Config dummy_config;
   dummy_config.set_item(key, value, std::nullopt, false, "");
 
-  const auto resolved_path = Util::real_path(path);
+  const auto resolved_path = util::real_path(path);
   const auto st = Stat::stat(resolved_path);
   if (!st) {
     Util::ensure_dir_exists(Util::dir_name(resolved_path));

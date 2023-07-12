@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,6 +28,8 @@ const char k_path_delimiter[] = ";";
 const char k_dev_null_path[] = "/dev/null";
 const char k_path_delimiter[] = ":";
 #endif
+
+namespace fs = std::filesystem;
 
 namespace util {
 
@@ -83,6 +85,14 @@ path_starts_with(std::string_view path, std::string_view prefix)
 #endif
   }
   return true;
+}
+
+std::string
+real_path(std::string_view path)
+{
+  std::error_code ec;
+  auto real_path = fs::canonical(path, ec).string();
+  return ec ? std::string(path) : real_path;
 }
 
 std::vector<std::string>

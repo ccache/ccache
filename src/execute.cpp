@@ -367,7 +367,7 @@ find_executable_in_path(const std::string& name,
   }
 
   const auto real_exclude_path =
-    exclude_path ? Util::real_path(*exclude_path) : "";
+    exclude_path ? util::real_path(*exclude_path) : "";
 
   // Search the path list looking for the first compiler of the right name that
   // isn't us.
@@ -396,7 +396,7 @@ find_executable_in_path(const std::string& name,
         access(candidate.c_str(), X_OK) == 0;
 #endif
       if (candidate_exists) {
-        const auto real_candidate = Util::real_path(candidate);
+        const auto real_candidate = util::real_path(candidate);
         if ((real_exclude_path.empty() || real_candidate != real_exclude_path)
             && !Util::is_ccache_executable(real_candidate)) {
           return candidate;

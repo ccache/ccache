@@ -179,12 +179,6 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 // into seconds. Throws `core::Error` on error.
 uint64_t parse_duration(std::string_view duration);
 
-// Return a normalized absolute path of `path`. On error (e.g. if the `path`
-// doesn't exist) the empty string is returned if return_empty_on_error is true,
-// otherwise `path` unmodified.
-std::string real_path(const std::string& path,
-                      bool return_empty_on_error = false);
-
 // Return a view into `path` containing the given path without the filename
 // extension as determined by `get_extension()`.
 std::string_view remove_extension(std::string_view path);

@@ -473,9 +473,13 @@ TEST() {
     remove_cache
     rm -rf $ABS_TESTDIR/run $ABS_TESTDIR/run.real
 
-    # Verify that tests behave well when apparent CWD != actual CWD.
-    mkdir $ABS_TESTDIR/run.real
-    ln -s run.real $ABS_TESTDIR/run
+    if $HOST_OS_WINDOWS; then
+        mkdir $ABS_TESTDIR/run
+    else
+       # Verify that tests behave well when apparent CWD != actual CWD.
+       mkdir $ABS_TESTDIR/run.real
+       ln -s run.real $ABS_TESTDIR/run
+    fi
 
     cd $ABS_TESTDIR/run
     if type SUITE_${suite_name}_SETUP >/dev/null 2>&1; then
