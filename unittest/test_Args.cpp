@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -381,6 +381,9 @@ TEST_CASE("Args operations")
 
   SUBCASE("pop_back")
   {
+    args.pop_back(0);
+    CHECK(args == Args::from_string("eeny meeny miny moe"));
+
     args.pop_back();
     CHECK(args == Args::from_string("eeny meeny miny"));
 
@@ -390,6 +393,9 @@ TEST_CASE("Args operations")
 
   SUBCASE("pop_front")
   {
+    args.pop_front(0);
+    CHECK(args == Args::from_string("eeny meeny miny moe"));
+
     args.pop_front();
     CHECK(args == Args::from_string("meeny miny moe"));
 

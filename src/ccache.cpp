@@ -2047,7 +2047,7 @@ calculate_result_and_manifest_key(Context& ctx,
     preprocessor_args->push_back("-arch");
     for (size_t i = 0; i < ctx.args_info.arch_args.size(); ++i) {
       const auto& arch = ctx.args_info.arch_args[i];
-      size_t xarch_count{};
+      size_t xarch_count = 0;
       preprocessor_args->push_back(arch);
       auto it = ctx.args_info.xarch_args.find(arch);
       if (it != ctx.args_info.xarch_args.end()) {
@@ -2067,10 +2067,7 @@ calculate_result_and_manifest_key(Context& ctx,
       if (i != ctx.args_info.arch_args.size() - 1) {
         result_key = std::nullopt;
       }
-      preprocessor_args->pop_back();
-      if (xarch_count > 0) {
-        preprocessor_args->pop_back(xarch_count);
-      }
+      preprocessor_args->pop_back(1 + xarch_count);
     }
     preprocessor_args->pop_back();
   }

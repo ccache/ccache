@@ -399,15 +399,14 @@ process_option_arg(const Context& ctx,
     config.set_direct_mode(false);
   }
 
-  // -Xarch_* options need to be handled with care
+  // Handle -Xarch_* options.
   if (util::starts_with(arg, "-Xarch_")) {
     if (i == args.size() - 1) {
       LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     const auto arch = arg.substr(7);
-    auto [it, inserted] =
-      state.xarch_args.emplace(arch, std::vector<std::string>());
+    auto it = state.xarch_args.emplace(arch, std::vector<std::string>()).first;
     it->second.emplace_back(args[i + 1]);
     ++i;
     return Statistic::none;
