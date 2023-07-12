@@ -55,7 +55,7 @@ else()
 endif()
 
 if(do_download)
-  set(hiredis_version "1.1.0")
+  set(hiredis_version "1.2.0")
   set(hiredis_dir   ${CMAKE_BINARY_DIR}/hiredis-${hiredis_version})
   set(hiredis_build ${CMAKE_BINARY_DIR}/hiredis-build)
 
