@@ -27,39 +27,24 @@
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
 
-#include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
-
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
 
-namespace {
+#include <filesystem>
 
-std::string
-get_system_tmp_dir()
-{
-#ifndef _WIN32
-  const char* tmpdir = getenv("TMPDIR");
-  if (tmpdir) {
-    return tmpdir;
-  }
-#else
-  static char dirbuf[PATH_MAX];
-  DWORD retval = GetTempPath(PATH_MAX, dirbuf);
-  if (retval > 0 && retval < PATH_MAX) {
-    return dirbuf;
-  }
-#endif
-  return "/tmp";
-}
-
-} // namespace
+namespace fs = std::filesystem;
 
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
   : m_args_info(args_info),
     m_trace_id(reinterpret_cast<void*>(getpid()))
 {
-  TemporaryFile tmp_file(get_system_tmp_dir() + "/ccache-trace");
+  std::error_code ec;
+  auto tmp_dir = fs::temp_directory_path();
+  if (ec) {
+    tmp_dir = "/tmp";
+  }
+  TemporaryFile tmp_file((tmp_dir / "ccache-trace").string());
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
