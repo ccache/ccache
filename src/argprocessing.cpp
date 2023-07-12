@@ -66,7 +66,7 @@ struct ArgumentProcessingState
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
-  std::optional<std::string> found_xarch_arch;
+  std::unordered_map<std::string, std::vector<std::string>> xarch_args;
   bool found_mf_opt = false;
   bool found_wp_md_or_mmd_opt = false;
   bool found_md_or_mmd_opt = false;
@@ -399,20 +399,17 @@ process_option_arg(const Context& ctx,
     config.set_direct_mode(false);
   }
 
-  // -Xarch_* options are too hard.
+  // -Xarch_* options need to be handled with care
   if (util::starts_with(arg, "-Xarch_")) {
     if (i == args.size() - 1) {
       LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     const auto arch = arg.substr(7);
-    if (!state.found_xarch_arch) {
-      state.found_xarch_arch = arch;
-    } else if (*state.found_xarch_arch != arch) {
-      LOG_RAW("Multiple different -Xarch_* options not supported");
-      return Statistic::unsupported_compiler_option;
-    }
-    state.common_args.push_back(args[i]);
+    auto [it, inserted] =
+      state.xarch_args.emplace(arch, std::vector<std::string>());
+    it->second.emplace_back(args[i + 1]);
+    ++i;
     return Statistic::none;
   }
 
@@ -1513,20 +1510,28 @@ process_args(Context& ctx)
     compiler_args.push_back("-dc");
   }
 
-  if (state.found_xarch_arch && !args_info.arch_args.empty()) {
-    if (args_info.arch_args.size() > 1) {
-      LOG_RAW(
-        "Multiple -arch options in combination with -Xarch_* not supported");
-      return Statistic::unsupported_compiler_option;
-    } else if (args_info.arch_args[0] != *state.found_xarch_arch) {
-      LOG_RAW("-arch option not matching -Xarch_* option not supported");
-      return Statistic::unsupported_compiler_option;
+  if (!state.xarch_args.empty()) {
+    for (const auto& arch : args_info.arch_args) {
+      auto it = state.xarch_args.find(arch);
+      if (it != state.xarch_args.end()) {
+        args_info.xarch_args.emplace(arch, it->second);
+      }
     }
   }
 
   for (const auto& arch : args_info.arch_args) {
     compiler_args.push_back("-arch");
     compiler_args.push_back(arch);
+
+    auto it = args_info.xarch_args.find(arch);
+    if (it != args_info.xarch_args.end()) {
+      args_info.xarch_args.emplace(arch, it->second);
+
+      for (const auto& xarch : it->second) {
+        compiler_args.push_back("-Xarch_" + arch);
+        compiler_args.push_back(xarch);
+      }
+    }
   }
 
   Args preprocessor_args = state.common_args;
