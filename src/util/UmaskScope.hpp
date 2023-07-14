@@ -18,12 +18,11 @@
 
 #pragma once
 
-#include <util/process.hpp>
-
-#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <optional>
+
+namespace util {
 
 // This class sets a new (process-global) umask and restores the previous umask
 // when destructed.
@@ -39,37 +38,9 @@ private:
   std::optional<mode_t> m_saved_umask = std::nullopt;
 };
 
-inline UmaskScope::UmaskScope(std::optional<mode_t> new_umask)
-{
-#ifndef _WIN32
-  if (new_umask) {
-    m_saved_umask = util::set_umask(*new_umask);
-  }
-#else
-  (void)new_umask;
-#endif
-}
-
 inline UmaskScope::~UmaskScope()
 {
   release();
 }
 
-inline void
-UmaskScope::release()
-{
-#ifndef _WIN32
-  if (m_saved_umask) {
-    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80635
-#  if defined(__GNUC__) && !defined(__clang__)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#  endif
-    util::set_umask(*m_saved_umask);
-#  if defined(__GNUC__) && !defined(__clang__)
-#    pragma GCC diagnostic pop
-#  endif
-    m_saved_umask = std::nullopt;
-  }
-#endif
-}
+} // namespace util

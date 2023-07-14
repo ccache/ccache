@@ -1,5 +1,5 @@
-// Copyright (C) 2002-2007 Andrew Tridgell
 // Copyright (C) 2009-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2002-2007 Andrew Tridgell
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,7 +31,6 @@
 #include "MiniTrace.hpp"
 #include "SignalHandler.hpp"
 #include "TemporaryFile.hpp"
-#include "UmaskScope.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "argprocessing.hpp"
@@ -54,10 +53,12 @@
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
 #include <storage/Storage.hpp>
+#include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
+#include <util/process.hpp>
 #include <util/string.hpp>
 
 #include "third_party/fmt/core.h"
@@ -767,7 +768,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 static nonstd::expected<DoExecuteResult, Failure>
 do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
 {
-  UmaskScope umask_scope(ctx.original_umask);
+  util::UmaskScope umask_scope(ctx.original_umask);
 
   if (ctx.diagnostics_color_failed) {
     DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
@@ -2121,7 +2122,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
     cache_entry.verify_checksum();
     core::Result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_key);
-    UmaskScope umask_scope(ctx.original_umask);
+    util::UmaskScope umask_scope(ctx.original_umask);
     deserializer.visit(result_retriever);
   } catch (core::ResultRetriever::WriteError& e) {
     LOG("Write error when retrieving result from {}: {}",

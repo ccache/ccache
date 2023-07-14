@@ -6,6 +6,7 @@ set(
   TextTable.cpp
   TimePoint.cpp
   Tokenizer.cpp
+  UmaskScope.cpp
   environment.cpp
   file.cpp
   path.cpp

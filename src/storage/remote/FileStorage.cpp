@@ -20,12 +20,12 @@
 
 #include <AtomicFile.hpp>
 #include <Logging.hpp>
-#include <UmaskScope.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/UmaskScope.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
@@ -145,7 +145,7 @@ FileStorageBackend::put(const Hash::Digest& key,
   }
 
   {
-    UmaskScope umask_scope(m_umask);
+    util::UmaskScope umask_scope(m_umask);
 
     const auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {

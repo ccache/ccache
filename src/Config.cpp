@@ -23,12 +23,12 @@
 #include "Util.hpp"
 #include "assertions.hpp"
 
-#include <UmaskScope.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Tokenizer.hpp>
+#include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -859,7 +859,7 @@ Config::set_value_in_file(const std::string& path,
                           const std::string& key,
                           const std::string& value) const
 {
-  UmaskScope umask_scope(m_umask);
+  util::UmaskScope umask_scope(m_umask);
 
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
     throw core::Error(FMT("unknown configuration option \"{}\"", key));

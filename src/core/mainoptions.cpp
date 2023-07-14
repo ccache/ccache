@@ -27,7 +27,6 @@
 #include <ProgressBar.hpp>
 #include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
-#include <UmaskScope.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <ccache.hpp>
@@ -44,6 +43,7 @@
 #include <storage/Storage.hpp>
 #include <storage/local/LocalStorage.hpp>
 #include <util/TextTable.hpp>
+#include <util/UmaskScope.hpp>
 #include <util/XXH3_128.hpp>
 #include <util/environment.hpp>
 #include <util/expected.hpp>
@@ -561,7 +561,7 @@ process_main_options(int argc, const char* const* argv)
     config.read();
     Logging::init(config);
 
-    UmaskScope umask_scope(config.umask());
+    util::UmaskScope umask_scope(config.umask());
 
     const std::string arg = optarg ? optarg : std::string();
 
