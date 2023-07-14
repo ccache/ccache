@@ -51,6 +51,8 @@
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
+namespace fs = std::filesystem;
+
 namespace {
 
 // Process umask, read and written by get_umask and set_umask.
@@ -852,8 +854,8 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
 void
 traverse(const std::string& path, const TraverseVisitor& visitor)
 {
-  if (std::filesystem::is_directory(path)) {
-    for (auto&& p : std::filesystem::directory_iterator(path)) {
+  if (fs::is_directory(path)) {
+    for (auto&& p : fs::directory_iterator(path)) {
       std::string entry = p.path().string();
 
       if (p.is_directory()) {
@@ -863,7 +865,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
       }
     }
     visitor(path, true);
-  } else if (std::filesystem::exists(path)) {
+  } else if (fs::exists(path)) {
     visitor(path, false);
   } else {
     throw core::Error(
