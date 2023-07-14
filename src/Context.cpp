@@ -27,6 +27,7 @@
 #include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
 #include <util/path.hpp>
+#include <util/process.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -66,7 +67,7 @@ Context::initialize(Args&& compiler_and_args,
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
   if (config.umask()) {
-    original_umask = Util::set_umask(*config.umask());
+    original_umask = util::set_umask(*config.umask());
   }
 }
 

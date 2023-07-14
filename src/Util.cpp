@@ -55,13 +55,6 @@ namespace fs = std::filesystem;
 
 namespace {
 
-// Process umask, read and written by get_umask and set_umask.
-mode_t g_umask = [] {
-  const mode_t mask = umask(0);
-  umask(mask);
-  return mask;
-}();
-
 // Search for the first match of the following regular expression:
 //
 //   \x1b\[[\x30-\x3f]*[\x20-\x2f]*[Km]
@@ -464,12 +457,6 @@ get_relative_path(std::string_view dir, std::string_view path)
   return result.empty() ? "." : result;
 }
 
-mode_t
-get_umask()
-{
-  return g_umask;
-}
-
 std::optional<size_t>
 is_absolute_path_with_prefix(std::string_view path)
 {
@@ -741,13 +728,6 @@ set_cloexec_flag(int fd)
 #else
   (void)fd;
 #endif
-}
-
-mode_t
-set_umask(mode_t mask)
-{
-  g_umask = mask;
-  return umask(mask);
 }
 
 std::vector<std::string_view>

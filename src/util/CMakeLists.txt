@@ -9,6 +9,7 @@ set(
   environment.cpp
   file.cpp
   path.cpp
+  process.cpp
   string.cpp
   zstd.cpp
 )

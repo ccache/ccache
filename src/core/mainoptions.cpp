@@ -28,6 +28,7 @@
 #include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
 #include <UmaskScope.hpp>
+#include <Util.hpp>
 #include <assertions.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntry.hpp>

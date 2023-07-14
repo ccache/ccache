@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,6 +22,7 @@
 
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/process.hpp>
 
 #include <cstdlib>
 
@@ -56,7 +57,7 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
 
   Util::set_cloexec_flag(*fd);
 #ifndef _WIN32
-  fchmod(*fd, 0666 & ~Util::get_umask());
+  fchmod(*fd, 0666 & ~util::get_umask());
 #endif
 }
 

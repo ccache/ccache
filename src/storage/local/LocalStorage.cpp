@@ -39,6 +39,7 @@
 #include <util/TextTable.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/process.hpp>
 #include <util/string.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -655,7 +656,7 @@ LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
     fs::create_hard_link(source, dest, ec);
     if (!ec) {
 #ifndef _WIN32
-      if (chmod(dest.c_str(), 0444 & ~Util::get_umask()) != 0) {
+      if (chmod(dest.c_str(), 0444 & ~util::get_umask()) != 0) {
         LOG("Failed to chmod {}: {}", dest.c_str(), strerror(errno));
       }
 #endif

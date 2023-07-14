@@ -104,9 +104,6 @@ const char* get_hostname();
 // resolve to the same file as `path`.
 std::string get_relative_path(std::string_view dir, std::string_view path);
 
-// Get process umask.
-mode_t get_umask();
-
 // Determine if `path` is an absolute path with prefix, returning the split
 // point.
 std::optional<size_t> is_absolute_path_with_prefix(std::string_view path);
@@ -187,9 +184,6 @@ void send_to_fd(const Context& ctx, std::string_view text, int fd);
 
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
 void set_cloexec_flag(int fd);
-
-// Set process umask. Returns the previous mask.
-mode_t set_umask(mode_t mask);
 
 // Return size change in KiB between `old_stat`  and `new_stat`.
 inline int64_t
