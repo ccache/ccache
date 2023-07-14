@@ -40,7 +40,7 @@ MiniTrace::MiniTrace(const ArgsInfo& args_info)
     m_trace_id(reinterpret_cast<void*>(getpid()))
 {
   std::error_code ec;
-  auto tmp_dir = fs::temp_directory_path();
+  auto tmp_dir = fs::temp_directory_path(ec);
   if (ec) {
     tmp_dir = "/tmp";
   }
