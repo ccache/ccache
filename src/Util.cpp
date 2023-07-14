@@ -687,33 +687,6 @@ normalize_concrete_absolute_path(const std::string& path)
            : path;
 }
 
-uint64_t
-parse_duration(std::string_view duration)
-{
-  uint64_t factor = 0;
-  char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
-
-  switch (last_ch) {
-  case 'd':
-    factor = 24 * 60 * 60;
-    break;
-  case 's':
-    factor = 1;
-    break;
-  default:
-    throw core::Error(FMT(
-      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
-  }
-
-  const auto value =
-    util::parse_unsigned(duration.substr(0, duration.length() - 1));
-  if (value) {
-    return factor * *value;
-  } else {
-    throw core::Error(value.error());
-  }
-}
-
 std::string_view
 remove_extension(std::string_view path)
 {

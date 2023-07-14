@@ -83,6 +83,11 @@ join(const T& begin, const T& end, const std::string_view delimiter);
 // Returns an error string if `value` cannot be parsed as a double.
 nonstd::expected<double, std::string> parse_double(const std::string& value);
 
+// Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
+// into seconds.
+nonstd::expected<uint64_t, std::string>
+parse_duration(std::string_view duration);
+
 // Parse a string into a signed integer.
 //
 // Returns an error string if `value` cannot be parsed as an int64_t or if the

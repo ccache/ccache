@@ -421,23 +421,6 @@ TEST_CASE("Util::normalize_concrete_absolute_path")
 #endif
 }
 
-TEST_CASE("Util::parse_duration")
-{
-  CHECK(Util::parse_duration("0s") == 0);
-  CHECK(Util::parse_duration("2s") == 2);
-  CHECK(Util::parse_duration("1d") == 3600 * 24);
-  CHECK(Util::parse_duration("2d") == 2 * 3600 * 24);
-  CHECK_THROWS_WITH(
-    Util::parse_duration("-2"),
-    "invalid suffix (supported: d (day) and s (second)): \"-2\"");
-  CHECK_THROWS_WITH(
-    Util::parse_duration("2x"),
-    "invalid suffix (supported: d (day) and s (second)): \"2x\"");
-  CHECK_THROWS_WITH(
-    Util::parse_duration("2"),
-    "invalid suffix (supported: d (day) and s (second)): \"2\"");
-}
-
 TEST_CASE("Util::remove_extension")
 {
   CHECK(Util::remove_extension("") == "");

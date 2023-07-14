@@ -250,6 +250,20 @@ TEST_CASE("util::parse_double")
   CHECK(util::parse_double("x").error() == "invalid floating point: \"x\"");
 }
 
+TEST_CASE("util::parse_duration")
+{
+  CHECK(*util::parse_duration("0s") == 0);
+  CHECK(*util::parse_duration("2s") == 2);
+  CHECK(*util::parse_duration("1d") == 3600 * 24);
+  CHECK(*util::parse_duration("2d") == 2 * 3600 * 24);
+  CHECK(util::parse_duration("-2").error()
+        == "invalid suffix (supported: d (day) and s (second)): \"-2\"");
+  CHECK(util::parse_duration("2x").error()
+        == "invalid suffix (supported: d (day) and s (second)): \"2x\"");
+  CHECK(util::parse_duration("2").error()
+        == "invalid suffix (supported: d (day) and s (second)): \"2\"");
+}
+
 TEST_CASE("util::parse_signed")
 {
   CHECK(*util::parse_signed("0") == 0);

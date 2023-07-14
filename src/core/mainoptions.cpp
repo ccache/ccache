@@ -597,7 +597,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EVICT_OLDER_THAN: {
-      evict_max_age = Util::parse_duration(arg);
+      evict_max_age = util::value_or_throw<Error>(util::parse_duration(arg));
       break;
     }
 

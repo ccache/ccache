@@ -175,10 +175,6 @@ std::string normalize_abstract_absolute_path(std::string_view path);
 // normalized result doesn't resolve to the same file system entry as `path`.
 std::string normalize_concrete_absolute_path(const std::string& path);
 
-// Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
-// into seconds. Throws `core::Error` on error.
-uint64_t parse_duration(std::string_view duration);
-
 // Return a view into `path` containing the given path without the filename
 // extension as determined by `get_extension()`.
 std::string_view remove_extension(std::string_view path);

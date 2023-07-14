@@ -121,6 +121,31 @@ parse_double(const std::string& value)
   }
 }
 
+nonstd::expected<uint64_t, std::string>
+parse_duration(std::string_view duration)
+{
+  uint64_t factor = 0;
+  char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
+
+  switch (last_ch) {
+  case 'd':
+    factor = 24 * 60 * 60;
+    break;
+  case 's':
+    factor = 1;
+    break;
+  default:
+    return nonstd::make_unexpected(FMT(
+      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
+  }
+
+  auto value = util::parse_unsigned(duration.substr(0, duration.length() - 1));
+  if (!value) {
+    return value;
+  };
+  return factor * *value;
+}
+
 nonstd::expected<int64_t, std::string>
 parse_signed(std::string_view value,
              const std::optional<int64_t> min_value,
