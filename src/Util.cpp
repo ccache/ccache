@@ -32,6 +32,7 @@
 #include <fmtmacros.hpp>
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
@@ -51,7 +52,7 @@
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -284,12 +285,15 @@ ensure_dir_exists(std::string_view dir)
 std::string
 get_actual_cwd()
 {
-  std::error_code ec;
-  auto cwd = fs::current_path(ec).string();
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    return {};
+  }
+  auto cwd_str = cwd->string();
 #ifdef _WIN32
-  std::replace(cwd.begin(), cwd.end(), '\\', '/');
+  std::replace(cwd_str.begin(), cwd_str.end(), '\\', '/');
 #endif
-  return cwd;
+  return cwd_str;
 }
 
 std::string

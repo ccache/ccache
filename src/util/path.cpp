@@ -20,6 +20,7 @@
 
 #include <Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/filesystem.hpp>
 
 #ifdef _WIN32
 const char k_dev_null_path[] = "nul:";
@@ -29,7 +30,7 @@ const char k_dev_null_path[] = "/dev/null";
 const char k_path_delimiter[] = ":";
 #endif
 
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 namespace util {
 
@@ -90,9 +91,8 @@ path_starts_with(std::string_view path, std::string_view prefix)
 std::string
 real_path(std::string_view path)
 {
-  std::error_code ec;
-  auto real_path = fs::canonical(path, ec).string();
-  return ec ? std::string(path) : real_path;
+  auto real_path = fs::canonical(path);
+  return real_path ? real_path->string() : std::string(path);
 }
 
 std::vector<std::string>

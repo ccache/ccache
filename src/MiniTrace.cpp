@@ -26,25 +26,23 @@
 #include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
 
-#include <filesystem>
-
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
   : m_args_info(args_info),
     m_trace_id(reinterpret_cast<void*>(getpid()))
 {
-  std::error_code ec;
-  auto tmp_dir = fs::temp_directory_path(ec);
-  if (ec) {
+  auto tmp_dir = fs::temp_directory_path();
+  if (!tmp_dir) {
     tmp_dir = "/tmp";
   }
-  TemporaryFile tmp_file((tmp_dir / "ccache-trace").string());
+  TemporaryFile tmp_file((*tmp_dir / "ccache-trace").string());
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());

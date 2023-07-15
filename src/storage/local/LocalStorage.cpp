@@ -39,6 +39,7 @@
 #include <util/TextTable.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
 
@@ -78,13 +79,12 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
-#include <filesystem>
 #include <memory>
 #include <numeric>
 #include <string>
 #include <utility>
 
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 using core::Statistic;
 using core::StatisticsCounters;
@@ -650,11 +650,16 @@ LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
     // run, but it's only we who can create the file entry now so we don't try
     // to handle a race between remove() and create_hard_link() below.
 
-    std::error_code ec;
-    fs::remove(dest, ec); // Ignore any error.
+    fs::remove(dest); // Ignore any error.
     LOG("Hard linking {} to {}", source, dest);
-    fs::create_hard_link(source, dest, ec);
-    if (!ec) {
+    if (auto result = fs::create_hard_link(source, dest); !result) {
+      LOG("Failed to hard link {} to {}: {}",
+          source,
+          dest,
+          result.error().message());
+      // Fall back to copying.
+    } else {
+      // Success.
 #ifndef _WIN32
       if (chmod(dest.c_str(), 0444 & ~util::get_umask()) != 0) {
         LOG("Failed to chmod {}: {}", dest.c_str(), strerror(errno));
@@ -662,8 +667,6 @@ LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
 #endif
       return;
     }
-    LOG("Failed to hard link {} to {}: {}", source, dest, ec.message());
-    // Fall back to copying.
   }
 
   LOG("Copying {} to {}", source, dest);

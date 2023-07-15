@@ -26,6 +26,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -44,7 +45,7 @@ const double k_max_sleep_time = 0.050;
 const util::Duration k_staleness_limit(2);
 #endif
 
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -262,18 +263,20 @@ LockFile::do_acquire(const bool blocking)
       return false;
     }
 
-    std::error_code ec;
-    std::string content = fs::read_symlink(m_lock_file, ec);
-    if (ec) {
-      if (ec == std::errc::no_such_file_or_directory) {
+    auto content_path = fs::read_symlink(m_lock_file);
+    if (!content_path) {
+      if (content_path.error() == std::errc::no_such_file_or_directory) {
         // The symlink was removed after the symlink() call above, so retry
         // acquiring it.
         continue;
       } else {
-        LOG("Could not read symlink {}: {}", m_lock_file, ec.message());
+        LOG("Could not read symlink {}: {}",
+            m_lock_file,
+            content_path.error().message());
         return false;
       }
     }
+    auto content = content_path->string();
 
     if (content == my_content) {
       // Lost NFS reply?

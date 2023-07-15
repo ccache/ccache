@@ -57,6 +57,7 @@
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
@@ -65,7 +66,6 @@
 
 #include <fcntl.h>
 
-#include <filesystem>
 #include <optional>
 #include <string_view>
 
@@ -80,7 +80,7 @@
 #include <memory>
 #include <unordered_map>
 
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 using core::Statistic;
 
@@ -245,17 +245,16 @@ guess_compiler(std::string_view path)
   // Follow symlinks to the real compiler to learn its name. We're not using
   // util::real_path in order to save some unnecessary stat calls.
   while (true) {
-    std::error_code ec;
-    auto symlink_target = fs::read_symlink(compiler_path, ec);
-    if (ec) {
+    auto symlink_target = fs::read_symlink(compiler_path);
+    if (!symlink_target) {
       // Not a symlink.
       break;
     }
-    if (symlink_target.is_absolute()) {
-      compiler_path = symlink_target;
+    if (symlink_target->is_absolute()) {
+      compiler_path = *symlink_target;
     } else {
       compiler_path =
-        FMT("{}/{}", Util::dir_name(compiler_path), symlink_target.string());
+        FMT("{}/{}", Util::dir_name(compiler_path), symlink_target->string());
     }
   }
 #endif
