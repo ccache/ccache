@@ -173,9 +173,6 @@ std::string_view remove_extension(std::string_view path);
 // `core::Error` on error.
 void send_to_fd(const Context& ctx, std::string_view text, int fd);
 
-// Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
-void set_cloexec_flag(int fd);
-
 // Return size change in KiB between `old_stat`  and `new_stat`.
 inline int64_t
 size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)

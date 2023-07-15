@@ -682,19 +682,6 @@ send_to_fd(const Context& ctx, std::string_view text, int fd)
   }
 }
 
-void
-set_cloexec_flag(int fd)
-{
-#ifndef _WIN32
-  int flags = fcntl(fd, F_GETFD, 0);
-  if (flags >= 0) {
-    fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-  }
-#else
-  (void)fd;
-#endif
-}
-
 std::vector<std::string_view>
 split_into_views(std::string_view string,
                  const char* separators,

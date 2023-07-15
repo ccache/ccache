@@ -92,6 +92,9 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 nonstd::expected<void, std::string> rename(const std::string& oldpath,
                                            const std::string& newpath);
 
+// Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
+void set_cloexec_flag(int fd);
+
 // Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
 // time. If `atime` is std::nullopt, set to what `mtime` specifies.
 void set_timestamps(const std::string& path,

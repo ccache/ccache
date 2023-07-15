@@ -22,6 +22,7 @@
 
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/file.hpp>
 #include <util/process.hpp>
 
 #include <cstdlib>
@@ -55,7 +56,7 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
       FMT("Failed to create temporary file for {}: {}", path, strerror(errno)));
   }
 
-  Util::set_cloexec_flag(*fd);
+  util::set_cloexec_flag(*fd);
 #ifndef _WIN32
   fchmod(*fd, 0666 & ~util::get_umask());
 #endif

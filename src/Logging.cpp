@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -27,6 +27,7 @@
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
+#include <util/file.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -143,7 +144,7 @@ init(const Config& config)
     logfile_path = config.log_file();
     logfile.open(logfile_path, "a");
     if (logfile) {
-      Util::set_cloexec_flag(fileno(*logfile));
+      util::set_cloexec_flag(fileno(*logfile));
     } else {
       print_fatal_error_and_exit();
     }
