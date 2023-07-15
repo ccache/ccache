@@ -18,11 +18,15 @@
 
 #include "TestUtil.hpp"
 
+#include <Fd.hpp>
+#include <Stat.hpp>
 #include <util/Bytes.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 
 #include <third_party/doctest.h>
+
+#include <fcntl.h>
 
 #include <cstring>
 #include <string>
@@ -30,6 +34,24 @@
 #include <vector>
 
 using TestUtil::TestContext;
+
+TEST_CASE("util::fallocate")
+{
+  TestContext test_context;
+
+  const char filename[] = "test-file";
+
+  CHECK(util::fallocate(Fd(creat(filename, S_IRUSR | S_IWUSR)).get(), 10000));
+  CHECK(Stat::stat(filename).size() == 10000);
+
+  CHECK(
+    util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 5000));
+  CHECK(Stat::stat(filename).size() == 10000);
+
+  CHECK(util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(),
+                        20000));
+  CHECK(Stat::stat(filename).size() == 20000);
+}
 
 TEST_CASE("util::likely_size_on_disk")
 {

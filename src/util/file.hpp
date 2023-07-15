@@ -47,6 +47,13 @@ copy_file(const std::string& src,
 
 void create_cachedir_tag(const std::string& dir);
 
+// Extends file size of `fd` to at least `new_size` by calling posix_fallocate()
+// if supported, otherwise by writing zeros last to the file.
+//
+// Note that existing holes are not filled in case posix_fallocate() is not
+// supported.
+nonstd::expected<void, std::string> fallocate(int fd, size_t new_size);
+
 // Return how much a file of `size` bytes likely would take on disk.
 uint64_t likely_size_on_disk(uint64_t size);
 

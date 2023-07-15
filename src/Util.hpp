@@ -64,15 +64,6 @@ std::string_view dir_name(std::string_view path);
 // Like create_dir but throws Fatal on error.
 void ensure_dir_exists(std::string_view dir);
 
-// Extends file size to at least new_size by calling posix_fallocate() if
-// supported, otherwise by writing zeros last to the file.
-//
-// Note that existing holes are not filled in case posix_fallocate() is not
-// supported.
-//
-// Returns 0 on success, an error number otherwise.
-int fallocate(int fd, long new_size);
-
 // Format `argv` as a simple string for logging purposes. That is, the result is
 // not intended to be machine parsable. `argv` must be terminated by a nullptr.
 std::string format_argv_for_logging(const char* const* argv);

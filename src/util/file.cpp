@@ -19,6 +19,7 @@
 #include "file.hpp"
 
 #include <Fd.hpp>
+#include <Finalizer.hpp>
 #include <Logging.hpp>
 #include <Stat.hpp>
 #include <TemporaryFile.hpp>
@@ -122,6 +123,47 @@ create_cachedir_tag(const std::string& dir)
   if (!result) {
     LOG("Failed to create {}: {}", path, result.error());
   }
+}
+
+nonstd::expected<void, std::string>
+fallocate(int fd, size_t new_size)
+{
+#ifdef HAVE_POSIX_FALLOCATE
+  const int posix_fallocate_err = posix_fallocate(fd, 0, new_size);
+  if (posix_fallocate_err == 0) {
+    return {};
+  }
+  if (posix_fallocate_err != EINVAL) {
+    return nonstd::make_unexpected(strerror(posix_fallocate_err));
+  }
+  // The underlying filesystem does not support the operation so fall back to
+  // lseek.
+#endif
+  off_t saved_pos = lseek(fd, 0, SEEK_END);
+  off_t old_size = lseek(fd, 0, SEEK_END);
+  if (old_size == -1) {
+    int err = errno;
+    lseek(fd, saved_pos, SEEK_SET);
+    return nonstd::make_unexpected(strerror(err));
+  }
+  if (static_cast<size_t>(old_size) >= new_size) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return {};
+  }
+  long bytes_to_write = new_size - old_size;
+
+  void* buf = calloc(bytes_to_write, 1);
+  if (!buf) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return nonstd::make_unexpected(strerror(ENOMEM));
+  }
+  Finalizer buf_freer([&] { free(buf); });
+
+  if (auto result = util::write_fd(fd, buf, bytes_to_write); !result) {
+    return result;
+  }
+  lseek(fd, saved_pos, SEEK_SET);
+  return {};
 }
 
 nonstd::expected<void, std::string>

@@ -255,45 +255,6 @@ dir_name(std::string_view path)
   }
 }
 
-int
-fallocate(int fd, long new_size)
-{
-#ifdef HAVE_POSIX_FALLOCATE
-  const int posix_fallocate_err = posix_fallocate(fd, 0, new_size);
-  if (posix_fallocate_err == 0 || posix_fallocate_err != EINVAL) {
-    return posix_fallocate_err;
-  }
-  // The underlying filesystem does not support the operation so fall back to
-  // lseek.
-#endif
-  off_t saved_pos = lseek(fd, 0, SEEK_END);
-  off_t old_size = lseek(fd, 0, SEEK_END);
-  if (old_size == -1) {
-    int err = errno;
-    lseek(fd, saved_pos, SEEK_SET);
-    return err;
-  }
-  if (old_size >= new_size) {
-    lseek(fd, saved_pos, SEEK_SET);
-    return 0;
-  }
-  long bytes_to_write = new_size - old_size;
-  void* buf = calloc(bytes_to_write, 1);
-  if (!buf) {
-    lseek(fd, saved_pos, SEEK_SET);
-    return ENOMEM;
-  }
-  int err = 0;
-  try {
-    util::write_fd(fd, buf, bytes_to_write);
-  } catch (core::Error&) {
-    err = errno;
-  }
-  lseek(fd, saved_pos, SEEK_SET);
-  free(buf);
-  return err;
-}
-
 std::string
 format_argv_for_logging(const char* const* argv)
 {

@@ -147,27 +147,6 @@ TEST_CASE("Util::ensure_dir_exists")
     "Failed to create directory create/dir/file: Not a directory");
 }
 
-TEST_CASE("Util::fallocate")
-{
-  TestContext test_context;
-
-  const char filename[] = "test-file";
-
-  CHECK(Util::fallocate(Fd(creat(filename, S_IRUSR | S_IWUSR)).get(), 10000)
-        == 0);
-  CHECK(Stat::stat(filename).size() == 10000);
-
-  CHECK(
-    Util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 5000)
-    == 0);
-  CHECK(Stat::stat(filename).size() == 10000);
-
-  CHECK(
-    Util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 20000)
-    == 0);
-  CHECK(Stat::stat(filename).size() == 20000);
-}
-
 TEST_CASE("Util::format_argv_for_logging")
 {
   const char* argv_0[] = {nullptr};

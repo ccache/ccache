@@ -28,6 +28,7 @@
 #include "fmtmacros.hpp"
 
 #include <util/conversion.hpp>
+#include <util/file.hpp>
 
 #include <fcntl.h>
 #include <libgen.h>
@@ -351,9 +352,10 @@ InodeCache::create_new_file(const std::string& filename)
   if (!fd_is_on_known_to_work_file_system(*tmp_file.fd)) {
     return false;
   }
-  int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
-  if (err != 0) {
-    LOG("Failed to allocate file space for inode cache: {}", strerror(err));
+
+  if (auto result = util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
+      !result) {
+    LOG("Failed to allocate file space for inode cache: {}", result.error());
     return false;
   }
   SharedRegion* sr =
