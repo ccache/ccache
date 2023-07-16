@@ -238,39 +238,6 @@ ensure_dir_exists(std::string_view dir)
   }
 }
 
-std::string
-get_actual_cwd()
-{
-  auto cwd = fs::current_path();
-  if (!cwd) {
-    return {};
-  }
-  auto cwd_str = cwd->string();
-#ifdef _WIN32
-  std::replace(cwd_str.begin(), cwd_str.end(), '\\', '/');
-#endif
-  return cwd_str;
-}
-
-std::string
-get_apparent_cwd(const std::string& actual_cwd)
-{
-#ifdef _WIN32
-  return actual_cwd;
-#else
-  auto pwd = getenv("PWD");
-  if (!pwd || !util::is_absolute_path(pwd)) {
-    return actual_cwd;
-  }
-
-  auto pwd_stat = Stat::stat(pwd);
-  auto cwd_stat = Stat::stat(actual_cwd);
-  return !pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)
-           ? actual_cwd
-           : normalize_concrete_absolute_path(pwd);
-#endif
-}
-
 std::string_view
 get_extension(std::string_view path)
 {

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -87,7 +87,7 @@ TEST_CASE("util::to_absolute_path")
   CHECK(util::to_absolute_path("C:\\foo\\bar") == "C:\\foo\\bar");
 #endif
 
-  const auto cwd = Util::get_actual_cwd();
+  const auto cwd = util::actual_cwd();
 
   CHECK(util::to_absolute_path("") == cwd);
   CHECK(util::to_absolute_path(".") == cwd);
@@ -105,7 +105,7 @@ TEST_CASE("util::to_absolute_path_no_drive")
   CHECK(util::to_absolute_path_no_drive("C:\\foo\\bar") == "\\foo\\bar");
 #endif
 
-  auto cwd = Util::get_actual_cwd();
+  auto cwd = util::actual_cwd();
 #ifdef _WIN32
   cwd = cwd.substr(2);
 #endif

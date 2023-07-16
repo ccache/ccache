@@ -19,7 +19,6 @@
 #include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
-#include "../src/Util.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
@@ -28,6 +27,7 @@
 #include <core/Statistic.hpp>
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/path.hpp>
 #include <util/string.hpp>
 
 #include "third_party/doctest.h"
@@ -46,7 +46,7 @@ get_root()
   return "/";
 #else
   char volume[4]; // "C:\"
-  GetVolumePathName(Util::get_actual_cwd().c_str(), volume, sizeof(volume));
+  GetVolumePathName(util::actual_cwd().c_str(), volume, sizeof(volume));
   volume[2] = '/'; // Since base directory is normalized to forward slashes
   return volume;
 #endif
@@ -715,11 +715,11 @@ TEST_CASE("-x")
   }
 }
 
-// On macOS ctx.actual_cwd() typically starts with /Users which clashes with
+// On macOS ctx.actual_cwd typically starts with /Users which clashes with
 // MSVC's /U option, so disable the test case there. This will be possible to
 // improve when/if a compiler abstraction is introduced (issue #956).
 TEST_CASE("MSVC options"
-          * doctest::skip(util::starts_with(Util::get_actual_cwd(), "/U")))
+          * doctest::skip(util::starts_with(util::actual_cwd(), "/U")))
 {
   TestContext test_context;
   Context ctx;

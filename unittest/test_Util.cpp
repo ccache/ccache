@@ -28,6 +28,7 @@
 #include <util/environment.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/path.hpp>
 
 #include "third_party/doctest.h"
 
@@ -247,7 +248,7 @@ TEST_CASE("Util::make_relative_path")
 
   const TestContext test_context;
 
-  const std::string cwd = Util::get_actual_cwd();
+  const std::string cwd = util::actual_cwd();
   const std::string actual_cwd = FMT("{}/d", cwd);
 #ifdef _WIN32
   const std::string apparent_cwd = actual_cwd;
@@ -380,7 +381,7 @@ TEST_CASE("Util::normalize_concrete_absolute_path")
   util::write_file("file", "");
   REQUIRE(fs::create_directories("dir1/dir2"));
   REQUIRE(symlink("dir1/dir2", "symlink") == 0);
-  const auto cwd = Util::get_actual_cwd();
+  const auto cwd = util::actual_cwd();
 
   CHECK(Util::normalize_concrete_absolute_path(FMT("{}/file", cwd))
         == FMT("{}/file", cwd));

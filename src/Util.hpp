@@ -61,16 +61,6 @@ void ensure_dir_exists(std::string_view dir);
 // not intended to be machine parsable. `argv` must be terminated by a nullptr.
 std::string format_argv_for_logging(const char* const* argv);
 
-// Return current working directory (CWD) as returned from getcwd(3) (i.e.,
-// normalized path without symlink parts). Returns the empty string on error.
-std::string get_actual_cwd();
-
-// Return current working directory (CWD) by reading the environment variable
-// PWD (thus keeping any symlink parts in the path and potentially ".." or "//"
-// parts). If PWD does not resolve to the same i-node as `actual_cwd` then
-// `actual_cwd` is returned instead.
-std::string get_apparent_cwd(const std::string& actual_cwd);
-
 // Return the file extension (including the dot) as a view into `path`. If
 // `path` has no file extension, an empty string_view is returned.
 std::string_view get_extension(std::string_view path);

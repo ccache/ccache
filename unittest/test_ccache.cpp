@@ -21,9 +21,9 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
-#include <Util.hpp>
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/path.hpp>
 
 #include "third_party/doctest.h"
 
@@ -193,7 +193,7 @@ TEST_CASE("guess_compiler")
 #ifndef _WIN32
   SUBCASE("Follow symlink to actual compiler")
   {
-    const auto cwd = Util::get_actual_cwd();
+    const auto cwd = util::actual_cwd();
     util::write_file(FMT("{}/gcc", cwd), "");
     CHECK(symlink("gcc", FMT("{}/intermediate", cwd).c_str()) == 0);
     const auto cc = FMT("{}/cc", cwd);

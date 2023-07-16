@@ -36,6 +36,39 @@ namespace fs = util::filesystem;
 
 namespace util {
 
+std::string
+actual_cwd()
+{
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    return {};
+  }
+  auto cwd_str = cwd->string();
+#ifdef _WIN32
+  std::replace(cwd_str.begin(), cwd_str.end(), '\\', '/');
+#endif
+  return cwd_str;
+}
+
+std::string
+apparent_cwd(const std::string& actual_cwd)
+{
+#ifdef _WIN32
+  return actual_cwd;
+#else
+  auto pwd = getenv("PWD");
+  if (!pwd || !util::is_absolute_path(pwd)) {
+    return actual_cwd;
+  }
+
+  auto pwd_stat = Stat::stat(pwd);
+  auto cwd_stat = Stat::stat(actual_cwd);
+  return !pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)
+           ? actual_cwd
+           : Util::normalize_concrete_absolute_path(pwd);
+#endif
+}
+
 const char*
 get_dev_null_path()
 {
@@ -110,7 +143,7 @@ to_absolute_path(std::string_view path)
     return std::string(path);
   } else {
     return Util::normalize_abstract_absolute_path(
-      FMT("{}/{}", Util::get_actual_cwd(), path));
+      FMT("{}/{}", actual_cwd(), path));
   }
 }
 

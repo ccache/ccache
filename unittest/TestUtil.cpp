@@ -24,6 +24,7 @@
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/filesystem.hpp>
+#include <util/path.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -35,7 +36,7 @@ namespace TestUtil {
 
 size_t TestContext::m_subdir_counter = 0;
 
-TestContext::TestContext() : m_test_dir(Util::get_actual_cwd())
+TestContext::TestContext() : m_test_dir(util::actual_cwd())
 {
   if (Util::base_name(Util::dir_name(m_test_dir)) != "testdir") {
     throw core::Error("TestContext instantiated outside test directory");

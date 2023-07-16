@@ -22,6 +22,7 @@
 
 #include <util/environment.hpp>
 #include <util/filesystem.hpp>
+#include <util/path.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -39,7 +40,7 @@ main(int argc, char** argv)
 #endif
   util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
-  std::string dir_before = Util::get_actual_cwd();
+  std::string dir_before = util::actual_cwd();
   std::string testdir = FMT("testdir/{}", getpid());
   Util::wipe_path(testdir);
   fs::create_directories(testdir);

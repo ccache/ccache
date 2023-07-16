@@ -26,6 +26,16 @@ namespace util {
 
 // --- Interface ---
 
+// Return current working directory (CWD) as returned from getcwd(3) (i.e.,
+// normalized path without symlink parts). Returns the empty string on error.
+std::string actual_cwd();
+
+// Return current working directory (CWD) by reading the environment variable
+// PWD (thus keeping any symlink parts in the path and potentially ".." or "//"
+// parts). If PWD does not resolve to the same inode as `actual_cwd` then
+// `actual_cwd` is returned instead.
+std::string apparent_cwd(const std::string& actual_cwd);
+
 const char* get_dev_null_path();
 
 // Return whether `path` is absolute.

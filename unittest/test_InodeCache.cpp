@@ -20,11 +20,11 @@
 #include "../src/Context.hpp"
 #include "../src/Hash.hpp"
 #include "../src/InodeCache.hpp"
-#include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
 #include <Fd.hpp>
 #include <util/file.hpp>
+#include <util/path.hpp>
 
 #include "third_party/doctest.h"
 
@@ -39,7 +39,7 @@ namespace {
 bool
 inode_cache_available()
 {
-  Fd fd(open(Util::get_actual_cwd().c_str(), O_RDONLY));
+  Fd fd(open(util::actual_cwd().c_str(), O_RDONLY));
   return fd && InodeCache::available(*fd);
 }
 
@@ -48,7 +48,7 @@ init(Config& config)
 {
   config.set_debug(true);
   config.set_inode_cache(true);
-  config.set_temporary_dir(Util::get_actual_cwd());
+  config.set_temporary_dir(util::actual_cwd());
 }
 
 bool
