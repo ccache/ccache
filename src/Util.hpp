@@ -179,10 +179,4 @@ bool unlink_safe(const std::string& path,
 bool unlink_tmp(const std::string& path,
                 UnlinkLog unlink_log = UnlinkLog::log_failure);
 
-// Remove `path` (and its contents if it's a directory). A nonexistent path is
-// not considered an error.
-//
-// Throws core::Error on error.
-void wipe_path(const std::string& path);
-
 } // namespace Util

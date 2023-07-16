@@ -16,7 +16,6 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Util.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
@@ -42,7 +41,7 @@ main(int argc, char** argv)
 
   std::string dir_before = util::actual_cwd();
   std::string testdir = FMT("testdir/{}", getpid());
-  Util::wipe_path(testdir);
+  fs::remove_all(testdir);
   fs::create_directories(testdir);
   TestUtil::check_chdir(testdir);
 
@@ -52,7 +51,7 @@ main(int argc, char** argv)
 
   if (result == 0) {
     TestUtil::check_chdir(dir_before);
-    Util::wipe_path(testdir);
+    fs::remove_all(testdir);
   } else {
     PRINT(stderr, "Note: Test data has been left in {}\n", testdir);
   }

@@ -64,6 +64,7 @@ DEFINE_FS_WRAPPER(create_hard_link, (path{}, path{}))
 DEFINE_FS_WRAPPER(current_path, ())
 DEFINE_FS_WRAPPER(read_symlink, (path{}))
 DEFINE_FS_WRAPPER(remove, (path{}))
+DEFINE_FS_WRAPPER(remove_all, (path{}))
 DEFINE_FS_WRAPPER(temp_directory_path, ())
 
 DEFINE_FS_PREDICATE_WRAPPER(exists, (path{}))

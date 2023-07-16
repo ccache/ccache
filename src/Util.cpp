@@ -748,21 +748,4 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
   return success;
 }
 
-void
-wipe_path(const std::string& path)
-{
-  if (!Stat::lstat(path)) {
-    return;
-  }
-  traverse(path, [](const std::string& p, bool is_dir) {
-    if (is_dir) {
-      if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-        throw core::Error(FMT("failed to rmdir {}: {}", p, strerror(errno)));
-      }
-    } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-      throw core::Error(FMT("failed to unlink {}: {}", p, strerror(errno)));
-    }
-  });
-}
-
 } // namespace Util

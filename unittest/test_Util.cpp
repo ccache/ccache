@@ -464,42 +464,4 @@ TEST_CASE("Util::traverse")
   }
 }
 
-TEST_CASE("Util::wipe_path")
-{
-  TestContext test_context;
-
-  SUBCASE("Wipe nonexistent path")
-  {
-    CHECK_NOTHROW(Util::wipe_path("a"));
-  }
-
-  SUBCASE("Wipe file")
-  {
-    util::write_file("a", "");
-    CHECK_NOTHROW(Util::wipe_path("a"));
-    CHECK(!Stat::stat("a"));
-  }
-
-  SUBCASE("Wipe directory")
-  {
-    REQUIRE(fs::create_directories("a/b"));
-    util::write_file("a/1", "");
-    util::write_file("a/b/1", "");
-    CHECK_NOTHROW(Util::wipe_path("a"));
-    CHECK(!Stat::stat("a"));
-  }
-
-  SUBCASE("Wipe bad path")
-  {
-#ifdef _WIN32
-    const char error[] = "failed to rmdir .: Permission denied";
-#elif defined(_AIX)
-    const char error[] = "failed to rmdir .: Device busy";
-#else
-    const char error[] = "failed to rmdir .: Invalid argument";
-#endif
-    CHECK_THROWS_WITH(Util::wipe_path("."), error);
-  }
-}
-
 TEST_SUITE_END();
