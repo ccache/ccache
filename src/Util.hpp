@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <Stat.hpp>
 #include <util/TimePoint.hpp>
 #include <util/Tokenizer.hpp>
 
@@ -172,15 +171,6 @@ std::string_view remove_extension(std::string_view path);
 // paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws
 // `core::Error` on error.
 void send_to_fd(const Context& ctx, std::string_view text, int fd);
-
-// Return size change in KiB between `old_stat`  and `new_stat`.
-inline int64_t
-size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)
-{
-  return (static_cast<int64_t>(new_stat.size_on_disk())
-          - static_cast<int64_t>(old_stat.size_on_disk()))
-         / 1024;
-}
 
 // Split `string` into tokens at any of the characters in `separators`. These
 // tokens are views into `string`. `separators` must neither be the empty string

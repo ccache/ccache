@@ -23,6 +23,7 @@
 #include "Util.hpp"
 #include "assertions.hpp"
 
+#include <Stat.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <core/wincompat.hpp>

@@ -27,6 +27,7 @@
 
 #include <Config.hpp>
 #include <Finalizer.hpp>
+#include <Stat.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>

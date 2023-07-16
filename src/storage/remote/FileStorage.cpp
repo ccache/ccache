@@ -20,6 +20,7 @@
 
 #include <AtomicFile.hpp>
 #include <Logging.hpp>
+#include <Stat.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>

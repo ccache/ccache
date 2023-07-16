@@ -18,6 +18,7 @@
 
 #include "path.hpp"
 
+#include <Stat.hpp>
 #include <Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/filesystem.hpp>

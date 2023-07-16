@@ -160,6 +160,15 @@ struct Level1Counters
 
 } // namespace
 
+// Return size change in KiB between `old_stat`  and `new_stat`.
+static int64_t
+kibibyte_size_diff(const Stat& old_stat, const Stat& new_stat)
+{
+  return (static_cast<int64_t>(new_stat.size_on_disk())
+          - static_cast<int64_t>(old_stat.size_on_disk()))
+         / 1024;
+}
+
 static void
 set_counters(const StatsFile& stats_file, const Level1Counters& level_1_cs)
 {
@@ -526,8 +535,7 @@ LocalStorage::put(const Hash::Digest& key,
   }
 
   int64_t files_change = cache_file.stat ? 0 : 1;
-  int64_t size_change_kibibyte =
-    Util::size_change_kibibyte(cache_file.stat, new_stat);
+  int64_t size_change_kibibyte = kibibyte_size_diff(cache_file.stat, new_stat);
   auto counters =
     increment_level_2_counters(key, files_change, size_change_kibibyte);
 
@@ -621,7 +629,7 @@ LocalStorage::put_raw_files(
     }
     const auto new_stat = Stat::stat(dest_path);
     increment_statistic(Statistic::cache_size_kibibyte,
-                        Util::size_change_kibibyte(old_stat, new_stat));
+                        kibibyte_size_diff(old_stat, new_stat));
     increment_statistic(Statistic::files_in_cache,
                         (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
   }
@@ -857,7 +865,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                   Stat new_stat = recompressor.recompress(
                     file, level, core::FileRecompressor::KeepAtime::no);
                   auto size_change_kibibyte =
-                    Util::size_change_kibibyte(file, new_stat);
+                    kibibyte_size_diff(file, new_stat);
                   if (size_change_kibibyte != 0) {
                     StatsFile(stats_file).update([=](auto& cs) {
                       cs.increment(Statistic::cache_size_kibibyte,
