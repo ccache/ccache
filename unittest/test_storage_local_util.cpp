@@ -18,10 +18,10 @@
 
 #include "TestUtil.hpp"
 
-#include <Util.hpp>
 #include <fmtmacros.hpp>
 #include <storage/local/util.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 
 #include <third_party/doctest.h>
 
@@ -30,6 +30,8 @@
 #include <vector>
 
 using TestUtil::TestContext;
+
+namespace fs = util::filesystem;
 
 static inline std::string
 os_path(std::string path)
@@ -59,10 +61,10 @@ TEST_CASE("storage::local::get_cache_dir_files")
 {
   TestContext test_context;
 
-  Util::create_dir("e/m/p/t/y");
+  fs::create_directories("e/m/p/t/y");
 
-  Util::create_dir("0/1");
-  Util::create_dir("0/f/c");
+  fs::create_directories("0/1");
+  fs::create_directories("0/f/c");
   util::write_file("0/file_a", "");
   util::write_file("0/1/file_b", "1");
   util::write_file("0/1/file_c", "12");

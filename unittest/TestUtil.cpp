@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,10 +23,13 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/filesystem.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+
+namespace fs = util::filesystem;
 
 namespace TestUtil {
 
@@ -39,7 +42,7 @@ TestContext::TestContext() : m_test_dir(Util::get_actual_cwd())
   }
   ++m_subdir_counter;
   std::string subtest_dir = FMT("{}/test_{}", m_test_dir, m_subdir_counter);
-  Util::create_dir(subtest_dir);
+  fs::create_directories(subtest_dir);
   if (chdir(subtest_dir.c_str()) != 0) {
     abort();
   }

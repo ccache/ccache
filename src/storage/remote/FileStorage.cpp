@@ -29,11 +29,14 @@
 #include <util/UmaskScope.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/string.hpp>
 
 #include <sys/stat.h> // for mode_t
 
 #include <string_view>
+
+namespace fs = util::filesystem;
 
 namespace storage::remote {
 
@@ -149,8 +152,8 @@ FileStorageBackend::put(const Hash::Digest& key,
     util::UmaskScope umask_scope(m_umask);
 
     const auto dir = Util::dir_name(path);
-    if (!Util::create_dir(dir)) {
-      LOG("Failed to create directory {}: {}", dir, strerror(errno));
+    if (auto result = fs::create_directories(dir); !result) {
+      LOG("Failed to create directory {}: {}", dir, result.error().message());
       return nonstd::make_unexpected(Failure::error);
     }
 

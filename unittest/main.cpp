@@ -21,12 +21,15 @@
 #include "TestUtil.hpp"
 
 #include <util/environment.hpp>
+#include <util/filesystem.hpp>
 
 #include "third_party/fmt/core.h"
 
 #define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "third_party/doctest.h"
+
+namespace fs = util::filesystem;
 
 int
 main(int argc, char** argv)
@@ -39,7 +42,7 @@ main(int argc, char** argv)
   std::string dir_before = Util::get_actual_cwd();
   std::string testdir = FMT("testdir/{}", getpid());
   Util::wipe_path(testdir);
-  Util::create_dir(testdir);
+  fs::create_directories(testdir);
   TestUtil::check_chdir(testdir);
 
   doctest::Context context;

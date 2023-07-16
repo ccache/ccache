@@ -186,34 +186,6 @@ common_dir_prefix_length(std::string_view dir, std::string_view path)
   return i;
 }
 
-bool
-create_dir(std::string_view dir)
-{
-  std::string dir_str(dir);
-  auto st = Stat::stat(dir_str);
-  if (st) {
-    if (st.is_directory()) {
-      return true;
-    } else {
-      errno = ENOTDIR;
-      return false;
-    }
-  } else {
-    if (!create_dir(Util::dir_name(dir))) {
-      return false;
-    }
-    int result = mkdir(dir_str.c_str(), 0777);
-    // Treat an already existing directory as OK since the file system could
-    // have changed in between calling stat and actually creating the
-    // directory. This can happen when there are multiple instances of ccache
-    // running and trying to create the same directory chain, which usually is
-    // the case when the cache root does not initially exist. As long as one of
-    // the processes creates the directories then our condition is satisfied
-    // and we avoid a race condition.
-    return result == 0 || errno == EEXIST;
-  }
-}
-
 std::string_view
 dir_name(std::string_view path)
 {
@@ -260,9 +232,9 @@ format_argv_for_logging(const char* const* argv)
 void
 ensure_dir_exists(std::string_view dir)
 {
-  if (!create_dir(dir)) {
+  if (auto result = fs::create_directories(dir); !result) {
     throw core::Fatal(
-      FMT("Failed to create directory {}: {}", dir, strerror(errno)));
+      FMT("Failed to create directory {}: {}", dir, result.error().message()));
   }
 }
 

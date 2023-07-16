@@ -27,6 +27,7 @@
 #include <core/wincompat.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 
 #include "third_party/doctest.h"
 
@@ -43,6 +44,8 @@
 #include <algorithm>
 
 using TestUtil::TestContext;
+
+namespace fs = util::filesystem;
 
 TEST_SUITE_BEGIN("Util");
 
@@ -89,19 +92,6 @@ TEST_CASE("Util::common_dir_prefix_length")
   CHECK(Util::common_dir_prefix_length("/a/b", "/a/bc") == 2);
 }
 
-TEST_CASE("Util::create_dir")
-{
-  TestContext test_context;
-
-  CHECK(Util::create_dir("/"));
-
-  CHECK(Util::create_dir("create/dir"));
-  CHECK(Stat::stat("create/dir").is_directory());
-
-  util::write_file("create/dir/file", "");
-  CHECK(!Util::create_dir("create/dir/file"));
-}
-
 TEST_CASE("Util::dir_name")
 {
   CHECK(Util::dir_name("") == ".");
@@ -145,7 +135,7 @@ TEST_CASE("Util::ensure_dir_exists")
   util::write_file("create/dir/file", "");
   CHECK_THROWS_WITH(
     Util::ensure_dir_exists("create/dir/file"),
-    "Failed to create directory create/dir/file: Not a directory");
+    doctest::Contains("Failed to create directory create/dir/file:"));
 }
 
 TEST_CASE("Util::format_argv_for_logging")
@@ -265,7 +255,7 @@ TEST_CASE("Util::make_relative_path")
   const std::string apparent_cwd = FMT("{}/s", cwd);
 #endif
 
-  REQUIRE(Util::create_dir("d"));
+  REQUIRE(fs::create_directory("d"));
 #ifndef _WIN32
   REQUIRE(symlink("d", "s") == 0);
 #endif
@@ -388,7 +378,7 @@ TEST_CASE("Util::normalize_concrete_absolute_path")
   TestContext test_context;
 
   util::write_file("file", "");
-  REQUIRE(Util::create_dir("dir1/dir2"));
+  REQUIRE(fs::create_directories("dir1/dir2"));
   REQUIRE(symlink("dir1/dir2", "symlink") == 0);
   const auto cwd = Util::get_actual_cwd();
 
@@ -428,12 +418,12 @@ TEST_CASE("Util::traverse")
 {
   TestContext test_context;
 
-  REQUIRE(Util::create_dir("dir-with-subdir-and-file/subdir"));
+  REQUIRE(fs::create_directories("dir-with-subdir-and-file/subdir"));
   util::write_file("dir-with-subdir-and-file/subdir/f", "");
-  REQUIRE(Util::create_dir("dir-with-files"));
+  REQUIRE(fs::create_directory("dir-with-files"));
   util::write_file("dir-with-files/f1", "");
   util::write_file("dir-with-files/f2", "");
-  REQUIRE(Util::create_dir("empty-dir"));
+  REQUIRE(fs::create_directory("empty-dir"));
 
   std::vector<std::string> visited;
   auto visitor = [&visited](const std::string& path, bool is_dir) {
@@ -500,7 +490,7 @@ TEST_CASE("Util::wipe_path")
 
   SUBCASE("Wipe directory")
   {
-    REQUIRE(Util::create_dir("a/b"));
+    REQUIRE(fs::create_directories("a/b"));
     util::write_file("a/1", "");
     util::write_file("a/b/1", "");
     CHECK_NOTHROW(Util::wipe_path("a"));

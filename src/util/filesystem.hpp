@@ -58,6 +58,8 @@ using path = std::filesystem::path;
   }
 
 DEFINE_FS_WRAPPER(canonical, (path{}))
+DEFINE_FS_WRAPPER(create_directories, (path{}))
+DEFINE_FS_WRAPPER(create_directory, (path{}))
 DEFINE_FS_WRAPPER(create_hard_link, (path{}, path{}))
 DEFINE_FS_WRAPPER(current_path, ())
 DEFINE_FS_WRAPPER(read_symlink, (path{}))

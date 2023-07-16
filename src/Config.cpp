@@ -33,6 +33,7 @@
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
@@ -56,6 +57,8 @@ DLLIMPORT extern char** environ;
 
 // Make room for binary patching at install time.
 const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -1157,7 +1160,7 @@ Config::default_temporary_dir() const
     const char* const xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
     if (xdg_runtime_dir && Stat::stat(xdg_runtime_dir).is_directory()) {
       auto dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
-      if (Util::create_dir(dir) && access(dir.c_str(), W_OK) == 0) {
+      if (fs::create_directories(dir) && access(dir.c_str(), W_OK) == 0) {
         return dir;
       }
     }

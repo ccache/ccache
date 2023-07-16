@@ -190,10 +190,10 @@ prepare_debug_path(const std::string& debug_dir,
                   ? output_obj
                   : debug_dir + util::to_absolute_path_no_drive(output_obj);
 
-  // Ignore any error from create_dir since we can't handle an error in another
-  // way in this context. The caller takes care of logging when trying to open
-  // the path for writing.
-  Util::create_dir(Util::dir_name(prefix));
+  // Ignore any error from fs::create_directories since we can't handle an error
+  // in another way in this context. The caller takes care of logging when
+  // trying to open the path for writing.
+  fs::create_directories(Util::dir_name(prefix));
 
   char timestamp[100];
   const auto tm = Util::localtime(time_of_invocation);

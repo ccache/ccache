@@ -247,7 +247,7 @@ LockFile::do_acquire(const bool blocking)
     int saved_errno = errno;
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
-      if (Util::create_dir(Util::dir_name(m_lock_file))) {
+      if (fs::create_directories(Util::dir_name(m_lock_file))) {
         // OK. Retry.
         continue;
       }
@@ -380,7 +380,7 @@ LockFile::do_acquire(const bool blocking)
     DWORD error = GetLastError();
     if (error == ERROR_PATH_NOT_FOUND) {
       // Directory doesn't exist?
-      if (Util::create_dir(Util::dir_name(m_lock_file))) {
+      if (fs::create_directories(Util::dir_name(m_lock_file))) {
         // OK. Retry.
         continue;
       }

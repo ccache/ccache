@@ -51,11 +51,6 @@ std::string change_extension(std::string_view path, std::string_view new_ext);
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(std::string_view dir, std::string_view path);
 
-// Create a directory if needed, including its parents if needed.
-//
-// Returns true if the directory exists or could be created, otherwise false.
-bool create_dir(std::string_view dir);
-
 // Get directory name of path.
 std::string_view dir_name(std::string_view path);
 
