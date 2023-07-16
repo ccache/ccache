@@ -374,7 +374,7 @@ hash_command_output(Hash& hash,
 
   auto argv = args.to_argv();
   LOG("Executing compiler check command {}",
-      Util::format_argv_for_logging(argv.data()));
+      util::format_argv_for_logging(argv.data()));
 
 #ifdef _WIN32
   PROCESS_INFORMATION pi;

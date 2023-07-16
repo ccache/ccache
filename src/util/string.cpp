@@ -48,6 +48,23 @@ split_into(std::string_view string,
 namespace util {
 
 std::string
+format_argv_for_logging(const char* const* argv)
+{
+  std::string result;
+  for (size_t i = 0; argv[i]; ++i) {
+    if (i != 0) {
+      result += ' ';
+    }
+    std::string arg(argv[i]);
+    if (arg.empty() || arg.find(' ') != std::string::npos) {
+      arg = FMT("\"{}\"", arg);
+    }
+    result += arg;
+  }
+  return result;
+}
+
+std::string
 format_base16(nonstd::span<const uint8_t> data)
 {
   static const char digits[] = "0123456789abcdef";

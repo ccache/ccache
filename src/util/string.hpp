@@ -44,6 +44,10 @@ enum class SizeUnitPrefixType { binary, decimal };
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
 
+// Format `argv` as a simple string for logging purposes. That is, the result is
+// not intended to be machine parsable. `argv` must be terminated by a nullptr.
+std::string format_argv_for_logging(const char* const* argv);
+
 // Format a hexadecimal string representing `data`. The returned string will be
 // `2 * data.size()` long.
 std::string format_base16(nonstd::span<const uint8_t> data);

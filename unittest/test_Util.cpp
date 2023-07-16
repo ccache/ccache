@@ -139,15 +139,6 @@ TEST_CASE("Util::ensure_dir_exists")
     doctest::Contains("Failed to create directory create/dir/file:"));
 }
 
-TEST_CASE("Util::format_argv_for_logging")
-{
-  const char* argv_0[] = {nullptr};
-  CHECK(Util::format_argv_for_logging(argv_0) == "");
-
-  const char* argv_2[] = {"foo", "bar", nullptr};
-  CHECK(Util::format_argv_for_logging(argv_2) == "foo bar");
-}
-
 TEST_CASE("Util::get_extension")
 {
   CHECK(Util::get_extension("") == "");

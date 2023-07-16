@@ -39,6 +39,15 @@ operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
 
 TEST_SUITE_BEGIN("util");
 
+TEST_CASE("util::format_argv_for_logging")
+{
+  const char* argv_0[] = {nullptr};
+  CHECK(util::format_argv_for_logging(argv_0) == "");
+
+  const char* argv_2[] = {"foo", "bar", nullptr};
+  CHECK(util::format_argv_for_logging(argv_2) == "foo bar");
+}
+
 TEST_CASE("util::format_base16")
 {
   uint8_t none[] = "";

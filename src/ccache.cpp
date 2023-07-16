@@ -2201,7 +2201,7 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
     });
   }
 
-  LOG("Command line: {}", Util::format_argv_for_logging(argv));
+  LOG("Command line: {}", util::format_argv_for_logging(argv));
   LOG("Hostname: {}", Util::get_hostname());
   LOG("Working directory: {}", ctx.actual_cwd);
   if (ctx.apparent_cwd != ctx.actual_cwd) {
@@ -2385,7 +2385,7 @@ cache_compilation(int argc, const char* const* argv)
       saved_temp_dir = ctx.config.temporary_dir();
       saved_orig_args = std::move(ctx.orig_args);
       auto execv_argv = saved_orig_args.to_argv();
-      LOG("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
+      LOG("Executing {}", util::format_argv_for_logging(execv_argv.data()));
       // Execute the original command below after ctx and finalizer have been
       // destructed.
     }

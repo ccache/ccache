@@ -34,6 +34,7 @@
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
+#include <util/string.hpp>
 
 #include <vector>
 
@@ -60,7 +61,7 @@ static int win32execute(const char* path,
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
-  LOG("Executing {}", Util::format_argv_for_logging(argv));
+  LOG("Executing {}", util::format_argv_for_logging(argv));
 
   return win32execute(argv[0],
                       argv,
@@ -284,7 +285,7 @@ win32execute(const char* path,
 int
 execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
 {
-  LOG("Executing {}", Util::format_argv_for_logging(argv));
+  LOG("Executing {}", util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;

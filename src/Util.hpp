@@ -57,10 +57,6 @@ std::string_view dir_name(std::string_view path);
 // Like create_dir but throws Fatal on error.
 void ensure_dir_exists(std::string_view dir);
 
-// Format `argv` as a simple string for logging purposes. That is, the result is
-// not intended to be machine parsable. `argv` must be terminated by a nullptr.
-std::string format_argv_for_logging(const char* const* argv);
-
 // Return the file extension (including the dot) as a view into `path`. If
 // `path` has no file extension, an empty string_view is returned.
 std::string_view get_extension(std::string_view path);
