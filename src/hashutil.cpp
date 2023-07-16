@@ -491,7 +491,7 @@ hash_multicommand_output(Hash& hash,
                          const std::string& command,
                          const std::string& compiler)
 {
-  for (const std::string& cmd : Util::split_into_strings(command, ";")) {
+  for (const std::string& cmd : util::split_into_strings(command, ";")) {
     if (!hash_command_output(hash, cmd, compiler)) {
       return false;
     }

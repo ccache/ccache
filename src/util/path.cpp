@@ -22,6 +22,7 @@
 #include <Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/filesystem.hpp>
+#include <util/string.hpp>
 
 #ifdef _WIN32
 const char k_dev_null_path[] = "nul:";
@@ -99,7 +100,7 @@ real_path(std::string_view path)
 std::vector<std::string>
 split_path_list(std::string_view path_list)
 {
-  return Util::split_into_strings(path_list, k_path_delimiter);
+  return util::split_into_strings(path_list, k_path_delimiter);
 }
 
 std::string

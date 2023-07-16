@@ -28,6 +28,7 @@
 #include <util/TimePoint.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
+#include <util/string.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -58,7 +59,7 @@ Context::initialize(Args&& compiler_and_args,
   Logging::init(config);
   ignore_header_paths =
     util::split_path_list(config.ignore_headers_in_manifest());
-  set_ignore_options(Util::split_into_strings(config.ignore_options(), " "));
+  set_ignore_options(util::split_into_strings(config.ignore_options(), " "));
 
   // Set default umask for all files created by ccache from now on (if
   // configured to). This is intentionally done after calling Logging::init so

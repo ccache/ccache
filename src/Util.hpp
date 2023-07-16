@@ -19,7 +19,6 @@
 #pragma once
 
 #include <util/TimePoint.hpp>
-#include <util/Tokenizer.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -171,24 +170,6 @@ std::string_view remove_extension(std::string_view path);
 // paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws
 // `core::Error` on error.
 void send_to_fd(const Context& ctx, std::string_view text, int fd);
-
-// Split `string` into tokens at any of the characters in `separators`. These
-// tokens are views into `string`. `separators` must neither be the empty string
-// nor a nullptr.
-std::vector<std::string_view>
-split_into_views(std::string_view string,
-                 const char* separators,
-                 util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty,
-                 util::Tokenizer::IncludeDelimiter include_delimiter =
-                   util::Tokenizer::IncludeDelimiter::no);
-
-// Same as `split_into_views` but the tokens are copied from `string`.
-std::vector<std::string> split_into_strings(
-  std::string_view string,
-  const char* separators,
-  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty,
-  util::Tokenizer::IncludeDelimiter include_delimiter =
-    util::Tokenizer::IncludeDelimiter::no);
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(std::string_view string);

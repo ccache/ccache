@@ -28,6 +28,7 @@
 #include <util/Tokenizer.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
+#include <util/string.hpp>
 
 #include <algorithm>
 
@@ -83,7 +84,7 @@ rewrite_source_paths(const Context& ctx, std::string_view file_content)
                                    "\n",
                                    Tokenizer::Mode::include_empty,
                                    Tokenizer::IncludeDelimiter::yes)) {
-    const auto tokens = Util::split_into_views(line, " \t");
+    const auto tokens = util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
       DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
       DEBUG_ASSERT(!tokens[i].empty());

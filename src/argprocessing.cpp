@@ -372,7 +372,7 @@ process_option_arg(const Context& ctx,
     ++i;
 
     // Argument is a comma-separated list of files.
-    auto paths = Util::split_into_strings(args[i], ",");
+    auto paths = util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
       auto file_args = Args::from_atfile(*it);
       if (!file_args) {

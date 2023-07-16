@@ -31,7 +31,6 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
-#include <util/TimePoint.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
@@ -89,22 +88,6 @@ find_first_ansi_csi_seq(std::string_view string)
   } else {
     return {};
   }
-}
-
-template<typename T>
-std::vector<T>
-split_into(std::string_view string,
-           const char* separators,
-           util::Tokenizer::Mode mode,
-           IncludeDelimiter include_delimiter)
-
-{
-  std::vector<T> result;
-  for (const auto token :
-       util::Tokenizer(string, separators, mode, include_delimiter)) {
-    result.emplace_back(token);
-  }
-  return result;
 }
 
 std::string
@@ -681,25 +664,6 @@ send_to_fd(const Context& ctx, std::string_view text, int fd)
   if (!result) {
     throw core::Error(FMT("Failed to write to {}: {}", fd, result.error()));
   }
-}
-
-std::vector<std::string_view>
-split_into_views(std::string_view string,
-                 const char* separators,
-                 util::Tokenizer::Mode mode,
-                 IncludeDelimiter include_delimiter)
-{
-  return split_into<std::string_view>(
-    string, separators, mode, include_delimiter);
-}
-
-std::vector<std::string>
-split_into_strings(std::string_view string,
-                   const char* separators,
-                   util::Tokenizer::Mode mode,
-                   IncludeDelimiter include_delimiter)
-{
-  return split_into<std::string>(string, separators, mode, include_delimiter);
 }
 
 std::string

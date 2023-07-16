@@ -444,6 +444,20 @@ TEST_CASE("util::replace_first")
   CHECK(util::replace_first("xabcyabcz", "abc", "defdef") == "xdefdefyabcz");
 }
 
+TEST_CASE("util::split_into_strings")
+{
+  // Edge cases are tested in test_util_Tokenizer.cpp.
+  CHECK(util::split_into_strings("foo bar", " ")
+        == std::vector<std::string>{"foo", "bar"});
+}
+
+TEST_CASE("util::split_into_views")
+{
+  // Edge cases are tested in test_util_Tokenizer.cpp.
+  CHECK(util::split_into_views("foo bar", " ")
+        == std::vector<std::string_view>{"foo", "bar"});
+}
+
 TEST_CASE("util::split_once")
 {
   using std::make_pair;

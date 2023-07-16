@@ -118,7 +118,7 @@ static RemoteStorageConfig
 parse_storage_config(const std::string_view entry)
 {
   const auto parts =
-    Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
+    util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
 
   if (parts.empty() || parts.front().empty()) {
     throw core::Error(

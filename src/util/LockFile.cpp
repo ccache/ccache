@@ -24,6 +24,7 @@
 #include "fmtmacros.hpp"
 
 #include <Stat.hpp>
+#include <assertions.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <util/file.hpp>

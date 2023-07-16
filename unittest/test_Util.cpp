@@ -416,9 +416,6 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
 }
 
-// Util::split_into_strings and Util::split_into_views are tested implicitly in
-// test_util_Tokenizer.cpp.
-
 TEST_CASE("Util::to_lowercase")
 {
   CHECK(Util::to_lowercase("") == "");

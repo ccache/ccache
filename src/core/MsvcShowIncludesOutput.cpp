@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,6 @@
 #include "MsvcShowIncludesOutput.hpp"
 
 #include <Context.hpp>
-#include <Util.hpp>
 #include <util/string.hpp>
 
 namespace core::MsvcShowIncludesOutput {
@@ -34,7 +33,7 @@ get_includes(std::string_view file_content, std::string_view prefix)
   std::vector<std::string_view> result;
   // This will split at each \r or \n, but that simply means there will be empty
   // "lines".
-  for (std::string_view line : Util::split_into_views(file_content, "\r\n")) {
+  for (std::string_view line : util::split_into_views(file_content, "\r\n")) {
     if (util::starts_with(line, prefix)) {
       size_t pos = prefix.size();
       while (pos < line.size() && isspace(line[pos])) {

@@ -165,7 +165,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
   }
 
   Args prefix;
-  for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
+  for (const auto& word : util::split_into_strings(prefix_command, " ")) {
     std::string path = find_executable(ctx, word, ctx.orig_args[0]);
     if (path.empty()) {
       throw core::Fatal(FMT("{}: {}", word, strerror(errno)));

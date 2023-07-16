@@ -25,6 +25,26 @@
 #include <cctype>
 #include <iostream>
 
+namespace {
+
+template<typename T>
+std::vector<T>
+split_into(std::string_view string,
+           const char* separators,
+           util::Tokenizer::Mode mode,
+           util::Tokenizer::IncludeDelimiter include_delimiter)
+
+{
+  std::vector<T> result;
+  for (const auto token :
+       util::Tokenizer(string, separators, mode, include_delimiter)) {
+    result.emplace_back(token);
+  }
+  return result;
+}
+
+} // namespace
+
 namespace util {
 
 std::string
@@ -343,6 +363,25 @@ replace_first(const std::string_view string,
     result = std::string(string);
   }
   return result;
+}
+
+std::vector<std::string>
+split_into_strings(std::string_view string,
+                   const char* separators,
+                   util::Tokenizer::Mode mode,
+                   util::Tokenizer::IncludeDelimiter include_delimiter)
+{
+  return split_into<std::string>(string, separators, mode, include_delimiter);
+}
+
+std::vector<std::string_view>
+split_into_views(std::string_view string,
+                 const char* separators,
+                 util::Tokenizer::Mode mode,
+                 util::Tokenizer::IncludeDelimiter include_delimiter)
+{
+  return split_into<std::string_view>(
+    string, separators, mode, include_delimiter);
 }
 
 std::pair<std::string_view, std::optional<std::string_view>>
