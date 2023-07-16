@@ -55,7 +55,8 @@ format_argv_for_logging(const char* const* argv)
     if (i != 0) {
       result += ' ';
     }
-    std::string arg(argv[i]);
+    std::string arg = replace_all(argv[i], "\\", "\\\\");
+    arg = replace_all(arg, "\"", "\\\"");
     if (arg.empty() || arg.find(' ') != std::string::npos) {
       arg = FMT("\"{}\"", arg);
     }

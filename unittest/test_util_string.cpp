@@ -41,11 +41,35 @@ TEST_SUITE_BEGIN("util");
 
 TEST_CASE("util::format_argv_for_logging")
 {
-  const char* argv_0[] = {nullptr};
-  CHECK(util::format_argv_for_logging(argv_0) == "");
+  SUBCASE("nullptr")
+  {
+    const char* argv[] = {nullptr};
+    CHECK(util::format_argv_for_logging(argv) == "");
+  }
 
-  const char* argv_2[] = {"foo", "bar", nullptr};
-  CHECK(util::format_argv_for_logging(argv_2) == "foo bar");
+  SUBCASE("plain arguments")
+  {
+    const char* argv[] = {"foo", "bar", nullptr};
+    CHECK(util::format_argv_for_logging(argv) == "foo bar");
+  }
+
+  SUBCASE("argument with space")
+  {
+    const char* argv[] = {"foo bar", "fum", nullptr};
+    CHECK(util::format_argv_for_logging(argv) == "\"foo bar\" fum");
+  }
+
+  SUBCASE("argument with double quote")
+  {
+    const char* argv[] = {"foo\"bar", "fum", nullptr};
+    CHECK(util::format_argv_for_logging(argv) == "foo\\\"bar fum");
+  }
+
+  SUBCASE("argument with backslash")
+  {
+    const char* argv[] = {"foo\\bar", "fum", nullptr};
+    CHECK(util::format_argv_for_logging(argv) == "foo\\\\bar fum");
+  }
 }
 
 TEST_CASE("util::format_base16")
