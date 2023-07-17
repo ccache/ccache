@@ -1,21 +1,18 @@
 include(CheckIncludeFile)
 set(include_files
+    dirent.h
     linux/fs.h
     pwd.h
     sys/clonefile.h
+    sys/file.h
     sys/ioctl.h
     sys/mman.h
-    sys/time.h
+    sys/utime.h
     sys/wait.h
-    sys/file.h
     syslog.h
-    termios.h
-    dirent.h
-    strings.h
     unistd.h
     utime.h
-    sys/utime.h
-    varargs.h)
+)
 foreach(include_file IN ITEMS ${include_files})
   string(TOUPPER ${include_file} include_var)
   string(REGEX REPLACE "[/.]" "_" include_var ${include_var})
@@ -30,9 +27,7 @@ set(functions
     getpwuid
     localtime_r
     posix_fallocate
-    realpath
     setenv
-    strndup
     syslog
     unsetenv
     utimensat
@@ -47,14 +42,14 @@ endforeach()
 include(CheckStructHasMember)
 check_struct_has_member("struct stat" st_atim sys/stat.h
                         HAVE_STRUCT_STAT_ST_ATIM LANGUAGE CXX)
-check_struct_has_member("struct stat" st_ctim sys/stat.h
-                        HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
-check_struct_has_member("struct stat" st_mtim sys/stat.h
-                        HAVE_STRUCT_STAT_ST_MTIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_atimespec sys/stat.h
                         HAVE_STRUCT_STAT_ST_ATIMESPEC LANGUAGE CXX)
+check_struct_has_member("struct stat" st_ctim sys/stat.h
+                        HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_ctimespec sys/stat.h
                         HAVE_STRUCT_STAT_ST_CTIMESPEC LANGUAGE CXX)
+check_struct_has_member("struct stat" st_mtim sys/stat.h
+                        HAVE_STRUCT_STAT_ST_MTIM LANGUAGE CXX)
 check_struct_has_member("struct stat" st_mtimespec sys/stat.h
                         HAVE_STRUCT_STAT_ST_MTIMESPEC LANGUAGE CXX)
 check_struct_has_member("struct statfs" f_fstypename sys/mount.h
