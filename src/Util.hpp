@@ -93,10 +93,6 @@ is_dir_separator(char ch)
     ;
 }
 
-// Return whether `path` represents a precompiled header (see "Precompiled
-// Headers" in GCC docs).
-bool is_precompiled_header(std::string_view path);
-
 // Thread-safe version of `localtime(3)`. If `time` is not specified the current
 // time of day is used.
 std::optional<tm> localtime(std::optional<util::TimePoint> time = {});

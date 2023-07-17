@@ -1289,7 +1289,7 @@ process_args(Context& ctx)
 
   args_info.output_is_precompiled_header =
     args_info.actual_language.find("-header") != std::string::npos
-    || Util::is_precompiled_header(args_info.output_obj);
+    || is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
     args_info.orig_output_obj = args_info.orig_input_file + ".gch";
@@ -1582,6 +1582,14 @@ process_args(Context& ctx)
     compiler_args,
     state.hash_actual_cwd,
   };
+}
+
+bool
+is_precompiled_header(std::string_view path)
+{
+  std::string_view ext = Util::get_extension(path);
+  return ext == ".gch" || ext == ".pch" || ext == ".pth"
+         || Util::get_extension(Util::dir_name(path)) == ".gch";
 }
 
 bool

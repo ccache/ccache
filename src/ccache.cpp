@@ -370,7 +370,7 @@ do_remember_include_file(Context& ctx,
     }
   }
 
-  const bool is_pch = Util::is_precompiled_header(path);
+  const bool is_pch = is_precompiled_header(path);
   const bool too_new = include_file_too_new(ctx, path, st);
 
   if (too_new) {
@@ -447,7 +447,7 @@ remember_include_file(Context& ctx,
 {
   if (!do_remember_include_file(
         ctx, path, cpp_hash, system, depend_mode_hash)) {
-    if (Util::is_precompiled_header(path)) {
+    if (is_precompiled_header(path)) {
       return RememberIncludeFileResult::cannot_use_pch;
     } else if (ctx.config.direct_mode()) {
       LOG_RAW("Disabling direct mode");

@@ -363,14 +363,6 @@ is_ccache_executable(const std::string_view path)
   return util::starts_with(name, "ccache");
 }
 
-bool
-is_precompiled_header(std::string_view path)
-{
-  std::string_view ext = get_extension(path);
-  return ext == ".gch" || ext == ".pch" || ext == ".pth"
-         || get_extension(dir_name(path)) == ".gch";
-}
-
 std::optional<tm>
 localtime(std::optional<util::TimePoint> time)
 {
