@@ -27,50 +27,97 @@ namespace util::filesystem {
 using directory_iterator = std::filesystem::directory_iterator;
 using path = std::filesystem::path;
 
-#define DEFINE_FS_WRAPPER(name_, fnspec_)                                      \
-  template<typename... Args>                                                   \
-  nonstd::expected<decltype(std::filesystem::name_ fnspec_), std::error_code>  \
-  name_(Args&&... args)                                                        \
+// Define wrapper with no parameters returning non-void result.
+#define DEF_WRAP_0_R(name_, r_)                                                \
+  inline nonstd::expected<r_, std::error_code> name_()                         \
   {                                                                            \
-    std::error_code ec;                                                        \
-    if constexpr (std::is_same<decltype(std::filesystem::name_ fnspec_),       \
-                               void>::value) {                                 \
-      std::filesystem::name_(std::forward<Args>(args)..., ec);                 \
-      if (ec) {                                                                \
-        return nonstd::make_unexpected(ec);                                    \
-      }                                                                        \
-      return {};                                                               \
-    } else {                                                                   \
-      auto result = std::filesystem::name_(std::forward<Args>(args)..., ec);   \
-      if (ec) {                                                                \
-        return nonstd::make_unexpected(ec);                                    \
-      }                                                                        \
-      return result;                                                           \
+    std::error_code ec_;                                                       \
+    auto result_ = std::filesystem::name_(ec_);                                \
+    if (ec_) {                                                                 \
+      return nonstd::make_unexpected(ec_);                                     \
     }                                                                          \
+    return result_;                                                            \
   }
 
-#define DEFINE_FS_PREDICATE_WRAPPER(name_, fnspec_)                            \
-  template<typename... Args> bool name_(Args&&... args)                        \
+// Define wrapper with one parameter returning non-void result.
+#define DEF_WRAP_1_R(name_, r_, t1_, p1_)                                      \
+  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_)                  \
   {                                                                            \
-    std::error_code ec;                                                        \
-    auto result = std::filesystem::name_(std::forward<Args>(args)..., ec);     \
-    return !ec && result;                                                      \
+    std::error_code ec_;                                                       \
+    auto result_ = std::filesystem::name_(p1_, ec_);                           \
+    if (ec_) {                                                                 \
+      return nonstd::make_unexpected(ec_);                                     \
+    }                                                                          \
+    return result_;                                                            \
   }
 
-DEFINE_FS_WRAPPER(canonical, (path{}))
-DEFINE_FS_WRAPPER(create_directories, (path{}))
-DEFINE_FS_WRAPPER(create_directory, (path{}))
-DEFINE_FS_WRAPPER(create_hard_link, (path{}, path{}))
-DEFINE_FS_WRAPPER(current_path, ())
-DEFINE_FS_WRAPPER(read_symlink, (path{}))
-DEFINE_FS_WRAPPER(remove, (path{}))
-DEFINE_FS_WRAPPER(remove_all, (path{}))
-DEFINE_FS_WRAPPER(temp_directory_path, ())
+// Define predicate wrapper with one parameter. Returns true if there's no error
+// and the wrapped function returned true.
+#define DEF_WRAP_1_P(name_, r_, t1_, p1_)                                      \
+  inline r_ name_(t1_ p1_)                                                     \
+  {                                                                            \
+    std::error_code ec_;                                                       \
+    auto result_ = std::filesystem::name_(p1_, ec_);                           \
+    return !ec_ && result_;                                                    \
+  }
 
-DEFINE_FS_PREDICATE_WRAPPER(exists, (path{}))
-DEFINE_FS_PREDICATE_WRAPPER(is_directory, (path{}))
+// Define wrapper with one parameter returning void.
+#define DEF_WRAP_1_V(name_, r_, t1_, p1_)                                      \
+  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_)                  \
+  {                                                                            \
+    std::error_code ec_;                                                       \
+    std::filesystem::name_(p1_, ec_);                                          \
+    if (ec_) {                                                                 \
+      return nonstd::make_unexpected(ec_);                                     \
+    }                                                                          \
+    return {};                                                                 \
+  }
 
-#undef DEFINE_FS_PREDICATE_WRAPPER
-#undef DEFINE_FS_WRAPPER
+// Define wrapper with one parameter returning non-void result.
+#define DEF_WRAP_1_R(name_, r_, t1_, p1_)                                      \
+  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_)                  \
+  {                                                                            \
+    std::error_code ec_;                                                       \
+    auto result_ = std::filesystem::name_(p1_, ec_);                           \
+    if (ec_) {                                                                 \
+      return nonstd::make_unexpected(ec_);                                     \
+    }                                                                          \
+    return result_;                                                            \
+  }
+
+// Define wrapper with two parameters returning void.
+#define DEF_WRAP_2_V(name_, r_, t1_, p1_, t2_, p2_)                            \
+  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_, t2_ p2_)         \
+  {                                                                            \
+    std::error_code ec_;                                                       \
+    std::filesystem::name_(p1_, p2_, ec_);                                     \
+    if (ec_) {                                                                 \
+      return nonstd::make_unexpected(ec_);                                     \
+    }                                                                          \
+    return {};                                                                 \
+  }
+
+// clang-format off
+
+//           name,                ret,            pt1,         pn1,    pt2,         pn2
+DEF_WRAP_1_R(canonical,           path,           const path&, p)
+DEF_WRAP_1_R(create_directories,  bool,           const path&, p)
+DEF_WRAP_1_R(create_directory,    bool,           const path&, p)
+DEF_WRAP_2_V(create_hard_link,    void,           const path&, target, const path&, link)
+DEF_WRAP_0_R(current_path,        path)
+DEF_WRAP_1_P(exists,              bool,           const path&, p)
+DEF_WRAP_1_P(is_directory,        bool,           const path&, p)
+DEF_WRAP_1_R(read_symlink,        path,           const path&, p)
+DEF_WRAP_1_R(remove,              bool,           const path&, p)
+DEF_WRAP_1_R(remove_all,          std::uintmax_t, const path&, p)
+DEF_WRAP_0_R(temp_directory_path, path)
+
+// clang-format on
+
+#undef DEF_WRAP_0_R
+#undef DEF_WRAP_1_R
+#undef DEF_WRAP_1_P
+#undef DEF_WRAP_1_V
+#undef DEF_WRAP_2_V
 
 } // namespace util::filesystem
