@@ -111,6 +111,7 @@ DEF_WRAP_1_P(is_directory,        bool,           const path&, p)
 DEF_WRAP_1_R(read_symlink,        path,           const path&, p)
 DEF_WRAP_1_R(remove,              bool,           const path&, p)
 DEF_WRAP_1_R(remove_all,          std::uintmax_t, const path&, p)
+// Note: Use util::rename instead of fs::rename.
 DEF_WRAP_0_R(temp_directory_path, path)
 
 // clang-format on
