@@ -17,7 +17,6 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/fmtmacros.hpp"
-#include "TestUtil.hpp"
 
 #include <util/environment.hpp>
 #include <util/filesystem.hpp>
@@ -43,14 +42,14 @@ main(int argc, char** argv)
   std::string testdir = FMT("testdir/{}", getpid());
   fs::remove_all(testdir);
   fs::create_directories(testdir);
-  TestUtil::check_chdir(testdir);
+  fs::current_path(testdir);
 
   doctest::Context context;
   context.applyCommandLine(argc, argv);
   int result = context.run();
 
   if (result == 0) {
-    TestUtil::check_chdir(dir_before);
+    fs::current_path(dir_before);
     fs::remove_all(testdir);
   } else {
     PRINT(stderr, "Note: Test data has been left in {}\n", testdir);

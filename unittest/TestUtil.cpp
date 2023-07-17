@@ -44,24 +44,15 @@ TestContext::TestContext() : m_test_dir(util::actual_cwd())
   ++m_subdir_counter;
   std::string subtest_dir = FMT("{}/test_{}", m_test_dir, m_subdir_counter);
   fs::create_directories(subtest_dir);
-  if (chdir(subtest_dir.c_str()) != 0) {
+  if (!fs::current_path(subtest_dir)) {
     abort();
   }
 }
 
 TestContext::~TestContext()
 {
-  if (chdir(m_test_dir.c_str()) != 0) {
+  if (!fs::current_path(m_test_dir)) {
     abort();
-  }
-}
-
-void
-check_chdir(const std::string& dir)
-{
-  if (chdir(dir.c_str()) != 0) {
-    throw core::Error(
-      FMT("failed to change directory to {}: {}", dir, strerror(errno)));
   }
 }
 

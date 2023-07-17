@@ -251,7 +251,7 @@ TEST_CASE("Util::make_relative_path")
 #ifndef _WIN32
   REQUIRE(symlink("d", "s") == 0);
 #endif
-  REQUIRE(chdir("d") == 0);
+  REQUIRE(fs::current_path("d"));
   util::setenv("PWD", apparent_cwd);
 
   SUBCASE("No base directory")
