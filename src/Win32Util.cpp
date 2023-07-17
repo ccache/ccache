@@ -20,6 +20,8 @@
 
 #include "Util.hpp"
 
+#include <util/string.hpp>
+
 #include <chrono>
 #include <thread>
 
@@ -48,7 +50,7 @@ namespace Win32Util {
 std::string
 add_exe_suffix(const std::string& path)
 {
-  auto ext = Util::to_lowercase(Util::get_extension(path));
+  auto ext = util::to_lowercase(Util::get_extension(path));
   if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
     return path;
   } else {

@@ -441,4 +441,13 @@ strip_whitespace(const std::string_view string)
   return start < end ? std::string(start, end) : std::string();
 }
 
+std::string
+to_lowercase(std::string_view string)
+{
+  std::string result;
+  result.resize(string.length());
+  std::transform(string.begin(), string.end(), result.begin(), tolower);
+  return result;
+}
+
 } // namespace util

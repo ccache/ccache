@@ -182,6 +182,9 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
+// Convert a string to lowercase.
+[[nodiscard]] std::string to_lowercase(std::string_view string);
+
 // --- Inline implementations ---
 
 inline bool

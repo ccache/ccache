@@ -398,14 +398,6 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
 }
 
-TEST_CASE("Util::to_lowercase")
-{
-  CHECK(Util::to_lowercase("") == "");
-  CHECK(Util::to_lowercase("x") == "x");
-  CHECK(Util::to_lowercase("X") == "x");
-  CHECK(Util::to_lowercase(" x_X@") == " x_x@");
-}
-
 TEST_CASE("Util::traverse")
 {
   TestContext test_context;

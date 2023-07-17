@@ -82,7 +82,7 @@ win32getshell(const std::string& path)
 {
   const char* path_list = getenv("PATH");
   std::string sh;
-  if (Util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
+  if (util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
     sh = find_executable_in_path("sh.exe", path_list);
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {

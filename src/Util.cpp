@@ -358,7 +358,7 @@ is_ccache_executable(const std::string_view path)
 {
   std::string name(Util::base_name(path));
 #ifdef _WIN32
-  name = Util::to_lowercase(name);
+  name = util::to_lowercase(name);
 #endif
   return util::starts_with(name, "ccache");
 }
@@ -607,15 +607,6 @@ strip_ansi_csi_seqs(std::string_view string)
     pos += data_length + seq_span.length();
   }
 
-  return result;
-}
-
-std::string
-to_lowercase(std::string_view string)
-{
-  std::string result;
-  result.resize(string.length());
-  std::transform(string.begin(), string.end(), result.begin(), tolower);
   return result;
 }
 

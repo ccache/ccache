@@ -119,7 +119,7 @@ color_output_possible()
 {
   const char* term_env = getenv("TERM");
   return isatty(STDERR_FILENO) && term_env
-         && Util::to_lowercase(term_env) != "dumb";
+         && util::to_lowercase(term_env) != "dumb";
 }
 
 bool

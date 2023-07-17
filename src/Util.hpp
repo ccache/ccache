@@ -155,9 +155,6 @@ void send_to_fd(const Context& ctx, std::string_view text, int fd);
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(std::string_view string);
 
-// Convert a string to lowercase.
-[[nodiscard]] std::string to_lowercase(std::string_view string);
-
 // Traverse `path` recursively (postorder, i.e. files are visited before their
 // parent directory).
 //

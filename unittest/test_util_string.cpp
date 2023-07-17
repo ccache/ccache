@@ -583,4 +583,12 @@ TEST_CASE("util::strip_whitespace")
   CHECK(util::strip_whitespace("  x  y  ") == "x  y");
 }
 
+TEST_CASE("util::to_lowercase")
+{
+  CHECK(util::to_lowercase("") == "");
+  CHECK(util::to_lowercase("x") == "x");
+  CHECK(util::to_lowercase("X") == "x");
+  CHECK(util::to_lowercase(" x_X@") == " x_x@");
+}
+
 TEST_SUITE_END();

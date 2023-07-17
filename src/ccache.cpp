@@ -260,7 +260,7 @@ guess_compiler(std::string_view path)
 #endif
 
   const auto name =
-    Util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
+    util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {

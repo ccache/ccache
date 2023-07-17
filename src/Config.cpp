@@ -225,7 +225,7 @@ parse_bool(const std::string& value,
     // Previously any value meant true, but this was surprising to users, who
     // might do something like CCACHE_DISABLE=0 and expect ccache to be
     // enabled.
-    std::string lower_value = Util::to_lowercase(value);
+    std::string lower_value = util::to_lowercase(value);
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw core::Error(
