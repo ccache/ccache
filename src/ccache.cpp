@@ -61,6 +61,7 @@
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
+#include <util/time.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -196,7 +197,7 @@ prepare_debug_path(const std::string& debug_dir,
   fs::create_directories(Util::dir_name(prefix));
 
   char timestamp[100];
-  const auto tm = Util::localtime(time_of_invocation);
+  const auto tm = util::localtime(time_of_invocation);
   if (tm) {
     strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &*tm);
   } else {

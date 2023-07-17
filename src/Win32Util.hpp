@@ -24,8 +24,6 @@
 
 #  include <string>
 
-struct tm* localtime_r(time_t* _clock, struct tm* _result);
-
 namespace Win32Util {
 
 // Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat"

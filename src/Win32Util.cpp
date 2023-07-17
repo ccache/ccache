@@ -134,13 +134,3 @@ get_last_ntstatus()
 }
 
 } // namespace Win32Util
-
-struct tm*
-localtime_r(time_t* clock, struct tm* result)
-{
-  struct tm* p = localtime(clock);
-  if (p) {
-    *result = *p;
-  }
-  return p;
-}

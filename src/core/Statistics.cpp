@@ -24,6 +24,7 @@
 #include <fmtmacros.hpp>
 #include <util/TextTable.hpp>
 #include <util/string.hpp>
+#include <util/time.hpp>
 
 #include <algorithm>
 
@@ -263,7 +264,7 @@ format_timestamp(const util::TimePoint& value)
   if (value.sec() == 0) {
     return "never";
   } else {
-    const auto tm = Util::localtime(value);
+    const auto tm = util::localtime(value);
     char buffer[100] = "?";
     if (tm) {
       strftime(buffer, sizeof(buffer), "%c", &*tm);

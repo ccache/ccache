@@ -23,7 +23,6 @@
 #include "Context.hpp"
 #include "Logging.hpp"
 #include "Stat.hpp"
-#include "Util.hpp"
 #include "Win32Util.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
@@ -33,6 +32,7 @@
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
+#include <util/time.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
@@ -269,7 +269,7 @@ hash_source_code_file(const Context& ctx,
     LOG("Found __DATE__ in {}", path);
 
     hash.hash_delimiter("date");
-    auto now = Util::localtime();
+    auto now = util::localtime();
     if (!now) {
       result.insert(HashSourceCode::error);
       return result;
@@ -297,7 +297,7 @@ hash_source_code_file(const Context& ctx,
       return result;
     }
 
-    auto modified_time = Util::localtime(stat.mtime());
+    auto modified_time = util::localtime(stat.mtime());
     if (!modified_time) {
       result.insert(HashSourceCode::error);
       return result;

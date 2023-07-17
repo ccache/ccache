@@ -363,18 +363,6 @@ is_ccache_executable(const std::string_view path)
   return util::starts_with(name, "ccache");
 }
 
-std::optional<tm>
-localtime(std::optional<util::TimePoint> time)
-{
-  time_t timestamp = time ? time->sec() : util::TimePoint::now().sec();
-  tm result;
-  if (localtime_r(&timestamp, &result)) {
-    return result;
-  } else {
-    return std::nullopt;
-  }
-}
-
 std::string
 make_relative_path(const std::string& base_dir,
                    const std::string& actual_cwd,

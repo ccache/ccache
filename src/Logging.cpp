@@ -28,6 +28,7 @@
 
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/time.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -83,7 +84,7 @@ do_log(std::string_view message, bool bulk)
   if (!bulk) {
     char timestamp[100];
     auto now = util::TimePoint::now();
-    auto tm = Util::localtime(now);
+    auto tm = util::localtime(now);
     if (tm) {
       strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
     } else {

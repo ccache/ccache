@@ -28,6 +28,7 @@ set(functions
     asctime_r
     getopt_long
     getpwuid
+    localtime_r
     posix_fallocate
     realpath
     setenv

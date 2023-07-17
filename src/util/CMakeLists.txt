@@ -12,6 +12,7 @@ set(
   path.cpp
   process.cpp
   string.cpp
+  time.cpp
   zstd.cpp
 )
 
