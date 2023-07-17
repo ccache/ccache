@@ -207,21 +207,6 @@ TEST_CASE("Util::is_absolute_path_with_prefix")
 #endif
 }
 
-TEST_CASE("Util::is_ccache_executable")
-{
-  CHECK(Util::is_ccache_executable("ccache"));
-  CHECK(Util::is_ccache_executable("ccache-1.2.3"));
-  CHECK(!Util::is_ccache_executable("fooccache"));
-  CHECK(!Util::is_ccache_executable("gcc"));
-#ifdef _WIN32
-  CHECK(Util::is_ccache_executable("CCACHE"));
-  CHECK(Util::is_ccache_executable("CCACHE.exe"));
-  CHECK(Util::is_ccache_executable("CCACHE-1.2.3"));
-  CHECK(Util::is_ccache_executable("CCACHE.EXE"));
-  CHECK(Util::is_ccache_executable("CCACHE-1.2.3.EXE"));
-#endif
-}
-
 TEST_CASE("Util::is_dir_separator")
 {
   CHECK(!Util::is_dir_separator('x'));

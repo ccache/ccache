@@ -2166,7 +2166,7 @@ find_compiler(Context& ctx,
     throw core::Fatal(FMT("Could not find compiler \"{}\" in PATH", compiler));
   }
 
-  if (Util::is_ccache_executable(resolved_compiler)) {
+  if (is_ccache_executable(resolved_compiler)) {
     throw core::Fatal("Recursive invocation of ccache");
   }
 
@@ -2311,7 +2311,7 @@ split_argv(int argc, const char* const* argv)
 {
   ArgvParts argv_parts;
   int i = 0;
-  while (i < argc && Util::is_ccache_executable(argv[i])) {
+  while (i < argc && is_ccache_executable(argv[i])) {
     argv_parts.masquerading_as_compiler = false;
     ++i;
   }
@@ -2681,11 +2681,21 @@ do_cache_compilation(Context& ctx)
   return ctx.config.recache() ? Statistic::recache : Statistic::cache_miss;
 }
 
+bool
+is_ccache_executable(const std::string_view path)
+{
+  std::string name(Util::base_name(path));
+#ifdef _WIN32
+  name = util::to_lowercase(name);
+#endif
+  return util::starts_with(name, "ccache");
+}
+
 int
 ccache_main(int argc, const char* const* argv)
 {
   try {
-    if (Util::is_ccache_executable(argv[0])) {
+    if (is_ccache_executable(argv[0])) {
       if (argc < 2) {
         PRINT_RAW(stderr, core::get_usage_text(Util::base_name(argv[0])));
         exit(EXIT_FAILURE);

@@ -204,4 +204,19 @@ TEST_CASE("guess_compiler")
 #endif
 }
 
+TEST_CASE("is_ccache_executable")
+{
+  CHECK(is_ccache_executable("ccache"));
+  CHECK(is_ccache_executable("ccache-1.2.3"));
+  CHECK(!is_ccache_executable("fooccache"));
+  CHECK(!is_ccache_executable("gcc"));
+#ifdef _WIN32
+  CHECK(is_ccache_executable("CCACHE"));
+  CHECK(is_ccache_executable("CCACHE.exe"));
+  CHECK(is_ccache_executable("CCACHE-1.2.3"));
+  CHECK(is_ccache_executable("CCACHE.EXE"));
+  CHECK(is_ccache_executable("CCACHE-1.2.3.EXE"));
+#endif
+}
+
 TEST_SUITE_END();

@@ -29,6 +29,7 @@
 #include "Util.hpp"
 #include "Win32Util.hpp"
 
+#include <ccache.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -399,7 +400,7 @@ find_executable_in_path(const std::string& name,
       if (candidate_exists) {
         const auto real_candidate = util::real_path(candidate);
         if ((real_exclude_path.empty() || real_candidate != real_exclude_path)
-            && !Util::is_ccache_executable(real_candidate)) {
+            && !is_ccache_executable(real_candidate)) {
           return candidate;
         }
       }

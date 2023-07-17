@@ -353,16 +353,6 @@ is_absolute_path_with_prefix(std::string_view path)
   return std::nullopt;
 }
 
-bool
-is_ccache_executable(const std::string_view path)
-{
-  std::string name(Util::base_name(path));
-#ifdef _WIN32
-  name = util::to_lowercase(name);
-#endif
-  return util::starts_with(name, "ccache");
-}
-
 std::string
 make_relative_path(const std::string& base_dir,
                    const std::string& actual_cwd,
