@@ -28,6 +28,7 @@
 #include <util/Bytes.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -58,6 +59,8 @@
 #include <locale>
 #include <type_traits>
 #include <vector>
+
+namespace fs = util::filesystem;
 
 namespace util {
 
@@ -371,6 +374,53 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 
 template nonstd::expected<std::vector<uint8_t>, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
+
+nonstd::expected<bool, std::error_code>
+remove(const std::string& path, LogFailure log_failure)
+{
+  auto result = fs::remove(path);
+  if (result || log_failure == LogFailure::yes) {
+    LOG("Removing {}", path);
+    if (!result) {
+      LOG("Removal failed: {}", result.error().message());
+    }
+  }
+  return result;
+}
+
+nonstd::expected<bool, std::error_code>
+remove_nfs_safe(const std::string& path, LogFailure log_failure)
+{
+  // fs::remove isn't atomic if path is on an NFS share, so we rename to a
+  // temporary file. We don't care if the temporary file is trashed, so it's
+  // always safe to remove it first.
+  std::string tmp_name =
+    FMT("{}.ccache{}remove", path, TemporaryFile::tmp_file_infix);
+
+  auto rename_result = util::rename(path, tmp_name);
+  if (!rename_result) {
+    // It's OK if it was removed in a race.
+    if (rename_result.error().value() != ENOENT
+        && rename_result.error().value() != ESTALE
+        && log_failure == LogFailure::yes) {
+      LOG("Removing {} via {}", path, tmp_name);
+      LOG("Renaming {} to {} failed: {}",
+          path,
+          tmp_name,
+          rename_result.error().message());
+    }
+    return nonstd::make_unexpected(rename_result.error());
+  }
+
+  auto remove_result = fs::remove(tmp_name);
+  if (remove_result || log_failure == LogFailure::yes) {
+    LOG("Removing {} via {}", path, tmp_name);
+    if (!remove_result) {
+      LOG("Removal failed: {}", remove_result.error().message());
+    }
+  }
+  return remove_result;
+}
 
 nonstd::expected<void, std::error_code>
 rename(const std::string& oldpath, const std::string& newpath)

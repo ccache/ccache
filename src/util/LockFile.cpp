@@ -162,8 +162,8 @@ LockFile::release()
   if (m_lock_manager) {
     m_lock_manager->deregister_alive_file(m_alive_file);
   }
-  Util::unlink_tmp(m_alive_file);
-  Util::unlink_tmp(m_lock_file);
+  util::remove(m_alive_file);
+  util::remove(m_lock_file);
 #else
   CloseHandle(m_handle);
 #endif
@@ -314,7 +314,7 @@ LockFile::do_acquire(const bool blocking)
           m_lock_file,
           inactive_duration.sec(),
           inactive_duration.nsec_decimal_part() / 1'000'000);
-      if (!Util::unlink_tmp(m_alive_file) || !Util::unlink_tmp(m_lock_file)) {
+      if (!util::remove(m_alive_file) || !util::remove(m_lock_file)) {
         return false;
       }
 

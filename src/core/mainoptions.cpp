@@ -375,7 +375,7 @@ trim_dir(const std::string& dir,
       if (final_size <= trim_max_size) {
         break;
       }
-      if (Util::unlink_tmp(file.path())) {
+      if (util::remove(file.path())) {
         ++removed_files;
         final_size -= file.size_on_disk();
       }

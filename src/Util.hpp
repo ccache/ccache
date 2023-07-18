@@ -38,8 +38,6 @@ namespace Util {
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
 
-enum class UnlinkLog { log_failure, ignore_failure };
-
 // Get base name of path.
 std::string_view base_name(std::string_view path);
 
@@ -149,20 +147,5 @@ void send_to_fd(const Context& ctx, std::string_view text, int fd);
 //
 // Throws core::Error on error.
 void traverse(const std::string& path, const TraverseVisitor& visitor);
-
-// Remove `path` (non-directory), NFS safe. Logs according to `unlink_log`.
-//
-// Returns whether removal was successful. A nonexistent `path` is considered a
-// failure.
-bool unlink_safe(const std::string& path,
-                 UnlinkLog unlink_log = UnlinkLog::log_failure);
-
-// Remove `path` (non-directory), NFS hazardous. Use only for files that will
-// not exist on other systems. Logs according to `unlink_log`.
-//
-// Returns whether removal was successful. A nonexistent `path` is considered
-// successful.
-bool unlink_tmp(const std::string& path,
-                UnlinkLog unlink_log = UnlinkLog::log_failure);
 
 } // namespace Util

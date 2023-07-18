@@ -218,7 +218,7 @@ win32execute(const char* path,
 
   Finalizer tmp_file_remover([&tmp_file_path] {
     if (!tmp_file_path.empty()) {
-      Util::unlink_tmp(tmp_file_path);
+      util::remove(tmp_file_path);
     }
   });
 

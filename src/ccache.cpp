@@ -1069,7 +1069,7 @@ to_cache(Context& ctx,
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
-    Util::unlink_safe(ctx.args_info.output_obj);
+    util::remove_nfs_safe(ctx.args_info.output_obj);
   }
 
   if (ctx.args_info.generating_diagnostics) {

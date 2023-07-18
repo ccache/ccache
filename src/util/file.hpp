@@ -36,6 +36,7 @@ namespace util {
 // --- Interface ---
 
 enum class InPlace { yes, no };
+enum class LogFailure { yes, no };
 enum class ViaTmpFile { yes, no };
 
 // Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
@@ -83,6 +84,22 @@ nonstd::expected<T, std::string> read_file(const std::string& path,
 template<typename T>
 nonstd::expected<T, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
+
+// Remove `path` (non-directory), NFS hazardous. Use only for files that will
+// not exist on other systems.
+//
+// Returns whether the file was removed. A nonexistent `path` is considered
+// successful.
+nonstd::expected<bool, std::error_code>
+remove(const std::string& path, LogFailure log_failure = LogFailure::yes);
+
+// Remove `path` (non-directory), NFS safe.
+//
+// Returns whether the file was removed. A nonexistent `path` is considered a
+// successful.
+nonstd::expected<bool, std::error_code>
+remove_nfs_safe(const std::string& path,
+                LogFailure log_failure = LogFailure::yes);
 
 // Rename `oldpath` to `newpath` (deleting `newpath`).
 //

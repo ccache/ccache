@@ -19,7 +19,6 @@
 #include "AtomicFile.hpp"
 
 #include "TemporaryFile.hpp"
-#include "Util.hpp"
 #include "assertions.hpp"
 
 #include <core/exceptions.hpp>
@@ -38,7 +37,7 @@ AtomicFile::~AtomicFile()
   if (m_stream) {
     // commit() was not called so remove the lingering temporary file.
     fclose(m_stream);
-    Util::unlink_tmp(m_tmp_path);
+    util::remove(m_tmp_path);
   }
 }
 
@@ -76,7 +75,7 @@ AtomicFile::commit()
   int retcode = fclose(m_stream);
   m_stream = nullptr;
   if (retcode == EOF) {
-    Util::unlink_tmp(m_tmp_path);
+    util::remove(m_tmp_path);
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }

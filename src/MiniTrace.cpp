@@ -20,7 +20,6 @@
 
 #include "ArgsInfo.hpp"
 #include "TemporaryFile.hpp"
-#include "Util.hpp"
 #include "fmtmacros.hpp"
 
 #include <core/wincompat.hpp>
@@ -62,5 +61,5 @@ MiniTrace::~MiniTrace()
   if (!m_args_info.output_obj.empty()) {
     util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
   }
-  Util::unlink_tmp(m_tmp_trace_file);
+  util::remove(m_tmp_trace_file);
 }

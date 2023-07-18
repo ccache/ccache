@@ -219,8 +219,9 @@ delete_file(const std::string& path,
             uint64_t& cache_size,
             uint64_t& files_in_cache)
 {
-  const bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
-  if (!deleted && errno != ENOENT && errno != ESTALE) {
+  const auto result = util::remove_nfs_safe(path, util::LogFailure::no);
+  if (!result && result.error().value() != ENOENT
+      && result.error().value() != ESTALE) {
     LOG("Failed to unlink {} ({})", path, strerror(errno));
   } else {
     // The counters are intentionally subtracted even if there was no file to
@@ -330,7 +331,7 @@ clean_dir(
     // Delete any tmp files older than 1 hour right away.
     if (file.mtime() + util::Duration(3600) < current_time
         && TemporaryFile::is_tmp_file(file.path())) {
-      Util::unlink_tmp(file.path());
+      util::remove(file.path());
       continue;
     }
 
@@ -574,7 +575,7 @@ LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
     if (!l2_content_lock.acquire()) {
       LOG("Not removing {} due to lock failure", cache_file.path);
     }
-    Util::unlink_safe(cache_file.path);
+    util::remove_nfs_safe(cache_file.path);
   }
 
   LOG("Removed {} from local storage ({})",
@@ -780,7 +781,7 @@ LocalStorage::wipe_all(const ProgressReceiver& progress_receiver)
           l2_progress_receiver(0.5);
 
           for (size_t i = 0; i < files.size(); ++i) {
-            Util::unlink_safe(files[i].path());
+            util::remove_nfs_safe(files[i].path());
             l2_progress_receiver(0.5 + 0.5 * i / files.size());
           }
 
@@ -1417,7 +1418,7 @@ LocalStorage::clean_internal_tempdir()
                    }
                    const auto st = Stat::lstat(path, Stat::OnError::log);
                    if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
-                     Util::unlink_tmp(path);
+                     util::remove(path);
                    }
                  });
 
