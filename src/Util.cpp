@@ -46,10 +46,6 @@
 
 #include <fcntl.h>
 
-#ifdef HAVE_PWD_H
-#  include <pwd.h>
-#endif
-
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace fs = util::filesystem;
@@ -230,33 +226,6 @@ get_extension(std::string_view path)
   } else {
     return path.substr(pos);
   }
-}
-
-std::string
-get_home_directory()
-{
-#ifdef _WIN32
-  if (const char* p = getenv("USERPROFILE")) {
-    return p;
-  }
-  throw core::Fatal(
-    "The USERPROFILE environment variable must be set to your user profile "
-    "folder");
-#else
-  if (const char* p = getenv("HOME")) {
-    return p;
-  }
-#  ifdef HAVE_GETPWUID
-  {
-    struct passwd* pwd = getpwuid(getuid());
-    if (pwd) {
-      return pwd->pw_dir;
-    }
-  }
-#  endif
-  throw core::Fatal(
-    "Could not determine home directory from $HOME or getpwuid(3)");
-#endif
 }
 
 const char*

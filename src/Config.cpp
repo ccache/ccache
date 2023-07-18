@@ -40,6 +40,12 @@
 
 #include "third_party/fmt/core.h"
 
+#include <sys/types.h>
+
+#ifdef HAVE_PWD_H
+#  include <pwd.h>
+#endif
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -482,6 +488,33 @@ default_config_dir(const std::string& home_dir)
 #endif
 
 std::string
+home_directory()
+{
+#ifdef _WIN32
+  if (const char* p = getenv("USERPROFILE")) {
+    return p;
+  }
+  throw core::Fatal(
+    "The USERPROFILE environment variable must be set to your user profile"
+    " folder");
+#else
+  if (const char* p = getenv("HOME")) {
+    return p;
+  }
+#  ifdef HAVE_GETPWUID
+  {
+    struct passwd* pwd = getpwuid(getuid());
+    if (pwd) {
+      return pwd->pw_dir;
+    }
+  }
+#  endif
+  throw core::Fatal(
+    "Could not determine home directory from $HOME or getpwuid(3)");
+#endif
+}
+
+std::string
 compiler_type_to_string(CompilerType compiler_type)
 {
 #define CASE(type)                                                             \
@@ -512,7 +545,7 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   auto cmdline_settings_map =
     create_cmdline_settings_map(cmdline_config_settings);
 
-  const std::string home_dir = Util::get_home_directory();
+  const std::string home_dir = home_directory();
   const std::string legacy_ccache_dir = Util::make_path(home_dir, ".ccache");
   const bool legacy_ccache_dir_exists =
     Stat::stat(legacy_ccache_dir).is_directory();

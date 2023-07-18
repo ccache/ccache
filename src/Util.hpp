@@ -56,10 +56,6 @@ std::string_view dir_name(std::string_view path);
 // `path` has no file extension, an empty string_view is returned.
 std::string_view get_extension(std::string_view path);
 
-// Return the current user's home directory, or throw `Fatal` if it can't
-// be determined.
-std::string get_home_directory();
-
 // Return a static string with the current hostname.
 const char* get_hostname();
 
