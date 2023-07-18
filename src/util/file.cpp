@@ -53,6 +53,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <locale>
 #include <type_traits>
@@ -97,8 +98,10 @@ copy_file(const std::string& src,
   if (via_tmp_file == ViaTmpFile::yes) {
     const auto result = util::rename(tmp_file, dest);
     if (!result) {
-      return nonstd::make_unexpected(
-        FMT("Failed to rename {} to {}: {}", tmp_file, dest, result.error()));
+      return nonstd::make_unexpected(FMT("Failed to rename {} to {}: {}",
+                                         tmp_file,
+                                         dest,
+                                         result.error().message()));
     }
   }
 
@@ -369,12 +372,14 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 template nonstd::expected<std::vector<uint8_t>, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
-nonstd::expected<void, std::string>
+nonstd::expected<void, std::error_code>
 rename(const std::string& oldpath, const std::string& newpath)
 {
 #ifndef _WIN32
-  if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
-    return nonstd::make_unexpected(strerror(errno));
+  std::error_code ec;
+  std::filesystem::rename(oldpath, newpath, ec);
+  if (ec) {
+    return nonstd::make_unexpected(ec);
   }
 #else
   // Windows' rename() won't overwrite an existing file, so need to use
@@ -382,7 +387,9 @@ rename(const std::string& oldpath, const std::string& newpath)
   if (!MoveFileExA(
         oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
     DWORD error = GetLastError();
-    return nonstd::make_unexpected(Win32Util::error_message(error));
+    // TODO: How should the Win32 error be mapped to std::error_code?
+    return nonstd::make_unexpected(
+      std::error_code(error, std::system_category()));
   }
 #endif
   return {};

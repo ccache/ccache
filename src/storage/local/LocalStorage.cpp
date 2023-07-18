@@ -270,8 +270,10 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   if (via_tmp_file) {
     const auto result = util::rename(tmp_file, dest);
     if (!result) {
-      throw core::Error(
-        FMT("failed to rename {} to {}: {}", tmp_file, dest, result.error()));
+      throw core::Error(FMT("failed to rename {} to {}: {}",
+                            tmp_file,
+                            dest,
+                            result.error().message()));
     }
   }
 #  elif defined(__APPLE__)

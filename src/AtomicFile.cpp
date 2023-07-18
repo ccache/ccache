@@ -82,7 +82,9 @@ AtomicFile::commit()
   }
   const auto result = util::rename(m_tmp_path, m_path);
   if (!result) {
-    throw core::Error(
-      FMT("failed to rename {} to {}: {}", m_tmp_path, m_path, result.error()));
+    throw core::Error(FMT("failed to rename {} to {}: {}",
+                          m_tmp_path,
+                          m_path,
+                          result.error().message()));
   }
 }
