@@ -11,6 +11,7 @@ set(
   Statistics.cpp
   StatisticsCounters.cpp
   StatsLog.cpp
+  common.cpp
   mainoptions.cpp
   types.cpp
 )

@@ -52,9 +52,6 @@ size_t common_dir_prefix_length(std::string_view dir, std::string_view path);
 // Get directory name of path.
 std::string_view dir_name(std::string_view path);
 
-// Like create_dir but throws Fatal on error.
-void ensure_dir_exists(std::string_view dir);
-
 // Return the file extension (including the dot) as a view into `path`. If
 // `path` has no file extension, an empty string_view is returned.
 std::string_view get_extension(std::string_view path);

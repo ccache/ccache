@@ -24,6 +24,7 @@
 #include "assertions.hpp"
 
 #include <Stat.hpp>
+#include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <core/wincompat.hpp>
@@ -876,7 +877,7 @@ Config::set_value_in_file(const std::string& path,
   const auto resolved_path = util::real_path(path);
   const auto st = Stat::stat(resolved_path);
   if (!st) {
-    Util::ensure_dir_exists(Util::dir_name(resolved_path));
+    core::ensure_dir_exists(Util::dir_name(resolved_path));
     const auto result = util::write_file(resolved_path, "");
     if (!result) {
       throw core::Error(

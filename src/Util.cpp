@@ -212,15 +212,6 @@ dir_name(std::string_view path)
   }
 }
 
-void
-ensure_dir_exists(std::string_view dir)
-{
-  if (auto result = fs::create_directories(dir); !result) {
-    throw core::Fatal(
-      FMT("Failed to create directory {}: {}", dir, result.error().message()));
-  }
-}
-
 std::string_view
 get_extension(std::string_view path)
 {

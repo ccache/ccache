@@ -32,6 +32,7 @@
 #include <core/FileRecompressor.hpp>
 #include <core/Manifest.hpp>
 #include <core/Statistics.hpp>
+#include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -615,7 +616,7 @@ LocalStorage::put_raw_files(
   const std::vector<core::Result::Serializer::RawFile> raw_files)
 {
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
-  Util::ensure_dir_exists(Util::dir_name(cache_file.path));
+  core::ensure_dir_exists(Util::dir_name(cache_file.path));
 
   for (auto [file_number, source_path] : raw_files) {
     const auto dest_path = get_raw_file_path(cache_file.path, file_number);
@@ -1042,7 +1043,7 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
   const auto wanted_path = get_path_in_cache(
     wanted_level, util::format_digest(key) + suffix_from_type(type));
   if (cache_file_path != wanted_path) {
-    Util::ensure_dir_exists(Util::dir_name(wanted_path));
+    core::ensure_dir_exists(Util::dir_name(wanted_path));
 
     // Note: Two ccache processes may move the file at the same time, so failure
     // to rename is OK.
@@ -1410,7 +1411,7 @@ LocalStorage::clean_internal_tempdir()
   }
 
   LOG("Cleaning up {}", m_config.temporary_dir());
-  Util::ensure_dir_exists(m_config.temporary_dir());
+  core::ensure_dir_exists(m_config.temporary_dir());
   Util::traverse(m_config.temporary_dir(),
                  [now](const std::string& path, bool is_dir) {
                    if (is_dir) {
@@ -1451,7 +1452,7 @@ std::string
 LocalStorage::get_lock_path(const std::string& name) const
 {
   auto path = FMT("{}/lock/{}", m_config.cache_dir(), name);
-  Util::ensure_dir_exists(Util::dir_name(path));
+  core::ensure_dir_exists(Util::dir_name(path));
   return path;
 }
 

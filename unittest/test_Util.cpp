@@ -124,21 +124,6 @@ TEST_CASE("Util::strip_ansi_csi_seqs")
   CHECK(Util::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
 }
 
-TEST_CASE("Util::ensure_dir_exists")
-{
-  TestContext test_context;
-
-  CHECK_NOTHROW(Util::ensure_dir_exists("/"));
-
-  CHECK_NOTHROW(Util::ensure_dir_exists("create/dir"));
-  CHECK(Stat::stat("create/dir").is_directory());
-
-  util::write_file("create/dir/file", "");
-  CHECK_THROWS_WITH(
-    Util::ensure_dir_exists("create/dir/file"),
-    doctest::Contains("Failed to create directory create/dir/file:"));
-}
-
 TEST_CASE("Util::get_extension")
 {
   CHECK(Util::get_extension("") == "");

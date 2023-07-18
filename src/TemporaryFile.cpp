@@ -20,6 +20,7 @@
 
 #include "Util.hpp"
 
+#include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
@@ -39,7 +40,7 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
                              std::string_view suffix)
   : path(FMT("{}{}XXXXXX{}", path_prefix, tmp_file_infix, suffix))
 {
-  Util::ensure_dir_exists(Util::dir_name(path));
+  core::ensure_dir_exists(Util::dir_name(path));
 #ifdef _WIN32
   // MSVC lacks mkstemps() and Mingw-w64's implementation[1] is problematic, as
   // it can reuse the names of recently-deleted files unless the caller
