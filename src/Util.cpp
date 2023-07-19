@@ -228,22 +228,6 @@ get_extension(std::string_view path)
   }
 }
 
-const char*
-get_hostname()
-{
-  static char hostname[260] = "";
-
-  if (hostname[0]) {
-    return hostname;
-  }
-
-  if (gethostname(hostname, sizeof(hostname)) != 0) {
-    strcpy(hostname, "unknown");
-  }
-  hostname[sizeof(hostname) - 1] = 0;
-  return hostname;
-}
-
 std::string
 get_relative_path(std::string_view dir, std::string_view path)
 {

@@ -20,6 +20,12 @@
 
 #include <core/wincompat.hpp>
 
+#include <cstring>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 namespace {
 
 // Process umask, read and written by get_umask and set_umask.
@@ -32,6 +38,22 @@ mode_t g_umask = [] {
 } // namespace
 
 namespace util {
+
+const char*
+get_hostname()
+{
+  static char hostname[260] = "";
+
+  if (hostname[0]) {
+    return hostname;
+  }
+
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    strcpy(hostname, "unknown");
+  }
+  hostname[sizeof(hostname) - 1] = 0;
+  return hostname;
+}
 
 mode_t
 get_umask()

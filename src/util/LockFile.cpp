@@ -29,6 +29,7 @@
 #include <core/wincompat.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/process.hpp>
 
 #include "third_party/fmt/core.h"
 
@@ -221,8 +222,7 @@ bool
 LockFile::do_acquire(const bool blocking)
 {
   std::stringstream ss;
-  ss << Util::get_hostname() << '-' << getpid() << '-'
-     << std::this_thread::get_id();
+  ss << get_hostname() << '-' << getpid() << '-' << std::this_thread::get_id();
   const auto content_prefix = ss.str();
 
   util::TimePoint last_seen_activity = [this] {

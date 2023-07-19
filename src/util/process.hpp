@@ -22,6 +22,9 @@
 
 namespace util {
 
+// Return a static string with the current hostname.
+const char* get_hostname();
+
 // Get process umask.
 mode_t get_umask();
 

@@ -56,9 +56,6 @@ std::string_view dir_name(std::string_view path);
 // `path` has no file extension, an empty string_view is returned.
 std::string_view get_extension(std::string_view path);
 
-// Return a static string with the current hostname.
-const char* get_hostname();
-
 // Compute a relative path from `dir` (an absolute path to a directory) to
 // `path` (an absolute path). Assumes that both `dir` and `path` are normalized.
 // The algorithm does *not* follow symlinks, so the result may not actually

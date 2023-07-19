@@ -2203,7 +2203,7 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
   }
 
   LOG("Command line: {}", util::format_argv_for_logging(argv));
-  LOG("Hostname: {}", Util::get_hostname());
+  LOG("Hostname: {}", util::get_hostname());
   LOG("Working directory: {}", ctx.actual_cwd);
   if (ctx.apparent_cwd != ctx.actual_cwd) {
     LOG("Apparent working directory: {}", ctx.apparent_cwd);
