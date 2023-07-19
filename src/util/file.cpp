@@ -99,7 +99,7 @@ copy_file(const std::string& src,
   src_fd.close();
 
   if (via_tmp_file == ViaTmpFile::yes) {
-    const auto result = util::rename(tmp_file, dest);
+    const auto result = fs::rename(tmp_file, dest);
     if (!result) {
       return nonstd::make_unexpected(FMT("Failed to rename {} to {}: {}",
                                          tmp_file,
@@ -397,7 +397,7 @@ remove_nfs_safe(const std::string& path, LogFailure log_failure)
   std::string tmp_name =
     FMT("{}.ccache{}remove", path, TemporaryFile::tmp_file_infix);
 
-  auto rename_result = util::rename(path, tmp_name);
+  auto rename_result = fs::rename(path, tmp_name);
   if (!rename_result) {
     // It's OK if it was removed in a race.
     if (rename_result.error().value() != ENOENT
@@ -420,29 +420,6 @@ remove_nfs_safe(const std::string& path, LogFailure log_failure)
     }
   }
   return remove_result;
-}
-
-nonstd::expected<void, std::error_code>
-rename(const std::string& oldpath, const std::string& newpath)
-{
-#ifndef _WIN32
-  std::error_code ec;
-  std::filesystem::rename(oldpath, newpath, ec);
-  if (ec) {
-    return nonstd::make_unexpected(ec);
-  }
-#else
-  // Windows' rename() won't overwrite an existing file, so need to use
-  // MoveFileEx instead.
-  if (!MoveFileExA(
-        oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
-    DWORD error = GetLastError();
-    // TODO: How should the Win32 error be mapped to std::error_code?
-    return nonstd::make_unexpected(
-      std::error_code(error, std::system_category()));
-  }
-#endif
-  return {};
 }
 
 void

@@ -24,6 +24,9 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
+
+namespace fs = util::filesystem;
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
@@ -79,7 +82,7 @@ AtomicFile::commit()
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));
   }
-  const auto result = util::rename(m_tmp_path, m_path);
+  const auto result = fs::rename(m_tmp_path, m_path);
   if (!result) {
     throw core::Error(FMT("failed to rename {} to {}: {}",
                           m_tmp_path,

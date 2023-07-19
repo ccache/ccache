@@ -270,7 +270,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   src_fd.close();
 
   if (via_tmp_file) {
-    const auto result = util::rename(tmp_file, dest);
+    const auto result = fs::rename(tmp_file, dest);
     if (!result) {
       throw core::Error(FMT("failed to rename {} to {}: {}",
                             tmp_file,
@@ -1048,9 +1048,9 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     // Note: Two ccache processes may move the file at the same time, so failure
     // to rename is OK.
     LOG("Moving {} to {}", cache_file_path, wanted_path);
-    util::rename(cache_file_path, wanted_path);
+    fs::rename(cache_file_path, wanted_path);
     for (const auto& raw_file : m_added_raw_files) {
-      util::rename(
+      fs::rename(
         raw_file,
         FMT("{}/{}", Util::dir_name(wanted_path), Util::base_name(raw_file)));
     }

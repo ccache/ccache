@@ -101,14 +101,6 @@ nonstd::expected<bool, std::error_code>
 remove_nfs_safe(const std::string& path,
                 LogFailure log_failure = LogFailure::yes);
 
-// Rename `oldpath` to `newpath` (deleting `newpath`).
-//
-// Note: Mingw-w64's std::filesystem::rename is buggy and doesn't properly
-// overwrite an existing file, at least in version 9.1.0, hence this utility
-// function.
-nonstd::expected<void, std::error_code> rename(const std::string& oldpath,
-                                               const std::string& newpath);
-
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
 void set_cloexec_flag(int fd);
 

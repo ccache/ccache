@@ -111,7 +111,6 @@ DEF_WRAP_1_P(is_directory,        bool,           const path&, p)
 DEF_WRAP_1_R(read_symlink,        path,           const path&, p)
 DEF_WRAP_1_R(remove,              bool,           const path&, p)
 DEF_WRAP_1_R(remove_all,          std::uintmax_t, const path&, p)
-// Note: Use util::rename instead of fs::rename.
 DEF_WRAP_0_R(temp_directory_path, path)
 
 // clang-format on
@@ -121,5 +120,11 @@ DEF_WRAP_0_R(temp_directory_path, path)
 #undef DEF_WRAP_1_P
 #undef DEF_WRAP_1_V
 #undef DEF_WRAP_2_V
+
+// Note: Mingw-w64's std::filesystem::rename is buggy and doesn't properly
+// overwrite an existing file, at least in version 9.1.0, hence this custom
+// wrapper.
+nonstd::expected<void, std::error_code> rename(const path& old_p,
+                                               const path& new_p);
 
 } // namespace util::filesystem

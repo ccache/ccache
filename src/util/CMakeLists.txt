@@ -9,6 +9,7 @@ set(
   UmaskScope.cpp
   environment.cpp
   file.cpp
+  filesystem.cpp
   path.cpp
   process.cpp
   string.cpp
