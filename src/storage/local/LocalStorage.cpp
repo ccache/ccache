@@ -682,8 +682,12 @@ LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
   }
 
   LOG("Copying {} to {}", source, dest);
-  util::copy_file(
-    source, dest, via_tmp_file ? util::ViaTmpFile::yes : util::ViaTmpFile::no);
+  util::throw_on_error<core::Error>(
+    util::copy_file(source,
+                    dest,
+                    via_tmp_file ? util::ViaTmpFile::yes
+                                 : util::ViaTmpFile::no),
+    FMT("Failed to copy {} to {}: ", source, dest));
 }
 
 void
