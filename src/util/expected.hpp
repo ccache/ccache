@@ -27,7 +27,7 @@ namespace util {
 
 // --- Interface ---
 
-// Return value of `value` (where `T` typically is `nonstd::expected`) or throw
+// Return value of `value` (where `T` typically is `tl::expected`) or throw
 // an exception of type `E` with a `T::error_type` as the argument.
 template<typename E, typename T>
 typename T::value_type value_or_throw(const T& value);
@@ -52,7 +52,7 @@ void throw_on_error(const T& value, std::string_view prefix);
   do {                                                                         \
     const auto result = x_;                                                    \
     if (!result) {                                                             \
-      return nonstd::make_unexpected(result.error());                          \
+      return tl::unexpected(result.error());                                   \
     }                                                                          \
   } while (false)
 

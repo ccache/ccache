@@ -19,8 +19,8 @@
 #pragma once
 
 #include "third_party/blake3/blake3.h"
-#include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
+#include <third_party/tl/expected.hpp>
 
 #include <array>
 #include <cstdint>
@@ -74,13 +74,13 @@ public:
   //
   // If hash debugging is enabled, the data is written verbatim to the text
   // input file.
-  nonstd::expected<void, std::string> hash_file(const std::string& path);
+  tl::expected<void, std::string> hash_file(const std::string& path);
 
   // Add contents read from an open file descriptor to the hash.
   //
   // If hash debugging is enabled, the data is written verbatim to the text
   // input file.
-  nonstd::expected<void, std::string> hash_fd(int fd);
+  tl::expected<void, std::string> hash_fd(int fd);
 
 private:
   blake3_hasher m_hasher;

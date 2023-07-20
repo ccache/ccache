@@ -47,14 +47,14 @@ class FileStorageBackend : public RemoteStorage::Backend
 public:
   FileStorageBackend(const Params& params);
 
-  nonstd::expected<std::optional<util::Bytes>, Failure>
+  tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Hash::Digest& key,
-                                      nonstd::span<const uint8_t> value,
-                                      bool only_if_missing) override;
+  tl::expected<bool, Failure> put(const Hash::Digest& key,
+                                  nonstd::span<const uint8_t> value,
+                                  bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Hash::Digest& key) override;
+  tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   enum class Layout { flat, subdirs };
@@ -111,7 +111,7 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 }
 
-nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
+tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 FileStorageBackend::get(const Hash::Digest& key)
 {
   const auto path = get_entry_path(key);
@@ -131,12 +131,12 @@ FileStorageBackend::get(const Hash::Digest& key)
   auto value = util::read_file<util::Bytes>(path);
   if (!value) {
     LOG("Failed to read {}: {}", path, value.error());
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(Failure::error);
   }
   return std::move(*value);
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
+tl::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
@@ -154,7 +154,7 @@ FileStorageBackend::put(const Hash::Digest& key,
     const auto dir = Util::dir_name(path);
     if (auto result = fs::create_directories(dir); !result) {
       LOG("Failed to create directory {}: {}", dir, result.error().message());
-      return nonstd::make_unexpected(Failure::error);
+      return tl::unexpected(Failure::error);
     }
 
     util::create_cachedir_tag(m_dir);
@@ -167,19 +167,19 @@ FileStorageBackend::put(const Hash::Digest& key,
       return true;
     } catch (const core::Error& e) {
       LOG("Failed to write {}: {}", path, e.what());
-      return nonstd::make_unexpected(Failure::error);
+      return tl::unexpected(Failure::error);
     }
   }
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
+tl::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::remove(const Hash::Digest& key)
 {
   auto entry_path = get_entry_path(key);
   auto result = util::remove_nfs_safe(entry_path);
   if (!result) {
     LOG("Failed to remove {}: {}", entry_path, result.error().message());
-    return nonstd::make_unexpected(RemoteStorage::Backend::Failure::error);
+    return tl::unexpected(RemoteStorage::Backend::Failure::error);
   }
   return *result;
 }

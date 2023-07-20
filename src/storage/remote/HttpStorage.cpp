@@ -42,14 +42,14 @@ class HttpStorageBackend : public RemoteStorage::Backend
 public:
   HttpStorageBackend(const Params& params);
 
-  nonstd::expected<std::optional<util::Bytes>, Failure>
+  tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Hash::Digest& key,
-                                      nonstd::span<const uint8_t> value,
-                                      bool only_if_missing) override;
+  tl::expected<bool, Failure> put(const Hash::Digest& key,
+                                  nonstd::span<const uint8_t> value,
+                                  bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Hash::Digest& key) override;
+  tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   enum class Layout { bazel, flat, subdirs };
@@ -153,7 +153,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
+tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 HttpStorageBackend::get(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -164,7 +164,7 @@ HttpStorageBackend::get(const Hash::Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
@@ -175,7 +175,7 @@ HttpStorageBackend::get(const Hash::Digest& key)
   return util::Bytes(result->body.data(), result->body.size());
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
+tl::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
@@ -190,8 +190,7 @@ HttpStorageBackend::put(const Hash::Digest& key,
           url_path,
           to_string(result.error()),
           static_cast<int>(result.error()));
-      return nonstd::make_unexpected(
-        failure_from_httplib_error(result.error()));
+      return tl::unexpected(failure_from_httplib_error(result.error()));
     }
 
     if (result->status >= 200 && result->status < 300) {
@@ -214,20 +213,20 @@ HttpStorageBackend::put(const Hash::Digest& key,
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to put {} to http storage: status code: {}",
         url_path,
         result->status);
-    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   return true;
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
+tl::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::remove(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
@@ -238,14 +237,14 @@ HttpStorageBackend::remove(const Hash::Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to delete {} from http storage: status code: {}",
         url_path,
         result->status);
-    return nonstd::make_unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   return true;

@@ -107,20 +107,20 @@ Hash::hash(int64_t x)
   return *this;
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 Hash::hash_fd(int fd)
 {
   return util::read_fd(
     fd, [this](nonstd::span<const uint8_t> data) { hash(data); });
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 Hash::hash_file(const std::string& path)
 {
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   return hash_fd(*fd);

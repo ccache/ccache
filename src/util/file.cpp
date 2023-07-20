@@ -64,14 +64,14 @@ namespace fs = util::filesystem;
 
 namespace util {
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 copy_file(const std::string& src,
           const std::string& dest,
           ViaTmpFile via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
   if (!src_fd) {
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("Failed to open {} for reading: {}", src, strerror(errno)));
   }
 
@@ -87,7 +87,7 @@ copy_file(const std::string& src,
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      return nonstd::make_unexpected(
+      return tl::unexpected(
         FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
     }
   }
@@ -101,10 +101,10 @@ copy_file(const std::string& src,
   if (via_tmp_file == ViaTmpFile::yes) {
     const auto result = fs::rename(tmp_file, dest);
     if (!result) {
-      return nonstd::make_unexpected(FMT("Failed to rename {} to {}: {}",
-                                         tmp_file,
-                                         dest,
-                                         result.error().message()));
+      return tl::unexpected(FMT("Failed to rename {} to {}: {}",
+                                tmp_file,
+                                dest,
+                                result.error().message()));
     }
   }
 
@@ -131,7 +131,7 @@ create_cachedir_tag(const std::string& dir)
   }
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 fallocate(int fd, size_t new_size)
 {
 #ifdef HAVE_POSIX_FALLOCATE
@@ -140,7 +140,7 @@ fallocate(int fd, size_t new_size)
     return {};
   }
   if (posix_fallocate_err != EINVAL) {
-    return nonstd::make_unexpected(strerror(posix_fallocate_err));
+    return tl::unexpected(strerror(posix_fallocate_err));
   }
   // The underlying filesystem does not support the operation so fall back to
   // lseek.
@@ -150,7 +150,7 @@ fallocate(int fd, size_t new_size)
   if (old_size == -1) {
     int err = errno;
     lseek(fd, saved_pos, SEEK_SET);
-    return nonstd::make_unexpected(strerror(err));
+    return tl::unexpected(strerror(err));
   }
   if (static_cast<size_t>(old_size) >= new_size) {
     lseek(fd, saved_pos, SEEK_SET);
@@ -161,7 +161,7 @@ fallocate(int fd, size_t new_size)
   void* buf = calloc(bytes_to_write, 1);
   if (!buf) {
     lseek(fd, saved_pos, SEEK_SET);
-    return nonstd::make_unexpected(strerror(ENOMEM));
+    return tl::unexpected(strerror(ENOMEM));
   }
   Finalizer buf_freer([&] { free(buf); });
 
@@ -185,7 +185,7 @@ set_cloexec_flag(int fd)
 #endif
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 read_fd(int fd, DataReceiver data_receiver)
 {
   int64_t n;
@@ -199,7 +199,7 @@ read_fd(int fd, DataReceiver data_receiver)
     }
   }
   if (n == -1) {
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
   return {};
 }
@@ -215,13 +215,13 @@ has_utf16_le_bom(std::string_view text)
 #endif
 
 template<typename T>
-nonstd::expected<T, std::string>
+tl::expected<T, std::string>
 read_file(const std::string& path, size_t size_hint)
 {
   if (size_hint == 0) {
     const auto stat = Stat::stat(path);
     if (!stat) {
-      return nonstd::make_unexpected(strerror(errno));
+      return tl::unexpected(strerror(errno));
     }
     size_hint = stat.size();
   }
@@ -238,7 +238,7 @@ read_file(const std::string& path, size_t size_hint)
   }();
   Fd fd(open(path.c_str(), open_flags));
   if (!fd) {
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   int64_t ret = 0;
@@ -264,7 +264,7 @@ read_file(const std::string& path, size_t size_hint)
   }
 
   if (ret == -1) {
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   result.resize(pos);
@@ -289,7 +289,7 @@ read_file(const std::string& path, size_t size_hint)
                                            nullptr,
                                            nullptr);
       if (size <= 0) {
-        return nonstd::make_unexpected(
+        return tl::unexpected(
           FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
               path,
               Win32Util::error_message(GetLastError())));
@@ -311,17 +311,17 @@ read_file(const std::string& path, size_t size_hint)
   return result;
 }
 
-template nonstd::expected<util::Bytes, std::string>
+template tl::expected<Bytes, std::string> read_file(const std::string& path,
+                                                    size_t size_hint);
+
+template tl::expected<std::string, std::string>
 read_file(const std::string& path, size_t size_hint);
 
-template nonstd::expected<std::string, std::string>
-read_file(const std::string& path, size_t size_hint);
-
-template nonstd::expected<std::vector<uint8_t>, std::string>
+template tl::expected<std::vector<uint8_t>, std::string>
 read_file(const std::string& path, size_t size_hint);
 
 template<typename T>
-nonstd::expected<T, std::string>
+tl::expected<T, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count)
 {
   T result;
@@ -332,11 +332,11 @@ read_file_part(const std::string& path, size_t pos, size_t count)
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   if (pos != 0 && lseek(*fd, pos, SEEK_SET) != static_cast<off_t>(pos)) {
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   int64_t ret = 0;
@@ -359,23 +359,23 @@ read_file_part(const std::string& path, size_t pos, size_t count)
 
   if (ret == -1) {
     LOG("Failed to read {}: {}", path, strerror(errno));
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   result.resize(bytes_read);
   return result;
 }
 
-template nonstd::expected<util::Bytes, std::string>
+template tl::expected<Bytes, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
-template nonstd::expected<std::string, std::string>
+template tl::expected<std::string, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
-template nonstd::expected<std::vector<uint8_t>, std::string>
+template tl::expected<std::vector<uint8_t>, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
-nonstd::expected<bool, std::error_code>
+tl::expected<bool, std::error_code>
 remove(const std::string& path, LogFailure log_failure)
 {
   auto result = fs::remove(path);
@@ -388,7 +388,7 @@ remove(const std::string& path, LogFailure log_failure)
   return result;
 }
 
-nonstd::expected<bool, std::error_code>
+tl::expected<bool, std::error_code>
 remove_nfs_safe(const std::string& path, LogFailure log_failure)
 {
   // fs::remove isn't atomic if path is on an NFS share, so we rename to a
@@ -409,7 +409,7 @@ remove_nfs_safe(const std::string& path, LogFailure log_failure)
           tmp_name,
           rename_result.error().message());
     }
-    return nonstd::make_unexpected(rename_result.error());
+    return tl::unexpected(rename_result.error());
   }
 
   auto remove_result = fs::remove(tmp_name);
@@ -456,7 +456,7 @@ set_timestamps(const std::string& path,
 #endif
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 write_fd(int fd, const void* data, size_t size)
 {
   int64_t written = 0;
@@ -465,7 +465,7 @@ write_fd(int fd, const void* data, size_t size)
       write(fd, static_cast<const uint8_t*>(data) + written, size - written);
     if (count == -1) {
       if (errno != EAGAIN && errno != EINTR) {
-        return nonstd::make_unexpected(strerror(errno));
+        return tl::unexpected(strerror(errno));
       }
     } else {
       written += count;
@@ -474,7 +474,7 @@ write_fd(int fd, const void* data, size_t size)
   return {};
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 write_file(const std::string& path, std::string_view data, InPlace in_place)
 {
   if (in_place == InPlace::no) {
@@ -482,12 +482,12 @@ write_file(const std::string& path, std::string_view data, InPlace in_place)
   }
   Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
   if (!fd) {
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
   return write_fd(*fd, data.data(), data.size());
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 write_file(const std::string& path,
            nonstd::span<const uint8_t> data,
            InPlace in_place)
@@ -497,7 +497,7 @@ write_file(const std::string& path,
   }
   Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
   return write_fd(*fd, data.data(), data.size());
 }

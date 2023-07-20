@@ -22,8 +22,8 @@
 #include <util/Tokenizer.hpp>
 #include <util/conversion.hpp>
 
-#include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
+#include <third_party/tl/expected.hpp>
 
 #include <sys/stat.h> // for mode_t
 
@@ -88,12 +88,11 @@ join(const T& begin, const T& end, const std::string_view delimiter);
 // Parse a string into a double.
 //
 // Returns an error string if `value` cannot be parsed as a double.
-nonstd::expected<double, std::string> parse_double(const std::string& value);
+tl::expected<double, std::string> parse_double(const std::string& value);
 
 // Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
 // into seconds.
-nonstd::expected<uint64_t, std::string>
-parse_duration(std::string_view duration);
+tl::expected<uint64_t, std::string> parse_duration(std::string_view duration);
 
 // Parse a string into a signed integer.
 //
@@ -101,7 +100,7 @@ parse_duration(std::string_view duration);
 // value falls out of the range [`min_value`, `max_value`]. `min_value` and
 // `max_value` default to min and max values of int64_t. `description` is
 // included in the error message for range violations.
-nonstd::expected<int64_t, std::string>
+tl::expected<int64_t, std::string>
 parse_signed(std::string_view value,
              std::optional<int64_t> min_value = std::nullopt,
              std::optional<int64_t> max_value = std::nullopt,
@@ -110,11 +109,11 @@ parse_signed(std::string_view value,
 // Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
 // suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
 // is also recognized as a synonym of k.
-nonstd::expected<std::pair<uint64_t, util::SizeUnitPrefixType>, std::string>
+tl::expected<std::pair<uint64_t, SizeUnitPrefixType>, std::string>
 parse_size(const std::string& value);
 
 // Parse `value` (an octal integer).
-nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
+tl::expected<mode_t, std::string> parse_umask(std::string_view value);
 
 // Parse a string into an unsigned integer.
 //
@@ -122,7 +121,7 @@ nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
 // `base`, or if the value falls out of the range [`min_value`, `max_value`].
 // `min_value` and `max_value` default to min and max values of uint64_t.
 // `description` is included in the error message for range violations.
-nonstd::expected<uint64_t, std::string>
+tl::expected<uint64_t, std::string>
 parse_unsigned(std::string_view value,
                std::optional<uint64_t> min_value = std::nullopt,
                std::optional<uint64_t> max_value = std::nullopt,
@@ -132,8 +131,7 @@ parse_unsigned(std::string_view value,
 // Percent-decode[1] `string`.
 //
 // [1]: https://en.wikipedia.org/wiki/Percent-encoding
-nonstd::expected<std::string, std::string>
-percent_decode(std::string_view string);
+tl::expected<std::string, std::string> percent_decode(std::string_view string);
 
 // Replace the all occurrences of `from` to `to` in `string`.
 std::string replace_all(std::string_view string,

@@ -22,7 +22,7 @@
 
 namespace util {
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 zstd_compress(nonstd::span<const uint8_t> input,
               util::Bytes& output,
               int8_t compression_level)
@@ -37,14 +37,14 @@ zstd_compress(nonstd::span<const uint8_t> input,
                                    input.size(),
                                    compression_level);
   if (ZSTD_isError(ret)) {
-    return nonstd::make_unexpected(ZSTD_getErrorName(ret));
+    return tl::unexpected(ZSTD_getErrorName(ret));
   }
 
   output.resize(original_output_size + ret);
   return {};
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 zstd_decompress(nonstd::span<const uint8_t> input,
                 util::Bytes& output,
                 size_t original_size)
@@ -55,7 +55,7 @@ zstd_decompress(nonstd::span<const uint8_t> input,
   const size_t ret = ZSTD_decompress(
     &output[original_output_size], original_size, input.data(), input.size());
   if (ZSTD_isError(ret)) {
-    return nonstd::make_unexpected(ZSTD_getErrorName(ret));
+    return tl::unexpected(ZSTD_getErrorName(ret));
   }
 
   output.resize(original_output_size + ret);

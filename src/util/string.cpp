@@ -139,7 +139,7 @@ format_human_readable_size(uint64_t size, SizeUnitPrefixType prefix_type)
   }
 }
 
-nonstd::expected<double, std::string>
+tl::expected<double, std::string>
 parse_double(const std::string& value)
 {
   size_t end;
@@ -152,14 +152,13 @@ parse_double(const std::string& value)
   }
 
   if (failed || end != value.size()) {
-    return nonstd::make_unexpected(
-      FMT("invalid floating point: \"{}\"", value));
+    return tl::unexpected(FMT("invalid floating point: \"{}\"", value));
   } else {
     return result;
   }
 }
 
-nonstd::expected<uint64_t, std::string>
+tl::expected<uint64_t, std::string>
 parse_duration(std::string_view duration)
 {
   uint64_t factor = 0;
@@ -173,7 +172,7 @@ parse_duration(std::string_view duration)
     factor = 1;
     break;
   default:
-    return nonstd::make_unexpected(FMT(
+    return tl::unexpected(FMT(
       "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
   }
 
@@ -184,7 +183,7 @@ parse_duration(std::string_view duration)
   return factor * *value;
 }
 
-nonstd::expected<int64_t, std::string>
+tl::expected<int64_t, std::string>
 parse_signed(std::string_view value,
              const std::optional<int64_t> min_value,
              const std::optional<int64_t> max_value,
@@ -202,21 +201,20 @@ parse_signed(std::string_view value,
     failed = true;
   }
   if (failed || end != stripped_value.size()) {
-    return nonstd::make_unexpected(
-      FMT("invalid integer: \"{}\"", stripped_value));
+    return tl::unexpected(FMT("invalid integer: \"{}\"", stripped_value));
   }
 
   const int64_t min = min_value ? *min_value : INT64_MIN;
   const int64_t max = max_value ? *max_value : INT64_MAX;
   if (result < min || result > max) {
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("{} must be between {} and {}", description, min, max));
   } else {
     return result;
   }
 }
 
-nonstd::expected<std::pair<uint64_t, SizeUnitPrefixType>, std::string>
+tl::expected<std::pair<uint64_t, SizeUnitPrefixType>, std::string>
 parse_size(const std::string& value)
 {
   errno = 0;
@@ -224,7 +222,7 @@ parse_size(const std::string& value)
   char* p;
   double result = strtod(value.c_str(), &p);
   if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
-    return nonstd::make_unexpected(FMT("invalid size: \"{}\"", value));
+    return tl::unexpected(FMT("invalid size: \"{}\"", value));
   }
 
   while (isspace(*p)) {
@@ -252,7 +250,7 @@ parse_size(const std::string& value)
       result *= multiplier;
       break;
     default:
-      return nonstd::make_unexpected(FMT("invalid size: \"{}\"", value));
+      return tl::unexpected(FMT("invalid size: \"{}\"", value));
     }
   } else {
     result *= 1024 * 1024 * 1024;
@@ -262,13 +260,13 @@ parse_size(const std::string& value)
   return std::make_pair(static_cast<uint64_t>(result), prefix_type);
 }
 
-nonstd::expected<mode_t, std::string>
+tl::expected<mode_t, std::string>
 parse_umask(std::string_view value)
 {
   return util::parse_unsigned(value, 0, 0777, "umask", 8);
 }
 
-nonstd::expected<uint64_t, std::string>
+tl::expected<uint64_t, std::string>
 parse_unsigned(std::string_view value,
                const std::optional<uint64_t> min_value,
                const std::optional<uint64_t> max_value,
@@ -293,21 +291,21 @@ parse_unsigned(std::string_view value,
   }
   if (failed || end != stripped_value.size()) {
     const auto base_info = base == 8 ? "octal " : "";
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("invalid unsigned {}integer: \"{}\"", base_info, stripped_value));
   }
 
   const uint64_t min = min_value ? *min_value : 0;
   const uint64_t max = max_value ? *max_value : UINT64_MAX;
   if (result < min || result > max) {
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("{} must be between {} and {}", description, min, max));
   } else {
     return result;
   }
 }
 
-nonstd::expected<std::string, std::string>
+tl::expected<std::string, std::string>
 percent_decode(std::string_view string)
 {
   const auto from_hex = [](const char digit) {
@@ -323,7 +321,7 @@ percent_decode(std::string_view string)
       result += string[i];
     } else if (i + 2 >= string.size() || !std::isxdigit(string[i + 1])
                || !std::isxdigit(string[i + 2])) {
-      return nonstd::make_unexpected(
+      return tl::unexpected(
         FMT("invalid percent-encoded string at position {}: {}", i, string));
     } else {
       const char ch = static_cast<char>(from_hex(string[i + 1]) << 4

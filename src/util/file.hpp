@@ -21,8 +21,8 @@
 #include <util/TimePoint.hpp>
 #include <util/types.hpp>
 
-#include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
+#include <third_party/tl/expected.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +30,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace util {
 
@@ -41,7 +42,7 @@ enum class ViaTmpFile { yes, no };
 
 // Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
 // to a temporary file and then renamed to dest.
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 copy_file(const std::string& src,
           const std::string& dest,
           ViaTmpFile via_tmp_file = ViaTmpFile::no);
@@ -53,14 +54,14 @@ void create_cachedir_tag(const std::string& dir);
 //
 // Note that existing holes are not filled in case posix_fallocate() is not
 // supported.
-nonstd::expected<void, std::string> fallocate(int fd, size_t new_size);
+tl::expected<void, std::string> fallocate(int fd, size_t new_size);
 
 // Return how much a file of `size` bytes likely would take on disk.
 uint64_t likely_size_on_disk(uint64_t size);
 
 // Read data from `fd` until end of file and call `data_receiver` with the read
 // data. Returns an error if the underlying read(2) call returned -1.
-nonstd::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
+tl::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
 
 // Return contents of file at  `path`.
 //
@@ -72,8 +73,8 @@ nonstd::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
 // If `size_hint` is not 0 then it is assumed that `path` has this size (this
 // saves system calls).
 template<typename T>
-nonstd::expected<T, std::string> read_file(const std::string& path,
-                                           size_t size_hint = 0);
+tl::expected<T, std::string> read_file(const std::string& path,
+                                       size_t size_hint = 0);
 
 // Return (at most) `count` bytes from `path` starting at position `pos`.
 //
@@ -82,7 +83,7 @@ nonstd::expected<T, std::string> read_file(const std::string& path,
 // with a UTF-16 little-endian BOM on Windows then it will be converted to
 // UTF-8.
 template<typename T>
-nonstd::expected<T, std::string>
+tl::expected<T, std::string>
 read_file_part(const std::string& path, size_t pos, size_t count);
 
 // Remove `path` (non-directory), NFS hazardous. Use only for files that will
@@ -90,14 +91,14 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 //
 // Returns whether the file was removed. A nonexistent `path` is considered
 // successful.
-nonstd::expected<bool, std::error_code>
+tl::expected<bool, std::error_code>
 remove(const std::string& path, LogFailure log_failure = LogFailure::yes);
 
 // Remove `path` (non-directory), NFS safe.
 //
 // Returns whether the file was removed. A nonexistent `path` is considered a
 // successful.
-nonstd::expected<bool, std::error_code>
+tl::expected<bool, std::error_code>
 remove_nfs_safe(const std::string& path,
                 LogFailure log_failure = LogFailure::yes);
 
@@ -111,20 +112,19 @@ void set_timestamps(const std::string& path,
                     std::optional<util::TimePoint> atime = std::nullopt);
 
 // Write `size` bytes from binary `data` to `fd`.
-nonstd::expected<void, std::string>
-write_fd(int fd, const void* data, size_t size);
+tl::expected<void, std::string> write_fd(int fd, const void* data, size_t size);
 
 // Write text `data` to `path`. If `in_place` is no, unlink any existing file
 // first (i.e., break hard links).
-nonstd::expected<void, std::string> write_file(const std::string& path,
-                                               std::string_view data,
-                                               InPlace in_place = InPlace::no);
+tl::expected<void, std::string> write_file(const std::string& path,
+                                           std::string_view data,
+                                           InPlace in_place = InPlace::no);
 
 // Write binary `data` to `path`. If `in_place` is no, unlink any existing
 // file first (i.e., break hard links).
-nonstd::expected<void, std::string> write_file(const std::string& path,
-                                               nonstd::span<const uint8_t> data,
-                                               InPlace in_place = InPlace::no);
+tl::expected<void, std::string> write_file(const std::string& path,
+                                           nonstd::span<const uint8_t> data,
+                                           InPlace in_place = InPlace::no);
 
 // --- Inline implementations ---
 

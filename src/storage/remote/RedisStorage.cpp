@@ -66,14 +66,14 @@ class RedisStorageBackend : public RemoteStorage::Backend
 public:
   RedisStorageBackend(const RemoteStorage::Backend::Params& params);
 
-  nonstd::expected<std::optional<util::Bytes>, Failure>
+  tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Hash::Digest& key,
-                                      nonstd::span<const uint8_t> value,
-                                      bool only_if_missing) override;
+  tl::expected<bool, Failure> put(const Hash::Digest& key,
+                                  nonstd::span<const uint8_t> value,
+                                  bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Hash::Digest& key) override;
+  tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   const std::string m_prefix;
@@ -83,7 +83,7 @@ private:
   connect(const Url& url, uint32_t connect_timeout, uint32_t operation_timeout);
   void select_database(const Url& url);
   void authenticate(const Url& url);
-  nonstd::expected<RedisReply, Failure> redis_command(const char* format, ...);
+  tl::expected<RedisReply, Failure> redis_command(const char* format, ...);
   std::string get_key_string(const Hash::Digest& digest) const;
 };
 
@@ -163,25 +163,25 @@ is_timeout(int err)
 #endif
 }
 
-nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
+tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 RedisStorageBackend::get(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis GET {}", key_string);
   const auto reply = redis_command("GET %s", key_string.c_str());
   if (!reply) {
-    return nonstd::make_unexpected(reply.error());
+    return tl::unexpected(reply.error());
   } else if ((*reply)->type == REDIS_REPLY_STRING) {
     return util::Bytes((*reply)->str, (*reply)->len);
   } else if ((*reply)->type == REDIS_REPLY_NIL) {
     return std::nullopt;
   } else {
     LOG("Unknown reply type: {}", (*reply)->type);
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(Failure::error);
   }
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
+tl::expected<bool, RemoteStorage::Backend::Failure>
 RedisStorageBackend::put(const Hash::Digest& key,
                          nonstd::span<const uint8_t> value,
                          bool only_if_missing)
@@ -192,7 +192,7 @@ RedisStorageBackend::put(const Hash::Digest& key,
     LOG("Redis EXISTS {}", key_string);
     const auto reply = redis_command("EXISTS %s", key_string.c_str());
     if (!reply) {
-      return nonstd::make_unexpected(reply.error());
+      return tl::unexpected(reply.error());
     } else if ((*reply)->type != REDIS_REPLY_INTEGER) {
       LOG("Unknown reply type: {}", (*reply)->type);
     } else if ((*reply)->integer > 0) {
@@ -205,28 +205,28 @@ RedisStorageBackend::put(const Hash::Digest& key,
   const auto reply =
     redis_command("SET %s %b", key_string.c_str(), value.data(), value.size());
   if (!reply) {
-    return nonstd::make_unexpected(reply.error());
+    return tl::unexpected(reply.error());
   } else if ((*reply)->type == REDIS_REPLY_STATUS) {
     return true;
   } else {
     LOG("Unknown reply type: {}", (*reply)->type);
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(Failure::error);
   }
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
+tl::expected<bool, RemoteStorage::Backend::Failure>
 RedisStorageBackend::remove(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis DEL {}", key_string);
   const auto reply = redis_command("DEL %s", key_string.c_str());
   if (!reply) {
-    return nonstd::make_unexpected(reply.error());
+    return tl::unexpected(reply.error());
   } else if ((*reply)->type == REDIS_REPLY_INTEGER) {
     return (*reply)->integer > 0;
   } else {
     LOG("Unknown reply type: {}", (*reply)->type);
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(Failure::error);
   }
 }
 
@@ -320,7 +320,7 @@ RedisStorageBackend::authenticate(const Url& url)
   }
 }
 
-nonstd::expected<RedisReply, RemoteStorage::Backend::Failure>
+tl::expected<RedisReply, RemoteStorage::Backend::Failure>
 RedisStorageBackend::redis_command(const char* format, ...)
 {
   va_list ap;
@@ -330,11 +330,11 @@ RedisStorageBackend::redis_command(const char* format, ...)
   va_end(ap);
   if (!reply) {
     LOG("Redis command failed: {}", m_context->errstr);
-    return nonstd::make_unexpected(is_timeout(m_context->err) ? Failure::timeout
-                                                              : Failure::error);
+    return tl::unexpected(is_timeout(m_context->err) ? Failure::timeout
+                                                     : Failure::error);
   } else if (reply->type == REDIS_REPLY_ERROR) {
     LOG("Redis command failed: {}", reply->str);
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(Failure::error);
   } else {
     return RedisReply(reply, freeReplyObject);
   }

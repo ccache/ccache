@@ -182,7 +182,7 @@ configuration_printer(const std::string& key,
   PRINT(stdout, "({}) {} = {}\n", origin, key, value);
 }
 
-static nonstd::expected<std::vector<uint8_t>, std::string>
+static tl::expected<std::vector<uint8_t>, std::string>
 read_from_path_or_stdin(const std::string& path)
 {
   if (path == "-") {
@@ -192,15 +192,14 @@ read_from_path_or_stdin(const std::string& path)
         output.insert(output.end(), data.begin(), data.end());
       });
     if (!result) {
-      return nonstd::make_unexpected(
+      return tl::unexpected(
         FMT("Failed to read from stdin: {}", result.error()));
     }
     return output;
   } else {
     const auto result = util::read_file<std::vector<uint8_t>>(path);
     if (!result) {
-      return nonstd::make_unexpected(
-        FMT("Failed to read {}: {}", path, result.error()));
+      return tl::unexpected(FMT("Failed to read {}: {}", path, result.error()));
     }
     return *result;
   }

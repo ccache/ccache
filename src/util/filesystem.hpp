@@ -18,9 +18,10 @@
 
 #pragma once
 
-#include <third_party/nonstd/expected.hpp>
+#include <third_party/tl/expected.hpp>
 
 #include <filesystem>
+#include <system_error>
 
 namespace util::filesystem {
 
@@ -29,24 +30,24 @@ using path = std::filesystem::path;
 
 // Define wrapper with no parameters returning non-void result.
 #define DEF_WRAP_0_R(name_, r_)                                                \
-  inline nonstd::expected<r_, std::error_code> name_()                         \
+  inline tl::expected<r_, std::error_code> name_()                             \
   {                                                                            \
     std::error_code ec_;                                                       \
     auto result_ = std::filesystem::name_(ec_);                                \
     if (ec_) {                                                                 \
-      return nonstd::make_unexpected(ec_);                                     \
+      return tl::unexpected(ec_);                                              \
     }                                                                          \
     return result_;                                                            \
   }
 
 // Define wrapper with one parameter returning non-void result.
 #define DEF_WRAP_1_R(name_, r_, t1_, p1_)                                      \
-  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_)                  \
+  inline tl::expected<r_, std::error_code> name_(t1_ p1_)                      \
   {                                                                            \
     std::error_code ec_;                                                       \
     auto result_ = std::filesystem::name_(p1_, ec_);                           \
     if (ec_) {                                                                 \
-      return nonstd::make_unexpected(ec_);                                     \
+      return tl::unexpected(ec_);                                              \
     }                                                                          \
     return result_;                                                            \
   }
@@ -63,36 +64,36 @@ using path = std::filesystem::path;
 
 // Define wrapper with one parameter returning void.
 #define DEF_WRAP_1_V(name_, r_, t1_, p1_)                                      \
-  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_)                  \
+  inline tl::expected<r_, std::error_code> name_(t1_ p1_)                      \
   {                                                                            \
     std::error_code ec_;                                                       \
     std::filesystem::name_(p1_, ec_);                                          \
     if (ec_) {                                                                 \
-      return nonstd::make_unexpected(ec_);                                     \
+      return tl::unexpected(ec_);                                              \
     }                                                                          \
     return {};                                                                 \
   }
 
 // Define wrapper with one parameter returning non-void result.
 #define DEF_WRAP_1_R(name_, r_, t1_, p1_)                                      \
-  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_)                  \
+  inline tl::expected<r_, std::error_code> name_(t1_ p1_)                      \
   {                                                                            \
     std::error_code ec_;                                                       \
     auto result_ = std::filesystem::name_(p1_, ec_);                           \
     if (ec_) {                                                                 \
-      return nonstd::make_unexpected(ec_);                                     \
+      return tl::unexpected(ec_);                                              \
     }                                                                          \
     return result_;                                                            \
   }
 
 // Define wrapper with two parameters returning void.
 #define DEF_WRAP_2_V(name_, r_, t1_, p1_, t2_, p2_)                            \
-  inline nonstd::expected<r_, std::error_code> name_(t1_ p1_, t2_ p2_)         \
+  inline tl::expected<r_, std::error_code> name_(t1_ p1_, t2_ p2_)             \
   {                                                                            \
     std::error_code ec_;                                                       \
     std::filesystem::name_(p1_, p2_, ec_);                                     \
     if (ec_) {                                                                 \
-      return nonstd::make_unexpected(ec_);                                     \
+      return tl::unexpected(ec_);                                              \
     }                                                                          \
     return {};                                                                 \
   }
@@ -124,7 +125,7 @@ DEF_WRAP_0_R(temp_directory_path, path)
 // Note: Mingw-w64's std::filesystem::rename is buggy and doesn't properly
 // overwrite an existing file, at least in version 9.1.0, hence this custom
 // wrapper.
-nonstd::expected<void, std::error_code> rename(const path& old_p,
-                                               const path& new_p);
+tl::expected<void, std::error_code> rename(const path& old_p,
+                                           const path& new_p);
 
 } // namespace util::filesystem

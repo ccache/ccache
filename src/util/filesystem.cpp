@@ -22,14 +22,14 @@
 
 namespace util::filesystem {
 
-nonstd::expected<void, std::error_code>
+tl::expected<void, std::error_code>
 rename(const std::filesystem::path& old_p, const std::filesystem::path& new_p)
 {
 #ifndef _WIN32
   std::error_code ec;
   std::filesystem::rename(old_p, new_p, ec);
   if (ec) {
-    return nonstd::make_unexpected(ec);
+    return tl::unexpected(ec);
   }
 #else
   // Windows' rename() won't overwrite an existing file, so need to use
@@ -39,8 +39,7 @@ rename(const std::filesystem::path& old_p, const std::filesystem::path& new_p)
                    MOVEFILE_REPLACE_EXISTING)) {
     DWORD error = GetLastError();
     // TODO: How should the Win32 error be mapped to std::error_code?
-    return nonstd::make_unexpected(
-      std::error_code(error, std::system_category()));
+    return tl::unexpected(std::error_code(error, std::system_category()));
   }
 #endif
   return {};

@@ -102,7 +102,7 @@ const char k_ccache_disable_token[] = "ccache:disable";
 
 namespace {
 
-// Return nonstd::make_unexpected<Failure> if ccache did not succeed in getting
+// Return tl::unexpected<Failure> if ccache did not succeed in getting
 // or putting a result in the cache. If `exit_code` is set, ccache will just
 // exit with that code directly, otherwise execute the real compiler and exit
 // with its exit code. Statistics counters will also be incremented.
@@ -473,13 +473,13 @@ print_included_files(const Context& ctx, FILE* fp)
 // - Makes include file paths for which the base directory is a prefix relative
 //   when computing the hash sum.
 // - Stores the paths and hashes of included files in ctx.included_files.
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 {
   auto data = util::read_file<std::string>(path);
   if (!data) {
     LOG("Failed to read {}: {}", path, data.error());
-    return nonstd::make_unexpected(Statistic::internal_error);
+    return tl::unexpected(Statistic::internal_error);
   }
 
   std::unordered_map<std::string, std::string> relative_inc_path_cache;
@@ -565,7 +565,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       q++;
       if (q >= end) {
         LOG_RAW("Failed to parse included file path");
-        return nonstd::make_unexpected(Statistic::internal_error);
+        return tl::unexpected(Statistic::internal_error);
       }
       // q points to the beginning of an include file path
       hash.hash(p, q - p);
@@ -605,8 +605,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 
       if (remember_include_file(ctx, inc_path, hash, system, nullptr)
           == RememberIncludeFileResult::cannot_use_pch) {
-        return nonstd::make_unexpected(
-          Statistic::could_not_use_precompiled_header);
+        return tl::unexpected(Statistic::could_not_use_precompiled_header);
       }
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, incbin_directive, sizeof(incbin_directive)) == 0
@@ -620,8 +619,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       LOG_RAW(
         "Found potential unsupported .inc"
         "bin directive in source code");
-      return nonstd::make_unexpected(
-        Failure(Statistic::unsupported_code_directive));
+      return tl::unexpected(Failure(Statistic::unsupported_code_directive));
     } else if (strncmp(q, "___________", 10) == 0
                && (q == data->data() || q[-1] == '\n')) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
@@ -765,7 +763,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
-static nonstd::expected<DoExecuteResult, Failure>
+static tl::expected<DoExecuteResult, Failure>
 do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
 {
   util::UmaskScope umask_scope(ctx.original_umask);
@@ -808,7 +806,7 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
       LOG("Failed to read {} (cleanup in progress?): {}",
           tmp_stdout.path,
           stdout_data_result.error());
-      return nonstd::make_unexpected(Statistic::missing_cache_file);
+      return tl::unexpected(Statistic::missing_cache_file);
     }
     stdout_data = *stdout_data_result;
   }
@@ -818,7 +816,7 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
     LOG("Failed to read {} (cleanup in progress?): {}",
         tmp_stderr.path,
         stderr_data_result.error());
-    return nonstd::make_unexpected(Statistic::missing_cache_file);
+    return tl::unexpected(Statistic::missing_cache_file);
   }
 
   return DoExecuteResult{status, stdout_data, *stderr_data_result};
@@ -1051,7 +1049,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
 }
 
 // Run the real compiler and put the result in cache. Returns the result key.
-static nonstd::expected<Hash::Digest, Failure>
+static tl::expected<Hash::Digest, Failure>
 to_cache(Context& ctx,
          Args& args,
          std::optional<Hash::Digest> result_key,
@@ -1095,14 +1093,14 @@ to_cache(Context& ctx,
     if (unlink(ctx.args_info.output_dwo.c_str()) != 0 && errno != ENOENT
         && errno != ESTALE) {
       LOG("Failed to unlink {}: {}", ctx.args_info.output_dwo, strerror(errno));
-      return nonstd::make_unexpected(Statistic::bad_output_file);
+      return tl::unexpected(Statistic::bad_output_file);
     }
   }
 
   LOG_RAW("Running real compiler");
   MTR_BEGIN("execute", "compiler");
 
-  nonstd::expected<DoExecuteResult, Failure> result;
+  tl::expected<DoExecuteResult, Failure> result;
   if (!ctx.config.depend_mode()) {
     result = do_execute(ctx, args);
     args.pop_back(3);
@@ -1122,7 +1120,7 @@ to_cache(Context& ctx,
   MTR_END("execute", "compiler");
 
   if (!result) {
-    return nonstd::make_unexpected(result.error());
+    return tl::unexpected(result.error());
   }
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
@@ -1150,7 +1148,7 @@ to_cache(Context& ctx,
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(result->exit_status);
-    return nonstd::make_unexpected(failure);
+    return tl::unexpected(failure);
   }
 
   if (ctx.config.depend_mode()) {
@@ -1164,7 +1162,7 @@ to_cache(Context& ctx,
       ASSERT(false);
     }
     if (!result_key) {
-      return nonstd::make_unexpected(Statistic::internal_error);
+      return tl::unexpected(Statistic::internal_error);
     }
     LOG_RAW("Got result key from dependency file");
     LOG("Result key: {}", util::format_digest(*result_key));
@@ -1188,17 +1186,17 @@ to_cache(Context& ctx,
     obj_stat = Stat::stat(ctx.args_info.output_obj);
     if (!obj_stat) {
       LOG_RAW("Compiler didn't produce an object file");
-      return nonstd::make_unexpected(Statistic::compiler_produced_no_output);
+      return tl::unexpected(Statistic::compiler_produced_no_output);
     } else if (obj_stat.size() == 0) {
       LOG_RAW("Compiler produced an empty object file");
-      return nonstd::make_unexpected(Statistic::compiler_produced_empty_output);
+      return tl::unexpected(Statistic::compiler_produced_empty_output);
     }
   }
 
   MTR_BEGIN("result", "result_put");
   if (!write_result(
         ctx, *result_key, obj_stat, result->stdout_data, result->stderr_data)) {
-    return nonstd::make_unexpected(Statistic::compiler_produced_no_output);
+    return tl::unexpected(Statistic::compiler_produced_no_output);
   }
   MTR_END("result", "result_put");
 
@@ -1217,7 +1215,7 @@ to_cache(Context& ctx,
 
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
-static nonstd::expected<Hash::Digest, Failure>
+static tl::expected<Hash::Digest, Failure>
 get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
   ctx.time_of_compilation = util::TimePoint::now();
@@ -1268,10 +1266,10 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     args.pop_back(args.size() - orig_args_size);
 
     if (!result) {
-      return nonstd::make_unexpected(result.error());
+      return tl::unexpected(result.error());
     } else if (result->exit_status != 0) {
       LOG("Preprocessor gave exit status {}", result->exit_status);
-      return nonstd::make_unexpected(Statistic::preprocessor_error);
+      return tl::unexpected(Statistic::preprocessor_error);
     }
 
     cpp_stderr_data = result->stderr_data;
@@ -1298,7 +1296,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 hash_compiler(const Context& ctx,
               Hash& hash,
               const Stat& st,
@@ -1322,7 +1320,7 @@ hash_compiler(const Context& ctx,
           hash, ctx.config.compiler_check(), ctx.orig_args[0])) {
       LOG("Failure running compiler check command: {}",
           ctx.config.compiler_check());
-      return nonstd::make_unexpected(Statistic::compiler_check_failed);
+      return tl::unexpected(Statistic::compiler_check_failed);
     }
   }
   return {};
@@ -1333,7 +1331,7 @@ hash_compiler(const Context& ctx,
 // If `ccbin_st` and `ccbin` are set, they refer to a directory or compiler set
 // with -ccbin/--compiler-bindir. If `ccbin_st` is nullptr or `ccbin` is the
 // empty string, the compilers are looked up in PATH instead.
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 hash_nvcc_host_compiler(const Context& ctx,
                         Hash& hash,
                         const Stat* ccbin_st = nullptr,
@@ -1382,7 +1380,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 }
 
 // update a hash with information common for the direct and preprocessor modes.
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 hash_common_info(const Context& ctx,
                  const Args& args,
                  Hash& hash,
@@ -1408,7 +1406,7 @@ hash_common_info(const Context& ctx,
 
   auto st = Stat::stat(compiler_path, Stat::OnError::log);
   if (!st) {
-    return nonstd::make_unexpected(Statistic::could_not_find_compiler);
+    return tl::unexpected(Statistic::could_not_find_compiler);
   }
 
   // Hash information about the compiler.
@@ -1539,7 +1537,7 @@ hash_common_info(const Context& ctx,
     LOG("Hashing sanitize blacklist {}", sanitize_blacklist);
     hash.hash_delimiter("sanitizeblacklist");
     if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
-      return nonstd::make_unexpected(Statistic::error_hashing_extra_file);
+      return tl::unexpected(Statistic::error_hashing_extra_file);
     }
   }
 
@@ -1549,7 +1547,7 @@ hash_common_info(const Context& ctx,
       LOG("Hashing extra file {}", path);
       hash.hash_delimiter("extrafile");
       if (!hash_binary_file(ctx, hash, path)) {
-        return nonstd::make_unexpected(Statistic::error_hashing_extra_file);
+        return tl::unexpected(Statistic::error_hashing_extra_file);
       }
     }
   }
@@ -1584,7 +1582,7 @@ get_option_and_value(std::string_view option, const Args& args, size_t& i)
   }
 }
 
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 hash_argument(const Context& ctx,
               const Args& args,
               size_t& i,
@@ -1738,7 +1736,7 @@ hash_argument(const Context& ctx,
     if (eq_pos == std::string::npos) {
       if (i + 1 >= args.size()) {
         LOG("missing argument for \"{}\"", args[i]);
-        return nonstd::make_unexpected(Statistic::bad_compiler_arguments);
+        return tl::unexpected(Statistic::bad_compiler_arguments);
       }
       path = args[i + 1];
       i++;
@@ -1799,7 +1797,7 @@ hash_argument(const Context& ctx,
   return {};
 }
 
-static nonstd::expected<std::optional<Hash::Digest>, Failure>
+static tl::expected<std::optional<Hash::Digest>, Failure>
 get_manifest_key(Context& ctx, Hash& hash)
 {
   // Hash environment variables that affect the preprocessor output.
@@ -1836,7 +1834,7 @@ get_manifest_key(Context& ctx, Hash& hash)
   auto ret =
     hash_source_code_file(ctx, input_file_digest, ctx.args_info.input_file);
   if (ret.contains(HashSourceCode::error)) {
-    return nonstd::make_unexpected(Statistic::internal_error);
+    return tl::unexpected(Statistic::internal_error);
   }
   if (ret.contains(HashSourceCode::found_time)) {
     LOG_RAW("Disabling direct mode");
@@ -1884,7 +1882,7 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
   return found;
 }
 
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 hash_profiling_related_data(const Context& ctx, Hash& hash)
 {
   // For profile generation (-fprofile(-instr)-generate[=path])
@@ -1917,7 +1915,7 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
 
   if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {
     LOG_RAW("No profile data file found");
-    return nonstd::make_unexpected(Statistic::no_input_file);
+    return tl::unexpected(Statistic::no_input_file);
   }
 
   return {};
@@ -1963,7 +1961,7 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result key. Returns the result key on success, and
 // if direct_mode is true also the manifest key.
-static nonstd::expected<
+static tl::expected<
   std::pair<std::optional<Hash::Digest>, std::optional<Hash::Digest>>,
   Failure>
 calculate_result_and_manifest_key(Context& ctx,
@@ -2029,7 +2027,7 @@ calculate_result_and_manifest_key(Context& ctx,
   if (direct_mode) {
     const auto manifest_key_result = get_manifest_key(ctx, hash);
     if (!manifest_key_result) {
-      return nonstd::make_unexpected(manifest_key_result.error());
+      return tl::unexpected(manifest_key_result.error());
     }
     manifest_key = *manifest_key_result;
     if (manifest_key) {
@@ -2039,7 +2037,7 @@ calculate_result_and_manifest_key(Context& ctx,
   } else if (ctx.args_info.arch_args.empty()) {
     const auto digest = get_result_key_from_cpp(ctx, *preprocessor_args, hash);
     if (!digest) {
-      return nonstd::make_unexpected(digest.error());
+      return tl::unexpected(digest.error());
     }
     result_key = *digest;
     LOG_RAW("Got result key from preprocessor");
@@ -2060,7 +2058,7 @@ calculate_result_and_manifest_key(Context& ctx,
       const auto digest =
         get_result_key_from_cpp(ctx, *preprocessor_args, hash);
       if (!digest) {
-        return nonstd::make_unexpected(digest.error());
+        return tl::unexpected(digest.error());
       }
       result_key = *digest;
       LOG("Got result key from preprocessor with -arch {}", arch);
@@ -2081,7 +2079,7 @@ calculate_result_and_manifest_key(Context& ctx,
 enum class FromCacheCallMode { direct, cpp };
 
 // Try to return the compile result from cache.
-static nonstd::expected<bool, Failure>
+static tl::expected<bool, Failure>
 from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
 {
   // The user might be disabling cache hits.
@@ -2128,7 +2126,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
     LOG("Write error when retrieving result from {}: {}",
         util::format_digest(result_key),
         e.what());
-    return nonstd::make_unexpected(Statistic::bad_output_file);
+    return tl::unexpected(Statistic::bad_output_file);
   } catch (core::Error& e) {
     LOG("Failed to get result from {}: {}",
         util::format_digest(result_key),
@@ -2229,14 +2227,14 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
 
 // Make a copy of stderr that will not be cached, so things like distcc can
 // send networking errors to it.
-static nonstd::expected<void, Failure>
+static tl::expected<void, Failure>
 set_up_uncached_err()
 {
   int uncached_fd =
     dup(STDERR_FILENO); // The file descriptor is intentionally leaked.
   if (uncached_fd == -1) {
     LOG("dup(2) failed: {}", strerror(errno));
-    return nonstd::make_unexpected(Statistic::internal_error);
+    return tl::unexpected(Statistic::internal_error);
   }
 
   util::setenv("UNCACHED_ERR_FD", FMT("{}", uncached_fd));
@@ -2245,7 +2243,7 @@ set_up_uncached_err()
 
 static int cache_compilation(int argc, const char* const* argv);
 
-static nonstd::expected<core::StatisticsCounters, Failure>
+static tl::expected<core::StatisticsCounters, Failure>
 do_cache_compilation(Context& ctx);
 
 static void
@@ -2405,17 +2403,17 @@ cache_compilation(int argc, const char* const* argv)
   return EXIT_SUCCESS;
 }
 
-static nonstd::expected<core::StatisticsCounters, Failure>
+static tl::expected<core::StatisticsCounters, Failure>
 do_cache_compilation(Context& ctx)
 {
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
-    return nonstd::make_unexpected(Statistic::none);
+    return tl::unexpected(Statistic::none);
   }
 
   if (ctx.actual_cwd.empty()) {
     LOG("Unable to determine current working directory: {}", strerror(errno));
-    return nonstd::make_unexpected(Statistic::internal_error);
+    return tl::unexpected(Statistic::internal_error);
   }
 
   // Set CCACHE_DISABLE so no process ccache executes from now on will risk
@@ -2429,7 +2427,7 @@ do_cache_compilation(Context& ctx)
   MTR_END("main", "process_args");
 
   if (processed.error) {
-    return nonstd::make_unexpected(*processed.error);
+    return tl::unexpected(*processed.error);
   }
 
   TRY(set_up_uncached_err());
@@ -2526,7 +2524,7 @@ do_cache_compilation(Context& ctx)
     LOG("{} found in {}, disabling ccache",
         k_ccache_disable_token,
         ctx.args_info.input_file);
-    return nonstd::make_unexpected(Statistic::disabled);
+    return tl::unexpected(Statistic::disabled);
   }
 
   {
@@ -2559,7 +2557,7 @@ do_cache_compilation(Context& ctx)
       ctx, args_to_hash, direct_hash, nullptr);
     MTR_END("hash", "direct_hash");
     if (!result_and_manifest_key) {
-      return nonstd::make_unexpected(result_and_manifest_key.error());
+      return tl::unexpected(result_and_manifest_key.error());
     }
     std::tie(result_key, manifest_key) = *result_and_manifest_key;
     if (result_key) {
@@ -2567,7 +2565,7 @@ do_cache_compilation(Context& ctx)
       const auto from_cache_result =
         from_cache(ctx, FromCacheCallMode::direct, *result_key);
       if (!from_cache_result) {
-        return nonstd::make_unexpected(from_cache_result.error());
+        return tl::unexpected(from_cache_result.error());
       } else if (*from_cache_result) {
         return Statistic::direct_cache_hit;
       }
@@ -2589,7 +2587,7 @@ do_cache_compilation(Context& ctx)
 
   if (ctx.config.read_only_direct()) {
     LOG_RAW("Read-only direct mode; running real compiler");
-    return nonstd::make_unexpected(Statistic::cache_miss);
+    return tl::unexpected(Statistic::cache_miss);
   }
 
   if (!ctx.config.depend_mode()) {
@@ -2603,7 +2601,7 @@ do_cache_compilation(Context& ctx)
       ctx, args_to_hash, cpp_hash, &processed.preprocessor_args);
     MTR_END("hash", "cpp_hash");
     if (!result_and_manifest_key) {
-      return nonstd::make_unexpected(result_and_manifest_key.error());
+      return tl::unexpected(result_and_manifest_key.error());
     }
     result_key = result_and_manifest_key->first;
 
@@ -2636,7 +2634,7 @@ do_cache_compilation(Context& ctx)
     const auto from_cache_result =
       from_cache(ctx, FromCacheCallMode::cpp, *result_key);
     if (!from_cache_result) {
-      return nonstd::make_unexpected(from_cache_result.error());
+      return tl::unexpected(from_cache_result.error());
     } else if (*from_cache_result) {
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         MTR_SCOPE("cache", "update_manifest");
@@ -2652,7 +2650,7 @@ do_cache_compilation(Context& ctx)
 
   if (ctx.config.read_only()) {
     LOG_RAW("Read-only mode; running real compiler");
-    return nonstd::make_unexpected(Statistic::cache_miss);
+    return tl::unexpected(Statistic::cache_miss);
   }
 
   add_prefix(ctx, processed.compiler_args, ctx.config.prefix_command());
@@ -2669,7 +2667,7 @@ do_cache_compilation(Context& ctx)
                                depend_mode_hash);
   MTR_END("cache", "to_cache");
   if (!digest) {
-    return nonstd::make_unexpected(digest.error());
+    return tl::unexpected(digest.error());
   }
   result_key = *digest;
   if (ctx.config.direct_mode()) {
