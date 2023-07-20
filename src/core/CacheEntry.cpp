@@ -106,11 +106,8 @@ CacheEntry::Header::Header(nonstd::span<const uint8_t> data)
 
 CacheEntry::Header::Header(const std::string& path)
 {
-  const auto data = util::read_file_part<util::Bytes>(path, 0, 1000);
-  if (!data) {
-    throw core::Error(data.error());
-  }
-  parse(*data);
+  parse(util::value_or_throw<core::Error>(
+    util::read_file_part<util::Bytes>(path, 0, 1000)));
 }
 
 std::string

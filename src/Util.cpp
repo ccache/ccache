@@ -31,6 +31,7 @@
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
@@ -495,11 +496,9 @@ send_to_fd(const Context& ctx, std::string_view text, int fd)
     text_to_send = modified_text;
   }
 
-  const auto result =
-    util::write_fd(fd, text_to_send.data(), text_to_send.length());
-  if (!result) {
-    throw core::Error(FMT("Failed to write to {}: {}", fd, result.error()));
-  }
+  util::throw_on_error<core::Error>(
+    util::write_fd(fd, text_to_send.data(), text_to_send.length()),
+    FMT("Failed to write to fd {}: ", fd));
 }
 
 std::string

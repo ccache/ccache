@@ -911,11 +911,9 @@ Config::set_value_in_file(const std::string& path,
   const auto st = Stat::stat(resolved_path);
   if (!st) {
     core::ensure_dir_exists(Util::dir_name(resolved_path));
-    const auto result = util::write_file(resolved_path, "");
-    if (!result) {
-      throw core::Error(
-        FMT("failed to write to {}: {}", resolved_path, result.error()));
-    }
+    util::throw_on_error<core::Error>(
+      util::write_file(resolved_path, ""),
+      FMT("failed to write to {}: ", resolved_path));
   }
 
   AtomicFile output(resolved_path, AtomicFile::Mode::text);
@@ -1157,11 +1155,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::umask:
     if (!value.empty()) {
-      const auto umask = util::parse_umask(value);
-      if (!umask) {
-        throw core::Error(umask.error());
-      }
-      m_umask = *umask;
+      m_umask = util::value_or_throw<core::Error>(util::parse_umask(value));
     }
     break;
   }
