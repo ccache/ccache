@@ -204,6 +204,17 @@ read_fd(int fd, DataReceiver data_receiver)
   return {};
 }
 
+tl::expected<Bytes, std::string>
+read_fd(int fd)
+{
+  Bytes output;
+  return read_fd(fd,
+                 [&](auto data) {
+                   output.insert(output.end(), data.begin(), data.end());
+                 })
+    .transform([&] { return output; });
+}
+
 #ifdef _WIN32
 static bool
 has_utf16_le_bom(std::string_view text)

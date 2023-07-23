@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <util/Bytes.hpp>
 #include <util/TimePoint.hpp>
 #include <util/types.hpp>
 
@@ -59,9 +60,14 @@ tl::expected<void, std::string> fallocate(int fd, size_t new_size);
 // Return how much a file of `size` bytes likely would take on disk.
 uint64_t likely_size_on_disk(uint64_t size);
 
-// Read data from `fd` until end of file and call `data_receiver` with the read
-// data. Returns an error if the underlying read(2) call returned -1.
+// Read data from `fd` until end of file and call `data_receiver` repeatedly
+// with the read data. Returns an error if the underlying read(2) call returned
+// -1.
 tl::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
+
+// Read data from `fd`. Returns an error if the underlying read(2) call returned
+// -1.
+tl::expected<util::Bytes, std::string> read_fd(int fd);
 
 // Return contents of file at  `path`.
 //
