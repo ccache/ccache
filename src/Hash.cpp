@@ -110,8 +110,7 @@ Hash::hash(int64_t x)
 tl::expected<void, std::string>
 Hash::hash_fd(int fd)
 {
-  return util::read_fd(
-    fd, [this](nonstd::span<const uint8_t> data) { hash(data); });
+  return util::read_fd(fd, [this](auto data) { hash(data); });
 }
 
 tl::expected<void, std::string>

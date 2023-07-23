@@ -182,26 +182,16 @@ configuration_printer(const std::string& key,
   PRINT(stdout, "({}) {} = {}\n", origin, key, value);
 }
 
-static tl::expected<std::vector<uint8_t>, std::string>
+static tl::expected<util::Bytes, std::string>
 read_from_path_or_stdin(const std::string& path)
 {
   if (path == "-") {
-    std::vector<uint8_t> output;
-    const auto result =
-      util::read_fd(STDIN_FILENO, [&](nonstd::span<const uint8_t> data) {
-        output.insert(output.end(), data.begin(), data.end());
-      });
-    if (!result) {
-      return tl::unexpected(
-        FMT("Failed to read from stdin: {}", result.error()));
-    }
-    return output;
+    return util::read_fd(STDIN_FILENO).transform_error([&](auto error) {
+      return FMT("Failed to read from stdin: {}", error);
+    });
   } else {
-    const auto result = util::read_file<std::vector<uint8_t>>(path);
-    if (!result) {
-      return tl::unexpected(FMT("Failed to read {}: {}", path, result.error()));
-    }
-    return *result;
+    return util::read_file<util::Bytes>(path).transform_error(
+      [&](auto error) { return FMT("Failed to read {}: {}", path, error); });
   }
 }
 
@@ -580,9 +570,7 @@ process_main_options(int argc, const char* const* argv)
       util::XXH3_128 checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
-        util::read_fd(*fd, [&checksum](nonstd::span<const uint8_t> data) {
-          checksum.update(data);
-        });
+        util::read_fd(*fd, [&checksum](auto data) { checksum.update(data); });
         const auto digest = checksum.digest();
         PRINT(stdout, "{}\n", util::format_base16(digest));
       } else {
