@@ -128,12 +128,11 @@ FileStorageBackend::get(const Hash::Digest& key)
     util::set_timestamps(path);
   }
 
-  auto value = util::read_file<util::Bytes>(path);
-  if (!value) {
-    LOG("Failed to read {}: {}", path, value.error());
-    return tl::unexpected(Failure::error);
-  }
-  return std::move(*value);
+  return util::read_file<util::Bytes>(path).transform_error(
+    [&](const auto& error) {
+      LOG("Failed to read {}: {}", path, error);
+      return Failure::error;
+    });
 }
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
