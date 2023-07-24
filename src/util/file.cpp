@@ -165,11 +165,11 @@ fallocate(int fd, size_t new_size)
   }
   Finalizer buf_freer([&] { free(buf); });
 
-  if (auto result = util::write_fd(fd, buf, bytes_to_write); !result) {
-    return result;
-  }
-  lseek(fd, saved_pos, SEEK_SET);
-  return {};
+  return write_fd(fd, buf, bytes_to_write)
+    .and_then([&]() -> tl::expected<void, std::string> {
+      lseek(fd, saved_pos, SEEK_SET);
+      return {};
+    });
 }
 
 void
