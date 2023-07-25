@@ -83,7 +83,7 @@ LongLivedLockFileManager::start_thread()
         return;
       }
       for (const auto& alive_file : m_alive_files) {
-        util::set_timestamps(alive_file);
+        set_timestamps(alive_file);
       }
       awake_time += k_keep_alive_interval;
     }

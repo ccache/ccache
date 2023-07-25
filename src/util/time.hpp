@@ -27,6 +27,6 @@ namespace util {
 
 // Thread-safe version of `localtime(3)`. If `time` is not specified the current
 // time of day is used.
-std::optional<tm> localtime(std::optional<util::TimePoint> time = {});
+std::optional<tm> localtime(std::optional<TimePoint> time = {});
 
 } // namespace util

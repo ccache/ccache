@@ -107,8 +107,8 @@ format_digest(nonstd::span<const uint8_t> data)
 {
   const size_t base16_bytes = 2;
   ASSERT(data.size() >= base16_bytes);
-  return util::format_base16({data.data(), base16_bytes})
-         + util::format_base32hex(
+  return format_base16({data.data(), base16_bytes})
+         + format_base32hex(
            {data.data() + base16_bytes, data.size() - base16_bytes});
 }
 
@@ -176,7 +176,7 @@ parse_duration(std::string_view duration)
       "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
   }
 
-  auto value = util::parse_unsigned(duration.substr(0, duration.length() - 1));
+  auto value = parse_unsigned(duration.substr(0, duration.length() - 1));
   if (!value) {
     return value;
   };
@@ -263,7 +263,7 @@ parse_size(const std::string& value)
 tl::expected<mode_t, std::string>
 parse_umask(std::string_view value)
 {
-  return util::parse_unsigned(value, 0, 0777, "umask", 8);
+  return parse_unsigned(value, 0, 0777, "umask", 8);
 }
 
 tl::expected<uint64_t, std::string>
@@ -384,8 +384,8 @@ replace_first(const std::string_view string,
 std::vector<std::string>
 split_into_strings(std::string_view string,
                    const char* separators,
-                   util::Tokenizer::Mode mode,
-                   util::Tokenizer::IncludeDelimiter include_delimiter)
+                   Tokenizer::Mode mode,
+                   Tokenizer::IncludeDelimiter include_delimiter)
 {
   return split_into<std::string>(string, separators, mode, include_delimiter);
 }
@@ -393,8 +393,8 @@ split_into_strings(std::string_view string,
 std::vector<std::string_view>
 split_into_views(std::string_view string,
                  const char* separators,
-                 util::Tokenizer::Mode mode,
-                 util::Tokenizer::IncludeDelimiter include_delimiter)
+                 Tokenizer::Mode mode,
+                 Tokenizer::IncludeDelimiter include_delimiter)
 {
   return split_into<std::string_view>(
     string, separators, mode, include_delimiter);

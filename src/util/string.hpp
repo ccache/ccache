@@ -145,12 +145,12 @@ std::string replace_first(std::string_view string,
 
 // Split `string` into tokens at any of the characters in `separators`.
 // `separators` must neither be the empty string nor a nullptr.
-std::vector<std::string> split_into_strings(
-  std::string_view string,
-  const char* separators,
-  util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty,
-  util::Tokenizer::IncludeDelimiter include_delimiter =
-    util::Tokenizer::IncludeDelimiter::no);
+std::vector<std::string>
+split_into_strings(std::string_view string,
+                   const char* separators,
+                   Tokenizer::Mode mode = Tokenizer::Mode::skip_empty,
+                   Tokenizer::IncludeDelimiter include_delimiter =
+                     Tokenizer::IncludeDelimiter::no);
 
 // Split `string` into tokens at any of the characters in `separators`. These
 // tokens are views into `string`. `separators` must neither be the empty string
@@ -158,9 +158,9 @@ std::vector<std::string> split_into_strings(
 std::vector<std::string_view>
 split_into_views(std::string_view string,
                  const char* separators,
-                 util::Tokenizer::Mode mode = util::Tokenizer::Mode::skip_empty,
-                 util::Tokenizer::IncludeDelimiter include_delimiter =
-                   util::Tokenizer::IncludeDelimiter::no);
+                 Tokenizer::Mode mode = Tokenizer::Mode::skip_empty,
+                 Tokenizer::IncludeDelimiter include_delimiter =
+                   Tokenizer::IncludeDelimiter::no);
 
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`

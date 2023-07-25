@@ -151,7 +151,7 @@ to_string(const nonstd::span<const uint8_t>& bytes)
 
 template<>
 inline std::string
-to_string(const util::Bytes& bytes)
+to_string(const Bytes& bytes)
 {
   return std::string(to_string_view(bytes));
 }

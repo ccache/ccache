@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,7 +24,7 @@ namespace util {
 
 tl::expected<void, std::string>
 zstd_compress(nonstd::span<const uint8_t> input,
-              util::Bytes& output,
+              Bytes& output,
               int8_t compression_level)
 {
   const size_t original_output_size = output.size();
@@ -46,7 +46,7 @@ zstd_compress(nonstd::span<const uint8_t> input,
 
 tl::expected<void, std::string>
 zstd_decompress(nonstd::span<const uint8_t> input,
-                util::Bytes& output,
+                Bytes& output,
                 size_t original_size)
 {
   const size_t original_output_size = output.size();

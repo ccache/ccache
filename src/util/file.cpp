@@ -91,8 +91,8 @@ copy_file(const std::string& src,
         FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
     }
   }
-  TRY(util::read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
-    util::write_fd(*dest_fd, data.data(), data.size());
+  TRY(read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
+    write_fd(*dest_fd, data.data(), data.size());
   }));
 
   dest_fd.close();
@@ -125,7 +125,7 @@ create_cachedir_tag(const std::string& dir)
   if (stat) {
     return;
   }
-  const auto result = util::write_file(path, cachedir_tag);
+  const auto result = write_file(path, cachedir_tag);
   if (!result) {
     LOG("Failed to create {}: {}", path, result.error());
   }
@@ -435,8 +435,8 @@ remove_nfs_safe(const std::string& path, LogFailure log_failure)
 
 void
 set_timestamps(const std::string& path,
-               std::optional<util::TimePoint> mtime,
-               std::optional<util::TimePoint> atime)
+               std::optional<TimePoint> mtime,
+               std::optional<TimePoint> atime)
 {
 #ifdef HAVE_UTIMENSAT
   timespec atime_mtime[2];

@@ -57,7 +57,7 @@ apparent_cwd(const std::string& actual_cwd)
   return actual_cwd;
 #else
   auto pwd = getenv("PWD");
-  if (!pwd || !util::is_absolute_path(pwd)) {
+  if (!pwd || !is_absolute_path(pwd)) {
     return actual_cwd;
   }
 
@@ -133,13 +133,13 @@ real_path(std::string_view path)
 std::vector<std::string>
 split_path_list(std::string_view path_list)
 {
-  return util::split_into_strings(path_list, k_path_delimiter);
+  return split_into_strings(path_list, k_path_delimiter);
 }
 
 std::string
 to_absolute_path(std::string_view path)
 {
-  if (util::is_absolute_path(path)) {
+  if (is_absolute_path(path)) {
     return std::string(path);
   } else {
     return Util::normalize_abstract_absolute_path(

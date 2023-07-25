@@ -70,7 +70,7 @@ private:
   bool acquire(bool blocking);
 #ifndef _WIN32
   bool do_acquire(bool blocking);
-  std::optional<util::TimePoint> get_last_lock_update();
+  std::optional<TimePoint> get_last_lock_update();
 #else
   void* do_acquire(bool blocking);
 #endif

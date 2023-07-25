@@ -21,9 +21,9 @@
 namespace util {
 
 std::optional<tm>
-localtime(std::optional<util::TimePoint> time)
+localtime(std::optional<TimePoint> time)
 {
-  time_t timestamp = time ? time->sec() : util::TimePoint::now().sec();
+  time_t timestamp = time ? time->sec() : TimePoint::now().sec();
 #ifdef HAVE_LOCALTIME_R
   struct tm result;
   if (localtime_r(&timestamp, &result)) {

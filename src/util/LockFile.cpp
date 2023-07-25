@@ -163,8 +163,8 @@ LockFile::release()
   if (m_lock_manager) {
     m_lock_manager->deregister_alive_file(m_alive_file);
   }
-  util::remove(m_alive_file);
-  util::remove(m_lock_file);
+  remove(m_alive_file);
+  remove(m_lock_file);
 #else
   CloseHandle(m_handle);
 #endif
@@ -201,7 +201,7 @@ LockFile::acquire(const bool blocking)
     LOG("Acquired {}", m_lock_file);
 #ifndef _WIN32
     LOG("Creating {}", m_alive_file);
-    const auto result = util::write_file(m_alive_file, "");
+    const auto result = write_file(m_alive_file, "");
     if (!result) {
       LOG("Failed to write {}: {}", m_alive_file, result.error());
     }
@@ -225,9 +225,9 @@ LockFile::do_acquire(const bool blocking)
   ss << get_hostname() << '-' << getpid() << '-' << std::this_thread::get_id();
   const auto content_prefix = ss.str();
 
-  util::TimePoint last_seen_activity = [this] {
+  TimePoint last_seen_activity = [this] {
     const auto last_lock_update = get_last_lock_update();
-    return last_lock_update ? *last_lock_update : util::TimePoint::now();
+    return last_lock_update ? *last_lock_update : TimePoint::now();
   }();
 
   std::string initial_content;
@@ -235,7 +235,7 @@ LockFile::do_acquire(const bool blocking)
                                            k_max_sleep_time * 1000);
 
   while (true) {
-    const auto now = util::TimePoint::now();
+    const auto now = TimePoint::now();
     const auto my_content =
       FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
 
@@ -300,8 +300,7 @@ LockFile::do_acquire(const bool blocking)
       last_seen_activity = *last_lock_update;
     }
 
-    const util::Duration inactive_duration =
-      util::TimePoint::now() - last_seen_activity;
+    const Duration inactive_duration = TimePoint::now() - last_seen_activity;
 
     if (inactive_duration < k_staleness_limit) {
       LOG("Lock {} held by another process active {}.{:03} seconds ago",
@@ -314,7 +313,7 @@ LockFile::do_acquire(const bool blocking)
           m_lock_file,
           inactive_duration.sec(),
           inactive_duration.nsec_decimal_part() / 1'000'000);
-      if (!util::remove(m_alive_file) || !util::remove(m_lock_file)) {
+      if (!remove(m_alive_file) || !remove(m_lock_file)) {
         return false;
       }
 
@@ -344,7 +343,7 @@ LockFile::do_acquire(const bool blocking)
   }
 }
 
-std::optional<util::TimePoint>
+std::optional<TimePoint>
 LockFile::get_last_lock_update()
 {
   if (const auto stat = Stat::stat(m_alive_file); stat) {

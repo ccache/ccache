@@ -114,8 +114,8 @@ void set_cloexec_flag(int fd);
 // Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
 // time. If `atime` is std::nullopt, set to what `mtime` specifies.
 void set_timestamps(const std::string& path,
-                    std::optional<util::TimePoint> mtime = std::nullopt,
-                    std::optional<util::TimePoint> atime = std::nullopt);
+                    std::optional<TimePoint> mtime = std::nullopt,
+                    std::optional<TimePoint> atime = std::nullopt);
 
 // Write `size` bytes from binary `data` to `fd`.
 tl::expected<void, std::string> write_fd(int fd, const void* data, size_t size);
