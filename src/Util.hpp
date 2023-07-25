@@ -123,15 +123,6 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 // extension as determined by `get_extension()`.
 std::string_view remove_extension(std::string_view path);
 
-// Send `text` to file descriptor `fd`, optionally stripping ANSI color
-// sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
-// paths to absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws
-// `core::Error` on error.
-void send_to_fd(const Context& ctx, std::string_view text, int fd);
-
-// Returns a copy of string with the specified ANSI CSI sequences removed.
-[[nodiscard]] std::string strip_ansi_csi_seqs(std::string_view string);
-
 // Traverse `path` recursively (postorder, i.e. files are visited before their
 // parent directory).
 //

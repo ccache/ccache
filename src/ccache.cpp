@@ -48,6 +48,7 @@
 #include <core/ResultRetriever.hpp>
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
+#include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/mainoptions.hpp>
 #include <core/types.hpp>
@@ -1018,7 +1019,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
                                      Mode::include_empty,
                                      IncludeDelimiter::yes)) {
       if (util::starts_with(line, "__________")) {
-        Util::send_to_fd(ctx, line, STDOUT_FILENO);
+        core::send_to_console(ctx, line, STDOUT_FILENO);
       }
       // Ninja uses the lines with 'Note: including file: ' to determine the
       // used headers. Headers within basedir need to be changed into relative
@@ -1138,9 +1139,9 @@ to_cache(Context& ctx,
     LOG("Compiler gave exit status {}", result->exit_status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_fd(
+    core::send_to_console(
       ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
-    Util::send_to_fd(
+    core::send_to_console(
       ctx,
       util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
         ctx, std::move(result->stdout_data))),
@@ -1201,10 +1202,10 @@ to_cache(Context& ctx,
   MTR_END("result", "result_put");
 
   // Everything OK.
-  Util::send_to_fd(
+  core::send_to_console(
     ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
-  Util::send_to_fd(
+  core::send_to_console(
     ctx,
     util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
       ctx, std::move(result->stdout_data))),

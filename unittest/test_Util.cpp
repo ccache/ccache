@@ -113,17 +113,6 @@ TEST_CASE("Util::dir_name")
 #endif
 }
 
-TEST_CASE("Util::strip_ansi_csi_seqs")
-{
-  const char input[] =
-    "Normal,"
-    " \x1B[K\x1B[1mbold\x1B[m,"
-    " \x1B[31mred\x1B[m,"
-    " \x1B[1;32mbold green\x1B[m.\n";
-
-  CHECK(Util::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
-}
-
 TEST_CASE("Util::get_extension")
 {
   CHECK(Util::get_extension("") == "");

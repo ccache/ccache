@@ -43,4 +43,15 @@ TEST_CASE("core::ensure_dir_exists")
     doctest::Contains("Failed to create directory create/dir/file:"));
 }
 
+TEST_CASE("core::strip_ansi_csi_seqs")
+{
+  const char input[] =
+    "Normal,"
+    " \x1B[K\x1B[1mbold\x1B[m,"
+    " \x1B[31mred\x1B[m,"
+    " \x1B[1;32mbold green\x1B[m.\n";
+
+  CHECK(core::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
+}
+
 TEST_SUITE_END();

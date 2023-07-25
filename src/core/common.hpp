@@ -18,11 +18,24 @@
 
 #pragma once
 
+#include <string>
 #include <string_view>
+
+class Context;
 
 namespace core {
 
 // Like std::filesystem::create_directories but throws core::Fatal on error.
 void ensure_dir_exists(std::string_view dir);
+
+// Send `text` to file descriptor `fd` (typically stdout or stderr, which
+// potentially is connected to a console), optionally stripping ANSI color
+// sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
+// paths to absolute if `ctx.config.absolute_paths_in_stderr()` is true. Throws
+// `core::Error` on error.
+void send_to_console(const Context& ctx, std::string_view text, int fd);
+
+// Returns a copy of string with the specified ANSI CSI sequences removed.
+[[nodiscard]] std::string strip_ansi_csi_seqs(std::string_view string);
 
 } // namespace core

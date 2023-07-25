@@ -26,6 +26,7 @@
 #include <Stat.hpp>
 #include <Util.hpp>
 #include <core/MsvcShowIncludesOutput.hpp>
+#include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
@@ -63,12 +64,12 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       data.size());
 
   if (file_type == FileType::stdout_output) {
-    Util::send_to_fd(
+    core::send_to_console(
       m_ctx,
       util::to_string_view(MsvcShowIncludesOutput::strip_includes(m_ctx, data)),
       STDOUT_FILENO);
   } else if (file_type == FileType::stderr_output) {
-    Util::send_to_fd(m_ctx, util::to_string_view(data), STDERR_FILENO);
+    core::send_to_console(m_ctx, util::to_string_view(data), STDERR_FILENO);
   } else {
     const auto dest_path = get_dest_path(file_type);
     if (dest_path.empty()) {
