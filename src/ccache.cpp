@@ -220,7 +220,7 @@ init_hash_debug(Context& ctx,
                 std::string_view section_name,
                 FILE* debug_text_file)
 {
-  if (!ctx.config.debug()) {
+  if (!ctx.config.debug() || ctx.config.debug_level() < 2) {
     return;
   }
 
@@ -2500,7 +2500,7 @@ do_cache_compilation(Context& ctx)
   LOG("Object file: {}", ctx.args_info.output_obj);
   MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
-  if (ctx.config.debug()) {
+  if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.config.debug_dir(),
                                          ctx.time_of_invocation,
                                          ctx.args_info.orig_output_obj,

@@ -681,6 +681,15 @@ is `/home/user` and the object file is `build/output.o` then the debug log will
 be written to `/example/home/user/build/output.o.ccache-log`. See also
 _<<Cache debugging>>_.
 
+[#config_debug_level]
+*debug_level* (*CCACHE_DEBUGLEVEL*)::
+
+    Specifies amount of information dumped when the <<config_debug,debug mode>>
+    is enabled. If set 1, only `<objectfile>.<timestamp>.ccache-log` files with
+    per-file caching statistics are dumped. Otherwise, all possible debug
+    data is dumped. See _<<Cache debugging>>_ for more information. The default
+    is 2.
+
 [#config_depend_mode]
 *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see _<<Boolean values>>_ above)::
 
@@ -1678,6 +1687,12 @@ Log for this object file.
  The timestamp format is
 `<year><month><day>_<hour><minute><second>_<microsecond>`.
 
+`<objectfile>.<timestamp>.ccache-log` files can be useful for checking
+caching results for every file. If you only need such statistics and don't
+need `<objectfile>.<timestamp>.ccache-input-*` files then you can set
+<<config_debug,*debug_level*>> (or environment variable `CCACHE_DEBUGLEVEL`) 
+to 1.
+
 If <<config_debug_dir,*debug_dir*>> (environment variable `CCACHE_DEBUGDIR`) is
 set, the files above will be written to that directory with full absolute paths
 instead of next to the object file.
@@ -1701,7 +1716,6 @@ something like this:
 4. Compare the `<objectfile>.<timestamp>.ccache-input-text` files for the two
    builds. This together with the `<objectfile>.<timestamp>.ccache-log` files
    should give you some clues about what is happening.
-
 
 == Compiling in different directories
 

@@ -64,6 +64,7 @@ public:
   const std::string& cpp_extension() const;
   bool debug() const;
   const std::string& debug_dir() const;
+  uint8_t debug_level() const;
   bool depend_mode() const;
   bool direct_mode() const;
   bool disable() const;
@@ -178,6 +179,7 @@ private:
   std::string m_cpp_extension;
   bool m_debug = false;
   std::string m_debug_dir;
+  uint8_t m_debug_level = 2;
   bool m_depend_mode = false;
   bool m_direct_mode = true;
   bool m_disable = false;
@@ -303,6 +305,12 @@ inline const std::string&
 Config::debug_dir() const
 {
   return m_debug_dir;
+}
+
+inline uint8_t
+Config::debug_level() const
+{
+  return m_debug_level;
 }
 
 inline bool
