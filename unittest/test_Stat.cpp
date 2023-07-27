@@ -22,9 +22,9 @@
 #include "TestUtil.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 

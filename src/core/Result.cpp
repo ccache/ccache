@@ -31,13 +31,13 @@
 #include <core/CacheEntryDataWriter.hpp>
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>

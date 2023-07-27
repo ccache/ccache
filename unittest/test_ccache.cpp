@@ -21,9 +21,9 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
-#include <core/wincompat.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 

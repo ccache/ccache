@@ -23,8 +23,8 @@
 #include "Win32Util.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef _WIN32
 #  include <third_party/win32/winerror_to_errno.h>

@@ -24,11 +24,11 @@
 
 #include <Stat.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 

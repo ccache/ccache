@@ -20,9 +20,9 @@
 #include "TestUtil.hpp"
 
 #include <Util.hpp>
-#include <core/wincompat.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 

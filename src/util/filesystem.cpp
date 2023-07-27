@@ -18,7 +18,7 @@
 
 #include "filesystem.hpp"
 
-#include <core/wincompat.hpp>
+#include <util/wincompat.hpp>
 
 namespace util::filesystem {
 

@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
+#include <util/wincompat.hpp>
 
 #include <sys/stat.h>
 #include <sys/types.h>

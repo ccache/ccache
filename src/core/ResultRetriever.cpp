@@ -28,11 +28,11 @@
 #include <core/MsvcShowIncludesOutput.hpp>
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>

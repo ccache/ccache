@@ -29,13 +29,13 @@
 #include <Finalizer.hpp>
 #include <Stat.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

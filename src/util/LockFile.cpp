@@ -26,10 +26,10 @@
 #include <Stat.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/process.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/fmt/core.h"
 

@@ -26,9 +26,9 @@
 #include "execute.hpp"
 #include "fmtmacros.hpp"
 
-#include <core/wincompat.hpp>
 #include <util/file.hpp>
 #include <util/time.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

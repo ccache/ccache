@@ -22,10 +22,10 @@
 #include "TemporaryFile.hpp"
 #include "fmtmacros.hpp"
 
-#include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

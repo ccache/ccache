@@ -20,7 +20,7 @@
 
 #ifdef _WIN32
 
-#  include <core/wincompat.hpp>
+#  include <util/wincompat.hpp>
 
 #  include <string>
 

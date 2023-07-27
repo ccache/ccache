@@ -172,7 +172,7 @@
 #endif
 
 // Typedefs that make it possible to use common types in ccache header files
-// without including core/wincompat.hpp.
+// without including util/wincompat.hpp.
 #ifdef _WIN32
 #  ifdef _MSC_VER
 typedef unsigned __int32 mode_t;

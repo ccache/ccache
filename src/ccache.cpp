@@ -52,7 +52,6 @@
 #include <core/exceptions.hpp>
 #include <core/mainoptions.hpp>
 #include <core/types.hpp>
-#include <core/wincompat.hpp>
 #include <storage/Storage.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
@@ -63,6 +62,7 @@
 #include <util/process.hpp>
 #include <util/string.hpp>
 #include <util/time.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/fmt/core.h"
 

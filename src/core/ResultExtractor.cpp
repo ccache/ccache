@@ -23,11 +23,11 @@
 
 #include <Stat.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>

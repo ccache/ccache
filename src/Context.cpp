@@ -24,11 +24,11 @@
 #include "hashutil.hpp"
 
 #include <Win32Util.hpp>
-#include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

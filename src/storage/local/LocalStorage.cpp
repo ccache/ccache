@@ -34,7 +34,6 @@
 #include <core/Statistics.hpp>
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Duration.hpp>
 #include <util/TextTable.hpp>
@@ -43,6 +42,7 @@
 #include <util/filesystem.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include <InodeCache.hpp>

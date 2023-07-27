@@ -18,7 +18,7 @@
 
 #include "process.hpp"
 
-#include <core/wincompat.hpp>
+#include <util/wincompat.hpp>
 
 #include <cstring>
 

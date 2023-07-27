@@ -28,11 +28,11 @@
 #include "macroskip.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 #include <util/time.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"

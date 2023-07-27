@@ -21,10 +21,10 @@
 #include "../src/Util.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

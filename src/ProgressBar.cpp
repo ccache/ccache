@@ -21,7 +21,7 @@
 #include "fmtmacros.hpp"
 
 #include <assertions.hpp>
-#include <core/wincompat.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/fmt/core.h"
 

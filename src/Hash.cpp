@@ -22,9 +22,9 @@
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
 
-#include <core/wincompat.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>

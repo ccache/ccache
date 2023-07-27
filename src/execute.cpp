@@ -31,11 +31,11 @@
 
 #include <ccache.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <vector>
 

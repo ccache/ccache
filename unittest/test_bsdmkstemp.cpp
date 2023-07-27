@@ -20,7 +20,7 @@
 #include "../src/Finalizer.hpp"
 #include "TestUtil.hpp"
 
-#include <core/wincompat.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 #include "third_party/win32/mktemp.h"

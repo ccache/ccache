@@ -27,7 +27,6 @@
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/UmaskScope.hpp>
@@ -37,6 +36,7 @@
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/fmt/core.h"
 

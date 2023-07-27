@@ -19,8 +19,8 @@
 #include "environment.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
 #include <fmtmacros.hpp>
+#include <util/wincompat.hpp>
 
 namespace util {
 
