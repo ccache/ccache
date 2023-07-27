@@ -174,10 +174,8 @@ TEST_CASE("Default constructor")
 TEST_CASE("Named constructors")
 {
   CHECK(!Stat::stat("does_not_exist"));
-  CHECK(!Stat::stat("does_not_exist", Stat::OnError::ignore));
-  CHECK(!Stat::stat("does_not_exist", Stat::OnError::log));
-  CHECK_THROWS_WITH(Stat::stat("does_not_exist", Stat::OnError::throw_error),
-                    "failed to stat does_not_exist: No such file or directory");
+  CHECK(!Stat::stat("does_not_exist", Stat::LogOnError::no));
+  CHECK(!Stat::stat("does_not_exist", Stat::LogOnError::yes));
 }
 
 TEST_CASE("Same i-node as")
@@ -339,7 +337,7 @@ TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
 
   SUBCASE("file lstat")
   {
-    auto stat = Stat::lstat("file", Stat::OnError::ignore);
+    auto stat = Stat::lstat("file", Stat::LogOnError::no);
     CHECK(stat);
     CHECK(stat.error_number() == 0);
     CHECK(!stat.is_directory());
@@ -356,7 +354,7 @@ TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
 
   SUBCASE("file stat")
   {
-    auto stat = Stat::stat("file", Stat::OnError::ignore);
+    auto stat = Stat::stat("file", Stat::LogOnError::no);
     CHECK(stat);
     CHECK(stat.error_number() == 0);
     CHECK(!stat.is_directory());
@@ -373,7 +371,7 @@ TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
 
   SUBCASE("symlink lstat")
   {
-    auto stat = Stat::lstat("symlink", Stat::OnError::ignore);
+    auto stat = Stat::lstat("symlink", Stat::LogOnError::no);
     CHECK(stat);
     CHECK(stat.error_number() == 0);
     CHECK(!stat.is_directory());
@@ -391,7 +389,7 @@ TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
 
   SUBCASE("symlink stat")
   {
-    auto stat = Stat::stat("symlink", Stat::OnError::ignore);
+    auto stat = Stat::stat("symlink", Stat::LogOnError::no);
     CHECK(stat);
     CHECK(stat.error_number() == 0);
     CHECK(!stat.is_directory());

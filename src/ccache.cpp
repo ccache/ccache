@@ -352,7 +352,7 @@ do_remember_include_file(Context& ctx,
   }
 #endif
 
-  auto st = Stat::stat(path, Stat::OnError::log);
+  auto st = Stat::stat(path, Stat::LogOnError::yes);
   if (!st) {
     return false;
   }
@@ -402,7 +402,7 @@ do_remember_include_file(Context& ctx,
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
       std::string pch_sum_path = FMT("{}.sum", path);
-      if (Stat::stat(pch_sum_path, Stat::OnError::log)) {
+      if (Stat::stat(pch_sum_path, Stat::LogOnError::yes)) {
         path = std::move(pch_sum_path);
         using_pch_sum = true;
         LOG("Using pch.sum file {}", path);
@@ -860,7 +860,7 @@ update_manifest(Context& ctx,
 
   const bool added = ctx.manifest.add_result(
     result_key, ctx.included_files, [&](const std::string& path) {
-      auto stat = Stat::stat(path, Stat::OnError::log);
+      auto stat = Stat::stat(path, Stat::LogOnError::yes);
       bool cache_time =
         save_timestamp
         && ctx.time_of_compilation > std::max(stat.mtime(), stat.ctime());
@@ -1368,7 +1368,7 @@ hash_nvcc_host_compiler(const Context& ctx,
       } else {
         std::string path = find_executable(ctx, compiler, ctx.orig_args[0]);
         if (!path.empty()) {
-          auto st = Stat::stat(path, Stat::OnError::log);
+          auto st = Stat::stat(path, Stat::LogOnError::yes);
           TRY(hash_compiler(ctx, hash, st, ccbin, false));
         }
       }
@@ -1405,7 +1405,7 @@ hash_common_info(const Context& ctx,
   const std::string compiler_path = args[0];
 #endif
 
-  auto st = Stat::stat(compiler_path, Stat::OnError::log);
+  auto st = Stat::stat(compiler_path, Stat::LogOnError::yes);
   if (!st) {
     return tl::unexpected(Statistic::could_not_find_compiler);
   }
@@ -1744,7 +1744,7 @@ hash_argument(const Context& ctx,
     } else {
       path = args[i].substr(eq_pos + 1);
     }
-    auto st = Stat::stat(path, Stat::OnError::log);
+    auto st = Stat::stat(path, Stat::LogOnError::yes);
     if (st) {
       // If given an explicit specs file, then hash that file, but don't
       // include the path to it in the hash.
@@ -1755,7 +1755,7 @@ hash_argument(const Context& ctx,
   }
 
   if (util::starts_with(args[i], "-fplugin=")) {
-    auto st = Stat::stat(&args[i][9], Stat::OnError::log);
+    auto st = Stat::stat(&args[i][9], Stat::LogOnError::yes);
     if (st) {
       hash.hash_delimiter("plugin");
       TRY(hash_compiler(ctx, hash, st, &args[i][9], false));
@@ -1765,7 +1765,7 @@ hash_argument(const Context& ctx,
 
   if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
       && args[i + 2] == "-Xclang") {
-    auto st = Stat::stat(args[i + 3], Stat::OnError::log);
+    auto st = Stat::stat(args[i + 3], Stat::LogOnError::yes);
     if (st) {
       hash.hash_delimiter("plugin");
       TRY(hash_compiler(ctx, hash, st, args[i + 3], false));

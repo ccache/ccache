@@ -284,10 +284,10 @@ Serializer::serialize(util::Bytes& output)
     const bool store_raw =
       is_file_entry && should_store_raw_file(m_config, entry.file_type);
     const uint64_t file_size =
-      is_file_entry ? Stat::stat(std::get<std::string>(entry.data),
-                                 Stat::OnError::throw_error)
-                        .size()
-                    : std::get<nonstd::span<const uint8_t>>(entry.data).size();
+      is_file_entry
+        ? Stat::stat(std::get<std::string>(entry.data), Stat::LogOnError::yes)
+            .size()
+        : std::get<nonstd::span<const uint8_t>>(entry.data).size();
 
     LOG("Storing {} entry #{} {} ({} bytes){}",
         store_raw ? "raw" : "embedded",

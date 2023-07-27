@@ -205,7 +205,7 @@ win32_lstat(const char* path, Stat::stat_t* st)
 
 Stat::Stat(StatFunction stat_function,
            const std::string& path,
-           Stat::OnError on_error)
+           Stat::LogOnError log_on_error)
   : m_path(path)
 {
   int result = stat_function(path.c_str(), &m_stat);
@@ -213,10 +213,7 @@ Stat::Stat(StatFunction stat_function,
     m_errno = 0;
   } else {
     m_errno = errno;
-    if (on_error == OnError::throw_error) {
-      throw core::Error(FMT("failed to stat {}: {}", path, strerror(errno)));
-    }
-    if (on_error == OnError::log) {
+    if (log_on_error == LogOnError::yes) {
       LOG("Failed to stat {}: {}", path, strerror(errno));
     }
 
@@ -227,7 +224,7 @@ Stat::Stat(StatFunction stat_function,
 }
 
 Stat
-Stat::stat(const std::string& path, OnError on_error)
+Stat::stat(const std::string& path, LogOnError log_on_error)
 {
   return Stat(
 #ifdef _WIN32
@@ -236,11 +233,11 @@ Stat::stat(const std::string& path, OnError on_error)
     ::stat,
 #endif
     path,
-    on_error);
+    log_on_error);
 }
 
 Stat
-Stat::lstat(const std::string& path, OnError on_error)
+Stat::lstat(const std::string& path, LogOnError log_on_error)
 {
   return Stat(
 #ifdef _WIN32
@@ -249,5 +246,5 @@ Stat::lstat(const std::string& path, OnError on_error)
     ::lstat,
 #endif
     path,
-    on_error);
+    log_on_error);
 }

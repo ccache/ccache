@@ -62,16 +62,7 @@
 class Stat
 {
 public:
-  enum class OnError {
-    // Ignore any error (including missing file) from the underlying stat call.
-    // On error, error_number() will return the error number (AKA errno) and
-    // the query functions will return 0 or false.
-    ignore,
-    // Like above but log an error message as well.
-    log,
-    // Throw Error on errors (including missing file).
-    throw_error,
-  };
+  enum class LogOnError { no, yes };
 
 #if defined(_WIN32)
   struct stat_t
@@ -98,20 +89,13 @@ public:
   // error_number() will return -1 and other accessors will return false or 0.
   Stat();
 
-  // Run stat(2).
-  //
-  // Arguments:
-  // - path: Path to stat.
-  // - on_error: What to do on errors (including missing file).
-  static Stat stat(const std::string& path, OnError on_error = OnError::ignore);
+  // Run stat(2) on `path`.
+  static Stat stat(const std::string& path,
+                   LogOnError log_on_error = LogOnError::no);
 
-  // Run lstat(2) if available, otherwise stat(2).
-  //
-  // Arguments:
-  // - path: Path to (l)stat.
-  // - on_error: What to do on errors (including missing file).
+  // Run lstat(2) on `path` if available, otherwise stat(2).
   static Stat lstat(const std::string& path,
-                    OnError on_error = OnError::ignore);
+                    LogOnError log_on_error = LogOnError::no);
 
   // Return true if the file could be (l)stat-ed (i.e., the file exists),
   // otherwise false.
@@ -149,7 +133,9 @@ public:
 protected:
   using StatFunction = int (*)(const char*, stat_t*);
 
-  Stat(StatFunction stat_function, const std::string& path, OnError on_error);
+  Stat(StatFunction stat_function,
+       const std::string& path,
+       LogOnError log_on_error);
 
 private:
   std::string m_path;

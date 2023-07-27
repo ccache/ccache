@@ -719,7 +719,7 @@ process_main_options(int argc, const char* const* argv)
       }
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
-        Stat::stat(config.stats_log(), Stat::OnError::log).mtime();
+        Stat::stat(config.stats_log(), Stat::LogOnError::yes).mtime();
       PRINT_RAW(
         stdout,
         statistics.format_human_readable(config, timestamp, verbosity, true));

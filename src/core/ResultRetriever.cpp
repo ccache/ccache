@@ -104,7 +104,11 @@ ResultRetriever::on_raw_file(uint8_t file_number,
   }
   const auto raw_file_path =
     m_ctx.storage.local.get_raw_file_path(*m_result_key, file_number);
-  const auto st = Stat::stat(raw_file_path, Stat::OnError::throw_error);
+  const auto st = Stat::stat(raw_file_path, Stat::LogOnError::yes);
+  if (!st) {
+    throw Error(
+      FMT("Failed to stat {}: {}", raw_file_path, strerror(st.error_number())));
+  }
   if (st.size() != file_size) {
     throw core::Error(
       FMT("Bad file size of {} (actual {} bytes, expected {} bytes)",

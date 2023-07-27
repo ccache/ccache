@@ -56,7 +56,7 @@ FileRecompressor::recompress(const Stat& stat,
     new_cache_file.write(
       core::CacheEntry::serialize(header, cache_entry.payload()));
     new_cache_file.commit();
-    new_stat = Stat::lstat(stat.path(), Stat::OnError::log);
+    new_stat = Stat::lstat(stat.path(), Stat::LogOnError::yes);
   }
 
   // Restore mtime/atime to keep cache LRU cleanup working as expected:

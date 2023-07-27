@@ -533,7 +533,7 @@ LocalStorage::put(const Hash::Digest& key,
 
   increment_statistic(Statistic::local_storage_write);
 
-  const auto new_stat = Stat::stat(cache_file.path, Stat::OnError::log);
+  const auto new_stat = Stat::stat(cache_file.path, Stat::LogOnError::yes);
   if (!new_stat) {
     return;
   }
@@ -1424,7 +1424,7 @@ LocalStorage::clean_internal_tempdir()
       if (is_dir) {
         return;
       }
-      const auto st = Stat::lstat(path, Stat::OnError::log);
+      const auto st = Stat::lstat(path, Stat::LogOnError::yes);
       if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
         util::remove(path);
       }
