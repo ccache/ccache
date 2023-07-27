@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <ctime>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -40,6 +41,9 @@ namespace util {
 enum class InPlace { yes, no };
 enum class LogFailure { yes, no };
 enum class ViaTmpFile { yes, no };
+
+using TraverseDirectoryVisitor =
+  std::function<void(const std::string& path, bool is_dir)>;
 
 // Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
 // to a temporary file and then renamed to dest.
@@ -116,6 +120,12 @@ void set_cloexec_flag(int fd);
 void set_timestamps(const std::string& path,
                     std::optional<TimePoint> mtime = std::nullopt,
                     std::optional<TimePoint> atime = std::nullopt);
+
+// Traverse `path` recursively in postorder (directory entries are visited
+// before their parent directory).
+tl::expected<void, std::string>
+traverse_directory(const std::string& directory,
+                   const TraverseDirectoryVisitor& visitor);
 
 // Write `size` bytes from binary `data` to `fd`.
 tl::expected<void, std::string> write_fd(int fd, const void* data, size_t size);

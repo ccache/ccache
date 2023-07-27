@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,10 @@
 #include "util.hpp"
 
 #include <Util.hpp>
+#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/string.hpp>
 
 namespace storage::local {
@@ -67,18 +70,18 @@ get_cache_dir_files(const std::string& dir)
   if (!Stat::stat(dir)) {
     return files;
   }
+  util::throw_on_error<core::Error>(
+    util::traverse_directory(dir, [&](const std::string& path, bool is_dir) {
+      auto name = Util::base_name(path);
+      if (name == "CACHEDIR.TAG" || name == "stats"
+          || util::starts_with(std::string(name), ".nfs")) {
+        return;
+      }
 
-  Util::traverse(dir, [&](const std::string& path, bool is_dir) {
-    auto name = Util::base_name(path);
-    if (name == "CACHEDIR.TAG" || name == "stats"
-        || util::starts_with(name, ".nfs")) {
-      return;
-    }
-
-    if (!is_dir) {
-      files.emplace_back(Stat::lstat(path));
-    }
-  });
+      if (!is_dir) {
+        files.emplace_back(Stat::lstat(path));
+      }
+    }));
 
   return files;
 }

@@ -52,9 +52,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef HAVE_DIRENT_H
+#  include <dirent.h>
+#endif
+
 #include <cerrno>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <locale>
 #include <type_traits>
@@ -466,6 +469,91 @@ set_timestamps(const std::string& path,
   }
 #endif
 }
+
+#ifdef HAVE_DIRENT_H
+
+tl::expected<void, std::string>
+traverse_directory(const std::string& directory,
+                   const TraverseDirectoryVisitor& visitor)
+{
+  DIR* dir = opendir(directory.c_str());
+  if (!dir) {
+    return tl::unexpected(
+      FMT("Failed to traverse {}: {}", directory, strerror(errno)));
+  }
+
+  Finalizer dir_closer([&] { closedir(dir); });
+
+  struct dirent* entry;
+  while ((entry = readdir(dir))) {
+    if (strcmp(entry->d_name, "") == 0 || strcmp(entry->d_name, ".") == 0
+        || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+
+    std::string entry_path = directory + "/" + entry->d_name;
+    bool is_dir;
+#  ifdef _DIRENT_HAVE_D_TYPE
+    if (entry->d_type != DT_UNKNOWN) {
+      is_dir = entry->d_type == DT_DIR;
+    } else
+#  endif
+    {
+      auto stat = Stat::lstat(entry_path);
+      if (!stat) {
+        if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
+          continue;
+        }
+        return tl::unexpected(FMT(
+          "Failed to lstat {}: {}", entry_path, strerror(stat.error_number())));
+      }
+      is_dir = stat.is_directory();
+    }
+    if (is_dir) {
+      traverse_directory(entry_path, visitor);
+    } else {
+      visitor(entry_path, false);
+    }
+  }
+  visitor(directory, true);
+
+  return {};
+}
+
+#else // If not available, use the C++17 std::filesystem implementation.
+
+tl::expected<void, std::string>
+traverse_directory(const std::string& directory,
+                   const TraverseDirectoryVisitor& visitor)
+{
+  // Note: Intentionally not using std::filesystem::recursive_directory_iterator
+  // since it visits directories in preorder.
+
+  auto stat = Stat::lstat(directory);
+  if (!stat.is_directory()) {
+    return tl::unexpected(
+      FMT("Failed to traverse {}: {}",
+          directory,
+          stat ? "Not a directory" : "No such file or directory"));
+  }
+
+  try {
+    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+      if (entry.is_directory()) {
+        traverse_directory(entry.path().string(), visitor);
+      } else {
+        visitor(entry.path().string(), entry.is_directory());
+      }
+    }
+    visitor(directory, true);
+  } catch (const std::filesystem::filesystem_error& e) {
+    return tl::unexpected(e.what());
+  }
+
+  return {};
+}
+
+#endif
 
 tl::expected<void, std::string>
 write_fd(int fd, const void* data, size_t size)

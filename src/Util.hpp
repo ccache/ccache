@@ -35,9 +35,6 @@ class Context;
 
 namespace Util {
 
-using TraverseVisitor =
-  std::function<void(const std::string& path, bool is_dir)>;
-
 // Get base name of path.
 std::string_view base_name(std::string_view path);
 
@@ -122,11 +119,5 @@ std::string normalize_concrete_absolute_path(const std::string& path);
 // Return a view into `path` containing the given path without the filename
 // extension as determined by `get_extension()`.
 std::string_view remove_extension(std::string_view path);
-
-// Traverse `path` recursively (postorder, i.e. files are visited before their
-// parent directory).
-//
-// Throws core::Error on error.
-void traverse(const std::string& path, const TraverseVisitor& visitor);
 
 } // namespace Util

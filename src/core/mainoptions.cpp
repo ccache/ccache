@@ -300,23 +300,24 @@ trim_dir(const std::string& dir,
   std::vector<Stat> files;
   uint64_t initial_size = 0;
 
-  Util::traverse(dir, [&](const std::string& path, const bool is_dir) {
-    if (is_dir || TemporaryFile::is_tmp_file(path)) {
-      return;
-    }
-    auto stat = Stat::lstat(path);
-    if (!stat) {
-      // Probably some race, ignore.
-      return;
-    }
-    initial_size += stat.size_on_disk();
-    const auto name = Util::base_name(path);
-    if (name == "ccache.conf" || name == "stats") {
-      throw Fatal(
-        FMT("this looks like a local cache directory (found {})", path));
-    }
-    files.emplace_back(std::move(stat));
-  });
+  util::throw_on_error<core::Error>(util::traverse_directory(
+    dir, [&](const std::string& path, const bool is_dir) {
+      if (is_dir || TemporaryFile::is_tmp_file(path)) {
+        return;
+      }
+      auto stat = Stat::lstat(path);
+      if (!stat) {
+        // Probably some race, ignore.
+        return;
+      }
+      initial_size += stat.size_on_disk();
+      const auto name = Util::base_name(path);
+      if (name == "ccache.conf" || name == "stats") {
+        throw Fatal(
+          FMT("this looks like a local cache directory (found {})", path));
+      }
+      files.emplace_back(std::move(stat));
+    }));
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
     return trim_lru_mtime ? f1.mtime() < f2.mtime() : f1.atime() < f2.atime();

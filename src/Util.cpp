@@ -37,10 +37,6 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 
-#ifdef HAVE_DIRENT_H
-#  include <dirent.h>
-#endif
-
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -384,80 +380,5 @@ remove_extension(std::string_view path)
 {
   return path.substr(0, path.length() - get_extension(path).length());
 }
-
-#ifdef HAVE_DIRENT_H
-
-void
-traverse(const std::string& path, const TraverseVisitor& visitor)
-{
-  DIR* dir = opendir(path.c_str());
-  if (dir) {
-    struct dirent* entry;
-    while ((entry = readdir(dir))) {
-      if (strcmp(entry->d_name, "") == 0 || strcmp(entry->d_name, ".") == 0
-          || strcmp(entry->d_name, "..") == 0) {
-        continue;
-      }
-
-      std::string entry_path = path + "/" + entry->d_name;
-      bool is_dir;
-#  ifdef _DIRENT_HAVE_D_TYPE
-      if (entry->d_type != DT_UNKNOWN) {
-        is_dir = entry->d_type == DT_DIR;
-      } else
-#  endif
-      {
-        auto stat = Stat::lstat(entry_path);
-        if (!stat) {
-          if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
-            continue;
-          }
-          throw core::Error(FMT("failed to lstat {}: {}",
-                                entry_path,
-                                strerror(stat.error_number())));
-        }
-        is_dir = stat.is_directory();
-      }
-      if (is_dir) {
-        traverse(entry_path, visitor);
-      } else {
-        visitor(entry_path, false);
-      }
-    }
-    closedir(dir);
-    visitor(path, true);
-  } else if (errno == ENOTDIR) {
-    visitor(path, false);
-  } else {
-    throw core::Error(
-      FMT("failed to open directory {}: {}", path, strerror(errno)));
-  }
-}
-
-#else // If not available, use the C++17 std::filesystem implementation.
-
-void
-traverse(const std::string& path, const TraverseVisitor& visitor)
-{
-  if (fs::is_directory(path)) {
-    for (auto&& p : fs::directory_iterator(path)) {
-      std::string entry = p.path().string();
-
-      if (p.is_directory()) {
-        traverse(entry, visitor);
-      } else {
-        visitor(entry, false);
-      }
-    }
-    visitor(path, true);
-  } else if (fs::exists(path)) {
-    visitor(path, false);
-  } else {
-    throw core::Error(
-      FMT("failed to open directory {}: {}", path, strerror(errno)));
-  }
-}
-
-#endif
 
 } // namespace Util

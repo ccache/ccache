@@ -128,16 +128,6 @@ TEST_CASE("Util::get_extension")
   CHECK(Util::get_extension("/foo/bar/f.abc.txt") == ".txt");
 }
 
-static inline std::string
-os_path(std::string path)
-{
-#if defined(_WIN32) && !defined(HAVE_DIRENT_H)
-  std::replace(path.begin(), path.end(), '/', '\\');
-#endif
-
-  return path;
-}
-
 TEST_CASE("Util::get_relative_path")
 {
 #ifdef _WIN32
@@ -355,64 +345,6 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("f.abc.txt") == "f.abc");
   CHECK(Util::remove_extension("/foo/bar/f.txt") == "/foo/bar/f");
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
-}
-
-TEST_CASE("Util::traverse")
-{
-  TestContext test_context;
-
-  REQUIRE(fs::create_directories("dir-with-subdir-and-file/subdir"));
-  util::write_file("dir-with-subdir-and-file/subdir/f", "");
-  REQUIRE(fs::create_directory("dir-with-files"));
-  util::write_file("dir-with-files/f1", "");
-  util::write_file("dir-with-files/f2", "");
-  REQUIRE(fs::create_directory("empty-dir"));
-
-  std::vector<std::string> visited;
-  auto visitor = [&visited](const std::string& path, bool is_dir) {
-    visited.push_back(FMT("[{}] {}", is_dir ? 'd' : 'f', path));
-  };
-
-  SUBCASE("traverse nonexistent path")
-  {
-    CHECK_THROWS_WITH(
-      Util::traverse("nonexistent", visitor),
-      "failed to open directory nonexistent: No such file or directory");
-  }
-
-  SUBCASE("traverse file")
-  {
-    CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file/subdir/f", visitor));
-    REQUIRE(visited.size() == 1);
-    CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
-  }
-
-  SUBCASE("traverse empty directory")
-  {
-    CHECK_NOTHROW(Util::traverse("empty-dir", visitor));
-    REQUIRE(visited.size() == 1);
-    CHECK(visited[0] == "[d] empty-dir");
-  }
-
-  SUBCASE("traverse directory with files")
-  {
-    CHECK_NOTHROW(Util::traverse("dir-with-files", visitor));
-    REQUIRE(visited.size() == 3);
-    std::string f1 = os_path("[f] dir-with-files/f1");
-    std::string f2 = os_path("[f] dir-with-files/f2");
-    CHECK(((visited[0] == f1 && visited[1] == f2)
-           || (visited[0] == f2 && visited[1] == f1)));
-    CHECK(visited[2] == "[d] dir-with-files");
-  }
-
-  SUBCASE("traverse directory hierarchy")
-  {
-    CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file", visitor));
-    REQUIRE(visited.size() == 3);
-    CHECK(visited[0] == os_path("[f] dir-with-subdir-and-file/subdir/f"));
-    CHECK(visited[1] == os_path("[d] dir-with-subdir-and-file/subdir"));
-    CHECK(visited[2] == "[d] dir-with-subdir-and-file");
-  }
 }
 
 TEST_SUITE_END();
