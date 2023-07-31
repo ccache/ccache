@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Stat.hpp>
+#include <util/DirEntry.hpp>
 
 #include <atomic>
 #include <cstdint>
@@ -36,9 +36,9 @@ public:
   FileRecompressor() = default;
 
   // Returns stat after recompression.
-  Stat recompress(const Stat& stat,
-                  std::optional<int8_t> level,
-                  KeepAtime keep_atime);
+  util::DirEntry recompress(const util::DirEntry& dir_entry,
+                            std::optional<int8_t> level,
+                            KeepAtime keep_atime);
 
   uint64_t content_size() const;
   uint64_t old_size() const;

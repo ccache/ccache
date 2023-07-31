@@ -7,7 +7,6 @@ set(
   test_Config.cpp
   test_Depfile.cpp
   test_Hash.cpp
-  test_Stat.cpp
   test_Util.cpp
   test_argprocessing.cpp
   test_ccache.cpp
@@ -23,6 +22,7 @@ set(
   test_storage_local_util.cpp
   test_util_BitSet.cpp
   test_util_Bytes.cpp
+  test_util_DirEntry.cpp
   test_util_Duration.cpp
   test_util_LockFile.cpp
   test_util_TextTable.cpp
@@ -54,7 +54,7 @@ add_executable(unittest ${source_files})
 
 if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "^Clang$")
   # Turn off /Zc:preprocessor for this test because it triggers a bug in some older Windows 10 SDK headers.
-  set_source_files_properties(test_Stat.cpp PROPERTIES COMPILE_FLAGS /Zc:preprocessor-)
+  set_source_files_properties(test_util_DirEntry.cpp PROPERTIES COMPILE_FLAGS /Zc:preprocessor-)
 endif()
 
 target_link_libraries(

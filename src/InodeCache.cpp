@@ -22,11 +22,11 @@
 #include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/DirEntry.hpp>
 #include <util/conversion.hpp>
 #include <util/file.hpp>
 
@@ -280,15 +280,15 @@ InodeCache::hash_inode(const std::string& path,
                        ContentType type,
                        Hash::Digest& digest)
 {
-  Stat stat = Stat::stat(path);
-  if (!stat) {
-    LOG("Could not stat {}: {}", path, strerror(stat.error_number()));
+  util::DirEntry de(path);
+  if (!de.exists()) {
+    LOG("Could not stat {}: {}", path, strerror(de.error_number()));
     return false;
   }
 
   // See comment for InodeCache::InodeCache why this check is done.
   auto now = util::TimePoint::now();
-  if (now - stat.ctime() < m_min_age || now - stat.mtime() < m_min_age) {
+  if (now - de.ctime() < m_min_age || now - de.mtime() < m_min_age) {
     LOG("Too new ctime or mtime of {}, not considering for inode cache", path);
     return false;
   }
@@ -296,12 +296,12 @@ InodeCache::hash_inode(const std::string& path,
   Key key;
   memset(&key, 0, sizeof(Key));
   key.type = type;
-  key.st_dev = stat.device();
-  key.st_ino = stat.inode();
-  key.st_mode = stat.mode();
-  key.st_mtim = stat.mtime().to_timespec();
-  key.st_ctim = stat.ctime().to_timespec();
-  key.st_size = stat.size();
+  key.st_dev = de.device();
+  key.st_ino = de.inode();
+  key.st_mode = de.mode();
+  key.st_mtim = de.mtime().to_timespec();
+  key.st_ctim = de.ctime().to_timespec();
+  key.st_size = de.size();
 
   Hash hash;
   hash.hash(nonstd::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&key),

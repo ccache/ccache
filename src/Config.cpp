@@ -23,11 +23,11 @@
 #include "Util.hpp"
 #include "assertions.hpp"
 
-#include <Stat.hpp>
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
@@ -66,6 +66,8 @@ DLLIMPORT extern char** environ;
 const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
 
 namespace fs = util::filesystem;
+
+using util::DirEntry;
 
 namespace {
 
@@ -551,7 +553,7 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   const std::string home_dir = home_directory();
   const std::string legacy_ccache_dir = Util::make_path(home_dir, ".ccache");
   const bool legacy_ccache_dir_exists =
-    Stat::stat(legacy_ccache_dir).is_directory();
+    DirEntry(legacy_ccache_dir).is_directory();
 #ifdef _WIN32
   const char* const env_appdata = getenv("APPDATA");
   const char* const env_local_appdata = getenv("LOCALAPPDATA");
@@ -595,11 +597,11 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
       config_dir = legacy_ccache_dir;
 #ifdef _WIN32
     } else if (env_local_appdata
-               && Stat::stat(
+               && DirEntry(
                  Util::make_path(env_local_appdata, "ccache", "ccache.conf"))) {
       config_dir = Util::make_path(env_local_appdata, "ccache");
     } else if (env_appdata
-               && Stat::stat(
+               && DirEntry(
                  Util::make_path(env_appdata, "ccache", "ccache.conf"))) {
       config_dir = Util::make_path(env_appdata, "ccache");
     } else if (env_local_appdata) {
@@ -914,8 +916,7 @@ Config::set_value_in_file(const std::string& path,
   dummy_config.set_item(key, value, std::nullopt, false, "");
 
   const auto resolved_path = util::real_path(path);
-  const auto st = Stat::stat(resolved_path);
-  if (!st) {
+  if (!DirEntry(resolved_path).is_regular_file()) {
     core::ensure_dir_exists(Util::dir_name(resolved_path));
     util::throw_on_error<core::Error>(
       util::write_file(resolved_path, ""),
@@ -1197,7 +1198,7 @@ Config::default_temporary_dir() const
   static const std::string run_user_tmp_dir = [] {
 #ifndef _WIN32
     const char* const xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
-    if (xdg_runtime_dir && Stat::stat(xdg_runtime_dir).is_directory()) {
+    if (xdg_runtime_dir && DirEntry(xdg_runtime_dir).is_directory()) {
       auto dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
       if (fs::create_directories(dir) && access(dir.c_str(), W_OK) == 0) {
         return dir;

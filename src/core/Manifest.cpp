@@ -354,17 +354,17 @@ Manifest::result_matches(
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {
-      const auto file_stat = Stat::stat(path);
-      if (!file_stat) {
+      util::DirEntry entry(path);
+      if (!entry) {
         LOG("Info: {} is mentioned in a manifest entry but can't be read ({})",
             path,
-            strerror(file_stat.error_number()));
+            strerror(entry.error_number()));
         return false;
       }
       FileStats st;
-      st.size = file_stat.size();
-      st.mtime = file_stat.mtime();
-      st.ctime = file_stat.ctime();
+      st.size = entry.size();
+      st.mtime = entry.mtime();
+      st.ctime = entry.ctime();
       stated_files_iter = stated_files.emplace(path, st).first;
     }
     const FileStats& fs = stated_files_iter->second;

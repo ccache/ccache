@@ -73,6 +73,8 @@ extern "C" {
 }
 #endif
 
+using util::DirEntry;
+
 namespace core {
 
 constexpr const char VERSION_TEXT[] =
@@ -297,7 +299,7 @@ trim_dir(const std::string& dir,
          std::optional<std::optional<int8_t>> recompress_level,
          uint32_t recompress_threads)
 {
-  std::vector<Stat> files;
+  std::vector<DirEntry> files;
   uint64_t initial_size = 0;
 
   util::throw_on_error<core::Error>(util::traverse_directory(
@@ -305,18 +307,18 @@ trim_dir(const std::string& dir,
       if (is_dir || TemporaryFile::is_tmp_file(path)) {
         return;
       }
-      auto stat = Stat::lstat(path);
-      if (!stat) {
+      DirEntry entry(path);
+      if (!entry) {
         // Probably some race, ignore.
         return;
       }
-      initial_size += stat.size_on_disk();
+      initial_size += entry.size_on_disk();
       const auto name = Util::base_name(path);
       if (name == "ccache.conf" || name == "stats") {
         throw Fatal(
           FMT("this looks like a local cache directory (found {})", path));
       }
-      files.emplace_back(std::move(stat));
+      files.emplace_back(std::move(entry));
     }));
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
@@ -365,7 +367,7 @@ trim_dir(const std::string& dir,
       if (final_size <= trim_max_size) {
         break;
       }
-      if (util::remove(file.path())) {
+      if (util::remove(file.path().string())) {
         ++removed_files;
         final_size -= file.size_on_disk();
       }
@@ -719,7 +721,7 @@ process_main_options(int argc, const char* const* argv)
       }
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
-        Stat::stat(config.stats_log(), Stat::LogOnError::yes).mtime();
+        DirEntry(config.stats_log(), DirEntry::LogOnError::yes).mtime();
       PRINT_RAW(
         stdout,
         statistics.format_human_readable(config, timestamp, verbosity, true));

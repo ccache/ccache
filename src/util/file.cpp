@@ -21,11 +21,11 @@
 #include <Fd.hpp>
 #include <Finalizer.hpp>
 #include <Logging.hpp>
-#include <Stat.hpp>
 #include <TemporaryFile.hpp>
 #include <Win32Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -124,8 +124,7 @@ create_cachedir_tag(const std::string& dir)
     "#\thttp://www.brynosaurus.com/cachedir/\n";
 
   const std::string path = FMT("{}/CACHEDIR.TAG", dir);
-  const auto stat = Stat::stat(path);
-  if (stat) {
+  if (DirEntry(path).exists()) {
     return;
   }
   const auto result = write_file(path, cachedir_tag);
@@ -233,11 +232,11 @@ tl::expected<T, std::string>
 read_file(const std::string& path, size_t size_hint)
 {
   if (size_hint == 0) {
-    const auto stat = Stat::stat(path);
-    if (!stat) {
+    DirEntry de(path);
+    if (!de) {
       return tl::unexpected(strerror(errno));
     }
-    size_hint = stat.size();
+    size_hint = de.size();
   }
 
   // +1 to be able to detect EOF in the first read call
@@ -499,15 +498,17 @@ traverse_directory(const std::string& directory,
     } else
 #  endif
     {
-      auto stat = Stat::lstat(entry_path);
-      if (!stat) {
-        if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
+      DirEntry dir_entry(entry_path);
+      if (!dir_entry) {
+        if (dir_entry.error_number() == ENOENT
+            || dir_entry.error_number() == ESTALE) {
           continue;
         }
-        return tl::unexpected(FMT(
-          "Failed to lstat {}: {}", entry_path, strerror(stat.error_number())));
+        return tl::unexpected(FMT("Failed to lstat {}: {}",
+                                  entry_path,
+                                  strerror(dir_entry.error_number())));
       }
-      is_dir = stat.is_directory();
+      is_dir = dir_entry.is_directory();
     }
     if (is_dir) {
       traverse_directory(entry_path, visitor);
@@ -529,12 +530,12 @@ traverse_directory(const std::string& directory,
   // Note: Intentionally not using std::filesystem::recursive_directory_iterator
   // since it visits directories in preorder.
 
-  auto stat = Stat::lstat(directory);
-  if (!stat.is_directory()) {
+  DirEntry dir_entry(directory);
+  if (!dir_entry.is_directory()) {
     return tl::unexpected(
       FMT("Failed to traverse {}: {}",
           directory,
-          stat ? "Not a directory" : "No such file or directory"));
+          dir_entry ? "Not a directory" : "No such file or directory"));
   }
 
   try {

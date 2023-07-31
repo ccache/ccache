@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Stat.hpp>
+#include <util/DirEntry.hpp>
 
 #include <functional>
 #include <string>
@@ -50,6 +50,6 @@ void for_each_level_1_and_2_stats_file(
 // - CACHEDIR.TAG
 // - stats
 // - .nfs* (temporary NFS files that may be left for open but deleted files).
-std::vector<Stat> get_cache_dir_files(const std::string& dir);
+std::vector<util::DirEntry> get_cache_dir_files(const std::string& dir);
 
 } // namespace storage::local

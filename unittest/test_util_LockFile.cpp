@@ -16,10 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Stat.hpp"
 #include "TestUtil.hpp"
 
 #include <Util.hpp>
+#include <util/DirEntry.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
 #include <util/wincompat.hpp>
@@ -32,6 +32,8 @@
 
 using namespace std::chrono_literals;
 
+using util::DirEntry;
+
 TEST_SUITE_BEGIN("LockFile");
 
 using TestUtil::TestContext;
@@ -43,26 +45,26 @@ TEST_CASE("Acquire and release short-lived lock file")
   util::LockFile lock("test");
   {
     CHECK(!lock.acquired());
-    CHECK(!Stat::lstat("test.lock"));
-    CHECK(!Stat::lstat("test.alive"));
+    CHECK(!DirEntry("test.lock"));
+    CHECK(!DirEntry("test.alive"));
 
     CHECK(lock.acquire());
     CHECK(lock.acquired());
-    const auto st = Stat::lstat("test.lock");
-    CHECK(st);
+    DirEntry entry("test.lock");
+    CHECK(entry);
 #ifndef _WIN32
-    CHECK(Stat::lstat("test.alive"));
-    CHECK(st.is_symlink());
+    CHECK(DirEntry("test.alive"));
+    CHECK(entry.is_symlink());
 #else
-    CHECK(st.is_regular());
+    CHECK(entry.is_regular_file());
 #endif
   }
 
   lock.release();
   lock.release();
   CHECK(!lock.acquired());
-  CHECK(!Stat::lstat("test.lock"));
-  CHECK(!Stat::lstat("test.alive"));
+  CHECK(!DirEntry("test.lock"));
+  CHECK(!DirEntry("test.alive"));
 }
 
 TEST_CASE("Acquire and release long-lived lock file")
@@ -74,28 +76,28 @@ TEST_CASE("Acquire and release long-lived lock file")
   lock.make_long_lived(lock_manager);
   {
     CHECK(!lock.acquired());
-    CHECK(!Stat::lstat("test.lock"));
-    CHECK(!Stat::lstat("test.alive"));
+    CHECK(!DirEntry("test.lock"));
+    CHECK(!DirEntry("test.alive"));
 
     CHECK(lock.acquire());
     CHECK(lock.acquired());
 #ifndef _WIN32
-    CHECK(Stat::lstat("test.alive"));
+    CHECK(DirEntry("test.alive"));
 #endif
-    const auto st = Stat::lstat("test.lock");
-    CHECK(st);
+    DirEntry entry("test.lock");
+    CHECK(entry);
 #ifndef _WIN32
-    CHECK(st.is_symlink());
+    CHECK(entry.is_symlink());
 #else
-    CHECK(st.is_regular());
+    CHECK(entry.is_regular_file());
 #endif
   }
 
   lock.release();
   lock.release();
   CHECK(!lock.acquired());
-  CHECK(!Stat::lstat("test.lock"));
-  CHECK(!Stat::lstat("test.alive"));
+  CHECK(!DirEntry("test.lock"));
+  CHECK(!DirEntry("test.alive"));
 }
 
 TEST_CASE("LockFile creates missing directories")
@@ -106,7 +108,7 @@ TEST_CASE("LockFile creates missing directories")
   util::LockFile lock("a/b/c/test");
   lock.make_long_lived(lock_manager);
   CHECK(lock.acquire());
-  CHECK(Stat::lstat("a/b/c/test.lock"));
+  CHECK(DirEntry("a/b/c/test.lock"));
 }
 
 #ifndef _WIN32

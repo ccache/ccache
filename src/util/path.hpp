@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <util/string.hpp>
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,6 +43,9 @@ const char* get_dev_null_path();
 // Return whether `path` is absolute.
 bool is_absolute_path(std::string_view path);
 
+// Return whether `path` is /dev/null or (on Windows) NUL.
+bool is_dev_null_path(std::string_view path);
+
 // Return whether `path` includes at least one directory separator.
 bool is_full_path(std::string_view path);
 
@@ -63,6 +68,16 @@ std::string to_absolute_path(std::string_view path);
 std::string to_absolute_path_no_drive(std::string_view path);
 
 // --- Inline implementations ---
+
+inline bool
+is_dev_null_path(const std::string_view path)
+{
+  return path == "/dev/null"
+#ifdef _WIN32
+         || util::to_lowercase(path) == "nul"
+#endif
+    ;
+}
 
 inline bool
 is_full_path(const std::string_view path)

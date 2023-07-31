@@ -18,9 +18,9 @@
 
 #include "path.hpp"
 
-#include <Stat.hpp>
 #include <Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/filesystem.hpp>
 #include <util/string.hpp>
 
@@ -61,9 +61,9 @@ apparent_cwd(const std::string& actual_cwd)
     return actual_cwd;
   }
 
-  auto pwd_stat = Stat::stat(pwd);
-  auto cwd_stat = Stat::stat(actual_cwd);
-  return !pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)
+  DirEntry pwd_de(pwd);
+  DirEntry cwd_de(actual_cwd);
+  return !pwd_de || !cwd_de || !pwd_de.same_inode_as(cwd_de)
            ? actual_cwd
            : Util::normalize_concrete_absolute_path(pwd);
 #endif

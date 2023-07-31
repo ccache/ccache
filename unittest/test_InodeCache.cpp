@@ -162,9 +162,9 @@ TEST_CASE("Drop file")
   InodeCache inode_cache(config, util::Duration(0));
 
   inode_cache.get("a", InodeCache::ContentType::raw);
-  CHECK(Stat::stat(inode_cache.get_file()));
+  CHECK(util::DirEntry(inode_cache.get_file()));
   CHECK(inode_cache.drop());
-  CHECK(!Stat::stat(inode_cache.get_file()));
+  CHECK(!util::DirEntry(inode_cache.get_file()));
   CHECK(inode_cache.drop());
 }
 

@@ -23,9 +23,9 @@
 #include "Win32Util.hpp"
 #include "fmtmacros.hpp"
 
-#include <Stat.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
+#include <util/DirEntry.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/process.hpp>
@@ -346,8 +346,8 @@ LockFile::do_acquire(const bool blocking)
 std::optional<TimePoint>
 LockFile::get_last_lock_update()
 {
-  if (const auto stat = Stat::stat(m_alive_file); stat) {
-    return stat.mtime();
+  if (DirEntry entry(m_alive_file); entry) {
+    return entry.mtime();
   } else {
     return std::nullopt;
   }

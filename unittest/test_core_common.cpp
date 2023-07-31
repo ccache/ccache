@@ -18,13 +18,14 @@
 
 #include "TestUtil.hpp"
 
-#include <Stat.hpp>
 #include <core/common.hpp>
+#include <util/DirEntry.hpp>
 #include <util/file.hpp>
 
 #include <third_party/doctest.h>
 
 using TestUtil::TestContext;
+using util::DirEntry;
 
 TEST_SUITE_BEGIN("core");
 
@@ -35,7 +36,7 @@ TEST_CASE("core::ensure_dir_exists")
   CHECK_NOTHROW(core::ensure_dir_exists("/"));
 
   CHECK_NOTHROW(core::ensure_dir_exists("create/dir"));
-  CHECK(Stat::stat("create/dir").is_directory());
+  CHECK(DirEntry("create/dir").is_directory());
 
   util::write_file("create/dir/file", "");
   CHECK_THROWS_WITH(

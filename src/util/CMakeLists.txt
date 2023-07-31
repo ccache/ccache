@@ -1,6 +1,7 @@
 set(
   sources
   Bytes.cpp
+  DirEntry.cpp
   LockFile.cpp
   LongLivedLockFileManager.cpp
   TextTable.cpp

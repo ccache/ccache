@@ -27,6 +27,7 @@
 
 #include <Depfile.hpp>
 #include <Util.hpp>
+#include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
 
@@ -37,6 +38,7 @@
 #include <cassert>
 
 using core::Statistic;
+using util::DirEntry;
 
 namespace {
 
@@ -142,7 +144,7 @@ detect_pch(const std::string& option,
       included_pch_file.clear(); // reset pch file set from /Fp
     } else {
       std::string file = Util::change_extension(arg, ".pch");
-      if (Stat::stat(file)) {
+      if (DirEntry(file).is_regular_file()) {
         LOG("Detected use of precompiled header: {}", file);
         pch_file = file;
       }
@@ -152,7 +154,7 @@ detect_pch(const std::string& option,
     if (Util::get_extension(file).empty()) {
       file += ".pch";
     }
-    if (Stat::stat(file)) {
+    if (DirEntry(file).is_regular_file()) {
       state.found_valid_Fp = true;
       if (!state.found_Yu) {
         LOG("Precompiled header file specified: {}", file);
@@ -165,14 +167,15 @@ detect_pch(const std::string& option,
       // continue and set as if the file was passed to -Yu
     }
   } else if (option == "-include-pch" || option == "-include-pth") {
-    if (Stat::stat(arg)) {
+    if (DirEntry(arg).is_regular_file()) {
       LOG("Detected use of precompiled header: {}", arg);
       pch_file = arg;
     }
   } else if (!is_cc1_option) {
     for (const auto& extension : {".gch", ".pch", ".pth"}) {
       std::string path = arg + extension;
-      if (Stat::stat(path)) {
+      DirEntry de(path);
+      if (de.is_regular_file() || de.is_directory()) {
         LOG("Detected use of precompiled header: {}", path);
         pch_file = path;
       }
@@ -1079,7 +1082,7 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     } else if (ctx.config.is_compiler_group_msvc()
                && args[i][0] == '/' // Intentionally not checking arg here
-               && Stat::stat(args[i])) {
+               && DirEntry(args[i]).is_regular_file()) {
       // Likely the input file, which is handled in process_arg later.
     } else {
       state.common_args.push_back(args[i]);
@@ -1113,9 +1116,8 @@ process_arg(const Context& ctx,
   //
   // Note that "/dev/null" is an exception that is sometimes used as an input
   // file when code is testing compiler flags.
-  if (args[i] != "/dev/null") {
-    auto st = Stat::stat(args[i]);
-    if (!st || !st.is_regular()) {
+  if (!util::is_dev_null_path(args[i])) {
+    if (!DirEntry(args[i]).is_regular_file()) {
       LOG("{} is not a regular file, not considering as input file", args[i]);
       state.common_args.push_back(args[i]);
       return Statistic::none;
@@ -1209,12 +1211,9 @@ process_args(Context& ctx)
   if (!output_obj_by_source && ctx.config.is_compiler_group_msvc()) {
     if (*args_info.output_obj.rbegin() == '\\') {
       output_obj_by_source = true;
-    } else {
-      auto st = Stat::stat(args_info.output_obj);
-      if (st && st.is_directory()) {
-        args_info.output_obj.append("\\");
-        output_obj_by_source = true;
-      }
+    } else if (DirEntry(args_info.output_obj).is_directory()) {
+      args_info.output_obj.append("\\");
+      output_obj_by_source = true;
     }
   }
 
@@ -1352,7 +1351,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.seen_split_dwarf) {
-    if (args_info.output_obj == "/dev/null") {
+    if (util::is_dev_null_path(args_info.output_obj)) {
       // Outputting to /dev/null -> compiler won't write a .dwo, so just pretend
       // we haven't seen the -gsplit-dwarf option.
       args_info.seen_split_dwarf = false;
@@ -1362,18 +1361,20 @@ process_args(Context& ctx)
     }
   }
 
-  // Cope with -o /dev/null.
-  if (args_info.output_obj != "/dev/null") {
-    auto st = Stat::stat(args_info.output_obj);
-    if (st && !st.is_regular()) {
+  if (!util::is_dev_null_path(args_info.output_obj)) {
+    DirEntry entry(args_info.output_obj);
+    if (entry.exists() && !entry.is_regular_file()) {
       LOG("Not a regular file: {}", args_info.output_obj);
       return Statistic::bad_output_file;
     }
   }
 
-  auto output_dir = std::string(Util::dir_name(args_info.output_obj));
-  auto st = Stat::stat(output_dir);
-  if (!st || !st.is_directory()) {
+  if (util::is_dev_null_path(args_info.output_dep)) {
+    args_info.generating_dependencies = false;
+  }
+
+  auto output_dir = Util::dir_name(args_info.output_obj);
+  if (!DirEntry(output_dir).is_directory()) {
     LOG("Directory does not exist: {}", output_dir);
     return Statistic::bad_output_file;
   }

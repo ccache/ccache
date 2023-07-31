@@ -25,6 +25,8 @@
 #include <util/file.hpp>
 #include <util/string.hpp>
 
+using util::DirEntry;
+
 namespace storage::local {
 
 void
@@ -62,12 +64,12 @@ for_each_level_1_and_2_stats_file(
   }
 }
 
-std::vector<Stat>
+std::vector<DirEntry>
 get_cache_dir_files(const std::string& dir)
 {
-  std::vector<Stat> files;
+  std::vector<DirEntry> files;
 
-  if (!Stat::stat(dir)) {
+  if (!DirEntry(dir).is_directory()) {
     return files;
   }
   util::throw_on_error<core::Error>(
@@ -79,7 +81,7 @@ get_cache_dir_files(const std::string& dir)
       }
 
       if (!is_dir) {
-        files.emplace_back(Stat::lstat(path));
+        files.emplace_back(path);
       }
     }));
 

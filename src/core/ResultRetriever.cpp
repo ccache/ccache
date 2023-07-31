@@ -23,14 +23,15 @@
 #include "Logging.hpp"
 
 #include <Context.hpp>
-#include <Stat.hpp>
 #include <Util.hpp>
 #include <core/MsvcShowIncludesOutput.hpp>
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
 
@@ -41,6 +42,8 @@
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+
+using util::DirEntry;
 
 namespace core {
 
@@ -74,8 +77,8 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
     const auto dest_path = get_dest_path(file_type);
     if (dest_path.empty()) {
       LOG_RAW("Not writing");
-    } else if (dest_path == "/dev/null") {
-      LOG_RAW("Not writing to /dev/null");
+    } else if (util::is_dev_null_path(dest_path)) {
+      LOG("Not writing to {}", dest_path);
     } else {
       LOG("Writing to {}", dest_path);
       if (file_type == FileType::dependency) {
@@ -104,16 +107,16 @@ ResultRetriever::on_raw_file(uint8_t file_number,
   }
   const auto raw_file_path =
     m_ctx.storage.local.get_raw_file_path(*m_result_key, file_number);
-  const auto st = Stat::stat(raw_file_path, Stat::LogOnError::yes);
-  if (!st) {
+  DirEntry de(raw_file_path, DirEntry::LogOnError::yes);
+  if (!de) {
     throw Error(
-      FMT("Failed to stat {}: {}", raw_file_path, strerror(st.error_number())));
+      FMT("Failed to stat {}: {}", raw_file_path, strerror(de.error_number())));
   }
-  if (st.size() != file_size) {
+  if (de.size() != file_size) {
     throw core::Error(
       FMT("Bad file size of {} (actual {} bytes, expected {} bytes)",
           raw_file_path,
-          st.size(),
+          de.size(),
           file_size));
   }
 
@@ -178,7 +181,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::dwarf_object:
     if (m_ctx.args_info.seen_split_dwarf
-        && m_ctx.args_info.output_obj != "/dev/null") {
+        && !util::is_dev_null_path(m_ctx.args_info.output_obj)) {
       return m_ctx.args_info.output_dwo;
     }
     break;

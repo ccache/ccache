@@ -27,9 +27,9 @@
 
 #include <Config.hpp>
 #include <Finalizer.hpp>
-#include <Stat.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -44,6 +44,8 @@
 #include <fcntl.h>
 
 namespace fs = util::filesystem;
+
+using util::DirEntry;
 
 namespace Util {
 
@@ -242,9 +244,10 @@ make_relative_path(const std::string& base_dir,
 
   std::vector<std::string> relpath_candidates;
   const auto original_path = path;
-  Stat path_stat;
-  while (!(path_stat = Stat::stat(std::string(path)))) {
+  DirEntry dir_entry(path);
+  while (!dir_entry.exists()) {
     path = Util::dir_name(path);
+    dir_entry = DirEntry(path);
   }
   const auto path_suffix = std::string(original_path.substr(path.length()));
   const auto real_path = util::real_path(path);
@@ -271,7 +274,7 @@ make_relative_path(const std::string& base_dir,
               return path1.length() < path2.length();
             });
   for (const auto& relpath : relpath_candidates) {
-    if (Stat::stat(relpath).same_inode_as(path_stat)) {
+    if (DirEntry(relpath).same_inode_as(dir_entry)) {
       return relpath + path_suffix;
     }
   }
@@ -370,7 +373,7 @@ normalize_concrete_absolute_path(const std::string& path)
 {
   const auto normalized_path = normalize_abstract_absolute_path(path);
   return (normalized_path == path
-          || Stat::stat(normalized_path).same_inode_as(Stat::stat(path)))
+          || DirEntry(normalized_path).same_inode_as(DirEntry(path)))
            ? normalized_path
            : path;
 }

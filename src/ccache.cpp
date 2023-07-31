@@ -85,6 +85,7 @@
 namespace fs = util::filesystem;
 
 using core::Statistic;
+using util::DirEntry;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -284,20 +285,20 @@ guess_compiler(std::string_view path)
 static bool
 include_file_too_new(const Context& ctx,
                      const std::string& path,
-                     const Stat& path_stat)
+                     const DirEntry& dir_entry)
 {
   // The comparison using >= is intentional, due to a possible race between
   // starting compilation and writing the include file. See also the notes under
   // "Performance" in doc/MANUAL.adoc.
   if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_mtime))
-      && path_stat.mtime() >= ctx.time_of_compilation) {
+      && dir_entry.mtime() >= ctx.time_of_compilation) {
     LOG("Include file {} too new", path);
     return true;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_ctime))
-      && path_stat.ctime() >= ctx.time_of_compilation) {
+      && dir_entry.ctime() >= ctx.time_of_compilation) {
     LOG("Include file {} ctime too new", path);
     return true;
   }
@@ -352,15 +353,15 @@ do_remember_include_file(Context& ctx,
   }
 #endif
 
-  auto st = Stat::stat(path, Stat::LogOnError::yes);
-  if (!st) {
+  DirEntry dir_entry(path, DirEntry::LogOnError::yes);
+  if (!dir_entry.exists()) {
     return false;
   }
-  if (st.is_directory()) {
+  if (dir_entry.is_directory()) {
     // Ignore directory, typically $PWD.
     return true;
   }
-  if (!st.is_regular()) {
+  if (!dir_entry.is_regular_file()) {
     // Device, pipe, socket or other strange creature.
     LOG("Non-regular include file {}", path);
     return false;
@@ -373,7 +374,7 @@ do_remember_include_file(Context& ctx,
   }
 
   const bool is_pch = is_precompiled_header(path);
-  const bool too_new = include_file_too_new(ctx, path, st);
+  const bool too_new = include_file_too_new(ctx, path, dir_entry);
 
   if (too_new) {
     // Opt out of direct mode because of a race condition.
@@ -402,7 +403,7 @@ do_remember_include_file(Context& ctx,
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
       std::string pch_sum_path = FMT("{}.sum", path);
-      if (Stat::stat(pch_sum_path, Stat::LogOnError::yes)) {
+      if (DirEntry(pch_sum_path, DirEntry::LogOnError::yes).is_regular_file()) {
         path = std::move(pch_sum_path);
         using_pch_sum = true;
         LOG("Using pch.sum file {}", path);
@@ -860,14 +861,14 @@ update_manifest(Context& ctx,
 
   const bool added = ctx.manifest.add_result(
     result_key, ctx.included_files, [&](const std::string& path) {
-      auto stat = Stat::stat(path, Stat::LogOnError::yes);
+      DirEntry de(path, DirEntry::LogOnError::yes);
       bool cache_time =
         save_timestamp
-        && ctx.time_of_compilation > std::max(stat.mtime(), stat.ctime());
+        && ctx.time_of_compilation > std::max(de.mtime(), de.ctime());
       return core::Manifest::FileStats{
-        stat.size(),
-        stat && cache_time ? stat.mtime() : util::TimePoint(),
-        stat && cache_time ? stat.ctime() : util::TimePoint(),
+        de.size(),
+        de.is_regular_file() && cache_time ? de.mtime() : util::TimePoint(),
+        de.is_regular_file() && cache_time ? de.ctime() : util::TimePoint(),
       };
     });
   if (added) {
@@ -899,11 +900,11 @@ find_coverage_file(const Context& ctx)
   std::string mangled_form = core::Result::gcno_file_in_mangled_form(ctx);
   std::string unmangled_form = core::Result::gcno_file_in_unmangled_form(ctx);
   std::string found_file;
-  if (Stat::stat(mangled_form)) {
+  if (DirEntry(mangled_form).is_regular_file()) {
     LOG("Found coverage file {}", mangled_form);
     found_file = mangled_form;
   }
-  if (Stat::stat(unmangled_form)) {
+  if (DirEntry(unmangled_form).is_regular_file()) {
     LOG("Found coverage file {}", unmangled_form);
     if (!found_file.empty()) {
       LOG_RAW("Found two coverage files, cannot continue");
@@ -923,7 +924,6 @@ find_coverage_file(const Context& ctx)
 [[nodiscard]] static bool
 write_result(Context& ctx,
              const Hash::Digest& result_key,
-             const Stat& obj_stat,
              const util::Bytes& stdout_data,
              const util::Bytes& stderr_data)
 {
@@ -937,7 +937,7 @@ write_result(Context& ctx,
   if (!stdout_data.empty()) {
     serializer.add_data(core::Result::FileType::stdout_output, stdout_data);
   }
-  if (obj_stat
+  if (ctx.args_info.expect_output_obj
       && !serializer.add_file(core::Result::FileType::object,
                               ctx.args_info.output_obj)) {
     LOG("Object file {} missing", ctx.args_info.output_obj);
@@ -978,7 +978,7 @@ write_result(Context& ctx,
   if (ctx.args_info.seen_split_dwarf
       // Only store .dwo file if it was created by the compiler (GCC and Clang
       // behave differently e.g. for "-gsplit-dwarf -g1").
-      && Stat::stat(ctx.args_info.output_dwo)
+      && DirEntry(ctx.args_info.output_dwo).is_regular_file()
       && !serializer.add_file(core::Result::FileType::dwarf_object,
                               ctx.args_info.output_dwo)) {
     LOG("Split dwarf file {} missing", ctx.args_info.output_dwo);
@@ -1064,7 +1064,8 @@ to_cache(Context& ctx,
     args.push_back(ctx.args_info.output_obj);
   }
 
-  if (ctx.config.hard_link() && ctx.args_info.output_obj != "/dev/null") {
+  if (ctx.config.hard_link()
+      && !util::is_dev_null_path(ctx.args_info.output_obj)) {
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
@@ -1171,24 +1172,20 @@ to_cache(Context& ctx,
 
   ASSERT(result_key);
 
-  bool produce_dep_file = ctx.args_info.generating_dependencies
-                          && ctx.args_info.output_dep != "/dev/null";
-
-  if (produce_dep_file) {
+  if (ctx.args_info.generating_dependencies) {
     Depfile::make_paths_relative_in_output_dep(ctx);
   }
 
-  Stat obj_stat;
   if (!ctx.args_info.expect_output_obj) {
     // Don't probe for object file when we don't expect one since we otherwise
     // will be fooled by an already existing object file.
     LOG_RAW("Compiler not expected to produce an object file");
   } else {
-    obj_stat = Stat::stat(ctx.args_info.output_obj);
-    if (!obj_stat) {
+    DirEntry dir_entry(ctx.args_info.output_obj);
+    if (!dir_entry.is_regular_file()) {
       LOG_RAW("Compiler didn't produce an object file");
       return tl::unexpected(Statistic::compiler_produced_no_output);
-    } else if (obj_stat.size() == 0) {
+    } else if (dir_entry.size() == 0) {
       LOG_RAW("Compiler produced an empty object file");
       return tl::unexpected(Statistic::compiler_produced_empty_output);
     }
@@ -1196,7 +1193,7 @@ to_cache(Context& ctx,
 
   MTR_BEGIN("result", "result_put");
   if (!write_result(
-        ctx, *result_key, obj_stat, result->stdout_data, result->stderr_data)) {
+        ctx, *result_key, result->stdout_data, result->stderr_data)) {
     return tl::unexpected(Statistic::compiler_produced_no_output);
   }
   MTR_END("result", "result_put");
@@ -1300,7 +1297,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 static tl::expected<void, Failure>
 hash_compiler(const Context& ctx,
               Hash& hash,
-              const Stat& st,
+              const DirEntry& dir_entry,
               const std::string& path,
               bool allow_command)
 {
@@ -1308,8 +1305,8 @@ hash_compiler(const Context& ctx,
     // Do nothing.
   } else if (ctx.config.compiler_check() == "mtime") {
     hash.hash_delimiter("cc_mtime");
-    hash.hash(st.size());
-    hash.hash(st.mtime().nsec());
+    hash.hash(dir_entry.size());
+    hash.hash(dir_entry.mtime().nsec());
   } else if (util::starts_with(ctx.config.compiler_check(), "string:")) {
     hash.hash_delimiter("cc_hash");
     hash.hash(&ctx.config.compiler_check()[7]);
@@ -1335,7 +1332,7 @@ hash_compiler(const Context& ctx,
 static tl::expected<void, Failure>
 hash_nvcc_host_compiler(const Context& ctx,
                         Hash& hash,
-                        const Stat* ccbin_st = nullptr,
+                        const DirEntry* ccbin_st = nullptr,
                         const std::string& ccbin = {})
 {
   // From <http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html>:
@@ -1361,15 +1358,15 @@ hash_nvcc_host_compiler(const Context& ctx,
     for (const char* compiler : compilers) {
       if (!ccbin.empty()) {
         std::string path = FMT("{}/{}", ccbin, compiler);
-        auto st = Stat::stat(path);
-        if (st) {
-          TRY(hash_compiler(ctx, hash, st, path, false));
+        DirEntry de(path);
+        if (de.is_regular_file()) {
+          TRY(hash_compiler(ctx, hash, de, path, false));
         }
       } else {
         std::string path = find_executable(ctx, compiler, ctx.orig_args[0]);
         if (!path.empty()) {
-          auto st = Stat::stat(path, Stat::LogOnError::yes);
-          TRY(hash_compiler(ctx, hash, st, ccbin, false));
+          DirEntry de(path, DirEntry::LogOnError::yes);
+          TRY(hash_compiler(ctx, hash, de, ccbin, false));
         }
       }
     }
@@ -1405,13 +1402,13 @@ hash_common_info(const Context& ctx,
   const std::string compiler_path = args[0];
 #endif
 
-  auto st = Stat::stat(compiler_path, Stat::LogOnError::yes);
-  if (!st) {
+  DirEntry dir_entry(compiler_path, DirEntry::LogOnError::yes);
+  if (!dir_entry.is_regular_file()) {
     return tl::unexpected(Statistic::could_not_find_compiler);
   }
 
   // Hash information about the compiler.
-  TRY(hash_compiler(ctx, hash, st, compiler_path, true));
+  TRY(hash_compiler(ctx, hash, dir_entry, compiler_path, true));
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -1744,31 +1741,31 @@ hash_argument(const Context& ctx,
     } else {
       path = args[i].substr(eq_pos + 1);
     }
-    auto st = Stat::stat(path, Stat::LogOnError::yes);
-    if (st) {
+    DirEntry dir_entry(path, DirEntry::LogOnError::yes);
+    if (dir_entry.is_regular_file()) {
       // If given an explicit specs file, then hash that file, but don't
       // include the path to it in the hash.
       hash.hash_delimiter("specs");
-      TRY(hash_compiler(ctx, hash, st, path, false));
+      TRY(hash_compiler(ctx, hash, dir_entry, path, false));
       return {};
     }
   }
 
   if (util::starts_with(args[i], "-fplugin=")) {
-    auto st = Stat::stat(&args[i][9], Stat::LogOnError::yes);
-    if (st) {
+    DirEntry dir_entry(&args[i][9], DirEntry::LogOnError::yes);
+    if (dir_entry.is_regular_file()) {
       hash.hash_delimiter("plugin");
-      TRY(hash_compiler(ctx, hash, st, &args[i][9], false));
+      TRY(hash_compiler(ctx, hash, dir_entry, &args[i][9], false));
       return {};
     }
   }
 
   if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
       && args[i + 2] == "-Xclang") {
-    auto st = Stat::stat(args[i + 3], Stat::LogOnError::yes);
-    if (st) {
+    DirEntry dir_entry(args[i + 3], DirEntry::LogOnError::yes);
+    if (dir_entry.is_regular_file()) {
       hash.hash_delimiter("plugin");
-      TRY(hash_compiler(ctx, hash, st, args[i + 3], false));
+      TRY(hash_compiler(ctx, hash, dir_entry, args[i + 3], false));
       i += 3;
       return {};
     }
@@ -1776,11 +1773,11 @@ hash_argument(const Context& ctx,
 
   if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
       && i + 1 < args.size()) {
-    auto st = Stat::stat(args[i + 1]);
-    if (st) {
+    DirEntry dir_entry(args[i + 1]);
+    if (dir_entry.exists()) {
       found_ccbin = true;
       hash.hash_delimiter("ccbin");
-      TRY(hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1]));
+      TRY(hash_nvcc_host_compiler(ctx, hash, &dir_entry, args[i + 1]));
       i++;
       return {};
     }
@@ -1870,8 +1867,7 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
   bool found = false;
   for (const std::string& p : paths_to_try) {
     LOG("Checking for profile data file {}", p);
-    auto st = Stat::stat(p);
-    if (st && !st.is_directory()) {
+    if (DirEntry(p).is_regular_file()) {
       LOG("Adding profile data {} to the hash", p);
       hash.hash_delimiter("-fprofile-use");
       if (hash_binary_file(ctx, hash, p)) {
@@ -1992,13 +1988,6 @@ calculate_result_and_manifest_key(Context& ctx,
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
     TRY(hash_argument(ctx, args, i, hash, is_clang, direct_mode, found_ccbin));
-  }
-
-  // Make results with dependency file /dev/null different from those without
-  // it.
-  if (ctx.args_info.generating_dependencies
-      && ctx.args_info.output_dep == "/dev/null") {
-    hash.hash_delimiter("/dev/null dependency file");
   }
 
   if (!found_ccbin && ctx.args_info.actual_language == "cu") {
@@ -2460,14 +2449,12 @@ do_cache_compilation(Context& ctx)
     ctx.config.set_run_second_cpp(true);
   }
 
-  if (ctx.config.depend_mode()) {
-    const bool deps = ctx.args_info.generating_dependencies
-                      && ctx.args_info.output_dep != "/dev/null";
-    const bool includes = ctx.args_info.generating_includes;
-    if (!ctx.config.run_second_cpp() || (!deps && !includes)) {
-      LOG_RAW("Disabling depend mode");
-      ctx.config.set_depend_mode(false);
-    }
+  if (ctx.config.depend_mode()
+      && !(ctx.config.run_second_cpp()
+           && (ctx.args_info.generating_dependencies
+               || ctx.args_info.generating_includes))) {
+    LOG_RAW("Disabling depend mode");
+    ctx.config.set_depend_mode(false);
   }
 
   if (ctx.storage.has_remote_storage()) {

@@ -24,7 +24,6 @@
 #include "Fd.hpp"
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
-#include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
@@ -32,6 +31,7 @@
 #include <ccache.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
@@ -393,7 +393,7 @@ find_executable_in_path(const std::string& name,
       //    symlink to another ccache executable.
       const bool candidate_exists =
 #ifdef _WIN32
-        Stat::stat(candidate);
+        util::DirEntry(candidate).is_regular_file();
 #else
         access(candidate.c_str(), X_OK) == 0;
 #endif

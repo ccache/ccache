@@ -22,7 +22,6 @@
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
-#include <Stat.hpp>
 #include <core/exceptions.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>

@@ -20,6 +20,10 @@
 
 #include <util/wincompat.hpp>
 
+#ifdef _WIN32
+#  include <third_party/win32/winerror_to_errno.h>
+#endif
+
 namespace util::filesystem {
 
 tl::expected<void, std::error_code>
@@ -37,9 +41,8 @@ rename(const std::filesystem::path& old_p, const std::filesystem::path& new_p)
   if (!MoveFileExA(old_p.string().c_str(),
                    new_p.string().c_str(),
                    MOVEFILE_REPLACE_EXISTING)) {
-    DWORD error = GetLastError();
-    // TODO: How should the Win32 error be mapped to std::error_code?
-    return tl::unexpected(std::error_code(error, std::system_category()));
+    return tl::unexpected(std::error_code(winerror_to_errno(GetLastError()),
+                                          std::system_category()));
   }
 #endif
   return {};

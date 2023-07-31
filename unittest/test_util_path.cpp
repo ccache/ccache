@@ -54,6 +54,16 @@ TEST_CASE("util::is_absolute_path")
 #endif
 }
 
+TEST_CASE("util::is_dev_null_path")
+{
+  CHECK(!util::is_dev_null_path("dev/null"));
+  CHECK(util::is_dev_null_path("/dev/null"));
+#ifdef _WIN32
+  CHECK(util::is_dev_null_path("nul"));
+  CHECK(util::is_dev_null_path("NUL"));
+#endif
+}
+
 TEST_CASE("util::split_path_list")
 {
   CHECK(util::split_path_list("").empty());

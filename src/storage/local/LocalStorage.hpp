@@ -32,6 +32,7 @@
 #include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -54,7 +55,7 @@ struct CompressionStatistics
 
 enum class FileType { result, manifest, raw, unknown };
 
-FileType file_type_from_path(std::string_view path);
+FileType file_type_from_path(const std::filesystem::path& path);
 
 class LocalStorage
 {
@@ -138,7 +139,7 @@ private:
   struct LookUpCacheFileResult
   {
     std::string path;
-    Stat stat;
+    util::DirEntry dir_entry;
     uint8_t level;
   };
 

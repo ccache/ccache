@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,7 +23,6 @@
 #include "Fd.hpp"
 #include "File.hpp"
 #include "Logging.hpp"
-#include "Stat.hpp"
 #include "Util.hpp"
 
 #include <ccache.hpp>
@@ -33,6 +32,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
@@ -67,6 +67,8 @@
 // <raw_file_entry>       ::= <raw_file_marker> <file_type> <file_size>
 // <raw_file_marker>      ::= 1 (uint8_t)
 // <file_size>            ::= uint64_t
+
+using util::DirEntry;
 
 namespace {
 
@@ -247,11 +249,11 @@ Serializer::add_file(const FileType file_type, const std::string& path)
 {
   m_serialized_size += 1 + 1 + 8; // marker + file_type + file_size
   if (!should_store_raw_file(m_config, file_type)) {
-    auto st = Stat::stat(path);
-    if (!st) {
+    DirEntry entry(path);
+    if (!entry.is_regular_file()) {
       return false;
     }
-    m_serialized_size += st.size();
+    m_serialized_size += entry.size();
   }
   m_file_entries.push_back(FileEntry{file_type, path});
   return true;
@@ -285,7 +287,7 @@ Serializer::serialize(util::Bytes& output)
       is_file_entry && should_store_raw_file(m_config, entry.file_type);
     const uint64_t file_size =
       is_file_entry
-        ? Stat::stat(std::get<std::string>(entry.data), Stat::LogOnError::yes)
+        ? DirEntry(std::get<std::string>(entry.data), DirEntry::LogOnError::yes)
             .size()
         : std::get<nonstd::span<const uint8_t>>(entry.data).size();
 

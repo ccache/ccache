@@ -20,12 +20,12 @@
 
 #include <AtomicFile.hpp>
 #include <Logging.hpp>
-#include <Stat.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -37,6 +37,8 @@
 #include <string_view>
 
 namespace fs = util::filesystem;
+
+using util::DirEntry;
 
 namespace storage::remote {
 
@@ -115,9 +117,8 @@ tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 FileStorageBackend::get(const Hash::Digest& key)
 {
   const auto path = get_entry_path(key);
-  const bool exists = Stat::stat(path);
 
-  if (!exists) {
+  if (!DirEntry(path).exists()) {
     // Don't log failure if the entry doesn't exist.
     return std::nullopt;
   }
@@ -142,7 +143,7 @@ FileStorageBackend::put(const Hash::Digest& key,
 {
   const auto path = get_entry_path(key);
 
-  if (only_if_missing && Stat::stat(path)) {
+  if (only_if_missing && DirEntry(path).exists()) {
     LOG("{} already in cache", path);
     return false;
   }

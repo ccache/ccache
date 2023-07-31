@@ -22,13 +22,13 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Logging.hpp"
-#include "Stat.hpp"
 #include "Win32Util.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
 
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 #include <util/time.hpp>
@@ -291,13 +291,13 @@ hash_source_code_file(const Context& ctx,
   if (result.contains(HashSourceCode::found_timestamp)) {
     LOG("Found __TIMESTAMP__ in {}", path);
 
-    const auto stat = Stat::stat(path);
-    if (!stat) {
+    util::DirEntry dir_entry(path);
+    if (!dir_entry.is_regular_file()) {
       result.insert(HashSourceCode::error);
       return result;
     }
 
-    auto modified_time = util::localtime(stat.mtime());
+    auto modified_time = util::localtime(dir_entry.mtime());
     if (!modified_time) {
       result.insert(HashSourceCode::error);
       return result;

@@ -16,12 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Stat.hpp"
+#include "DirEntry.hpp"
 
-#include "Finalizer.hpp"
-#include "Logging.hpp"
-#include "Win32Util.hpp"
-
+#include <Finalizer.hpp>
+#include <Logging.hpp>
+#include <Win32Util.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/wincompat.hpp>
@@ -68,7 +67,7 @@ void
 win32_file_information_to_stat(const BY_HANDLE_FILE_INFORMATION& file_info,
                                const FILE_ATTRIBUTE_TAG_INFO& reparse_info,
                                const char* path,
-                               Stat::stat_t* st)
+                               util::DirEntry::stat_t* st)
 {
   st->st_dev = file_info.dwVolumeSerialNumber;
   st->st_ino = (static_cast<uint64_t>(file_info.nFileIndexHigh) << 32)
@@ -108,7 +107,9 @@ win32_file_information_to_stat(const BY_HANDLE_FILE_INFORMATION& file_info,
 }
 
 bool
-win32_stat_impl(const char* path, bool traverse_links, Stat::stat_t* st)
+win32_stat_impl(const char* path,
+                bool traverse_links,
+                util::DirEntry::stat_t* st)
 {
   *st = {};
 
@@ -178,18 +179,7 @@ win32_stat_impl(const char* path, bool traverse_links, Stat::stat_t* st)
 }
 
 int
-win32_stat(const char* path, Stat::stat_t* st)
-{
-  bool ok = win32_stat_impl(path, true, st);
-  if (ok) {
-    return 0;
-  }
-  errno = winerror_to_errno(GetLastError());
-  return -1;
-}
-
-int
-win32_lstat(const char* path, Stat::stat_t* st)
+lstat_func(const char* path, util::DirEntry::stat_t* st)
 {
   bool ok = win32_stat_impl(path, false, st);
   if (ok) {
@@ -199,52 +189,69 @@ win32_lstat(const char* path, Stat::stat_t* st)
   return -1;
 }
 
+int
+stat_func(const char* path, util::DirEntry::stat_t* st)
+{
+  bool ok = win32_stat_impl(path, true, st);
+  if (ok) {
+    return 0;
+  }
+  errno = winerror_to_errno(GetLastError());
+  return -1;
+}
+
+#else
+
+auto lstat_func = ::lstat;
+auto stat_func = ::stat;
+
 #endif // _WIN32
 
 } // namespace
 
-Stat::Stat(StatFunction stat_function,
-           const std::string& path,
-           Stat::LogOnError log_on_error)
-  : m_path(path)
+namespace util {
+
+const DirEntry::stat_t&
+DirEntry::do_stat() const
 {
-  int result = stat_function(path.c_str(), &m_stat);
-  if (result == 0) {
-    m_errno = 0;
-  } else {
-    m_errno = errno;
-    if (log_on_error == LogOnError::yes) {
-      LOG("Failed to stat {}: {}", path, strerror(errno));
+  if (!m_initialized) {
+    m_exists = false;
+    m_is_symlink = false;
+
+    int result = lstat_func(m_path.string().c_str(), &m_stat);
+    if (result == 0) {
+      m_errno = 0;
+      if (S_ISLNK(m_stat.st_mode)
+#ifdef _WIN32
+          || (m_stat.st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT)
+#endif
+      ) {
+        m_is_symlink = true;
+        stat_t st;
+        if (stat_func(m_path.string().c_str(), &st) == 0) {
+          m_stat = st;
+          m_exists = true;
+        }
+      } else {
+        m_exists = true;
+      }
+    } else {
+      m_errno = errno;
+      if (m_log_on_error == LogOnError::yes) {
+        LOG("Failed to lstat {}: {}", m_path.string(), strerror(m_errno));
+      }
     }
 
-    // The file is missing, so just zero fill the stat structure. This will
-    // make e.g. the is_*() methods return false and mtime() will be 0, etc.
-    memset(&m_stat, '\0', sizeof(m_stat));
+    if (!m_exists) {
+      // The file is missing, so just zero fill the stat structure. This will
+      // make e.g. the is_*() methods return false and mtime() will be 0, etc.
+      memset(&m_stat, '\0', sizeof(m_stat));
+    }
+
+    m_initialized = true;
   }
+
+  return m_stat;
 }
 
-Stat
-Stat::stat(const std::string& path, LogOnError log_on_error)
-{
-  return Stat(
-#ifdef _WIN32
-    win32_stat,
-#else
-    ::stat,
-#endif
-    path,
-    log_on_error);
-}
-
-Stat
-Stat::lstat(const std::string& path, LogOnError log_on_error)
-{
-  return Stat(
-#ifdef _WIN32
-    win32_lstat,
-#else
-    ::lstat,
-#endif
-    path,
-    log_on_error);
-}
+} // namespace util

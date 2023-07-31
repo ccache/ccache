@@ -21,10 +21,10 @@
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
-#include <Stat.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/wincompat.hpp>
@@ -34,6 +34,8 @@
 #include <sys/types.h>
 
 #include <vector>
+
+using util::DirEntry;
 
 namespace core {
 
@@ -73,15 +75,15 @@ ResultExtractor::on_raw_file(uint8_t file_number,
     throw Error("Raw entry for non-local result");
   }
   const auto raw_file_path = (*m_get_raw_file_path)(file_number);
-  const auto st = Stat::stat(raw_file_path, Stat::LogOnError::yes);
-  if (!st) {
-    throw Error(
-      FMT("Failed to stat {}: {}", raw_file_path, strerror(st.error_number())));
+  DirEntry entry(raw_file_path, DirEntry::LogOnError::yes);
+  if (!entry) {
+    throw Error(FMT(
+      "Failed to stat {}: {}", raw_file_path, strerror(entry.error_number())));
   }
-  if (st.size() != file_size) {
+  if (entry.size() != file_size) {
     throw Error(FMT("Bad file size of {} (actual {} bytes, expected {} bytes)",
                     raw_file_path,
-                    st.size(),
+                    entry.size(),
                     file_size));
   }
 

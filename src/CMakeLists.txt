@@ -9,7 +9,6 @@ set(
   Hash.cpp
   Logging.cpp
   ProgressBar.cpp
-  Stat.cpp
   TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp

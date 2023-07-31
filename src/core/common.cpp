@@ -96,7 +96,7 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
       result.append(line.data(), line.length());
     } else {
       std::string path(line.substr(0, path_end));
-      if (Stat::stat(path)) {
+      if (util::DirEntry(path)) {
         result += util::real_path(path);
         auto tail = line.substr(path_end);
         result.append(tail.data(), tail.length());

@@ -19,7 +19,7 @@
 #include "../src/AtomicFile.hpp"
 #include "TestUtil.hpp"
 
-#include <Stat.hpp>
+#include <util/DirEntry.hpp>
 #include <util/file.hpp>
 
 #include "third_party/doctest.h"
@@ -51,7 +51,7 @@ TEST_CASE("Not committing")
     AtomicFile atomic_file("test", AtomicFile::Mode::text);
     atomic_file.write("hello");
   }
-  CHECK(!Stat::stat("test"));
+  CHECK(!util::DirEntry("test"));
 }
 
 TEST_SUITE_END();
