@@ -707,7 +707,9 @@ LocalStorage::recompress(const std::optional<int8_t> level,
           auto l2_content_lock = get_level_2_content_lock(l1_index, l2_index);
           l2_content_lock.make_long_lived(lock_manager);
           if (!l2_content_lock.acquire()) {
-            LOG("Failed to acquire content lock for {}/{}", l1_index, l2_index);
+            // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug #109241
+            LOG_RAW(fmt::format(
+              "Failed to acquire content lock for {}/{}", l1_index, l2_index));
             return;
           }
 
