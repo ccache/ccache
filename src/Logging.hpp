@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include "third_party/fmt/core.h"
-#include "third_party/fmt/format.h"
+#include <third_party/fmt/core.h>
+#include <third_party/fmt/format.h>
+#include <third_party/fmt/std.h>
 
 #include <optional>
 #include <string>
