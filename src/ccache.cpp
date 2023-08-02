@@ -2668,9 +2668,9 @@ do_cache_compilation(Context& ctx)
 }
 
 bool
-is_ccache_executable(const std::string_view path)
+is_ccache_executable(const fs::path& path)
 {
-  std::string name(Util::base_name(path));
+  std::string name = path.filename().string();
 #ifdef _WIN32
   name = util::to_lowercase(name);
 #endif

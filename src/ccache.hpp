@@ -22,6 +22,7 @@
 #include <Args.hpp>
 #include <Config.hpp>
 
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -52,4 +53,4 @@ void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function,
                    bool masquerading_as_compiler);
 CompilerType guess_compiler(std::string_view path);
-bool is_ccache_executable(std::string_view path);
+bool is_ccache_executable(const std::filesystem::path& path);
