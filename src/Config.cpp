@@ -81,6 +81,7 @@ enum class ConfigItem {
   cpp_extension,
   debug,
   debug_dir,
+  debug_level,
   depend_mode,
   direct_mode,
   disable,
@@ -136,6 +137,7 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"cpp_extension", {ConfigItem::cpp_extension}},
     {"debug", {ConfigItem::debug}},
     {"debug_dir", {ConfigItem::debug_dir}},
+    {"debug_level", {ConfigItem::debug_level}},
     {"depend_mode", {ConfigItem::depend_mode}},
     {"direct_mode", {ConfigItem::direct_mode}},
     {"disable", {ConfigItem::disable}},
@@ -184,6 +186,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"CPP2", "run_second_cpp"},
   {"DEBUG", "debug"},
   {"DEBUGDIR", "debug_dir"},
+  {"DEBUGLEVEL", "debug_level"},
   {"DEPEND", "depend_mode"},
   {"DIR", "cache_dir"},
   {"DIRECT", "direct_mode"},
@@ -785,6 +788,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::debug_dir:
     return m_debug_dir;
 
+  case ConfigItem::debug_level:
+    return FMT("{}", m_debug_level);
+
   case ConfigItem::depend_mode:
     return format_bool(m_depend_mode);
 
@@ -1021,6 +1027,11 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::debug_dir:
     m_debug_dir = value;
+    break;
+
+  case ConfigItem::debug_level:
+    m_debug_level = util::value_or_throw<core::Error>(
+      util::parse_unsigned(value, std::nullopt, std::nullopt, "debug_level"));
     break;
 
   case ConfigItem::depend_mode:
