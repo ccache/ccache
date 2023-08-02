@@ -1031,7 +1031,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::debug_level:
     m_debug_level = util::value_or_throw<core::Error>(
-      util::parse_unsigned(value, std::nullopt, std::nullopt, "debug_level"));
+      util::parse_unsigned(value, std::nullopt, std::nullopt, "debug level"));
     break;
 
   case ConfigItem::depend_mode:

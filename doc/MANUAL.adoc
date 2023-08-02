@@ -684,11 +684,9 @@ _<<Cache debugging>>_.
 [#config_debug_level]
 *debug_level* (*CCACHE_DEBUGLEVEL*)::
 
-    Specifies amount of information dumped when the <<config_debug,debug mode>>
-    is enabled. If set 1, only `<objectfile>.<timestamp>.ccache-log` files with
-    per-file caching statistics are dumped. Otherwise, all possible debug
-    data is dumped. See _<<Cache debugging>>_ for more information. The default
-    is 2.
+    Specifies the amount of information that is written when the
+    <<config_debug,debug mode>> is enabled. See _<<Cache debugging>>_ for more
+    information. The default is 2.
 
 [#config_depend_mode]
 *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see _<<Boolean values>>_ above)::
@@ -1663,35 +1661,33 @@ why you don't get cache hits. Note that performance will be reduced slightly.
 When the debug mode is enabled, ccache will create up to five additional files
 next to the object file:
 
-[options="header",cols="30%,70%"]
+[options="header",cols="30%,10%,60%"]
 |==============================================================================
-| *Filename* | *Description*
+| *Filename* | *Debug level* | *Description*
 
-| `<objectfile>.<timestamp>.ccache-input-c` |
+| `<objectfile>.<timestamp>.ccache-input-c` | 2 |
 Binary input hashed by both the direct mode and the preprocessor mode.
 
-| `<objectfile>.<timestamp>.ccache-input-d` |
+| `<objectfile>.<timestamp>.ccache-input-d` | 2 |
 Binary input only hashed by the direct mode.
 
-| `<objectfile>.<timestamp>.ccache-input-p` |
+| `<objectfile>.<timestamp>.ccache-input-p` | 2 |
 Binary input only hashed by the preprocessor mode.
 
-| `<objectfile>.<timestamp>.ccache-input-text` |
+| `<objectfile>.<timestamp>.ccache-input-text` | 2 |
 Human-readable combined diffable text version of the three files above.
 
-| `<objectfile>.<timestamp>.ccache-log` |
+| `<objectfile>.<timestamp>.ccache-log` | 1 |
 Log for this object file.
 
 |==============================================================================
 
- The timestamp format is
+The timestamp format is
 `<year><month><day>_<hour><minute><second>_<microsecond>`.
 
-`<objectfile>.<timestamp>.ccache-log` files can be useful for checking
-caching results for every file. If you only need such statistics and don't
-need `<objectfile>.<timestamp>.ccache-input-*` files then you can set
-<<config_debug,*debug_level*>> (or environment variable `CCACHE_DEBUGLEVEL`) 
-to 1.
+
+If you only need the log file, set <<config_debug,*debug_level*>> (environment
+variable `CCACHE_DEBUGLEVEL`) to 1.
 
 If <<config_debug_dir,*debug_dir*>> (environment variable `CCACHE_DEBUGDIR`) is
 set, the files above will be written to that directory with full absolute paths
@@ -1716,6 +1712,7 @@ something like this:
 4. Compare the `<objectfile>.<timestamp>.ccache-input-text` files for the two
    builds. This together with the `<objectfile>.<timestamp>.ccache-log` files
    should give you some clues about what is happening.
+
 
 == Compiling in different directories
 
