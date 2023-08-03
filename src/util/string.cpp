@@ -429,6 +429,20 @@ split_once(const std::string_view string, const char split_char)
   }
 }
 
+std::vector<std::filesystem::path>
+split_path_list(std::string_view path_list)
+{
+#ifdef _WIN32
+  const char path_delimiter[] = ";";
+#else
+  const char path_delimiter[] = ":";
+#endif
+  auto strings = split_into_views(path_list, path_delimiter);
+  std::vector<std::filesystem::path> paths;
+  std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
+  return paths;
+}
+
 std::string
 strip_whitespace(const std::string_view string)
 {

@@ -57,10 +57,6 @@ bool path_starts_with(std::string_view path, std::string_view prefix);
 // doesn't exist) path is returned unmodified.
 std::string real_path(std::string_view path);
 
-// Split a list of paths (such as the content of $PATH on Unix platforms or
-// %PATH% on Windows platforms) into paths.
-std::vector<std::string> split_path_list(std::string_view path_list);
-
 // Make `path` an absolute path.
 std::string to_absolute_path(std::string_view path);
 

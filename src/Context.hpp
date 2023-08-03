@@ -86,7 +86,7 @@ public:
   util::Bytes cpp_stderr_data;
 
   // Headers (or directories with headers) to ignore in manifest mode.
-  std::vector<std::string> ignore_header_paths;
+  std::vector<std::filesystem::path> ignore_header_paths;
 
   // Storage (fronting local and remote storage backends).
   storage::Storage storage;

@@ -26,10 +26,8 @@
 
 #ifdef _WIN32
 const char k_dev_null_path[] = "nul:";
-const char k_path_delimiter[] = ";";
 #else
 const char k_dev_null_path[] = "/dev/null";
-const char k_path_delimiter[] = ":";
 #endif
 
 namespace fs = util::filesystem;
@@ -128,12 +126,6 @@ real_path(std::string_view path)
 {
   auto real_path = fs::canonical(path);
   return real_path ? real_path->string() : std::string(path);
-}
-
-std::vector<std::string>
-split_path_list(std::string_view path_list)
-{
-  return split_into_strings(path_list, k_path_delimiter);
 }
 
 std::string

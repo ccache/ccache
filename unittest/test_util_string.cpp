@@ -537,6 +537,31 @@ TEST_CASE("util::split_once")
   }
 }
 
+TEST_CASE("util::split_path_list")
+{
+  CHECK(util::split_path_list("").empty());
+  {
+    const auto v = util::split_path_list("a");
+    REQUIRE(v.size() == 1);
+    CHECK(v[0] == "a");
+  }
+  {
+    const auto v = util::split_path_list("a/b");
+    REQUIRE(v.size() == 1);
+    CHECK(v[0] == "a/b");
+  }
+  {
+#ifdef _WIN32
+    const auto v = util::split_path_list("a/b;c");
+#else
+    const auto v = util::split_path_list("a/b:c");
+#endif
+    REQUIRE(v.size() == 2);
+    CHECK(v[0] == "a/b");
+    CHECK(v[1] == "c");
+  }
+}
+
 TEST_CASE("util::starts_with")
 {
   // starts_with(const char*, string_view)

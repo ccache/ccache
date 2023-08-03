@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -170,6 +171,10 @@ std::pair<std::string, std::optional<std::string>>
 split_once(std::string&& string, char split_char);
 std::pair<std::string_view, std::optional<std::string_view>>
 split_once(std::string_view string, char split_char);
+
+// Split a list of paths (such as the content of $PATH on Unix platforms or
+// %PATH% on Windows platforms) into paths.
+std::vector<std::filesystem::path> split_path_list(std::string_view path_list);
 
 // Return true if `prefix` is a prefix of `string`.
 bool starts_with(const char* string, std::string_view prefix);

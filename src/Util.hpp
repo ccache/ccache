@@ -97,11 +97,6 @@ std::string make_relative_path(const std::string& base_dir,
 // Like above but with base directory and apparent/actual CWD taken from `ctx`.
 std::string make_relative_path(const Context& ctx, std::string_view path);
 
-// Return whether `path` is equal to `dir_prefix_or_file` or if
-// `dir_prefix_or_file` is a directory prefix of `path`.
-bool matches_dir_prefix_or_file(std::string_view dir_prefix_or_file,
-                                std::string_view path);
-
 // Normalize absolute path `path`, not taking symlinks into account.
 //
 // Normalization here means syntactically removing redundant slashes and

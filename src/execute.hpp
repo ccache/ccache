@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include "Fd.hpp"
 
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -35,10 +36,10 @@ std::string find_executable(const Context& ctx,
                             const std::string& name,
                             const std::string& exclude_path);
 
-std::string
-find_executable_in_path(const std::string& name,
-                        const std::string& path_list,
-                        std::optional<std::string> exclude_path = std::nullopt);
+std::filesystem::path find_executable_in_path(
+  const std::string& name,
+  const std::string& path_list,
+  const std::optional<std::filesystem::path>& exclude_path = std::nullopt);
 
 #ifdef _WIN32
 std::string win32getshell(const std::string& path);

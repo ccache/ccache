@@ -290,18 +290,6 @@ make_relative_path(const Context& ctx, std::string_view path)
     ctx.config.base_dir(), ctx.actual_cwd, ctx.apparent_cwd, path);
 }
 
-bool
-matches_dir_prefix_or_file(std::string_view dir_prefix_or_file,
-                           std::string_view path)
-{
-  return !dir_prefix_or_file.empty() && !path.empty()
-         && dir_prefix_or_file.length() <= path.length()
-         && util::starts_with(path, dir_prefix_or_file)
-         && (dir_prefix_or_file.length() == path.length()
-             || is_dir_separator(path[dir_prefix_or_file.length()])
-             || is_dir_separator(dir_prefix_or_file.back()));
-}
-
 static std::string
 do_normalize_abstract_absolute_path(std::string_view path)
 {

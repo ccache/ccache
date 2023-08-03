@@ -33,6 +33,7 @@
 #include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
@@ -50,6 +51,8 @@
 #ifdef _WIN32
 #  include "Finalizer.hpp"
 #endif
+
+namespace fs = util::filesystem;
 
 #ifdef _WIN32
 static int win32execute(const char* path,
@@ -84,7 +87,7 @@ win32getshell(const std::string& path)
   const char* path_list = getenv("PATH");
   std::string sh;
   if (util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
-    sh = find_executable_in_path("sh.exe", path_list);
+    sh = find_executable_in_path("sh.exe", path_list).string();
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
@@ -93,7 +96,7 @@ win32getshell(const std::string& path)
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
       if (std::string(buf) == "#!/bin/sh" && path_list) {
-        sh = find_executable_in_path("sh.exe", path_list);
+        sh = find_executable_in_path("sh.exe", path_list).string();
       }
     }
   }
@@ -356,28 +359,28 @@ find_executable(const Context& ctx,
     return {};
   }
 
-  return find_executable_in_path(name, path_list, exclude_path);
+  return find_executable_in_path(name, path_list, exclude_path).string();
 }
 
-std::string
+fs::path
 find_executable_in_path(const std::string& name,
                         const std::string& path_list,
-                        std::optional<std::string> exclude_path)
+                        const std::optional<fs::path>& exclude_path)
 {
   if (path_list.empty()) {
     return {};
   }
 
-  const auto real_exclude_path =
-    exclude_path ? util::real_path(*exclude_path) : "";
+  auto real_exclude_path =
+    exclude_path ? fs::canonical(*exclude_path).value_or("") : "";
 
   // Search the path list looking for the first compiler of the right name that
   // isn't us.
-  for (const std::string& dir : util::split_path_list(path_list)) {
-    const std::vector<std::string> candidates = {
-      FMT("{}/{}", dir, name),
+  for (const auto& dir : util::split_path_list(path_list)) {
+    const std::vector<fs::path> candidates = {
+      dir / name,
 #ifdef _WIN32
-      FMT("{}/{}.exe", dir, name),
+      dir / FMT("{}.exe", name),
 #endif
     };
     for (const auto& candidate : candidates) {
@@ -398,9 +401,9 @@ find_executable_in_path(const std::string& name,
         access(candidate.c_str(), X_OK) == 0;
 #endif
       if (candidate_exists) {
-        const auto real_candidate = util::real_path(candidate);
-        if ((real_exclude_path.empty() || real_candidate != real_exclude_path)
-            && !is_ccache_executable(real_candidate)) {
+        auto real_candidate = fs::canonical(candidate);
+        if (real_candidate && *real_candidate != real_exclude_path
+            && !is_ccache_executable(*real_candidate)) {
           return candidate;
         }
       }

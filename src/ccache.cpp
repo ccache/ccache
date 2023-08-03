@@ -368,7 +368,7 @@ do_remember_include_file(Context& ctx,
   }
 
   for (const auto& ignore_header_path : ctx.ignore_header_paths) {
-    if (Util::matches_dir_prefix_or_file(ignore_header_path, path)) {
+    if (file_path_matches_dir_prefix_or_file(ignore_header_path, path)) {
       return true;
     }
   }
@@ -1540,11 +1540,11 @@ hash_common_info(const Context& ctx,
   }
 
   if (!ctx.config.extra_files_to_hash().empty()) {
-    for (const std::string& path :
+    for (const auto& path :
          util::split_path_list(ctx.config.extra_files_to_hash())) {
       LOG("Hashing extra file {}", path);
       hash.hash_delimiter("extrafile");
-      if (!hash_binary_file(ctx, hash, path)) {
+      if (!hash_binary_file(ctx, hash, path.string())) {
         return tl::unexpected(Statistic::error_hashing_extra_file);
       }
     }
@@ -2675,6 +2675,21 @@ is_ccache_executable(const fs::path& path)
   name = util::to_lowercase(name);
 #endif
   return util::starts_with(name, "ccache");
+}
+
+bool
+file_path_matches_dir_prefix_or_file(const fs::path& dir_prefix_or_file,
+                                     const fs::path& file_path)
+{
+  DEBUG_ASSERT(!dir_prefix_or_file.empty());
+  DEBUG_ASSERT(!file_path.filename().empty());
+
+  auto end = std::mismatch(dir_prefix_or_file.begin(),
+                           dir_prefix_or_file.end(),
+                           file_path.begin(),
+                           file_path.end())
+               .first;
+  return end == dir_prefix_or_file.end() || end->empty();
 }
 
 int

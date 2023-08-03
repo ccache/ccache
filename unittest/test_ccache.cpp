@@ -219,4 +219,28 @@ TEST_CASE("is_ccache_executable")
 #endif
 }
 
+TEST_CASE("file_path_matches_dir_prefix_or_file")
+{
+  CHECK(file_path_matches_dir_prefix_or_file("aa", "aa"));
+  CHECK(!file_path_matches_dir_prefix_or_file("aaa", "aa"));
+  CHECK(!file_path_matches_dir_prefix_or_file("aa", "aaa"));
+  CHECK(file_path_matches_dir_prefix_or_file("aa/", "aa"));
+
+  CHECK(file_path_matches_dir_prefix_or_file("/aa/bb", "/aa/bb"));
+  CHECK(!file_path_matches_dir_prefix_or_file("/aa/b", "/aa/bb"));
+  CHECK(!file_path_matches_dir_prefix_or_file("/aa/bbb", "/aa/bb"));
+
+  CHECK(file_path_matches_dir_prefix_or_file("/aa", "/aa/bb"));
+  CHECK(file_path_matches_dir_prefix_or_file("/aa/", "/aa/bb"));
+  CHECK(!file_path_matches_dir_prefix_or_file("/aa/bb", "/aa"));
+
+#ifdef _WIN32
+  CHECK(file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
+  CHECK(file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
+#else
+  CHECK(!file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
+  CHECK(!file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
+#endif
+}
+
 TEST_SUITE_END();
