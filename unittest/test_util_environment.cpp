@@ -35,14 +35,10 @@ TEST_CASE("util::expand_environment_variables")
   CHECK(util::expand_environment_variables("x$FOO") == "xbar");
   CHECK(util::expand_environment_variables("${FOO}x") == "barx");
 
-  DOCTEST_GCC_SUPPRESS_WARNING_PUSH
-  DOCTEST_GCC_SUPPRESS_WARNING("-Wunused-result")
-  CHECK_THROWS_WITH(
-    (void)util::expand_environment_variables("$surelydoesntexist"),
-    "environment variable \"surelydoesntexist\" not set");
-  CHECK_THROWS_WITH((void)util::expand_environment_variables("${FOO"),
-                    "syntax error: missing '}' after \"FOO\"");
-  DOCTEST_GCC_SUPPRESS_WARNING_POP
+  CHECK(util::expand_environment_variables("$surelydoesntexist").error()
+        == "environment variable \"surelydoesntexist\" not set");
+  CHECK(util::expand_environment_variables("${FOO").error()
+        == "syntax error: missing '}' after \"FOO\"");
 }
 
 TEST_SUITE_END();

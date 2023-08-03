@@ -21,7 +21,6 @@
 #include <Finalizer.hpp>
 #include <Logging.hpp>
 #include <Win32Util.hpp>
-#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/wincompat.hpp>
 

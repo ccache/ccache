@@ -18,13 +18,16 @@
 
 #pragma once
 
+#include <third_party/tl/expected.hpp>
+
 #include <string>
 
 namespace util {
 
 // Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
-// in `str`. Throws `core::Error` if one of the environment variables.
-[[nodiscard]] std::string expand_environment_variables(const std::string& str);
+// in `str`.
+tl::expected<std::string, std::string>
+expand_environment_variables(const std::string& str);
 
 // Set environment variable `name` to `value`.
 void setenv(const std::string& name, const std::string& value);

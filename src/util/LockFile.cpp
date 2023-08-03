@@ -24,7 +24,6 @@
 #include "fmtmacros.hpp"
 
 #include <assertions.hpp>
-#include <core/exceptions.hpp>
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>

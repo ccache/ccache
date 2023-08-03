@@ -978,7 +978,8 @@ Config::set_item(const std::string& key,
     return;
   }
 
-  std::string value = util::expand_environment_variables(unexpanded_value);
+  std::string value = util::value_or_throw<core::Error>(
+    util::expand_environment_variables(unexpanded_value));
 
   switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:

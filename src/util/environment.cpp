@@ -18,13 +18,12 @@
 
 #include "environment.hpp"
 
-#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/wincompat.hpp>
 
 namespace util {
 
-std::string
+tl::expected<std::string, std::string>
 expand_environment_variables(const std::string& str)
 {
   std::string result;
@@ -52,7 +51,8 @@ expand_environment_variables(const std::string& str)
         ++right;
       }
       if (curly && *right != '}') {
-        throw core::Error(FMT("syntax error: missing '}}' after \"{}\"", left));
+        return tl::unexpected(
+          FMT("syntax error: missing '}}' after \"{}\"", left));
       }
       if (right == left) {
         // Special case: don't consider a single $ the left of a variable.
@@ -62,7 +62,8 @@ expand_environment_variables(const std::string& str)
         std::string name(left, right - left);
         const char* value = getenv(name.c_str());
         if (!value) {
-          throw core::Error(FMT("environment variable \"{}\" not set", name));
+          return tl::unexpected(
+            FMT("environment variable \"{}\" not set", name));
         }
         result += value;
         if (!curly) {
