@@ -431,6 +431,7 @@ process_option_arg(const Context& ctx,
   if (arg == "-Xclang" && i + 1 < args.size()
       && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
           || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
+          || args[i + 1] == "-include"
           || args[i + 1] == "-fno-pch-timestamp")) {
     if (compopt_affects_compiler_output(args[i + 1])) {
       state.compiler_only_args.push_back(args[i]);
