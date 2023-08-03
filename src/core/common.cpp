@@ -113,7 +113,7 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
 namespace core {
 
 void
-ensure_dir_exists(std::string_view dir)
+ensure_dir_exists(const fs::path& dir)
 {
   if (auto result = fs::create_directories(dir); !result) {
     throw core::Fatal(

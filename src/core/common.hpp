@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -26,7 +27,7 @@ class Context;
 namespace core {
 
 // Like std::filesystem::create_directories but throws core::Fatal on error.
-void ensure_dir_exists(std::string_view dir);
+void ensure_dir_exists(const std::filesystem::path& dir);
 
 // Send `text` to file descriptor `fd` (typically stdout or stderr, which
 // potentially is connected to a console), optionally stripping ANSI color
