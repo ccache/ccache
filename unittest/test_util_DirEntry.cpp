@@ -646,14 +646,16 @@ TEST_CASE("Win32 No Sharing")
 // Creating a directory junction for test purposes is tricky on Windows.
 // Instead, test a well-known junction that has existed in all Windows versions
 // since Vista. (Not present on Wine.)
-TEST_CASE("Win32 Directory Junction"
-          * doctest::skip(!win32_is_junction(util::expand_environment_variables(
-            "${ALLUSERSPROFILE}\\Application Data"))))
+TEST_CASE(
+  "Win32 Directory Junction"
+  * doctest::skip(!win32_is_junction(
+    util::expand_environment_variables("${ALLUSERSPROFILE}\\Application Data")
+      .value_or(""))))
 {
   TestContext test_context;
 
-  DirEntry entry(
-    util::expand_environment_variables("${ALLUSERSPROFILE}\\Application Data"));
+  DirEntry entry(*util::expand_environment_variables(
+    "${ALLUSERSPROFILE}\\Application Data"));
   CHECK(entry);
   CHECK(entry.exists());
   CHECK(entry.error_number() == 0);
