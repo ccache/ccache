@@ -47,7 +47,8 @@ public:
 
   // Format cache statistics in machine-readable format.
   std::string
-  format_machine_readable(const util::TimePoint& last_updated) const;
+  format_machine_readable(const Config& config,
+                          const util::TimePoint& last_updated) const;
 
   const StatisticsCounters& counters() const;
 

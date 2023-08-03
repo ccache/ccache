@@ -638,7 +638,8 @@ process_main_options(int argc, const char* const* argv)
       const auto [counters, last_updated] =
         storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
+      PRINT_RAW(stdout,
+                statistics.format_machine_readable(config, last_updated));
       break;
     }
 

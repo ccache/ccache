@@ -511,18 +511,25 @@ Statistics::format_human_readable(const Config& config,
 }
 
 std::string
-Statistics::format_machine_readable(const util::TimePoint& last_updated) const
+Statistics::format_machine_readable(const Config& config,
+                                    const util::TimePoint& last_updated) const
 {
   std::vector<std::string> lines;
 
   lines.push_back(FMT("stats_updated_timestamp\t{}\n", last_updated.sec()));
 
+  auto add_line = [&](auto id, auto value) {
+    lines.push_back(FMT("{}\t{}\n", id, value));
+  };
+
   for (const auto& field : k_statistics_fields) {
     if (!(field.flags & FLAG_NEVER)) {
-      lines.push_back(
-        FMT("{}\t{}\n", field.id, m_counters.get(field.statistic)));
+      add_line(field.id, m_counters.get(field.statistic));
     }
   }
+
+  add_line("max_cache_size_kibibyte", config.max_size() / 1024);
+  add_line("max_files_in_cache", config.max_files());
 
   std::sort(lines.begin(), lines.end());
   return util::join(lines, "");
