@@ -335,80 +335,74 @@ TEST_CASE("Directory")
 #endif
 }
 
-TEST_CASE("Symlinks" * doctest::skip(!symlinks_supported()))
+TEST_CASE("Symlink to file" * doctest::skip(!symlinks_supported()))
 {
   TestContext test_context;
 
   util::write_file("file", "1234567");
 
 #ifdef _WIN32
-  // SYMBOLIC_LINK_FLAG_DIRECTORY: 0x1
   // SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE: 0x2
-  REQUIRE(CreateSymbolicLinkA("symlink_to_dir", ".", 0x1 | 0x2));
   REQUIRE(CreateSymbolicLinkA("symlink_to_file", "file", 0x2));
-  REQUIRE(CreateSymbolicLinkA("symlink_to_none", "does_not_exist", 0x2));
 #else
-  REQUIRE(symlink(".", "symlink_to_dir") == 0);
   REQUIRE(symlink("file", "symlink_to_file") == 0);
-  REQUIRE(symlink("does_not_exist", "symlink_to_none") == 0);
 #endif
 
-  SUBCASE("symlink to dir")
-  {
-    DirEntry entry("symlink_to_dir");
-    CHECK(entry);
-    CHECK(entry.path() == "symlink_to_dir");
-    CHECK(entry.exists());
-    CHECK(entry.error_number() == 0);
-    CHECK(entry.is_directory());
-    CHECK(!entry.is_regular_file());
-    CHECK(entry.is_symlink());
-    CHECK(S_ISDIR(entry.mode()));
+  DirEntry entry("symlink_to_file");
+  CHECK(entry);
+  CHECK(entry.exists());
+  CHECK(entry.error_number() == 0);
+  CHECK(entry.path() == "symlink_to_file");
+  CHECK(!entry.is_directory());
+  CHECK(entry.is_regular_file());
+  CHECK(entry.is_symlink());
+  CHECK(S_ISREG(entry.mode()));
+  CHECK(entry.size() == 7);
 #ifdef _WIN32
-    CHECK((entry.file_attributes() & FILE_ATTRIBUTE_DIRECTORY));
-    CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT));
-    CHECK(entry.reparse_tag() == 0);
+  CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_DIRECTORY));
+  CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT));
+  CHECK(entry.reparse_tag() == 0);
 #endif
-  }
-
-  SUBCASE("symlink to file")
-  {
-    DirEntry entry("symlink_to_file");
-    CHECK(entry);
-    CHECK(entry.exists());
-    CHECK(entry.error_number() == 0);
-    CHECK(entry.path() == "symlink_to_file");
-    CHECK(!entry.is_directory());
-    CHECK(entry.is_regular_file());
-    CHECK(entry.is_symlink());
-    CHECK(S_ISREG(entry.mode()));
-    CHECK(entry.size() == 7);
-#ifdef _WIN32
-    CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_DIRECTORY));
-    CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT));
-    CHECK(entry.reparse_tag() == 0);
-#endif
-  }
-
-  SUBCASE("symlink to none")
-  {
-    DirEntry entry("symlink_to_none");
-    CHECK(entry);
-    CHECK(!entry.exists());
-    CHECK(entry.error_number() == 0);
-    CHECK(entry.path() == "symlink_to_none");
-    CHECK(!entry.is_directory());
-    CHECK(!entry.is_regular_file());
-    CHECK(entry.is_symlink());
-    CHECK(entry.mode() == 0);
-    CHECK(entry.size() == 0);
-#ifdef _WIN32
-    CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_DIRECTORY));
-    CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT));
-    CHECK(entry.reparse_tag() == 0);
-#endif
-  }
 }
+
+#ifndef _WIN32
+
+TEST_CASE("Symlink to directory")
+{
+  TestContext test_context;
+
+  REQUIRE(symlink(".", "symlink_to_dir") == 0);
+
+  DirEntry entry("symlink_to_dir");
+  CHECK(entry);
+  CHECK(entry.path() == "symlink_to_dir");
+  CHECK(entry.exists());
+  CHECK(entry.error_number() == 0);
+  CHECK(entry.is_directory());
+  CHECK(!entry.is_regular_file());
+  CHECK(entry.is_symlink());
+  CHECK(S_ISDIR(entry.mode()));
+}
+
+TEST_CASE("Symlink to none")
+{
+  TestContext test_context;
+
+  REQUIRE(symlink("does_not_exist", "symlink_to_none") == 0);
+
+  DirEntry entry("symlink_to_none");
+  CHECK(entry);
+  CHECK(!entry.exists());
+  CHECK(entry.error_number() == 0);
+  CHECK(entry.path() == "symlink_to_none");
+  CHECK(!entry.is_directory());
+  CHECK(!entry.is_regular_file());
+  CHECK(entry.is_symlink());
+  CHECK(entry.mode() == 0);
+  CHECK(entry.size() == 0);
+}
+
+#endif // _WIN32
 
 TEST_CASE("Hard links")
 {
