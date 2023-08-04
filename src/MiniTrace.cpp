@@ -19,10 +19,12 @@
 #include "MiniTrace.hpp"
 
 #include "ArgsInfo.hpp"
-#include "TemporaryFile.hpp"
 #include "fmtmacros.hpp"
 
+#include <core/exceptions.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/TimePoint.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/wincompat.hpp>
@@ -41,7 +43,8 @@ MiniTrace::MiniTrace(const ArgsInfo& args_info)
   if (!tmp_dir) {
     tmp_dir = "/tmp";
   }
-  TemporaryFile tmp_file(*tmp_dir / "ccache-trace");
+  auto tmp_file = util::value_or_throw<core::Fatal>(
+    util::TemporaryFile::create(*tmp_dir / "ccache-trace"));
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());

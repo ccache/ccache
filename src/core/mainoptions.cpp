@@ -25,7 +25,6 @@
 #include <InodeCache.hpp>
 #include <Logging.hpp>
 #include <ProgressBar.hpp>
-#include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
@@ -42,6 +41,7 @@
 #include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
 #include <storage/local/LocalStorage.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/XXH3_128.hpp>
@@ -304,7 +304,7 @@ trim_dir(const std::string& dir,
 
   util::throw_on_error<core::Error>(util::traverse_directory(
     dir, [&](const std::string& path, const bool is_dir) {
-      if (is_dir || TemporaryFile::is_tmp_file(path)) {
+      if (is_dir || util::TemporaryFile::is_tmp_file(path)) {
         return;
       }
       DirEntry entry(path);

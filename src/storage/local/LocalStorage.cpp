@@ -24,7 +24,6 @@
 #include <File.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
-#include <TemporaryFile.hpp>
 #include <ThreadPool.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
@@ -36,6 +35,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/Duration.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -252,9 +252,10 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   Fd dest_fd;
   std::string tmp_file;
   if (via_tmp_file) {
-    TemporaryFile temp_file(dest);
+    auto temp_file =
+      util::value_or_throw<core::Fatal>(util::TemporaryFile::create(dest));
     dest_fd = std::move(temp_file.fd);
-    tmp_file = temp_file.path;
+    tmp_file = std::move(temp_file.path);
   } else {
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
@@ -332,7 +333,7 @@ clean_dir(
 
     // Delete any tmp files older than 1 hour right away.
     if (file.mtime() + util::Duration(3600) < current_time
-        && TemporaryFile::is_tmp_file(file.path())) {
+        && util::TemporaryFile::is_tmp_file(file.path())) {
       util::remove(file.path().string());
       continue;
     }
@@ -893,7 +894,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                   incompressible_size += file.size_on_disk();
                 }
               });
-            } else if (!TemporaryFile::is_tmp_file(file.path())) {
+            } else if (!util::TemporaryFile::is_tmp_file(file.path())) {
               incompressible_size += file.size_on_disk();
             }
 

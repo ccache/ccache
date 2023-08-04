@@ -18,11 +18,12 @@
 
 #include "AtomicFile.hpp"
 
-#include "TemporaryFile.hpp"
 #include "assertions.hpp"
 
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/TemporaryFile.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 
@@ -30,7 +31,8 @@ namespace fs = util::filesystem;
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
-  TemporaryFile tmp_file(path);
+  auto tmp_file =
+    util::value_or_throw<core::Fatal>(util::TemporaryFile::create(path));
   m_stream = fdopen(tmp_file.fd.release(), mode == Mode::binary ? "w+b" : "w+");
   m_tmp_path = std::move(tmp_file.path);
 }

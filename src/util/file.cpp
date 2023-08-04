@@ -21,11 +21,11 @@
 #include <Fd.hpp>
 #include <Finalizer.hpp>
 #include <Logging.hpp>
-#include <TemporaryFile.hpp>
 #include <Win32Util.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -81,9 +81,12 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
   Fd dest_fd;
   fs::path tmp_file;
   if (via_tmp_file == ViaTmpFile::yes) {
-    TemporaryFile temp_file(dest);
-    dest_fd = std::move(temp_file.fd);
-    tmp_file = temp_file.path;
+    auto temp_file = TemporaryFile::create(dest);
+    if (!temp_file) {
+      return tl::unexpected(temp_file.error());
+    }
+    dest_fd = std::move(temp_file->fd);
+    tmp_file = std::move(temp_file->path);
   } else {
     dest_fd = Fd(open(
       dest.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));

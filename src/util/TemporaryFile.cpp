@@ -18,10 +18,6 @@
 
 #include "TemporaryFile.hpp"
 
-#include "Util.hpp"
-
-#include <core/common.hpp>
-#include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -34,19 +30,29 @@
 #endif
 
 #ifdef _WIN32
-#  include "third_party/win32/mktemp.h"
+#  include <third_party/win32/mktemp.h>
 #endif
 
 namespace fs = util::filesystem;
 
-TemporaryFile::TemporaryFile(const fs::path& path_prefix,
-                             std::string_view suffix)
+namespace util {
+
+TemporaryFile::TemporaryFile(Fd&& fd_, const fs::path& path_)
+  : fd(std::move(fd_)),
+    path(path_)
+{
+}
+
+tl::expected<TemporaryFile, std::string>
+TemporaryFile::create(const fs::path& path_prefix, std::string_view suffix)
 {
   if (path_prefix.has_parent_path()) {
-    core::ensure_dir_exists(path_prefix.parent_path());
+    if (auto ret = fs::create_directories(path_prefix.parent_path()); !ret) {
+      return tl::unexpected(ret.error().message());
+    }
   }
   std::string path_template =
-    FMT("{}{}XXXXXX{}", path_prefix, tmp_file_infix, suffix);
+    FMT("{}{}XXXXXX{}", path_prefix, TemporaryFile::tmp_file_infix, suffix);
 #ifdef _WIN32
   // MSVC lacks mkstemps() and Mingw-w64's implementation[1] is problematic, as
   // it can reuse the names of recently-deleted files unless the caller
@@ -54,20 +60,22 @@ TemporaryFile::TemporaryFile(const fs::path& path_prefix,
 
   // [1]: <https://github.com/Alexpux/mingw-w64/blob/
   // d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c>
-  fd = Fd(bsd_mkstemps(&path_template[0], suffix.length()));
+  Fd fd(bsd_mkstemps(&path_template[0], suffix.length()));
 #else
-  fd = Fd(mkstemps(&path_template[0], suffix.length()));
+  Fd fd(mkstemps(&path_template[0], suffix.length()));
 #endif
   if (!fd) {
-    throw core::Fatal(
-      FMT("Failed to create temporary file for {}: {}", path, strerror(errno)));
+    return tl::unexpected(FMT("failed to create temporary file for {}: {}",
+                              path_template,
+                              strerror(errno)));
   }
-  path = path_template;
 
   util::set_cloexec_flag(*fd);
 #ifndef _WIN32
   fchmod(*fd, 0666 & ~util::get_umask());
 #endif
+
+  return TemporaryFile(std::move(fd), path_template);
 }
 
 bool
@@ -75,3 +83,5 @@ TemporaryFile::is_tmp_file(const fs::path& path)
 {
   return path.filename().string().find(tmp_file_infix) != std::string::npos;
 }
+
+} // namespace util

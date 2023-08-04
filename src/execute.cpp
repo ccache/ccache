@@ -24,7 +24,6 @@
 #include "Fd.hpp"
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
-#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
 
@@ -32,6 +31,8 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
+#include <util/TemporaryFile.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
@@ -226,7 +227,8 @@ win32execute(const char* path,
   });
 
   if (args.length() > 8192) {
-    TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
+    auto tmp_file = util::value_or_throw<core::Fatal>(
+      util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
     args = Win32Util::argv_to_string(argv + 1, sh, true);
     util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);

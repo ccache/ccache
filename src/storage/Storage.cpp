@@ -21,7 +21,6 @@
 #include <Config.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
-#include <TemporaryFile.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <core/CacheEntry.hpp>

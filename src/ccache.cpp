@@ -30,7 +30,6 @@
 #include "Logging.hpp"
 #include "MiniTrace.hpp"
 #include "SignalHandler.hpp"
-#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "argprocessing.hpp"
@@ -53,6 +52,7 @@
 #include <core/mainoptions.hpp>
 #include <core/types.hpp>
 #include <storage/Storage.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
 #include <util/expected.hpp>
@@ -717,8 +717,9 @@ get_tmp_fd(Context& ctx,
            const bool capture_output)
 {
   if (capture_output) {
-    TemporaryFile tmp_stdout(
-      FMT("{}/{}", ctx.config.temporary_dir(), description));
+    auto tmp_stdout =
+      util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
+        FMT("{}/{}", ctx.config.temporary_dir(), description)));
     ctx.register_pending_tmp_file(tmp_stdout.path.string());
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
@@ -1230,8 +1231,10 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     // preprocessed_path needs the proper cpp_extension for the compiler to do
     // its thing correctly.
-    TemporaryFile tmp_stdout(FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
-                             FMT(".{}", ctx.config.cpp_extension()));
+    auto tmp_stdout =
+      util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
+        FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
+        FMT(".{}", ctx.config.cpp_extension())));
     preprocessed_path = tmp_stdout.path.string();
     tmp_stdout.fd.close(); // We're only using the path.
     ctx.register_pending_tmp_file(preprocessed_path);

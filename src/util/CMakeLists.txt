@@ -4,6 +4,7 @@ set(
   DirEntry.cpp
   LockFile.cpp
   LongLivedLockFileManager.cpp
+  TemporaryFile.cpp
   TextTable.cpp
   TimePoint.cpp
   Tokenizer.cpp

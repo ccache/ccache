@@ -22,7 +22,6 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "Logging.hpp"
-#include "TemporaryFile.hpp"
 #include "Win32Util.hpp"
 
 #include <Config.hpp>

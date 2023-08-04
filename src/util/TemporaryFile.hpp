@@ -20,9 +20,13 @@
 
 #include <Fd.hpp>
 
+#include <third_party/tl/expected.hpp>
+
 #include <filesystem>
 #include <string>
 #include <string_view>
+
+namespace util {
 
 // This class represents a unique temporary file created by mkstemp. The file is
 // not deleted by the destructor.
@@ -31,21 +35,29 @@ class TemporaryFile
 public:
   static constexpr char tmp_file_infix[] = ".tmp.";
 
-  // `path_prefix` is the base path. The resulting filename will be this path
-  // plus a unique string plus `suffix`. If `path_prefix` refers to a
-  // nonexistent directory the directory will be created if possible.
-  TemporaryFile(const std::filesystem::path& path_prefix,
-                std::string_view suffix = ".tmp");
+  TemporaryFile() = delete;
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 
   TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
 
+  // `path_prefix` is the base path. The resulting filename will be this path
+  // plus a unique string plus `suffix`. If `path_prefix` refers to a
+  // nonexistent directory the directory will be created if possible.
+  static tl::expected<TemporaryFile, std::string>
+  create(const std::filesystem::path& path_prefix,
+         std::string_view suffix = ".tmp");
+
   static bool is_tmp_file(const std::filesystem::path& path);
 
-  // The resulting open file descriptor in read/write mode. Unset on error.
+  // The resulting open file descriptor in read/write mode.
   Fd fd;
 
-  // The actual filename. Empty on error.
+  // The actual filename.
   std::filesystem::path path;
+
+private:
+  TemporaryFile(Fd&& fd_, const std::filesystem::path& path_);
 };
+
+} // namespace util
