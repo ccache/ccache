@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   build_and_test:
+    timeout-minutes: 30
     env:
       CMAKE_GENERATOR: Ninja
 
@@ -152,6 +153,7 @@ jobs:
           path: testdir.tar.xz
 
   build_and_test_msys:
+    timeout-minutes: 30
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -221,6 +223,7 @@ jobs:
           path: testdir.tar.xz
 
   build_macos_universal:
+    timeout-minutes: 30
     name: macOS universal binary
     runs-on: macos-12
     env:
@@ -510,6 +513,7 @@ jobs:
           path: testdir.tar.xz
 
   check_format:
+    timeout-minutes: 30
     name: Code formatting
     runs-on: ubuntu-20.04
     strategy:
@@ -522,6 +526,7 @@ jobs:
         run: misc/format-files --all --check
 
   codespell:
+    timeout-minutes: 30
     name: Spelling
     runs-on: ubuntu-20.04
     strategy:
