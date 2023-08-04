@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <string>
 
 // This class represents a file whose data will be atomically written to a path
@@ -47,7 +48,7 @@ public:
 
 private:
   const std::string m_path;
-  std::string m_tmp_path;
+  std::filesystem::path m_tmp_path;
   FILE* m_stream;
 };
 

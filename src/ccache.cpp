@@ -708,7 +708,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 struct GetTmpFdResult
 {
   Fd fd;
-  std::string path;
+  fs::path path;
 };
 
 static GetTmpFdResult
@@ -719,7 +719,7 @@ get_tmp_fd(Context& ctx,
   if (capture_output) {
     TemporaryFile tmp_stdout(
       FMT("{}/{}", ctx.config.temporary_dir(), description));
-    ctx.register_pending_tmp_file(tmp_stdout.path);
+    ctx.register_pending_tmp_file(tmp_stdout.path.string());
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
     const auto dev_null_path = util::get_dev_null_path();
@@ -1232,7 +1232,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     // its thing correctly.
     TemporaryFile tmp_stdout(FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
                              FMT(".{}", ctx.config.cpp_extension()));
-    preprocessed_path = tmp_stdout.path;
+    preprocessed_path = tmp_stdout.path.string();
     tmp_stdout.fd.close(); // We're only using the path.
     ctx.register_pending_tmp_file(preprocessed_path);
 

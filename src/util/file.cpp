@@ -68,27 +68,25 @@ namespace fs = util::filesystem;
 namespace util {
 
 tl::expected<void, std::string>
-copy_file(const std::string& src,
-          const std::string& dest,
-          ViaTmpFile via_tmp_file)
+copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
 {
-  Fd src_fd(open(src.c_str(), O_RDONLY | O_BINARY));
+  Fd src_fd(open(src.string().c_str(), O_RDONLY | O_BINARY));
   if (!src_fd) {
     return tl::unexpected(
       FMT("Failed to open {} for reading: {}", src, strerror(errno)));
   }
 
-  unlink(dest.c_str());
+  unlink(dest.string().c_str());
 
   Fd dest_fd;
-  std::string tmp_file;
+  fs::path tmp_file;
   if (via_tmp_file == ViaTmpFile::yes) {
     TemporaryFile temp_file(dest);
     dest_fd = std::move(temp_file.fd);
     tmp_file = temp_file.path;
   } else {
-    dest_fd =
-      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    dest_fd = Fd(open(
+      dest.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
       return tl::unexpected(
         FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
@@ -115,7 +113,7 @@ copy_file(const std::string& src,
 }
 
 void
-create_cachedir_tag(const std::string& dir)
+create_cachedir_tag(const fs::path& dir)
 {
   constexpr char cachedir_tag[] =
     "Signature: 8a477f597d28d172789f06886806bc55\n"
@@ -123,8 +121,8 @@ create_cachedir_tag(const std::string& dir)
     "# For information about cache directory tags, see:\n"
     "#\thttp://www.brynosaurus.com/cachedir/\n";
 
-  const std::string path = FMT("{}/CACHEDIR.TAG", dir);
-  if (DirEntry(path).exists()) {
+  auto path = dir / "CACHEDIR.TAG";
+  if (fs::exists(path)) {
     return;
   }
   const auto result = write_file(path, cachedir_tag);
@@ -229,7 +227,7 @@ has_utf16_le_bom(std::string_view text)
 
 template<typename T>
 tl::expected<T, std::string>
-read_file(const std::string& path, size_t size_hint)
+read_file(const fs::path& path, size_t size_hint)
 {
   if (size_hint == 0) {
     DirEntry de(path);
@@ -249,7 +247,7 @@ read_file(const std::string& path, size_t size_hint)
       return O_RDONLY | O_BINARY;
     }
   }();
-  Fd fd(open(path.c_str(), open_flags));
+  Fd fd(open(path.string().c_str(), open_flags));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
@@ -324,25 +322,25 @@ read_file(const std::string& path, size_t size_hint)
   return result;
 }
 
-template tl::expected<Bytes, std::string> read_file(const std::string& path,
+template tl::expected<Bytes, std::string> read_file(const fs::path& path,
                                                     size_t size_hint);
 
-template tl::expected<std::string, std::string>
-read_file(const std::string& path, size_t size_hint);
+template tl::expected<std::string, std::string> read_file(const fs::path& path,
+                                                          size_t size_hint);
 
 template tl::expected<std::vector<uint8_t>, std::string>
-read_file(const std::string& path, size_t size_hint);
+read_file(const fs::path& path, size_t size_hint);
 
 template<typename T>
 tl::expected<T, std::string>
-read_file_part(const std::string& path, size_t pos, size_t count)
+read_file_part(const fs::path& path, size_t pos, size_t count)
 {
   T result;
   if (count == 0) {
     return result;
   }
 
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  Fd fd(open(path.string().c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
     return tl::unexpected(strerror(errno));
@@ -380,16 +378,16 @@ read_file_part(const std::string& path, size_t pos, size_t count)
 }
 
 template tl::expected<Bytes, std::string>
-read_file_part(const std::string& path, size_t pos, size_t count);
+read_file_part(const fs::path& path, size_t pos, size_t count);
 
 template tl::expected<std::string, std::string>
-read_file_part(const std::string& path, size_t pos, size_t count);
+read_file_part(const fs::path& path, size_t pos, size_t count);
 
 template tl::expected<std::vector<uint8_t>, std::string>
-read_file_part(const std::string& path, size_t pos, size_t count);
+read_file_part(const fs::path& path, size_t pos, size_t count);
 
 tl::expected<bool, std::error_code>
-remove(const std::string& path, LogFailure log_failure)
+remove(const fs::path& path, LogFailure log_failure)
 {
   auto result = fs::remove(path);
   if (result || log_failure == LogFailure::yes) {
@@ -402,32 +400,33 @@ remove(const std::string& path, LogFailure log_failure)
 }
 
 tl::expected<bool, std::error_code>
-remove_nfs_safe(const std::string& path, LogFailure log_failure)
+remove_nfs_safe(const fs::path& path, LogFailure log_failure)
 {
   // fs::remove isn't atomic if path is on an NFS share, so we rename to a
   // temporary file. We don't care if the temporary file is trashed, so it's
   // always safe to remove it first.
-  std::string tmp_name =
-    FMT("{}.ccache{}remove", path, TemporaryFile::tmp_file_infix);
+  auto tmp_path =
+    path.parent_path()
+    / FMT("{}.ccache{}remove", path.filename(), TemporaryFile::tmp_file_infix);
 
-  auto rename_result = fs::rename(path, tmp_name);
+  auto rename_result = fs::rename(path, tmp_path);
   if (!rename_result) {
     // It's OK if it was removed in a race.
     if (rename_result.error().value() != ENOENT
         && rename_result.error().value() != ESTALE
         && log_failure == LogFailure::yes) {
-      LOG("Removing {} via {}", path, tmp_name);
+      LOG("Removing {} via {}", path, tmp_path);
       LOG("Renaming {} to {} failed: {}",
           path,
-          tmp_name,
+          tmp_path,
           rename_result.error().message());
     }
     return tl::unexpected(rename_result.error());
   }
 
-  auto remove_result = fs::remove(tmp_name);
+  auto remove_result = fs::remove(tmp_path);
   if (remove_result || log_failure == LogFailure::yes) {
-    LOG("Removing {} via {}", path, tmp_name);
+    LOG("Removing {} via {}", path, tmp_path);
     if (!remove_result) {
       LOG("Removal failed: {}", remove_result.error().message());
     }
@@ -436,7 +435,7 @@ remove_nfs_safe(const std::string& path, LogFailure log_failure)
 }
 
 void
-set_timestamps(const std::string& path,
+set_timestamps(const fs::path& path,
                std::optional<TimePoint> mtime,
                std::optional<TimePoint> atime)
 {
@@ -446,7 +445,7 @@ set_timestamps(const std::string& path,
     atime_mtime[0] = (atime ? *atime : *mtime).to_timespec();
     atime_mtime[1] = mtime->to_timespec();
   }
-  utimensat(AT_FDCWD, path.c_str(), mtime ? atime_mtime : nullptr, 0);
+  utimensat(AT_FDCWD, path.string().c_str(), mtime ? atime_mtime : nullptr, 0);
 #elif defined(HAVE_UTIMES)
   timeval atime_mtime[2];
   if (mtime) {
@@ -456,15 +455,15 @@ set_timestamps(const std::string& path,
     atime_mtime[1].tv_sec = mtime->sec();
     atime_mtime[1].tv_usec = mtime->nsec_decimal_part() / 1000;
   }
-  utimes(path.c_str(), mtime ? atime_mtime : nullptr);
+  utimes(path.string().c_str(), mtime ? atime_mtime : nullptr);
 #else
   utimbuf atime_mtime;
   if (mtime) {
     atime_mtime.actime = atime ? atime->sec() : mtime->sec();
     atime_mtime.modtime = mtime->sec();
-    utime(path.c_str(), &atime_mtime);
+    utime(path.string().c_str(), &atime_mtime);
   } else {
-    utime(path.c_str(), nullptr);
+    utime(path.string().c_str(), nullptr);
   }
 #endif
 }
@@ -472,10 +471,10 @@ set_timestamps(const std::string& path,
 #ifdef HAVE_DIRENT_H
 
 tl::expected<void, std::string>
-traverse_directory(const std::string& directory,
+traverse_directory(const fs::path& directory,
                    const TraverseDirectoryVisitor& visitor)
 {
-  DIR* dir = opendir(directory.c_str());
+  DIR* dir = opendir(directory.string().c_str());
   if (!dir) {
     return tl::unexpected(
       FMT("Failed to traverse {}: {}", directory, strerror(errno)));
@@ -490,7 +489,7 @@ traverse_directory(const std::string& directory,
       continue;
     }
 
-    std::string entry_path = directory + "/" + entry->d_name;
+    auto path = directory / entry->d_name;
     bool is_dir;
 #  ifdef _DIRENT_HAVE_D_TYPE
     if (entry->d_type != DT_UNKNOWN) {
@@ -498,25 +497,24 @@ traverse_directory(const std::string& directory,
     } else
 #  endif
     {
-      DirEntry dir_entry(entry_path);
+      DirEntry dir_entry(path);
       if (!dir_entry) {
         if (dir_entry.error_number() == ENOENT
             || dir_entry.error_number() == ESTALE) {
           continue;
         }
-        return tl::unexpected(FMT("Failed to lstat {}: {}",
-                                  entry_path,
-                                  strerror(dir_entry.error_number())));
+        return tl::unexpected(FMT(
+          "Failed to lstat {}: {}", path, strerror(dir_entry.error_number())));
       }
       is_dir = dir_entry.is_directory();
     }
     if (is_dir) {
-      traverse_directory(entry_path, visitor);
+      traverse_directory(path, visitor);
     } else {
-      visitor(entry_path, false);
+      visitor(path.string(), false);
     }
   }
-  visitor(directory, true);
+  visitor(directory.string(), true);
 
   return {};
 }
@@ -524,7 +522,7 @@ traverse_directory(const std::string& directory,
 #else // If not available, use the C++17 std::filesystem implementation.
 
 tl::expected<void, std::string>
-traverse_directory(const std::string& directory,
+traverse_directory(const fs::path& directory,
                    const TraverseDirectoryVisitor& visitor)
 {
   // Note: Intentionally not using std::filesystem::recursive_directory_iterator
@@ -546,7 +544,7 @@ traverse_directory(const std::string& directory,
         visitor(entry.path().string(), entry.is_directory());
       }
     }
-    visitor(directory, true);
+    visitor(directory.string(), true);
   } catch (const std::filesystem::filesystem_error& e) {
     return tl::unexpected(e.what());
   }
@@ -575,12 +573,13 @@ write_fd(int fd, const void* data, size_t size)
 }
 
 tl::expected<void, std::string>
-write_file(const std::string& path, std::string_view data, InPlace in_place)
+write_file(const fs::path& path, std::string_view data, InPlace in_place)
 {
   if (in_place == InPlace::no) {
-    unlink(path.c_str());
+    unlink(path.string().c_str());
   }
-  Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
+  Fd fd(
+    open(path.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
@@ -588,14 +587,15 @@ write_file(const std::string& path, std::string_view data, InPlace in_place)
 }
 
 tl::expected<void, std::string>
-write_file(const std::string& path,
+write_file(const fs::path& path,
            nonstd::span<const uint8_t> data,
            InPlace in_place)
 {
   if (in_place == InPlace::no) {
-    unlink(path.c_str());
+    unlink(path.string().c_str());
   }
-  Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  Fd fd(
+    open(path.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }

@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <ctime>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -48,11 +49,11 @@ using TraverseDirectoryVisitor =
 // Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
 // to a temporary file and then renamed to dest.
 tl::expected<void, std::string>
-copy_file(const std::string& src,
-          const std::string& dest,
+copy_file(const std::filesystem::path& src,
+          const std::filesystem::path& dest,
           ViaTmpFile via_tmp_file = ViaTmpFile::no);
 
-void create_cachedir_tag(const std::string& dir);
+void create_cachedir_tag(const std::filesystem::path& dir);
 
 // Extends file size of `fd` to at least `new_size` by calling posix_fallocate()
 // if supported, otherwise by writing zeros last to the file.
@@ -83,7 +84,7 @@ tl::expected<util::Bytes, std::string> read_fd(int fd);
 // If `size_hint` is not 0 then it is assumed that `path` has this size (this
 // saves system calls).
 template<typename T>
-tl::expected<T, std::string> read_file(const std::string& path,
+tl::expected<T, std::string> read_file(const std::filesystem::path& path,
                                        size_t size_hint = 0);
 
 // Return (at most) `count` bytes from `path` starting at position `pos`.
@@ -94,7 +95,7 @@ tl::expected<T, std::string> read_file(const std::string& path,
 // UTF-8.
 template<typename T>
 tl::expected<T, std::string>
-read_file_part(const std::string& path, size_t pos, size_t count);
+read_file_part(const std::filesystem::path& path, size_t pos, size_t count);
 
 // Remove `path` (non-directory), NFS hazardous. Use only for files that will
 // not exist on other systems.
@@ -102,14 +103,15 @@ read_file_part(const std::string& path, size_t pos, size_t count);
 // Returns whether the file was removed. A nonexistent `path` is considered
 // successful.
 tl::expected<bool, std::error_code>
-remove(const std::string& path, LogFailure log_failure = LogFailure::yes);
+remove(const std::filesystem::path& path,
+       LogFailure log_failure = LogFailure::yes);
 
 // Remove `path` (non-directory), NFS safe.
 //
 // Returns whether the file was removed. A nonexistent `path` is considered a
 // successful.
 tl::expected<bool, std::error_code>
-remove_nfs_safe(const std::string& path,
+remove_nfs_safe(const std::filesystem::path& path,
                 LogFailure log_failure = LogFailure::yes);
 
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
@@ -117,14 +119,14 @@ void set_cloexec_flag(int fd);
 
 // Set atime/mtime of `path`. If `mtime` is std::nullopt, set to the current
 // time. If `atime` is std::nullopt, set to what `mtime` specifies.
-void set_timestamps(const std::string& path,
+void set_timestamps(const std::filesystem::path& path,
                     std::optional<TimePoint> mtime = std::nullopt,
                     std::optional<TimePoint> atime = std::nullopt);
 
 // Traverse `path` recursively in postorder (directory entries are visited
 // before their parent directory).
 tl::expected<void, std::string>
-traverse_directory(const std::string& directory,
+traverse_directory(const std::filesystem::path& directory,
                    const TraverseDirectoryVisitor& visitor);
 
 // Write `size` bytes from binary `data` to `fd`.
@@ -132,13 +134,13 @@ tl::expected<void, std::string> write_fd(int fd, const void* data, size_t size);
 
 // Write text `data` to `path`. If `in_place` is no, unlink any existing file
 // first (i.e., break hard links).
-tl::expected<void, std::string> write_file(const std::string& path,
+tl::expected<void, std::string> write_file(const std::filesystem::path& path,
                                            std::string_view data,
                                            InPlace in_place = InPlace::no);
 
 // Write binary `data` to `path`. If `in_place` is no, unlink any existing
 // file first (i.e., break hard links).
-tl::expected<void, std::string> write_file(const std::string& path,
+tl::expected<void, std::string> write_file(const std::filesystem::path& path,
                                            nonstd::span<const uint8_t> data,
                                            InPlace in_place = InPlace::no);
 

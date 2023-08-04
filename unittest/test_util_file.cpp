@@ -40,20 +40,6 @@ namespace fs = util::filesystem;
 using TestUtil::TestContext;
 using util::DirEntry;
 
-namespace {
-
-std::string
-os_path(std::string path)
-{
-#if defined(_WIN32) && !defined(HAVE_DIRENT_H)
-  std::replace(path.begin(), path.end(), '/', '\\');
-#endif
-
-  return path;
-}
-
-} // namespace
-
 TEST_CASE("util::fallocate")
 {
   TestContext test_context;
@@ -260,8 +246,8 @@ TEST_CASE("util::traverse_directory")
   {
     CHECK_NOTHROW(util::traverse_directory("dir-with-files", visitor));
     REQUIRE(visited.size() == 3);
-    std::string f1 = os_path("[f] dir-with-files/f1");
-    std::string f2 = os_path("[f] dir-with-files/f2");
+    fs::path f1("[f] dir-with-files/f1");
+    fs::path f2("[f] dir-with-files/f2");
     CHECK(((visited[0] == f1 && visited[1] == f2)
            || (visited[0] == f2 && visited[1] == f1)));
     CHECK(visited[2] == "[d] dir-with-files");
@@ -272,8 +258,8 @@ TEST_CASE("util::traverse_directory")
     CHECK_NOTHROW(
       util::traverse_directory("dir-with-subdir-and-file", visitor));
     REQUIRE(visited.size() == 3);
-    CHECK(visited[0] == os_path("[f] dir-with-subdir-and-file/subdir/f"));
-    CHECK(visited[1] == os_path("[d] dir-with-subdir-and-file/subdir"));
+    CHECK(visited[0] == fs::path("[f] dir-with-subdir-and-file/subdir/f"));
+    CHECK(visited[1] == fs::path("[d] dir-with-subdir-and-file/subdir"));
     CHECK(visited[2] == "[d] dir-with-subdir-and-file");
   }
 }
