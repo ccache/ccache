@@ -332,7 +332,7 @@ clean_dir(
 
     // Delete any tmp files older than 1 hour right away.
     if (file.mtime() + util::Duration(3600) < current_time
-        && TemporaryFile::is_tmp_file(file.path().string())) {
+        && TemporaryFile::is_tmp_file(file.path())) {
       util::remove(file.path().string());
       continue;
     }
@@ -893,7 +893,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                   incompressible_size += file.size_on_disk();
                 }
               });
-            } else if (!TemporaryFile::is_tmp_file(file.path().string())) {
+            } else if (!TemporaryFile::is_tmp_file(file.path())) {
               incompressible_size += file.size_on_disk();
             }
 

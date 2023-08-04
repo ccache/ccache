@@ -24,6 +24,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/process.hpp>
 
 #include <cstdlib>
@@ -36,11 +37,16 @@
 #  include "third_party/win32/mktemp.h"
 #endif
 
-TemporaryFile::TemporaryFile(std::string_view path_prefix,
+namespace fs = util::filesystem;
+
+TemporaryFile::TemporaryFile(const fs::path& path_prefix,
                              std::string_view suffix)
-  : path(FMT("{}{}XXXXXX{}", path_prefix, tmp_file_infix, suffix))
 {
-  core::ensure_dir_exists(Util::dir_name(path));
+  if (path_prefix.has_parent_path()) {
+    core::ensure_dir_exists(path_prefix.parent_path());
+  }
+  std::string path_template =
+    FMT("{}{}XXXXXX{}", path_prefix, tmp_file_infix, suffix);
 #ifdef _WIN32
   // MSVC lacks mkstemps() and Mingw-w64's implementation[1] is problematic, as
   // it can reuse the names of recently-deleted files unless the caller
@@ -48,14 +54,15 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
 
   // [1]: <https://github.com/Alexpux/mingw-w64/blob/
   // d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c>
-  fd = Fd(bsd_mkstemps(&path[0], suffix.length()));
+  fd = Fd(bsd_mkstemps(&path_template[0], suffix.length()));
 #else
-  fd = Fd(mkstemps(&path[0], suffix.length()));
+  fd = Fd(mkstemps(&path_template[0], suffix.length()));
 #endif
   if (!fd) {
     throw core::Fatal(
       FMT("Failed to create temporary file for {}: {}", path, strerror(errno)));
   }
+  path = path_template;
 
   util::set_cloexec_flag(*fd);
 #ifndef _WIN32
@@ -64,7 +71,7 @@ TemporaryFile::TemporaryFile(std::string_view path_prefix,
 }
 
 bool
-TemporaryFile::is_tmp_file(std::string_view path)
+TemporaryFile::is_tmp_file(const fs::path& path)
 {
-  return Util::base_name(path).find(tmp_file_infix) != std::string::npos;
+  return path.filename().string().find(tmp_file_infix) != std::string::npos;
 }

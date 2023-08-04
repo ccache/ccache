@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include "Fd.hpp"
+#include <Fd.hpp>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -33,17 +34,18 @@ public:
   // `path_prefix` is the base path. The resulting filename will be this path
   // plus a unique string plus `suffix`. If `path_prefix` refers to a
   // nonexistent directory the directory will be created if possible.
-  TemporaryFile(std::string_view path_prefix, std::string_view suffix = ".tmp");
+  TemporaryFile(const std::filesystem::path& path_prefix,
+                std::string_view suffix = ".tmp");
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 
   TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
 
-  static bool is_tmp_file(std::string_view path);
+  static bool is_tmp_file(const std::filesystem::path& path);
 
   // The resulting open file descriptor in read/write mode. Unset on error.
   Fd fd;
 
   // The actual filename. Empty on error.
-  std::string path;
+  std::filesystem::path path;
 };

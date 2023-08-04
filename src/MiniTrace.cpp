@@ -41,7 +41,7 @@ MiniTrace::MiniTrace(const ArgsInfo& args_info)
   if (!tmp_dir) {
     tmp_dir = "/tmp";
   }
-  TemporaryFile tmp_file((*tmp_dir / "ccache-trace").string());
+  TemporaryFile tmp_file(*tmp_dir / "ccache-trace");
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
