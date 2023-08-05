@@ -8,7 +8,6 @@ set(
   Hash.cpp
   Logging.cpp
   ProgressBar.cpp
-  ThreadPool.cpp
   Util.cpp
   argprocessing.cpp
   assertions.cpp

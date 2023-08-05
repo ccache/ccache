@@ -24,7 +24,6 @@
 #include <InodeCache.hpp>
 #include <Logging.hpp>
 #include <ProgressBar.hpp>
-#include <ThreadPool.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <ccache.hpp>
@@ -43,6 +42,7 @@
 #include <util/Fd.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
+#include <util/ThreadPool.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/XXH3_128.hpp>
 #include <util/environment.hpp>
@@ -329,7 +329,7 @@ trim_dir(const std::string& dir,
   if (recompress_level) {
     const size_t read_ahead = std::max(
       static_cast<size_t>(10), 2 * static_cast<size_t>(recompress_threads));
-    ThreadPool thread_pool(recompress_threads, read_ahead);
+    util::ThreadPool thread_pool(recompress_threads, read_ahead);
     core::FileRecompressor recompressor;
 
     std::atomic<uint64_t> incompressible_size = 0;

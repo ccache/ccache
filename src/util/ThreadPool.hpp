@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,6 +25,8 @@
 #include <queue>
 #include <thread>
 
+namespace util {
+
 class ThreadPool
 {
 public:
@@ -47,3 +49,5 @@ private:
 
   void worker_thread_main();
 };
+
+} // namespace util

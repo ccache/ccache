@@ -6,6 +6,7 @@ set(
   LongLivedLockFileManager.cpp
   TemporaryFile.cpp
   TextTable.cpp
+  ThreadPool.cpp
   TimePoint.cpp
   Tokenizer.cpp
   UmaskScope.cpp

@@ -24,7 +24,6 @@
 #include <File.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
-#include <ThreadPool.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
 #include <core/CacheEntry.hpp>
@@ -37,6 +36,7 @@
 #include <util/Duration.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
+#include <util/ThreadPool.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -842,7 +842,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
 {
   const size_t read_ahead =
     std::max(static_cast<size_t>(10), 2 * static_cast<size_t>(threads));
-  ThreadPool thread_pool(threads, read_ahead);
+  util::ThreadPool thread_pool(threads, read_ahead);
   core::FileRecompressor recompressor;
 
   std::atomic<uint64_t> incompressible_size = 0;
