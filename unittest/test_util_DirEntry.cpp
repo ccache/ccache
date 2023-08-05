@@ -22,6 +22,7 @@
 #include <util/DirEntry.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/wincompat.hpp>
 
 #include <third_party/doctest.h>
@@ -36,6 +37,8 @@
 
 using TestUtil::TestContext;
 using util::DirEntry;
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -317,7 +320,7 @@ TEST_CASE("Directory")
 {
   TestContext test_context;
 
-  REQUIRE(mkdir("directory", 0456) == 0);
+  REQUIRE(fs::create_directory("directory"));
   DirEntry entry("directory");
 
   CHECK(entry);

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -81,7 +81,6 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 // clang-format on
 #  undef WIN32_NO_STATUS
 #  include <ntstatus.h>
-#  define mkdir(a, b) _mkdir(a)
 
 // Protect against incidental use of MinGW execv.
 #  define execv(a, b) do_not_call_execv_on_windows
