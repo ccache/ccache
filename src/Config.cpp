@@ -18,11 +18,11 @@
 
 #include "Config.hpp"
 
-#include "AtomicFile.hpp"
 #include "MiniTrace.hpp"
 #include "Util.hpp"
 #include "assertions.hpp"
 
+#include <core/AtomicFile.hpp>
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
@@ -923,7 +923,7 @@ Config::set_value_in_file(const std::string& path,
       FMT("failed to write to {}: ", resolved_path));
   }
 
-  AtomicFile output(resolved_path, AtomicFile::Mode::text);
+  core::AtomicFile output(resolved_path, core::AtomicFile::Mode::text);
   bool found = false;
 
   if (!parse_config_file(

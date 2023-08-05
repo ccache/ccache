@@ -23,16 +23,18 @@
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
-#include <string>
+#include <string_view>
+
+namespace core {
 
 // This class represents a file whose data will be atomically written to a path
-// by renaming a temporary file in place.
+// by renaming a temporary file in place. Throws core::Error on error.
 class AtomicFile
 {
 public:
   enum class Mode { binary, text };
 
-  AtomicFile(const std::string& path, Mode mode);
+  AtomicFile(const std::filesystem::path& path, Mode mode);
   ~AtomicFile();
 
   FILE* stream();
@@ -47,7 +49,7 @@ public:
   void commit();
 
 private:
-  const std::string m_path;
+  std::filesystem::path m_path;
   std::filesystem::path m_tmp_path;
   FILE* m_stream;
 };
@@ -57,3 +59,5 @@ AtomicFile::stream()
 {
   return m_stream;
 }
+
+} // namespace core

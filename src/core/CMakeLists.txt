@@ -1,5 +1,6 @@
 set(
   sources
+  AtomicFile.cpp
   CacheEntry.cpp
   FileRecompressor.cpp
   Manifest.cpp

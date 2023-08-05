@@ -18,7 +18,6 @@
 
 #include "LocalStorage.hpp"
 
-#include <AtomicFile.hpp>
 #include <Config.hpp>
 #include <Context.hpp>
 #include <File.hpp>
@@ -26,6 +25,7 @@
 #include <MiniTrace.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
 #include <core/Manifest.hpp>
@@ -87,6 +87,7 @@
 
 namespace fs = util::filesystem;
 
+using core::AtomicFile;
 using core::Statistic;
 using core::StatisticsCounters;
 using util::DirEntry;

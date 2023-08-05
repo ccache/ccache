@@ -18,8 +18,8 @@
 
 #include "FileRecompressor.hpp"
 
-#include <AtomicFile.hpp>
 #include <Util.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/exceptions.hpp>
 #include <util/expected.hpp>

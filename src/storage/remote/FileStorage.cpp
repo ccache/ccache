@@ -18,10 +18,10 @@
 
 #include "FileStorage.hpp"
 
-#include <AtomicFile.hpp>
 #include <Logging.hpp>
 #include <Util.hpp>
 #include <assertions.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
@@ -161,7 +161,7 @@ FileStorageBackend::put(const Hash::Digest& key,
 
     LOG("Writing {}", path);
     try {
-      AtomicFile file(path, AtomicFile::Mode::binary);
+      core::AtomicFile file(path, core::AtomicFile::Mode::binary);
       file.write(value);
       file.commit();
       return true;

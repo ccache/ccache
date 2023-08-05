@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,8 @@
 
 #include "StatsFile.hpp"
 
-#include <AtomicFile.hpp>
 #include <Logging.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
@@ -71,7 +71,7 @@ StatsFile::update(
   auto counters = read();
   function(counters);
 
-  AtomicFile file(m_path, AtomicFile::Mode::text);
+  core::AtomicFile file(m_path, core::AtomicFile::Mode::text);
   for (size_t i = 0; i < counters.size(); ++i) {
     file.write(FMT("{}\n", counters.get_raw(i)));
   }

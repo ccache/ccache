@@ -3,7 +3,6 @@ set(
   TestUtil.cpp
   main.cpp
   test_Args.cpp
-  test_AtomicFile.cpp
   test_Config.cpp
   test_Depfile.cpp
   test_Hash.cpp
@@ -12,6 +11,7 @@ set(
   test_ccache.cpp
   test_compopt.cpp
   test_compression_types.cpp
+  test_core_AtomicFile.cpp
   test_core_MsvcShowIncludesOutput.cpp
   test_core_Statistics.cpp
   test_core_StatisticsCounters.cpp

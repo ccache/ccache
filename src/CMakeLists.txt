@@ -1,7 +1,6 @@
 set(
   source_files
   Args.cpp
-  AtomicFile.cpp
   Config.cpp
   Context.cpp
   Depfile.cpp

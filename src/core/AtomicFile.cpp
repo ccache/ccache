@@ -16,10 +16,8 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "AtomicFile.hpp"
-
-#include "assertions.hpp"
-
+#include <assertions.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/TemporaryFile.hpp>
@@ -29,7 +27,9 @@
 
 namespace fs = util::filesystem;
 
-AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
+namespace core {
+
+AtomicFile::AtomicFile(const fs::path& path, Mode mode) : m_path(path)
 {
   auto tmp_file =
     util::value_or_throw<core::Fatal>(util::TemporaryFile::create(path));
@@ -92,3 +92,5 @@ AtomicFile::commit()
                           result.error().message()));
   }
 }
+
+} // namespace core

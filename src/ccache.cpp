@@ -38,7 +38,6 @@
 #include "hashutil.hpp"
 #include "language.hpp"
 
-#include <AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/Manifest.hpp>
 #include <core/MsvcShowIncludesOutput.hpp>
