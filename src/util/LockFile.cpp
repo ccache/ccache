@@ -76,10 +76,10 @@ private:
 
 namespace util {
 
-LockFile::LockFile(const std::string& path)
-  : m_lock_file(path + ".lock"),
+LockFile::LockFile(const fs::path& path)
+  : m_lock_file(path.string() + ".lock"),
 #ifndef _WIN32
-    m_alive_file(path + ".alive"),
+    m_alive_file(path.string() + ".alive"),
     m_acquired(false)
 #else
     m_handle(INVALID_HANDLE_VALUE)
@@ -162,8 +162,8 @@ LockFile::release()
   if (m_lock_manager) {
     m_lock_manager->deregister_alive_file(m_alive_file);
   }
-  remove(m_alive_file);
-  remove(m_lock_file);
+  fs::remove(m_alive_file);
+  fs::remove(m_lock_file);
 #else
   CloseHandle(m_handle);
 #endif
@@ -238,7 +238,7 @@ LockFile::do_acquire(const bool blocking)
     const auto my_content =
       FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
 
-    if (symlink(my_content.c_str(), m_lock_file.c_str()) == 0) {
+    if (fs::create_symlink(my_content, m_lock_file)) {
       // We got the lock.
       return true;
     }
@@ -246,7 +246,7 @@ LockFile::do_acquire(const bool blocking)
     int saved_errno = errno;
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
-      if (fs::create_directories(Util::dir_name(m_lock_file))) {
+      if (fs::create_directories(m_lock_file.parent_path())) {
         // OK. Retry.
         continue;
       }
@@ -312,7 +312,7 @@ LockFile::do_acquire(const bool blocking)
           m_lock_file,
           inactive_duration.sec(),
           inactive_duration.nsec_decimal_part() / 1'000'000);
-      if (!remove(m_alive_file) || !remove(m_lock_file)) {
+      if (!fs::remove(m_alive_file) || !fs::remove(m_lock_file)) {
         return false;
       }
 
@@ -363,7 +363,7 @@ LockFile::do_acquire(const bool blocking)
 
   while (true) {
     DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE;
-    handle = CreateFile(m_lock_file.c_str(),
+    handle = CreateFile(m_lock_file.string().c_str(),
                         GENERIC_WRITE, // desired access
                         0,             // shared mode (0 = not shared)
                         nullptr,       // security attributes
@@ -378,7 +378,7 @@ LockFile::do_acquire(const bool blocking)
     DWORD error = GetLastError();
     if (error == ERROR_PATH_NOT_FOUND) {
       // Directory doesn't exist?
-      if (fs::create_directories(Util::dir_name(m_lock_file))) {
+      if (fs::create_directories(m_lock_file.parent_path())) {
         // OK. Retry.
         continue;
       }

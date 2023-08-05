@@ -22,8 +22,8 @@
 #include <util/LongLivedLockFileManager.hpp>
 #include <util/TimePoint.hpp>
 
+#include <filesystem>
 #include <optional>
-#include <string>
 
 namespace util {
 
@@ -33,7 +33,7 @@ namespace util {
 class LockFile : NonCopyable
 {
 public:
-  explicit LockFile(const std::string& path);
+  explicit LockFile(const std::filesystem::path& path);
   LockFile(LockFile&& other) noexcept;
 
   LockFile& operator=(LockFile&& other) noexcept;
@@ -58,10 +58,10 @@ public:
   bool acquired() const;
 
 private:
-  std::string m_lock_file;
+  std::filesystem::path m_lock_file;
 #ifndef _WIN32
   LongLivedLockFileManager* m_lock_manager = nullptr;
-  std::string m_alive_file;
+  std::filesystem::path m_alive_file;
   bool m_acquired;
 #else
   void* m_handle;
