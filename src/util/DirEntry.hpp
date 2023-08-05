@@ -19,7 +19,6 @@
 #pragma once
 
 #include <util/TimePoint.hpp>
-#include <util/file.hpp>
 #include <util/wincompat.hpp>
 
 #include <sys/stat.h>
@@ -224,16 +223,6 @@ inline uint64_t
 DirEntry::size() const
 {
   return do_stat().st_size;
-}
-
-inline uint64_t
-DirEntry::size_on_disk() const
-{
-#ifdef _WIN32
-  return util::likely_size_on_disk(size());
-#else
-  return do_stat().st_blocks * 512;
-#endif
 }
 
 inline bool

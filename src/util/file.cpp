@@ -514,10 +514,10 @@ traverse_directory(const fs::path& directory,
     if (is_dir) {
       traverse_directory(path, visitor);
     } else {
-      visitor(path.string(), false);
+      visitor(path);
     }
   }
-  visitor(directory.string(), true);
+  visitor(directory);
 
   return {};
 }
@@ -542,12 +542,12 @@ traverse_directory(const fs::path& directory,
   try {
     for (const auto& entry : std::filesystem::directory_iterator(directory)) {
       if (entry.is_directory()) {
-        traverse_directory(entry.path().string(), visitor);
+        traverse_directory(entry.path(), visitor);
       } else {
-        visitor(entry.path().string(), entry.is_directory());
+        visitor(entry.path());
       }
     }
-    visitor(directory.string(), true);
+    visitor(directory);
   } catch (const std::filesystem::filesystem_error& e) {
     return tl::unexpected(e.what());
   }

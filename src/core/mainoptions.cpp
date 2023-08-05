@@ -302,23 +302,22 @@ trim_dir(const std::string& dir,
   std::vector<DirEntry> files;
   uint64_t initial_size = 0;
 
-  util::throw_on_error<core::Error>(util::traverse_directory(
-    dir, [&](const std::string& path, const bool is_dir) {
-      if (is_dir || util::TemporaryFile::is_tmp_file(path)) {
+  util::throw_on_error<core::Error>(
+    util::traverse_directory(dir, [&](const auto& de) {
+      if (de.is_directory() || util::TemporaryFile::is_tmp_file(de.path())) {
         return;
       }
-      DirEntry entry(path);
-      if (!entry) {
+      if (!de) {
         // Probably some race, ignore.
         return;
       }
-      initial_size += entry.size_on_disk();
-      const auto name = Util::base_name(path);
+      initial_size += de.size_on_disk();
+      const auto name = de.path().filename();
       if (name == "ccache.conf" || name == "stats") {
         throw Fatal(
-          FMT("this looks like a local cache directory (found {})", path));
+          FMT("this looks like a local cache directory (found {})", de.path()));
       }
-      files.emplace_back(std::move(entry));
+      files.emplace_back(de);
     }));
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {

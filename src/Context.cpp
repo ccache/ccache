@@ -25,6 +25,7 @@
 
 #include <Win32Util.hpp>
 #include <util/TimePoint.hpp>
+#include <util/file.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>

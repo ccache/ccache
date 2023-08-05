@@ -217,8 +217,8 @@ TEST_CASE("util::traverse_directory")
   REQUIRE(fs::create_directory("empty-dir"));
 
   std::vector<std::string> visited;
-  auto visitor = [&visited](const std::string& path, bool is_dir) {
-    visited.push_back(FMT("[{}] {}", is_dir ? 'd' : 'f', path));
+  auto visitor = [&visited](const auto& de) {
+    visited.push_back(FMT("[{}] {}", de.is_directory() ? 'd' : 'f', de.path()));
   };
 
   SUBCASE("traverse nonexistent path")

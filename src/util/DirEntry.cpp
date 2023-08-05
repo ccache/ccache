@@ -22,6 +22,7 @@
 #include <Logging.hpp>
 #include <Win32Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/file.hpp>
 #include <util/wincompat.hpp>
 
 #ifdef _WIN32
@@ -209,6 +210,16 @@ auto stat_func = ::stat;
 } // namespace
 
 namespace util {
+
+uint64_t
+DirEntry::size_on_disk() const
+{
+#ifdef _WIN32
+  return util::likely_size_on_disk(size());
+#else
+  return do_stat().st_blocks * 512;
+#endif
+}
 
 const DirEntry::stat_t&
 DirEntry::do_stat() const

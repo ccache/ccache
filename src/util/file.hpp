@@ -19,6 +19,7 @@
 #pragma once
 
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/TimePoint.hpp>
 #include <util/types.hpp>
 
@@ -43,8 +44,7 @@ enum class InPlace { yes, no };
 enum class LogFailure { yes, no };
 enum class ViaTmpFile { yes, no };
 
-using TraverseDirectoryVisitor =
-  std::function<void(const std::string& path, bool is_dir)>;
+using TraverseDirectoryVisitor = std::function<void(const DirEntry& dir_entry)>;
 
 // Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
 // to a temporary file and then renamed to dest.

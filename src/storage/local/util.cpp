@@ -73,15 +73,15 @@ get_cache_dir_files(const std::string& dir)
     return files;
   }
   util::throw_on_error<core::Error>(
-    util::traverse_directory(dir, [&](const std::string& path, bool is_dir) {
-      auto name = Util::base_name(path);
+    util::traverse_directory(dir, [&](const auto& de) {
+      auto name = de.path().filename().string();
       if (name == "CACHEDIR.TAG" || name == "stats"
-          || util::starts_with(std::string(name), ".nfs")) {
+          || util::starts_with(name, ".nfs")) {
         return;
       }
 
-      if (!is_dir) {
-        files.emplace_back(path);
+      if (!de.is_directory()) {
+        files.emplace_back(de);
       }
     }));
 

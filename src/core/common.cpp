@@ -24,6 +24,7 @@
 #include <fmtmacros.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
+#include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/path.hpp>
 

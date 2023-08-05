@@ -1421,20 +1421,16 @@ LocalStorage::clean_internal_tempdir()
 
   LOG("Cleaning up {}", m_config.temporary_dir());
   core::ensure_dir_exists(m_config.temporary_dir());
-  util::traverse_directory(
-    m_config.temporary_dir(),
-    [now](const std::string& path, bool is_dir) {
-      if (is_dir) {
-        return;
-      }
-      DirEntry dir_entry(path, DirEntry::LogOnError::yes);
-      if (dir_entry && dir_entry.mtime() + k_tempdir_cleanup_interval < now) {
-        util::remove(path);
-      }
-    })
-    .or_else([&](const auto& error) {
-      LOG("Failed to clean up {}: {}", m_config.temporary_dir(), error);
-    });
+  util::traverse_directory(m_config.temporary_dir(), [now](const auto& de) {
+    if (de.is_directory()) {
+      return;
+    }
+    if (de && de.mtime() + k_tempdir_cleanup_interval < now) {
+      util::remove(de.path());
+    }
+  }).or_else([&](const auto& error) {
+    LOG("Failed to clean up {}: {}", m_config.temporary_dir(), error);
+  });
 
   util::write_file(cleaned_stamp, "");
 }
