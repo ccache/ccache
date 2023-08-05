@@ -21,7 +21,6 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Fd.hpp"
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
@@ -31,6 +30,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -64,7 +64,10 @@ static int win32execute(const char* path,
                         const std::string& temp_dir);
 
 int
-execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
+execute(Context& ctx,
+        const char* const* argv,
+        util::Fd&& fd_out,
+        util::Fd&& fd_err)
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 
@@ -289,7 +292,10 @@ win32execute(const char* path,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
+execute(Context& ctx,
+        const char* const* argv,
+        util::Fd&& fd_out,
+        util::Fd&& fd_err)
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 

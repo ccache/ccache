@@ -19,7 +19,6 @@
 #include "mainoptions.hpp"
 
 #include <Config.hpp>
-#include <Fd.hpp>
 #include <File.hpp>
 #include <Hash.hpp>
 #include <InodeCache.hpp>
@@ -41,6 +40,7 @@
 #include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
 #include <storage/local/LocalStorage.hpp>
+#include <util/Fd.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/UmaskScope.hpp>
@@ -571,7 +571,7 @@ process_main_options(int argc, const char* const* argv)
 
     case CHECKSUM_FILE: {
       util::XXH3_128 checksum;
-      Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
+      util::Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
         util::read_fd(*fd, [&checksum](auto data) { checksum.update(data); });
         const auto digest = checksum.digest();

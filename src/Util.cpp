@@ -20,7 +20,6 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Fd.hpp"
 #include "Logging.hpp"
 #include "Win32Util.hpp"
 

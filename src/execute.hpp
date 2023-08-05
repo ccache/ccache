@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Fd.hpp"
+#include <util/Fd.hpp>
 
 #include <filesystem>
 #include <optional>
@@ -26,7 +26,10 @@
 
 class Context;
 
-int execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err);
+int execute(Context& ctx,
+            const char* const* argv,
+            util::Fd&& fd_out,
+            util::Fd&& fd_err);
 
 void execute_noreturn(const char* const* argv, const std::string& temp_dir);
 

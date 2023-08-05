@@ -23,7 +23,6 @@
 #include "ArgsInfo.hpp"
 #include "Context.hpp"
 #include "Depfile.hpp"
-#include "Fd.hpp"
 #include "File.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
@@ -52,6 +51,7 @@
 #include <core/mainoptions.hpp>
 #include <core/types.hpp>
 #include <storage/Storage.hpp>
+#include <util/Fd.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
@@ -707,7 +707,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 
 struct GetTmpFdResult
 {
-  Fd fd;
+  util::Fd fd;
   fs::path path;
 };
 
@@ -724,7 +724,7 @@ get_tmp_fd(Context& ctx,
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
     const auto dev_null_path = util::get_dev_null_path();
-    return {Fd(open(dev_null_path, O_WRONLY | O_BINARY)), dev_null_path};
+    return {util::Fd(open(dev_null_path, O_WRONLY | O_BINARY)), dev_null_path};
   }
 }
 

@@ -22,7 +22,7 @@
 #include "../src/InodeCache.hpp"
 #include "TestUtil.hpp"
 
-#include <Fd.hpp>
+#include <util/Fd.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 
@@ -39,7 +39,7 @@ namespace {
 bool
 inode_cache_available()
 {
-  Fd fd(open(util::actual_cwd().c_str(), O_RDONLY));
+  util::Fd fd(open(util::actual_cwd().c_str(), O_RDONLY));
   return fd && InodeCache::available(*fd);
 }
 

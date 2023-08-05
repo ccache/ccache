@@ -26,6 +26,7 @@
 #include "fmtmacros.hpp"
 
 #include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/conversion.hpp>
 #include <util/file.hpp>
@@ -237,7 +238,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
   }
-  m_fd = Fd(open(inode_cache_file.c_str(), O_RDWR));
+  m_fd = util::Fd(open(inode_cache_file.c_str(), O_RDWR));
   if (!m_fd) {
     LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
     return false;

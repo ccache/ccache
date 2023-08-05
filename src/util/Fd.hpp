@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,15 @@
 
 #pragma once
 
-#include "NonCopyable.hpp"
-#include "assertions.hpp"
+#include <NonCopyable.hpp>
+#include <assertions.hpp>
+#include <util/wincompat.hpp>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+namespace util {
 
 class Fd : NonCopyable
 {
@@ -85,6 +92,12 @@ Fd::operator=(Fd&& other_fd) noexcept
   return *this;
 }
 
+inline bool
+Fd::close()
+{
+  return m_fd != -1 && ::close(release()) == 0;
+}
+
 inline int
 Fd::release()
 {
@@ -92,3 +105,5 @@ Fd::release()
   m_fd = -1;
   return fd;
 }
+
+} // namespace util

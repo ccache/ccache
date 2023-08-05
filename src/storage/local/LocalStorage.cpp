@@ -244,12 +244,12 @@ static void
 clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
 #  if defined(__linux__)
-  Fd src_fd(open(src.c_str(), O_RDONLY));
+  util::Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
     throw core::Error(FMT("{}: {}", src, strerror(errno)));
   }
 
-  Fd dest_fd;
+  util::Fd dest_fd;
   std::string tmp_file;
   if (via_tmp_file) {
     auto temp_file =
@@ -257,8 +257,8 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd = std::move(temp_file.fd);
     tmp_file = std::move(temp_file.path);
   } else {
-    dest_fd =
-      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    dest_fd = util::Fd(
+      open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
       throw core::Error(FMT("{}: {}", src, strerror(errno)));
     }

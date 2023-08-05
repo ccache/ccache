@@ -18,10 +18,10 @@
 
 #include "TestUtil.hpp"
 
-#include <Fd.hpp>
 #include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/string.hpp>
@@ -46,15 +46,16 @@ TEST_CASE("util::fallocate")
 
   const char filename[] = "test-file";
 
-  CHECK(util::fallocate(Fd(creat(filename, S_IRUSR | S_IWUSR)).get(), 10000));
-  CHECK(DirEntry(filename).size() == 10000);
-
   CHECK(
-    util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 5000));
+    util::fallocate(util::Fd(creat(filename, S_IRUSR | S_IWUSR)).get(), 10000));
   CHECK(DirEntry(filename).size() == 10000);
 
-  CHECK(util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(),
-                        20000));
+  CHECK(util::fallocate(
+    util::Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 5000));
+  CHECK(DirEntry(filename).size() == 10000);
+
+  CHECK(util::fallocate(
+    util::Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 20000));
   CHECK(DirEntry(filename).size() == 20000);
 }
 

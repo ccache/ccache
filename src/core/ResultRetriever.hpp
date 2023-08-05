@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "Fd.hpp"
-
 #include <Hash.hpp>
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>

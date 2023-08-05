@@ -18,10 +18,10 @@
 
 #pragma once
 
-#include <Fd.hpp>
 #include <Hash.hpp>
 #include <hashutil.hpp>
 #include <util/Duration.hpp>
+#include <util/Fd.hpp>
 #include <util/TimePoint.hpp>
 
 #include <cstdint>
@@ -135,7 +135,7 @@ private:
 
   const Config& m_config;
   util::Duration m_min_age;
-  Fd m_fd;
+  util::Fd m_fd;
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
   const pid_t m_self_pid;

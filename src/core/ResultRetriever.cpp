@@ -29,6 +29,7 @@
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
@@ -205,7 +206,8 @@ ResultRetriever::write_dependency_file(const std::string& path,
 {
   ASSERT(m_ctx.args_info.dependency_target);
 
-  Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  util::Fd fd(
+    open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
     throw WriteError(FMT("Failed to open {} for writing", path));
   }

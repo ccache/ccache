@@ -18,10 +18,10 @@
 
 #include "Hash.hpp"
 
-#include "Fd.hpp"
 #include "Logging.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/Fd.hpp>
 #include <util/file.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
@@ -116,7 +116,7 @@ Hash::hash_fd(int fd)
 tl::expected<void, std::string>
 Hash::hash_file(const std::string& path)
 {
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  util::Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
     return tl::unexpected(strerror(errno));
