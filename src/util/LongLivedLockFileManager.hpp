@@ -21,9 +21,9 @@
 #include <NonCopyable.hpp>
 
 #include <condition_variable>
+#include <filesystem>
 #include <mutex>
 #include <set>
-#include <string>
 #include <thread>
 
 namespace util {
@@ -34,8 +34,8 @@ public:
   LongLivedLockFileManager() = default;
   ~LongLivedLockFileManager();
 
-  void register_alive_file(const std::string& path);
-  void deregister_alive_file(const std::string& path);
+  void register_alive_file(const std::filesystem::path& path);
+  void deregister_alive_file(const std::filesystem::path& path);
 
 private:
 #ifndef _WIN32
@@ -43,7 +43,7 @@ private:
   std::mutex m_mutex;
   std::condition_variable m_stop_condition;
   bool m_stop = false;
-  std::set<std::string> m_alive_files;
+  std::set<std::filesystem::path> m_alive_files;
 
   void start_thread();
 #endif

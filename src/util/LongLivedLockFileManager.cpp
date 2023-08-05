@@ -21,8 +21,11 @@
 #include <Logging.hpp>
 #include <Util.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 
 #include <chrono>
+
+namespace fs = util::filesystem;
 
 #ifndef _WIN32
 std::chrono::milliseconds k_keep_alive_interval{500};
@@ -48,7 +51,7 @@ LongLivedLockFileManager::~LongLivedLockFileManager()
 
 void
 LongLivedLockFileManager::register_alive_file(
-  [[maybe_unused]] const std::string& path)
+  [[maybe_unused]] const fs::path& path)
 {
 #ifndef _WIN32
   std::unique_lock<std::mutex> lock(m_mutex);
@@ -61,7 +64,7 @@ LongLivedLockFileManager::register_alive_file(
 
 void
 LongLivedLockFileManager::deregister_alive_file(
-  [[maybe_unused]] const std::string& path)
+  [[maybe_unused]] const fs::path& path)
 {
 #ifndef _WIN32
   std::unique_lock<std::mutex> lock(m_mutex);
