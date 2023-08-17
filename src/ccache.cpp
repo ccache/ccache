@@ -99,7 +99,8 @@ const size_t k_ccache_disable_search_limit = 4096;
 
 // String to look for when checking whether to disable ccache for the input
 // file.
-const char k_ccache_disable_token[] = "ccache:disable";
+const char k_ccache_disable_token[] = {
+  'c', 'c', 'a', 'c', 'h', 'e', ':', 'd', 'i', 's', 'a', 'b', 'l', 'e', '\0'};
 
 namespace {
 

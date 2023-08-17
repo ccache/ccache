@@ -138,7 +138,7 @@ const StatisticsField k_statistics_fields[] = {
   // A cacheable call resulted in a miss when attempting direct mode lookup.
   FIELD(direct_cache_miss, nullptr),
 
-  // Ccache was disabled by a ccache:disable string in the source code file.
+  // Ccache was disabled by a comment in the source code file.
   FIELD(disabled, "Ccache disabled", FLAG_UNCACHEABLE),
 
   // Failure reading a file specified by extra_files_to_hash/CCACHE_EXTRAFILES.
