@@ -346,13 +346,33 @@ LocalStorage::finalize()
     // Pseudo-randomly choose one of the stats files in the 256 level 2
     // directories.
     const auto bucket = getpid() % 256;
-    const auto stats_file =
-      FMT("{}/{:x}/{:x}/stats", m_config.cache_dir(), bucket / 16, bucket % 16);
-    StatsFile(stats_file).update([&](auto& cs) {
+    const uint8_t l1_index = bucket / 16;
+    const uint8_t l2_index = bucket % 16;
+    const auto l2_stats_file = get_stats_file(l1_index, l2_index);
+
+    uint64_t l2_files_in_cache = 0;
+    uint64_t l2_cache_size_kibibyte = 0;
+
+    l2_stats_file.update([&](auto& cs) {
       cs.increment(m_counter_updates);
+
+      if (m_stored_data) {
+        // Ccache 4.8-4.8.2 erroneously stored files/size counters for raw files
+        // in L2, so move them to L1 to make the cleanup algorithm aware.
+        l2_files_in_cache = cs.get(Statistic::files_in_cache);
+        l2_cache_size_kibibyte = cs.get(Statistic::cache_size_kibibyte);
+        cs.set(Statistic::files_in_cache, 0);
+        cs.set(Statistic::cache_size_kibibyte, 0);
+      }
     });
 
     if (m_stored_data) {
+      // See comment about ccache 4.8-4.8.2 above.
+      if (l2_files_in_cache > 0 || l2_cache_size_kibibyte > 0) {
+        increment_files_and_size_counters(
+          l1_index, l2_index, l2_files_in_cache, l2_cache_size_kibibyte);
+      }
+
       perform_automatic_cleanup();
     }
   }
@@ -521,6 +541,9 @@ LocalStorage::put_raw_files(
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
   Util::ensure_dir_exists(Util::dir_name(cache_file.path));
 
+  int64_t files_change = 0;
+  int64_t size_kibibyte_change = 0;
+
   for (auto [file_number, source_path] : raw_files) {
     const auto dest_path = get_raw_file_path(cache_file.path, file_number);
     const auto old_stat = Stat::stat(dest_path);
@@ -536,11 +559,11 @@ LocalStorage::put_raw_files(
       throw;
     }
     const auto new_stat = Stat::stat(dest_path);
-    increment_statistic(Statistic::cache_size_kibibyte,
-                        Util::size_change_kibibyte(old_stat, new_stat));
-    increment_statistic(Statistic::files_in_cache,
-                        (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
+    files_change += (new_stat ? 1 : 0) - (old_stat ? 1 : 0);
+    size_kibibyte_change += Util::size_change_kibibyte(old_stat, new_stat);
   }
+
+  increment_files_and_size_counters(key, files_change, size_kibibyte_change);
 }
 
 void
@@ -598,7 +621,7 @@ LocalStorage::get_all_statistics() const
     });
 
   counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
-  return std::make_pair(counters, last_updated);
+  return {counters, last_updated};
 }
 
 void
@@ -943,12 +966,11 @@ LocalStorage::recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
 }
 
 std::optional<core::StatisticsCounters>
-LocalStorage::increment_files_and_size_counters(const Digest& key,
+LocalStorage::increment_files_and_size_counters(uint8_t l1_index,
+                                                uint8_t l2_index,
                                                 int64_t files,
                                                 int64_t size_kibibyte)
 {
-  uint8_t l1_index = key.bytes()[0] >> 4;
-  uint8_t l2_index = key.bytes()[0] & 0xF;
   const auto level_1_stats_file = get_stats_file(l1_index);
   return level_1_stats_file.update([&](auto& cs) {
     // Level 1 counters:
@@ -960,6 +982,15 @@ LocalStorage::increment_files_and_size_counters(const Digest& key,
     cs.increment_offsetted(
       Statistic::subdir_size_kibibyte_base, l2_index, size_kibibyte);
   });
+}
+
+std::optional<core::StatisticsCounters>
+LocalStorage::increment_files_and_size_counters(const Digest& key,
+                                                int64_t files,
+                                                int64_t size_kibibyte)
+{
+  return increment_files_and_size_counters(
+    key.bytes()[0] >> 4, key.bytes()[0] & 0xF, files, size_kibibyte);
 }
 
 static uint8_t
@@ -1147,6 +1178,16 @@ LocalStorage::do_clean_all(const ProgressReceiver& progress_receiver,
           if (clean_dir_result.after.files != clean_dir_result.before.files) {
             ++level_1_counters.cleanups;
           }
+
+          // Fix erroneous files/size counters for raw files in L2 stats files.
+          // See also comments in finalize().
+          get_stats_file(l1_index, l2_index)
+            .update(
+              [](auto& cs) {
+                cs.set(Statistic::cache_size_kibibyte, 0);
+                cs.set(Statistic::files_in_cache, 0);
+              },
+              StatsFile::OnlyIfChanged::yes);
         });
 
       set_counters(get_stats_file(l1_index), level_1_counters);
