@@ -442,11 +442,8 @@ LocalStorage::finalize()
     // Pseudo-randomly choose one of the stats files in the 256 level 2
     // directories.
     const auto bucket = getpid() % 256;
-    const auto stats_file =
-      FMT("{}/{:x}/{:x}/stats", m_config.cache_dir(), bucket / 16, bucket % 16);
-    StatsFile(stats_file).update([&](auto& cs) {
-      cs.increment(m_counter_updates);
-    });
+    const auto stats_file = get_stats_file(bucket / 16, bucket % 16);
+    stats_file.update([&](auto& cs) { cs.increment(m_counter_updates); });
 
     if (m_stored_data) {
       perform_automatic_cleanup();
