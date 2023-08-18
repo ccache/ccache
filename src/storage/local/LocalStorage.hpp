@@ -160,7 +160,7 @@ private:
   void recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
                            uint8_t l1_index);
 
-  std::optional<core::StatisticsCounters> increment_level_2_counters(
+  std::optional<core::StatisticsCounters> increment_files_and_size_counters(
     const Hash::Digest& key, int64_t files, int64_t size_kibibyte);
 
   void perform_automatic_cleanup();

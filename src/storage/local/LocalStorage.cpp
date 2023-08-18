@@ -541,7 +541,7 @@ LocalStorage::put(const Hash::Digest& key,
   int64_t size_change_kibibyte =
     kibibyte_size_diff(cache_file.dir_entry, new_dir_entry);
   auto counters =
-    increment_level_2_counters(key, files_change, size_change_kibibyte);
+    increment_files_and_size_counters(key, files_change, size_change_kibibyte);
 
   l2_content_lock.release();
 
@@ -582,7 +582,7 @@ LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
   LOG("Removed {} from local storage ({})",
       util::format_digest(key),
       cache_file.path);
-  increment_level_2_counters(
+  increment_files_and_size_counters(
     key, -1, -static_cast<int64_t>(cache_file.dir_entry.size_on_disk() / 1024));
 }
 
@@ -1085,9 +1085,9 @@ LocalStorage::recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
 }
 
 std::optional<core::StatisticsCounters>
-LocalStorage::increment_level_2_counters(const Hash::Digest& key,
-                                         int64_t files,
-                                         int64_t size_kibibyte)
+LocalStorage::increment_files_and_size_counters(const Hash::Digest& key,
+                                                int64_t files,
+                                                int64_t size_kibibyte)
 {
   uint8_t l1_index = key[0] >> 4;
   uint8_t l2_index = key[0] & 0xF;
