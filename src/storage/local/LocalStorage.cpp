@@ -1185,7 +1185,7 @@ LocalStorage::perform_automatic_cleanup()
   auto stats_file = get_stats_file(evaluation->l1_index);
   auto counters = stats_file.read();
   if (!has_consistent_counters(counters)) {
-    // The cache_size_kibibyte counters doesn't match the 16
+    // The cache_size_kibibyte counter doesn't match the 16
     // subdir_size_kibibyte_base+i counters. This should only happen if an older
     // ccache version (before introduction of the subdir_size_kibibyte_base
     // counters) has modified the cache size after the recount_level_1_dir call
@@ -1202,7 +1202,7 @@ LocalStorage::perform_automatic_cleanup()
   // filled at steady state).
   //
   // We trim based on number of files instead of size. The main reason for this
-  // is to be more forgiving if there is one or a few large cache entries among
+  // is to be more forgiving if there are one or a few large cache entries among
   // many smaller. For example, say that there's a single 100 MB entry (maybe
   // the result of a precompiled header) and lots of small 50 kB files as well.
   // If the large file is the oldest in the subdirectory that is chosen for
