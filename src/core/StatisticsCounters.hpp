@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -53,8 +53,23 @@ public:
   // Return true if all counters are zero, false otherwise.
   bool all_zero() const;
 
+  bool operator==(const StatisticsCounters& other) const noexcept;
+  bool operator!=(const StatisticsCounters& other) const noexcept;
+
 private:
   std::vector<uint64_t> m_counters;
 };
+
+inline bool
+StatisticsCounters::operator==(const StatisticsCounters& other) const noexcept
+{
+  return m_counters == other.m_counters;
+}
+
+inline bool
+StatisticsCounters::operator!=(const StatisticsCounters& other) const noexcept
+{
+  return !(*this == other);
+}
 
 } // namespace core

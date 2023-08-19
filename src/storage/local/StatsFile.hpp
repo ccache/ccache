@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -35,11 +35,14 @@ public:
   // counters will be zero.
   core::StatisticsCounters read() const;
 
+  enum class OnlyIfChanged { no, yes };
+
   // Acquire a lock, read counters, call `function` with the counters, write the
   // counters and release the lock. Returns the resulting counters or nullopt on
   // error (e.g. if the lock could not be acquired).
   std::optional<core::StatisticsCounters>
-    update(std::function<void(core::StatisticsCounters& counters)>) const;
+  update(std::function<void(core::StatisticsCounters& counters)>,
+         OnlyIfChanged only_if_changed = OnlyIfChanged::no) const;
 
 private:
   std::string m_path;
