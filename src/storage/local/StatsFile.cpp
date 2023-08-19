@@ -60,7 +60,8 @@ StatsFile::read() const
 
 std::optional<core::StatisticsCounters>
 StatsFile::update(
-  std::function<void(core::StatisticsCounters& counters)> function) const
+  std::function<void(core::StatisticsCounters& counters)> function,
+  OnlyIfChanged only_if_changed) const
 {
   util::LockFile lock(m_path);
   if (!lock.acquire()) {
@@ -69,19 +70,21 @@ StatsFile::update(
   }
 
   auto counters = read();
+  const auto orig_counters = counters;
   function(counters);
-
-  core::AtomicFile file(m_path, core::AtomicFile::Mode::text);
-  for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(FMT("{}\n", counters.get_raw(i)));
-  }
-  try {
-    file.commit();
-  } catch (const core::Error& e) {
-    // Make failure to write a stats file a soft error since it's not important
-    // enough to fail whole the process and also because it is called in the
-    // Context destructor.
-    LOG("Error: {}", e.what());
+  if (only_if_changed == OnlyIfChanged::no || counters != orig_counters) {
+    core::AtomicFile file(m_path, core::AtomicFile::Mode::text);
+    for (size_t i = 0; i < counters.size(); ++i) {
+      file.write(FMT("{}\n", counters.get_raw(i)));
+    }
+    try {
+      file.commit();
+    } catch (const core::Error& e) {
+      // Make failure to write a stats file a soft error since it's not
+      // important enough to fail whole the process and also because it is
+      // called in the Context destructor.
+      LOG("Error: {}", e.what());
+    }
   }
 
   return counters;
