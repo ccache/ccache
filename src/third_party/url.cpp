@@ -375,12 +375,12 @@ inline std::string normalize_IPv6(const std::string &s) {
 
 
 inline bool is_port(const char *s, const char *e) {
-    return is_uint(s,e,65535) && s==e;
+    return *s == '*' || (is_uint(s,e,65535) && s==e);
 }
 
 
 inline bool is_port(const std::string &s) {
-    return is_port(s.data(),s.data()+s.length());
+    return s == "*" || (is_port(s.data(),s.data()+s.length()));
 }
 
 

@@ -6,8 +6,8 @@ start_http_server() {
     mkdir -p "${cache_dir}"
     "${HTTP_SERVER}" --bind localhost --directory "${cache_dir}" "${port}" \
         ${credentials:+--basic-auth ${credentials}} \
-        &>http-server.log &
-    "${HTTP_CLIENT}" "http://localhost:${port}" &>http-client.log \
+        &>"http-server-${port}.log" &
+    "${HTTP_CLIENT}" "http://localhost:${port}" &>"http-client-${port}.log" \
         ${credentials:+--basic-auth ${credentials}} \
         || test_failed_internal "Cannot connect to server"
 }
@@ -20,8 +20,8 @@ maybe_start_ipv6_http_server() {
     mkdir -p "${cache_dir}"
     "${HTTP_SERVER}" --bind "::1" --directory "${cache_dir}" "${port}" \
         ${credentials:+--basic-auth ${credentials}} \
-        &>http-server.log &
-    "${HTTP_CLIENT}" "http://[::1]:${port}" &>http-client.log \
+        &>"http-server-${port}.log" &
+    "${HTTP_CLIENT}" "http://[::1]:${port}" &>"http-client-${port}.log" \
         ${credentials:+--basic-auth ${credentials}} \
         || return 1
 }
@@ -134,6 +134,18 @@ SUITE_remote_http() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from remote
     expect_file_count 2 '*' remote/ac # result + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Sharding"
+
+    start_http_server 12780 remote1
+    start_http_server 12781 remote2
+    export CCACHE_REMOTE_STORAGE="http://localhost:*|shards=12780,12781"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
 
     # -------------------------------------------------------------------------
     TEST "Basic auth"

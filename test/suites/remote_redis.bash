@@ -80,6 +80,18 @@ SUITE_remote_redis() {
     expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
 
     # -------------------------------------------------------------------------
+    TEST "Sharding"
+
+    start_redis_server 7777
+    start_redis_server 7778
+    export CCACHE_REMOTE_STORAGE="redis://localhost:*|shards=7777,7778"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+
+    # -------------------------------------------------------------------------
     TEST "Password"
 
     port=7777
