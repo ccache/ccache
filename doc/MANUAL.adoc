@@ -1056,9 +1056,16 @@ preprocessing first.
     hash. This is useful if your build system generates different seeds between
     builds and you are OK with reusing cached results.
 *system_headers*::
-    By default, ccache will also include all system headers in the manifest.
-    With this sloppiness set, ccache will only include system headers in the
-    hash but not add the system header files to the list of include files.
+    Only check non-system headers in direct mode.
+    This can be useful if e.g. your system headers tend to change but you know that
+    the changes don't matter. Notes:
++
+* This sloppiness is only supported for GCC-like compilers, not MSVC.
+* System headers are still taken into account for preprocessed lookup.
+* You can get stale cache hits if the system headers do change in incompatible
+  ways.
+* See also the
+  <<config_ignore_headers_in_manifest,*ignore_headers_in_manifest*>> setting.
 *time_macros*::
     Ignore `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+` being present in the
     source code.
