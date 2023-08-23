@@ -8,7 +8,7 @@
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#define CPPHTTPLIB_VERSION "0.12.6"
+#define CPPHTTPLIB_VERSION "0.14.0"
 
 /*
  * Configuration
@@ -193,6 +193,7 @@ using socket_t = SOCKET;
 #endif
 #include <csignal>
 #include <pthread.h>
+#include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -229,6 +230,8 @@ using socket_t = int;
 #include <string>
 #include <sys/stat.h>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
@@ -472,6 +475,7 @@ struct Request {
   MultipartFormDataMap files;
   Ranges ranges;
   Match matches;
+  std::unordered_map<std::string, std::string> path_params;
 
   // for client
   ResponseHandler response_handler;
@@ -483,8 +487,7 @@ struct Request {
 
   bool has_header(const std::string &key) const;
   std::string get_header_value(const std::string &key, size_t id = 0) const;
-  template <typename T>
-  T get_header_value(const std::string &key, size_t id = 0) const;
+  uint64_t get_header_value_u64(const std::string &key, size_t id = 0) const;
   size_t get_header_value_count(const std::string &key) const;
   void set_header(const std::string &key, const std::string &val);
 
@@ -516,8 +519,7 @@ struct Response {
 
   bool has_header(const std::string &key) const;
   std::string get_header_value(const std::string &key, size_t id = 0) const;
-  template <typename T>
-  T get_header_value(const std::string &key, size_t id = 0) const;
+  uint64_t get_header_value_u64(const std::string &key, size_t id = 0) const;
   size_t get_header_value_count(const std::string &key) const;
   void set_header(const std::string &key, const std::string &val);
 
@@ -665,6 +667,78 @@ using SocketOptions = std::function<void(socket_t sock)>;
 
 void default_socket_options(socket_t sock);
 
+const char *status_message(int status);
+
+namespace detail {
+
+class MatcherBase {
+public:
+  virtual ~MatcherBase() = default;
+
+  // Match request path and populate its matches and
+  virtual bool match(Request &request) const = 0;
+};
+
+/**
+ * Captures parameters in request path and stores them in Request::path_params
+ *
+ * Capture name is a substring of a pattern from : to /.
+ * The rest of the pattern is matched agains the request path directly
+ * Parameters are captured starting from the next character after
+ * the end of the last matched static pattern fragment until the next /.
+ *
+ * Example pattern:
+ * "/path/fragments/:capture/more/fragments/:second_capture"
+ * Static fragments:
+ * "/path/fragments/", "more/fragments/"
+ *
+ * Given the following request path:
+ * "/path/fragments/:1/more/fragments/:2"
+ * the resulting capture will be
+ * {{"capture", "1"}, {"second_capture", "2"}}
+ */
+class PathParamsMatcher : public MatcherBase {
+public:
+  PathParamsMatcher(const std::string &pattern);
+
+  bool match(Request &request) const override;
+
+private:
+  static constexpr char marker = ':';
+  // Treat segment separators as the end of path parameter capture
+  // Does not need to handle query parameters as they are parsed before path
+  // matching
+  static constexpr char separator = '/';
+
+  // Contains static path fragments to match against, excluding the '/' after
+  // path params
+  // Fragments are separated by path params
+  std::vector<std::string> static_fragments_;
+  // Stores the names of the path parameters to be used as keys in the
+  // Request::path_params map
+  std::vector<std::string> param_names_;
+};
+
+/**
+ * Performs std::regex_match on request path
+ * and stores the result in Request::matches
+ *
+ * Note that regex match is performed directly on the whole request.
+ * This means that wildcard patterns may match multiple path segments with /:
+ * "/begin/(.*)/end" will match both "/begin/middle/end" and "/begin/1/2/end".
+ */
+class RegexMatcher : public MatcherBase {
+public:
+  RegexMatcher(const std::string &pattern) : regex_(pattern) {}
+
+  bool match(Request &request) const override;
+
+private:
+  std::regex regex_;
+};
+
+} // namespace detail
+
 class Server {
 public:
   using Handler = std::function<void(const Request &, Response &)>;
@@ -709,6 +783,7 @@ public:
   bool remove_mount_point(const std::string &mount_point);
   Server &set_file_extension_and_mimetype_mapping(const std::string &ext,
                                                   const std::string &mime);
+  Server &set_default_file_mimetype(const std::string &mime);
   Server &set_file_request_handler(Handler handler);
 
   Server &set_error_handler(HandlerWithResponse handler);
@@ -772,9 +847,14 @@ protected:
   size_t payload_max_length_ = CPPHTTPLIB_PAYLOAD_MAX_LENGTH;
 
 private:
-  using Handlers = std::vector<std::pair<std::regex, Handler>>;
+  using Handlers =
+      std::vector<std::pair<std::unique_ptr<detail::MatcherBase>, Handler>>;
   using HandlersForContentReader =
-      std::vector<std::pair<std::regex, HandlerWithContentReader>>;
+      std::vector<std::pair<std::unique_ptr<detail::MatcherBase>,
+                            HandlerWithContentReader>>;
+
+  static std::unique_ptr<detail::MatcherBase>
+  make_matcher(const std::string &pattern);
 
   socket_t create_server_socket(const std::string &host, int port,
                                 int socket_flags,
@@ -817,17 +897,19 @@ private:
 
   virtual bool process_and_close_socket(socket_t sock);
 
+  std::atomic<bool> is_running_{false};
+  std::atomic<bool> done_{false};
+
   struct MountPointEntry {
     std::string mount_point;
     std::string base_dir;
     Headers headers;
   };
   std::vector<MountPointEntry> base_dirs_;
-
-  std::atomic<bool> is_running_{false};
-  std::atomic<bool> done_{false};
   std::map<std::string, std::string> file_extension_and_mimetype_map_;
+  std::string default_file_mimetype_ = "application/octet-stream";
   Handler file_request_handler_;
+
   Handlers get_handlers_;
   Handlers post_handlers_;
   HandlersForContentReader post_handlers_for_content_reader_;
@@ -838,12 +920,14 @@ private:
   Handlers delete_handlers_;
   HandlersForContentReader delete_handlers_for_content_reader_;
   Handlers options_handlers_;
+
   HandlerWithResponse error_handler_;
   ExceptionHandler exception_handler_;
   HandlerWithResponse pre_routing_handler_;
   Handler post_routing_handler_;
-  Logger logger_;
   Expect100ContinueHandler expect_100_continue_handler_;
+
+  Logger logger_;
 
   int address_family_ = AF_UNSPEC;
   bool tcp_nodelay_ = CPPHTTPLIB_TCP_NODELAY;
@@ -867,6 +951,7 @@ enum class Error {
   UnsupportedMultipartBoundaryChars,
   Compression,
   ConnectionTimeout,
+  ProxyConnection,
 
   // For internal use only
   SSLPeerCouldBeClosed_,
@@ -878,6 +963,7 @@ std::ostream &operator<<(std::ostream &os, const Error &obj);
 
 class Result {
 public:
+  Result() = default;
   Result(std::unique_ptr<Response> &&res, Error err,
          Headers &&request_headers = Headers{})
       : res_(std::move(res)), err_(err),
@@ -900,13 +986,13 @@ public:
   bool has_request_header(const std::string &key) const;
   std::string get_request_header_value(const std::string &key,
                                        size_t id = 0) const;
-  template <typename T>
-  T get_request_header_value(const std::string &key, size_t id = 0) const;
+  uint64_t get_request_header_value_u64(const std::string &key,
+                                        size_t id = 0) const;
   size_t get_request_header_value_count(const std::string &key) const;
 
 private:
   std::unique_ptr<Response> res_;
-  Error err_;
+  Error err_ = Error::Unknown;
   Headers request_headers_;
 };
 
@@ -1066,11 +1152,13 @@ public:
   bool send(Request &req, Response &res, Error &error);
   Result send(const Request &req);
 
-  size_t is_socket_open() const;
-
-  socket_t socket() const;
-
   void stop();
+
+  std::string host() const;
+  int port() const;
+
+  size_t is_socket_open() const;
+  socket_t socket() const;
 
   void set_hostname_addr_map(std::map<std::string, std::string> addr_map);
 
@@ -1439,11 +1527,13 @@ public:
   bool send(Request &req, Response &res, Error &error);
   Result send(const Request &req);
 
-  size_t is_socket_open() const;
-
-  socket_t socket() const;
-
   void stop();
+
+  std::string host() const;
+  int port() const;
+
+  size_t is_socket_open() const;
+  socket_t socket() const;
 
   void set_hostname_addr_map(std::map<std::string, std::string> addr_map);
 
@@ -1618,15 +1708,9 @@ inline void duration_to_sec_and_usec(const T &duration, U callback) {
   callback(static_cast<time_t>(sec), static_cast<time_t>(usec));
 }
 
-template <typename T>
-inline T get_header_value(const Headers & /*headers*/,
-                          const std::string & /*key*/, size_t /*id*/ = 0,
-                          uint64_t /*def*/ = 0) {}
-
-template <>
-inline uint64_t get_header_value<uint64_t>(const Headers &headers,
-                                           const std::string &key, size_t id,
-                                           uint64_t def) {
+inline uint64_t get_header_value_u64(const Headers &headers,
+                                     const std::string &key, size_t id,
+                                     uint64_t def) {
   auto rng = headers.equal_range(key);
   auto it = rng.first;
   std::advance(it, static_cast<ssize_t>(id));
@@ -1638,14 +1722,14 @@ inline uint64_t get_header_value<uint64_t>(const Headers &headers,
 
 } // namespace detail
 
-template <typename T>
-inline T Request::get_header_value(const std::string &key, size_t id) const {
-  return detail::get_header_value<T>(headers, key, id, 0);
+inline uint64_t Request::get_header_value_u64(const std::string &key,
+                                              size_t id) const {
+  return detail::get_header_value_u64(headers, key, id, 0);
 }
 
-template <typename T>
-inline T Response::get_header_value(const std::string &key, size_t id) const {
-  return detail::get_header_value<T>(headers, key, id, 0);
+inline uint64_t Response::get_header_value_u64(const std::string &key,
+                                               size_t id) const {
+  return detail::get_header_value_u64(headers, key, id, 0);
 }
 
 template <typename... Args>
@@ -1675,19 +1759,89 @@ inline ssize_t Stream::write_format(const char *fmt, const Args &...args) {
 inline void default_socket_options(socket_t sock) {
   int yes = 1;
 #ifdef _WIN32
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char *>(&yes),
-             sizeof(yes));
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+             reinterpret_cast<const char *>(&yes), sizeof(yes));
   setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-             reinterpret_cast<char *>(&yes), sizeof(yes));
+             reinterpret_cast<const char *>(&yes), sizeof(yes));
 #else
 #ifdef SO_REUSEPORT
-  setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<void *>(&yes),
-             sizeof(yes));
+  setsockopt(sock, SOL_SOCKET, SO_REUSEPORT,
+             reinterpret_cast<const void *>(&yes), sizeof(yes));
 #else
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<void *>(&yes),
-             sizeof(yes));
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+             reinterpret_cast<const void *>(&yes), sizeof(yes));
 #endif
 #endif
+}
+
+inline const char *status_message(int status) {
+  switch (status) {
+  case 100: return "Continue";
+  case 101: return "Switching Protocol";
+  case 102: return "Processing";
+  case 103: return "Early Hints";
+  case 200: return "OK";
+  case 201: return "Created";
+  case 202: return "Accepted";
+  case 203: return "Non-Authoritative Information";
+  case 204: return "No Content";
+  case 205: return "Reset Content";
+  case 206: return "Partial Content";
+  case 207: return "Multi-Status";
+  case 208: return "Already Reported";
+  case 226: return "IM Used";
+  case 300: return "Multiple Choice";
+  case 301: return "Moved Permanently";
+  case 302: return "Found";
+  case 303: return "See Other";
+  case 304: return "Not Modified";
+  case 305: return "Use Proxy";
+  case 306: return "unused";
+  case 307: return "Temporary Redirect";
+  case 308: return "Permanent Redirect";
+  case 400: return "Bad Request";
+  case 401: return "Unauthorized";
+  case 402: return "Payment Required";
+  case 403: return "Forbidden";
+  case 404: return "Not Found";
+  case 405: return "Method Not Allowed";
+  case 406: return "Not Acceptable";
+  case 407: return "Proxy Authentication Required";
+  case 408: return "Request Timeout";
+  case 409: return "Conflict";
+  case 410: return "Gone";
+  case 411: return "Length Required";
+  case 412: return "Precondition Failed";
+  case 413: return "Payload Too Large";
+  case 414: return "URI Too Long";
+  case 415: return "Unsupported Media Type";
+  case 416: return "Range Not Satisfiable";
+  case 417: return "Expectation Failed";
+  case 418: return "I'm a teapot";
+  case 421: return "Misdirected Request";
+  case 422: return "Unprocessable Entity";
+  case 423: return "Locked";
+  case 424: return "Failed Dependency";
+  case 425: return "Too Early";
+  case 426: return "Upgrade Required";
+  case 428: return "Precondition Required";
+  case 429: return "Too Many Requests";
+  case 431: return "Request Header Fields Too Large";
+  case 451: return "Unavailable For Legal Reasons";
+  case 501: return "Not Implemented";
+  case 502: return "Bad Gateway";
+  case 503: return "Service Unavailable";
+  case 504: return "Gateway Timeout";
+  case 505: return "HTTP Version Not Supported";
+  case 506: return "Variant Also Negotiates";
+  case 507: return "Insufficient Storage";
+  case 508: return "Loop Detected";
+  case 510: return "Not Extended";
+  case 511: return "Network Authentication Required";
+
+  default:
+  case 500: return "Internal Server Error";
+  }
 }
 
 template <class Rep, class Period>
@@ -1730,6 +1884,7 @@ inline std::string to_string(const Error error) {
     return "Unsupported HTTP multipart boundary characters";
   case Error::Compression: return "Compression failed";
   case Error::ConnectionTimeout: return "Connection timed out";
+  case Error::ProxyConnection: return "Proxy connection failed";
   case Error::Unknown: return "Unknown";
   default: break;
   }
@@ -1743,10 +1898,9 @@ inline std::ostream &operator<<(std::ostream &os, const Error &obj) {
   return os;
 }
 
-template <typename T>
-inline T Result::get_request_header_value(const std::string &key,
-                                          size_t id) const {
-  return detail::get_header_value<T>(request_headers_, key, id, 0);
+inline uint64_t Result::get_request_header_value_u64(const std::string &key,
+                                                     size_t id) const {
+  return detail::get_header_value_u64(request_headers_, key, id, 0);
 }
 
 template <class Rep, class Period>
@@ -1980,6 +2134,29 @@ private:
   const size_t fixed_buffer_size_;
   size_t fixed_buffer_used_size_ = 0;
   std::string glowable_buffer_;
+};
+
+class mmap {
+public:
+  mmap(const char *path);
+  ~mmap();
+
+  bool open(const char *path);
+  void close();
+
+  bool is_open() const;
+  size_t size() const;
+  const char *data() const;
+
+private:
+#if defined(_WIN32)
+  HANDLE hFile_;
+  HANDLE hMapping_;
+#else
+  int fd_;
+#endif
+  size_t size_;
+  void *addr_;
 };
 
 } // namespace detail
