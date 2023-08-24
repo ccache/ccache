@@ -174,12 +174,31 @@ parse_storage_config(const std::string_view entry)
           name = shard;
         }
 
+        const Url shard_url = util::replace_first(url_str, "*", name);
+        try {
+          std::ignore = shard_url.str();
+        } catch (const std::exception& e) {
+          throw core::Error(FMT(
+            "Cannot parse URL {} for shard {}: {}", url_str, name, e.what()));
+        }
         result.shards.push_back({std::string(name), weight});
       }
     }
 
     result.params.attributes.push_back(
       {std::string(key), value, std::string(raw_value)});
+  }
+
+  if (result.shards.empty()) {
+    try {
+      const auto port = result.params.url.port();
+      if (!port.empty() && !util::parse_unsigned(port, 0, 65535, "port")) {
+        throw Url::parse_error(
+          FMT("Port '{}' in '{}' is invalid", port, result.params.url.str()));
+      }
+    } catch (const std::exception& e) {
+      throw core::Error(FMT("Cannot parse URL {}: {}", url_str, e.what()));
+    }
   }
 
   return result;

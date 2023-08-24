@@ -25,6 +25,20 @@ SUITE_remote_url() {
     expect_contains stderr.log "Cannot parse URL"
 
     # -------------------------------------------------------------------------
+    TEST "Reject invalid port"
+
+    export CCACHE_REMOTE_STORAGE="http://localhost:*"
+    $CCACHE_COMPILE -c test.c 2>stderr.log
+    expect_contains stderr.log "Cannot parse URL"
+
+    # -------------------------------------------------------------------------
+    TEST "Reject invalid shard url"
+
+    export CCACHE_REMOTE_STORAGE="redis://localhost:*|shards=foo,bar"
+    $CCACHE_COMPILE -c test.c 2>stderr.log
+    expect_contains stderr.log "Cannot parse URL"
+
+    # -------------------------------------------------------------------------
 if $RUN_WIN_XFAIL; then
     TEST "Reject missing scheme"
 

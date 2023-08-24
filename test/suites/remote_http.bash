@@ -140,7 +140,7 @@ SUITE_remote_http() {
 
     start_http_server 12780 remote1
     start_http_server 12781 remote2
-    export CCACHE_REMOTE_STORAGE="http://localhost:*|shards=12780,12781"
+    export CCACHE_REMOTE_STORAGE="http://localhost:*|shards=12780,12781(2)"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
