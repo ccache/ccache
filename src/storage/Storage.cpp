@@ -212,10 +212,7 @@ Storage::Storage(const Config& config) : local(config), m_config(config)
 
 // Define the destructor in the implementation file to avoid having to declare
 // RemoteStorageEntry and its constituents in the header file.
-// NOLINTNEXTLINE(modernize-use-equals-default)
-Storage::~Storage()
-{
-}
+Storage::~Storage() = default;
 
 void
 Storage::initialize()
