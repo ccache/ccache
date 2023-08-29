@@ -1,5 +1,33 @@
 = Ccache news
 
+== Ccache 4.8.3
+
+Release date: 2023-08-29
+
+=== Bug fixes
+
+- Fixed various problems with parsing of MSVC response file (`.rsp`). +
+  [small]#_[contributed by Jiri Hörner]_#
+
+- Fixed handling of NVCC `-Xcompiler` and `--Werror` options. +
+  [small]#_[contributed by Andrew Hardin]_#
+
+- Fixed bookkeeping of files when hard linking or file cloning is enabled. In
+  ccache 4.8–4.8.2 this could result in incorrect size/count statistics after
+  automatic or explicit cleanup. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Made a workaround for GCC 12.3 bug 109241 where GCC fails to compile ccache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Upgraded to xxHash 0.8.2, which fixes compilation of ccache with GCC 12 and
+  `-Og`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.8.2
 
 Release date: 2023-06-12
@@ -2487,7 +2515,7 @@ Release date: 2018-02-11
 - ccache now treats an unreadable configuration file just like a missing
   configuration file.
 
-- Documented more pitfalls with enabling `hard_links` (`CCACHE_HARDLINK`).
+- Documented more pitfalls with enabling `hard_link` (`CCACHE_HARDLINK`).
 
 - Documented caveats related to colored warnings from compilers.
 
