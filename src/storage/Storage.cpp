@@ -114,6 +114,20 @@ to_string(const RemoteStorageConfig& entry)
   return result;
 }
 
+static Url
+url_from_string(const std::string& url_string)
+{
+  // The Url class is parsing the URL object lazily. Check if the URL is valid
+  // now to avoid exceptions later.
+  try {
+    Url url(url_string);
+    std::ignore = url.str();
+    return url;
+  } catch (const std::exception& e) {
+    throw core::Error(FMT("Cannot parse URL {}: {}", url_string, e.what()));
+  }
+}
+
 static RemoteStorageConfig
 parse_storage_config(const std::string_view entry)
 {
@@ -127,15 +141,7 @@ parse_storage_config(const std::string_view entry)
 
   RemoteStorageConfig result;
   const auto url_str = std::string(parts[0]);
-  result.params.url = url_str;
-
-  // The Url class is parsing the URL object lazily. Check if the URL is valid
-  // now to avoid exceptions later.
-  try {
-    std::ignore = result.params.url.str();
-  } catch (const std::exception& e) {
-    throw core::Error(FMT("Cannot parse URL {}: {}", url_str, e.what()));
-  }
+  result.params.url = url_from_string(url_str);
 
   if (result.params.url.scheme().empty()) {
     throw core::Error(FMT("URL scheme must not be empty: {}", entry));
@@ -369,7 +375,7 @@ get_shard_url(const Digest& key,
     }
   }
 
-  return util::replace_first(url, "*", best_shard);
+  return url_from_string(util::replace_first(url, "*", best_shard));
 }
 
 RemoteStorageBackendEntry*
