@@ -19,7 +19,7 @@
 #pragma once
 
 #include <NonCopyable.hpp>
-#include <assertions.hpp>
+#include <util/assertions.hpp>
 #include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H

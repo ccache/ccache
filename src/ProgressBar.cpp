@@ -20,7 +20,7 @@
 
 #include "fmtmacros.hpp"
 
-#include <assertions.hpp>
+#include <util/assertions.hpp>
 #include <util/wincompat.hpp>
 
 #include "third_party/fmt/core.h"

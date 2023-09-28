@@ -20,13 +20,13 @@
 
 #include "Context.hpp"
 #include "Logging.hpp"
-#include "assertions.hpp"
 #include "compopt.hpp"
 #include "fmtmacros.hpp"
 #include "language.hpp"
 
 #include <Depfile.hpp>
 #include <Util.hpp>
+#include <util/assertions.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

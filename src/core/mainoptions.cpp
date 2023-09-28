@@ -25,7 +25,6 @@
 #include <Logging.hpp>
 #include <ProgressBar.hpp>
 #include <Util.hpp>
-#include <assertions.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
@@ -45,6 +44,7 @@
 #include <util/ThreadPool.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/XXH3_128.hpp>
+#include <util/assertions.hpp>
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>

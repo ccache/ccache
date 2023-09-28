@@ -10,6 +10,7 @@ set(
   TimePoint.cpp
   Tokenizer.cpp
   UmaskScope.cpp
+  assertions.cpp
   environment.cpp
   file.cpp
   filesystem.cpp

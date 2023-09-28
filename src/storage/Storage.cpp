@@ -22,13 +22,13 @@
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
 #include <Util.hpp>
-#include <assertions.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <storage/remote/FileStorage.hpp>
 #include <storage/remote/HttpStorage.hpp>
+#include <util/assertions.hpp>
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/remote/RedisStorage.hpp>
 #endif

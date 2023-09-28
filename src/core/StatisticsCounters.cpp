@@ -18,7 +18,7 @@
 
 #include "StatisticsCounters.hpp"
 
-#include <assertions.hpp>
+#include <util/assertions.hpp>
 
 #include <algorithm>
 

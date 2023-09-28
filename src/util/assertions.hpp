@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,7 +31,7 @@
 #define ASSERT(condition)                                                      \
   do {                                                                         \
     if (!(condition)) {                                                        \
-      handle_failed_assertion(                                                 \
+      util::handle_failed_assertion(                                           \
         __FILE__, __LINE__, CCACHE_FUNCTION, #condition);                      \
     }                                                                          \
   } while (false)
@@ -44,7 +44,11 @@
 #  define DEBUG_ASSERT(condition) ASSERT(condition)
 #endif
 
+namespace util {
+
 [[noreturn]] void handle_failed_assertion(const char* file,
                                           size_t line,
                                           const char* function,
                                           const char* condition);
+
+}

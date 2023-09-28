@@ -20,7 +20,6 @@
 
 #include "MiniTrace.hpp"
 #include "Util.hpp"
-#include "assertions.hpp"
 
 #include <core/AtomicFile.hpp>
 #include <core/common.hpp>
@@ -30,6 +29,7 @@
 #include <util/DirEntry.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/UmaskScope.hpp>
+#include <util/assertions.hpp>
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>

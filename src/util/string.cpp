@@ -18,8 +18,8 @@
 
 #include "string.hpp"
 
-#include <assertions.hpp>
 #include <fmtmacros.hpp>
+#include <util/assertions.hpp>
 
 #include <algorithm>
 #include <cctype>

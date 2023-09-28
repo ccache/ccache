@@ -19,7 +19,8 @@
 #include "SignalHandler.hpp"
 
 #include "Context.hpp"
-#include "assertions.hpp"
+
+#include <util/assertions.hpp>
 
 #include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
 #include <sys/types.h>

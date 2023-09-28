@@ -24,7 +24,6 @@
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
 #include <Util.hpp>
-#include <assertions.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
@@ -37,6 +36,7 @@
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/ThreadPool.hpp>
+#include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>

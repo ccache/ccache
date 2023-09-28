@@ -9,7 +9,6 @@ set(
   ProgressBar.cpp
   Util.cpp
   argprocessing.cpp
-  assertions.cpp
   ccache.cpp
   compopt.cpp
   execute.cpp

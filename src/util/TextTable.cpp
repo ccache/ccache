@@ -18,7 +18,7 @@
 
 #include "TextTable.hpp"
 
-#include <assertions.hpp>
+#include <util/assertions.hpp>
 
 #include <third_party/fmt/core.h>
 

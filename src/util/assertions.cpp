@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,12 +16,14 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "assertions.hpp"
-
 #include "Util.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/assertions.hpp>
+
 #include "third_party/fmt/core.h"
+
+namespace util {
 
 void
 handle_failed_assertion(const char* file,
@@ -37,3 +39,4 @@ handle_failed_assertion(const char* file,
         condition);
   abort();
 }
+} // namespace util

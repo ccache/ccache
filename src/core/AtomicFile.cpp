@@ -16,11 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <assertions.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/TemporaryFile.hpp>
+#include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
