@@ -25,7 +25,6 @@
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
-#include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/UmaskScope.hpp>
@@ -34,6 +33,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

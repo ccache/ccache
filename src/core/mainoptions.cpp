@@ -35,7 +35,6 @@
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
 #include <storage/local/LocalStorage.hpp>
 #include <util/Fd.hpp>
@@ -48,6 +47,7 @@
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 #include <fcntl.h>

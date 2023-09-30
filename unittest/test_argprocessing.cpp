@@ -19,13 +19,13 @@
 #include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
 #include <Util.hpp>
 #include <core/Statistic.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

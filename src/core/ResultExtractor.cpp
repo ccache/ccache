@@ -19,14 +19,13 @@
 #include "ResultExtractor.hpp"
 
 #include "Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/wincompat.hpp>
 
 #include <fcntl.h>

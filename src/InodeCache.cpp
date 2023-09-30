@@ -22,7 +22,6 @@
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
@@ -30,6 +29,7 @@
 #include <util/TemporaryFile.hpp>
 #include <util/conversion.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 
 #include <fcntl.h>
 #include <libgen.h>

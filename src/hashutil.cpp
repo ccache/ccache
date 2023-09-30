@@ -27,9 +27,9 @@
 #include "macroskip.hpp"
 
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 #include <util/time.hpp>
 #include <util/wincompat.hpp>

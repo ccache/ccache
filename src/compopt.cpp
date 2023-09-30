@@ -18,7 +18,7 @@
 
 #include "compopt.hpp"
 
-#include "fmtmacros.hpp"
+#include <util/fmtmacros.hpp>
 
 #include "third_party/fmt/core.h"
 

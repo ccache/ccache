@@ -25,10 +25,10 @@
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
-#include <fmtmacros.hpp>
 #include <util/TimePoint.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/zstd.hpp>
 
 #include <cstring>

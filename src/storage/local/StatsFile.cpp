@@ -21,9 +21,9 @@
 #include <Logging.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 
 namespace storage::local {
 

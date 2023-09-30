@@ -20,12 +20,12 @@
 
 #include <Context.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/Finalizer.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;

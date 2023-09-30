@@ -18,12 +18,12 @@
 
 #include "TestUtil.hpp"
 
-#include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 #include <third_party/doctest.h>

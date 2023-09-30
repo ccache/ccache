@@ -20,8 +20,8 @@
 
 #include <Config.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/assertions.hpp>
+#include <util/fmtmacros.hpp>
 
 namespace core {
 

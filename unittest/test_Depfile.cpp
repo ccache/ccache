@@ -18,10 +18,10 @@
 
 #include "../src/Context.hpp"
 #include "../src/Depfile.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include <Util.hpp>
+#include <util/fmtmacros.hpp>
 
 #include "third_party/doctest.h"
 

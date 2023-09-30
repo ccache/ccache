@@ -18,9 +18,9 @@
 
 #include "TemporaryFile.hpp"
 
-#include <fmtmacros.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/process.hpp>
 
 #include <cstdlib>

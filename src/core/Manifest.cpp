@@ -24,9 +24,9 @@
 #include <core/CacheEntryDataReader.hpp>
 #include <core/CacheEntryDataWriter.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <hashutil.hpp>
 #include <util/XXH3_64.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 // Manifest data format

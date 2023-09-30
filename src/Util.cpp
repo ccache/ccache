@@ -25,11 +25,11 @@
 
 #include <Config.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

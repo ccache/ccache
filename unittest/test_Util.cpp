@@ -18,13 +18,13 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include <core/exceptions.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
 

@@ -18,9 +18,9 @@
 
 #include <Config.hpp>
 #include <Logging.hpp>
-#include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
 #include <util/LongLivedLockFileManager.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 #include <memory>

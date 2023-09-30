@@ -21,12 +21,12 @@
 #include "Logging.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <util/DirEntry.hpp>
 #include <util/assertions.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/process.hpp>
 #include <util/wincompat.hpp>
 

@@ -21,9 +21,9 @@
 #include <Hash.hpp>
 #include <Logging.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/assertions.hpp>
 #include <util/expected.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp> // for timeval
 

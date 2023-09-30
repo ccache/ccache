@@ -20,9 +20,9 @@
 
 #include <Logging.hpp>
 #include <Win32Util.hpp>
-#include <fmtmacros.hpp>
 #include <util/Finalizer.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/wincompat.hpp>
 
 #ifdef _WIN32

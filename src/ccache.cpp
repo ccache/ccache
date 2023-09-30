@@ -33,7 +33,6 @@
 #include "argprocessing.hpp"
 #include "compopt.hpp"
 #include "execute.hpp"
-#include "fmtmacros.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
 
@@ -57,6 +56,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>

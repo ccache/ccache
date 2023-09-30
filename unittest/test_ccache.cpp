@@ -18,10 +18,10 @@
 
 #include "../src/Context.hpp"
 #include "../src/ccache.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
 

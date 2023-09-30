@@ -20,9 +20,9 @@
 
 #include <Util.hpp>
 #include <core/Statistic.hpp>
-#include <fmtmacros.hpp>
 #include <storage/local/StatsFile.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 
 #include <third_party/doctest.h>
 

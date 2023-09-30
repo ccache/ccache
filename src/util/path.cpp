@@ -19,9 +19,9 @@
 #include "path.hpp"
 
 #include <Util.hpp>
-#include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 #ifdef _WIN32

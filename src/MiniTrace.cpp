@@ -19,7 +19,6 @@
 #include "MiniTrace.hpp"
 
 #include "ArgsInfo.hpp"
-#include "fmtmacros.hpp"
 
 #include <core/exceptions.hpp>
 #include <util/TemporaryFile.hpp>
@@ -27,6 +26,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H

@@ -19,8 +19,8 @@
 #pragma once
 
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/conversion.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 #include <third_party/nonstd/span.hpp>

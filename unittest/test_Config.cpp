@@ -18,12 +18,12 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include <core/exceptions.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 
 #include "third_party/doctest.h"
 #include "third_party/fmt/core.h"

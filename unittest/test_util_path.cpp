@@ -17,7 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <Util.hpp>
-#include <fmtmacros.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 
 #include <third_party/doctest.h>

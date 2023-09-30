@@ -21,8 +21,8 @@
 #include "../src/Util.hpp"
 
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
 

@@ -20,7 +20,6 @@
 
 #include <Logging.hpp>
 #include <Win32Util.hpp>
-#include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
@@ -29,6 +28,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

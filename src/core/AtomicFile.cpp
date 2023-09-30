@@ -18,12 +18,12 @@
 
 #include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
 
 namespace fs = util::filesystem;
 

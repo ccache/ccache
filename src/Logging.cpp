@@ -24,9 +24,9 @@
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "execute.hpp"
-#include "fmtmacros.hpp"
 
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/time.hpp>
 #include <util/wincompat.hpp>
 
