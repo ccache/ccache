@@ -31,6 +31,7 @@
 #include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -47,10 +48,6 @@
 
 #ifdef HAVE_SYS_WAIT_H
 #  include <sys/wait.h>
-#endif
-
-#ifdef _WIN32
-#  include "Finalizer.hpp"
 #endif
 
 namespace fs = util::filesystem;
@@ -223,7 +220,7 @@ win32execute(const char* path,
   std::string full_path = Win32Util::add_exe_suffix(path);
   fs::path tmp_file_path;
 
-  Finalizer tmp_file_remover([&tmp_file_path] {
+  util::Finalizer tmp_file_remover([&tmp_file_path] {
     if (!tmp_file_path.empty()) {
       util::remove(tmp_file_path);
     }

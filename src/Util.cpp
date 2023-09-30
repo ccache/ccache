@@ -24,7 +24,6 @@
 #include "Win32Util.hpp"
 
 #include <Config.hpp>
-#include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
 #include <util/DirEntry.hpp>

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,8 @@
 
 #include <functional>
 
+namespace util {
+
 class Finalizer
 {
 public:
@@ -28,7 +30,7 @@ public:
 
 private:
   std::function<void()> m_finalizer;
-};
+}; // namespace class Finalizer
 
 inline Finalizer::Finalizer(std::function<void()> finalizer)
   : m_finalizer(finalizer)
@@ -39,3 +41,5 @@ inline Finalizer::~Finalizer()
 {
   m_finalizer();
 }
+
+} // namespace util

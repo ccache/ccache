@@ -18,10 +18,10 @@
 
 #include "DirEntry.hpp"
 
-#include <Finalizer.hpp>
 #include <Logging.hpp>
 #include <Win32Util.hpp>
 #include <fmtmacros.hpp>
+#include <util/Finalizer.hpp>
 #include <util/file.hpp>
 #include <util/wincompat.hpp>
 
@@ -138,7 +138,7 @@ win32_stat_impl(const char* path,
     return false;
   }
 
-  Finalizer closer([&] { CloseHandle(handle); });
+  util::Finalizer closer([&] { CloseHandle(handle); });
 
   switch (GetFileType(handle)) {
   case FILE_TYPE_DISK: {

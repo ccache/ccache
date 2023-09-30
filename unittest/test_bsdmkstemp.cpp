@@ -16,10 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Finalizer.hpp"
 #include "TestUtil.hpp"
 
 #include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
 #include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
@@ -104,7 +104,8 @@ TEST_CASE("bsd_mkstemps")
     ++rand_iter;
   });
 
-  Finalizer reset_random_source([] { bsd_mkstemp_set_random_source(nullptr); });
+  util::Finalizer reset_random_source(
+    [] { bsd_mkstemp_set_random_source(nullptr); });
 
   SUBCASE("successful")
   {

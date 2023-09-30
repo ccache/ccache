@@ -18,8 +18,8 @@
 
 #include "TestUtil.hpp"
 
-#include <Finalizer.hpp>
 #include <util/DirEntry.hpp>
+#include <util/Finalizer.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -588,7 +588,7 @@ TEST_CASE("Win32 Pending Delete" * doctest::skip(running_under_wine()))
                 FILE_ATTRIBUTE_NORMAL,
                 nullptr);
   REQUIRE_MESSAGE(handle != INVALID_HANDLE_VALUE, "err=" << GetLastError());
-  Finalizer cleanup([&] { CloseHandle(handle); });
+  util::Finalizer cleanup([&] { CloseHandle(handle); });
 
   // Mark file as deleted. This puts it into a "pending delete" state that
   // will persist until the handle is closed. Until the file is closed, new
@@ -621,7 +621,7 @@ TEST_CASE("Win32 No Sharing")
                               FILE_ATTRIBUTE_NORMAL,
                               nullptr);
   REQUIRE_MESSAGE(handle != INVALID_HANDLE_VALUE, "err=" << GetLastError());
-  Finalizer cleanup([&] { CloseHandle(handle); });
+  util::Finalizer cleanup([&] { CloseHandle(handle); });
 
   // Sanity check we can't open the file for read/write access.
   REQUIRE(!util::read_file<std::string>("file"));

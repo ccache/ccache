@@ -24,7 +24,6 @@
 #include "Context.hpp"
 #include "Depfile.hpp"
 #include "File.hpp"
-#include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "MiniTrace.hpp"
@@ -51,6 +50,7 @@
 #include <core/types.hpp>
 #include <storage/Storage.hpp>
 #include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
@@ -2335,7 +2335,7 @@ cache_compilation(int argc, const char* const* argv)
     ctx.initialize(std::move(argv_parts.compiler_and_args),
                    argv_parts.config_settings);
     SignalHandler signal_handler(ctx);
-    Finalizer finalizer([&ctx] { finalize_at_exit(ctx); });
+    util::Finalizer finalizer([&ctx] { finalize_at_exit(ctx); });
 
     initialize(ctx, argv, argv_parts.masquerading_as_compiler);
 

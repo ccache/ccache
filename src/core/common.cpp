@@ -19,9 +19,9 @@
 #include "common.hpp"
 
 #include <Context.hpp>
-#include <Finalizer.hpp>
 #include <core/exceptions.hpp>
 #include <fmtmacros.hpp>
+#include <util/Finalizer.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -133,7 +133,7 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
   // newlines a second time since we treat output as binary data. Make sure to
   // switch to binary mode.
   int oldmode = _setmode(fd, _O_BINARY);
-  Finalizer binary_mode_restorer([=] { _setmode(fd, oldmode); });
+  util::Finalizer binary_mode_restorer([=] { _setmode(fd, oldmode); });
 #endif
 
   if (ctx.args_info.strip_diagnostics_colors) {

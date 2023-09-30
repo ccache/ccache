@@ -19,7 +19,6 @@
 #include "InodeCache.hpp"
 
 #include "Config.hpp"
-#include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
@@ -27,6 +26,7 @@
 
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/conversion.hpp>
 #include <util/file.hpp>
@@ -352,7 +352,7 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
 
-  Finalizer temp_file_remover([&] { unlink(tmp_file->path.c_str()); });
+  util::Finalizer temp_file_remover([&] { unlink(tmp_file->path.c_str()); });
 
   if (!fd_is_on_known_to_work_file_system(*tmp_file->fd)) {
     return false;
