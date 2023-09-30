@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include "NonCopyable.hpp"
+#include <util/NonCopyable.hpp>
 
 #include <cstdio>
 #include <string>
 
-class File : public NonCopyable
+class File : util::NonCopyable
 {
 public:
   File() = default;

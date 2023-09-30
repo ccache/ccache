@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <NonCopyable.hpp>
+#include <util/NonCopyable.hpp>
 #include <util/assertions.hpp>
 #include <util/wincompat.hpp>
 
@@ -28,7 +28,7 @@
 
 namespace util {
 
-class Fd : NonCopyable
+class Fd : util::NonCopyable
 {
 public:
   Fd() = default;

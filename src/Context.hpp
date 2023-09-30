@@ -23,7 +23,8 @@
 #include "Config.hpp"
 #include "File.hpp"
 #include "MiniTrace.hpp"
-#include "NonCopyable.hpp"
+
+#include <util/NonCopyable.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
@@ -43,7 +44,7 @@
 
 class SignalHandler;
 
-class Context : NonCopyable
+class Context : util::NonCopyable
 {
 public:
   Context();

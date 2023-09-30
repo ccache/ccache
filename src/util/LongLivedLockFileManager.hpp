@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <NonCopyable.hpp>
+#include <util/NonCopyable.hpp>
 
 #include <condition_variable>
 #include <filesystem>
@@ -28,7 +28,7 @@
 
 namespace util {
 
-class LongLivedLockFileManager : NonCopyable
+class LongLivedLockFileManager : util::NonCopyable
 {
 public:
   LongLivedLockFileManager() = default;

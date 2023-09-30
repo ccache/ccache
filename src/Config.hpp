@@ -18,9 +18,8 @@
 
 #pragma once
 
-#include "NonCopyable.hpp"
-
 #include <core/Sloppiness.hpp>
+#include <util/NonCopyable.hpp>
 #include <util/string.hpp>
 
 #include <sys/types.h>
@@ -46,7 +45,7 @@ enum class CompilerType {
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
-class Config : NonCopyable
+class Config : util::NonCopyable
 {
 public:
   Config() = default;

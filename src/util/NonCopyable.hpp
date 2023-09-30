@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #pragma once
 
+namespace util {
+
 class NonCopyable
 {
 public:
@@ -27,3 +29,5 @@ public:
 protected:
   NonCopyable() = default;
 };
+
+} // namespace util

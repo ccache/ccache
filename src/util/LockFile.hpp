@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <NonCopyable.hpp>
 #include <util/LongLivedLockFileManager.hpp>
+#include <util/NonCopyable.hpp>
 #include <util/TimePoint.hpp>
 
 #include <filesystem>
@@ -30,7 +30,7 @@ namespace util {
 // Unless make_long_lived is called, the lock is expected to be released shortly
 // after being acquired - if it is held for more than two seconds it risks being
 // considered stale by another client.
-class LockFile : NonCopyable
+class LockFile : util::NonCopyable
 {
 public:
   explicit LockFile(const std::filesystem::path& path);
