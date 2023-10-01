@@ -19,7 +19,6 @@
 #include "mainoptions.hpp"
 
 #include <Config.hpp>
-#include <File.hpp>
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <Logging.hpp>
@@ -38,6 +37,7 @@
 #include <storage/Storage.hpp>
 #include <storage/local/LocalStorage.hpp>
 #include <util/Fd.hpp>
+#include <util/FileStream.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/ThreadPool.hpp>

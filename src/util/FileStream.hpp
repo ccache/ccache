@@ -23,16 +23,18 @@
 #include <cstdio>
 #include <string>
 
-class File : util::NonCopyable
+namespace util {
+
+class FileStream : util::NonCopyable
 {
 public:
-  File() = default;
-  explicit File(FILE* file);
-  File(const std::string& path, const char* mode);
-  File(File&& other) noexcept;
-  ~File();
+  FileStream() = default;
+  explicit FileStream(FILE* file);
+  FileStream(const std::string& path, const char* mode);
+  FileStream(FileStream&& other) noexcept;
+  ~FileStream();
 
-  File& operator=(File&& other) noexcept;
+  FileStream& operator=(FileStream&& other) noexcept;
 
   void open(const std::string& path, const char* mode);
   void close();
@@ -46,16 +48,16 @@ private:
   bool m_owned = false;
 };
 
-inline File::File(FILE* const file) : m_file(file), m_owned(false)
+inline FileStream::FileStream(FILE* const file) : m_file(file), m_owned(false)
 {
 }
 
-inline File::File(const std::string& path, const char* mode)
+inline FileStream::FileStream(const std::string& path, const char* mode)
 {
   open(path, mode);
 }
 
-inline File::File(File&& other) noexcept
+inline FileStream::FileStream(FileStream&& other) noexcept
   : m_file(other.m_file),
     m_owned(other.m_owned)
 {
@@ -63,13 +65,13 @@ inline File::File(File&& other) noexcept
   other.m_owned = false;
 }
 
-inline File::~File()
+inline FileStream::~FileStream()
 {
   close();
 }
 
-inline File&
-File::operator=(File&& other) noexcept
+inline FileStream&
+FileStream::operator=(FileStream&& other) noexcept
 {
   m_file = other.m_file;
   m_owned = other.m_owned;
@@ -79,7 +81,7 @@ File::operator=(File&& other) noexcept
 }
 
 inline void
-File::open(const std::string& path, const char* mode)
+FileStream::open(const std::string& path, const char* mode)
 {
   close();
   m_file = fopen(path.c_str(), mode);
@@ -87,7 +89,7 @@ File::open(const std::string& path, const char* mode)
 }
 
 inline void
-File::close()
+FileStream::close()
 {
   if (m_file && m_owned) {
     fclose(m_file);
@@ -96,19 +98,21 @@ File::close()
   m_owned = false;
 }
 
-inline File::operator bool() const
+inline FileStream::operator bool() const
 {
   return m_file;
 }
 
 inline FILE*
-File::operator*() const
+FileStream::operator*() const
 {
   return m_file;
 }
 
 inline FILE*
-File::get()
+FileStream::get()
 {
   return m_file;
 }
+
+} // namespace util

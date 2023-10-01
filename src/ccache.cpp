@@ -23,7 +23,6 @@
 #include "ArgsInfo.hpp"
 #include "Context.hpp"
 #include "Depfile.hpp"
-#include "File.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "MiniTrace.hpp"
@@ -49,6 +48,7 @@
 #include <core/types.hpp>
 #include <storage/Storage.hpp>
 #include <util/Fd.hpp>
+#include <util/FileStream.hpp>
 #include <util/Finalizer.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/UmaskScope.hpp>
@@ -230,7 +230,7 @@ init_hash_debug(Context& ctx,
                                        ctx.time_of_invocation,
                                        ctx.args_info.output_obj,
                                        FMT("input-{}", type));
-  File debug_binary_file(path, "wb");
+  util::FileStream debug_binary_file(path, "wb");
   if (debug_binary_file) {
     hash.enable_debug(section_name, debug_binary_file.get(), debug_text_file);
     ctx.hash_debug_files.push_back(std::move(debug_binary_file));
@@ -2496,7 +2496,7 @@ do_cache_compilation(Context& ctx)
                                          ctx.time_of_invocation,
                                          ctx.args_info.orig_output_obj,
                                          "input-text");
-    File debug_text_file(path, "w");
+    util::FileStream debug_text_file(path, "w");
     if (debug_text_file) {
       ctx.hash_debug_files.push_back(std::move(debug_text_file));
     } else {

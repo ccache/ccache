@@ -21,9 +21,9 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
-#include "File.hpp"
 #include "MiniTrace.hpp"
 
+#include <util/FileStream.hpp>
 #include <util/NonCopyable.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -105,7 +105,7 @@ public:
   pid_t compiler_pid = 0;
 
   // Files used by the hash debugging functionality.
-  std::vector<File> hash_debug_files;
+  std::vector<util::FileStream> hash_debug_files;
 
   // Options to ignore for the hash.
   const std::vector<std::string>& ignore_options() const;

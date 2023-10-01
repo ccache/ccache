@@ -20,11 +20,11 @@
 #include "Logging.hpp"
 
 #include "Config.hpp"
-#include "File.hpp"
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "execute.hpp"
 
+#include <util/FileStream.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/time.hpp>
@@ -48,7 +48,7 @@ namespace {
 
 // Logfile path and file handle, read from Config::log_file().
 std::string logfile_path;
-File logfile;
+util::FileStream logfile;
 
 // Whether to use syslog() instead.
 bool use_syslog = false;
@@ -182,7 +182,7 @@ dump_log(const std::string& path)
   if (!enabled()) {
     return;
   }
-  File file(path, "w");
+  util::FileStream file(path, "w");
   if (file) {
     (void)fwrite(debug_log_buffer.data(), debug_log_buffer.length(), 1, *file);
   } else {

@@ -20,7 +20,6 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "File.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
 
@@ -31,6 +30,7 @@
 #include <core/exceptions.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
+#include <util/FileStream.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>

@@ -92,7 +92,7 @@ win32getshell(const std::string& path)
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
-    File fp(path, "r");
+    util::FileStream fp(path, "r");
     if (fp) {
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());

@@ -20,7 +20,6 @@
 
 #include <Config.hpp>
 #include <Context.hpp>
-#include <File.hpp>
 #include <Logging.hpp>
 #include <MiniTrace.hpp>
 #include <Util.hpp>
@@ -32,6 +31,7 @@
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
 #include <util/Duration.hpp>
+#include <util/FileStream.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/ThreadPool.hpp>
