@@ -33,6 +33,32 @@ namespace {
 
 #ifdef _WIN32
 
+template<typename Proc>
+Proc*
+get_proc_address(HMODULE module, const char* proc_name)
+{
+#  if defined __GNUC__
+#    pragma GCC diagnostic push
+#    if __GNUC__ >= 8
+#      pragma GCC diagnostic ignored "-Wcast-function-type"
+#    endif
+#  endif
+  return reinterpret_cast<Proc*>(GetProcAddress(module, proc_name));
+#  if defined __GNUC__
+#    pragma GCC diagnostic pop
+#  endif
+}
+
+// Returns the last NTSTATUS code. (These can be more specific than the
+// corresponding Win32 error code.)
+NTSTATUS
+get_last_ntstatus()
+{
+  static auto* get_last_ntstatus_fn = get_proc_address<NTSTATUS NTAPI()>(
+    GetModuleHandleA("ntdll.dll"), "RtlGetLastNtStatus");
+  return get_last_ntstatus_fn();
+}
+
 uint16_t
 win32_file_attributes_to_stat_mode(DWORD attr)
 {
@@ -131,7 +157,7 @@ win32_stat_impl(const char* path,
 
   if (handle == INVALID_HANDLE_VALUE) {
     if (GetLastError() == ERROR_ACCESS_DENIED
-        && Win32Util::get_last_ntstatus() == STATUS_DELETE_PENDING) {
+        && get_last_ntstatus() == STATUS_DELETE_PENDING) {
       // Treat a 'pending delete' as a nonexistent file.
       SetLastError(ERROR_FILE_NOT_FOUND);
     }

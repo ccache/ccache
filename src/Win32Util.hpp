@@ -41,10 +41,6 @@ std::string argv_to_string(const char* const* argv,
 // Return the error message corresponding to `error_code`.
 std::string error_message(DWORD error_code);
 
-// Returns the last NTSTATUS code. (These can be more specific than the
-// corresponding Win32 error code.)
-NTSTATUS get_last_ntstatus();
-
 } // namespace Win32Util
 
 #endif
