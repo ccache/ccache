@@ -406,7 +406,7 @@ hash_command_output(Hash& hash,
   if (using_cmd_exe) {
     win32args = adjusted_command; // quoted
   } else {
-    win32args = Win32Util::argv_to_string(argv.data(), sh);
+    win32args = util::format_argv_as_win32_command_string(argv.data(), sh);
   }
   BOOL ret = CreateProcess(path.c_str(),
                            const_cast<char*>(win32args.c_str()),

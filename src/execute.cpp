@@ -216,7 +216,7 @@ win32execute(const char* path,
     }
   }
 
-  std::string args = Win32Util::argv_to_string(argv, sh);
+  std::string args = util::format_argv_as_win32_command_string(argv, sh);
   std::string full_path = util::add_exe_suffix(path);
   fs::path tmp_file_path;
 
@@ -229,7 +229,7 @@ win32execute(const char* path,
   if (args.length() > 8192) {
     auto tmp_file = util::value_or_throw<core::Fatal>(
       util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
-    args = Win32Util::argv_to_string(argv + 1, sh, true);
+    args = util::format_argv_as_win32_command_string(argv + 1, sh, true);
     util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;

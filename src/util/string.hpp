@@ -45,6 +45,15 @@ enum class SizeUnitPrefixType { binary, decimal };
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
 
+// Recreate a Windows command line string based on `argv`. If `prefix` is
+// non-empty, add it as the first argument. If `escape_backslashes` is true,
+// emit an additional backslash for each backslash that is not preceding '"' and
+// is not at the end of `argv[i]` either.
+std::string
+format_argv_as_win32_command_string(const char* const* argv,
+                                    const std::string& prefix,
+                                    bool escape_backslashes = false);
+
 // Format `argv` as a simple string for logging purposes. That is, the result is
 // not intended to be easily machine parsable. `argv` must be terminated by a
 // nullptr.

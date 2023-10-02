@@ -26,14 +26,6 @@
 
 namespace Win32Util {
 
-// Recreate a Windows command line string based on `argv`. If `prefix` is
-// non-empty, add it as the first argument. If `escape_backslashes` is true,
-// emit an additional backslash for each backslash that is not preceding '"' and
-// is not at the end of `argv[i]` either.
-std::string argv_to_string(const char* const* argv,
-                           const std::string& prefix,
-                           bool escape_backslashes = false);
-
 // Return the error message corresponding to `error_code`.
 std::string error_message(DWORD error_code);
 

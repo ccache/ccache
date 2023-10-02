@@ -49,49 +49,4 @@ error_message(DWORD error_code)
   return message;
 }
 
-std::string
-argv_to_string(const char* const* argv,
-               const std::string& prefix,
-               bool escape_backslashes)
-{
-  std::string result;
-  size_t i = 0;
-  const char* arg = prefix.empty() ? argv[i++] : prefix.c_str();
-
-  do {
-    int bs = 0;
-    result += '"';
-    for (size_t j = 0; arg[j]; ++j) {
-      switch (arg[j]) {
-      case '\\':
-        if (!escape_backslashes) {
-          ++bs;
-          break;
-        }
-        [[fallthrough]];
-
-      case '"':
-        bs = (bs << 1) + 1;
-        [[fallthrough]];
-
-      default:
-        while (bs > 0) {
-          result += '\\';
-          --bs;
-        }
-        result += arg[j];
-      }
-    }
-    bs <<= 1;
-    while (bs > 0) {
-      result += '\\';
-      --bs;
-    }
-    result += "\" ";
-  } while ((arg = argv[i++]));
-
-  result.resize(result.length() - 1);
-  return result;
-}
-
 } // namespace Win32Util

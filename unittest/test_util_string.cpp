@@ -39,6 +39,42 @@ operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
 
 TEST_SUITE_BEGIN("util");
 
+TEST_CASE("util::format_argv_as_win32_command_string")
+{
+  {
+    const char* const argv[] = {"a", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "") == R"("a")");
+  }
+  {
+    const char* const argv[] = {"a", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "p") == R"("p" "a")");
+  }
+  {
+    const char* const argv[] = {"a", "b c", "\"d\"", "'e'", "\\\"h", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "")
+          == R"("a" "b c" "\"d\"" "'e'" "\\\"h")");
+  }
+  {
+    const char* const argv[] = {"a\\b\\c", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "") == R"("a\b\c")");
+  }
+  {
+    const char* const argv[] = {"a\\b\\c", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "", true)
+          == R"("a\\b\\c")");
+  }
+  {
+    const char* const argv[] = {R"(a\b \"c\" \)", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "")
+          == R"("a\b \\\"c\\\" \\")");
+  }
+  {
+    const char* const argv[] = {R"(a\b \"c\" \)", nullptr};
+    CHECK(util::format_argv_as_win32_command_string(argv, "", true)
+          == R"("a\\b \\\"c\\\" \\")");
+  }
+}
+
 TEST_CASE("util::format_argv_for_logging")
 {
   SUBCASE("nullptr")

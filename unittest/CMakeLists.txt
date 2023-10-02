@@ -44,7 +44,7 @@ if(INODE_CACHE_SUPPORTED)
 endif()
 
 if(WIN32)
-  list(APPEND source_files test_bsdmkstemp.cpp test_Win32Util.cpp)
+  list(APPEND source_files test_bsdmkstemp.cpp)
 endif()
 
 file(GLOB headers *.hpp)
