@@ -49,6 +49,17 @@ actual_cwd()
 }
 
 std::string
+add_exe_suffix(const std::string& program)
+{
+  auto ext = util::to_lowercase(Util::get_extension(program));
+  if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
+    return program;
+  } else {
+    return program + ".exe";
+  }
+}
+
+std::string
 apparent_cwd(const std::string& actual_cwd)
 {
 #ifdef _WIN32

@@ -32,6 +32,10 @@ namespace util {
 // normalized path without symlink parts). Returns the empty string on error.
 std::string actual_cwd();
 
+// Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat"
+// or ".sh".
+std::string add_exe_suffix(const std::string& program);
+
 // Return current working directory (CWD) by reading the environment variable
 // PWD (thus keeping any symlink parts in the path and potentially ".." or "//"
 // parts). If PWD does not resolve to the same inode as `actual_cwd` then

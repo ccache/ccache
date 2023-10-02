@@ -24,6 +24,14 @@
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 
+TEST_CASE("util::add_exe_suffix")
+{
+  CHECK(util::add_exe_suffix("foo") == "foo.exe");
+  CHECK(util::add_exe_suffix("foo.bat") == "foo.bat");
+  CHECK(util::add_exe_suffix("foo.exe") == "foo.exe");
+  CHECK(util::add_exe_suffix("foo.sh") == "foo.sh");
+}
+
 TEST_CASE("util::is_absolute_path")
 {
 #ifdef _WIN32

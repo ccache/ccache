@@ -217,7 +217,7 @@ win32execute(const char* path,
   }
 
   std::string args = Win32Util::argv_to_string(argv, sh);
-  std::string full_path = Win32Util::add_exe_suffix(path);
+  std::string full_path = util::add_exe_suffix(path);
   fs::path tmp_file_path;
 
   util::Finalizer tmp_file_remover([&tmp_file_path] {

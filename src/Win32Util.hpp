@@ -26,10 +26,6 @@
 
 namespace Win32Util {
 
-// Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat"
-// or ".sh".
-std::string add_exe_suffix(const std::string& program);
-
 // Recreate a Windows command line string based on `argv`. If `prefix` is
 // non-empty, add it as the first argument. If `escape_backslashes` is true,
 // emit an additional backslash for each backslash that is not preceding '"' and

@@ -1400,7 +1400,7 @@ hash_common_info(const Context& ctx,
   hash.hash(ctx.config.cpp_extension());
 
 #ifdef _WIN32
-  const std::string compiler_path = Win32Util::add_exe_suffix(args[0]);
+  const std::string compiler_path = util::add_exe_suffix(args[0]);
 #else
   const std::string compiler_path = args[0];
 #endif
