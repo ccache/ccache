@@ -22,16 +22,14 @@
 #include <third_party/fmt/format.h>
 #include <third_party/fmt/std.h>
 
-#include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 
 // Log a raw message (plus a newline character).
 #define LOG_RAW(message_)                                                      \
   do {                                                                         \
-    if (Logging::enabled()) {                                                  \
-      Logging::log(std::string_view(message_));                                \
+    if (util::logging::enabled()) {                                            \
+      util::logging::log(std::string_view(message_));                          \
     }                                                                          \
   } while (false)
 
@@ -44,18 +42,18 @@
 // is checked at compile time.
 #define BULK_LOG(format_, ...)                                                 \
   do {                                                                         \
-    if (Logging::enabled()) {                                                  \
-      Logging::bulk_log(fmt::format(FMT_STRING(format_), __VA_ARGS__));        \
+    if (util::logging::enabled()) {                                            \
+      util::logging::bulk_log(fmt::format(FMT_STRING(format_), __VA_ARGS__));  \
     }                                                                          \
   } while (false)
 
 class Config;
 
-namespace Logging {
+namespace util::logging {
 
 // Initialize global logging state. Must be called once before using the other
 // logging functions.
-void init(const Config& config);
+void init(bool debug, const std::string& log_file);
 
 // Return whether logging is enabled to at least one destination.
 bool enabled();
@@ -67,7 +65,7 @@ void log(std::string_view message);
 // timestamp.
 void bulk_log(std::string_view message);
 
-// Write the current log memory buffer `path`.
+// Write the current log memory buffer to `path`.
 void dump_log(const std::string& path);
 
-} // namespace Logging
+} // namespace util::logging

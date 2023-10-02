@@ -18,10 +18,10 @@
 
 #include "DirEntry.hpp"
 
-#include <Logging.hpp>
 #include <util/Finalizer.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/wincompat.hpp>
 
 #ifdef _WIN32

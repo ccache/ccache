@@ -20,13 +20,13 @@
 
 #include <Context.hpp>
 #include <Hash.hpp>
-#include <Logging.hpp>
 #include <core/CacheEntryDataReader.hpp>
 #include <core/CacheEntryDataWriter.hpp>
 #include <core/exceptions.hpp>
 #include <hashutil.hpp>
 #include <util/XXH3_64.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 // Manifest data format

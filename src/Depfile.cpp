@@ -20,13 +20,13 @@
 
 #include "Context.hpp"
 #include "Hash.hpp"
-#include "Logging.hpp"
 
 #include <Util.hpp>
 #include <core/exceptions.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/assertions.hpp>
 #include <util/file.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 

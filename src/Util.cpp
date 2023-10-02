@@ -20,7 +20,6 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Logging.hpp"
 
 #include <Config.hpp>
 #include <core/exceptions.hpp>
@@ -29,6 +28,7 @@
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

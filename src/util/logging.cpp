@@ -17,17 +17,13 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Logging.hpp"
-
 #include "Config.hpp"
-#include "Util.hpp"
-#include "execute.hpp"
 
 #include <util/FileStream.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/time.hpp>
-#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -124,24 +120,24 @@ do_log(std::string_view message, bool bulk)
 
 } // namespace
 
-namespace Logging {
+namespace util::logging {
 
 // Initialize logging. Call only once.
 void
-init(const Config& config)
+init(bool debug, const std::string& log_file)
 {
-  debug_log_enabled = config.debug();
+  debug_log_enabled = debug;
 
 #ifdef HAVE_SYSLOG
-  if (config.log_file() == "syslog") {
+  if (log_file == "syslog") {
     use_syslog = true;
     openlog("ccache", LOG_PID, LOG_USER);
     return; // Don't open logfile
   }
 #endif
 
-  if (!config.log_file().empty()) {
-    logfile_path = config.log_file();
+  if (!log_file.empty()) {
+    logfile_path = log_file;
     logfile.open(logfile_path, "a");
     if (logfile) {
       util::set_cloexec_flag(fileno(*logfile));
@@ -189,4 +185,4 @@ dump_log(const std::string& path)
   }
 }
 
-} // namespace Logging
+} // namespace util::logging

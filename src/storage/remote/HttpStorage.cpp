@@ -19,12 +19,12 @@
 #include "HttpStorage.hpp"
 
 #include <Hash.hpp>
-#include <Logging.hpp>
 #include <ccache.hpp>
 #include <core/exceptions.hpp>
 #include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 #include <util/types.hpp>
 

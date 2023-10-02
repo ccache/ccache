@@ -18,10 +18,10 @@
 
 #include "StatsLog.hpp"
 
-#include <Logging.hpp>
 #include <core/Statistics.hpp>
 #include <util/FileStream.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 #include <fstream>
 

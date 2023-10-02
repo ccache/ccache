@@ -17,10 +17,10 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <Config.hpp>
-#include <Logging.hpp>
 #include <util/LockFile.hpp>
 #include <util/LongLivedLockFileManager.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 #include <memory>
@@ -38,7 +38,7 @@ main(int argc, char** argv)
   }
   Config config;
   config.update_from_environment();
-  Logging::init(config);
+  util::logging::init(config.debug(), config.log_file());
 
   const std::string path(argv[1]);
   const auto seconds = util::parse_signed(argv[2]);

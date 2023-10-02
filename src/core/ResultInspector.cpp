@@ -19,9 +19,9 @@
 #include "ResultInspector.hpp"
 
 #include "Context.hpp"
-#include "Logging.hpp"
 
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 namespace core {
 

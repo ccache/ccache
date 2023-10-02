@@ -21,7 +21,6 @@
 #include <Config.hpp>
 #include <Hash.hpp>
 #include <InodeCache.hpp>
-#include <Logging.hpp>
 #include <ProgressBar.hpp>
 #include <Util.hpp>
 #include <ccache.hpp>
@@ -48,6 +47,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 #include <fcntl.h>
@@ -550,7 +550,7 @@ process_main_options(int argc, const char* const* argv)
          != -1) {
     Config config;
     config.read();
-    Logging::init(config);
+    util::logging::init(config.debug(), config.log_file());
 
     util::UmaskScope umask_scope(config.umask());
 

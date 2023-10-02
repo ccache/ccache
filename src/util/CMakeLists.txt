@@ -15,6 +15,7 @@ set(
   error.cpp
   file.cpp
   filesystem.cpp
+  logging.cpp
   path.cpp
   process.cpp
   string.cpp

@@ -18,7 +18,6 @@
 
 #include "CacheEntry.hpp"
 
-#include <Logging.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntryDataReader.hpp>
 #include <core/CacheEntryDataWriter.hpp>
@@ -29,6 +28,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/zstd.hpp>
 
 #include <cstring>

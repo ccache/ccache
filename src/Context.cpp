@@ -18,13 +18,13 @@
 
 #include "Context.hpp"
 
-#include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"
 
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
@@ -56,7 +56,7 @@ Context::initialize(Args&& compiler_and_args,
 {
   orig_args = std::move(compiler_and_args);
   config.read(cmdline_config_settings);
-  Logging::init(config);
+  util::logging::init(config.debug(), config.log_file());
   ignore_header_paths =
     util::split_path_list(config.ignore_headers_in_manifest());
   set_ignore_options(util::split_into_strings(config.ignore_options(), " "));

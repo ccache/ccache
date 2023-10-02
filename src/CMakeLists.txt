@@ -5,7 +5,6 @@ set(
   Context.cpp
   Depfile.cpp
   Hash.cpp
-  Logging.cpp
   ProgressBar.cpp
   Util.cpp
   argprocessing.cpp

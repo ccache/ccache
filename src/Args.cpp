@@ -18,9 +18,9 @@
 
 #include "Args.hpp"
 
-#include <Logging.hpp>
 #include <core/exceptions.hpp>
 #include <util/file.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))

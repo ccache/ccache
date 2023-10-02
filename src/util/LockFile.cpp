@@ -18,7 +18,6 @@
 
 #include "LockFile.hpp"
 
-#include "Logging.hpp"
 #include "Util.hpp"
 
 #include <util/DirEntry.hpp>
@@ -27,6 +26,7 @@
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/process.hpp>
 #include <util/wincompat.hpp>
 

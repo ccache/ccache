@@ -18,7 +18,6 @@
 
 #include "file.hpp"
 
-#include <Logging.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
@@ -29,6 +28,7 @@
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

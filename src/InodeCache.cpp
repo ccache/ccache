@@ -20,7 +20,6 @@
 
 #include "Config.hpp"
 #include "Hash.hpp"
-#include "Logging.hpp"
 #include "Util.hpp"
 
 #include <util/DirEntry.hpp>
@@ -30,6 +29,7 @@
 #include <util/conversion.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 #include <fcntl.h>
 #include <libgen.h>

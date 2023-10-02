@@ -24,7 +24,6 @@
 #include "Context.hpp"
 #include "Depfile.hpp"
 #include "Hash.hpp"
-#include "Logging.hpp"
 #include "MiniTrace.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
@@ -56,6 +55,7 @@
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/process.hpp>
 #include <util/string.hpp>
@@ -2289,10 +2289,10 @@ finalize_at_exit(Context& ctx)
 
   // Dump log buffer last to not lose any logs.
   if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
-    Logging::dump_log(prepare_debug_path(ctx.config.debug_dir(),
-                                         ctx.time_of_invocation,
-                                         ctx.args_info.output_obj,
-                                         "log"));
+    util::logging::dump_log(prepare_debug_path(ctx.config.debug_dir(),
+                                               ctx.time_of_invocation,
+                                               ctx.args_info.output_obj,
+                                               "log"));
   }
 }
 

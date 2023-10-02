@@ -21,7 +21,6 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Logging.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
 
@@ -29,6 +28,7 @@
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 #include <util/time.hpp>
 #include <util/wincompat.hpp>

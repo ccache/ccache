@@ -18,7 +18,6 @@
 
 #include "FileStorage.hpp"
 
-#include <Logging.hpp>
 #include <Util.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
@@ -30,6 +29,7 @@
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 #include <sys/stat.h> // for mode_t

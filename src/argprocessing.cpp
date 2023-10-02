@@ -19,7 +19,6 @@
 #include "argprocessing.hpp"
 
 #include "Context.hpp"
-#include "Logging.hpp"
 #include "compopt.hpp"
 #include "language.hpp"
 
@@ -27,6 +26,7 @@
 #include <Util.hpp>
 #include <util/assertions.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

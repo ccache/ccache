@@ -18,12 +18,12 @@
 
 #include "StatsFile.hpp"
 
-#include <Logging.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 namespace storage::local {
 
