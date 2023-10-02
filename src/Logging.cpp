@@ -21,7 +21,6 @@
 
 #include "Config.hpp"
 #include "Util.hpp"
-#include "Win32Util.hpp"
 #include "execute.hpp"
 
 #include <util/FileStream.hpp>

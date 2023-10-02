@@ -16,19 +16,36 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "error.hpp"
+
+#include <util/wincompat.hpp>
+
+namespace util {
 
 #ifdef _WIN32
 
-#  include <util/wincompat.hpp>
-
-#  include <string>
-
-namespace Win32Util {
-
-// Return the error message corresponding to `error_code`.
-std::string error_message(DWORD error_code);
-
-} // namespace Win32Util
+std::string
+win32_error_message(uint32_t error_code)
+{
+  LPSTR buffer;
+  size_t size =
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                     | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   nullptr,
+                   error_code,
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                   reinterpret_cast<LPSTR>(&buffer),
+                   0,
+                   nullptr);
+  std::string message(buffer, size);
+  while (!message.empty()
+         && (message.back() == '\n' || message.back() == '\r')) {
+    message.pop_back();
+  }
+  LocalFree(buffer);
+  return message;
+}
 
 #endif
+
+} // namespace util

@@ -19,7 +19,6 @@
 #include "DirEntry.hpp"
 
 #include <Logging.hpp>
-#include <Win32Util.hpp>
 #include <util/Finalizer.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>

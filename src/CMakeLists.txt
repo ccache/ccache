@@ -25,9 +25,7 @@ if(MTR_ENABLED)
   list(APPEND source_files MiniTrace.cpp)
 endif()
 
-if(WIN32)
-  list(APPEND source_files Win32Util.cpp)
-else()
+if(NOT WIN32)
   list(APPEND source_files SignalHandler.cpp)
 endif()
 

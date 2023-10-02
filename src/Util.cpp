@@ -21,7 +21,6 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Logging.hpp"
-#include "Win32Util.hpp"
 
 #include <Config.hpp>
 #include <core/exceptions.hpp>

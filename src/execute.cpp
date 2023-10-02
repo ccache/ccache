@@ -24,7 +24,6 @@
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
-#include "Win32Util.hpp"
 
 #include <ccache.hpp>
 #include <core/exceptions.hpp>
@@ -32,6 +31,7 @@
 #include <util/Fd.hpp>
 #include <util/Finalizer.hpp>
 #include <util/TemporaryFile.hpp>
+#include <util/error.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -122,7 +122,7 @@ win32execute(const char* path,
     if (!job_success) {
       DWORD error = GetLastError();
       LOG("failed to IsProcessInJob: {} ({})",
-          Win32Util::error_message(error),
+          util::win32_error_message(error),
           error);
       return 0;
     }
@@ -137,7 +137,7 @@ win32execute(const char* path,
       if (!querySuccess) {
         DWORD error = GetLastError();
         LOG("failed to QueryInformationJobObject: {} ({})",
-            Win32Util::error_message(error),
+            util::win32_error_message(error),
             error);
         return 0;
       }
@@ -160,7 +160,7 @@ win32execute(const char* path,
     if (job == nullptr) {
       DWORD error = GetLastError();
       LOG("failed to CreateJobObject: {} ({})",
-          Win32Util::error_message(error),
+          util::win32_error_message(error),
           error);
       return -1;
     }
@@ -176,7 +176,7 @@ win32execute(const char* path,
       if (!job_success) {
         DWORD error = GetLastError();
         LOG("failed to JobObjectExtendedLimitInformation: {} ({})",
-            Win32Util::error_message(error),
+            util::win32_error_message(error),
             error);
         return -1;
       }
@@ -253,7 +253,7 @@ win32execute(const char* path,
     DWORD error = GetLastError();
     LOG("failed to execute {}: {} ({})",
         full_path,
-        Win32Util::error_message(error),
+        util::win32_error_message(error),
         error);
     return -1;
   }
@@ -265,7 +265,7 @@ win32execute(const char* path,
       DWORD error = GetLastError();
       LOG("failed to assign process to job object {}: {} ({})",
           full_path,
-          Win32Util::error_message(error),
+          util::win32_error_message(error),
           error);
       return -1;
     }

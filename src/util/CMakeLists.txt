@@ -12,6 +12,7 @@ set(
   UmaskScope.cpp
   assertions.cpp
   environment.cpp
+  error.cpp
   file.cpp
   filesystem.cpp
   path.cpp

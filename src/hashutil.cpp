@@ -22,7 +22,6 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Logging.hpp"
-#include "Win32Util.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
 

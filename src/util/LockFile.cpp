@@ -20,10 +20,10 @@
 
 #include "Logging.hpp"
 #include "Util.hpp"
-#include "Win32Util.hpp"
 
 #include <util/DirEntry.hpp>
 #include <util/assertions.hpp>
+#include <util/error.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
@@ -386,7 +386,7 @@ LockFile::do_acquire(const bool blocking)
 
     LOG("Could not acquire {}: {} ({})",
         m_lock_file,
-        Win32Util::error_message(error),
+        util::win32_error_message(error),
         error);
 
     // ERROR_SHARING_VIOLATION: lock already held.

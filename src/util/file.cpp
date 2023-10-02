@@ -19,12 +19,12 @@
 #include "file.hpp"
 
 #include <Logging.hpp>
-#include <Win32Util.hpp>
 #include <util/Bytes.hpp>
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
 #include <util/Finalizer.hpp>
 #include <util/TemporaryFile.hpp>
+#include <util/error.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
@@ -306,7 +306,7 @@ read_file(const fs::path& path, size_t size_hint)
         return tl::unexpected(
           FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
               path,
-              Win32Util::error_message(GetLastError())));
+              util::win32_error_message(GetLastError())));
       }
 
       result = std::string(size, '\0');

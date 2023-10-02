@@ -28,7 +28,6 @@
 #include "MiniTrace.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
-#include "Win32Util.hpp"
 #include "argprocessing.hpp"
 #include "compopt.hpp"
 #include "execute.hpp"

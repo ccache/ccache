@@ -23,7 +23,6 @@
 #include "Util.hpp"
 #include "hashutil.hpp"
 
-#include <Win32Util.hpp>
 #include <util/TimePoint.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
