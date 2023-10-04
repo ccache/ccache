@@ -110,6 +110,8 @@ const CompOpt compopts[] = {
   {"-emit-pth", AFFECTS_COMP},         // Clang
   {"-external:I",
    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"-fmodule-header", TOO_HARD},
+  {"-fmodules-ts", TOO_HARD},
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},
