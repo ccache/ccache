@@ -1,15 +1,3 @@
-SUITE_cleanup_PROBE() {
-    # NOTE: This test suite is known to fail on filesystems that have unusual
-    # block sizes, including ecryptfs. The workaround is to place the test
-    # directory elsewhere:
-    #
-    #     cd /tmp
-    #     CCACHE=$DIR/ccache $DIR/test.sh
-    if [ -z "$ENABLE_CACHE_CLEANUP_TESTS" ]; then
-        echo "ENABLE_CACHE_CLEANUP_TESTS is not set"
-    fi
-}
-
 SUITE_cleanup_SETUP() {
     mkdir -p $CCACHE_DIR/0/0
     printf 'A%.0s' {1..4017} >"$CCACHE_DIR/0/0/result0R"

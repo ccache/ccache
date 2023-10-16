@@ -290,7 +290,7 @@ TEST_CASE("Return values when file exists")
   CHECK(de.device() == st.st_dev);
   CHECK(de.inode() == st.st_ino);
   CHECK(de.mode() == st.st_mode);
-  CHECK(de.size_on_disk() == st.st_blocks * 512);
+  CHECK(de.size_on_disk() == util::likely_size_on_disk(st.st_size));
 
 #  ifdef HAVE_STRUCT_STAT_ST_CTIM
   CHECK(de.ctime().sec() == st.st_ctim.tv_sec);

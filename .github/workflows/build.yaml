@@ -138,7 +138,6 @@ jobs:
       - name: Build and test
         run: ci/build
         env:
-          ENABLE_CACHE_CLEANUP_TESTS: true
           CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
 
       - name: Collect testdir from failed tests
@@ -206,7 +205,6 @@ jobs:
         continue-on-error: ${{ matrix.config.allow_test_failures == true &&
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
-          ENABLE_CACHE_CLEANUP_TESTS: 1
           CMAKE_GENERATOR: Ninja
           CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
           TEST_CC: gcc
@@ -254,7 +252,6 @@ jobs:
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             BUILDDIR: .
             CCACHE_LOC: .
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
@@ -268,7 +265,6 @@ jobs:
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-10-dev
 
           - name: Linux GCC CUDA
@@ -276,7 +272,6 @@ jobs:
             CC: gcc
             CXX: g++
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 11.7.0-1
             apt_get: elfutils libzstd-dev
 
@@ -292,7 +287,6 @@ jobs:
             os: ubuntu-20.04
             CC: x86_64-w64-mingw32-gcc-posix
             CXX: x86_64-w64-mingw32-g++-posix
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
@@ -302,7 +296,6 @@ jobs:
             msvc_arch: x64_x86
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -313,7 +306,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 16 2019
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -323,7 +315,6 @@ jobs:
             msvc_arch: x64
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -334,7 +325,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 16 2019
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -345,7 +335,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -356,7 +345,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 17 2022
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -367,7 +355,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -378,7 +365,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 17 2022
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -387,7 +373,6 @@ jobs:
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_ADDRESS=ON -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
             ASAN_OPTIONS: detect_leaks=0
             apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
@@ -396,7 +381,6 @@ jobs:
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
             apt_get: libzstd-dev pkg-config libhiredis-dev
@@ -485,7 +469,6 @@ jobs:
           CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
           CXX: ${{ matrix.config.CXX }}
           CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
-          ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
           EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.config.EXTRA_CMAKE_BUILD_FLAGS }}
           LDFLAGS: ${{ matrix.config.LDFLAGS }}
           RUN_TESTS: ${{ matrix.config.RUN_TESTS }}

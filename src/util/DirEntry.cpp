@@ -239,11 +239,7 @@ namespace util {
 uint64_t
 DirEntry::size_on_disk() const
 {
-#ifdef _WIN32
   return util::likely_size_on_disk(size());
-#else
-  return do_stat().st_blocks * 512;
-#endif
 }
 
 const DirEntry::stat_t&
