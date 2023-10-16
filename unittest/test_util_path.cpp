@@ -36,9 +36,11 @@ TEST_CASE("util::is_absolute_path")
 {
 #ifdef _WIN32
   CHECK(util::is_absolute_path("C:/"));
+  CHECK(util::is_absolute_path("C:\\"));
   CHECK(util::is_absolute_path("C:\\foo/fie"));
   CHECK(util::is_absolute_path("/C:\\foo/fie")); // MSYS/Cygwin path
   CHECK(!util::is_absolute_path(""));
+  CHECK(!util::is_absolute_path("C:"));
   CHECK(!util::is_absolute_path("foo\\fie/fum"));
   CHECK(!util::is_absolute_path("C:foo/fie"));
 #endif
@@ -48,7 +50,7 @@ TEST_CASE("util::is_absolute_path")
   CHECK(!util::is_absolute_path("foo/fie"));
 }
 
-TEST_CASE("util::is_absolute_path")
+TEST_CASE("util::is_full_path")
 {
   CHECK(!util::is_full_path(""));
   CHECK(!util::is_full_path("foo"));

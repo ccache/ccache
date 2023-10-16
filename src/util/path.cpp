@@ -88,7 +88,7 @@ bool
 is_absolute_path(std::string_view path)
 {
 #ifdef _WIN32
-  if (path.length() >= 2 && path[1] == ':'
+  if (path.length() >= 3 && path[1] == ':'
       && (path[2] == '/' || path[2] == '\\')) {
     return true;
   }
