@@ -416,7 +416,8 @@ InodeCache::initialize()
         LOG("fstatfs failed: {}", strerror(errno));
         return false;
       }
-      if (buf.f_bavail * 512 < k_min_fs_mib_left * 1024 * 1024) {
+      if (static_cast<uint64_t>(buf.f_bavail) * 512
+          < k_min_fs_mib_left * 1024 * 1024) {
         LOG("Filesystem has less than {} MiB free space, not using inode cache",
             k_min_fs_mib_left);
         return false;
