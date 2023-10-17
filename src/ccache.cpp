@@ -1743,6 +1743,14 @@ hash_argument(const Context& ctx,
     } else {
       path = args[i].substr(eq_pos + 1);
     }
+
+    if (args[i] == "--config" && path.find('/') == std::string::npos) {
+      // --config FILE without / in FILE: the file is searched for in Clang's
+      // user/system/executable directories.
+      LOG("Argument to compiler option {} is too hard", args[i]);
+      return tl::unexpected(Statistic::unsupported_compiler_option);
+    }
+
     DirEntry dir_entry(path, DirEntry::LogOnError::yes);
     if (dir_entry.is_regular_file()) {
       // If given an explicit specs file, then hash that file, but don't
@@ -1750,6 +1758,9 @@ hash_argument(const Context& ctx,
       hash.hash_delimiter("specs");
       TRY(hash_compiler(ctx, hash, dir_entry, path, false));
       return {};
+    } else {
+      LOG("While processing {}: {} is missing", args[i], path);
+      return tl::unexpected(Statistic::bad_compiler_arguments);
     }
   }
 
@@ -1801,12 +1812,16 @@ static tl::expected<std::optional<Hash::Digest>, Failure>
 get_manifest_key(Context& ctx, Hash& hash)
 {
   // Hash environment variables that affect the preprocessor output.
-  const char* envvars[] = {"CPATH",
-                           "C_INCLUDE_PATH",
-                           "CPLUS_INCLUDE_PATH",
-                           "OBJC_INCLUDE_PATH",
-                           "OBJCPLUS_INCLUDE_PATH", // clang
-                           nullptr};
+  const char* envvars[] = {
+    "CPATH",
+    "C_INCLUDE_PATH",
+    "CPLUS_INCLUDE_PATH",
+    "OBJC_INCLUDE_PATH",
+    "OBJCPLUS_INCLUDE_PATH",        // Clang
+    "CLANG_CONFIG_FILE_SYSTEM_DIR", // Clang
+    "CLANG_CONFIG_FILE_USER_DIR",   // Clang
+    nullptr,
+  };
   for (const char** p = envvars; *p; ++p) {
     const char* v = getenv(*p);
     if (v) {

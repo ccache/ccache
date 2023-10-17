@@ -391,7 +391,9 @@ process_option_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
-      || util::starts_with(arg, "-MJ") || util::starts_with(arg, "-Yc")) {
+      || util::starts_with(arg, "-MJ") || util::starts_with(arg, "-Yc")
+      || util::starts_with(arg, "--config-system-dir=")
+      || util::starts_with(arg, "--config-user-dir=")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
