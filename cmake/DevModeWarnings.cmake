@@ -121,5 +121,7 @@ elseif(MSVC)
     /wd4706
     # Non-underscore-prefixed POSIX functions:
     /wd4996
+    # Dead local functions overridden by headers:
+    /wd4505
   )
 endif()
