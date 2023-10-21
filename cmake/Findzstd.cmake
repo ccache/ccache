@@ -46,6 +46,12 @@ else()
   elseif(ZSTD_FROM_INTERNET STREQUAL "AUTO")
     message(STATUS "*** WARNING ***: Using zstd from the Internet because it was not found and ZSTD_FROM_INTERNET is AUTO")
     set(do_download TRUE)
+  else()
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(
+      zstd
+      REQUIRED_VARS ZSTD_LIBRARY ZSTD_INCLUDE_DIR
+    )
   endif()
 endif()
 

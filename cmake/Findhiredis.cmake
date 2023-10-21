@@ -51,6 +51,12 @@ else()
   elseif(HIREDIS_FROM_INTERNET STREQUAL "AUTO")
     message(STATUS "*** WARNING ***: Using hiredis from the Internet because it was not found and HIREDIS_FROM_INTERNET is AUTO")
     set(do_download TRUE)
+  else()
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(
+      hiredis
+      REQUIRED_VARS HIREDIS_LIBRARY HIREDIS_INCLUDE_DIR
+    )
   endif()
 endif()
 
