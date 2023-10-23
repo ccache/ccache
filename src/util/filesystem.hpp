@@ -114,6 +114,7 @@ DEF_WRAP_1_R(read_symlink,        path,           const path&, p)
 DEF_WRAP_1_R(remove,              bool,           const path&, p)
 DEF_WRAP_1_R(remove_all,          std::uintmax_t, const path&, p)
 DEF_WRAP_0_R(temp_directory_path, path)
+DEF_WRAP_1_R(weakly_canonical,    path,           const path&, p)
 
 // clang-format on
 

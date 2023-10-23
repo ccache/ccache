@@ -61,12 +61,6 @@ bool path_starts_with(std::string_view path, std::string_view prefix);
 // doesn't exist) path is returned unmodified.
 std::string real_path(std::string_view path);
 
-// Make `path` an absolute path.
-std::string to_absolute_path(std::string_view path);
-
-// Make `path` an absolute path, but do not include Windows drive.
-std::string to_absolute_path_no_drive(std::string_view path);
-
 // --- Inline implementations ---
 
 inline bool

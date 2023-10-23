@@ -139,27 +139,4 @@ real_path(std::string_view path)
   return real_path ? real_path->string() : std::string(path);
 }
 
-std::string
-to_absolute_path(std::string_view path)
-{
-  if (is_absolute_path(path)) {
-    return std::string(path);
-  } else {
-    return Util::normalize_abstract_absolute_path(
-      FMT("{}/{}", actual_cwd(), path));
-  }
-}
-
-std::string
-to_absolute_path_no_drive(std::string_view path)
-{
-  std::string abs_path = to_absolute_path(path);
-#ifdef _WIN32
-  if (abs_path.length() >= 2 && abs_path[1] == ':') {
-    abs_path.erase(0, 2);
-  }
-#endif
-  return abs_path;
-}
-
 } // namespace util

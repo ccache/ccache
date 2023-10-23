@@ -183,19 +183,25 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 }
 
 static std::string
-prepare_debug_path(const std::string& debug_dir,
+prepare_debug_path(const fs::path& cwd,
+                   const fs::path& debug_dir,
                    const util::TimePoint& time_of_invocation,
-                   const std::string& output_obj,
+                   const fs::path& output_obj,
                    std::string_view suffix)
 {
-  auto prefix = debug_dir.empty()
-                  ? output_obj
-                  : debug_dir + util::to_absolute_path_no_drive(output_obj);
+  auto prefix =
+    debug_dir.empty()
+      ? output_obj
+      : (debug_dir
+         / (output_obj.is_absolute()
+              ? output_obj
+              : fs::weakly_canonical(cwd / output_obj).value_or(output_obj))
+             .relative_path());
 
   // Ignore any error from fs::create_directories since we can't handle an error
   // in another way in this context. The caller takes care of logging when
   // trying to open the path for writing.
-  fs::create_directories(Util::dir_name(prefix));
+  fs::create_directories(prefix.parent_path());
 
   char timestamp[100];
   const auto tm = util::localtime(time_of_invocation);
@@ -208,7 +214,7 @@ prepare_debug_path(const std::string& debug_dir,
              static_cast<long long unsigned int>(time_of_invocation.sec()));
   }
   return FMT("{}.{}_{:06}.ccache-{}",
-             prefix,
+             prefix.string(),
              timestamp,
              time_of_invocation.nsec_decimal_part() / 1000,
              suffix);
@@ -225,7 +231,8 @@ init_hash_debug(Context& ctx,
     return;
   }
 
-  const auto path = prepare_debug_path(ctx.config.debug_dir(),
+  const auto path = prepare_debug_path(ctx.apparent_cwd,
+                                       ctx.config.debug_dir(),
                                        ctx.time_of_invocation,
                                        ctx.args_info.output_obj,
                                        FMT("input-{}", type));
@@ -2304,7 +2311,8 @@ finalize_at_exit(Context& ctx)
 
   // Dump log buffer last to not lose any logs.
   if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
-    util::logging::dump_log(prepare_debug_path(ctx.config.debug_dir(),
+    util::logging::dump_log(prepare_debug_path(ctx.apparent_cwd,
+                                               ctx.config.debug_dir(),
                                                ctx.time_of_invocation,
                                                ctx.args_info.output_obj,
                                                "log"));
@@ -2506,7 +2514,8 @@ do_cache_compilation(Context& ctx)
   MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
-    const auto path = prepare_debug_path(ctx.config.debug_dir(),
+    const auto path = prepare_debug_path(ctx.apparent_cwd,
+                                         ctx.config.debug_dir(),
                                          ctx.time_of_invocation,
                                          ctx.args_info.orig_output_obj,
                                          "input-text");

@@ -788,7 +788,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_debug);
 
   case ConfigItem::debug_dir:
-    return m_debug_dir;
+    return m_debug_dir.string();
 
   case ConfigItem::debug_level:
     return FMT("{}", m_debug_level);
