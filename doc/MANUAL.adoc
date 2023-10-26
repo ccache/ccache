@@ -437,7 +437,7 @@ option key.
 A typical path to use as *base_dir* is your home directory or another directory
 that is a parent of your project directories. Don't use `/` as the base
 directory since that will make ccache also rewrite paths to system header
-files, which typically is contraproductive.
+files, which typically is counterproductive.
 +
 For example, say that Alice's current working directory is
 `/home/alice/project1/build` and that she compiles like this:
@@ -464,7 +464,7 @@ gcc -I/usr/include/example -I/home/alice/project2/include -c ../src/example.c
 If Bob has put `project1` and `project2` in `/home/bob/stuff` and both users
 have set *base_dir* to `/home` or `/home/$USER`, then Bob will get a cache hit
 (if they share ccache directory) since the actual command line will be
-identical to that of Alice:
+identical to Alice's command line:
 +
 -------------------------------------------------------------------------------
 # Current working directory: /home/bob/stuff/project1/build
