@@ -156,6 +156,7 @@ const CompOpt compopts[] = {
   {"-trigraphs", AFFECTS_CPP},
   {"-u", TAKES_ARG | TAKES_CONCAT_ARG},
   {"-v", AFFECTS_COMP},
+  {"-wrapper", TAKES_ARG | TOO_HARD},
   {"-z", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
 };
 
