@@ -69,6 +69,7 @@ endif()
 include(CIBuildType)
 include(DefaultBuildType)
 include(UseFastestLinker)
+include(StaticLinkSupport)
 include(StandardSettings)
 include(StandardWarnings)
 
@@ -79,35 +80,6 @@ include(StandardWarnings)
 include(InstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
-
-#
-# Static link configuration
-#
-
-set(STATIC_LINK_DEFAULT OFF)
-if(WIN32)
-  set(STATIC_LINK_DEFAULT ON)
-endif()
-
-option(STATIC_LINK "Prefer linking libraries statically" ${STATIC_LINK_DEFAULT})
-
-if(STATIC_LINK)
-  list(INSERT CMAKE_FIND_LIBRARY_SUFFIXES 0 "${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  set(CMAKE_LINK_SEARCH_START_STATIC ON)
-
-  # Link MSVC runtime statically.
-  if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  # Link MINGW runtime statically.
-  elseif(WIN32)
-    if((CMAKE_CXX_COMPILER_ID STREQUAL GNU) OR (CMAKE_CXX_COMPILER_ID STREQUAL Clang))
-      list(APPEND CCACHE_EXTRA_LIBS -static-libgcc -static-libstdc++ -static -lwinpthread -dynamic)
-    endif()
-    if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-      list(APPEND CCACHE_EXTRA_LIBS -fuse-ld=lld)
-    endif()
-  endif()
-endif()
 
 #
 # Third party
