@@ -249,6 +249,8 @@ CompilerType
 guess_compiler(std::string_view path)
 {
   std::string compiler_path(path);
+  const auto name_original =
+    util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
 
 #ifndef _WIN32
   // Follow symlinks to the real compiler to learn its name. We're not using
@@ -270,7 +272,8 @@ guess_compiler(std::string_view path)
 
   const auto name =
     util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
-  if (name.find("clang-cl") != std::string_view::npos) {
+  if (name.find("clang-cl") != std::string_view::npos
+      || name_original.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
     return CompilerType::clang;
