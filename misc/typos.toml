@@ -1,11 +1,19 @@
-[default.extend-words]
-caf = "caf"
-fo = "fo"
-hda = "hda"
-ot = "ot"
-seve = "seve"
-thi = "thi"
-wronly = "wronly"
-
 [files]
-extend-exclude = ["misc/codespell-allowlist.txt", "src/third_party"]
+extend-exclude = [
+    ".git/",
+    "misc/codespell-allowlist.txt",
+    "src/third_party/",
+]
+ignore-hidden = false
+
+[default]
+extend-ignore-re = [
+    "clang-analyzer-optin",
+    "/dev/\\(stdout\\|tty\\|sda\\|hda\\)",
+    "in stdout tty sda hda;",
+    "seve\\\\nth",
+    "thi\\\\\\\\rd",
+    '"\$newer_file" -ot "\$older_file"',
+    "tar -caf",
+    "[/-]Fo",
+]
