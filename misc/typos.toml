@@ -15,5 +15,6 @@ extend-ignore-re = [
     "thi\\\\\\\\rd",
     '"\$newer_file" -ot "\$older_file"',
     "tar -caf",
-    "[/-]Fo",
+    "[/-]Fo\\b",
+    "/FoN\\.",
 ]
