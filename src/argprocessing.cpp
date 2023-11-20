@@ -533,6 +533,7 @@ process_option_arg(const Context& ctx,
 
   // --analyze changes the default extension too
   if (arg == "--analyze") {
+    state.common_args.push_back(args[i]);
     state.found_analyze_opt = true;
     return Statistic::none;
   }
@@ -1230,10 +1231,10 @@ process_args(Context& ctx)
 
   if (output_obj_by_source && !args_info.input_file.empty()) {
     std::string_view extension;
-    if (state.found_S_opt) {
-      extension = ".s";
-    } else if (state.found_analyze_opt) {
+    if (state.found_analyze_opt) {
       extension = ".plist";
+    } else if (state.found_S_opt) {
+      extension = ".s";
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
@@ -1525,10 +1526,6 @@ process_args(Context& ctx)
 
   if (state.found_dc_opt) {
     compiler_args.push_back("-dc");
-  }
-
-  if (state.found_analyze_opt) {
-    compiler_args.push_back("--analyze");
   }
 
   if (!state.xarch_args.empty()) {

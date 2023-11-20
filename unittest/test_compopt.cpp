@@ -51,6 +51,7 @@ TEST_CASE("too_hard")
   CHECK(compopt_too_hard("-save-temps=cwd"));
   CHECK(compopt_too_hard("-save-temps=obj"));
   CHECK(compopt_too_hard("-analyze"));
+  CHECK(compopt_too_hard("--analyzer-output"));
   CHECK(!compopt_too_hard("--analyze"));
   CHECK(!compopt_too_hard("-MD"));
   CHECK(!compopt_too_hard("-fprofile-arcs"));
