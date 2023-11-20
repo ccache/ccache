@@ -537,6 +537,7 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(icl);
     CASE(msvc);
     CASE(nvcc);
+    CASE(ti);
     CASE(other);
   }
 #undef CASE

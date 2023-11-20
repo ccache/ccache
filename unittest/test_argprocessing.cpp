@@ -105,6 +105,86 @@ TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
   CHECK(process_args(ctx).error == Statistic::called_for_preprocessing);
 }
 
+TEST_CASE("preproc_mode_should_result_in_called_for_preprocessing")
+{
+  TestContext test_context;
+
+  SUBCASE("--preproc_only")
+  {
+    Context ctx;
+    ctx.orig_args = Args::from_string("cl6x foo.c --preproc_only");
+    ctx.config.set_compiler_type(CompilerType::ti);
+
+    util::write_file("foo.c", "");
+    CHECK(process_args(ctx).error == Statistic::called_for_preprocessing);
+  }
+  SUBCASE("--preproc_with_line")
+  {
+    Context ctx;
+    ctx.orig_args = Args::from_string("cl6x foo.c --preproc_with_line");
+    ctx.config.set_compiler_type(CompilerType::ti);
+
+    util::write_file("foo.c", "");
+    CHECK(process_args(ctx).error == Statistic::called_for_preprocessing);
+  }
+  SUBCASE("--preproc_with_comment")
+  {
+    Context ctx;
+    ctx.orig_args = Args::from_string("cl6x foo.c --preproc_with_comment");
+    ctx.config.set_compiler_type(CompilerType::ti);
+
+    util::write_file("foo.c", "");
+    CHECK(process_args(ctx).error == Statistic::called_for_preprocessing);
+  }
+}
+
+TEST_CASE("ti_compiler_flags")
+{
+  TestContext test_context;
+
+  Context ctx;
+  ctx.orig_args = Args::from_string(
+    "cl6x --compile_only --cpp_file=foo.c --output_file=foo.c.o");
+  ctx.config.set_compiler_type(CompilerType::ti);
+
+  util::write_file("foo.c", "");
+
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "cl6x");
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cl6x -c");
+  CHECK(ctx.args_info.input_file == "foo.c");
+  CHECK(ctx.args_info.output_obj == "foo.c.o");
+}
+
+TEST_CASE("ti_dash_dash_preproc_dependency_should_work_like_dash_MF")
+{
+  TestContext test_context;
+
+  Context ctx;
+  ctx.orig_args = Args::from_string(
+    "cl6x --preproc_with_compile --cpp_file=foo.c --output_file=foo.o "
+    "--preproc_dependency=foo.o.d");
+  ctx.config.set_compiler_type(CompilerType::ti);
+
+  util::write_file("foo.c", "");
+
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "cl6x");
+  CHECK(result.extra_args_to_hash.to_string()
+        == "--preproc_with_compile --preproc_dependency=foo.o.d");
+  CHECK(result.compiler_args.to_string()
+        == "cl6x --preproc_with_compile -c --preproc_dependency=foo.o.d");
+  CHECK(ctx.args_info.input_file == "foo.c");
+  CHECK(ctx.args_info.output_obj == "foo.o");
+  CHECK(ctx.args_info.output_dep == "foo.o.d");
+  CHECK(ctx.args_info.generating_dependencies);
+}
+
 TEST_CASE("dash_M_should_be_unsupported")
 {
   TestContext test_context;
