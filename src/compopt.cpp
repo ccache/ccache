@@ -52,15 +52,18 @@ struct CompOpt
 };
 
 const CompOpt compopts[] = {
-  {"--Werror", TAKES_ARG | AFFECTS_COMP},              // nvcc
-  {"--analyze", TOO_HARD},                             // Clang
-  {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
-  {"--compiler-options", AFFECTS_CPP | TAKES_ARG},     // nvcc
-  {"--config", TAKES_ARG},                             // Clang
-  {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
-  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG},  // nvcc
-  {"--output-directory", AFFECTS_CPP | TAKES_ARG},     // nvcc
+  {"--Werror", TAKES_ARG | AFFECTS_COMP},                           // nvcc
+  {"--analyze", TOO_HARD},                                          // Clang
+  {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},                   // nvcc
+  {"--compiler-options", AFFECTS_CPP | TAKES_ARG},                  // nvcc
+  {"--config", TAKES_ARG},                                          // Clang
+  {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH},              // Clang
+  {"--include_path=", AFFECTS_CPP | TAKES_CONCAT_ARG | TAKES_PATH}, // TI
+  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG},               // nvcc
+  {"--output-directory", AFFECTS_CPP | TAKES_ARG},                  // nvcc
   {"--param", TAKES_ARG},
+  {"--preproc_dependency=", TAKES_CONCAT_ARG | TAKES_PATH}, // TI
+  {"--preproc_only", TOO_HARD},                             // TI
   {"--save-temps", TOO_HARD},
   {"--save-temps=cwd", TOO_HARD},
   {"--save-temps=obj", TOO_HARD},

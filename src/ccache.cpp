@@ -283,6 +283,8 @@ guess_compiler(std::string_view path)
     return CompilerType::icl;
   } else if (name == "cl") {
     return CompilerType::msvc;
+  } else if (name == "cl6x") {
+    return CompilerType::ti;
   } else {
     return CompilerType::other;
   }
@@ -1066,6 +1068,8 @@ to_cache(Context& ctx,
 {
   if (ctx.config.is_compiler_group_msvc()) {
     args.push_back(fmt::format("-Fo{}", ctx.args_info.output_obj));
+  } else if (ctx.config.compiler_type() == CompilerType::ti) {
+    args.push_back(fmt::format("--output_file={}", ctx.args_info.output_obj));
   } else {
     args.push_back("-o");
     args.push_back(ctx.args_info.output_obj);
@@ -1257,6 +1261,9 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     if (ctx.config.is_compiler_group_msvc()) {
       args.push_back("-P");
       args.push_back(FMT("-Fi{}", preprocessed_path));
+    } else if (ctx.config.compiler_type() == CompilerType::ti) {
+      args.push_back("--preproc_with_line");
+      args.push_back(FMT("--output_file={}", preprocessed_path));
     } else {
       args.push_back("-E");
       args.push_back("-o");

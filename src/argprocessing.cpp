@@ -339,6 +339,11 @@ process_option_arg(const Context& ctx,
   if (arg == "-E") {
     return Statistic::called_for_preprocessing;
   }
+  if ((arg == "--preproc_only" || arg == "--preproc_with_line"
+       || arg == "--preproc_with_comment")
+      && ctx.config.compiler_type() == CompilerType::ti) {
+    return Statistic::called_for_preprocessing;
+  }
   // MSVC -P is -E with output to a file.
   if (arg == "-P" && ctx.config.is_compiler_group_msvc()) {
     return Statistic::called_for_preprocessing;
@@ -509,6 +514,10 @@ process_option_arg(const Context& ctx,
     state.found_c_opt = true;
     return Statistic::none;
   }
+  if (arg == "--compile_only" && config.compiler_type() == CompilerType::ti) {
+    state.found_c_opt = true;
+    return Statistic::none;
+  }
 
   // MSVC -Fo with no space.
   if (util::starts_with(arg, "-Fo") && config.is_compiler_group_msvc()) {
@@ -581,6 +590,20 @@ process_option_arg(const Context& ctx,
       && config.compiler_type() != CompilerType::msvc) {
     args_info.output_obj = arg.substr(2);
     return Statistic::none;
+  }
+  if (util::starts_with(arg, "--output_file=")
+      && config.compiler_type() == CompilerType::ti) {
+    args_info.output_obj = arg.substr(14);
+    return Statistic::none;
+  }
+
+  // TI compiler's input source files are listed with --cpp_file=
+  if (util::starts_with(arg, "--cpp_file=")
+      && config.compiler_type() == CompilerType::ti) {
+    // remove --cpp_file= to convert to usual input file syntax
+    args[i] = arg.substr(11);
+    LOG("converted {} inputfile to {}", arg, args[i]);
+    return std::nullopt;
   }
 
   if (util::starts_with(arg, "-fdebug-prefix-map=")
@@ -681,6 +704,25 @@ process_option_arg(const Context& ctx,
     } else {
       state.dep_args.push_back("-MF" + args_info.output_dep);
     }
+    return Statistic::none;
+  }
+
+  // TI unites -MD and -MF into a single --preproc_dependency==file option
+  if (util::starts_with(arg, "--preproc_dependency=")
+      && config.compiler_type() == CompilerType::ti) {
+    args_info.generating_dependencies = true;
+    state.found_mf_opt = true;
+    state.output_dep_origin = OutputDepOrigin::mf;
+    std::string dep_file = arg.substr(21);
+    args_info.output_dep = Util::make_relative_path(ctx, dep_file);
+    state.dep_args.push_back("--preproc_dependency=" + args_info.output_dep);
+    return Statistic::none;
+  }
+
+  if (arg == "--preproc_with_compile"
+      && config.compiler_type() == CompilerType::ti) {
+    state.found_c_opt = true;
+    state.compiler_only_args.push_back(arg);
     return Statistic::none;
   }
 
