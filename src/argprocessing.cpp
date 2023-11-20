@@ -60,6 +60,7 @@ struct ArgumentProcessingState
   bool found_c_opt = false;
   bool found_dc_opt = false;
   bool found_S_opt = false;
+  bool found_analyze_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
@@ -527,6 +528,13 @@ process_option_arg(const Context& ctx,
   if (arg == "-S") {
     state.common_args.push_back(args[i]);
     state.found_S_opt = true;
+    return Statistic::none;
+  }
+
+  // --analyze changes the default extension too
+  if (arg == "--analyze") {
+    state.common_args.push_back(args[i]);
+    state.found_analyze_opt = true;
     return Statistic::none;
   }
 
@@ -1131,7 +1139,8 @@ process_arg(const Context& ctx,
     if (supported_source_extension(args[i])) {
       LOG("Multiple input files: {} and {}", args_info.input_file, args[i]);
       return Statistic::multiple_source_files;
-    } else if (!state.found_c_opt && !state.found_dc_opt) {
+    } else if (!state.found_c_opt && !state.found_dc_opt
+               && !state.found_analyze_opt) {
       LOG("Called for link with {}", args[i]);
       if (args[i].find("conftest.") != std::string::npos) {
         return Statistic::autoconf_test;
@@ -1221,8 +1230,14 @@ process_args(Context& ctx)
   }
 
   if (output_obj_by_source && !args_info.input_file.empty()) {
-    std::string_view extension =
-      state.found_S_opt ? ".s" : get_default_object_file_extension(ctx.config);
+    std::string_view extension;
+    if (state.found_analyze_opt) {
+      extension = ".plist";
+    } else if (state.found_S_opt) {
+      extension = ".s";
+    } else {
+      extension = get_default_object_file_extension(ctx.config);
+    }
     args_info.output_obj +=
       Util::change_extension(Util::base_name(args_info.input_file), extension);
   }
@@ -1309,7 +1324,7 @@ process_args(Context& ctx)
 
   // -fsyntax-only/-Zs does not need -c
   if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt
-      && !state.found_syntax_only) {
+      && !state.found_syntax_only && !state.found_analyze_opt) {
     if (args_info.output_is_precompiled_header) {
       state.common_args.push_back("-c");
     } else {

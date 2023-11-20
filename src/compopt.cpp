@@ -53,7 +53,7 @@ struct CompOpt
 
 const CompOpt compopts[] = {
   {"--Werror", TAKES_ARG | AFFECTS_COMP},              // nvcc
-  {"--analyze", TOO_HARD},                             // Clang
+  {"--analyzer-output", TOO_HARD},                     // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
   {"--compiler-options", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--config", TAKES_ARG},                             // Clang
