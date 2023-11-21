@@ -63,18 +63,6 @@ std::string get_relative_path(std::string_view dir, std::string_view path);
 // point.
 std::optional<size_t> is_absolute_path_with_prefix(std::string_view path);
 
-// Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
-// '/' or '\\' on Windows systems.
-inline bool
-is_dir_separator(char ch)
-{
-  return ch == '/'
-#ifdef _WIN32
-         || ch == '\\'
-#endif
-    ;
-}
-
 // Construct a normalized native path.
 //
 // Example:

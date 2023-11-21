@@ -169,17 +169,6 @@ TEST_CASE("Util::is_absolute_path_with_prefix")
 #endif
 }
 
-TEST_CASE("Util::is_dir_separator")
-{
-  CHECK(!Util::is_dir_separator('x'));
-  CHECK(Util::is_dir_separator('/'));
-#ifdef _WIN32
-  CHECK(Util::is_dir_separator('\\'));
-#else
-  CHECK(!Util::is_dir_separator('\\'));
-#endif
-}
-
 TEST_CASE("Util::make_relative_path")
 {
   using Util::make_relative_path;
