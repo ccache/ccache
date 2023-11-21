@@ -62,8 +62,6 @@
 #include <util/time.hpp>
 #include <util/wincompat.hpp>
 
-#include "third_party/fmt/core.h"
-
 #include <fcntl.h>
 
 #include <optional>

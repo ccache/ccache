@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,8 +21,6 @@
 #include <util/assertions.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/wincompat.hpp>
-
-#include "third_party/fmt/core.h"
 
 #ifdef _WIN32
 #else

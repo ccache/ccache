@@ -48,8 +48,6 @@
 #  include <InodeCache.hpp>
 #endif
 
-#include <third_party/fmt/core.h>
-
 #include <fcntl.h>
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

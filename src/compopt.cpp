@@ -20,8 +20,6 @@
 
 #include <util/fmtmacros.hpp>
 
-#include "third_party/fmt/core.h"
-
 // The option it too hard to handle at all.
 #define TOO_HARD (1 << 0)
 
