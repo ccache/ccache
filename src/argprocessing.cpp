@@ -1405,7 +1405,7 @@ process_args(Context& ctx)
   if (!state.input_charset_option.empty()) {
     state.cpp_args.push_back(state.input_charset_option);
   }
-  if (state.found_pch && ctx.config.compiler_type() != CompilerType::msvc) {
+  if (state.found_pch && !ctx.config.is_compiler_group_msvc()) {
     state.cpp_args.push_back("-fpch-preprocess");
   }
   if (!state.explicit_language.empty()) {
