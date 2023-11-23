@@ -21,6 +21,7 @@
 #include "TestUtil.hpp"
 
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
@@ -35,6 +36,7 @@
 #  include <unistd.h>
 #endif
 
+namespace fs = util::filesystem;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("ccache");
@@ -193,13 +195,23 @@ TEST_CASE("guess_compiler")
 #ifndef _WIN32
   SUBCASE("Follow symlink to actual compiler")
   {
-    const auto cwd = util::actual_cwd();
-    util::write_file(FMT("{}/gcc", cwd), "");
-    CHECK(symlink("gcc", FMT("{}/intermediate", cwd).c_str()) == 0);
-    const auto cc = FMT("{}/cc", cwd);
-    CHECK(symlink("intermediate", cc.c_str()) == 0);
+    const auto cwd = fs::path(util::actual_cwd());
+    util::write_file(cwd / "gcc", "");
+    CHECK(fs::create_symlink("gcc", cwd / "intermediate"));
+    const auto cc = cwd / "cc";
+    CHECK(fs::create_symlink("intermediate", cc));
 
     CHECK(guess_compiler(cc) == CompilerType::gcc);
+  }
+
+  SUBCASE("Classify clang-cl symlink to clang")
+  {
+    const auto cwd = fs::path(util::actual_cwd());
+    util::write_file(cwd / "clang", "");
+    const auto clang_cl = cwd / "clang-cl";
+    CHECK(fs::create_symlink("clang", clang_cl));
+
+    CHECK(guess_compiler(clang_cl) == CompilerType::clang_cl);
   }
 #endif
 }
