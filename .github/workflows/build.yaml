@@ -86,50 +86,52 @@ jobs:
             compiler: xcode
             version: "14.2"
     steps:
-      - name: Install dependencies
+      - name: Install dependencies on Linux
+        if: ${{ runner.os == 'Linux' }}
         run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            sudo apt-get update
+          sudo apt-get update
 
-            packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools"
-            # Install ld.gold (binutils) and ld.lld (lld) on different runs.
-            if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
-              sudo apt-get install -y $packages binutils
-            else
-              sudo apt-get install -y $packages lld
+          packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools"
+          # Install ld.gold (binutils) and ld.lld (lld) on different runs.
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            sudo apt-get install -y $packages binutils
+          else
+            sudo apt-get install -y $packages lld
+          fi
+
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+
+            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            if [ "${{ matrix.version }}" = 8 ]; then
+              # The compilation test in StdFilesystem.cmake doesn't work when
+              # GCC 9 is installed as well, so need to force linking with
+              # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
+              # work.
+              echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
             fi
+          else
+            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
 
-            if [ "${{ matrix.compiler }}" = "gcc" ]; then
-              echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
-              echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
+          fi
 
-              sudo apt install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
-              if [ "${{ matrix.version }}" = 8 ]; then
-                # The compilation test in StdFilesystem.cmake doesn't work when
-                # GCC 9 is installed as well, so need to force linking with
-                # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
-                # work.
-                echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
-              fi
-            else
-              echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
-              echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+      - name: Install dependencies on macOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+            brew install ninja pkg-config hiredis redis
 
-              sudo apt install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
-            fi
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-              brew install ninja pkg-config hiredis redis
-
-            if [ "${{ matrix.compiler }}" = "gcc" ]; then
-              brew install gcc@${{ matrix.version }}
-              echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
-              echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-            else
-              sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
-              echo "CC=clang" >> $GITHUB_ENV
-              echo "CXX=clang++" >> $GITHUB_ENV
-            fi
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            brew install gcc@${{ matrix.version }}
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+          else
+            sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
           fi
 
       - name: Get source

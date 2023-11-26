@@ -26,7 +26,6 @@
 #include <util/fmtmacros.hpp>
 
 #include "third_party/doctest.h"
-#include "third_party/fmt/core.h"
 
 #include <limits>
 #include <string>

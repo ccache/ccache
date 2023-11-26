@@ -21,8 +21,6 @@
 #include <util/assertions.hpp>
 #include <util/fmtmacros.hpp>
 
-#include "third_party/fmt/core.h"
-
 namespace util {
 
 void

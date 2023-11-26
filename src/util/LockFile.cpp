@@ -30,8 +30,6 @@
 #include <util/process.hpp>
 #include <util/wincompat.hpp>
 
-#include "third_party/fmt/core.h"
-
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif

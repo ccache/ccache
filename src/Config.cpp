@@ -38,8 +38,6 @@
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
 
-#include "third_party/fmt/core.h"
-
 #include <sys/types.h>
 
 #ifdef HAVE_PWD_H

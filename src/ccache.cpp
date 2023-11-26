@@ -62,8 +62,6 @@
 #include <util/time.hpp>
 #include <util/wincompat.hpp>
 
-#include "third_party/fmt/core.h"
-
 #include <fcntl.h>
 
 #include <optional>
@@ -245,31 +243,34 @@ init_hash_debug(Context& ctx,
   }
 }
 
-CompilerType
-guess_compiler(std::string_view path)
-{
-  std::string compiler_path(path);
-
 #ifndef _WIN32
+std::string
+follow_symlinks(const fs::path& path)
+{
   // Follow symlinks to the real compiler to learn its name. We're not using
   // util::real_path in order to save some unnecessary stat calls.
+  fs::path p = path;
   while (true) {
-    auto symlink_target = fs::read_symlink(compiler_path);
+    auto symlink_target = fs::read_symlink(p);
     if (!symlink_target) {
       // Not a symlink.
       break;
     }
     if (symlink_target->is_absolute()) {
-      compiler_path = *symlink_target;
+      p = *symlink_target;
     } else {
-      compiler_path =
-        FMT("{}/{}", Util::dir_name(compiler_path), symlink_target->string());
+      p = p.parent_path() / *symlink_target;
     }
   }
+  return p;
+}
 #endif
 
+static CompilerType
+do_guess_compiler(const fs::path& path)
+{
   const auto name =
-    util::to_lowercase(Util::remove_extension(Util::base_name(compiler_path)));
+    util::to_lowercase(path.filename().replace_extension("").string());
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
@@ -286,6 +287,21 @@ guess_compiler(std::string_view path)
   } else {
     return CompilerType::other;
   }
+}
+
+CompilerType
+guess_compiler(const fs::path& path)
+{
+  CompilerType type = do_guess_compiler(path);
+#ifdef _WIN32
+  return type;
+#else
+  if (type == CompilerType::other) {
+    return do_guess_compiler(follow_symlinks(path));
+  } else {
+    return type;
+  }
+#endif
 }
 
 static bool
