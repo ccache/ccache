@@ -9,12 +9,13 @@ ignore-hidden = false
 [default]
 extend-ignore-re = [
     "clang-analyzer-optin",
-    "/dev/\\(stdout\\|tty\\|sda\\|hda\\)",
-    "in stdout tty sda hda;",
     "seve\\\\nth",
     "thi\\\\\\\\rd",
-    '"\$newer_file" -ot "\$older_file"',
+    " -ot ",
     "tar -caf",
     "[/-]Fo\\b",
     "/FoN\\.",
 ]
+
+[default.extend-words]
+"hda" = "hda"
