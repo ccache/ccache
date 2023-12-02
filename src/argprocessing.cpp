@@ -25,6 +25,7 @@
 #include <Depfile.hpp>
 #include <Util.hpp>
 #include <util/assertions.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
 #include <util/path.hpp>
@@ -36,7 +37,9 @@
 #endif
 
 #include <cassert>
+#include <vector>
 
+namespace fs = util::filesystem;
 using core::Statistic;
 using util::DirEntry;
 
@@ -84,6 +87,9 @@ struct ArgumentProcessingState
 
   // Is the compiler being asked to output debug info on level 3?
   bool generating_debuginfo_level_3 = false;
+
+  // Arguments classified as input files.
+  std::vector<fs::path> input_files;
 
   // common_args contains all original arguments except:
   // * those that never should be passed to the preprocessor,
@@ -555,7 +561,7 @@ process_option_arg(const Context& ctx,
         LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
       }
-      if (args_info.input_file.empty()) {
+      if (state.input_files.empty()) {
         state.explicit_language = args[i + 1];
       }
       i++;
@@ -563,7 +569,7 @@ process_option_arg(const Context& ctx,
     }
 
     DEBUG_ASSERT(arg.length() >= 3);
-    if (args_info.input_file.empty()) {
+    if (state.input_files.empty()) {
       state.explicit_language = arg.substr(2);
     }
     return Statistic::none;
@@ -1135,30 +1141,13 @@ process_arg(const Context& ctx,
     }
   }
 
-  if (!args_info.input_file.empty()) {
-    if (supported_source_extension(args[i])) {
-      LOG("Multiple input files: {} and {}", args_info.input_file, args[i]);
-      return Statistic::multiple_source_files;
-    } else if (!state.found_c_opt && !state.found_dc_opt
-               && !state.found_analyze_opt) {
-      LOG("Called for link with {}", args[i]);
-      if (args[i].find("conftest.") != std::string::npos) {
-        return Statistic::autoconf_test;
-      } else {
-        return Statistic::called_for_link;
-      }
-    } else {
-      LOG("Unsupported source extension: {}", args[i]);
-      return Statistic::unsupported_source_language;
-    }
+  if (fs::exists(args[i])) {
+    LOG("Detected input file: {}", args[i]);
+    state.input_files.emplace_back(args[i]);
+  } else {
+    LOG("Not considering {} an input file since it doesn't exist", args[i]);
+    state.common_args.push_back(args[i]);
   }
-
-  // Rewrite to relative to increase hit rate.
-  args_info.orig_input_file = args[i];
-  args_info.input_file = Util::make_relative_path(ctx, args[i]);
-  args_info.normalized_input_file =
-    Util::normalize_concrete_absolute_path(args_info.input_file);
-
   return Statistic::none;
 }
 
@@ -1193,6 +1182,34 @@ process_args(Context& ctx)
       argument_error = error;
     }
   }
+
+  const bool is_link =
+    !(state.found_c_opt || state.found_dc_opt || state.found_S_opt
+      || state.found_syntax_only || state.found_analyze_opt);
+
+  if (state.input_files.empty()) {
+    LOG_RAW("No input file found");
+    return Statistic::no_input_file;
+  }
+  if (state.input_files.size() > 1) {
+    if (is_link) {
+      LOG_RAW("Called for link");
+      return state.input_files.front().string().find("conftest.")
+                 != std::string::npos
+               ? Statistic::autoconf_test
+               : Statistic::called_for_link;
+    } else {
+      LOG_RAW("Multiple input files");
+      return Statistic::multiple_source_files;
+    }
+  }
+
+  args_info.orig_input_file = state.input_files.front().string();
+  // Rewrite to relative to increase hit rate.
+  args_info.input_file =
+    Util::make_relative_path(ctx, args_info.orig_input_file);
+  args_info.normalized_input_file =
+    Util::normalize_concrete_absolute_path(args_info.input_file);
 
   // Bail out on too hard combinations of options.
   if (state.found_mf_opt && state.found_wp_md_or_mmd_opt) {
@@ -1270,11 +1287,6 @@ process_args(Context& ctx)
   }
 #endif
 
-  if (args_info.input_file.empty()) {
-    LOG_RAW("No input file found");
-    return Statistic::no_input_file;
-  }
-
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
     if (!(config.sloppiness().contains(core::Sloppy::time_macros))) {
@@ -1322,9 +1334,7 @@ process_args(Context& ctx)
     return Statistic::could_not_use_precompiled_header;
   }
 
-  // -fsyntax-only/-Zs does not need -c
-  if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt
-      && !state.found_syntax_only && !state.found_analyze_opt) {
+  if (is_link) {
     if (args_info.output_is_precompiled_header) {
       state.common_args.push_back("-c");
     } else {
