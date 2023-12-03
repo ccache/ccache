@@ -472,8 +472,17 @@ process_option_arg(const Context& ctx,
   }
 
   // Handle options that should not be passed to the preprocessor.
-  if (compopt_affects_compiler_output(arg)) {
+  if (compopt_affects_compiler_output(arg)
+      || (i + 1 < args.size() && arg == "-Xclang"
+          && compopt_affects_compiler_output(args[i + 1]))) {
+    if (i + 1 < args.size() && arg == "-Xclang") {
+      state.compiler_only_args.push_back(args[i]);
+      ++i;
+      arg = make_dash_option(ctx.config, args[i]);
+    }
     state.compiler_only_args.push_back(args[i]);
+    // Note: "-Xclang -option-that-takes-arg -Xclang arg" is not handled below
+    // yet.
     if (compopt_takes_arg(arg)
         || (config.compiler_type() == CompilerType::nvcc && arg == "-Werror")) {
       if (i == args.size() - 1) {
@@ -485,7 +494,13 @@ process_option_arg(const Context& ctx,
     }
     return Statistic::none;
   }
-  if (compopt_prefix_affects_compiler_output(arg)) {
+  if (compopt_prefix_affects_compiler_output(arg)
+      || (i + 1 < args.size() && arg == "-Xclang"
+          && compopt_prefix_affects_compiler_output(args[i + 1]))) {
+    if (i + 1 < args.size() && arg == "-Xclang") {
+      state.compiler_only_args.push_back(args[i]);
+      ++i;
+    }
     state.compiler_only_args.push_back(args[i]);
     return Statistic::none;
   }

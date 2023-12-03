@@ -99,6 +99,17 @@ const CompOpt compopts[] = {
   {"-all_load", AFFECTS_COMP},
   {"-analyze", TOO_HARD}, // Clang
   {"-arch", TAKES_ARG},
+  {"-ast-dump", AFFECTS_COMP},                         // Clang
+  {"-ast-dump-all", AFFECTS_COMP},                     // Clang
+  {"-ast-dump-all=", AFFECTS_COMP | TAKES_CONCAT_ARG}, // Clang
+  {"-ast-dump-decl-types", AFFECTS_COMP},              // Clang
+  {"-ast-dump-filter", AFFECTS_COMP | TAKES_ARG},      // Clang
+  {"-ast-dump-lookups", AFFECTS_COMP},                 // Clang
+  {"-ast-dump=", AFFECTS_COMP | TAKES_CONCAT_ARG},     // Clang
+  {"-ast-list", AFFECTS_COMP},                         // Clang
+  {"-ast-merge", TOO_HARD | TAKES_ARG},                // Clang
+  {"-ast-print", AFFECTS_COMP},                        // Clang
+  {"-ast-view", TOO_HARD},                             // Clang
   {"-aux-info", TAKES_ARG},
   {"-b", TAKES_ARG},
   {"-bind_at_load", AFFECTS_COMP},
