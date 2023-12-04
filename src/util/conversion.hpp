@@ -89,7 +89,7 @@ void
 int_to_big_endian(T value, uint8_t* buffer)
 {
   for (size_t i = 0; i < sizeof(T); ++i) {
-    buffer[sizeof(T) - i - 1] = value & 0xFF;
+    buffer[sizeof(T) - i - 1] = static_cast<uint8_t>(value & 0xFF);
     value >>= 8;
   }
 }

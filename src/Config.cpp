@@ -1013,8 +1013,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level:
-    m_compression_level = util::value_or_throw<core::Error>(
-      util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level"));
+    m_compression_level = static_cast<int8_t>(util::value_or_throw<core::Error>(
+      util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level")));
     break;
 
   case ConfigItem::cpp_extension:
@@ -1030,8 +1030,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::debug_level:
-    m_debug_level = util::value_or_throw<core::Error>(
-      util::parse_unsigned(value, std::nullopt, std::nullopt, "debug level"));
+    m_debug_level = static_cast<uint8_t>(util::value_or_throw<core::Error>(
+      util::parse_unsigned(value, 0, UINT8_MAX, "debug level")));
     break;
 
   case ConfigItem::depend_mode:

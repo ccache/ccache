@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -105,13 +105,13 @@ Duration::operator-(const Duration& other) const
 inline Duration
 Duration::operator*(double factor) const
 {
-  return Duration(0, factor * m_ns);
+  return Duration(0, static_cast<int64_t>(factor * static_cast<double>(m_ns)));
 }
 
 inline Duration
 Duration::operator/(double factor) const
 {
-  return Duration(0, m_ns / factor);
+  return Duration(0, static_cast<int64_t>(static_cast<double>(m_ns) / factor));
 }
 
 inline int64_t
@@ -129,7 +129,7 @@ Duration::nsec() const
 inline int32_t
 Duration::nsec_decimal_part() const
 {
-  return m_ns % 1'000'000'000;
+  return static_cast<int32_t>(m_ns % 1'000'000'000);
 }
 
 } // namespace util

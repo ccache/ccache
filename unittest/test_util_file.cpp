@@ -122,7 +122,7 @@ TEST_CASE("util::read_file and util::write_file, binary data")
 
   std::vector<uint8_t> expected;
   for (size_t i = 0; i < 512; ++i) {
-    expected.push_back((32 + i) % 256);
+    expected.push_back(static_cast<uint8_t>((32 + i) % 256));
   }
 
   CHECK(util::write_file("test", expected));

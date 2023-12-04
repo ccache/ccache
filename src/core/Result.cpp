@@ -268,7 +268,7 @@ Serializer::serialized_size() const
     throw Error(
       FMT("Serialized result too large ({} > {})", m_serialized_size, max));
   }
-  return m_serialized_size;
+  return static_cast<uint32_t>(m_serialized_size);
 }
 
 void
@@ -277,7 +277,7 @@ Serializer::serialize(util::Bytes& output)
   CacheEntryDataWriter writer(output);
 
   writer.write_int(k_format_version);
-  writer.write_int<uint8_t>(m_file_entries.size());
+  writer.write_int(static_cast<uint8_t>(m_file_entries.size()));
 
   uint8_t file_number = 0;
   for (const auto& entry : m_file_entries) {

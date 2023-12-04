@@ -235,7 +235,8 @@ print_compression_statistics(const Config& config,
                              const storage::local::CompressionStatistics& cs)
 {
   const double ratio = cs.actual_size > 0
-                         ? static_cast<double>(cs.content_size) / cs.actual_size
+                         ? static_cast<double>(cs.content_size)
+                             / static_cast<double>(cs.actual_size)
                          : 0.0;
   const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
@@ -505,8 +506,9 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case RECOMPRESS_THREADS:
-      recompress_threads = util::value_or_throw<Error>(util::parse_unsigned(
-        arg, 1, std::numeric_limits<uint32_t>::max(), "threads"));
+      recompress_threads =
+        static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
+          arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
       break;
 
     case TRIM_MAX_SIZE: {
@@ -527,8 +529,8 @@ process_main_options(int argc, const char* const* argv)
 
     case TRIM_RECOMPRESS_THREADS:
       trim_recompress_threads =
-        util::value_or_throw<Error>(util::parse_unsigned(
-          arg, 1, std::numeric_limits<uint32_t>::max(), "threads"));
+        static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
+          arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
       break;
 
     case 'v': // --verbose

@@ -159,38 +159,36 @@ TEST_CASE("util::format_human_readable_diff")
     CHECK(util::format_human_readable_diff(0, SUPT::binary) == "0 bytes");
     CHECK(util::format_human_readable_diff(1, SUPT::binary) == "+1 byte");
     CHECK(util::format_human_readable_diff(42, SUPT::binary) == "+42 bytes");
-    CHECK(util::format_human_readable_diff(1949, SUPT::binary) == "+1.9 KiB");
-    CHECK(util::format_human_readable_diff(1951, SUPT::binary) == "+1.9 KiB");
-    CHECK(util::format_human_readable_diff(499.7 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(1'949, SUPT::binary) == "+1.9 KiB");
+    CHECK(util::format_human_readable_diff(1'951, SUPT::binary) == "+1.9 KiB");
+    CHECK(util::format_human_readable_diff(499'700, SUPT::binary)
           == "+488.0 KiB");
-    CHECK(util::format_human_readable_diff(1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(1'000'000, SUPT::binary)
           == "+976.6 KiB");
-    CHECK(util::format_human_readable_diff(1234 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(1'234'000, SUPT::binary)
           == "+1.2 MiB");
-    CHECK(util::format_human_readable_diff(438.5 * 1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(438'500'000, SUPT::binary)
           == "+418.2 MiB");
-    CHECK(util::format_human_readable_diff(1000 * 1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(1'000'000'000, SUPT::binary)
           == "+953.7 MiB");
-    CHECK(
-      util::format_human_readable_diff(17.11 * 1000 * 1000 * 1000, SUPT::binary)
-      == "+15.9 GiB");
+    CHECK(util::format_human_readable_diff(17'110'000'000, SUPT::binary)
+          == "+15.9 GiB");
 
     CHECK(util::format_human_readable_diff(-1, SUPT::binary) == "-1 byte");
     CHECK(util::format_human_readable_diff(-42, SUPT::binary) == "-42 bytes");
-    CHECK(util::format_human_readable_diff(-1949, SUPT::binary) == "-1.9 KiB");
-    CHECK(util::format_human_readable_diff(-1951, SUPT::binary) == "-1.9 KiB");
-    CHECK(util::format_human_readable_diff(-499.7 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(-1'949, SUPT::binary) == "-1.9 KiB");
+    CHECK(util::format_human_readable_diff(-1'951, SUPT::binary) == "-1.9 KiB");
+    CHECK(util::format_human_readable_diff(-499'700, SUPT::binary)
           == "-488.0 KiB");
-    CHECK(util::format_human_readable_diff(-1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(-1'000'000, SUPT::binary)
           == "-976.6 KiB");
-    CHECK(util::format_human_readable_diff(-1234 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(-1'234'000, SUPT::binary)
           == "-1.2 MiB");
-    CHECK(util::format_human_readable_diff(-438.5 * 1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(-438'500'000, SUPT::binary)
           == "-418.2 MiB");
-    CHECK(util::format_human_readable_diff(-1000 * 1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_diff(-1'000'000'000, SUPT::binary)
           == "-953.7 MiB");
-    CHECK(util::format_human_readable_diff(-17.11 * 1000 * 1000 * 1000,
-                                           SUPT::binary)
+    CHECK(util::format_human_readable_diff(-17'110'000'000, SUPT::binary)
           == "-15.9 GiB");
   }
 
@@ -199,38 +197,36 @@ TEST_CASE("util::format_human_readable_diff")
     CHECK(util::format_human_readable_diff(0, SUPT::decimal) == "0 bytes");
     CHECK(util::format_human_readable_diff(1, SUPT::decimal) == "+1 byte");
     CHECK(util::format_human_readable_diff(42, SUPT::decimal) == "+42 bytes");
-    CHECK(util::format_human_readable_diff(1949, SUPT::decimal) == "+1.9 kB");
-    CHECK(util::format_human_readable_diff(1951, SUPT::decimal) == "+2.0 kB");
-    CHECK(util::format_human_readable_diff(499.7 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(1'949, SUPT::decimal) == "+1.9 kB");
+    CHECK(util::format_human_readable_diff(1'951, SUPT::decimal) == "+2.0 kB");
+    CHECK(util::format_human_readable_diff(499'700, SUPT::decimal)
           == "+499.7 kB");
-    CHECK(util::format_human_readable_diff(1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(1'000'000, SUPT::decimal)
           == "+1.0 MB");
-    CHECK(util::format_human_readable_diff(1234 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(1'234'000, SUPT::decimal)
           == "+1.2 MB");
-    CHECK(util::format_human_readable_diff(438.5 * 1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(438'500'000, SUPT::decimal)
           == "+438.5 MB");
-    CHECK(util::format_human_readable_diff(1000 * 1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(1'000'000'000, SUPT::decimal)
           == "+1.0 GB");
-    CHECK(util::format_human_readable_diff(17.11 * 1000 * 1000 * 1000,
-                                           SUPT::decimal)
+    CHECK(util::format_human_readable_diff(17'110'000'000, SUPT::decimal)
           == "+17.1 GB");
 
     CHECK(util::format_human_readable_diff(-1, SUPT::decimal) == "-1 byte");
     CHECK(util::format_human_readable_diff(-42, SUPT::decimal) == "-42 bytes");
-    CHECK(util::format_human_readable_diff(-1949, SUPT::decimal) == "-1.9 kB");
-    CHECK(util::format_human_readable_diff(-1951, SUPT::decimal) == "-2.0 kB");
-    CHECK(util::format_human_readable_diff(-499.7 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(-1'949, SUPT::decimal) == "-1.9 kB");
+    CHECK(util::format_human_readable_diff(-1'951, SUPT::decimal) == "-2.0 kB");
+    CHECK(util::format_human_readable_diff(-499'700, SUPT::decimal)
           == "-499.7 kB");
-    CHECK(util::format_human_readable_diff(-1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(-1'000'000, SUPT::decimal)
           == "-1.0 MB");
-    CHECK(util::format_human_readable_diff(-1234 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(-1'234'000, SUPT::decimal)
           == "-1.2 MB");
-    CHECK(util::format_human_readable_diff(-438.5 * 1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(-438'500'000, SUPT::decimal)
           == "-438.5 MB");
-    CHECK(util::format_human_readable_diff(-1000 * 1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_diff(-1'000'000'000, SUPT::decimal)
           == "-1.0 GB");
-    CHECK(util::format_human_readable_diff(-17.11 * 1000 * 1000 * 1000,
-                                           SUPT::decimal)
+    CHECK(util::format_human_readable_diff(-17'110'000'000, SUPT::decimal)
           == "-17.1 GB");
   }
 }
@@ -244,21 +240,20 @@ TEST_CASE("util::format_human_readable_size")
     CHECK(util::format_human_readable_size(0, SUPT::binary) == "0 bytes");
     CHECK(util::format_human_readable_size(1, SUPT::binary) == "1 byte");
     CHECK(util::format_human_readable_size(42, SUPT::binary) == "42 bytes");
-    CHECK(util::format_human_readable_size(1949, SUPT::binary) == "1.9 KiB");
-    CHECK(util::format_human_readable_size(1951, SUPT::binary) == "1.9 KiB");
-    CHECK(util::format_human_readable_size(499.7 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_size(1'949, SUPT::binary) == "1.9 KiB");
+    CHECK(util::format_human_readable_size(1'951, SUPT::binary) == "1.9 KiB");
+    CHECK(util::format_human_readable_size(499'700, SUPT::binary)
           == "488.0 KiB");
-    CHECK(util::format_human_readable_size(1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_size(1'000'000, SUPT::binary)
           == "976.6 KiB");
-    CHECK(util::format_human_readable_size(1234 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_size(1'234'000, SUPT::binary)
           == "1.2 MiB");
-    CHECK(util::format_human_readable_size(438.5 * 1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_size(438'500'000, SUPT::binary)
           == "418.2 MiB");
-    CHECK(util::format_human_readable_size(1000 * 1000 * 1000, SUPT::binary)
+    CHECK(util::format_human_readable_size(1'000'000'000, SUPT::binary)
           == "953.7 MiB");
-    CHECK(
-      util::format_human_readable_size(17.11 * 1000 * 1000 * 1000, SUPT::binary)
-      == "15.9 GiB");
+    CHECK(util::format_human_readable_size(17'110'000'000, SUPT::binary)
+          == "15.9 GiB");
   }
 
   SUBCASE("decimal")
@@ -266,20 +261,19 @@ TEST_CASE("util::format_human_readable_size")
     CHECK(util::format_human_readable_size(0, SUPT::decimal) == "0 bytes");
     CHECK(util::format_human_readable_size(1, SUPT::decimal) == "1 byte");
     CHECK(util::format_human_readable_size(42, SUPT::decimal) == "42 bytes");
-    CHECK(util::format_human_readable_size(1949, SUPT::decimal) == "1.9 kB");
-    CHECK(util::format_human_readable_size(1951, SUPT::decimal) == "2.0 kB");
-    CHECK(util::format_human_readable_size(499.7 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_size(1'949, SUPT::decimal) == "1.9 kB");
+    CHECK(util::format_human_readable_size(1'951, SUPT::decimal) == "2.0 kB");
+    CHECK(util::format_human_readable_size(499'700, SUPT::decimal)
           == "499.7 kB");
-    CHECK(util::format_human_readable_size(1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_size(1'000'000, SUPT::decimal)
           == "1.0 MB");
-    CHECK(util::format_human_readable_size(1234 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_size(1'234'000, SUPT::decimal)
           == "1.2 MB");
-    CHECK(util::format_human_readable_size(438.5 * 1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_size(438'500'000, SUPT::decimal)
           == "438.5 MB");
-    CHECK(util::format_human_readable_size(1000 * 1000 * 1000, SUPT::decimal)
+    CHECK(util::format_human_readable_size(1'000'000'000, SUPT::decimal)
           == "1.0 GB");
-    CHECK(util::format_human_readable_size(17.11 * 1000 * 1000 * 1000,
-                                           SUPT::decimal)
+    CHECK(util::format_human_readable_size(17'110'000'000, SUPT::decimal)
           == "17.1 GB");
   }
 }
@@ -387,14 +381,14 @@ TEST_CASE("util::parse_size")
         == h(u64(42) * 1024 * 1024 * 1024, SUPT::binary));
 
   // Decimal suffixes
-  CHECK(*util::parse_size("78k") == h(78 * 1000, SUPT::decimal));
-  CHECK(*util::parse_size("78K") == h(78 * 1000, SUPT::decimal));
-  CHECK(*util::parse_size("1.1 M") == h(u64(1.1 * 1000 * 1000), SUPT::decimal));
+  CHECK(*util::parse_size("78k") == h(78'000, SUPT::decimal));
+  CHECK(*util::parse_size("78K") == h(78'000, SUPT::decimal));
+  CHECK(*util::parse_size("1.1 M") == h(u64(1.1 * 1'000'000), SUPT::decimal));
   CHECK(*util::parse_size("438.55M")
-        == h(u64(438.55 * 1000 * 1000), SUPT::decimal));
-  CHECK(*util::parse_size("1 G") == h(1 * 1000 * 1000 * 1000, SUPT::decimal));
+        == h(u64(438.55 * 1'000'000), SUPT::decimal));
+  CHECK(*util::parse_size("1 G") == h(1 * 1'000'000'000, SUPT::decimal));
   CHECK(*util::parse_size("2T")
-        == h(u64(2) * 1000 * 1000 * 1000 * 1000, SUPT::decimal));
+        == h(u64(2) * 1'000'000 * 1'000'000, SUPT::decimal));
 
   // Binary suffixes
   CHECK(*util::parse_size("78 Ki") == h(78 * 1024, SUPT::binary));
@@ -406,7 +400,7 @@ TEST_CASE("util::parse_size")
         == h(u64(2) * 1024 * 1024 * 1024 * 1024, SUPT::binary));
 
   // With B suffix
-  CHECK(*util::parse_size("9MB") == h(9 * 1000 * 1000, SUPT::decimal));
+  CHECK(*util::parse_size("9MB") == h(9 * 1'000'000, SUPT::decimal));
   CHECK(*util::parse_size("9MiB") == h(9 * 1024 * 1024, SUPT::binary));
 
   // Errors

@@ -94,7 +94,7 @@ private:
 
   void clear();
 
-  uint32_t get_file_info_index(
+  std::optional<uint32_t> get_file_info_index(
     const std::string& path,
     const Hash::Digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,

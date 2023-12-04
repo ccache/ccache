@@ -172,9 +172,9 @@ CacheEntry::Header::serialize(util::Bytes& output) const
   writer.write_int(compression_level);
   writer.write_int<uint8_t>(self_contained);
   writer.write_int(creation_time);
-  writer.write_int<uint8_t>(ccache_version.length());
+  writer.write_int(static_cast<uint8_t>(ccache_version.length()));
   writer.write_str(ccache_version);
-  writer.write_int<uint8_t>(namespace_.length());
+  writer.write_int(static_cast<uint8_t>(namespace_.length()));
   writer.write_str(namespace_);
   writer.write_int(entry_size);
 }
@@ -182,7 +182,8 @@ CacheEntry::Header::serialize(util::Bytes& output) const
 uint32_t
 CacheEntry::Header::uncompressed_payload_size() const
 {
-  return entry_size - serialized_size() - k_epilogue_fields_size;
+  return static_cast<uint32_t>(entry_size - serialized_size()
+                               - k_epilogue_fields_size);
 }
 
 CacheEntry::CacheEntry(nonstd::span<const uint8_t> data) : m_header(data)

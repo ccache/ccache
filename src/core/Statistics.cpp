@@ -280,11 +280,15 @@ percent(const uint64_t nominator, const uint64_t denominator)
     return "";
   }
 
-  std::string result = FMT("({:5.2f}%)", (100.0 * nominator) / denominator);
+  std::string result = FMT("({:5.2f}%)",
+                           (100.0 * static_cast<double>(nominator))
+                             / static_cast<double>(denominator));
   if (result.length() <= 8) {
     return result;
   } else {
-    return FMT("({:5.1f}%)", (100.0 * nominator) / denominator);
+    return FMT("({:5.1f}%)",
+               (100.0 * static_cast<double>(nominator))
+                 / static_cast<double>(denominator));
   }
 }
 
@@ -453,15 +457,17 @@ Statistics::format_human_readable(const Config& config,
     table.add_heading("Local storage:");
   }
   if (!from_log) {
-    std::vector<C> size_cells{
-      FMT("  Cache size ({}):", size_unit),
-      C(FMT("{:.1f}", static_cast<double>(local_size) / size_divider))
-        .right_align()};
+    std::vector<C> size_cells{FMT("  Cache size ({}):", size_unit),
+                              C(FMT("{:.1f}",
+                                    static_cast<double>(local_size)
+                                      / static_cast<double>(size_divider)))
+                                .right_align()};
     if (config.max_size() != 0) {
       size_cells.emplace_back("/");
-      size_cells.emplace_back(
-        C(FMT("{:.1f}", static_cast<double>(config.max_size()) / size_divider))
-          .right_align());
+      size_cells.emplace_back(C(FMT("{:.1f}",
+                                    static_cast<double>(config.max_size())
+                                      / static_cast<double>(size_divider)))
+                                .right_align());
       size_cells.emplace_back(percent(local_size, config.max_size()));
     }
     table.add_row(size_cells);

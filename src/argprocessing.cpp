@@ -333,12 +333,12 @@ process_option_arg(const Context& ctx,
     return std::nullopt;
   }
 
-  // Ignore clang -ivfsoverlay <arg> to not detect multiple input files.
   if (arg == "-ivfsoverlay"
       && !(config.sloppiness().contains(core::Sloppy::ivfsoverlay))) {
     LOG_RAW(
       "You have to specify \"ivfsoverlay\" sloppiness when using"
       " -ivfsoverlay to get hits");
+    ++i;
     return Statistic::unsupported_compiler_option;
   }
 

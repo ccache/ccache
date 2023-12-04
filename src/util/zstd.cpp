@@ -79,7 +79,8 @@ zstd_supported_compression_level(int8_t wanted_level)
     return {1, "minimum level supported by libzstd"};
   }
 
-  const int8_t level = std::min<int>(wanted_level, ZSTD_maxCLevel());
+  const int8_t level =
+    static_cast<int8_t>(std::min<int>(wanted_level, ZSTD_maxCLevel()));
   if (level != wanted_level) {
     return {level, "max libzstd level"};
   }

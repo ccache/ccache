@@ -47,7 +47,7 @@ TEST_CASE("util::Tokenizer")
       const auto res =
         util::split_into_views(input, separators, m_mode, m_include_delimiter);
       REQUIRE(res.size() == expected.size());
-      for (int i = 0, total = expected.size(); i < total; ++i) {
+      for (size_t i = 0, total = expected.size(); i < total; ++i) {
         CHECK(res[i] == expected[i]);
       }
     }

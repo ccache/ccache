@@ -212,8 +212,13 @@ Manifest::add_result(
   file_info_indexes.reserve(included_files.size());
 
   for (const auto& [path, digest] : included_files) {
-    file_info_indexes.push_back(get_file_info_index(
-      path, digest, mf_files, mf_file_infos, stat_file_function));
+    auto index = get_file_info_index(
+      path, digest, mf_files, mf_file_infos, stat_file_function);
+    if (!index) {
+      LOG_RAW("Index overflow in manifest");
+      return false;
+    }
+    file_info_indexes.push_back(*index);
   }
 
   ResultEntry entry{std::move(file_info_indexes), result_key};
@@ -252,7 +257,7 @@ Manifest::serialized_size() const
     throw core::Error(
       FMT("Serialized manifest too large ({} > {})", size, max));
   }
-  return size;
+  return static_cast<uint32_t>(size);
 }
 
 void
@@ -261,13 +266,13 @@ Manifest::serialize(util::Bytes& output)
   core::CacheEntryDataWriter writer(output);
 
   writer.write_int(k_format_version);
-  writer.write_int<uint32_t>(m_files.size());
+  writer.write_int(static_cast<uint32_t>(m_files.size()));
   for (const auto& file : m_files) {
-    writer.write_int<uint16_t>(file.length());
+    writer.write_int(static_cast<uint16_t>(file.length()));
     writer.write_str(file);
   }
 
-  writer.write_int<uint32_t>(m_file_infos.size());
+  writer.write_int(static_cast<uint32_t>(m_file_infos.size()));
   for (const auto& file_info : m_file_infos) {
     writer.write_int<uint32_t>(file_info.index);
     writer.write_bytes(file_info.digest);
@@ -276,9 +281,9 @@ Manifest::serialize(util::Bytes& output)
     writer.write_int(file_info.ctime.nsec());
   }
 
-  writer.write_int<uint32_t>(m_results.size());
+  writer.write_int(static_cast<uint32_t>(m_results.size()));
   for (const auto& result : m_results) {
-    writer.write_int<uint32_t>(result.file_info_indexes.size());
+    writer.write_int(static_cast<uint32_t>(result.file_info_indexes.size()));
     for (auto index : result.file_info_indexes) {
       writer.write_int(index);
     }
@@ -307,7 +312,7 @@ Manifest::clear()
   m_results.clear();
 }
 
-uint32_t
+std::optional<uint32_t>
 Manifest::get_file_info_index(
   const std::string& path,
   const Hash::Digest& digest,
@@ -320,9 +325,11 @@ Manifest::get_file_info_index(
   const auto f_it = mf_files.find(path);
   if (f_it != mf_files.end()) {
     fi.index = f_it->second;
+  } else if (m_files.size() > UINT32_MAX) {
+    return std::nullopt;
   } else {
     m_files.push_back(path);
-    fi.index = m_files.size() - 1;
+    fi.index = static_cast<uint32_t>(m_files.size() - 1);
   }
 
   fi.digest = digest;
@@ -335,6 +342,8 @@ Manifest::get_file_info_index(
   const auto fi_it = mf_file_infos.find(fi);
   if (fi_it != mf_file_infos.end()) {
     return fi_it->second;
+  } else if (m_file_infos.size() > UINT32_MAX) {
+    return std::nullopt;
   } else {
     m_file_infos.push_back(fi);
     return m_file_infos.size() - 1;

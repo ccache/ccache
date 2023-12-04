@@ -38,9 +38,8 @@
 #include <random>
 #include <sstream>
 
-// Seconds.
-const double k_min_sleep_time = 0.010;
-const double k_max_sleep_time = 0.050;
+const uint32_t k_min_sleep_time_ms = 100;
+const uint32_t k_max_sleep_time_ms = 500;
 #ifndef _WIN32
 const util::Duration k_staleness_limit(2);
 #endif
@@ -228,8 +227,8 @@ LockFile::do_acquire(const bool blocking)
   }();
 
   std::string initial_content;
-  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time * 1000,
-                                           k_max_sleep_time * 1000);
+  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time_ms,
+                                           k_max_sleep_time_ms);
 
   while (true) {
     const auto now = TimePoint::now();
@@ -356,8 +355,8 @@ void*
 LockFile::do_acquire(const bool blocking)
 {
   void* handle;
-  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time * 1000,
-                                           k_max_sleep_time * 1000);
+  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time_ms,
+                                           k_max_sleep_time_ms);
 
   while (true) {
     DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE;

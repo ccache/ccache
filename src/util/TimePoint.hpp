@@ -103,7 +103,7 @@ TimePoint::nsec() const
 inline int32_t
 TimePoint::nsec_decimal_part() const
 {
-  return m_ns % 1'000'000'000;
+  return static_cast<int32_t>(m_ns % 1'000'000'000);
 }
 
 inline void

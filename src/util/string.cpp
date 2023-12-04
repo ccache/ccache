@@ -169,14 +169,15 @@ std::string
 format_human_readable_size(uint64_t size, SizeUnitPrefixType prefix_type)
 {
   const double factor = prefix_type == SizeUnitPrefixType::binary ? 1024 : 1000;
+  const double dsize = static_cast<double>(size);
   const char* infix = prefix_type == SizeUnitPrefixType::binary ? "i" : "";
-  if (size >= factor * factor * factor) {
-    return FMT("{:.1f} G{}B", size / (factor * factor * factor), infix);
-  } else if (size >= factor * factor) {
-    return FMT("{:.1f} M{}B", size / (factor * factor), infix);
-  } else if (size >= factor) {
+  if (dsize >= factor * factor * factor) {
+    return FMT("{:.1f} G{}B", dsize / (factor * factor * factor), infix);
+  } else if (dsize >= factor * factor) {
+    return FMT("{:.1f} M{}B", dsize / (factor * factor), infix);
+  } else if (dsize >= factor) {
     const char* k = prefix_type == SizeUnitPrefixType::binary ? "K" : "k";
-    return FMT("{:.1f} {}{}B", size / factor, k, infix);
+    return FMT("{:.1f} {}{}B", dsize / factor, k, infix);
   } else if (size == 1) {
     return "1 byte";
   } else {
@@ -308,7 +309,12 @@ parse_size(const std::string& value)
 tl::expected<mode_t, std::string>
 parse_umask(std::string_view value)
 {
-  return parse_unsigned(value, 0, 0777, "umask", 8);
+  auto result = parse_unsigned(value, 0, 0777, "umask", 8);
+  if (result) {
+    return static_cast<mode_t>(*result);
+  } else {
+    return tl::unexpected(result.error());
+  }
 }
 
 tl::expected<uint64_t, std::string>

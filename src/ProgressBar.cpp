@@ -90,7 +90,8 @@ ProgressBar::update(double value)
     PRINT(stdout, "\r{} {:5.1f}%", m_header, new_value_percent);
   } else {
     size_t total_bar_width = m_width - first_part_width;
-    size_t filled_bar_width = (new_value_percent / 100) * total_bar_width;
+    size_t filled_bar_width = static_cast<size_t>(
+      (new_value_percent / 100) * static_cast<double>(total_bar_width));
     size_t unfilled_bar_width = total_bar_width - filled_bar_width;
     PRINT(stdout,
           "\r{} {:5.1f}% [{:=<{}}{: <{}}]",

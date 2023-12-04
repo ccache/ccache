@@ -140,7 +140,9 @@ RedisStorageBackend::RedisStorageBackend(const Params& params)
     }
   }
 
-  connect(url, connect_timeout.count(), operation_timeout.count());
+  connect(url,
+          static_cast<uint32_t>(connect_timeout.count()),
+          static_cast<uint32_t>(operation_timeout.count()));
   authenticate(url);
   select_database(url);
 }
@@ -244,9 +246,10 @@ RedisStorageBackend::connect(const Url& url,
   } else {
     const std::string host = url.host().empty() ? "localhost" : url.host();
     const uint32_t port =
-      url.port().empty() ? DEFAULT_PORT
-                         : util::value_or_throw<core::Fatal>(
-                           util::parse_unsigned(url.port(), 1, 65535, "port"));
+      url.port().empty()
+        ? DEFAULT_PORT
+        : static_cast<uint32_t>(util::value_or_throw<core::Fatal>(
+          util::parse_unsigned(url.port(), 1, 65535, "port")));
     ASSERT(url.path().empty() || url.path()[0] == '/');
 
     LOG("Redis connecting to {}:{} (connect timeout {} ms)",
@@ -293,8 +296,9 @@ RedisStorageBackend::select_database(const Url& url)
   }
   const uint32_t db_number =
     !db ? 0
-        : util::value_or_throw<core::Fatal>(util::parse_unsigned(
-          *db, 0, std::numeric_limits<uint32_t>::max(), "db number"));
+        : static_cast<uint32_t>(
+          util::value_or_throw<core::Fatal>(util::parse_unsigned(
+            *db, 0, std::numeric_limits<uint32_t>::max(), "db number")));
 
   if (db_number != 0) {
     LOG("Redis SELECT {}", db_number);

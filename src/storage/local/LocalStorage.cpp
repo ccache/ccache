@@ -300,6 +300,17 @@ struct CleanDirResult
   Level2Counters after;
 };
 
+template<typename T>
+static double
+ratio(T numerator, T denominator)
+{
+  if (denominator == 0) {
+    return 0.0;
+  } else {
+    return static_cast<double>(numerator) / static_cast<double>(denominator);
+  }
+}
+
 static CleanDirResult
 clean_dir(
   const std::string& l2_dir,
@@ -322,7 +333,7 @@ clean_dir(
     raw_files_map;
 
   for (size_t i = 0; i < files.size();
-       ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
+       ++i, progress_receiver(1.0 / 3 + 1.0 * ratio(i, files.size()) / 3)) {
     const auto& file = files[i];
 
     if (!file.is_regular_file()) {
@@ -360,7 +371,7 @@ clean_dir(
 
   bool cleaned = false;
   for (size_t i = 0; i < files.size();
-       ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
+       ++i, progress_receiver(2.0 / 3 + 1.0 * ratio(i, files.size()) / 3)) {
     const auto& file = files[i];
 
     if (!file || file.is_directory()) {
@@ -440,8 +451,8 @@ LocalStorage::finalize()
     // Pseudo-randomly choose one of the stats files in the 256 level 2
     // directories.
     const auto bucket = getpid() % 256;
-    const uint8_t l1_index = bucket / 16;
-    const uint8_t l2_index = bucket % 16;
+    const uint8_t l1_index = static_cast<uint8_t>(bucket / 16);
+    const uint8_t l2_index = static_cast<uint8_t>(bucket % 16);
     const auto l2_stats_file = get_stats_file(l1_index, l2_index);
 
     uint64_t l2_files_in_cache = 0;
@@ -812,7 +823,7 @@ LocalStorage::wipe_all(const ProgressReceiver& progress_receiver)
 
           for (size_t i = 0; i < files.size(); ++i) {
             util::remove_nfs_safe(files[i].path().string());
-            l2_progress_receiver(0.5 + 0.5 * i / files.size());
+            l2_progress_receiver(0.5 + 0.5 * ratio(i, files.size()));
           }
 
           if (!files.empty()) {
@@ -849,7 +860,7 @@ LocalStorage::get_compression_statistics(
             } catch (core::Error&) {
               cs.incompressible_size += cache_file.size_on_disk();
             }
-            l2_progress_receiver(0.2 + 0.8 * i / files.size());
+            l2_progress_receiver(0.2 + 0.8 * ratio(i, files.size()));
           }
         });
     });
@@ -920,7 +931,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
               incompressible_size += file.size_on_disk();
             }
 
-            l2_progress_receiver(0.1 + 0.9 * i / files.size());
+            l2_progress_receiver(0.1 + 0.9 * ratio(i, files.size()));
           }
 
           if (util::ends_with(l2_dir, "f/f")) {
@@ -938,16 +949,12 @@ LocalStorage::recompress(const std::optional<int8_t> level,
     PRINT_RAW(stdout, "\n\n");
   }
 
-  const double old_ratio = recompressor.old_size() > 0
-                             ? static_cast<double>(recompressor.content_size())
-                                 / recompressor.old_size()
-                             : 0.0;
+  const double old_ratio =
+    ratio(recompressor.content_size(), recompressor.old_size());
   const double old_savings =
     old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
-  const double new_ratio = recompressor.new_size() > 0
-                             ? static_cast<double>(recompressor.content_size())
-                                 / recompressor.new_size()
-                             : 0.0;
+  const double new_ratio =
+    ratio(recompressor.content_size(), recompressor.new_size());
   const double new_savings =
     new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
   const int64_t size_diff = static_cast<int64_t>(recompressor.new_size())
@@ -1241,7 +1248,8 @@ LocalStorage::perform_automatic_cleanup()
   // practice removing much newer entries than the oldest in other
   // subdirectories. By doing cleanup based on the number of files, both example
   // scenarios are improved.
-  const uint64_t target_files = 0.9 * evaluation->total_files / 256;
+  const uint64_t target_files = static_cast<uint64_t>(
+    0.9 * static_cast<double>(evaluation->total_files) / 256);
 
   auto clean_dir_result = clean_dir(
     get_subdir(evaluation->l1_index, largest_level_2_index), 0, target_files);
