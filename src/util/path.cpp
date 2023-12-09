@@ -66,7 +66,7 @@ apparent_cwd(const std::string& actual_cwd)
   return actual_cwd;
 #else
   auto pwd = getenv("PWD");
-  if (!pwd || !is_absolute_path(pwd)) {
+  if (!pwd || !fs::path(pwd).is_absolute()) {
     return actual_cwd;
   }
 
@@ -82,18 +82,6 @@ const char*
 get_dev_null_path()
 {
   return k_dev_null_path;
-}
-
-bool
-is_absolute_path(std::string_view path)
-{
-#ifdef _WIN32
-  if (path.length() >= 3 && path[1] == ':'
-      && (path[2] == '/' || path[2] == '\\')) {
-    return true;
-  }
-#endif
-  return !path.empty() && path[0] == '/';
 }
 
 bool

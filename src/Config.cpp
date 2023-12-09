@@ -385,7 +385,7 @@ format_umask(std::optional<mode_t> umask)
 void
 verify_absolute_path(const std::string& value)
 {
-  if (!util::is_absolute_path(value)) {
+  if (!fs::path(value).is_absolute()) {
     throw core::Error(FMT("not an absolute path: \"{}\"", value));
   }
 }

@@ -32,6 +32,7 @@
 #include <util/FileStream.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
 #include <util/path.hpp>
@@ -47,6 +48,8 @@
 #endif
 
 #include <algorithm>
+
+namespace fs = util::filesystem;
 
 // Result data format
 // ==================
@@ -156,7 +159,7 @@ gcno_file_in_mangled_form(const Context& ctx)
 {
   const auto& output_obj = ctx.args_info.output_obj;
   const std::string abs_output_obj =
-    util::is_absolute_path(output_obj)
+    fs::path(output_obj).is_absolute()
       ? output_obj
       : FMT("{}/{}", ctx.apparent_cwd, output_obj);
   std::string hashified_obj = abs_output_obj;

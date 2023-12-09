@@ -351,7 +351,7 @@ find_executable(const Context& ctx,
                 const std::string& name,
                 const std::string& exclude_path)
 {
-  if (util::is_absolute_path(name)) {
+  if (fs::path(name).is_absolute()) {
     return name;
   }
 

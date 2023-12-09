@@ -26,11 +26,14 @@
 #include <util/Tokenizer.hpp>
 #include <util/assertions.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 
 #include <algorithm>
+
+namespace fs = util::filesystem;
 
 static inline bool
 is_blank(const std::string& s)
@@ -95,7 +98,7 @@ rewrite_source_paths(const Context& ctx, std::string_view file_content)
 
       const auto& token = tokens[i];
       bool token_rewritten = false;
-      if (seen_target_token && util::is_absolute_path(token)) {
+      if (seen_target_token && fs::path(token).is_absolute()) {
         const auto new_path = Util::make_relative_path(ctx, token);
         if (new_path != token) {
           adjusted_file_content.append(new_path);

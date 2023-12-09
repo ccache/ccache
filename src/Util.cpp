@@ -143,8 +143,8 @@ get_extension(std::string_view path)
 std::string
 get_relative_path(std::string_view dir, std::string_view path)
 {
-  ASSERT(util::is_absolute_path(dir));
-  ASSERT(util::is_absolute_path(path));
+  ASSERT(fs::path(dir).is_absolute());
+  ASSERT(fs::path(path).is_absolute());
 
 #ifdef _WIN32
   // Paths can be escaped by a slash for use with e.g. -isystem.
@@ -289,7 +289,7 @@ make_relative_path(const Context& ctx, std::string_view path)
 static std::string
 do_normalize_abstract_absolute_path(std::string_view path)
 {
-  if (!util::is_absolute_path(path)) {
+  if (!fs::path(path).is_absolute()) {
     return std::string(path);
   }
 

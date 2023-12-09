@@ -1509,7 +1509,7 @@ hash_common_info(const Context& ctx,
   // filename is included in the hash anyway.
   if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
     const std::string output_obj_dir =
-      util::is_absolute_path(args_info.output_obj)
+      fs::path(args_info.output_obj).is_absolute()
         ? std::string(Util::dir_name(args_info.output_obj))
         : ctx.actual_cwd;
     LOG("Hashing object file directory {}", output_obj_dir);
@@ -1942,7 +1942,7 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
     // the profile filename so we need to include the same information in the
     // hash.
     const std::string profile_path =
-      util::is_absolute_path(ctx.args_info.profile_path)
+      fs::path(ctx.args_info.profile_path).is_absolute()
         ? ctx.args_info.profile_path
         : FMT("{}/{}", ctx.apparent_cwd, ctx.args_info.profile_path);
     LOG("Adding profile directory {} to our hash", profile_path);

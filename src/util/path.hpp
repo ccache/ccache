@@ -44,9 +44,6 @@ std::string apparent_cwd(const std::string& actual_cwd);
 
 const char* get_dev_null_path();
 
-// Return whether `path` is absolute.
-bool is_absolute_path(std::string_view path);
-
 // Return whether `path` is /dev/null or (on Windows) NUL.
 bool is_dev_null_path(std::string_view path);
 
