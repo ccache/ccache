@@ -38,8 +38,8 @@
 #include <random>
 #include <sstream>
 
-const uint32_t k_min_sleep_time_ms = 100;
-const uint32_t k_max_sleep_time_ms = 500;
+const uint32_t k_min_sleep_time_ms = 10;
+const uint32_t k_max_sleep_time_ms = 50;
 #ifndef _WIN32
 const util::Duration k_staleness_limit(2);
 #endif
