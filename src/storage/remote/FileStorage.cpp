@@ -47,7 +47,8 @@ namespace {
 class FileStorageBackend : public RemoteStorage::Backend
 {
 public:
-  FileStorageBackend(const Params& params);
+  FileStorageBackend(const Url& url,
+                     const std::vector<Backend::Attribute>& attributes);
 
   tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
@@ -69,13 +70,14 @@ private:
   std::string get_entry_path(const Hash::Digest& key) const;
 };
 
-FileStorageBackend::FileStorageBackend(const Params& params)
+FileStorageBackend::FileStorageBackend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes)
 {
-  ASSERT(params.url.scheme() == "file");
+  ASSERT(url.scheme() == "file");
 
-  const auto& host = params.url.host();
+  const auto& host = url.host();
 #ifdef _WIN32
-  m_dir = util::replace_all(params.url.path(), "/", "\\");
+  m_dir = util::replace_all(url.path(), "/", "\\");
   if (m_dir.length() >= 3 && m_dir[0] == '\\' && m_dir[2] == ':') {
     // \X:\foo\bar -> X:\foo\bar according to RFC 8089 appendix E.2.
     m_dir = m_dir.substr(1);
@@ -88,12 +90,12 @@ FileStorageBackend::FileStorageBackend(const Params& params)
     throw core::Fatal(
       FMT("invalid file URL \"{}\": specifying a host other than localhost is"
           " not supported",
-          params.url.str()));
+          url.str()));
   }
-  m_dir = params.url.path();
+  m_dir = url.path();
 #endif
 
-  for (const auto& attr : params.attributes) {
+  for (const auto& attr : attributes) {
     if (attr.key == "layout") {
       if (attr.value == "flat") {
         m_layout = Layout::flat;
@@ -205,9 +207,10 @@ FileStorageBackend::get_entry_path(const Hash::Digest& key) const
 } // namespace
 
 std::unique_ptr<RemoteStorage::Backend>
-FileStorage::create_backend(const Backend::Params& params) const
+FileStorage::create_backend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
-  return std::make_unique<FileStorageBackend>(params);
+  return std::make_unique<FileStorageBackend>(url, attributes);
 }
 
 } // namespace storage::remote

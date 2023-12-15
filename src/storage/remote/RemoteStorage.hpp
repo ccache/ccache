@@ -34,7 +34,6 @@
 
 namespace storage::remote {
 
-constexpr auto k_redacted_password = "********";
 const auto k_default_connect_timeout = std::chrono::milliseconds{100};
 const auto k_default_operation_timeout = std::chrono::milliseconds{10000};
 
@@ -50,12 +49,6 @@ public:
       std::string key;       // Key part.
       std::string value;     // Value part, percent-decoded.
       std::string raw_value; // Value part, not percent-decoded.
-    };
-
-    struct Params
-    {
-      Url url;
-      std::vector<Attribute> attributes;
     };
 
     enum class Failure {
@@ -110,16 +103,19 @@ public:
   // `core::Fatal` on fatal configuration error or `Backend::Failed` on
   // connection error or timeout.
   virtual std::unique_ptr<Backend>
-  create_backend(const Backend::Params& parameters) const = 0;
+  create_backend(const Url& url,
+                 const std::vector<Backend::Attribute>& attributes) const = 0;
 
-  // Redact secrets in backend parameters, if any.
-  virtual void redact_secrets(Backend::Params& parameters) const;
+  // Redact secrets in backend attributes, if any.
+  virtual void
+  redact_secrets(std::vector<Backend::Attribute>& attributes) const;
 };
 
 // --- Inline implementations ---
 
 inline void
-RemoteStorage::redact_secrets(RemoteStorage::Backend::Params& /*config*/) const
+RemoteStorage::redact_secrets(
+  std::vector<Backend::Attribute>& /*attributes*/) const
 {
 }
 

@@ -316,6 +316,19 @@ SUITE_remote_file() {
         test_failed "Expected remote/a or remote/b to exist"
     fi
 
+    $CCACHE -Cz >/dev/null
+    rm -rf remote
+
+    CCACHE_REMOTE_STORAGE="*|shards=file://$PWD/remote/a,file://$PWD/remote/b"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    if [ ! -d remote/a ] && [ ! -d remote/b ]; then
+        test_failed "Expected remote/a or remote/b to exist"
+    fi
+
     # -------------------------------------------------------------------------
     TEST "Reshare"
 

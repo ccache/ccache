@@ -21,6 +21,7 @@
 #include <Hash.hpp>
 #include <ccache.hpp>
 #include <core/exceptions.hpp>
+#include <storage/Storage.hpp>
 #include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/fmtmacros.hpp>
@@ -40,7 +41,8 @@ namespace {
 class HttpStorageBackend : public RemoteStorage::Backend
 {
 public:
-  HttpStorageBackend(const Params& params);
+  HttpStorageBackend(const Url& url,
+                     const std::vector<Backend::Attribute>& attributes);
 
   tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
@@ -103,15 +105,16 @@ failure_from_httplib_error(httplib::Error error)
            : RemoteStorage::Backend::Failure::error;
 }
 
-HttpStorageBackend::HttpStorageBackend(const Params& params)
-  : m_url_path(get_url_path(params.url)),
-    m_http_client(get_url(params.url))
+HttpStorageBackend::HttpStorageBackend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes)
+  : m_url_path(get_url_path(url)),
+    m_http_client(get_url(url))
 {
-  if (!params.url.user_info().empty()) {
-    const auto [user, password] = util::split_once(params.url.user_info(), ':');
+  if (!url.user_info().empty()) {
+    const auto [user, password] = util::split_once(url.user_info(), ':');
     if (!password) {
       throw core::Fatal(FMT("Expected username:password in URL but got \"{}\"",
-                            params.url.user_info()));
+                            url.user_info()));
     }
     m_http_client.set_basic_auth(std::string(user), std::string(*password));
   }
@@ -124,7 +127,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
 
-  for (const auto& attr : params.attributes) {
+  for (const auto& attr : attributes) {
     if (attr.key == "bearer-token") {
       m_http_client.set_bearer_token_auth(attr.value);
     } else if (attr.key == "connect-timeout") {
@@ -284,27 +287,22 @@ HttpStorageBackend::get_entry_path(const Hash::Digest& key) const
 } // namespace
 
 std::unique_ptr<RemoteStorage::Backend>
-HttpStorage::create_backend(const Backend::Params& params) const
+HttpStorage::create_backend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
-  return std::make_unique<HttpStorageBackend>(params);
+  return std::make_unique<HttpStorageBackend>(url, attributes);
 }
 
 void
-HttpStorage::redact_secrets(Backend::Params& params) const
+HttpStorage::redact_secrets(std::vector<Backend::Attribute>& attributes) const
 {
-  auto& url = params.url;
-  const auto [user, password] = util::split_once(url.user_info(), ':');
-  if (password) {
-    url.user_info(FMT("{}:{}", user, k_redacted_password));
-  }
-
   auto bearer_token_attribute =
-    std::find_if(params.attributes.begin(),
-                 params.attributes.end(),
-                 [&](const auto& attr) { return attr.key == "bearer-token"; });
-  if (bearer_token_attribute != params.attributes.end()) {
-    bearer_token_attribute->value = k_redacted_password;
-    bearer_token_attribute->raw_value = k_redacted_password;
+    std::find_if(attributes.begin(), attributes.end(), [&](const auto& attr) {
+      return attr.key == "bearer-token";
+    });
+  if (bearer_token_attribute != attributes.end()) {
+    bearer_token_attribute->value = storage::k_redacted_password;
+    bearer_token_attribute->raw_value = storage::k_redacted_password;
   }
 }
 

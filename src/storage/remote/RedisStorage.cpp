@@ -20,6 +20,7 @@
 
 #include <Hash.hpp>
 #include <core/exceptions.hpp>
+#include <storage/Storage.hpp>
 #include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/fmtmacros.hpp>
@@ -64,7 +65,8 @@ const uint32_t DEFAULT_PORT = 6379;
 class RedisStorageBackend : public RemoteStorage::Backend
 {
 public:
-  RedisStorageBackend(const RemoteStorage::Backend::Params& params);
+  RedisStorageBackend(const Url& url,
+                      const std::vector<Backend::Attribute>& attributes);
 
   tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
@@ -112,25 +114,26 @@ split_user_info(const std::string& user_info)
   }
 }
 
-RedisStorageBackend::RedisStorageBackend(const Params& params)
+RedisStorageBackend::RedisStorageBackend(
+  const Url& url,
+  const std::vector<Backend::Attribute>& attributes)
   : m_prefix("ccache"), // TODO: attribute
     m_context(nullptr, redisFree)
 {
-  const auto& url = params.url;
   ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix");
-  if (url.scheme() == "redis+unix" && !params.url.host().empty()
-      && params.url.host() != "localhost") {
+  if (url.scheme() == "redis+unix" && !url.host().empty()
+      && url.host() != "localhost") {
     throw core::Fatal(
       FMT("invalid file path \"{}\": specifying a host other than localhost is"
           " not supported",
-          params.url.str(),
-          params.url.host()));
+          url.str(),
+          url.host()));
   }
 
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
 
-  for (const auto& attr : params.attributes) {
+  for (const auto& attr : attributes) {
     if (attr.key == "connect-timeout") {
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "operation-timeout") {
@@ -313,12 +316,12 @@ RedisStorageBackend::authenticate(const Url& url)
   if (password) {
     if (user) {
       // redis://user:password@host
-      LOG("Redis AUTH {} {}", *user, k_redacted_password);
+      LOG("Redis AUTH {} {}", *user, storage::k_redacted_password);
       util::value_or_throw<Failed>(
         redis_command("AUTH %s %s", user->c_str(), password->c_str()));
     } else {
       // redis://password@host
-      LOG("Redis AUTH {}", k_redacted_password);
+      LOG("Redis AUTH {}", storage::k_redacted_password);
       util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
     }
   }
@@ -353,25 +356,10 @@ RedisStorageBackend::get_key_string(const Hash::Digest& digest) const
 } // namespace
 
 std::unique_ptr<RemoteStorage::Backend>
-RedisStorage::create_backend(const Backend::Params& params) const
+RedisStorage::create_backend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
-  return std::make_unique<RedisStorageBackend>(params);
-}
-
-void
-RedisStorage::redact_secrets(Backend::Params& params) const
-{
-  auto& url = params.url;
-  const auto [user, password] = split_user_info(url.user_info());
-  if (password) {
-    if (user) {
-      // redis://user:password@host
-      url.user_info(FMT("{}:{}", *user, k_redacted_password));
-    } else {
-      // redis://password@host
-      url.user_info(k_redacted_password);
-    }
-  }
+  return std::make_unique<RedisStorageBackend>(url, attributes);
 }
 
 } // namespace storage::remote

@@ -187,7 +187,30 @@ if $RUN_WIN_XFAIL; then
     expect_not_contains test.o.*.ccache-log secret123
     expect_contains test.o.*.ccache-log "status code: 401"
 fi
+
      # -------------------------------------------------------------------------
+    TEST "Port sharding"
+
+    start_http_server 12780 remote
+    export CCACHE_REMOTE_STORAGE="http://localhost:*|shards=12780"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_file_count 2 '*' remote # result + manifest
+    subdirs=$(find remote -type d | wc -l)
+    if [ "${subdirs}" -lt 2 ]; then # "remote" itself counts as one
+        test_failed "Expected subdirectories in remote"
+    fi
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_file_count 2 '*' remote # result + manifest
+
+    # -------------------------------------------------------------------------
     TEST "IPv6 address"
 
     if maybe_start_ipv6_http_server 12780 remote; then
