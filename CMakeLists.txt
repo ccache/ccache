@@ -72,6 +72,7 @@ include(UseFastestLinker)
 include(StaticLinkSupport)
 include(StandardSettings)
 include(StandardWarnings)
+include(EnableCcache)
 
 #
 # Configuration
