@@ -141,17 +141,26 @@
 // Define if "st_atim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_ATIM
 
+// Define if "st_atimensec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIMENSEC
+
 // Define if "st_atimespec" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_ATIMESPEC
 
 // Define if "st_ctim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_CTIM
 
+// Define if "st_ctimensec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIMENSEC
+
 // Define if "st_ctimespec" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_CTIMESPEC
 
 // Define if "st_mtim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
+
+// Define if "st_mtimensec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIMENSEC
 
 // Define if "st_mtimespec" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIMESPEC

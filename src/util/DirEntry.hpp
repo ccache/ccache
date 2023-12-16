@@ -190,6 +190,8 @@ DirEntry::atime() const
   return util::TimePoint(do_stat().st_atim);
 #elif defined(HAVE_STRUCT_STAT_ST_ATIMESPEC)
   return util::TimePoint(do_stat().st_atimespec);
+#elif defined(HAVE_STRUCT_STAT_ST_ATIMENSEC)
+  return util::TimePoint(do_stat().st_atime, do_stat().st_atimensec);
 #else
   return util::TimePoint(do_stat().st_atime, 0);
 #endif
@@ -202,6 +204,8 @@ DirEntry::ctime() const
   return util::TimePoint(do_stat().st_ctim);
 #elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
   return util::TimePoint(do_stat().st_ctimespec);
+#elif defined(HAVE_STRUCT_STAT_ST_CTIMENSEC)
+  return util::TimePoint(do_stat().st_ctime, do_stat().st_ctimensec);
 #else
   return util::TimePoint(do_stat().st_ctime, 0);
 #endif
@@ -212,8 +216,10 @@ DirEntry::mtime() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_MTIM)
   return util::TimePoint(do_stat().st_mtim);
-#elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
+#elif defined(HAVE_STRUCT_STAT_ST_MTIMESPEC)
   return util::TimePoint(do_stat().st_mtimespec);
+#elif defined(HAVE_STRUCT_STAT_ST_MTIMENSEC)
+  return util::TimePoint(do_stat().st_mtime, do_stat().st_mtimensec);
 #else
   return util::TimePoint(do_stat().st_mtime, 0);
 #endif
