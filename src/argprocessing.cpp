@@ -1009,6 +1009,8 @@ process_option_arg(const Context& ctx,
 
   if (arg == "-frecord-gcc-switches") {
     state.hash_full_command_line = true;
+    LOG_RAW(
+      "Found -frecord-gcc-switches, hashing original command line unmodified");
   }
 
   // MSVC -u is something else than GCC -u, handle it specially.
