@@ -974,9 +974,6 @@ LocalStorage::recompress(const std::optional<int8_t> level,
   const auto [content_size_quantity, content_size_unit] =
     util::split_once(human_readable(recompressor.content_size()), ' ');
   ASSERT(content_size_unit);
-  const auto [incompr_size_quantity, incompr_size_unit] =
-    util::split_once(human_readable(incompressible_size), ' ');
-  ASSERT(incompr_size_unit);
   const auto [size_diff_quantity, size_diff_unit] =
     util::split_once(human_readable(std::abs(size_diff)), ' ');
   ASSERT(size_diff_unit);
