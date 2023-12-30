@@ -510,7 +510,7 @@ jobs:
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
 
-  codespell:
+  spelling:
     timeout-minutes: 30
     name: Spelling
     runs-on: ubuntu-22.04
@@ -520,11 +520,14 @@ jobs:
       - name: Get source
         uses: actions/checkout@v3
 
-      - name: Install codespell
+      - name: Install spell checkers
         run: |
           sudo apt-get update
           sudo apt-get install python3-pip
-          pip3 install codespell==2.2.6
+          pip3 install codespell==2.2.6 typos==1.16.26
 
       - name: Run codespell
         run: codespell -q 7 -S ".git,build*,./misc/typos.toml,./src/third_party/*" -I misc/codespell-allowlist.txt
+
+      - name: Run typos
+        run: typos -c misc/typos.toml
