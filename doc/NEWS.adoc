@@ -1,5 +1,127 @@
 = Ccache news
 
+== Ccache 4.9
+
+Release date: 2023-12-30
+
+=== New features and improvements
+
+- Made `ignore_options`/`CCACHE_IGNOREOPTIONS` also skip the option from special
+  processing, similar to how `--ccache-skip` works. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for expanding environment variables references in all
+  configuration options. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- MSVC options `/Fd`, `/FS` and `/MP` are no longer included in the input hash. +
+  [small]#_[contributed by Huang Qin Jing]_#
+
+- Made ccache terminate an ongoing compiler subprocess when terminated on all
+  platforms, not only on Unix. +
+  [small]#_[contributed by Andreas Reischuck]_#
+
+- Added support for multiple `-Xarch_*` arguments matching `-arch`. +
+  [small]#_[contributed by Tadej Novak]_#
+
+- Added a `debug_level`/`CCACHE_DEBUGLEVEL` configuration option, making it
+  possible to tell ccache to only write a log file for each compilation, not
+  other debug files. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Added `max_cache_size_kibibyte` and `max_files_in_cache` fields in output from
+  `ccache --print-stats`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Paths after `-Xclang -include` are now rewritten to relative paths if
+  `base_dir`/`CCACHE_BASEDIR` is in effect. +
+  [small]#_[contributed by Jiulong Wang]_#
+
+- Added support for `clang --analyze`. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Improved processing of input file arguments. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for `st_Xtimensec` fields in `struct stat`, thus improving
+  behavior on some BSDs when using newly created include files. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for the undocumented GCC/Clang option `--include`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Ccache now exits more gracefully on invalid sharded remote storage URLs. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made ccache bail out on too hard options `-fmodules-ts`, `-fmodule-header`,
+  `-wrapper` and `-Xclang -ast-dump`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Stopped relying on the `st_blocks` field in `struct stat` since it cannot be
+  trusted for filesystems such as ZFS that do transparent compression or
+  deduplication and adjust `st_blocks` some time in the future. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed crash on Windows for paths with only a drive letter. +
+  [small]#_[contributed by Martin Blanchard]_#
+
+- Made handling of Clang config options (such as `--config-system-dir`) more
+  robust. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed compiler type detection when compiler is a symlink called "`clang-cl`". +
+  [small]#_[contributed by an anonymous user]_#
+
+- Made sure to use MSVC logic for `clang-cl` when handling a precompiled
+  header. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Generalized expansion of remote storage URLs with sharding, for instance
+  making it possible to shard on port number. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Upgraded to xxHash 0.8.2, thereby fixing an error when compiling ccache with
+  `-Og`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed sign-compare warning in `src/InodeCache.cpp` on FreeBSD. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed the CMake option `STATIC_LINK` on Linux/macOS. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+- Added the CMake option `OFFLINE`, defaulting to the value of the standard
+  variable `FETCHCONTENT_FULLY_DISCONNECTED` (which is OFF by default), to
+  disable downloading anything from the internet. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+- Fixed warnings about unused functions on new MSVC versions. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+- Made sure to set both C and C++ CMake compiler launcher variables if either is
+  set. +
+  [small]#_[contributed by Rafael Kitover]_#
+
+
+=== Documentation improvements
+
+- The manual now mentions that `system_headers` sloppiness is not supported for
+  MSVC. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Fixed regex in direct.bash. +
+  [small]#_[contributed by Viktor Szépe]_#
+
+
 == Ccache 4.8.3
 
 Release date: 2023-08-29
