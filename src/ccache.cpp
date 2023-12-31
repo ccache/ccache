@@ -1545,7 +1545,8 @@ hash_common_info(const Context& ctx,
     if (!ctx.args_info.profile_path.empty()) {
       dir = ctx.args_info.profile_path;
     } else {
-      dir = util::real_path(Util::dir_name(ctx.args_info.output_obj));
+      const auto output_dir = fs::path(ctx.args_info.output_obj).parent_path();
+      dir = fs::canonical(output_dir).value_or(output_dir).string();
     }
     std::string_view stem = Util::remove_extension(
       fs::path(ctx.args_info.output_obj).filename().string());

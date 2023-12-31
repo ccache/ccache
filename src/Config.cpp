@@ -34,7 +34,6 @@
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
-#include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
 
@@ -913,9 +912,9 @@ Config::set_value_in_file(const std::string& path,
   Config dummy_config;
   dummy_config.set_item(key, value, std::nullopt, false, "");
 
-  const auto resolved_path = util::real_path(path);
-  if (!DirEntry(resolved_path).is_regular_file()) {
-    core::ensure_dir_exists(Util::dir_name(resolved_path));
+  const fs::path resolved_path = fs::canonical(path).value_or(path);
+  if (!fs::is_regular_file(resolved_path)) {
+    core::ensure_dir_exists(resolved_path.parent_path());
     util::throw_on_error<core::Error>(
       util::write_file(resolved_path, ""),
       FMT("failed to write to {}: ", resolved_path));

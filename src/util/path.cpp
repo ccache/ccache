@@ -120,11 +120,4 @@ path_starts_with(std::string_view path, std::string_view prefix)
   return true;
 }
 
-std::string
-real_path(std::string_view path)
-{
-  auto real_path = fs::canonical(path);
-  return real_path ? real_path->string() : std::string(path);
-}
-
 } // namespace util

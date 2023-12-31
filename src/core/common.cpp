@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -103,14 +103,10 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
     if (path_end == std::string_view::npos) {
       result.append(line.data(), line.length());
     } else {
-      std::string path(line.substr(0, path_end));
-      if (util::DirEntry(path)) {
-        result += util::real_path(path);
-        auto tail = line.substr(path_end);
-        result.append(tail.data(), tail.length());
-      } else {
-        result.append(line.data(), line.length());
-      }
+      fs::path path(line.substr(0, path_end));
+      result += fs::canonical(path).value_or(path).string();
+      auto tail = line.substr(path_end);
+      result.append(tail.data(), tail.length());
     }
   }
   return result;

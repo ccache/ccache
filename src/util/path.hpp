@@ -20,6 +20,7 @@
 
 #include <util/string.hpp>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -53,10 +54,6 @@ bool is_full_path(std::string_view path);
 // Return whether `path` starts with `prefix` considering path specifics on
 // Windows
 bool path_starts_with(std::string_view path, std::string_view prefix);
-
-// Return a normalized absolute path of `path`. On error (e.g. if the `path`
-// doesn't exist) path is returned unmodified.
-std::string real_path(std::string_view path);
 
 // --- Inline implementations ---
 
