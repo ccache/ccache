@@ -1085,9 +1085,10 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     LOG("Moving {} to {}", cache_file_path, wanted_path);
     fs::rename(cache_file_path, wanted_path);
     for (const auto& raw_file : m_added_raw_files) {
-      fs::rename(
-        raw_file,
-        FMT("{}/{}", Util::dir_name(wanted_path), Util::base_name(raw_file)));
+      fs::rename(raw_file,
+                 FMT("{}/{}",
+                     Util::dir_name(wanted_path),
+                     fs::path(raw_file).filename()));
     }
   }
 }

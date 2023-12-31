@@ -45,18 +45,6 @@ using util::DirEntry;
 
 namespace Util {
 
-std::string_view
-base_name(std::string_view path)
-{
-#ifdef _WIN32
-  const char delim[] = "/\\";
-#else
-  const char delim[] = "/";
-#endif
-  size_t n = path.find_last_of(delim);
-  return n == std::string::npos ? path : path.substr(n + 1);
-}
-
 std::string
 change_extension(std::string_view path, std::string_view new_ext)
 {

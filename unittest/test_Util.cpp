@@ -48,16 +48,6 @@ namespace fs = util::filesystem;
 
 TEST_SUITE_BEGIN("Util");
 
-TEST_CASE("Util::base_name")
-{
-  CHECK(Util::base_name("") == "");
-  CHECK(Util::base_name(".") == ".");
-  CHECK(Util::base_name("foo") == "foo");
-  CHECK(Util::base_name("/") == "");
-  CHECK(Util::base_name("/foo") == "foo");
-  CHECK(Util::base_name("/foo/bar/f.txt") == "f.txt");
-}
-
 TEST_CASE("Util::change_extension")
 {
   CHECK(Util::change_extension("", "") == "");

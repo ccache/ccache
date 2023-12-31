@@ -35,9 +35,6 @@ class Context;
 
 namespace Util {
 
-// Get base name of path.
-std::string_view base_name(std::string_view path);
-
 // Remove the extension via `remove_extension()`, then add `new_ext`. `new_ext`
 // should start with a dot, no extra dot is inserted.
 std::string change_extension(std::string_view path, std::string_view new_ext);

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 
 #ifdef _MSC_VER
 #  define CCACHE_FUNCTION __func__
@@ -46,7 +47,7 @@
 
 namespace util {
 
-[[noreturn]] void handle_failed_assertion(const char* file,
+[[noreturn]] void handle_failed_assertion(const std::filesystem::path& file,
                                           size_t line,
                                           const char* function,
                                           const char* condition);

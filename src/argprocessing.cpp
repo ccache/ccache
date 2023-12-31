@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1272,8 +1272,8 @@ process_args(Context& ctx)
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
-    args_info.output_obj +=
-      Util::change_extension(Util::base_name(args_info.input_file), extension);
+    args_info.output_obj += Util::change_extension(
+      fs::path(args_info.input_file).filename().string(), extension);
   }
 
   args_info.orig_output_obj = args_info.output_obj;
@@ -1497,7 +1497,7 @@ process_args(Context& ctx)
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
           dep_target = Util::change_extension(
-            Util::base_name(args_info.orig_input_file),
+            fs::path(args_info.orig_input_file).filename().string(),
             get_default_object_file_extension(ctx.config));
         } else {
           // How other compilers behave is currently unknown, so bail out.

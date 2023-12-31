@@ -19,22 +19,26 @@
 #include "Util.hpp"
 
 #include <util/assertions.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
+
+namespace fs = util::filesystem;
 
 namespace util {
 
 void
-handle_failed_assertion(const char* file,
+handle_failed_assertion(const fs::path& file,
                         size_t line,
                         const char* function,
                         const char* condition)
 {
   PRINT(stderr,
         "ccache: {}:{}: {}: failed assertion: {}\n",
-        Util::base_name(file),
+        file.filename(),
         line,
         function,
         condition);
   abort();
 }
+
 } // namespace util

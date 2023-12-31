@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,6 +46,7 @@
 #include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
 #include <util/string.hpp>
@@ -72,6 +73,8 @@ extern "C" {
 #  include <third_party/getopt_long.h>
 }
 #endif
+
+namespace fs = util::filesystem;
 
 using util::DirEntry;
 
@@ -667,7 +670,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      PRINT(stdout, USAGE_TEXT, Util::base_name(argv[0]));
+      PRINT(stdout, USAGE_TEXT, fs::path(argv[0]).filename());
       return EXIT_SUCCESS;
 
     case 'k': // --get-config
@@ -754,7 +757,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
     {
-      std::string_view name = Util::base_name(argv[0]);
+      std::string name = fs::path(argv[0]).filename().string();
 #ifdef _WIN32
       name = Util::remove_extension(name);
 #endif
@@ -793,7 +796,7 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      PRINT(stderr, USAGE_TEXT, Util::base_name(argv[0]));
+      PRINT(stderr, USAGE_TEXT, fs::path(argv[0]).filename());
       return EXIT_FAILURE;
     }
   }

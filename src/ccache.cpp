@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
 // Copyright (C) 2002-2007 Andrew Tridgell
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
@@ -1438,7 +1438,7 @@ hash_common_info(const Context& ctx,
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
   hash.hash_delimiter("cc_name");
-  hash.hash(Util::base_name(args[0]));
+  hash.hash(fs::path(args[0]).filename().string());
 
   // Hash variables that may affect the compilation.
   const char* always_hash_env_vars[] = {
@@ -1547,8 +1547,8 @@ hash_common_info(const Context& ctx,
     } else {
       dir = util::real_path(Util::dir_name(ctx.args_info.output_obj));
     }
-    std::string_view stem =
-      Util::remove_extension(Util::base_name(ctx.args_info.output_obj));
+    std::string_view stem = Util::remove_extension(
+      fs::path(ctx.args_info.output_obj).filename().string());
     std::string gcda_path = FMT("{}/{}.gcda", dir, stem);
     LOG("Hashing coverage path {}", gcda_path);
     hash.hash_delimiter("gcda");
@@ -2182,7 +2182,7 @@ find_compiler(Context& ctx,
       // In case ccache is masquerading as the compiler, use only base_name so
       // the real compiler can be determined.
       : (masquerading_as_compiler
-           ? std::string(Util::base_name(ctx.orig_args[0]))
+           ? fs::path(ctx.orig_args[0]).filename().string()
            : ctx.orig_args[0]);
 
   const std::string resolved_compiler =
@@ -2740,7 +2740,8 @@ ccache_main(int argc, const char* const* argv)
   try {
     if (is_ccache_executable(argv[0])) {
       if (argc < 2) {
-        PRINT_RAW(stderr, core::get_usage_text(Util::base_name(argv[0])));
+        PRINT_RAW(stderr,
+                  core::get_usage_text(fs::path(argv[0]).filename().string()));
         exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being
