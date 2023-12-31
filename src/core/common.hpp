@@ -29,6 +29,13 @@ namespace core {
 // Like std::filesystem::create_directories but throws core::Fatal on error.
 void ensure_dir_exists(const std::filesystem::path& dir);
 
+// Rewrite path to absolute path in `text` in the following two cases, where X
+// may be optional ANSI CSI sequences:
+//
+//     X<path>[:1:2]X: ...
+//     In file included from X<path>[:1:2]X:
+std::string rewrite_stderr_to_absolute_paths(std::string_view text);
+
 // Send `text` to file descriptor `fd` (typically stdout or stderr, which
 // potentially is connected to a console), optionally stripping ANSI color
 // sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting

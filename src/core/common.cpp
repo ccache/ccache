@@ -66,6 +66,19 @@ find_first_ansi_csi_seq(std::string_view string)
   }
 }
 
+} // namespace
+
+namespace core {
+
+void
+ensure_dir_exists(const fs::path& dir)
+{
+  if (auto result = fs::create_directories(dir); !result) {
+    throw core::Fatal(
+      FMT("Failed to create directory {}: {}", dir, result.error().message()));
+  }
+}
+
 std::string
 rewrite_stderr_to_absolute_paths(std::string_view text)
 {
@@ -77,12 +90,6 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
                              "\n",
                              Tokenizer::Mode::include_empty,
                              Tokenizer::IncludeDelimiter::yes)) {
-    // Rewrite <path> to <absolute path> in the following two cases, where X may
-    // be optional ANSI CSI sequences:
-    //
-    // In file included from X<path>X:1:
-    // X<path>X:1:2: ...
-
     if (util::starts_with(line, in_file_included_from)) {
       result += in_file_included_from;
       line = line.substr(in_file_included_from.length());
@@ -107,19 +114,6 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
     }
   }
   return result;
-}
-
-} // namespace
-
-namespace core {
-
-void
-ensure_dir_exists(const fs::path& dir)
-{
-  if (auto result = fs::create_directories(dir); !result) {
-    throw core::Fatal(
-      FMT("Failed to create directory {}: {}", dir, result.error().message()));
-  }
 }
 
 void
