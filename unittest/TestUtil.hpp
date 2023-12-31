@@ -19,7 +19,7 @@
 #pragma once
 
 #include <cstddef>
-#include <string>
+#include <filesystem>
 
 #ifdef _MSC_VER
 #  define DOCTEST_CONFIG_USE_STD_HEADERS
@@ -36,7 +36,7 @@ public:
   ~TestContext();
 
 private:
-  std::string m_test_dir;
+  std::filesystem::path m_test_dir;
   static size_t m_subdir_counter;
 };
 
