@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,7 +51,7 @@ actual_cwd()
 std::string
 add_exe_suffix(const std::string& program)
 {
-  auto ext = util::to_lowercase(Util::get_extension(program));
+  std::string ext = util::to_lowercase(fs::path(program).extension().string());
   if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
     return program;
   } else {

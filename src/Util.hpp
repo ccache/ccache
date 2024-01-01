@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,10 +45,6 @@ size_t common_dir_prefix_length(std::string_view dir, std::string_view path);
 
 // Get directory name of path.
 std::string_view dir_name(std::string_view path);
-
-// Return the file extension (including the dot) as a view into `path`. If
-// `path` has no file extension, an empty string_view is returned.
-std::string_view get_extension(std::string_view path);
 
 // Compute a relative path from `dir` (an absolute path to a directory) to
 // `path` (an absolute path). Assumes that both `dir` and `path` are normalized.

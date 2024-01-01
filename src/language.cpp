@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,9 @@
 
 #include "language.hpp"
 
-#include "Util.hpp"
+#include <util/filesystem.hpp>
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -105,7 +107,7 @@ const struct
 std::string
 language_for_file(const std::string& fname, CompilerType compiler_type)
 {
-  auto ext = Util::get_extension(fname);
+  const auto ext = fs::path(fname).extension();
   if (ext == ".cu" && compiler_type == CompilerType::clang) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";

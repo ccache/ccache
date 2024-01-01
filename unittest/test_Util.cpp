@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -54,7 +54,7 @@ TEST_CASE("Util::change_extension")
   CHECK(Util::change_extension("x", "") == "x");
   CHECK(Util::change_extension("", "x") == "x");
   CHECK(Util::change_extension("", ".") == ".");
-  CHECK(Util::change_extension(".", "") == "");
+  CHECK(Util::change_extension(".", "") == ".");
   CHECK(Util::change_extension("...", "x") == "..x");
   CHECK(Util::change_extension("abc", "def") == "abcdef");
   CHECK(Util::change_extension("dot.", ".dot") == "dot.dot");
@@ -99,21 +99,6 @@ TEST_CASE("Util::dir_name")
   CHECK(Util::dir_name("C:/") == "C:/");
   CHECK(Util::dir_name("C:\\") == "C:\\");
 #endif
-}
-
-TEST_CASE("Util::get_extension")
-{
-  CHECK(Util::get_extension("") == "");
-  CHECK(Util::get_extension(".") == ".");
-  CHECK(Util::get_extension("...") == ".");
-  CHECK(Util::get_extension("foo") == "");
-  CHECK(Util::get_extension("/") == "");
-  CHECK(Util::get_extension("/foo") == "");
-  CHECK(Util::get_extension("/foo/bar/f") == "");
-  CHECK(Util::get_extension("f.txt") == ".txt");
-  CHECK(Util::get_extension("f.abc.txt") == ".txt");
-  CHECK(Util::get_extension("/foo/bar/f.txt") == ".txt");
-  CHECK(Util::get_extension("/foo/bar/f.abc.txt") == ".txt");
 }
 
 TEST_CASE("Util::get_relative_path")
@@ -283,7 +268,7 @@ TEST_CASE("Util::normalize_concrete_absolute_path")
 TEST_CASE("Util::remove_extension")
 {
   CHECK(Util::remove_extension("") == "");
-  CHECK(Util::remove_extension(".") == "");
+  CHECK(Util::remove_extension(".") == ".");
   CHECK(Util::remove_extension("...") == "..");
   CHECK(Util::remove_extension("foo") == "foo");
   CHECK(Util::remove_extension("/") == "/");

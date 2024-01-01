@@ -108,26 +108,6 @@ dir_name(std::string_view path)
   }
 }
 
-std::string_view
-get_extension(std::string_view path)
-{
-#ifndef _WIN32
-  const char stop_at_chars[] = "./";
-#else
-  const char stop_at_chars[] = "./\\";
-#endif
-  size_t pos = path.find_last_of(stop_at_chars);
-  if (pos == std::string_view::npos || path.at(pos) == '/') {
-    return {};
-#ifdef _WIN32
-  } else if (path.at(pos) == '\\') {
-    return {};
-#endif
-  } else {
-    return path.substr(pos);
-  }
-}
-
 std::string
 get_relative_path(std::string_view dir, std::string_view path)
 {
@@ -353,7 +333,8 @@ normalize_concrete_absolute_path(const std::string& path)
 std::string_view
 remove_extension(std::string_view path)
 {
-  return path.substr(0, path.length() - get_extension(path).length());
+  return path.substr(
+    0, path.length() - fs::path(path).extension().native().length());
 }
 
 } // namespace Util

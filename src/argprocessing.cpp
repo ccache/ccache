@@ -158,7 +158,7 @@ detect_pch(const std::string& option,
     }
   } else if (option == "-Fp") {
     std::string file = arg;
-    if (Util::get_extension(file).empty()) {
+    if (!fs::path(file).has_extension()) {
       file += ".pch";
     }
     if (DirEntry(file).is_regular_file()) {
@@ -1633,9 +1633,9 @@ process_args(Context& ctx)
 bool
 is_precompiled_header(std::string_view path)
 {
-  std::string_view ext = Util::get_extension(path);
+  fs::path ext = fs::path(path).extension();
   return ext == ".gch" || ext == ".pch" || ext == ".pth"
-         || Util::get_extension(Util::dir_name(path)) == ".gch";
+         || fs::path(path).parent_path().extension() == ".gch";
 }
 
 bool

@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -87,7 +87,8 @@ win32getshell(const std::string& path)
 {
   const char* path_list = getenv("PATH");
   std::string sh;
-  if (util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
+  if (util::to_lowercase(fs::path(path).extension().string()) == ".sh"
+      && path_list) {
     sh = find_executable_in_path("sh.exe", path_list).string();
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
