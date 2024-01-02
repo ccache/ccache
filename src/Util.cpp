@@ -298,11 +298,4 @@ normalize_concrete_absolute_path(const std::string& path)
            : path;
 }
 
-std::string_view
-remove_extension(std::string_view path)
-{
-  return path.substr(
-    0, path.length() - fs::path(path).extension().native().length());
-}
-
 } // namespace Util

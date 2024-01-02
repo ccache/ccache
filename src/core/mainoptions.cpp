@@ -757,11 +757,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
     {
-      std::string name = fs::path(argv[0]).filename().string();
-#ifdef _WIN32
-      name = Util::remove_extension(name);
-#endif
-      PRINT_RAW(stdout, get_version_text(name));
+      PRINT_RAW(stdout, get_version_text(fs::path(argv[0]).stem().string()));
       break;
     }
 

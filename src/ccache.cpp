@@ -1548,9 +1548,8 @@ hash_common_info(const Context& ctx,
       const auto output_dir = fs::path(ctx.args_info.output_obj).parent_path();
       dir = fs::canonical(output_dir).value_or(output_dir).string();
     }
-    std::string_view stem = Util::remove_extension(
-      fs::path(ctx.args_info.output_obj).filename().string());
-    std::string gcda_path = FMT("{}/{}.gcda", dir, stem);
+    std::string gcda_path =
+      FMT("{}/{}.gcda", dir, fs::path(ctx.args_info.output_obj).stem());
     LOG("Hashing coverage path {}", gcda_path);
     hash.hash_delimiter("gcda");
     hash.hash(gcda_path);
@@ -1888,7 +1887,8 @@ static bool
 hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
-  std::string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
+  const std::string base_name =
+    fs::path(ctx.args_info.output_obj).replace_extension("").string();
   std::string hashified_cwd = ctx.apparent_cwd;
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
