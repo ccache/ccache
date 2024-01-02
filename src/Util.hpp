@@ -35,10 +35,6 @@ class Context;
 
 namespace Util {
 
-// Remove the extension via `remove_extension()`, then add `new_ext`. `new_ext`
-// should start with a dot, no extra dot is inserted.
-std::string change_extension(std::string_view path, std::string_view new_ext);
-
 // Compute the length of the longest directory path that is common to paths
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(std::string_view dir, std::string_view path);

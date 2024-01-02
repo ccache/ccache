@@ -45,13 +45,6 @@ using util::DirEntry;
 
 namespace Util {
 
-std::string
-change_extension(std::string_view path, std::string_view new_ext)
-{
-  std::string_view without_ext = Util::remove_extension(path);
-  return std::string(without_ext).append(new_ext.data(), new_ext.length());
-}
-
 size_t
 common_dir_prefix_length(std::string_view dir, std::string_view path)
 {

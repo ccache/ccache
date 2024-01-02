@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,7 +22,6 @@
 #include "Depfile.hpp"
 
 #include <Context.hpp>
-#include <Util.hpp>
 #include <core/MsvcShowIncludesOutput.hpp>
 #include <core/common.hpp>
 #include <core/exceptions.hpp>
@@ -30,6 +29,7 @@
 #include <util/Fd.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
 #include <util/path.hpp>
@@ -43,6 +43,8 @@
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+
+namespace fs = util::filesystem;
 
 using util::DirEntry;
 
@@ -164,7 +166,9 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::coverage_unmangled:
     if (m_ctx.args_info.generating_coverage) {
-      return Util::change_extension(m_ctx.args_info.output_obj, ".gcno");
+      return fs::path(m_ctx.args_info.output_obj)
+        .replace_extension(".gcno")
+        .string();
     }
     break;
 

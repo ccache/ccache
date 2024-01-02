@@ -150,10 +150,10 @@ detect_pch(const std::string& option,
       pch_file = included_pch_file;
       included_pch_file.clear(); // reset pch file set from /Fp
     } else {
-      std::string file = Util::change_extension(arg, ".pch");
-      if (DirEntry(file).is_regular_file()) {
+      fs::path file = fs::path(arg).replace_extension(".pch");
+      if (fs::is_regular_file(file)) {
         LOG("Detected use of precompiled header: {}", file);
-        pch_file = file;
+        pch_file = file.string();
       }
     }
   } else if (option == "-Fp") {
@@ -1272,8 +1272,10 @@ process_args(Context& ctx)
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
-    args_info.output_obj += Util::change_extension(
-      fs::path(args_info.input_file).filename().string(), extension);
+    args_info.output_obj += fs::path(args_info.input_file)
+                              .filename()
+                              .replace_extension(extension)
+                              .string();
   }
 
   args_info.orig_output_obj = args_info.output_obj;
@@ -1402,7 +1404,7 @@ process_args(Context& ctx)
       args_info.seen_split_dwarf = false;
     } else {
       args_info.output_dwo =
-        Util::change_extension(args_info.output_obj, ".dwo");
+        fs::path(args_info.output_obj).replace_extension(".dwo").string();
     }
   }
 
@@ -1463,7 +1465,8 @@ process_args(Context& ctx)
 
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
-      args_info.output_dep = Util::change_extension(args_info.output_obj, ".d");
+      args_info.output_dep =
+        fs::path(args_info.output_obj).replace_extension(".d").string();
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -1496,9 +1499,11 @@ process_args(Context& ctx)
         } else if (config.compiler_type() == CompilerType::gcc) {
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
-          dep_target = Util::change_extension(
-            fs::path(args_info.orig_input_file).filename().string(),
-            get_default_object_file_extension(ctx.config));
+          dep_target =
+            fs::path(args_info.orig_input_file)
+              .filename()
+              .replace_extension(get_default_object_file_extension(ctx.config))
+              .string();
         } else {
           // How other compilers behave is currently unknown, so bail out.
           LOG_RAW(
@@ -1513,8 +1518,8 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_stackusage) {
-    auto default_sufile_name =
-      Util::change_extension(args_info.output_obj, ".su");
+    std::string default_sufile_name =
+      fs::path(args_info.output_obj).replace_extension(".su").string();
     args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
   }
 

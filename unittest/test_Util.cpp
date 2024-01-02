@@ -48,21 +48,6 @@ namespace fs = util::filesystem;
 
 TEST_SUITE_BEGIN("Util");
 
-TEST_CASE("Util::change_extension")
-{
-  CHECK(Util::change_extension("", "") == "");
-  CHECK(Util::change_extension("x", "") == "x");
-  CHECK(Util::change_extension("", "x") == "x");
-  CHECK(Util::change_extension("", ".") == ".");
-  CHECK(Util::change_extension(".", "") == ".");
-  CHECK(Util::change_extension("...", "x") == "..x");
-  CHECK(Util::change_extension("abc", "def") == "abcdef");
-  CHECK(Util::change_extension("dot.", ".dot") == "dot.dot");
-  CHECK(Util::change_extension("foo.ext", "e2") == "fooe2");
-  CHECK(Util::change_extension("bar.txt", ".o") == "bar.o");
-  CHECK(Util::change_extension("foo.bar.txt", ".o") == "foo.bar.o");
-}
-
 TEST_CASE("Util::common_dir_prefix_length")
 {
   CHECK(Util::common_dir_prefix_length("", "") == 0);
