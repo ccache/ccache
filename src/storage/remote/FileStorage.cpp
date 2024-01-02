@@ -153,7 +153,7 @@ FileStorageBackend::put(const Hash::Digest& key,
   {
     util::UmaskScope umask_scope(m_umask);
 
-    const auto dir = Util::dir_name(path);
+    const fs::path dir = fs::path(path).parent_path();
     if (auto result = fs::create_directories(dir); !result) {
       LOG("Failed to create directory {}: {}", dir, result.error().message());
       return tl::unexpected(Failure::error);

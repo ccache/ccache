@@ -75,32 +75,6 @@ common_dir_prefix_length(std::string_view dir, std::string_view path)
   return i;
 }
 
-std::string_view
-dir_name(std::string_view path)
-{
-#ifdef _WIN32
-  const char delim[] = "/\\";
-#else
-  const char delim[] = "/";
-#endif
-  size_t n = path.find_last_of(delim);
-  if (n == std::string::npos) {
-    // "foo" -> "."
-    return ".";
-  } else if (n == 0) {
-    // "/" -> "/" (Windows: or "\\" -> "\\")
-    return path.substr(0, 1);
-#ifdef _WIN32
-  } else if (n == 2 && path[1] == ':') {
-    // Windows: "C:\\foo" -> "C:\\" or "C:/foo" -> "C:/"
-    return path.substr(0, 3);
-#endif
-  } else {
-    // "/dir/foo" -> "/dir" (Windows: or "C:\\dir\\foo" -> "C:\\dir")
-    return path.substr(0, n);
-  }
-}
-
 std::string
 get_relative_path(std::string_view dir, std::string_view path)
 {
@@ -201,13 +175,14 @@ make_relative_path(const std::string& base_dir,
 
   std::vector<std::string> relpath_candidates;
   const auto original_path = path;
-  DirEntry dir_entry(path);
-  while (!dir_entry.exists()) {
-    path = Util::dir_name(path);
-    dir_entry = DirEntry(path);
+  fs::path path_path = path;
+  while (!fs::exists(path_path)) {
+    path_path = path_path.parent_path();
   }
+  std::string path_str = path_path.string();
+  path = path_str;
   const auto path_suffix = std::string(original_path.substr(path.length()));
-  const std::string real_path = fs::canonical(path).value_or(path).string();
+  const fs::path real_path = fs::canonical(path).value_or(fs::path(path));
 
   const auto add_relpath_candidates = [&](auto p) {
     const std::string normalized_path =
@@ -221,7 +196,7 @@ make_relative_path(const std::string& base_dir,
   };
   add_relpath_candidates(path);
   if (real_path != path) {
-    add_relpath_candidates(real_path);
+    add_relpath_candidates(real_path.string());
   }
 
   // Find best (i.e. shortest existing) match:
@@ -231,7 +206,7 @@ make_relative_path(const std::string& base_dir,
               return path1.length() < path2.length();
             });
   for (const auto& relpath : relpath_candidates) {
-    if (DirEntry(relpath).same_inode_as(dir_entry)) {
+    if (fs::equivalent(relpath, path_path)) {
       return relpath + path_suffix;
     }
   }

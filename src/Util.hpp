@@ -39,9 +39,6 @@ namespace Util {
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(std::string_view dir, std::string_view path);
 
-// Get directory name of path.
-std::string_view dir_name(std::string_view path);
-
 // Compute a relative path from `dir` (an absolute path to a directory) to
 // `path` (an absolute path). Assumes that both `dir` and `path` are normalized.
 // The algorithm does *not* follow symlinks, so the result may not actually

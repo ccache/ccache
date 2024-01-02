@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,7 +21,6 @@
 #include <Config.hpp>
 #include <Context.hpp>
 #include <MiniTrace.hpp>
-#include <Util.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
@@ -648,7 +647,7 @@ LocalStorage::put_raw_files(
   const std::vector<core::Result::Serializer::RawFile> raw_files)
 {
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
-  core::ensure_dir_exists(Util::dir_name(cache_file.path));
+  core::ensure_dir_exists(fs::path(cache_file.path).parent_path());
 
   int64_t files_change = 0;
   int64_t size_kibibyte_change = 0;
@@ -1078,7 +1077,7 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
   const auto wanted_path = get_path_in_cache(
     wanted_level, util::format_digest(key) + suffix_from_type(type));
   if (cache_file_path != wanted_path) {
-    core::ensure_dir_exists(Util::dir_name(wanted_path));
+    core::ensure_dir_exists(fs::path(wanted_path).parent_path());
 
     // Note: Two ccache processes may move the file at the same time, so failure
     // to rename is OK.
@@ -1087,7 +1086,7 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     for (const auto& raw_file : m_added_raw_files) {
       fs::rename(raw_file,
                  FMT("{}/{}",
-                     Util::dir_name(wanted_path),
+                     fs::path(wanted_path).parent_path(),
                      fs::path(raw_file).filename()));
     }
   }
@@ -1507,7 +1506,7 @@ std::string
 LocalStorage::get_lock_path(const std::string& name) const
 {
   auto path = FMT("{}/lock/{}", m_config.cache_dir(), name);
-  core::ensure_dir_exists(Util::dir_name(path));
+  core::ensure_dir_exists(fs::path(path).parent_path());
   return path;
 }
 

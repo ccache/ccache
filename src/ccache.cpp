@@ -1510,7 +1510,7 @@ hash_common_info(const Context& ctx,
   if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
     const std::string output_obj_dir =
       fs::path(args_info.output_obj).is_absolute()
-        ? std::string(Util::dir_name(args_info.output_obj))
+        ? fs::path(args_info.output_obj).parent_path().string()
         : ctx.actual_cwd;
     LOG("Hashing object file directory {}", output_obj_dir);
     hash.hash_delimiter("source path");

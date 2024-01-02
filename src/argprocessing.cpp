@@ -1420,8 +1420,8 @@ process_args(Context& ctx)
     args_info.generating_dependencies = false;
   }
 
-  auto output_dir = Util::dir_name(args_info.output_obj);
-  if (!DirEntry(output_dir).is_directory()) {
+  fs::path output_dir = fs::path(args_info.output_obj).parent_path();
+  if (!output_dir.empty() && !fs::is_directory(output_dir)) {
     LOG("Directory does not exist: {}", output_dir);
     return Statistic::bad_output_file;
   }

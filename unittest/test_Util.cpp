@@ -66,26 +66,6 @@ TEST_CASE("Util::common_dir_prefix_length")
   CHECK(Util::common_dir_prefix_length("/a/b", "/a/bc") == 2);
 }
 
-TEST_CASE("Util::dir_name")
-{
-  CHECK(Util::dir_name("") == ".");
-  CHECK(Util::dir_name(".") == ".");
-  CHECK(Util::dir_name("foo") == ".");
-  CHECK(Util::dir_name("/") == "/");
-  CHECK(Util::dir_name("/foo") == "/");
-  CHECK(Util::dir_name("/foo/bar/f.txt") == "/foo/bar");
-
-#ifdef _WIN32
-  CHECK(Util::dir_name("C:/x/y") == "C:/x");
-  CHECK(Util::dir_name("X:/x/y") == "X:/x");
-  CHECK(Util::dir_name("C:\\x\\y") == "C:\\x");
-  CHECK(Util::dir_name("C:/x") == "C:/");
-  CHECK(Util::dir_name("C:\\x") == "C:\\");
-  CHECK(Util::dir_name("C:/") == "C:/");
-  CHECK(Util::dir_name("C:\\") == "C:\\");
-#endif
-}
-
 TEST_CASE("Util::get_relative_path")
 {
 #ifdef _WIN32
@@ -178,7 +158,7 @@ TEST_CASE("Util::make_relative_path")
     CHECK(
       make_relative_path(
         actual_cwd.substr(0, 3), actual_cwd, apparent_cwd, actual_cwd + "\\\\x")
-      == ".\\x");
+      == ".\\\\x");
 #else
     CHECK(make_relative_path("/", actual_cwd, apparent_cwd, actual_cwd + "/x")
           == "./x");

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,13 +20,15 @@
 #include "../src/Depfile.hpp"
 #include "TestUtil.hpp"
 
-#include <Util.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 
 #include "third_party/doctest.h"
 
 #include <string>
 #include <vector>
+
+namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
 
@@ -47,12 +49,12 @@ TEST_CASE("Depfile::rewrite_source_paths")
 {
   Context ctx;
 
-  const auto cwd = ctx.actual_cwd;
+  const fs::path cwd = ctx.actual_cwd;
 
   const auto content =
     FMT("{0}/foo.o {0}/foo.o: bar.c {0}/bar.h \\\n\n {1}/fie.h {0}/fum.h\n",
         cwd,
-        Util::dir_name(cwd));
+        cwd.parent_path());
 
   SUBCASE("Base directory not in dep file content")
   {
@@ -63,19 +65,19 @@ TEST_CASE("Depfile::rewrite_source_paths")
 
   SUBCASE("Base directory in dep file content but not matching")
   {
-    ctx.config.set_base_dir(FMT("{}/other", Util::dir_name(cwd)));
+    ctx.config.set_base_dir((cwd.parent_path() / "other").string());
     CHECK(!Depfile::rewrite_source_paths(ctx, ""));
     CHECK(!Depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Absolute paths under base directory rewritten")
   {
-    ctx.config.set_base_dir(cwd);
+    ctx.config.set_base_dir(cwd.string());
     const auto actual = Depfile::rewrite_source_paths(ctx, content);
     const auto expected =
       FMT("{0}/foo.o {0}/foo.o: bar.c ./bar.h \\\n\n {1}/fie.h ./fum.h\n",
           cwd,
-          Util::dir_name(cwd));
+          cwd.parent_path());
     REQUIRE(actual);
     CHECK(*actual == expected);
   }
