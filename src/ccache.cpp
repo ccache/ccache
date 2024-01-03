@@ -2382,6 +2382,7 @@ cache_compilation(int argc, const char* const* argv)
                                                   : result.error().counters());
     const auto& counters = ctx.storage.local.get_statistics_updates();
 
+    ctx.hit = false;
     if (counters.get(Statistic::cache_miss) > 0) {
       if (!ctx.config.remote_only()) {
         ctx.storage.local.increment_statistic(Statistic::local_storage_miss);
@@ -2390,10 +2391,12 @@ cache_compilation(int argc, const char* const* argv)
         ctx.storage.local.increment_statistic(Statistic::remote_storage_miss);
       }
     } else if ((counters.get(Statistic::direct_cache_hit) > 0
-                || counters.get(Statistic::preprocessed_cache_hit) > 0)
-               && counters.get(Statistic::remote_storage_hit) > 0
-               && !ctx.config.remote_only()) {
-      ctx.storage.local.increment_statistic(Statistic::local_storage_miss);
+                || counters.get(Statistic::preprocessed_cache_hit) > 0)) {
+      if (counters.get(Statistic::remote_storage_hit) > 0
+          && !ctx.config.remote_only()) {
+        ctx.storage.local.increment_statistic(Statistic::local_storage_miss);
+      }
+      ctx.hit = true;
     }
 
     if (!result) {

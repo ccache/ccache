@@ -57,6 +57,7 @@ public:
 
   ArgsInfo args_info;
   Config config;
+  bool hit;
 
   // Current working directory as returned by getcwd(3).
   std::string actual_cwd;
