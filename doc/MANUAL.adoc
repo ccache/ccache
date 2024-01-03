@@ -681,6 +681,13 @@ is `/home/user` and the object file is `build/output.o` then the debug log will
 be written to `/example/home/user/build/output.o.ccache-log`. See also
 _<<Cache debugging>>_.
 
+[#config_debug_hits]
+*debug_hits* (*CCACHE_DEBUGHITS*)::
+
+    If true, keep debug files for cache hits if the <<config_debug,debug mode>>
+    is enabled. If false, the files for hits are deleted - only misses are kept.
+    The default is true.
+
 [#config_debug_level]
 *debug_level* (*CCACHE_DEBUGLEVEL*)::
 

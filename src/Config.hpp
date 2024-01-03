@@ -64,6 +64,7 @@ public:
   const std::string& cpp_extension() const;
   bool debug() const;
   const std::filesystem::path& debug_dir() const;
+  bool debug_hits() const;
   uint8_t debug_level() const;
   bool depend_mode() const;
   bool direct_mode() const;
@@ -179,6 +180,7 @@ private:
   std::string m_cpp_extension;
   bool m_debug = false;
   std::filesystem::path m_debug_dir;
+  bool m_debug_hits = true;
   uint8_t m_debug_level = 2;
   bool m_depend_mode = false;
   bool m_direct_mode = true;
@@ -305,6 +307,12 @@ inline const std::filesystem::path&
 Config::debug_dir() const
 {
   return m_debug_dir;
+}
+
+inline bool
+Config::debug_hits() const
+{
+  return m_debug_hits;
 }
 
 inline uint8_t
