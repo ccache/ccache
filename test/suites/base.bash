@@ -379,6 +379,24 @@ fi
     done
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DEBUGHITS"
+
+    unset CCACHE_LOGFILE
+    unset CCACHE_NODIRECT
+    $CCACHE_COMPILE -c test1.c
+    expect_stat cache_miss 1
+    CCACHE_DEBUG=1 CCACHE_NODEBUGHITS=1 $CCACHE_COMPILE -c test1.c
+    expect_stat direct_cache_hit 1
+    if [ -f test1.o.*.ccache-log ]; then
+        test_failed "<obj>.ccache-log present"
+    fi
+    for ext in text c p d; do
+        if [ -f test1.o.*.ccache-input-$ext ]; then
+            test_failed "<obj>.ccache-input-$ext present"
+        fi
+    done
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_DEBUG with too hard option"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c -save-temps

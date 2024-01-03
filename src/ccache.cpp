@@ -219,6 +219,21 @@ prepare_debug_path(const fs::path& cwd,
 }
 
 static void
+unlink_debug_path(Context& ctx, std::string_view suffix)
+{
+  if (!ctx.config.debug() || ctx.config.debug_level() < 2) {
+    return;
+  }
+
+  const auto path = prepare_debug_path(ctx.apparent_cwd,
+                                       ctx.config.debug_dir(),
+                                       ctx.time_of_invocation,
+                                       ctx.args_info.output_obj,
+                                       suffix);
+  unlink(path.c_str());
+}
+
+static void
 init_hash_debug(Context& ctx,
                 Hash& hash,
                 char type,
@@ -2316,6 +2331,14 @@ finalize_at_exit(Context& ctx)
       return;
     }
 
+    if (ctx.hit && !ctx.config.debug_hits()) {
+      // Remove cache debug files, for cache hit.
+      unlink_debug_path(ctx, "input-text");
+      unlink_debug_path(ctx, "input-c");
+      unlink_debug_path(ctx, "input-p");
+      unlink_debug_path(ctx, "input-d");
+    }
+
     log_result_to_debug_log(ctx);
     log_result_to_stats_log(ctx);
 
@@ -2327,6 +2350,10 @@ finalize_at_exit(Context& ctx)
 
   // Dump log buffer last to not lose any logs.
   if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
+    if (ctx.hit && !ctx.config.debug_hits()) {
+      return;
+    }
+
     util::logging::dump_log(prepare_debug_path(ctx.apparent_cwd,
                                                ctx.config.debug_dir(),
                                                ctx.time_of_invocation,
