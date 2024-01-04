@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,16 +18,17 @@
 
 #include "LockFile.hpp"
 
-#include "Logging.hpp"
 #include "Util.hpp"
-#include "Win32Util.hpp"
-#include "fmtmacros.hpp"
 
-#include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
+#include <util/DirEntry.hpp>
+#include <util/assertions.hpp>
+#include <util/error.hpp>
 #include <util/file.hpp>
-
-#include "third_party/fmt/core.h"
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
+#include <util/process.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -37,13 +38,13 @@
 #include <random>
 #include <sstream>
 
-// Seconds.
-const double k_min_sleep_time = 0.010;
-const double k_max_sleep_time = 0.050;
+const uint32_t k_min_sleep_time_ms = 10;
+const uint32_t k_max_sleep_time_ms = 50;
 #ifndef _WIN32
 const util::Duration k_staleness_limit(2);
-const util::Duration k_keep_alive_interval(k_staleness_limit / 4);
 #endif
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -72,14 +73,64 @@ private:
 
 namespace util {
 
-LockFile::LockFile(const std::string& path)
-  : m_lock_file(path + ".lock"),
+LockFile::LockFile(const fs::path& path)
+  : m_lock_file(path.string() + ".lock"),
 #ifndef _WIN32
+    m_alive_file(path.string() + ".alive"),
     m_acquired(false)
 #else
     m_handle(INVALID_HANDLE_VALUE)
 #endif
 {
+}
+
+LockFile::LockFile(LockFile&& other) noexcept
+  : m_lock_file(std::move(other.m_lock_file)),
+#ifndef _WIN32
+    m_lock_manager(other.m_lock_manager),
+    m_alive_file(std::move(other.m_alive_file)),
+    m_acquired(other.m_acquired)
+#else
+    m_handle(other.m_handle)
+#endif
+{
+#ifndef _WIN32
+  other.m_lock_manager = nullptr;
+  other.m_acquired = false;
+#else
+  other.m_handle = INVALID_HANDLE_VALUE;
+#endif
+}
+
+LockFile&
+LockFile::operator=(LockFile&& other) noexcept
+{
+  if (&other != this) {
+    m_lock_file = std::move(other.m_lock_file);
+#ifndef _WIN32
+    m_lock_manager = other.m_lock_manager;
+    other.m_lock_manager = nullptr;
+    m_alive_file = std::move(other.m_alive_file);
+    m_acquired = other.m_acquired;
+    other.m_acquired = false;
+#else
+    m_handle = other.m_handle;
+    other.m_handle = INVALID_HANDLE_VALUE;
+#endif
+  }
+  return *this;
+}
+
+void
+LockFile::make_long_lived(
+  [[maybe_unused]] LongLivedLockFileManager& lock_manager)
+{
+#ifndef _WIN32
+  m_lock_manager = &lock_manager;
+  if (acquired()) {
+    m_lock_manager->register_alive_file(m_alive_file);
+  }
+#endif
 }
 
 bool
@@ -105,8 +156,11 @@ LockFile::release()
 
   LOG("Releasing {}", m_lock_file);
 #ifndef _WIN32
-  on_before_release();
-  Util::unlink_tmp(m_lock_file);
+  if (m_lock_manager) {
+    m_lock_manager->deregister_alive_file(m_alive_file);
+  }
+  fs::remove(m_alive_file);
+  fs::remove(m_lock_file);
 #else
   CloseHandle(m_handle);
 #endif
@@ -138,9 +192,19 @@ LockFile::acquire(const bool blocking)
 #else
   m_handle = do_acquire(blocking);
 #endif
+
   if (acquired()) {
     LOG("Acquired {}", m_lock_file);
-    on_after_acquire();
+#ifndef _WIN32
+    LOG("Creating {}", m_alive_file);
+    const auto result = write_file(m_alive_file, "");
+    if (!result) {
+      LOG("Failed to write {}: {}", m_alive_file, result.error());
+    }
+    if (m_lock_manager) {
+      m_lock_manager->register_alive_file(m_alive_file);
+    }
+#endif
   } else {
     LOG("Failed to acquire lock {}", m_lock_file);
   }
@@ -154,38 +218,37 @@ bool
 LockFile::do_acquire(const bool blocking)
 {
   std::stringstream ss;
-  ss << Util::get_hostname() << '-' << getpid() << '-'
-     << std::this_thread::get_id();
+  ss << get_hostname() << '-' << getpid() << '-' << std::this_thread::get_id();
   const auto content_prefix = ss.str();
 
-  util::TimePoint last_seen_activity = [this] {
+  TimePoint last_seen_activity = [this] {
     const auto last_lock_update = get_last_lock_update();
-    return last_lock_update ? *last_lock_update : util::TimePoint::now();
+    return last_lock_update ? *last_lock_update : TimePoint::now();
   }();
 
   std::string initial_content;
-  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time * 1000,
-                                           k_max_sleep_time * 1000);
+  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time_ms,
+                                           k_max_sleep_time_ms);
 
   while (true) {
-    const auto now = util::TimePoint::now();
+    const auto now = TimePoint::now();
     const auto my_content =
-      FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec());
+      FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
 
-    if (symlink(my_content.c_str(), m_lock_file.c_str()) == 0) {
+    if (fs::create_symlink(my_content, m_lock_file)) {
       // We got the lock.
       return true;
     }
 
     int saved_errno = errno;
-    LOG("Could not acquire {}: {}", m_lock_file, strerror(saved_errno));
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
-      if (Util::create_dir(Util::dir_name(m_lock_file))) {
+      if (fs::create_directories(m_lock_file.parent_path())) {
         // OK. Retry.
         continue;
       }
     }
+    LOG("Could not acquire {}: {}", m_lock_file, strerror(saved_errno));
 
     if (saved_errno == EPERM) {
       // The file system does not support symbolic links. We have no choice but
@@ -198,17 +261,20 @@ LockFile::do_acquire(const bool blocking)
       return false;
     }
 
-    std::string content = Util::read_link(m_lock_file);
-    if (content.empty()) {
-      if (errno == ENOENT) {
+    auto content_path = fs::read_symlink(m_lock_file);
+    if (!content_path) {
+      if (content_path.error() == std::errc::no_such_file_or_directory) {
         // The symlink was removed after the symlink() call above, so retry
         // acquiring it.
         continue;
       } else {
-        LOG("Could not read symlink {}: {}", m_lock_file, strerror(errno));
+        LOG("Could not read symlink {}: {}",
+            m_lock_file,
+            content_path.error().message());
         return false;
       }
     }
+    auto content = content_path->string();
 
     if (content == my_content) {
       // Lost NFS reply?
@@ -223,28 +289,27 @@ LockFile::do_acquire(const bool blocking)
     }
 
     const auto last_lock_update = get_last_lock_update();
-    if (last_lock_update) {
-      last_seen_activity = std::max(last_seen_activity, *last_lock_update);
+    if (last_lock_update && *last_lock_update > last_seen_activity) {
+      if (!blocking) {
+        return false;
+      }
+      last_seen_activity = *last_lock_update;
     }
 
-    const util::Duration inactive_duration =
-      util::TimePoint::now() - last_seen_activity;
+    const Duration inactive_duration = TimePoint::now() - last_seen_activity;
 
     if (inactive_duration < k_staleness_limit) {
       LOG("Lock {} held by another process active {}.{:03} seconds ago",
           m_lock_file,
           inactive_duration.sec(),
-          inactive_duration.nsec() / 1'000'000);
-      if (!blocking) {
-        return false;
-      }
+          inactive_duration.nsec_decimal_part() / 1'000'000);
     } else if (content == initial_content) {
       // The lock seems to be stale -- break it and try again.
       LOG("Breaking {} since it has been inactive for {}.{:03} seconds",
           m_lock_file,
           inactive_duration.sec(),
-          inactive_duration.nsec() / 1'000'000);
-      if (!on_before_break() || !Util::unlink_tmp(m_lock_file)) {
+          inactive_duration.nsec_decimal_part() / 1'000'000);
+      if (!fs::remove(m_alive_file) || !fs::remove(m_lock_file)) {
         return false;
       }
 
@@ -274,18 +339,28 @@ LockFile::do_acquire(const bool blocking)
   }
 }
 
+std::optional<TimePoint>
+LockFile::get_last_lock_update()
+{
+  if (DirEntry entry(m_alive_file); entry) {
+    return entry.mtime();
+  } else {
+    return std::nullopt;
+  }
+}
+
 #else // !_WIN32
 
 void*
 LockFile::do_acquire(const bool blocking)
 {
   void* handle;
-  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time * 1000,
-                                           k_max_sleep_time * 1000);
+  RandomNumberGenerator sleep_ms_generator(k_min_sleep_time_ms,
+                                           k_max_sleep_time_ms);
 
   while (true) {
     DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE;
-    handle = CreateFile(m_lock_file.c_str(),
+    handle = CreateFile(m_lock_file.string().c_str(),
                         GENERIC_WRITE, // desired access
                         0,             // shared mode (0 = not shared)
                         nullptr,       // security attributes
@@ -300,7 +375,7 @@ LockFile::do_acquire(const bool blocking)
     DWORD error = GetLastError();
     if (error == ERROR_PATH_NOT_FOUND) {
       // Directory doesn't exist?
-      if (Util::create_dir(Util::dir_name(m_lock_file))) {
+      if (fs::create_directories(m_lock_file.parent_path())) {
         // OK. Retry.
         continue;
       }
@@ -308,7 +383,7 @@ LockFile::do_acquire(const bool blocking)
 
     LOG("Could not acquire {}: {} ({})",
         m_lock_file,
-        Win32Util::error_message(error),
+        util::win32_error_message(error),
         error);
 
     // ERROR_SHARING_VIOLATION: lock already held.
@@ -332,100 +407,5 @@ LockFile::do_acquire(const bool blocking)
 }
 
 #endif // !_WIN32
-
-ShortLivedLockFile::ShortLivedLockFile(const std::string& path) : LockFile(path)
-{
-}
-
-LongLivedLockFile::LongLivedLockFile(const std::string& path)
-  : LockFile(path)
-#ifndef _WIN32
-    ,
-    m_alive_file(path + ".alive")
-#endif
-{
-}
-
-#ifndef _WIN32
-
-void
-LongLivedLockFile::on_after_acquire()
-{
-  const auto result = util::write_file(m_alive_file, "");
-  if (!result) {
-    LOG("Failed to write {}: {}", m_alive_file, result.error());
-  }
-
-  LOG_RAW("Starting keep-alive thread");
-  m_keep_alive_thread = std::thread([=] {
-    while (true) {
-      std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
-      m_stop_keep_alive_condition.wait_for(
-        lock,
-        std::chrono::seconds(k_keep_alive_interval.sec())
-          + std::chrono::nanoseconds(k_keep_alive_interval.nsec()),
-        [this] { return m_stop_keep_alive; });
-      if (m_stop_keep_alive) {
-        return;
-      }
-      util::set_timestamps(m_alive_file);
-    }
-  });
-  LOG_RAW("Started keep-alive thread");
-}
-
-void
-LongLivedLockFile::on_before_release()
-{
-  if (m_keep_alive_thread.joinable()) {
-    {
-      std::unique_lock<std::mutex> lock(m_stop_keep_alive_mutex);
-      m_stop_keep_alive = true;
-    }
-    m_stop_keep_alive_condition.notify_one();
-    m_keep_alive_thread.join();
-
-    Util::unlink_tmp(m_alive_file);
-  }
-}
-
-bool
-LongLivedLockFile::on_before_break()
-{
-  return Util::unlink_tmp(m_alive_file);
-}
-
-std::optional<util::TimePoint>
-LongLivedLockFile::get_last_lock_update()
-{
-  if (const auto stat = Stat::stat(m_alive_file); stat) {
-    return stat.mtime();
-  } else {
-    return std::nullopt;
-  }
-}
-
-#endif
-
-LockFileGuard::LockFileGuard(LockFile& lock_file, Mode mode)
-  : m_lock_file(lock_file)
-{
-  if (mode == Mode::blocking) {
-    lock_file.acquire();
-  } else {
-    lock_file.try_acquire();
-  }
-}
-
-LockFileGuard::~LockFileGuard() noexcept
-{
-  m_lock_file.release();
-}
-
-bool
-LockFileGuard::acquired() const
-{
-  return m_lock_file.acquired();
-}
 
 } // namespace util

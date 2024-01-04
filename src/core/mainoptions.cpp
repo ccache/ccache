@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,14 +19,13 @@
 #include "mainoptions.hpp"
 
 #include <Config.hpp>
-#include <Fd.hpp>
-#include <File.hpp>
 #include <Hash.hpp>
 #include <InodeCache.hpp>
 #include <ProgressBar.hpp>
-#include <UmaskScope.hpp>
+#include <Util.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntry.hpp>
+#include <core/FileRecompressor.hpp>
 #include <core/Manifest.hpp>
 #include <core/Result.hpp>
 #include <core/ResultExtractor.hpp>
@@ -34,20 +33,31 @@
 #include <core/Statistics.hpp>
 #include <core/StatsLog.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <storage/Storage.hpp>
 #include <storage/local/LocalStorage.hpp>
+#include <util/Fd.hpp>
+#include <util/FileStream.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
+#include <util/ThreadPool.hpp>
+#include <util/UmaskScope.hpp>
 #include <util/XXH3_128.hpp>
+#include <util/assertions.hpp>
+#include <util/environment.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 #include <fcntl.h>
 
 #include <algorithm>
+#include <atomic>
 #include <optional>
 #include <string>
+#include <thread>
+#include <vector>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -63,6 +73,8 @@ extern "C" {
 }
 #endif
 
+using util::DirEntry;
+
 namespace core {
 
 constexpr const char VERSION_TEXT[] =
@@ -70,7 +82,7 @@ constexpr const char VERSION_TEXT[] =
 Features: {2}
 
 Copyright (C) 2002-2007 Andrew Tridgell
-Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 
 See <https://ccache.dev/credits.html> for a complete list of contributors.
 
@@ -82,14 +94,18 @@ version.
 
 constexpr const char USAGE_TEXT[] =
   R"(Usage:
-    {0} [options]
-    {0} compiler [compiler options]
-    compiler [compiler options]            (ccache masquerading as the compiler)
+    {0} [ccache options]
+    {0} [KEY=VALUE ...] compiler [compiler options]
+    compiler [compiler options]
+
+    The first form takes options described below. The second form invokes the
+    compiler, optionally using configuration options from KEY=VALUE arguments.
+    In the third form, ccache is masquerading as the compiler.
 
 Common options:
-    -c, --cleanup              delete old files and recalculate size counters
-                               (normally not needed as this is done
-                               automatically)
+    -c, --cleanup              delete not recently used files and recalculate
+                               size counters (normally not needed as this is
+                               done automatically)
     -C, --clear                clear the cache completely (except configuration)
         --config-path PATH     operate on configuration file PATH instead of the
                                default
@@ -97,17 +113,21 @@ Common options:
                                default
         --evict-namespace NAMESPACE
                                remove files created in namespace NAMESPACE
-        --evict-older-than AGE remove files older than AGE (unsigned integer
-                               with a d (days) or s (seconds) suffix)
+        --evict-older-than AGE remove files used less recently than AGE
+                               (unsigned integer with a d (days) or s (seconds)
+                               suffix)
     -F, --max-files NUM        set maximum number of files in cache to NUM (use
                                0 for no limit)
     -M, --max-size SIZE        set maximum size of cache to SIZE (use 0 for no
-                               limit); available suffixes: k, M, G, T (decimal)
-                               and Ki, Mi, Gi, Ti (binary); default suffix: G
+                               limit); available suffixes: kB, MB, GB, TB
+                               (decimal) and KiB, MiB, GiB, TiB (binary);
+                               default suffix: GiB
     -X, --recompress LEVEL     recompress the cache to level LEVEL (integer or
-                               "uncompressed") using the Zstandard algorithm;
-                               see "Cache compression" in the manual for details
-    -o, --set-config KEY=VAL   set configuration item KEY to value VAL
+                               "uncompressed")
+        --recompress-threads THREADS
+                               use up to THREADS threads when recompressing the
+                               cache; default: number of CPUs
+    -o, --set-config KEY=VALUE set configuration option KEY to value VALUE
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
                                human-readable format
@@ -123,15 +143,22 @@ Common options:
     -V, --version              print version and copyright information
 
 Options for remote file-based storage:
-        --trim-dir PATH        remove old files from directory PATH until it is
-                               at most the size specified by --trim-max-size
-                               (note: don't use this option to trim the local
-                               cache)
-        --trim-max-size SIZE   specify the maximum size for --trim-dir;
-                               available suffixes: k, M, G, T (decimal) and Ki,
-                               Mi, Gi, Ti (binary); default suffix: G
+        --trim-dir PATH        remove not recently used files from directory
+                               PATH until it is at most the size specified by
+                               --trim-max-size (note: don't use this option to
+                               trim the local cache)
+        --trim-max-size SIZE   specify the maximum size for --trim-dir (use 0 for
+                               no limit); available suffixes: kB, MB, GB, TB
+                               (decimal) and KiB, MiB, GiB, TiB (binary);
+                               default suffix: GiB
         --trim-method METHOD   specify the method (atime or mtime) for
                                --trim-dir; default: atime
+        --trim-recompress LEVEL
+                               recompress to level LEVEL (integer or
+                               "uncompressed")
+        --trim-recompress-threads THREADS
+                               use up to THREADS threads when recompressing;
+                               default: number of CPUs
 
 Options for scripting or debugging:
         --checksum-file PATH   print the checksum (128 bit XXH3) of the file at
@@ -157,27 +184,16 @@ configuration_printer(const std::string& key,
   PRINT(stdout, "({}) {} = {}\n", origin, key, value);
 }
 
-static nonstd::expected<std::vector<uint8_t>, std::string>
+static tl::expected<util::Bytes, std::string>
 read_from_path_or_stdin(const std::string& path)
 {
   if (path == "-") {
-    std::vector<uint8_t> output;
-    const auto result =
-      util::read_fd(STDIN_FILENO, [&](const uint8_t* data, size_t size) {
-        output.insert(output.end(), data, data + size);
-      });
-    if (!result) {
-      return nonstd::make_unexpected(
-        FMT("Failed to read from stdin: {}", result.error()));
-    }
-    return output;
+    return util::read_fd(STDIN_FILENO).transform_error([&](auto error) {
+      return FMT("Failed to read from stdin: {}", error);
+    });
   } else {
-    const auto result = util::read_file<std::vector<uint8_t>>(path);
-    if (!result) {
-      return nonstd::make_unexpected(
-        FMT("Failed to read from {}: {}", path, result.error()));
-    }
-    return *result;
+    return util::read_file<util::Bytes>(path).transform_error(
+      [&](auto error) { return FMT("Failed to read {}: {}", path, error); });
   }
 }
 
@@ -215,39 +231,62 @@ inspect_path(const std::string& path)
 }
 
 static void
-print_compression_statistics(const storage::local::CompressionStatistics& cs)
+print_compression_statistics(const Config& config,
+                             const storage::local::CompressionStatistics& cs)
 {
-  const double ratio = cs.compr_size > 0
-                         ? static_cast<double>(cs.content_size) / cs.compr_size
+  const double ratio = cs.actual_size > 0
+                         ? static_cast<double>(cs.content_size)
+                             / static_cast<double>(cs.actual_size)
                          : 0.0;
   const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
+  auto human_readable = [&](uint64_t size) {
+    return util::format_human_readable_size(size,
+                                            config.size_unit_prefix_type());
+  };
+
+  const auto [total_data_quantity, total_data_unit] = util::split_once(
+    human_readable(cs.actual_size + cs.incompressible_size), ' ');
+  ASSERT(total_data_unit);
+  const auto [compressed_data_quantity, compressed_data_unit] =
+    util::split_once(human_readable(cs.actual_size), ' ');
+  ASSERT(compressed_data_unit);
+  const auto [original_data_quantity, original_data_unit] =
+    util::split_once(human_readable(cs.content_size), ' ');
+  ASSERT(original_data_unit);
+  const auto [incompressible_data_quantity, incompressible_data_unit] =
+    util::split_once(human_readable(cs.incompressible_size), ' ');
+  ASSERT(incompressible_data_unit);
+
   using C = util::TextTable::Cell;
-  auto human_readable = Util::format_human_readable_size;
   util::TextTable table;
 
   table.add_row({
     "Total data:",
-    C(human_readable(cs.compr_size + cs.incompr_size)).right_align(),
-    FMT("({} disk blocks)", human_readable(cs.on_disk_size)),
+    C(total_data_quantity).right_align(),
+    *total_data_unit,
   });
   table.add_row({
     "Compressed data:",
-    C(human_readable(cs.compr_size)).right_align(),
+    C(compressed_data_quantity).right_align(),
+    *compressed_data_unit,
     FMT("({:.1f}% of original size)", 100.0 - savings),
   });
   table.add_row({
     "  Original size:",
-    C(human_readable(cs.content_size)).right_align(),
+    C(original_data_quantity).right_align(),
+    *original_data_unit,
   });
   table.add_row({
     "  Compression ratio:",
-    C(FMT("{:.3f} x ", ratio)).right_align(),
+    C(FMT("{:.3f}", ratio)).right_align(),
+    "x",
     FMT("({:.1f}% space savings)", savings),
   });
   table.add_row({
     "Incompressible data:",
-    C(human_readable(cs.incompr_size)).right_align(),
+    C(incompressible_data_quantity).right_align(),
+    *incompressible_data_unit,
   });
 
   PRINT_RAW(stdout, table.render());
@@ -256,53 +295,105 @@ print_compression_statistics(const storage::local::CompressionStatistics& cs)
 static void
 trim_dir(const std::string& dir,
          const uint64_t trim_max_size,
-         const bool trim_lru_mtime)
+         const util::SizeUnitPrefixType suffix_type,
+         const bool trim_lru_mtime,
+         std::optional<std::optional<int8_t>> recompress_level,
+         uint32_t recompress_threads)
 {
-  struct File
-  {
-    std::string path;
-    Stat stat;
-  };
-  std::vector<File> files;
-  uint64_t size_before = 0;
+  std::vector<DirEntry> files;
+  uint64_t initial_size = 0;
 
-  Util::traverse(dir, [&](const std::string& path, const bool is_dir) {
-    const auto stat = Stat::lstat(path);
-    if (!stat) {
-      // Probably some race, ignore.
-      return;
-    }
-    size_before += stat.size_on_disk();
-    if (!is_dir) {
-      const auto name = Util::base_name(path);
+  util::throw_on_error<core::Error>(
+    util::traverse_directory(dir, [&](const auto& de) {
+      if (de.is_directory() || util::TemporaryFile::is_tmp_file(de.path())) {
+        return;
+      }
+      if (!de) {
+        // Probably some race, ignore.
+        return;
+      }
+      initial_size += de.size_on_disk();
+      const auto name = de.path().filename();
       if (name == "ccache.conf" || name == "stats") {
         throw Fatal(
-          FMT("this looks like a local cache directory (found {})", path));
+          FMT("this looks like a local cache directory (found {})", de.path()));
       }
-      files.push_back({path, stat});
-    }
-  });
+      files.emplace_back(de);
+    }));
 
   std::sort(files.begin(), files.end(), [&](const auto& f1, const auto& f2) {
-    return trim_lru_mtime ? f1.stat.mtime() < f2.stat.mtime()
-                          : f1.stat.atime() < f2.stat.atime();
+    return trim_lru_mtime ? f1.mtime() < f2.mtime() : f1.atime() < f2.atime();
   });
 
-  uint64_t size_after = size_before;
+  int64_t recompression_diff = 0;
 
-  for (const auto& file : files) {
-    if (size_after <= trim_max_size) {
-      break;
+  if (recompress_level) {
+    const size_t read_ahead = std::max(
+      static_cast<size_t>(10), 2 * static_cast<size_t>(recompress_threads));
+    util::ThreadPool thread_pool(recompress_threads, read_ahead);
+    core::FileRecompressor recompressor;
+
+    std::atomic<uint64_t> incompressible_size = 0;
+    for (auto& file : files) {
+      thread_pool.enqueue([&] {
+        try {
+          auto new_stat = recompressor.recompress(
+            file, *recompress_level, core::FileRecompressor::KeepAtime::yes);
+          file = std::move(new_stat); // Remember new size, if any.
+        } catch (core::Error&) {
+          // Ignore for now.
+          incompressible_size += file.size_on_disk();
+        }
+      });
     }
-    Util::unlink_tmp(file.path);
-    size_after -= file.stat.size();
+
+    thread_pool.shut_down();
+    recompression_diff = recompressor.new_size() - recompressor.old_size();
+    PRINT(stdout,
+          "Recompressed {} to {} ({})\n",
+          util::format_human_readable_size(
+            incompressible_size + recompressor.old_size(), suffix_type),
+          util::format_human_readable_size(
+            incompressible_size + recompressor.new_size(), suffix_type),
+          util::format_human_readable_diff(recompression_diff, suffix_type));
+  }
+
+  uint64_t size_after_recompression = initial_size + recompression_diff;
+  uint64_t final_size = size_after_recompression;
+
+  size_t removed_files = 0;
+  if (trim_max_size > 0) {
+    for (const auto& file : files) {
+      if (final_size <= trim_max_size) {
+        break;
+      }
+      if (util::remove(file.path().string())) {
+        ++removed_files;
+        final_size -= file.size_on_disk();
+      }
+    }
   }
 
   PRINT(stdout,
-        "Removed {} ({} -> {})\n",
-        Util::format_human_readable_size(size_before - size_after),
-        Util::format_human_readable_size(size_before),
-        Util::format_human_readable_size(size_after));
+        "Trimmed {} to {} ({}, {}{} file{})\n",
+        util::format_human_readable_size(size_after_recompression, suffix_type),
+        util::format_human_readable_size(final_size, suffix_type),
+        util::format_human_readable_diff(final_size - size_after_recompression,
+                                         suffix_type),
+        removed_files == 0 ? "" : "-",
+        removed_files,
+        removed_files == 1 ? "" : "s");
+}
+
+std::optional<int8_t>
+parse_compression_level(std::string_view level)
+{
+  if (level == "uncompressed") {
+    return std::nullopt;
+  } else {
+    return util::value_or_throw<Error>(
+      util::parse_signed(level, INT8_MIN, INT8_MAX, "compression level"));
+  }
 }
 
 static std::string
@@ -329,10 +420,13 @@ enum {
   HASH_FILE,
   INSPECT,
   PRINT_STATS,
+  RECOMPRESS_THREADS,
   SHOW_LOG_STATS,
   TRIM_DIR,
   TRIM_MAX_SIZE,
   TRIM_METHOD,
+  TRIM_RECOMPRESS,
+  TRIM_RECOMPRESS_THREADS,
 };
 
 const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
@@ -356,6 +450,7 @@ const option long_options[] = {
   {"max-size", required_argument, nullptr, 'M'},
   {"print-stats", no_argument, nullptr, PRINT_STATS},
   {"recompress", required_argument, nullptr, 'X'},
+  {"recompress-threads", required_argument, nullptr, RECOMPRESS_THREADS},
   {"set-config", required_argument, nullptr, 'o'},
   {"show-compression", no_argument, nullptr, 'x'},
   {"show-config", no_argument, nullptr, 'p'},
@@ -364,6 +459,11 @@ const option long_options[] = {
   {"trim-dir", required_argument, nullptr, TRIM_DIR},
   {"trim-max-size", required_argument, nullptr, TRIM_MAX_SIZE},
   {"trim-method", required_argument, nullptr, TRIM_METHOD},
+  {"trim-recompress", required_argument, nullptr, TRIM_RECOMPRESS},
+  {"trim-recompress-threads",
+   required_argument,
+   nullptr,
+   TRIM_RECOMPRESS_THREADS},
   {"verbose", no_argument, nullptr, 'v'},
   {"version", no_argument, nullptr, 'V'},
   {"zero-stats", no_argument, nullptr, 'z'},
@@ -373,11 +473,19 @@ int
 process_main_options(int argc, const char* const* argv)
 {
   int c;
-  std::optional<uint64_t> trim_max_size;
-  bool trim_lru_mtime = false;
+
   uint8_t verbosity = 0;
+
+  std::optional<uint64_t> trim_max_size;
+  std::optional<util::SizeUnitPrefixType> trim_suffix_type;
+  bool trim_lru_mtime = false;
+  std::optional<std::optional<int8_t>> trim_recompress;
+  uint32_t trim_recompress_threads = std::thread::hardware_concurrency();
+
   std::optional<std::string> evict_namespace;
   std::optional<uint64_t> evict_max_age;
+
+  uint32_t recompress_threads = std::thread::hardware_concurrency();
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -390,19 +498,39 @@ process_main_options(int argc, const char* const* argv)
 
     switch (c) {
     case 'd': // --dir
-      Util::setenv("CCACHE_DIR", arg);
+      util::setenv("CCACHE_DIR", arg);
       break;
 
     case CONFIG_PATH:
-      Util::setenv("CCACHE_CONFIGPATH", arg);
+      util::setenv("CCACHE_CONFIGPATH", arg);
       break;
 
-    case TRIM_MAX_SIZE:
-      trim_max_size = Util::parse_size(arg);
+    case RECOMPRESS_THREADS:
+      recompress_threads =
+        static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
+          arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
       break;
+
+    case TRIM_MAX_SIZE: {
+      auto [size, suffix_type] =
+        util::value_or_throw<Error>(util::parse_size(arg));
+      trim_max_size = size;
+      trim_suffix_type = suffix_type;
+      break;
+    }
 
     case TRIM_METHOD:
       trim_lru_mtime = (arg == "ctime");
+      break;
+
+    case TRIM_RECOMPRESS:
+      trim_recompress = parse_compression_level(arg);
+      break;
+
+    case TRIM_RECOMPRESS_THREADS:
+      trim_recompress_threads =
+        static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
+          arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
       break;
 
     case 'v': // --verbose
@@ -424,30 +552,31 @@ process_main_options(int argc, const char* const* argv)
          != -1) {
     Config config;
     config.read();
+    util::logging::init(config.debug(), config.log_file());
 
-    UmaskScope umask_scope(config.umask());
+    util::UmaskScope umask_scope(config.umask());
 
     const std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
     case CONFIG_PATH:
     case 'd': // --dir
+    case RECOMPRESS_THREADS:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
+    case TRIM_RECOMPRESS:
+    case TRIM_RECOMPRESS_THREADS:
     case 'v': // --verbose
       // Already handled in the first pass.
       break;
 
     case CHECKSUM_FILE: {
       util::XXH3_128 checksum;
-      Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
+      util::Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
-        util::read_fd(*fd, [&checksum](const uint8_t* data, size_t size) {
-          checksum.update({data, size});
-        });
+        util::read_fd(*fd, [&checksum](auto data) { checksum.update(data); });
         const auto digest = checksum.digest();
-        PRINT(
-          stdout, "{}\n", Util::format_base16(digest.data(), digest.size()));
+        PRINT(stdout, "{}\n", util::format_base16(digest));
       } else {
         PRINT(stderr, "Error: Failed to checksum {}\n", arg);
       }
@@ -460,7 +589,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EVICT_OLDER_THAN: {
-      evict_max_age = Util::parse_duration(arg);
+      evict_max_age = util::value_or_throw<Error>(util::parse_duration(arg));
       break;
     }
 
@@ -493,7 +622,7 @@ process_main_options(int argc, const char* const* argv)
       const auto result =
         arg == "-" ? hash.hash_fd(STDIN_FILENO) : hash.hash_file(arg);
       if (result) {
-        PRINT(stdout, "{}\n", hash.digest().to_string());
+        PRINT(stdout, "{}\n", util::format_digest(hash.digest()));
       } else {
         PRINT(stderr, "Error: Failed to hash {}: {}\n", arg, result.error());
         return EXIT_FAILURE;
@@ -510,7 +639,8 @@ process_main_options(int argc, const char* const* argv)
       const auto [counters, last_updated] =
         storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(stdout, statistics.format_machine_readable(last_updated));
+      PRINT_RAW(stdout,
+                statistics.format_machine_readable(config, last_updated));
       break;
     }
 
@@ -556,14 +686,16 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'M': { // --max-size
-      uint64_t size = Util::parse_size(arg);
+      auto [size, suffix_type] =
+        util::value_or_throw<Error>(util::parse_size(arg));
+      uint64_t max_size = size;
       config.set_value_in_file(config.config_path(), "max_size", arg);
-      if (size == 0) {
+      if (max_size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");
       } else {
         PRINT(stdout,
               "Set cache size limit to {}\n",
-              Util::format_human_readable_size(size));
+              util::format_human_readable_size(max_size, suffix_type));
       }
       break;
     }
@@ -591,7 +723,7 @@ process_main_options(int argc, const char* const* argv)
       }
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
-        Stat::stat(config.stats_log(), Stat::OnError::log).mtime();
+        DirEntry(config.stats_log(), DirEntry::LogOnError::yes).mtime();
       PRINT_RAW(
         stdout,
         statistics.format_human_readable(config, timestamp, verbosity, true));
@@ -612,7 +744,12 @@ process_main_options(int argc, const char* const* argv)
       if (!trim_max_size) {
         throw Error("please specify --trim-max-size when using --trim-dir");
       }
-      trim_dir(arg, *trim_max_size, trim_lru_mtime);
+      trim_dir(arg,
+               *trim_max_size,
+               *trim_suffix_type,
+               trim_lru_mtime,
+               trim_recompress,
+               trim_recompress_threads);
       break;
 
     case 'V': // --version
@@ -634,23 +771,19 @@ process_main_options(int argc, const char* const* argv)
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n\n");
       }
-      print_compression_statistics(compression_statistics);
+      print_compression_statistics(config, compression_statistics);
       break;
     }
 
     case 'X': // --recompress
     {
-      std::optional<int8_t> wanted_level;
-      if (arg == "uncompressed") {
-        wanted_level = std::nullopt;
-      } else {
-        wanted_level = util::value_or_throw<Error>(
-          util::parse_signed(arg, INT8_MIN, INT8_MAX, "compression level"));
-      }
+      auto wanted_level = parse_compression_level(arg);
 
       ProgressBar progress_bar("Recompressing...");
       storage::local::LocalStorage(config).recompress(
-        wanted_level, [&](double progress) { progress_bar.update(progress); });
+        wanted_level, recompress_threads, [&](double progress) {
+          progress_bar.update(progress);
+        });
       break;
     }
 

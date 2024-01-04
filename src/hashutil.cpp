@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,19 +21,17 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Hash.hpp"
-#include "Logging.hpp"
-#include "Stat.hpp"
-#include "Util.hpp"
-#include "Win32Util.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
-#include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
+#include <util/time.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
@@ -55,30 +53,26 @@
 
 namespace {
 
-// Returns one of HASH_SOURCE_CODE_FOUND_DATE, HASH_SOURCE_CODE_FOUND_TIME or
-// HASH_SOURCE_CODE_FOUND_TIMESTAMP if "_DATE__", "_TIME__" or "_TIMESTAMP__"
-// starts at str[pos].
-//
 // Pre-condition: str[pos - 1] == '_'
-int
+HashSourceCode
 check_for_temporal_macros_helper(std::string_view str, size_t pos)
 {
   if (pos + 7 > str.length()) {
-    return 0;
+    return HashSourceCode::ok;
   }
 
-  int found = 0;
+  HashSourceCode found = HashSourceCode::ok;
   int macro_len = 7;
   if (memcmp(&str[pos], "_DATE__", 7) == 0) {
-    found = HASH_SOURCE_CODE_FOUND_DATE;
+    found = HashSourceCode::found_date;
   } else if (memcmp(&str[pos], "_TIME__", 7) == 0) {
-    found = HASH_SOURCE_CODE_FOUND_TIME;
+    found = HashSourceCode::found_time;
   } else if (pos + 12 <= str.length()
              && memcmp(&str[pos], "_TIMESTAMP__", 12) == 0) {
-    found = HASH_SOURCE_CODE_FOUND_TIMESTAMP;
+    found = HashSourceCode::found_timestamp;
     macro_len = 12;
   } else {
-    return 0;
+    return HashSourceCode::ok;
   }
 
   // Check char before and after macro to verify that the found macro isn't part
@@ -89,25 +83,25 @@ check_for_temporal_macros_helper(std::string_view str, size_t pos)
     return found;
   }
 
-  return 0;
+  return HashSourceCode::ok;
 }
 
-int
-check_for_temporal_macros_bmh(std::string_view str)
+HashSourceCodeResult
+check_for_temporal_macros_bmh(std::string_view str, size_t start = 0)
 {
-  int result = 0;
+  HashSourceCodeResult result;
 
   // We're using the Boyer-Moore-Horspool algorithm, which searches starting
   // from the *end* of the needle. Our needles are 8 characters long, so i
   // starts at 7.
-  size_t i = 7;
+  size_t i = start + 7;
 
   while (i < str.length()) {
     // Check whether the substring ending at str[i] has the form "_....E..". On
     // the assumption that 'E' is less common in source than '_', we check
     // str[i-2] first.
     if (str[i - 2] == 'E' && str[i - 7] == '_') {
-      result |= check_for_temporal_macros_helper(str, i - 6);
+      result.insert(check_for_temporal_macros_helper(str, i - 6));
     }
 
     // macro_skip tells us how far we can skip forward upon seeing str[i] at
@@ -120,17 +114,17 @@ check_for_temporal_macros_bmh(std::string_view str)
 
 #ifdef HAVE_AVX2
 #  ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
-int check_for_temporal_macros_avx2(std::string_view str)
+HashSourceCodeResult check_for_temporal_macros_avx2(std::string_view str)
   __attribute__((target("avx2")));
 #  endif
 
 // The following algorithm, which uses AVX2 instructions to find __DATE__,
 // __TIME__ and __TIMESTAMP__, is heavily inspired by
 // <http://0x80.pl/articles/simd-strfind.html>.
-int
+HashSourceCodeResult
 check_for_temporal_macros_avx2(std::string_view str)
 {
-  int result = 0;
+  HashSourceCodeResult result;
 
   // Set all 32 bytes in first and last to '_' and 'E' respectively.
   const __m256i first = _mm256_set1_epi8('_');
@@ -169,19 +163,19 @@ check_for_temporal_macros_avx2(std::string_view str)
       // Clear the least significant bit set.
       mask = mask & (mask - 1);
 
-      result |= check_for_temporal_macros_helper(str, start);
+      result.insert(check_for_temporal_macros_helper(str, start));
     }
   }
 
-  result |= check_for_temporal_macros_bmh(str.substr(pos));
+  result.insert(check_for_temporal_macros_bmh(str, pos));
 
   return result;
 }
 #endif
 
-int
+HashSourceCodeResult
 do_hash_file(const Context& ctx,
-             Digest& digest,
+             Hash::Digest& digest,
              const std::string& path,
              size_t size_hint,
              bool check_temporal_macros)
@@ -191,9 +185,10 @@ do_hash_file(const Context& ctx,
     check_temporal_macros ? InodeCache::ContentType::checked_for_temporal_macros
                           : InodeCache::ContentType::raw;
   if (ctx.config.inode_cache()) {
-    int result;
-    if (ctx.inode_cache.get(path, content_type, digest, &result)) {
-      return result;
+    const auto result = ctx.inode_cache.get(path, content_type);
+    if (result) {
+      digest = result->second;
+      return result->first;
     }
   }
 #else
@@ -202,12 +197,13 @@ do_hash_file(const Context& ctx,
 
   const auto data = util::read_file<std::string>(path, size_hint);
   if (!data) {
-    return HASH_SOURCE_CODE_ERROR;
+    LOG("Failed to read {}: {}", path, data.error());
+    return HashSourceCodeResult(HashSourceCode::error);
   }
 
-  int result = HASH_SOURCE_CODE_OK;
+  HashSourceCodeResult result;
   if (check_temporal_macros) {
-    result |= check_for_temporal_macros(*data);
+    result.insert(check_for_temporal_macros(*data));
   }
 
   Hash hash;
@@ -223,7 +219,7 @@ do_hash_file(const Context& ctx,
 
 } // namespace
 
-int
+HashSourceCodeResult
 check_for_temporal_macros(std::string_view str)
 {
 #ifdef HAVE_AVX2
@@ -234,23 +230,23 @@ check_for_temporal_macros(std::string_view str)
   return check_for_temporal_macros_bmh(str);
 }
 
-int
+HashSourceCodeResult
 hash_source_code_file(const Context& ctx,
-                      Digest& digest,
+                      Hash::Digest& digest,
                       const std::string& path,
                       size_t size_hint)
 {
   const bool check_temporal_macros =
-    !ctx.config.sloppiness().is_enabled(core::Sloppy::time_macros);
-  int result =
+    !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
+  auto result =
     do_hash_file(ctx, digest, path, size_hint, check_temporal_macros);
 
-  if (!check_temporal_macros || result == HASH_SOURCE_CODE_OK
-      || (result & HASH_SOURCE_CODE_ERROR)) {
+  if (!check_temporal_macros || result.empty()
+      || result.contains(HashSourceCode::error)) {
     return result;
   }
 
-  if (result & HASH_SOURCE_CODE_FOUND_TIME) {
+  if (result.contains(HashSourceCode::found_time)) {
     // We don't know for sure that the program actually uses the __TIME__ macro,
     // but we have to assume it anyway and hash the time stamp. However, that's
     // not very useful since the chance that we get a cache hit later the same
@@ -266,15 +262,16 @@ hash_source_code_file(const Context& ctx,
   // macro expansions.
 
   Hash hash;
-  hash.hash(digest.to_string());
+  hash.hash(util::format_digest(digest));
 
-  if (result & HASH_SOURCE_CODE_FOUND_DATE) {
+  if (result.contains(HashSourceCode::found_date)) {
     LOG("Found __DATE__ in {}", path);
 
     hash.hash_delimiter("date");
-    auto now = Util::localtime();
+    auto now = util::localtime();
     if (!now) {
-      return HASH_SOURCE_CODE_ERROR;
+      result.insert(HashSourceCode::error);
+      return result;
     }
     hash.hash(now->tm_year);
     hash.hash(now->tm_mon);
@@ -290,17 +287,19 @@ hash_source_code_file(const Context& ctx,
     }
   }
 
-  if (result & HASH_SOURCE_CODE_FOUND_TIMESTAMP) {
+  if (result.contains(HashSourceCode::found_timestamp)) {
     LOG("Found __TIMESTAMP__ in {}", path);
 
-    const auto stat = Stat::stat(path);
-    if (!stat) {
-      return HASH_SOURCE_CODE_ERROR;
+    util::DirEntry dir_entry(path);
+    if (!dir_entry.is_regular_file()) {
+      result.insert(HashSourceCode::error);
+      return result;
     }
 
-    auto modified_time = Util::localtime(stat.mtime());
+    auto modified_time = util::localtime(dir_entry.mtime());
     if (!modified_time) {
-      return HASH_SOURCE_CODE_ERROR;
+      result.insert(HashSourceCode::error);
+      return result;
     }
     hash.hash_delimiter("timestamp");
 #ifdef HAVE_ASCTIME_R
@@ -310,7 +309,8 @@ hash_source_code_file(const Context& ctx,
     auto timestamp = asctime(&*modified_time);
 #endif
     if (!timestamp) {
-      return HASH_SOURCE_CODE_ERROR;
+      result.insert(HashSourceCode::error);
+      return result;
     }
     hash.hash(timestamp);
   }
@@ -321,21 +321,20 @@ hash_source_code_file(const Context& ctx,
 
 bool
 hash_binary_file(const Context& ctx,
-                 Digest& digest,
+                 Hash::Digest& digest,
                  const std::string& path,
                  size_t size_hint)
 {
-  return do_hash_file(ctx, digest, path, size_hint, false)
-         == HASH_SOURCE_CODE_OK;
+  return do_hash_file(ctx, digest, path, size_hint, false).empty();
 }
 
 bool
 hash_binary_file(const Context& ctx, Hash& hash, const std::string& path)
 {
-  Digest digest;
+  Hash::Digest digest;
   const bool success = hash_binary_file(ctx, digest, path);
   if (success) {
-    hash.hash(digest.to_string());
+    hash.hash(util::format_digest(digest));
   }
   return success;
 }
@@ -374,7 +373,7 @@ hash_command_output(Hash& hash,
 
   auto argv = args.to_argv();
   LOG("Executing compiler check command {}",
-      Util::format_argv_for_logging(argv.data()));
+      util::format_argv_for_logging(argv.data()));
 
 #ifdef _WIN32
   PROCESS_INFORMATION pi;
@@ -382,7 +381,7 @@ hash_command_output(Hash& hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  std::string path = find_executable_in_path(args[0], getenv("PATH"));
+  auto path = find_executable_in_path(args[0], getenv("PATH")).string();
   if (path.empty()) {
     path = args[0];
   }
@@ -406,7 +405,7 @@ hash_command_output(Hash& hash,
   if (using_cmd_exe) {
     win32args = adjusted_command; // quoted
   } else {
-    win32args = Win32Util::argv_to_string(argv.data(), sh);
+    win32args = util::format_argv_as_win32_command_string(argv.data(), sh);
   }
   BOOL ret = CreateProcess(path.c_str(),
                            const_cast<char*>(win32args.c_str()),
@@ -491,7 +490,7 @@ hash_multicommand_output(Hash& hash,
                          const std::string& command,
                          const std::string& compiler)
 {
-  for (const std::string& cmd : Util::split_into_strings(command, ";")) {
+  for (const std::string& cmd : util::split_into_strings(command, ";")) {
     if (!hash_command_output(hash, cmd, compiler)) {
       return false;
     }

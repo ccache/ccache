@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -39,8 +39,5 @@ private:
   std::string m_test_dir;
   static size_t m_subdir_counter;
 };
-
-// Change directory to `dir`, throwing Error on failure.
-void check_chdir(const std::string& dir);
 
 } // namespace TestUtil

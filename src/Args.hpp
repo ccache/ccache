@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "NonCopyable.hpp"
+#include <util/NonCopyable.hpp>
 
 #include <deque>
 #include <optional>

@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,9 +17,10 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <Config.hpp>
-#include <Logging.hpp>
-#include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
+#include <util/LongLivedLockFileManager.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 #include <memory>
@@ -37,7 +38,7 @@ main(int argc, char** argv)
   }
   Config config;
   config.update_from_environment();
-  Logging::init(config);
+  util::logging::init(config.debug(), config.log_file());
 
   const std::string path(argv[1]);
   const auto seconds = util::parse_signed(argv[2]);
@@ -48,32 +49,29 @@ main(int argc, char** argv)
     return 1;
   }
 
-  using LockFilePtr = std::unique_ptr<util::LockFile>;
-  LockFilePtr lock_file;
-  lock_file = long_lived
-                ? LockFilePtr{std::make_unique<util::LongLivedLockFile>(path)}
-                : LockFilePtr{std::make_unique<util::ShortLivedLockFile>(path)};
-  const auto mode = blocking ? util::LockFileGuard::Mode::blocking
-                             : util::LockFileGuard::Mode::non_blocking;
-
-  PRINT(stdout, "{}\n", blocking ? "Acquiring" : "Trying to acquire");
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock(path);
   bool acquired = false;
-  {
-    util::LockFileGuard lock(*lock_file, mode);
-    acquired = lock.acquired();
-    if (acquired) {
-      PRINT_RAW(stdout, "Acquired\n");
-      PRINT(
-        stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
-      std::this_thread::sleep_for(std::chrono::seconds{*seconds});
-    } else {
-      PRINT(stdout, "{} acquire\n", blocking ? "Failed to" : "Did not");
-    }
-    if (acquired) {
-      PRINT_RAW(stdout, "Releasing\n");
-    }
+  if (blocking) {
+    PRINT_RAW(stdout, "Acquiring\n");
+    acquired = lock.acquire();
+  } else {
+    PRINT_RAW(stdout, "Trying to acquire\n");
+    acquired = lock.try_acquire();
   }
-  if (acquired) {
-    PRINT_RAW(stdout, "Released\n");
+
+  if (!acquired) {
+    PRINT(stdout, "{} acquire\n", blocking ? "Failed to" : "Did not");
+    return 1;
   }
+
+  PRINT_RAW(stdout, "Acquired\n");
+  if (long_lived) {
+    lock.make_long_lived(lock_manager);
+  }
+  PRINT(stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
+  std::this_thread::sleep_for(std::chrono::seconds{*seconds});
+  PRINT_RAW(stdout, "Releasing\n");
+  lock.release();
+  PRINT_RAW(stdout, "Released\n");
 }

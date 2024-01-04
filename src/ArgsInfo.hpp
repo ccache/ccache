@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,6 +22,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // This class holds meta-information derived from the compiler arguments.
@@ -63,7 +64,7 @@ struct ArgsInfo
   // Assembler listing file.
   std::string output_al;
 
-  // The .gch/.pch/.pth file used for compilation.
+  // The .gch/.pch/.pth file or directory used for compilation.
   std::string included_pch_file;
 
   // Language to use for the compilation target (see language.c).
@@ -130,6 +131,9 @@ struct ArgsInfo
 
   // Architectures from -arch options.
   std::vector<std::string> arch_args;
+
+  // Values for -Xarch_* options.
+  std::unordered_map<std::string, std::vector<std::string>> xarch_args;
 
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;

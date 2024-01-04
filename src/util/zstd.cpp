@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,9 +22,9 @@
 
 namespace util {
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 zstd_compress(nonstd::span<const uint8_t> input,
-              util::Bytes& output,
+              Bytes& output,
               int8_t compression_level)
 {
   const size_t original_output_size = output.size();
@@ -37,16 +37,16 @@ zstd_compress(nonstd::span<const uint8_t> input,
                                    input.size(),
                                    compression_level);
   if (ZSTD_isError(ret)) {
-    return nonstd::make_unexpected(ZSTD_getErrorName(ret));
+    return tl::unexpected(ZSTD_getErrorName(ret));
   }
 
   output.resize(original_output_size + ret);
   return {};
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 zstd_decompress(nonstd::span<const uint8_t> input,
-                util::Bytes& output,
+                Bytes& output,
                 size_t original_size)
 {
   const size_t original_output_size = output.size();
@@ -55,7 +55,7 @@ zstd_decompress(nonstd::span<const uint8_t> input,
   const size_t ret = ZSTD_decompress(
     &output[original_output_size], original_size, input.data(), input.size());
   if (ZSTD_isError(ret)) {
-    return nonstd::make_unexpected(ZSTD_getErrorName(ret));
+    return tl::unexpected(ZSTD_getErrorName(ret));
   }
 
   output.resize(original_output_size + ret);
@@ -79,7 +79,8 @@ zstd_supported_compression_level(int8_t wanted_level)
     return {1, "minimum level supported by libzstd"};
   }
 
-  const int8_t level = std::min<int>(wanted_level, ZSTD_maxCLevel());
+  const int8_t level =
+    static_cast<int8_t>(std::min<int>(wanted_level, ZSTD_maxCLevel()));
   if (level != wanted_level) {
     return {level, "max libzstd level"};
   }

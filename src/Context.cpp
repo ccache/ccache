@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,15 +18,17 @@
 
 #include "Context.hpp"
 
-#include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"
 
-#include <Win32Util.hpp>
-#include <core/wincompat.hpp>
 #include <util/TimePoint.hpp>
+#include <util/file.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
+#include <util/process.hpp>
+#include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -37,8 +39,8 @@
 #include <vector>
 
 Context::Context()
-  : actual_cwd(Util::get_actual_cwd()),
-    apparent_cwd(Util::get_apparent_cwd(actual_cwd)),
+  : actual_cwd(util::actual_cwd()),
+    apparent_cwd(util::apparent_cwd(actual_cwd)),
     storage(config)
 #ifdef INODE_CACHE_SUPPORTED
     ,
@@ -49,14 +51,15 @@ Context::Context()
 }
 
 void
-Context::initialize()
+Context::initialize(Args&& compiler_and_args,
+                    const std::vector<std::string>& cmdline_config_settings)
 {
-  config.read();
-  Logging::init(config);
-
+  orig_args = std::move(compiler_and_args);
+  config.read(cmdline_config_settings);
+  util::logging::init(config.debug(), config.log_file());
   ignore_header_paths =
     util::split_path_list(config.ignore_headers_in_manifest());
-  set_ignore_options(Util::split_into_strings(config.ignore_options(), " "));
+  set_ignore_options(util::split_into_strings(config.ignore_options(), " "));
 
   // Set default umask for all files created by ccache from now on (if
   // configured to). This is intentionally done after calling Logging::init so
@@ -65,7 +68,7 @@ Context::initialize()
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
   if (config.umask()) {
-    original_umask = Util::set_umask(*config.umask());
+    original_umask = util::set_umask(*config.umask());
   }
 }
 
@@ -87,7 +90,8 @@ Context::unlink_pending_tmp_files_signal_safe()
 {
   for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
        ++it) {
-    // Don't call Util::unlink_tmp since its log calls aren't signal safe.
+    // Don't call util::remove or std::filesystem::remove since they are not
+    // signal safe.
     unlink(it->c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.
@@ -100,7 +104,7 @@ Context::unlink_pending_tmp_files()
 
   for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
        ++it) {
-    Util::unlink_tmp(*it, Util::UnlinkLog::ignore_failure);
+    util::remove(*it, util::LogFailure::no);
   }
   m_pending_tmp_files.clear();
 }

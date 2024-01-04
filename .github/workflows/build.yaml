@@ -16,15 +16,16 @@ permissions:
 
 jobs:
   build_and_test:
+    timeout-minutes: 30
     env:
       CMAKE_GENERATOR: Ninja
 
-    name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}
-    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        config:
+        include:
           - os: ubuntu-20.04
             compiler: gcc
             version: "8"
@@ -54,6 +55,14 @@ jobs:
             version: "12"
 
           - os: ubuntu-22.04
+            compiler: clang
+            version: "13"
+
+          - os: ubuntu-22.04
+            compiler: clang
+            version: "14"
+
+          - os: ubuntu-22.04
             compiler: gcc
             version: "11"
 
@@ -67,61 +76,70 @@ jobs:
 
           - os: macOS-11
             compiler: xcode
-            version: "12.4"
+            version: "12.5.1"
+
+          - os: macOS-12
+            compiler: xcode
+            version: "13.4.1"
+
+          - os: macOS-12
+            compiler: xcode
+            version: "14.2"
     steps:
-      - name: Install dependencies
+      - name: Install dependencies on Linux
+        if: ${{ runner.os == 'Linux' }}
         run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            sudo apt-get update
+          sudo apt-get update
 
-            packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools openssl"
-            # Install ld.gold (binutils) and ld.lld (lld) on different runs.
-            if [ "${{ matrix.config.os }}" = "ubuntu-22.04" ]; then
-              sudo apt-get install -y $packages binutils
-            else
-              sudo apt-get install -y $packages lld
+          packages="elfutils libhiredis-dev libzstd-dev ninja-build pkg-config python3 redis-server redis-tools openssl"
+          # Install ld.gold (binutils) and ld.lld (lld) on different runs.
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            sudo apt-get install -y $packages binutils
+          else
+            sudo apt-get install -y $packages lld
+          fi
+
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+
+            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            if [ "${{ matrix.version }}" = 8 ]; then
+              # The compilation test in StdFilesystem.cmake doesn't work when
+              # GCC 9 is installed as well, so need to force linking with
+              # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
+              # work.
+              echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
             fi
+          else
+            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
 
-            if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
-              echo "CC=gcc-${{ matrix.config.version }}" >> $GITHUB_ENV
-              echo "CXX=g++-${{ matrix.config.version }}" >> $GITHUB_ENV
+            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
+          fi
 
-              sudo apt install -y g++-${{ matrix.config.version }} g++-${{ matrix.config.version }}-multilib
-              if [ "${{ matrix.config.version }}" = 8 ]; then
-                # The compilation test in StdFilesystem.cmake doesn't work when
-                # GCC 9 is installed as well, so need to force linking with
-                # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
-                # work.
-                echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
-              fi
-            else
-              echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
-              echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
+      - name: Install dependencies on macOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+            brew install ninja pkg-config hiredis redis
 
-              sudo apt install -y clang-${{ matrix.config.version }} g++-multilib lld-${{ matrix.config.version }}
-            fi
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-              brew install ninja pkg-config hiredis redis
-
-            if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
-              brew install gcc@${{ matrix.config.version }}
-              echo "CC=gcc-${{ matrix.config.version }}" >> $GITHUB_ENV
-              echo "CXX=g++-${{ matrix.config.version }}" >> $GITHUB_ENV
-            else
-              sudo xcode-select -switch /Applications/Xcode_${{ matrix.config.version }}.app
-              echo "CC=clang" >> $GITHUB_ENV
-              echo "CXX=clang++" >> $GITHUB_ENV
-            fi
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            brew install gcc@${{ matrix.version }}
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+          else
+            sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
           fi
 
       - name: Get source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build and test
         run: ci/build
         env:
-          ENABLE_CACHE_CLEANUP_TESTS: true
           CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
 
       - name: Collect testdir from failed tests
@@ -130,17 +148,18 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}-testdir.tar.xz
+          name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}-testdir.tar.xz
           path: testdir.tar.xz
 
   build_and_test_msys:
+    timeout-minutes: 30
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        config:
+        include:
           - sys: mingw64
             env: x86_64
             compiler: gcc
@@ -149,30 +168,30 @@ jobs:
             env: x86_64
             compiler: clang
 
-    name: 'Windows ${{ matrix.config.sys }} ${{ matrix.config.compiler }}'
+    name: 'Windows ${{ matrix.sys }} ${{ matrix.compiler }}'
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - name: '${{ matrix.config.sys }} Setup MSYS2'
+      - name: '${{ matrix.sys }} Setup MSYS2'
         uses: msys2/setup-msys2@v2
         with:
-          msystem: ${{matrix.config.sys}}
+          msystem: ${{matrix.sys}}
           update: true
           install: >-
             git
             diffutils
             tar
-            mingw-w64-${{matrix.config.env}}-toolchain
-            mingw-w64-${{matrix.config.env}}-cmake
-            mingw-w64-${{matrix.config.env}}-ninja
-            mingw-w64-${{matrix.config.env}}-hiredis
-            mingw-w64-${{matrix.config.env}}-lld
-            mingw-w64-${{matrix.config.env}}-${{matrix.config.compiler}}
+            mingw-w64-${{matrix.env}}-toolchain
+            mingw-w64-${{matrix.env}}-cmake
+            mingw-w64-${{matrix.env}}-ninja
+            mingw-w64-${{matrix.env}}-hiredis
+            mingw-w64-${{matrix.env}}-lld
+            mingw-w64-${{matrix.env}}-${{matrix.compiler}}
 
       - name: setup env
         run: |
-          if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
             echo "CC=gcc" >> $GITHUB_ENV
             echo "CXX=g++" >> $GITHUB_ENV
           else
@@ -181,14 +200,13 @@ jobs:
           fi
 
       - name: Get source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build and test
         run: ci/build
-        continue-on-error: ${{ matrix.config.allow_test_failures == true &&
+        continue-on-error: ${{ matrix.allow_test_failures == true &&
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
-          ENABLE_CACHE_CLEANUP_TESTS: 1
           CMAKE_GENERATOR: Ninja
           CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
           TEST_CC: gcc
@@ -199,23 +217,43 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.config.sys}}-${{ matrix.config.env }}-${{ matrix.config.compiler }}-testdir.tar.xz
+          name: ${{ matrix.sys}}-${{ matrix.env }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
+  build_macos_universal:
+    timeout-minutes: 30
+    name: macOS universal binary
+    runs-on: macos-12
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Get source
+        uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+              brew install ninja
+      - name: Build macOS universal binary
+        run: ci/build-macos-binary
+      - name: Archive universal binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: macOS-binary
+          path: build_universal/ccache
+
   specific_tests:
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        config:
+        include:
           - name: Linux GCC debug + in source + tracing
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             BUILDDIR: .
             CCACHE_LOC: .
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
@@ -229,7 +267,6 @@ jobs:
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-10-dev
 
           - name: Linux GCC CUDA
@@ -237,7 +274,6 @@ jobs:
             CC: gcc
             CXX: g++
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 11.7.0-1
             apt_get: elfutils libzstd-dev
 
@@ -253,7 +289,6 @@ jobs:
             os: ubuntu-20.04
             CC: x86_64-w64-mingw32-gcc-posix
             CXX: x86_64-w64-mingw32-g++-posix
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
@@ -263,7 +298,6 @@ jobs:
             msvc_arch: x64_x86
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -274,7 +308,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 16 2019
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -284,7 +317,6 @@ jobs:
             msvc_arch: x64
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -295,7 +327,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 16 2019
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -306,7 +337,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -317,7 +347,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 17 2022
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
@@ -328,7 +357,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Ninja
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -339,7 +367,6 @@ jobs:
             allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_GENERATOR: Visual Studio 17 2022
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
@@ -348,7 +375,6 @@ jobs:
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_ADDRESS=ON -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
             ASAN_OPTIONS: detect_leaks=0
             apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
@@ -357,7 +383,6 @@ jobs:
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
-            ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
             apt_get: libzstd-dev pkg-config libhiredis-dev
@@ -399,23 +424,23 @@ jobs:
 
     steps:
       - name: Get source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install CUDA
-        if: matrix.config.CUDA != ''
+        if: matrix.CUDA != ''
         run: sudo --preserve-env=CUDA,GITHUB_PATH ci/install-cuda
         env:
-          CUDA: ${{ matrix.config.CUDA }}
+          CUDA: ${{ matrix.CUDA }}
 
       - name: Run apt-get
-        if: matrix.config.apt_get != ''
-        run: sudo apt-get update && sudo apt-get install ${{ matrix.config.apt_get }}
+        if: matrix.apt_get != ''
+        run: sudo apt-get update && sudo apt-get install ${{ matrix.apt_get }}
 
       - name: Prepare Windows environment (Visual Studio)
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1.5.0
+        uses: ilammy/msvc-dev-cmd@v1.12.0
         with:
-          arch: ${{ matrix.config.msvc_arch }}
+          arch: ${{ matrix.msvc_arch }}
 
       - name: Prepare Windows environment (Clang)
         if: runner.os == 'Windows'
@@ -437,28 +462,27 @@ jobs:
       - name: Build and test
         id: build-and-test
         env:
-          ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
-          BUILDDIR: ${{ matrix.config.BUILDDIR }}
-          CC: ${{ matrix.config.CC }}
-          CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
-          CFLAGS: ${{ matrix.config.CFLAGS }}
-          CMAKE_GENERATOR: ${{ matrix.config.CMAKE_GENERATOR }}
-          CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
-          CXX: ${{ matrix.config.CXX }}
-          CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
-          ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
-          EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.config.EXTRA_CMAKE_BUILD_FLAGS }}
-          LDFLAGS: ${{ matrix.config.LDFLAGS }}
-          RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
-          SPECIAL: ${{ matrix.config.SPECIAL }}
-          TEST_CC: ${{ matrix.config.TEST_CC }}
+          ASAN_OPTIONS: ${{ matrix.ASAN_OPTIONS }}
+          BUILDDIR: ${{ matrix.BUILDDIR }}
+          CC: ${{ matrix.CC }}
+          CCACHE_LOC: ${{ matrix.CCACHE_LOC }}
+          CFLAGS: ${{ matrix.CFLAGS }}
+          CMAKE_GENERATOR: ${{ matrix.CMAKE_GENERATOR }}
+          CMAKE_PARAMS: ${{ matrix.CMAKE_PARAMS }}
+          CXX: ${{ matrix.CXX }}
+          CXXFLAGS: ${{ matrix.CXXFLAGS }}
+          EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.EXTRA_CMAKE_BUILD_FLAGS }}
+          LDFLAGS: ${{ matrix.LDFLAGS }}
+          RUN_TESTS: ${{ matrix.RUN_TESTS }}
+          SPECIAL: ${{ matrix.SPECIAL }}
+          TEST_CC: ${{ matrix.TEST_CC }}
         run: |
           rc=0
           ci/build || rc=$?
           echo "exit_status=$rc" >> $GITHUB_OUTPUT
           exit $rc
         # CTest exits with return code 8 on test failure.
-        continue-on-error: ${{ matrix.config.allow_test_failures == true &&
+        continue-on-error: ${{ matrix.allow_test_failures == true &&
           steps.build-and-test.outputs.exit_status == 8 }}
 
       - name: Collect testdir from failed tests
@@ -468,37 +492,42 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure() || steps.build-and-test.outcome == 'failure'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.config.name }} - testdir.tar.xz
+          name: ${{ matrix.name }} - testdir.tar.xz
           path: testdir.tar.xz
 
   check_format:
+    timeout-minutes: 30
     name: Code formatting
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
     steps:
       - name: Get source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
 
-  codespell:
+  spelling:
+    timeout-minutes: 30
     name: Spelling
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
     steps:
       - name: Get source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Install codespell
+      - name: Install spell checkers
         run: |
           sudo apt-get update
           sudo apt-get install python3-pip
-          pip3 install codespell==2.1.0
+          pip3 install codespell==2.2.6 typos==1.16.26
 
       - name: Run codespell
-        run: codespell -q 7 -S ".git,build*,./src/third_party/*" -I misc/codespell-allowlist.txt
+        run: codespell -q 7 -S ".git,build*,./misc/typos.toml,./src/third_party/*" -I misc/codespell-allowlist.txt
+
+      - name: Run typos
+        run: typos -c misc/typos.toml

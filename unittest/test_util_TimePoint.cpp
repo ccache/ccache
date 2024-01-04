@@ -30,6 +30,7 @@ TEST_CASE("Basics")
 
   CHECK(t0.sec() == 4711);
   CHECK(t0.nsec() == 4711000002042);
+  CHECK(t0.nsec_decimal_part() == 2042);
 }
 
 TEST_CASE("Conversions")

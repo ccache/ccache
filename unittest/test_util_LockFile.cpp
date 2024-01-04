@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,13 +16,13 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Stat.hpp"
 #include "TestUtil.hpp"
 
 #include <Util.hpp>
-#include <core/wincompat.hpp>
+#include <util/DirEntry.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 
@@ -32,6 +32,8 @@
 
 using namespace std::chrono_literals;
 
+using util::DirEntry;
+
 TEST_SUITE_BEGIN("LockFile");
 
 using TestUtil::TestContext;
@@ -40,94 +42,73 @@ TEST_CASE("Acquire and release short-lived lock file")
 {
   TestContext test_context;
 
-  util::ShortLivedLockFile lock_file("test");
+  util::LockFile lock("test");
   {
-    CHECK(!lock_file.acquired());
-    CHECK(!Stat::lstat("test.lock"));
-    CHECK(!Stat::lstat("test.alive"));
+    CHECK(!lock.acquired());
+    CHECK(!DirEntry("test.lock"));
+    CHECK(!DirEntry("test.alive"));
 
-    util::LockFileGuard lock(lock_file);
-    CHECK(lock_file.acquired());
+    CHECK(lock.acquire());
     CHECK(lock.acquired());
-    CHECK(!Stat::lstat("test.alive"));
-    const auto st = Stat::lstat("test.lock");
-    CHECK(st);
+    DirEntry entry("test.lock");
+    CHECK(entry);
 #ifndef _WIN32
-    CHECK(st.is_symlink());
+    CHECK(DirEntry("test.alive"));
+    CHECK(entry.is_symlink());
 #else
-    CHECK(st.is_regular());
+    CHECK(entry.is_regular_file());
 #endif
   }
 
-  CHECK(!lock_file.acquired());
-  CHECK(!Stat::lstat("test.lock"));
-  CHECK(!Stat::lstat("test.alive"));
-}
-
-TEST_CASE("Non-blocking short-lived lock")
-{
-  TestContext test_context;
-
-  util::ShortLivedLockFile lock_file_1("test");
-  CHECK(!lock_file_1.acquired());
-
-  util::ShortLivedLockFile lock_file_2("test");
-  CHECK(!lock_file_2.acquired());
-
-  CHECK(lock_file_1.try_acquire());
-  CHECK(lock_file_1.acquired());
-
-  CHECK(!lock_file_2.try_acquire());
-  CHECK(lock_file_1.acquired());
-  CHECK(!lock_file_2.acquired());
-
-  lock_file_2.release();
-  CHECK(lock_file_1.acquired());
-  CHECK(!lock_file_2.acquired());
-
-  lock_file_1.release();
-  CHECK(!lock_file_1.acquired());
-  CHECK(!lock_file_2.acquired());
+  lock.release();
+  lock.release();
+  CHECK(!lock.acquired());
+  CHECK(!DirEntry("test.lock"));
+  CHECK(!DirEntry("test.alive"));
 }
 
 TEST_CASE("Acquire and release long-lived lock file")
 {
   TestContext test_context;
 
-  util::LongLivedLockFile lock_file("test");
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("test");
+  lock.make_long_lived(lock_manager);
   {
-    CHECK(!lock_file.acquired());
-    CHECK(!Stat::lstat("test.lock"));
-    CHECK(!Stat::lstat("test.alive"));
+    CHECK(!lock.acquired());
+    CHECK(!DirEntry("test.lock"));
+    CHECK(!DirEntry("test.alive"));
 
-    util::LockFileGuard lock(lock_file);
-    CHECK(lock_file.acquired());
+    CHECK(lock.acquire());
     CHECK(lock.acquired());
 #ifndef _WIN32
-    CHECK(Stat::lstat("test.alive"));
+    CHECK(DirEntry("test.alive"));
 #endif
-    const auto st = Stat::lstat("test.lock");
-    CHECK(st);
+    DirEntry entry("test.lock");
+    CHECK(entry);
 #ifndef _WIN32
-    CHECK(st.is_symlink());
+    CHECK(entry.is_symlink());
 #else
-    CHECK(st.is_regular());
+    CHECK(entry.is_regular_file());
 #endif
   }
 
-  CHECK(!lock_file.acquired());
-  CHECK(!Stat::lstat("test.lock"));
-  CHECK(!Stat::lstat("test.alive"));
+  lock.release();
+  lock.release();
+  CHECK(!lock.acquired());
+  CHECK(!DirEntry("test.lock"));
+  CHECK(!DirEntry("test.alive"));
 }
 
 TEST_CASE("LockFile creates missing directories")
 {
   TestContext test_context;
 
-  util::ShortLivedLockFile lock_file("a/b/c/test");
-  util::LockFileGuard lock(lock_file);
-  CHECK(lock.acquired());
-  CHECK(Stat::lstat("a/b/c/test.lock"));
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("a/b/c/test");
+  lock.make_long_lived(lock_manager);
+  CHECK(lock.acquire());
+  CHECK(DirEntry("a/b/c/test.lock"));
 }
 
 #ifndef _WIN32
@@ -140,9 +121,10 @@ TEST_CASE("Break stale lock, blocking")
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 
-  util::LongLivedLockFile lock_file("test");
-  util::LockFileGuard lock(lock_file);
-  CHECK(lock.acquired());
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("test");
+  lock.make_long_lived(lock_manager);
+  CHECK(lock.acquire());
 }
 
 TEST_CASE("Break stale lock, non-blocking")
@@ -154,8 +136,10 @@ TEST_CASE("Break stale lock, non-blocking")
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 
-  util::LongLivedLockFile lock_file("test");
-  util::LockFileGuard lock(lock_file, util::LockFileGuard::Mode::non_blocking);
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile lock("test");
+  lock.make_long_lived(lock_manager);
+  CHECK(lock.try_acquire());
   CHECK(lock.acquired());
 }
 #endif // !_WIN32

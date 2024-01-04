@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,16 +18,174 @@
 
 #include "string.hpp"
 
-#include <assertions.hpp>
-#include <fmtmacros.hpp>
+#include <util/assertions.hpp>
+#include <util/fmtmacros.hpp>
 
 #include <algorithm>
 #include <cctype>
 #include <iostream>
 
+namespace {
+
+template<typename T>
+std::vector<T>
+split_into(std::string_view string,
+           const char* separators,
+           util::Tokenizer::Mode mode,
+           util::Tokenizer::IncludeDelimiter include_delimiter)
+
+{
+  std::vector<T> result;
+  for (const auto token :
+       util::Tokenizer(string, separators, mode, include_delimiter)) {
+    result.emplace_back(token);
+  }
+  return result;
+}
+
+} // namespace
+
 namespace util {
 
-nonstd::expected<double, std::string>
+std::string
+format_argv_as_win32_command_string(const char* const* argv,
+                                    const std::string& prefix,
+                                    bool escape_backslashes)
+{
+  std::string result;
+  size_t i = 0;
+  const char* arg = prefix.empty() ? argv[i++] : prefix.c_str();
+
+  do {
+    int bs = 0;
+    result += '"';
+    for (size_t j = 0; arg[j]; ++j) {
+      switch (arg[j]) {
+      case '\\':
+        if (!escape_backslashes) {
+          ++bs;
+          break;
+        }
+        [[fallthrough]];
+
+      case '"':
+        bs = (bs << 1) + 1;
+        [[fallthrough]];
+
+      default:
+        while (bs > 0) {
+          result += '\\';
+          --bs;
+        }
+        result += arg[j];
+      }
+    }
+    bs <<= 1;
+    while (bs > 0) {
+      result += '\\';
+      --bs;
+    }
+    result += "\" ";
+  } while ((arg = argv[i++]));
+
+  result.resize(result.length() - 1);
+  return result;
+}
+
+std::string
+format_argv_for_logging(const char* const* argv)
+{
+  std::string result;
+  for (size_t i = 0; argv[i]; ++i) {
+    if (i != 0) {
+      result += ' ';
+    }
+    std::string arg = replace_all(argv[i], "\\", "\\\\");
+    arg = replace_all(arg, "\"", "\\\"");
+    if (arg.empty() || arg.find(' ') != std::string::npos) {
+      arg = FMT("\"{}\"", arg);
+    }
+    result += arg;
+  }
+  return result;
+}
+
+std::string
+format_base16(nonstd::span<const uint8_t> data)
+{
+  static const char digits[] = "0123456789abcdef";
+  std::string result;
+  result.reserve(2 * data.size());
+  for (uint8_t b : data) {
+    result += digits[b >> 4];
+    result += digits[b & 0xF];
+  }
+  return result;
+}
+
+std::string
+format_base32hex(nonstd::span<const uint8_t> data)
+{
+  static const char digits[] = "0123456789abcdefghijklmnopqrstuv";
+  std::string result;
+  result.reserve(data.size() * 8 / 5 + 1);
+  uint8_t i = 0;
+  uint16_t bits = 0;
+  for (uint8_t b : data) {
+    bits <<= 8;
+    bits |= b;
+    i += 8;
+    while (i >= 5) {
+      result += digits[(bits >> (i - 5)) & 0x1f];
+      i -= 5;
+    }
+  }
+  if (i > 0) {
+    DEBUG_ASSERT(i < 5);
+    result += digits[(bits << (5 - i)) & 0x1f];
+  }
+  return result;
+}
+
+std::string
+format_digest(nonstd::span<const uint8_t> data)
+{
+  const size_t base16_bytes = 2;
+  ASSERT(data.size() >= base16_bytes);
+  return format_base16({data.data(), base16_bytes})
+         + format_base32hex(
+           {data.data() + base16_bytes, data.size() - base16_bytes});
+}
+
+std::string
+format_human_readable_diff(int64_t diff, SizeUnitPrefixType prefix_type)
+{
+  const char* sign = diff == 0 ? "" : (diff > 0 ? "+" : "-");
+  return FMT(
+    "{}{}", sign, format_human_readable_size(std::abs(diff), prefix_type));
+}
+
+std::string
+format_human_readable_size(uint64_t size, SizeUnitPrefixType prefix_type)
+{
+  const double factor = prefix_type == SizeUnitPrefixType::binary ? 1024 : 1000;
+  const double dsize = static_cast<double>(size);
+  const char* infix = prefix_type == SizeUnitPrefixType::binary ? "i" : "";
+  if (dsize >= factor * factor * factor) {
+    return FMT("{:.1f} G{}B", dsize / (factor * factor * factor), infix);
+  } else if (dsize >= factor * factor) {
+    return FMT("{:.1f} M{}B", dsize / (factor * factor), infix);
+  } else if (dsize >= factor) {
+    const char* k = prefix_type == SizeUnitPrefixType::binary ? "K" : "k";
+    return FMT("{:.1f} {}{}B", dsize / factor, k, infix);
+  } else if (size == 1) {
+    return "1 byte";
+  } else {
+    return FMT("{} bytes", size);
+  }
+}
+
+tl::expected<double, std::string>
 parse_double(const std::string& value)
 {
   size_t end;
@@ -40,14 +198,38 @@ parse_double(const std::string& value)
   }
 
   if (failed || end != value.size()) {
-    return nonstd::make_unexpected(
-      FMT("invalid floating point: \"{}\"", value));
+    return tl::unexpected(FMT("invalid floating point: \"{}\"", value));
   } else {
     return result;
   }
 }
 
-nonstd::expected<int64_t, std::string>
+tl::expected<uint64_t, std::string>
+parse_duration(std::string_view duration)
+{
+  uint64_t factor = 0;
+  char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
+
+  switch (last_ch) {
+  case 'd':
+    factor = 24 * 60 * 60;
+    break;
+  case 's':
+    factor = 1;
+    break;
+  default:
+    return tl::unexpected(FMT(
+      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
+  }
+
+  auto value = parse_unsigned(duration.substr(0, duration.length() - 1));
+  if (!value) {
+    return value;
+  };
+  return factor * *value;
+}
+
+tl::expected<int64_t, std::string>
 parse_signed(std::string_view value,
              const std::optional<int64_t> min_value,
              const std::optional<int64_t> max_value,
@@ -65,27 +247,77 @@ parse_signed(std::string_view value,
     failed = true;
   }
   if (failed || end != stripped_value.size()) {
-    return nonstd::make_unexpected(
-      FMT("invalid integer: \"{}\"", stripped_value));
+    return tl::unexpected(FMT("invalid integer: \"{}\"", stripped_value));
   }
 
   const int64_t min = min_value ? *min_value : INT64_MIN;
   const int64_t max = max_value ? *max_value : INT64_MAX;
   if (result < min || result > max) {
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("{} must be between {} and {}", description, min, max));
   } else {
     return result;
   }
 }
 
-nonstd::expected<mode_t, std::string>
-parse_umask(std::string_view value)
+tl::expected<std::pair<uint64_t, SizeUnitPrefixType>, std::string>
+parse_size(const std::string& value)
 {
-  return util::parse_unsigned(value, 0, 0777, "umask", 8);
+  errno = 0;
+
+  char* p;
+  double result = strtod(value.c_str(), &p);
+  if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
+    return tl::unexpected(FMT("invalid size: \"{}\"", value));
+  }
+
+  while (isspace(*p)) {
+    ++p;
+  }
+
+  SizeUnitPrefixType prefix_type;
+  if (*p != '\0') {
+    prefix_type = *(p + 1) == 'i' ? SizeUnitPrefixType::binary
+                                  : SizeUnitPrefixType::decimal;
+    unsigned multiplier =
+      prefix_type == SizeUnitPrefixType::binary ? 1024 : 1000;
+    switch (*p) {
+    case 'T':
+      result *= multiplier;
+      [[fallthrough]];
+    case 'G':
+      result *= multiplier;
+      [[fallthrough]];
+    case 'M':
+      result *= multiplier;
+      [[fallthrough]];
+    case 'K':
+    case 'k':
+      result *= multiplier;
+      break;
+    default:
+      return tl::unexpected(FMT("invalid size: \"{}\"", value));
+    }
+  } else {
+    result *= 1024 * 1024 * 1024;
+    prefix_type = SizeUnitPrefixType::binary;
+  }
+
+  return std::make_pair(static_cast<uint64_t>(result), prefix_type);
 }
 
-nonstd::expected<uint64_t, std::string>
+tl::expected<mode_t, std::string>
+parse_umask(std::string_view value)
+{
+  auto result = parse_unsigned(value, 0, 0777, "umask", 8);
+  if (result) {
+    return static_cast<mode_t>(*result);
+  } else {
+    return tl::unexpected(result.error());
+  }
+}
+
+tl::expected<uint64_t, std::string>
 parse_unsigned(std::string_view value,
                const std::optional<uint64_t> min_value,
                const std::optional<uint64_t> max_value,
@@ -110,21 +342,21 @@ parse_unsigned(std::string_view value,
   }
   if (failed || end != stripped_value.size()) {
     const auto base_info = base == 8 ? "octal " : "";
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("invalid unsigned {}integer: \"{}\"", base_info, stripped_value));
   }
 
   const uint64_t min = min_value ? *min_value : 0;
   const uint64_t max = max_value ? *max_value : UINT64_MAX;
   if (result < min || result > max) {
-    return nonstd::make_unexpected(
+    return tl::unexpected(
       FMT("{} must be between {} and {}", description, min, max));
   } else {
     return result;
   }
 }
 
-nonstd::expected<std::string, std::string>
+tl::expected<std::string, std::string>
 percent_decode(std::string_view string)
 {
   const auto from_hex = [](const char digit) {
@@ -134,12 +366,13 @@ percent_decode(std::string_view string)
 
   std::string result;
   result.reserve(string.size());
-  for (size_t i = 0; i < string.size(); ++i) {
+  size_t i = 0;
+  while (i < string.size()) {
     if (string[i] != '%') {
       result += string[i];
     } else if (i + 2 >= string.size() || !std::isxdigit(string[i + 1])
                || !std::isxdigit(string[i + 2])) {
-      return nonstd::make_unexpected(
+      return tl::unexpected(
         FMT("invalid percent-encoded string at position {}: {}", i, string));
     } else {
       const char ch = static_cast<char>(from_hex(string[i + 1]) << 4
@@ -147,6 +380,7 @@ percent_decode(std::string_view string)
       result += ch;
       i += 2;
     }
+    ++i;
   }
 
   return result;
@@ -198,6 +432,42 @@ replace_first(const std::string_view string,
   return result;
 }
 
+std::vector<std::string>
+split_into_strings(std::string_view string,
+                   const char* separators,
+                   Tokenizer::Mode mode,
+                   Tokenizer::IncludeDelimiter include_delimiter)
+{
+  return split_into<std::string>(string, separators, mode, include_delimiter);
+}
+
+std::vector<std::string_view>
+split_into_views(std::string_view string,
+                 const char* separators,
+                 Tokenizer::Mode mode,
+                 Tokenizer::IncludeDelimiter include_delimiter)
+{
+  return split_into<std::string_view>(
+    string, separators, mode, include_delimiter);
+}
+
+std::pair<std::string_view, std::optional<std::string_view>>
+split_once(const char* string, const char split_char)
+{
+  return split_once(std::string_view(string), split_char);
+}
+
+std::pair<std::string, std::optional<std::string>>
+split_once(std::string&& string, const char split_char)
+{
+  const auto [left, right] = split_once(std::string_view(string), split_char);
+  if (right) {
+    return std::make_pair(std::string(left), std::string(*right));
+  } else {
+    return std::make_pair(std::string(left), std::nullopt);
+  }
+}
+
 std::pair<std::string_view, std::optional<std::string_view>>
 split_once(const std::string_view string, const char split_char)
 {
@@ -210,6 +480,20 @@ split_once(const std::string_view string, const char split_char)
   }
 }
 
+std::vector<std::filesystem::path>
+split_path_list(std::string_view path_list)
+{
+#ifdef _WIN32
+  const char path_delimiter[] = ";";
+#else
+  const char path_delimiter[] = ":";
+#endif
+  auto strings = split_into_views(path_list, path_delimiter);
+  std::vector<std::filesystem::path> paths;
+  std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
+  return paths;
+}
+
 std::string
 strip_whitespace(const std::string_view string)
 {
@@ -218,6 +502,15 @@ strip_whitespace(const std::string_view string)
   const auto end =
     std::find_if_not(string.rbegin(), string.rend(), is_space).base();
   return start < end ? std::string(start, end) : std::string();
+}
+
+std::string
+to_lowercase(std::string_view string)
+{
+  std::string result;
+  result.resize(string.length());
+  std::transform(string.begin(), string.end(), result.begin(), tolower);
+  return result;
 }
 
 } // namespace util

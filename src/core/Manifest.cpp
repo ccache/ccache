@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,13 +20,14 @@
 
 #include <Context.hpp>
 #include <Hash.hpp>
-#include <Logging.hpp>
 #include <core/CacheEntryDataReader.hpp>
 #include <core/CacheEntryDataWriter.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <hashutil.hpp>
 #include <util/XXH3_64.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
+#include <util/string.hpp>
 
 // Manifest data format
 // ====================
@@ -44,7 +45,7 @@
 // <n_includes>    ::= uint32_t
 // <include_entry> ::= <path_index> <digest> <fsize> <mtime> <ctime>
 // <path_index>    ::= uint32_t
-// <digest>        ::= Digest::size() bytes
+// <digest>        ::= Hash::Digest::size() bytes
 // <fsize>         ::= uint64_t ; file size
 // <mtime>         ::= int64_t ; modification time (ns), 0 = not recorded
 // <ctime>         ::= int64_t ; status change time (ns), 0 = not recorded
@@ -53,7 +54,7 @@
 // <result>        ::= <n_indexes> <include_index>* <key>
 // <n_indexes>     ::= uint32_t
 // <include_index> ::= uint32_t
-// <result_key>    ::= Digest::size() bytes
+// <result_key>    ::= Hash::Digest::size() bytes
 
 const uint32_t k_max_manifest_entries = 100;
 const uint32_t k_max_manifest_file_info_entries = 10000;
@@ -66,9 +67,9 @@ template<> struct hash<core::Manifest::FileInfo>
   operator()(const core::Manifest::FileInfo& file_info) const
   {
     static_assert(sizeof(file_info) == 48); // No padding.
-    util::XXH3_64 hash;
-    hash.update(&file_info, sizeof(file_info));
-    return hash.digest();
+    util::XXH3_64 h;
+    h.update(&file_info, sizeof(file_info));
+    return h.digest();
   }
 };
 
@@ -111,7 +112,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
     auto& entry = file_infos.back();
 
     reader.read_int(entry.index);
-    reader.read_and_copy_bytes({entry.digest.bytes(), Digest::size()});
+    reader.read_and_copy_bytes(entry.digest);
     reader.read_int(entry.fsize);
     entry.mtime.set_nsec(reader.read_int<int64_t>());
     entry.ctime.set_nsec(reader.read_int<int64_t>());
@@ -126,7 +127,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
     for (uint32_t j = 0; j < file_info_index_count; ++j) {
       entry.file_info_indexes.push_back(reader.read_int<uint32_t>());
     }
-    reader.read_and_copy_bytes({entry.key.bytes(), Digest::size()});
+    reader.read_and_copy_bytes(entry.key);
   }
 
   if (m_results.empty()) {
@@ -135,7 +136,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
     m_results = std::move(results);
   } else {
     for (const auto& result : results) {
-      std::unordered_map<std::string, Digest> included_files;
+      std::unordered_map<std::string, Hash::Digest> included_files;
       std::unordered_map<std::string, FileStats> included_files_stats;
       for (auto file_info_index : result.file_info_indexes) {
         const auto& file_info = file_infos[file_info_index];
@@ -151,11 +152,11 @@ Manifest::read(nonstd::span<const uint8_t> data)
   }
 }
 
-std::optional<Digest>
+std::optional<Hash::Digest>
 Manifest::look_up_result_digest(const Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
-  std::unordered_map<std::string, Digest> hashed_files;
+  std::unordered_map<std::string, Hash::Digest> hashed_files;
 
   // Check newest result first since it's a more likely to match.
   for (size_t i = m_results.size(); i > 0; i--) {
@@ -170,8 +171,8 @@ Manifest::look_up_result_digest(const Context& ctx) const
 
 bool
 Manifest::add_result(
-  const Digest& result_key,
-  const std::unordered_map<std::string, Digest>& included_files,
+  const Hash::Digest& result_key,
+  const std::unordered_map<std::string, Hash::Digest>& included_files,
   const FileStater& stat_file_function)
 {
   if (m_results.size() > k_max_manifest_entries) {
@@ -211,8 +212,13 @@ Manifest::add_result(
   file_info_indexes.reserve(included_files.size());
 
   for (const auto& [path, digest] : included_files) {
-    file_info_indexes.push_back(get_file_info_index(
-      path, digest, mf_files, mf_file_infos, stat_file_function));
+    auto index = get_file_info_index(
+      path, digest, mf_files, mf_file_infos, stat_file_function);
+    if (!index) {
+      LOG_RAW("Index overflow in manifest");
+      return false;
+    }
+    file_info_indexes.push_back(*index);
   }
 
   ResultEntry entry{std::move(file_info_indexes), result_key};
@@ -235,12 +241,13 @@ Manifest::serialized_size() const
     size += 2 + file.length();
   }
   size += 4; // n_file_infos
-  size += m_file_infos.size() * (4 + Digest::size() + 8 + 8 + 8);
+  size +=
+    m_file_infos.size() * (4 + std::tuple_size<Hash::Digest>() + 8 + 8 + 8);
   size += 4; // n_results
   for (const auto& result : m_results) {
     size += 4; // n_file_info_indexes
     size += result.file_info_indexes.size() * 4;
-    size += Digest::size();
+    size += std::tuple_size<Hash::Digest>();
   }
 
   // In order to support 32-bit ccache builds, restrict size to uint32_t for
@@ -250,7 +257,7 @@ Manifest::serialized_size() const
     throw core::Error(
       FMT("Serialized manifest too large ({} > {})", size, max));
   }
-  return size;
+  return static_cast<uint32_t>(size);
 }
 
 void
@@ -259,28 +266,28 @@ Manifest::serialize(util::Bytes& output)
   core::CacheEntryDataWriter writer(output);
 
   writer.write_int(k_format_version);
-  writer.write_int<uint32_t>(m_files.size());
+  writer.write_int(static_cast<uint32_t>(m_files.size()));
   for (const auto& file : m_files) {
-    writer.write_int<uint16_t>(file.length());
+    writer.write_int(static_cast<uint16_t>(file.length()));
     writer.write_str(file);
   }
 
-  writer.write_int<uint32_t>(m_file_infos.size());
+  writer.write_int(static_cast<uint32_t>(m_file_infos.size()));
   for (const auto& file_info : m_file_infos) {
     writer.write_int<uint32_t>(file_info.index);
-    writer.write_bytes({file_info.digest.bytes(), Digest::size()});
+    writer.write_bytes(file_info.digest);
     writer.write_int(file_info.fsize);
     writer.write_int(file_info.mtime.nsec());
     writer.write_int(file_info.ctime.nsec());
   }
 
-  writer.write_int<uint32_t>(m_results.size());
+  writer.write_int(static_cast<uint32_t>(m_results.size()));
   for (const auto& result : m_results) {
-    writer.write_int<uint32_t>(result.file_info_indexes.size());
+    writer.write_int(static_cast<uint32_t>(result.file_info_indexes.size()));
     for (auto index : result.file_info_indexes) {
       writer.write_int(index);
     }
-    writer.write_bytes({result.key.bytes(), Digest::size()});
+    writer.write_bytes(result.key);
   }
 }
 
@@ -305,10 +312,10 @@ Manifest::clear()
   m_results.clear();
 }
 
-uint32_t
+std::optional<uint32_t>
 Manifest::get_file_info_index(
   const std::string& path,
-  const Digest& digest,
+  const Hash::Digest& digest,
   const std::unordered_map<std::string, uint32_t>& mf_files,
   const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
   const FileStater& file_stater)
@@ -318,9 +325,11 @@ Manifest::get_file_info_index(
   const auto f_it = mf_files.find(path);
   if (f_it != mf_files.end()) {
     fi.index = f_it->second;
+  } else if (m_files.size() > UINT32_MAX) {
+    return std::nullopt;
   } else {
     m_files.push_back(path);
-    fi.index = m_files.size() - 1;
+    fi.index = static_cast<uint32_t>(m_files.size() - 1);
   }
 
   fi.digest = digest;
@@ -333,6 +342,8 @@ Manifest::get_file_info_index(
   const auto fi_it = mf_file_infos.find(fi);
   if (fi_it != mf_file_infos.end()) {
     return fi_it->second;
+  } else if (m_file_infos.size() > UINT32_MAX) {
+    return std::nullopt;
   } else {
     m_file_infos.push_back(fi);
     return m_file_infos.size() - 1;
@@ -344,7 +355,7 @@ Manifest::result_matches(
   const Context& ctx,
   const ResultEntry& result,
   std::unordered_map<std::string, FileStats>& stated_files,
-  std::unordered_map<std::string, Digest>& hashed_files) const
+  std::unordered_map<std::string, Hash::Digest>& hashed_files) const
 {
   for (uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = m_file_infos[file_info_index];
@@ -352,14 +363,17 @@ Manifest::result_matches(
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {
-      auto file_stat = Stat::stat(path, Stat::OnError::log);
-      if (!file_stat) {
+      util::DirEntry entry(path);
+      if (!entry) {
+        LOG("Info: {} is mentioned in a manifest entry but can't be read ({})",
+            path,
+            strerror(entry.error_number()));
         return false;
       }
       FileStats st;
-      st.size = file_stat.size();
-      st.mtime = file_stat.mtime();
-      st.ctime = file_stat.ctime();
+      st.size = entry.size();
+      st.mtime = entry.mtime();
+      st.ctime = entry.ctime();
       stated_files_iter = stated_files.emplace(path, st).first;
     }
     const FileStats& fs = stated_files_iter->second;
@@ -378,9 +392,9 @@ Manifest::result_matches(
       return false;
     }
 
-    if (ctx.config.sloppiness().is_enabled(core::Sloppy::file_stat_matches)) {
-      if (!(ctx.config.sloppiness().is_enabled(
-            core::Sloppy::file_stat_matches_ctime))) {
+    if (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches)) {
+      if (!ctx.config.sloppiness().contains(
+            core::Sloppy::file_stat_matches_ctime)) {
         if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
           LOG("mtime/ctime hit for {}", path);
           continue;
@@ -399,13 +413,13 @@ Manifest::result_matches(
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      Digest actual_digest;
-      int ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
-      if (ret & HASH_SOURCE_CODE_ERROR) {
+      Hash::Digest actual_digest;
+      auto ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
+      if (ret.contains(HashSourceCode::error)) {
         LOG("Failed hashing {}", path);
         return false;
       }
-      if (ret & HASH_SOURCE_CODE_FOUND_TIME) {
+      if (ret.contains(HashSourceCode::found_time)) {
         return false;
       }
 
@@ -434,7 +448,8 @@ Manifest::inspect(FILE* const stream) const
   for (size_t i = 0; i < m_file_infos.size(); ++i) {
     PRINT(stream, "  {}:\n", i);
     PRINT(stream, "    Path index: {}\n", m_file_infos[i].index);
-    PRINT(stream, "    Hash: {}\n", m_file_infos[i].digest.to_string());
+    PRINT(
+      stream, "    Hash: {}\n", util::format_digest(m_file_infos[i].digest));
     PRINT(stream, "    File size: {}\n", m_file_infos[i].fsize);
     if (m_file_infos[i].mtime == util::TimePoint()) {
       PRINT_RAW(stream, "    Mtime: -\n");
@@ -462,7 +477,7 @@ Manifest::inspect(FILE* const stream) const
       PRINT(stream, " {}", file_info_index);
     }
     PRINT_RAW(stream, "\n");
-    PRINT(stream, "    Key: {}\n", m_results[i].key.to_string());
+    PRINT(stream, "    Key: {}\n", util::format_digest(m_results[i].key));
   }
 }
 

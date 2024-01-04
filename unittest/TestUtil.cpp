@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,43 +21,38 @@
 #include "../src/Util.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
-#include <fmtmacros.hpp>
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/path.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
 
+namespace fs = util::filesystem;
+
 namespace TestUtil {
 
 size_t TestContext::m_subdir_counter = 0;
 
-TestContext::TestContext() : m_test_dir(Util::get_actual_cwd())
+TestContext::TestContext() : m_test_dir(util::actual_cwd())
 {
   if (Util::base_name(Util::dir_name(m_test_dir)) != "testdir") {
     throw core::Error("TestContext instantiated outside test directory");
   }
   ++m_subdir_counter;
   std::string subtest_dir = FMT("{}/test_{}", m_test_dir, m_subdir_counter);
-  Util::create_dir(subtest_dir);
-  if (chdir(subtest_dir.c_str()) != 0) {
+  fs::create_directories(subtest_dir);
+  if (!fs::current_path(subtest_dir)) {
     abort();
   }
 }
 
 TestContext::~TestContext()
 {
-  if (chdir(m_test_dir.c_str()) != 0) {
+  if (!fs::current_path(m_test_dir)) {
     abort();
-  }
-}
-
-void
-check_chdir(const std::string& dir)
-{
-  if (chdir(dir.c_str()) != 0) {
-    throw core::Error(
-      FMT("failed to change directory to {}: {}", dir, strerror(errno)));
   }
 }
 

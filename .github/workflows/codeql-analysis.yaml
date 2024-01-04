@@ -31,7 +31,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
@@ -51,6 +51,7 @@ jobs:
       env:
         RUN_TESTS: none
         CMAKE_GENERATOR: Ninja
+        EXTRA_CMAKE_BUILD_FLAGS: --target ccache
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2

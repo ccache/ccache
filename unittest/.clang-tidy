@@ -1,13 +1,15 @@
 ---
-Checks:          '-*,
-                  readability-*,
-                  -readability-implicit-bool-conversion,
-                  -readability-function-cognitive-complexity,
-                  -readability-magic-numbers,
-                  -readability-else-after-return,
-                  -readability-named-parameter,
-                  -readability-qualified-auto,
-                  -readability-redundant-declaration'
+Checks: '
+  -*,
+  readability-*,
+  -readability-else-after-return,
+  -readability-function-cognitive-complexity,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-qualified-auto,
+  -readability-redundant-declaration,
+  '
 WarningsAsErrors: '*'
 # Only include headers directly in unittest.
 HeaderFilterRegex: 'unittest/[^/]*$'
@@ -28,4 +30,3 @@ CheckOptions:
   - key:             readability-function-size.VariableThreshold
     value:           999999
 ...
-

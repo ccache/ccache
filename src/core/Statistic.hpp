@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -72,7 +72,14 @@ enum class Statistic {
   remote_storage_hit = 47,
   remote_storage_miss = 48,
 
-  END
+  // 49-64: files in level 2 subdirs 0-f
+  subdir_files_base = 49,
+
+  // 65-80: size (KiB) in level 2 subdirs 0-f
+  subdir_size_kibibyte_base = 65,
+
+  disabled = 81,
+  END = 82
 };
 
 } // namespace core

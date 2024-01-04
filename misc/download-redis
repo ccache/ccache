@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# This script downloads the contents of the local cache from a Redis remote
-# storage.
+# This script downloads the contents of the local cache
+# from a Redis remote storage.
 
 import redis
 import os
@@ -53,10 +53,10 @@ for key in context.scan_iter():
         continue
     if val[0:2] == b"\xcc\xac":  # magic
         objects += 1
-        if val[2] == 0 and val[3] == 0:
+        if val[3] == 0:
             ext = "R"
             result += 1
-        elif val[2] == 0 and val[3] == 1:
+        elif val[3] == 1:
             ext = "M"
             manifest += 1
         else:

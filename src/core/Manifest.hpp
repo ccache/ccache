@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Digest.hpp>
+#include <Hash.hpp>
 #include <core/Serializer.hpp>
 #include <util/TimePoint.hpp>
 
@@ -53,11 +53,12 @@ public:
 
   void read(nonstd::span<const uint8_t> data);
 
-  std::optional<Digest> look_up_result_digest(const Context& ctx) const;
+  std::optional<Hash::Digest> look_up_result_digest(const Context& ctx) const;
 
-  bool add_result(const Digest& result_key,
-                  const std::unordered_map<std::string, Digest>& included_files,
-                  const FileStater& stat_file);
+  bool add_result(
+    const Hash::Digest& result_key,
+    const std::unordered_map<std::string, Hash::Digest>& included_files,
+    const FileStater& stat_file);
 
   // core::Serializer
   uint32_t serialized_size() const override;
@@ -69,7 +70,7 @@ private:
   struct FileInfo
   {
     uint32_t index;        // Index to m_files.
-    Digest digest;         // Digest of referenced file.
+    Hash::Digest digest;   // Hash::Digest of referenced file.
     uint64_t fsize;        // Size of referenced file.
     util::TimePoint mtime; // mtime of referenced file.
     util::TimePoint ctime; // ctime of referenced file.
@@ -82,7 +83,7 @@ private:
   struct ResultEntry
   {
     std::vector<uint32_t> file_info_indexes; // Indexes to m_file_infos.
-    Digest key;                              // Key of the result.
+    Hash::Digest key;                        // Key of the result.
 
     bool operator==(const ResultEntry& other) const;
   };
@@ -93,18 +94,18 @@ private:
 
   void clear();
 
-  uint32_t get_file_info_index(
+  std::optional<uint32_t> get_file_info_index(
     const std::string& path,
-    const Digest& digest,
+    const Hash::Digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
     const FileStater& file_state);
 
-  bool
-  result_matches(const Context& ctx,
-                 const ResultEntry& result,
-                 std::unordered_map<std::string, FileStats>& stated_files,
-                 std::unordered_map<std::string, Digest>& hashed_files) const;
+  bool result_matches(
+    const Context& ctx,
+    const ResultEntry& result,
+    std::unordered_map<std::string, FileStats>& stated_files,
+    std::unordered_map<std::string, Hash::Digest>& hashed_files) const;
 };
 
 } // namespace core

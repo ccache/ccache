@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,19 +21,26 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Fd.hpp"
-#include "Logging.hpp"
 #include "SignalHandler.hpp"
-#include "Stat.hpp"
-#include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "Win32Util.hpp"
 
+#include <ccache.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
-#include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
+#include <util/TemporaryFile.hpp>
+#include <util/error.hpp>
+#include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
+#include <util/string.hpp>
+#include <util/wincompat.hpp>
+
+#include <vector>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -43,9 +50,7 @@
 #  include <sys/wait.h>
 #endif
 
-#ifdef _WIN32
-#  include "Finalizer.hpp"
-#endif
+namespace fs = util::filesystem;
 
 #ifdef _WIN32
 static int win32execute(const char* path,
@@ -56,8 +61,13 @@ static int win32execute(const char* path,
                         const std::string& temp_dir);
 
 int
-execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
+execute(Context& ctx,
+        const char* const* argv,
+        util::Fd&& fd_out,
+        util::Fd&& fd_err)
 {
+  LOG("Executing {}", util::format_argv_for_logging(argv));
+
   return win32execute(argv[0],
                       argv,
                       1,
@@ -77,17 +87,17 @@ win32getshell(const std::string& path)
 {
   const char* path_list = getenv("PATH");
   std::string sh;
-  if (Util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
-    sh = find_executable_in_path("sh.exe", path_list);
+  if (util::to_lowercase(Util::get_extension(path)) == ".sh" && path_list) {
+    sh = find_executable_in_path("sh.exe", path_list).string();
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
-    File fp(path, "r");
+    util::FileStream fp(path, "r");
     if (fp) {
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
       if (std::string(buf) == "#!/bin/sh" && path_list) {
-        sh = find_executable_in_path("sh.exe", path_list);
+        sh = find_executable_in_path("sh.exe", path_list).string();
       }
     }
   }
@@ -103,6 +113,76 @@ win32execute(const char* path,
              int fd_stderr,
              const std::string& temp_dir)
 {
+  BOOL is_process_in_job = false;
+  DWORD dw_creation_flags = 0;
+
+  {
+    BOOL job_success =
+      IsProcessInJob(GetCurrentProcess(), nullptr, &is_process_in_job);
+    if (!job_success) {
+      DWORD error = GetLastError();
+      LOG("failed to IsProcessInJob: {} ({})",
+          util::win32_error_message(error),
+          error);
+      return 0;
+    }
+    if (is_process_in_job) {
+      JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = {};
+      BOOL querySuccess =
+        QueryInformationJobObject(nullptr,
+                                  JobObjectExtendedLimitInformation,
+                                  &jobInfo,
+                                  sizeof(jobInfo),
+                                  nullptr);
+      if (!querySuccess) {
+        DWORD error = GetLastError();
+        LOG("failed to QueryInformationJobObject: {} ({})",
+            util::win32_error_message(error),
+            error);
+        return 0;
+      }
+
+      const auto& limit_flags = jobInfo.BasicLimitInformation.LimitFlags;
+      bool is_kill_active = limit_flags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+      bool allow_break_away = limit_flags & JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+      if (!is_kill_active && allow_break_away) {
+        is_process_in_job = false;
+        dw_creation_flags = CREATE_BREAKAWAY_FROM_JOB | CREATE_SUSPENDED;
+      }
+    } else {
+      dw_creation_flags = CREATE_SUSPENDED;
+    }
+  }
+
+  HANDLE job = nullptr;
+  if (!is_process_in_job) {
+    job = CreateJobObject(nullptr, nullptr);
+    if (job == nullptr) {
+      DWORD error = GetLastError();
+      LOG("failed to CreateJobObject: {} ({})",
+          util::win32_error_message(error),
+          error);
+      return -1;
+    }
+
+    {
+      // Set the job object to terminate all child processes when the parent
+      // process is killed.
+      JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = {};
+      jobInfo.BasicLimitInformation.LimitFlags =
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+      BOOL job_success = SetInformationJobObject(
+        job, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo));
+      if (!job_success) {
+        DWORD error = GetLastError();
+        LOG("failed to JobObjectExtendedLimitInformation: {} ({})",
+            util::win32_error_message(error),
+            error);
+        return -1;
+      }
+    }
+  }
+
   PROCESS_INFORMATION pi;
   memset(&pi, 0x00, sizeof(pi));
 
@@ -136,19 +216,20 @@ win32execute(const char* path,
     }
   }
 
-  std::string args = Win32Util::argv_to_string(argv, sh);
-  std::string full_path = Win32Util::add_exe_suffix(path);
-  std::string tmp_file_path;
+  std::string args = util::format_argv_as_win32_command_string(argv, sh);
+  std::string full_path = util::add_exe_suffix(path);
+  fs::path tmp_file_path;
 
-  Finalizer tmp_file_remover([&tmp_file_path] {
+  util::Finalizer tmp_file_remover([&tmp_file_path] {
     if (!tmp_file_path.empty()) {
-      Util::unlink_tmp(tmp_file_path);
+      util::remove(tmp_file_path);
     }
   });
 
   if (args.length() > 8192) {
-    TemporaryFile tmp_file(FMT("{}/cmd_args", temp_dir));
-    args = Win32Util::argv_to_string(argv + 1, sh, true);
+    auto tmp_file = util::value_or_throw<core::Fatal>(
+      util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
+    args = util::format_argv_as_win32_command_string(argv + 1, sh, true);
     util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
     tmp_file_path = tmp_file.path;
@@ -159,7 +240,7 @@ win32execute(const char* path,
                            nullptr,
                            nullptr,
                            1,
-                           0,
+                           dw_creation_flags,
                            nullptr,
                            nullptr,
                            &si,
@@ -172,9 +253,23 @@ win32execute(const char* path,
     DWORD error = GetLastError();
     LOG("failed to execute {}: {} ({})",
         full_path,
-        Win32Util::error_message(error),
+        util::win32_error_message(error),
         error);
     return -1;
+  }
+  if (job) {
+    BOOL assign_success = AssignProcessToJobObject(job, pi.hProcess);
+    if (!assign_success) {
+      TerminateProcess(pi.hProcess, 1);
+
+      DWORD error = GetLastError();
+      LOG("failed to assign process to job object {}: {} ({})",
+          full_path,
+          util::win32_error_message(error),
+          error);
+      return -1;
+    }
+    ResumeThread(pi.hThread);
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
 
@@ -182,6 +277,7 @@ win32execute(const char* path,
   GetExitCodeProcess(pi.hProcess, &exitcode);
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
+  CloseHandle(job);
   if (!doreturn) {
     exit(exitcode);
   }
@@ -193,9 +289,12 @@ win32execute(const char* path,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(Context& ctx, const char* const* argv, Fd&& fd_out, Fd&& fd_err)
+execute(Context& ctx,
+        const char* const* argv,
+        util::Fd&& fd_out,
+        util::Fd&& fd_err)
 {
-  LOG("Executing {}", Util::format_argv_for_logging(argv));
+  LOG("Executing {}", util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;
@@ -252,7 +351,7 @@ find_executable(const Context& ctx,
                 const std::string& name,
                 const std::string& exclude_path)
 {
-  if (util::is_absolute_path(name)) {
+  if (fs::path(name).is_absolute()) {
     return name;
   }
 
@@ -265,28 +364,28 @@ find_executable(const Context& ctx,
     return {};
   }
 
-  return find_executable_in_path(name, path_list, exclude_path);
+  return find_executable_in_path(name, path_list, exclude_path).string();
 }
 
-std::string
+fs::path
 find_executable_in_path(const std::string& name,
                         const std::string& path_list,
-                        std::optional<std::string> exclude_path)
+                        const std::optional<fs::path>& exclude_path)
 {
   if (path_list.empty()) {
     return {};
   }
 
-  const auto real_exclude_path =
-    exclude_path ? Util::real_path(*exclude_path) : "";
+  auto real_exclude_path =
+    exclude_path ? fs::canonical(*exclude_path).value_or("") : "";
 
   // Search the path list looking for the first compiler of the right name that
   // isn't us.
-  for (const std::string& dir : util::split_path_list(path_list)) {
-    const std::vector<std::string> candidates = {
-      FMT("{}/{}", dir, name),
+  for (const auto& dir : util::split_path_list(path_list)) {
+    const std::vector<fs::path> candidates = {
+      dir / name,
 #ifdef _WIN32
-      FMT("{}/{}.exe", dir, name),
+      dir / FMT("{}.exe", name),
 #endif
     };
     for (const auto& candidate : candidates) {
@@ -302,14 +401,14 @@ find_executable_in_path(const std::string& name,
       //    symlink to another ccache executable.
       const bool candidate_exists =
 #ifdef _WIN32
-        Stat::stat(candidate);
+        util::DirEntry(candidate).is_regular_file();
 #else
         access(candidate.c_str(), X_OK) == 0;
 #endif
       if (candidate_exists) {
-        const auto real_candidate = Util::real_path(candidate);
-        if ((real_exclude_path.empty() || real_candidate != real_exclude_path)
-            && !Util::is_ccache_executable(real_candidate)) {
+        auto real_candidate = fs::canonical(candidate);
+        if (real_candidate && *real_candidate != real_exclude_path
+            && !is_ccache_executable(*real_candidate)) {
           return candidate;
         }
       }

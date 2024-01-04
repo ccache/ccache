@@ -14,9 +14,8 @@
 #  define __STDC_FORMAT_MACROS 1
 #endif
 
-// For example for vasprintf under i686-w64-mingw32-g++-posix. The later
-// definition of _XOPEN_SOURCE disables certain features on Linux, so we need
-// _GNU_SOURCE to re-enable them (makedev, tm_zone).
+// The later definition of _XOPEN_SOURCE disables certain features on Linux, so
+// we need _GNU_SOURCE to re-enable them.
 #define _GNU_SOURCE 1
 
 // The later definition of _XOPEN_SOURCE and _POSIX_C_SOURCE disables certain
@@ -70,71 +69,16 @@
 
 #cmakedefine MTR_ENABLED
 
-// Define if you have the "asctime_r" function.
-#cmakedefine HAVE_ASCTIME_R
+// === Header files ===
 
-// Define if your compiler supports AVX2.
-#cmakedefine HAVE_AVX2
-
-// Define if you have the "geteuid" function.
-#cmakedefine HAVE_GETEUID
-
-// Define if you have the "getopt_long" function.
-#cmakedefine HAVE_GETOPT_LONG
-
-// Define if you have the "getpwuid" function.
-#cmakedefine HAVE_GETPWUID
+// Define if you have the <dirent.h> header file.
+#cmakedefine HAVE_DIRENT_H
 
 // Define if you have the <linux/fs.h> header file.
 #cmakedefine HAVE_LINUX_FS_H
 
-// Define if the system has the type "long long".
-#cmakedefine HAVE_LONG_LONG
-
-// Define if you have the "posix_fallocate.
-#cmakedefine HAVE_POSIX_FALLOCATE
-
-// Define if you have the "pthread_mutexattr_setpshared" function.
-#cmakedefine HAVE_PTHREAD_MUTEXATTR_SETPSHARED
-
 // Define if you have the <pwd.h> header file.
 #cmakedefine HAVE_PWD_H
-
-// Define if you have the "realpath"" function.
-#cmakedefine HAVE_REALPATH
-
-// Define if you have the "setenv" function.
-#cmakedefine HAVE_SETENV
-
-// Define if you have the "strndup" function.
-#cmakedefine HAVE_STRNDUP
-
-// Define if "f_fstypename" is a member of "struct statfs".
-#cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
-
-// Define if "st_atim" is a member of "struct stat".
-#cmakedefine HAVE_STRUCT_STAT_ST_ATIM
-
-// Define if "st_ctim" is a member of "struct stat".
-#cmakedefine HAVE_STRUCT_STAT_ST_CTIM
-
-// Define if "st_mtim" is a member of "struct stat".
-#cmakedefine HAVE_STRUCT_STAT_ST_MTIM
-
-// Define if "st_atimespec" is a member of "struct stat".
-#cmakedefine HAVE_STRUCT_STAT_ST_ATIMESPEC
-
-// Define if "st_ctimespec" is a member of "struct stat".
-#cmakedefine HAVE_STRUCT_STAT_ST_CTIMESPEC
-
-// Define if "st_mtimespec" is a member of "struct stat".
-#cmakedefine HAVE_STRUCT_STAT_ST_MTIMESPEC
-
-// Define if you have the "syslog" function.
-#cmakedefine HAVE_SYSLOG
-
-// Define if you have the <syslog.h> header file.
-#cmakedefine HAVE_SYSLOG_H
 
 // Define if you have the <sys/clonefile.h> header file.
 #cmakedefine HAVE_SYS_CLONEFILE_H
@@ -145,23 +89,14 @@
 // Define if you have the <sys/mman.h> header file.
 #cmakedefine HAVE_SYS_MMAN_H
 
-// Define if you have the <sys/time.h> header file.
-#cmakedefine HAVE_SYS_TIME_H
+// Define if you have the <sys/utime.h> header file.
+#cmakedefine HAVE_SYS_UTIME_H
 
-// Define if you have <sys/wait.h> that is POSIX.1 compatible.
+// Define if you have the <sys/wait.h>  header file.
 #cmakedefine HAVE_SYS_WAIT_H
 
-// Define if you have the <sys/file.h> header file.
-#cmakedefine HAVE_SYS_FILE_H
-
-// Define if you have the <termios.h> header file.
-#cmakedefine HAVE_TERMIOS_H
-
-// Define if you have the <dirent.h> header file.
-#cmakedefine HAVE_DIRENT_H
-
-// Define if you have the <strings.h> header file.
-#cmakedefine HAVE_STRINGS_H
+// Define if you have the <syslog.h> header file.
+#cmakedefine HAVE_SYSLOG_H
 
 // Define if you have the <unistd.h> header file.
 #cmakedefine HAVE_UNISTD_H
@@ -169,11 +104,28 @@
 // Define if you have the <utime.h> header file.
 #cmakedefine HAVE_UTIME_H
 
-// Define if you have the <sys/utime.h> header file.
-#cmakedefine HAVE_SYS_UTIME_H
+// === Functions ===
 
-// Define if you have the <varargs.h> header file.
-#cmakedefine HAVE_VARARGS_H
+// Define if you have the "asctime_r" function.
+#cmakedefine HAVE_ASCTIME_R
+
+// Define if you have the "getopt_long" function.
+#cmakedefine HAVE_GETOPT_LONG
+
+// Define if you have the "getpwuid" function.
+#cmakedefine HAVE_GETPWUID
+
+// Define if you have the "localtime_r" function.
+#cmakedefine HAVE_LOCALTIME_R
+
+// Define if you have the "posix_fallocate" function.
+#cmakedefine HAVE_POSIX_FALLOCATE
+
+// Define if you have the "setenv" function.
+#cmakedefine HAVE_SETENV
+
+// Define if you have the "syslog" function.
+#cmakedefine HAVE_SYSLOG
 
 // Define if you have the "unsetenv" function.
 #cmakedefine HAVE_UNSETENV
@@ -184,17 +136,52 @@
 // Define if you have the "utimes" function.
 #cmakedefine HAVE_UTIMES
 
-// Define if you have the "PTHREAD_MUTEX_ROBUST" constant.
-#cmakedefine HAVE_PTHREAD_MUTEX_ROBUST
+// === Struct members ===
+
+// Define if "st_atim" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIM
+
+// Define if "st_atimensec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIMENSEC
+
+// Define if "st_atimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_ATIMESPEC
+
+// Define if "st_ctim" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIM
+
+// Define if "st_ctimensec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIMENSEC
+
+// Define if "st_ctimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIMESPEC
+
+// Define if "st_mtim" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIM
+
+// Define if "st_mtimensec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIMENSEC
+
+// Define if "st_mtimespec" is a member of "struct stat".
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIMESPEC
+
+// Define if "f_fstypename" is a member of "struct statfs".
+#cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
+
+// === Instruction sets ===
+
+// Define if your compiler supports AVX2.
+#cmakedefine HAVE_AVX2
+
+// === Other ===
 
 #if defined(__ibmxl__) && defined(__clang__) // Compiler xlclang
-#  undef HAVE_VARARGS_H // varargs.h would hide macros of stdarg.h
 #  undef HAVE_STRUCT_STAT_ST_CTIM
 #  undef HAVE_STRUCT_STAT_ST_MTIM
 #endif
 
 // Typedefs that make it possible to use common types in ccache header files
-// without including core/wincompat.hpp.
+// without including util/wincompat.hpp.
 #ifdef _WIN32
 #  ifdef _MSC_VER
 typedef unsigned __int32 mode_t;

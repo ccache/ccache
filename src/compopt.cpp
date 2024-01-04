@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,7 @@
 
 #include "compopt.hpp"
 
-#include "fmtmacros.hpp"
-
-#include "third_party/fmt/core.h"
+#include <util/fmtmacros.hpp>
 
 // The option it too hard to handle at all.
 #define TOO_HARD (1 << 0)
@@ -45,8 +43,6 @@
 // The option only affects compilation; not passed to the preprocessor.
 #define AFFECTS_COMP (1 << 6)
 
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
-
 struct CompOpt
 {
   const char* name;
@@ -54,13 +50,15 @@ struct CompOpt
 };
 
 const CompOpt compopts[] = {
-  {"--Werror", TAKES_ARG},                             // nvcc
-  {"--analyze", TOO_HARD},                             // Clang
+  {"--Werror", TAKES_ARG | AFFECTS_COMP},              // nvcc
+  {"--analyzer-output", TOO_HARD},                     // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
+  {"--compiler-options", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--config", TAKES_ARG},                             // Clang
   {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
-  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG},  // nvcc
-  {"--output-directory", AFFECTS_CPP | TAKES_ARG},     // nvcc
+  {"--include", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+  {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
+  {"--output-directory", AFFECTS_CPP | TAKES_ARG},    // nvcc
   {"--param", TAKES_ARG},
   {"--save-temps", TOO_HARD},
   {"--save-temps=cwd", TOO_HARD},
@@ -94,15 +92,25 @@ const CompOpt compopts[] = {
   {"-Wno-error", AFFECTS_COMP},
   {"-Xassembler", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xclang", TAKES_ARG},
+  {"-Xcompiler", AFFECTS_CPP | TAKES_ARG}, // nvcc
   {"-Xlinker", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xpreprocessor", AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
   {"-Yc", TAKES_ARG | TOO_HARD},                                    // msvc
   {"-Yu", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
-  {"-ZI", TOO_HARD},                                                // msvc
-  {"-Zi", TOO_HARD},                                                // msvc
   {"-all_load", AFFECTS_COMP},
   {"-analyze", TOO_HARD}, // Clang
   {"-arch", TAKES_ARG},
+  {"-ast-dump", AFFECTS_COMP},                         // Clang
+  {"-ast-dump-all", AFFECTS_COMP},                     // Clang
+  {"-ast-dump-all=", AFFECTS_COMP | TAKES_CONCAT_ARG}, // Clang
+  {"-ast-dump-decl-types", AFFECTS_COMP},              // Clang
+  {"-ast-dump-filter", AFFECTS_COMP | TAKES_ARG},      // Clang
+  {"-ast-dump-lookups", AFFECTS_COMP},                 // Clang
+  {"-ast-dump=", AFFECTS_COMP | TAKES_CONCAT_ARG},     // Clang
+  {"-ast-list", AFFECTS_COMP},                         // Clang
+  {"-ast-merge", TOO_HARD | TAKES_ARG},                // Clang
+  {"-ast-print", AFFECTS_COMP},                        // Clang
+  {"-ast-view", TOO_HARD},                             // Clang
   {"-aux-info", TAKES_ARG},
   {"-b", TAKES_ARG},
   {"-bind_at_load", AFFECTS_COMP},
@@ -112,6 +120,8 @@ const CompOpt compopts[] = {
   {"-emit-pth", AFFECTS_COMP},         // Clang
   {"-external:I",
    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"-fmodule-header", TOO_HARD},
+  {"-fmodules-ts", TOO_HARD},
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},
@@ -155,6 +165,8 @@ const CompOpt compopts[] = {
   {"-stdlib=", AFFECTS_CPP | TAKES_CONCAT_ARG},
   {"-trigraphs", AFFECTS_CPP},
   {"-u", TAKES_ARG | TAKES_CONCAT_ARG},
+  {"-v", AFFECTS_COMP},
+  {"-wrapper", TAKES_ARG | TOO_HARD},
   {"-z", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
 };
 
@@ -179,11 +191,8 @@ find(const std::string& option)
 {
   CompOpt key;
   key.name = option.c_str();
-  void* result = bsearch(&key,
-                         compopts,
-                         ARRAY_SIZE(compopts),
-                         sizeof(compopts[0]),
-                         compare_compopts);
+  void* result = bsearch(
+    &key, compopts, std::size(compopts), sizeof(compopts[0]), compare_compopts);
   return static_cast<CompOpt*>(result);
 }
 
@@ -194,7 +203,7 @@ find_prefix(const std::string& option)
   key.name = option.c_str();
   void* result = bsearch(&key,
                          compopts,
-                         ARRAY_SIZE(compopts),
+                         std::size(compopts),
                          sizeof(compopts[0]),
                          compare_prefix_compopts);
   return static_cast<CompOpt*>(result);
@@ -207,7 +216,7 @@ bool compopt_verify_sortedness_and_flags();
 bool
 compopt_verify_sortedness_and_flags()
 {
-  for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
+  for (size_t i = 0; i < std::size(compopts); ++i) {
     if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
       PRINT(stderr,
             "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by {}\n",

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,10 +20,6 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Fd.hpp"
-#include "File.hpp"
-#include "Logging.hpp"
-#include "Stat.hpp"
 #include "Util.hpp"
 
 #include <ccache.hpp>
@@ -31,13 +27,17 @@
 #include <core/CacheEntryDataWriter.hpp>
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
-#include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
+#include <util/FileStream.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -48,6 +48,8 @@
 #endif
 
 #include <algorithm>
+
+namespace fs = util::filesystem;
 
 // Result data format
 // ==================
@@ -67,6 +69,8 @@
 // <raw_file_entry>       ::= <raw_file_marker> <file_type> <file_size>
 // <raw_file_marker>      ::= 1 (uint8_t)
 // <file_size>            ::= uint64_t
+
+using util::DirEntry;
 
 namespace {
 
@@ -89,8 +93,8 @@ should_store_raw_file(const Config& config, core::Result::FileType type)
   // storing other file types:
   //
   // 1. The compiler unlinks object files before writing to them but it doesn't
-  //    unlink .d files, so just it's possible to corrupt .d files just by
-  //    running the compiler (see ccache issue 599).
+  //    unlink .d files, so it's possible to corrupt .d files just by running
+  //    the compiler (see ccache issue 599).
   // 2. .d files cause trouble for automake if hard-linked (see ccache issue
   //    378).
   // 3. It's unknown how the compiler treats other file types, so better safe
@@ -155,7 +159,7 @@ gcno_file_in_mangled_form(const Context& ctx)
 {
   const auto& output_obj = ctx.args_info.output_obj;
   const std::string abs_output_obj =
-    util::is_absolute_path(output_obj)
+    fs::path(output_obj).is_absolute()
       ? output_obj
       : FMT("{}/{}", ctx.apparent_cwd, output_obj);
   std::string hashified_obj = abs_output_obj;
@@ -247,11 +251,11 @@ Serializer::add_file(const FileType file_type, const std::string& path)
 {
   m_serialized_size += 1 + 1 + 8; // marker + file_type + file_size
   if (!should_store_raw_file(m_config, file_type)) {
-    auto st = Stat::stat(path);
-    if (!st) {
+    DirEntry entry(path);
+    if (!entry.is_regular_file()) {
       return false;
     }
-    m_serialized_size += st.size();
+    m_serialized_size += entry.size();
   }
   m_file_entries.push_back(FileEntry{file_type, path});
   return true;
@@ -267,7 +271,7 @@ Serializer::serialized_size() const
     throw Error(
       FMT("Serialized result too large ({} > {})", m_serialized_size, max));
   }
-  return m_serialized_size;
+  return static_cast<uint32_t>(m_serialized_size);
 }
 
 void
@@ -276,7 +280,7 @@ Serializer::serialize(util::Bytes& output)
   CacheEntryDataWriter writer(output);
 
   writer.write_int(k_format_version);
-  writer.write_int<uint8_t>(m_file_entries.size());
+  writer.write_int(static_cast<uint8_t>(m_file_entries.size()));
 
   uint8_t file_number = 0;
   for (const auto& entry : m_file_entries) {
@@ -284,10 +288,10 @@ Serializer::serialize(util::Bytes& output)
     const bool store_raw =
       is_file_entry && should_store_raw_file(m_config, entry.file_type);
     const uint64_t file_size =
-      is_file_entry ? Stat::stat(std::get<std::string>(entry.data),
-                                 Stat::OnError::throw_error)
-                        .size()
-                    : std::get<nonstd::span<const uint8_t>>(entry.data).size();
+      is_file_entry
+        ? DirEntry(std::get<std::string>(entry.data), DirEntry::LogOnError::yes)
+            .size()
+        : std::get<nonstd::span<const uint8_t>>(entry.data).size();
 
     LOG("Storing {} entry #{} {} ({} bytes){}",
         store_raw ? "raw" : "embedded",

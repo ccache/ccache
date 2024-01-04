@@ -17,22 +17,23 @@ fi
 
 top_dir="$(dirname "$0")"
 clang_format_exe="$top_dir/.clang-format-exe"
-clang_format_version=10
-url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/master-22538c65/clang-format-${clang_format_version}_"
+clang_format_version=11
+clang_format_release=master-1d7ec53d
+url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/${clang_format_release}/clang-format-${clang_format_version}_"
 
 if [ ! -x "$clang_format_exe" ]; then
     case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
         *mingw*|*cygwin*|*msys*)
             url_suffix=windows-amd64.exe
-            checksum=0b21dfb9041437eebcc44032096e4dfba9ee7b668ee6867ada71ea3541f7b09657ea592a5b1cf659bc9f8072bdc477dfc9da07b3edacb7834b70e68d7a3fc887
+            checksum=7167f201acbd8ff06a7327d14db0d8a169393384bbc42873bb8277b788cc4469
             ;;
         *darwin*)
             url_suffix=macosx-amd64
-            checksum=8458753e13d3cbb7949a302beab812bed6d9dd9001c6e9618e5ba2e438233633ae04704a4e150aa2abfbaf103f1df4bc4a77b306012f44b37e543964bd527951
+            checksum=0cab857e66aa9ed9ea00eee3c94bfc91a2d72ab440327e15784852cf94b1814b
             ;;
         *linux*)
             url_suffix=linux-amd64
-            checksum=3c4aaa90ad83313a1d7b350b30f9ad62578be73241f00f7d6e92838289e0b734fab80dee9dfcbd1546135bdb4e3601cfb2cf6b47360fba0bfc961e5a7cab2015
+            checksum=a9d76e3275823ea308bc2e4d2a6e3cc693f38c29d891f1d74cb0e1553e698dea
             ;;
         *)
             echo "Error: Please set CLANG_FORMAT to clang-format version $clang_format_version" >&2
@@ -51,9 +52,9 @@ if [ ! -x "$clang_format_exe" ]; then
         exit 1
     fi
 
-    if ! command -v sha512sum >/dev/null; then
-        echo "Warning: sha512sum not found, not verifying clang-format integrity" >&2
-    elif ! echo "$checksum $clang_format_exe.tmp" | sha512sum --status -c; then
+    if ! command -v sha256sum >/dev/null; then
+        echo "Warning: sha256sum not found, not verifying clang-format integrity" >&2
+    elif ! echo "$checksum $clang_format_exe.tmp" | sha256sum --status -c; then
         echo "Error: Bad checksum of downloaded clang-format" >&2
         exit 1
     fi

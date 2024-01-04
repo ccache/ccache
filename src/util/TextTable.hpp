@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace util {
@@ -31,6 +32,7 @@ public:
   {
   public:
     Cell(const std::string& text);
+    Cell(std::string_view text);
     Cell(const char* text);
     Cell(uint64_t number);
 

@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -eu
+
+build() {
+    mkdir -p "build_$1"
+    cd "build_$1"
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DZSTD_FROM_INTERNET=ON \
+        -DHIREDIS_FROM_INTERNET=ON \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
+        -DCMAKE_OSX_ARCHITECTURES="$1" \
+        -DCMAKE_SYSTEM_PROCESSOR="$1" \
+        ..
+    cmake --build .
+    cd ..
+}
+
+FILES=""
+set -- x86_64 arm64
+
+for i in "$@"; do
+    echo "Building $i"
+    build "$i"
+    FILES="${FILES} build_$i/ccache"
+done
+
+mkdir -p build_universal
+lipo -create $FILES -output build_universal/ccache
+lipo -info build_universal/ccache

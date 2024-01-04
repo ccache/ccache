@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -52,10 +52,10 @@ public:
   bool operator<=(const TimePoint& other) const;
   bool operator>=(const TimePoint& other) const;
 
-  TimePoint operator+(const util::Duration& duration) const;
-  TimePoint operator-(const util::Duration& duration) const;
+  TimePoint operator+(const Duration& duration) const;
+  TimePoint operator-(const Duration& duration) const;
 
-  util::Duration operator-(const TimePoint& other) const;
+  Duration operator-(const TimePoint& other) const;
 
 private:
   int64_t m_ns = 0;
@@ -103,7 +103,7 @@ TimePoint::nsec() const
 inline int32_t
 TimePoint::nsec_decimal_part() const
 {
-  return m_ns % 1'000'000'000;
+  return static_cast<int32_t>(m_ns % 1'000'000'000);
 }
 
 inline void
@@ -155,21 +155,21 @@ TimePoint::operator>=(const TimePoint& other) const
 }
 
 inline TimePoint
-TimePoint::operator+(const util::Duration& duration) const
+TimePoint::operator+(const Duration& duration) const
 {
   return TimePoint(0, nsec() + duration.nsec());
 }
 
 inline TimePoint
-TimePoint::operator-(const util::Duration& duration) const
+TimePoint::operator-(const Duration& duration) const
 {
   return TimePoint(0, nsec() - duration.nsec());
 }
 
-inline util::Duration
+inline Duration
 TimePoint::operator-(const TimePoint& other) const
 {
-  return util::Duration(0, nsec() - other.nsec());
+  return Duration(0, nsec() - other.nsec());
 }
 
 } // namespace util

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,34 +19,69 @@
 #include "path.hpp"
 
 #include <Util.hpp>
-#include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/string.hpp>
 
 #ifdef _WIN32
 const char k_dev_null_path[] = "nul:";
-const char k_path_delimiter[] = ";";
 #else
 const char k_dev_null_path[] = "/dev/null";
-const char k_path_delimiter[] = ":";
 #endif
 
+namespace fs = util::filesystem;
+
 namespace util {
+
+std::string
+actual_cwd()
+{
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    return {};
+  }
+  auto cwd_str = cwd->string();
+#ifdef _WIN32
+  std::replace(cwd_str.begin(), cwd_str.end(), '\\', '/');
+#endif
+  return cwd_str;
+}
+
+std::string
+add_exe_suffix(const std::string& program)
+{
+  auto ext = util::to_lowercase(Util::get_extension(program));
+  if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
+    return program;
+  } else {
+    return program + ".exe";
+  }
+}
+
+std::string
+apparent_cwd(const std::string& actual_cwd)
+{
+#ifdef _WIN32
+  return actual_cwd;
+#else
+  auto pwd = getenv("PWD");
+  if (!pwd || !fs::path(pwd).is_absolute()) {
+    return actual_cwd;
+  }
+
+  DirEntry pwd_de(pwd);
+  DirEntry cwd_de(actual_cwd);
+  return !pwd_de || !cwd_de || !pwd_de.same_inode_as(cwd_de)
+           ? actual_cwd
+           : Util::normalize_concrete_absolute_path(pwd);
+#endif
+}
 
 const char*
 get_dev_null_path()
 {
   return k_dev_null_path;
-}
-
-bool
-is_absolute_path(std::string_view path)
-{
-#ifdef _WIN32
-  if (path.length() >= 2 && path[1] == ':'
-      && (path[2] == '/' || path[2] == '\\')) {
-    return true;
-  }
-#endif
-  return !path.empty() && path[0] == '/';
 }
 
 bool
@@ -73,41 +108,23 @@ path_starts_with(std::string_view path, std::string_view prefix)
     if (path[i] == '\\' && prefix[j] == '/') {
       continue;
     }
-#endif
+    if (std::tolower(path[i]) != std::tolower(prefix[j])) {
+      return false;
+    }
+#else
     if (path[i] != prefix[j]) {
       return false;
     }
+#endif
   }
   return true;
 }
 
-std::vector<std::string>
-split_path_list(std::string_view path_list)
-{
-  return Util::split_into_strings(path_list, k_path_delimiter);
-}
-
 std::string
-to_absolute_path(std::string_view path)
+real_path(std::string_view path)
 {
-  if (util::is_absolute_path(path)) {
-    return std::string(path);
-  } else {
-    return Util::normalize_abstract_absolute_path(
-      FMT("{}/{}", Util::get_actual_cwd(), path));
-  }
-}
-
-std::string
-to_absolute_path_no_drive(std::string_view path)
-{
-  std::string abs_path = to_absolute_path(path);
-#ifdef _WIN32
-  if (abs_path.length() >= 2 && abs_path[1] == ':') {
-    abs_path.erase(0, 2);
-  }
-#endif
-  return abs_path;
+  auto real_path = fs::canonical(path);
+  return real_path ? real_path->string() : std::string(path);
 }
 
 } // namespace util

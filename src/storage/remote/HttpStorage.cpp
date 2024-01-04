@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,14 @@
 
 #include "HttpStorage.hpp"
 
-#include <Digest.hpp>
-#include <Logging.hpp>
+#include <Hash.hpp>
 #include <ccache.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
+#include <storage/Storage.hpp>
+#include <util/assertions.hpp>
 #include <util/expected.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 #include <util/types.hpp>
 
@@ -39,16 +41,17 @@ namespace {
 class HttpStorageBackend : public RemoteStorage::Backend
 {
 public:
-  HttpStorageBackend(const Params& params);
+  HttpStorageBackend(const Url& url,
+                     const std::vector<Backend::Attribute>& attributes);
 
-  nonstd::expected<std::optional<util::Bytes>, Failure>
-  get(const Digest& key) override;
+  tl::expected<std::optional<util::Bytes>, Failure>
+  get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Digest& key,
-                                      nonstd::span<const uint8_t> value,
-                                      bool only_if_missing) override;
+  tl::expected<bool, Failure> put(const Hash::Digest& key,
+                                  nonstd::span<const uint8_t> value,
+                                  bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Digest& key) override;
+  tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   enum class Layout { bazel, flat, subdirs };
@@ -57,7 +60,7 @@ private:
   httplib::Client m_http_client;
   Layout m_layout = Layout::subdirs;
 
-  std::string get_entry_path(const Digest& key) const;
+  std::string get_entry_path(const Hash::Digest& key) const;
 };
 
 std::string
@@ -94,15 +97,24 @@ get_url(const Url& url)
   return get_partial_url(url).str();
 }
 
-HttpStorageBackend::HttpStorageBackend(const Params& params)
-  : m_url_path(get_url_path(params.url)),
-    m_http_client(get_url(params.url))
+RemoteStorage::Backend::Failure
+failure_from_httplib_error(httplib::Error error)
 {
-  if (!params.url.user_info().empty()) {
-    const auto [user, password] = util::split_once(params.url.user_info(), ':');
+  return error == httplib::Error::ConnectionTimeout
+           ? RemoteStorage::Backend::Failure::timeout
+           : RemoteStorage::Backend::Failure::error;
+}
+
+HttpStorageBackend::HttpStorageBackend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes)
+  : m_url_path(get_url_path(url)),
+    m_http_client(get_url(url))
+{
+  if (!url.user_info().empty()) {
+    const auto [user, password] = util::split_once(url.user_info(), ':');
     if (!password) {
       throw core::Fatal(FMT("Expected username:password in URL but got \"{}\"",
-                            params.url.user_info()));
+                            url.user_info()));
     }
     m_http_client.set_basic_auth(std::string(user), std::string(*password));
   }
@@ -115,7 +127,7 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
 
-  for (const auto& attr : params.attributes) {
+  for (const auto& attr : attributes) {
     if (attr.key == "bearer-token") {
       m_http_client.set_bearer_token_auth(attr.value);
     } else if (attr.key == "connect-timeout") {
@@ -144,8 +156,8 @@ HttpStorageBackend::HttpStorageBackend(const Params& params)
   m_http_client.set_write_timeout(operation_timeout);
 }
 
-nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
-HttpStorageBackend::get(const Digest& key)
+tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
+HttpStorageBackend::get(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Get(url_path);
@@ -155,7 +167,7 @@ HttpStorageBackend::get(const Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
@@ -166,8 +178,8 @@ HttpStorageBackend::get(const Digest& key)
   return util::Bytes(result->body.data(), result->body.size());
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
-HttpStorageBackend::put(const Digest& key,
+tl::expected<bool, RemoteStorage::Backend::Failure>
+HttpStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
 {
@@ -181,7 +193,7 @@ HttpStorageBackend::put(const Digest& key,
           url_path,
           to_string(result.error()),
           static_cast<int>(result.error()));
-      return nonstd::make_unexpected(Failure::error);
+      return tl::unexpected(failure_from_httplib_error(result.error()));
     }
 
     if (result->status >= 200 && result->status < 300) {
@@ -204,21 +216,21 @@ HttpStorageBackend::put(const Digest& key,
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to put {} to http storage: status code: {}",
         url_path,
         result->status);
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   return true;
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
-HttpStorageBackend::remove(const Digest& key)
+tl::expected<bool, RemoteStorage::Backend::Failure>
+HttpStorageBackend::remove(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Delete(url_path);
@@ -228,41 +240,44 @@ HttpStorageBackend::remove(const Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to delete {} from http storage: status code: {}",
         url_path,
         result->status);
-    return nonstd::make_unexpected(Failure::error);
+    return tl::unexpected(failure_from_httplib_error(result.error()));
   }
 
   return true;
 }
 
 std::string
-HttpStorageBackend::get_entry_path(const Digest& key) const
+HttpStorageBackend::get_entry_path(const Hash::Digest& key) const
 {
   switch (m_layout) {
   case Layout::bazel: {
     // Mimic hex representation of a SHA256 hash value.
     const auto sha256_hex_size = 64;
-    static_assert(Digest::size() == 20, "Update below if digest size changes");
-    std::string hex_digits = Util::format_base16(key.bytes(), key.size());
+    static_assert(std::tuple_size<Hash::Digest>() == 20,
+                  "Update below if digest size changes");
+    std::string hex_digits = util::format_base16(key);
     hex_digits.append(hex_digits.data(), sha256_hex_size - hex_digits.size());
-    LOG("Translated key {} to Bazel layout ac/{}", key.to_string(), hex_digits);
+    LOG("Translated key {} to Bazel layout ac/{}",
+        util::format_digest(key),
+        hex_digits);
     return FMT("{}ac/{}", m_url_path, hex_digits);
   }
 
   case Layout::flat:
-    return m_url_path + key.to_string();
+    return m_url_path + util::format_digest(key);
 
   case Layout::subdirs: {
-    const auto key_str = key.to_string();
+    const auto key_str = util::format_digest(key);
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
-    return FMT("{}/{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
+    return FMT("{}{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
   }
   }
 
@@ -272,27 +287,22 @@ HttpStorageBackend::get_entry_path(const Digest& key) const
 } // namespace
 
 std::unique_ptr<RemoteStorage::Backend>
-HttpStorage::create_backend(const Backend::Params& params) const
+HttpStorage::create_backend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
-  return std::make_unique<HttpStorageBackend>(params);
+  return std::make_unique<HttpStorageBackend>(url, attributes);
 }
 
 void
-HttpStorage::redact_secrets(Backend::Params& params) const
+HttpStorage::redact_secrets(std::vector<Backend::Attribute>& attributes) const
 {
-  auto& url = params.url;
-  const auto [user, password] = util::split_once(url.user_info(), ':');
-  if (password) {
-    url.user_info(FMT("{}:{}", user, k_redacted_password));
-  }
-
   auto bearer_token_attribute =
-    std::find_if(params.attributes.begin(),
-                 params.attributes.end(),
-                 [&](const auto& attr) { return attr.key == "bearer-token"; });
-  if (bearer_token_attribute != params.attributes.end()) {
-    bearer_token_attribute->value = k_redacted_password;
-    bearer_token_attribute->raw_value = k_redacted_password;
+    std::find_if(attributes.begin(), attributes.end(), [&](const auto& attr) {
+      return attr.key == "bearer-token";
+    });
+  if (bearer_token_attribute != attributes.end()) {
+    bearer_token_attribute->value = storage::k_redacted_password;
+    bearer_token_attribute->raw_value = storage::k_redacted_password;
   }
 }
 

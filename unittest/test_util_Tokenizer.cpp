@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,13 @@
 
 #include "../src/Util.hpp"
 
+#include <util/string.hpp>
+
 #include "third_party/doctest.h"
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
+#include <string>
+#include <vector>
 
 TEST_CASE("util::Tokenizer")
 {
@@ -41,9 +45,9 @@ TEST_CASE("util::Tokenizer")
                const std::vector<std::string>& expected) const
     {
       const auto res =
-        Util::split_into_views(input, separators, m_mode, m_include_delimiter);
+        util::split_into_views(input, separators, m_mode, m_include_delimiter);
       REQUIRE(res.size() == expected.size());
-      for (int i = 0, total = expected.size(); i < total; ++i) {
+      for (size_t i = 0, total = expected.size(); i < total; ++i) {
         CHECK(res[i] == expected[i]);
       }
     }

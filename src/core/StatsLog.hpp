@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,7 +28,7 @@ namespace core {
 class StatsLog
 {
 public:
-  StatsLog(const std::string& path);
+  explicit StatsLog(const std::string& path);
 
   StatisticsCounters read() const;
   void log_result(const std::string& input_file,

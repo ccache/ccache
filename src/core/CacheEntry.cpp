@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,17 +18,17 @@
 
 #include "CacheEntry.hpp"
 
-#include <Logging.hpp>
 #include <ccache.hpp>
 #include <core/CacheEntryDataReader.hpp>
 #include <core/CacheEntryDataWriter.hpp>
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
-#include <fmtmacros.hpp>
 #include <util/TimePoint.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/zstd.hpp>
 
 #include <cstring>
@@ -80,10 +80,10 @@ namespace core {
 const uint8_t CacheEntry::k_format_version = 1;
 
 CacheEntry::Header::Header(const Config& config,
-                           core::CacheEntryType entry_type)
+                           core::CacheEntryType entry_type_)
   : magic(k_ccache_magic),
     entry_format_version(k_format_version),
-    entry_type(entry_type),
+    entry_type(entry_type_),
     compression_type(compression_type_from_config(config)),
     compression_level(compression_level_from_config(config)),
     self_contained(entry_type != CacheEntryType::result
@@ -106,18 +106,15 @@ CacheEntry::Header::Header(nonstd::span<const uint8_t> data)
 
 CacheEntry::Header::Header(const std::string& path)
 {
-  const auto data = util::read_file_part<util::Bytes>(path, 0, 1000);
-  if (!data) {
-    throw core::Error(data.error());
-  }
-  parse(*data);
+  parse(util::value_or_throw<core::Error>(
+    util::read_file_part<util::Bytes>(path, 0, 1000)));
 }
 
 std::string
 CacheEntry::Header::inspect() const
 {
   std::string result;
-  result += result += FMT("Magic: {:04x}\n", magic);
+  result += FMT("Magic: {:04x}\n", magic);
   result += FMT("Entry format version: {}\n", entry_format_version);
   result += FMT("Entry type: {} ({})\n",
                 static_cast<uint8_t>(entry_type),
@@ -175,9 +172,9 @@ CacheEntry::Header::serialize(util::Bytes& output) const
   writer.write_int(compression_level);
   writer.write_int<uint8_t>(self_contained);
   writer.write_int(creation_time);
-  writer.write_int<uint8_t>(ccache_version.length());
+  writer.write_int(static_cast<uint8_t>(ccache_version.length()));
   writer.write_str(ccache_version);
-  writer.write_int<uint8_t>(namespace_.length());
+  writer.write_int(static_cast<uint8_t>(namespace_.length()));
   writer.write_str(namespace_);
   writer.write_int(entry_size);
 }
@@ -185,7 +182,8 @@ CacheEntry::Header::serialize(util::Bytes& output) const
 uint32_t
 CacheEntry::Header::uncompressed_payload_size() const
 {
-  return entry_size - serialized_size() - k_epilogue_fields_size;
+  return static_cast<uint32_t>(entry_size - serialized_size()
+                               - k_epilogue_fields_size);
 }
 
 CacheEntry::CacheEntry(nonstd::span<const uint8_t> data) : m_header(data)
@@ -226,10 +224,9 @@ CacheEntry::verify_checksum() const
   const auto actual = checksum.digest();
 
   if (actual != m_checksum) {
-    throw core::Error(
-      FMT("Incorrect checksum (actual {}, expected {})",
-          Util::format_base16(actual.data(), actual.size()),
-          Util::format_base16(m_checksum.data(), m_checksum.size())));
+    throw core::Error(FMT("Incorrect checksum (actual {}, expected {})",
+                          util::format_base16(actual),
+                          util::format_base16(m_checksum)));
   }
 }
 

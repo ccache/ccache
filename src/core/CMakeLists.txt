@@ -1,15 +1,18 @@
 set(
   sources
+  AtomicFile.cpp
   CacheEntry.cpp
+  FileRecompressor.cpp
   Manifest.cpp
+  MsvcShowIncludesOutput.cpp
   Result.cpp
   ResultExtractor.cpp
   ResultInspector.cpp
   ResultRetriever.cpp
-  MsvcShowIncludesOutput.cpp
   Statistics.cpp
   StatisticsCounters.cpp
   StatsLog.cpp
+  common.cpp
   mainoptions.cpp
   types.cpp
 )

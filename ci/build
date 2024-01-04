@@ -4,32 +4,40 @@
 
 set -eu
 
-if [ -n "${VERBOSE:-}" ]; then
+# Set default values.
+: ${BUILDDIR:=build}
+: ${CCACHE_LOC:=..}
+: ${CMAKE_PARAMS:=}
+: ${CMAKE_PREFIX:=}
+: ${EXTRA_CMAKE_BUILD_FLAGS:=}
+: ${JOBS:=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}
+: ${SPECIAL:=}
+: ${TEST_CC:=${CC:-}}
+: ${VERBOSE:=}
+
+if [ -n "${VERBOSE}" ]; then
     set -x
 fi
 
-if [ -n "${SPECIAL:-}" ]; then
+if [ -n "${SPECIAL}" ]; then
     exec "ci/$SPECIAL"
 else
-    [ -z ${JOBS:+x} ] && JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null)
-    [ -z ${JOBS:+x} ] && JOBS=2
-
-    mkdir -p ${BUILDDIR:-build}
-    cd ${BUILDDIR:-build}
-    ${CMAKE_PREFIX:-} cmake ${CMAKE_PARAMS:-} ${CCACHE_LOC:-..}
+    mkdir -p "${BUILDDIR}"
+    cd "${BUILDDIR}"
+    ${CMAKE_PREFIX} cmake ${CMAKE_PARAMS} ${CCACHE_LOC}
 
     case "${CMAKE_GENERATOR}" in
         [Vv]isual" "[Ss]tudio*) # MSBuild, use all CPUs.
-            ${CMAKE_PREFIX:-} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS:-} -- -m
+            ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS} -- -m
             ;;
         *) # Ninja automatically uses all available CPUs.
-            ${CMAKE_PREFIX:-} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS:-}
+            ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS}
             ;;
     esac
 
     case "${RUN_TESTS:-all}" in
         all)
-            CC=${TEST_CC:-${CC}} ctest --output-on-failure -j$JOBS "$@"
+            CC="${TEST_CC}" ctest --output-on-failure -j"${JOBS}" "$@"
             ;;
         unittest-in-wine)
             wine ccache.exe --version

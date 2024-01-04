@@ -357,4 +357,17 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_equal_content 'file with$special#characters.d' reference.d
+
+    # -------------------------------------------------------------------------
+    if touch empty.c && $COMPILER -c -- empty.c 2>/dev/null; then
+        TEST "--"
+
+        $CCACHE_COMPILE -c -- test.c
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -- test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+    fi
 }

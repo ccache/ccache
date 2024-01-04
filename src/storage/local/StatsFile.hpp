@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -29,20 +29,23 @@ namespace storage::local {
 class StatsFile
 {
 public:
-  StatsFile(const std::string& path);
+  explicit StatsFile(const std::string& path);
 
   // Read counters. No lock is acquired. If the file doesn't exist all returned
   // counters will be zero.
   core::StatisticsCounters read() const;
 
+  enum class OnlyIfChanged { no, yes };
+
   // Acquire a lock, read counters, call `function` with the counters, write the
   // counters and release the lock. Returns the resulting counters or nullopt on
   // error (e.g. if the lock could not be acquired).
   std::optional<core::StatisticsCounters>
-    update(std::function<void(core::StatisticsCounters& counters)>) const;
+  update(std::function<void(core::StatisticsCounters& counters)>,
+         OnlyIfChanged only_if_changed = OnlyIfChanged::no) const;
 
 private:
-  const std::string m_path;
+  std::string m_path;
 };
 
 } // namespace storage::local

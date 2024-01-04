@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,25 +19,69 @@
 #pragma once
 
 #include <util/Bytes.hpp>
+#include <util/Tokenizer.hpp>
+#include <util/conversion.hpp>
 
-#include <third_party/nonstd/expected.hpp>
 #include <third_party/nonstd/span.hpp>
+#include <third_party/tl/expected.hpp>
 
 #include <sys/stat.h> // for mode_t
 
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace util {
 
 // --- Interface ---
 
+enum class SizeUnitPrefixType { binary, decimal };
+
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
+
+// Recreate a Windows command line string based on `argv`. If `prefix` is
+// non-empty, add it as the first argument. If `escape_backslashes` is true,
+// emit an additional backslash for each backslash that is not preceding '"' and
+// is not at the end of `argv[i]` either.
+std::string
+format_argv_as_win32_command_string(const char* const* argv,
+                                    const std::string& prefix,
+                                    bool escape_backslashes = false);
+
+// Format `argv` as a simple string for logging purposes. That is, the result is
+// not intended to be easily machine parsable. `argv` must be terminated by a
+// nullptr.
+std::string format_argv_for_logging(const char* const* argv);
+
+// Format a hexadecimal string representing `data`. The returned string will be
+// `2 * data.size()` long.
+std::string format_base16(nonstd::span<const uint8_t> data);
+
+// Format a lowercase base32hex string representing `data`. No padding
+// characters will be added.
+std::string format_base32hex(nonstd::span<const uint8_t> data);
+
+// Format a hash digest representing `data`.
+//
+// The first two bytes are encoded as four lowercase base16 digits to maintain
+// compatibility with the cleanup algorithm in older ccache versions and to
+// allow for up to four uniform cache levels. The rest are encoded as lowercase
+// base32hex digits without padding characters.
+std::string format_digest(nonstd::span<const uint8_t> data);
+
+// Format `diff` as a human-readable string.
+std::string format_human_readable_diff(int64_t diff,
+                                       SizeUnitPrefixType prefix_type);
+
+// Format `size` as a human-readable string.
+std::string format_human_readable_size(uint64_t size,
+                                       SizeUnitPrefixType prefix_type);
 
 // Join stringified elements of `container` delimited by `delimiter` into a
 // string. There must exist an `std::string to_string(T::value_type)` function.
@@ -54,7 +98,11 @@ join(const T& begin, const T& end, const std::string_view delimiter);
 // Parse a string into a double.
 //
 // Returns an error string if `value` cannot be parsed as a double.
-nonstd::expected<double, std::string> parse_double(const std::string& value);
+tl::expected<double, std::string> parse_double(const std::string& value);
+
+// Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
+// into seconds.
+tl::expected<uint64_t, std::string> parse_duration(std::string_view duration);
 
 // Parse a string into a signed integer.
 //
@@ -62,14 +110,20 @@ nonstd::expected<double, std::string> parse_double(const std::string& value);
 // value falls out of the range [`min_value`, `max_value`]. `min_value` and
 // `max_value` default to min and max values of int64_t. `description` is
 // included in the error message for range violations.
-nonstd::expected<int64_t, std::string>
+tl::expected<int64_t, std::string>
 parse_signed(std::string_view value,
              std::optional<int64_t> min_value = std::nullopt,
              std::optional<int64_t> max_value = std::nullopt,
              std::string_view description = "integer");
 
+// Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
+// suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
+// is also recognized as a synonym of k.
+tl::expected<std::pair<uint64_t, SizeUnitPrefixType>, std::string>
+parse_size(const std::string& value);
+
 // Parse `value` (an octal integer).
-nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
+tl::expected<mode_t, std::string> parse_umask(std::string_view value);
 
 // Parse a string into an unsigned integer.
 //
@@ -77,7 +131,7 @@ nonstd::expected<mode_t, std::string> parse_umask(std::string_view value);
 // `base`, or if the value falls out of the range [`min_value`, `max_value`].
 // `min_value` and `max_value` default to min and max values of uint64_t.
 // `description` is included in the error message for range violations.
-nonstd::expected<uint64_t, std::string>
+tl::expected<uint64_t, std::string>
 parse_unsigned(std::string_view value,
                std::optional<uint64_t> min_value = std::nullopt,
                std::optional<uint64_t> max_value = std::nullopt,
@@ -87,8 +141,7 @@ parse_unsigned(std::string_view value,
 // Percent-decode[1] `string`.
 //
 // [1]: https://en.wikipedia.org/wiki/Percent-encoding
-nonstd::expected<std::string, std::string>
-percent_decode(std::string_view string);
+tl::expected<std::string, std::string> percent_decode(std::string_view string);
 
 // Replace the all occurrences of `from` to `to` in `string`.
 std::string replace_all(std::string_view string,
@@ -100,10 +153,37 @@ std::string replace_first(std::string_view string,
                           std::string_view from,
                           std::string_view to);
 
+// Split `string` into tokens at any of the characters in `separators`.
+// `separators` must neither be the empty string nor a nullptr.
+std::vector<std::string>
+split_into_strings(std::string_view string,
+                   const char* separators,
+                   Tokenizer::Mode mode = Tokenizer::Mode::skip_empty,
+                   Tokenizer::IncludeDelimiter include_delimiter =
+                     Tokenizer::IncludeDelimiter::no);
+
+// Split `string` into tokens at any of the characters in `separators`. These
+// tokens are views into `string`. `separators` must neither be the empty string
+// nor a nullptr.
+std::vector<std::string_view>
+split_into_views(std::string_view string,
+                 const char* separators,
+                 Tokenizer::Mode mode = Tokenizer::Mode::skip_empty,
+                 Tokenizer::IncludeDelimiter include_delimiter =
+                   Tokenizer::IncludeDelimiter::no);
+
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`
 std::pair<std::string_view, std::optional<std::string_view>>
+split_once(const char* string, char split_char);
+std::pair<std::string, std::optional<std::string>>
+split_once(std::string&& string, char split_char);
+std::pair<std::string_view, std::optional<std::string_view>>
 split_once(std::string_view string, char split_char);
+
+// Split a list of paths (such as the content of $PATH on Unix platforms or
+// %PATH% on Windows platforms) into paths.
+std::vector<std::filesystem::path> split_path_list(std::string_view path_list);
 
 // Return true if `prefix` is a prefix of `string`.
 bool starts_with(const char* string, std::string_view prefix);
@@ -114,15 +194,8 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
-// Convert `value` to a `nonstd::span<const uint8_t>`.
-nonstd::span<const uint8_t> to_span(std::string_view value);
-
-// Convert `value` to a string. This function is used when joining
-// `std::string`s with `util::join`.
-template<typename T> std::string to_string(const T& value);
-
-// Convert `data` to a `std::string_view`.
-std::string_view to_string_view(nonstd::span<const uint8_t> data);
+// Convert a string to lowercase.
+[[nodiscard]] std::string to_lowercase(std::string_view string);
 
 // --- Inline implementations ---
 
@@ -166,56 +239,6 @@ inline bool
 starts_with(const std::string_view string, const std::string_view prefix)
 {
   return string.substr(0, prefix.size()) == prefix;
-}
-
-inline nonstd::span<const uint8_t>
-to_span(std::string_view data)
-{
-  return nonstd::span<const uint8_t>(
-    reinterpret_cast<const uint8_t*>(data.data()), data.size());
-}
-
-template<typename T>
-inline std::string
-to_string(const T& t)
-{
-  using std::to_string;
-  return to_string(std::forward<T>(t));
-}
-
-template<>
-inline std::string
-to_string(const std::string& string)
-{
-  return std::string(string);
-}
-
-template<>
-inline std::string
-to_string(const std::string_view& sv)
-{
-  return std::string(sv);
-}
-
-template<>
-inline std::string
-to_string(const nonstd::span<const uint8_t>& bytes)
-{
-  return std::string(to_string_view(bytes));
-}
-
-template<>
-inline std::string
-to_string(const util::Bytes& bytes)
-{
-  return std::string(to_string_view(bytes));
-}
-
-inline std::string_view
-to_string_view(nonstd::span<const uint8_t> data)
-{
-  return std::string_view(reinterpret_cast<const char*>(data.data()),
-                          data.size());
 }
 
 } // namespace util

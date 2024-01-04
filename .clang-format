@@ -1,4 +1,4 @@
-# This configuration should work with Clang-Format 10 and higher.
+# This configuration should work with Clang-Format 11 and higher.
 ---
 Language: Cpp
 BasedOnStyle: LLVM

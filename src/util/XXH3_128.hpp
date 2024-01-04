@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <Util.hpp>
 #include <util/Bytes.hpp>
+#include <util/conversion.hpp>
 
 #include <third_party/nonstd/span.hpp>
 #ifdef USE_XXH_DISPATCH
@@ -43,7 +43,7 @@ public:
 
   void reset();
   void update(nonstd::span<const uint8_t> data);
-  util::Bytes digest() const;
+  Bytes digest() const;
 
 private:
   XXH3_state_t* m_state;
@@ -71,13 +71,13 @@ XXH3_128::update(nonstd::span<const uint8_t> data)
   XXH3_128bits_update(m_state, data.data(), data.size());
 }
 
-inline util::Bytes
+inline Bytes
 XXH3_128::digest() const
 {
   const auto result = XXH3_128bits_digest(m_state);
-  util::Bytes digest(k_digest_size);
-  Util::int_to_big_endian(result.high64, &digest[0]);
-  Util::int_to_big_endian(result.low64, &digest[8]);
+  Bytes digest(k_digest_size);
+  int_to_big_endian(result.high64, &digest[0]);
+  int_to_big_endian(result.low64, &digest[8]);
   return digest;
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,17 +20,21 @@
 
 #include "Context.hpp"
 #include "Depfile.hpp"
-#include "Logging.hpp"
 
 #include <Context.hpp>
-#include <Stat.hpp>
+#include <Util.hpp>
 #include <core/MsvcShowIncludesOutput.hpp>
+#include <core/common.hpp>
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
-#include <fmtmacros.hpp>
+#include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
+#include <util/path.hpp>
 #include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -40,12 +44,14 @@
 #  include <unistd.h>
 #endif
 
+using util::DirEntry;
+
 namespace core {
 
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(const Context& ctx,
-                                 std::optional<Digest> result_key)
+                                 std::optional<Hash::Digest> result_key)
   : m_ctx(ctx),
     m_result_key(result_key)
 {
@@ -62,18 +68,18 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       data.size());
 
   if (file_type == FileType::stdout_output) {
-    Util::send_to_fd(
+    core::send_to_console(
       m_ctx,
       util::to_string_view(MsvcShowIncludesOutput::strip_includes(m_ctx, data)),
       STDOUT_FILENO);
   } else if (file_type == FileType::stderr_output) {
-    Util::send_to_fd(m_ctx, util::to_string_view(data), STDERR_FILENO);
+    core::send_to_console(m_ctx, util::to_string_view(data), STDERR_FILENO);
   } else {
     const auto dest_path = get_dest_path(file_type);
     if (dest_path.empty()) {
       LOG_RAW("Not writing");
-    } else if (dest_path == "/dev/null") {
-      LOG_RAW("Not writing to /dev/null");
+    } else if (util::is_dev_null_path(dest_path)) {
+      LOG("Not writing to {}", dest_path);
     } else {
       LOG("Writing to {}", dest_path);
       if (file_type == FileType::dependency) {
@@ -102,20 +108,24 @@ ResultRetriever::on_raw_file(uint8_t file_number,
   }
   const auto raw_file_path =
     m_ctx.storage.local.get_raw_file_path(*m_result_key, file_number);
-  const auto st = Stat::stat(raw_file_path, Stat::OnError::throw_error);
-  if (st.size() != file_size) {
+  DirEntry de(raw_file_path, DirEntry::LogOnError::yes);
+  if (!de) {
+    throw Error(
+      FMT("Failed to stat {}: {}", raw_file_path, strerror(de.error_number())));
+  }
+  if (de.size() != file_size) {
     throw core::Error(
       FMT("Bad file size of {} (actual {} bytes, expected {} bytes)",
           raw_file_path,
-          st.size(),
+          de.size(),
           file_size));
   }
 
   const auto dest_path = get_dest_path(file_type);
   if (!dest_path.empty()) {
     try {
-      Util::clone_hard_link_or_copy_file(
-        m_ctx.config, raw_file_path, dest_path, false);
+      m_ctx.storage.local.clone_hard_link_or_copy_file(
+        raw_file_path, dest_path, false);
     } catch (core::Error& e) {
       throw WriteError(FMT("Failed to clone/link/copy {} to {}: {}",
                            raw_file_path,
@@ -172,7 +182,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::dwarf_object:
     if (m_ctx.args_info.seen_split_dwarf
-        && m_ctx.args_info.output_obj != "/dev/null") {
+        && !util::is_dev_null_path(m_ctx.args_info.output_obj)) {
       return m_ctx.args_info.output_dwo;
     }
     break;
@@ -196,13 +206,14 @@ ResultRetriever::write_dependency_file(const std::string& path,
 {
   ASSERT(m_ctx.args_info.dependency_target);
 
-  Fd fd(open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  util::Fd fd(
+    open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
     throw WriteError(FMT("Failed to open {} for writing", path));
   }
 
-  auto write_data = [&](auto data, auto size) {
-    util::throw_on_error<WriteError>(util::write_fd(*fd, data, size),
+  auto write_data = [&](auto d, auto s) {
+    util::throw_on_error<WriteError>(util::write_fd(*fd, d, s),
                                      FMT("Failed to write to {}: ", path));
   };
 

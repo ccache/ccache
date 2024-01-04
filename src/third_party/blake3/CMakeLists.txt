@@ -27,7 +27,11 @@ function(add_source_if_enabled feature msvc_flags others_flags intrinsic)
 
   # First check if it's possible to use the assembler variant for the feature.
   string(TOUPPER "have_asm_${feature}" have_feature)
-  if(NOT DEFINED "${have_feature}" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  if(NOT DEFINED "${have_feature}" AND CMAKE_SIZEOF_VOID_P EQUAL 8
+# Force intrinsic version for msbuild because of a bug in the cmake generator
+# or msbuild itself with masm flags.
+      AND NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+
     if(NOT CMAKE_REQUIRED_QUIET)
       message(STATUS "Performing Test ${have_feature}")
     endif()

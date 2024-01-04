@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -101,18 +101,6 @@ const struct
 };
 
 } // namespace
-
-bool
-supported_source_extension(const std::string& fname)
-{
-  const auto ext = Util::get_extension(fname);
-  for (size_t i = 0; k_ext_lang_table[i].extension; ++i) {
-    if (k_ext_lang_table[i].extension == ext) {
-      return true;
-    }
-  }
-  return false;
-}
 
 std::string
 language_for_file(const std::string& fname, CompilerType compiler_type)

@@ -9,9 +9,14 @@ ccache - a fast C/C++ compiler cache
 == Synopsis
 
 [verse]
-*ccache* [_options_]
-*ccache* _compiler_ [_compiler options_]
-_compiler_ [_compiler options_]            (ccache masquerading as the compiler)
+*ccache* [_ccache options_]
+*ccache* [_KEY_=_VALUE_ ...] _compiler_ [_compiler options_]
+_compiler_ [_compiler options_]
+
+The first form takes options described in <<Command line options>> below. The
+second form invokes the compiler, optionally using <<Configuration,configuration
+options>> as _KEY_=_VALUE_ arguments. In the third form, ccache is masquerading
+as the compiler as described in <<Run modes>>.
 
 
 == Description
@@ -79,13 +84,14 @@ documentation.
 
 *-c*, *--cleanup*::
 
-    Clean up the cache by removing old cached files until the specified file
-    number and cache size limits are not exceeded. This also recalculates the
-    cache file count and size totals. Normally, there is no need to initiate
-    cleanup manually as ccache keeps the cache below the specified limits at
-    runtime and keeps statistics up to date on each compilation. Forcing a
-    cleanup is mostly useful if you manually modify the cache contents or
-    believe that the cache size statistics may be inaccurate.
+    Clean up the cache by removing not recently used cached files until the
+    specified file number and cache size limits are not exceeded. This also
+    recalculates the cache file count and size totals. Normally, there is no
+    need to initiate cleanup manually as ccache keeps the cache below the
+    specified limits at runtime and keeps statistics up to date on each
+    compilation. Forcing a cleanup is mostly useful if you have modified the
+    cache contents manually or believe that the cache size statistics may be
+    inaccurate.
 
 *-C*, *--clear*::
 
@@ -113,9 +119,9 @@ documentation.
 
 *--evict-older-than* _AGE_::
 
-    Remove files older than _AGE_ from the cache. _AGE_ should be an unsigned
-    integer with a `d` (days) or `s` (seconds) suffix. If combined with
-    `--evict-namespace`, only remove old files within that namespace.
+    Remove files used less recently than _AGE_ from the cache. _AGE_ should be
+    an unsigned integer with a `d` (days) or `s` (seconds) suffix. If combined
+    with `--evict-namespace`, only remove files within that namespace.
 
 *-h*, *--help*::
 
@@ -130,21 +136,26 @@ documentation.
 *-M* _SIZE_, *--max-size* _SIZE_::
 
     Set the maximum size of the files stored in the cache. _SIZE_ should be a
-    number followed by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or
-    Ti (binary). The default suffix is G. Use 0 for no limit. The value is
-    stored in a configuration file in the cache directory and applies to all
-    future compilations.
+    number followed by an optional suffix: kB, MB, GB, TB (decimal), KiB, MiB,
+    GiB or TiB (binary). The default suffix is GiB. Use 0 for no limit. The
+    value is stored in a configuration file in the cache directory and applies
+    to all future compilations.
 
 *-X* _LEVEL_, *--recompress* _LEVEL_::
 
     Recompress the cache to level _LEVEL_ using the Zstandard algorithm. The
     level can be an integer, with the same semantics as the
-    <<config_compression_level,*compression_level*>> configuration option), or
-    the special value *uncompressed* for no compression. See
-    _<<Cache compression>>_ for more information. This can potentionally take a
-    long time since all files in the cache need to be visited. Only files that
-    are currently compressed with a different level than _LEVEL_ will be
+    <<config_compression_level,*compression_level*>> configuration option, or
+    the special value *uncompressed* for no compression. See _<<Cache
+    compression>>_ for more information. This can potentially take a long time
+    since all files in the cache need to be visited. Only files that are
+    currently compressed with a different level than _LEVEL_ will be
     recompressed.
+
+*--recompress-threads* _THREADS_::
+
+    Use up to _THREADS_ threads when recompressing the cache. The default is to
+    use one thread per CPU.
 
 *-o* _KEY=VALUE_, *--set-config* _KEY_=_VALUE_::
 
@@ -154,7 +165,7 @@ documentation.
 *-x*, *--show-compression*::
 
     Print cache compression statistics. See _<<Cache compression>>_ for more
-    information. This can potentionally take a long time since all files in the
+    information. This can potentially take a long time since all files in the
     cache need to be visited.
 
 *-p*, *--show-config*::
@@ -191,17 +202,17 @@ documentation.
 
 *--trim-dir* _PATH_::
 
-   Remove old files from directory _PATH_ until it is at most the size specified
-   by `--trim-max-size`.
+    Remove not recently used files from directory _PATH_ until it is at most the
+    size specified by `--trim-max-size`.
 +
 WARNING: Don't use this option to trim the local cache. To trim the local cache
 directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 
 *--trim-max-size* _SIZE_::
 
-   Specify the maximum size for `--trim-dir`. _SIZE_ should be a number followed
-   by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or Ti (binary). The
-   default suffix is G.
+    Specify the maximum size for `--trim-dir`. _SIZE_ should be a number
+    followed by an optional suffix: kB, MB, GB, TB (decimal), KiB, MiB, GiB or
+    TiB (binary). The default suffix is GiB. Use 0 for no limit.
 
 *--trim-method* _METHOD_::
 
@@ -215,6 +226,23 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 *mtime*::
     LRU (least recently used) using the file modification timestamp.
 --
+
+*--trim-recompress* _LEVEL_::
+
+    Recompress to level _LEVEL_ using the Zstandard algorithm when using
+    `--trim-dir`. The level can be an integer, with the same semantics as the
+    <<config_compression_level,*compression_level*>> configuration option, or
+    the special value *uncompressed* for no compression. See _<<Cache
+    compression>>_ for more information. This can potentially take a long time
+    since all files in the cache need to be visited. Only files that are
+    currently compressed with a different level than _LEVEL_ will be
+    recompressed.
+
+*--trim-recompress-threads* _THREADS_::
+
+    Recompress using up to _THREADS_ threads with `--trim-recompress`. The
+    default is to use one thread per CPU.
+
 
 === Options for scripting or debugging
 
@@ -278,6 +306,8 @@ Another case where `--ccache-skip` can be useful is if ccache interprets an
 option specially but shouldn't, since the option has another meaning for your
 compiler than what ccache thinks.
 
+See also <<config_ignore_options,*ignore_options*>>.
+
 
 == Configuration
 
@@ -288,11 +318,16 @@ system-level configuration file and secondly a cache-specific configuration
 file. The priorities of configuration options are as follows (where 1 is
 highest):
 
-1. Environment variables.
-2. The cache-specific configuration file (see below).
-3. The system (read-only) configuration file `<sysconfdir>/ccache.conf`
+1. Command line settings in _KEY_=_VALUE_ form. Example:
++
+-------------------------------------------------------------------------------
+ccache debug=true compiler_check="%compiler% --version" gcc -c example.c
+-------------------------------------------------------------------------------
+2. Environment variables.
+3. The cache-specific configuration file (see below).
+4. The system (read-only) configuration file `<sysconfdir>/ccache.conf`
    (typically `/etc/ccache.conf` or `/usr/local/etc/ccache.conf`).
-4. Compile-time defaults.
+5. Compile-time defaults.
 
 As a special case, if the environment variable `CCACHE_CONFIGPATH` is set it
 specifies the configuration file, and the system configuration file won't be
@@ -336,6 +371,15 @@ See also the <<config_cache_dir,*cache_dir*>> configuration option for how the
 cache directory location is determined.
 
 
+=== Configuration value syntax
+
+All configuration values support expansion of environment variables. The syntax
+is similar to POSIX shell syntax: `$VAR` or `${VAR}`. Both variants will expand
+to the value of the environment variable `VAR`.
+
+Two consecutive dollar signs (`$$`) will expand to a single dollar sign (`$`).
+
+
 === Configuration file syntax
 
 Configuration files are in a simple "`key = value`" format, one option per
@@ -346,7 +390,6 @@ is whitespace surrounding keys and values. Example:
 # Set maximum cache size to 10 GB:
 max_size = 10G
 -------------------------------------------------------------------------------
-
 
 === Boolean values
 
@@ -394,7 +437,7 @@ option key.
 A typical path to use as *base_dir* is your home directory or another directory
 that is a parent of your project directories. Don't use `/` as the base
 directory since that will make ccache also rewrite paths to system header
-files, which typically is contraproductive.
+files, which typically is counterproductive.
 +
 For example, say that Alice's current working directory is
 `/home/alice/project1/build` and that she compiles like this:
@@ -421,7 +464,7 @@ gcc -I/usr/include/example -I/home/alice/project2/include -c ../src/example.c
 If Bob has put `project1` and `project2` in `/home/bob/stuff` and both users
 have set *base_dir* to `/home` or `/home/$USER`, then Bob will get a cache hit
 (if they share ccache directory) since the actual command line will be
-identical to that of Alice:
+identical to Alice's command line:
 +
 -------------------------------------------------------------------------------
 # Current working directory: /home/bob/stuff/project1/build
@@ -553,8 +596,6 @@ _<<Using ccache with other compiler wrappers>>_.
     NVCC (CUDA) compiler.
 *other*::
     Any compiler other than the known types.
-*pump*::
-    distcc's "`pump`" script.
 --
 
 [#config_compression]
@@ -640,6 +681,13 @@ is `/home/user` and the object file is `build/output.o` then the debug log will
 be written to `/example/home/user/build/output.o.ccache-log`. See also
 _<<Cache debugging>>_.
 
+[#config_debug_level]
+*debug_level* (*CCACHE_DEBUGLEVEL*)::
+
+    Specifies the amount of information that is written when the
+    <<config_debug,debug mode>> is enabled. See _<<Cache debugging>>_ for more
+    information. The default is 2.
+
 [#config_depend_mode]
 *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see _<<Boolean values>>_ above)::
 
@@ -657,6 +705,9 @@ _<<Cache debugging>>_.
 
     When true, ccache will just call the real compiler, bypassing the cache
     completely. The default is false.
++
+It is also possible to disable ccache for a specific source code file by adding
+the string `ccache:disable` in a comment in the first 4096 bytes of the file.
 
 [#config_extra_files_to_hash]
 *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
@@ -700,7 +751,7 @@ WARNING: Do not enable this option unless you are aware of these caveats:
   safety measure. Furthermore, a simple integrity check is made for cached
   object files by verifying that their sizes are correct. This means that
   mistakes like `strip file.o` or `echo >file.o` will be detected even if the
-  object file is made writeable, but a modification that doesn't change the file
+  object file is made writable, but a modification that doesn't change the file
   size will not.
 * Programs that don't expect that files from two different identical
   compilations are hard links to each other can fail.
@@ -746,19 +797,20 @@ might be incorrect.
 *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
 
     This option is a space-delimited list of compiler options that ccache will
-    exclude from the hash. Excluding a compiler option from the hash can be
-    useful when you know it doesn't affect the result (but ccache doesn't know
-    that), or when it does and you don't care. If a compiler option in the list
-    is suffixed with an asterisk (`*`) it will be matched as a prefix. For
-    example, `+-fmessage-length=*+` will match both `-fmessage-length=20` and
-    `-fmessage-length=70`.
+    ignore. Entries in the list can optionally end with an asterisk (`*`) to
+    matching any option suffix. For example, `+-fmessage-length=*+` will match
+    both `-fmessage-length=20` and `-fmessage-length=70`. A matching compiler
+    option will neither be interpreted specially nor be part of the input hash.
+    Ignoring a compiler option from the hash can be useful when you know it
+    doesn't affect the result (and ccache doesn't know that), or when it does
+    and you don't care. See also _<<Extra options>>_.
 
 [#config_inode_cache]
 *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see _<<Boolean values>>_ above)::
 
     If true, ccache will cache source file hashes based on device, inode and
     timestamps. This reduces the time spent on hashing include files since the
-    result can be resused between compilations. The default is true. The feature
+    result can be reused between compilations. The default is true. The feature
     requires <<config_temporary_dir,*temporary_dir*>> to be located on a local
     filesystem of a supported type.
 +
@@ -768,14 +820,8 @@ NOTE: The inode cache feature is currently not available on Windows.
 *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see _<<Boolean values>>_ above)::
 
     If true, ccache will not discard the comments before hashing preprocessor
-    output. This can be used to check documentation with `-Wdocumentation`.
-
-[#config_limit_multiple]
-*limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
-
-    Sets the limit when cleaning up. Files are deleted (in LRU order) until the
-    levels are below the limit. The default is 0.8 (= 80%). See
-    _<<Automatic cleanup>>_ for more information.
+    output. The default is false. This can be used to check documentation with
+    `-Wdocumentation`.
 
 [#config_log_file]
 *log_file* (*CCACHE_LOGFILE*)::
@@ -901,13 +947,15 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
 
     This option specifies one or several storage backends (separated by space)
     to query after checking the local cache (unless
-    <<config_remote_only,*remote_only*>> is true). See _<<Remote storage
-    backends>>_ for documentation of syntax and available backends.
+    <<config_remote_only,*remote_only*>> is true). See
+    _<<Remote storage backends>>_ for documentation of syntax and available
+    backends.
 +
 Examples:
 +
 * `+file:/shared/nfs/directory+`
 * `+file:///shared/nfs/one|read-only file:///shared/nfs/two+`
+* `+file:///Z:/example/windows/folder+`
 * `+http://example.com/cache+`
 * `+redis://example.com+`
 +
@@ -1008,9 +1056,16 @@ preprocessing first.
     hash. This is useful if your build system generates different seeds between
     builds and you are OK with reusing cached results.
 *system_headers*::
-    By default, ccache will also include all system headers in the manifest.
-    With this sloppiness set, ccache will only include system headers in the
-    hash but not add the system header files to the list of include files.
+    Only check non-system headers in direct mode.
+    This can be useful if e.g. your system headers tend to change but you know that
+    the changes don't matter. Notes:
++
+* This sloppiness is only supported for GCC-like compilers, not MSVC.
+* System headers are still taken into account for preprocessed lookup.
+* You can get stale cache hits if the system headers do change in incompatible
+  ways.
+* See also the
+  <<config_ignore_headers_in_manifest,*ignore_headers_in_manifest*>> setting.
 *time_macros*::
     Ignore `+__DATE__+`, `+__TIME__+` and `+__TIMESTAMP__+` being present in the
     source code.
@@ -1021,8 +1076,8 @@ See the discussion under _<<Troubleshooting>>_ for more information.
 [#config_stats]
 *stats* (*CCACHE_STATS* or *CCACHE_NOSTATS*, see _<<Boolean values>>_ above)::
 
-    If true, ccache will update the statistics counters on each compilation.
-    The default is true.
+    If true, ccache will update the statistics counters on each compilation. The
+    default is true. If false, _<<automatic cleanup>>_ will be disabled as well.
 
 [#config_stats_log]
 *stats_log* (*CCACHE_STATSLOG*)::
@@ -1037,7 +1092,8 @@ NOTE: Lines in the stats log starting with a hash sign (`#`) are comments.
 *temporary_dir* (*CCACHE_TEMPDIR*)::
 
     This option specifies where ccache will put temporary files. The default is
-    `/run/user/<UID>/ccache-tmp` if `/run/user/<UID>` exists, otherwise
+    `$XDG_RUNTIME_DIR/ccache-tmp` (typically `/run/user/<UID>/ccache-tmp`) if
+    `XDG_RUNTIME_DIR` is set and the directory exists, otherwise
     `<cache_dir>/tmp`.
 +
 NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
@@ -1049,6 +1105,15 @@ filesystem as the `CCACHE_DIR` path, but this requirement has been relaxed.
     This option (an octal integer) specifies the umask for files and directories
     in the cache directory. This is mostly useful when you wish to share your
     cache with other users.
+
+
+=== Disabling ccache
+
+To disable ccache completely for all invocations, set <<config_disable,*disable
+= true*>> (`CCACHE_DISABLE=1`). You can also disable ccache for a certain source
+code file by adding the string `ccache:disable` in a comment in the first 4096
+bytes of the file. In the latter case the `Ccache disabled` statistics counter
+will be increased.
 
 
 == Remote storage backends
@@ -1146,7 +1211,8 @@ Examples:
 
 * `+file:/shared/nfs/directory+`
 * `+file:///shared/nfs/directory|umask=002|update-mtime=true+`
-* `+file://example.com/shared/folder+`
+* `+file:///Z:/example/windows/folder+`
+* `+file://example.com/shared/ccache%20folder+`
 
 Optional attributes:
 
@@ -1264,45 +1330,20 @@ Cleanup can be triggered in two different ways: automatic and manual.
 
 === Automatic cleanup
 
-Ccache maintains counters for various statistics about the cache, including the
-size and number of all cached files. In order to improve performance and reduce
-issues with concurrent ccache invocations, there is one statistics file for
-each of the sixteen subdirectories in the cache.
-
-After a new compilation result has been written to the cache, ccache will
-update the size and file number statistics for the subdirectory (one of
-sixteen) to which the result was written. Then, if the size counter for said
-subdirectory is greater than *max_size / 16* or the file number counter is
-greater than *max_files / 16*, automatic cleanup is triggered.
-
-When automatic cleanup is triggered for a subdirectory in the cache, ccache
-will:
-
-1. Count all files in the subdirectory and compute their aggregated size.
-2. Remove files in LRU (least recently used) order until the size is at most
-   *limit_multiple * max_size / 16* and the number of files is at most
-   *limit_multiple * max_files / 16*, where
-   <<config_limit_multiple,*limit_multiple*>>, <<config_max_size,*max_size*>>
-   and <<config_max_files,*max_files*>> are configuration options.
-3. Set the size and file number counters to match the files that were kept.
-
-The reason for removing more files than just those needed to not exceed the max
-limits is that a cleanup is a fairly slow operation, so it would not be a good
-idea to trigger it often, like after each cache miss.
-
-The LRU cleanup makes use of the file modification time (mtime) of cache
-entries; ccache updates mtime of the cache entries read on a cache hit to mark
-them as "recently used".
+After a new compilation result has been written to the local cache, ccache will
+trigger an automatic cleanup if <<config_max_size,*max_size*>> or
+<<config_max_files,*max_files*>> is exceeded. The cleanup removes cache entries
+in LRU (least recently used) order based on the modification time (mtime) of
+files in the cache. For this reason, ccache updates mtime of the cache files
+read on a cache hit to mark them as recently used.
 
 
 === Manual cleanup
 
-You can run `ccache -c/--cleanup` to force cleanup of the whole cache, i.e. all
-of the sixteen subdirectories. This will recalculate the statistics counters
-and make sure that the configuration options *max_size* and
-<<config_max_files,*max_files*>> are not exceeded. Note that
-<<config_limit_multiple,*limit_multiple*>> is not taken into account for manual
-cleanup.
+You can run `ccache -c/--cleanup` to force cleanup of the whole cache. This will
+recalculate the cache size information and also make sure that the cache size
+does not exceed <<config_max_size,*max_size*>> and
+<<config_max_files,*max_files*>>.
 
 
 == Cache compression
@@ -1381,6 +1422,9 @@ produce a single object file from a single source file.
 
 | Called for preprocessing |
 The compiler was called for preprocessing, not compiling.
+
+| Ccache disabled |
+Ccache was disabled by a `ccache:disable` string in the source code file.
 
 | Could not use modules |
 Preconditions for using <<C++ modules>> were not fulfilled.
@@ -1550,8 +1594,8 @@ The direct mode will be disabled if any of the following holds:
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
 * a compiler option not supported by the direct mode is used:
-** a `-Wp,++*++` compiler option other than `-Wp,-MD,<path>`, `-Wp,-MMD,<path>`
-   and `-Wp,-D<define>`
+** a `-Wp,++*++` compiler option other than `-Wp,-MD,<path>`, `-Wp,-MMD,<path>`,
+   `-Wp,-D<macro[=defn]>` or `-Wp,-U<macro>`
 ** `-Xpreprocessor`
 * the string `+__TIME__+` is present in the source code
 
@@ -1577,7 +1621,7 @@ Disadvantages:
   or source code will make the hash different. Compare this with the default
   setup where ccache will fall back to the preprocessor mode, which is tolerant
   to some types of changes of compiler options and source code changes.
-* If -MD is used, the manifest entries will include system header files as
+* If `-MD` is used, the manifest entries will include system header files as
   well, thus slowing down cache hits slightly, just as using `-MD` slows down
   make. This is also the case for MSVC with `/showIncludes`.
 * If `-MMD` is used, the manifest entries will not include system header files,
@@ -1594,8 +1638,8 @@ The depend mode will be disabled if any of the following holds:
 == Handling of newly created header files
 
 If modification time (mtime) or status change time (ctime) of one of the include
-files is the same second as the time compilation is being done, ccache disables
-the direct mode (or, in the case of a <<Precompiled headers,precompiled
+files is equal to (or newer than) the time compilation is being done, ccache
+disables the direct mode (or, in the case of a <<Precompiled headers,precompiled
 header>>, disables caching completely). This done as a safety measure to avoid a
 race condition (see below).
 
@@ -1628,29 +1672,33 @@ why you don't get cache hits. Note that performance will be reduced slightly.
 When the debug mode is enabled, ccache will create up to five additional files
 next to the object file:
 
-[options="header",cols="30%,70%"]
+[options="header",cols="30%,10%,60%"]
 |==============================================================================
-| *Filename* | *Description*
+| *Filename* | *Debug level* | *Description*
 
-| `<objectfile>.<timestamp>.ccache-input-c` |
+| `<objectfile>.<timestamp>.ccache-input-c` | 2 |
 Binary input hashed by both the direct mode and the preprocessor mode.
 
-| `<objectfile>.<timestamp>.ccache-input-d` |
+| `<objectfile>.<timestamp>.ccache-input-d` | 2 |
 Binary input only hashed by the direct mode.
 
-| `<objectfile>.<timestamp>.ccache-input-p` |
+| `<objectfile>.<timestamp>.ccache-input-p` | 2 |
 Binary input only hashed by the preprocessor mode.
 
-| `<objectfile>.<timestamp>.ccache-input-text` |
+| `<objectfile>.<timestamp>.ccache-input-text` | 2 |
 Human-readable combined diffable text version of the three files above.
 
-| `<objectfile>.<timestamp>.ccache-log` |
+| `<objectfile>.<timestamp>.ccache-log` | 1 |
 Log for this object file.
 
 |==============================================================================
 
- The timestamp format is
+The timestamp format is
 `<year><month><day>_<hour><minute><second>_<microsecond>`.
+
+
+If you only need the log file, set <<config_debug,*debug_level*>> (environment
+variable `CCACHE_DEBUGLEVEL`) to 1.
 
 If <<config_debug_dir,*debug_dir*>> (environment variable `CCACHE_DEBUGDIR`) is
 set, the files above will be written to that directory with full absolute paths
@@ -1713,8 +1761,8 @@ directories:
 
 == Precompiled headers
 
-Ccache has support for GCC's precompiled headers. However, you have to do some
-things to make it work properly:
+Ccache has support for precompiled headers with GCC and Clang. However, you have
+to do some things to make it work properly:
 
 * You must set <<config_sloppiness,*sloppiness*>> to *pch_defines,time_macros*.
   The reason is that ccache can't tell whether `+__TIME__+`, `+__DATE__+` or
@@ -1737,6 +1785,8 @@ things to make it work properly:
    compiling.
 --
 +
+* If you use Clang, you must compile with `-fno-pch-timestamp`.
+
 If you don't do this, either the non-precompiled version of the header file will
 be used (if available) or ccache will fall back to running the real compiler and
 increase the statistics counter "`Preprocessing failed`" (if the non-precompiled

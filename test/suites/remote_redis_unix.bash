@@ -1,5 +1,5 @@
 SUITE_remote_redis_unix_PROBE() {
-    if ! $CCACHE --version | fgrep -q -- redis-storage &> /dev/null; then
+    if ! $CCACHE --version | grep -Fq -- redis-storage &> /dev/null; then
         echo "redis-storage not available"
         return
     fi

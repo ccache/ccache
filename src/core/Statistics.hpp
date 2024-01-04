@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -34,7 +34,7 @@ namespace core {
 class Statistics
 {
 public:
-  Statistics(const StatisticsCounters& counters);
+  explicit Statistics(const StatisticsCounters& counters);
 
   // Return machine-readable strings representing the statistics counters.
   std::vector<std::string> get_statistics_ids() const;
@@ -47,7 +47,8 @@ public:
 
   // Format cache statistics in machine-readable format.
   std::string
-  format_machine_readable(const util::TimePoint& last_updated) const;
+  format_machine_readable(const Config& config,
+                          const util::TimePoint& last_updated) const;
 
   const StatisticsCounters& counters() const;
 

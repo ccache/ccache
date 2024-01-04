@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,18 +19,21 @@
 #include "InodeCache.hpp"
 
 #include "Config.hpp"
-#include "Digest.hpp"
-#include "Fd.hpp"
-#include "Finalizer.hpp"
 #include "Hash.hpp"
-#include "Logging.hpp"
-#include "Stat.hpp"
-#include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "fmtmacros.hpp"
+
+#include <util/DirEntry.hpp>
+#include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
+#include <util/TemporaryFile.hpp>
+#include <util/conversion.hpp>
+#include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 #include <fcntl.h>
 #include <libgen.h>
+#include <sched.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -44,6 +47,7 @@
 
 #include <atomic>
 #include <type_traits>
+#include <vector>
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
@@ -65,16 +69,27 @@ namespace {
 // Note: The key is hashed using the main hash algorithm, so the version number
 // does not need to be incremented if said algorithm is changed (except if the
 // digest size changes since that affects the entry format).
-const uint32_t k_version = 1;
+const uint32_t k_version = 2;
 
 // Note: Increment the version number if constants affecting storage size are
 // changed.
 const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
-static_assert(Digest::size() == 20,
+// Maximum time the spin lock loop will try before giving up.
+const auto k_max_lock_duration = util::Duration(5);
+
+// The memory-mapped file may reside on a filesystem with compression. Memory
+// accesses to the file risk crashing if such a filesystem gets full, so stop
+// using the inode cache well before this happens.
+const uint64_t k_min_fs_mib_left = 100; // 100 MiB
+
+// How long a filesystem space check is valid before we make a new one.
+const util::Duration k_fs_space_check_valid_duration(1);
+
+static_assert(std::tuple_size<Hash::Digest>() == 20,
               "Increment version number if size of digest is changed.");
-static_assert(std::is_trivially_copyable<Digest>::value,
+static_assert(std::is_trivially_copyable<Hash::Digest>::value,
               "Digest is expected to be trivially copyable.");
 
 static_assert(
@@ -117,7 +132,10 @@ fd_is_on_known_to_work_file_system(int fd)
       // Is a filesystem you know works with the inode cache missing in this
       // list? Please submit an issue or pull request to the ccache project.
       "apfs",
+      "tmpfs",
+      "ufs",
       "xfs",
+      "zfs",
     };
     if (std::find(known_to_work_filesystems.begin(),
                   known_to_work_filesystems.end(),
@@ -138,6 +156,46 @@ fd_is_on_known_to_work_file_system(int fd)
   return known_to_work;
 }
 
+bool
+spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
+{
+  pid_t prev_pid = 0;
+  pid_t lock_pid = 0;
+  bool reset_timer = false;
+  util::TimePoint lock_time;
+  while (true) {
+    for (int i = 0; i < 10000; ++i) {
+      lock_pid = owner_pid.load(std::memory_order_relaxed);
+      if (lock_pid == 0
+          && owner_pid.compare_exchange_weak(
+            lock_pid, self_pid, std::memory_order_acquire)) {
+        return true;
+      }
+
+      if (prev_pid != lock_pid) {
+        // Check for changing PID here so ABA locking is detected with better
+        // probability.
+        prev_pid = lock_pid;
+        reset_timer = true;
+      }
+      sched_yield();
+    }
+    // If everything is OK, we should never hit this.
+    if (reset_timer) {
+      lock_time = util::TimePoint::now();
+      reset_timer = false;
+    } else if (util::TimePoint::now() - lock_time > k_max_lock_duration) {
+      return false;
+    }
+  }
+}
+
+void
+spin_unlock(std::atomic<pid_t>& owner_pid)
+{
+  owner_pid.store(0, std::memory_order_release);
+}
+
 } // namespace
 
 struct InodeCache::Key
@@ -153,14 +211,14 @@ struct InodeCache::Key
 
 struct InodeCache::Entry
 {
-  Digest key_digest;  // Hashed key
-  Digest file_digest; // Cached file hash
-  int return_value;   // Cached return value
+  Hash::Digest key_digest;  // Hashed key
+  Hash::Digest file_digest; // Cached file hash
+  int return_value;         // Cached return value
 };
 
 struct InodeCache::Bucket
 {
-  pthread_mutex_t mt;
+  std::atomic<pid_t> owner_pid;
   Entry entries[k_num_entries];
 };
 
@@ -180,17 +238,21 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
   }
-  Fd fd(open(inode_cache_file.c_str(), O_RDWR));
-  if (!fd) {
+  m_fd = util::Fd(open(inode_cache_file.c_str(), O_RDWR));
+  if (!m_fd) {
     LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
-  if (!fd_is_on_known_to_work_file_system(*fd)) {
+  if (!fd_is_on_known_to_work_file_system(*m_fd)) {
     return false;
   }
-  SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
-    nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0));
-  fd.close();
+  SharedRegion* sr =
+    reinterpret_cast<SharedRegion*>(mmap(nullptr,
+                                         sizeof(SharedRegion),
+                                         PROT_READ | PROT_WRITE,
+                                         MAP_SHARED,
+                                         *m_fd,
+                                         0));
   if (sr == MMAP_FAILED) {
     LOG("Failed to mmap {}: {}", inode_cache_file, strerror(errno));
     return false;
@@ -217,72 +279,65 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 bool
 InodeCache::hash_inode(const std::string& path,
                        ContentType type,
-                       Digest& digest)
+                       Hash::Digest& digest)
 {
-  Stat stat = Stat::stat(path);
-  if (!stat) {
-    LOG("Could not stat {}: {}", path, strerror(stat.error_number()));
+  util::DirEntry de(path);
+  if (!de.exists()) {
+    LOG("Could not stat {}: {}", path, strerror(de.error_number()));
+    return false;
+  }
+
+  // See comment for InodeCache::InodeCache why this check is done.
+  auto now = util::TimePoint::now();
+  if (now - de.ctime() < m_min_age || now - de.mtime() < m_min_age) {
+    LOG("Too new ctime or mtime of {}, not considering for inode cache", path);
     return false;
   }
 
   Key key;
   memset(&key, 0, sizeof(Key));
   key.type = type;
-  key.st_dev = stat.device();
-  key.st_ino = stat.inode();
-  key.st_mode = stat.mode();
-  key.st_mtim = stat.mtime().to_timespec();
-  key.st_ctim = stat.ctime().to_timespec();
-  key.st_size = stat.size();
+  key.st_dev = de.device();
+  key.st_ino = de.inode();
+  key.st_mode = de.mode();
+  key.st_mtim = de.mtime().to_timespec();
+  key.st_ctim = de.ctime().to_timespec();
+  key.st_size = de.size();
 
   Hash hash;
-  hash.hash(&key, sizeof(Key));
+  hash.hash(nonstd::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&key),
+                                        sizeof(key)));
   digest = hash.digest();
   return true;
 }
 
 bool
-InodeCache::with_bucket(const Digest& key_digest,
+InodeCache::with_bucket(const Hash::Digest& key_digest,
                         const BucketHandler& bucket_handler)
 {
   uint32_t hash;
-  Util::big_endian_to_int(key_digest.bytes(), hash);
+  util::big_endian_to_int(key_digest.data(), hash);
   const uint32_t index = hash % k_num_buckets;
   Bucket* bucket = &m_sr->buckets[index];
-  int err = pthread_mutex_lock(&bucket->mt);
-#ifdef HAVE_PTHREAD_MUTEX_ROBUST
-  if (err == EOWNERDEAD) {
+  bool acquired_lock = spin_lock(bucket->owner_pid, m_self_pid);
+  while (!acquired_lock) {
+    LOG("Dropping inode cache file because of stale mutex at index {}", index);
+    if (!drop() || !initialize()) {
+      return false;
+    }
     if (m_config.debug()) {
       ++m_sr->errors;
     }
-    err = pthread_mutex_consistent(&bucket->mt);
-    if (err) {
-      LOG(
-        "Can't consolidate stale mutex at index {}: {}", index, strerror(err));
-      LOG_RAW("Consider removing the inode cache file if the problem persists");
-      return false;
-    }
-    LOG("Wiping bucket at index {} because of stale mutex", index);
-    memset(bucket->entries, 0, sizeof(Bucket::entries));
-  } else {
-#endif
-    if (err != 0) {
-      LOG("Failed to lock mutex at index {}: {}", index, strerror(err));
-      LOG_RAW("Consider removing the inode cache file if problem persists");
-      ++m_sr->errors;
-      return false;
-    }
-#ifdef HAVE_PTHREAD_MUTEX_ROBUST
+    bucket = &m_sr->buckets[index];
+    acquired_lock = spin_lock(bucket->owner_pid, m_self_pid);
   }
-#endif
-
   try {
     bucket_handler(bucket);
   } catch (...) {
-    pthread_mutex_unlock(&bucket->mt);
+    spin_unlock(bucket->owner_pid);
     throw;
   }
-  pthread_mutex_unlock(&bucket->mt);
+  spin_unlock(bucket->owner_pid);
   return true;
 }
 
@@ -291,16 +346,21 @@ InodeCache::create_new_file(const std::string& filename)
 {
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
-  TemporaryFile tmp_file(filename);
-
-  Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
-
-  if (!fd_is_on_known_to_work_file_system(*tmp_file.fd)) {
+  auto tmp_file = util::TemporaryFile::create(filename);
+  if (!tmp_file) {
+    LOG("Failed to created inode cache file: {}", tmp_file.error());
     return false;
   }
-  int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
-  if (err) {
-    LOG("Failed to allocate file space for inode cache: {}", strerror(err));
+
+  util::Finalizer temp_file_remover([&] { unlink(tmp_file->path.c_str()); });
+
+  if (!fd_is_on_known_to_work_file_system(*tmp_file->fd)) {
+    return false;
+  }
+
+  if (auto result = util::fallocate(*tmp_file->fd, sizeof(SharedRegion));
+      !result) {
+    LOG("Failed to allocate file space for inode cache: {}", result.error());
     return false;
   }
   SharedRegion* sr =
@@ -308,7 +368,7 @@ InodeCache::create_new_file(const std::string& filename)
                                          sizeof(SharedRegion),
                                          PROT_READ | PROT_WRITE,
                                          MAP_SHARED,
-                                         *tmp_file.fd,
+                                         *tmp_file->fd,
                                          0));
   if (sr == MMAP_FAILED) {
     LOG("Failed to mmap new inode cache: {}", strerror(errno));
@@ -317,25 +377,20 @@ InodeCache::create_new_file(const std::string& filename)
 
   // Initialize new shared region.
   sr->version = k_version;
-  pthread_mutexattr_t mattr;
-  pthread_mutexattr_init(&mattr);
-  pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-#ifdef HAVE_PTHREAD_MUTEX_ROBUST
-  pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
-#endif
   for (auto& bucket : sr->buckets) {
-    pthread_mutex_init(&bucket.mt, &mattr);
+    bucket.owner_pid = 0;
+    memset(bucket.entries, 0, sizeof(Bucket::entries));
   }
 
   munmap(sr, sizeof(SharedRegion));
-  tmp_file.fd.close();
+  tmp_file->fd.close();
 
   // link() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (link(tmp_file.path.c_str(), filename.c_str()) != 0) {
+  if (link(tmp_file->path.c_str(), filename.c_str()) != 0) {
     LOG("Failed to link new inode cache: {}", strerror(errno));
     return false;
   }
@@ -349,6 +404,25 @@ InodeCache::initialize()
 {
   if (m_failed || !m_config.inode_cache()) {
     return false;
+  }
+
+  if (m_fd) {
+    auto now = util::TimePoint::now();
+    if (now > m_last_fs_space_check + k_fs_space_check_valid_duration) {
+      m_last_fs_space_check = now;
+
+      struct statfs buf;
+      if (fstatfs(*m_fd, &buf) != 0) {
+        LOG("fstatfs failed: {}", strerror(errno));
+        return false;
+      }
+      if (static_cast<uint64_t>(buf.f_bavail) * 512
+          < k_min_fs_mib_left * 1024 * 1024) {
+        LOG("Filesystem has less than {} MiB free space, not using inode cache",
+            k_min_fs_mib_left);
+        return false;
+      }
+    }
   }
 
   if (m_sr) {
@@ -375,13 +449,23 @@ InodeCache::initialize()
   return false;
 }
 
-InodeCache::InodeCache(const Config& config) : m_config(config)
+InodeCache::InodeCache(const Config& config, util::Duration min_age)
+  : m_config(config),
+    // CCACHE_DISABLE_INODE_CACHE_MIN_AGE is only for testing purposes; see
+    // test/suites/inode_cache.bash.
+    m_min_age(getenv("CCACHE_DISABLE_INODE_CACHE_MIN_AGE") ? util::Duration(0)
+                                                           : min_age),
+    m_self_pid(getpid())
 {
 }
 
 InodeCache::~InodeCache()
 {
   if (m_sr) {
+    LOG("Accumulated stats for inode cache: hits={}, misses={}, errors={}",
+        m_sr->hits.load(),
+        m_sr->misses.load(),
+        m_sr->errors.load());
     munmap(m_sr, sizeof(SharedRegion));
   }
 }
@@ -392,22 +476,20 @@ InodeCache::available(int fd)
   return fd_is_on_known_to_work_file_system(fd);
 }
 
-bool
-InodeCache::get(const std::string& path,
-                ContentType type,
-                Digest& file_digest,
-                int* return_value)
+std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
+InodeCache::get(const std::string& path, ContentType type)
 {
   if (!initialize()) {
-    return false;
+    return std::nullopt;
   }
 
-  Digest key_digest;
+  Hash::Digest key_digest;
   if (!hash_inode(path, type, key_digest)) {
-    return false;
+    return std::nullopt;
   }
 
-  bool found = false;
+  std::optional<HashSourceCodeResult> result;
+  Hash::Digest file_digest;
   const bool success = with_bucket(key_digest, [&](const auto bucket) {
     for (uint32_t i = 0; i < k_num_entries; ++i) {
       if (bucket->entries[i].key_digest == key_digest) {
@@ -418,45 +500,42 @@ InodeCache::get(const std::string& path,
         }
 
         file_digest = bucket->entries[0].file_digest;
-        if (return_value) {
-          *return_value = bucket->entries[0].return_value;
-        }
-        found = true;
+        result =
+          HashSourceCodeResult::from_bitmask(bucket->entries[0].return_value);
         break;
       }
     }
   });
   if (!success) {
-    return false;
+    return std::nullopt;
   }
 
-  LOG("Inode cache {}: {}", found ? "hit" : "miss", path);
-
   if (m_config.debug()) {
-    if (found) {
+    LOG("Inode cache {}: {}", result ? "hit" : "miss", path);
+    if (result) {
       ++m_sr->hits;
     } else {
       ++m_sr->misses;
     }
-    LOG("Accumulated stats for inode cache: hits={}, misses={}, errors={}",
-        m_sr->hits.load(),
-        m_sr->misses.load(),
-        m_sr->errors.load());
   }
-  return found;
+  if (result) {
+    return std::make_pair(*result, file_digest);
+  } else {
+    return std::nullopt;
+  }
 }
 
 bool
 InodeCache::put(const std::string& path,
                 ContentType type,
-                const Digest& file_digest,
-                int return_value)
+                const Hash::Digest& file_digest,
+                HashSourceCodeResult return_value)
 {
   if (!initialize()) {
     return false;
   }
 
-  Digest key_digest;
+  Hash::Digest key_digest;
   if (!hash_inode(path, type, key_digest)) {
     return false;
   }
@@ -468,15 +547,16 @@ InodeCache::put(const std::string& path,
 
     bucket->entries[0].key_digest = key_digest;
     bucket->entries[0].file_digest = file_digest;
-    bucket->entries[0].return_value = return_value;
+    bucket->entries[0].return_value = return_value.to_bitmask();
   });
 
   if (!success) {
     return false;
   }
 
-  LOG("Inode cache insert: {}", path);
-
+  if (m_config.debug()) {
+    LOG("Inode cache insert: {}", path);
+  }
   return true;
 }
 
@@ -484,7 +564,7 @@ bool
 InodeCache::drop()
 {
   std::string file = get_file();
-  if (unlink(file.c_str()) != 0) {
+  if (unlink(file.c_str()) != 0 && errno != ENOENT) {
     return false;
   }
   LOG("Dropped inode cache {}", file);

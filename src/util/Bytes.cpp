@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,27 +18,25 @@
 
 #include "Bytes.hpp"
 
-#include <assertions.hpp>
+#include <util/assertions.hpp>
 
 namespace util {
 
 Bytes::Bytes(const Bytes& other) noexcept
-  : m_size(other.m_size),
+  : m_data(std::make_unique<uint8_t[]>(other.m_size)),
+    m_size(other.m_size),
     m_capacity(other.m_size)
 {
-  delete[] m_data;
-  m_data = new uint8_t[m_size];
   if (m_size > 0) {
-    std::memcpy(m_data, other.m_data, m_size);
+    std::memcpy(m_data.get(), other.m_data.get(), m_size);
   }
 }
 
 Bytes::Bytes(Bytes&& other) noexcept
+  : m_data(std::move(other.m_data)),
+    m_size(other.m_size),
+    m_capacity(other.m_capacity)
 {
-  delete[] m_data;
-  m_data = other.m_data;
-  m_size = other.m_size;
-  m_capacity = other.m_capacity;
   other.m_data = nullptr;
   other.m_size = 0;
   other.m_capacity = 0;
@@ -50,12 +48,11 @@ Bytes::operator=(const Bytes& other) noexcept
   if (&other == this) {
     return *this;
   }
-  delete[] m_data;
-  m_data = new uint8_t[other.m_size];
+  m_data = std::make_unique<uint8_t[]>(other.m_size);
   m_size = other.m_size;
   m_capacity = other.m_size;
   if (m_size > 0) {
-    std::memcpy(m_data, other.m_data, m_size);
+    std::memcpy(m_data.get(), other.m_data.get(), m_size);
   }
   return *this;
 }
@@ -66,11 +63,10 @@ Bytes::operator=(Bytes&& other) noexcept
   if (&other == this) {
     return *this;
   }
-  delete[] m_data;
-  m_data = other.m_data;
+  m_data = std::move(other.m_data);
   m_size = other.m_size;
   m_capacity = other.m_capacity;
-  other.m_data = nullptr;
+  other.m_data.reset();
   other.m_size = 0;
   other.m_capacity = 0;
   return *this;
@@ -80,12 +76,11 @@ void
 Bytes::reserve(size_t size) noexcept
 {
   if (size > m_capacity) {
-    uint8_t* data = new uint8_t[size];
+    auto data = std::make_unique<uint8_t[]>(size);
     if (m_size > 0) {
-      std::memcpy(data, m_data, m_size);
+      std::memcpy(data.get(), m_data.get(), m_size);
     }
-    delete[] m_data;
-    m_data = data;
+    m_data = std::move(data);
     m_capacity = size;
   }
 }
@@ -99,24 +94,25 @@ Bytes::insert(const uint8_t* pos,
   if (inserted_size == 0) {
     return;
   }
-  const size_t offset = pos - m_data;
+  const size_t offset = pos - m_data.get();
   if (m_size + inserted_size > m_capacity) {
     m_capacity = std::max(2 * m_capacity, m_size + inserted_size);
-    uint8_t* new_data = new uint8_t[m_capacity];
+    auto new_data = std::make_unique<uint8_t[]>(m_capacity);
     if (offset > 0) {
-      std::memcpy(new_data, m_data, offset);
+      std::memcpy(new_data.get(), m_data.get(), offset);
     }
     if (m_size > offset) {
-      std::memcpy(
-        new_data + offset + inserted_size, m_data + offset, m_size - offset);
+      std::memcpy(new_data.get() + offset + inserted_size,
+                  m_data.get() + offset,
+                  m_size - offset);
     }
-    delete[] m_data;
-    m_data = new_data;
+    m_data = std::move(new_data);
   } else if (m_size > offset) {
-    std::memmove(
-      m_data + offset + inserted_size, m_data + offset, m_size - offset);
+    std::memmove(m_data.get() + offset + inserted_size,
+                 m_data.get() + offset,
+                 m_size - offset);
   }
-  std::memcpy(m_data + offset, first, inserted_size);
+  std::memcpy(m_data.get() + offset, first, inserted_size);
   m_size += inserted_size;
 }
 
@@ -124,12 +120,11 @@ void
 Bytes::resize(size_t size) noexcept
 {
   if (size > m_capacity) {
-    uint8_t* new_data = new uint8_t[size];
+    auto new_data = std::make_unique<uint8_t[]>(size);
     if (m_size > 0) {
-      std::memcpy(new_data, m_data, m_size);
+      std::memcpy(new_data.get(), m_data.get(), m_size);
     }
-    delete[] m_data;
-    m_data = new_data;
+    m_data = std::move(new_data);
     m_capacity = size;
   }
   m_size = size;

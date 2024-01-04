@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,12 @@
 
 #include "Hash.hpp"
 
-#include "Fd.hpp"
-#include "Logging.hpp"
-#include "fmtmacros.hpp"
-
-#include <core/wincompat.hpp>
+#include <util/Fd.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
+#include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -33,7 +33,7 @@
 #  include <unistd.h>
 #endif
 
-const std::string_view HASH_DELIMITER("\000cCaChE\000", 8);
+const uint8_t HASH_DELIMITER[] = {0, 'c', 'C', 'a', 'C', 'h', 'E', 0};
 
 Hash::Hash()
 {
@@ -53,13 +53,13 @@ Hash::enable_debug(std::string_view section_name,
   add_debug_text(" ===\n");
 }
 
-Digest
+Hash::Digest
 Hash::digest() const
 {
   // Note that blake3_hasher_finalize doesn't modify the hasher itself, thus it
   // is possible to finalize again after more data has been added.
   Digest digest;
-  blake3_hasher_finalize(&m_hasher, digest.bytes(), digest.size());
+  blake3_hasher_finalize(&m_hasher, digest.data(), digest.size());
   return digest;
 }
 
@@ -76,30 +76,25 @@ Hash::hash_delimiter(std::string_view type)
 }
 
 Hash&
-Hash::hash(const void* data, size_t size, HashType hash_type)
+Hash::hash(nonstd::span<const uint8_t> data)
 {
-  std::string_view buffer(static_cast<const char*>(data), size);
-  hash_buffer(buffer);
-
-  switch (hash_type) {
-  case HashType::binary:
-    add_debug_text(
-      Util::format_base16(static_cast<const uint8_t*>(data), size));
-    break;
-
-  case HashType::text:
-    add_debug_text(buffer);
-    break;
-  }
-
+  hash_buffer(data);
+  add_debug_text(data);
   add_debug_text("\n");
+  return *this;
+}
+
+Hash&
+Hash::hash(const char* data, size_t size)
+{
+  hash(util::to_span({data, size}));
   return *this;
 }
 
 Hash&
 Hash::hash(std::string_view data)
 {
-  hash(data.data(), data.length());
+  hash(util::to_span(data));
   return *this;
 }
 
@@ -111,27 +106,26 @@ Hash::hash(int64_t x)
   return *this;
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 Hash::hash_fd(int fd)
 {
-  return util::read_fd(
-    fd, [this](const void* data, size_t size) { hash(data, size); });
+  return util::read_fd(fd, [this](auto data) { hash(data); });
 }
 
-nonstd::expected<void, std::string>
+tl::expected<void, std::string>
 Hash::hash_file(const std::string& path)
 {
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  util::Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
-    return nonstd::make_unexpected(strerror(errno));
+    return tl::unexpected(strerror(errno));
   }
 
   return hash_fd(*fd);
 }
 
 void
-Hash::hash_buffer(std::string_view buffer)
+Hash::hash_buffer(nonstd::span<const uint8_t> buffer)
 {
   blake3_hasher_update(&m_hasher, buffer.data(), buffer.size());
   if (!buffer.empty() && m_debug_binary) {
@@ -140,9 +134,21 @@ Hash::hash_buffer(std::string_view buffer)
 }
 
 void
-Hash::add_debug_text(std::string_view text)
+Hash::hash_buffer(std::string_view buffer)
+{
+  hash_buffer(util::to_span(buffer));
+}
+
+void
+Hash::add_debug_text(nonstd::span<const uint8_t> text)
 {
   if (!text.empty() && m_debug_text) {
-    (void)fwrite(text.data(), 1, text.length(), m_debug_text);
+    (void)fwrite(text.data(), 1, text.size(), m_debug_text);
   }
+}
+
+void
+Hash::add_debug_text(std::string_view text)
+{
+  add_debug_text(util::to_span(text));
 }

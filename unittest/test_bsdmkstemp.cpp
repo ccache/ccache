@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,11 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Fd.hpp"
-#include "../src/Finalizer.hpp"
 #include "TestUtil.hpp"
 
-#include <core/wincompat.hpp>
+#include <util/Fd.hpp>
+#include <util/Finalizer.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 #include "third_party/win32/mktemp.h"
@@ -33,6 +33,7 @@
 #include <utility>
 
 using TestUtil::TestContext;
+using util::Fd;
 
 namespace {
 
@@ -103,7 +104,8 @@ TEST_CASE("bsd_mkstemps")
     ++rand_iter;
   });
 
-  Finalizer reset_random_source([] { bsd_mkstemp_set_random_source(nullptr); });
+  util::Finalizer reset_random_source(
+    [] { bsd_mkstemp_set_random_source(nullptr); });
 
   SUBCASE("successful")
   {

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,14 +19,16 @@
 #include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
-#include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
+#include <Util.hpp>
 #include <core/Statistic.hpp>
-#include <core/wincompat.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/path.hpp>
+#include <util/string.hpp>
+#include <util/wincompat.hpp>
 
 #include "third_party/doctest.h"
 
@@ -44,7 +46,7 @@ get_root()
   return "/";
 #else
   char volume[4]; // "C:\"
-  GetVolumePathName(Util::get_actual_cwd().c_str(), volume, sizeof(volume));
+  GetVolumePathName(util::actual_cwd().c_str(), volume, sizeof(volume));
   volume[2] = '/'; // Since base directory is normalized to forward slashes
   return volume;
 #endif
@@ -59,7 +61,9 @@ get_posix_path(const std::string& path)
   std::string posix;
 
   // /-escape volume.
-  if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
+  if (path[1] == ':'
+      && ((path[0] >= 'A' && path[0] <= 'Z')
+          || (path[0] >= 'a' && path[0] <= 'z'))) {
     posix = "/" + path;
   } else {
     posix = path;
@@ -565,6 +569,42 @@ TEST_CASE("cuda_option_file")
   CHECK(result.compiler_args.to_string() == "nvcc -g -Wall -DX -c");
 }
 
+TEST_CASE("nvcc_warning_flags_short")
+{
+  // With -Werror. This should conflict with host's -Werror flag.
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.orig_args =
+    Args::from_string("nvcc -Werror all-warnings -Xcompiler -Werror -c foo.cu");
+  util::write_file("foo.cu", "");
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "nvcc -Xcompiler -Werror");
+  CHECK(result.extra_args_to_hash.to_string() == "-Werror all-warnings");
+  CHECK(result.compiler_args.to_string()
+        == "nvcc -Werror all-warnings -Xcompiler -Werror -c");
+}
+
+TEST_CASE("nvcc_warning_flags_long")
+{
+  // With --Werror. This shouldn't conflict with host's -Werror flag.
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.orig_args = Args::from_string(
+    "nvcc --Werror all-warnings -Xcompiler -Werror -c foo.cu");
+  util::write_file("foo.cu", "");
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "nvcc -Xcompiler -Werror");
+  CHECK(result.extra_args_to_hash.to_string() == "--Werror all-warnings");
+  CHECK(result.compiler_args.to_string()
+        == "nvcc --Werror all-warnings -Xcompiler -Werror -c");
+}
+
 TEST_CASE("-Xclang")
 {
   TestContext test_context;
@@ -660,7 +700,7 @@ TEST_CASE("-x")
 
   SUBCASE("UNKNOWN -x option (uppercase)")
   {
-    ctx.orig_args = Args::from_string("gcc -x UNSUPPORTED_LANGUGAGE -c foo.c");
+    ctx.orig_args = Args::from_string("gcc -x UNSUPPORTED_LANGUAGE -c foo.c");
     const ProcessArgsResult result = process_args(ctx);
     CHECK(result.error == Statistic::unsupported_source_language);
     CHECK(ctx.args_info.actual_language == "");
@@ -672,6 +712,99 @@ TEST_CASE("-x")
     const ProcessArgsResult result = process_args(ctx);
     CHECK(result.error == Statistic::bad_compiler_arguments);
     CHECK(ctx.args_info.actual_language == "");
+  }
+}
+
+// On macOS ctx.actual_cwd typically starts with /Users which clashes with
+// MSVC's /U option, so disable the test case there. This will be possible to
+// improve when/if a compiler abstraction is introduced (issue #956).
+TEST_CASE("MSVC options"
+          * doctest::skip(util::starts_with(util::actual_cwd(), "/U")))
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+
+  util::write_file("foo.c", "");
+
+  ctx.orig_args = Args::from_string(
+    FMT("cl.exe /Fobar.obj /c {}/foo.c /foobar", ctx.actual_cwd));
+  const ProcessArgsResult result = process_args(ctx);
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "cl.exe /foobar");
+  CHECK(result.compiler_args.to_string() == "cl.exe /foobar -c");
+}
+
+TEST_CASE("MSVC debug information format options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.c", "");
+
+  SUBCASE("Only /Z7")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /Z7");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "cl.exe /Z7");
+    CHECK(result.compiler_args.to_string() == "cl.exe /Z7 -c");
+  }
+
+  SUBCASE("Only /Zi")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /Zi");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Only /ZI")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /ZI");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("/Z7 + /Zi")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Z7 /c foo.c /Zi");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("/Zi + /Z7")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Zi /c foo.c /Z7");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "cl.exe /Zi /Z7");
+    CHECK(result.compiler_args.to_string() == "cl.exe /Zi /Z7 -c");
+  }
+}
+
+// Check that clang-cl debug information is parsed different,
+// since for clang-cl /Zi and /Z7 is the same!
+TEST_CASE("ClangCL Debug information options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  util::write_file("foo.c", "");
+
+  SUBCASE("/Z7")
+  {
+    ctx.orig_args = Args::from_string("clang-cl.exe /c foo.c /Z7");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "clang-cl.exe /Z7");
+  }
+
+  SUBCASE("/Zi")
+  {
+    ctx.orig_args = Args::from_string("clang-cl.exe /c foo.c /Zi");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(result.preprocessor_args.to_string() == "clang-cl.exe /Zi");
   }
 }
 

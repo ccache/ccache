@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,20 +19,19 @@
 #include "Storage.hpp"
 
 #include <Config.hpp>
-#include <Logging.hpp>
 #include <MiniTrace.hpp>
-#include <TemporaryFile.hpp>
 #include <Util.hpp>
-#include <assertions.hpp>
+#include <core/CacheEntry.hpp>
 #include <core/Statistic.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <storage/remote/FileStorage.hpp>
 #include <storage/remote/HttpStorage.hpp>
+#include <util/assertions.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #if defined(HAVE_REDIS_STORAGE_BACKEND) || defined(HAVE_REDISS_STORAGE_BACKEND)
 #  include <storage/remote/RedisStorage.hpp>
 #endif
-#include <core/CacheEntry.hpp>
 #include <util/Bytes.hpp>
 #include <util/Timer.hpp>
 #include <util/Tokenizer.hpp>
@@ -78,31 +77,43 @@ get_features()
   return util::join(features, " ");
 }
 
+// Representation of one shard configuration.
 struct RemoteStorageShardConfig
 {
   std::string name;
   double weight;
+  Url url; // Cache of URL with expanded "*"
 };
 
+// Representation of one entry in the remote_storage config option.
 struct RemoteStorageConfig
 {
+  // Raw URL with unexpanded "*".
+  std::string url_str;
+
+  // "shard" attribute.
   std::vector<RemoteStorageShardConfig> shards;
-  remote::RemoteStorage::Backend::Params params;
+
+  // "read-only" attribute.
   bool read_only = false;
+
+  // Other attributes.
+  std::vector<remote::RemoteStorage::Backend::Attribute> attributes;
 };
 
+// An instantiated remote storage backend.
 struct RemoteStorageBackendEntry
 {
-  Url url;                     // With expanded "*".
-  std::string url_for_logging; // With expanded "*".
+  Url url;                     // With expanded "*"
+  std::string url_for_logging; // With expanded "*"
   std::unique_ptr<remote::RemoteStorage::Backend> impl;
   bool failed = false;
 };
 
+// An instantiated remote storage.
 struct RemoteStorageEntry
 {
   RemoteStorageConfig config;
-  std::string url_for_logging; // With unexpanded "*".
   std::shared_ptr<remote::RemoteStorage> storage;
   std::vector<RemoteStorageBackendEntry> backends;
 };
@@ -110,18 +121,35 @@ struct RemoteStorageEntry
 static std::string
 to_string(const RemoteStorageConfig& entry)
 {
-  std::string result = entry.params.url.str();
-  for (const auto& attr : entry.params.attributes) {
+  std::string result = entry.url_str;
+  for (const auto& attr : entry.attributes) {
     result += FMT("|{}={}", attr.key, attr.raw_value);
   }
   return result;
+}
+
+static tl::expected<Url, std::string>
+url_from_string(const std::string& url_string)
+{
+  // The Url class is parsing the URL object lazily. Check if the URL is valid
+  // now to avoid exceptions later.
+  Url url(url_string);
+  try {
+    std::ignore = url.scheme();
+  } catch (const std::exception& e) {
+    return tl::unexpected(FMT("Cannot parse URL {}: {}", url_string, e.what()));
+  }
+  if (url.scheme().empty()) {
+    return tl::unexpected(FMT("URL scheme must not be empty: {}", url_string));
+  }
+  return url;
 }
 
 static RemoteStorageConfig
 parse_storage_config(const std::string_view entry)
 {
   const auto parts =
-    Util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
+    util::split_into_views(entry, "|", util::Tokenizer::Mode::include_empty);
 
   if (parts.empty() || parts.front().empty()) {
     throw core::Error(
@@ -129,20 +157,8 @@ parse_storage_config(const std::string_view entry)
   }
 
   RemoteStorageConfig result;
-  const auto url_str = std::string(parts[0]);
-  result.params.url = url_str;
-
-  // The Url class is parsing the URL object lazily. Check if the URL is valid
-  // now to avoid exceptions later.
-  try {
-    std::ignore = result.params.url.str();
-  } catch (const std::exception& e) {
-    throw core::Error(FMT("Cannot parse URL {}: {}", url_str, e.what()));
-  }
-
-  if (result.params.url.scheme().empty()) {
-    throw core::Error(FMT("URL scheme must not be empty: {}", entry));
-  }
+  result.url_str = std::string(parts[0]);
+  const auto& url_str = result.url_str;
 
   for (size_t i = 1; i < parts.size(); ++i) {
     if (parts[i].empty()) {
@@ -155,10 +171,16 @@ parse_storage_config(const std::string_view entry)
     if (key == "read-only") {
       result.read_only = (value == "true");
     } else if (key == "shards") {
-      if (url_str.find('*') == std::string::npos) {
+      const auto asterisk_count =
+        std::count(url_str.begin(), url_str.end(), '*');
+      if (asterisk_count == 0) {
         throw core::Error(
           FMT(R"(Missing "*" in URL when using shards: "{}")", url_str));
+      } else if (asterisk_count > 1) {
+        throw core::Error(
+          FMT(R"(Multiple "*" in URL when using shards: "{}")", url_str));
       }
+      std::string scheme;
       for (const auto& shard : util::Tokenizer(value, ",")) {
         double weight = 1.0;
         std::string_view name;
@@ -178,12 +200,26 @@ parse_storage_config(const std::string_view entry)
           name = shard;
         }
 
-        result.shards.push_back({std::string(name), weight});
+        Url url = util::value_or_throw<core::Error>(
+          url_from_string(util::replace_first(url_str, "*", name)));
+        if (!scheme.empty() && url.scheme() != scheme) {
+          throw core::Error(FMT("Scheme {} different from {} in {}",
+                                url.scheme(),
+                                scheme,
+                                url_str));
+        }
+        result.shards.push_back({std::string(name), weight, url});
       }
     }
 
-    result.params.attributes.push_back(
+    result.attributes.push_back(
       {std::string(key), value, std::string(raw_value)});
+  }
+
+  // No shards => save the single URL as the sole shard.
+  if (result.shards.empty()) {
+    result.shards.push_back(
+      {"", 0.0, util::value_or_throw<core::Error>(url_from_string(url_str))});
   }
 
   return result;
@@ -200,9 +236,9 @@ parse_storage_configs(const std::string_view& configs)
 }
 
 static std::shared_ptr<remote::RemoteStorage>
-get_storage(const Url& url)
+get_storage(const std::string& scheme)
 {
-  const auto it = k_remote_storage_implementations.find(url.scheme());
+  const auto it = k_remote_storage_implementations.find(scheme);
   if (it != k_remote_storage_implementations.end()) {
     return it->second;
   } else {
@@ -216,10 +252,7 @@ Storage::Storage(const Config& config) : local(config), m_config(config)
 
 // Define the destructor in the implementation file to avoid having to declare
 // RemoteStorageEntry and its constituents in the header file.
-// NOLINTNEXTLINE(modernize-use-equals-default)
-Storage::~Storage()
-{
-}
+Storage::~Storage() = default;
 
 void
 Storage::initialize()
@@ -234,7 +267,7 @@ Storage::finalize()
 }
 
 void
-Storage::get(const Digest& key,
+Storage::get(const Hash::Hash::Digest& key,
              const core::CacheEntryType type,
              const EntryReceiver& entry_receiver)
 {
@@ -261,7 +294,7 @@ Storage::get(const Digest& key,
 }
 
 void
-Storage::put(const Digest& key,
+Storage::put(const Hash::Digest& key,
              const core::CacheEntryType type,
              nonstd::span<const uint8_t> value)
 {
@@ -274,7 +307,7 @@ Storage::put(const Digest& key,
 }
 
 void
-Storage::remove(const Digest& key, const core::CacheEntryType type)
+Storage::remove(const Hash::Digest& key, const core::CacheEntryType type)
 {
   MTR_SCOPE("storage", "remove");
 
@@ -290,23 +323,31 @@ Storage::has_remote_storage() const
   return !m_remote_storages.empty();
 }
 
+static std::string
+get_redacted_url_str_for_logging(const Url& url)
+{
+  Url redacted_url(url);
+  if (!url.user_info().empty()) {
+    redacted_url.user_info(k_redacted_password);
+  }
+  return redacted_url.str();
+}
+
 std::string
 Storage::get_remote_storage_config_for_logging() const
 {
   auto configs = parse_storage_configs(m_config.remote_storage());
   for (auto& config : configs) {
-    const auto storage = get_storage(config.params.url);
-    if (storage) {
-      storage->redact_secrets(config.params);
-    }
+    const auto url = url_from_string(config.url_str);
+    if (url) {
+      const auto storage = get_storage(url->scheme());
+      if (storage) {
+        config.url_str = get_redacted_url_str_for_logging(*url);
+        storage->redact_secrets(config.attributes);
+      }
+    } // else: unexpanded URL is not a proper URL, not much we can do
   }
   return util::join(configs, " ");
-}
-
-static void
-redact_url_for_logging(Url& url_for_logging)
-{
-  url_for_logging.user_info("");
 }
 
 void
@@ -314,15 +355,14 @@ Storage::add_remote_storages()
 {
   const auto configs = parse_storage_configs(m_config.remote_storage());
   for (const auto& config : configs) {
-    auto url_for_logging = config.params.url;
-    redact_url_for_logging(url_for_logging);
-    const auto storage = get_storage(config.params.url);
+    ASSERT(!config.shards.empty());
+    const std::string scheme = config.shards.front().url.scheme();
+    const auto storage = get_storage(scheme);
     if (!storage) {
-      throw core::Error(
-        FMT("unknown remote storage URL: {}", url_for_logging.str()));
+      throw core::Error(FMT("unknown remote storage scheme: {}", scheme));
     }
     m_remote_storages.push_back(std::make_unique<RemoteStorageEntry>(
-      RemoteStorageEntry{config, url_for_logging.str(), storage, {}}));
+      RemoteStorageEntry{config, storage, {}}));
   }
 }
 
@@ -349,66 +389,64 @@ to_half_open_unit_interval(uint64_t value)
 }
 
 static Url
-get_shard_url(const Digest& key,
-              const std::string& url,
+get_shard_url(const Hash::Digest& key,
               const std::vector<RemoteStorageShardConfig>& shards)
 {
   ASSERT(!shards.empty());
 
+  if (shards.size() == 1) {
+    return shards.front().url;
+  }
+
   // This is the "weighted rendezvous hashing" algorithm.
   double highest_score = -1.0;
-  std::string best_shard;
+  Url best_shard_url;
   for (const auto& shard_config : shards) {
     util::XXH3_64 hash;
-    hash.update(key.bytes(), key.size());
+    hash.update(key.data(), key.size());
     hash.update(shard_config.name.data(), shard_config.name.length());
     const double score = to_half_open_unit_interval(hash.digest());
     ASSERT(score >= 0.0 && score < 1.0);
     const double weighted_score =
       score == 0.0 ? 0.0 : shard_config.weight / -std::log(score);
     if (weighted_score > highest_score) {
-      best_shard = shard_config.name;
+      best_shard_url = shard_config.url;
       highest_score = weighted_score;
     }
   }
 
-  return util::replace_first(url, "*", best_shard);
+  return best_shard_url;
 }
 
 RemoteStorageBackendEntry*
 Storage::get_backend(RemoteStorageEntry& entry,
-                     const Digest& key,
+                     const Hash::Digest& key,
                      const std::string_view operation_description,
                      const bool for_writing)
 {
   if (for_writing && entry.config.read_only) {
-    LOG("Not {} {} since it is read-only",
+    LOG("Not {} {} storage since it is read-only",
         operation_description,
-        entry.url_for_logging);
+        entry.config.shards.front().url.scheme());
     return nullptr;
   }
 
-  const auto shard_url =
-    entry.config.shards.empty()
-      ? entry.config.params.url
-      : get_shard_url(key, entry.config.params.url.str(), entry.config.shards);
+  const auto shard_url = get_shard_url(key, entry.config.shards);
+  const auto url_str_for_logging =
+    get_redacted_url_str_for_logging(shard_url.str());
   auto backend =
     std::find_if(entry.backends.begin(),
                  entry.backends.end(),
                  [&](const auto& x) { return x.url.str() == shard_url.str(); });
 
   if (backend == entry.backends.end()) {
-    auto shard_url_for_logging = shard_url;
-    redact_url_for_logging(shard_url_for_logging);
-    entry.backends.push_back(
-      {shard_url, shard_url_for_logging.str(), {}, false});
-    auto shard_params = entry.config.params;
-    shard_params.url = shard_url;
+    entry.backends.push_back({shard_url, url_str_for_logging, {}, false});
     try {
-      entry.backends.back().impl = entry.storage->create_backend(shard_params);
+      entry.backends.back().impl =
+        entry.storage->create_backend(shard_url, entry.config.attributes);
     } catch (const remote::RemoteStorage::Backend::Failed& e) {
       LOG("Failed to construct backend for {}{}",
-          entry.url_for_logging,
+          url_str_for_logging,
           std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
       return nullptr;
@@ -417,7 +455,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
   } else if (backend->failed) {
     LOG("Not {} {} since it failed earlier",
         operation_description,
-        entry.url_for_logging);
+        url_str_for_logging);
     return nullptr;
   } else {
     return &*backend;
@@ -425,7 +463,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
 }
 
 void
-Storage::get_from_remote_storage(const Digest& key,
+Storage::get_from_remote_storage(const Hash::Digest& key,
                                  const core::CacheEntryType type,
                                  const EntryReceiver& entry_receiver)
 {
@@ -448,7 +486,7 @@ Storage::get_from_remote_storage(const Digest& key,
     auto& value = *result;
     if (value) {
       LOG("Retrieved {} from {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_hit);
@@ -460,19 +498,16 @@ Storage::get_from_remote_storage(const Digest& key,
       }
     } else {
       LOG("No {} in {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_miss);
-      if (type == core::CacheEntryType::result) {
-        local.increment_statistic(core::Statistic::remote_storage_miss);
-      }
     }
   }
 }
 
 void
-Storage::put_in_remote_storage(const Digest& key,
+Storage::put_in_remote_storage(const Hash::Digest& key,
                                nonstd::span<const uint8_t> value,
                                bool only_if_missing)
 {
@@ -480,7 +515,7 @@ Storage::put_in_remote_storage(const Digest& key,
 
   if (!core::CacheEntry::Header(value).self_contained) {
     LOG("Not putting {} in remote storage since it's not self-contained",
-        key.to_string());
+        util::format_digest(key));
     return;
   }
 
@@ -502,7 +537,7 @@ Storage::put_in_remote_storage(const Digest& key,
     const bool stored = *result;
     LOG("{} {} in {} ({:.2f} ms)",
         stored ? "Stored" : "Did not have to store",
-        key.to_string(),
+        util::format_digest(key),
         backend->url_for_logging,
         ms);
     local.increment_statistic(core::Statistic::remote_storage_write);
@@ -510,7 +545,7 @@ Storage::put_in_remote_storage(const Digest& key,
 }
 
 void
-Storage::remove_from_remote_storage(const Digest& key)
+Storage::remove_from_remote_storage(const Hash::Digest& key)
 {
   MTR_SCOPE("remote_storage", "remove");
 
@@ -531,12 +566,12 @@ Storage::remove_from_remote_storage(const Digest& key)
     const bool removed = *result;
     if (removed) {
       LOG("Removed {} from {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
     } else {
       LOG("No {} to remove from {} ({:.2f} ms)",
-          key.to_string(),
+          util::format_digest(key),
           backend->url_for_logging,
           ms);
     }

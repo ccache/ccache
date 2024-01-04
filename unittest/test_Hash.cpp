@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #include "../src/Hash.hpp"
 
+#include <util/string.hpp>
+
 #include "third_party/doctest.h"
 
 TEST_SUITE_BEGIN("Hash");
@@ -26,24 +28,25 @@ TEST_CASE("known strings")
 {
   SUBCASE("initial state")
   {
-    CHECK(Hash().digest().to_string() == "af1396svbud1kqg40jfa6reciicrpcisi");
+    CHECK(util::format_digest(Hash().digest())
+          == "af1396svbud1kqg40jfa6reciicrpcisi");
   }
 
   SUBCASE("empty string")
   {
-    CHECK(Hash().hash("").digest().to_string()
+    CHECK(util::format_digest(Hash().hash("").digest())
           == "af1396svbud1kqg40jfa6reciicrpcisi");
   }
 
   SUBCASE("a")
   {
-    CHECK(Hash().hash("a").digest().to_string()
+    CHECK(util::format_digest(Hash().hash("a").digest())
           == "17765vetiqd4ae95qpbhfb1ut8gj42r6m");
   }
 
   SUBCASE("message digest")
   {
-    CHECK(Hash().hash("message digest").digest().to_string()
+    CHECK(util::format_digest(Hash().hash("message digest").digest())
           == "7bc2kbnbinerv6ruptldpdrb8ko93hcdo");
   }
 
@@ -52,7 +55,7 @@ TEST_CASE("known strings")
     const char long_string[] =
       "123456789012345678901234567890123456789012345678901234567890"
       "12345678901234567890";
-    CHECK(Hash().hash(long_string).digest().to_string()
+    CHECK(util::format_digest(Hash().hash(long_string).digest())
           == "f263ljqhc8co1ee8rpeq98bt654o9o2qm");
   }
 }
@@ -63,24 +66,14 @@ TEST_CASE("Hash::digest should not alter state")
   h.hash("message");
   h.digest();
   h.hash(" digest");
-  CHECK(h.digest().to_string() == "7bc2kbnbinerv6ruptldpdrb8ko93hcdo");
+  CHECK(util::format_digest(h.digest()) == "7bc2kbnbinerv6ruptldpdrb8ko93hcdo");
 }
 
 TEST_CASE("Hash::digest should be idempotent")
 {
   Hash h;
-  CHECK(h.digest().to_string() == "af1396svbud1kqg40jfa6reciicrpcisi");
-  CHECK(h.digest().to_string() == "af1396svbud1kqg40jfa6reciicrpcisi");
-}
-
-TEST_CASE("Digest::bytes")
-{
-  Digest d = Hash().hash("message digest").digest();
-  uint8_t expected[Digest::size()] = {
-    0x7b, 0xc2, 0xa2, 0xee, 0xb9, 0x5d, 0xdb, 0xf9, 0xb7, 0xec,
-    0xf6, 0xad, 0xcb, 0x76, 0xb4, 0x53, 0x09, 0x1c, 0x58, 0xdc,
-  };
-  CHECK(memcmp(d.bytes(), expected, Digest::size()) == 0);
+  CHECK(util::format_digest(h.digest()) == "af1396svbud1kqg40jfa6reciicrpcisi");
+  CHECK(util::format_digest(h.digest()) == "af1396svbud1kqg40jfa6reciicrpcisi");
 }
 
 TEST_SUITE_END();

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <Hash.hpp>
 #include <core/types.hpp>
 #include <storage/local/LocalStorage.hpp>
 #include <storage/remote/RemoteStorage.hpp>
@@ -32,9 +33,9 @@
 #include <string>
 #include <vector>
 
-class Digest;
-
 namespace storage {
+
+constexpr auto k_redacted_password = "********";
 
 std::string get_features();
 
@@ -54,15 +55,15 @@ public:
 
   using EntryReceiver = std::function<bool(util::Bytes&&)>;
 
-  void get(const Digest& key,
+  void get(const Hash::Digest& key,
            core::CacheEntryType type,
            const EntryReceiver& entry_receiver);
 
-  void put(const Digest& key,
+  void put(const Hash::Digest& key,
            core::CacheEntryType type,
            nonstd::span<const uint8_t> value);
 
-  void remove(const Digest& key, core::CacheEntryType type);
+  void remove(const Hash::Digest& key, core::CacheEntryType type);
 
   bool has_remote_storage() const;
   std::string get_remote_storage_config_for_logging() const;
@@ -77,19 +78,19 @@ private:
                               remote::RemoteStorage::Backend::Failure failure);
 
   RemoteStorageBackendEntry* get_backend(RemoteStorageEntry& entry,
-                                         const Digest& key,
+                                         const Hash::Digest& key,
                                          std::string_view operation_description,
                                          const bool for_writing);
 
-  void get_from_remote_storage(const Digest& key,
+  void get_from_remote_storage(const Hash::Digest& key,
                                core::CacheEntryType type,
                                const EntryReceiver& entry_receiver);
 
-  void put_in_remote_storage(const Digest& key,
+  void put_in_remote_storage(const Hash::Digest& key,
                              nonstd::span<const uint8_t> value,
                              bool only_if_missing);
 
-  void remove_from_remote_storage(const Digest& key);
+  void remove_from_remote_storage(const Hash::Digest& key);
 };
 
 } // namespace storage

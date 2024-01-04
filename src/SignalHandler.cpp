@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,31 +18,48 @@
 
 #include "SignalHandler.hpp"
 
-#ifndef _WIN32
+#include "Context.hpp"
 
-#  include "Context.hpp"
-#  include "assertions.hpp"
+#include <util/assertions.hpp>
 
-#  include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
-#  include <sys/types.h>
-#  include <sys/wait.h>
-#  include <unistd.h>
+#include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace {
 
 SignalHandler* g_the_signal_handler = nullptr;
 sigset_t g_fatal_signal_set;
 
+const int k_handled_signals[] = {
+  SIGINT,
+  SIGTERM,
+#ifdef SIGHUP
+  SIGHUP,
+#endif
+#ifdef SIGQUIT
+  SIGQUIT,
+#endif
+};
+
 void
 register_signal_handler(int signum)
 {
-  struct sigaction act;
-  memset(&act, 0, sizeof(act));
+  struct sigaction act = {};
   act.sa_handler = SignalHandler::on_signal;
   act.sa_mask = g_fatal_signal_set;
-#  ifdef SA_RESTART
+#ifdef SA_RESTART
   act.sa_flags = SA_RESTART;
-#  endif
+#endif
+  sigaction(signum, &act, nullptr);
+}
+
+void
+deregister_signal_handler(int signum)
+{
+  struct sigaction act = {};
+  act.sa_handler = SIG_DFL;
   sigaction(signum, &act, nullptr);
 }
 
@@ -54,23 +71,13 @@ SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
   g_the_signal_handler = this;
 
   sigemptyset(&g_fatal_signal_set);
-  sigaddset(&g_fatal_signal_set, SIGINT);
-  sigaddset(&g_fatal_signal_set, SIGTERM);
-#  ifdef SIGHUP
-  sigaddset(&g_fatal_signal_set, SIGHUP);
-#  endif
-#  ifdef SIGQUIT
-  sigaddset(&g_fatal_signal_set, SIGQUIT);
-#  endif
+  for (int signum : k_handled_signals) {
+    sigaddset(&g_fatal_signal_set, signum);
+  }
 
-  register_signal_handler(SIGINT);
-  register_signal_handler(SIGTERM);
-#  ifdef SIGHUP
-  register_signal_handler(SIGHUP);
-#  endif
-#  ifdef SIGQUIT
-  register_signal_handler(SIGQUIT);
-#  endif
+  for (int signum : k_handled_signals) {
+    register_signal_handler(signum);
+  }
 
   signal(SIGPIPE, SIG_IGN); // NOLINT: This is no error, clang-tidy
 }
@@ -78,6 +85,11 @@ SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
 SignalHandler::~SignalHandler()
 {
   ASSERT(g_the_signal_handler);
+
+  for (int signum : k_handled_signals) {
+    deregister_signal_handler(signum);
+  }
+
   g_the_signal_handler = nullptr;
 }
 
@@ -110,34 +122,18 @@ SignalHandler::on_signal(int signum)
   kill(getpid(), signum);
 }
 
-#else // !_WIN32
-
-SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
-{
-}
-
-SignalHandler::~SignalHandler()
-{
-}
-
-#endif // !_WIN32
-
 void
 SignalHandler::block_signals()
 {
-#ifndef _WIN32
   sigprocmask(SIG_BLOCK, &g_fatal_signal_set, nullptr);
-#endif
 }
 
 void
 SignalHandler::unblock_signals()
 {
-#ifndef _WIN32
   sigset_t empty;
   sigemptyset(&empty);
   sigprocmask(SIG_SETMASK, &empty, nullptr);
-#endif
 }
 
 SignalHandlerBlocker::SignalHandlerBlocker()

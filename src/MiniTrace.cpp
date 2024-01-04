@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,46 +19,32 @@
 #include "MiniTrace.hpp"
 
 #include "ArgsInfo.hpp"
-#include "TemporaryFile.hpp"
-#include "Util.hpp"
-#include "fmtmacros.hpp"
 
-#include <core/wincompat.hpp>
+#include <core/exceptions.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/TimePoint.hpp>
-
-#include <limits.h> // NOLINT: PATH_MAX is defined in limits.h
+#include <util/expected.hpp>
+#include <util/file.hpp>
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
 
-namespace {
-
-std::string
-get_system_tmp_dir()
-{
-#ifndef _WIN32
-  const char* tmpdir = getenv("TMPDIR");
-  if (tmpdir) {
-    return tmpdir;
-  }
-#else
-  static char dirbuf[PATH_MAX];
-  DWORD retval = GetTempPath(PATH_MAX, dirbuf);
-  if (retval > 0 && retval < PATH_MAX) {
-    return dirbuf;
-  }
-#endif
-  return "/tmp";
-}
-
-} // namespace
+namespace fs = util::filesystem;
 
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
   : m_args_info(args_info),
     m_trace_id(reinterpret_cast<void*>(getpid()))
 {
-  TemporaryFile tmp_file(get_system_tmp_dir() + "/ccache-trace");
+  auto tmp_dir = fs::temp_directory_path();
+  if (!tmp_dir) {
+    tmp_dir = "/tmp";
+  }
+  auto tmp_file = util::value_or_throw<core::Fatal>(
+    util::TemporaryFile::create(*tmp_dir / "ccache-trace"));
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
@@ -76,7 +62,7 @@ MiniTrace::~MiniTrace()
   mtr_shutdown();
 
   if (!m_args_info.output_obj.empty()) {
-    Util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
+    util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
   }
-  Util::unlink_tmp(m_tmp_trace_file);
+  util::remove(m_tmp_trace_file);
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <Util.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
+#include <util/conversion.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 #include <third_party/nonstd/span.hpp>
@@ -92,7 +92,7 @@ CacheEntryDataReader::read_int()
 {
   const auto buffer = read_bytes(sizeof(T));
   T value;
-  Util::big_endian_to_int(buffer.data(), value);
+  util::big_endian_to_int(buffer.data(), value);
   return value;
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,10 @@
 
 #pragma once
 
-#include "NonCopyable.hpp"
-
 #include <core/Sloppiness.hpp>
+#include <util/NonCopyable.hpp>
+#include <util/filesystem.hpp>
+#include <util/string.hpp>
 
 #include <sys/types.h>
 
@@ -30,6 +31,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 enum class CompilerType {
   auto_guess,
@@ -44,12 +46,12 @@ enum class CompilerType {
 
 std::string compiler_type_to_string(CompilerType compiler_type);
 
-class Config : NonCopyable
+class Config : util::NonCopyable
 {
 public:
   Config() = default;
 
-  void read();
+  void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;
@@ -61,7 +63,8 @@ public:
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
   bool debug() const;
-  const std::string& debug_dir() const;
+  const std::filesystem::path& debug_dir() const;
+  uint8_t debug_level() const;
   bool depend_mode() const;
   bool direct_mode() const;
   bool disable() const;
@@ -73,7 +76,6 @@ public:
   const std::string& ignore_options() const;
   bool inode_cache() const;
   bool keep_comments_cpp() const;
-  double limit_multiple() const;
   const std::string& log_file() const;
   uint64_t max_files() const;
   uint64_t max_size() const;
@@ -102,6 +104,7 @@ public:
   // Return true for MSVC (cl.exe), clang-cl, and icl.
   bool is_compiler_group_msvc() const;
 
+  util::SizeUnitPrefixType size_unit_prefix_type() const;
   std::string default_temporary_dir() const;
 
   void set_base_dir(const std::string& value);
@@ -117,7 +120,6 @@ public:
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
-  void set_max_size(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
   void set_run_second_cpp(bool value);
   void set_temporary_dir(const std::string& value);
@@ -139,6 +141,11 @@ public:
   // Returns false if the file can't be opened, otherwise true. Throws Error on
   // invalid configuration values.
   bool update_from_file(const std::string& path);
+
+  // Set config values from a map with key-value pairs.
+  //
+  // Throws Error on invalid configuration values.
+  void update_from_map(const std::unordered_map<std::string, std::string>& map);
 
   // Set config values from environment variables.
   //
@@ -171,7 +178,8 @@ private:
   int8_t m_compression_level = 0; // Use default level
   std::string m_cpp_extension;
   bool m_debug = false;
-  std::string m_debug_dir;
+  std::filesystem::path m_debug_dir;
+  uint8_t m_debug_level = 2;
   bool m_depend_mode = false;
   bool m_direct_mode = true;
   bool m_disable = false;
@@ -183,10 +191,9 @@ private:
   std::string m_ignore_options;
   bool m_inode_cache = true;
   bool m_keep_comments_cpp = false;
-  double m_limit_multiple = 0.8;
   std::string m_log_file;
   uint64_t m_max_files = 0;
-  uint64_t m_max_size = 5ULL * 1000 * 1000 * 1000;
+  uint64_t m_max_size = 5ULL * 1024 * 1024 * 1024;
   std::string m_msvc_dep_prefix = "Note: including file:";
   std::string m_path;
   bool m_pch_external_checksum = false;
@@ -207,11 +214,13 @@ private:
   std::optional<mode_t> m_umask;
 
   bool m_temporary_dir_configured_explicitly = false;
+  util::SizeUnitPrefixType m_size_prefix_type =
+    util::SizeUnitPrefixType::binary;
 
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
 
   void set_item(const std::string& key,
-                const std::string& value,
+                const std::string& unexpanded_value,
                 const std::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
@@ -292,10 +301,16 @@ Config::debug() const
   return m_debug;
 }
 
-inline const std::string&
+inline const std::filesystem::path&
 Config::debug_dir() const
 {
   return m_debug_dir;
+}
+
+inline uint8_t
+Config::debug_level() const
+{
+  return m_debug_level;
 }
 
 inline bool
@@ -362,12 +377,6 @@ inline bool
 Config::keep_comments_cpp() const
 {
   return m_keep_comments_cpp;
-}
-
-inline double
-Config::limit_multiple() const
-{
-  return m_limit_multiple;
 }
 
 inline const std::string&
@@ -496,6 +505,12 @@ Config::umask() const
   return m_umask;
 }
 
+inline util::SizeUnitPrefixType
+Config::size_unit_prefix_type() const
+{
+  return m_size_prefix_type;
+}
+
 inline void
 Config::set_base_dir(const std::string& value)
 {
@@ -575,12 +590,6 @@ inline void
 Config::set_max_files(uint64_t value)
 {
   m_max_files = value;
-}
-
-inline void
-Config::set_max_size(uint64_t value)
-{
-  m_max_size = value;
 }
 
 inline void

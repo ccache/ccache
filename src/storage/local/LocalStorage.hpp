@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,33 +18,44 @@
 
 #pragma once
 
-#include <Digest.hpp>
+#include <Hash.hpp>
 #include <core/Result.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
+#include <storage/local/StatsFile.hpp>
 #include <storage/local/util.hpp>
 #include <storage/types.hpp>
 #include <util/Bytes.hpp>
+#include <util/LockFile.hpp>
 #include <util/TimePoint.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 class Config;
 
-namespace storage {
-namespace local {
+namespace storage::local {
 
 struct CompressionStatistics
 {
-  uint64_t compr_size;
+  // Storage that would be needed to store the content of compressible entries
+  // uncompressed (without headers), rounded up to disk blocks.
   uint64_t content_size;
-  uint64_t incompr_size;
-  uint64_t on_disk_size;
+  // Actual size of compressible entries (including headers), rounded up to disk
+  // blocks.
+  uint64_t actual_size;
+  // Actual size of incompressible entries, rounded up to disk blocks.
+  uint64_t incompressible_size;
 };
+
+enum class FileType { result, manifest, raw, unknown };
+
+FileType file_type_from_path(const std::filesystem::path& path);
 
 class LocalStorage
 {
@@ -55,23 +66,31 @@ public:
 
   // --- Cache entry handling ---
 
-  std::optional<util::Bytes> get(const Digest& key, core::CacheEntryType type);
+  std::optional<util::Bytes> get(const Hash::Digest& key,
+                                 core::CacheEntryType type);
 
-  void put(const Digest& key,
+  void put(const Hash::Digest& key,
            core::CacheEntryType type,
            nonstd::span<const uint8_t> value,
            bool only_if_missing = false);
 
-  void remove(const Digest& key, core::CacheEntryType type);
+  void remove(const Hash::Digest& key, core::CacheEntryType type);
 
   static std::string get_raw_file_path(std::string_view result_path,
                                        uint8_t file_number);
-  std::string get_raw_file_path(const Digest& result_key,
+  std::string get_raw_file_path(const Hash::Digest& result_key,
                                 uint8_t file_number) const;
 
   void
-  put_raw_files(const Digest& key,
+  put_raw_files(const Hash::Digest& key,
                 const std::vector<core::Result::Serializer::RawFile> raw_files);
+
+  // Clone, hard link or copy a file from `source` to `dest` depending on
+  // settings in `ctx`. If cloning or hard linking cannot and should not be done
+  // the file will be copied instead. Throws `core::Error` on error.
+  void clone_hard_link_or_copy_file(const std::string& source,
+                                    const std::string& dest,
+                                    bool via_tmp_file = false) const;
 
   // --- Statistics ---
 
@@ -104,59 +123,88 @@ public:
   get_compression_statistics(const ProgressReceiver& progress_receiver) const;
 
   void recompress(std::optional<int8_t> level,
+                  uint32_t threads,
                   const ProgressReceiver& progress_receiver);
 
 private:
   const Config& m_config;
 
-  // Main statistics updates (result statistics and size/count change for result
-  // file) which get written into the statistics file belonging to the result
-  // file.
-  core::StatisticsCounters m_result_counter_updates;
-
-  // Statistics updates (only for manifest size/count change) which get written
-  // into the statistics file belonging to the manifest.
-  core::StatisticsCounters m_manifest_counter_updates;
-
-  // The manifest and result keys and paths are stored by put() so that
-  // finalize() can use them to move the files in place.
-  std::optional<Digest> m_manifest_key;
-  std::optional<Digest> m_result_key;
-  std::string m_manifest_path;
-  std::string m_result_path;
+  // Statistics updates (excluding size/count changes) that will get written to
+  // a statistics file in the finalize method.
+  core::StatisticsCounters m_counter_updates;
 
   std::vector<std::string> m_added_raw_files;
+  bool m_stored_data = false;
 
   struct LookUpCacheFileResult
   {
     std::string path;
-    Stat stat;
+    util::DirEntry dir_entry;
     uint8_t level;
   };
 
-  LookUpCacheFileResult look_up_cache_file(const Digest& key,
+  LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key,
                                            core::CacheEntryType type) const;
 
-  void clean_internal_tempdir();
+  std::string get_subdir(uint8_t l1_index) const;
+  std::string get_subdir(uint8_t l1_index, uint8_t l2_index) const;
 
-  std::optional<core::StatisticsCounters>
-  update_stats_and_maybe_move_cache_file(
-    const Digest& key,
-    const std::string& current_path,
-    const core::StatisticsCounters& counter_updates,
-    core::CacheEntryType type);
+  StatsFile get_stats_file(uint8_t l1_index) const;
+  StatsFile get_stats_file(uint8_t l1_index, uint8_t l2_index) const;
+
+  void move_to_wanted_cache_level(const core::StatisticsCounters& counters,
+                                  const Hash::Digest& key,
+                                  core::CacheEntryType type,
+                                  const std::string& cache_file_path);
+
+  void recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
+                           uint8_t l1_index);
+
+  std::optional<core::StatisticsCounters> increment_files_and_size_counters(
+    uint8_t l1_index, uint8_t l2_index, int64_t files, int64_t size_kibibyte);
+  std::optional<core::StatisticsCounters> increment_files_and_size_counters(
+    const Hash::Digest& key, int64_t files, int64_t size_kibibyte);
+
+  void perform_automatic_cleanup();
+
+  void do_clean_all(const ProgressReceiver& progress_receiver,
+                    uint64_t max_size,
+                    uint64_t max_files,
+                    std::optional<uint64_t> max_age,
+                    std::optional<std::string> namespace_);
+
+  struct EvaluateCleanupResult
+  {
+    uint8_t l1_index;
+    std::string l1_path;
+    core::StatisticsCounters l1_counters;
+    uint64_t total_files;
+  };
+
+  std::optional<EvaluateCleanupResult> evaluate_cleanup();
+
+  std::vector<util::LockFile> acquire_all_level_2_content_locks(
+    util::LongLivedLockFileManager& lock_manager, uint8_t l1_index);
+
+  void clean_internal_tempdir();
 
   // Join the cache directory, a '/' and `name` into a single path and return
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
   std::string get_path_in_cache(uint8_t level, std::string_view name) const;
 
-  static void clean_dir(const std::string& subdir,
-                        uint64_t max_size,
-                        uint64_t max_files,
-                        std::optional<uint64_t> max_age,
-                        std::optional<std::string> namespace_,
-                        const ProgressReceiver& progress_receiver);
+  std::string get_lock_path(const std::string& name) const;
+
+  util::LockFile get_auto_cleanup_lock() const;
+
+  // A level 2 content lock grants exclusive access to a level 2 directory in
+  // the cache. It must be acquired before adding, removing or recounting files
+  // in the directory (including any subdirectories). However, the lock does not
+  // have to be acquired to update a level 2 stats file since level 2 content
+  // size and file count are stored in the parent (level 1) stats file.
+  util::LockFile get_level_2_content_lock(const Hash::Digest& key) const;
+  util::LockFile get_level_2_content_lock(uint8_t l1_index,
+                                          uint8_t l2_index) const;
 };
 
 // --- Inline implementations ---
@@ -164,8 +212,7 @@ private:
 inline const core::StatisticsCounters&
 LocalStorage::get_statistics_updates() const
 {
-  return m_result_counter_updates;
+  return m_counter_updates;
 }
 
-} // namespace local
-} // namespace storage
+} // namespace storage::local

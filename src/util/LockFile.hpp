@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,129 +18,67 @@
 
 #pragma once
 
-#include <NonCopyable.hpp>
+#include <util/LongLivedLockFileManager.hpp>
+#include <util/NonCopyable.hpp>
 #include <util/TimePoint.hpp>
 
-#include <condition_variable>
-#include <cstdint>
+#include <filesystem>
 #include <optional>
-#include <string>
-#include <thread>
 
 namespace util {
 
-class LockFile : NonCopyable
+// Unless make_long_lived is called, the lock is expected to be released shortly
+// after being acquired - if it is held for more than two seconds it risks being
+// considered stale by another client.
+class LockFile : util::NonCopyable
 {
 public:
-  virtual ~LockFile() noexcept = default;
+  explicit LockFile(const std::filesystem::path& path);
+  LockFile(LockFile&& other) noexcept;
+
+  LockFile& operator=(LockFile&& other) noexcept;
+
+  // Release the lock if previously acquired.
+  ~LockFile();
+
+  // Make this lock long-lived. Depending on implementation, it will be kept
+  // alive by a helper thread.
+  void make_long_lived(LongLivedLockFileManager& lock_manager);
 
   // Acquire lock, blocking. Returns true if acquired, otherwise false.
-  bool acquire();
+  [[nodiscard]] bool acquire();
 
   // Acquire lock, non-blocking. Returns true if acquired, otherwise false.
-  bool try_acquire();
+  [[nodiscard]] bool try_acquire();
 
-  // Release lock. If not previously acquired, nothing happens.
+  // Release lock early. If not previously acquired, nothing happens.
   void release();
 
-  // Return whether the lock was acquired successfully.
+  // Return whether the lock is acquired successfully.
   bool acquired() const;
 
-protected:
-  LockFile(const std::string& path);
-
 private:
-  std::string m_lock_file;
+  std::filesystem::path m_lock_file;
 #ifndef _WIN32
+  LongLivedLockFileManager* m_lock_manager = nullptr;
+  std::filesystem::path m_alive_file;
   bool m_acquired;
 #else
   void* m_handle;
 #endif
 
   bool acquire(bool blocking);
-  virtual void on_after_acquire();
-  virtual void on_before_release();
 #ifndef _WIN32
   bool do_acquire(bool blocking);
-  virtual bool on_before_break();
-  virtual std::optional<util::TimePoint> get_last_lock_update();
+  std::optional<TimePoint> get_last_lock_update();
 #else
   void* do_acquire(bool blocking);
 #endif
 };
 
-// A short-lived lock.
-//
-// The lock is expected to be released shortly after being acquired - if it is
-// held for more than two seconds it risks being considered stale by another
-// client.
-class ShortLivedLockFile : public LockFile
+inline LockFile::~LockFile()
 {
-public:
-  ShortLivedLockFile(const std::string& path);
-};
-
-// A long-lived lock.
-//
-// The lock will (depending on implementation) be kept alive by a helper thread.
-class LongLivedLockFile : public LockFile
-{
-public:
-  LongLivedLockFile(const std::string& path);
-
-private:
-#ifndef _WIN32
-  std::string m_alive_file;
-  std::thread m_keep_alive_thread;
-  std::mutex m_stop_keep_alive_mutex;
-  bool m_stop_keep_alive = false;
-  std::condition_variable m_stop_keep_alive_condition;
-
-  void on_after_acquire() override;
-  void on_before_release() override;
-  bool on_before_break() override;
-  std::optional<util::TimePoint> get_last_lock_update() override;
-#endif
-};
-
-class LockFileGuard : NonCopyable
-{
-public:
-  enum class Mode { blocking, non_blocking };
-
-  LockFileGuard(LockFile& lock_file, Mode mode = Mode::blocking);
-  ~LockFileGuard() noexcept;
-
-  bool acquired() const;
-
-private:
-  LockFile& m_lock_file;
-};
-
-inline void
-LockFile::on_after_acquire()
-{
+  release();
 }
-
-inline void
-LockFile::on_before_release()
-{
-}
-
-#ifndef _WIN32
-
-inline bool
-LockFile::on_before_break()
-{
-  return true;
-}
-
-inline std::optional<util::TimePoint>
-LockFile::get_last_lock_update()
-{
-  return std::nullopt;
-}
-
-#endif
 
 } // namespace util

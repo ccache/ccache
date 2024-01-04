@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,9 +18,7 @@
 
 #pragma once
 
-#include <assertions.hpp>
-
-#include <third_party/fmt/core.h>
+#include <util/assertions.hpp>
 
 #include <string_view>
 

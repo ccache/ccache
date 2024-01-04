@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 
 namespace util {
 
@@ -85,24 +86,24 @@ public:
   void insert(const uint8_t* pos, const char* data, size_t size) noexcept;
 
 private:
-  uint8_t* m_data = nullptr;
+  std::unique_ptr<uint8_t[]> m_data;
   size_t m_size = 0;
   size_t m_capacity = 0;
 };
 
 inline Bytes::Bytes(size_t size) noexcept
-  : m_data(new uint8_t[size]),
+  : m_data(std::make_unique<uint8_t[]>(size)),
     m_size(size),
     m_capacity(size)
 {
 }
 
 inline Bytes::Bytes(const void* data, size_t size) noexcept
-  : m_data(new uint8_t[size]),
+  : m_data(std::make_unique<uint8_t[]>(size)),
     m_size(size),
     m_capacity(size)
 {
-  std::memcpy(m_data, data, size);
+  std::memcpy(m_data.get(), data, size);
 }
 
 inline Bytes::Bytes(nonstd::span<const uint8_t> data) noexcept
@@ -115,10 +116,7 @@ inline Bytes::Bytes(std::initializer_list<uint8_t> init) noexcept
 {
 }
 
-inline Bytes::~Bytes() noexcept
-{
-  delete[] m_data;
-}
+inline Bytes::~Bytes() noexcept = default;
 
 inline uint8_t
 Bytes::operator[](size_t pos) const noexcept
@@ -137,7 +135,7 @@ Bytes::operator==(const Bytes& other) const noexcept
 {
   return this == &other
          || (m_size == other.m_size
-             && std::memcmp(m_data, other.m_data, m_size) == 0);
+             && std::memcmp(m_data.get(), other.m_data.get(), m_size) == 0);
 }
 
 inline bool
@@ -149,49 +147,49 @@ Bytes::operator!=(const Bytes& other) const noexcept
 inline const uint8_t*
 Bytes::data() const noexcept
 {
-  return m_data;
+  return m_data.get();
 }
 
 inline uint8_t*
 Bytes::data() noexcept
 {
-  return m_data;
+  return m_data.get();
 }
 
 inline uint8_t*
 Bytes::begin() noexcept
 {
-  return m_data;
+  return m_data.get();
 }
 
 inline const uint8_t*
 Bytes::begin() const noexcept
 {
-  return m_data;
+  return m_data.get();
 }
 
 inline const uint8_t*
 Bytes::cbegin() const noexcept
 {
-  return m_data;
+  return m_data.get();
 }
 
 inline uint8_t*
 Bytes::end() noexcept
 {
-  return m_data + m_size;
+  return m_data.get() + m_size;
 }
 
 inline const uint8_t*
 Bytes::end() const noexcept
 {
-  return m_data + m_size;
+  return m_data.get() + m_size;
 }
 
 inline const uint8_t*
 Bytes::cend() const noexcept
 {
-  return m_data + m_size;
+  return m_data.get() + m_size;
 }
 
 inline bool

@@ -11,7 +11,9 @@ SUITE_remote_file_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_REMOTE_STORAGE="file:$PWD/remote"
 
-    generate_code 1 test.c
+    touch test.h
+    echo '#include "test.h"' >test.c
+    backdate test.h
 }
 
 SUITE_remote_file() {
@@ -195,11 +197,85 @@ SUITE_remote_file() {
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
     # -------------------------------------------------------------------------
+    TEST "Depend mode"
+
+    export CCACHE_DEPEND=1
+
+    # Compile and send result to local and remote storage.
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_stat local_storage_hit 0
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 0
+    expect_stat local_storage_read_miss 1 # only manifest
+    expect_stat local_storage_write 2 # result + manifest
+    expect_stat remote_storage_hit 0
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 1 # only manifest
+    expect_stat remote_storage_write 2 # result + manifest
+
+    # Get result from local storage.
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 1
+    expect_stat local_storage_read_hit 2 # result + manifest
+    expect_stat local_storage_read_miss 1 # manifest
+    expect_stat local_storage_write 2 # result + manifest
+    expect_stat remote_storage_hit 0
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 1
+    expect_stat remote_storage_write 2
+
+    # Clear local storage.
+    $CCACHE -C >/dev/null
+
+    # Get result from remote storage, copying it to local storage.
+    # TERM=xterm-256color gdb --args $CCACHE_COMPILE -MMD -c test.c
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 1
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 2
+    expect_stat local_storage_read_hit 2
+    expect_stat local_storage_read_miss 3
+    expect_stat local_storage_write 4
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 1
+    expect_stat remote_storage_read_hit 2 # result + manifest
+    expect_stat remote_storage_read_miss 1
+    expect_stat remote_storage_write 2 # result + manifest
+
+    # Remote cache read hit for the manifest but no manifest entry matches.
+    $CCACHE -C >/dev/null
+    echo 'int x;' >>test.h
+    backdate test.h
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+    expect_stat local_storage_hit 1
+    expect_stat local_storage_miss 3
+    expect_stat local_storage_read_hit 2
+    expect_stat local_storage_read_miss 4 # one manifest read miss
+    expect_stat local_storage_write 7 # download+store manifest, update+store manifest, write result
+    expect_stat remote_storage_hit 1
+    expect_stat remote_storage_miss 2
+    expect_stat remote_storage_read_hit 3
+    expect_stat remote_storage_read_miss 1 # original manifest didn't match -> no read
+    expect_stat remote_storage_write 4
+
+    # -------------------------------------------------------------------------
     TEST "umask"
 
     export CCACHE_UMASK=042
     CCACHE_REMOTE_STORAGE="file://$PWD/remote|umask=024"
-    rm -rf remote
+
+    # local -> remote, cache miss
     $CCACHE_COMPILE -c test.c
     expect_perm remote drwxr-x-wx # 777 & 024
     expect_perm remote/CACHEDIR.TAG -rw-r---w- # 666 & 024
@@ -207,17 +283,43 @@ SUITE_remote_file() {
     expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
     expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
+    # local -> remote, local cache hit
     CCACHE_REMOTE_STORAGE="file://$PWD/remote|umask=026"
     $CCACHE -C >/dev/null
     rm -rf remote
     $CCACHE_COMPILE -c test.c
     expect_perm remote drwxr-x--x # 777 & 026
     expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
+    result_file=$(find $CCACHE_DIR -name '*R')
+    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
+
+    # remote -> local, remote cache hit
+    $CCACHE -C >/dev/null
+    $CCACHE_COMPILE -c test.c
+    expect_perm remote drwxr-x--x # 777 & 026
+    expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
+    result_file=$(find $CCACHE_DIR -name '*R')
+    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
     # -------------------------------------------------------------------------
     TEST "Sharding"
 
     CCACHE_REMOTE_STORAGE="file://$PWD/remote/*|shards=a,b(2)"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    if [ ! -d remote/a ] && [ ! -d remote/b ]; then
+        test_failed "Expected remote/a or remote/b to exist"
+    fi
+
+    $CCACHE -Cz >/dev/null
+    rm -rf remote
+
+    CCACHE_REMOTE_STORAGE="*|shards=file://$PWD/remote/a,file://$PWD/remote/b"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0

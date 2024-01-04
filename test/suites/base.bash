@@ -393,6 +393,7 @@ if $RUN_WIN_XFAIL;then
     CCACHE_DEBUG=1 CCACHE_DEBUGDIR=debugdir $CCACHE_COMPILE -c test1.c
     expect_contains debugdir"$(pwd -P)"/test1.o.*.ccache-log "Result: cache_miss"
 fi
+
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
@@ -400,6 +401,13 @@ fi
     if [ -d $CCACHE_DIR ]; then
         test_failed "$CCACHE_DIR created despite CCACHE_DISABLE being set"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "ccache:disable"
+
+    echo '// ccache:disable' >>test1.c
+    $CCACHE_COMPILE -c test1.c 2>/dev/null
+    expect_stat disabled 1
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"
@@ -544,8 +552,10 @@ fi
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz"
 
-    $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null
-    if [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
+    if $COMPILER -c test1.c -gz 2>/dev/null \
+       && $COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null \
+       && [ -s preprocessed.i ] \
+       && ! grep -Fq $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
         cp test1.c dir2
@@ -572,7 +582,7 @@ fi
     if [ $? -eq 0 ]; then
         # run test only if -gz=zlib is supported
         $COMPILER -E test1.c -gz=zlib >preprocessed.i 2>/dev/null
-        if [ "$exit_code" == "0" ] && [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
+        if [ "$exit_code" == "0" ] && [ -s preprocessed.i ] && ! grep -Fq $PWD preprocessed.i; then
             mkdir dir1 dir2
             cp test1.c dir1
             cp test1.c dir2
@@ -1069,19 +1079,19 @@ if ! $HOST_OS_WINDOWS; then
     export CCACHE_UMASK=002
     export CCACHE_TEMPDIR=$CCACHE_DIR/tmp
 
-    $CCACHE -C
+    $CCACHE -C >/dev/null
     expect_perm "$CCACHE_DIR" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
     rm -rf $CCACHE_DIR
 
-    $CCACHE -c
+    $CCACHE -c >/dev/null
     expect_perm "$CCACHE_DIR" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
     rm -rf $CCACHE_DIR
 
-    $CCACHE -z
+    $CCACHE -z >/dev/null
     expect_perm "$CCACHE_DIR" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0" drwxrwxr-x
     expect_perm "$CCACHE_DIR/0/stats" -rw-rw-r--
@@ -1520,10 +1530,20 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -c -DFOO test1.c
+    $CCACHE_COMPILE -c -Wp,-DFOO test1.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -DFOO test1.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -DFOO test1.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
     if touch empty.c && $COMPILER -c -- empty.c 2>/dev/null; then

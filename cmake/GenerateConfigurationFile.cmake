@@ -1,21 +1,18 @@
 include(CheckIncludeFile)
 set(include_files
+    dirent.h
     linux/fs.h
     pwd.h
     sys/clonefile.h
+    sys/file.h
     sys/ioctl.h
     sys/mman.h
-    sys/time.h
+    sys/utime.h
     sys/wait.h
-    sys/file.h
     syslog.h
-    termios.h
-    dirent.h
-    strings.h
     unistd.h
     utime.h
-    sys/utime.h
-    varargs.h)
+)
 foreach(include_file IN ITEMS ${include_files})
   string(TOUPPER ${include_file} include_var)
   string(REGEX REPLACE "[/.]" "_" include_var ${include_var})
@@ -26,13 +23,11 @@ endforeach()
 include(CheckFunctionExists)
 set(functions
     asctime_r
-    geteuid
     getopt_long
     getpwuid
+    localtime_r
     posix_fallocate
-    realpath
     setenv
-    strndup
     syslog
     unsetenv
     utimensat
@@ -44,35 +39,29 @@ foreach(func IN ITEMS ${functions})
   check_function_exists(${func} ${func_var})
 endforeach()
 
-include(CheckCXXSourceCompiles)
-set(CMAKE_REQUIRED_FLAGS -pthread)
-check_cxx_source_compiles(
-  [=[
-    #include <pthread.h>
-    int main()
-    {
-      pthread_mutexattr_t attr;
-      (void)pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
-      return 0;
-    }
-  ]=]
-  HAVE_PTHREAD_MUTEX_ROBUST)
-check_function_exists(pthread_mutexattr_setpshared HAVE_PTHREAD_MUTEXATTR_SETPSHARED)
-set(CMAKE_REQUIRED_FLAGS)
-
 include(CheckStructHasMember)
+
 check_struct_has_member("struct stat" st_atim sys/stat.h
                         HAVE_STRUCT_STAT_ST_ATIM LANGUAGE CXX)
-check_struct_has_member("struct stat" st_ctim sys/stat.h
-                        HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
-check_struct_has_member("struct stat" st_mtim sys/stat.h
-                        HAVE_STRUCT_STAT_ST_MTIM LANGUAGE CXX)
+check_struct_has_member("struct stat" st_atimensec sys/stat.h
+                        HAVE_STRUCT_STAT_ST_ATIMENSEC LANGUAGE CXX)
 check_struct_has_member("struct stat" st_atimespec sys/stat.h
                         HAVE_STRUCT_STAT_ST_ATIMESPEC LANGUAGE CXX)
+
+check_struct_has_member("struct stat" st_ctim sys/stat.h
+                        HAVE_STRUCT_STAT_ST_CTIM LANGUAGE CXX)
+check_struct_has_member("struct stat" st_ctimensec sys/stat.h
+                        HAVE_STRUCT_STAT_ST_CTIMENSEC LANGUAGE CXX)
 check_struct_has_member("struct stat" st_ctimespec sys/stat.h
                         HAVE_STRUCT_STAT_ST_CTIMESPEC LANGUAGE CXX)
+
+check_struct_has_member("struct stat" st_mtim sys/stat.h
+                        HAVE_STRUCT_STAT_ST_MTIM LANGUAGE CXX)
+check_struct_has_member("struct stat" st_mtimensec sys/stat.h
+                        HAVE_STRUCT_STAT_ST_MTIMENSEC LANGUAGE CXX)
 check_struct_has_member("struct stat" st_mtimespec sys/stat.h
                         HAVE_STRUCT_STAT_ST_MTIMESPEC LANGUAGE CXX)
+
 check_struct_has_member("struct statfs" f_fstypename sys/mount.h
                         HAVE_STRUCT_STATFS_F_FSTYPENAME LANGUAGE CXX)
 
@@ -104,7 +93,6 @@ endif()
 set(MTR_ENABLED "${ENABLE_TRACING}")
 
 if(HAVE_SYS_MMAN_H
-   AND HAVE_PTHREAD_MUTEXATTR_SETPSHARED
    AND (HAVE_STRUCT_STAT_ST_MTIM OR HAVE_STRUCT_STAT_ST_MTIMESPEC)
    AND (HAVE_LINUX_FS_H OR HAVE_STRUCT_STATFS_F_FSTYPENAME))
   set(INODE_CACHE_SUPPORTED 1)

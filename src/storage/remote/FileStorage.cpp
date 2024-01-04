@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,22 +18,27 @@
 
 #include "FileStorage.hpp"
 
-#include <AtomicFile.hpp>
-#include <Digest.hpp>
-#include <Logging.hpp>
-#include <UmaskScope.hpp>
 #include <Util.hpp>
-#include <assertions.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
+#include <util/UmaskScope.hpp>
+#include <util/assertions.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 #include <util/string.hpp>
 
 #include <sys/stat.h> // for mode_t
 
 #include <string_view>
+
+namespace fs = util::filesystem;
+
+using util::DirEntry;
 
 namespace storage::remote {
 
@@ -42,16 +47,17 @@ namespace {
 class FileStorageBackend : public RemoteStorage::Backend
 {
 public:
-  FileStorageBackend(const Params& params);
+  FileStorageBackend(const Url& url,
+                     const std::vector<Backend::Attribute>& attributes);
 
-  nonstd::expected<std::optional<util::Bytes>, Failure>
-  get(const Digest& key) override;
+  tl::expected<std::optional<util::Bytes>, Failure>
+  get(const Hash::Digest& key) override;
 
-  nonstd::expected<bool, Failure> put(const Digest& key,
-                                      nonstd::span<const uint8_t> value,
-                                      bool only_if_missing) override;
+  tl::expected<bool, Failure> put(const Hash::Digest& key,
+                                  nonstd::span<const uint8_t> value,
+                                  bool only_if_missing) override;
 
-  nonstd::expected<bool, Failure> remove(const Digest& key) override;
+  tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
   enum class Layout { flat, subdirs };
@@ -61,16 +67,21 @@ private:
   bool m_update_mtime = false;
   Layout m_layout = Layout::subdirs;
 
-  std::string get_entry_path(const Digest& key) const;
+  std::string get_entry_path(const Hash::Digest& key) const;
 };
 
-FileStorageBackend::FileStorageBackend(const Params& params)
+FileStorageBackend::FileStorageBackend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes)
 {
-  ASSERT(params.url.scheme() == "file");
+  ASSERT(url.scheme() == "file");
 
-  const auto& host = params.url.host();
+  const auto& host = url.host();
 #ifdef _WIN32
-  m_dir = util::replace_all(params.url.path(), "/", "\\");
+  m_dir = util::replace_all(url.path(), "/", "\\");
+  if (m_dir.length() >= 3 && m_dir[0] == '\\' && m_dir[2] == ':') {
+    // \X:\foo\bar -> X:\foo\bar according to RFC 8089 appendix E.2.
+    m_dir = m_dir.substr(1);
+  }
   if (!host.empty()) {
     m_dir = FMT("\\\\{}{}", host, m_dir);
   }
@@ -79,12 +90,12 @@ FileStorageBackend::FileStorageBackend(const Params& params)
     throw core::Fatal(
       FMT("invalid file URL \"{}\": specifying a host other than localhost is"
           " not supported",
-          params.url.str()));
+          url.str()));
   }
-  m_dir = params.url.path();
+  m_dir = url.path();
 #endif
 
-  for (const auto& attr : params.attributes) {
+  for (const auto& attr : attributes) {
     if (attr.key == "layout") {
       if (attr.value == "flat") {
         m_layout = Layout::flat;
@@ -104,13 +115,12 @@ FileStorageBackend::FileStorageBackend(const Params& params)
   }
 }
 
-nonstd::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
-FileStorageBackend::get(const Digest& key)
+tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
+FileStorageBackend::get(const Hash::Digest& key)
 {
   const auto path = get_entry_path(key);
-  const bool exists = Stat::stat(path);
 
-  if (!exists) {
+  if (!DirEntry(path).exists()) {
     // Don't log failure if the entry doesn't exist.
     return std::nullopt;
   }
@@ -121,65 +131,70 @@ FileStorageBackend::get(const Digest& key)
     util::set_timestamps(path);
   }
 
-  auto value = util::read_file<util::Bytes>(path);
-  if (!value) {
-    LOG("Failed to read {}: {}", path, value.error());
-    return nonstd::make_unexpected(Failure::error);
-  }
-  return std::move(*value);
+  return util::read_file<util::Bytes>(path).transform_error(
+    [&](const auto& error) {
+      LOG("Failed to read {}: {}", path, error);
+      return Failure::error;
+    });
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
-FileStorageBackend::put(const Digest& key,
+tl::expected<bool, RemoteStorage::Backend::Failure>
+FileStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
                         const bool only_if_missing)
 {
   const auto path = get_entry_path(key);
 
-  if (only_if_missing && Stat::stat(path)) {
+  if (only_if_missing && DirEntry(path).exists()) {
     LOG("{} already in cache", path);
     return false;
   }
 
   {
-    UmaskScope umask_scope(m_umask);
+    util::UmaskScope umask_scope(m_umask);
 
     const auto dir = Util::dir_name(path);
-    if (!Util::create_dir(dir)) {
-      LOG("Failed to create directory {}: {}", dir, strerror(errno));
-      return nonstd::make_unexpected(Failure::error);
+    if (auto result = fs::create_directories(dir); !result) {
+      LOG("Failed to create directory {}: {}", dir, result.error().message());
+      return tl::unexpected(Failure::error);
     }
 
     util::create_cachedir_tag(m_dir);
 
     LOG("Writing {}", path);
     try {
-      AtomicFile file(path, AtomicFile::Mode::binary);
+      core::AtomicFile file(path, core::AtomicFile::Mode::binary);
       file.write(value);
       file.commit();
       return true;
     } catch (const core::Error& e) {
       LOG("Failed to write {}: {}", path, e.what());
-      return nonstd::make_unexpected(Failure::error);
+      return tl::unexpected(Failure::error);
     }
   }
 }
 
-nonstd::expected<bool, RemoteStorage::Backend::Failure>
-FileStorageBackend::remove(const Digest& key)
+tl::expected<bool, RemoteStorage::Backend::Failure>
+FileStorageBackend::remove(const Hash::Digest& key)
 {
-  return Util::unlink_safe(get_entry_path(key));
+  auto entry_path = get_entry_path(key);
+  auto result = util::remove_nfs_safe(entry_path);
+  if (!result) {
+    LOG("Failed to remove {}: {}", entry_path, result.error().message());
+    return tl::unexpected(RemoteStorage::Backend::Failure::error);
+  }
+  return *result;
 }
 
 std::string
-FileStorageBackend::get_entry_path(const Digest& key) const
+FileStorageBackend::get_entry_path(const Hash::Digest& key) const
 {
   switch (m_layout) {
   case Layout::flat:
-    return FMT("{}/{}", m_dir, key.to_string());
+    return FMT("{}/{}", m_dir, util::format_digest(key));
 
   case Layout::subdirs: {
-    const auto key_str = key.to_string();
+    const auto key_str = util::format_digest(key);
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
     return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);
@@ -192,9 +207,10 @@ FileStorageBackend::get_entry_path(const Digest& key) const
 } // namespace
 
 std::unique_ptr<RemoteStorage::Backend>
-FileStorage::create_backend(const Backend::Params& params) const
+FileStorage::create_backend(
+  const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
-  return std::make_unique<FileStorageBackend>(params);
+  return std::make_unique<FileStorageBackend>(url, attributes);
 }
 
 } // namespace storage::remote

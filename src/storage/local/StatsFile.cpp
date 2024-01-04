@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,12 @@
 
 #include "StatsFile.hpp"
 
-#include <AtomicFile.hpp>
-#include <Logging.hpp>
+#include <core/AtomicFile.hpp>
 #include <core/exceptions.hpp>
-#include <fmtmacros.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 namespace storage::local {
 
@@ -38,7 +38,7 @@ StatsFile::read() const
 
   const auto data = util::read_file<std::string>(m_path);
   if (!data) {
-    // Ignore.
+    // A nonexistent stats file is OK.
     return counters;
   }
 
@@ -60,29 +60,31 @@ StatsFile::read() const
 
 std::optional<core::StatisticsCounters>
 StatsFile::update(
-  std::function<void(core::StatisticsCounters& counters)> function) const
+  std::function<void(core::StatisticsCounters& counters)> function,
+  OnlyIfChanged only_if_changed) const
 {
-  util::ShortLivedLockFile lock_file(m_path);
-  util::LockFileGuard lock(lock_file);
-  if (!lock.acquired()) {
+  util::LockFile lock(m_path);
+  if (!lock.acquire()) {
     LOG("Failed to acquire lock for {}", m_path);
     return std::nullopt;
   }
 
   auto counters = read();
+  const auto orig_counters = counters;
   function(counters);
-
-  AtomicFile file(m_path, AtomicFile::Mode::text);
-  for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(FMT("{}\n", counters.get_raw(i)));
-  }
-  try {
-    file.commit();
-  } catch (const core::Error& e) {
-    // Make failure to write a stats file a soft error since it's not important
-    // enough to fail whole the process and also because it is called in the
-    // Context destructor.
-    LOG("Error: {}", e.what());
+  if (only_if_changed == OnlyIfChanged::no || counters != orig_counters) {
+    core::AtomicFile file(m_path, core::AtomicFile::Mode::text);
+    for (size_t i = 0; i < counters.size(); ++i) {
+      file.write(FMT("{}\n", counters.get_raw(i)));
+    }
+    try {
+      file.commit();
+    } catch (const core::Error& e) {
+      // Make failure to write a stats file a soft error since it's not
+      // important enough to fail whole the process and also because it is
+      // called in the Context destructor.
+      LOG("Error: {}", e.what());
+    }
   }
 
   return counters;

@@ -25,10 +25,12 @@ namespace storage::remote {
 class HttpStorage : public RemoteStorage
 {
 public:
-  std::unique_ptr<Backend>
-  create_backend(const Backend::Params& params) const override;
+  std::unique_ptr<Backend> create_backend(
+    const Url& url,
+    const std::vector<Backend::Attribute>& attributes) const override;
 
-  void redact_secrets(Backend::Params& params) const override;
+  void
+  redact_secrets(std::vector<Backend::Attribute>& attributes) const override;
 };
 
 } // namespace storage::remote

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,20 +19,22 @@
 #include "ResultExtractor.hpp"
 
 #include "Util.hpp"
-#include "fmtmacros.hpp"
 
 #include <core/exceptions.hpp>
-#include <core/wincompat.hpp>
-#include <fmtmacros.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/wincompat.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <vector>
+
+using util::DirEntry;
 
 namespace core {
 
@@ -72,11 +74,15 @@ ResultExtractor::on_raw_file(uint8_t file_number,
     throw Error("Raw entry for non-local result");
   }
   const auto raw_file_path = (*m_get_raw_file_path)(file_number);
-  const auto st = Stat::stat(raw_file_path, Stat::OnError::throw_error);
-  if (st.size() != file_size) {
+  DirEntry entry(raw_file_path, DirEntry::LogOnError::yes);
+  if (!entry) {
+    throw Error(FMT(
+      "Failed to stat {}: {}", raw_file_path, strerror(entry.error_number())));
+  }
+  if (entry.size() != file_size) {
     throw Error(FMT("Bad file size of {} (actual {} bytes, expected {} bytes)",
                     raw_file_path,
-                    st.size(),
+                    entry.size(),
                     file_size));
   }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,56 +19,72 @@
 #include "util.hpp"
 
 #include <Util.hpp>
-#include <fmtmacros.hpp>
+#include <core/exceptions.hpp>
+#include <util/expected.hpp>
+#include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/string.hpp>
+
+using util::DirEntry;
 
 namespace storage::local {
 
 void
-for_each_level_1_subdir(const std::string& cache_dir,
-                        const SubdirVisitor& visitor,
-                        const ProgressReceiver& progress_receiver)
+for_each_cache_subdir(const SubdirVisitor& visitor)
 {
-  for (int i = 0; i <= 0xF; i++) {
-    double progress = 1.0 * i / 16;
+  for (uint8_t i = 0; i < 16; ++i) {
+    visitor(i);
+  }
+}
+
+void
+for_each_cache_subdir(const ProgressReceiver& progress_receiver,
+                      const SubdirProgressVisitor& visitor)
+{
+  for (uint8_t i = 0; i < 16; ++i) {
+    double progress = i / 16.0;
     progress_receiver(progress);
-    std::string subdir_path = FMT("{}/{:x}", cache_dir, i);
-    visitor(subdir_path, [&](double inner_progress) {
+    visitor(i, [&](double inner_progress) {
       progress_receiver(progress + inner_progress / 16);
     });
   }
   progress_receiver(1.0);
 }
 
-std::vector<CacheFile>
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver)
+void
+for_each_level_1_and_2_stats_file(
+  const std::string& cache_dir,
+  const std::function<void(const std::string& path)> function)
 {
-  std::vector<CacheFile> files;
+  for (size_t level_1 = 0; level_1 <= 0xF; ++level_1) {
+    function(FMT("{}/{:x}/stats", cache_dir, level_1));
+    for (size_t level_2 = 0; level_2 <= 0xF; ++level_2) {
+      function(FMT("{}/{:x}/{:x}/stats", cache_dir, level_1, level_2));
+    }
+  }
+}
 
-  if (!Stat::stat(dir)) {
+std::vector<DirEntry>
+get_cache_dir_files(const std::string& dir)
+{
+  std::vector<DirEntry> files;
+
+  if (!DirEntry(dir).is_directory()) {
     return files;
   }
+  util::throw_on_error<core::Error>(
+    util::traverse_directory(dir, [&](const auto& de) {
+      auto name = de.path().filename().string();
+      if (name == "CACHEDIR.TAG" || name == "stats"
+          || util::starts_with(name, ".nfs")) {
+        return;
+      }
 
-  size_t level_2_directories = 0;
+      if (!de.is_directory()) {
+        files.emplace_back(de);
+      }
+    }));
 
-  Util::traverse(dir, [&](const std::string& path, bool is_dir) {
-    auto name = Util::base_name(path);
-    if (name == "CACHEDIR.TAG" || name == "stats"
-        || util::starts_with(name, ".nfs")) {
-      return;
-    }
-
-    if (!is_dir) {
-      files.emplace_back(path);
-    } else if (path != dir
-               && path.find('/', dir.size() + 1) == std::string::npos) {
-      ++level_2_directories;
-      progress_receiver(level_2_directories / 16.0);
-    }
-  });
-
-  progress_receiver(1.0);
   return files;
 }
 

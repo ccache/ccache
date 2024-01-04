@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,14 +20,20 @@
 
 #include "Context.hpp"
 #include "Hash.hpp"
-#include "Logging.hpp"
-#include "assertions.hpp"
 
+#include <Util.hpp>
 #include <core/exceptions.hpp>
+#include <util/Tokenizer.hpp>
+#include <util/assertions.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
+#include <util/logging.hpp>
 #include <util/path.hpp>
+#include <util/string.hpp>
 
 #include <algorithm>
+
+namespace fs = util::filesystem;
 
 static inline bool
 is_blank(const std::string& s)
@@ -81,7 +87,7 @@ rewrite_source_paths(const Context& ctx, std::string_view file_content)
                                    "\n",
                                    Tokenizer::Mode::include_empty,
                                    Tokenizer::IncludeDelimiter::yes)) {
-    const auto tokens = Util::split_into_views(line, " \t");
+    const auto tokens = util::split_into_views(line, " \t");
     for (size_t i = 0; i < tokens.size(); ++i) {
       DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
       DEBUG_ASSERT(!tokens[i].empty());
@@ -92,7 +98,7 @@ rewrite_source_paths(const Context& ctx, std::string_view file_content)
 
       const auto& token = tokens[i];
       bool token_rewritten = false;
-      if (seen_target_token && util::is_absolute_path(token)) {
+      if (seen_target_token && fs::path(token).is_absolute()) {
         const auto new_path = Util::make_relative_path(ctx, token);
         if (new_path != token) {
           adjusted_file_content.append(new_path);
@@ -130,7 +136,9 @@ make_paths_relative_in_output_dep(const Context& ctx)
   const std::string& output_dep = ctx.args_info.output_dep;
   const auto file_content = util::read_file<std::string>(output_dep);
   if (!file_content) {
-    LOG("Cannot open dependency file {}: {}", output_dep, file_content.error());
+    LOG("Failed to read dependency file {}: {}",
+        output_dep,
+        file_content.error());
     return;
   }
   const auto new_content = rewrite_source_paths(ctx, *file_content);

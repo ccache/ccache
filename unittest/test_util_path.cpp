@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,30 +17,22 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <Util.hpp>
-#include <fmtmacros.hpp>
+#include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 
 #include <third_party/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 
-TEST_CASE("util::is_absolute_path")
+TEST_CASE("util::add_exe_suffix")
 {
-#ifdef _WIN32
-  CHECK(util::is_absolute_path("C:/"));
-  CHECK(util::is_absolute_path("C:\\foo/fie"));
-  CHECK(util::is_absolute_path("/C:\\foo/fie")); // MSYS/Cygwin path
-  CHECK(!util::is_absolute_path(""));
-  CHECK(!util::is_absolute_path("foo\\fie/fum"));
-  CHECK(!util::is_absolute_path("C:foo/fie"));
-#endif
-  CHECK(util::is_absolute_path("/"));
-  CHECK(util::is_absolute_path("/foo/fie"));
-  CHECK(!util::is_absolute_path(""));
-  CHECK(!util::is_absolute_path("foo/fie"));
+  CHECK(util::add_exe_suffix("foo") == "foo.exe");
+  CHECK(util::add_exe_suffix("foo.bat") == "foo.bat");
+  CHECK(util::add_exe_suffix("foo.exe") == "foo.exe");
+  CHECK(util::add_exe_suffix("foo.sh") == "foo.sh");
 }
 
-TEST_CASE("util::is_absolute_path")
+TEST_CASE("util::is_full_path")
 {
   CHECK(!util::is_full_path(""));
   CHECK(!util::is_full_path("foo"));
@@ -54,68 +46,14 @@ TEST_CASE("util::is_absolute_path")
 #endif
 }
 
-TEST_CASE("util::split_path_list")
+TEST_CASE("util::is_dev_null_path")
 {
-  CHECK(util::split_path_list("").empty());
-  {
-    const auto v = util::split_path_list("a");
-    REQUIRE(v.size() == 1);
-    CHECK(v[0] == "a");
-  }
-  {
-    const auto v = util::split_path_list("a/b");
-    REQUIRE(v.size() == 1);
-    CHECK(v[0] == "a/b");
-  }
-  {
+  CHECK(!util::is_dev_null_path("dev/null"));
+  CHECK(util::is_dev_null_path("/dev/null"));
 #ifdef _WIN32
-    const auto v = util::split_path_list("a/b;c");
-#else
-    const auto v = util::split_path_list("a/b:c");
+  CHECK(util::is_dev_null_path("nul"));
+  CHECK(util::is_dev_null_path("NUL"));
 #endif
-    REQUIRE(v.size() == 2);
-    CHECK(v[0] == "a/b");
-    CHECK(v[1] == "c");
-  }
-}
-
-TEST_CASE("util::to_absolute_path")
-{
-  CHECK(util::to_absolute_path("/foo/bar") == "/foo/bar");
-
-#ifdef _WIN32
-  CHECK(util::to_absolute_path("C:\\foo\\bar") == "C:\\foo\\bar");
-#endif
-
-  const auto cwd = Util::get_actual_cwd();
-
-  CHECK(util::to_absolute_path("") == cwd);
-  CHECK(util::to_absolute_path(".") == cwd);
-  CHECK(util::to_absolute_path("..") == Util::dir_name(cwd));
-  CHECK(util::to_absolute_path("foo") == FMT("{}/foo", cwd));
-  CHECK(util::to_absolute_path("../foo/bar")
-        == FMT("{}/foo/bar", Util::dir_name(cwd)));
-}
-
-TEST_CASE("util::to_absolute_path_no_drive")
-{
-  CHECK(util::to_absolute_path_no_drive("/foo/bar") == "/foo/bar");
-
-#ifdef _WIN32
-  CHECK(util::to_absolute_path_no_drive("C:\\foo\\bar") == "\\foo\\bar");
-#endif
-
-  auto cwd = Util::get_actual_cwd();
-#ifdef _WIN32
-  cwd = cwd.substr(2);
-#endif
-
-  CHECK(util::to_absolute_path_no_drive("") == cwd);
-  CHECK(util::to_absolute_path_no_drive(".") == cwd);
-  CHECK(util::to_absolute_path_no_drive("..") == Util::dir_name(cwd));
-  CHECK(util::to_absolute_path_no_drive("foo") == FMT("{}/foo", cwd));
-  CHECK(util::to_absolute_path_no_drive("../foo/bar")
-        == FMT("{}/foo/bar", Util::dir_name(cwd)));
 }
 
 TEST_CASE("util::path_starts_with")
@@ -131,6 +69,8 @@ TEST_CASE("util::path_starts_with")
   CHECK(util::path_starts_with("C:/foo/bar", "C:\\\\foo"));
   CHECK(util::path_starts_with("C:\\foo\\bar", "C:/foo"));
   CHECK(util::path_starts_with("C:\\\\foo\\\\bar", "C:/foo"));
+  CHECK(util::path_starts_with("C:/FOO/BAR", "c:\\foo"));
+  CHECK(util::path_starts_with("c:/foo/bar", "C:\\FOO"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "/foo/baz"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "C:/foo/baz"));
   CHECK(!util::path_starts_with("C:\\beh\\foo", "/foo"));

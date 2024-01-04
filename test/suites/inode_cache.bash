@@ -9,7 +9,7 @@ SUITE_inode_cache_PROBE() {
 
     touch test.c
     $CCACHE $COMPILER -c test.c
-    if [[ ! -f "${CCACHE_TEMPDIR}/inode-cache-32.v1" && ! -f "${CCACHE_TEMPDIR}/inode-cache-64.v1" ]]; then
+    if [[ ! -f "${CCACHE_TEMPDIR}/inode-cache-32.v2" && ! -f "${CCACHE_TEMPDIR}/inode-cache-64.v2" ]]; then
         local fs_type=$(stat -fLc %T "${CCACHE_DIR}")
         echo "inode cache not supported on ${fs_type}"
     fi
@@ -19,6 +19,11 @@ SUITE_inode_cache_SETUP() {
     export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
     export CCACHE_TEMPDIR="${CCACHE_DIR}/tmp"  # isolate inode cache file
+
+    # Disable safety guard against race condition in InodeCache. This is OK
+    # since files used in the tests have different sizes and thus will have
+    # different cache keys even if ctime/mtime are not updated quickly enough.
+    export CCACHE_DISABLE_INODE_CACHE_MIN_AGE=1
 }
 
 SUITE_inode_cache() {

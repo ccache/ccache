@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,6 +23,9 @@
 #include <core/Statistic.hpp>
 
 #include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 class Context;
 
@@ -68,3 +71,10 @@ inline ProcessArgsResult::ProcessArgsResult(const Args& preprocessor_args_,
 }
 
 ProcessArgsResult process_args(Context& ctx);
+
+// Return whether `path` represents a precompiled header (see "Precompiled
+// Headers" in GCC docs).
+bool is_precompiled_header(std::string_view path);
+
+bool option_should_be_ignored(const std::string& arg,
+                              const std::vector<std::string>& patterns);

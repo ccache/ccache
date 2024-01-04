@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,14 +18,14 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include <core/exceptions.hpp>
+#include <util/environment.hpp>
 #include <util/file.hpp>
+#include <util/fmtmacros.hpp>
 
 #include "third_party/doctest.h"
-#include "third_party/fmt/core.h"
 
 #include <limits>
 #include <string>
@@ -50,6 +50,7 @@ TEST_CASE("Config: default values")
   CHECK(config.cpp_extension().empty());
   CHECK(!config.debug());
   CHECK(config.debug_dir().empty());
+  CHECK(config.debug_level() == 2);
   CHECK(!config.depend_mode());
   CHECK(config.direct_mode());
   CHECK(!config.disable());
@@ -59,11 +60,11 @@ TEST_CASE("Config: default values")
   CHECK(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest().empty());
   CHECK(config.ignore_options().empty());
+  CHECK(config.inode_cache());
   CHECK_FALSE(config.keep_comments_cpp());
-  CHECK(config.limit_multiple() == Approx(0.8));
   CHECK(config.log_file().empty());
   CHECK(config.max_files() == 0);
-  CHECK(config.max_size() == static_cast<uint64_t>(5) * 1000 * 1000 * 1000);
+  CHECK(config.max_size() == static_cast<uint64_t>(5) * 1024 * 1024 * 1024);
   CHECK(config.msvc_dep_prefix() == "Note: including file:");
   CHECK(config.path().empty());
   CHECK_FALSE(config.pch_external_checksum());
@@ -87,7 +88,7 @@ TEST_CASE("Config::update_from_file")
   TestContext test_context;
 
   const char user[] = "rabbit";
-  Util::setenv("USER", user);
+  util::setenv("USER", user);
 
 #ifndef _WIN32
   std::string base_dir = FMT("/{0}/foo/{0}", user);
@@ -109,6 +110,8 @@ TEST_CASE("Config::update_from_file")
     "compression=false\n"
     "compression_level= 2\n"
     "cpp_extension = .foo\n"
+    "debug_dir = $USER$/${USER}/.ccache_debug\n"
+    "debug_level = 2\n"
     "depend_mode = true\n"
     "direct_mode = false\n"
     "disable = true\n"
@@ -119,7 +122,6 @@ TEST_CASE("Config::update_from_file")
     "ignore_headers_in_manifest = a:b/c\n"
     "ignore_options = -a=* -b\n"
     "keep_comments_cpp = true\n"
-    "limit_multiple = 1.0\n"
     "log_file = $USER${USER} \n"
     "max_files = 17\n"
     "max_size = 123M\n"
@@ -135,7 +137,8 @@ TEST_CASE("Config::update_from_file")
     "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,gcno_cwd\n"
+    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,"
+    " gcno_cwd,\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777"); // Note: no newline.
@@ -150,6 +153,8 @@ TEST_CASE("Config::update_from_file")
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");
+  CHECK(config.debug_dir() == FMT("{0}$/{0}/.ccache_debug", user));
+  CHECK(config.debug_level() == 2);
   CHECK(config.depend_mode());
   CHECK_FALSE(config.direct_mode());
   CHECK(config.disable());
@@ -160,7 +165,6 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.ignore_headers_in_manifest() == "a:b/c");
   CHECK(config.ignore_options() == "-a=* -b");
   CHECK(config.keep_comments_cpp());
-  CHECK(config.limit_multiple() == Approx(1.0));
   CHECK(config.log_file() == FMT("{0}{0}", user));
   CHECK(config.max_files() == 17);
   CHECK(config.max_size() == 123 * 1000 * 1000);
@@ -288,13 +292,13 @@ TEST_CASE("Config::update_from_environment")
 {
   Config config;
 
-  Util::setenv("CCACHE_COMPRESS", "1");
+  util::setenv("CCACHE_COMPRESS", "1");
   config.update_from_environment();
   CHECK(config.compression());
 
-  Util::unsetenv("CCACHE_COMPRESS");
+  util::unsetenv("CCACHE_COMPRESS");
 
-  Util::setenv("CCACHE_NOCOMPRESS", "1");
+  util::setenv("CCACHE_NOCOMPRESS", "1");
   config.update_from_environment();
   CHECK(!config.compression());
 }
@@ -394,6 +398,7 @@ TEST_CASE("Config::visit_items")
     "cpp_extension = ce\n"
     "debug = false\n"
     "debug_dir = /dd\n"
+    "debug_level = 2\n"
     "depend_mode = true\n"
     "direct_mode = false\n"
     "disable = true\n"
@@ -405,7 +410,6 @@ TEST_CASE("Config::visit_items")
     "ignore_options = -a=* -b\n"
     "inode_cache = false\n"
     "keep_comments_cpp = true\n"
-    "limit_multiple = 0.0\n"
     "log_file = lf\n"
     "max_files = 4711\n"
     "max_size = 98.7M\n"
@@ -424,7 +428,7 @@ TEST_CASE("Config::visit_items")
     "run_second_cpp = false\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
-    " clang_index_store, ivfsoverlay, gcno_cwd\n"
+    " clang_index_store, ivfsoverlay, gcno_cwd \n"
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"
@@ -456,6 +460,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) cpp_extension = ce",
     "(test.conf) debug = false",
     "(test.conf) debug_dir = /dd",
+    "(test.conf) debug_level = 2",
     "(test.conf) depend_mode = true",
     "(test.conf) direct_mode = false",
     "(test.conf) disable = true",
@@ -467,10 +472,9 @@ TEST_CASE("Config::visit_items")
     "(test.conf) ignore_options = -a=* -b",
     "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
-    "(test.conf) limit_multiple = 0.0",
     "(test.conf) log_file = lf",
     "(test.conf) max_files = 4711",
-    "(test.conf) max_size = 98.7M",
+    "(test.conf) max_size = 98.7 MB",
     "(test.conf) msvc_dep_prefix = mdp",
     "(test.conf) namespace = ns",
     "(test.conf) path = p",

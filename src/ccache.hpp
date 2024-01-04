@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,11 +19,14 @@
 
 #pragma once
 
-#include "Config.hpp"
+#include <Args.hpp>
+#include <Config.hpp>
 
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 class Context;
 
@@ -37,6 +40,23 @@ using FindExecutableFunction =
 int ccache_main(int argc, const char* const* argv);
 
 // Tested by unit tests.
+struct ArgvParts
+{
+  bool masquerading_as_compiler = true;
+  std::vector<std::string> config_settings;
+  Args compiler_and_args;
+};
+
+ArgvParts split_argv(int argc, const char* const* argv);
+
 void find_compiler(Context& ctx,
-                   const FindExecutableFunction& find_executable_function);
-CompilerType guess_compiler(std::string_view path);
+                   const FindExecutableFunction& find_executable_function,
+                   bool masquerading_as_compiler);
+
+CompilerType guess_compiler(const std::filesystem::path& path);
+
+bool is_ccache_executable(const std::filesystem::path& path);
+
+bool file_path_matches_dir_prefix_or_file(
+  const std::filesystem::path& dir_prefix_or_file,
+  const std::filesystem::path& file_path);

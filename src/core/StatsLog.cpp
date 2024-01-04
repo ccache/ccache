@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,10 +18,10 @@
 
 #include "StatsLog.hpp"
 
-#include <File.hpp>
-#include <Logging.hpp>
 #include <core/Statistics.hpp>
-#include <fmtmacros.hpp>
+#include <util/FileStream.hpp>
+#include <util/fmtmacros.hpp>
+#include <util/logging.hpp>
 
 #include <fstream>
 
@@ -56,7 +56,7 @@ void
 StatsLog::log_result(const std::string& input_file,
                      const std::vector<std::string>& result_ids)
 {
-  File file(m_path, "ab");
+  util::FileStream file(m_path, "ab");
   if (!file) {
     LOG("Failed to open {}: {}", m_path, strerror(errno));
     return;
