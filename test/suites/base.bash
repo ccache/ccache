@@ -413,6 +413,31 @@ if $RUN_WIN_XFAIL;then
 fi
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DEBUGLEVEL"
+
+    unset CCACHE_LOGFILE
+    unset CCACHE_NODIRECT
+    CCACHE_DEBUG=1 CCACHE_DEBUGLEVEL=1 $CCACHE_COMPILE -c test1.c
+    if [ ! -f test1.o.*.ccache-log ]; then
+        test_failed "<obj>.ccache-log missing"
+    fi
+    for ext in text c p d; do
+        if [ -f test1.o.*.ccache-input-$ext ]; then
+            test_failed "<obj>.ccache-input-$ext present"
+        fi
+    done
+    rm test1.o.*.ccache-log
+    CCACHE_DEBUG=1 CCACHE_NODEBUGHITS=1 CCACHE_DEBUGLEVEL=1 $CCACHE_COMPILE -c test1.c
+    if [ -f test1.o.*.ccache-log ]; then
+        test_failed "<obj>.ccache-log present"
+    fi
+    for ext in text c p d; do
+        if [ -f test1.o.*.ccache-input-$ext ]; then
+            test_failed "<obj>.ccache-input-$ext present"
+        fi
+    done
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2>/dev/null
