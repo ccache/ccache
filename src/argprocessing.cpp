@@ -426,6 +426,10 @@ process_option_arg(const Context& ctx,
 
   // Handle -arch options.
   if (arg == "-arch") {
+    if (i == args.size() - 1) {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
+    }
     ++i;
     args_info.arch_args.emplace_back(args[i]);
     if (args_info.arch_args.size() == 2) {
