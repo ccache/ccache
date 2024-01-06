@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -62,6 +62,16 @@ using path = std::filesystem::path;
     return !ec_ && result_;                                                    \
   }
 
+// Define predicate wrapper with one parameter. Returns true if there's no error
+// and the wrapped function returned true.
+#define DEF_WRAP_2_P(name_, r_, t1_, p1_, t2_, p2_)                            \
+  inline r_ name_(t1_ p1_, t2_ p2_)                                            \
+  {                                                                            \
+    std::error_code ec_;                                                       \
+    auto result_ = std::filesystem::name_(p1_, p2_, ec_);                      \
+    return !ec_ && result_;                                                    \
+  }
+
 // Define wrapper with one parameter returning void.
 #define DEF_WRAP_1_V(name_, r_, t1_, p1_)                                      \
   inline tl::expected<r_, std::error_code> name_(t1_ p1_)                      \
@@ -108,6 +118,7 @@ DEF_WRAP_2_V(create_hard_link,    void,           const path&, target, const pat
 DEF_WRAP_2_V(create_symlink,      void,           const path&, target, const path&, link)
 DEF_WRAP_0_R(current_path,        path)
 DEF_WRAP_1_V(current_path,        void,           const path&, p)
+DEF_WRAP_2_P(equivalent,          bool,           const path&, p1,     const path&, p2)
 DEF_WRAP_1_P(exists,              bool,           const path&, p)
 DEF_WRAP_1_P(is_directory,        bool,           const path&, p)
 DEF_WRAP_1_P(is_regular_file,     bool,           const path&, p)
