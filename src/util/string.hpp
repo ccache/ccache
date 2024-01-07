@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -180,6 +180,12 @@ std::pair<std::string, std::optional<std::string>>
 split_once(std::string&& string, char split_char);
 std::pair<std::string_view, std::optional<std::string_view>>
 split_once(std::string_view string, char split_char);
+
+// Split `string` into two parts where the split point is before a potential
+// absolute path. The second part will be `nullopt` if no absolute path
+// candidate was found.
+std::pair<std::string_view, std::optional<std::string_view>>
+split_option_with_concat_path(std::string_view string);
 
 // Split a list of paths (such as the content of $PATH on Unix platforms or
 // %PATH% on Windows platforms) into paths.

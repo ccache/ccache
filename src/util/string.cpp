@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -478,6 +478,31 @@ split_once(const std::string_view string, const char split_char)
     return std::make_pair(string.substr(0, sep_pos),
                           string.substr(sep_pos + 1));
   }
+}
+
+std::pair<std::string_view, std::optional<std::string_view>>
+split_option_with_concat_path(std::string_view string)
+{
+#ifdef _WIN32
+  const char delim[] = "/\\";
+#else
+  const char delim[] = "/";
+#endif
+  size_t split_pos = string.find_first_of(delim);
+  if (split_pos == std::string_view::npos) {
+    return std::make_pair(string, std::nullopt);
+  }
+
+#ifdef _WIN32
+  // -I/C:/foo and -I/c/foo will already be handled by delim_pos correctly
+  // resulting in -I and /C:/foo or /c/foo respectively. -IC:/foo will not as
+  // we would get -IC: and /foo.
+  if (split_pos >= 2 && string[split_pos - 1] == ':') {
+    split_pos -= 2;
+  }
+#endif
+
+  return std::make_pair(string.substr(0, split_pos), string.substr(split_pos));
 }
 
 std::vector<std::filesystem::path>

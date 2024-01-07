@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -565,6 +565,24 @@ TEST_CASE("util::split_once")
     CHECK(split_once(std::string_view("a=b=c"), '=') == make_pair("a", "b=c"));
     CHECK(split_once(std::string_view("x y"), ' ') == make_pair("x", "y"));
   }
+}
+
+TEST_CASE("util::split_option_with_concat_path")
+{
+  using std::make_pair;
+  using std::nullopt;
+  const auto split = util::split_option_with_concat_path;
+
+  CHECK(split("-I/c/foo") == make_pair("-I", "/c/foo"));
+  CHECK(split("-W,path/c/foo") == make_pair("-W,path", "/c/foo"));
+  CHECK(split("-DMACRO") == make_pair("-DMACRO", nullopt));
+#ifdef _WIN32
+  CHECK(split("-I/C:/foo") == make_pair("-I", "/C:/foo"));
+  CHECK(split("-IC:/foo") == make_pair("-I", "C:/foo"));
+  CHECK(split("-W,path/c:/foo") == make_pair("-W,path", "/c:/foo"));
+  CHECK(split("-W,pathc:/foo") == make_pair("-W,path", "c:/foo"));
+  CHECK(split("-opt:value") == make_pair("-opt:value", nullopt));
+#endif
 }
 
 TEST_CASE("util::split_path_list")

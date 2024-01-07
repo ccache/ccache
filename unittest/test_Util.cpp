@@ -95,20 +95,6 @@ TEST_CASE("Util::get_relative_path")
 #endif
 }
 
-TEST_CASE("Util::is_absolute_path_with_prefix")
-{
-  CHECK(*Util::is_absolute_path_with_prefix("-I/c/foo") == 2);
-  CHECK(*Util::is_absolute_path_with_prefix("-W,path/c/foo") == 7);
-  CHECK(!Util::is_absolute_path_with_prefix("-DMACRO"));
-#ifdef _WIN32
-  CHECK(*Util::is_absolute_path_with_prefix("-I/C:/foo") == 2);
-  CHECK(*Util::is_absolute_path_with_prefix("-IC:/foo") == 2);
-  CHECK(*Util::is_absolute_path_with_prefix("-W,path/c:/foo") == 7);
-  CHECK(*Util::is_absolute_path_with_prefix("-W,pathc:/foo") == 7);
-  CHECK(!Util::is_absolute_path_with_prefix("-opt:value"));
-#endif
-}
-
 TEST_CASE("Util::make_relative_path")
 {
   using Util::make_relative_path;
