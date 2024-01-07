@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,16 +18,16 @@
 
 #pragma once
 
-#include <string>
+#include <string_view>
 
-bool compopt_short(bool (*fn)(const std::string& option),
-                   const std::string& option);
-bool compopt_affects_cpp_output(const std::string& option);
-bool compopt_affects_compiler_output(const std::string& option);
-bool compopt_too_hard(const std::string& option);
-bool compopt_too_hard_for_direct_mode(const std::string& option);
-bool compopt_takes_path(const std::string& option);
-bool compopt_takes_arg(const std::string& option);
-bool compopt_takes_concat_arg(const std::string& option);
-bool compopt_prefix_affects_cpp_output(const std::string& option);
-bool compopt_prefix_affects_compiler_output(const std::string& option);
+bool compopt_short(bool (*fn)(std::string_view option),
+                   std::string_view option);
+bool compopt_affects_cpp_output(std::string_view option);
+bool compopt_affects_compiler_output(std::string_view option);
+bool compopt_too_hard(std::string_view option);
+bool compopt_too_hard_for_direct_mode(std::string_view option);
+bool compopt_takes_path(std::string_view option);
+bool compopt_takes_arg(std::string_view option);
+bool compopt_takes_concat_arg(std::string_view option);
+bool compopt_prefix_affects_cpp_output(std::string_view option);
+bool compopt_prefix_affects_compiler_output(std::string_view option);

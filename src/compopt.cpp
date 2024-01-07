@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,7 +45,7 @@
 
 struct CompOpt
 {
-  const char* name;
+  std::string_view name;
   int type;
 };
 
@@ -175,7 +175,7 @@ compare_compopts(const void* key1, const void* key2)
 {
   const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
   const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
-  return strcmp(opt1->name, opt2->name);
+  return opt1->name.compare(opt2->name);
 }
 
 static int
@@ -183,24 +183,22 @@ compare_prefix_compopts(const void* key1, const void* key2)
 {
   const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
   const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
-  return strncmp(opt1->name, opt2->name, strlen(opt2->name));
+  return opt1->name.substr(0, opt2->name.length()).compare(opt2->name);
 }
 
 static const CompOpt*
-find(const std::string& option)
+find(std::string_view option)
 {
-  CompOpt key;
-  key.name = option.c_str();
+  CompOpt key{option, 0};
   void* result = bsearch(
     &key, compopts, std::size(compopts), sizeof(compopts[0]), compare_compopts);
   return static_cast<CompOpt*>(result);
 }
 
 static const CompOpt*
-find_prefix(const std::string& option)
+find_prefix(std::string_view option)
 {
-  CompOpt key;
-  key.name = option.c_str();
+  CompOpt key{option, 0};
   void* result = bsearch(&key,
                          compopts,
                          std::size(compopts),
@@ -228,7 +226,7 @@ compopt_verify_sortedness_and_flags()
       continue;
     }
 
-    if (strcmp(compopts[i - 1].name, compopts[i].name) >= 0) {
+    if (compopts[i - 1].name >= compopts[i].name) {
       PRINT(stderr,
             "compopt_verify_sortedness: {} >= {}\n",
             compopts[i - 1].name,
@@ -240,49 +238,49 @@ compopt_verify_sortedness_and_flags()
 }
 
 bool
-compopt_affects_cpp_output(const std::string& option)
+compopt_affects_cpp_output(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & AFFECTS_CPP);
 }
 
 bool
-compopt_affects_compiler_output(const std::string& option)
+compopt_affects_compiler_output(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & AFFECTS_COMP);
 }
 
 bool
-compopt_too_hard(const std::string& option)
+compopt_too_hard(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & TOO_HARD);
 }
 
 bool
-compopt_too_hard_for_direct_mode(const std::string& option)
+compopt_too_hard_for_direct_mode(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & TOO_HARD_DIRECT);
 }
 
 bool
-compopt_takes_path(const std::string& option)
+compopt_takes_path(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & TAKES_PATH);
 }
 
 bool
-compopt_takes_arg(const std::string& option)
+compopt_takes_arg(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & TAKES_ARG);
 }
 
 bool
-compopt_takes_concat_arg(const std::string& option)
+compopt_takes_concat_arg(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & TAKES_CONCAT_ARG);
@@ -291,7 +289,7 @@ compopt_takes_concat_arg(const std::string& option)
 // Determines if the prefix of the option matches any option and affects the
 // preprocessor.
 bool
-compopt_prefix_affects_cpp_output(const std::string& option)
+compopt_prefix_affects_cpp_output(std::string_view option)
 {
   // Prefix options have to take concatenated args.
   const CompOpt* co = find_prefix(option);
@@ -301,7 +299,7 @@ compopt_prefix_affects_cpp_output(const std::string& option)
 // Determines if the prefix of the option matches any option and affects the
 // preprocessor.
 bool
-compopt_prefix_affects_compiler_output(const std::string& option)
+compopt_prefix_affects_compiler_output(std::string_view option)
 {
   // Prefix options have to take concatenated args.
   const CompOpt* co = find_prefix(option);
