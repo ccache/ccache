@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -67,13 +67,6 @@ public:
   // The original argument list.
   Args orig_args;
 
-  // Time of ccache invocation.
-  util::TimePoint time_of_invocation;
-
-  // Time of compilation. Used to see if include files have changed after
-  // compilation.
-  util::TimePoint time_of_compilation;
-
   // Files included by the preprocessor and their hashes.
   std::unordered_map<std::string, Hash::Digest> included_files;
 
@@ -99,6 +92,9 @@ public:
   // InodeCache that caches source file hashes when enabled.
   mutable InodeCache inode_cache;
 #endif
+
+  // Time of ccache invocation.
+  util::TimePoint time_of_invocation;
 
   // PID of currently executing compiler that we have started, if any. 0 means
   // no ongoing compilation.

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -41,13 +41,12 @@
 Context::Context()
   : actual_cwd(util::actual_cwd()),
     apparent_cwd(util::apparent_cwd(actual_cwd)),
-    storage(config)
+    storage(config),
 #ifdef INODE_CACHE_SUPPORTED
-    ,
-    inode_cache(config)
+    inode_cache(config),
 #endif
+    time_of_invocation(util::TimePoint::now())
 {
-  time_of_invocation = util::TimePoint::now();
 }
 
 void
