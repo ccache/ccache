@@ -313,14 +313,14 @@ include_file_too_new(const Context& ctx,
   // starting compilation and writing the include file. See also the notes under
   // "Performance" in doc/MANUAL.adoc.
   if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_mtime))
-      && dir_entry.mtime() >= ctx.time_of_compilation) {
+      && dir_entry.mtime() >= ctx.time_of_invocation) {
     LOG("Include file {} too new", path);
     return true;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_ctime))
-      && dir_entry.ctime() >= ctx.time_of_compilation) {
+      && dir_entry.ctime() >= ctx.time_of_invocation) {
     LOG("Include file {} ctime too new", path);
     return true;
   }
@@ -872,7 +872,7 @@ update_manifest(Context& ctx,
 
   MTR_SCOPE("manifest", "manifest_put");
 
-  // ctime() may be 0, so we have to check time_of_compilation against
+  // ctime() may be 0, so we have to check time_of_invocation against
   // MAX(mtime, ctime).
   //
   // ccache only reads mtime/ctime if file_stat_matches sloppiness is enabled,
@@ -887,7 +887,7 @@ update_manifest(Context& ctx,
       DirEntry de(path, DirEntry::LogOnError::yes);
       bool cache_time =
         save_timestamp
-        && ctx.time_of_compilation > std::max(de.mtime(), de.ctime());
+        && ctx.time_of_invocation > std::max(de.mtime(), de.ctime());
       return core::Manifest::FileStats{
         de.size(),
         de.is_regular_file() && cache_time ? de.mtime() : util::TimePoint(),
@@ -1139,7 +1139,6 @@ to_cache(Context& ctx,
     depend_mode_args.insert(1, depend_extra_args);
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
-    ctx.time_of_compilation = util::TimePoint::now();
     result = do_execute(ctx, depend_mode_args);
   }
   MTR_END("execute", "compiler");
@@ -1239,8 +1238,6 @@ to_cache(Context& ctx,
 static tl::expected<Hash::Digest, Failure>
 get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
-  ctx.time_of_compilation = util::TimePoint::now();
-
   std::string preprocessed_path;
   util::Bytes cpp_stderr_data;
 
