@@ -282,6 +282,48 @@ fi
     rm -rf src
 
     # -------------------------------------------------------------------------
+    TEST "Too new source file"
+
+    touch new.c
+    touch -t 203801010000 new.c
+
+    $CCACHE_COMPILE -c new.c
+    expect_stat modified_input_file 1
+    expect_stat cache_miss 0
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
+    expect_stat modified_input_file 1
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "Too new include file"
+
+    cat <<EOF >new.c
+#include "new.h"
+EOF
+    cat <<EOF >new.h
+int test;
+EOF
+    touch -t 203801010000 new.h
+
+    $CCACHE_COMPILE -c new.c
+    expect_stat modified_input_file 1
+    expect_stat cache_miss 0
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
+    expect_stat modified_input_file 1
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "Too new source file ignored if sloppy"
+
+    touch new.c
+    touch -t 203801010000 new.c
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
     TEST "LANG"
 
     $CCACHE_COMPILE -c test1.c
