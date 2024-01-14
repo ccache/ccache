@@ -158,25 +158,20 @@ should_disable_ccache_for_input_file(const std::string& path)
 }
 
 static void
-add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
+add_prefix(Args& args, const std::string& prefix_command)
 {
   if (prefix_command.empty()) {
     return;
   }
 
-  Args prefix;
-  for (const auto& word : util::split_into_strings(prefix_command, " ")) {
-    std::string path = find_executable(ctx, word, ctx.orig_args[0]);
-    if (path.empty()) {
-      throw core::Fatal(FMT("{}: {}", word, strerror(errno)));
-    }
-
-    prefix.push_back(path);
+  Args prefixes;
+  for (const auto& prefix : util::split_into_strings(prefix_command, " ")) {
+    prefixes.push_back(prefix);
   }
 
   LOG("Using command-line prefix {}", prefix_command);
-  for (size_t i = prefix.size(); i != 0; i--) {
-    args.push_front(prefix[i - 1]);
+  for (size_t i = prefixes.size(); i != 0; i--) {
+    args.push_front(prefixes[i - 1]);
   }
 }
 
@@ -1137,7 +1132,7 @@ to_cache(Context& ctx,
     // Add depend_mode_args directly after the compiler. We can't add them last
     // since options then may be placed after a "--" option.
     depend_mode_args.insert(1, depend_extra_args);
-    add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
+    add_prefix(depend_mode_args, ctx.config.prefix_command());
 
     result = do_execute(ctx, depend_mode_args);
   }
@@ -1278,7 +1273,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     args.push_back(ctx.args_info.input_file);
 
-    add_prefix(ctx, args, ctx.config.prefix_command_cpp());
+    add_prefix(args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     const auto result = do_execute(ctx, args, false);
@@ -2406,7 +2401,7 @@ cache_compilation(int argc, const char* const* argv)
       ASSERT(!ctx.orig_args.empty());
 
       ctx.orig_args.erase_with_prefix("--ccache-");
-      add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
+      add_prefix(ctx.orig_args, ctx.config.prefix_command());
 
       LOG_RAW("Failed; falling back to running the real compiler");
 
@@ -2681,7 +2676,7 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  add_prefix(ctx, processed.compiler_args, ctx.config.prefix_command());
+  add_prefix(processed.compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
