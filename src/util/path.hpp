@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,7 +46,7 @@ std::string apparent_cwd(const std::string& actual_cwd);
 const char* get_dev_null_path();
 
 // Return whether `path` is /dev/null or (on Windows) NUL.
-bool is_dev_null_path(std::string_view path);
+bool is_dev_null_path(const std::filesystem::path& path);
 
 // Return whether `path` includes at least one directory separator.
 bool is_full_path(std::string_view path);
@@ -58,11 +58,11 @@ bool path_starts_with(std::string_view path, std::string_view prefix);
 // --- Inline implementations ---
 
 inline bool
-is_dev_null_path(const std::string_view path)
+is_dev_null_path(const std::filesystem::path& path)
 {
   return path == "/dev/null"
 #ifdef _WIN32
-         || util::to_lowercase(path) == "nul"
+         || util::to_lowercase(path.string()) == "nul"
 #endif
     ;
 }
