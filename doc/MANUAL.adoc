@@ -1027,13 +1027,15 @@ preprocessing first.
     directory in the `.gcno` file. *gcno_cwd* also disables hashing of the
     current working directory if `-fprofile-abs-path` is used.
 *include_file_ctime*::
-    By default, ccache will disable the direct mode if an include file has too
-    new ctime. This sloppiness disables that check. See also _<<Handling of
-    newly created header files>>_.
+    By default, ccache will disable caching if a source code file has a status
+    change time (ctime) after the start of the ccache invocation. This
+    sloppiness disables that check. See also _<<Handling of newly created source
+    files>>_.
 *include_file_mtime*::
-    By default, ccache will disable the direct mode if an include file has too
-    new mtime. This sloppiness disables that check. See also _<<Handling of
-    newly created header files>>_.
+    By default, ccache will disable caching if a source code file has a
+    modification time (mtime) after the start of the ccache invocation. This
+    sloppiness disables that check. See also _<<Handling of newly created source
+    files>>_.
 *ivfsoverlay*::
     Ignore the Clang compiler option `-ivfsoverlay` and its argument. This is
     useful if you use Xcode, which uses a virtual file system (VFS) for things
@@ -1429,6 +1431,9 @@ Preconditions for using <<C++ modules>> were not fulfilled.
 Preconditions for using <<Precompiled headers,precompiled headers>> were not
 fulfilled.
 
+| Could not read or parse input file |
+An input file could not be read or parsed (see the debug log for details).
+
 | Could not write to output file |
 The output path specified with `-o` could not be written to.
 
@@ -1456,6 +1461,9 @@ Failure reading a file specified by
 
 | Forced recache |
 <<config_recache,*CCACHE_RECACHE*>> was used to overwrite an existing result.
+
+| Input file modified during compilation |
+An input file was modified during compilation.
 
 | Internal error |
 Unexpected failure, e.g. due to problems reading/writing the cache.
@@ -1631,31 +1639,23 @@ The depend mode will be disabled if any of the following holds:
   `/showIncludes` is added automatically if not specified by the user).
 
 
-== Handling of newly created header files
+== Handling of newly created source files
 
-If modification time (mtime) or status change time (ctime) of one of the include
-files is equal to (or newer than) the time compilation is being done, ccache
-disables the direct mode (or, in the case of a <<Precompiled headers,precompiled
-header>>, disables caching completely). This done as a safety measure to avoid a
-race condition (see below).
-
-To be able to use a newly created header files in direct mode (or use a newly
-precompiled header), either:
-
-* create the include file earlier in the build process, or
-* set <<config_sloppiness,*sloppiness*>> to
-  *include_file_ctime,include_file_mtime* if you are willing to take the risk,
-  for instance if you know that your build system is robust enough not to
-  trigger the race condition.
+If modification time (mtime) or status change time (ctime) of the source file or
+one of the include files is equal to (or newer than) the time that ccache was
+invoked, ccache disables caching completely. This is done as a safety measure to
+avoid a race condition (see below). In practice, this is only a problem when
+using file systems with very low timestamp granularity. You can set
+<<config_sloppiness,*sloppiness*>> to *include_file_ctime,include_file_mtime* to
+opt out of the safety measure.
 
 For reference, the race condition mentioned above consists of these events:
 
-1. The preprocessor is run.
-2. An include file is modified by someone.
-3. The new include file is hashed by ccache.
-4. The real compiler is run on the preprocessor's output, which contains data
-   from the old header file.
-5. The wrong object file is stored in the cache.
+1. A source code file is read by ccache and added to the input hash.
+2. The source code file is modified.
+3. The compiler is executed and reads the modified source code.
+4. Ccache stores the compiler output in the cache associated with the incorrect
+   key (based on the unmodified source code).
 
 
 == Cache debugging
@@ -1767,7 +1767,7 @@ to do some things to make it work properly:
   works in combination with precompiled headers.
 * You may also want to include *include_file_mtime,include_file_ctime* in
   <<config_sloppiness,*sloppiness*>>. See
-  _<<Handling of newly created header files>>_.
+  _<<Handling of newly created source files>>_.
 * You must either:
 +
 --
@@ -1932,9 +1932,8 @@ problems and what may be done to increase the hit rate:
    `-Wp,-MMD,<path>`, and `-Wp,-D<define>`) is used.
 ** This was the first compilation with a new value of the
    <<config_base_dir,base directory>>.
-** A modification or status change time of one of the include files is too new
-   (created the same second as the compilation is being done). See
-   _<<Handling of newly created header files>>_.
+** A modification or status change time of one of the include files is too new .
+   See _<<Handling of newly created source files>>_.
 ** The `+__TIME__+` preprocessor macro is (potentially) being used. Ccache turns
    off direct mode if `+__TIME__+` is present in the source code. This is done
    as a safety measure since the string indicates that a `+__TIME__+` macro

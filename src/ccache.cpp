@@ -299,54 +299,29 @@ guess_compiler(const fs::path& path)
 #endif
 }
 
-static bool
-include_file_too_new(const Context& ctx,
-                     const std::string& path,
-                     const DirEntry& dir_entry)
-{
-  // The comparison using >= is intentional, due to a possible race between
-  // starting compilation and writing the include file. See also the notes under
-  // "Performance" in doc/MANUAL.adoc.
-  if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_mtime))
-      && dir_entry.mtime() >= ctx.time_of_invocation) {
-    LOG("Include file {} too new", path);
-    return true;
-  }
-
-  // The same >= logic as above applies to the change time of the file.
-  if (!(ctx.config.sloppiness().contains(core::Sloppy::include_file_ctime))
-      && dir_entry.ctime() >= ctx.time_of_invocation) {
-    LOG("Include file {} ctime too new", path);
-    return true;
-  }
-
-  return false;
-}
-
-// Returns false if the include file was "too new" and therefore should disable
-// the direct mode (or, in the case of a preprocessed header, fall back to just
-// running the real compiler), otherwise true.
-static bool
-do_remember_include_file(Context& ctx,
-                         std::string path,
-                         Hash& cpp_hash,
-                         bool system,
-                         Hash* depend_mode_hash)
+// This function hashes an include file and stores the path and hash in
+// ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
+[[nodiscard]] tl::expected<void, Failure>
+remember_include_file(Context& ctx,
+                      std::string path,
+                      Hash& cpp_hash,
+                      bool system,
+                      Hash* depend_mode_hash)
 {
   if (path.length() >= 2 && path[0] == '<' && path[path.length() - 1] == '>') {
     // Typically <built-in> or <command-line>.
-    return true;
+    return {};
   }
 
   if (path == ctx.args_info.normalized_input_file) {
     // Don't remember the input file.
-    return true;
+    return {};
   }
 
   if (system
-      && (ctx.config.sloppiness().contains(core::Sloppy::system_headers))) {
+      && ctx.config.sloppiness().contains(core::Sloppy::system_headers)) {
     // Don't remember this system header.
-    return true;
+    return {};
   }
 
   // Canonicalize path for comparison; Clang uses ./header.h.
@@ -356,7 +331,7 @@ do_remember_include_file(Context& ctx,
 
   if (ctx.included_files.find(path) != ctx.included_files.end()) {
     // Already known include file.
-    return true;
+    return {};
   }
 
 #ifdef _WIN32
@@ -365,52 +340,35 @@ do_remember_include_file(Context& ctx,
     DWORD attributes = GetFileAttributes(path.c_str());
     if (attributes != INVALID_FILE_ATTRIBUTES
         && attributes & FILE_ATTRIBUTE_DIRECTORY) {
-      return true;
+      return {};
     }
   }
 #endif
 
   DirEntry dir_entry(path, DirEntry::LogOnError::yes);
   if (!dir_entry.exists()) {
-    return false;
+    return tl::unexpected(Statistic::bad_input_file);
   }
   if (dir_entry.is_directory()) {
     // Ignore directory, typically $PWD.
-    return true;
+    return {};
   }
   if (!dir_entry.is_regular_file()) {
     // Device, pipe, socket or other strange creature.
     LOG("Non-regular include file {}", path);
-    return false;
+    return tl::unexpected(Statistic::bad_input_file);
   }
 
   for (const auto& ignore_header_path : ctx.ignore_header_paths) {
     if (file_path_matches_dir_prefix_or_file(ignore_header_path, path)) {
-      return true;
+      return {};
     }
-  }
-
-  const bool is_pch = is_precompiled_header(path);
-  const bool too_new = include_file_too_new(ctx, path, dir_entry);
-
-  if (too_new) {
-    // Opt out of direct mode because of a race condition.
-    //
-    // The race condition consists of these events:
-    //
-    // - the preprocessor is run
-    // - an include file is modified by someone
-    // - the new include file is hashed by ccache
-    // - the real compiler is run on the preprocessor's output, which contains
-    //   data from the old header file
-    // - the wrong object file is stored in the cache.
-
-    return false;
   }
 
   // Let's hash the include file content.
   Hash::Digest file_digest;
 
+  const bool is_pch = is_precompiled_header(path);
   if (is_pch) {
     if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
@@ -428,7 +386,7 @@ do_remember_include_file(Context& ctx,
     }
 
     if (!hash_binary_file(ctx, file_digest, path)) {
-      return false;
+      return tl::unexpected(Statistic::bad_input_file);
     }
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
     cpp_hash.hash(util::format_digest(file_digest));
@@ -437,13 +395,14 @@ do_remember_include_file(Context& ctx,
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
       auto ret = hash_source_code_file(ctx, file_digest, path);
-      if (ret.contains(HashSourceCode::error)
-          || ret.contains(HashSourceCode::found_time)) {
-        return false;
+      if (ret.contains(HashSourceCode::error)) {
+        return tl::unexpected(Statistic::bad_input_file);
+      }
+      if (ret.contains(HashSourceCode::found_time)) {
+        LOG_RAW("Disabling direct mode");
+        ctx.config.set_direct_mode(false);
       }
     }
-
-    ctx.included_files.emplace(path, file_digest);
 
     if (depend_mode_hash) {
       depend_mode_hash->hash_delimiter("include");
@@ -451,31 +410,9 @@ do_remember_include_file(Context& ctx,
     }
   }
 
-  return true;
-}
+  ctx.included_files.emplace(path, file_digest);
 
-enum class RememberIncludeFileResult { ok, cannot_use_pch };
-
-// This function hashes an include file and stores the path and hash in
-// ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
-static RememberIncludeFileResult
-remember_include_file(Context& ctx,
-                      const std::string& path,
-                      Hash& cpp_hash,
-                      bool system,
-                      Hash* depend_mode_hash)
-{
-  if (!do_remember_include_file(
-        ctx, path, cpp_hash, system, depend_mode_hash)) {
-    if (is_precompiled_header(path)) {
-      return RememberIncludeFileResult::cannot_use_pch;
-    } else if (ctx.config.direct_mode()) {
-      LOG_RAW("Disabling direct mode");
-      ctx.config.set_direct_mode(false);
-    }
-  }
-
-  return RememberIncludeFileResult::ok;
+  return {};
 }
 
 static void
@@ -622,10 +559,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
         hash.hash(inc_path);
       }
 
-      if (remember_include_file(ctx, inc_path, hash, system, nullptr)
-          == RememberIncludeFileResult::cannot_use_pch) {
-        return tl::unexpected(Statistic::could_not_use_precompiled_header);
-      }
+      TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, incbin_directive, sizeof(incbin_directive)) == 0
                && ((q[7] == ' '
@@ -667,7 +601,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    remember_include_file(ctx, pch_path, hash, false, nullptr);
+    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -680,7 +614,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static std::optional<Hash::Digest>
+static tl::expected<Hash::Digest, Failure>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
   // Make sure that result hash will always be different from the manifest hash
@@ -694,7 +628,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     LOG("Failed to read dependency file {}: {}",
         ctx.args_info.output_dep,
         file_content.error());
-    return std::nullopt;
+    return tl::unexpected(Statistic::bad_input_file);
   }
 
   for (std::string_view token : Depfile::tokenize(*file_content)) {
@@ -702,7 +636,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
       continue;
     }
     std::string path = Util::make_relative_path(ctx, token);
-    remember_include_file(ctx, path, hash, false, &hash);
+    TRY(remember_include_file(ctx, path, hash, false, &hash));
   }
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
@@ -711,7 +645,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    remember_include_file(ctx, pch_path, hash, false, nullptr);
+    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -754,14 +688,14 @@ struct DoExecuteResult
 
 // Extract the used includes from /showIncludes output in stdout. Note that we
 // cannot distinguish system headers from other includes here.
-static std::optional<Hash::Digest>
+static tl::expected<Hash::Digest, Failure>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
     const std::string path = Util::make_relative_path(
       ctx, Util::normalize_abstract_absolute_path(include));
-    remember_include_file(ctx, path, hash, false, &hash);
+    TRY(remember_include_file(ctx, path, hash, false, &hash));
   }
 
   // Explicitly check the .pch file as it is not mentioned in the
@@ -770,7 +704,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    remember_include_file(ctx, pch_path, hash, false, nullptr);
+    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
 
   const bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -1067,6 +1001,59 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
   }
 }
 
+static std::string
+format_epoch_time(const util::TimePoint& tp)
+{
+  return FMT("{}.{:09}", tp.sec(), tp.nsec_decimal_part());
+}
+
+static bool
+source_file_is_too_new(const Context& ctx, const fs::path& path)
+{
+  const bool sloppy_ctime =
+    ctx.config.sloppiness().contains(core::Sloppy::include_file_ctime);
+  const bool sloppy_mtime =
+    ctx.config.sloppiness().contains(core::Sloppy::include_file_mtime);
+
+  if ((sloppy_mtime && sloppy_ctime) || util::is_dev_null_path(path)) {
+    return false;
+  }
+
+  // It's not enough to check if mtime/ctime >= ctx.time_of_invocation since
+  // filesystem timestamps are granular. See the comment for
+  // InodeCache::InodeCache for details.
+  //
+  // A relatively small safety margin is used in this case to make things safe
+  // on common filesystems while also not bailing out when creating a source
+  // file reasonably close in time before the compilation.
+  const util::Duration min_age(0, 100'000'000); // 0.1 s
+  util::TimePoint deadline = ctx.time_of_invocation + min_age;
+
+  DirEntry dir_entry(path);
+
+  if (!sloppy_mtime && dir_entry.mtime() >= deadline) {
+    LOG(
+      "{} was modified near or after invocation (mtime {}, invocation time {})",
+      dir_entry.path(),
+      format_epoch_time(dir_entry.mtime()),
+      format_epoch_time(ctx.time_of_invocation));
+    return true;
+  }
+
+  // The same logic as above applies to the change time of the file.
+  if (!sloppy_ctime && dir_entry.ctime() >= deadline) {
+    LOG(
+      "{} had status change near or after invocation (ctime {}, invocation"
+      " time {})",
+      dir_entry.path(),
+      format_epoch_time(dir_entry.ctime()),
+      format_epoch_time(ctx.time_of_invocation));
+    return true;
+  }
+
+  return false;
+}
+
 // Run the real compiler and put the result in cache. Returns the result key.
 static tl::expected<Hash::Digest, Failure>
 to_cache(Context& ctx,
@@ -1173,21 +1160,35 @@ to_cache(Context& ctx,
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
     if (ctx.args_info.generating_dependencies) {
-      result_key = result_key_from_depfile(ctx, *depend_mode_hash);
+      auto key = result_key_from_depfile(ctx, *depend_mode_hash);
+      if (!key) {
+        return tl::unexpected(key.error());
+      }
+      result_key = *key;
     } else if (ctx.args_info.generating_includes) {
-      result_key = result_key_from_includes(
+      auto key = result_key_from_includes(
         ctx, *depend_mode_hash, util::to_string_view(result->stdout_data));
+      if (!key) {
+        return tl::unexpected(key.error());
+      }
+      result_key = *key;
     } else {
       ASSERT(false);
-    }
-    if (!result_key) {
-      return tl::unexpected(Statistic::internal_error);
     }
     LOG_RAW("Got result key from dependency file");
     LOG("Result key: {}", util::format_digest(*result_key));
   }
 
   ASSERT(result_key);
+
+  if (source_file_is_too_new(ctx, ctx.args_info.input_file)) {
+    return tl::unexpected(Statistic::modified_input_file);
+  }
+  for (const auto& [path, digest] : ctx.included_files) {
+    if (source_file_is_too_new(ctx, path)) {
+      return tl::unexpected(Statistic::modified_input_file);
+    }
+  }
 
   if (ctx.args_info.generating_dependencies) {
     Depfile::make_paths_relative_in_output_dep(ctx);

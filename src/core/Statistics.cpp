@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -75,6 +75,9 @@ const StatisticsField k_statistics_fields[] = {
   // that requires an argument or failure to read a file specified by a compiler
   // option argument.
   FIELD(bad_compiler_arguments, "Bad compiler arguments", FLAG_UNCACHEABLE),
+
+  // An input file could not be read or parsed (see the debug log for details).
+  FIELD(bad_input_file, "Could not read or parse input file", FLAG_ERROR),
 
   // The output path specified with -o could not be written to.
   FIELD(bad_output_file, "Could not write to output file", FLAG_ERROR),
@@ -172,6 +175,10 @@ const StatisticsField k_statistics_fields[] = {
   // situations, e.g. if one ccache instance is about to get a file from the
   // cache while another instance removed the file as part of cache cleanup.
   FIELD(missing_cache_file, "Missing cache file", FLAG_ERROR),
+
+  // An input file was modified during compilation.
+  FIELD(
+    modified_input_file, "Input file modified during compilation", FLAG_ERROR),
 
   // The compiler was called to compile multiple source files in one go. This is
   // not supported by ccache.

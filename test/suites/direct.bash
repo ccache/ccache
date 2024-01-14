@@ -1073,27 +1073,6 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
-    TEST "Too new include file disables direct mode"
-
-    cat <<EOF >new.c
-#include "new.h"
-EOF
-    cat <<EOF >new.h
-int test;
-EOF
-    touch -t 203801010000 new.h
-
-    $CCACHE_COMPILE -c new.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-
-    $CCACHE_COMPILE -c new.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 1
-    expect_stat cache_miss 1
-
-    # -------------------------------------------------------------------------
     TEST "__DATE__ in header file results in direct cache hit as the date remains the same"
 
     cat <<EOF >test_date2.c
@@ -1113,27 +1092,6 @@ EOF
     expect_stat cache_miss 1
 
     $CCACHE_COMPILE -MP -MMD -MF test_date2.d -c test_date2.c
-    expect_stat direct_cache_hit 1
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-
-    # -------------------------------------------------------------------------
-    TEST "New include file ignored if sloppy"
-
-    cat <<EOF >new.c
-#include "new.h"
-EOF
-    cat <<EOF >new.h
-int test;
-EOF
-    touch -t 203801010000 new.h
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
