@@ -236,7 +236,6 @@ SUITE_remote_file() {
     $CCACHE -C >/dev/null
 
     # Get result from remote storage, copying it to local storage.
-    # TERM=xterm-256color gdb --args $CCACHE_COMPILE -MMD -c test.c
     $CCACHE_COMPILE -MMD -c test.c
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
