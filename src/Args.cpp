@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -236,12 +236,6 @@ void
 Args::pop_front(size_t count)
 {
   m_args.erase(m_args.begin(), m_args.begin() + count);
-}
-
-void
-Args::push_back(const std::string& arg)
-{
-  m_args.push_back(arg);
 }
 
 void

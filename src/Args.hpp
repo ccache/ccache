@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -82,6 +82,7 @@ public:
 
   // Add `arg` to the end.
   void push_back(const std::string& arg);
+  void push_back(std::string&& arg);
 
   // Add `args` to the end.
   void push_back(const Args& args);
@@ -130,4 +131,16 @@ inline std::string&
 Args::operator[](size_t i)
 {
   return m_args[i];
+}
+
+inline void
+Args::push_back(const std::string& arg)
+{
+  m_args.push_back(arg);
+}
+
+inline void
+Args::push_back(std::string&& arg)
+{
+  m_args.push_back(arg);
 }
