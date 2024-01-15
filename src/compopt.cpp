@@ -21,27 +21,27 @@
 #include <util/fmtmacros.hpp>
 
 // The option it too hard to handle at all.
-#define TOO_HARD (1 << 0)
+int TOO_HARD = 1 << 0;
 
 // The option it too hard for the direct mode.
-#define TOO_HARD_DIRECT (1 << 1)
+int TOO_HARD_DIRECT = 1 << 1;
 
 // The option takes a separate argument, e.g. "-D FOO=1".
-#define TAKES_ARG (1 << 2)
+int TAKES_ARG = 1 << 2;
 
 // The option takes a concatenated argument, e.g. "-DFOO=1".
-#define TAKES_CONCAT_ARG (1 << 3)
+int TAKES_CONCAT_ARG = 1 << 3;
 
 // The argument to the option is a path that may be rewritten if base_dir is
 // used.
-#define TAKES_PATH (1 << 4)
+int TAKES_PATH = 1 << 4;
 
 // The option only affects preprocessing; not passed to the compiler if
 // run_second_cpp is false.
-#define AFFECTS_CPP (1 << 5)
+int AFFECTS_CPP = 1 << 5;
 
 // The option only affects compilation; not passed to the preprocessor.
-#define AFFECTS_COMP (1 << 6)
+int AFFECTS_COMP = 1 << 6;
 
 struct CompOpt
 {

@@ -1425,7 +1425,7 @@ hash_common_info(const Context& ctx,
 #ifdef _WIN32
   const std::string compiler_path = util::add_exe_suffix(args[0]);
 #else
-  const std::string compiler_path = args[0];
+  const std::string& compiler_path = args[0];
 #endif
 
   DirEntry dir_entry(compiler_path, DirEntry::LogOnError::yes);

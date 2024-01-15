@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -60,9 +60,9 @@ TemporaryFile::create(const fs::path& path_prefix, std::string_view suffix)
 
   // [1]: <https://github.com/Alexpux/mingw-w64/blob/
   // d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c>
-  Fd fd(bsd_mkstemps(&path_template[0], static_cast<int>(suffix.length())));
+  Fd fd(bsd_mkstemps(path_template.data(), static_cast<int>(suffix.length())));
 #else
-  Fd fd(mkstemps(&path_template[0], static_cast<int>(suffix.length())));
+  Fd fd(mkstemps(path_template.data(), static_cast<int>(suffix.length())));
 #endif
   if (!fd) {
     return tl::unexpected(FMT("failed to create temporary file for {}: {}",

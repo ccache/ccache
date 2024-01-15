@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -35,12 +35,9 @@
 #endif
 
 #ifdef HAVE_UTIMENSAT
-#  include <fcntl.h>
-#  include <sys/stat.h>
 #elif defined(HAVE_UTIMES)
 #  include <sys/time.h>
 #else
-#  include <sys/types.h>
 #  ifdef HAVE_UTIME_H
 #    include <utime.h>
 #  elif defined(HAVE_SYS_UTIME_H)

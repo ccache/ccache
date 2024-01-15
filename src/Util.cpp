@@ -18,7 +18,6 @@
 
 #include "Util.hpp"
 
-#include "Config.hpp"
 #include "Context.hpp"
 
 #include <Config.hpp>

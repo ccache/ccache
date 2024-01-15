@@ -18,7 +18,6 @@
 
 #include "ResultRetriever.hpp"
 
-#include "Context.hpp"
 #include "Depfile.hpp"
 
 #include <Context.hpp>
