@@ -175,6 +175,8 @@ Options for scripting or debugging:
                                human-readable format
         --print-stats          print statistics counter IDs and corresponding
                                values in machine-parsable format
+        --print-stats-json     print statistics counter IDs and corresponding
+                               values in JSON format
 
 See also the manual on <https://ccache.dev/documentation.html>.
 )";
@@ -423,6 +425,7 @@ enum {
   HASH_FILE,
   INSPECT,
   PRINT_STATS,
+  PRINT_STATS_JSON,
   RECOMPRESS_THREADS,
   SHOW_LOG_STATS,
   TRIM_DIR,
@@ -452,6 +455,7 @@ const option long_options[] = {
   {"max-files", required_argument, nullptr, 'F'},
   {"max-size", required_argument, nullptr, 'M'},
   {"print-stats", no_argument, nullptr, PRINT_STATS},
+  {"print-stats-json", no_argument, nullptr, PRINT_STATS_JSON},
   {"recompress", required_argument, nullptr, 'X'},
   {"recompress-threads", required_argument, nullptr, RECOMPRESS_THREADS},
   {"set-config", required_argument, nullptr, 'o'},
@@ -644,6 +648,14 @@ process_main_options(int argc, const char* const* argv)
       Statistics statistics(counters);
       PRINT_RAW(stdout,
                 statistics.format_machine_readable(config, last_updated));
+      break;
+    }
+
+    case PRINT_STATS_JSON: {
+      const auto [counters, last_updated] =
+        storage::local::LocalStorage(config).get_all_statistics();
+      Statistics statistics(counters);
+      PRINT_RAW(stdout, statistics.format_json(config, last_updated));
       break;
     }
 

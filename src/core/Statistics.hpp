@@ -50,6 +50,10 @@ public:
   format_machine_readable(const Config& config,
                           const util::TimePoint& last_updated) const;
 
+  // Format cache statistics in JSON format.
+  std::string format_json(const Config& config,
+                          const util::TimePoint& last_updated) const;
+
   const StatisticsCounters& counters() const;
 
   static std::unordered_map<std::string, Statistic> get_id_map();
