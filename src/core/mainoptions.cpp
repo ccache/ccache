@@ -169,7 +169,7 @@ Options for scripting or debugging:
         --extract-result PATH  extract file data stored in result file at PATH
                                to the current working directory
     -f, --format FORMAT        specify format for --print-log-stats and
-                               --print-stats (tab); default: tab
+                               --print-stats (tab, json); default: tab
     -k, --get-config KEY       print the value of configuration key KEY
         --hash-file PATH       print the hash (160 bit BLAKE3) of the file at
                                PATH
@@ -515,6 +515,8 @@ process_main_options(int argc, const char* const* argv)
     case 'f': // --format
       if (arg == "tab") {
         format = StatisticFormat::Tab;
+      } else if (arg == "json") {
+        format = StatisticFormat::Json;
       } else {
         PRINT(stderr, "Error: unknown format \"{}\"\n", arg);
         return EXIT_FAILURE;

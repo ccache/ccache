@@ -86,6 +86,7 @@ enum class Statistic {
 
 enum class StatisticFormat {
   Tab,
+  Json,
 };
 
 } // namespace core

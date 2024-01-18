@@ -65,6 +65,9 @@ private:
   // Format cache statistics in tab-separated format.
   std::string format_tab_separated(const Config& config,
                                    const util::TimePoint& last_updated) const;
+  // Format cache statistics in JSON format.
+  std::string format_json(const Config& config,
+                          const util::TimePoint& last_updated) const;
 };
 
 // --- Inline implementations ---

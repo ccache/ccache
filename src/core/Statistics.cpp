@@ -529,6 +529,8 @@ Statistics::format_machine_readable(const Config& config,
                                     const StatisticFormat format) const
 {
   switch (format) {
+  case StatisticFormat::Json:
+    return Statistics::format_json(config, last_updated);
   case StatisticFormat::Tab:
     /* fall through */
   default:
@@ -559,6 +561,32 @@ Statistics::format_tab_separated(const Config& config,
 
   std::sort(lines.begin(), lines.end());
   return util::join(lines, "");
+}
+
+std::string
+Statistics::format_json(const Config& config,
+                        const util::TimePoint& last_updated) const
+{
+  std::vector<std::string> lines;
+
+  auto add_line = [&](auto id, auto value) {
+    lines.push_back(FMT("\"{}\": {}", id, value));
+  };
+
+  add_line("stats_updated_timestamp", last_updated.sec());
+
+  for (const auto& field : k_statistics_fields) {
+    if (!(field.flags & FLAG_NEVER)) {
+      add_line(field.id, m_counters.get(field.statistic));
+    }
+  }
+
+  add_line("max_cache_size_kibibyte", config.max_size() / 1024);
+  add_line("max_files_in_cache", config.max_files());
+
+  std::sort(lines.begin(), lines.end());
+  std::string result = "{" + util::join(lines, ",") + "}";
+  return result;
 }
 
 std::unordered_map<std::string, Statistic>
