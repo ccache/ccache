@@ -84,4 +84,8 @@ enum class Statistic {
   END = 84
 };
 
+enum class StatisticFormat {
+  Tab,
+};
+
 } // namespace core

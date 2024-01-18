@@ -525,7 +525,20 @@ Statistics::format_human_readable(const Config& config,
 
 std::string
 Statistics::format_machine_readable(const Config& config,
-                                    const util::TimePoint& last_updated) const
+                                    const util::TimePoint& last_updated,
+                                    const StatisticFormat format) const
+{
+  switch (format) {
+  case StatisticFormat::Tab:
+    /* fall through */
+  default:
+    return Statistics::format_tab_separated(config, last_updated);
+  }
+}
+
+std::string
+Statistics::format_tab_separated(const Config& config,
+                                 const util::TimePoint& last_updated) const
 {
   std::vector<std::string> lines;
 
