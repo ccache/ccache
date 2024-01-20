@@ -222,10 +222,10 @@ delete_file(const DirEntry& dir_entry,
             uint64_t& files_in_cache)
 {
   const auto result =
-    util::remove_nfs_safe(dir_entry.path().string(), util::LogFailure::no);
+    util::remove_nfs_safe(dir_entry.path(), util::LogFailure::no);
   if (!result && result.error().value() != ENOENT
       && result.error().value() != ESTALE) {
-    LOG("Failed to unlink {} ({})", dir_entry.path().string(), strerror(errno));
+    LOG("Failed to unlink {} ({})", dir_entry.path(), strerror(errno));
   } else {
     // The counters are intentionally subtracted even if there was no file to
     // delete since the final cache size calculation will be incorrect if they
@@ -390,7 +390,7 @@ clean_dir(
 
     if (namespace_) {
       try {
-        core::CacheEntry::Header header(file.path().string());
+        core::CacheEntry::Header header(file.path());
         if (header.namespace_ != *namespace_) {
           continue;
         }
@@ -824,7 +824,7 @@ LocalStorage::wipe_all(const ProgressReceiver& progress_receiver)
           l2_progress_receiver(0.5);
 
           for (size_t i = 0; i < files.size(); ++i) {
-            util::remove_nfs_safe(files[i].path().string());
+            util::remove_nfs_safe(files[i].path());
             l2_progress_receiver(0.5 + 0.5 * ratio(i, files.size()));
           }
 
@@ -856,7 +856,7 @@ LocalStorage::get_compression_statistics(
           for (size_t i = 0; i < files.size(); ++i) {
             const auto& cache_file = files[i];
             try {
-              core::CacheEntry::Header header(cache_file.path().string());
+              core::CacheEntry::Header header(cache_file.path());
               cs.actual_size += cache_file.size_on_disk();
               cs.content_size += util::likely_size_on_disk(header.entry_size);
             } catch (core::Error&) {

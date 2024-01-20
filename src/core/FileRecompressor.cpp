@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -34,7 +34,7 @@ FileRecompressor::recompress(const DirEntry& dir_entry,
                              std::optional<int8_t> level,
                              KeepAtime keep_atime)
 {
-  core::CacheEntry::Header header(dir_entry.path().string());
+  core::CacheEntry::Header header(dir_entry.path());
 
   const int8_t wanted_level =
     level ? (*level == 0 ? core::CacheEntry::default_compression_level : *level)
@@ -44,8 +44,8 @@ FileRecompressor::recompress(const DirEntry& dir_entry,
 
   if (header.compression_level != wanted_level) {
     const auto cache_file_data = util::value_or_throw<core::Error>(
-      util::read_file<util::Bytes>(dir_entry.path().string()),
-      FMT("Failed to read {}: ", dir_entry.path().string()));
+      util::read_file<util::Bytes>(dir_entry.path()),
+      FMT("Failed to read {}: ", dir_entry.path()));
     core::CacheEntry cache_entry(cache_file_data);
     cache_entry.verify_checksum();
 
@@ -54,19 +54,17 @@ FileRecompressor::recompress(const DirEntry& dir_entry,
       level ? core::CompressionType::zstd : core::CompressionType::none;
     header.compression_level = wanted_level;
 
-    AtomicFile new_cache_file(dir_entry.path().string(),
-                              AtomicFile::Mode::binary);
+    AtomicFile new_cache_file(dir_entry.path(), AtomicFile::Mode::binary);
     new_cache_file.write(
       core::CacheEntry::serialize(header, cache_entry.payload()));
     new_cache_file.commit();
-    new_dir_entry =
-      DirEntry(dir_entry.path().string(), DirEntry::LogOnError::yes);
+    new_dir_entry = DirEntry(dir_entry.path(), DirEntry::LogOnError::yes);
   }
 
   // Restore mtime/atime to keep cache LRU cleanup working as expected:
   if (keep_atime == KeepAtime::yes || new_dir_entry) {
     util::set_timestamps(
-      dir_entry.path().string(), dir_entry.mtime(), dir_entry.atime());
+      dir_entry.path(), dir_entry.mtime(), dir_entry.atime());
   }
 
   m_content_size += util::likely_size_on_disk(header.entry_size);
