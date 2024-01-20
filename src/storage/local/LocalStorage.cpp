@@ -30,6 +30,7 @@
 #include <core/exceptions.hpp>
 #include <util/Duration.hpp>
 #include <util/FileStream.hpp>
+#include <util/PathString.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/TextTable.hpp>
 #include <util/ThreadPool.hpp>
@@ -88,6 +89,8 @@ using core::AtomicFile;
 using core::Statistic;
 using core::StatisticsCounters;
 using util::DirEntry;
+
+using pstr = util::PathString;
 
 namespace storage::local {
 
@@ -343,15 +346,15 @@ clean_dir(
     // Delete any tmp files older than 1 hour right away.
     if (file.mtime() + util::Duration(3600) < current_time
         && util::TemporaryFile::is_tmp_file(file.path())) {
-      util::remove(file.path().string());
+      util::remove(file.path());
       continue;
     }
 
     if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
+      auto path_str = pstr(file.path());
       const auto result_filename =
-        FMT("{}R",
-            file.path().string().substr(0, file.path().string().length() - 2));
-      raw_files_map[result_filename].push_back(file.path().string());
+        FMT("{}R", path_str.str().substr(0, path_str.str().length() - 2));
+      raw_files_map[result_filename].push_back(pstr(file.path()).str());
     }
 
     cache_size += file.size_on_disk();
@@ -399,7 +402,7 @@ clean_dir(
       // For namespace eviction we need to remove raw files based on result
       // filename since they don't have a header.
       if (file_type_from_path(file.path()) == FileType::result) {
-        const auto entry = raw_files_map.find(file.path().string());
+        const auto entry = raw_files_map.find(pstr(file.path()));
         if (entry != raw_files_map.end()) {
           for (const auto& raw_file : entry->second) {
             delete_file(DirEntry(raw_file), cache_size, files_in_cache);
@@ -427,7 +430,7 @@ clean_dir(
 FileType
 file_type_from_path(const fs::path& path)
 {
-  auto filename = path.filename().string();
+  std::string filename = pstr(path.filename()).str();
   if (util::ends_with(filename, "M")) {
     return FileType::manifest;
   } else if (util::ends_with(filename, "R")) {

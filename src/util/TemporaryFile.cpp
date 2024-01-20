@@ -18,6 +18,7 @@
 
 #include "TemporaryFile.hpp"
 
+#include <util/PathString.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
@@ -34,6 +35,8 @@
 #endif
 
 namespace fs = util::filesystem;
+
+using pstr = util::PathString;
 
 namespace util {
 
@@ -81,7 +84,7 @@ TemporaryFile::create(const fs::path& path_prefix, std::string_view suffix)
 bool
 TemporaryFile::is_tmp_file(const fs::path& path)
 {
-  return path.filename().string().find(tmp_file_infix) != std::string::npos;
+  return pstr(path.filename()).str().find(tmp_file_infix) != std::string::npos;
 }
 
 } // namespace util

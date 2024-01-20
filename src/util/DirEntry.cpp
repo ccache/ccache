@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,7 @@
 #include "DirEntry.hpp"
 
 #include <util/Finalizer.hpp>
+#include <util/PathString.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
@@ -27,6 +28,8 @@
 #ifdef _WIN32
 #  include <third_party/win32/winerror_to_errno.h>
 #endif
+
+using pstr = util::PathString;
 
 namespace {
 
@@ -249,7 +252,9 @@ DirEntry::do_stat() const
     m_exists = false;
     m_is_symlink = false;
 
-    int result = lstat_func(m_path.string().c_str(), &m_stat);
+    auto path = pstr(m_path);
+
+    int result = lstat_func(path, &m_stat);
     if (result == 0) {
       m_errno = 0;
       if (S_ISLNK(m_stat.st_mode)
@@ -259,7 +264,7 @@ DirEntry::do_stat() const
       ) {
         m_is_symlink = true;
         stat_t st;
-        if (stat_func(m_path.string().c_str(), &st) == 0) {
+        if (stat_func(path, &st) == 0) {
           m_stat = st;
           m_exists = true;
         }
@@ -269,7 +274,7 @@ DirEntry::do_stat() const
     } else {
       m_errno = errno;
       if (m_log_on_error == LogOnError::yes) {
-        LOG("Failed to lstat {}: {}", m_path.string(), strerror(m_errno));
+        LOG("Failed to lstat {}: {}", m_path, strerror(m_errno));
       }
     }
 

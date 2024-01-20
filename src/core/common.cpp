@@ -21,6 +21,7 @@
 #include <Context.hpp>
 #include <core/exceptions.hpp>
 #include <util/Finalizer.hpp>
+#include <util/PathString.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
@@ -29,6 +30,7 @@
 #include <util/path.hpp>
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
+using pstr = util::PathString;
 
 namespace fs = util::filesystem;
 
@@ -104,7 +106,7 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
       result.append(line.data(), line.length());
     } else {
       fs::path path(line.substr(0, path_end));
-      result += fs::canonical(path).value_or(path).string();
+      result += pstr(fs::canonical(path).value_or(path)).str();
       auto tail = line.substr(path_end);
       result.append(tail.data(), tail.length());
     }

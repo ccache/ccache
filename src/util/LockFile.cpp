@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,7 @@
 #include "Util.hpp"
 
 #include <util/DirEntry.hpp>
+#include <util/PathString.hpp>
 #include <util/assertions.hpp>
 #include <util/error.hpp>
 #include <util/file.hpp>
@@ -45,6 +46,8 @@ const util::Duration k_staleness_limit(2);
 #endif
 
 namespace fs = util::filesystem;
+
+using pstr = util::PathString;
 
 namespace {
 
@@ -74,9 +77,9 @@ private:
 namespace util {
 
 LockFile::LockFile(const fs::path& path)
-  : m_lock_file(path.string() + ".lock"),
+  : m_lock_file(pstr(path).str() + ".lock"),
 #ifndef _WIN32
-    m_alive_file(path.string() + ".alive"),
+    m_alive_file(pstr(path).str() + ".alive"),
     m_acquired(false)
 #else
     m_handle(INVALID_HANDLE_VALUE)
@@ -360,7 +363,7 @@ LockFile::do_acquire(const bool blocking)
 
   while (true) {
     DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE;
-    handle = CreateFile(m_lock_file.string().c_str(),
+    handle = CreateFile(pstr(m_lock_file),
                         GENERIC_WRITE, // desired access
                         0,             // shared mode (0 = not shared)
                         nullptr,       // security attributes

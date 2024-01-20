@@ -48,6 +48,7 @@
 #include <util/Fd.hpp>
 #include <util/FileStream.hpp>
 #include <util/Finalizer.hpp>
+#include <util/PathString.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/UmaskScope.hpp>
 #include <util/environment.hpp>
@@ -82,6 +83,7 @@ namespace fs = util::filesystem;
 
 using core::Statistic;
 using util::DirEntry;
+using pstr = util::PathString;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -207,7 +209,7 @@ prepare_debug_path(const fs::path& cwd,
              static_cast<long long unsigned int>(time_of_invocation.sec()));
   }
   return FMT("{}.{}_{:06}.ccache-{}",
-             prefix.string(),
+             pstr(prefix).str(),
              timestamp,
              time_of_invocation.nsec_decimal_part() / 1000,
              suffix);
@@ -265,7 +267,7 @@ static CompilerType
 do_guess_compiler(const fs::path& path)
 {
   const auto name =
-    util::to_lowercase(path.filename().replace_extension("").string());
+    util::to_lowercase(pstr(path.filename().replace_extension("")).str());
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
@@ -673,7 +675,7 @@ get_tmp_fd(Context& ctx,
     auto tmp_stdout =
       util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
         FMT("{}/{}", ctx.config.temporary_dir(), description)));
-    ctx.register_pending_tmp_file(tmp_stdout.path.string());
+    ctx.register_pending_tmp_file(pstr(tmp_stdout.path));
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
     const auto dev_null_path = util::get_dev_null_path();
@@ -1439,7 +1441,7 @@ hash_common_info(const Context& ctx,
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
   hash.hash_delimiter("cc_name");
-  hash.hash(fs::path(args[0]).filename().string());
+  hash.hash(pstr(fs::path(args[0]).filename()).str());
 
   // Hash variables that may affect the compilation.
   const char* always_hash_env_vars[] = {
@@ -1570,7 +1572,7 @@ hash_common_info(const Context& ctx,
          util::split_path_list(ctx.config.extra_files_to_hash())) {
       LOG("Hashing extra file {}", path);
       hash.hash_delimiter("extrafile");
-      if (!hash_binary_file(ctx, hash, path.string())) {
+      if (!hash_binary_file(ctx, hash, pstr(path))) {
         return tl::unexpected(Statistic::error_hashing_extra_file);
       }
     }
@@ -1889,7 +1891,7 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
   const std::string base_name =
-    fs::path(ctx.args_info.output_obj).replace_extension("").string();
+    pstr(fs::path(ctx.args_info.output_obj).replace_extension("")).str();
   std::string hashified_cwd = ctx.apparent_cwd;
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
@@ -2742,8 +2744,9 @@ ccache_main(int argc, const char* const* argv)
   try {
     if (is_ccache_executable(argv[0])) {
       if (argc < 2) {
-        PRINT_RAW(stderr,
-                  core::get_usage_text(fs::path(argv[0]).filename().string()));
+        PRINT_RAW(
+          stderr,
+          core::get_usage_text(pstr(fs::path(argv[0]).filename()).str()));
         exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,12 +20,14 @@
 
 #include <Util.hpp>
 #include <core/exceptions.hpp>
+#include <util/PathString.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 
 using util::DirEntry;
+using pstr = util::PathString;
 
 namespace storage::local {
 
@@ -74,7 +76,7 @@ get_cache_dir_files(const std::string& dir)
   }
   util::throw_on_error<core::Error>(
     util::traverse_directory(dir, [&](const auto& de) {
-      auto name = de.path().filename().string();
+      std::string name = pstr(de.path().filename()).str();
       if (name == "CACHEDIR.TAG" || name == "stats"
           || util::starts_with(name, ".nfs")) {
         return;

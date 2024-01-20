@@ -24,6 +24,7 @@
 
 #include <Depfile.hpp>
 #include <Util.hpp>
+#include <util/PathString.hpp>
 #include <util/assertions.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
@@ -40,8 +41,10 @@
 #include <vector>
 
 namespace fs = util::filesystem;
+
 using core::Statistic;
 using util::DirEntry;
+using pstr = util::PathString;
 
 namespace {
 
@@ -162,7 +165,7 @@ detect_pch(const std::string& option,
       fs::path file = fs::path(arg).replace_extension(".pch");
       if (fs::is_regular_file(file)) {
         LOG("Detected use of precompiled header: {}", file);
-        pch_file = file.string();
+        pch_file = pstr(file).str();
       }
     }
   } else if (option == "-Fp") {
@@ -1232,7 +1235,7 @@ process_args(Context& ctx)
   if (state.input_files.size() > 1) {
     if (is_link) {
       LOG_RAW("Called for link");
-      return state.input_files.front().string().find("conftest.")
+      return pstr(state.input_files.front()).str().find("conftest.")
                  != std::string::npos
                ? Statistic::autoconf_test
                : Statistic::called_for_link;
@@ -1242,7 +1245,7 @@ process_args(Context& ctx)
     }
   }
 
-  args_info.orig_input_file = state.input_files.front().string();
+  args_info.orig_input_file = pstr(state.input_files.front()).str();
   // Rewrite to relative to increase hit rate.
   args_info.input_file =
     Util::make_relative_path(ctx, args_info.orig_input_file);
@@ -1293,10 +1296,10 @@ process_args(Context& ctx)
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
-    args_info.output_obj += fs::path(args_info.input_file)
-                              .filename()
-                              .replace_extension(extension)
-                              .string();
+    args_info.output_obj +=
+      pstr(
+        fs::path(args_info.input_file).filename().replace_extension(extension))
+        .str();
   }
 
   args_info.orig_output_obj = args_info.output_obj;
@@ -1425,7 +1428,7 @@ process_args(Context& ctx)
       args_info.seen_split_dwarf = false;
     } else {
       args_info.output_dwo =
-        fs::path(args_info.output_obj).replace_extension(".dwo").string();
+        pstr(fs::path(args_info.output_obj).replace_extension(".dwo")).str();
     }
   }
 
@@ -1487,7 +1490,7 @@ process_args(Context& ctx)
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
       args_info.output_dep =
-        fs::path(args_info.output_obj).replace_extension(".d").string();
+        pstr(fs::path(args_info.output_obj).replace_extension(".d")).str();
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file

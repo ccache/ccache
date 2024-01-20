@@ -22,6 +22,7 @@
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
 #include <util/Finalizer.hpp>
+#include <util/PathString.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/error.hpp>
 #include <util/expected.hpp>
@@ -62,18 +63,20 @@
 
 namespace fs = util::filesystem;
 
+using pstr = util::PathString;
+
 namespace util {
 
 tl::expected<void, std::string>
 copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
 {
-  Fd src_fd(open(src.string().c_str(), O_RDONLY | O_BINARY));
+  Fd src_fd(open(pstr(src), O_RDONLY | O_BINARY));
   if (!src_fd) {
     return tl::unexpected(
       FMT("Failed to open {} for reading: {}", src, strerror(errno)));
   }
 
-  unlink(dest.string().c_str());
+  unlink(pstr(dest));
 
   Fd dest_fd;
   fs::path tmp_file;
@@ -85,8 +88,8 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
     dest_fd = std::move(temp_file->fd);
     tmp_file = std::move(temp_file->path);
   } else {
-    dest_fd = Fd(open(
-      dest.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    dest_fd =
+      Fd(open(pstr(dest), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
       return tl::unexpected(
         FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
@@ -247,7 +250,7 @@ read_file(const fs::path& path, size_t size_hint)
       return O_RDONLY | O_BINARY;
     }
   }();
-  Fd fd(open(path.string().c_str(), open_flags));
+  Fd fd(open(pstr(path), open_flags));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
@@ -340,7 +343,7 @@ read_file_part(const fs::path& path, size_t pos, size_t count)
     return result;
   }
 
-  Fd fd(open(path.string().c_str(), O_RDONLY | O_BINARY));
+  Fd fd(open(pstr(path), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
     return tl::unexpected(strerror(errno));
@@ -445,7 +448,7 @@ set_timestamps(const fs::path& path,
     atime_mtime[0] = (atime ? *atime : *mtime).to_timespec();
     atime_mtime[1] = mtime->to_timespec();
   }
-  utimensat(AT_FDCWD, path.string().c_str(), mtime ? atime_mtime : nullptr, 0);
+  utimensat(AT_FDCWD, pstr(path), mtime ? atime_mtime : nullptr, 0);
 #elif defined(HAVE_UTIMES)
   timeval atime_mtime[2];
   if (mtime) {
@@ -455,15 +458,15 @@ set_timestamps(const fs::path& path,
     atime_mtime[1].tv_sec = mtime->sec();
     atime_mtime[1].tv_usec = mtime->nsec_decimal_part() / 1000;
   }
-  utimes(path.string().c_str(), mtime ? atime_mtime : nullptr);
+  utimes(pstr(path), mtime ? atime_mtime : nullptr);
 #else
   utimbuf atime_mtime;
   if (mtime) {
     atime_mtime.actime = atime ? atime->sec() : mtime->sec();
     atime_mtime.modtime = mtime->sec();
-    utime(path.string().c_str(), &atime_mtime);
+    utime(pstr(path), &atime_mtime);
   } else {
-    utime(path.string().c_str(), nullptr);
+    utime(pstr(path), nullptr);
   }
 #endif
 }
@@ -474,7 +477,7 @@ tl::expected<void, std::string>
 traverse_directory(const fs::path& directory,
                    const TraverseDirectoryVisitor& visitor)
 {
-  DIR* dir = opendir(directory.string().c_str());
+  DIR* dir = opendir(pstr(directory));
   if (!dir) {
     return tl::unexpected(
       FMT("Failed to traverse {}: {}", directory, strerror(errno)));
@@ -575,11 +578,11 @@ write_fd(int fd, const void* data, size_t size)
 tl::expected<void, std::string>
 write_file(const fs::path& path, std::string_view data, InPlace in_place)
 {
+  auto path_str = pstr(path);
   if (in_place == InPlace::no) {
-    unlink(path.string().c_str());
+    unlink(path_str);
   }
-  Fd fd(
-    open(path.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
+  Fd fd(open(path_str, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
@@ -591,11 +594,11 @@ write_file(const fs::path& path,
            nonstd::span<const uint8_t> data,
            InPlace in_place)
 {
+  auto path_str = pstr(path);
   if (in_place == InPlace::no) {
-    unlink(path.string().c_str());
+    unlink(path_str);
   }
-  Fd fd(
-    open(path.string().c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  Fd fd(open(path_str, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
