@@ -276,6 +276,11 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     the file content. This option is only useful when debugging ccache and its
     behavior.
 
+*--print-log-stats*::
+
+    Print statistics counters from the stats log in machine-parseable
+    (tab-separated) format. See <<config_stats_log,*stats_log*>>.
+
 *--print-stats*::
 
     Print statistics counter IDs and corresponding values in machine-parsable

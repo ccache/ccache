@@ -173,6 +173,9 @@ Options for scripting or debugging:
                                PATH
         --inspect PATH         print result/manifest file at PATH in
                                human-readable format
+        --print-log-stats      print statistics counter IDs and corresponding
+                               values from the stats log in machine-parseable
+                               format
         --print-stats          print statistics counter IDs and corresponding
                                values in machine-parsable format
 
@@ -422,6 +425,7 @@ enum {
   EXTRACT_RESULT,
   HASH_FILE,
   INSPECT,
+  PRINT_LOG_STATS,
   PRINT_STATS,
   RECOMPRESS_THREADS,
   SHOW_LOG_STATS,
@@ -451,6 +455,7 @@ const option long_options[] = {
   {"inspect", required_argument, nullptr, INSPECT},
   {"max-files", required_argument, nullptr, 'F'},
   {"max-size", required_argument, nullptr, 'M'},
+  {"print-log-stats", no_argument, nullptr, PRINT_LOG_STATS},
   {"print-stats", no_argument, nullptr, PRINT_STATS},
   {"recompress", required_argument, nullptr, 'X'},
   {"recompress-threads", required_argument, nullptr, RECOMPRESS_THREADS},
@@ -730,6 +735,17 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(
         stdout,
         statistics.format_human_readable(config, timestamp, verbosity, true));
+      break;
+    }
+
+    case PRINT_LOG_STATS: {
+      if (config.stats_log().empty()) {
+        throw Fatal("No stats log has been configured");
+      }
+      Statistics statistics(StatsLog(config.stats_log()).read());
+      const auto timestamp =
+        DirEntry(config.stats_log(), DirEntry::LogOnError::yes).mtime();
+      PRINT_RAW(stdout, statistics.format_machine_readable(config, timestamp));
       break;
     }
 
