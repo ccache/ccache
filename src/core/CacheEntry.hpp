@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,6 +26,7 @@
 #include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <string>
 
@@ -74,7 +75,7 @@ public:
   public:
     Header(const Config& config, CacheEntryType entry_type);
     explicit Header(nonstd::span<const uint8_t> data);
-    explicit Header(const std::string& path);
+    explicit Header(const std::filesystem::path& path);
 
     std::string inspect() const;
 

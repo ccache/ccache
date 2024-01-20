@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,6 +32,8 @@
 #include <util/zstd.hpp>
 
 #include <cstring>
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -104,7 +106,7 @@ CacheEntry::Header::Header(nonstd::span<const uint8_t> data)
   parse(data);
 }
 
-CacheEntry::Header::Header(const std::string& path)
+CacheEntry::Header::Header(const fs::path& path)
 {
   parse(util::value_or_throw<core::Error>(
     util::read_file_part<util::Bytes>(path, 0, 1000)));
