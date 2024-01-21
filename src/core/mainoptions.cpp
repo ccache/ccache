@@ -168,7 +168,7 @@ Options for scripting or debugging:
                                PATH
         --extract-result PATH  extract file data stored in result file at PATH
                                to the current working directory
-    -f, --format FORMAT        specify format for --print-log-stats and
+        --format FORMAT        specify format for --print-log-stats and
                                --print-stats (tab, json); default: tab
     -k, --get-config KEY       print the value of configuration key KEY
         --hash-file PATH       print the hash (160 bit BLAKE3) of the file at
@@ -425,6 +425,7 @@ enum {
   EVICT_NAMESPACE,
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
+  FORMAT,
   HASH_FILE,
   INSPECT,
   PRINT_LOG_STATS,
@@ -438,7 +439,7 @@ enum {
   TRIM_RECOMPRESS_THREADS,
 };
 
-const char options_string[] = "cCd:f:k:hF:M:po:svVxX:z";
+const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
 const option long_options[] = {
   {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
   {"cleanup", no_argument, nullptr, 'c'},
@@ -451,7 +452,7 @@ const option long_options[] = {
   {"evict-namespace", required_argument, nullptr, EVICT_NAMESPACE},
   {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
   {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
-  {"format", required_argument, nullptr, 'f'},
+  {"format", required_argument, nullptr, FORMAT},
   {"get-config", required_argument, nullptr, 'k'},
   {"hash-file", required_argument, nullptr, HASH_FILE},
   {"help", no_argument, nullptr, 'h'},
@@ -512,7 +513,7 @@ process_main_options(int argc, const char* const* argv)
     case 'd': // --dir
       util::setenv("CCACHE_DIR", arg);
       break;
-    case 'f': // --format
+    case FORMAT:
       if (arg == "tab") {
         format = StatisticFormat::Tab;
       } else if (arg == "json") {
@@ -583,7 +584,7 @@ process_main_options(int argc, const char* const* argv)
     switch (c) {
     case CONFIG_PATH:
     case 'd': // --dir
-    case 'f': // --format
+    case FORMAT:
     case RECOMPRESS_THREADS:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
