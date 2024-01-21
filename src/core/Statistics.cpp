@@ -585,7 +585,7 @@ Statistics::format_json(const Config& config,
   add_line("max_files_in_cache", config.max_files());
 
   std::sort(lines.begin(), lines.end());
-  std::string result = "{" + util::join(lines, ",") + "}";
+  std::string result = "{\n  " + util::join(lines, ",\n  ") + "\n}\n";
   return result;
 }
 
