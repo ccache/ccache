@@ -199,6 +199,9 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::assembler_listing:
     return m_ctx.args_info.output_al;
+
+  case FileType::included_pch_file:
+    return m_ctx.args_info.included_pch_file;
   }
 
   return {};

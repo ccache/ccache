@@ -148,6 +148,9 @@ file_type_to_string(FileType type)
 
   case FileType::assembler_listing:
     return ".al";
+
+  case FileType::included_pch_file:
+    return ".pch";
   }
 
   return k_unknown_file_type;

@@ -369,7 +369,7 @@ remember_include_file(Context& ctx,
   Hash::Digest file_digest;
 
   const bool is_pch = is_precompiled_header(path);
-  if (is_pch) {
+  if (is_pch && !ctx.args_info.generating_pch) {
     if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
     }
@@ -597,7 +597,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
-  if (!ctx.args_info.included_pch_file.empty()) {
+  if (!ctx.args_info.included_pch_file.empty()
+      && !ctx.args_info.generating_pch) {
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
@@ -641,7 +642,8 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
-  if (!ctx.args_info.included_pch_file.empty()) {
+  if (!ctx.args_info.included_pch_file.empty()
+      && !ctx.args_info.generating_pch) {
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
@@ -700,7 +702,8 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 
   // Explicitly check the .pch file as it is not mentioned in the
   // includes output.
-  if (!ctx.args_info.included_pch_file.empty()) {
+  if (!ctx.args_info.included_pch_file.empty()
+      && !ctx.args_info.generating_pch) {
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
@@ -894,6 +897,11 @@ write_result(Context& ctx,
                               ctx.args_info.output_obj)) {
     LOG("Object file {} missing", ctx.args_info.output_obj);
     return false;
+  }
+  if (ctx.args_info.generating_pch
+      && !serializer.add_file(core::Result::FileType::included_pch_file,
+                              ctx.args_info.included_pch_file)) {
+    LOG("PCH file {} missing", ctx.args_info.included_pch_file);
   }
   if (ctx.args_info.generating_dependencies
       && !serializer.add_file(core::Result::FileType::dependency,

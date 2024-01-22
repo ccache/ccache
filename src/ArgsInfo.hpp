@@ -93,6 +93,9 @@ struct ArgsInfo
   // (--serialize-diagnostics)?
   bool generating_diagnostics = false;
 
+  // Are we generating a pch file (msvc -Yc)?
+  bool generating_pch = false;
+
   // Whether to strip color codes from diagnostic messages on output.
   bool strip_diagnostics_colors = false;
 
