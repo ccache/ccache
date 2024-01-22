@@ -258,6 +258,18 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     working directory. This option is only useful when debugging ccache and its
     behavior.
 
+*--format* _FORMAT_::
+
+    Specify format for `--print-log-stats` and `--print-stats`. Possible values
+    are:
++
+--
+*tab*::
+    Tab separated. This is the default.
+*json*::
+    JSON formatted.
+--
+
 *-k* _KEY_, *--get-config* _KEY_::
 
     Print the value of configuration option _KEY_. See _<<Configuration>>_ for
@@ -279,12 +291,13 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
 *--print-log-stats*::
 
     Print statistics counters from the stats log in machine-parseable
-    (tab-separated) format. See <<config_stats_log,*stats_log*>>.
+    (tab-separated or JSON) format. See <<config_stats_log,*stats_log*>> and
+    `--format`.
 
 *--print-stats*::
 
     Print statistics counter IDs and corresponding values in machine-parsable
-    (tab-separated) format.
+    (tab-separated or JSON) format. See `--format`.
 
 
 

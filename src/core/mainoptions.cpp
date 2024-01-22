@@ -168,6 +168,8 @@ Options for scripting or debugging:
                                PATH
         --extract-result PATH  extract file data stored in result file at PATH
                                to the current working directory
+        --format FORMAT        specify format for --print-log-stats and
+                               --print-stats (tab, json); default: tab
     -k, --get-config KEY       print the value of configuration key KEY
         --hash-file PATH       print the hash (160 bit BLAKE3) of the file at
                                PATH
@@ -423,6 +425,7 @@ enum {
   EVICT_NAMESPACE,
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
+  FORMAT,
   HASH_FILE,
   INSPECT,
   PRINT_LOG_STATS,
@@ -449,6 +452,7 @@ const option long_options[] = {
   {"evict-namespace", required_argument, nullptr, EVICT_NAMESPACE},
   {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
   {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
+  {"format", required_argument, nullptr, FORMAT},
   {"get-config", required_argument, nullptr, 'k'},
   {"hash-file", required_argument, nullptr, HASH_FILE},
   {"help", no_argument, nullptr, 'h'},
@@ -484,6 +488,7 @@ process_main_options(int argc, const char* const* argv)
 
   uint8_t verbosity = 0;
 
+  StatisticFormat format = StatisticFormat::Tab;
   std::optional<uint64_t> trim_max_size;
   std::optional<util::SizeUnitPrefixType> trim_suffix_type;
   bool trim_lru_mtime = false;
@@ -507,6 +512,16 @@ process_main_options(int argc, const char* const* argv)
     switch (c) {
     case 'd': // --dir
       util::setenv("CCACHE_DIR", arg);
+      break;
+    case FORMAT:
+      if (arg == "tab") {
+        format = StatisticFormat::Tab;
+      } else if (arg == "json") {
+        format = StatisticFormat::Json;
+      } else {
+        PRINT(stderr, "Error: unknown format \"{}\"\n", arg);
+        return EXIT_FAILURE;
+      }
       break;
 
     case CONFIG_PATH:
@@ -569,6 +584,7 @@ process_main_options(int argc, const char* const* argv)
     switch (c) {
     case CONFIG_PATH:
     case 'd': // --dir
+    case FORMAT:
     case RECOMPRESS_THREADS:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
@@ -647,8 +663,9 @@ process_main_options(int argc, const char* const* argv)
       const auto [counters, last_updated] =
         storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(stdout,
-                statistics.format_machine_readable(config, last_updated));
+      PRINT_RAW(
+        stdout,
+        statistics.format_machine_readable(config, last_updated, format));
       break;
     }
 
@@ -745,7 +762,8 @@ process_main_options(int argc, const char* const* argv)
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
         DirEntry(config.stats_log(), DirEntry::LogOnError::yes).mtime();
-      PRINT_RAW(stdout, statistics.format_machine_readable(config, timestamp));
+      PRINT_RAW(stdout,
+                statistics.format_machine_readable(config, timestamp, format));
       break;
     }
 
