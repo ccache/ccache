@@ -60,7 +60,11 @@ TEST_CASE("Config: default values")
   CHECK(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest().empty());
   CHECK(config.ignore_options().empty());
+#ifndef _WIN32
   CHECK(config.inode_cache());
+#else
+  CHECK_FALSE(config.inode_cache());
+#endif
   CHECK_FALSE(config.keep_comments_cpp());
   CHECK(config.log_file().empty());
   CHECK(config.max_files() == 0);
@@ -121,6 +125,7 @@ TEST_CASE("Config::update_from_file")
     "hash_dir = false\n"
     "ignore_headers_in_manifest = a:b/c\n"
     "ignore_options = -a=* -b\n"
+    "inode_cache = false\n"
     "keep_comments_cpp = true\n"
     "log_file = $USER${USER} \n"
     "max_files = 17\n"
@@ -164,6 +169,7 @@ TEST_CASE("Config::update_from_file")
   CHECK_FALSE(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest() == "a:b/c");
   CHECK(config.ignore_options() == "-a=* -b");
+  CHECK_FALSE(config.inode_cache());
   CHECK(config.keep_comments_cpp());
   CHECK(config.log_file() == FMT("{0}{0}", user));
   CHECK(config.max_files() == 17);

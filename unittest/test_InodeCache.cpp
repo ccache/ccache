@@ -23,6 +23,7 @@
 #include "TestUtil.hpp"
 
 #include <util/Fd.hpp>
+#include <util/TemporaryFile.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
 
@@ -39,8 +40,8 @@ namespace {
 bool
 inode_cache_available()
 {
-  util::Fd fd(open(util::actual_cwd().c_str(), O_RDONLY));
-  return fd && InodeCache::available(*fd);
+  auto tmp_file = util::TemporaryFile::create(util::actual_cwd() + "/fs_test");
+  return tmp_file && tmp_file->fd && InodeCache::available(*tmp_file->fd);
 }
 
 void

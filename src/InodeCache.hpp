@@ -22,6 +22,7 @@
 #include <hashutil.hpp>
 #include <util/Duration.hpp>
 #include <util/Fd.hpp>
+#include <util/MemoryMap.hpp>
 #include <util/TimePoint.hpp>
 
 #include <cstdint>
@@ -140,4 +141,5 @@ private:
   bool m_failed = false;
   const pid_t m_self_pid;
   util::TimePoint m_last_fs_space_check;
+  util::MemoryMap m_map;
 };

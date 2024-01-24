@@ -189,7 +189,12 @@ private:
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest;
   std::string m_ignore_options;
+#ifndef _WIN32
   bool m_inode_cache = true;
+#else
+  // Support is experimental on Windows so usage is off by default
+  bool m_inode_cache = false;
+#endif
   bool m_keep_comments_cpp = false;
   std::string m_log_file;
   uint64_t m_max_files = 0;
