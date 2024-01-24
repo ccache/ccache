@@ -81,6 +81,9 @@ enum class FileType : UnderlyingFileTypeInt {
 
   // Assembler listing file from -Wa,-a=file.
   assembler_listing = 9,
+
+  // PCH file created by msvc additionally to the obj file
+  included_pch_file = 10,
 };
 
 const char* file_type_to_string(FileType type);

@@ -67,6 +67,8 @@ struct ArgumentProcessingState
   bool found_pch = false;
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
+  bool found_Yc = false;
+  std::string found_Fp_file;
   bool found_valid_Fp = false;
   bool found_syntax_only = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
@@ -143,6 +145,13 @@ detect_pch(const std::string& option,
   // anything just because it has a corresponding precompiled header,
   // because Clang doesn't behave that way either.
   std::string pch_file;
+  if (option == "-Yc") {
+    state.found_Yc = true;
+    if (!state.found_Fp_file.empty()) {
+      included_pch_file = state.found_Fp_file;
+      return true;
+    }
+  }
   if (option == "-Yu") {
     state.found_Yu = true;
     if (state.found_valid_Fp) { // Use file set by -Fp.
@@ -160,6 +169,13 @@ detect_pch(const std::string& option,
     std::string file = arg;
     if (!fs::path(file).has_extension()) {
       file += ".pch";
+    }
+
+    state.found_Fp_file = file;
+
+    if (state.found_Yc) {
+      included_pch_file = state.found_Fp_file;
+      return true;
     }
     if (DirEntry(file).is_regular_file()) {
       state.found_valid_Fp = true;
@@ -398,7 +414,7 @@ process_option_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
-      || util::starts_with(arg, "-MJ") || util::starts_with(arg, "-Yc")
+      || util::starts_with(arg, "-MJ")
       || util::starts_with(arg, "--config-system-dir=")
       || util::starts_with(arg, "--config-user-dir=")) {
     LOG("Compiler option {} is unsupported", args[i]);
@@ -1056,7 +1072,7 @@ process_option_arg(const Context& ctx,
 
   // Detect PCH for options with concatenated path (relative or absolute).
   if (util::starts_with(arg, "-include") || util::starts_with(arg, "-Fp")
-      || util::starts_with(arg, "-Yu")) {
+      || util::starts_with(arg, "-Yu") || util::starts_with(arg, "-Yc")) {
     const size_t path_pos = util::starts_with(arg, "-include") ? 8 : 3;
     if (!detect_pch(arg.substr(0, path_pos),
                     arg.substr(path_pos),
@@ -1066,6 +1082,9 @@ process_option_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
 
+    if (state.found_Yc) {
+      args_info.generating_pch = true;
+    }
     // Fall through to the next section, so intentionally not returning here.
   }
 
