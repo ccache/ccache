@@ -210,7 +210,17 @@ read_from_path_or_stdin(const std::string& path)
 static int
 inspect_path(const std::string& path)
 {
+  std::optional<util::DirEntry> orig_dir_entry;
+  if (path != "-") {
+    orig_dir_entry = util::DirEntry(path);
+    orig_dir_entry->refresh();
+  }
   const auto cache_entry_data = read_from_path_or_stdin(path);
+  if (orig_dir_entry) {
+    util::set_timestamps(
+      path, orig_dir_entry->mtime(), orig_dir_entry->atime());
+  }
+
   if (!cache_entry_data) {
     PRINT(stderr, "Error: {}\n", cache_entry_data.error());
     return EXIT_FAILURE;
