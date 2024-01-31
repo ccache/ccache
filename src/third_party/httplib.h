@@ -1,14 +1,14 @@
 //
 //  httplib.h
 //
-//  Copyright (c) 2023 Yuji Hirose. All rights reserved.
+//  Copyright (c) 2024 Yuji Hirose. All rights reserved.
 //  MIT License
 //
 
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#define CPPHTTPLIB_VERSION "0.14.3"
+#define CPPHTTPLIB_VERSION "0.15.2"
 
 /*
  * Configuration
@@ -80,6 +80,10 @@
 
 #ifndef CPPHTTPLIB_FORM_URL_ENCODED_PAYLOAD_MAX_LENGTH
 #define CPPHTTPLIB_FORM_URL_ENCODED_PAYLOAD_MAX_LENGTH 8192
+#endif
+
+#ifndef CPPHTTPLIB_RANGE_MAX_COUNT
+#define CPPHTTPLIB_RANGE_MAX_COUNT 1024
 #endif
 
 #ifndef CPPHTTPLIB_TCP_NODELAY
@@ -160,10 +164,6 @@ using ssize_t = long;
 #define WSA_FLAG_NO_HANDLE_INHERIT 0x80
 #endif
 
-#ifndef strcasecmp
-#define strcasecmp _stricmp
-#endif // strcasecmp
-
 using socket_t = SOCKET;
 #ifdef CPPHTTPLIB_USE_POLL
 #define poll(fds, nfds, timeout) WSAPoll(fds, nfds, timeout)
@@ -214,6 +214,7 @@ using socket_t = int;
 #include <condition_variable>
 #include <cstring>
 #include <errno.h>
+#include <exception>
 #include <fcntl.h>
 #include <fstream>
 #include <functional>
@@ -268,10 +269,8 @@ using socket_t = int;
 #include <iostream>
 #include <sstream>
 
-#if OPENSSL_VERSION_NUMBER < 0x1010100fL
-#error Sorry, OpenSSL versions prior to 1.1.1 are not supported
-#elif OPENSSL_VERSION_NUMBER < 0x30000000L
-#define SSL_get1_peer_certificate SSL_get_peer_certificate
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+#error Sorry, OpenSSL versions prior to 3.0.0 are not supported
 #endif
 
 #endif
@@ -601,6 +600,7 @@ struct Response {
   void set_redirect(const std::string &url, int status = StatusCode::Found_302);
   void set_content(const char *s, size_t n, const std::string &content_type);
   void set_content(const std::string &s, const std::string &content_type);
+  void set_content(std::string &&s, const std::string &content_type);
 
   void set_content_provider(
       size_t length, const std::string &content_type, ContentProvider provider,
@@ -657,7 +657,7 @@ public:
   TaskQueue() = default;
   virtual ~TaskQueue() = default;
 
-  virtual void enqueue(std::function<void()> fn) = 0;
+  virtual bool enqueue(std::function<void()> fn) = 0;
   virtual void shutdown() = 0;
 
   virtual void on_idle() {}
@@ -665,7 +665,8 @@ public:
 
 class ThreadPool : public TaskQueue {
 public:
-  explicit ThreadPool(size_t n) : shutdown_(false) {
+  explicit ThreadPool(size_t n, size_t mqr = 0)
+      : shutdown_(false), max_queued_requests_(mqr) {
     while (n) {
       threads_.emplace_back(worker(*this));
       n--;
@@ -675,13 +676,17 @@ public:
   ThreadPool(const ThreadPool &) = delete;
   ~ThreadPool() override = default;
 
-  void enqueue(std::function<void()> fn) override {
+  bool enqueue(std::function<void()> fn) override {
     {
       std::unique_lock<std::mutex> lock(mutex_);
+      if (max_queued_requests_ > 0 && jobs_.size() >= max_queued_requests_) {
+        return false;
+      }
       jobs_.push_back(std::move(fn));
     }
 
     cond_.notify_one();
+    return true;
   }
 
   void shutdown() override {
@@ -731,6 +736,7 @@ private:
   std::list<std::function<void()>> jobs_;
 
   bool shutdown_;
+  size_t max_queued_requests_ = 0;
 
   std::condition_variable cond_;
   std::mutex mutex_;
@@ -743,6 +749,8 @@ using SocketOptions = std::function<void(socket_t sock)>;
 void default_socket_options(socket_t sock);
 
 const char *status_message(int status);
+
+std::string get_bearer_token_auth(const Request &req);
 
 namespace detail {
 
@@ -1942,6 +1950,15 @@ inline const char *status_message(int status) {
   }
 }
 
+inline std::string get_bearer_token_auth(const Request &req) {
+  if (req.has_header("Authorization")) {
+    static std::string BearerHeaderPrefix = "Bearer ";
+    return req.get_header_value("Authorization")
+        .substr(BearerHeaderPrefix.length());
+  }
+  return "";
+}
+
 template <class Rep, class Period>
 inline Server &
 Server::set_read_timeout(const std::chrono::duration<Rep, Period> &duration) {
@@ -2052,7 +2069,7 @@ void hosted_at(const std::string &hostname, std::vector<std::string> &addrs);
 
 std::string append_query_params(const std::string &path, const Params &params);
 
-std::pair<std::string, std::string> make_range_header(Ranges ranges);
+std::pair<std::string, std::string> make_range_header(const Ranges &ranges);
 
 std::pair<std::string, std::string>
 make_basic_authentication_header(const std::string &username,
