@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -132,7 +132,7 @@ url_from_string(const std::string& url_string)
   // now to avoid exceptions later.
   Url url(url_string);
   try {
-    std::ignore = url.scheme();
+    std::ignore = url.str();
   } catch (const std::exception& e) {
     return tl::unexpected(FMT("Cannot parse URL {}: {}", url_string, e.what()));
   }
