@@ -84,7 +84,7 @@ enum class Statistic {
   END = 84
 };
 
-enum class StatisticFormat {
+enum class StatisticsFormat {
   Tab,
   Json,
 };

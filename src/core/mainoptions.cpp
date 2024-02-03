@@ -500,7 +500,7 @@ process_main_options(int argc, const char* const* argv)
 
   uint8_t verbosity = 0;
 
-  StatisticFormat format = StatisticFormat::Tab;
+  StatisticsFormat format = StatisticsFormat::Tab;
   std::optional<uint64_t> trim_max_size;
   std::optional<util::SizeUnitPrefixType> trim_suffix_type;
   bool trim_lru_mtime = false;
@@ -527,9 +527,9 @@ process_main_options(int argc, const char* const* argv)
       break;
     case FORMAT:
       if (arg == "tab") {
-        format = StatisticFormat::Tab;
+        format = StatisticsFormat::Tab;
       } else if (arg == "json") {
-        format = StatisticFormat::Json;
+        format = StatisticsFormat::Json;
       } else {
         PRINT(stderr, "Error: unknown format \"{}\"\n", arg);
         return EXIT_FAILURE;

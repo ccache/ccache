@@ -523,69 +523,52 @@ Statistics::format_human_readable(const Config& config,
   return table.render();
 }
 
+std::vector<std::pair<std::string, uint64_t>>
+Statistics::prepare_statistics_entries(
+  const Config& config, const util::TimePoint& last_updated) const
+{
+  std::vector<std::pair<std::string, uint64_t>> result;
+
+  for (const auto& field : k_statistics_fields) {
+    if (!(field.flags & FLAG_NEVER)) {
+      result.emplace_back(field.id, m_counters.get(field.statistic));
+    }
+  }
+
+  result.emplace_back("max_cache_size_kibibyte", config.max_size() / 1024);
+  result.emplace_back("max_files_in_cache", config.max_files());
+  result.emplace_back("stats_updated_timestamp", last_updated.sec());
+
+  std::sort(result.begin(), result.end());
+  return result;
+}
+
 std::string
 Statistics::format_machine_readable(const Config& config,
                                     const util::TimePoint& last_updated,
-                                    const StatisticFormat format) const
+                                    StatisticsFormat format) const
 {
+  std::string result;
+  const auto fields = prepare_statistics_entries(config, last_updated);
+
   switch (format) {
-  case StatisticFormat::Json:
-    return Statistics::format_json(config, last_updated);
-  case StatisticFormat::Tab:
-    /* fall through */
+  case StatisticsFormat::Json:
+    result = "{";
+    for (const auto& [id, value] : fields) {
+      result.append(FMT("\n  \"{}\": {},", id, value));
+    }
+    result.resize(result.length() - 1); // Remove trailing comma
+    result += "\n}\n";
+    break;
+  case StatisticsFormat::Tab:
+    for (const auto& [id, value] : fields) {
+      result += FMT("{}\t{}\n", id, value);
+    }
+    break;
   default:
-    return Statistics::format_tab_separated(config, last_updated);
-  }
-}
-
-std::string
-Statistics::format_tab_separated(const Config& config,
-                                 const util::TimePoint& last_updated) const
-{
-  std::vector<std::string> lines;
-
-  lines.push_back(FMT("stats_updated_timestamp\t{}\n", last_updated.sec()));
-
-  auto add_line = [&](auto id, auto value) {
-    lines.push_back(FMT("{}\t{}\n", id, value));
-  };
-
-  for (const auto& field : k_statistics_fields) {
-    if (!(field.flags & FLAG_NEVER)) {
-      add_line(field.id, m_counters.get(field.statistic));
-    }
+    ASSERT(false);
   }
 
-  add_line("max_cache_size_kibibyte", config.max_size() / 1024);
-  add_line("max_files_in_cache", config.max_files());
-
-  std::sort(lines.begin(), lines.end());
-  return util::join(lines, "");
-}
-
-std::string
-Statistics::format_json(const Config& config,
-                        const util::TimePoint& last_updated) const
-{
-  std::vector<std::string> lines;
-
-  auto add_line = [&](auto id, auto value) {
-    lines.push_back(FMT("\"{}\": {}", id, value));
-  };
-
-  add_line("stats_updated_timestamp", last_updated.sec());
-
-  for (const auto& field : k_statistics_fields) {
-    if (!(field.flags & FLAG_NEVER)) {
-      add_line(field.id, m_counters.get(field.statistic));
-    }
-  }
-
-  add_line("max_cache_size_kibibyte", config.max_size() / 1024);
-  add_line("max_files_in_cache", config.max_files());
-
-  std::sort(lines.begin(), lines.end());
-  std::string result = "{\n  " + util::join(lines, ",\n  ") + "\n}\n";
   return result;
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,6 +25,7 @@
 #include <ctime>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 class Config;
@@ -48,7 +49,7 @@ public:
   // Format cache statistics in machine-readable format.
   std::string format_machine_readable(const Config& config,
                                       const util::TimePoint& last_updated,
-                                      const StatisticFormat format) const;
+                                      StatisticsFormat format) const;
 
   const StatisticsCounters& counters() const;
 
@@ -62,12 +63,9 @@ private:
   uint64_t count_stats(unsigned flags) const;
   std::vector<std::pair<std::string, uint64_t>> get_stats(unsigned flags,
                                                           bool all) const;
-  // Format cache statistics in tab-separated format.
-  std::string format_tab_separated(const Config& config,
-                                   const util::TimePoint& last_updated) const;
-  // Format cache statistics in JSON format.
-  std::string format_json(const Config& config,
-                          const util::TimePoint& last_updated) const;
+  std::vector<std::pair<std::string, uint64_t>>
+  prepare_statistics_entries(const Config& config,
+                             const util::TimePoint& last_updated) const;
 };
 
 // --- Inline implementations ---
