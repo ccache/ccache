@@ -555,10 +555,19 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // MSVC -Fo with no space.
-  if (util::starts_with(arg, "-Fo") && config.is_compiler_group_msvc()) {
-    args_info.output_obj = arg.substr(3);
-    return Statistic::none;
+  if (config.is_compiler_group_msvc()) {
+    // MSVC /Fo with no space.
+    if (util::starts_with(arg, "-Fo")) {
+      args_info.output_obj = arg.substr(3);
+      return Statistic::none;
+    }
+
+    // MSVC /Tc and /Tp options for specifying input file.
+    if (arg.length() > 3 && util::starts_with(arg, "-T")
+        && (arg[2] == 'c' || arg[2] == 'p')) {
+      size_t file_index = arg[3] == ' ' ? 4 : 3;
+      state.input_files.emplace_back(arg.substr(file_index));
+    }
   }
 
   // when using nvcc with separable compilation, -dc implies -c
