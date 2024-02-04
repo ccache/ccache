@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,7 +32,7 @@ namespace core {
 AtomicFile::AtomicFile(const fs::path& path, Mode mode) : m_path(path)
 {
   auto tmp_file =
-    util::value_or_throw<core::Fatal>(util::TemporaryFile::create(path));
+    util::value_or_throw<core::Error>(util::TemporaryFile::create(path));
   m_stream = fdopen(tmp_file.fd.release(), mode == Mode::binary ? "w+b" : "w+");
   m_tmp_path = std::move(tmp_file.path);
 }
