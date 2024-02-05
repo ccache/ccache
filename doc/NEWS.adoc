@@ -1,5 +1,27 @@
 = Ccache news
 
+== Ccache 4.9.1
+
+Release date: 2024-02-05
+
+=== Bug fixes
+
+- Improved detection of bad remote storage URLs gracefully. This also fixes
+  crashes seen in ccache's own test suite. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made caching completely disabled when modification of a source or include file
+  is detected during ccache invocation. Previously this was only done for the
+  direct mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a MSVC crash when using `/Zi` with many concurrent compilations. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a crash when `-arch` is the last compiler option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.9
 
 Release date: 2023-12-30
