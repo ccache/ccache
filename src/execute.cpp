@@ -174,7 +174,8 @@ win32execute(const char* path,
       // process is killed.
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = {};
       jobInfo.BasicLimitInformation.LimitFlags =
-        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
       BOOL job_success = SetInformationJobObject(
         job, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo));
       if (!job_success) {
