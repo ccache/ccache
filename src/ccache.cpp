@@ -1097,7 +1097,8 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.run_second_cpp()) {
-    args.push_back(ctx.args_info.input_file);
+    args.push_back(
+      FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
   } else {
     args.push_back(ctx.i_tmpfile);
   }
@@ -1282,7 +1283,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       args.push_back(preprocessed_path);
     }
 
-    args.push_back(ctx.args_info.input_file);
+    args.push_back(
+      FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
     add_prefix(args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
@@ -1869,6 +1871,11 @@ get_manifest_key(Context& ctx, Hash& hash)
   // * The expansion of __FILE__ may be incorrect.
   hash.hash_delimiter("inputfile");
   hash.hash(ctx.args_info.input_file);
+
+  if (!ctx.args_info.input_file_prefix.empty()) {
+    hash.hash_delimiter("inputfile prefix");
+    hash.hash(ctx.args_info.input_file_prefix);
+  }
 
   hash.hash_delimiter("sourcecode hash");
   Hash::Digest input_file_digest;

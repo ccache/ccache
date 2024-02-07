@@ -84,6 +84,8 @@ const CompOpt compopts[] = {
   {"-MM", TOO_HARD},
   {"-MQ", TAKES_ARG},
   {"-MT", TAKES_ARG},
+  {"-Tc", TAKES_ARG | TAKES_PATH | TOO_HARD}, // msvc
+  {"-Tp", TAKES_ARG | TAKES_PATH | TOO_HARD}, // msvc
   {"-U", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
   {"-V", TAKES_ARG},
   {"-Wa,", TAKES_CONCAT_ARG | AFFECTS_COMP},

@@ -34,6 +34,9 @@ struct ArgsInfo
   // The source file path, potentially rewritten into relative.
   std::string input_file;
 
+  // Prefix to the input file when adding it to a command line.
+  std::string input_file_prefix;
+
   // The source file path run through Util::normalize_concrete_absolute_path.
   std::string normalized_input_file;
 

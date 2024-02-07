@@ -562,10 +562,10 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     }
 
-    // MSVC /Tc and /Tp options with no space for specifying input file.
+    // MSVC /Tc and /Tp options in concatenated form for specifying input file.
     if (arg.length() > 3 && util::starts_with(arg, "-T")
         && (arg[2] == 'c' || arg[2] == 'p')) {
-      state.common_args.push_back(args[i]);
+      args_info.input_file_prefix = arg.substr(0, 3);
       state.input_files.emplace_back(arg.substr(3));
       return Statistic::none;
     }
