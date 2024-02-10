@@ -240,6 +240,12 @@ read_file(const fs::path& path, size_t size_hint)
     size_hint = de.size();
   }
 
+  if (size_hint > std::numeric_limits<size_t>::max() / 4) {
+    // Too large value on a 32-bit system won't work well, better bail.
+    return tl::unexpected(
+      FMT("too large file: {} ({} bytes)", path, size_hint));
+  }
+
   const int open_flags = [] {
     if constexpr (std::is_same<T, std::string>::value) {
       return O_RDONLY | O_TEXT;
