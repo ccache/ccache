@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -120,7 +120,8 @@ void
 Bytes::resize(size_t size) noexcept
 {
   if (size > m_capacity) {
-    auto new_data = std::make_unique<uint8_t[]>(size);
+    // In C++20, use std::make_unique_for_overwrite instead.
+    auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
     if (m_size > 0) {
       std::memcpy(new_data.get(), m_data.get(), m_size);
     }
