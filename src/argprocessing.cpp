@@ -417,7 +417,6 @@ process_option_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
-      || util::starts_with(arg, "-fcallgraph-info=")
       || util::starts_with(arg, "-MJ")
       || util::starts_with(arg, "--config-system-dir=")
       || util::starts_with(arg, "--config-user-dir=")) {
@@ -812,6 +811,13 @@ process_option_arg(const Context& ctx,
 
   if (arg == "-fstack-usage") {
     args_info.generating_stackusage = true;
+    state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
+  // This covers all the different marker cases
+  if (util::starts_with(arg, "-fcallgraph-info")) {
+    args_info.generating_callgraphinfo = true;
     state.common_args.push_back(args[i]);
     return Statistic::none;
   }
@@ -1556,6 +1562,12 @@ process_args(Context& ctx)
     std::string default_sufile_name =
       fs::path(args_info.output_obj).replace_extension(".su").string();
     args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
+  }
+
+  if (args_info.generating_callgraphinfo) {
+    std::string default_cifile_name =
+      fs::path(args_info.output_obj).replace_extension(".ci").string();
+    args_info.output_ci = Util::make_relative_path(ctx, default_cifile_name);
   }
 
   Args compiler_args = state.common_args;

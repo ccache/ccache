@@ -58,6 +58,9 @@ struct ArgsInfo
   // The path to the stack usage (implicit when using -fstack-usage).
   std::string output_su;
 
+  // The path to the callgraph info (implicit when using -fcallgraph-info).
+  std::string output_ci;
+
   // Diagnostic generation information (Clang). Contains pathname if not empty.
   std::string output_dia;
 
@@ -91,6 +94,8 @@ struct ArgsInfo
 
   // Is the compiler being asked to output stack usage?
   bool generating_stackusage = false;
+
+  bool generating_callgraphinfo = false;
 
   // Us the compiler being asked to generate diagnostics
   // (--serialize-diagnostics)?

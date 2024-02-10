@@ -151,6 +151,9 @@ file_type_to_string(FileType type)
 
   case FileType::included_pch_file:
     return ".pch";
+
+  case FileType::callgraph_info:
+    return ".ci";
   }
 
   return k_unknown_file_type;

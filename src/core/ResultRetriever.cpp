@@ -201,6 +201,12 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::included_pch_file:
     return m_ctx.args_info.included_pch_file;
+
+  case FileType::callgraph_info:
+    if (m_ctx.args_info.generating_callgraphinfo) {
+      return m_ctx.args_info.output_ci;
+    }
+    break;
   }
 
   return {};

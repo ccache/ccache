@@ -931,6 +931,12 @@ write_result(Context& ctx,
     LOG("Stack usage file {} missing", ctx.args_info.output_su);
     return false;
   }
+  if (ctx.args_info.generating_callgraphinfo
+      && !serializer.add_file(core::Result::FileType::callgraph_info,
+                              ctx.args_info.output_ci)) {
+    LOG("Callgraph info file {} missing", ctx.args_info.output_ci);
+    return false;
+  }
   if (ctx.args_info.generating_diagnostics
       && !serializer.add_file(core::Result::FileType::diagnostic,
                               ctx.args_info.output_dia)) {
@@ -2529,6 +2535,9 @@ do_cache_compilation(Context& ctx)
   }
   if (ctx.args_info.generating_stackusage) {
     LOG("Stack usage file: {}", ctx.args_info.output_su);
+  }
+  if (ctx.args_info.generating_callgraphinfo) {
+    LOG("Callgraph info file: {}", ctx.args_info.output_ci);
   }
   if (ctx.args_info.generating_diagnostics) {
     LOG("Diagnostics file: {}", ctx.args_info.output_dia);
