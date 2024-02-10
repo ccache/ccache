@@ -240,9 +240,6 @@ read_file(const fs::path& path, size_t size_hint)
     size_hint = de.size();
   }
 
-  // +1 to be able to detect EOF in the first read call
-  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
-
   const int open_flags = [] {
     if constexpr (std::is_same<T, std::string>::value) {
       return O_RDONLY | O_TEXT;
@@ -258,22 +255,19 @@ read_file(const fs::path& path, size_t size_hint)
   int64_t ret = 0;
   size_t pos = 0;
   T result;
-  result.resize(size_hint);
+  result.resize(std::max(size_t{1024}, size_hint + 1));
 
   while (true) {
     if (pos == result.size()) {
       result.resize(2 * result.size());
     }
-    const size_t max_read = result.size() - pos;
+    const size_t max_read = std::min(size_t{1024 * 1024}, result.size() - pos);
     ret = read(*fd, &result[pos], max_read);
     if (ret == 0 || (ret == -1 && errno != EINTR)) {
       break;
     }
     if (ret > 0) {
       pos += ret;
-      if (static_cast<size_t>(ret) < max_read) {
-        break;
-      }
     }
   }
 
