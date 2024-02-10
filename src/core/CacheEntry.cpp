@@ -95,9 +95,13 @@ CacheEntry::Header::Header(const Config& config,
     namespace_(config.namespace_()),
     entry_size(0)
 {
-  if (compression_level == 0) {
+  if (compression_type == CompressionType::none) {
+    LOG_RAW("Using no compression");
+  } else if (compression_level == 0) {
     compression_level = default_compression_level;
-    LOG("Using default compression level {}", compression_level);
+    LOG("Using Zstandard with default compression level {}", compression_level);
+  } else {
+    LOG("Using Zstandard with compression level {}", compression_level);
   }
 }
 
@@ -209,7 +213,6 @@ CacheEntry::CacheEntry(nonstd::span<const uint8_t> data) : m_header(data)
       util::zstd_decompress(
         m_payload, m_uncompressed_payload, m_uncompressed_payload.capacity()),
       "Cache entry payload decompression error: ");
-
     break;
   }
 }
