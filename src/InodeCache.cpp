@@ -25,6 +25,7 @@
 #include <util/DirEntry.hpp>
 #include <util/Fd.hpp>
 #include <util/Finalizer.hpp>
+#include <util/PathString.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/conversion.hpp>
 #include <util/file.hpp>
@@ -32,10 +33,12 @@
 #include <util/logging.hpp>
 
 #include <fcntl.h>
-#include <libgen.h>
-#include <sched.h>
-#include <sys/mman.h>
-#include <unistd.h>
+
+#ifndef _WIN32
+#  include <libgen.h>
+#  include <sched.h>
+#  include <unistd.h>
+#endif
 
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
@@ -99,17 +102,16 @@ static_assert(
   static_cast<int>(InodeCache::ContentType::checked_for_temporal_macros) == 1,
   "Numeric value is part of key, increment version number if changed.");
 
-const void* MMAP_FAILED = reinterpret_cast<void*>(-1); // NOLINT: Must cast here
-
 bool
 fd_is_on_known_to_work_file_system(int fd)
 {
+#ifndef _WIN32
   bool known_to_work = false;
   struct statfs buf;
   if (fstatfs(fd, &buf) != 0) {
     LOG("fstatfs failed: {}", strerror(errno));
   } else {
-#ifdef HAVE_LINUX_FS_H
+#  ifdef HAVE_LINUX_FS_H
     // statfs's f_type field is a signed 32-bit integer on some platforms. Large
     // values therefore cause narrowing warnings, so cast the value to a large
     // unsigned type.
@@ -127,7 +129,7 @@ fd_is_on_known_to_work_file_system(int fd)
       LOG("Filesystem type 0x{:x} not known to work for the inode cache",
           f_type);
     }
-#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME) // macOS X and some BSDs
+#  elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME) // macOS X and some BSDs
     static const std::vector<std::string> known_to_work_filesystems = {
       // Is a filesystem you know works with the inode cache missing in this
       // list? Please submit an issue or pull request to the ccache project.
@@ -146,14 +148,33 @@ fd_is_on_known_to_work_file_system(int fd)
       LOG("Filesystem type {} not known to work for the inode cache",
           buf.f_fstypename);
     }
-#else
-#  error Inconsistency: INODE_CACHE_SUPPORTED is set but we should not get here
-#endif
-  }
-  if (!known_to_work) {
-    LOG_RAW("Not using the inode cache");
+#  else
+#    error Inconsistency: INODE_CACHE_SUPPORTED is set but we should not get here
+#  endif
   }
   return known_to_work;
+#else
+  HANDLE file = (HANDLE)_get_osfhandle(fd);
+  if (file == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+
+  // Try to get information about remote protocol for this file.
+  // If the call succeeds, this is a remote file.
+  // If the call fails with invalid parameter error, consider that it is a local
+  // file
+  FILE_REMOTE_PROTOCOL_INFO infos;
+  if (GetFileInformationByHandleEx(
+        file, FileRemoteProtocolInfo, &infos, sizeof(infos))) {
+    return false;
+  }
+
+  if (GetLastError() == ERROR_INVALID_PARAMETER) {
+    return true;
+  }
+
+  return false;
+#endif
 }
 
 bool
@@ -178,7 +199,7 @@ spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
         prev_pid = lock_pid;
         reset_timer = true;
       }
-      sched_yield();
+      std::this_thread::yield();
     }
     // If everything is OK, we should never hit this.
     if (reset_timer) {
@@ -234,10 +255,8 @@ struct InodeCache::SharedRegion
 bool
 InodeCache::mmap_file(const std::string& inode_cache_file)
 {
-  if (m_sr) {
-    munmap(m_sr, sizeof(SharedRegion));
-    m_sr = nullptr;
-  }
+  m_sr = nullptr;
+  m_map.unmap();
   m_fd = util::Fd(open(inode_cache_file.c_str(), O_RDWR));
   if (!m_fd) {
     LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
@@ -246,17 +265,15 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   if (!fd_is_on_known_to_work_file_system(*m_fd)) {
     return false;
   }
-  SharedRegion* sr =
-    reinterpret_cast<SharedRegion*>(mmap(nullptr,
-                                         sizeof(SharedRegion),
-                                         PROT_READ | PROT_WRITE,
-                                         MAP_SHARED,
-                                         *m_fd,
-                                         0));
-  if (sr == MMAP_FAILED) {
-    LOG("Failed to mmap {}: {}", inode_cache_file, strerror(errno));
+
+  auto map = util::MemoryMap::map(*m_fd, sizeof(SharedRegion));
+  if (!map) {
+    LOG("Failed to map inode cache file {}: {}", inode_cache_file, map.error());
     return false;
   }
+
+  SharedRegion* sr = reinterpret_cast<SharedRegion*>(map->ptr());
+
   // Drop the file from disk if the found version is not matching. This will
   // allow a new file to be generated.
   if (sr->version != k_version) {
@@ -265,10 +282,12 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
       " version {}",
       sr->version,
       k_version);
-    munmap(sr, sizeof(SharedRegion));
+    map->unmap();
+    m_fd.close();
     unlink(inode_cache_file.c_str());
     return false;
   }
+  m_map = std::move(*map);
   m_sr = sr;
   if (m_config.debug()) {
     LOG("Inode cache file loaded: {}", inode_cache_file);
@@ -300,8 +319,14 @@ InodeCache::hash_inode(const std::string& path,
   key.st_dev = de.device();
   key.st_ino = de.inode();
   key.st_mode = de.mode();
-  key.st_mtim = de.mtime().to_timespec();
-  key.st_ctim = de.ctime().to_timespec();
+  // Note: Manually copying sec and nsec of mtime and ctime to prevent copying
+  // the padding bytes
+  auto mtime = de.mtime().to_timespec();
+  key.st_mtim.tv_sec = mtime.tv_sec;
+  key.st_mtim.tv_nsec = mtime.tv_nsec;
+  auto ctime = de.ctime().to_timespec();
+  key.st_ctim.tv_sec = ctime.tv_sec;
+  key.st_ctim.tv_nsec = ctime.tv_nsec;
   key.st_size = de.size();
 
   Hash hash;
@@ -352,7 +377,8 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
 
-  util::Finalizer temp_file_remover([&] { unlink(tmp_file->path.c_str()); });
+  util::Finalizer temp_file_remover(
+    [&] { unlink(util::PathString(tmp_file->path).c_str()); });
 
   if (!fd_is_on_known_to_work_file_system(*tmp_file->fd)) {
     return false;
@@ -363,17 +389,14 @@ InodeCache::create_new_file(const std::string& filename)
     LOG("Failed to allocate file space for inode cache: {}", result.error());
     return false;
   }
-  SharedRegion* sr =
-    reinterpret_cast<SharedRegion*>(mmap(nullptr,
-                                         sizeof(SharedRegion),
-                                         PROT_READ | PROT_WRITE,
-                                         MAP_SHARED,
-                                         *tmp_file->fd,
-                                         0));
-  if (sr == MMAP_FAILED) {
-    LOG("Failed to mmap new inode cache: {}", strerror(errno));
+
+  auto map = util::MemoryMap::map(*tmp_file->fd, sizeof(SharedRegion));
+  if (!map) {
+    LOG("Failed to mmap new inode cache: {}", map.error());
     return false;
   }
+
+  SharedRegion* sr = reinterpret_cast<SharedRegion*>(map->ptr());
 
   // Initialize new shared region.
   sr->version = k_version;
@@ -382,9 +405,11 @@ InodeCache::create_new_file(const std::string& filename)
     memset(bucket.entries, 0, sizeof(Bucket::entries));
   }
 
-  munmap(sr, sizeof(SharedRegion));
+  sr = nullptr;
+  map->unmap();
   tmp_file->fd.close();
 
+#ifndef _WIN32
   // link() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
@@ -394,6 +419,22 @@ InodeCache::create_new_file(const std::string& filename)
     LOG("Failed to link new inode cache: {}", strerror(errno));
     return false;
   }
+#else
+  if (MoveFileA(util::PathString(tmp_file->path).c_str(), filename.c_str())
+      == 0) {
+    unsigned error = GetLastError();
+    if (error == ERROR_FILE_EXISTS) {
+      // Not an error, another process won the race. Remove the file we just
+      // created
+      DeleteFileA(util::PathString(tmp_file->path).c_str());
+      LOG("Another process created inode cache {}", filename);
+      return true;
+    } else {
+      LOG("Failed to move new inode cache: {}", error);
+      return false;
+    }
+  }
+#endif
 
   LOG("Created a new inode cache {}", filename);
   return true;
@@ -411,13 +452,28 @@ InodeCache::initialize()
     if (now > m_last_fs_space_check + k_fs_space_check_valid_duration) {
       m_last_fs_space_check = now;
 
+      uint64_t free_space = 0;
+#ifndef _WIN32
       struct statfs buf;
       if (fstatfs(*m_fd, &buf) != 0) {
         LOG("fstatfs failed: {}", strerror(errno));
         return false;
       }
-      if (static_cast<uint64_t>(buf.f_bavail) * 512
-          < k_min_fs_mib_left * 1024 * 1024) {
+      free_space = static_cast<uint64_t>(buf.f_bavail) * 512;
+#else
+      ULARGE_INTEGER free_space_for_user{};
+
+      if (GetDiskFreeSpaceExA(m_config.temporary_dir().c_str(),
+                              &free_space_for_user,
+                              nullptr,
+                              nullptr)
+          == 0) {
+        LOG("GetDiskFreeSpaceExA failed: {}", GetLastError());
+        return false;
+      }
+      free_space = free_space_for_user.QuadPart;
+#endif
+      if (free_space < k_min_fs_mib_left * 1024 * 1024) {
         LOG("Filesystem has less than {} MiB free space, not using inode cache",
             k_min_fs_mib_left);
         return false;
@@ -466,7 +522,6 @@ InodeCache::~InodeCache()
         m_sr->hits.load(),
         m_sr->misses.load(),
         m_sr->errors.load());
-    munmap(m_sr, sizeof(SharedRegion));
   }
 }
 
@@ -563,15 +618,14 @@ InodeCache::put(const std::string& path,
 bool
 InodeCache::drop()
 {
+  m_sr = nullptr;
+  m_map.unmap();
+  m_fd.close();
   std::string file = get_file();
   if (unlink(file.c_str()) != 0 && errno != ENOENT) {
     return false;
   }
   LOG("Dropped inode cache {}", file);
-  if (m_sr) {
-    munmap(m_sr, sizeof(SharedRegion));
-    m_sr = nullptr;
-  }
   return true;
 }
 

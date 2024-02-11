@@ -4,6 +4,7 @@ set(
   DirEntry.cpp
   LockFile.cpp
   LongLivedLockFileManager.cpp
+  MemoryMap.cpp
   TemporaryFile.cpp
   TextTable.cpp
   ThreadPool.cpp
