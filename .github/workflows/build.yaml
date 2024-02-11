@@ -70,6 +70,10 @@ jobs:
             compiler: gcc
             version: "12"
 
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: "13"
+
           - os: macOS-11
             compiler: xcode
             version: "11.7"
