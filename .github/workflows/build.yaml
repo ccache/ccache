@@ -143,7 +143,7 @@ jobs:
           fi
 
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build and test
         run: ci/build
@@ -208,7 +208,7 @@ jobs:
           fi
 
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build and test
         run: ci/build
@@ -238,7 +238,7 @@ jobs:
       CMAKE_GENERATOR: Ninja
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Dependencies
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
@@ -432,7 +432,7 @@ jobs:
 
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install CUDA
         if: matrix.CUDA != ''
@@ -513,7 +513,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
@@ -526,7 +526,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install spell checkers
         run: |
