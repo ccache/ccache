@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,7 +32,7 @@ TextTable::add_heading(const std::string& text)
   Cell cell(text);
   cell.m_heading = true;
   m_rows.push_back({cell});
-  m_columns = std::max(m_columns, size_t(1));
+  m_columns = std::max(m_columns, size_t{1});
 }
 
 void

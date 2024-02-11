@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -29,8 +29,8 @@
 // From:
 // http://mesos.apache.org/api/latest/c++/3rdparty_2stout_2include_2stout_2windows_8hpp_source.html
 #  ifdef _MSC_VER
-const mode_t S_IRUSR = mode_t(_S_IREAD);
-const mode_t S_IWUSR = mode_t(_S_IWRITE);
+const mode_t S_IRUSR = mode_t{_S_IREAD};
+const mode_t S_IWUSR = mode_t{_S_IWRITE};
 #  endif
 
 #  ifndef S_IFIFO
