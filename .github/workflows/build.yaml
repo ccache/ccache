@@ -63,12 +63,20 @@ jobs:
             version: "14"
 
           - os: ubuntu-22.04
+            compiler: clang
+            version: "15"
+
+          - os: ubuntu-22.04
             compiler: gcc
             version: "11"
 
           - os: ubuntu-22.04
             compiler: gcc
             version: "12"
+
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: "13"
 
           - os: macOS-11
             compiler: xcode
@@ -135,7 +143,7 @@ jobs:
           fi
 
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build and test
         run: ci/build
@@ -148,7 +156,7 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}-testdir.tar.xz
           path: testdir.tar.xz
@@ -200,7 +208,7 @@ jobs:
           fi
 
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build and test
         run: ci/build
@@ -217,7 +225,7 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.sys}}-${{ matrix.env }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
@@ -230,7 +238,7 @@ jobs:
       CMAKE_GENERATOR: Ninja
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Dependencies
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
@@ -238,7 +246,7 @@ jobs:
       - name: Build macOS universal binary
         run: ci/build-macos-binary
       - name: Archive universal binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macOS-binary
           path: build_universal/ccache
@@ -424,7 +432,7 @@ jobs:
 
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install CUDA
         if: matrix.CUDA != ''
@@ -492,7 +500,7 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure() || steps.build-and-test.outcome == 'failure'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }} - testdir.tar.xz
           path: testdir.tar.xz
@@ -505,7 +513,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
@@ -518,7 +526,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Get source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install spell checkers
         run: |
