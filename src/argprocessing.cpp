@@ -417,6 +417,7 @@ process_option_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
+      || util::starts_with(arg, "-fcallgraph-info=")
       || util::starts_with(arg, "-MJ")
       || util::starts_with(arg, "--config-system-dir=")
       || util::starts_with(arg, "--config-user-dir=")) {
