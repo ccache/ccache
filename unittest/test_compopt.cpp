@@ -57,6 +57,7 @@ TEST_CASE("too_hard")
   CHECK(!compopt_too_hard("-fprofile-arcs"));
   CHECK(!compopt_too_hard("-ftest-coverage"));
   CHECK(!compopt_too_hard("-fstack-usage"));
+  CHECK(!compopt_too_hard("-fcallgraph-info"));
   CHECK(!compopt_too_hard("-doesntexist"));
 }
 

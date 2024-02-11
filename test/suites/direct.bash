@@ -617,6 +617,52 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    TEST "-fcallgraph-info"
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fcallgraph-info code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fcallgraph-info code.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+
+        rm code.ci
+
+        $CCACHE_COMPILE -c -fcallgraph-info code.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fcallgraph-info=su,da"
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fcallgraph-info=su,da code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fcallgraph-info=su,da code.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+
+        rm code.ci
+
+        $CCACHE_COMPILE -c -fcallgraph-info=su,da code.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Direct mode on cache created by ccache without direct mode support"
 
     CCACHE_NODIRECT=1 $CCACHE_COMPILE -c -MD test.c
