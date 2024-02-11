@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}-testdir.tar.xz
           path: testdir.tar.xz
@@ -225,7 +225,7 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.sys}}-${{ matrix.env }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
@@ -246,7 +246,7 @@ jobs:
       - name: Build macOS universal binary
         run: ci/build-macos-binary
       - name: Archive universal binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macOS-binary
           path: build_universal/ccache
@@ -500,7 +500,7 @@ jobs:
 
       - name: Upload testdir from failed tests
         if: failure() || steps.build-and-test.outcome == 'failure'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }} - testdir.tar.xz
           path: testdir.tar.xz
