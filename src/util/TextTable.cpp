@@ -20,7 +20,7 @@
 
 #include <util/assertions.hpp>
 
-#include <third_party/fmt/core.h>
+#include <fmt/core.h>
 
 #include <algorithm>
 

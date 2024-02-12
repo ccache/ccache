@@ -21,7 +21,7 @@
 #include "../src/util/string.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 static const std::string defaultPrefix = "Note: including file:";
 

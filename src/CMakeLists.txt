@@ -45,10 +45,20 @@ if(CCACHE_EXTRA_LIBS)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+option(USE_SYSTEM_HTTPLIB "Use system httplib library" ${USE_SYSTEM_LIBRARIES})
+if(USE_SYSTEM_HTTPLIB)
+  find_package(httplib REQUIRED)
+else()
+   add_library(httplib third_party/httplib.cpp)
+   target_include_directories(httplib INTERFACE third_party)
+   add_library(httplib::httplib ALIAS httplib)
+endif()
+
 find_package(Threads REQUIRED)
 target_link_libraries(
   ccache_framework
-  PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
+  PRIVATE standard_settings standard_warnings blake3 fmt::fmt httplib::httplib tl::expected ZSTD::ZSTD Threads::Threads PkgConfig::xxhash third_party
 )
 
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
@@ -57,12 +67,12 @@ if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(
     ccache_framework
-    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
+    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS
   )
 endif()
 
 add_executable(test-lockfile test_lockfile.cpp)
-target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
+target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework fmt::fmt tl::expected)
 
 add_subdirectory(core)
 add_subdirectory(storage)

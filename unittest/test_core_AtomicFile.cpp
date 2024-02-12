@@ -22,7 +22,7 @@
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 #include <string>
 #include <vector>

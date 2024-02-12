@@ -37,7 +37,9 @@
 #  include "InodeCache.hpp"
 #endif
 
-#include "third_party/blake3/blake3_cpu_supports_avx2.h"
+#ifdef HAVE_AVX2
+#  include "third_party/blake3/blake3_cpu_supports_avx2.h"
+#endif
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

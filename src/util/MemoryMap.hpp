@@ -20,7 +20,7 @@
 
 #include <util/NonCopyable.hpp>
 
-#include <third_party/tl/expected.hpp>
+#include <tl/expected.hpp>
 
 #include <string>
 

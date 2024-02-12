@@ -29,7 +29,7 @@
 #include <util/string.hpp>
 #include <util/types.hpp>
 
-#include <third_party/httplib.h>
+#include <httplib.h>
 #include <third_party/url.hpp>
 
 #include <string_view>

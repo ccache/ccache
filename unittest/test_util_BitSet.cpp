@@ -19,7 +19,7 @@
 #include "../src/util/BitSet.hpp"
 #include "TestUtil.hpp"
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("BitSet");
 

@@ -22,7 +22,7 @@
 #include <util/Finalizer.hpp>
 #include <util/wincompat.hpp>
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 #include "third_party/win32/mktemp.h"
 
 #include <sddl.h>

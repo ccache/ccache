@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <third_party/fmt/core.h>
-#include <third_party/fmt/format.h>
-#include <third_party/fmt/std.h>
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <fmt/std.h>
 
 // Convenience macro for calling `fmt::format` with `FMT_STRING` around the
 // format string literal.

@@ -28,7 +28,7 @@
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 #include <fcntl.h>
 

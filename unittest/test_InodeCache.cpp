@@ -27,7 +27,7 @@
 #include <util/file.hpp>
 #include <util/path.hpp>
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>

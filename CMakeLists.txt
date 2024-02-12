@@ -86,6 +86,41 @@ include(GenerateVersionFile)
 # Third party
 #
 
+option(USE_SYSTEM_LIBRARIES "Use system libraries by default" OFF)
+
+if(USE_SYSTEM_LIBRARIES)
+  find_package(PkgConfig REQUIRED)
+else()
+  find_package(PkgConfig)
+endif()
+
+option(USE_SYSTEM_FMT "Use system fmt library" ${USE_SYSTEM_LIBRARIES})
+if(USE_SYSTEM_FMT)
+  find_package(fmt REQUIRED)
+else()
+   set(FMT_INSTALL OFF)
+   set(FMT_MODULE OFF)
+   set(FMT_OS OFF)
+   add_subdirectory(third_party/fmt)
+endif()
+
+option(USE_SYSTEM_EXPECTED "Use system tl-expected library" ${USE_SYSTEM_LIBRARIES})
+if(USE_SYSTEM_EXPECTED)
+  find_package(tl-expected REQUIRED)
+else()
+   add_library(tl-expected INTERFACE)
+   target_include_directories(tl-expected INTERFACE third_party)
+   add_library(tl::expected ALIAS tl-expected)
+endif()
+
+option(USE_SYSTEM_XXHASH "Use system xxhash library" ${USE_SYSTEM_LIBRARIES})
+if(USE_SYSTEM_XXHASH)
+  pkg_check_modules(xxhash REQUIRED IMPORTED_TARGET libxxhash)
+else()
+  add_library(xxhash src/third_party/xxhash.c)
+  add_library(PkgConfig::xxhash ALIAS xxhash)
+endif()
+
 set(ZSTD_FROM_INTERNET AUTO CACHE STRING "Download and use libzstd from the Internet")
 set_property(CACHE ZSTD_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
 

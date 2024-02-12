@@ -21,7 +21,7 @@
 #include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
-#include <third_party/tl/expected.hpp>
+#include <tl/expected.hpp>
 
 #include <cstdint>
 #include <string>

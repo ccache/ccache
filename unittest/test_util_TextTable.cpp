@@ -18,7 +18,7 @@
 
 #include <util/TextTable.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
 

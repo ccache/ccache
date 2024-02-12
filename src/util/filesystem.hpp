@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <third_party/tl/expected.hpp>
+#include <tl/expected.hpp>
 
 #include <filesystem>
 #include <system_error>

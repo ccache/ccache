@@ -20,7 +20,7 @@
 #include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 

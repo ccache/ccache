@@ -18,7 +18,7 @@
 
 #include <util/Bytes.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 #include <third_party/nonstd/span.hpp>
 
 #include <vector>

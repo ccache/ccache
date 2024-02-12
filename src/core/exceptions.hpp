@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <third_party/fmt/core.h>
+#include <fmt/core.h>
 
 #include <optional>
 #include <stdexcept>

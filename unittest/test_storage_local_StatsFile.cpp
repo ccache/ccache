@@ -24,7 +24,7 @@
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 using core::Statistic;
 using storage::local::StatsFile;

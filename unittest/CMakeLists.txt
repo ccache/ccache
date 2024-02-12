@@ -57,9 +57,18 @@ if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "^Clang$")
   set_source_files_properties(test_util_DirEntry.cpp PROPERTIES COMPILE_FLAGS /Zc:preprocessor-)
 endif()
 
+option(USE_SYSTEM_DOCTEST "Use system doctest library" ${USE_SYSTEM_LIBRARIES})
+if(USE_SYSTEM_DOCTEST)
+  find_package(doctest REQUIRED)
+else()
+   add_library(doctest INTERFACE)
+   target_include_directories(doctest INTERFACE third_party)
+   add_library(doctest::doctest ALIAS doctest)
+endif()
+
 target_link_libraries(
   unittest
-  PRIVATE standard_settings standard_warnings ccache_framework third_party)
+  PRIVATE standard_settings standard_warnings ccache_framework doctest::doctest fmt::fmt PkgConfig::xxhash tl::expected)
 
 target_include_directories(unittest PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${ccache_SOURCE_DIR}/src)
 

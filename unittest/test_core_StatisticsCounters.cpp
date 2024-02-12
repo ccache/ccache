@@ -21,7 +21,7 @@
 #include <core/Statistic.hpp>
 #include <core/StatisticsCounters.hpp>
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 using core::Statistic;
 using core::StatisticsCounters;

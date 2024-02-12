@@ -20,7 +20,7 @@
 
 #include <core/types.hpp>
 
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 TEST_SUITE_BEGIN("compression");
 
