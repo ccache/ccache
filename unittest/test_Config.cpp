@@ -19,13 +19,12 @@
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <core/exceptions.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
 #include <util/fmtmacros.hpp>
-
-#include "doctest/doctest.h"
 
 #include <limits>
 #include <string>

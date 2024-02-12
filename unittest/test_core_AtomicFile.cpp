@@ -17,12 +17,11 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <core/AtomicFile.hpp>
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
-
-#include "doctest/doctest.h"
 
 #include <string>
 #include <vector>

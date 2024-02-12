@@ -18,10 +18,10 @@
 
 #pragma once
 
+#include <tl/expected.hpp>
 #include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
-#include <tl/expected.hpp>
 
 #include <cstdint>
 #include <string>

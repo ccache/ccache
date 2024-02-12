@@ -27,7 +27,6 @@
 #include <util/string.hpp>
 
 #include <doctest/doctest.h>
-
 #include <fcntl.h>
 
 #include <cstring>

@@ -20,7 +20,6 @@
 #include "../src/core/MsvcShowIncludesOutput.hpp"
 #include "../src/util/string.hpp"
 #include "TestUtil.hpp"
-
 #include "doctest/doctest.h"
 
 static const std::string defaultPrefix = "Note: including file:";

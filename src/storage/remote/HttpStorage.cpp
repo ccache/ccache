@@ -29,8 +29,9 @@
 #include <util/string.hpp>
 #include <util/types.hpp>
 
-#include <httplib.h>
 #include <third_party/url.hpp>
+
+#include <httplib.h>
 
 #include <string_view>
 

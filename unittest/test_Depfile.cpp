@@ -19,11 +19,10 @@
 #include "../src/Context.hpp"
 #include "../src/Depfile.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
-
-#include "doctest/doctest.h"
 
 #include <string>
 #include <vector>

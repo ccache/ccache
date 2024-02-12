@@ -18,9 +18,10 @@
 
 #pragma once
 
+#include <tl/expected.hpp>
+
 #include "third_party/blake3/blake3.h"
 #include <third_party/nonstd/span.hpp>
-#include <tl/expected.hpp>
 
 #include <array>
 #include <cstdint>

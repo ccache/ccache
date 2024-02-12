@@ -16,10 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include <tl/expected.hpp>
 #include <util/expected.hpp>
 
 #include <doctest/doctest.h>
-#include <tl/expected.hpp>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
 #include <memory>

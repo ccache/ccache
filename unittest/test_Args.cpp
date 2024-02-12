@@ -18,10 +18,9 @@
 
 #include "../src/Args.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <util/file.hpp>
-
-#include "doctest/doctest.h"
 
 TEST_SUITE_BEGIN("Args");
 

@@ -21,6 +21,7 @@
 #include "../src/Context.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
+#include "doctest/doctest.h"
 
 #include <Util.hpp>
 #include <core/Statistic.hpp>
@@ -29,8 +30,6 @@
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
-
-#include "doctest/doctest.h"
 
 #include <algorithm>
 

@@ -19,14 +19,13 @@
 #include "../src/Context.hpp"
 #include "../src/ccache.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
-
-#include "doctest/doctest.h"
 
 #include <optional>
 #include <string>

@@ -19,6 +19,7 @@
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <core/exceptions.hpp>
 #include <util/environment.hpp>
@@ -27,8 +28,6 @@
 #include <util/fmtmacros.hpp>
 #include <util/path.hpp>
 #include <util/wincompat.hpp>
-
-#include "doctest/doctest.h"
 
 #include <fcntl.h>
 

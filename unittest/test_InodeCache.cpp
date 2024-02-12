@@ -21,13 +21,12 @@
 #include "../src/Hash.hpp"
 #include "../src/InodeCache.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <util/Fd.hpp>
 #include <util/TemporaryFile.hpp>
 #include <util/file.hpp>
 #include <util/path.hpp>
-
-#include "doctest/doctest.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>

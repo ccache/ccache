@@ -17,11 +17,10 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <core/Statistic.hpp>
 #include <core/StatisticsCounters.hpp>
-
-#include "doctest/doctest.h"
 
 using core::Statistic;
 using core::StatisticsCounters;

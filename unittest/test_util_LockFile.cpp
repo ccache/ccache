@@ -17,14 +17,13 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <Util.hpp>
 #include <util/DirEntry.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
 #include <util/wincompat.hpp>
-
-#include "doctest/doctest.h"
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

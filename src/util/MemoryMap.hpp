@@ -18,9 +18,8 @@
 
 #pragma once
 
-#include <util/NonCopyable.hpp>
-
 #include <tl/expected.hpp>
+#include <util/NonCopyable.hpp>
 
 #include <string>
 

@@ -17,10 +17,9 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Hash.hpp"
+#include "doctest/doctest.h"
 
 #include <util/string.hpp>
-
-#include "doctest/doctest.h"
 
 TEST_SUITE_BEGIN("Hash");
 

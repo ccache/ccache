@@ -19,10 +19,9 @@
 #include "../src/Hash.hpp"
 #include "../src/hashutil.hpp"
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <util/file.hpp>
-
-#include "doctest/doctest.h"
 
 #include <sys/stat.h>
 

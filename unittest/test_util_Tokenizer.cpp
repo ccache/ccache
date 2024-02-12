@@ -17,10 +17,9 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Util.hpp"
+#include "doctest/doctest.h"
 
 #include <util/string.hpp>
-
-#include "doctest/doctest.h"
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <string>

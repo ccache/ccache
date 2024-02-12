@@ -17,12 +17,12 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "TestUtil.hpp"
+#include "doctest/doctest.h"
 
 #include <util/Fd.hpp>
 #include <util/Finalizer.hpp>
 #include <util/wincompat.hpp>
 
-#include "doctest/doctest.h"
 #include "third_party/win32/mktemp.h"
 
 #include <sddl.h>
@@ -64,7 +64,8 @@ public:
     return *this;
   }
 
-  explicit operator bool() const
+  explicit
+  operator bool() const
   {
     return m_handle != INVALID_HANDLE_VALUE;
   }
