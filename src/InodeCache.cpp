@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,6 +51,8 @@
 #include <atomic>
 #include <type_traits>
 #include <vector>
+
+using pstr = util::PathString;
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
@@ -159,10 +161,9 @@ fd_is_on_known_to_work_file_system(int fd)
     return false;
   }
 
-  // Try to get information about remote protocol for this file.
-  // If the call succeeds, this is a remote file.
-  // If the call fails with invalid parameter error, consider that it is a local
-  // file
+  // Try to get information about remote protocol for this file. If the call
+  // succeeds, this is a remote file. If the call fails with invalid parameter
+  // error, consider whether it is a local file.
   FILE_REMOTE_PROTOCOL_INFO infos;
   if (GetFileInformationByHandleEx(
         file, FileRemoteProtocolInfo, &infos, sizeof(infos))) {
@@ -320,7 +321,7 @@ InodeCache::hash_inode(const std::string& path,
   key.st_ino = de.inode();
   key.st_mode = de.mode();
   // Note: Manually copying sec and nsec of mtime and ctime to prevent copying
-  // the padding bytes
+  // the padding bytes.
   auto mtime = de.mtime().to_timespec();
   key.st_mtim.tv_sec = mtime.tv_sec;
   key.st_mtim.tv_nsec = mtime.tv_nsec;
@@ -377,8 +378,7 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
 
-  util::Finalizer temp_file_remover(
-    [&] { unlink(util::PathString(tmp_file->path).c_str()); });
+  util::Finalizer temp_file_remover([&] { unlink(pstr(tmp_file->path)); });
 
   if (!fd_is_on_known_to_work_file_system(*tmp_file->fd)) {
     return false;
@@ -425,7 +425,7 @@ InodeCache::create_new_file(const std::string& filename)
     unsigned error = GetLastError();
     if (error == ERROR_FILE_EXISTS) {
       // Not an error, another process won the race. Remove the file we just
-      // created
+      // created.
       DeleteFileA(util::PathString(tmp_file->path).c_str());
       LOG("Another process created inode cache {}", filename);
       return true;

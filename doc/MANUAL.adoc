@@ -832,7 +832,8 @@ might be incorrect.
     requires <<config_temporary_dir,*temporary_dir*>> to be located on a local
     filesystem of a supported type.
 +
-NOTE: Support for the inode cache feature on Windows is experimental. On Windows the default is false.
+NOTE: Support for the inode cache feature on Windows is experimental. On Windows
+the default is false.
 
 [#config_keep_comments_cpp]
 *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see _<<Boolean values>>_ above)::

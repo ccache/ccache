@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -192,7 +192,7 @@ private:
 #ifndef _WIN32
   bool m_inode_cache = true;
 #else
-  // Support is experimental on Windows so usage is off by default
+  // Support is experimental on Windows so usage is off by default.
   bool m_inode_cache = false;
 #endif
   bool m_keep_comments_cpp = false;

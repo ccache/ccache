@@ -31,6 +31,7 @@ class MemoryMap : util::NonCopyable
 public:
   MemoryMap() = default;
   ~MemoryMap();
+
   MemoryMap(MemoryMap&& other) noexcept;
   MemoryMap& operator=(MemoryMap&& other) noexcept;
 
@@ -49,4 +50,5 @@ private:
     nullptr; // On Windows a handle on a file mapping is needed
 #endif
 };
+
 } // namespace util
