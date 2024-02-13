@@ -1,6 +1,6 @@
 add_library(third_party STATIC url.cpp)
 if(NOT MSVC)
-  target_sources(third_party PRIVATE getopt_long.c)
+#  target_sources(third_party PRIVATE getopt_long.c)
 else()
   target_sources(third_party PRIVATE win32/getopt.c)
   target_compile_definitions(third_party PUBLIC -DSTATIC_GETOPT)
