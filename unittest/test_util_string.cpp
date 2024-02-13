@@ -18,7 +18,7 @@
 
 #include <util/string.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>

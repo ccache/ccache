@@ -25,7 +25,7 @@
 #include <util/filesystem.hpp>
 #include <util/wincompat.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

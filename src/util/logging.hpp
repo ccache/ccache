@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <third_party/fmt/core.h>
-#include <third_party/fmt/format.h>
-#include <third_party/fmt/std.h>
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <fmt/std.h>
 
 #include <string>
 #include <string_view>

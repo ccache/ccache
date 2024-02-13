@@ -23,7 +23,7 @@
 
 #define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "third_party/doctest.h"
+#include "doctest/doctest.h"
 
 namespace fs = util::filesystem;
 

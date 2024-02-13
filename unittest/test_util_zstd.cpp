@@ -20,7 +20,7 @@
 #include <util/Bytes.hpp>
 #include <util/zstd.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #include <string>
 

@@ -25,7 +25,7 @@
 #ifdef USE_XXH_DISPATCH
 #  include <third_party/xxh_x86dispatch.h>
 #else
-#  include <third_party/xxhash.h>
+#  include <xxhash.h>
 #endif
 
 #include <cstdint>

@@ -24,7 +24,7 @@
 #include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 namespace fs = util::filesystem;
 
