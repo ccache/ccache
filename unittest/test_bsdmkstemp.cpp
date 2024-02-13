@@ -64,8 +64,7 @@ public:
     return *this;
   }
 
-  explicit
-  operator bool() const
+  explicit operator bool() const
   {
     return m_handle != INVALID_HANDLE_VALUE;
   }
