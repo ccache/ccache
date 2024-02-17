@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,15 +22,15 @@
 #include <core/types.hpp>
 #include <storage/local/LocalStorage.hpp>
 #include <storage/remote/RemoteStorage.hpp>
-#include <storage/types.hpp>
 #include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
+#include <cstdint>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace storage {

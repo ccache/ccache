@@ -18,19 +18,10 @@
 
 #pragma once
 
-#include <util/TimePoint.hpp>
-
-#include <cstdint>
 #include <filesystem>
-#include <functional>
-#include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
-#include <vector>
 
-class Config;
 class Context;
 
 namespace Util {

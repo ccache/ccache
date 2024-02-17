@@ -22,6 +22,7 @@
 
 #include <third_party/tl/expected.hpp>
 
+#include <cstddef>
 #include <string>
 
 namespace util {

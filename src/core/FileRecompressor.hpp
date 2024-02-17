@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,9 +22,7 @@
 
 #include <atomic>
 #include <cstdint>
-#include <mutex>
 #include <optional>
-#include <string>
 
 namespace core {
 

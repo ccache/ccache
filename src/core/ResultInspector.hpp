@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,8 @@
 #pragma once
 
 #include <core/Result.hpp>
+
+#include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
 #include <cstdio>

@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <util/NonCopyable.hpp>
-
 #include <deque>
 #include <optional>
 #include <string>

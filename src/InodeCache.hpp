@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,6 +25,8 @@
 #include <util/MemoryMap.hpp>
 #include <util/TimePoint.hpp>
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -32,7 +34,6 @@
 #include <utility>
 
 class Config;
-class Context;
 
 class InodeCache
 {

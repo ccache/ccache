@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,7 @@
 #pragma once
 
 #include <core/Serializer.hpp>
-#include <util/types.hpp>
+#include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
 

@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <util/Bytes.hpp>
 #include <util/Tokenizer.hpp>
 #include <util/conversion.hpp>
 

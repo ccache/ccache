@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,16 +18,16 @@
 
 #pragma once
 
-#include <cstdint>
-#include <string>
+#ifdef _WIN32
+
+#  include <cstdint>
+#  include <string>
 
 namespace util {
-
-#ifdef _WIN32
 
 // Return the error message corresponding to `error_code`.
 std::string win32_error_message(uint32_t error_code);
 
-#endif
-
 } // namespace util
+
+#endif

@@ -21,7 +21,9 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
-#include "MiniTrace.hpp"
+#ifdef MTR_ENABLED
+#  include "MiniTrace.hpp"
+#endif
 
 #include <util/FileStream.hpp>
 #include <util/NonCopyable.hpp>
@@ -33,12 +35,15 @@
 #include <Hash.hpp>
 #include <core/Manifest.hpp>
 #include <storage/Storage.hpp>
+#include <util/Bytes.hpp>
 #include <util/TimePoint.hpp>
 
+#include <sys/types.h>
+
 #include <ctime>
+#include <filesystem>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <vector>
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,8 +36,6 @@
 #include <util/fmtmacros.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>
-
-#include <sys/types.h>
 
 #ifdef HAVE_PWD_H
 #  include <pwd.h>

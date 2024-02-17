@@ -25,8 +25,10 @@
 #include <core/exceptions.hpp>
 #include <core/types.hpp>
 #include <util/TimePoint.hpp>
+#include <util/XXH3_128.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
+#include <util/filesystem.hpp>
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
 #include <util/zstd.hpp>

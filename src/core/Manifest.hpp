@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,11 +20,13 @@
 
 #include <Hash.hpp>
 #include <core/Serializer.hpp>
+#include <util/Bytes.hpp>
 #include <util/TimePoint.hpp>
 
 #include <third_party/nonstd/span.hpp>
 
 #include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <optional>
 #include <string>

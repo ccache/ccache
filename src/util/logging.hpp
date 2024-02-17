@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,6 @@
 
 #include <third_party/fmt/core.h>
 #include <third_party/fmt/format.h>
-#include <third_party/fmt/std.h>
 
 #include <string>
 #include <string_view>
@@ -46,8 +45,6 @@
       util::logging::bulk_log(fmt::format(FMT_STRING(format_), __VA_ARGS__));  \
     }                                                                          \
   } while (false)
-
-class Config;
 
 namespace util::logging {
 

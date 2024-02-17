@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include <util/string.hpp>
-
 #include <filesystem>
 #include <string>
 #include <string_view>
-#include <vector>
+#ifdef _WIN32
+#  include <util/string.hpp>
+#endif
 
 namespace util {
 

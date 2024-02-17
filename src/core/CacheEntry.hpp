@@ -21,7 +21,6 @@
 #include <core/Serializer.hpp>
 #include <core/types.hpp>
 #include <util/Bytes.hpp>
-#include <util/XXH3_128.hpp>
 
 #include <third_party/nonstd/span.hpp>
 

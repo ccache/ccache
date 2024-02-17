@@ -20,6 +20,7 @@
 
 #include <third_party/tl/expected.hpp>
 
+#include <cstdint>
 #include <filesystem>
 #include <system_error>
 

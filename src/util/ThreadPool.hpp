@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,11 +19,13 @@
 #pragma once
 
 #include <condition_variable>
+#include <cstddef>
 #include <functional>
 #include <limits>
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <vector>
 
 namespace util {
 

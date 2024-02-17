@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <util/assertions.hpp>
 
+#include <cstddef>
 #include <string_view>
 
 namespace util {

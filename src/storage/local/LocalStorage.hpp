@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,13 +20,15 @@
 
 #include <Hash.hpp>
 #include <core/Result.hpp>
+#include <core/Statistic.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <core/types.hpp>
 #include <storage/local/StatsFile.hpp>
 #include <storage/local/util.hpp>
-#include <storage/types.hpp>
 #include <util/Bytes.hpp>
+#include <util/DirEntry.hpp>
 #include <util/LockFile.hpp>
+#include <util/LongLivedLockFileManager.hpp>
 #include <util/TimePoint.hpp>
 
 #include <third_party/nonstd/span.hpp>
@@ -34,7 +36,9 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 class Config;

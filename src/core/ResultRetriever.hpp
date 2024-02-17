@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,7 +22,11 @@
 #include <core/Result.hpp>
 #include <core/exceptions.hpp>
 
+#include <third_party/nonstd/span.hpp>
+
+#include <cstdint>
 #include <optional>
+#include <string>
 
 class Context;
 

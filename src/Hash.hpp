@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,6 +25,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <string>
 #include <string_view>
 
 // This class represents a hash state.

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,10 +22,8 @@
 #include <util/wincompat.hpp>
 
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <cstdint>
-#include <ctime>
 #include <filesystem>
 
 namespace util {

@@ -18,11 +18,11 @@
 
 #pragma once
 
+#include <core/Statistic.hpp>
 #include <core/StatisticsCounters.hpp>
 #include <util/TimePoint.hpp>
 
 #include <cstdint>
-#include <ctime>
 #include <string>
 #include <unordered_map>
 #include <utility>

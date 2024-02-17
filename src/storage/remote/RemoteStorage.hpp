@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,6 @@
 #pragma once
 
 #include <Hash.hpp>
-#include <storage/types.hpp>
 #include <util/Bytes.hpp>
 
 #include <third_party/nonstd/span.hpp>
@@ -29,6 +28,7 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
