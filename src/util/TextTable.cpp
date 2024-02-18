@@ -19,6 +19,7 @@
 #include "TextTable.hpp"
 
 #include <util/assertions.hpp>
+#include <util/fmtmacros.hpp>
 
 #include <third_party/fmt/core.h>
 
@@ -106,8 +107,8 @@ TextTable::render() const
       for (size_t j = i + 1 - cell.m_colspan; j <= i; ++j) {
         width += column_widths[j] + (j == i ? 0 : 1);
       }
-      r += fmt::format(
-        (cell.m_right_align ? "{:>{}}" : "{:<{}}"), cell.m_text, width);
+      r += cell.m_right_align ? FMT("{:>{}}", cell.m_text, width)
+                              : FMT("{:<{}}", cell.m_text, width);
     }
     result.append(r, 0, r.find_last_not_of(' ') + 1);
     result += '\n';
