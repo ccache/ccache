@@ -285,7 +285,7 @@ CacheEntry::serialize(const CacheEntry::Header& header,
     [&payload](util::Bytes& result, const CacheEntry::Header& hdr) {
       switch (hdr.compression_type) {
       case CompressionType::none:
-        result.insert(result.end(), payload.begin(), payload.end());
+        result.insert(result.end(), payload);
         break;
 
       case CompressionType::zstd:

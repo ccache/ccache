@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -57,7 +57,7 @@ inline CacheEntryDataWriter::CacheEntryDataWriter(util::Bytes& output)
 inline void
 CacheEntryDataWriter::write_bytes(nonstd::span<const uint8_t> data)
 {
-  m_output.insert(m_output.end(), data.begin(), data.end());
+  m_output.insert(m_output.end(), data);
 }
 
 template<typename T>

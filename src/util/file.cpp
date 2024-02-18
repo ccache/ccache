@@ -211,10 +211,7 @@ tl::expected<Bytes, std::string>
 read_fd(int fd)
 {
   Bytes output;
-  return read_fd(fd,
-                 [&](auto data) {
-                   output.insert(output.end(), data.begin(), data.end());
-                 })
+  return read_fd(fd, [&](auto data) { output.insert(output.end(), data); })
     .transform([&] { return output; });
 }
 
