@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -363,6 +363,19 @@ TEST_CASE("Basics")
     std::string data("abc");
 
     bytes2.insert(bytes2.end(), data.data(), data.size());
+    CHECK(bytes2.size() == 3);
+    CHECK(bytes2.capacity() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
+  SUBCASE("Insert span")
+  {
+    Bytes bytes2;
+    nonstd::span<const uint8_t> span(bytes1.begin(), bytes1.end());
+
+    bytes2.insert(bytes2.end(), span);
     CHECK(bytes2.size() == 3);
     CHECK(bytes2.capacity() == 3);
     CHECK(bytes2[0] == 'a');

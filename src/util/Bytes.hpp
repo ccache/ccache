@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -84,6 +84,7 @@ public:
   insert(const uint8_t* pos, const uint8_t* data, const size_t size) noexcept;
   void insert(const uint8_t* pos, const char* first, const char* last) noexcept;
   void insert(const uint8_t* pos, const char* data, size_t size) noexcept;
+  void insert(const uint8_t* pos, nonstd::span<const uint8_t> data) noexcept;
 
 private:
   std::unique_ptr<uint8_t[]> m_data;
@@ -236,6 +237,12 @@ inline void
 Bytes::insert(const uint8_t* pos, const char* data, size_t size) noexcept
 {
   return insert(pos, data, data + size);
+}
+
+inline void
+Bytes::insert(const uint8_t* pos, nonstd::span<const uint8_t> data) noexcept
+{
+  return insert(pos, &*data.begin(), &*data.end());
 }
 
 } // namespace util
