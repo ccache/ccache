@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,6 +23,7 @@
 #include <util/fmtmacros.hpp>
 #include <util/logging.hpp>
 
+#include <cstring>
 #include <fstream>
 
 namespace core {

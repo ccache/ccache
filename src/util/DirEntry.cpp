@@ -29,6 +29,8 @@
 #  include <third_party/win32/winerror_to_errno.h>
 #endif
 
+#include <cstring>
+
 using pstr = util::PathString;
 
 namespace {

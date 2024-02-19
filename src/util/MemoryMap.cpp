@@ -21,6 +21,8 @@
 #include <util/fmtmacros.hpp>
 #include <util/wincompat.hpp>
 
+#include <cstring>
+
 #ifndef _WIN32
 #  include <sys/mman.h>
 #endif

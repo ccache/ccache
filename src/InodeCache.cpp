@@ -49,6 +49,7 @@
 #endif
 
 #include <atomic>
+#include <thread>
 #include <type_traits>
 #include <vector>
 
