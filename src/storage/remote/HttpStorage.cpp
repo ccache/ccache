@@ -24,7 +24,7 @@
 #include <storage/Storage.hpp>
 #include <util/assertions.hpp>
 #include <util/expected.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #include <util/string.hpp>
 #include <util/types.hpp>

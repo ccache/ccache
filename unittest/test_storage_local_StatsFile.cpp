@@ -22,7 +22,7 @@
 #include <core/Statistic.hpp>
 #include <storage/local/StatsFile.hpp>
 #include <util/file.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 #include <third_party/doctest.h>
 

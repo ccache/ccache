@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 #include <string_view>
 #include <utility>

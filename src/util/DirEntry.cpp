@@ -21,7 +21,7 @@
 #include <util/Finalizer.hpp>
 #include <util/PathString.hpp>
 #include <util/file.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #include <util/wincompat.hpp>
 

@@ -18,7 +18,7 @@
 
 #include "environment.hpp"
 
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/wincompat.hpp>
 
 namespace util {

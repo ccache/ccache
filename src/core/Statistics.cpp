@@ -21,7 +21,7 @@
 #include <Config.hpp>
 #include <Util.hpp>
 #include <util/TextTable.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #include <util/string.hpp>
 #include <util/time.hpp>

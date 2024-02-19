@@ -18,7 +18,7 @@
 
 #include <util/environment.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/path.hpp>
 
 #define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug

@@ -21,7 +21,7 @@
 #include <core/exceptions.hpp>
 #include <util/expected.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 namespace fs = util::filesystem;
 

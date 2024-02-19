@@ -29,7 +29,7 @@
 #include <util/expected.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>

@@ -21,7 +21,7 @@
 #include <util/PathString.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/process.hpp>
 
 #include <cstdlib>

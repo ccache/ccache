@@ -18,7 +18,7 @@
 
 #include "compopt.hpp"
 
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 // The option it too hard to handle at all.
 int TOO_HARD = 1 << 0;

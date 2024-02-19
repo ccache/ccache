@@ -21,7 +21,7 @@
 #include "TestUtil.hpp"
 
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 #include "third_party/doctest.h"
 

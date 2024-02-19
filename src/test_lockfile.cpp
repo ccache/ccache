@@ -19,7 +19,7 @@
 #include <Config.hpp>
 #include <util/LockFile.hpp>
 #include <util/LongLivedLockFileManager.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #include <util/string.hpp>
 

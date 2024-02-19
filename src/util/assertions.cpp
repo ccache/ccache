@@ -20,7 +20,7 @@
 
 #include <util/assertions.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 namespace fs = util::filesystem;
 

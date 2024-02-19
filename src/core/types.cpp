@@ -21,7 +21,7 @@
 #include <Config.hpp>
 #include <core/exceptions.hpp>
 #include <util/assertions.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 namespace core {
 

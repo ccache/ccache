@@ -22,7 +22,7 @@
 #include <core/exceptions.hpp>
 #include <util/LockFile.hpp>
 #include <util/file.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 
 namespace storage::local {

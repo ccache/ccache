@@ -27,7 +27,7 @@
 #include <storage/remote/FileStorage.hpp>
 #include <storage/remote/HttpStorage.hpp>
 #include <util/assertions.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <storage/remote/RedisStorage.hpp>

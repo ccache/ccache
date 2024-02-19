@@ -22,7 +22,7 @@
 #include <util/DirEntry.hpp>
 #include <util/file.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 #include <third_party/doctest.h>
 

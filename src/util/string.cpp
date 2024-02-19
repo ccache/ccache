@@ -19,7 +19,7 @@
 #include "string.hpp"
 
 #include <util/assertions.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 #include <algorithm>
 #include <cctype>

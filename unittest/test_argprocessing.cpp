@@ -25,7 +25,7 @@
 #include <Util.hpp>
 #include <core/Statistic.hpp>
 #include <util/file.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/path.hpp>
 #include <util/string.hpp>
 #include <util/wincompat.hpp>

@@ -23,7 +23,7 @@
 #include <util/PathString.hpp>
 #include <util/expected.hpp>
 #include <util/file.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/string.hpp>
 
 using util::DirEntry;

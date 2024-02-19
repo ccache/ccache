@@ -23,7 +23,7 @@
 #include <core/exceptions.hpp>
 #include <util/environment.hpp>
 #include <util/file.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 
 #include "third_party/doctest.h"
 

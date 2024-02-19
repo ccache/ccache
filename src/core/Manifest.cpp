@@ -25,7 +25,7 @@
 #include <core/exceptions.hpp>
 #include <hashutil.hpp>
 #include <util/XXH3_64.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 #include <util/string.hpp>
 

@@ -21,7 +21,7 @@
 #include <Util.hpp>
 #include <util/DirEntry.hpp>
 #include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/string.hpp>
 
 #ifdef _WIN32

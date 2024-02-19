@@ -19,7 +19,7 @@
 #include "ProgressBar.hpp"
 
 #include <util/assertions.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/wincompat.hpp>
 
 #ifdef _WIN32

@@ -20,7 +20,7 @@
 
 #include "Context.hpp"
 
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/logging.hpp>
 
 namespace core {

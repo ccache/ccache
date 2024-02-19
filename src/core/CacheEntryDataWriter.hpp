@@ -20,7 +20,7 @@
 
 #include <core/exceptions.hpp>
 #include <util/conversion.hpp>
-#include <util/fmtmacros.hpp>
+#include <util/format.hpp>
 #include <util/string.hpp>
 
 #include <third_party/nonstd/span.hpp>
