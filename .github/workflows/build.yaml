@@ -258,13 +258,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux GCC debug + in source + tracing
+          - name: Linux GCC debug + in source
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
             BUILDDIR: .
             CCACHE_LOC: .
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug
             apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
 
           - name: Linux GCC 32-bit

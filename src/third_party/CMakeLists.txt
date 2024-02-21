@@ -10,10 +10,6 @@ if(WIN32)
   target_sources(third_party PRIVATE win32/mktemp.c)
 endif ()
 
-if(ENABLE_TRACING)
-  target_sources(third_party PRIVATE minitrace.c)
-endif()
-
 file(GLOB headers *.h fmt/*.h nonstd/*.hpp win32/*.h)
 target_sources(third_party PRIVATE ${headers})
 

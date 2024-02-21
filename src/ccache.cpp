@@ -24,7 +24,6 @@
 #include "Context.hpp"
 #include "Depfile.hpp"
 #include "Hash.hpp"
-#include "MiniTrace.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
@@ -809,8 +808,6 @@ update_manifest(Context& ctx,
 
   ASSERT(ctx.config.direct_mode());
 
-  MTR_SCOPE("manifest", "manifest_put");
-
   // ctime() may be 0, so we have to check time_of_invocation against
   // MAX(mtime, ctime).
   //
@@ -1127,7 +1124,6 @@ to_cache(Context& ctx,
   }
 
   LOG_RAW("Running real compiler");
-  MTR_BEGIN("execute", "compiler");
 
   tl::expected<DoExecuteResult, Failure> result;
   if (!ctx.config.depend_mode()) {
@@ -1145,7 +1141,6 @@ to_cache(Context& ctx,
 
     result = do_execute(ctx, depend_mode_args);
   }
-  MTR_END("execute", "compiler");
 
   if (!result) {
     return tl::unexpected(result.error());
@@ -1231,12 +1226,10 @@ to_cache(Context& ctx,
     }
   }
 
-  MTR_BEGIN("result", "result_put");
   if (!write_result(
         ctx, *result_key, result->stdout_data, result->stderr_data)) {
     return tl::unexpected(Statistic::compiler_produced_no_output);
   }
-  MTR_END("result", "result_put");
 
   // Everything OK.
   core::send_to_console(
@@ -1299,9 +1292,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     add_prefix(args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
-    MTR_BEGIN("execute", "preprocessor");
     const auto result = do_execute(ctx, args, false);
-    MTR_END("execute", "preprocessor");
     args.pop_back(args.size() - orig_args_size);
 
     if (!result) {
@@ -1984,7 +1975,6 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
 static std::optional<Hash::Digest>
 get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
 {
-  MTR_BEGIN("manifest", "manifest_get");
   std::optional<Hash::Digest> result_key;
   size_t read_manifests = 0;
   ctx.storage.get(
@@ -2004,9 +1994,7 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
         return false;
       }
     });
-  MTR_END("manifest", "manifest_get");
   if (read_manifests > 1 && !ctx.config.remote_only()) {
-    MTR_SCOPE("manifest", "merge");
     LOG("Storing merged manifest {} locally",
         util::format_digest(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
@@ -2155,8 +2143,6 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
     return false;
   }
 
-  MTR_SCOPE("cache", "from_cache");
-
   // Get result from cache.
   util::Bytes cache_entry_data;
   ctx.storage.get(
@@ -2233,14 +2219,6 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
   LOG("Configuration file: {}", ctx.config.config_path());
   LOG("System configuration file: {}", ctx.config.system_config_path());
 
-  if (getenv("CCACHE_INTERNAL_TRACE")) {
-#ifdef MTR_ENABLED
-    ctx.mini_trace = std::make_unique<MiniTrace>(ctx.args_info);
-#else
-    LOG_RAW("Error: tracing is not enabled!");
-#endif
-  }
-
   if (!ctx.config.log_file().empty() || ctx.config.debug()) {
     ctx.config.visit_items([&ctx](const std::string& key,
                                   const std::string& value,
@@ -2262,9 +2240,7 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
 
   ctx.storage.initialize();
 
-  MTR_BEGIN("main", "find_compiler");
   find_compiler(ctx, &find_executable, masquerading_as_compiler);
-  MTR_END("main", "find_compiler");
 
   // Guess compiler after logging the config value in order to be able to
   // display "compiler_type = auto" before overwriting the value with the
@@ -2476,9 +2452,7 @@ do_cache_compilation(Context& ctx)
   // be disabled.
   util::setenv("CCACHE_DISABLE", "1");
 
-  MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);
-  MTR_END("main", "process_args");
 
   if (processed.error) {
     return tl::unexpected(*processed.error);
@@ -2553,7 +2527,6 @@ do_cache_compilation(Context& ctx)
   }
 
   LOG("Object file: {}", ctx.args_info.output_obj);
-  MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.apparent_cwd,
@@ -2583,11 +2556,8 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::disabled);
   }
 
-  {
-    MTR_SCOPE("hash", "common_hash");
-    TRY(hash_common_info(
-      ctx, processed.preprocessor_args, common_hash, ctx.args_info));
-  }
+  TRY(hash_common_info(
+    ctx, processed.preprocessor_args, common_hash, ctx.args_info));
 
   if (processed.hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
@@ -2608,10 +2578,8 @@ do_cache_compilation(Context& ctx)
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");
-    MTR_BEGIN("hash", "direct_hash");
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
       ctx, args_to_hash, direct_hash, nullptr);
-    MTR_END("hash", "direct_hash");
     if (!result_and_manifest_key) {
       return tl::unexpected(result_and_manifest_key.error());
     }
@@ -2652,10 +2620,8 @@ do_cache_compilation(Context& ctx)
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx, cpp_hash, 'p', "PREPROCESSOR MODE", debug_text_file);
 
-    MTR_BEGIN("hash", "cpp_hash");
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
       ctx, args_to_hash, cpp_hash, &processed.preprocessor_args);
-    MTR_END("hash", "cpp_hash");
     if (!result_and_manifest_key) {
       return tl::unexpected(result_and_manifest_key.error());
     }
@@ -2693,7 +2659,6 @@ do_cache_compilation(Context& ctx)
       return tl::unexpected(from_cache_result.error());
     } else if (*from_cache_result) {
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
-        MTR_SCOPE("cache", "update_manifest");
         update_manifest(ctx, *manifest_key, *result_key);
       }
       return Statistic::preprocessed_cache_hit;
@@ -2715,20 +2680,17 @@ do_cache_compilation(Context& ctx)
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
-  MTR_BEGIN("cache", "to_cache");
   const auto digest = to_cache(ctx,
                                processed.compiler_args,
                                result_key,
                                ctx.args_info.depend_extra_args,
                                depend_mode_hash);
-  MTR_END("cache", "to_cache");
   if (!digest) {
     return tl::unexpected(digest.error());
   }
   result_key = *digest;
   if (ctx.config.direct_mode()) {
     ASSERT(manifest_key);
-    MTR_SCOPE("cache", "update_manifest");
     update_manifest(ctx, *manifest_key, *result_key);
   }
 

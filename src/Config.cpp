@@ -18,7 +18,6 @@
 
 #include "Config.hpp"
 
-#include "MiniTrace.hpp"
 #include "Util.hpp"
 
 #include <core/AtomicFile.hpp>
@@ -573,10 +572,8 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     set_system_config_path(env_ccache_configpath2
                              ? env_ccache_configpath2
                              : Util::make_path(sysconfdir, "ccache.conf"));
-    MTR_BEGIN("config", "conf_read_system");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     update_from_file(system_config_path());
-    MTR_END("config", "conf_read_system");
 
     const char* const env_ccache_dir = getenv("CCACHE_DIR");
     auto cmdline_cache_dir = cmdline_settings_map.find("cache_dir");
@@ -618,17 +615,13 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 
   const std::string& cache_dir_before_config_file_was_read = cache_dir();
 
-  MTR_BEGIN("config", "conf_read");
   update_from_file(config_path());
-  MTR_END("config", "conf_read");
 
   // Ignore cache_dir set in configuration file
   set_cache_dir(cache_dir_before_config_file_was_read);
 
-  MTR_BEGIN("config", "conf_update_from_environment");
   update_from_environment();
   // (cache_dir is set above if CCACHE_DIR is set.)
-  MTR_END("config", "conf_update_from_environment");
 
   update_from_map(cmdline_settings_map);
 

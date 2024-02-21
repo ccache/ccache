@@ -117,7 +117,6 @@ endif()
 # doesn't get scanned.
 #
 include(CodeAnalysis)
-option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)
 
 #
 # Source code

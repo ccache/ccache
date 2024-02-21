@@ -20,7 +20,6 @@
 
 #include <Config.hpp>
 #include <Context.hpp>
-#include <MiniTrace.hpp>
 #include <core/AtomicFile.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/FileRecompressor.hpp>
@@ -492,8 +491,6 @@ LocalStorage::finalize()
 std::optional<util::Bytes>
 LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 {
-  MTR_SCOPE("local_storage", "get");
-
   std::optional<util::Bytes> return_value;
 
   const auto cache_file = look_up_cache_file(key, type);
@@ -530,8 +527,6 @@ LocalStorage::put(const Hash::Digest& key,
                   nonstd::span<const uint8_t> value,
                   bool only_if_missing)
 {
-  MTR_SCOPE("local_storage", "put");
-
   const auto cache_file = look_up_cache_file(key, type);
   if (only_if_missing && cache_file.dir_entry.exists()) {
     LOG("Not storing {} in local storage since it already exists",
@@ -595,8 +590,6 @@ LocalStorage::put(const Hash::Digest& key,
 void
 LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
 {
-  MTR_SCOPE("local_storage", "remove");
-
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.dir_entry) {
     LOG("No {} to remove from local storage", util::format_digest(key));
@@ -1456,8 +1449,6 @@ LocalStorage::acquire_all_level_2_content_locks(
 void
 LocalStorage::clean_internal_tempdir()
 {
-  MTR_SCOPE("local_storage", "clean_internal_tempdir");
-
   const auto now = util::TimePoint::now();
   const auto cleaned_stamp = FMT("{}/.cleaned", m_config.temporary_dir());
   DirEntry cleaned_dir_entry(cleaned_stamp);

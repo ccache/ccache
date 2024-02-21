@@ -21,9 +21,6 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
-#ifdef MTR_ENABLED
-#  include "MiniTrace.hpp"
-#endif
 
 #include <util/FileStream.hpp>
 #include <util/NonCopyable.hpp>
@@ -115,11 +112,6 @@ public:
   // Original umask before applying the `umask`/`CCACHE_UMASK` configuration, or
   // `nullopt` if there is no such configuration.
   std::optional<mode_t> original_umask;
-
-#ifdef MTR_ENABLED
-  // Internal tracing.
-  std::unique_ptr<MiniTrace> mini_trace;
-#endif
 
   // Whether we have added "/showIncludes" ourselves since it's missing and
   // depend mode is enabled.

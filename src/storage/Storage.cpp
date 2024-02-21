@@ -19,7 +19,6 @@
 #include "Storage.hpp"
 
 #include <Config.hpp>
-#include <MiniTrace.hpp>
 #include <Util.hpp>
 #include <core/CacheEntry.hpp>
 #include <core/Statistic.hpp>
@@ -268,8 +267,6 @@ Storage::get(const Hash::Hash::Digest& key,
              const core::CacheEntryType type,
              const EntryReceiver& entry_receiver)
 {
-  MTR_SCOPE("storage", "get");
-
   if (!m_config.remote_only()) {
     auto value = local.get(key, type);
     if (value) {
@@ -295,8 +292,6 @@ Storage::put(const Hash::Digest& key,
              const core::CacheEntryType type,
              nonstd::span<const uint8_t> value)
 {
-  MTR_SCOPE("storage", "put");
-
   if (!m_config.remote_only()) {
     local.put(key, type, value);
   }
@@ -306,8 +301,6 @@ Storage::put(const Hash::Digest& key,
 void
 Storage::remove(const Hash::Digest& key, const core::CacheEntryType type)
 {
-  MTR_SCOPE("storage", "remove");
-
   if (!m_config.remote_only()) {
     local.remove(key, type);
   }
@@ -464,8 +457,6 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
                                  const core::CacheEntryType type,
                                  const EntryReceiver& entry_receiver)
 {
-  MTR_SCOPE("remote_storage", "get");
-
   for (const auto& entry : m_remote_storages) {
     auto backend = get_backend(*entry, key, "getting from", false);
     if (!backend) {
@@ -508,8 +499,6 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
                                nonstd::span<const uint8_t> value,
                                bool only_if_missing)
 {
-  MTR_SCOPE("remote_storage", "put");
-
   if (!core::CacheEntry::Header(value).self_contained) {
     LOG("Not putting {} in remote storage since it's not self-contained",
         util::format_digest(key));
@@ -544,8 +533,6 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
 void
 Storage::remove_from_remote_storage(const Hash::Digest& key)
 {
-  MTR_SCOPE("remote_storage", "remove");
-
   for (const auto& entry : m_remote_storages) {
     auto backend = get_backend(*entry, key, "removing from", true);
     if (!backend) {

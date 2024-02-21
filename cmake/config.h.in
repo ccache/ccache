@@ -67,8 +67,6 @@
 #  pragma clang diagnostic pop
 #endif
 
-#cmakedefine MTR_ENABLED
-
 // === Header files ===
 
 // Define if you have the <dirent.h> header file.

@@ -20,10 +20,6 @@ if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files InodeCache.cpp)
 endif()
 
-if(MTR_ENABLED)
-  list(APPEND source_files MiniTrace.cpp)
-endif()
-
 if(NOT WIN32)
   list(APPEND source_files SignalHandler.cpp)
 endif()
