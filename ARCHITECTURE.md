@@ -17,9 +17,14 @@
 
 ### Subdirectories of `src`
 
+* `ccache`: Ccache source code.
+* `third_party`: Bundled third party code.
+
+### Subdirectories of `src/ccache`
+
 This section describes the directory structure that the project aims to
-transform the `src` directory into in the long run to make the code base easier
-to understand and work with. In other words, this is work in progress.
+transform the `src/ccache` directory into in the long run to make the code base
+easier to understand and work with. In other words, this is work in progress.
 
 * `compiler`: Knowledge about things like compiler options, compiler behavior,
   preprocessor output format, etc. Ideally this code should in the future be
@@ -29,6 +34,5 @@ to understand and work with. In other words, this is work in progress.
 * `storage`: Storage backends.
 * `storage/local`: Code for the local storage backend.
 * `storage/remote`: Code for remote storage backends.
-* `third_party`: Bundled third party code.
 * `util`: Generic utility functionality that does not depend on ccache-specific
   things.

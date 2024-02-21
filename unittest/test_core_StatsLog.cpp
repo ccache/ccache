@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,11 +18,11 @@
 
 #include "TestUtil.hpp"
 
-#include <Util.hpp>
-#include <core/StatsLog.hpp>
-#include <util/file.hpp>
+#include <ccache/Util.hpp>
+#include <ccache/core/StatsLog.hpp>
+#include <ccache/util/file.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest.h>
 
 using core::Statistic;
 using core::StatsLog;

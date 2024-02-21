@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,10 +18,10 @@
 
 #include "TestUtil.hpp"
 
-#include <core/Statistic.hpp>
-#include <core/Statistics.hpp>
+#include <ccache/core/Statistic.hpp>
+#include <ccache/core/Statistics.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest.h>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
 #include <string>

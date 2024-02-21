@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,11 +18,11 @@
 
 #include "TestUtil.hpp"
 
-#include <core/AtomicFile.hpp>
-#include <util/DirEntry.hpp>
-#include <util/file.hpp>
+#include <ccache/core/AtomicFile.hpp>
+#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/file.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 #include <string>
 #include <vector>

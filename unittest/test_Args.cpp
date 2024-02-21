@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,12 +16,12 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Args.hpp"
 #include "TestUtil.hpp"
 
-#include <util/file.hpp>
+#include <ccache/Args.hpp>
+#include <ccache/util/file.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 TEST_SUITE_BEGIN("Args");
 

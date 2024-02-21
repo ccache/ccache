@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,10 +18,10 @@
 
 #include "TestUtil.hpp"
 
-#include <core/Statistic.hpp>
-#include <core/StatisticsCounters.hpp>
+#include <ccache/core/Statistic.hpp>
+#include <ccache/core/StatisticsCounters.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 using core::Statistic;
 using core::StatisticsCounters;

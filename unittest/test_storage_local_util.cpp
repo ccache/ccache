@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,12 @@
 
 #include "TestUtil.hpp"
 
-#include <storage/local/util.hpp>
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/format.hpp>
+#include <ccache/storage/local/util.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest.h>
 
 #include <algorithm>
 #include <string>

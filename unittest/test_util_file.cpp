@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,16 +18,15 @@
 
 #include "TestUtil.hpp"
 
-#include <util/Bytes.hpp>
-#include <util/DirEntry.hpp>
-#include <util/Fd.hpp>
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/format.hpp>
-#include <util/string.hpp>
+#include <ccache/util/Bytes.hpp>
+#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/Fd.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/string.hpp>
 
-#include <third_party/doctest.h>
-
+#include <doctest.h>
 #include <fcntl.h>
 
 #include <cstring>

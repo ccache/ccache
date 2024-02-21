@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,14 +16,14 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <util/environment.hpp>
-#include <util/filesystem.hpp>
-#include <util/format.hpp>
-#include <util/path.hpp>
+#include <ccache/util/environment.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 
 #define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 namespace fs = util::filesystem;
 

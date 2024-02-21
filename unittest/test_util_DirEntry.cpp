@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,14 +18,14 @@
 
 #include "TestUtil.hpp"
 
-#include <util/DirEntry.hpp>
-#include <util/Finalizer.hpp>
-#include <util/environment.hpp>
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/wincompat.hpp>
+#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/Finalizer.hpp>
+#include <ccache/util/environment.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/wincompat.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

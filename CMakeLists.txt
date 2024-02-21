@@ -121,12 +121,13 @@ include(CodeAnalysis)
 #
 # Source code
 #
-add_subdirectory(src)
+add_subdirectory(src/ccache)
+add_subdirectory(src/third_party)
 
 #
 # ccache executable
 #
-add_executable(ccache src/main.cpp)
+add_executable(ccache src/ccache/main.cpp)
 target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_framework)
 
 #

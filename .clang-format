@@ -24,20 +24,18 @@ ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^"system.hpp"$'
-    Priority: 1
-  - Regex: '^["<]third_party/'
-    Priority: 4
-  # System headers:
-  - Regex: '\.h>$'
-    Priority: 5
-  # C++ headers:
-  - Regex: '^<[^.]+>$'
-    Priority: 6
+  # Relative headers
   - Regex: '^"'
+    Priority: 1
+  # Ccache headers:
+  - Regex: '^<ccache/'
     Priority: 2
-  - Regex: '.*'
+  # System headers:
+  - Regex: '\.h.*>$'
     Priority: 3
+  # C++ headers:
+  - Regex: '^<'
+    Priority: 4
 IndentPPDirectives: AfterHash
 KeepEmptyLinesAtTheStartOfBlocks: false
 PointerAlignment: Left

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,11 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <Util.hpp>
-#include <util/format.hpp>
-#include <util/path.hpp>
+#include <ccache/Util.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 

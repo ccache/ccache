@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,13 +18,13 @@
 
 #include "TestUtil.hpp"
 
-#include <Util.hpp>
-#include <util/DirEntry.hpp>
-#include <util/LockFile.hpp>
-#include <util/file.hpp>
-#include <util/wincompat.hpp>
+#include <ccache/Util.hpp>
+#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/LockFile.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/wincompat.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

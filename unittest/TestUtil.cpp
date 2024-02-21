@@ -18,10 +18,10 @@
 
 #include "TestUtil.hpp"
 
-#include <core/exceptions.hpp>
-#include <util/expected.hpp>
-#include <util/filesystem.hpp>
-#include <util/format.hpp>
+#include <ccache/core/exceptions.hpp>
+#include <ccache/util/expected.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
 
 namespace fs = util::filesystem;
 

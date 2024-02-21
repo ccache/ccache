@@ -16,14 +16,14 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Context.hpp"
-#include "../src/Depfile.hpp"
 #include "TestUtil.hpp"
 
-#include <util/filesystem.hpp>
-#include <util/format.hpp>
+#include <ccache/Context.hpp>
+#include <ccache/Depfile.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 #include <string>
 #include <vector>

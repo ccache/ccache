@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,19 +16,18 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Config.hpp"
-#include "../src/Context.hpp"
-#include "../src/Hash.hpp"
-#include "../src/InodeCache.hpp"
 #include "TestUtil.hpp"
 
-#include <util/Fd.hpp>
-#include <util/TemporaryFile.hpp>
-#include <util/file.hpp>
-#include <util/path.hpp>
+#include <ccache/Config.hpp>
+#include <ccache/Context.hpp>
+#include <ccache/Hash.hpp>
+#include <ccache/InodeCache.hpp>
+#include <ccache/util/Fd.hpp>
+#include <ccache/util/TemporaryFile.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/path.hpp>
 
-#include "third_party/doctest.h"
-
+#include <doctest.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>

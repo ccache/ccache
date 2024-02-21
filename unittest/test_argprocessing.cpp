@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,21 +16,21 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Args.hpp"
-#include "../src/Config.hpp"
-#include "../src/Context.hpp"
 #include "TestUtil.hpp"
-#include "argprocessing.hpp"
 
-#include <Util.hpp>
-#include <core/Statistic.hpp>
-#include <util/file.hpp>
-#include <util/format.hpp>
-#include <util/path.hpp>
-#include <util/string.hpp>
-#include <util/wincompat.hpp>
+#include <ccache/Args.hpp>
+#include <ccache/Config.hpp>
+#include <ccache/Context.hpp>
+#include <ccache/Util.hpp>
+#include <ccache/argprocessing.hpp>
+#include <ccache/core/Statistic.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
+#include <ccache/util/string.hpp>
+#include <ccache/util/wincompat.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest.h>
 
 #include <algorithm>
 

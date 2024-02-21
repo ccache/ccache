@@ -16,20 +16,19 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Config.hpp"
-#include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
-#include <core/exceptions.hpp>
-#include <util/environment.hpp>
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/format.hpp>
-#include <util/path.hpp>
-#include <util/wincompat.hpp>
+#include <ccache/Config.hpp>
+#include <ccache/Util.hpp>
+#include <ccache/core/exceptions.hpp>
+#include <ccache/util/environment.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
+#include <ccache/util/wincompat.hpp>
 
-#include "third_party/doctest.h"
-
+#include <doctest.h>
 #include <fcntl.h>
 
 #include <optional>

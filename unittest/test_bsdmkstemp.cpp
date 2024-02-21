@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,14 +18,13 @@
 
 #include "TestUtil.hpp"
 
-#include <util/Fd.hpp>
-#include <util/Finalizer.hpp>
-#include <util/wincompat.hpp>
+#include <ccache/util/Fd.hpp>
+#include <ccache/util/Finalizer.hpp>
+#include <ccache/util/wincompat.hpp>
 
-#include "third_party/doctest.h"
-#include "third_party/win32/mktemp.h"
-
+#include <doctest.h>
 #include <sddl.h>
+#include <win32/mktemp.h>
 
 #include <algorithm>
 #include <memory>
