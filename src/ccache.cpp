@@ -349,7 +349,12 @@ remember_include_file(Context& ctx,
 
   DirEntry dir_entry(path, DirEntry::LogOnError::yes);
   if (!dir_entry.exists()) {
-    return tl::unexpected(Statistic::bad_input_file);
+    if (ctx.config.direct_mode()) {
+      LOG("Include file {} does not exist, disabling direct mode",
+          dir_entry.path());
+      ctx.config.set_direct_mode(false);
+    }
+    return {};
   }
   if (dir_entry.is_directory()) {
     // Ignore directory, typically $PWD.
