@@ -165,3 +165,17 @@ add_custom_target(
   COMMENT "Checking code formatting"
   USES_TERMINAL
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+#
+# Configuration summary
+#
+
+message(STATUS)
+message(STATUS "Configuration summary:")
+message(STATUS "  Storage backends:")
+message(STATUS "    file  ON")
+message(STATUS "    http  ON")
+message(STATUS "    redis ${REDIS_STORAGE_BACKEND}")
+message(STATUS "  Dependencies:")
+print_dependency_summary("    ")
+message(STATUS)

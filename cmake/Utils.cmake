@@ -31,3 +31,52 @@ endmacro()
 macro(add_compile_flag_if_supported varname flag)
   add_compile_flag_if_supported_ex("${varname}" "${flag}" "")
 endmacro()
+
+set(dependencies "" CACHE INTERNAL "")
+
+function(register_dependency name origin version)
+  list(APPEND dependencies "${name}:${origin}:${version}")
+  set(dependencies "${dependencies}" CACHE INTERNAL "")
+endfunction()
+
+function(print_dependency_summary prefix)
+  list(SORT dependencies)
+
+  list(LENGTH dependencies n_deps)
+  math(EXPR n_deps_minus_1 "${n_deps} - 1")
+
+  set(max_name_length 0)
+  set(max_version_length 0)
+  foreach(entry IN LISTS dependencies)
+    string(REPLACE ":" ";" parts "${entry}")
+    list(GET parts 0 name)
+    list(GET parts 2 version)
+
+    string(LENGTH "${name}" name_length)
+    if("${name_length}" GREATER "${max_name_length}")
+      set(max_name_length "${name_length}")
+    endif()
+
+    string(LENGTH "${version}" version_length)
+    if("${version_length}" GREATER "${max_version_length}")
+      set(max_version_length "${version_length}")
+    endif()
+  endforeach()
+
+  foreach(entry IN LISTS dependencies)
+    string(REPLACE ":" ";" parts "${entry}")
+    list(GET parts 0 name)
+    list(GET parts 1 origin)
+    list(GET parts 2 version)
+
+    string(LENGTH "${name}" name_length)
+    math(EXPR pad_count "${max_name_length} - ${name_length}")
+    string(REPEAT " " "${pad_count}" name_pad)
+
+    string(LENGTH "${version}" version_length)
+    math(EXPR pad_count "${max_version_length} - ${version_length}")
+    string(REPEAT " " "${pad_count}" version_pad)
+
+    message(STATUS "${prefix}${name}${name_pad} ${version}${version_pad} ${origin}")
+  endforeach()
+endfunction()

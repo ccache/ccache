@@ -17,7 +17,7 @@ else()
 endif()
 message(
   STATUS
-  "Setting CMAKE_BUILD_TYPE to ${CMAKE_BUILD_TYPE} as none was specified."
+  "Setting CMAKE_BUILD_TYPE to ${CMAKE_BUILD_TYPE} as none was specified"
 )
 
 # Set the possible values of build type for CMake UIs.

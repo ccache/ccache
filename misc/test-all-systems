@@ -37,8 +37,8 @@ build ubuntu-22.04 clang  clang++ clang
 build ubuntu-22.04 gcc-12 g++-12  gcc
 build ubuntu-22.04 clang  clang++ clang
 
-build centos-7     gcc    g++     gcc     -DHIREDIS_FROM_INTERNET=ON
-build centos-7     gcc    g++     clang   -DHIREDIS_FROM_INTERNET=ON
+build centos-7     gcc    g++     gcc
+build centos-7     gcc    g++     clang
 
 build fedora-36    gcc    g++     gcc
 build fedora-36    clang  clang++ clang

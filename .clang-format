@@ -30,12 +30,15 @@ IncludeCategories:
   # Ccache headers:
   - Regex: '^<ccache/'
     Priority: 2
+  # Dependency headers:
+  - Regex: '^<(hiredis/.*|zstd\.h)>$'
+    Priority: 3
   # System headers:
   - Regex: '\.h.*>$'
-    Priority: 3
+    Priority: 4
   # C++ headers:
   - Regex: '^<'
-    Priority: 4
+    Priority: 5
 IndentPPDirectives: AfterHash
 KeepEmptyLinesAtTheStartOfBlocks: false
 PointerAlignment: Left
