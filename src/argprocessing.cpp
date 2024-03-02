@@ -238,6 +238,10 @@ process_profiling_option(const Context& ctx,
     return true;
   }
 
+  if (util::starts_with(arg, "-fprofile-update")) {
+    return true;
+  }
+
   std::string new_profile_path;
   bool new_profile_use = false;
 
