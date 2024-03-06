@@ -1719,7 +1719,8 @@ hash_argument(const Context& ctx,
   // going to have any effect at all. For precompiled headers this might not be
   // the case.
   if (!direct_mode && !ctx.args_info.output_is_precompiled_header
-      && !ctx.args_info.using_precompiled_header) {
+      && !ctx.args_info.using_precompiled_header
+      && !ctx.args_info.generating_pch) {
     if (compopt_affects_cpp_output(args[i])) {
       if (compopt_takes_arg(args[i])) {
         i++;
