@@ -25,6 +25,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest.h>
 
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 namespace fs = util::filesystem;
 
 int
