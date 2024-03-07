@@ -8,6 +8,7 @@ if(POLICY CMP0135)
 endif()
 
 set(hiredis_FOUND FALSE)
+set(hiredis_ssl_FOUND FALSE)
 
 if(HIREDIS_FROM_INTERNET AND NOT HIREDIS_FROM_INTERNET STREQUAL "AUTO")
   message(STATUS "Using hiredis from the Internet")
@@ -22,6 +23,13 @@ else()
       message(STATUS "Using hiredis from ${HIREDIS_LIBRARY} via pkg-config")
       set(hiredis_FOUND TRUE)
     endif()
+    pkg_check_modules(HIREDIS_SSL hiredis_ssl>=${hiredis_FIND_VERSION})
+    find_library(HIREDIS_SSL_LIBRARY ${HIREDIS_SSL_LIBRARIES} HINTS ${HIREDIS_SSL_LIBDIR})
+    find_path(HIREDIS_SSL_INCLUDE_DIR hiredis/hiredis_ssl.h HINTS ${HIREDIS_SSL_PREFIX}/include)
+    if(HIREDIS_SSL_LIBRARY AND HIREDIS_SSL_INCLUDE_DIR)
+      message(STATUS "Using hiredis_ssl from ${HIREDIS_SSL_LIBRARY} via pkg-config")
+      set(hiredis_ssl_FOUND TRUE)
+    endif()
   endif()
 
   if(NOT hiredis_FOUND)
@@ -30,6 +38,12 @@ else()
     if(HIREDIS_LIBRARY AND HIREDIS_INCLUDE_DIR)
       message(STATUS "Using hiredis from ${HIREDIS_LIBRARY}")
       set(hiredis_FOUND TRUE)
+    endif()
+    find_library(HIREDIS_SSL_LIBRARY hiredis_ssl)
+    find_path(HIREDIS_SSL_INCLUDE_DIR hiredis/hiredis_ssl.h)
+    if(HIREDIS_SSL_LIBRARY AND HIREDIS_SSL_INCLUDE_DIR)
+      message(STATUS "Using hiredis_ssl from ${HIREDIS_SSL_LIBRARY} via pkg-config")
+      set(hiredis_ssl_FOUND TRUE)
     endif()
   endif()
 
@@ -78,6 +92,8 @@ if(do_download)
     FetchContent_Populate(hiredis)
   endif()
 
+  find_package(OpenSSL)
+
   set(
     hiredis_sources
     "${hiredis_dir}/alloc.c"
@@ -89,8 +105,14 @@ if(do_download)
     "${hiredis_dir}/sds.c"
     "${hiredis_dir}/sockcompat.c"
   )
+  set(
+    hiredis_ssl_sources
+    "${hiredis_dir}/ssl.c"
+  )
   add_library(libhiredis_static STATIC EXCLUDE_FROM_ALL ${hiredis_sources})
   add_library(HIREDIS::HIREDIS ALIAS libhiredis_static)
+  add_library(libhiredis_ssl_static STATIC EXCLUDE_FROM_ALL ${hiredis_ssl_sources})
+  add_library(HIREDIS::HIREDIS_SSL ALIAS libhiredis_ssl_static)
 
   if(WIN32)
     target_compile_definitions(libhiredis_static PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -104,9 +126,35 @@ if(do_download)
     libhiredis_static
     PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/include>")
+  set_target_properties(
+    libhiredis_ssl_static
+    PROPERTIES
+    INTERFACE_LINK_LIBRARIES OpenSSL::SSL
+    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${hiredis_dir}/include>")
 
   set(hiredis_FOUND TRUE)
+  set(hiredis_ssl_FOUND TRUE)
+
   set(target libhiredis_static)
+endif()
+
+if(HIREDIS_SSL_INCLUDE_DIR AND HIREDIS_SSL_LIBRARY)
+  mark_as_advanced(HIREDIS_SSL_INCLUDE_DIR HIREDIS_SSL_LIBRARY)
+
+  add_library(HIREDIS::HIREDIS_SSL UNKNOWN IMPORTED)
+  set_target_properties(
+    HIREDIS::HIREDIS_SSL
+    PROPERTIES
+    IMPORTED_LOCATION "${HIREDIS_SSL_LIBRARY}"
+    INTERFACE_COMPILE_OPTIONS "${HIREDIS_SSL_CFLAGS_OTHER}"
+    INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_SSL_INCLUDE_DIR}")
+
+  set(hiredis_ssl_FOUND TRUE)
+elseif(HIREDIS_FROM_INTERNET)
+elseif(REDISS_STORAGE_BACKEND)
+  message(STATUS
+    "please install libhiredis_ssl or use -DHIREDIS_FROM_INTERNET=ON or disable with -DREDISS_STORAGE_BACKEND=OFF"
+  )
 endif()
 
 if(WIN32 AND hiredis_FOUND)

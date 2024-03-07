@@ -60,6 +60,10 @@ if(REDIS_STORAGE_BACKEND)
     PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
   )
 endif()
+if(REDISS_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PRIVATE -DHAVE_REDISS_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PUBLIC HIREDIS::HIREDIS HIREDIS::HIREDIS_SSL)
+endif()
 
 add_executable(test-lockfile test_lockfile.cpp)
 target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
