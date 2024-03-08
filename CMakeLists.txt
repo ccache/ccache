@@ -157,10 +157,7 @@ if(ENABLE_TESTING)
   add_subdirectory(unittest)
   add_subdirectory(test)
 
-  # Note: VERSION_GREATER_EQUAL requires CMake 3.17
-  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.17")
-    list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
-  endif()
+  list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 
   # Add "check" target which compiles and runs tests.
   set(
