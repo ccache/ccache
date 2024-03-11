@@ -80,6 +80,7 @@ include(EnableCcache)
 #
 
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
+option(ENABLE_TESTING "Enable tests" ON)
 
 include(InstallDirs)
 include(GenerateConfigurationFile)
@@ -127,7 +128,6 @@ include(CcachePackConfig)
 #
 # Tests
 #
-option(ENABLE_TESTING "Enable tests" ON)
 if(ENABLE_TESTING)
   enable_testing()
   add_subdirectory(unittest)

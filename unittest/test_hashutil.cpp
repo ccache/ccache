@@ -22,7 +22,8 @@
 #include <ccache/hashutil.hpp>
 #include <ccache/util/file.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
+
 #include <sys/stat.h>
 
 using TestUtil::TestContext;

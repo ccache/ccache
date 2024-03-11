@@ -25,7 +25,7 @@
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <limits>
 #include <string>

@@ -19,12 +19,13 @@
 #include "TestUtil.hpp"
 
 #include <ccache/core/common.hpp>
+#include <ccache/core/exceptions.hpp>
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 namespace fs = util::filesystem;
 
@@ -43,9 +44,7 @@ TEST_CASE("core::ensure_dir_exists")
   CHECK(DirEntry("create/dir").is_directory());
 
   util::write_file("create/dir/file", "");
-  CHECK_THROWS_WITH(
-    core::ensure_dir_exists("create/dir/file"),
-    doctest::Contains("Failed to create directory create/dir/file:"));
+  CHECK_THROWS_AS(core::ensure_dir_exists("create/dir/file"), core::Fatal);
 }
 
 TEST_CASE("core::rewrite_stderr_to_absolute_paths")

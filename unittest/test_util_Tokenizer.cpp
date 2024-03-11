@@ -19,7 +19,7 @@
 #include <ccache/Util.hpp>
 #include <ccache/util/string.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <string>

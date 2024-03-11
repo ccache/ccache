@@ -19,7 +19,7 @@
 #include <ccache/util/XXH3_128.hpp>
 #include <ccache/util/string.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("util::XXH3_128");
 

@@ -20,7 +20,7 @@
 
 #include <ccache/util/BitSet.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("BitSet");
 

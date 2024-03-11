@@ -21,7 +21,7 @@
 #include <ccache/util/Bytes.hpp>
 #include <ccache/util/zstd.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <string>
 

@@ -59,7 +59,8 @@ endif()
 
 target_link_libraries(
   unittest
-  PRIVATE standard_settings standard_warnings ccache_framework third_party)
+  PRIVATE standard_settings standard_warnings ccache_framework third_party dep_doctest
+)
 
 target_include_directories(unittest PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${ccache_SOURCE_DIR}/src)
 

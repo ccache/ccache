@@ -19,7 +19,7 @@
 #include <ccache/Hash.hpp>
 #include <ccache/util/string.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("Hash");
 

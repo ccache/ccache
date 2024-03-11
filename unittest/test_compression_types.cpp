@@ -19,7 +19,7 @@
 #include <ccache/Config.hpp>
 #include <ccache/core/types.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("compression");
 

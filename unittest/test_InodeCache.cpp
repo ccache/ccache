@@ -28,7 +28,8 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/path.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>

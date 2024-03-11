@@ -115,6 +115,11 @@ jobs:
           else
             packages+=(lld)
           fi
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            packages+=(doctest-dev)
+          else
+            cmake_params+=(-D DEP_DOCTEST=DOWNLOAD)
+          fi
           sudo apt-get install -y "${packages[@]}"
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
@@ -298,9 +303,9 @@ jobs:
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D DEPS=LOCAL
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             CUDA: 11.7.0-1
-            apt_get: elfutils libzstd-dev libhiredis-dev
+            apt_get: elfutils libhiredis-dev libzstd-dev
 
           - name: Linux MinGW 32-bit
             os: ubuntu-20.04

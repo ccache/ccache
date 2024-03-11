@@ -26,7 +26,8 @@
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
+
 #include <fcntl.h>
 
 #ifndef _WIN32

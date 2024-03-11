@@ -21,6 +21,10 @@ set_property(CACHE DEPS PROPERTY STRINGS AUTO DOWNLOAD LOCAL)
 
 find_package(Zstd 1.3.4 MODULE REQUIRED)
 
+if(ENABLE_TESTING)
+  find_package(Doctest 2.4.6 MODULE REQUIRED)
+endif()
+
 if(REDIS_STORAGE_BACKEND)
   find_package(Hiredis 0.13.3 MODULE REQUIRED)
 endif()

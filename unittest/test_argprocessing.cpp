@@ -30,7 +30,7 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/wincompat.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <algorithm>
 
