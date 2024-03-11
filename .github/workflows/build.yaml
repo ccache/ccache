@@ -287,17 +287,13 @@ jobs:
 
           - name: Linux MinGW 32-bit
             os: ubuntu-20.04
-            CC: i686-w64-mingw32-gcc-posix
-            CXX: i686-w64-mingw32-g++-posix
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/i686-w64-mingw32-posix.cmake -D ZSTD_FROM_INTERNET=ON -D HIREDIS_FROM_INTERNET=ON
             RUN_TESTS: none
             apt_get: elfutils mingw-w64
 
           - name: Linux MinGW 64-bit
             os: ubuntu-20.04
-            CC: x86_64-w64-mingw32-gcc-posix
-            CXX: x86_64-w64-mingw32-g++-posix
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/x86_64-w64-mingw32-posix.cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
