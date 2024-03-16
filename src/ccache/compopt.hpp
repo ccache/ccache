@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string_view>
 
 bool compopt_short(bool (*fn)(std::string_view option),
@@ -31,3 +32,5 @@ bool compopt_takes_arg(std::string_view option);
 bool compopt_takes_concat_arg(std::string_view option);
 bool compopt_prefix_affects_cpp_output(std::string_view option);
 bool compopt_prefix_affects_compiler_output(std::string_view option);
+std::optional<std::string_view>
+compopt_prefix_takes_path(std::string_view option);

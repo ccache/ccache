@@ -1361,4 +1361,42 @@ EOF
     expect_stat files_in_cache 2
 
     expect_equal_content $manifest_file saved.manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of appearing include directories"
+
+    cat <<EOF >main.c
+#include <foo.h>
+EOF
+    backdate main.c
+    mkdir a
+    cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+    backdate a/foo.h
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    mkdir b
+    cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
 }

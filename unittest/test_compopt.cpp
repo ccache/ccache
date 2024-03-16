@@ -20,6 +20,8 @@
 
 #include <doctest.h>
 
+#include <iostream> // for doctest stringification of std::string_view
+
 bool compopt_verify_sortedness_and_flags();
 
 TEST_SUITE_BEGIN("compopt");
@@ -91,6 +93,12 @@ TEST_CASE("prefix_affects_compiler_output")
   CHECK(compopt_prefix_affects_compiler_output("-Wa,"));
   CHECK(compopt_prefix_affects_compiler_output("-Wa,something"));
   CHECK(!compopt_prefix_affects_compiler_output("-Wa"));
+}
+
+TEST_CASE("prefix_takes_path")
+{
+  CHECK(compopt_prefix_takes_path("-Dfoo") == std::nullopt);
+  CHECK(*compopt_prefix_takes_path("-Ifoo") == "foo");
 }
 
 TEST_SUITE_END();

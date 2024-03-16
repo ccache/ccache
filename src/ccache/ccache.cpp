@@ -1722,6 +1722,29 @@ hash_argument(const Context& ctx,
     }
   }
 
+  // From the manual: "files that were used by the compiler are recorded, but
+  // header files that were *not* used, but would have been used if they
+  // existed, are not". To reduce the risk of getting a false positive hit when
+  // a directory early in the include path now exists, record whether include
+  // directories and similar input paths exist. Note that this is not 100%
+  // waterproof since it only detects newly appearing directories and not newly
+  // appearing header files.
+  if (direct_mode) {
+    std::optional<std::string_view> path;
+    if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
+      path = args[i + 1];
+    } else {
+      auto p = compopt_prefix_takes_path(args[i]);
+      if (p) {
+        path = *p;
+      };
+    }
+    if (path) {
+      hash.hash_delimiter("path exists");
+      hash.hash(FMT("{} {}", *path, fs::exists(*path) ? "1" : "0"));
+    }
+  }
+
   if (ctx.args_info.generating_dependencies) {
     std::optional<std::string_view> option;
     std::optional<std::string_view> value;

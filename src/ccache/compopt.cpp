@@ -288,8 +288,6 @@ compopt_takes_concat_arg(std::string_view option)
   return co && (co->type & TAKES_CONCAT_ARG);
 }
 
-// Determines if the prefix of the option matches any option and affects the
-// preprocessor.
 bool
 compopt_prefix_affects_cpp_output(std::string_view option)
 {
@@ -298,12 +296,22 @@ compopt_prefix_affects_cpp_output(std::string_view option)
   return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_CPP);
 }
 
-// Determines if the prefix of the option matches any option and affects the
-// preprocessor.
 bool
 compopt_prefix_affects_compiler_output(std::string_view option)
 {
   // Prefix options have to take concatenated args.
   const CompOpt* co = find_prefix(option);
   return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_COMP);
+}
+
+std::optional<std::string_view>
+compopt_prefix_takes_path(std::string_view option)
+{
+  // Prefix options have to take concatenated args.
+  const CompOpt* co = find_prefix(option);
+  if (co && (co->type & TAKES_CONCAT_ARG) && (co->type & TAKES_PATH)) {
+    return option.substr(co->name.length());
+  } else {
+    return std::nullopt;
+  }
 }
