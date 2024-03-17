@@ -19,7 +19,7 @@ function(add_source_if_enabled feature msvc_flags others_flags intrinsic)
 
   if(MSVC)
     set(suffix "_x86-64_windows_msvc.asm")
-  elseif(WIN32)
+  elseif(WIN32 OR CYGWIN)
     set(suffix "_x86-64_windows_gnu.S")
   else()
     set(suffix "_x86-64_unix.S")
