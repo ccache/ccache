@@ -21,22 +21,23 @@ fi
 name=${1}
 shift
 
+top_dir="$(dirname "$(realpath "$0")")/.."
 tag="ccache-build:$name"
 command="${COMMAND:-/source/ci/build}"
 interactive="${INTERACTIVE:+--interactive --tty}"
 
 # Build (if not exists):
-docker build -t "$tag" "dockerfiles/$name"
+docker build -t "$tag" "${top_dir}/dockerfiles/$name"
 
 # Cache compilation across docker sessions
-mkdir -p build-in-docker
-mkdir -p build-in-docker/docker-ccache
+mkdir -p "${top_dir}/build-in-docker"
+mkdir -p "${top_dir}/build-in-docker/docker-ccache"
 
 docker run \
     --init \
     --rm \
-    --volume "$PWD:/source" \
-    --volume "$PWD/build-in-docker/docker-ccache:/ccache" \
+    --volume "${top_dir}:/source" \
+    --volume "${top_dir}/build-in-docker/docker-ccache:/ccache" \
     --tmpfs /builddir:rw,exec \
     --workdir /builddir \
     --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
