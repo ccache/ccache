@@ -85,18 +85,6 @@ using path = std::filesystem::path;
     return {};                                                                 \
   }
 
-// Define wrapper with one parameter returning non-void result.
-#define DEF_WRAP_1_R(name_, r_, t1_, p1_)                                      \
-  inline tl::expected<r_, std::error_code> name_(t1_ p1_)                      \
-  {                                                                            \
-    std::error_code ec_;                                                       \
-    auto result_ = std::filesystem::name_(p1_, ec_);                           \
-    if (ec_) {                                                                 \
-      return tl::unexpected(ec_);                                              \
-    }                                                                          \
-    return result_;                                                            \
-  }
-
 // Define wrapper with two parameters returning void.
 #define DEF_WRAP_2_V(name_, r_, t1_, p1_, t2_, p2_)                            \
   inline tl::expected<r_, std::error_code> name_(t1_ p1_, t2_ p2_)             \
