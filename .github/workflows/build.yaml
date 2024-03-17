@@ -181,7 +181,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - name: '${{ matrix.sys }} Setup MSYS2'
+      - name: '${{ matrix.sys }} Set up MSYS2'
         uses: msys2/setup-msys2@v2
         with:
           msystem: ${{matrix.sys}}
@@ -197,7 +197,7 @@ jobs:
             mingw-w64-${{matrix.env}}-lld
             mingw-w64-${{matrix.env}}-${{matrix.compiler}}
 
-      - name: setup env
+      - name: Set up environment
         run: |
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             echo "CC=gcc" >> $GITHUB_ENV
