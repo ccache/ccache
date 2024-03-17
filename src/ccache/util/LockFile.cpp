@@ -43,7 +43,9 @@ const uint32_t k_max_sleep_time_ms = 50;
 #ifndef _WIN32
 const util::Duration k_staleness_limit(2);
 #endif
-
+#ifdef __CYGWIN__
+#  include <fcntl.h>
+#endif
 namespace fs = util::filesystem;
 
 using pstr = util::PathString;
@@ -236,16 +238,31 @@ LockFile::do_acquire(const bool blocking)
     const auto now = TimePoint::now();
     const auto my_content =
       FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
-
+#  ifdef __CYGWIN__
+    // Cygwin-specific file-based lock
+    int fd = open(m_lock_file.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+    if (fd != -1) {
+      // Lock file successfully created, write the content and close the file
+      write(fd, my_content.c_str(), my_content.size());
+      close(fd); // Lock acquired
+      return true;
+    }
+#  else
     if (fs::create_symlink(my_content, m_lock_file)) {
       // We got the lock.
       return true;
     }
+#  endif
 
     int saved_errno = errno;
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
+#  ifdef __CYGWIN__
+      if (!fs::exists(m_lock_file.parent_path())
+          && fs::create_directories(m_lock_file.parent_path())) {
+#  else
       if (fs::create_directories(m_lock_file.parent_path())) {
+#  endif
         // OK. Retry.
         continue;
       }
@@ -262,7 +279,17 @@ LockFile::do_acquire(const bool blocking)
       // Directory doesn't exist or isn't writable?
       return false;
     }
-
+#  ifdef __CYGWIN__
+    // Cygwin-specific code to read the content of the lock file
+    std::ifstream lock_file(m_lock_file);
+    if (!lock_file.is_open()) {
+      // Handle error: the lock file couldn't be opened
+      return false;
+    }
+    std::string content;
+    lock_file >> content;
+    lock_file.close();
+#  else
     auto content_path = fs::read_symlink(m_lock_file);
     if (!content_path) {
       if (content_path.error() == std::errc::no_such_file_or_directory) {
@@ -278,6 +305,7 @@ LockFile::do_acquire(const bool blocking)
     }
     auto content = content_path->string();
 
+#  endif
     if (content == my_content) {
       // Lost NFS reply?
       LOG("Symlinking {} failed but we got the lock anyway", m_lock_file);
