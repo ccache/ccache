@@ -66,6 +66,7 @@ if(ENABLE_IPO AND NOT MINGW)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
+include(Utils)
 include(CIBuildType)
 include(DefaultBuildType)
 include(UseFastestLinker)
