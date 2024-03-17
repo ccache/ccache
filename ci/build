@@ -26,12 +26,12 @@ else
     cd "${BUILDDIR}"
     ${CMAKE_PREFIX} cmake ${CMAKE_PARAMS} ${CCACHE_LOC}
 
-    case "${CMAKE_GENERATOR}" in
+    case "${CMAKE_GENERATOR:-}" in
         [Vv]isual" "[Ss]tudio*) # MSBuild, use all CPUs.
             ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS} -- -m
             ;;
-        *) # Ninja automatically uses all available CPUs.
-            ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS}
+        *)
+            ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS} -- -j "${JOBS}"
             ;;
     esac
 
