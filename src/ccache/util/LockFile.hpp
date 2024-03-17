@@ -59,7 +59,7 @@ public:
 
 private:
   std::filesystem::path m_lock_file;
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   LongLivedLockFileManager* m_lock_manager = nullptr;
   std::filesystem::path m_alive_file;
   bool m_acquired;
@@ -68,7 +68,7 @@ private:
 #endif
 
   bool acquire(bool blocking);
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   bool do_acquire(bool blocking);
   std::optional<TimePoint> get_last_lock_update();
 #else

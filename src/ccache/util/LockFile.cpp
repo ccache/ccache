@@ -40,7 +40,7 @@
 
 const uint32_t k_min_sleep_time_ms = 10;
 const uint32_t k_max_sleep_time_ms = 50;
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
 const util::Duration k_staleness_limit(2);
 #endif
 
@@ -77,7 +77,7 @@ namespace util {
 
 LockFile::LockFile(const fs::path& path)
   : m_lock_file(pstr(path).str() + ".lock"),
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
     m_alive_file(pstr(path).str() + ".alive"),
     m_acquired(false)
 #else
@@ -88,7 +88,7 @@ LockFile::LockFile(const fs::path& path)
 
 LockFile::LockFile(LockFile&& other) noexcept
   : m_lock_file(std::move(other.m_lock_file)),
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
     m_lock_manager(other.m_lock_manager),
     m_alive_file(std::move(other.m_alive_file)),
     m_acquired(other.m_acquired)
@@ -96,7 +96,7 @@ LockFile::LockFile(LockFile&& other) noexcept
     m_handle(other.m_handle)
 #endif
 {
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   other.m_lock_manager = nullptr;
   other.m_acquired = false;
 #else
@@ -109,7 +109,7 @@ LockFile::operator=(LockFile&& other) noexcept
 {
   if (&other != this) {
     m_lock_file = std::move(other.m_lock_file);
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
     m_lock_manager = other.m_lock_manager;
     other.m_lock_manager = nullptr;
     m_alive_file = std::move(other.m_alive_file);
@@ -127,7 +127,7 @@ void
 LockFile::make_long_lived(
   [[maybe_unused]] LongLivedLockFileManager& lock_manager)
 {
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   m_lock_manager = &lock_manager;
   if (acquired()) {
     m_lock_manager->register_alive_file(m_alive_file);
@@ -157,7 +157,7 @@ LockFile::release()
   }
 
   LOG("Releasing {}", m_lock_file);
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   if (m_lock_manager) {
     m_lock_manager->deregister_alive_file(m_alive_file);
   }
@@ -167,7 +167,7 @@ LockFile::release()
   CloseHandle(m_handle);
 #endif
   LOG("Released {}", m_lock_file);
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   m_acquired = false;
 #else
   m_handle = INVALID_HANDLE_VALUE;
@@ -177,7 +177,7 @@ LockFile::release()
 bool
 LockFile::acquired() const
 {
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   return m_acquired;
 #else
   return m_handle != INVALID_HANDLE_VALUE;
@@ -189,7 +189,7 @@ LockFile::acquire(const bool blocking)
 {
   ASSERT(!acquired());
 
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
   m_acquired = do_acquire(blocking);
 #else
   m_handle = do_acquire(blocking);
@@ -197,7 +197,7 @@ LockFile::acquire(const bool blocking)
 
   if (acquired()) {
     LOG("Acquired {}", m_lock_file);
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
     LOG("Creating {}", m_alive_file);
     const auto result = write_file(m_alive_file, "");
     if (!result) {
@@ -214,7 +214,7 @@ LockFile::acquire(const bool blocking)
   return acquired();
 }
 
-#if !defined(_WIN32) && !defined(__CYGWIN__)
+#ifndef _WIN32
 
 bool
 LockFile::do_acquire(const bool blocking)
@@ -351,7 +351,7 @@ LockFile::get_last_lock_update()
   }
 }
 
-#else // !defined(_WIN32) && !defined(__CYGWIN__)
+#else // !_WIN32
 
 void*
 LockFile::do_acquire(const bool blocking)
@@ -408,6 +408,6 @@ LockFile::do_acquire(const bool blocking)
   return handle;
 }
 
-#endif // !defined(_WIN32) && !defined(__CYGWIN__)
+#endif // !_WIN32
 
 } // namespace util
