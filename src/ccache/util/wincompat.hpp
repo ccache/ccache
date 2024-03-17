@@ -18,7 +18,7 @@
 
 #pragma once
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 #  include <sys/stat.h>
 
 #  define NOMINMAX 1
@@ -101,4 +101,4 @@ const mode_t S_IWUSR = mode_t{_S_IWRITE};
 
 #else
 #  define DLLIMPORT
-#endif // _WIN32
+#endif // defined(_WIN32) || defined(__CYGWIN__)
