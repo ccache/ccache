@@ -1,4 +1,4 @@
-add_library(third_party STATIC format.cpp httplib.cpp url.cpp xxhash.c)
+add_library(third_party STATIC httplib.cpp url.cpp xxhash.c)
 target_include_directories(third_party INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(NOT MSVC)
@@ -12,7 +12,7 @@ if(WIN32)
   target_sources(third_party PRIVATE win32/mktemp.c)
 endif ()
 
-file(GLOB headers *.h fmt/*.h nonstd/*.hpp win32/*.h)
+file(GLOB headers *.h nonstd/*.hpp win32/*.h)
 target_sources(third_party PRIVATE ${headers})
 
 set(xxhdispatchtest [=[

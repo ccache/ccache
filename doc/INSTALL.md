@@ -41,6 +41,7 @@ should be located or retrieved:
 
 - [doctest](https://github.com/doctest/doctest)[^1] (optional, disable with `-D
   ENABLE_TESTING=OFF`)
+- [fmt](https://fmt.dev)[^1]
 - [hiredis](https://github.com/redis/hiredis)[^1] (optional, disable with `-D
   REDIS_STORAGE_BACKEND=OFF`)
 - [Zstandard](https://github.com/facebook/zstd)[^1]

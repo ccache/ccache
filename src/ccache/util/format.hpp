@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,10 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
-#include <fmt/std.h>
+
+#include <filesystem>
+#include <string_view>
+#include <system_error>
 
 // Convenience macro for calling `fmt::format` with `FMT_STRING` around the
 // format string literal.
@@ -34,3 +37,25 @@
 // Convenience macro for calling `fmt::print` with a message that is not a
 // format string.
 #define PRINT_RAW(stream_, message_) fmt::print(stream_, "{}", message_)
+
+template<>
+struct fmt::formatter<std::filesystem::path> : fmt::formatter<std::string_view>
+{
+  template<class T>
+  auto
+  format(const std::filesystem::path& path, T& ctx) const
+  {
+    return fmt::formatter<std::string_view>::format(path.string(), ctx);
+  }
+};
+
+template<>
+struct fmt::formatter<std::error_code> : fmt::formatter<std::string_view>
+{
+  template<class T>
+  auto
+  format(const std::error_code& code, T& ctx) const
+  {
+    return fmt::formatter<std::string_view>::format(code.message(), ctx);
+  }
+};

@@ -44,8 +44,14 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(
   ccache_framework
-  PUBLIC third_party
-  PRIVATE dep_zstd standard_settings standard_warnings Threads::Threads
+  PUBLIC
+    dep_fmt
+    third_party
+  PRIVATE
+    dep_zstd
+    standard_settings
+    standard_warnings
+    Threads::Threads
 )
 
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
