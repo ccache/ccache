@@ -1,9 +1,7 @@
 add_library(third_party STATIC httplib.cpp url.cpp xxhash.c)
 target_include_directories(third_party INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(NOT MSVC)
-  target_sources(third_party PRIVATE getopt_long.c)
-else()
+if(MSVC)
   target_sources(third_party PRIVATE win32/getopt.c)
   target_compile_definitions(third_party PUBLIC -DSTATIC_GETOPT)
 endif()

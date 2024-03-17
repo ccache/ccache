@@ -70,9 +70,7 @@
 #elif defined(_WIN32)
 #  include <win32/getopt.h>
 #else
-extern "C" {
-#  include <getopt_long.h>
-}
+#  error "getopt_long support is missing"
 #endif
 
 namespace fs = util::filesystem;
