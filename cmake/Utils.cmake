@@ -80,3 +80,35 @@ function(print_dependency_summary prefix)
     message(STATUS "${prefix}${name}${name_pad} ${version}${version_pad} ${origin}")
   endforeach()
 endfunction()
+
+function(add_header_only_library lib_name)
+  cmake_parse_arguments(arg "" "DIR;URL;SHA256;SUBDIR" "" ${ARGN})
+
+  if(arg_DIR)
+    set(_src_dir "${arg_DIR}")
+  else()
+    if(NOT arg_URL)
+    message(FATAL_ERROR "Missing required argument: URL or DIR")
+    endif()
+    if(NOT arg_SHA256)
+      message(FATAL_ERROR "Missing required argument: SHA256")
+    endif()
+    if(NOT arg_SUBDIR)
+      set(arg_SUBDIR .)
+    endif()
+
+    set(_src_dir "${CMAKE_BINARY_DIR}/_deps/${lib_name}-src")
+    get_filename_component(_header "${arg_URL}" NAME)
+    file(
+      DOWNLOAD "${arg_URL}" "${_src_dir}/${arg_SUBDIR}/${_header}"
+      EXPECTED_HASH "SHA256=${arg_SHA256}"
+      STATUS _download_status
+    )
+    if(NOT "${_download_status}" EQUAL 0)
+      message(FATAL_ERROR "Failed to download ${arg_URL}: ${_download_status}")
+    endif()
+  endif()
+
+  add_library("dep_${lib_name}" INTERFACE)
+  target_include_directories("dep_${lib_name}" SYSTEM INTERFACE "${_src_dir}")
+endfunction()
