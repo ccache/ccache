@@ -98,8 +98,8 @@ include(CodeAnalysis)
 #
 # Source code
 #
-add_subdirectory(src/ccache)
 add_subdirectory(src/third_party)
+add_subdirectory(src/ccache)
 
 #
 # ccache executable

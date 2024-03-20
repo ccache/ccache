@@ -48,6 +48,7 @@ target_link_libraries(
     dep_fmt
     third_party
   PRIVATE
+    dep_cpphttplib
     dep_zstd
     standard_settings
     standard_warnings

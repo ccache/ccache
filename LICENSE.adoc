@@ -387,10 +387,10 @@ express Statement of Purpose.
 ----
 
 
-=== src/third_party/httplib.*
+=== src/third_party/cpp-httplib/httplib.h
 
 cpp-httplib - A C++11 cross-platform HTTP/HTTPS library. Copied from cpp-httplib
-v0.15.2. downloaded from https://github.com/yhirose/cpp-httplib[cpp-httplib]. The
+v0.15.3 downloaded from https://github.com/yhirose/cpp-httplib[cpp-httplib]. The
 library has the following license:
 
 ----

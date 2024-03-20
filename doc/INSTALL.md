@@ -39,14 +39,16 @@ should be located or retrieved:
 
 ### Dependencies
 
-- [doctest](https://github.com/doctest/doctest)[^1] (optional, disable with `-D
+- [cpp-httplib](https://github.com/yhirose/cpp-httplib)[^1]
+- [doctest](https://github.com/doctest/doctest)[^2] (optional, disable with `-D
   ENABLE_TESTING=OFF`)
-- [fmt](https://fmt.dev)[^1]
-- [hiredis](https://github.com/redis/hiredis)[^1] (optional, disable with `-D
+- [fmt](https://fmt.dev)[^2]
+- [hiredis](https://github.com/redis/hiredis)[^2] (optional, disable with `-D
   REDIS_STORAGE_BACKEND=OFF`)
-- [Zstandard](https://github.com/facebook/zstd)[^1]
+- [Zstandard](https://github.com/facebook/zstd)[^2]
 
-[^1]: A downloaded version will be used if missing locally.
+[^1]: A bundled version will be used if missing locally.
+[^2]: A downloaded version will be used if missing locally.
 
 ### Tips
 

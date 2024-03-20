@@ -1,4 +1,4 @@
-add_library(third_party STATIC httplib.cpp url.cpp xxhash.c)
+add_library(third_party STATIC url.cpp xxhash.c)
 target_include_directories(third_party INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
@@ -55,3 +55,7 @@ if(MSVC)
 endif()
 
 add_subdirectory(blake3)
+
+if(NOT TARGET dep_cpphttplib)
+  add_subdirectory(cpp-httplib)
+endif()
