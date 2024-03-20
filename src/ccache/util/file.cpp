@@ -61,6 +61,11 @@
 #include <type_traits>
 #include <vector>
 
+#ifdef _WIN32
+#  include <io.h>
+#  include <windows.h>
+#endif
+
 namespace fs = util::filesystem;
 
 using pstr = util::PathString;
@@ -229,6 +234,7 @@ template<typename T>
 tl::expected<T, std::string>
 read_file(const fs::path& path, size_t size_hint)
 {
+#ifndef _WIN32
   if (size_hint == 0) {
     DirEntry de(path);
     if (!de) {
@@ -236,6 +242,7 @@ read_file(const fs::path& path, size_t size_hint)
     }
     size_hint = de.size();
   }
+#endif
 
   if (size_hint > std::numeric_limits<size_t>::max() / 4) {
     // Too large value on a 32-bit system won't work well, better bail.
@@ -254,6 +261,15 @@ read_file(const fs::path& path, size_t size_hint)
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
+
+#ifdef _WIN32
+  if (size_hint == 0) {
+    LARGE_INTEGER file_size;
+    GetFileSizeEx(reinterpret_cast<HANDLE>(_get_osfhandle(fd.get())),
+                  &file_size);
+    size_hint = (size_t)file_size.QuadPart;
+  }
+#endif
 
   int64_t ret = 0;
   size_t pos = 0;
