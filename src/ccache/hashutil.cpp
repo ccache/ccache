@@ -194,7 +194,7 @@ do_hash_file(const Context& ctx,
   (void)ctx;
 #endif
 
-  const auto data = util::read_file<std::string>(path, size_hint);
+  const auto data = util::read_file<util::Bytes>(path, size_hint);
   if (!data) {
     LOG("Failed to read {}: {}", path, data.error());
     return HashSourceCodeResult(HashSourceCode::error);
@@ -202,7 +202,7 @@ do_hash_file(const Context& ctx,
 
   HashSourceCodeResult result;
   if (check_temporal_macros) {
-    result.insert(check_for_temporal_macros(*data));
+    result.insert(check_for_temporal_macros(util::to_string_view(*data)));
   }
 
   Hash hash;
