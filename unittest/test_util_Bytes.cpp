@@ -19,7 +19,6 @@
 #include <ccache/util/Bytes.hpp>
 
 #include <doctest/doctest.h>
-
 #include <nonstd/span.hpp>
 
 #include <vector>

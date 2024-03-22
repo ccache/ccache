@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <blake3/blake3.h>
 #include <nonstd/span.hpp>
+
+#include <blake3/blake3.h>
 #include <tl/expected.hpp>
 
 #include <array>

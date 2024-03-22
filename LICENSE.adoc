@@ -418,7 +418,7 @@ SOFTWARE.
 ----
 
 
-=== src/third_party/nonstd/span.hpp
+=== src/third_party/nonstd-span/nonstd/span.hpp
 
 This is the single header version of
 https://github.com/martinmoene/span-lite[span-lite] 0.10.3 with the

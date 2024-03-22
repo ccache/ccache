@@ -46,6 +46,7 @@ target_link_libraries(
   ccache_framework
   PUBLIC
     dep_fmt
+    dep_nonstdspan
     third_party
   PRIVATE
     dep_cpphttplib
