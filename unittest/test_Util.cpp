@@ -102,7 +102,7 @@ TEST_CASE("Util::make_relative_path")
 
   const std::string cwd = util::actual_cwd();
   const std::string actual_cwd = FMT("{}/d", cwd);
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   const std::string apparent_cwd = actual_cwd;
 #else
   const std::string apparent_cwd = FMT("{}/s", cwd);
@@ -114,7 +114,6 @@ TEST_CASE("Util::make_relative_path")
 #endif
   REQUIRE(fs::current_path("d"));
   util::setenv("PWD", apparent_cwd);
-
   SUBCASE("No base directory")
   {
     CHECK(make_relative_path("", "/a", "/a", "/a/x") == "/a/x");
@@ -198,7 +197,7 @@ TEST_CASE("Util::normalize_abstract_absolute_path")
 
 TEST_CASE("Util::normalize_concrete_absolute_path")
 {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__CYGWIN__)
   TestContext test_context;
 
   util::write_file("file", "");
