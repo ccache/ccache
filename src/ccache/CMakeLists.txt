@@ -47,6 +47,7 @@ target_link_libraries(
   PUBLIC
     dep_fmt
     dep_nonstdspan
+    dep_tlexpected
     third_party
   PRIVATE
     dep_cpphttplib

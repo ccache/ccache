@@ -46,6 +46,7 @@ should be located or retrieved:
 - [hiredis](https://github.com/redis/hiredis)[^2] (optional, disable with `-D
   REDIS_STORAGE_BACKEND=OFF`)
 - [span-lite](https://github.com/martinmoene/span-lite)[^1]
+- [tl-expected](https://github.com/TartanLlama/expected)[^1]
 - [Zstandard](https://github.com/facebook/zstd)[^2]
 
 [^1]: A bundled version will be used if missing locally.

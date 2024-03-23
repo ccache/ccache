@@ -22,9 +22,9 @@
 #include <ccache/util/conversion.hpp>
 
 #include <nonstd/span.hpp>
+#include <tl/expected.hpp>
 
 #include <sys/stat.h> // for mode_t
-#include <tl/expected.hpp>
 
 #include <cstdint>
 #include <cstring>
