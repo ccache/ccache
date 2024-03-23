@@ -234,22 +234,6 @@ template<typename T>
 tl::expected<T, std::string>
 read_file(const fs::path& path, size_t size_hint)
 {
-#ifndef _WIN32
-  if (size_hint == 0) {
-    DirEntry de(path);
-    if (!de) {
-      return tl::unexpected(strerror(errno));
-    }
-    size_hint = de.size();
-  }
-#endif
-
-  if (size_hint > std::numeric_limits<size_t>::max() / 4) {
-    // Too large value on a 32-bit system won't work well, better bail.
-    return tl::unexpected(
-      FMT("too large file: {} ({} bytes)", path, size_hint));
-  }
-
   const int open_flags = [] {
     if constexpr (std::is_same<T, std::string>::value) {
       return O_RDONLY | O_TEXT;
@@ -262,14 +246,26 @@ read_file(const fs::path& path, size_t size_hint)
     return tl::unexpected(strerror(errno));
   }
 
-#ifdef _WIN32
   if (size_hint == 0) {
+#ifdef _WIN32
     LARGE_INTEGER file_size;
     GetFileSizeEx(reinterpret_cast<HANDLE>(_get_osfhandle(fd.get())),
                   &file_size);
-    size_hint = (size_t)file_size.QuadPart;
-  }
+    size_hint = static_cast<size_t>(file_size.QuadPart);
+#else
+    DirEntry de(path, *fd);
+    if (!de) {
+      return tl::unexpected(strerror(errno));
+    }
+    size_hint = de.size();
 #endif
+  }
+
+  if (size_hint > std::numeric_limits<size_t>::max() / 4) {
+    // Too large value on a 32-bit system won't work well, better bail.
+    return tl::unexpected(
+      FMT("too large file: {} ({} bytes)", path, size_hint));
+  }
 
   int64_t ret = 0;
   size_t pos = 0;
