@@ -34,6 +34,10 @@
 #  include <unistd.h>
 #endif
 
+#ifdef __CYGWIN__
+#  include <fcntl.h>
+#endif
+
 #include <algorithm>
 #include <random>
 #include <sstream>
@@ -43,9 +47,7 @@ const uint32_t k_max_sleep_time_ms = 50;
 #ifndef _WIN32
 const util::Duration k_staleness_limit(2);
 #endif
-#ifdef __CYGWIN__
-#  include <fcntl.h>
-#endif
+
 namespace fs = util::filesystem;
 
 using pstr = util::PathString;
@@ -239,12 +241,10 @@ LockFile::do_acquire(const bool blocking)
     const auto my_content =
       FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
 #  ifdef __CYGWIN__
-    // Cygwin-specific file-based lock
-    int fd = open(m_lock_file.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
-    if (fd != -1) {
-      // Lock file successfully created, write the content and close the file
-      write(fd, my_content.c_str(), my_content.size());
-      close(fd); // Lock acquired
+    // Cygwin/MSYS2 does not support allow a symlink to have a nonexistent
+    // target, so use plain files instead.
+    if (write_file(m_lock_file, my_content, WriteFileMode::exclusive)) {
+      // We got the lock.
       return true;
     }
 #  else
@@ -257,12 +257,13 @@ LockFile::do_acquire(const bool blocking)
     int saved_errno = errno;
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
+      if (
 #  ifdef __CYGWIN__
-      if (!fs::exists(m_lock_file.parent_path())
-          && fs::create_directories(m_lock_file.parent_path())) {
-#  else
-      if (fs::create_directories(m_lock_file.parent_path())) {
+        // According to #1416, MSYS2 can in some cases set errno to ENOENT even
+        // if the directory exists.
+        !fs::exists(m_lock_file.parent_path()) &&
 #  endif
+        fs::create_directories(m_lock_file.parent_path())) {
         // OK. Retry.
         continue;
       }
@@ -280,15 +281,13 @@ LockFile::do_acquire(const bool blocking)
       return false;
     }
 #  ifdef __CYGWIN__
-    // Cygwin-specific code to read the content of the lock file
-    std::ifstream lock_file(m_lock_file);
-    if (!lock_file.is_open()) {
-      // Handle error: the lock file couldn't be opened
-      return false;
+    auto file_content = read_file<std::string>(m_lock_file);
+    if (!file_content) {
+      // The lock file was removed after the write_file() call above, so retry
+      // acquiring it.
+      continue;
     }
-    std::string content;
-    lock_file >> content;
-    lock_file.close();
+    auto content = *file_content;
 #  else
     auto content_path = fs::read_symlink(m_lock_file);
     if (!content_path) {
@@ -304,8 +303,8 @@ LockFile::do_acquire(const bool blocking)
       }
     }
     auto content = content_path->string();
-
 #  endif
+
     if (content == my_content) {
       // Lost NFS reply?
       LOG("Symlinking {} failed but we got the lock anyway", m_lock_file);
