@@ -250,15 +250,27 @@ DirEntry::size_on_disk() const
 const DirEntry::stat_t&
 DirEntry::do_stat() const
 {
-  if (!m_initialized) {
-    m_exists = false;
-    m_is_symlink = false;
+  if (m_initialized) {
+    return m_stat;
+  }
 
-    auto path = pstr(m_path);
+  m_exists = false;
+  m_is_symlink = false;
 
-    int result = lstat_func(path, &m_stat);
+  int result = 0;
+
+#ifndef _WIN32
+  if (m_fd != -1) {
+    result = fstat(m_fd, &m_stat);
     if (result == 0) {
-      m_errno = 0;
+      m_exists = true;
+    }
+  } else
+#endif
+  {
+    auto path = pstr(m_path);
+    result = lstat_func(path, &m_stat);
+    if (result == 0) {
       if (S_ISLNK(m_stat.st_mode)
 #ifdef _WIN32
           || (m_stat.st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT)
@@ -273,22 +285,32 @@ DirEntry::do_stat() const
       } else {
         m_exists = true;
       }
-    } else {
-      m_errno = errno;
-      if (m_log_on_error == LogOnError::yes) {
-        LOG("Failed to lstat {}: {}", m_path, strerror(m_errno));
-      }
     }
-
-    if (!m_exists) {
-      // The file is missing, so just zero fill the stat structure. This will
-      // make e.g. the is_*() methods return false and mtime() will be 0, etc.
-      memset(&m_stat, '\0', sizeof(m_stat));
-    }
-
-    m_initialized = true;
   }
 
+  if (result == 0) {
+    m_errno = 0;
+  } else {
+    m_errno = errno;
+    if (m_log_on_error == LogOnError::yes) {
+#ifdef _WIN32
+      LOG("Failed to stat {}: {}", m_path, strerror(m_errno));
+#else
+      LOG("Failed to {} {}: {}",
+          m_fd == -1 ? "stat" : "fstat",
+          m_path,
+          strerror(m_errno));
+#endif
+    }
+  }
+
+  if (!m_exists) {
+    // The file is missing, so just zero fill the stat structure. This will make
+    // the is_*() methods return false and mtime() will be 0, etc.
+    memset(&m_stat, '\0', sizeof(m_stat));
+  }
+
+  m_initialized = true;
   return m_stat;
 }
 

@@ -19,6 +19,7 @@
 #include "TestUtil.hpp"
 
 #include <ccache/util/DirEntry.hpp>
+#include <ccache/util/Fd.hpp>
 #include <ccache/util/Finalizer.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/file.hpp>
@@ -26,6 +27,7 @@
 #include <ccache/util/wincompat.hpp>
 
 #include <doctest.h>
+#include <fcntl.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -200,6 +202,23 @@ TEST_CASE("Construction for missing entry")
   CHECK(entry.reparse_tag() == 0);
 #endif
 }
+
+#ifndef _WIN32
+TEST_CASE("Stat file descriptor")
+{
+  TestContext test_context;
+
+  util::write_file("a", "123");
+
+  util::Fd fd(open("a", O_RDONLY));
+  DirEntry entry("a", *fd);
+  CHECK(entry);
+  CHECK(entry.exists());
+  CHECK(!entry.is_symlink());
+  CHECK(entry.size() == 3);
+  CHECK(entry.path() == "a");
+}
+#endif
 
 TEST_CASE("Caching and refresh")
 {
@@ -665,6 +684,6 @@ TEST_CASE(
   CHECK(!(entry.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT));
   CHECK(entry.reparse_tag() == 0);
 }
-#endif
+#endif // _WIN32
 
 TEST_SUITE_END();

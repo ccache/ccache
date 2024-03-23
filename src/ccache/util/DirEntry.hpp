@@ -66,11 +66,24 @@ public:
   // 0.
   DirEntry() = default;
 
+  // Stat a path.
+  //
   // The underlying (l)stat(2) call will not be made by the constructor but
   // on-demand when calling the first query function. That (l)stat result is
   // then cached. See also the refresh method.
   DirEntry(const std::filesystem::path& path,
            LogOnError log_on_error = LogOnError::no);
+
+#ifndef _WIN32
+  // Stat an open file descriptor.
+  //
+  // The underlying fstat(2) call will not be made by the constructor but
+  // on-demand when calling the first query function. That fstat result is then
+  // cached. See also the refresh method.
+  DirEntry(const std::filesystem::path& path,
+           int fd,
+           LogOnError log_on_error = LogOnError::no);
+#endif
 
   // Return true if the file could be lstat(2)-ed (i.e., the directory entry
   // exists without following symlinks), otherwise false.
@@ -113,6 +126,9 @@ public:
 
 private:
   std::filesystem::path m_path;
+#ifndef _WIN32
+  int m_fd = -1;
+#endif
   LogOnError m_log_on_error = LogOnError::no;
   mutable stat_t m_stat;
   mutable int m_errno = -1;
@@ -129,6 +145,17 @@ inline DirEntry::DirEntry(const std::filesystem::path& path,
     m_log_on_error(log_on_error)
 {
 }
+
+#ifndef _WIN32
+inline DirEntry::DirEntry(const std::filesystem::path& path,
+                          int fd,
+                          LogOnError log_on_error)
+  : m_path(path),
+    m_fd(fd),
+    m_log_on_error(log_on_error)
+{
+}
+#endif
 
 inline DirEntry::operator bool() const
 {
