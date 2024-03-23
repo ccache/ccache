@@ -39,7 +39,11 @@ namespace util {
 
 // --- Interface ---
 
-enum class InPlace { yes, no };
+enum class WriteFileMode {
+  unlink,    // unlink existing file before writing (break hard links)
+  in_place,  // don't unlink before writing (don't break hard links)
+  exclusive, // return error if the file already exists (O_EXCL)
+};
 enum class LogFailure { yes, no };
 enum class ViaTmpFile { yes, no };
 
@@ -131,17 +135,17 @@ traverse_directory(const std::filesystem::path& directory,
 // Write `size` bytes from binary `data` to `fd`.
 tl::expected<void, std::string> write_fd(int fd, const void* data, size_t size);
 
-// Write text `data` to `path`. If `in_place` is no, unlink any existing file
-// first (i.e., break hard links).
-tl::expected<void, std::string> write_file(const std::filesystem::path& path,
-                                           std::string_view data,
-                                           InPlace in_place = InPlace::no);
+// Write text `data` to `path`.
+tl::expected<void, std::string>
+write_file(const std::filesystem::path& path,
+           std::string_view data,
+           WriteFileMode mode = WriteFileMode::unlink);
 
-// Write binary `data` to `path`. If `in_place` is no, unlink any existing
-// file first (i.e., break hard links).
-tl::expected<void, std::string> write_file(const std::filesystem::path& path,
-                                           nonstd::span<const uint8_t> data,
-                                           InPlace in_place = InPlace::no);
+// Write binary `data` to `path`.
+tl::expected<void, std::string>
+write_file(const std::filesystem::path& path,
+           nonstd::span<const uint8_t> data,
+           WriteFileMode mode = WriteFileMode::unlink);
 
 // --- Inline implementations ---
 

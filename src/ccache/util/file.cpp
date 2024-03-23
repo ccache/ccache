@@ -585,13 +585,17 @@ write_fd(int fd, const void* data, size_t size)
 }
 
 tl::expected<void, std::string>
-write_file(const fs::path& path, std::string_view data, InPlace in_place)
+write_file(const fs::path& path, std::string_view data, WriteFileMode mode)
 {
   auto path_str = pstr(path);
-  if (in_place == InPlace::no) {
+  if (mode == WriteFileMode::unlink) {
     unlink(path_str);
   }
-  Fd fd(open(path_str, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, 0666));
+  int flags = O_WRONLY | O_CREAT | O_TRUNC | O_TEXT;
+  if (mode == WriteFileMode::exclusive) {
+    flags |= O_EXCL;
+  }
+  Fd fd(open(path_str, flags, 0666));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }
@@ -601,13 +605,17 @@ write_file(const fs::path& path, std::string_view data, InPlace in_place)
 tl::expected<void, std::string>
 write_file(const fs::path& path,
            nonstd::span<const uint8_t> data,
-           InPlace in_place)
+           WriteFileMode mode)
 {
   auto path_str = pstr(path);
-  if (in_place == InPlace::no) {
+  if (mode == WriteFileMode::unlink) {
     unlink(path_str);
   }
-  Fd fd(open(path_str, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  int flags = O_WRONLY | O_CREAT | O_TRUNC | O_BINARY;
+  if (mode == WriteFileMode::exclusive) {
+    flags |= O_EXCL;
+  }
+  Fd fd(open(path_str, flags, 0666));
   if (!fd) {
     return tl::unexpected(strerror(errno));
   }

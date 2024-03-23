@@ -29,6 +29,10 @@
 #include <doctest.h>
 #include <fcntl.h>
 
+#ifndef _WIN32
+#  include <unistd.h>
+#endif
+
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -203,6 +207,37 @@ TEST_CASE("util::read_file_part")
     CHECK(*data == "an");
   }
 }
+
+#ifndef _WIN32
+TEST_CASE("util::write_file modes")
+{
+  TestContext test_context;
+
+  CHECK(util::write_file("test", "foo"));
+  CHECK(link("test", "test2") == 0);
+
+  SUBCASE("WriteFileMode::unlink")
+  {
+    CHECK(util::write_file("test", "bar", util::WriteFileMode::unlink));
+    CHECK(*util::read_file<std::string>("test2") == "foo");
+  }
+
+  SUBCASE("WriteFileMode::in_place")
+  {
+    CHECK(util::write_file("test", "bar", util::WriteFileMode::in_place));
+    CHECK(*util::read_file<std::string>("test2") == "bar");
+  }
+
+  SUBCASE("WriteFileMode::exclusive")
+  {
+    auto result =
+      util::write_file("test", "bar", util::WriteFileMode::exclusive);
+    CHECK(result.error() == "File exists");
+    CHECK(util::write_file("test3", "bar", util::WriteFileMode::exclusive));
+    CHECK(*util::read_file<std::string>("test3") == "bar");
+  }
+}
+#endif
 
 TEST_CASE("util::traverse_directory")
 {

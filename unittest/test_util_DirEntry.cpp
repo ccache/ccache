@@ -229,7 +229,7 @@ TEST_CASE("Caching and refresh")
   DirEntry entry("a");
   CHECK(entry.size() == 0);
 
-  util::write_file("a", "123", util::InPlace::yes);
+  util::write_file("a", "123", util::WriteFileMode::in_place);
   CHECK(entry.size() == 0);
   entry.refresh();
   CHECK(entry.size() == 3);
@@ -247,7 +247,7 @@ TEST_CASE("Same i-node as")
   CHECK(entry_a.same_inode_as(entry_a));
   CHECK(!entry_a.same_inode_as(entry_b));
 
-  util::write_file("a", "change size", util::InPlace::yes);
+  util::write_file("a", "change size", util::WriteFileMode::in_place);
   CHECK(DirEntry("a").same_inode_as(entry_a));
 
   CHECK(!DirEntry("nonexistent").same_inode_as(DirEntry("nonexistent")));
@@ -460,7 +460,7 @@ TEST_CASE("Hard links")
   CHECK(entry_a.inode() == entry_b.inode());
   CHECK(entry_a.same_inode_as(entry_b));
 
-  util::write_file("a", "1234567", util::InPlace::yes);
+  util::write_file("a", "1234567", util::WriteFileMode::in_place);
   entry_b.refresh();
   CHECK(entry_b.size() == 7);
 }
