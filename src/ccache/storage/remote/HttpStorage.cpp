@@ -29,9 +29,8 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/types.hpp>
 
+#include <cxxurl/url.hpp>
 #include <httplib.h>
-
-#include <url.hpp>
 
 #include <string_view>
 

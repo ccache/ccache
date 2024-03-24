@@ -39,7 +39,7 @@
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
 
-#include <url.hpp>
+#include <cxxurl/url.hpp>
 
 #include <cmath>
 #include <memory>

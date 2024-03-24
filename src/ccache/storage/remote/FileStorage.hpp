@@ -20,7 +20,7 @@
 
 #include <ccache/storage/remote/RemoteStorage.hpp>
 
-#include <url.hpp>
+#include <cxxurl/url.hpp>
 
 #include <memory>
 #include <vector>
