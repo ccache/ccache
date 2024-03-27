@@ -613,7 +613,7 @@ express Statement of Purpose.
 ----
 
 
-=== src/third_party/win32/getopt.*
+=== src/third_party/win32-compat/win32/getopt.*
 
 This implementation of `getopt_long()` for Win32 was taken from
 https://www.codeproject.com/Articles/157001/Full-getopt-Port-for-Unicode-and-Multibyte-Microso
@@ -623,7 +623,7 @@ The full license text can be found in LGPL-3.0.txt and at
 https://www.gnu.org/licenses/lgpl-3.0.html.
 
 
-=== src/third_party/win32/mktemp.*
+=== src/third_party/win32-compat/win32/mktemp.*
 
 This implementation of `mkstemp()` for Win32 was adapted from
 <https://github.com/openbsd/src/blob/99b791d14c0f1858d87a0c33b55880fb9b00be66/lib/libc/stdio/mktemp.c>
@@ -647,7 +647,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ----
 
 
-=== src/third_party/win32/winerror_to_errno.h
+=== src/third_party/win32-compat/win32/winerror_to_errno.h
 
 The implementation of `winerror_to_errno()` was adapted from
 <https://github.com/python/cpython/blob/1a79785e3e8fea80bcf6a800b45a04e06c787480/PC/errmap.h>

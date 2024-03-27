@@ -59,6 +59,10 @@ target_link_libraries(
     Threads::Threads
 )
 
+if(WIN32)
+  target_link_libraries(ccache_framework PUBLIC win32_compat)
+endif()
+
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR})
 

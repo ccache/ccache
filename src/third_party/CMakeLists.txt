@@ -1,18 +1,6 @@
 add_library(third_party STATIC xxhash.c)
 target_include_directories(third_party INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(MSVC)
-  target_sources(third_party PRIVATE win32/getopt.c)
-  target_compile_definitions(third_party PUBLIC -DSTATIC_GETOPT)
-endif()
-
-if(WIN32)
-  target_sources(third_party PRIVATE win32/mktemp.c)
-endif ()
-
-file(GLOB headers *.h nonstd/*.hpp win32/*.h)
-target_sources(third_party PRIVATE ${headers})
-
 set(xxhdispatchtest [=[
 #include "xxh_x86dispatch.c"
 
@@ -44,10 +32,6 @@ target_include_directories(
 
 target_link_libraries(third_party PRIVATE standard_settings)
 
-if(WIN32)
-  target_link_libraries(third_party PRIVATE ws2_32)
-endif()
-
 # Silence warning from winbase.h due to /Zc:preprocessor.
 if(MSVC)
   target_compile_options(third_party PRIVATE /wd5105)
@@ -55,6 +39,7 @@ endif()
 
 add_subdirectory(blake3)
 add_subdirectory(cxxurl)
+add_subdirectory(win32-compat)
 
 if(NOT TARGET dep_cpphttplib)
   add_subdirectory(cpp-httplib)
