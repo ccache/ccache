@@ -45,6 +45,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(
   ccache_framework
   PUBLIC
+    dep_blake3
     dep_cxxurl
     dep_fmt
     dep_nonstdspan

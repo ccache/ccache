@@ -36,7 +36,7 @@
 #  include "InodeCache.hpp"
 #endif
 
-#include <blake3/blake3_cpu_supports_avx2.h>
+#include <blake3_cpu_supports_avx2.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

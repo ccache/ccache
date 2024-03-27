@@ -1,6 +1,7 @@
-add_library(blake3 STATIC blake3.c blake3_dispatch_ccache.c blake3_portable.c)
+add_library(dep_blake3 STATIC blake3.c blake3_dispatch_ccache.c blake3_portable.c)
 
-target_link_libraries(blake3 PRIVATE standard_settings)
+target_include_directories(dep_blake3 INTERFACE "${CMAKE_SOURCE_DIR}/src/third_party/blake3")
+target_link_libraries(dep_blake3 PRIVATE standard_settings)
 
 if(MSVC)
   # No object file is created if masm is passed the compile options from standard_settings,
@@ -74,7 +75,7 @@ function(add_source_if_enabled feature msvc_flags others_flags intrinsic)
   endif()
 
   if(${have_feature})
-    target_sources(blake3 PRIVATE blake3_${feature}${suffix})
+    target_sources(dep_blake3 PRIVATE blake3_${feature}${suffix})
     if(suffix STREQUAL ".c")
       if(MINGW AND feature STREQUAL "avx512")
         # Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65782.
@@ -121,4 +122,4 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 
 file(GLOB headers *.h)
-target_sources(blake3 PRIVATE ${headers})
+target_sources(dep_blake3 PRIVATE ${headers})

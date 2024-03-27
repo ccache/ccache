@@ -43,7 +43,6 @@ target_include_directories(
 )
 
 target_link_libraries(third_party PRIVATE standard_settings)
-target_link_libraries(third_party INTERFACE blake3)
 
 if(WIN32)
   target_link_libraries(third_party PRIVATE ws2_32)
