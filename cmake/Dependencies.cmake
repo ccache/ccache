@@ -23,6 +23,7 @@ find_package(CppHttplib 0.10.6 MODULE REQUIRED)
 find_package(Fmt 8.0.0 MODULE REQUIRED)
 find_package(NonstdSpan 0.10.3 MODULE REQUIRED)
 find_package(TlExpected 1.1.0 MODULE REQUIRED)
+find_package(Xxhash 0.8.0 MODULE REQUIRED)
 find_package(Zstd 1.3.4 MODULE REQUIRED)
 
 if(ENABLE_TESTING)

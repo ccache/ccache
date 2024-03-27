@@ -118,9 +118,11 @@ jobs:
           if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
             packages+=(doctest-dev)
             packages+=(libfmt-dev)
+            packages+=(libxxhash-dev)
           else
             cmake_params+=(-D DEP_DOCTEST=DOWNLOAD)
             cmake_params+=(-D DEP_FMT=DOWNLOAD)
+            cmake_params+=(-D DEP_XXHASH=DOWNLOAD)
           fi
           sudo apt-get install -y "${packages[@]}"
 

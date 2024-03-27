@@ -50,7 +50,7 @@ target_link_libraries(
     dep_fmt
     dep_nonstdspan
     dep_tlexpected
-    third_party
+    dep_xxhash
   PRIVATE
     dep_cpphttplib
     dep_zstd

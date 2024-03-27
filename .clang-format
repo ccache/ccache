@@ -31,7 +31,7 @@ IncludeCategories:
   - Regex: '^<ccache/'
     Priority: 2
   # Dependency headers:
-  - Regex: '^<(blake3\.h|cxxurl/url\.hpp|doctest/.*|fmt/.*|hiredis/.*|httplib\.h|nonstd/.*|tl/expected\.hpp|zstd\.h)>$'
+  - Regex: '^<(blake3\.h|cxxurl/url\.hpp|doctest/.*|fmt/.*|hiredis/.*|httplib\.h|nonstd/.*|tl/expected\.hpp|xx(hash|h_x86dispatch)\.h|zstd\.h)>$'
     Priority: 3
   # System headers:
   - Regex: '\.h.*>$'
