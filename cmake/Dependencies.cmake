@@ -19,6 +19,7 @@ endif()
 set(DEPS AUTO CACHE STRING "How to retrieve third party dependencies")
 set_property(CACHE DEPS PROPERTY STRINGS AUTO DOWNLOAD LOCAL)
 
+find_package(Blake3 1.4.0 MODULE REQUIRED)
 find_package(CppHttplib 0.10.6 MODULE REQUIRED)
 find_package(Fmt 8.0.0 MODULE REQUIRED)
 find_package(NonstdSpan 0.10.3 MODULE REQUIRED)

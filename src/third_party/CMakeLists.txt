@@ -1,7 +1,9 @@
-add_subdirectory(blake3)
 add_subdirectory(cxxurl)
 add_subdirectory(win32-compat)
 
+if(NOT TARGET dep_blake3)
+  add_subdirectory(blake3)
+endif()
 if(NOT TARGET dep_cpphttplib)
   add_subdirectory(cpp-httplib)
 endif()

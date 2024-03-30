@@ -48,7 +48,7 @@ the GPL: that is, if separated from the ccache sources, they may be usable
 under less restrictive terms.
 
 
-=== src/third_party/blake3/blake3_*
+=== src/third_party/blake3/blake3/*
 
 This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.5.1 with the
 following license:
