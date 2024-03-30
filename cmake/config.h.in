@@ -69,6 +69,9 @@
 
 // === Header files ===
 
+// Define if you have the <cpuid.h> header file.
+#cmakedefine HAVE_CPUID_H
+
 // Define if you have the <dirent.h> header file.
 #cmakedefine HAVE_DIRENT_H
 

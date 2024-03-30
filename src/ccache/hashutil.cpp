@@ -25,6 +25,7 @@
 #include <ccache/execute.hpp>
 #include <ccache/macroskip.hpp>
 #include <ccache/util/DirEntry.hpp>
+#include <ccache/util/cpu.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
@@ -35,8 +36,6 @@
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"
 #endif
-
-#include <blake3_cpu_supports_avx2.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -112,14 +111,12 @@ check_for_temporal_macros_bmh(std::string_view str, size_t start = 0)
 }
 
 #ifdef HAVE_AVX2
-#  ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
-HashSourceCodeResult check_for_temporal_macros_avx2(std::string_view str)
-  __attribute__((target("avx2")));
-#  endif
-
 // The following algorithm, which uses AVX2 instructions to find __DATE__,
 // __TIME__ and __TIMESTAMP__, is heavily inspired by
 // <http://0x80.pl/articles/simd-strfind.html>.
+#  ifndef _MSC_VER
+__attribute__((target("avx2")))
+#  endif
 HashSourceCodeResult
 check_for_temporal_macros_avx2(std::string_view str)
 {
@@ -222,7 +219,7 @@ HashSourceCodeResult
 check_for_temporal_macros(std::string_view str)
 {
 #ifdef HAVE_AVX2
-  if (blake3_cpu_supports_avx2()) {
+  if (util::cpu_supports_avx2()) {
     return check_for_temporal_macros_avx2(str);
   }
 #endif

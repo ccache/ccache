@@ -1,4 +1,4 @@
-add_library(dep_blake3 STATIC blake3.c blake3_dispatch_ccache.c blake3_portable.c)
+add_library(dep_blake3 STATIC blake3.c blake3_dispatch.c blake3_portable.c)
 
 target_include_directories(dep_blake3 INTERFACE "${CMAKE_SOURCE_DIR}/src/third_party/blake3")
 target_link_libraries(dep_blake3 PRIVATE standard_settings)

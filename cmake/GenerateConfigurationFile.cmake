@@ -1,5 +1,6 @@
 include(CheckIncludeFile)
 set(include_files
+    cpuid.h
     dirent.h
     linux/fs.h
     pwd.h
@@ -70,8 +71,8 @@ include(CheckCXXSourceCompiles)
 check_cxx_source_compiles(
   [=[
     #include <immintrin.h>
-    #ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
-    void func() __attribute__((target("avx2")));
+    #ifndef _MSC_VER
+    __attribute__((target("avx2")))
     #endif
     void func() { _mm256_abs_epi8(_mm256_set1_epi32(42)); }
     int main()

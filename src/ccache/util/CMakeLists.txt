@@ -12,6 +12,7 @@ set(
   Tokenizer.cpp
   UmaskScope.cpp
   assertions.cpp
+  cpu.cpp
   environment.cpp
   error.cpp
   file.cpp

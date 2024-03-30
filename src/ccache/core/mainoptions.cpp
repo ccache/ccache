@@ -44,6 +44,7 @@
 #include <ccache/util/UmaskScope.hpp>
 #include <ccache/util/XXH3_128.hpp>
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/cpu.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
@@ -417,8 +418,13 @@ parse_compression_level(std::string_view level)
 static std::string
 get_version_text(const std::string_view ccache_name)
 {
+  auto features = storage::get_features();
+  if (util::cpu_supports_avx2()) {
+    features.emplace_back("avx2");
+  }
+  std::sort(features.begin(), features.end());
   return FMT(
-    VERSION_TEXT, ccache_name, CCACHE_VERSION, storage::get_features());
+    VERSION_TEXT, ccache_name, CCACHE_VERSION, util::join(features, " "));
 }
 
 std::string
