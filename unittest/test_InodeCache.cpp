@@ -25,12 +25,15 @@
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/path.hpp>
 
 #include <doctest.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
 
@@ -40,7 +43,12 @@ bool
 inode_cache_available()
 {
   auto tmp_file = util::TemporaryFile::create(util::actual_cwd() + "/fs_test");
-  return tmp_file && tmp_file->fd && InodeCache::available(*tmp_file->fd);
+  if (!tmp_file) {
+    return false;
+  }
+  bool available = tmp_file->fd && InodeCache::available(*tmp_file->fd);
+  fs::remove(tmp_file->path);
+  return available;
 }
 
 void
