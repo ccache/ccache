@@ -12,6 +12,7 @@ extend-ignore-re = [
     "/FoN\\.",
     "[/-]Fo\\b",
     "clang-analyzer-optin",
+    "pn\\d",
     "seve\\\\nth",
     "tar -caf",
     "thi\\\\\\\\rd",
