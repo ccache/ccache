@@ -1045,6 +1045,11 @@ preprocessing first.
     different directories, with the tradeoff of potentially getting an incorrect
     directory in the `.gcno` file. *gcno_cwd* also disables hashing of the
     current working directory if `-fprofile-abs-path` is used.
+*incbin*::
+    By default, ccache will ignore all files containing an `.incbin` directive.
+    While this is the correct behaviour as ccache does not detect incbin changes,
+    this restriction can make some projects difficult to cache. This sloppiness
+    will pretend the `.incbin` directive doesn't exist and simply allow caching.
 *include_file_ctime*::
     By default, ccache will disable caching if a source code file has a status
     change time (ctime) after the start of the ccache invocation. This

@@ -570,6 +570,16 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
                && ((q[7] == ' '
                     && (q[8] == '"' || (q[8] == '\\' && q[9] == '"')))
                    || q[7] == '"')) {
+      // Instead of bailing we ignore changes as sloppy incbin handling is
+      // enabled
+      if (ctx.config.sloppiness().contains(core::Sloppy::incbin)) {
+        LOG_RAW(
+          "Found potential unsupported .inc"
+          "bin directive in source code "
+          "but continuing due to enabled sloppy incbin handling");
+        q += sizeof(incbin_directive);
+        continue;
+      }
       // An assembler .inc bin (without the space) statement, which could be
       // part of inline assembly, refers to an external file. If the file
       // changes, the hash should change as well, but finding out what file to

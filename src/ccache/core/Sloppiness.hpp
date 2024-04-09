@@ -53,6 +53,8 @@ enum class Sloppy : uint32_t {
   gcno_cwd = 1U << 11,
   // Ignore -frandom-seed=*string*.
   random_seed = 1U << 12,
+  // Enables sloppy handling of incbin
+  incbin = 1U << 13,
 };
 
 using Sloppiness = util::BitSet<Sloppy>;
