@@ -1343,24 +1343,35 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_RECACHE doesn't add a new manifest entry"
+    TEST "CCACHE_RECACHE clears existing manifest"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat recache 0
     expect_stat files_in_cache 2 # result + manifest
 
-    manifest_file=$(find $CCACHE_DIR -name '*M')
-    cp $manifest_file saved.manifest
+    mv test3.h test3.h.saved
+    echo 'int new_content;' >test3.h
+    backdate test3.h
 
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat recache 1
-    expect_stat files_in_cache 2
+    expect_stat files_in_cache 3 # 2 * result + manifest
 
-    expect_equal_content $manifest_file saved.manifest
+    mv test3.h.saved test3.h
+    backdate test3.h
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat recache 1
+    expect_stat files_in_cache 3 # 2 * recache + manifest
 
     # -------------------------------------------------------------------------
     TEST "Detection of appearing include directories"

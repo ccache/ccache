@@ -2093,7 +2093,7 @@ calculate_result_and_manifest_key(Context& ctx,
       return tl::unexpected(manifest_key_result.error());
     }
     manifest_key = *manifest_key_result;
-    if (manifest_key) {
+    if (manifest_key && !ctx.config.recache()) {
       LOG("Manifest key: {}", util::format_digest(*manifest_key));
       result_key = get_result_key_from_manifest(ctx, *manifest_key);
     }

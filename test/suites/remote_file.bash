@@ -407,12 +407,12 @@ SUITE_remote_file() {
     expect_stat local_storage_hit 0
     expect_stat local_storage_miss 0
     expect_stat local_storage_read_hit 0
-    expect_stat local_storage_read_miss 1 # Try to read manifest for updating
+    expect_stat local_storage_read_miss 0
     expect_stat local_storage_write 2
     expect_stat remote_storage_hit 0
     expect_stat remote_storage_miss 0
     expect_stat remote_storage_read_hit 0
-    expect_stat remote_storage_read_miss 1 # Try to read manifest for updating
+    expect_stat remote_storage_read_miss 0
     expect_stat remote_storage_write 2
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
@@ -431,13 +431,13 @@ SUITE_remote_file() {
     expect_stat local_storage_hit 0
     expect_stat local_storage_miss 0
     expect_stat local_storage_read_hit 0
-    expect_stat local_storage_read_miss 2 # Try to read manifest for updating
+    expect_stat local_storage_read_miss 0
     expect_stat local_storage_write 4
     expect_stat remote_storage_hit 0
     expect_stat remote_storage_miss 0
-    expect_stat remote_storage_read_hit 1 # Read manifest for updating
-    expect_stat remote_storage_read_miss 1
-    expect_stat remote_storage_write 3 # Not 4 since result key already present
+    expect_stat remote_storage_read_hit 0
+    expect_stat remote_storage_read_miss 0
+    expect_stat remote_storage_write 4
 
     # -------------------------------------------------------------------------
     if touch test.c && ln test.c test-if-fs-supports-hard-links.c 2>/dev/null; then
