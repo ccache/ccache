@@ -7,7 +7,7 @@
 set -eu
 
 top_dir="$(dirname "$(realpath "$0")")/.."
-build_in_docker="${top_dir}/build-in-docker"
+build_in_docker="${top_dir}/misc/build-in-docker"
 
 build() {
     local name=$1
