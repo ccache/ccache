@@ -7,6 +7,7 @@ set(include_files
     sys/file.h
     sys/ioctl.h
     sys/mman.h
+    sys/sendfile.h
     sys/utime.h
     sys/wait.h
     syslog.h

@@ -66,6 +66,10 @@
 #  include <windows.h>
 #endif
 
+#ifdef HAVE_SYS_SENDFILE_H
+#  include <sys/sendfile.h>
+#endif
+
 namespace fs = util::filesystem;
 
 using pstr = util::PathString;
@@ -100,9 +104,34 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
         FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
     }
   }
-  TRY(read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
-    write_fd(*dest_fd, data.data(), data.size());
-  }));
+
+#if defined(HAVE_SYS_SENDFILE_H)
+  DirEntry dir_entry(src, *src_fd);
+  if (!dir_entry) {
+    return tl::unexpected(FMT("Failed to stat {}: {}", src, strerror(errno)));
+  }
+  ssize_t bytes_left = dir_entry.size();
+  bool fallback_to_rw = false;
+  while (bytes_left > 0) {
+    ssize_t n = sendfile(*dest_fd, *src_fd, nullptr, bytes_left);
+    if (n < 0) {
+      fallback_to_rw = (errno == EINVAL || errno == ENOSYS);
+      if (!fallback_to_rw) {
+        return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
+      }
+      break;
+    }
+    bytes_left -= n;
+  }
+
+  if (fallback_to_rw) {
+#endif
+    TRY(read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
+      write_fd(*dest_fd, data.data(), data.size());
+    }));
+#if defined(HAVE_SYS_SENDFILE_H)
+  }
+#endif
 
   dest_fd.close();
   src_fd.close();
