@@ -12,6 +12,7 @@ build() {
         -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
         -DCMAKE_OSX_ARCHITECTURES="$1" \
         -DCMAKE_SYSTEM_PROCESSOR="$1" \
+        -DENABLE_TESTING=OFF \
         ..
     cmake --build .
     cd ..
