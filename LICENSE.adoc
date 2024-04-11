@@ -50,7 +50,7 @@ under less restrictive terms.
 
 === src/third_party/blake3/blake3_*
 
-This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.5.0 with the
+This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.5.1 with the
 following license:
 
 ----
