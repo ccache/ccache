@@ -87,6 +87,9 @@
 // Define if you have the <sys/mman.h> header file.
 #cmakedefine HAVE_SYS_MMAN_H
 
+// Define if you have the <sys/sendfile.h> header file.
+#cmakedefine HAVE_SYS_SENDFILE_H 
+
 // Define if you have the <sys/utime.h> header file.
 #cmakedefine HAVE_SYS_UTIME_H
 
