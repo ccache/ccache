@@ -22,7 +22,6 @@
 #include <ccache/Config.hpp>
 #include <ccache/Context.hpp>
 #include <ccache/SignalHandler.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/DirEntry.hpp>

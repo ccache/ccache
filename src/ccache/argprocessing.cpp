@@ -20,8 +20,8 @@
 
 #include <ccache/Context.hpp>
 #include <ccache/Depfile.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/compopt.hpp>
+#include <ccache/core/common.hpp>
 #include <ccache/language.hpp>
 #include <ccache/util/PathString.hpp>
 #include <ccache/util/assertions.hpp>
@@ -252,7 +252,7 @@ process_profiling_option(const Context& ctx,
       new_profile_path = ".";
     } else {
       // GCC uses $PWD/$(basename $obj).
-      new_profile_path = ctx.apparent_cwd;
+      new_profile_path = pstr(ctx.apparent_cwd).str();
     }
   } else if (util::starts_with(arg, "-fprofile-generate=")
              || util::starts_with(arg, "-fprofile-instr-generate=")) {
@@ -737,7 +737,8 @@ process_option_arg(const Context& ctx,
 
     if (state.output_dep_origin <= OutputDepOrigin::mf) {
       state.output_dep_origin = OutputDepOrigin::mf;
-      args_info.output_dep = Util::make_relative_path(ctx, dep_file);
+      args_info.output_dep =
+        pstr(core::make_relative_path(ctx, dep_file)).str();
     }
     // Keep the format of the args the same.
     if (separate_argument) {
@@ -869,8 +870,8 @@ process_option_arg(const Context& ctx,
 
   if (util::starts_with(arg, "--sysroot=")) {
     auto path = std::string_view(arg).substr(10);
-    auto relpath = Util::make_relative_path(ctx, path);
-    state.common_args.push_back("--sysroot=" + relpath);
+    auto relpath = core::make_relative_path(ctx, path);
+    state.common_args.push_back(FMT("--sysroot={}", relpath));
     return Statistic::none;
   }
 
@@ -881,8 +882,8 @@ process_option_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
     state.common_args.push_back(args[i]);
-    auto relpath = Util::make_relative_path(ctx, args[i + 1]);
-    state.common_args.push_back(relpath);
+    auto relpath = core::make_relative_path(ctx, args[i + 1]);
+    state.common_args.push_back(pstr(relpath).str());
     i++;
     return Statistic::none;
   }
@@ -974,7 +975,8 @@ process_option_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
     args_info.generating_diagnostics = true;
-    args_info.output_dia = Util::make_relative_path(ctx, args[i + 1]);
+    args_info.output_dia =
+      pstr(core::make_relative_path(ctx, args[i + 1])).str();
     i++;
     return Statistic::none;
   }
@@ -1080,14 +1082,14 @@ process_option_arg(const Context& ctx,
     // Potentially rewrite path argument to relative path to get better hit
     // rate. A secondary effect is that paths in the standard error output
     // produced by the compiler will be normalized.
-    std::string relpath = Util::make_relative_path(ctx, args[i + next]);
+    fs::path relpath = core::make_relative_path(ctx, args[i + next]);
     auto& dest_args =
       compopt_affects_cpp_output(arg) ? state.cpp_args : state.common_args;
     dest_args.push_back(args[i]);
     if (next == 2) {
       dest_args.push_back(args[i + 1]);
     }
-    dest_args.push_back(relpath);
+    dest_args.push_back(pstr(relpath).str());
 
     i += next;
     return Statistic::none;
@@ -1116,7 +1118,7 @@ process_option_arg(const Context& ctx,
     const auto [option, path] = util::split_option_with_concat_path(arg);
     if (path) {
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-        const auto relpath = Util::make_relative_path(ctx, *path);
+        const auto relpath = core::make_relative_path(ctx, *path);
         std::string new_option = FMT("{}{}", option, relpath);
         if (compopt_affects_cpp_output(option)) {
           state.cpp_args.push_back(std::move(new_option));
@@ -1268,9 +1270,7 @@ process_args(Context& ctx)
   args_info.orig_input_file = pstr(state.input_files.front()).str();
   // Rewrite to relative to increase hit rate.
   args_info.input_file =
-    Util::make_relative_path(ctx, args_info.orig_input_file);
-  args_info.normalized_input_file =
-    Util::normalize_concrete_absolute_path(args_info.input_file);
+    pstr(core::make_relative_path(ctx, args_info.orig_input_file)).str();
 
   // Bail out on too hard combinations of options.
   if (state.found_mf_opt && state.found_wp_md_or_mmd_opt) {
@@ -1323,7 +1323,8 @@ process_args(Context& ctx)
   }
 
   args_info.orig_output_obj = args_info.output_obj;
-  args_info.output_obj = Util::make_relative_path(ctx, args_info.output_obj);
+  args_info.output_obj =
+    pstr(core::make_relative_path(ctx, args_info.output_obj)).str();
 
   // Determine output dependency file.
 
@@ -1362,7 +1363,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.profile_path.empty()) {
-    args_info.profile_path = ctx.apparent_cwd;
+    args_info.profile_path = pstr(ctx.apparent_cwd).str();
   }
 
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
@@ -1386,7 +1387,7 @@ process_args(Context& ctx)
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
     args_info.orig_output_obj = args_info.orig_input_file + ".gch";
     args_info.output_obj =
-      Util::make_relative_path(ctx, args_info.orig_output_obj);
+      pstr(core::make_relative_path(ctx, args_info.orig_output_obj)).str();
   }
 
   if (args_info.output_is_precompiled_header
@@ -1564,13 +1565,15 @@ process_args(Context& ctx)
   if (args_info.generating_stackusage) {
     std::string default_sufile_name =
       fs::path(args_info.output_obj).replace_extension(".su").string();
-    args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
+    args_info.output_su =
+      pstr(core::make_relative_path(ctx, default_sufile_name)).str();
   }
 
   if (args_info.generating_callgraphinfo) {
     std::string default_cifile_name =
       fs::path(args_info.output_obj).replace_extension(".ci").string();
-    args_info.output_ci = Util::make_relative_path(ctx, default_cifile_name);
+    args_info.output_ci =
+      pstr(core::make_relative_path(ctx, default_cifile_name)).str();
   }
 
   Args compiler_args = state.common_args;

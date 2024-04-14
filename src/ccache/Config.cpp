@@ -18,12 +18,12 @@
 
 #include "Config.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/core/AtomicFile.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/core/types.hpp>
 #include <ccache/util/DirEntry.hpp>
+#include <ccache/util/PathString.hpp>
 #include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/UmaskScope.hpp>
 #include <ccache/util/assertions.hpp>
@@ -32,6 +32,7 @@
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/wincompat.hpp>
 
@@ -60,7 +61,9 @@ const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
 
 namespace fs = util::filesystem;
 
+using pstr = util::PathString;
 using util::DirEntry;
+using util::make_path;
 
 namespace {
 
@@ -383,9 +386,9 @@ format_umask(std::optional<mode_t> umask)
 }
 
 void
-verify_absolute_path(const std::string& value)
+verify_absolute_path(const fs::path& value)
 {
-  if (!fs::path(value).is_absolute()) {
+  if (!value.is_absolute()) {
     throw core::Error(FMT("not an absolute path: \"{}\"", value));
   }
 }
@@ -548,8 +551,8 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   auto cmdline_settings_map =
     create_cmdline_settings_map(cmdline_config_settings);
 
-  const std::string home_dir = home_directory();
-  const std::string legacy_ccache_dir = Util::make_path(home_dir, ".ccache");
+  const fs::path home_dir = home_directory();
+  const fs::path legacy_ccache_dir = home_dir / ".ccache";
   const bool legacy_ccache_dir_exists =
     DirEntry(legacy_ccache_dir).is_directory();
 #ifdef _WIN32
@@ -567,22 +570,21 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     // Only used for ccache tests:
     const char* const env_ccache_configpath2 = getenv("CCACHE_CONFIGPATH2");
 
-    std::string sysconfdir = Util::make_path(k_sysconfdir);
+    fs::path sysconfdir(k_sysconfdir);
 #ifdef _WIN32
     if (const char* program_data = getenv("ALLUSERSPROFILE"))
-      sysconfdir = Util::make_path(program_data, "ccache");
+      sysconfdir = fs::path(program_data) / "ccache";
 #endif
 
-    set_system_config_path(env_ccache_configpath2
-                             ? env_ccache_configpath2
-                             : Util::make_path(sysconfdir, "ccache.conf"));
+    set_system_config_path(env_ccache_configpath2 ? env_ccache_configpath2
+                                                  : sysconfdir / "ccache.conf");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     update_from_file(system_config_path());
 
     const char* const env_ccache_dir = getenv("CCACHE_DIR");
     auto cmdline_cache_dir = cmdline_settings_map.find("cache_dir");
 
-    std::string config_dir;
+    fs::path config_dir;
     if (cmdline_cache_dir != cmdline_settings_map.end()) {
       config_dir = cmdline_cache_dir->second;
     } else if (env_ccache_dir && *env_ccache_dir) {
@@ -594,14 +596,13 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 #ifdef _WIN32
     } else if (env_local_appdata
                && DirEntry(
-                 Util::make_path(env_local_appdata, "ccache", "ccache.conf"))) {
-      config_dir = Util::make_path(env_local_appdata, "ccache");
+                 make_path(env_local_appdata, "ccache", "ccache.conf"))) {
+      config_dir = make_path(env_local_appdata, "ccache");
     } else if (env_appdata
-               && DirEntry(
-                 Util::make_path(env_appdata, "ccache", "ccache.conf"))) {
-      config_dir = Util::make_path(env_appdata, "ccache");
+               && DirEntry(make_path(env_appdata, "ccache", "ccache.conf"))) {
+      config_dir = make_path(env_appdata, "ccache");
     } else if (env_local_appdata) {
-      config_dir = Util::make_path(env_local_appdata, "ccache");
+      config_dir = make_path(env_local_appdata, "ccache");
     } else {
       throw core::Fatal(
         "could not find configuration file and the LOCALAPPDATA environment"
@@ -609,12 +610,12 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     }
 #else
     } else if (env_xdg_config_home) {
-      config_dir = Util::make_path(env_xdg_config_home, "ccache");
+      config_dir = make_path(env_xdg_config_home, "ccache");
     } else {
       config_dir = default_config_dir(home_dir);
     }
 #endif
-    set_config_path(Util::make_path(config_dir, "ccache.conf"));
+    set_config_path(config_dir / "ccache.conf");
   }
 
   const std::string& cache_dir_before_config_file_was_read = cache_dir();
@@ -631,10 +632,10 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 
   if (cache_dir().empty()) {
     if (legacy_ccache_dir_exists) {
-      set_cache_dir(legacy_ccache_dir);
+      set_cache_dir(pstr(legacy_ccache_dir));
 #ifdef _WIN32
     } else if (env_local_appdata) {
-      set_cache_dir(Util::make_path(env_local_appdata, "ccache"));
+      set_cache_dir(pstr(fs::path(env_local_appdata) / "ccache"));
     } else {
       throw core::Fatal(
         "could not find cache directory and the LOCALAPPDATA environment"
@@ -642,7 +643,7 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     }
 #else
     } else if (env_xdg_cache_home) {
-      set_cache_dir(Util::make_path(env_xdg_cache_home, "ccache"));
+      set_cache_dir(make_path(env_xdg_cache_home, "ccache"));
     } else {
       set_cache_dir(default_cache_dir(home_dir));
     }
@@ -655,37 +656,37 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   // system config).
 }
 
-const std::string&
+const fs::path&
 Config::config_path() const
 {
   return m_config_path;
 }
 
-const std::string&
+const fs::path&
 Config::system_config_path() const
 {
   return m_system_config_path;
 }
 
 void
-Config::set_config_path(std::string path)
+Config::set_config_path(const fs::path& path)
 {
-  m_config_path = std::move(path);
+  m_config_path = path;
 }
 
 void
-Config::set_system_config_path(std::string path)
+Config::set_system_config_path(const fs::path& path)
 {
-  m_system_config_path = std::move(path);
+  m_system_config_path = path;
 }
 
 bool
-Config::update_from_file(const std::string& path)
+Config::update_from_file(const fs::path& path)
 {
   return parse_config_file(
-    path, [&](const auto& /*line*/, const auto& key, const auto& value) {
+    pstr(path), [&](const auto& /*line*/, const auto& key, const auto& value) {
       if (!key.empty()) {
-        set_item(key, value, std::nullopt, false, path);
+        set_item(key, value, std::nullopt, false, pstr(path));
       }
     });
 }
@@ -753,7 +754,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_absolute_paths_in_stderr);
 
   case ConfigItem::base_dir:
-    return m_base_dir;
+    return pstr(m_base_dir).str();
 
   case ConfigItem::cache_dir:
     return m_cache_dir;
@@ -982,7 +983,7 @@ Config::set_item(const std::string& key,
     m_base_dir = value;
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
-      m_base_dir = Util::normalize_abstract_absolute_path(m_base_dir);
+      m_base_dir = m_base_dir.lexically_normal();
     }
     break;
 

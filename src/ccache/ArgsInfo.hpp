@@ -37,9 +37,6 @@ struct ArgsInfo
   // Prefix to the input file when adding it to a command line.
   std::string input_file_prefix;
 
-  // The source file path run through Util::normalize_concrete_absolute_path.
-  std::string normalized_input_file;
-
   // In normal compiler operation an output file is created if there is no
   // compiler error. However certain flags like -fsyntax-only change this
   // behavior.

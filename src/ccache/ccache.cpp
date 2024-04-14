@@ -25,7 +25,6 @@
 #include <ccache/Depfile.hpp>
 #include <ccache/Hash.hpp>
 #include <ccache/SignalHandler.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/argprocessing.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/core/CacheEntry.hpp>
@@ -313,7 +312,7 @@ remember_include_file(Context& ctx,
     return {};
   }
 
-  if (path == ctx.args_info.normalized_input_file) {
+  if (fs::path(path) == ctx.args_info.input_file) {
     // Don't remember the input file.
     return {};
   }
@@ -550,18 +549,23 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
 
       // p and q span the include file path.
       std::string inc_path(p, q - p);
-      auto it = relative_inc_path_cache.find(inc_path);
-      if (it == relative_inc_path_cache.end()) {
-        auto rel_inc_path = Util::make_relative_path(
-          ctx, Util::normalize_concrete_absolute_path(inc_path));
-        relative_inc_path_cache.emplace(inc_path, rel_inc_path);
-        inc_path = std::move(rel_inc_path);
-      } else {
-        inc_path = it->second;
+      while (!inc_path.empty() && inc_path.back() == '/') {
+        inc_path.pop_back();
+      }
+      if (!ctx.config.base_dir().empty()) {
+        auto it = relative_inc_path_cache.find(inc_path);
+        if (it == relative_inc_path_cache.end()) {
+          std::string rel_inc_path =
+            pstr(core::make_relative_path(ctx, inc_path)).str();
+          relative_inc_path_cache.emplace(inc_path, rel_inc_path);
+          inc_path = pstr(rel_inc_path).str();
+        } else {
+          inc_path = it->second;
+        }
       }
 
-      if ((inc_path != ctx.apparent_cwd) || ctx.config.hash_dir()) {
-        hash.hash(inc_path);
+      if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
+        hash.hash(pstr(inc_path).str());
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
@@ -615,7 +619,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
   if (!ctx.args_info.included_pch_file.empty()
       && !ctx.args_info.generating_pch) {
     std::string pch_path =
-      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
+      pstr(core::make_relative_path(ctx, ctx.args_info.included_pch_file));
     hash.hash(pch_path);
     TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
@@ -654,8 +658,8 @@ result_key_from_depfile(Context& ctx, Hash& hash)
       continue;
     }
     if (seen_colon) {
-      std::string path = Util::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, path, hash, false, &hash));
+      fs::path path = core::make_relative_path(ctx, token);
+      TRY(remember_include_file(ctx, pstr(path), hash, false, &hash));
     } else if (token == ":") {
       seen_colon = true;
     }
@@ -665,10 +669,10 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   // dependencies output.
   if (!ctx.args_info.included_pch_file.empty()
       && !ctx.args_info.generating_pch) {
-    std::string pch_path =
-      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
+    fs::path pch_path =
+      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pstr(pch_path).str());
+    TRY(remember_include_file(ctx, pstr(pch_path), hash, false, nullptr));
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -716,19 +720,18 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
-    const std::string path = Util::make_relative_path(
-      ctx, Util::normalize_abstract_absolute_path(include));
-    TRY(remember_include_file(ctx, path, hash, false, &hash));
+    const fs::path path = core::make_relative_path(ctx, include);
+    TRY(remember_include_file(ctx, pstr(path), hash, false, &hash));
   }
 
   // Explicitly check the .pch file as it is not mentioned in the
   // includes output.
   if (!ctx.args_info.included_pch_file.empty()
       && !ctx.args_info.generating_pch) {
-    std::string pch_path =
-      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
+    fs::path pch_path =
+      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pstr(pch_path).str());
+    TRY(remember_include_file(ctx, pstr(pch_path), hash, false, nullptr));
   }
 
   const bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -1017,10 +1020,9 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         std::string abs_inc_path =
           util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
         abs_inc_path = util::strip_whitespace(abs_inc_path);
-        std::string rel_inc_path = Util::make_relative_path(
-          ctx, Util::normalize_concrete_absolute_path(abs_inc_path));
-        std::string line_with_rel_inc =
-          util::replace_first(orig_line, abs_inc_path, rel_inc_path);
+        fs::path rel_inc_path = core::make_relative_path(ctx, abs_inc_path);
+        std::string line_with_rel_inc = util::replace_first(
+          orig_line, abs_inc_path, pstr(rel_inc_path).str());
         new_stdout_data.insert(new_stdout_data.end(),
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
@@ -1506,7 +1508,7 @@ hash_common_info(const Context& ctx,
 
   // Possibly hash the current working directory.
   if (args_info.generating_debuginfo && ctx.config.hash_dir()) {
-    std::string dir_to_hash = ctx.apparent_cwd;
+    std::string dir_to_hash = pstr(ctx.apparent_cwd).str();
     for (const auto& map : args_info.debug_prefix_maps) {
       size_t sep_pos = map.find('=');
       if (sep_pos != std::string::npos) {
@@ -1516,8 +1518,9 @@ hash_common_info(const Context& ctx,
             old_path,
             new_path,
             ctx.apparent_cwd);
-        if (util::starts_with(ctx.apparent_cwd, old_path)) {
-          dir_to_hash = new_path + ctx.apparent_cwd.substr(old_path.size());
+        if (util::starts_with(pstr(ctx.apparent_cwd), old_path)) {
+          dir_to_hash =
+            new_path + pstr(ctx.apparent_cwd).str().substr(old_path.size());
         }
       }
     }
@@ -1533,7 +1536,7 @@ hash_common_info(const Context& ctx,
     const std::string output_obj_dir =
       fs::path(args_info.output_obj).is_absolute()
         ? fs::path(args_info.output_obj).parent_path().string()
-        : ctx.actual_cwd;
+        : pstr(ctx.actual_cwd);
     LOG("Hashing object file directory {}", output_obj_dir);
     hash.hash_delimiter("source path");
     hash.hash(output_obj_dir);
@@ -1558,7 +1561,7 @@ hash_common_info(const Context& ctx,
     // the directory in the hash for now.
     LOG_RAW("Hashing apparent CWD due to generating a .gcno file");
     hash.hash_delimiter("CWD in .gcno");
-    hash.hash(ctx.apparent_cwd);
+    hash.hash(pstr(ctx.apparent_cwd).str());
   }
 
   // Possibly hash the coverage data file path.
@@ -1940,7 +1943,7 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
   const std::string& profile_path = ctx.args_info.profile_path;
   const std::string base_name =
     pstr(fs::path(ctx.args_info.output_obj).replace_extension("")).str();
-  std::string hashified_cwd = ctx.apparent_cwd;
+  std::string hashified_cwd = pstr(ctx.apparent_cwd).str();
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
   std::vector<std::string> paths_to_try{
@@ -2599,7 +2602,7 @@ do_cache_compilation(Context& ctx)
 
   if (processed.hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
-    common_hash.hash(ctx.actual_cwd);
+    common_hash.hash(pstr(ctx.actual_cwd).str());
   }
 
   // Try to find the hash using the manifest.

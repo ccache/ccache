@@ -18,8 +18,8 @@
 
 #include "path.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/util/DirEntry.hpp>
+#include <ccache/util/PathString.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
@@ -32,21 +32,9 @@ const char k_dev_null_path[] = "/dev/null";
 
 namespace fs = util::filesystem;
 
-namespace util {
+using pstr = util::PathString;
 
-std::string
-actual_cwd()
-{
-  auto cwd = fs::current_path();
-  if (!cwd) {
-    return {};
-  }
-  auto cwd_str = cwd->string();
-#ifdef _WIN32
-  std::replace(cwd_str.begin(), cwd_str.end(), '\\', '/');
-#endif
-  return cwd_str;
-}
+namespace util {
 
 std::string
 add_exe_suffix(const std::string& program)
@@ -59,8 +47,8 @@ add_exe_suffix(const std::string& program)
   }
 }
 
-std::string
-apparent_cwd(const std::string& actual_cwd)
+fs::path
+apparent_cwd(const fs::path& actual_cwd)
 {
 #ifdef _WIN32
   return actual_cwd;
@@ -72,9 +60,7 @@ apparent_cwd(const std::string& actual_cwd)
 
   DirEntry pwd_de(pwd);
   DirEntry cwd_de(actual_cwd);
-  return !pwd_de || !cwd_de || !pwd_de.same_inode_as(cwd_de)
-           ? actual_cwd
-           : Util::normalize_concrete_absolute_path(pwd);
+  return !pwd_de || !cwd_de || !pwd_de.same_inode_as(cwd_de) ? actual_cwd : pwd;
 #endif
 }
 
@@ -84,40 +70,74 @@ get_dev_null_path()
   return k_dev_null_path;
 }
 
-bool
-path_starts_with(std::string_view path, std::string_view prefix)
+std::filesystem::path
+make_relative_path(const fs::path& actual_cwd,
+                   const fs::path& apparent_cwd,
+                   const fs::path& path)
 {
-  if (path.empty()) {
-    return false;
-  }
-  for (size_t i = 0, j = 0; i < path.length() && j < prefix.length();
-       ++i, ++j) {
-#ifdef _WIN32
-    // Skip escaped backslashes \\\\ as seen by the preprocessor.
-    if (i > 0 && path[i] == '\\' && path[i - 1] == '\\') {
-      ++i;
-    }
-    if (j > 0 && prefix[j] == '\\' && prefix[j - 1] == '\\') {
-      ++j;
-    }
+  DEBUG_ASSERT(actual_cwd.is_absolute());
+  DEBUG_ASSERT(apparent_cwd.is_absolute());
+  DEBUG_ASSERT(path.is_absolute());
 
-    // Handle back and forward slashes as equal.
-    if (path[i] == '/' && prefix[j] == '\\') {
-      continue;
+  fs::path normalized_path = path.lexically_normal();
+  fs::path closest_existing_path = normalized_path;
+  std::vector<fs::path> relpath_candidates;
+  fs::path path_suffix;
+  while (!fs::exists(closest_existing_path)) {
+    if (path_suffix.empty()) {
+      path_suffix = closest_existing_path.filename();
+    } else {
+      path_suffix = closest_existing_path.filename() / path_suffix;
     }
-    if (path[i] == '\\' && prefix[j] == '/') {
-      continue;
-    }
-    if (std::tolower(path[i]) != std::tolower(prefix[j])) {
-      return false;
-    }
-#else
-    if (path[i] != prefix[j]) {
-      return false;
-    }
-#endif
+    closest_existing_path = closest_existing_path.parent_path();
   }
-  return true;
+
+  const auto add_relpath_candidates = [&](auto p) {
+    relpath_candidates.push_back(p.lexically_relative(actual_cwd));
+    if (apparent_cwd != actual_cwd) {
+      relpath_candidates.emplace_back(p.lexically_relative(apparent_cwd));
+    }
+  };
+
+  add_relpath_candidates(closest_existing_path);
+  const fs::path real_closest_existing_path =
+    fs::canonical(closest_existing_path).value_or(closest_existing_path);
+  if (real_closest_existing_path != closest_existing_path) {
+    add_relpath_candidates(real_closest_existing_path);
+  }
+
+  // Find best (i.e. shortest existing) match:
+  std::sort(relpath_candidates.begin(),
+            relpath_candidates.end(),
+            [](const auto& path1, const auto& path2) {
+              return pstr(path1).str().length() < pstr(path2).str().length();
+            });
+  for (const auto& relpath : relpath_candidates) {
+    if (fs::equivalent(relpath, closest_existing_path)) {
+      return path_suffix.empty() ? relpath
+                                 : (relpath / path_suffix).lexically_normal();
+    }
+  }
+
+  // No match so nothing else to do than to return the unmodified path.
+  return path;
+}
+
+bool
+path_starts_with(const fs::path& path, const fs::path& prefix)
+{
+#ifdef _WIN32
+  // Note: Not all paths on Windows are case insensitive, but for our purposes
+  // (checking whether a path is below the base directory) users will expect
+  // them to be.
+  fs::path p1 = util::to_lowercase(path.string());
+  fs::path p2 = util::to_lowercase(prefix.string());
+#else
+  const fs::path& p1 = path;
+  const fs::path& p2 = prefix;
+#endif
+  return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2.end()).second
+         == p2.end();
 }
 
 } // namespace util

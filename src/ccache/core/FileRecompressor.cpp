@@ -18,7 +18,6 @@
 
 #include "FileRecompressor.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/core/AtomicFile.hpp>
 #include <ccache/core/CacheEntry.hpp>
 #include <ccache/core/exceptions.hpp>

@@ -19,7 +19,6 @@
 #include "Storage.hpp"
 
 #include <ccache/Config.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/core/CacheEntry.hpp>
 #include <ccache/core/Statistic.hpp>
 #include <ccache/core/exceptions.hpp>

@@ -18,7 +18,6 @@
 
 #include "LongLivedLockFileManager.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/logging.hpp>

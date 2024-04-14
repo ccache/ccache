@@ -19,10 +19,10 @@
 #include "Context.hpp"
 
 #include <ccache/SignalHandler.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/hashutil.hpp>
 #include <ccache/util/TimePoint.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/process.hpp>
@@ -37,8 +37,10 @@
 #include <string>
 #include <vector>
 
+namespace fs = util::filesystem;
+
 Context::Context()
-  : actual_cwd(util::actual_cwd()),
+  : actual_cwd(fs::current_path().value_or("")),
     apparent_cwd(util::apparent_cwd(actual_cwd)),
     storage(config),
 #ifdef INODE_CACHE_SUPPORTED

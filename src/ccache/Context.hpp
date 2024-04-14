@@ -59,10 +59,10 @@ public:
   Config config;
 
   // Current working directory as returned by getcwd(3).
-  std::string actual_cwd;
+  std::filesystem::path actual_cwd;
 
   // Current working directory according to $PWD (falling back to getcwd(3)).
-  std::string apparent_cwd;
+  std::filesystem::path apparent_cwd;
 
   // The original argument list.
   Args orig_args;

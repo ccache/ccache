@@ -84,12 +84,14 @@ TEST_CASE("Depfile::rewrite_source_paths")
     const auto expected = FMT(
       "{0}/foo.o: \\\n"
       " bar.c \\\n"
-      " ./bar/bar.h \\\n"
+      " {2} \\\n"
       " {1}/fie.h\n"
-      "./bar/bar.h:\n"
+      "{2}:\n"
       "{1}/fie.h:\n",
       Depfile::escape_filename(pstr(cwd).str()),
-      Depfile::escape_filename(pstr(cwd.parent_path()).str()));
+      Depfile::escape_filename(pstr(cwd.parent_path()).str()),
+      Depfile::escape_filename(
+        pstr(fs::path("bar/bar.h").lexically_normal()).str()));
     REQUIRE(actual);
     CHECK(*actual == expected);
   }

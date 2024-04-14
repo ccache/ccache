@@ -6,7 +6,6 @@ set(
   Depfile.cpp
   Hash.cpp
   ProgressBar.cpp
-  Util.cpp
   argprocessing.cpp
   ccache.cpp
   compopt.cpp

@@ -21,10 +21,11 @@
 #include <ccache/Args.hpp>
 #include <ccache/Config.hpp>
 #include <ccache/Context.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/argprocessing.hpp>
 #include <ccache/core/Statistic.hpp>
+#include <ccache/util/PathString.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
@@ -34,8 +35,11 @@
 
 #include <algorithm>
 
+namespace fs = util::filesystem;
+
 using core::Statistic;
 using TestUtil::TestContext;
+using pstr = util::PathString;
 
 namespace {
 
@@ -46,31 +50,8 @@ get_root()
   return "/";
 #else
   char volume[4]; // "C:\"
-  GetVolumePathName(util::actual_cwd().c_str(), volume, sizeof(volume));
-  volume[2] = '/'; // Since base directory is normalized to forward slashes
+  GetVolumePathName(pstr(*fs::current_path()).c_str(), volume, sizeof(volume));
   return volume;
-#endif
-}
-
-std::string
-get_posix_path(const std::string& path)
-{
-#ifndef _WIN32
-  return path;
-#else
-  std::string posix;
-
-  // /-escape volume.
-  if (path[1] == ':'
-      && ((path[0] >= 'A' && path[0] <= 'Z')
-          || (path[0] >= 'a' && path[0] <= 'z'))) {
-    posix = "/" + path;
-  } else {
-    posix = path;
-  }
-  // Convert slashes.
-  std::replace(posix.begin(), posix.end(), '\\', '/');
-  return posix;
 #endif
 }
 
@@ -312,7 +293,11 @@ TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args[1] == "--sysroot=./foo/bar");
+#ifdef _WIN32
+  CHECK(result.preprocessor_args[1] == "--sysroot=foo\\bar");
+#else
+  CHECK(result.preprocessor_args[1] == "--sysroot=foo/bar");
+#endif
 }
 
 TEST_CASE(
@@ -330,7 +315,7 @@ TEST_CASE(
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
   CHECK(result.preprocessor_args[1] == "--sysroot");
-  CHECK(result.preprocessor_args[2] == "./foo");
+  CHECK(result.preprocessor_args[2] == "foo");
 }
 
 TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
@@ -464,9 +449,10 @@ TEST_CASE(
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args[2] == "./foo");
+  CHECK(result.preprocessor_args[2] == "foo");
 }
 
+#ifndef _WIN32
 TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 {
   TestContext test_context;
@@ -474,15 +460,14 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   Context ctx;
 
   util::write_file("foo.c", "");
-  ctx.config.set_base_dir("/"); // posix
-  // Windows path doesn't work concatenated.
-  std::string cwd = get_posix_path(ctx.actual_cwd);
+  ctx.config.set_base_dir("/");
+  std::string cwd = ctx.actual_cwd;
   std::string arg_string = FMT("cc -isystem{}/foo -c foo.c", cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args[1] == "-isystem./foo");
+  CHECK(result.preprocessor_args[1] == "-isystemfoo");
 }
 
 TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
@@ -492,16 +477,16 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   Context ctx;
 
   util::write_file("foo.c", "");
-  ctx.config.set_base_dir("/"); // posix
-  // Windows path doesn't work concatenated.
-  std::string cwd = get_posix_path(ctx.actual_cwd);
+  ctx.config.set_base_dir("/");
+  std::string cwd = *fs::current_path();
   std::string arg_string = FMT("cc -I{}/foo -c foo.c", cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args[1] == "-I./foo");
+  CHECK(result.preprocessor_args[1] == "-Ifoo");
 }
+#endif // _WIN32
 
 TEST_CASE("debug_flag_order_with_known_option_first")
 {
@@ -719,7 +704,8 @@ TEST_CASE("-x")
 // MSVC's /U option, so disable the test case there. This will be possible to
 // improve when/if a compiler abstraction is introduced (issue #956).
 TEST_CASE("MSVC options"
-          * doctest::skip(util::starts_with(util::actual_cwd(), "/U")))
+          * doctest::skip(util::starts_with(fs::current_path()->string(),
+                                            "/U")))
 {
   TestContext test_context;
   Context ctx;

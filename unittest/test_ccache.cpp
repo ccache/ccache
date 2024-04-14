@@ -195,7 +195,7 @@ TEST_CASE("guess_compiler")
 #ifndef _WIN32
   SUBCASE("Follow symlink to actual compiler")
   {
-    const auto cwd = fs::path(util::actual_cwd());
+    const auto cwd = *fs::current_path();
     util::write_file(cwd / "gcc", "");
     CHECK(fs::create_symlink("gcc", cwd / "intermediate"));
     const auto cc = cwd / "cc";
@@ -206,7 +206,7 @@ TEST_CASE("guess_compiler")
 
   SUBCASE("Classify clang-cl symlink to clang")
   {
-    const auto cwd = fs::path(util::actual_cwd());
+    const auto cwd = *fs::current_path();
     util::write_file(cwd / "clang", "");
     const auto clang_cl = cwd / "clang-cl";
     CHECK(fs::create_symlink("clang", clang_cl));

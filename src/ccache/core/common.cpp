@@ -81,6 +81,17 @@ ensure_dir_exists(const fs::path& dir)
   }
 }
 
+std::filesystem::path
+make_relative_path(const Context& ctx, const std::filesystem::path& path)
+{
+  if (!ctx.config.base_dir().empty() && path.is_absolute()
+      && util::path_starts_with(path, ctx.config.base_dir())) {
+    return util::make_relative_path(ctx.actual_cwd, ctx.apparent_cwd, path);
+  } else {
+    return path;
+  }
+}
+
 std::string
 rewrite_stderr_to_absolute_paths(std::string_view text)
 {

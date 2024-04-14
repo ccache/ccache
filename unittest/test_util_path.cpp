@@ -16,13 +16,22 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <ccache/Util.hpp>
+#include "TestUtil.hpp"
+
+#include <ccache/util/PathString.hpp>
+#include <ccache/util/environment.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
 
 #include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
+
+namespace fs = util::filesystem;
+
+using pstr = util::PathString;
+using TestUtil::TestContext;
 
 TEST_CASE("util::add_exe_suffix")
 {
@@ -56,9 +65,66 @@ TEST_CASE("util::is_dev_null_path")
 #endif
 }
 
+TEST_CASE("util::make_relative_path")
+{
+  using util::make_relative_path;
+
+  const TestContext test_context;
+
+  const std::string cwd = pstr(*fs::current_path()).str();
+  const std::string actual_cwd = FMT("{}/d", cwd);
+#if defined(_WIN32) || defined(__CYGWIN__)
+  const std::string apparent_cwd = actual_cwd;
+#else
+  const std::string apparent_cwd = FMT("{}/s", cwd);
+#endif
+
+  REQUIRE(fs::create_directory("d"));
+#ifndef _WIN32
+  REQUIRE(fs::create_symlink("d", "s"));
+#endif
+  REQUIRE(fs::current_path("d"));
+  util::setenv("PWD", apparent_cwd);
+
+  SUBCASE("Path matches neither actual nor apparent CWD")
+  {
+#ifdef _WIN32
+    CHECK(make_relative_path("C:/a", "C:/b", "C:/x") == "C:/x");
+#else
+    CHECK(make_relative_path("/a", "/b", "/x") == "/x");
+#endif
+  }
+
+  SUBCASE("Match of actual CWD")
+  {
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "/x")
+          == "x");
+#ifdef _WIN32
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "\\x")
+          == "x");
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "\\\\x")
+          == "x");
+#endif
+  }
+
+#ifndef _WIN32
+  SUBCASE("Match of apparent CWD")
+  {
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, apparent_cwd + "/x")
+          == "x");
+  }
+
+  SUBCASE("Match if using resolved (using realpath(3)) path")
+  {
+    CHECK(make_relative_path(actual_cwd, actual_cwd, apparent_cwd + "/x")
+          == "x");
+  }
+#endif
+}
+
 TEST_CASE("util::path_starts_with")
 {
-  CHECK(!util::path_starts_with("", ""));
+  CHECK(util::path_starts_with("", ""));
   CHECK(!util::path_starts_with("", "/"));
   CHECK(util::path_starts_with("/foo/bar", "/foo"));
   CHECK(!util::path_starts_with("/batz/bar", "/foo"));

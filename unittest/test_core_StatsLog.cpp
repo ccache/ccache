@@ -18,7 +18,6 @@
 
 #include "TestUtil.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/core/StatsLog.hpp>
 #include <ccache/util/file.hpp>
 

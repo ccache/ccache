@@ -18,7 +18,6 @@
 
 #include "TestUtil.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/LockFile.hpp>
 #include <ccache/util/file.hpp>

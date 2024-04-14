@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,6 +28,10 @@ namespace core {
 
 // Like std::filesystem::create_directories but throws core::Fatal on error.
 void ensure_dir_exists(const std::filesystem::path& dir);
+
+// Make a `path` relative to CWD if it's under base_dir.
+std::filesystem::path make_relative_path(const Context& ctx,
+                                         const std::filesystem::path& path);
 
 // Rewrite path to absolute path in `text` in the following two cases, where X
 // may be optional ANSI CSI sequences:

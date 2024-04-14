@@ -19,7 +19,6 @@
 #include "TestUtil.hpp"
 
 #include <ccache/Config.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/file.hpp>
@@ -393,7 +392,7 @@ TEST_CASE("Config::visit_items")
 #ifndef _WIN32
     "base_dir = /bd\n"
 #else
-    "base_dir = C:/bd\n"
+    "base_dir = C:\\bd\n"
 #endif
     "cache_dir = cd\n"
     "compiler = c\n"
@@ -455,7 +454,7 @@ TEST_CASE("Config::visit_items")
 #ifndef _WIN32
     "(test.conf) base_dir = /bd",
 #else
-    "(test.conf) base_dir = C:/bd",
+    "(test.conf) base_dir = C:\\bd",
 #endif
     "(test.conf) cache_dir = cd",
     "(test.conf) compiler = c",

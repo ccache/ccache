@@ -18,7 +18,6 @@
 
 #include "util.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/PathString.hpp>
 #include <ccache/util/expected.hpp>

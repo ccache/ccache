@@ -39,7 +39,7 @@ main(int argc, char** argv)
 #endif
   util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
-  std::string dir_before = util::actual_cwd();
+  auto dir_before = *fs::current_path();
   std::string testdir = FMT("testdir/{}", getpid());
   fs::remove_all(testdir);
   fs::create_directories(testdir);

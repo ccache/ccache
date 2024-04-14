@@ -23,6 +23,7 @@
 #include <ccache/Hash.hpp>
 #include <ccache/InodeCache.hpp>
 #include <ccache/util/Fd.hpp>
+#include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
@@ -37,13 +38,15 @@
 namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
+using pstr = util::PathString;
 
 namespace {
 
 bool
 inode_cache_available()
 {
-  auto tmp_file = util::TemporaryFile::create(util::actual_cwd() + "/fs_test");
+  auto tmp_file =
+    util::TemporaryFile::create((*fs::current_path()) / "fs_test");
   if (!tmp_file) {
     return false;
   }
@@ -57,7 +60,7 @@ init(Config& config)
 {
   config.set_debug(true);
   config.set_inode_cache(true);
-  config.set_temporary_dir(util::actual_cwd());
+  config.set_temporary_dir(pstr(*fs::current_path()).str());
 }
 
 bool

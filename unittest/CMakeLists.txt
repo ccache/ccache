@@ -6,7 +6,6 @@ set(
   test_Config.cpp
   test_Depfile.cpp
   test_Hash.cpp
-  test_Util.cpp
   test_argprocessing.cpp
   test_ccache.cpp
   test_compopt.cpp

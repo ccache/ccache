@@ -29,10 +29,6 @@ namespace util {
 
 // --- Interface ---
 
-// Return current working directory (CWD) as returned from getcwd(3) (i.e.,
-// normalized path without symlink parts). Returns the empty string on error.
-std::string actual_cwd();
-
 // Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat"
 // or ".sh".
 std::string add_exe_suffix(const std::string& program);
@@ -41,7 +37,7 @@ std::string add_exe_suffix(const std::string& program);
 // PWD (thus keeping any symlink parts in the path and potentially ".." or "//"
 // parts). If PWD does not resolve to the same inode as `actual_cwd` then
 // `actual_cwd` is returned instead.
-std::string apparent_cwd(const std::string& actual_cwd);
+std::filesystem::path apparent_cwd(const std::filesystem::path& actual_cwd);
 
 const char* get_dev_null_path();
 
@@ -51,9 +47,29 @@ bool is_dev_null_path(const std::filesystem::path& path);
 // Return whether `path` includes at least one directory separator.
 bool is_full_path(std::string_view path);
 
+// Make a relative path from current working directory (either `actual_cwd` or
+// `apparent_cwd`) to `path` if `path` is under `base_dir`.
+std::filesystem::path
+make_relative_path(const std::filesystem::path& actual_cwd,
+                   const std::filesystem::path& apparent_cwd,
+                   const std::filesystem::path& path);
+
+// Construct a normalized native path.
+//
+// Example:
+//
+//   std::string path = make_path("usr", "local", "bin");
+template<typename... T>
+std::filesystem::path
+make_path(const T&... args)
+{
+  return (std::filesystem::path{} / ... / args).lexically_normal();
+}
+
 // Return whether `path` starts with `prefix` considering path specifics on
-// Windows
-bool path_starts_with(std::string_view path, std::string_view prefix);
+// Windows.
+bool path_starts_with(const std::filesystem::path& path,
+                      const std::filesystem::path& prefix);
 
 // --- Inline implementations ---
 

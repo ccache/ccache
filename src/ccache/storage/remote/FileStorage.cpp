@@ -18,7 +18,6 @@
 
 #include "FileStorage.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/core/AtomicFile.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/Bytes.hpp>

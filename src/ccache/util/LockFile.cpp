@@ -18,7 +18,6 @@
 
 #include "LockFile.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/PathString.hpp>
 #include <ccache/util/assertions.hpp>

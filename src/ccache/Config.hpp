@@ -53,7 +53,7 @@ public:
   void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
-  const std::string& base_dir() const;
+  const std::filesystem::path& base_dir() const;
   const std::string& cache_dir() const;
   const std::string& compiler() const;
   const std::string& compiler_check() const;
@@ -106,7 +106,7 @@ public:
   util::SizeUnitPrefixType size_unit_prefix_type() const;
   std::string default_temporary_dir() const;
 
-  void set_base_dir(const std::string& value);
+  void set_base_dir(const std::filesystem::path& value);
   void set_cache_dir(const std::string& value);
   void set_compiler(const std::string& value);
   void set_compiler_type(CompilerType value);
@@ -124,12 +124,12 @@ public:
   void set_temporary_dir(const std::string& value);
 
   // Where to write configuration changes.
-  const std::string& config_path() const;
+  const std::filesystem::path& config_path() const;
   // System (read-only) configuration file (if any).
-  const std::string& system_config_path() const;
+  const std::filesystem::path& system_config_path() const;
 
-  void set_config_path(std::string path);
-  void set_system_config_path(std::string path);
+  void set_config_path(const std::filesystem::path& path);
+  void set_system_config_path(const std::filesystem::path& path);
 
   using ItemVisitor = std::function<void(const std::string& key,
                                          const std::string& value,
@@ -139,7 +139,7 @@ public:
   //
   // Returns false if the file can't be opened, otherwise true. Throws Error on
   // invalid configuration values.
-  bool update_from_file(const std::string& path);
+  bool update_from_file(const std::filesystem::path& path);
 
   // Set config values from a map with key-value pairs.
   //
@@ -164,11 +164,11 @@ public:
   static void check_key_tables_consistency();
 
 private:
-  std::string m_config_path;
-  std::string m_system_config_path;
+  std::filesystem::path m_config_path;
+  std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
-  std::string m_base_dir;
+  std::filesystem::path m_base_dir;
   std::string m_cache_dir;
   std::string m_compiler;
   std::string m_compiler_check = "mtime";
@@ -236,7 +236,7 @@ Config::absolute_paths_in_stderr() const
   return m_absolute_paths_in_stderr;
 }
 
-inline const std::string&
+inline const std::filesystem::path&
 Config::base_dir() const
 {
   return m_base_dir;
@@ -516,7 +516,7 @@ Config::size_unit_prefix_type() const
 }
 
 inline void
-Config::set_base_dir(const std::string& value)
+Config::set_base_dir(const std::filesystem::path& value)
 {
   m_base_dir = value;
 }

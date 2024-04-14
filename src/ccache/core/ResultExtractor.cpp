@@ -18,7 +18,6 @@
 
 #include "ResultExtractor.hpp"
 
-#include <ccache/Util.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/Bytes.hpp>
 #include <ccache/util/DirEntry.hpp>

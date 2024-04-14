@@ -20,7 +20,6 @@
 
 #include <ccache/Config.hpp>
 #include <ccache/Hash.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/Finalizer.hpp>

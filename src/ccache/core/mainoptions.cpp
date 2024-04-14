@@ -22,7 +22,6 @@
 #include <ccache/Hash.hpp>
 #include <ccache/InodeCache.hpp>
 #include <ccache/ProgressBar.hpp>
-#include <ccache/Util.hpp>
 #include <ccache/ccache.hpp>
 #include <ccache/core/CacheEntry.hpp>
 #include <ccache/core/FileRecompressor.hpp>
@@ -717,7 +716,8 @@ process_main_options(int argc, const char* const* argv)
 
     case 'F': { // --max-files
       auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
-      config.set_value_in_file(config.config_path(), "max_files", arg);
+      config.set_value_in_file(
+        pstr(config.config_path()).str(), "max_files", arg);
       if (files == 0) {
         PRINT_RAW(stdout, "Unset cache file limit\n");
       } else {
@@ -730,7 +730,8 @@ process_main_options(int argc, const char* const* argv)
       auto [size, suffix_type] =
         util::value_or_throw<Error>(util::parse_size(arg));
       uint64_t max_size = size;
-      config.set_value_in_file(config.config_path(), "max_size", arg);
+      config.set_value_in_file(
+        pstr(config.config_path()).str(), "max_size", arg);
       if (max_size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");
       } else {
@@ -750,7 +751,7 @@ process_main_options(int argc, const char* const* argv)
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);
-      config.set_value_in_file(config.config_path(), key, value);
+      config.set_value_in_file(pstr(config.config_path()).str(), key, value);
       break;
     }
 
