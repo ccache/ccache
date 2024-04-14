@@ -70,6 +70,10 @@
 #  include <sys/sendfile.h>
 #endif
 
+#ifdef __APPLE__
+#  include <copyfile.h>
+#endif
+
 namespace fs = util::filesystem;
 
 using pstr = util::PathString;
@@ -105,7 +109,15 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
     }
   }
 
-#if defined(HAVE_SYS_SENDFILE_H)
+#if defined(__APPLE__)
+  copyfile_state_t state = copyfile_state_alloc();
+  int n = fcopyfile(*src_fd, *dest_fd, state, COPYFILE_DATA);
+  copyfile_state_free(state);
+  if (n < 0) {
+    return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
+  }
+#else
+#  if defined(HAVE_SYS_SENDFILE_H)
   DirEntry dir_entry(src, *src_fd);
   if (!dir_entry) {
     return tl::unexpected(FMT("Failed to stat {}: {}", src, strerror(errno)));
@@ -125,12 +137,13 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
   }
 
   if (fallback_to_rw) {
-#endif
+#  endif
     TRY(read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
       write_fd(*dest_fd, data.data(), data.size());
     }));
-#if defined(HAVE_SYS_SENDFILE_H)
+#  if defined(HAVE_SYS_SENDFILE_H)
   }
+#  endif
 #endif
 
   dest_fd.close();
