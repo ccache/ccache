@@ -80,8 +80,34 @@ using pstr = util::PathString;
 
 namespace util {
 
-tl::expected<void, std::string>
-copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
+#ifdef _WIN32
+static tl::expected<void, std::string>
+copy_file_impl(const fs::path& src,
+               const fs::path& dest,
+               ViaTmpFile via_tmp_file,
+               fs::path& tmp_file)
+{
+  auto dst_cstr = dest.c_str();
+  if (via_tmp_file == ViaTmpFile::yes) {
+    auto temp_file = TemporaryFile::create(dest);
+    if (!temp_file) {
+      return tl::unexpected(temp_file.error());
+    }
+    tmp_file = std::move(temp_file->path);
+    dst_cstr = tmp_file.c_str();
+  }
+  unlink(pstr(dest));
+  if (!CopyFileExW(src.c_str(), dst_cstr, nullptr, nullptr, nullptr, 0)) {
+    return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
+  }
+  return {};
+}
+#elif defined(__APPLE__)
+static tl::expected<void, std::string>
+copy_file_impl(const fs::path& src,
+               const fs::path& dest,
+               ViaTmpFile via_tmp_file,
+               fs::path& tmp_file)
 {
   Fd src_fd(open(pstr(src), O_RDONLY | O_BINARY));
   if (!src_fd) {
@@ -92,7 +118,6 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
   unlink(pstr(dest));
 
   Fd dest_fd;
-  fs::path tmp_file;
   if (via_tmp_file == ViaTmpFile::yes) {
     auto temp_file = TemporaryFile::create(dest);
     if (!temp_file) {
@@ -109,14 +134,46 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
     }
   }
 
-#if defined(__APPLE__)
   copyfile_state_t state = copyfile_state_alloc();
   int n = fcopyfile(*src_fd, *dest_fd, state, COPYFILE_DATA);
   copyfile_state_free(state);
   if (n < 0) {
     return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
   }
+  return {};
+}
 #else
+static tl::expected<void, std::string>
+copy_file_impl(const fs::path& src,
+               const fs::path& dest,
+               ViaTmpFile via_tmp_file,
+               fs::path& tmp_file)
+{
+  Fd src_fd(open(pstr(src), O_RDONLY | O_BINARY));
+  if (!src_fd) {
+    return tl::unexpected(
+      FMT("Failed to open {} for reading: {}", src, strerror(errno)));
+  }
+
+  unlink(pstr(dest));
+
+  Fd dest_fd;
+  if (via_tmp_file == ViaTmpFile::yes) {
+    auto temp_file = TemporaryFile::create(dest);
+    if (!temp_file) {
+      return tl::unexpected(temp_file.error());
+    }
+    dest_fd = std::move(temp_file->fd);
+    tmp_file = std::move(temp_file->path);
+  } else {
+    dest_fd =
+      Fd(open(pstr(dest), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
+      return tl::unexpected(
+        FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
+    }
+  }
+
 #  if defined(HAVE_SYS_SENDFILE_H)
   DirEntry dir_entry(src, *src_fd);
   if (!dir_entry) {
@@ -144,10 +201,18 @@ copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
 #  if defined(HAVE_SYS_SENDFILE_H)
   }
 #  endif
+  return {};
+}
 #endif
 
-  dest_fd.close();
-  src_fd.close();
+tl::expected<void, std::string>
+copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
+{
+  fs::path tmp_file;
+  auto r = copy_file_impl(src, dest, via_tmp_file, tmp_file);
+  if (!r) {
+    return tl::unexpected(r.error());
+  }
 
   if (via_tmp_file == ViaTmpFile::yes) {
     const auto result = fs::rename(tmp_file, dest);
