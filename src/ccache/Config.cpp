@@ -293,6 +293,8 @@ parse_sloppiness(const std::string& value)
       result.insert(core::Sloppy::file_stat_matches_ctime);
     } else if (token == "gcno_cwd") {
       result.insert(core::Sloppy::gcno_cwd);
+    } else if (token == "incbin") {
+      result.insert(core::Sloppy::incbin);
     } else if (token == "include_file_ctime") {
       result.insert(core::Sloppy::include_file_ctime);
     } else if (token == "include_file_mtime") {
@@ -332,6 +334,9 @@ format_sloppiness(core::Sloppiness sloppiness)
   }
   if (sloppiness.contains(core::Sloppy::gcno_cwd)) {
     result += "gcno_cwd, ";
+  }
+  if (sloppiness.contains(core::Sloppy::incbin)) {
+    result += "incbin, ";
   }
   if (sloppiness.contains(core::Sloppy::include_file_ctime)) {
     result += "include_file_ctime, ";
