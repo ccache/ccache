@@ -78,14 +78,6 @@ jobs:
             compiler: gcc
             version: "13"
 
-          - os: macOS-11
-            compiler: xcode
-            version: "11.7"
-
-          - os: macOS-11
-            compiler: xcode
-            version: "12.5.1"
-
           - os: macOS-12
             compiler: xcode
             version: "13.4.1"
@@ -93,6 +85,14 @@ jobs:
           - os: macOS-12
             compiler: xcode
             version: "14.2"
+
+          - os: macOS-13
+            compiler: xcode
+            version: "15.0.1"
+
+          - os: macOS-14
+            compiler: xcode
+            version: "15.3"
     steps:
       - name: Install dependencies on Linux
         if: ${{ runner.os == 'Linux' }}
