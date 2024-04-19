@@ -202,7 +202,7 @@ jobs:
             env: x86_64
             compiler: clang
 
-    name: 'Windows ${{ matrix.sys }} ${{ matrix.compiler }}'
+    name: 'Windows MSYS2 ${{ matrix.sys }} ${{ matrix.compiler }}'
     defaults:
       run:
         shell: msys2 {0}
