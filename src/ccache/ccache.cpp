@@ -647,12 +647,18 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     return tl::unexpected(Statistic::bad_input_file);
   }
 
+  bool seen_colon = false;
   for (std::string_view token : Depfile::tokenize(*file_content)) {
-    if (util::ends_with(token, ":")) {
+    if (token.empty()) {
+      seen_colon = false;
       continue;
     }
-    std::string path = Util::make_relative_path(ctx, token);
-    TRY(remember_include_file(ctx, path, hash, false, &hash));
+    if (seen_colon) {
+      std::string path = Util::make_relative_path(ctx, token);
+      TRY(remember_include_file(ctx, path, hash, false, &hash));
+    } else if (token == ":") {
+      seen_colon = true;
+    }
   }
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the

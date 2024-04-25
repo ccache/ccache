@@ -34,12 +34,6 @@
 
 namespace fs = util::filesystem;
 
-static inline bool
-is_blank(const std::string& s)
-{
-  return std::all_of(s.begin(), s.end(), [](char c) { return isspace(c); });
-}
-
 namespace Depfile {
 
 std::string
@@ -66,58 +60,31 @@ escape_filename(std::string_view filename)
 }
 
 std::optional<std::string>
-rewrite_source_paths(const Context& ctx, std::string_view file_content)
+rewrite_source_paths(const Context& ctx, std::string_view content)
 {
   ASSERT(!ctx.config.base_dir().empty());
 
-  // Fast path for the common case:
-  if (file_content.find(ctx.config.base_dir()) == std::string::npos) {
-    return std::nullopt;
-  }
-
-  std::string adjusted_file_content;
-  adjusted_file_content.reserve(file_content.size());
-
-  bool content_rewritten = false;
-  bool seen_target_token = false;
-
-  using util::Tokenizer;
-  for (const auto line : Tokenizer(file_content,
-                                   "\n",
-                                   Tokenizer::Mode::include_empty,
-                                   Tokenizer::IncludeDelimiter::yes)) {
-    const auto tokens = util::split_into_views(line, " \t");
-    for (size_t i = 0; i < tokens.size(); ++i) {
-      DEBUG_ASSERT(!line.empty()); // line.empty() -> no tokens
-      DEBUG_ASSERT(!tokens[i].empty());
-
-      if (i > 0 || line[0] == ' ' || line[0] == '\t') {
-        adjusted_file_content.push_back(' ');
-      }
-
-      const auto& token = tokens[i];
-      bool token_rewritten = false;
-      if (seen_target_token && fs::path(token).is_absolute()) {
-        const auto new_path = Util::make_relative_path(ctx, token);
-        if (new_path != token) {
-          adjusted_file_content.append(new_path);
-          token_rewritten = true;
-        }
-      }
-      if (token_rewritten) {
-        content_rewritten = true;
-      } else {
-        adjusted_file_content.append(token.begin(), token.end());
-      }
-
-      if (tokens[i].back() == ':') {
-        seen_target_token = true;
-      }
+  bool rewritten = false;
+  bool first = true;
+  auto tokens = tokenize(content);
+  for (auto& token : tokens) {
+    if (first) {
+      // Don't rewrite object file path.
+      first = false;
+      continue;
+    }
+    if (token.empty() || token == ":") {
+      continue;
+    }
+    auto rel_path = Util::make_relative_path(ctx, token);
+    if (rel_path != token) {
+      rewritten = true;
+      token = std::move(rel_path);
     }
   }
 
-  if (content_rewritten) {
-    return adjusted_file_content;
+  if (rewritten) {
+    return untokenize(tokens);
   } else {
     return std::nullopt;
   }
@@ -133,14 +100,12 @@ make_paths_relative_in_output_dep(const Context& ctx)
   }
 
   const std::string& output_dep = ctx.args_info.output_dep;
-  const auto file_content = util::read_file<std::string>(output_dep);
-  if (!file_content) {
-    LOG("Failed to read dependency file {}: {}",
-        output_dep,
-        file_content.error());
+  const auto content = util::read_file<std::string>(output_dep);
+  if (!content) {
+    LOG("Failed to read dependency file {}: {}", output_dep, content.error());
     return;
   }
-  const auto new_content = rewrite_source_paths(ctx, *file_content);
+  const auto new_content = rewrite_source_paths(ctx, *content);
   if (new_content) {
     util::write_file(output_dep, *new_content);
   } else {
@@ -149,7 +114,7 @@ make_paths_relative_in_output_dep(const Context& ctx)
 }
 
 std::vector<std::string>
-tokenize(std::string_view file_content)
+tokenize(std::string_view text)
 {
   // A dependency file uses Makefile syntax. This is not perfect parser but
   // should be enough for parsing a regular dependency file.
@@ -178,94 +143,113 @@ tokenize(std::string_view file_content)
   // the following character is a slash (forward or backward), then it is
   // interpreted as a Windows path.
 
-  std::vector<std::string> result;
-  const size_t length = file_content.size();
-  std::string token;
-  size_t p = 0;
+  std::vector<std::string> tokens;
+  const size_t length = text.size();
 
-  while (p < length) {
-    char c = file_content[p];
+  size_t i = 0;
 
-    if (c == ':' && p + 1 < length && !is_blank(token) && token.length() == 1) {
-      const char next = file_content[p + 1];
-      if (next == '/' || next == '\\') {
-        // It's a Windows path, so the colon is not a separator and instead
-        // added to the token.
-        token.push_back(c);
-        ++p;
-        continue;
-      }
+  while (true) {
+    // Find start of next token.
+    while (i < length && text[i] != '\n' && isspace(text[i])) {
+      ++i;
     }
 
-    // Each token is separated by whitespace or a colon.
-    if (isspace(c) || c == ':') {
-      // Chomp all spaces before next character.
-      while (p < length && isspace(file_content[p])) {
-        ++p;
+    // Detect end of entry.
+    if (i == length || text[i] == '\n') {
+      if (!tokens.empty() && !tokens.back().empty()) {
+        tokens.emplace_back("");
       }
-      if (!is_blank(token)) {
-        // If there were spaces between a token and the colon, add the colon the
-        // token to make sure it is seen as a target and not as a dependency.
-        if (p < length) {
-          const char next = file_content[p];
-          if (next == ':') {
-            token.push_back(next);
-            ++p;
-            // Chomp all spaces before next character.
-            while (p < length && isspace(file_content[p])) {
-              ++p;
-            }
-          }
-        }
-        result.push_back(token);
+      if (i == length) {
+        // Reached the end.
+        break;
       }
-      token.clear();
+      ++i;
       continue;
     }
 
-    switch (c) {
-    case '\\':
-      if (p + 1 < length) {
-        const char next = file_content[p + 1];
-        switch (next) {
-        // A backspace followed by any of the below characters leaves the
-        // character as is.
-        case '\\':
-        case '#':
-        case ':':
-        case ' ':
-        case '\t':
-          c = next;
-          ++p;
-          break;
-        // Backslash followed by newline is interpreted like a space, so simply
-        // discard the backslash.
-        case '\n':
-          ++p;
-          continue;
-        }
-      }
-      break;
-    case '$':
-      if (p + 1 < length) {
-        const char next = file_content[p + 1];
-        if (next == '$') {
-          // A dollar sign preceded by a dollar sign escapes the dollar sign.
-          c = next;
-          ++p;
-        }
-      }
-      break;
+    if (text[i] == ':') {
+      tokens.emplace_back(":");
+      ++i;
+      continue;
     }
 
-    token.push_back(c);
-    ++p;
+    if (text[i] == '\\' && i + 1 < length && text[i + 1] == '\n') {
+      // Line continuation.
+      i += 2;
+      continue;
+    }
+
+    // Parse token.
+    std::string token;
+    while (i < length) {
+      if (text[i] == ':' && token.length() == 1 && !isspace(token[0])
+          && i + 1 < length && (text[i + 1] == '/' || text[i + 1] == '\\')) {
+        // It's a Windows path, so the colon is not a separator and instead
+        // added to the token.
+        token += text[i];
+        ++i;
+        continue;
+      }
+
+      if (text[i] == ':' || isspace(text[i])
+          || (text[i] == '\\' && i + 1 < length && text[i + 1] == '\n')) {
+        // End of token.
+        break;
+      }
+
+      if (i + 1 < length) {
+        switch (text[i]) {
+        case '\\':
+          switch (text[i + 1]) {
+          // A backspace followed by any of the below characters leaves the
+          // character as is.
+          case '\\':
+          case '#':
+          case ':':
+          case ' ':
+          case '\t':
+            ++i;
+            break;
+          }
+          break;
+        case '$':
+          if (text[i + 1] == '$') {
+            // A dollar sign preceded by a dollar sign escapes the dollar sign.
+            ++i;
+          }
+          break;
+        }
+      }
+
+      token += text[i];
+      ++i;
+    }
+
+    tokens.push_back(token);
   }
 
-  if (!is_blank(token)) {
-    result.push_back(token);
-  }
+  return tokens;
+}
 
+std::string
+untokenize(const std::vector<std::string>& tokens)
+{
+  std::string result;
+  for (const auto& token : tokens) {
+    if (token.empty()) {
+      result += '\n';
+    } else if (token == ":") {
+      result += ':';
+    } else {
+      if (!result.empty() && result.back() != '\n') {
+        result += " \\\n ";
+      }
+      result += escape_filename(token);
+    }
+  }
+  if (!result.empty() && result.back() != '\n') {
+    result += '\n';
+  }
   return result;
 }
 

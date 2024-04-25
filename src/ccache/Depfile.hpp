@@ -34,8 +34,11 @@ std::optional<std::string> rewrite_source_paths(const Context& ctx,
 
 void make_paths_relative_in_output_dep(const Context& ctx);
 
-// Tokenize `file_content` into a list of files, where the first token is the
-// target and ends with a colon.
-std::vector<std::string> tokenize(std::string_view file_content);
+// Split `text` into tokens. A colon token delimits the target tokens from
+// dependency tokens. An empty token marks the end of an entry.
+std::vector<std::string> tokenize(std::string_view text);
+
+// Return text from `tokens` that originate from `tokenize`.
+std::string untokenize(const std::vector<std::string>& tokens);
 
 } // namespace Depfile
