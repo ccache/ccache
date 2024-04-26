@@ -955,6 +955,12 @@ write_result(Context& ctx,
     LOG("Callgraph info file {} missing", ctx.args_info.output_ci);
     return false;
   }
+  if (ctx.args_info.generating_ipa_clones
+      && !serializer.add_file(core::Result::FileType::ipa_clones,
+                              ctx.args_info.output_ipa)) {
+    LOG("IPA clones file {} missing", ctx.args_info.output_ipa);
+    return false;
+  }
   if (ctx.args_info.generating_diagnostics
       && !serializer.add_file(core::Result::FileType::diagnostic,
                               ctx.args_info.output_dia)) {

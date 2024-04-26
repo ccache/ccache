@@ -206,6 +206,11 @@ ResultRetriever::get_dest_path(FileType file_type) const
       return m_ctx.args_info.output_ci;
     }
     break;
+  case FileType::ipa_clones:
+    if (m_ctx.args_info.generating_ipa_clones) {
+      return m_ctx.args_info.output_ipa;
+    }
+    break;
   }
 
   return {};

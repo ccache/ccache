@@ -153,6 +153,9 @@ file_type_to_string(FileType type)
 
   case FileType::callgraph_info:
     return ".ci";
+
+  case FileType::ipa_clones:
+    return ".000i.ipa-clones";
   }
 
   return k_unknown_file_type;

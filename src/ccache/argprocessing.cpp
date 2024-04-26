@@ -418,6 +418,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg == "-fdump-ipa-clones") {
+    args_info.generating_ipa_clones = true;
+    state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
   // These are always too hard.
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
       || util::starts_with(arg, "-MJ")
@@ -1600,6 +1606,13 @@ process_args(Context& ctx)
       fs::path(args_info.output_obj).replace_extension(".ci").string();
     args_info.output_ci =
       pstr(core::make_relative_path(ctx, default_cifile_name)).str();
+  }
+
+  if (args_info.generating_ipa_clones) {
+    fs::path ipa_path(args_info.orig_input_file);
+    ipa_path += ".000i.ipa-clones";
+    args_info.output_ipa =
+      pstr(core::make_relative_path(ctx, ipa_path.string())).str();
   }
 
   Args compiler_args = state.common_args;
