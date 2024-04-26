@@ -31,8 +31,25 @@
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 
+#ifdef __APPLE__
+#  include <copyfile.h>
+#endif
+
+#ifdef HAVE_DIRENT_H
+#  include <dirent.h>
+#endif
+
+#ifdef HAVE_SYS_SENDFILE_H
+#  include <sys/sendfile.h>
+#endif
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
+#endif
+
+#ifdef _WIN32
+#  include <io.h>
+#  include <windows.h>
 #endif
 
 #ifdef HAVE_UTIMENSAT
@@ -50,29 +67,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef HAVE_DIRENT_H
-#  include <dirent.h>
-#endif
-
 #include <cerrno>
 #include <cstring>
 #include <fstream>
 #include <locale>
 #include <type_traits>
 #include <vector>
-
-#ifdef _WIN32
-#  include <io.h>
-#  include <windows.h>
-#endif
-
-#ifdef HAVE_SYS_SENDFILE_H
-#  include <sys/sendfile.h>
-#endif
-
-#ifdef __APPLE__
-#  include <copyfile.h>
-#endif
 
 namespace fs = util::filesystem;
 
@@ -81,6 +81,7 @@ using pstr = util::PathString;
 namespace util {
 
 #ifdef _WIN32
+
 static tl::expected<void, std::string>
 copy_file_impl(const fs::path& src,
                const fs::path& dest,
@@ -98,11 +99,22 @@ copy_file_impl(const fs::path& src,
   }
   unlink(pstr(dest));
   if (!CopyFileExW(src.c_str(), dst_cstr, nullptr, nullptr, nullptr, 0)) {
-    return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
+    return tl::unexpected(
+      FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
   }
   return {};
 }
-#elif defined(__APPLE__)
+
+#else
+
+static tl::expected<void, std::string>
+copy_fd(int src_fd, int dst_fd)
+{
+  return read_fd(src_fd, [&](nonstd::span<const uint8_t> data) {
+    write_fd(dst_fd, data.data(), data.size());
+  });
+}
+
 static tl::expected<void, std::string>
 copy_file_impl(const fs::path& src,
                const fs::path& dest,
@@ -117,92 +129,57 @@ copy_file_impl(const fs::path& src,
 
   unlink(pstr(dest));
 
-  Fd dest_fd;
+  Fd dst_fd;
   if (via_tmp_file == ViaTmpFile::yes) {
     auto temp_file = TemporaryFile::create(dest);
     if (!temp_file) {
       return tl::unexpected(temp_file.error());
     }
-    dest_fd = std::move(temp_file->fd);
+    dst_fd = std::move(temp_file->fd);
     tmp_file = std::move(temp_file->path);
   } else {
-    dest_fd =
+    dst_fd =
       Fd(open(pstr(dest), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-    if (!dest_fd) {
+    if (!dst_fd) {
       return tl::unexpected(
         FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
     }
   }
 
+#  if defined(__APPLE__)
   copyfile_state_t state = copyfile_state_alloc();
-  int n = fcopyfile(*src_fd, *dest_fd, state, COPYFILE_DATA);
+  int n = fcopyfile(*src_fd, *dst_fd, state, COPYFILE_DATA);
   copyfile_state_free(state);
   if (n < 0) {
-    return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
-  }
-  return {};
-}
-#else
-static tl::expected<void, std::string>
-copy_file_impl(const fs::path& src,
-               const fs::path& dest,
-               ViaTmpFile via_tmp_file,
-               fs::path& tmp_file)
-{
-  Fd src_fd(open(pstr(src), O_RDONLY | O_BINARY));
-  if (!src_fd) {
     return tl::unexpected(
-      FMT("Failed to open {} for reading: {}", src, strerror(errno)));
+      FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
   }
-
-  unlink(pstr(dest));
-
-  Fd dest_fd;
-  if (via_tmp_file == ViaTmpFile::yes) {
-    auto temp_file = TemporaryFile::create(dest);
-    if (!temp_file) {
-      return tl::unexpected(temp_file.error());
-    }
-    dest_fd = std::move(temp_file->fd);
-    tmp_file = std::move(temp_file->path);
-  } else {
-    dest_fd =
-      Fd(open(pstr(dest), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-    if (!dest_fd) {
-      return tl::unexpected(
-        FMT("Failed to open {} for writing: {}", dest, strerror(errno)));
-    }
-  }
-
-#  if defined(HAVE_SYS_SENDFILE_H)
+#  elif defined(HAVE_SYS_SENDFILE_H)
   DirEntry dir_entry(src, *src_fd);
   if (!dir_entry) {
     return tl::unexpected(FMT("Failed to stat {}: {}", src, strerror(errno)));
   }
   ssize_t bytes_left = dir_entry.size();
-  bool fallback_to_rw = false;
   while (bytes_left > 0) {
-    ssize_t n = sendfile(*dest_fd, *src_fd, nullptr, bytes_left);
+    ssize_t n = sendfile(*dst_fd, *src_fd, nullptr, bytes_left);
     if (n < 0) {
-      fallback_to_rw = (errno == EINVAL || errno == ENOSYS);
-      if (!fallback_to_rw) {
-        return tl::unexpected(FMT("Failed to copy: {} to {}", src, dest));
+      switch (errno) {
+      case EINVAL:
+      case ENOSYS:
+        return copy_fd(*src_fd, *dst_fd);
+      default:
+        return tl::unexpected(
+          FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
       }
-      break;
     }
     bytes_left -= n;
   }
-
-  if (fallback_to_rw) {
-#  endif
-    TRY(read_fd(*src_fd, [&](nonstd::span<const uint8_t> data) {
-      write_fd(*dest_fd, data.data(), data.size());
-    }));
-#  if defined(HAVE_SYS_SENDFILE_H)
-  }
+#  else
+  copy_fd(*src_fd, *dst_fd);
 #  endif
   return {};
 }
+
 #endif
 
 tl::expected<void, std::string>

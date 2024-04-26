@@ -72,7 +72,7 @@ TEST_CASE("util::likely_size_on_disk")
   CHECK(util::likely_size_on_disk(4097) == 8192);
 }
 
-TEST_CASE("util::read_file util::write_file and util::copy_file, text data")
+TEST_CASE("util::read_file, util::write_file and util::copy_file, text data")
 {
   TestContext test_context;
 
