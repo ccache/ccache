@@ -12,8 +12,8 @@
 #define NONSTD_SPAN_HPP_INCLUDED
 
 #define span_lite_MAJOR  0
-#define span_lite_MINOR  10
-#define span_lite_PATCH  3
+#define span_lite_MINOR  11
+#define span_lite_PATCH  0
 
 #define span_lite_VERSION  span_STRINGIFY(span_lite_MAJOR) "." span_STRINGIFY(span_lite_MINOR) "." span_STRINGIFY(span_lite_PATCH)
 
@@ -59,6 +59,10 @@
 #endif
 
 // span configuration (features):
+
+#ifndef  span_FEATURE_WITH_INITIALIZER_LIST_P2447
+# define span_FEATURE_WITH_INITIALIZER_LIST_P2447  0
+#endif
 
 #ifndef  span_FEATURE_WITH_CONTAINER
 #ifdef   span_FEATURE_WITH_CONTAINER_TO_STD
@@ -171,7 +175,7 @@
 # error Please define none or one of span_CONFIG_CONTRACT_VIOLATION_THROWS and span_CONFIG_CONTRACT_VIOLATION_TERMINATES to 1, but not both.
 #endif
 
-// C++ language version detection (C++20 is speculative):
+// C++ language version detection (C++23 is speculative):
 // Note: VC14.0/1900 (VS2015) lacks too much from C++14.
 
 #ifndef   span_CPLUSPLUS
@@ -186,7 +190,8 @@
 #define span_CPP11_OR_GREATER  ( span_CPLUSPLUS >= 201103L )
 #define span_CPP14_OR_GREATER  ( span_CPLUSPLUS >= 201402L )
 #define span_CPP17_OR_GREATER  ( span_CPLUSPLUS >= 201703L )
-#define span_CPP20_OR_GREATER  ( span_CPLUSPLUS >= 202000L )
+#define span_CPP20_OR_GREATER  ( span_CPLUSPLUS >= 202002L )
+#define span_CPP23_OR_GREATER  ( span_CPLUSPLUS >= 202300L )
 
 // C++ language version (represent 98 as 3):
 
@@ -223,6 +228,7 @@
 namespace nonstd {
 
 using std::span;
+using std::dynamic_extent;
 
 // Note: C++20 does not provide comparison
 // using std::operator==;
@@ -340,6 +346,7 @@ span_DISABLE_MSVC_WARNINGS( 26439 26440 26472 26473 26481 26490 )
 #define span_HAVE_IS_DEFAULT                span_CPP11_140
 #define span_HAVE_IS_DELETE                 span_CPP11_140
 #define span_HAVE_NOEXCEPT                  span_CPP11_140
+#define span_HAVE_NORETURN                ( span_CPP11_140 && ! span_BETWEEN( span_COMPILER_GNUC_VERSION, 1, 480 ) )
 #define span_HAVE_NULLPTR                   span_CPP11_100
 #define span_HAVE_STATIC_ASSERT             span_CPP11_100
 
@@ -351,7 +358,6 @@ span_DISABLE_MSVC_WARNINGS( 26439 26440 26472 26473 26481 26490 )
 
 #define span_HAVE_DEPRECATED                span_CPP17_000
 #define span_HAVE_NODISCARD                 span_CPP17_000
-#define span_HAVE_NORETURN                  span_CPP17_000
 
 // MSVC: template parameter deduction guides since Visual Studio 2017 v15.7
 
@@ -1058,6 +1064,52 @@ public:
     {}
 #endif
 
+#if span_FEATURE( WITH_INITIALIZER_LIST_P2447 ) && span_HAVE( INITIALIZER_LIST )
+
+    // constexpr explicit(extent != dynamic_extent) span(std::initializer_list<value_type> il) noexcept;
+
+#if !span_BETWEEN( span_COMPILER_MSVC_VERSION, 120, 130 )
+
+    template< extent_t U = Extent
+        span_REQUIRES_T((
+            U != dynamic_extent
+        ))
+    >
+#if span_COMPILER_GNUC_VERSION >= 900   // prevent GCC's "-Winit-list-lifetime"
+    span_constexpr14 explicit span( std::initializer_list<value_type> il ) span_noexcept
+    {
+        data_ = il.begin();
+        size_ = il.size();
+    }
+#else
+    span_constexpr explicit span( std::initializer_list<value_type> il ) span_noexcept
+        : data_( il.begin() )
+        , size_( il.size()  )
+    {}
+#endif
+
+#endif // MSVC 120 (VS2013)
+
+    template< extent_t U = Extent
+        span_REQUIRES_T((
+            U == dynamic_extent
+        ))
+    >
+#if span_COMPILER_GNUC_VERSION >= 900   // prevent GCC's "-Winit-list-lifetime"
+    span_constexpr14 /*explicit*/ span( std::initializer_list<value_type> il ) span_noexcept
+    {
+        data_ = il.begin();
+        size_ = il.size();
+    }
+#else
+    span_constexpr /*explicit*/ span( std::initializer_list<value_type> il ) span_noexcept
+        : data_( il.begin() )
+        , size_( il.size()  )
+    {}
+#endif
+
+#endif // P2447
+
 #if span_HAVE( IS_DEFAULT )
     span_constexpr span( span const & other ) span_noexcept = default;
 
@@ -1586,6 +1638,17 @@ make_span( std::array< T, N > const & arr ) span_noexcept
 }
 
 #endif // span_HAVE( ARRAY )
+
+#if span_USES_STD_SPAN || span_HAVE( INITIALIZER_LIST )
+
+template< class T >
+inline span_constexpr span< const T >
+make_span( std::initializer_list<T> il ) span_noexcept
+{
+    return span<const T>( il.begin(), il.size() );
+}
+
+#endif // span_HAVE( INITIALIZER_LIST )
 
 #if span_USES_STD_SPAN
 
