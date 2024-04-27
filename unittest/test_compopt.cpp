@@ -65,7 +65,6 @@ TEST_CASE("too_hard")
 
 TEST_CASE("too_hard_for_direct_mode")
 {
-  CHECK(compopt_too_hard_for_direct_mode("-Xpreprocessor"));
   CHECK(!compopt_too_hard_for_direct_mode("-nostdinc"));
 }
 

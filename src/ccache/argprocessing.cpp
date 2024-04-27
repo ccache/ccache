@@ -433,6 +433,23 @@ process_option_arg(const Context& ctx,
     config.set_direct_mode(false);
   }
 
+  // Handle -Xpreprocessor options.
+  if (util::starts_with(arg, "-Xpreprocessor")) {
+    if (i == args.size() - 1) {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
+    }
+    if (args[i + 1] == "-fopenmp") {
+      ++i;
+      return Statistic::none;
+    } else {
+      LOG("Unsupported compiler option for direct mode: {} {}",
+          args[i],
+          args[i + 1]);
+      config.set_direct_mode(false);
+    }
+  }
+
   // Handle -Xarch_* options.
   if (util::starts_with(arg, "-Xarch_")) {
     if (i == args.size() - 1) {

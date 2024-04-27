@@ -96,7 +96,7 @@ const CompOpt compopts[] = {
   {"-Xclang", TAKES_ARG},
   {"-Xcompiler", AFFECTS_CPP | TAKES_ARG}, // nvcc
   {"-Xlinker", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
-  {"-Xpreprocessor", AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
+  {"-Xpreprocessor", AFFECTS_CPP | TAKES_ARG},
   {"-Yc", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-Yu", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
   {"-all_load", AFFECTS_COMP},

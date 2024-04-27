@@ -1621,10 +1621,10 @@ The direct mode will be disabled if any of the following holds:
 * <<config_direct_mode,*direct_mode*>> is false
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
-* a compiler option not supported by the direct mode is used:
+* a compiler option not supported by the direct mode is used, for example:
 ** a `-Wp,++*++` compiler option other than `-Wp,-MD,<path>`, `-Wp,-MMD,<path>`,
    `-Wp,-D<macro[=defn]>` or `-Wp,-U<macro>`
-** `-Xpreprocessor`
+** most uses of `-Xpreprocessor`
 * the string `+__TIME__+` is present in the source code
 
 
