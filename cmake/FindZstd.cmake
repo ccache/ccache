@@ -33,7 +33,7 @@ else()
 endif()
 
 if(_download_zstd)
-  set(_zstd_version_string 1.5.5)
+  set(_zstd_version_string 1.5.6)
 
   if(XCODE)
     # See https://github.com/facebook/zstd/pull/3665
@@ -49,7 +49,7 @@ if(_download_zstd)
   FetchContent_Declare(
     Zstd
     URL "https://github.com/facebook/zstd/releases/download/v${_zstd_version_string}/zstd-${_zstd_version_string}.tar.gz"
-    URL_HASH SHA256=9c4396cc829cfae319a6e2615202e82aad41372073482fce286fac78646d3ee4
+    URL_HASH SHA256=8c29e06cf42aacc1eafc4077ae2ec6c6fcb96a626157e0593d5e82a34fd403c1
     SOURCE_SUBDIR build/cmake
     ${_zstd_patch}
   )
