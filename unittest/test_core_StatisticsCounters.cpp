@@ -21,7 +21,7 @@
 #include <ccache/core/Statistic.hpp>
 #include <ccache/core/StatisticsCounters.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 using core::Statistic;
 using core::StatisticsCounters;

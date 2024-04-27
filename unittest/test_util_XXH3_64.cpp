@@ -18,7 +18,7 @@
 
 #include <ccache/util/XXH3_64.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("util::XXH3_64");
 

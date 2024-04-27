@@ -21,9 +21,9 @@
 #include <ccache/Hash.hpp>
 #include <ccache/util/Bytes.hpp>
 
+#include <cxxurl/url.hpp>
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
-#include <url.hpp>
 
 #include <chrono>
 #include <memory>

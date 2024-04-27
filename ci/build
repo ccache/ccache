@@ -35,12 +35,17 @@ else
             ;;
     esac
 
+    if [ -x ccache ]; then
+        ./ccache --version
+    elif command -v wine >/dev/null && [ -f ccache.exe ]; then
+        wine ccache.exe --version
+    fi
+
     case "${RUN_TESTS:-all}" in
         all)
             CC="${TEST_CC}" ctest --output-on-failure -j"${JOBS}" "$@"
             ;;
         unittest-in-wine)
-            wine ccache.exe --version
             wine unittest/unittest.exe
             ;;
         none)

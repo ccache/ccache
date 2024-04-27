@@ -18,7 +18,7 @@
 
 #include <ccache/util/Duration.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("util::Duration");
 

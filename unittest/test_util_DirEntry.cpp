@@ -26,7 +26,8 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/wincompat.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
+
 #include <fcntl.h>
 
 #ifdef HAVE_UNISTD_H

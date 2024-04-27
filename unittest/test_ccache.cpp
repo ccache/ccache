@@ -26,7 +26,7 @@
 #include <ccache/util/path.hpp>
 #include <ccache/util/wincompat.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <optional>
 #include <string>

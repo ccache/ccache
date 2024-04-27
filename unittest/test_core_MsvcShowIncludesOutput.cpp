@@ -22,7 +22,7 @@
 #include <ccache/core/MsvcShowIncludesOutput.hpp>
 #include <ccache/util/string.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 static const std::string defaultPrefix = "Note: including file:";
 

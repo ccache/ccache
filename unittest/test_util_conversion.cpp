@@ -18,7 +18,7 @@
 
 #include <ccache/util/conversion.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>

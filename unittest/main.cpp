@@ -23,7 +23,7 @@
 
 #define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug
 #define DOCTEST_CONFIG_IMPLEMENT
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

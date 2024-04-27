@@ -24,7 +24,7 @@
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 using core::Statistic;
 using storage::local::StatsFile;

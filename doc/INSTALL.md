@@ -1,8 +1,6 @@
-Ccache installation
-===================
+# Ccache installation
 
-Prerequisites
--------------
+## Prerequisites
 
 To build ccache you need:
 
@@ -11,59 +9,75 @@ To build ccache you need:
   languages](https://ccache.dev/platform-compiler-language-support.html) for
   details.
 - A C99 compiler.
-- [libzstd](http://www.zstd.net). If you don't have libzstd installed and can't
-  or don't want to install it in a standard system location, it will be
-  automatically downloaded, built and linked statically as part of the build
-  process. To disable this, pass `-DOFFLINE=TRUE` or `-DZSTD_FROM_INTERNET=OFF`
-  to `cmake`, or pass `-DZSTD_FROM_INTERNET=ON` to force downloading. You can
-  also install zstd in a custom path and pass
-  `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`.
-
-  To link libzstd statically (and you have a static libzstd available), pass
-  `-DSTATIC_LINK=ON` to `cmake`. This is the default on Windows. Alternatively,
-  use `-DZSTD_LIBRARY=/path/to/libzstd.a`.
+- Various software libraries, see _Dependencies_ below.
 
 Optional:
 
-- [hiredis](https://github.com/redis/hiredis) for the Redis storage backend. If
-  you don't have libhiredis installed and can't or don't want to install it in
-  a standard system location, it will be automatically downloaded, built and
-  linked statically as part of the build process. To disable this, pass
-  `-DOFFLINE=TRUE` or `-DHIREDIS_FROM_INTERNET=OFF` to `cmake`, or pass
-  `-DHIREDIS_FROM_INTERNET=ON` to force downloading. You can also install
-  hiredis in a custom path and pass `-DCMAKE_PREFIX_PATH=/some/custom/path` to
-  `cmake`.
-
-  To link libhiredis statically (and you have a static libhiredis available),
-  pass `-DSTATIC_LINK=ON` to `cmake`. This is the default on Windows.
-  Alternatively, use `-DHIREDIS_LIBRARY=/path/to/libhiredis.a`.
 - GNU Bourne Again SHell (bash) for tests.
 - [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
 - [Python](https://www.python.org) to debug and run the performance test suite.
 
-Reference configurations:
+See also [CI configurations](../.github/workflows/build.yaml) for regularly
+tested build setups, including cross-compilation and dependencies required in
+Debian/Ubuntu environments.
 
-- See [CI configurations](../.github/workflows/build.yaml) for a selection of
-  regularly tested build setups, including cross-compiling and explicit
-  dependencies required in Debian/Ubuntu environment.
+## Software library dependencies
 
-Installation
-------------
+### How to locate or retrieve
 
-Here is the typical way to build and install ccache:
+The CMake variable `DEPS` can be set to select how software library dependencies
+should be located or retrieved:
+
+- `AUTO` (the default): Use dependencies from the local system if available.
+  Otherwise: Use bundled dependencies if available. Otherwise: Download
+  dependencies from the internet (dependencies will then be linked statically).
+- `DOWNLOAD`: Use bundled dependencies if available. Otherwise: Download
+  dependencies from the internet (dependencies will then be linked
+  statically).
+- `LOCAL`: Use dependencies from the local system if available. Otherwise: Use
+  bundled dependencies if available.
+
+### Dependencies
+
+- [BLAKE3](https://github.com/BLAKE3-team/BLAKE3)[^1]
+- [cpp-httplib](https://github.com/yhirose/cpp-httplib)[^1]
+- [doctest](https://github.com/doctest/doctest)[^2] (optional, disable with `-D
+  ENABLE_TESTING=OFF`)
+- [fmt](https://fmt.dev)[^2]
+- [hiredis](https://github.com/redis/hiredis)[^2] (optional, disable with `-D
+  REDIS_STORAGE_BACKEND=OFF`)
+- [span-lite](https://github.com/martinmoene/span-lite)[^1]
+- [tl-expected](https://github.com/TartanLlama/expected)[^1]
+- [xxhash](https://github.com/Cyan4973/xxHash)[^2]
+- [Zstandard](https://github.com/facebook/zstd)[^2]
+
+[^1]: A bundled version will be used if missing locally.
+[^2]: A downloaded version will be used if missing locally.
+
+### Tips
+
+- To make CMake search for libraries in a custom location, use `-D
+  CMAKE_PREFIX_PATH=/some/custom/path`.
+- To link libraries statically, pass `-D STATIC_LINK=ON` to CMake (this is the
+  default on Windows). Alternatively, use `-D
+  EXAMPLE_LIBRARY=/path/to/libexample.a` to link statically with libexample.
+
+## Installation
+
+Here is a typical way to build and install ccache:
 
 ```bash
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -D CMAKE_BUILD_TYPE=Release ..
 make
 make install
 ```
 
-You can set the installation directory to e.g. `/usr` by adding
-`-DCMAKE_INSTALL_PREFIX=/usr` to the `cmake` command. You can set the directory
-where the system configuration file should be located to e.g. `/etc` by adding
-`-DCMAKE_INSTALL_SYSCONFDIR=/etc`.
+You can set the installation directory to e.g. `/usr` by adding `-D
+CMAKE_INSTALL_PREFIX=/usr` to the CMake command. You can set the directory where
+the system configuration file should be located to e.g. `/etc` by adding `-D
+CMAKE_INSTALL_SYSCONFDIR=/etc`.
 
 There are two different ways to use ccache to cache a compilation:
 

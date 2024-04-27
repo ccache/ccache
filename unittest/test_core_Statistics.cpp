@@ -21,7 +21,7 @@
 #include <ccache/core/Statistic.hpp>
 #include <ccache/core/Statistics.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
 #include <string>

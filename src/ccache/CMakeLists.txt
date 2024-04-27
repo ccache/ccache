@@ -44,18 +44,31 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(
   ccache_framework
-  PRIVATE standard_settings standard_warnings ZSTD::ZSTD Threads::Threads third_party
+  PUBLIC
+    dep_blake3
+    dep_cxxurl
+    dep_fmt
+    dep_nonstdspan
+    dep_tlexpected
+    dep_xxhash
+  PRIVATE
+    dep_cpphttplib
+    dep_zstd
+    standard_settings
+    standard_warnings
+    Threads::Threads
 )
+
+if(WIN32)
+  target_link_libraries(ccache_framework PUBLIC win32_compat)
+endif()
 
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR})
 
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
-  target_link_libraries(
-    ccache_framework
-    PUBLIC standard_settings standard_warnings HIREDIS::HIREDIS third_party
-  )
+  target_link_libraries(ccache_framework PRIVATE dep_hiredis)
 endif()
 
 add_executable(test-lockfile test_lockfile.cpp)

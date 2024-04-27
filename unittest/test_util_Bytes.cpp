@@ -18,7 +18,7 @@
 
 #include <ccache/util/Bytes.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 #include <nonstd/span.hpp>
 
 #include <vector>

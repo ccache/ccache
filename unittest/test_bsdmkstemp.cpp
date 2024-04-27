@@ -22,7 +22,8 @@
 #include <ccache/util/Finalizer.hpp>
 #include <ccache/util/wincompat.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
+
 #include <sddl.h>
 #include <win32/mktemp.h>
 

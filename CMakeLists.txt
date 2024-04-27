@@ -80,6 +80,7 @@ include(EnableCcache)
 #
 
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
+option(ENABLE_TESTING "Enable tests" ON)
 
 include(InstallDirs)
 include(GenerateConfigurationFile)
@@ -97,8 +98,8 @@ include(CodeAnalysis)
 #
 # Source code
 #
-add_subdirectory(src/ccache)
 add_subdirectory(src/third_party)
+add_subdirectory(src/ccache)
 
 #
 # ccache executable
@@ -127,7 +128,6 @@ include(CcachePackConfig)
 #
 # Tests
 #
-option(ENABLE_TESTING "Enable tests" ON)
 if(ENABLE_TESTING)
   enable_testing()
   add_subdirectory(unittest)
@@ -165,3 +165,17 @@ add_custom_target(
   COMMENT "Checking code formatting"
   USES_TERMINAL
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+#
+# Configuration summary
+#
+
+message(STATUS)
+message(STATUS "Configuration summary:")
+message(STATUS "  Storage backends:")
+message(STATUS "    file  ON")
+message(STATUS "    http  ON")
+message(STATUS "    redis ${REDIS_STORAGE_BACKEND}")
+message(STATUS "  Dependencies:")
+print_dependency_summary("    ")
+message(STATUS)

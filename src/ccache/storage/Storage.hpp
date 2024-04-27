@@ -37,7 +37,7 @@ namespace storage {
 
 constexpr auto k_redacted_password = "********";
 
-std::string get_features();
+std::vector<std::string> get_features();
 
 struct RemoteStorageBackendEntry;
 struct RemoteStorageEntry;

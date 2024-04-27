@@ -6,13 +6,12 @@ build() {
     mkdir -p "build_$1"
     cd "build_$1"
     cmake \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DZSTD_FROM_INTERNET=ON \
-        -DHIREDIS_FROM_INTERNET=ON \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
-        -DCMAKE_OSX_ARCHITECTURES="$1" \
-        -DCMAKE_SYSTEM_PROCESSOR="$1" \
-        -DENABLE_TESTING=OFF \
+        -D CMAKE_BUILD_TYPE=Release \
+        -D CMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
+        -D CMAKE_OSX_ARCHITECTURES="$1" \
+        -D CMAKE_SYSTEM_PROCESSOR="$1" \
+        -D DEPS=DOWNLOAD \
+        -D ENABLE_TESTING=OFF \
         ..
     cmake --build .
     cd ..

@@ -23,7 +23,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <string>
 #include <vector>

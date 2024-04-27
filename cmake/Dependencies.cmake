@@ -1,26 +1,36 @@
+include(FindPackageHandleStandardArgs)
+
 if(POLICY CMP0135)
   # Set timestamps on extracted files to time of extraction.
   cmake_policy(SET CMP0135 NEW)
 endif()
 
-set(ZSTD_FROM_INTERNET AUTO CACHE STRING "Download and use libzstd from the Internet")
-set_property(CACHE ZSTD_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
-
-set(HIREDIS_FROM_INTERNET AUTO CACHE STRING "Download and use libhiredis from the Internet")
-set_property(CACHE HIREDIS_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
-
-option(
-  OFFLINE "Do not download anything from the internet"
-  "$(FETCHCONTENT_FULLY_DISCONNECTED}"
-)
-if(OFFLINE)
-  set(FETCHCONTENT_FULLY_DISCONNECTED ON)
-  set(ZSTD_FROM_INTERNET OFF)
-  set(HIREDIS_FROM_INTERNET OFF)
+if(NOT DEPS AND FETCHCONTENT_FULLY_DISCONNECTED)
+  message(STATUS "Setting DEPS=LOCAL as FETCHCONTENT_FULLY_DISCONNECTED is set")
 endif()
 
-find_package(zstd 1.1.2 MODULE REQUIRED)
+# Hint about usage of the previously supported OFFLINE variable.
+if(OFFLINE)
+  message(FATAL_ERROR "Please use -D DEPS=LOCAL instead of -D OFFLINE=ON")
+endif()
+
+# How to locate/retrieve dependencies. See the Dependencies section in
+# doc/INSTALL.md.
+set(DEPS AUTO CACHE STRING "How to retrieve third party dependencies")
+set_property(CACHE DEPS PROPERTY STRINGS AUTO DOWNLOAD LOCAL)
+
+find_package(Blake3 1.4.0 MODULE REQUIRED)
+find_package(CppHttplib 0.10.6 MODULE REQUIRED)
+find_package(Fmt 8.0.0 MODULE REQUIRED)
+find_package(NonstdSpan 0.10.3 MODULE REQUIRED)
+find_package(TlExpected 1.1.0 MODULE REQUIRED)
+find_package(Xxhash 0.8.0 MODULE REQUIRED)
+find_package(Zstd 1.3.4 MODULE REQUIRED)
+
+if(ENABLE_TESTING)
+  find_package(Doctest 2.4.6 MODULE REQUIRED)
+endif()
 
 if(REDIS_STORAGE_BACKEND)
-  find_package(hiredis 0.13.3 MODULE REQUIRED)
+  find_package(Hiredis 0.13.3 MODULE REQUIRED)
 endif()

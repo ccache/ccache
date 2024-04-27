@@ -18,7 +18,7 @@
 
 #include <ccache/util/expected.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 #include <tl/expected.hpp>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126

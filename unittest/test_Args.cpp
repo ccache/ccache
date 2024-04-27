@@ -21,7 +21,7 @@
 #include <ccache/Args.hpp>
 #include <ccache/util/file.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("Args");
 

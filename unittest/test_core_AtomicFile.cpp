@@ -22,7 +22,7 @@
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/file.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <string>
 #include <vector>

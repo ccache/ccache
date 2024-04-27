@@ -22,7 +22,7 @@
 #include <ccache/core/StatsLog.hpp>
 #include <ccache/util/file.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 using core::Statistic;
 using core::StatsLog;

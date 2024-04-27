@@ -39,7 +39,7 @@
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
 
-#include <url.hpp>
+#include <cxxurl/url.hpp>
 
 #include <cmath>
 #include <memory>
@@ -60,7 +60,7 @@ const std::unordered_map<std::string /*scheme*/,
 #endif
 };
 
-std::string
+std::vector<std::string>
 get_features()
 {
   std::vector<std::string> features;
@@ -69,8 +69,7 @@ get_features()
                  k_remote_storage_implementations.end(),
                  std::back_inserter(features),
                  [](auto& entry) { return FMT("{}-storage", entry.first); });
-  std::sort(features.begin(), features.end());
-  return util::join(features, " ");
+  return features;
 }
 
 // Representation of one shard configuration.

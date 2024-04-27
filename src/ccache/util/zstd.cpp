@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -72,13 +72,6 @@ zstd_compress_bound(size_t input_size)
 std::tuple<int8_t, std::string>
 zstd_supported_compression_level(int8_t wanted_level)
 {
-  // libzstd 1.3.4 and newer support negative levels. However, the query
-  // function ZSTD_minCLevel did not appear until 1.3.6, so perform detection
-  // based on version instead.
-  if (ZSTD_versionNumber() < 10304 && wanted_level < 1) {
-    return {1, "minimum level supported by libzstd"};
-  }
-
   const int8_t level =
     static_cast<int8_t>(std::min<int>(wanted_level, ZSTD_maxCLevel()));
   if (level != wanted_level) {

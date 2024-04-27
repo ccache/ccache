@@ -99,22 +99,32 @@ jobs:
         run: |
           sudo apt-get update
 
-          packages="
+          cmake_params=(-D CMAKE_BUILD_TYPE=CI)
+          packages=(
             elfutils
             libhiredis-dev
             libzstd-dev
             ninja-build
-            pkg-config
             python3
             redis-server
             redis-tools
-          "
+          )
           # Install ld.gold (binutils) and ld.lld (lld) on different runs.
           if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
-            sudo apt-get install -y $packages binutils
+            packages+=(binutils)
           else
-            sudo apt-get install -y $packages lld
+            packages+=(lld)
           fi
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            packages+=(doctest-dev)
+            packages+=(libfmt-dev)
+            packages+=(libxxhash-dev)
+          else
+            cmake_params+=(-D DEP_DOCTEST=DOWNLOAD)
+            cmake_params+=(-D DEP_FMT=DOWNLOAD)
+            cmake_params+=(-D DEP_XXHASH=DOWNLOAD)
+          fi
+          sudo apt-get install -y "${packages[@]}"
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
@@ -135,11 +145,20 @@ jobs:
             sudo apt-get install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
           fi
 
+          case "${{ matrix.os }}" in
+            ubuntu-*)
+              cmake_params+=(-D DEPS=LOCAL)
+              ;;
+            *)
+              ;;
+          esac
+          echo "CMAKE_PARAMS=${cmake_params[*]}" >> $GITHUB_ENV
+
       - name: Install dependencies on macOS
         if: ${{ runner.os == 'macOS' }}
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-            brew install ninja pkg-config hiredis redis
+            brew install ninja hiredis redis
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
@@ -156,8 +175,6 @@ jobs:
 
       - name: Build and test
         run: ci/build
-        env:
-          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
 
       - name: Collect testdir from failed tests
         if: failure()
@@ -274,7 +291,7 @@ jobs:
             BUILDDIR: .
             CCACHE_LOC: .
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug
-            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
+            apt_get: elfutils libhiredis-dev libzstd-dev
 
           - name: Linux GCC 32-bit
             os: ubuntu-20.04
@@ -283,26 +300,26 @@ jobs:
             CFLAGS: -m32 -g -O2
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D DEPS=AUTO
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-10-dev
 
           - name: Linux GCC CUDA
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             CUDA: 11.7.0-1
-            apt_get: elfutils libzstd-dev
+            apt_get: elfutils libhiredis-dev libzstd-dev
 
           - name: Linux MinGW 32-bit
             os: ubuntu-20.04
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/i686-w64-mingw32-posix.cmake -D ZSTD_FROM_INTERNET=ON -D HIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/i686-w64-mingw32-posix.cmake
             RUN_TESTS: none
             apt_get: elfutils mingw-w64
 
           - name: Linux MinGW 64-bit
             os: ubuntu-20.04
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/x86_64-w64-mingw32-posix.cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/x86_64-w64-mingw32-posix.cmake
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
@@ -312,7 +329,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2019 32-bit MSBuild
@@ -322,7 +339,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 16 2019
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2019 64-bit Ninja
@@ -331,7 +348,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Windows VS2019 64-bit MSBuild
@@ -341,7 +358,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 16 2019
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Windows VS2022 32-bit Ninja
@@ -351,7 +368,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2022 32-bit MSBuild
@@ -361,7 +378,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A Win32
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2022 64-bit Ninja
@@ -371,7 +388,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           - name: Windows VS2022 64-bit MSBuild
@@ -381,7 +398,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A x64
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
           # Doesn't run tests as windows machines are x86
@@ -400,7 +417,7 @@ jobs:
             CXX: clang++
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_ADDRESS=ON -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
             ASAN_OPTIONS: detect_leaks=0
-            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev
+            apt_get: elfutils libzstd-dev libhiredis-dev
 
           - name: Clang static analyzer
             os: ubuntu-20.04
@@ -408,7 +425,7 @@ jobs:
             CXX: clang++
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
-            apt_get: libzstd-dev pkg-config libhiredis-dev
+            apt_get: libzstd-dev libhiredis-dev
 
           - name: Linux binary
             os: ubuntu-20.04
@@ -416,26 +433,26 @@ jobs:
             CXX: g++
             SPECIAL: build-and-verify-package
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
-            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build
+            apt_get: elfutils libzstd-dev libhiredis-dev ninja-build
 
           - name: Source package
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev pkg-config libhiredis-dev ninja-build asciidoctor
+            apt_get: elfutils libzstd-dev libhiredis-dev ninja-build asciidoctor
 
           - name: HTML documentation
             os: ubuntu-20.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
             RUN_TESTS: none
-            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoctor
+            apt_get: libzstd-dev libhiredis-dev asciidoctor
 
           - name: Manual page
             os: ubuntu-20.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
             RUN_TESTS: none
-            apt_get: libzstd-dev pkg-config libhiredis-dev asciidoctor
+            apt_get: libzstd-dev libhiredis-dev asciidoctor
 
           - name: Clang-Tidy
             os: ubuntu-20.04
@@ -443,7 +460,7 @@ jobs:
             CXX: clang++-12
             RUN_TESTS: none
             CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON -DCLANGTIDY=/usr/bin/clang-tidy-12
-            apt_get: libzstd-dev pkg-config libhiredis-dev clang-12 clang-tidy-12
+            apt_get: libzstd-dev libhiredis-dev clang-12 clang-tidy-12
 
     steps:
       - name: Get source

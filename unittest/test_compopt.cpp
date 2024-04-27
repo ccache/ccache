@@ -18,7 +18,7 @@
 
 #include <ccache/compopt.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include <iostream> // for doctest stringification of std::string_view
 
