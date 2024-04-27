@@ -439,7 +439,7 @@ run_suite() {
         fi
     fi
 
-    printf "Running test suite %s" "$(bold $suite_name)"
+    echo "Running test suite $(bold $suite_name)"
     SUITE_$suite_name
     echo
 
@@ -464,7 +464,7 @@ TEST() {
     reset_environment
 
     if $verbose; then
-        printf "\n  %s" "$CURRENT_TEST"
+        echo "  $CURRENT_TEST"
     else
         printf .
     fi
