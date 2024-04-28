@@ -1094,7 +1094,6 @@ static tl::expected<Hash::Digest, Failure>
 to_cache(Context& ctx,
          Args& args,
          std::optional<Hash::Digest> result_key,
-         const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
   if (ctx.config.is_compiler_group_msvc()) {
@@ -1143,21 +1142,8 @@ to_cache(Context& ctx,
   LOG_RAW("Running real compiler");
 
   tl::expected<DoExecuteResult, Failure> result;
-  if (!ctx.config.depend_mode()) {
-    result = do_execute(ctx, args);
-    args.pop_back(3);
-  } else {
-    // Use the original arguments (including dependency options) in depend
-    // mode.
-    Args depend_mode_args = ctx.orig_args;
-    depend_mode_args.erase_with_prefix("--ccache-");
-    // Add depend_mode_args directly after the compiler. We can't add them last
-    // since options then may be placed after a "--" option.
-    depend_mode_args.insert(1, depend_extra_args);
-    add_prefix(depend_mode_args, ctx.config.prefix_command());
-
-    result = do_execute(ctx, depend_mode_args);
-  }
+  result = do_execute(ctx, args);
+  args.pop_back(3);
 
   if (!result) {
     return tl::unexpected(result.error());
@@ -2721,11 +2707,8 @@ do_cache_compilation(Context& ctx)
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
-  const auto digest = to_cache(ctx,
-                               processed.compiler_args,
-                               result_key,
-                               ctx.args_info.depend_extra_args,
-                               depend_mode_hash);
+  const auto digest =
+    to_cache(ctx, processed.compiler_args, result_key, depend_mode_hash);
   if (!digest) {
     return tl::unexpected(digest.error());
   }

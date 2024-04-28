@@ -1684,17 +1684,13 @@ process_args(Context& ctx)
       // the preprocessor, so we need to make sure that they are in color.
       preprocessor_args.push_back(*diagnostics_color_arg);
     }
-    if (ctx.config.depend_mode()) {
-      // The compiler is invoked with the original arguments in the depend mode.
-      args_info.depend_extra_args.push_back(*diagnostics_color_arg);
-    }
   }
 
   if (ctx.config.depend_mode() && !args_info.generating_includes
       && ctx.config.compiler_type() == CompilerType::msvc) {
     ctx.auto_depend_mode = true;
     args_info.generating_includes = true;
-    args_info.depend_extra_args.push_back("/showIncludes");
+    compiler_args.push_back("/showIncludes");
   }
 
   return {

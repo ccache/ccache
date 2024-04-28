@@ -145,7 +145,4 @@ struct ArgsInfo
 
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
-
-  // Argument list to add to compiler invocation in depend mode.
-  Args depend_extra_args;
 };
