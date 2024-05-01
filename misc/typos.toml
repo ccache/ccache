@@ -11,6 +11,7 @@ extend-ignore-re = [
     " -ot ",
     "/FoN\\.",
     "[/-]Fo\\b",
+    "Andrew Stubbs",
     "clang-analyzer-optin",
     "pn\\d",
     "seve\\\\nth",
