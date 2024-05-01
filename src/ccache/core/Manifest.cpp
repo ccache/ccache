@@ -158,7 +158,7 @@ Manifest::look_up_result_digest(const Context& ctx) const
   std::unordered_map<std::string, FileStats> stated_files;
   std::unordered_map<std::string, Hash::Digest> hashed_files;
 
-  // Check newest result first since it's a more likely to match.
+  // Check newest result first since it's more likely to match.
   for (size_t i = m_results.size(); i > 0; i--) {
     const auto& result = m_results[i - 1];
     if (result_matches(ctx, result, stated_files, hashed_files)) {
