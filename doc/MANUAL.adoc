@@ -1038,13 +1038,17 @@ preprocessing first.
     backdating files' mtimes in a controlled way.
 *gcno_cwd*::
     By default, ccache will include the current working directory in the hash
-    when producing a `.gcno` file (when compiling with `-ftest-coverage` or
-    `--coverage`). This is because GCC 9+ includes the current working directory
-    in the `.gcno` file. The *gcno_cwd* sloppiness makes ccache not hash the
-    current working directory so that you can get cache hits when compiling in
-    different directories, with the tradeoff of potentially getting an incorrect
-    directory in the `.gcno` file. *gcno_cwd* also disables hashing of the
-    current working directory if `-fprofile-abs-path` is used.
+    when producing a `.gcno` file (when compiling with `-ftest-coverage`). This
+    is because GCC 9+ includes the current working directory in the `.gcno`
+    file. The *gcno_cwd* sloppiness makes ccache not hash the current working
+    directory so that you can get cache hits when compiling in different
+    directories, with the tradeoff of potentially getting an incorrect directory
+    in the `.gcno` file. *gcno_cwd* also disables hashing of the current working
+    directory if `-fprofile-abs-path` is used.
++
+NOTE: `gcno_cwd` sloppiness will not have any effect when compiling with
+`--coverage` since that implies `-fprofile-arcs` which always forces CWD to be
+included in the input hash.
 *incbin*::
     By default, ccache will ignore all files containing an `.incbin` directive.
     While this is the correct behaviour as ccache does not detect incbin changes,
