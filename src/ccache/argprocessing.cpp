@@ -1022,11 +1022,14 @@ process_option_arg(const Context& ctx,
       ++i;
       arg = make_dash_option(ctx.config, args[i]);
     }
-    if (arg == "-fcolor-diagnostics") {
+    if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always"
+        || arg == "-fcolor-diagnostics") {
       state.color_diagnostics = ColorDiagnostics::always;
       state.compiler_only_args_no_hash.push_back(args[i]);
       return Statistic::none;
-    } else if (arg == "-fno-color-diagnostics") {
+    } else if (arg == "-fno-diagnostics-color"
+               || arg == "-fdiagnostics-color=never"
+               || arg == "-fno-color-diagnostics") {
       state.color_diagnostics = ColorDiagnostics::never;
       state.compiler_only_args_no_hash.push_back(args[i]);
       return Statistic::none;
