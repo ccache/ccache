@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <ccache/util/PathString.hpp>
+#include <ccache/util/conversion.hpp>
+
 #include <blake3/blake3.h>
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
@@ -25,6 +28,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -63,7 +67,10 @@ public:
   // input file, plus a final newline character.
   Hash& hash(nonstd::span<const uint8_t> data);
   Hash& hash(const char* data, size_t size);
+  Hash& hash(const char* data);
   Hash& hash(std::string_view data);
+  Hash& hash(const std::string& data);
+  Hash& hash(const std::filesystem::path& data);
 
   // Add an integer to the hash.
   //
@@ -94,3 +101,38 @@ private:
   void add_debug_text(nonstd::span<const uint8_t> text);
   void add_debug_text(std::string_view text);
 };
+
+inline Hash&
+Hash::hash(const char* data, size_t size)
+{
+  hash(util::to_span({data, size}));
+  return *this;
+}
+
+inline Hash&
+Hash::hash(const char* data)
+{
+  hash(std::string_view(data));
+  return *this;
+}
+
+inline Hash&
+Hash::hash(std::string_view data)
+{
+  hash(util::to_span(data));
+  return *this;
+}
+
+inline Hash&
+Hash::hash(const std::string& data)
+{
+  hash(std::string_view(data));
+  return *this;
+}
+
+inline Hash&
+Hash::hash(const std::filesystem::path& path)
+{
+  hash(util::PathString(path).str());
+  return *this;
+}

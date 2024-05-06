@@ -565,7 +565,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
       }
 
       if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(pstr(inc_path).str());
+        hash.hash(inc_path);
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
@@ -669,7 +669,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
       && !ctx.args_info.generating_pch) {
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pstr(pch_path).str());
+    hash.hash(pch_path);
     TRY(remember_include_file(ctx, pstr(pch_path), hash, false, nullptr));
   }
 
@@ -728,7 +728,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
       && !ctx.args_info.generating_pch) {
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pstr(pch_path).str());
+    hash.hash(pch_path);
     TRY(remember_include_file(ctx, pstr(pch_path), hash, false, nullptr));
   }
 
@@ -1446,7 +1446,7 @@ hash_common_info(const Context& ctx,
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
   hash.hash_delimiter("cc_name");
-  hash.hash(pstr(fs::path(args[0]).filename()).str());
+  hash.hash(fs::path(args[0]).filename());
 
   // Hash variables that may affect the compilation.
   const char* always_hash_env_vars[] = {
@@ -1545,7 +1545,7 @@ hash_common_info(const Context& ctx,
     // the directory in the hash for now.
     LOG_RAW("Hashing apparent CWD due to generating a .gcno file");
     hash.hash_delimiter("CWD in .gcno");
-    hash.hash(pstr(ctx.apparent_cwd).str());
+    hash.hash(ctx.apparent_cwd);
   }
 
   // Possibly hash the coverage data file path.
@@ -2586,7 +2586,7 @@ do_cache_compilation(Context& ctx)
 
   if (processed.hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
-    common_hash.hash(pstr(ctx.actual_cwd).str());
+    common_hash.hash(ctx.actual_cwd);
   }
 
   // Try to find the hash using the manifest.

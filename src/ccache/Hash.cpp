@@ -85,20 +85,6 @@ Hash::hash(nonstd::span<const uint8_t> data)
 }
 
 Hash&
-Hash::hash(const char* data, size_t size)
-{
-  hash(util::to_span({data, size}));
-  return *this;
-}
-
-Hash&
-Hash::hash(std::string_view data)
-{
-  hash(util::to_span(data));
-  return *this;
-}
-
-Hash&
 Hash::hash(int64_t x)
 {
   hash_buffer(std::string_view(reinterpret_cast<const char*>(&x), sizeof(x)));
