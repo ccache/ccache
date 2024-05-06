@@ -1526,16 +1526,23 @@ hash_common_info(const Context& ctx,
     hash.hash(output_obj_dir);
   }
 
-  if (ctx.args_info.seen_split_dwarf || ctx.args_info.profile_arcs) {
-    // When using -gsplit-dwarf: Object files include a link to the
+  if (ctx.args_info.seen_split_dwarf) {
+    // When using -gsplit-dwarf the object file includes a link to the
     // corresponding .dwo file based on the target object filename, so hashing
     // the object file path will do it, although just hashing the object file
     // base name would be enough.
-    //
-    // When using -fprofile-arcs (including implicitly via --coverage): the
-    // object file contains a .gcda path based on the object file path.
+    LOG_RAW("Hashing object filename due to -gsplit-dwarf");
     hash.hash_delimiter("object file");
-    hash.hash(ctx.args_info.output_obj);
+    hash.hash(pstr(fs::path(ctx.args_info.output_obj).filename()).str());
+  }
+
+  if (ctx.args_info.profile_arcs) {
+    // When using -fprofile-arcs (including implicitly via --coverage) the
+    // object file contains a .gcda path based on the absolute object file path.
+    LOG_RAW("Hashing absolute object filename due to -fprofile-arcs");
+    hash.hash_delimiter("Absolute object file path");
+    // -fprofile-arcs stores "apparent absolute path" for some reason.
+    hash.hash(ctx.apparent_cwd / ctx.args_info.output_obj);
   }
 
   if (ctx.args_info.generating_coverage
