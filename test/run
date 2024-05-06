@@ -440,7 +440,7 @@ run_suite() {
     fi
 
     printf "Running test suite $(bold $suite_name)"
-    if ! $VERBOSE; then
+    if $verbose; then
         echo
     fi
     SUITE_$suite_name
