@@ -1382,6 +1382,12 @@ process_args(Context& ctx)
     }
   }
 
+  if (args_info.profile_generate && !config.run_second_cpp()) {
+    LOG_RAW(
+      "Generating profiling information; not compiling preprocessed code");
+    config.set_run_second_cpp(true);
+  }
+
   if (args_info.profile_path.empty()) {
     args_info.profile_path = pstr(ctx.apparent_cwd).str();
   }
