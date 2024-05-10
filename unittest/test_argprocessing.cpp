@@ -807,6 +807,116 @@ TEST_CASE("MSVC PCH options with empty -Yc")
   }
 }
 
+TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.cpp", "");
+  util::write_file("pch.h", "");
+  util::write_file("pch.cpp", "");
+
+  SUBCASE("Create PCH")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Yc /Fopch.cpp.obj /c pch.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.included_pch_file == "pch.pch");
+    CHECK(ctx.args_info.output_obj == "pch.cpp.obj");
+    CHECK(result.preprocessor_args.to_string() == "cl.exe /Yc");
+    CHECK(result.compiler_args.to_string() == "cl.exe /Yc -c");
+  }
+
+  util::write_file("pch.pch", "");
+  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+
+  SUBCASE("Consume PCH")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /Yupch.h /Fppch.pch /FIpch.h /Fofoo.cpp.obj /c foo.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(!ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.included_pch_file == "pch.pch");
+    CHECK(ctx.args_info.output_obj == "foo.cpp.obj");
+    CHECK(result.preprocessor_args.to_string()
+          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h");
+    CHECK(result.compiler_args.to_string()
+          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h -c");
+  }
+}
+
+TEST_CASE("MSVC PCH options with empty -Yc and without -Fp and -Fo")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.cpp", "");
+  util::write_file("pch.h", "");
+  util::write_file("pch.cpp", "");
+
+  SUBCASE("Create PCH")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Yc /c pch.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.included_pch_file == "pch.pch");
+    CHECK(ctx.args_info.output_obj == "pch.obj");
+    CHECK(result.preprocessor_args.to_string() == "cl.exe /Yc");
+    CHECK(result.compiler_args.to_string() == "cl.exe /Yc -c");
+  }
+
+  util::write_file("pch.pch", "");
+  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+
+  SUBCASE("Consume PCH")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /Yupch.h /Fppch.pch /FIpch.h /Fofoo.cpp.obj /c foo.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(!ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.included_pch_file == "pch.pch");
+    CHECK(ctx.args_info.output_obj == "foo.cpp.obj");
+    CHECK(result.preprocessor_args.to_string()
+          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h");
+    CHECK(result.compiler_args.to_string()
+          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h -c");
+  }
+}
+
+TEST_CASE("MSVC PCH unsupported options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("pch.h", "");
+  util::write_file("pch.cpp", "");
+
+  SUBCASE("/Fp with absolute folder path")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe /Yc /FpE:\\foo\\bar\\ /c pch.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::could_not_use_precompiled_header);
+    CHECK(ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.orig_included_pch_file == "E:\\foo\\bar\\");
+    CHECK(ctx.args_info.output_obj == "pch.obj");
+  }
+
+  SUBCASE("/Fp with relative folder path")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Yc /Fpfolder\\ /c pch.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::could_not_use_precompiled_header);
+    CHECK(ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.orig_included_pch_file == "folder\\");
+    CHECK(ctx.args_info.output_obj == "pch.obj");
+  }
+}
+
 TEST_CASE("MSVC debug information format options")
 {
   TestContext test_context;
