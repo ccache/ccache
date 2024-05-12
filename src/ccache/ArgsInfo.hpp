@@ -64,6 +64,9 @@ struct ArgsInfo
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::string output_dwo;
 
+  // The path to the ipa clones (implicit when using -fdump-ipa-clones).
+  std::string output_ipa;
+
   // Assembler listing file.
   std::string output_al;
 
@@ -91,6 +94,8 @@ struct ArgsInfo
 
   // Is the compiler being asked to output stack usage?
   bool generating_stackusage = false;
+
+  bool generating_ipa_clones = false;
 
   bool generating_callgraphinfo = false;
 
