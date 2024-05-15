@@ -138,10 +138,12 @@ color_output_possible()
 bool
 detect_pch(const std::string& option,
            const std::string& arg,
-           std::string& included_pch_file,
+           ArgsInfo& args_info,
            bool is_cc1_option,
            ArgumentProcessingState& state)
 {
+  auto& included_pch_file = args_info.included_pch_file;
+
   // Try to be smart about detecting precompiled headers.
   // If the option is an option for Clang (is_cc1_option), don't accept
   // anything just because it has a corresponding precompiled header,
@@ -149,6 +151,7 @@ detect_pch(const std::string& option,
   std::string pch_file;
   if (option == "-Yc") {
     state.found_Yc = true;
+    args_info.generating_pch = true;
     if (!state.found_Fp_file.empty()) {
       included_pch_file = state.found_Fp_file;
       return true;
@@ -168,6 +171,7 @@ detect_pch(const std::string& option,
       }
     }
   } else if (option == "-Fp") {
+    args_info.orig_included_pch_file = arg;
     std::string file = arg;
     if (!fs::path(file).has_extension()) {
       file += ".pch";
@@ -1100,8 +1104,7 @@ process_option_arg(const Context& ctx,
     // index further behind.
     const size_t next = args[i + 1] == "-Xclang" && i + 2 < args.size() ? 2 : 1;
 
-    if (!detect_pch(
-          arg, args[i + next], args_info.included_pch_file, next == 2, state)) {
+    if (!detect_pch(arg, args[i + next], args_info, next == 2, state)) {
       return Statistic::bad_compiler_arguments;
     }
 
@@ -1127,14 +1130,10 @@ process_option_arg(const Context& ctx,
     const size_t path_pos = util::starts_with(arg, "-include") ? 8 : 3;
     if (!detect_pch(arg.substr(0, path_pos),
                     arg.substr(path_pos),
-                    args_info.included_pch_file,
+                    args_info,
                     false,
                     state)) {
       return Statistic::bad_compiler_arguments;
-    }
-
-    if (state.found_Yc) {
-      args_info.generating_pch = true;
     }
     // Fall through to the next section, so intentionally not returning here.
   }
@@ -1246,6 +1245,12 @@ get_default_object_file_extension(const Config& config)
   return config.is_compiler_group_msvc() ? ".obj" : ".o";
 }
 
+const char*
+get_default_pch_file_extension(const Config& config)
+{
+  return config.is_compiler_group_msvc() ? ".pch" : ".gch";
+}
+
 } // namespace
 
 ProcessArgsResult
@@ -1352,6 +1357,31 @@ process_args(Context& ctx)
   args_info.output_obj =
     pstr(core::make_relative_path(ctx, args_info.output_obj)).str();
 
+  // Determine a filepath for precompiled header.
+  if (ctx.config.is_compiler_group_msvc() && args_info.generating_pch) {
+    bool included_pch_file_by_source = args_info.included_pch_file.empty();
+
+    if (!included_pch_file_by_source
+        && (*args_info.orig_included_pch_file.rbegin() == '\\'
+            || DirEntry(args_info.orig_included_pch_file).is_directory())) {
+      LOG("Unsupported folder path value for -Fp: {}",
+          args_info.included_pch_file);
+      return Statistic::could_not_use_precompiled_header;
+    }
+
+    if (included_pch_file_by_source && !args_info.input_file.empty()) {
+      args_info.included_pch_file =
+        pstr(fs::path(args_info.input_file)
+               .filename()
+               .replace_extension(get_default_pch_file_extension(ctx.config)))
+          .str();
+      LOG(
+        "Setting PCH filepath from the base source file (during generating): "
+        "{}",
+        args_info.included_pch_file);
+    }
+  }
+
   // Determine output dependency file.
 
   // On argument processing error, return now since we have determined
@@ -1417,7 +1447,8 @@ process_args(Context& ctx)
     || is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
-    args_info.orig_output_obj = args_info.orig_input_file + ".gch";
+    args_info.orig_output_obj =
+      args_info.orig_input_file + get_default_pch_file_extension(config);
     args_info.output_obj =
       pstr(core::make_relative_path(ctx, args_info.orig_output_obj)).str();
   }
