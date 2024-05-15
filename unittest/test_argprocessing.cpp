@@ -764,6 +764,49 @@ TEST_CASE("MSVC PCH options")
   }
 }
 
+TEST_CASE("MSVC PCH options with empty -Yc")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.cpp", "");
+  util::write_file("pch.h", "");
+  util::write_file("pch.cpp", "");
+
+  SUBCASE("Create PCH")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /Yc /Fppch.cpp.pch /FIpch.h /Fopch.cpp.obj /c pch.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.included_pch_file == "pch.cpp.pch");
+    CHECK(ctx.args_info.output_obj == "pch.cpp.obj");
+    CHECK(result.preprocessor_args.to_string()
+          == "cl.exe /Yc /Fppch.cpp.pch /FIpch.h");
+    CHECK(result.compiler_args.to_string()
+          == "cl.exe /Yc /Fppch.cpp.pch /FIpch.h -c");
+  }
+
+  util::write_file("pch.cpp.pch", "");
+  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+
+  SUBCASE("Consume PCH")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h /Fofoo.cpp.obj /c foo.cpp");
+    const ProcessArgsResult result = process_args(ctx);
+    REQUIRE(!result.error);
+    CHECK(!ctx.args_info.generating_pch);
+    CHECK(ctx.args_info.included_pch_file == "pch.cpp.pch");
+    CHECK(ctx.args_info.output_obj == "foo.cpp.obj");
+    CHECK(result.preprocessor_args.to_string()
+          == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h");
+    CHECK(result.compiler_args.to_string()
+          == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h -c");
+  }
+}
+
 TEST_CASE("MSVC debug information format options")
 {
   TestContext test_context;

@@ -1090,7 +1090,7 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (compopt_takes_path(arg)) {
+  if (compopt_takes_arg(arg) && compopt_takes_path(arg)) {
     if (i == args.size() - 1) {
       LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
