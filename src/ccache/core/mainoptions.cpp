@@ -176,7 +176,7 @@ Options for scripting or debugging:
         --inspect PATH         print result/manifest file at PATH in
                                human-readable format
         --print-log-stats      print statistics counter IDs and corresponding
-                               values from the stats log in machine-parseable
+                               values from the stats log in machine-parsable
                                format
         --print-stats          print statistics counter IDs and corresponding
                                values in machine-parsable format
