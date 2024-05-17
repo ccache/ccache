@@ -78,6 +78,10 @@ jobs:
             compiler: gcc
             version: "13"
 
+          - os: ubuntu-24.04
+            compiler: gcc
+            version: "14"
+
           - os: macOS-12
             compiler: xcode
             version: "13.4.1"
