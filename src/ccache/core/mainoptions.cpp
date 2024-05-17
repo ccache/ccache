@@ -816,8 +816,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case PRINT_VERSION:
-      PRINT_RAW(stdout, CCACHE_VERSION);
-      PRINT_RAW(stdout, '\n');
+      PRINT(stdout, "{}\n", CCACHE_VERSION);
       break;
 
     case 'x': // --show-compression

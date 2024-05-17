@@ -1640,10 +1640,8 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_ipa_clones) {
-    fs::path ipa_path(args_info.orig_input_file);
-    ipa_path += ".000i.ipa-clones";
-    args_info.output_ipa =
-      pstr(core::make_relative_path(ctx, ipa_path.string())).str();
+    fs::path ipa_path(args_info.orig_input_file + ".000i.ipa-clones");
+    args_info.output_ipa = pstr(core::make_relative_path(ctx, ipa_path)).str();
   }
 
   Args compiler_args = state.common_args;
