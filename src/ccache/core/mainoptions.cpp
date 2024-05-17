@@ -180,6 +180,7 @@ Options for scripting or debugging:
                                format
         --print-stats          print statistics counter IDs and corresponding
                                values in machine-parsable format
+        --print-version        print version only
 
 See also the manual on <https://ccache.dev/documentation.html>.
 )";
@@ -445,6 +446,7 @@ enum {
   INSPECT,
   PRINT_LOG_STATS,
   PRINT_STATS,
+  PRINT_VERSION,
   RECOMPRESS_THREADS,
   SHOW_LOG_STATS,
   TRIM_DIR,
@@ -476,6 +478,7 @@ const option long_options[] = {
   {"max-size", required_argument, nullptr, 'M'},
   {"print-log-stats", no_argument, nullptr, PRINT_LOG_STATS},
   {"print-stats", no_argument, nullptr, PRINT_STATS},
+  {"print-version", no_argument, nullptr, PRINT_VERSION},
   {"recompress", required_argument, nullptr, 'X'},
   {"recompress-threads", required_argument, nullptr, RECOMPRESS_THREADS},
   {"set-config", required_argument, nullptr, 'o'},
@@ -811,6 +814,11 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(stdout, get_version_text(pstr(fs::path(argv[0]).stem()).str()));
       break;
     }
+
+    case PRINT_VERSION:
+      PRINT_RAW(stdout, CCACHE_VERSION);
+      PRINT_RAW(stdout, '\n');
+      break;
 
     case 'x': // --show-compression
     {
