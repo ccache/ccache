@@ -299,6 +299,10 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     Print statistics counter IDs and corresponding values in machine-parsable
     (tab-separated or JSON) format. See `--format`.
 
+*--print-version*::
+
+    Print version and don't do anything else.
+
 
 
 === Extra options
