@@ -81,6 +81,9 @@
 // Define if you have the <pwd.h> header file.
 #cmakedefine HAVE_PWD_H
 
+// Define if you have the <spawn.h> header file.
+#cmakedefine HAVE_SPAWN_H
+
 // Define if you have the <sys/clonefile.h> header file.
 #cmakedefine HAVE_SYS_CLONEFILE_H
 

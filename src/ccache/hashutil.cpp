@@ -37,6 +37,10 @@
 #  include "InodeCache.hpp"
 #endif
 
+#ifdef HAVE_SPAWN_H
+#  include <spawn.h>
+#endif
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -440,44 +444,59 @@ hash_command_output(Hash& hash,
     throw core::Fatal(FMT("pipe failed: {}", strerror(errno)));
   }
 
-  pid_t pid = fork();
-  if (pid == -1) {
-    throw core::Fatal(FMT("fork failed: {}", strerror(errno)));
+  int result;
+  posix_spawn_file_actions_t file_actions;
+  if ((result = posix_spawn_file_actions_init(&file_actions))) {
+    throw core::Fatal(
+      FMT("posix_spawn_file_actions_init failed: {}", strerror(result)));
   }
 
-  if (pid == 0) {
-    // Child.
-    close(pipefd[0]);
-    close(0);
-    dup2(pipefd[1], 1);
-    dup2(pipefd[1], 2);
-    _exit(execvp(argv[0], const_cast<char* const*>(argv.data())));
-    // Never reached.
-  } else {
-    // Parent.
-    close(pipefd[1]);
-    const auto hash_result = hash.hash_fd(pipefd[0]);
-    if (!hash_result) {
-      LOG("Error hashing compiler check command output: {}",
-          hash_result.error());
-    }
-    close(pipefd[0]);
-
-    int status;
-    int result;
-    while ((result = waitpid(pid, &status, 0)) != pid) {
-      if (result == -1 && errno == EINTR) {
-        continue;
-      }
-      LOG("waitpid failed: {}", strerror(errno));
-      return false;
-    }
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-      LOG("Compiler check command returned {}", WEXITSTATUS(status));
-      return false;
-    }
-    return bool(hash_result);
+  if ((result = posix_spawn_file_actions_addclose(&file_actions, pipefd[0]))
+      || (result = posix_spawn_file_actions_addclose(&file_actions, 0))
+      || (result =
+            posix_spawn_file_actions_adddup2(&file_actions, pipefd[1], 1))
+      || (result =
+            posix_spawn_file_actions_adddup2(&file_actions, pipefd[1], 2))) {
+    throw core::Fatal(FMT("posix_spawn_file_actions_addclose/dup2 failed: {}",
+                          strerror(result)));
   }
+
+  pid_t pid;
+  extern char** environ;
+  result = posix_spawnp(&pid,
+                        argv[0],
+                        &file_actions,
+                        nullptr,
+                        const_cast<char* const*>(argv.data()),
+                        environ);
+
+  posix_spawn_file_actions_destroy(&file_actions);
+  close(pipefd[1]);
+
+  const auto hash_result = hash.hash_fd(pipefd[0]);
+  if (!hash_result) {
+    LOG("Error hashing compiler check command output: {}", hash_result.error());
+  }
+  close(pipefd[0]);
+
+  if (result) {
+    LOG("posix_spawnp failed: {}", strerror(errno));
+    return false;
+  }
+
+  int status;
+  while ((result = waitpid(pid, &status, 0)) != pid) {
+    if (result == -1 && errno == EINTR) {
+      continue;
+    }
+    LOG("waitpid failed: {}", strerror(errno));
+    return false;
+  }
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    LOG("Compiler check command returned {}", WEXITSTATUS(status));
+    return false;
+  }
+  return bool(hash_result);
 #endif
 }
 
