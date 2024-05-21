@@ -5,10 +5,6 @@ if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
 
-if(NOT DEPS AND FETCHCONTENT_FULLY_DISCONNECTED)
-  message(STATUS "Setting DEPS=LOCAL as FETCHCONTENT_FULLY_DISCONNECTED is set")
-endif()
-
 # Hint about usage of the previously supported OFFLINE variable.
 if(OFFLINE)
   message(FATAL_ERROR "Please use -D DEPS=LOCAL instead of -D OFFLINE=ON")
@@ -18,6 +14,11 @@ endif()
 # doc/INSTALL.md.
 set(DEPS AUTO CACHE STRING "How to retrieve third party dependencies")
 set_property(CACHE DEPS PROPERTY STRINGS AUTO DOWNLOAD LOCAL)
+
+if(FETCHCONTENT_FULLY_DISCONNECTED)
+  message(STATUS "Setting DEPS=LOCAL as FETCHCONTENT_FULLY_DISCONNECTED is set")
+  set(DEPS LOCAL)
+endif()
 
 find_package(Blake3 1.4.0 MODULE REQUIRED)
 find_package(CppHttplib 0.10.6 MODULE REQUIRED)
