@@ -41,6 +41,10 @@
 
 #include <vector>
 
+#ifdef HAVE_SPAWN_H
+#  include <spawn.h>
+#endif
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -299,30 +303,47 @@ execute(Context& ctx,
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 
+  int result;
+  posix_spawn_file_actions_t file_actions;
+  if ((result = posix_spawn_file_actions_init(&file_actions))) {
+    throw core::Fatal(
+      FMT("posix_spawn_file_actions_init failed: {}", strerror(result)));
+  }
+
+  if ((result = posix_spawn_file_actions_adddup2(
+         &file_actions, *fd_out, STDOUT_FILENO))
+      || (result = posix_spawn_file_actions_addclose(&file_actions, *fd_out))
+      || (result = posix_spawn_file_actions_adddup2(
+            &file_actions, *fd_err, STDERR_FILENO))
+      || (result = posix_spawn_file_actions_addclose(&file_actions, *fd_err))) {
+    throw core::Fatal(FMT("posix_spawn_file_actions_addclose/dup2 failed: {}",
+                          strerror(result)));
+  }
+
   {
     SignalHandlerBlocker signal_handler_blocker;
-    ctx.compiler_pid = fork();
+    pid_t pid;
+    extern char** environ;
+    result = posix_spawn(&pid,
+                         argv[0],
+                         &file_actions,
+                         nullptr,
+                         const_cast<char* const*>(argv),
+                         environ);
+    if (!result) {
+      ctx.compiler_pid = pid;
+    }
   }
 
-  if (ctx.compiler_pid == -1) {
-    throw core::Fatal(FMT("Failed to fork: {}", strerror(errno)));
-  }
-
-  if (ctx.compiler_pid == 0) {
-    // Child.
-    dup2(*fd_out, STDOUT_FILENO);
-    fd_out.close();
-    dup2(*fd_err, STDERR_FILENO);
-    fd_err.close();
-    exit(execv(argv[0], const_cast<char* const*>(argv)));
-  }
-
+  posix_spawn_file_actions_destroy(&file_actions);
   fd_out.close();
   fd_err.close();
 
-  int status;
-  int result;
+  if (result) {
+    return -1;
+  }
 
+  int status;
   while ((result = waitpid(ctx.compiler_pid, &status, 0)) != ctx.compiler_pid) {
     if (result == -1 && errno == EINTR) {
       continue;
