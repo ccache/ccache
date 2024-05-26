@@ -396,9 +396,8 @@ replace_all(const std::string_view string,
 
   std::string result;
   size_t left = 0;
-  size_t right = 0;
   while (left < string.size()) {
-    right = string.find(from, left);
+    size_t right = string.find(from, left);
     if (right == std::string_view::npos) {
       result.append(string.data() + left);
       break;

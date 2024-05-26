@@ -89,13 +89,13 @@ MemoryMap::map(int fd, size_t size)
 #ifndef _WIN32
   const void* MMAP_FAILED =
     reinterpret_cast<void*>(-1); // NOLINT: Must cast here
-  void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (ptr == MMAP_FAILED) {
+  void* p = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (p == MMAP_FAILED) {
     return tl::unexpected(strerror(errno));
   }
 
   MemoryMap map;
-  map.m_ptr = ptr;
+  map.m_ptr = p;
   map.m_size = size;
   return map;
 #else
@@ -115,16 +115,15 @@ MemoryMap::map(int fd, size_t size)
     return tl::unexpected(FMT("Can't create file mapping: {}", GetLastError()));
   }
 
-  void* ptr =
-    MapViewOfFile(file_mapping_handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
-  if (!ptr) {
+  void* p = MapViewOfFile(file_mapping_handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
+  if (!p) {
     std::string error = FMT("Can't map file: {}", GetLastError());
     CloseHandle(file_mapping_handle);
     return tl::unexpected(std::move(error));
   }
 
   MemoryMap map;
-  map.m_ptr = ptr;
+  map.m_ptr = p;
   map.m_file_mapping_handle = file_mapping_handle;
   return map;
 #endif

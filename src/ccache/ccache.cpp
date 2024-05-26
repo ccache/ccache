@@ -2314,7 +2314,7 @@ static tl::expected<core::StatisticsCounters, Failure>
 do_cache_compilation(Context& ctx);
 
 static void
-log_result_to_debug_log(Context& ctx)
+log_result_to_debug_log(const Context& ctx)
 {
   if (ctx.config.log_file().empty() && !ctx.config.debug()) {
     return;

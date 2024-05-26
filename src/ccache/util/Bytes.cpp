@@ -76,11 +76,11 @@ void
 Bytes::reserve(size_t size) noexcept
 {
   if (size > m_capacity) {
-    auto data = std::make_unique<uint8_t[]>(size);
+    auto bytes = std::make_unique<uint8_t[]>(size);
     if (m_size > 0) {
-      std::memcpy(data.get(), m_data.get(), m_size);
+      std::memcpy(bytes.get(), m_data.get(), m_size);
     }
-    m_data = std::move(data);
+    m_data = std::move(bytes);
     m_capacity = size;
   }
 }

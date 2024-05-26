@@ -85,7 +85,9 @@ TEST_CASE("Basics")
 
   SUBCASE("Move construction")
   {
-    const auto bytes1_orig_data = bytes1.data();
+    // cppcheck-suppress constVariablePointer; we're intentionally keeping a
+    // copy of the pointer
+    const uint8_t* bytes1_orig_data = bytes1.data();
     Bytes bytes2(std::move(bytes1));
 
     CHECK(bytes1.data() == nullptr);
@@ -120,7 +122,9 @@ TEST_CASE("Basics")
 
   SUBCASE("Move assignment")
   {
-    const auto bytes1_orig_data = bytes1.data();
+    // cppcheck-suppress constVariablePointer; we're intentionally keeping a
+    // copy of the pointer
+    const uint8_t* bytes1_orig_data = bytes1.data();
     Bytes bytes2;
     bytes2 = std::move(bytes1);
 
@@ -144,7 +148,7 @@ TEST_CASE("Basics")
   SUBCASE("Non-const operator[]")
   {
     bytes1[1] = 'x';
-    CHECK(bytes1[1] == 'x');
+    CHECK(bytes1[1] == 'x'); // cppcheck-suppress knownConditionTrueFalse
   }
 
   SUBCASE("Comparison")
@@ -197,7 +201,9 @@ TEST_CASE("Basics")
 
   SUBCASE("Reserve and capacity")
   {
-    const auto bytes1_orig_data = bytes1.data();
+    // cppcheck-suppress constVariablePointer; we're intentionally keeping a
+    // copy of the pointer
+    const uint8_t* bytes1_orig_data = bytes1.data();
     CHECK(bytes1.size() == 3);
     CHECK(bytes1.capacity() == 3);
 
@@ -214,7 +220,9 @@ TEST_CASE("Basics")
 
   SUBCASE("Increase size")
   {
-    const auto bytes1_orig_data = bytes1.data();
+    // cppcheck-suppress constVariablePointer; we're intentionally keeping a
+    // copy of the pointer
+    const uint8_t* bytes1_orig_data = bytes1.data();
     bytes1.resize(4);
     CHECK(bytes1.data() != bytes1_orig_data);
     CHECK(bytes1.size() == 4);
@@ -226,7 +234,9 @@ TEST_CASE("Basics")
 
   SUBCASE("Decrease size")
   {
-    const auto bytes1_orig_data = bytes1.data();
+    // cppcheck-suppress constVariablePointer; we're intentionally keeping a
+    // copy of the pointer
+    const uint8_t* bytes1_orig_data = bytes1.data();
     bytes1.resize(2);
     CHECK(bytes1.data() == bytes1_orig_data);
     CHECK(bytes1.size() == 2);

@@ -89,7 +89,7 @@ do_log(std::string_view message, bool bulk)
     }
     snprintf(prefix,
              sizeof(prefix),
-             "[%s.%06d %-5d] ",
+             "[%s.%06u %-5d] ",
              timestamp,
              static_cast<unsigned int>(now.nsec_decimal_part() / 1000),
              static_cast<int>(getpid()));

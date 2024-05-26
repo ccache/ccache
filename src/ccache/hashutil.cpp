@@ -304,9 +304,10 @@ hash_source_code_file(const Context& ctx,
     hash.hash_delimiter("timestamp");
 #ifdef HAVE_ASCTIME_R
     char buffer[26];
-    auto timestamp = asctime_r(&*modified_time, buffer);
+    const char* timestamp = asctime_r(&*modified_time, buffer);
 #else
-    auto timestamp = asctime(&*modified_time);
+    // cppcheck-suppress asctimeCalled; thread-safety not needed here
+    const char* timestamp = asctime(&*modified_time);
 #endif
     if (!timestamp) {
       result.insert(HashSourceCode::error);

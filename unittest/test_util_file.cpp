@@ -65,10 +65,15 @@ TEST_CASE("util::fallocate")
 
 TEST_CASE("util::likely_size_on_disk")
 {
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(0) == 0);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(1) == 4096);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(4095) == 4096);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(4096) == 4096);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(4097) == 8192);
 }
 

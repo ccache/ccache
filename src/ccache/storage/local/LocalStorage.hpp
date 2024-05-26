@@ -85,9 +85,9 @@ public:
   std::string get_raw_file_path(const Hash::Digest& result_key,
                                 uint8_t file_number) const;
 
-  void
-  put_raw_files(const Hash::Digest& key,
-                const std::vector<core::Result::Serializer::RawFile> raw_files);
+  void put_raw_files(
+    const Hash::Digest& key,
+    const std::vector<core::Result::Serializer::RawFile>& raw_files);
 
   // Clone, hard link or copy a file from `source` to `dest` depending on
   // settings in `ctx`. If cloning or hard linking cannot and should not be done

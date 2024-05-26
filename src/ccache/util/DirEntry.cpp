@@ -268,8 +268,8 @@ DirEntry::do_stat() const
   } else
 #endif
   {
-    auto path = pstr(m_path);
-    result = lstat_func(path, &m_stat);
+    auto mpath = pstr(m_path);
+    result = lstat_func(mpath, &m_stat);
     if (result == 0) {
       if (S_ISLNK(m_stat.st_mode)
 #ifdef _WIN32
@@ -278,7 +278,7 @@ DirEntry::do_stat() const
       ) {
         m_is_symlink = true;
         stat_t st;
-        if (stat_func(path, &st) == 0) {
+        if (stat_func(mpath, &st) == 0) {
           m_stat = st;
           m_exists = true;
         }

@@ -50,7 +50,7 @@ struct ProcessArgsResult
   Args compiler_args;
 
   // Whether to include the actual CWD in the hash.
-  bool hash_actual_cwd;
+  bool hash_actual_cwd = false;
 };
 
 inline ProcessArgsResult::ProcessArgsResult(core::Statistic error_)
