@@ -55,6 +55,7 @@ const CompOpt compopts[] = {
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},      // nvcc
   {"--compiler-options", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--config", TAKES_ARG},                             // Clang
+{"--em-config", TAKES_ARG},                            // emcc
   {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
   {"--include", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc

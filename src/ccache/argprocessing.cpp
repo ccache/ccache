@@ -524,18 +524,6 @@ process_option_arg(const Context& ctx,
     }
   }
 
-  // emscriptcen's --em-config requires an argument.
-  if (arg == "--em-config") {
-    if (i == args.size() - 1) {
-      LOG("Missing argument to {}", args[i]);
-      return Statistic::bad_compiler_arguments;
-    }
-    state.common_args.push_back(args[i]);
-    ++i;
-    state.common_args.push_back(args[i]);
-    return Statistic::none;
-  }
-
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_compiler_output(arg)
       || (i + 1 < args.size() && arg == "-Xclang"
