@@ -1253,7 +1253,7 @@ get_default_pch_file_extension(const Config& config)
 
 } // namespace
 
-ProcessArgsResult
+tl::expected<ProcessArgsResult, core::Statistic>
 process_args(Context& ctx)
 {
   ASSERT(!ctx.orig_args.empty());
@@ -1283,18 +1283,19 @@ process_args(Context& ctx)
 
   if (state.input_files.empty()) {
     LOG_RAW("No input file found");
-    return Statistic::no_input_file;
+    return tl::unexpected(Statistic::no_input_file);
   }
   if (state.input_files.size() > 1) {
     if (is_link) {
       LOG_RAW("Called for link");
-      return pstr(state.input_files.front()).str().find("conftest.")
-                 != std::string::npos
-               ? Statistic::autoconf_test
-               : Statistic::called_for_link;
+      return tl::unexpected(
+        pstr(state.input_files.front()).str().find("conftest.")
+            != std::string::npos
+          ? Statistic::autoconf_test
+          : Statistic::called_for_link);
     } else {
       LOG_RAW("Multiple input files");
-      return Statistic::multiple_source_files;
+      return tl::unexpected(Statistic::multiple_source_files);
     }
   }
 
@@ -1310,7 +1311,7 @@ process_args(Context& ctx)
     // potentially support this by behaving differently depending on the
     // compiler type, but let's just bail out for now.
     LOG_RAW("-Wp,-M[M]D in combination with -MF is not supported");
-    return Statistic::unsupported_compiler_option;
+    return tl::unexpected(Statistic::unsupported_compiler_option);
   }
 
   if (!state.last_seen_msvc_z_debug_option.empty()
@@ -1318,13 +1319,13 @@ process_args(Context& ctx)
     // /Zi and /ZI are unsupported, but /Z7 is fine.
     LOG("Compiler option {} is unsupported",
         state.last_seen_msvc_z_debug_option);
-    return Statistic::unsupported_compiler_option;
+    return tl::unexpected(Statistic::unsupported_compiler_option);
   }
 
   // Don't try to second guess the compiler's heuristics for stdout handling.
   if (args_info.output_obj == "-") {
     LOG_RAW("Output file is -");
-    return Statistic::output_to_stdout;
+    return tl::unexpected(Statistic::output_to_stdout);
   }
 
   // Determine output object file.
@@ -1366,7 +1367,7 @@ process_args(Context& ctx)
             || DirEntry(args_info.orig_included_pch_file).is_directory())) {
       LOG("Unsupported folder path value for -Fp: {}",
           args_info.included_pch_file);
-      return Statistic::could_not_use_precompiled_header;
+      return tl::unexpected(Statistic::could_not_use_precompiled_header);
     }
 
     if (included_pch_file_by_source && !args_info.input_file.empty()) {
@@ -1388,7 +1389,7 @@ process_args(Context& ctx)
   // args_info.output_obj which is needed to determine the log filename in
   // CCACHE_DEBUG mode.
   if (argument_error) {
-    return *argument_error;
+    return tl::unexpected(*argument_error);
   }
 
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
@@ -1414,7 +1415,7 @@ process_args(Context& ctx)
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
       LOG_RAW("Disabling direct mode");
-      return Statistic::could_not_use_precompiled_header;
+      return tl::unexpected(Statistic::could_not_use_precompiled_header);
     }
   }
 
@@ -1434,7 +1435,7 @@ process_args(Context& ctx)
   if (!state.explicit_language.empty()) {
     if (!language_is_supported(state.explicit_language)) {
       LOG("Unsupported language: {}", state.explicit_language);
-      return Statistic::unsupported_source_language;
+      return tl::unexpected(Statistic::unsupported_source_language);
     }
     args_info.actual_language = state.explicit_language;
   } else {
@@ -1458,7 +1459,7 @@ process_args(Context& ctx)
     LOG_RAW(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
-    return Statistic::could_not_use_precompiled_header;
+    return tl::unexpected(Statistic::could_not_use_precompiled_header);
   }
 
   if (is_link) {
@@ -1468,15 +1469,16 @@ process_args(Context& ctx)
       LOG_RAW("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
       // the dominant form of "called for link" in many cases.
-      return args_info.input_file.find("conftest.") != std::string::npos
-               ? Statistic::autoconf_test
-               : Statistic::called_for_link;
+      return tl::unexpected(args_info.input_file.find("conftest.")
+                                != std::string::npos
+                              ? Statistic::autoconf_test
+                              : Statistic::called_for_link);
     }
   }
 
   if (args_info.actual_language.empty()) {
     LOG("Unsupported source extension: {}", args_info.input_file);
-    return Statistic::unsupported_source_language;
+    return tl::unexpected(Statistic::unsupported_source_language);
   }
 
   if (args_info.actual_language == "assembler") {
@@ -1520,7 +1522,7 @@ process_args(Context& ctx)
     DirEntry entry(args_info.output_obj);
     if (entry.exists() && !entry.is_regular_file()) {
       LOG("Not a regular file: {}", args_info.output_obj);
-      return Statistic::bad_output_file;
+      return tl::unexpected(Statistic::bad_output_file);
     }
   }
 
@@ -1531,7 +1533,7 @@ process_args(Context& ctx)
   fs::path output_dir = fs::path(args_info.output_obj).parent_path();
   if (!output_dir.empty() && !fs::is_directory(output_dir)) {
     LOG("Directory does not exist: {}", output_dir);
-    return Statistic::bad_output_file;
+    return tl::unexpected(Statistic::bad_output_file);
   }
 
   // Some options shouldn't be passed to the real compiler when it compiles
@@ -1617,7 +1619,7 @@ process_args(Context& ctx)
           LOG_RAW(
             "-Wp,-M[M]D with -o without -MMD, -MQ or -MT is only supported for"
             " GCC or Clang");
-          return Statistic::unsupported_compiler_option;
+          return tl::unexpected(Statistic::unsupported_compiler_option);
         }
       }
 
@@ -1744,7 +1746,7 @@ process_args(Context& ctx)
     compiler_args.push_back("/showIncludes");
   }
 
-  return {
+  return ProcessArgsResult{
     preprocessor_args,
     extra_args_to_hash,
     compiler_args,

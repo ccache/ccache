@@ -2490,10 +2490,10 @@ do_cache_compilation(Context& ctx)
   // be disabled.
   util::setenv("CCACHE_DISABLE", "1");
 
-  ProcessArgsResult processed = process_args(ctx);
+  auto process_args_result = process_args(ctx);
 
-  if (processed.error) {
-    return tl::unexpected(*processed.error);
+  if (!process_args_result) {
+    return tl::unexpected(process_args_result.error());
   }
 
   TRY(set_up_uncached_err());
@@ -2595,9 +2595,9 @@ do_cache_compilation(Context& ctx)
   }
 
   TRY(hash_common_info(
-    ctx, processed.preprocessor_args, common_hash, ctx.args_info));
+    ctx, process_args_result->preprocessor_args, common_hash, ctx.args_info));
 
-  if (processed.hash_actual_cwd) {
+  if (process_args_result->hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
     common_hash.hash(ctx.actual_cwd);
   }
@@ -2606,8 +2606,8 @@ do_cache_compilation(Context& ctx)
   Hash direct_hash = common_hash;
   init_hash_debug(ctx, direct_hash, 'd', "DIRECT MODE", debug_text_file);
 
-  Args args_to_hash = processed.preprocessor_args;
-  args_to_hash.push_back(processed.extra_args_to_hash);
+  Args args_to_hash = process_args_result->preprocessor_args;
+  args_to_hash.push_back(process_args_result->extra_args_to_hash);
 
   bool put_result_in_manifest = false;
   std::optional<Hash::Digest> result_key;
@@ -2659,7 +2659,7 @@ do_cache_compilation(Context& ctx)
     init_hash_debug(ctx, cpp_hash, 'p', "PREPROCESSOR MODE", debug_text_file);
 
     const auto result_and_manifest_key = calculate_result_and_manifest_key(
-      ctx, args_to_hash, cpp_hash, &processed.preprocessor_args);
+      ctx, args_to_hash, cpp_hash, &process_args_result->preprocessor_args);
     if (!result_and_manifest_key) {
       return tl::unexpected(result_and_manifest_key.error());
     }
@@ -2712,14 +2712,14 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  add_prefix(processed.compiler_args, ctx.config.prefix_command());
+  add_prefix(process_args_result->compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
-  const auto digest =
-    to_cache(ctx, processed.compiler_args, result_key, depend_mode_hash);
+  const auto digest = to_cache(
+    ctx, process_args_result->compiler_args, result_key, depend_mode_hash);
   if (!digest) {
     return tl::unexpected(digest.error());
   }

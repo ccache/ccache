@@ -21,7 +21,8 @@
 #include <ccache/Args.hpp>
 #include <ccache/core/Statistic.hpp>
 
-#include <optional>
+#include <tl/expected.hpp>
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,16 +31,6 @@ class Context;
 
 struct ProcessArgsResult
 {
-  ProcessArgsResult(core::Statistic error_);
-  ProcessArgsResult(const Args& preprocessor_args_,
-                    const Args& extra_args_to_hash_,
-                    const Args& compiler_args_,
-                    bool hash_actual_cwd_);
-
-  // nullopt on success, otherwise the statistics counter that should be
-  // incremented.
-  std::optional<core::Statistic> error;
-
   // Arguments (except -E) to send to the preprocessor.
   Args preprocessor_args;
 
@@ -53,23 +44,7 @@ struct ProcessArgsResult
   bool hash_actual_cwd = false;
 };
 
-inline ProcessArgsResult::ProcessArgsResult(core::Statistic error_)
-  : error(error_)
-{
-}
-
-inline ProcessArgsResult::ProcessArgsResult(const Args& preprocessor_args_,
-                                            const Args& extra_args_to_hash_,
-                                            const Args& compiler_args_,
-                                            bool hash_actual_cwd_)
-  : preprocessor_args(preprocessor_args_),
-    extra_args_to_hash(extra_args_to_hash_),
-    compiler_args(compiler_args_),
-    hash_actual_cwd(hash_actual_cwd_)
-{
-}
-
-ProcessArgsResult process_args(Context& ctx);
+tl::expected<ProcessArgsResult, core::Statistic> process_args(Context& ctx);
 
 // Return whether `path` represents a precompiled header (see "Precompiled
 // Headers" in GCC docs).
