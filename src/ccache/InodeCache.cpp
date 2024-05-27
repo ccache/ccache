@@ -155,7 +155,7 @@ fd_is_on_known_to_work_file_system(int fd)
   }
   return known_to_work;
 #else
-  HANDLE file = (HANDLE)_get_osfhandle(fd);
+  HANDLE file = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
   if (file == INVALID_HANDLE_VALUE) {
     return false;
   }
