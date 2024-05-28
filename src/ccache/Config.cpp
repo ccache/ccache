@@ -19,9 +19,9 @@
 #include "Config.hpp"
 
 #include <ccache/core/AtomicFile.hpp>
+#include <ccache/core/Sloppiness.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
-#include <ccache/core/types.hpp>
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/PathString.hpp>
 #include <ccache/util/Tokenizer.hpp>
@@ -44,12 +44,16 @@
 #  include <unistd.h>
 #endif
 
+#include <tl/expected.hpp>
+
 #include <algorithm>
-#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <fstream>
-#include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #ifndef environ

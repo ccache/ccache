@@ -32,7 +32,10 @@
 #include <ccache/core/MsvcShowIncludesOutput.hpp>
 #include <ccache/core/Result.hpp>
 #include <ccache/core/ResultRetriever.hpp>
+#include <ccache/core/Sloppiness.hpp>
+#include <ccache/core/Statistic.hpp>
 #include <ccache/core/Statistics.hpp>
+#include <ccache/core/StatisticsCounters.hpp>
 #include <ccache/core/StatsLog.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -40,14 +43,20 @@
 #include <ccache/core/types.hpp>
 #include <ccache/execute.hpp>
 #include <ccache/hashutil.hpp>
-#include <ccache/language.hpp>
 #include <ccache/storage/Storage.hpp>
+#include <ccache/util/Bytes.hpp>
+#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/Duration.hpp>
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/FileStream.hpp>
 #include <ccache/util/Finalizer.hpp>
 #include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
+#include <ccache/util/TimePoint.hpp>
+#include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/UmaskScope.hpp>
+#include <ccache/util/assertions.hpp>
+#include <ccache/util/conversion.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
@@ -69,9 +78,20 @@
 #  include <unistd.h>
 #endif
 
+#include <nonstd/span.hpp>
+#include <tl/expected.hpp>
+
 #include <algorithm>
+#include <cerrno>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <ctime>
+#include <initializer_list>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 
 namespace fs = util::filesystem;
 

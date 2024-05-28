@@ -18,12 +18,16 @@
 
 #include "argprocessing.hpp"
 
+#include <ccache/Args.hpp>
+#include <ccache/ArgsInfo.hpp>
 #include <ccache/Context.hpp>
 #include <ccache/Depfile.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/language.hpp>
+#include <ccache/util/DirEntry.hpp>
 #include <ccache/util/PathString.hpp>
+#include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -36,6 +40,14 @@
 #  include <unistd.h>
 #endif
 
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <cstdlib>
+#include <iterator>
+#include <optional>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace fs = util::filesystem;

@@ -20,6 +20,8 @@
 
 #include <ccache/util/format.hpp>
 
+#include <tl/expected.hpp>
+
 #include <string_view>
 #include <utility>
 
