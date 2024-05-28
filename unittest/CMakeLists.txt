@@ -51,8 +51,10 @@ list(APPEND source_files ${headers})
 
 add_executable(unittest ${source_files})
 
-if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "^Clang$")
-  # Turn off /Zc:preprocessor for this test because it triggers a bug in some older Windows 10 SDK headers.
+# Turn off /Zc:preprocessor for this test because it triggers a bug in some older Windows 10 SDK headers.
+if(MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "19.25" AND
+    CMAKE_SYSTEM_VERSION VERSION_LESS "10.0.22621")
   set_source_files_properties(test_util_DirEntry.cpp PROPERTIES COMPILE_FLAGS /Zc:preprocessor-)
 endif()
 

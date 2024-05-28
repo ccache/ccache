@@ -59,10 +59,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$" AND NOT MSVC)
 
   include(StdAtomic)
   include(StdFilesystem)
-elseif(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "^Clang$")
-  target_compile_options(
-    standard_settings
-    INTERFACE /Zc:preprocessor /Zc:__cplusplus
+elseif(MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(standard_settings INTERFACE
+      /Zc:__cplusplus
+      $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.25>:/Zc:preprocessor>
   )
 endif()
 
