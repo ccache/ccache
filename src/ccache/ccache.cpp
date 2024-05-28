@@ -70,10 +70,7 @@
 #endif
 
 #include <algorithm>
-#include <cmath>
 #include <cstring>
-#include <limits>
-#include <memory>
 #include <unordered_map>
 
 namespace fs = util::filesystem;

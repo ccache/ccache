@@ -36,7 +36,6 @@
 #  include <unistd.h>
 #endif
 
-#include <cassert>
 #include <vector>
 
 namespace fs = util::filesystem;
