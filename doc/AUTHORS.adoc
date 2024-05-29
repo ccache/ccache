@@ -28,11 +28,14 @@ Ccache is a collective work with contributions from many people, including:
 * Bernhard Bauer
 * Bin Li
 * Björn Jacke
+* Brendan Shanks
 * Breno Guimaraes
+* Byoungchan Lee
 * Chiaki Ishikawa
 * Chris AtLee
 * Chris Burr
 * Clemens Rabe
+* Clemens Wasser
 * Cristian Adam
 * Daniel Richtmann
 * David Givone
@@ -59,6 +62,7 @@ Ccache is a collective work with contributions from many people, including:
 * Jacob Young
 * Jiang Jiang
 * Jiri Hörner
+* Jiri Slaby
 * Jiulong Wang
 * Joel Galenson
 * Joel Rosdahl
@@ -73,6 +77,7 @@ Ccache is a collective work with contributions from many people, including:
 * Justin Lebar
 * Ka Ho Ng
 * Karl Chen
+* Kaspar Schleiser
 * Khem Raj
 * Kira Bruneau
 * Kona Blend
@@ -143,12 +148,14 @@ Ccache is a collective work with contributions from many people, including:
 * Sam James
 * Sergei Trofimovich
 * Sergey Semushin
+* Silver Zachara
 * Steffen Dettmer
 * Stephan Rohmen
 * Steve Mokris
 * Stuart Henderson
 * Sumit Jamgade
 * Tadej Novak
+* Thomas Ferrand
 * Thomas Otto
 * Thomas Röfer
 * Timofei Kushnir
