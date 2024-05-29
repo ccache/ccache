@@ -53,7 +53,13 @@ if(_download_zstd)
     SOURCE_SUBDIR build/cmake
     ${_zstd_patch}
   )
-  FetchContent_MakeAvailable(Zstd)
+
+  # When it works: Use FetchContent_MakeAvailable(Zstd) instead
+  FetchContent_GetProperties(zstd)
+  if(NOT zstd_POPULATED)
+    FetchContent_Populate(Zstd)
+    add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}" EXCLUDE_FROM_ALL)
+  endif()
 
   # Workaround until https://github.com/facebook/zstd/pull/3968 is included in a
   # release:
