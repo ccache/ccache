@@ -74,13 +74,14 @@ jobs:
             compiler: gcc
             version: "12"
 
-          - os: ubuntu-24.04
-            compiler: gcc
-            version: "13"
+# Temporarily disabled due to GitHub Actions problems.
+          # - os: ubuntu-24.04
+          #   compiler: gcc
+          #   version: "13"
 
-          - os: ubuntu-24.04
-            compiler: gcc
-            version: "14"
+          # - os: ubuntu-24.04
+          #   compiler: gcc
+          #   version: "14"
 
           - os: macOS-12
             compiler: xcode
