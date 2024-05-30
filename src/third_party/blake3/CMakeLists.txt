@@ -7,7 +7,7 @@ add_library(
   "${CMAKE_CURRENT_SOURCE_DIR}/blake3/blake3_portable.c"
 )
 
-target_include_directories(dep_blake3 INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(dep_blake3 INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/blake3")
 target_link_libraries(dep_blake3 PRIVATE standard_settings)
 
 if(MSVC)
