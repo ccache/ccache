@@ -21,9 +21,10 @@
 #include <ccache/util/PathString.hpp>
 #include <ccache/util/conversion.hpp>
 
-#include <blake3.h>
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
+
+#include <blake3.h>
 
 #include <array>
 #include <cstdint>
