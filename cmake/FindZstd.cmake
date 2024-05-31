@@ -35,11 +35,6 @@ endif()
 if(_download_zstd)
   set(_zstd_version_string 1.5.6)
 
-  if(XCODE)
-    # See https://github.com/facebook/zstd/pull/3665
-    set(_zstd_patch PATCH_COMMAND sed -i .bak -e "s/^set_source_files_properties.*PROPERTIES.*LANGUAGE.*C/\\#&/ build/cmake/lib/CMakeLists.txt")
-  endif()
-
   set(ZSTD_BUILD_PROGRAMS OFF)
   set(ZSTD_BUILD_SHARED OFF)
   set(ZSTD_BUILD_STATIC ON)
