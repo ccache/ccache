@@ -44,7 +44,7 @@ struct ArgsInfo
   bool expect_output_obj = true;
 
   // The output file being compiled to.
-  std::string orig_output_obj;
+  std::filesystem::path orig_output_obj;
 
   // The output file being compiled to, potentially rewritten into relative.
   std::string output_obj;

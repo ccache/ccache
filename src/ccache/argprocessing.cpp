@@ -1453,8 +1453,8 @@ process_args(Context& ctx)
     || is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
-    args_info.orig_output_obj = util::pstr(util::add_extension(
-      args_info.orig_input_file, get_default_pch_file_extension(config)));
+    args_info.orig_output_obj = util::add_extension(
+      args_info.orig_input_file, get_default_pch_file_extension(config));
     args_info.output_obj =
       util::pstr(core::make_relative_path(ctx, args_info.orig_output_obj));
   }
@@ -1601,7 +1601,7 @@ process_args(Context& ctx)
     }
 
     if (!args_info.dependency_target) {
-      std::string dep_target = args_info.orig_output_obj;
+      std::string dep_target = util::pstr(args_info.orig_output_obj);
 
       // GCC and Clang behave differently when "-Wp,-M[M]D,wp.d" is used with
       // "-o" but with neither "-MMD" nor "-MT"/"-MQ": GCC uses a dependency
