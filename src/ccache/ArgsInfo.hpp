@@ -33,7 +33,7 @@ struct ArgsInfo
   std::filesystem::path orig_input_file;
 
   // The source file path, potentially rewritten into relative.
-  std::string input_file;
+  std::filesystem::path input_file;
 
   // Prefix to the input file when adding it to a command line.
   std::string input_file_prefix;

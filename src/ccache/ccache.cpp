@@ -1285,7 +1285,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
-    preprocessed_path = ctx.args_info.input_file;
+    preprocessed_path = util::pstr(ctx.args_info.input_file);
   } else {
     // Run cpp on the input file to obtain the .i.
 

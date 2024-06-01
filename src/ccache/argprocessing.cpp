@@ -1311,7 +1311,7 @@ process_args(Context& ctx)
   args_info.orig_input_file = state.input_files.front();
   // Rewrite to relative to increase hit rate.
   args_info.input_file =
-    util::pstr(core::make_relative_path(ctx, args_info.orig_input_file));
+    core::make_relative_path(ctx, args_info.orig_input_file);
 
   // Bail out on too hard combinations of options.
   if (state.found_mf_opt && state.found_wp_md_or_mmd_opt) {
@@ -1474,10 +1474,11 @@ process_args(Context& ctx)
       LOG_RAW("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
       // the dominant form of "called for link" in many cases.
-      return tl::unexpected(args_info.input_file.find("conftest.")
-                                != std::string::npos
-                              ? Statistic::autoconf_test
-                              : Statistic::called_for_link);
+      return tl::unexpected(
+        util::pstr(args_info.input_file).str().find("conftest.")
+            != std::string::npos
+          ? Statistic::autoconf_test
+          : Statistic::called_for_link);
     }
   }
 
