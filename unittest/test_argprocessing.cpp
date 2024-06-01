@@ -23,7 +23,6 @@
 #include <ccache/Context.hpp>
 #include <ccache/argprocessing.hpp>
 #include <ccache/core/Statistic.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -39,7 +38,6 @@ namespace fs = util::filesystem;
 
 using core::Statistic;
 using TestUtil::TestContext;
-using pstr = util::PathString;
 
 namespace {
 
@@ -50,7 +48,8 @@ get_root()
   return "/";
 #else
   char volume[4]; // "C:\"
-  GetVolumePathName(pstr(*fs::current_path()).c_str(), volume, sizeof(volume));
+  GetVolumePathName(
+    util::pstr(*fs::current_path()).c_str(), volume, sizeof(volume));
   return volume;
 #endif
 }

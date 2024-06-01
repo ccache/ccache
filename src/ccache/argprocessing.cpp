@@ -26,7 +26,6 @@
 #include <ccache/core/common.hpp>
 #include <ccache/language.hpp>
 #include <ccache/util/DirEntry.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/filesystem.hpp>
@@ -54,7 +53,6 @@ namespace fs = util::filesystem;
 
 using core::Statistic;
 using util::DirEntry;
-using pstr = util::PathString;
 
 namespace {
 
@@ -178,7 +176,7 @@ detect_pch(const std::string& option,
       fs::path file = fs::path(arg).replace_extension(".pch");
       if (fs::is_regular_file(file)) {
         LOG("Detected use of precompiled header: {}", file);
-        pch_file = pstr(file).str();
+        pch_file = util::pstr(file);
       }
     }
   } else if (option == "-Fp") {
@@ -267,7 +265,7 @@ process_profiling_option(const Context& ctx,
       new_profile_path = ".";
     } else {
       // GCC uses $PWD/$(basename $obj).
-      new_profile_path = pstr(ctx.apparent_cwd).str();
+      new_profile_path = util::pstr(ctx.apparent_cwd);
     }
   } else if (util::starts_with(arg, "-fprofile-generate=")
              || util::starts_with(arg, "-fprofile-instr-generate=")) {
@@ -776,7 +774,7 @@ process_option_arg(const Context& ctx,
     if (state.output_dep_origin <= OutputDepOrigin::mf) {
       state.output_dep_origin = OutputDepOrigin::mf;
       args_info.output_dep =
-        pstr(core::make_relative_path(ctx, dep_file)).str();
+        util::pstr(core::make_relative_path(ctx, dep_file));
     }
     // Keep the format of the args the same.
     if (separate_argument) {
@@ -921,7 +919,7 @@ process_option_arg(const Context& ctx,
     }
     state.common_args.push_back(args[i]);
     auto relpath = core::make_relative_path(ctx, args[i + 1]);
-    state.common_args.push_back(pstr(relpath).str());
+    state.common_args.push_back(util::pstr(relpath));
     i++;
     return Statistic::none;
   }
@@ -1014,7 +1012,7 @@ process_option_arg(const Context& ctx,
     }
     args_info.generating_diagnostics = true;
     args_info.output_dia =
-      pstr(core::make_relative_path(ctx, args[i + 1])).str();
+      util::pstr(core::make_relative_path(ctx, args[i + 1]));
     i++;
     return Statistic::none;
   }
@@ -1129,7 +1127,7 @@ process_option_arg(const Context& ctx,
     if (next == 2) {
       dest_args.push_back(args[i + 1]);
     }
-    dest_args.push_back(pstr(relpath).str());
+    dest_args.push_back(util::pstr(relpath));
 
     i += next;
     return Statistic::none;
@@ -1300,7 +1298,7 @@ process_args(Context& ctx)
     if (is_link) {
       LOG_RAW("Called for link");
       return tl::unexpected(
-        pstr(state.input_files.front()).str().find("conftest.")
+        util::pstr(state.input_files.front()).str().find("conftest.")
             != std::string::npos
           ? Statistic::autoconf_test
           : Statistic::called_for_link);
@@ -1310,10 +1308,10 @@ process_args(Context& ctx)
     }
   }
 
-  args_info.orig_input_file = pstr(state.input_files.front()).str();
+  args_info.orig_input_file = util::pstr(state.input_files.front());
   // Rewrite to relative to increase hit rate.
   args_info.input_file =
-    pstr(core::make_relative_path(ctx, args_info.orig_input_file)).str();
+    util::pstr(core::make_relative_path(ctx, args_info.orig_input_file));
 
   // Bail out on too hard combinations of options.
   if (state.found_mf_opt && state.found_wp_md_or_mmd_opt) {
@@ -1359,15 +1357,13 @@ process_args(Context& ctx)
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
-    args_info.output_obj +=
-      pstr(
-        fs::path(args_info.input_file).filename().replace_extension(extension))
-        .str();
+    args_info.output_obj += util::pstr(
+      fs::path(args_info.input_file).filename().replace_extension(extension));
   }
 
   args_info.orig_output_obj = args_info.output_obj;
   args_info.output_obj =
-    pstr(core::make_relative_path(ctx, args_info.output_obj)).str();
+    util::pstr(core::make_relative_path(ctx, args_info.output_obj));
 
   // Determine a filepath for precompiled header.
   if (ctx.config.is_compiler_group_msvc() && args_info.generating_pch) {
@@ -1382,11 +1378,10 @@ process_args(Context& ctx)
     }
 
     if (included_pch_file_by_source && !args_info.input_file.empty()) {
-      args_info.included_pch_file =
-        pstr(fs::path(args_info.input_file)
-               .filename()
-               .replace_extension(get_default_pch_file_extension(ctx.config)))
-          .str();
+      args_info.included_pch_file = util::pstr(
+        fs::path(args_info.input_file)
+          .filename()
+          .replace_extension(get_default_pch_file_extension(ctx.config)));
       LOG(
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
@@ -1437,7 +1432,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.profile_path.empty()) {
-    args_info.profile_path = pstr(ctx.apparent_cwd).str();
+    args_info.profile_path = util::pstr(ctx.apparent_cwd);
   }
 
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
@@ -1462,7 +1457,7 @@ process_args(Context& ctx)
     args_info.orig_output_obj =
       args_info.orig_input_file + get_default_pch_file_extension(config);
     args_info.output_obj =
-      pstr(core::make_relative_path(ctx, args_info.orig_output_obj)).str();
+      util::pstr(core::make_relative_path(ctx, args_info.orig_output_obj));
   }
 
   if (args_info.output_is_precompiled_header
@@ -1525,7 +1520,7 @@ process_args(Context& ctx)
       args_info.seen_split_dwarf = false;
     } else {
       args_info.output_dwo =
-        pstr(fs::path(args_info.output_obj).replace_extension(".dwo")).str();
+        util::pstr(fs::path(args_info.output_obj).replace_extension(".dwo"));
     }
   }
 
@@ -1587,7 +1582,7 @@ process_args(Context& ctx)
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
       args_info.output_dep =
-        pstr(fs::path(args_info.output_obj).replace_extension(".d")).str();
+        util::pstr(fs::path(args_info.output_obj).replace_extension(".d"));
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -1642,19 +1637,19 @@ process_args(Context& ctx)
     std::string default_sufile_name =
       fs::path(args_info.output_obj).replace_extension(".su").string();
     args_info.output_su =
-      pstr(core::make_relative_path(ctx, default_sufile_name)).str();
+      util::pstr(core::make_relative_path(ctx, default_sufile_name));
   }
 
   if (args_info.generating_callgraphinfo) {
     std::string default_cifile_name =
       fs::path(args_info.output_obj).replace_extension(".ci").string();
     args_info.output_ci =
-      pstr(core::make_relative_path(ctx, default_cifile_name)).str();
+      util::pstr(core::make_relative_path(ctx, default_cifile_name));
   }
 
   if (args_info.generating_ipa_clones) {
     fs::path ipa_path(args_info.orig_input_file + ".000i.ipa-clones");
-    args_info.output_ipa = pstr(core::make_relative_path(ctx, ipa_path)).str();
+    args_info.output_ipa = util::pstr(core::make_relative_path(ctx, ipa_path));
   }
 
   Args compiler_args = state.common_args;

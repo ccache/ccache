@@ -50,7 +50,6 @@
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/FileStream.hpp>
 #include <ccache/util/Finalizer.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/TimePoint.hpp>
 #include <ccache/util/Tokenizer.hpp>
@@ -97,7 +96,6 @@ namespace fs = util::filesystem;
 
 using core::Statistic;
 using util::DirEntry;
-using pstr = util::PathString;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -166,7 +164,7 @@ Failure::set_exit_code(const int exit_code)
 } // namespace
 
 static bool
-should_disable_ccache_for_input_file(const std::string& path)
+should_disable_ccache_for_input_file(const fs::path& path)
 {
   auto content =
     util::read_file_part<std::string>(path, 0, k_ccache_disable_search_limit);
@@ -231,7 +229,7 @@ prepare_debug_path(const fs::path& cwd,
              static_cast<long long unsigned int>(time_of_invocation.sec()));
   }
   return FMT("{}.{}_{:06}.ccache-{}",
-             pstr(prefix).str(),
+             prefix,
              timestamp,
              time_of_invocation.nsec_decimal_part() / 1000,
              suffix);
@@ -289,7 +287,7 @@ static CompilerType
 do_guess_compiler(const fs::path& path)
 {
   const auto name =
-    util::to_lowercase(pstr(path.filename().replace_extension("")).str());
+    util::to_lowercase(util::pstr(path.filename().replace_extension("")).str());
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
@@ -581,9 +579,9 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
         auto it = relative_inc_path_cache.find(inc_path);
         if (it == relative_inc_path_cache.end()) {
           std::string rel_inc_path =
-            pstr(core::make_relative_path(ctx, inc_path)).str();
+            util::pstr(core::make_relative_path(ctx, inc_path));
           relative_inc_path_cache.emplace(inc_path, rel_inc_path);
-          inc_path = pstr(rel_inc_path).str();
+          inc_path = util::pstr(rel_inc_path);
         } else {
           inc_path = it->second;
         }
@@ -641,8 +639,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
   // mention of it in the preprocessed output.
   if (!ctx.args_info.included_pch_file.empty()
       && !ctx.args_info.generating_pch) {
-    std::string pch_path =
-      pstr(core::make_relative_path(ctx, ctx.args_info.included_pch_file));
+    std::string pch_path = util::pstr(
+      core::make_relative_path(ctx, ctx.args_info.included_pch_file));
     hash.hash(pch_path);
     TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
@@ -682,7 +680,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     }
     if (seen_colon) {
       fs::path path = core::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, pstr(path), hash, false, &hash));
+      TRY(remember_include_file(ctx, util::pstr(path), hash, false, &hash));
     } else if (token == ":") {
       seen_colon = true;
     }
@@ -695,7 +693,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pstr(pch_path), hash, false, nullptr));
+    TRY(remember_include_file(ctx, util::pstr(pch_path), hash, false, nullptr));
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -721,7 +719,7 @@ get_tmp_fd(Context& ctx,
     auto tmp_stdout =
       util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
         FMT("{}/{}", ctx.config.temporary_dir(), description)));
-    ctx.register_pending_tmp_file(pstr(tmp_stdout.path));
+    ctx.register_pending_tmp_file(util::pstr(tmp_stdout.path));
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
     const auto dev_null_path = util::get_dev_null_path();
@@ -744,7 +742,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
     const fs::path path = core::make_relative_path(ctx, include);
-    TRY(remember_include_file(ctx, pstr(path), hash, false, &hash));
+    TRY(remember_include_file(ctx, util::pstr(path), hash, false, &hash));
   }
 
   // Explicitly check the .pch file as it is not mentioned in the
@@ -754,7 +752,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pstr(pch_path), hash, false, nullptr));
+    TRY(remember_include_file(ctx, util::pstr(pch_path), hash, false, nullptr));
   }
 
   const bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -1051,7 +1049,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         abs_inc_path = util::strip_whitespace(abs_inc_path);
         fs::path rel_inc_path = core::make_relative_path(ctx, abs_inc_path);
         std::string line_with_rel_inc = util::replace_first(
-          orig_line, abs_inc_path, pstr(rel_inc_path).str());
+          orig_line, abs_inc_path, util::pstr(rel_inc_path).str());
         new_stdout_data.insert(new_stdout_data.end(),
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
@@ -1523,7 +1521,7 @@ hash_common_info(const Context& ctx,
 
   // Possibly hash the current working directory.
   if (args_info.generating_debuginfo && ctx.config.hash_dir()) {
-    std::string dir_to_hash = pstr(ctx.apparent_cwd).str();
+    std::string dir_to_hash = util::pstr(ctx.apparent_cwd);
     for (const auto& map : args_info.debug_prefix_maps) {
       size_t sep_pos = map.find('=');
       if (sep_pos != std::string::npos) {
@@ -1533,9 +1531,10 @@ hash_common_info(const Context& ctx,
             old_path,
             new_path,
             ctx.apparent_cwd);
-        if (util::starts_with(pstr(ctx.apparent_cwd), old_path)) {
+        if (util::starts_with(util::pstr(ctx.apparent_cwd).str(), old_path)) {
           dir_to_hash =
-            new_path + pstr(ctx.apparent_cwd).str().substr(old_path.size());
+            new_path
+            + util::pstr(ctx.apparent_cwd).str().substr(old_path.size());
         }
       }
     }
@@ -1551,7 +1550,7 @@ hash_common_info(const Context& ctx,
     const std::string output_obj_dir =
       fs::path(args_info.output_obj).is_absolute()
         ? fs::path(args_info.output_obj).parent_path().string()
-        : pstr(ctx.actual_cwd);
+        : util::pstr(ctx.actual_cwd);
     LOG("Hashing object file directory {}", output_obj_dir);
     hash.hash_delimiter("source path");
     hash.hash(output_obj_dir);
@@ -1564,7 +1563,7 @@ hash_common_info(const Context& ctx,
     // base name would be enough.
     LOG_RAW("Hashing object filename due to -gsplit-dwarf");
     hash.hash_delimiter("object file");
-    hash.hash(pstr(fs::path(ctx.args_info.output_obj).filename()).str());
+    hash.hash(util::pstr(fs::path(ctx.args_info.output_obj).filename()));
   }
 
   if (ctx.args_info.profile_arcs) {
@@ -1964,8 +1963,8 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
   const std::string base_name =
-    pstr(fs::path(ctx.args_info.output_obj).replace_extension("")).str();
-  std::string hashified_cwd = pstr(ctx.apparent_cwd).str();
+    util::pstr(fs::path(ctx.args_info.output_obj).replace_extension(""));
+  std::string hashified_cwd = util::pstr(ctx.apparent_cwd);
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
   std::vector<std::string> paths_to_try{
@@ -2791,7 +2790,7 @@ ccache_main(int argc, const char* const* argv)
       if (argc < 2) {
         PRINT_RAW(
           stderr,
-          core::get_usage_text(pstr(fs::path(argv[0]).filename()).str()));
+          core::get_usage_text(util::pstr(fs::path(argv[0]).filename()).str()));
         exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being

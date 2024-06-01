@@ -19,14 +19,13 @@
 #include "util.hpp"
 
 #include <ccache/core/exceptions.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 
 using util::DirEntry;
-using pstr = util::PathString;
 
 namespace storage::local {
 
@@ -75,7 +74,7 @@ get_cache_dir_files(const std::string& dir)
   }
   util::throw_on_error<core::Error>(
     util::traverse_directory(dir, [&](const auto& de) {
-      std::string name = pstr(de.path().filename()).str();
+      std::string name = util::pstr(de.path().filename());
       if (name == "CACHEDIR.TAG" || name == "stats"
           || util::starts_with(name, ".nfs")) {
         return;

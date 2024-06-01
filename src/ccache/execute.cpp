@@ -27,7 +27,6 @@
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/Finalizer.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
@@ -54,8 +53,6 @@
 #endif
 
 namespace fs = util::filesystem;
-
-using pstr = util::PathString;
 
 #ifdef _WIN32
 static int win32execute(const char* path,
@@ -92,9 +89,9 @@ win32getshell(const std::string& path)
 {
   const char* path_list = getenv("PATH");
   std::string sh;
-  if (util::to_lowercase(pstr(fs::path(path).extension()).str()) == ".sh"
+  if (util::to_lowercase(util::pstr(fs::path(path).extension()).str()) == ".sh"
       && path_list) {
-    sh = pstr(find_executable_in_path("sh.exe", path_list)).str();
+    sh = util::pstr(find_executable_in_path("sh.exe", path_list));
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
@@ -103,7 +100,7 @@ win32getshell(const std::string& path)
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
       if (std::string(buf) == "#!/bin/sh" && path_list) {
-        sh = pstr(find_executable_in_path("sh.exe", path_list)).str();
+        sh = util::pstr(find_executable_in_path("sh.exe", path_list));
       }
     }
   }

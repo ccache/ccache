@@ -39,6 +39,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/process.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/wincompat.hpp>
@@ -88,8 +89,6 @@ using core::AtomicFile;
 using core::Statistic;
 using core::StatisticsCounters;
 using util::DirEntry;
-
-using pstr = util::PathString;
 
 namespace storage::local {
 
@@ -350,10 +349,10 @@ clean_dir(
     }
 
     if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
-      auto path_str = pstr(file.path());
+      util::PathString path_str(file.path());
       const auto result_filename =
         FMT("{}R", path_str.str().substr(0, path_str.str().length() - 2));
-      raw_files_map[result_filename].push_back(pstr(file.path()).str());
+      raw_files_map[result_filename].push_back(util::pstr(file.path()));
     }
 
     cache_size += file.size_on_disk();
@@ -401,7 +400,7 @@ clean_dir(
       // For namespace eviction we need to remove raw files based on result
       // filename since they don't have a header.
       if (file_type_from_path(file.path()) == FileType::result) {
-        const auto entry = raw_files_map.find(pstr(file.path()));
+        const auto entry = raw_files_map.find(util::pstr(file.path()));
         if (entry != raw_files_map.end()) {
           for (const auto& raw_file : entry->second) {
             delete_file(DirEntry(raw_file), cache_size, files_in_cache);
@@ -429,7 +428,7 @@ clean_dir(
 FileType
 file_type_from_path(const fs::path& path)
 {
-  std::string filename = pstr(path.filename()).str();
+  std::string filename = util::pstr(path.filename());
   if (util::ends_with(filename, "M")) {
     return FileType::manifest;
   } else if (util::ends_with(filename, "R")) {

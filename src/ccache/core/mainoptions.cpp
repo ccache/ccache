@@ -36,7 +36,6 @@
 #include <ccache/storage/local/LocalStorage.hpp>
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/FileStream.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/TextTable.hpp>
 #include <ccache/util/ThreadPool.hpp>
@@ -50,6 +49,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 
 #include <fcntl.h>
@@ -76,7 +76,6 @@
 namespace fs = util::filesystem;
 
 using util::DirEntry;
-using pstr = util::PathString;
 
 namespace core {
 
@@ -721,7 +720,7 @@ process_main_options(int argc, const char* const* argv)
     case 'F': { // --max-files
       auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
       config.set_value_in_file(
-        pstr(config.config_path()).str(), "max_files", arg);
+        util::pstr(config.config_path()), "max_files", arg);
       if (files == 0) {
         PRINT_RAW(stdout, "Unset cache file limit\n");
       } else {
@@ -735,7 +734,7 @@ process_main_options(int argc, const char* const* argv)
         util::value_or_throw<Error>(util::parse_size(arg));
       uint64_t max_size = size;
       config.set_value_in_file(
-        pstr(config.config_path()).str(), "max_size", arg);
+        util::pstr(config.config_path()), "max_size", arg);
       if (max_size == 0) {
         PRINT_RAW(stdout, "Unset cache size limit\n");
       } else {
@@ -755,7 +754,7 @@ process_main_options(int argc, const char* const* argv)
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);
-      config.set_value_in_file(pstr(config.config_path()).str(), key, value);
+      config.set_value_in_file(util::pstr(config.config_path()), key, value);
       break;
     }
 
@@ -812,7 +811,8 @@ process_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
     {
-      PRINT_RAW(stdout, get_version_text(pstr(fs::path(argv[0]).stem()).str()));
+      PRINT_RAW(stdout,
+                get_version_text(util::pstr(fs::path(argv[0]).stem()).str()));
       break;
     }
 

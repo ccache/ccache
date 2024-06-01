@@ -20,11 +20,15 @@
 
 #include <ccache/core/Statistics.hpp>
 #include <ccache/util/FileStream.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 
 #include <cstring>
 #include <fstream>
+
+namespace fs = util::filesystem;
 
 namespace core {
 
@@ -54,7 +58,7 @@ StatsLog::read() const
 }
 
 void
-StatsLog::log_result(const std::string& input_file,
+StatsLog::log_result(const fs::path& input_file,
                      const std::vector<std::string>& result_ids)
 {
   util::FileStream file(m_path, "ab");

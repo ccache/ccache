@@ -19,13 +19,13 @@
 #include "LockFile.hpp"
 
 #include <ccache/util/DirEntry.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/process.hpp>
 #include <ccache/util/wincompat.hpp>
 
@@ -48,8 +48,6 @@ const util::Duration k_staleness_limit(2);
 #endif
 
 namespace fs = util::filesystem;
-
-using pstr = util::PathString;
 
 namespace {
 
@@ -79,9 +77,9 @@ private:
 namespace util {
 
 LockFile::LockFile(const fs::path& path)
-  : m_lock_file(pstr(path).str() + ".lock"),
+  : m_lock_file(util::pstr(path).str() + ".lock"),
 #ifndef _WIN32
-    m_alive_file(pstr(path).str() + ".alive"),
+    m_alive_file(util::pstr(path).str() + ".alive"),
     m_acquired(false)
 #else
     m_handle(INVALID_HANDLE_VALUE)
@@ -388,7 +386,7 @@ LockFile::do_acquire(const bool blocking)
 
   while (true) {
     DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE;
-    handle = CreateFile(pstr(m_lock_file),
+    handle = CreateFile(util::pstr(m_lock_file).c_str(),
                         GENERIC_WRITE, // desired access
                         0,             // shared mode (0 = not shared)
                         nullptr,       // security attributes

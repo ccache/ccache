@@ -19,9 +19,9 @@
 #pragma once
 
 #include <ccache/util/NonCopyable.hpp>
+#include <ccache/util/path.hpp>
 
 #include <cstdio>
-#include <string>
 
 namespace util {
 
@@ -30,13 +30,13 @@ class FileStream : util::NonCopyable
 public:
   FileStream() = default;
   explicit FileStream(FILE* file);
-  FileStream(const std::string& path, const char* mode);
+  FileStream(const std::filesystem::path& path, const char* mode);
   FileStream(FileStream&& other) noexcept;
   ~FileStream();
 
   FileStream& operator=(FileStream&& other) noexcept;
 
-  void open(const std::string& path, const char* mode);
+  void open(const std::filesystem::path& path, const char* mode);
   void close();
 
   operator bool() const;
@@ -52,7 +52,8 @@ inline FileStream::FileStream(FILE* const file) : m_file(file), m_owned(false)
 {
 }
 
-inline FileStream::FileStream(const std::string& path, const char* mode)
+inline FileStream::FileStream(const std::filesystem::path& path,
+                              const char* mode)
 {
   open(path, mode);
 }
@@ -81,10 +82,10 @@ FileStream::operator=(FileStream&& other) noexcept
 }
 
 inline void
-FileStream::open(const std::string& path, const char* mode)
+FileStream::open(const std::filesystem::path& path, const char* mode)
 {
   close();
-  m_file = fopen(path.c_str(), mode);
+  m_file = fopen(util::pstr(path).c_str(), mode);
   m_owned = true;
 }
 

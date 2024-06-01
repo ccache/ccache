@@ -32,7 +32,6 @@ public:
   PathString(const std::filesystem::path& path);
 
   operator const std::string&() const;
-  operator const char*() const;
 
   const std::string& str() const;
   const char* c_str() const;
@@ -57,11 +56,6 @@ inline PathString::PathString(const std::filesystem::path& path)
 inline PathString::operator const std::string&() const
 {
   return str();
-}
-
-inline PathString::operator const char*() const
-{
-  return c_str();
 }
 
 inline const std::string&

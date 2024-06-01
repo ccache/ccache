@@ -22,7 +22,6 @@
 #include <ccache/Hash.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/file.hpp>
@@ -34,8 +33,6 @@
 #include <algorithm>
 
 namespace fs = util::filesystem;
-
-using pstr = util::PathString;
 
 namespace Depfile {
 
@@ -82,7 +79,7 @@ rewrite_source_paths(const Context& ctx, std::string_view content)
     auto rel_path = core::make_relative_path(ctx, token);
     if (rel_path != token) {
       rewritten = true;
-      token = pstr(rel_path).str();
+      token = util::pstr(rel_path);
     }
   }
 

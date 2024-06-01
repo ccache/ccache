@@ -21,7 +21,6 @@
 #include <ccache/Context.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/Finalizer.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
@@ -30,7 +29,6 @@
 #include <ccache/util/path.hpp>
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
-using pstr = util::PathString;
 
 namespace fs = util::filesystem;
 
@@ -117,7 +115,7 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
       result.append(line.data(), line.length());
     } else {
       fs::path path(line.substr(0, path_end));
-      result += pstr(fs::canonical(path).value_or(path)).str();
+      result += util::pstr(fs::canonical(path).value_or(path));
       auto tail = line.substr(path_end);
       result.append(tail.data(), tail.length());
     }

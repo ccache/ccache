@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/conversion.hpp>
+#include <ccache/util/path.hpp>
 
 #include <blake3.h>
 #include <nonstd/span.hpp>
@@ -133,6 +133,6 @@ Hash::hash(const std::string& data)
 inline Hash&
 Hash::hash(const std::filesystem::path& path)
 {
-  hash(util::PathString(path).str());
+  hash(util::pstr(path));
   return *this;
 }

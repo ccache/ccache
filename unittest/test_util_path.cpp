@@ -18,7 +18,6 @@
 
 #include "TestUtil.hpp"
 
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -30,7 +29,6 @@
 
 namespace fs = util::filesystem;
 
-using pstr = util::PathString;
 using TestUtil::TestContext;
 
 TEST_CASE("util::add_exe_suffix")
@@ -71,7 +69,7 @@ TEST_CASE("util::make_relative_path")
 
   const TestContext test_context;
 
-  const std::string cwd = pstr(*fs::current_path()).str();
+  const std::string cwd = util::pstr(*fs::current_path());
   const std::string actual_cwd = FMT("{}/d", cwd);
 #if defined(_WIN32) || defined(__CYGWIN__)
   const std::string apparent_cwd = actual_cwd;

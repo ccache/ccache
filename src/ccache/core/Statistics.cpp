@@ -19,10 +19,10 @@
 #include "Statistics.hpp"
 
 #include <ccache/Config.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/TextTable.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
 
@@ -30,7 +30,6 @@
 
 namespace core {
 
-using pstr = util::PathString;
 using core::Statistic;
 
 const unsigned FLAG_NOZERO = 1U << 0;      // don't zero with --zero-stats
@@ -392,9 +391,9 @@ Statistics::format_human_readable(const Config& config,
   if (verbosity > 0 && !from_log) {
     table.add_row({"Cache directory:", C(config.cache_dir()).colspan(4)});
     table.add_row(
-      {"Config file:", C(pstr(config.config_path()).str()).colspan(4)});
+      {"Config file:", C(util::pstr(config.config_path())).colspan(4)});
     table.add_row({"System config file:",
-                   C(pstr(config.system_config_path()).str()).colspan(4)});
+                   C(util::pstr(config.system_config_path())).colspan(4)});
     table.add_row(
       {"Stats updated:", C(format_timestamp(last_updated)).colspan(4)});
     if (verbosity > 1) {

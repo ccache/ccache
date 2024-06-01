@@ -20,9 +20,9 @@
 
 #include <ccache/Context.hpp>
 #include <ccache/Depfile.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 
 #include <doctest/doctest.h>
 
@@ -32,7 +32,6 @@
 namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
-using pstr = util::PathString;
 
 TEST_SUITE_BEGIN("Depfile");
 
@@ -60,8 +59,8 @@ TEST_CASE("Depfile::rewrite_source_paths")
     "\n"
     " {0}/bar/bar.h: \n"
     " {1}/fie.h:\n",
-    Depfile::escape_filename(pstr(cwd).str()),
-    Depfile::escape_filename(pstr(cwd.parent_path()).str()));
+    Depfile::escape_filename(util::pstr(cwd).str()),
+    Depfile::escape_filename(util::pstr(cwd.parent_path()).str()));
 
   SUBCASE("Base directory not in dep file content")
   {
@@ -88,10 +87,10 @@ TEST_CASE("Depfile::rewrite_source_paths")
       " {1}/fie.h\n"
       "{2}:\n"
       "{1}/fie.h:\n",
-      Depfile::escape_filename(pstr(cwd).str()),
-      Depfile::escape_filename(pstr(cwd.parent_path()).str()),
+      Depfile::escape_filename(util::pstr(cwd).str()),
+      Depfile::escape_filename(util::pstr(cwd.parent_path()).str()),
       Depfile::escape_filename(
-        pstr(fs::path("bar/bar.h").lexically_normal()).str()));
+        util::pstr(fs::path("bar/bar.h").lexically_normal()).str()));
     REQUIRE(actual);
     CHECK(*actual == expected);
   }

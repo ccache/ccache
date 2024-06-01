@@ -31,8 +31,6 @@
 
 #include <cstring>
 
-using pstr = util::PathString;
-
 namespace {
 
 #ifdef _WIN32
@@ -268,8 +266,8 @@ DirEntry::do_stat() const
   } else
 #endif
   {
-    auto mpath = pstr(m_path);
-    result = lstat_func(mpath, &m_stat);
+    util::PathString mpath(m_path);
+    result = lstat_func(mpath.c_str(), &m_stat);
     if (result == 0) {
       if (S_ISLNK(m_stat.st_mode)
 #ifdef _WIN32
@@ -278,7 +276,7 @@ DirEntry::do_stat() const
       ) {
         m_is_symlink = true;
         stat_t st;
-        if (stat_func(mpath, &st) == 0) {
+        if (stat_func(mpath.c_str(), &st) == 0) {
           m_stat = st;
           m_exists = true;
         }

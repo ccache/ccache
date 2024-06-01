@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include "StatisticsCounters.hpp"
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -28,19 +29,19 @@ namespace core {
 class StatsLog
 {
 public:
-  explicit StatsLog(const std::string& path);
+  explicit StatsLog(const std::filesystem::path& path);
 
   StatisticsCounters read() const;
-  void log_result(const std::string& input_file,
+  void log_result(const std::filesystem::path& input_file,
                   const std::vector<std::string>& result_ids);
 
 private:
-  const std::string m_path;
+  std::filesystem::path m_path;
 };
 
 // --- Inline implementations ---
 
-inline StatsLog::StatsLog(const std::string& path) : m_path(path)
+inline StatsLog::StatsLog(const std::filesystem::path& path) : m_path(path)
 {
 }
 

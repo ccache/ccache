@@ -23,7 +23,6 @@
 #include <ccache/Hash.hpp>
 #include <ccache/InodeCache.hpp>
 #include <ccache/util/Fd.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
@@ -38,7 +37,6 @@
 namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
-using pstr = util::PathString;
 
 namespace {
 
@@ -60,7 +58,7 @@ init(Config& config)
 {
   config.set_debug(true);
   config.set_inode_cache(true);
-  config.set_temporary_dir(pstr(*fs::current_path()).str());
+  config.set_temporary_dir(util::pstr(*fs::current_path()));
 }
 
 bool

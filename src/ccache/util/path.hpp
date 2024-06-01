@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <ccache/util/PathString.hpp>
+
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -70,6 +72,10 @@ make_path(const T&... args)
 // Windows.
 bool path_starts_with(const std::filesystem::path& path,
                       const std::filesystem::path& prefix);
+
+// Access the underlying path string without having to copy it if
+// std::filesystem::path::value_type is char (that is, not wchar_t).
+using pstr = PathString;
 
 // --- Inline implementations ---
 

@@ -19,7 +19,6 @@
 #include "path.hpp"
 
 #include <ccache/util/DirEntry.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
@@ -31,8 +30,6 @@ const char k_dev_null_path[] = "/dev/null";
 #endif
 
 namespace fs = util::filesystem;
-
-using pstr = util::PathString;
 
 namespace util {
 
@@ -110,7 +107,8 @@ make_relative_path(const fs::path& actual_cwd,
   std::sort(relpath_candidates.begin(),
             relpath_candidates.end(),
             [](const auto& path1, const auto& path2) {
-              return pstr(path1).str().length() < pstr(path2).str().length();
+              return util::pstr(path1).str().length()
+                     < util::pstr(path2).str().length();
             });
   for (const auto& relpath : relpath_candidates) {
     if (fs::equivalent(relpath, closest_existing_path)) {

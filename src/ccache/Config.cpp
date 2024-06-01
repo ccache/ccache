@@ -23,7 +23,6 @@
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/DirEntry.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/UmaskScope.hpp>
 #include <ccache/util/assertions.hpp>
@@ -65,7 +64,6 @@ const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
 
 namespace fs = util::filesystem;
 
-using pstr = util::PathString;
 using util::DirEntry;
 using util::make_path;
 
@@ -636,10 +634,10 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 
   if (cache_dir().empty()) {
     if (legacy_ccache_dir_exists) {
-      set_cache_dir(pstr(legacy_ccache_dir));
+      set_cache_dir(util::pstr(legacy_ccache_dir));
 #ifdef _WIN32
     } else if (env_local_appdata) {
-      set_cache_dir(pstr(fs::path(env_local_appdata) / "ccache"));
+      set_cache_dir(util::pstr(fs::path(env_local_appdata) / "ccache"));
     } else {
       throw core::Fatal(
         "could not find cache directory and the LOCALAPPDATA environment"
@@ -688,9 +686,10 @@ bool
 Config::update_from_file(const fs::path& path)
 {
   return parse_config_file(
-    pstr(path), [&](const auto& /*line*/, const auto& key, const auto& value) {
+    util::pstr(path),
+    [&](const auto& /*line*/, const auto& key, const auto& value) {
       if (!key.empty()) {
-        set_item(key, value, std::nullopt, false, pstr(path));
+        set_item(key, value, std::nullopt, false, util::pstr(path));
       }
     });
 }
@@ -758,7 +757,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_absolute_paths_in_stderr);
 
   case ConfigItem::base_dir:
-    return pstr(m_base_dir).str();
+    return util::pstr(m_base_dir);
 
   case ConfigItem::cache_dir:
     return m_cache_dir;

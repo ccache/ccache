@@ -23,13 +23,13 @@
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/Fd.hpp>
 #include <ccache/util/Finalizer.hpp>
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 
 #include <fcntl.h>
 
@@ -53,8 +53,6 @@
 #include <vector>
 
 namespace fs = util::filesystem;
-
-using pstr = util::PathString;
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
@@ -380,7 +378,8 @@ InodeCache::create_new_file(const std::string& filename)
     return false;
   }
 
-  util::Finalizer temp_file_remover([&] { unlink(pstr(tmp_file->path)); });
+  util::Finalizer temp_file_remover(
+    [&] { unlink(util::pstr(tmp_file->path).c_str()); });
 
   if (!fd_is_on_known_to_work_file_system(*tmp_file->fd)) {
     return false;

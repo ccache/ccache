@@ -18,10 +18,10 @@
 
 #include "TemporaryFile.hpp"
 
-#include <ccache/util/PathString.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/process.hpp>
 
 #include <cstdlib>
@@ -35,8 +35,6 @@
 #endif
 
 namespace fs = util::filesystem;
-
-using pstr = util::PathString;
 
 namespace util {
 
@@ -84,7 +82,8 @@ TemporaryFile::create(const fs::path& path_prefix, std::string_view suffix)
 bool
 TemporaryFile::is_tmp_file(const fs::path& path)
 {
-  return pstr(path.filename()).str().find(tmp_file_infix) != std::string::npos;
+  return util::pstr(path.filename()).str().find(tmp_file_infix)
+         != std::string::npos;
 }
 
 } // namespace util
