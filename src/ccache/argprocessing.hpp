@@ -23,6 +23,7 @@
 
 #include <tl/expected.hpp>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -48,7 +49,7 @@ tl::expected<ProcessArgsResult, core::Statistic> process_args(Context& ctx);
 
 // Return whether `path` represents a precompiled header (see "Precompiled
 // Headers" in GCC docs).
-bool is_precompiled_header(std::string_view path);
+bool is_precompiled_header(const std::filesystem::path& path);
 
 bool option_should_be_ignored(const std::string& arg,
                               const std::vector<std::string>& patterns);

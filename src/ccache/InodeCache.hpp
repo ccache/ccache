@@ -28,6 +28,7 @@
 #include <sys/types.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -79,13 +80,13 @@ public:
   // Get saved hash digest and return value from a previous call to
   // do_hash_file() in hashutil.cpp.
   std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
-  get(const std::string& path, ContentType type);
+  get(const std::filesystem::path& path, ContentType type);
 
   // Put hash digest and return value from a successful call to do_hash_file()
   // in hashutil.cpp.
   //
   // Returns true if values could be stored in the cache, false otherwise.
-  bool put(const std::string& path,
+  bool put(const std::filesystem::path& path,
            ContentType type,
            const Hash::Digest& file_digest,
            HashSourceCodeResult return_value);
@@ -125,8 +126,9 @@ private:
 
   bool mmap_file(const std::string& inode_cache_file);
 
-  bool
-  hash_inode(const std::string& path, ContentType type, Hash::Digest& digest);
+  bool hash_inode(const std::filesystem::path& path,
+                  ContentType type,
+                  Hash::Digest& digest);
 
   bool with_bucket(const Hash::Digest& key_digest,
                    const BucketHandler& bucket_handler);

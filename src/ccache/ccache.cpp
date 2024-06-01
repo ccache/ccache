@@ -1616,7 +1616,7 @@ hash_common_info(const Context& ctx,
          util::split_path_list(ctx.config.extra_files_to_hash())) {
       LOG("Hashing extra file {}", path);
       hash.hash_delimiter("extrafile");
-      if (!hash_binary_file(ctx, hash, pstr(path))) {
+      if (!hash_binary_file(ctx, hash, path)) {
         return tl::unexpected(Statistic::error_hashing_extra_file);
       }
     }

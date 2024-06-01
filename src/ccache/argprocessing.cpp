@@ -1766,11 +1766,11 @@ process_args(Context& ctx)
 }
 
 bool
-is_precompiled_header(std::string_view path)
+is_precompiled_header(const fs::path& path)
 {
-  fs::path ext = fs::path(path).extension();
+  fs::path ext = path.extension();
   return ext == ".gch" || ext == ".pch" || ext == ".pth"
-         || fs::path(path).parent_path().extension() == ".gch";
+         || path.parent_path().extension() == ".gch";
 }
 
 bool

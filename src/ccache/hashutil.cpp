@@ -27,8 +27,10 @@
 #include <ccache/util/DirEntry.hpp>
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
 #include <ccache/util/wincompat.hpp>
@@ -52,6 +54,8 @@
 #ifdef HAVE_AVX2
 #  include <immintrin.h>
 #endif
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -176,7 +180,7 @@ check_for_temporal_macros_avx2(std::string_view str)
 HashSourceCodeResult
 do_hash_file(const Context& ctx,
              Hash::Digest& digest,
-             const std::string& path,
+             const fs::path& path,
              size_t size_hint,
              bool check_temporal_macros)
 {
@@ -233,7 +237,7 @@ check_for_temporal_macros(std::string_view str)
 HashSourceCodeResult
 hash_source_code_file(const Context& ctx,
                       Hash::Digest& digest,
-                      const std::string& path,
+                      const fs::path& path,
                       size_t size_hint)
 {
   const bool check_temporal_macros =
@@ -323,14 +327,14 @@ hash_source_code_file(const Context& ctx,
 bool
 hash_binary_file(const Context& ctx,
                  Hash::Digest& digest,
-                 const std::string& path,
+                 const fs::path& path,
                  size_t size_hint)
 {
   return do_hash_file(ctx, digest, path, size_hint, false).empty();
 }
 
 bool
-hash_binary_file(const Context& ctx, Hash& hash, const std::string& path)
+hash_binary_file(const Context& ctx, Hash& hash, const fs::path& path)
 {
   Hash::Digest digest;
   const bool success = hash_binary_file(ctx, digest, path);

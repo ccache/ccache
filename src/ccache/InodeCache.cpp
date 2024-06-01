@@ -27,6 +27,7 @@
 #include <ccache/util/TemporaryFile.hpp>
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 
@@ -50,6 +51,8 @@
 #include <thread>
 #include <type_traits>
 #include <vector>
+
+namespace fs = util::filesystem;
 
 using pstr = util::PathString;
 
@@ -296,7 +299,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 }
 
 bool
-InodeCache::hash_inode(const std::string& path,
+InodeCache::hash_inode(const fs::path& path,
                        ContentType type,
                        Hash::Digest& digest)
 {
@@ -531,7 +534,7 @@ InodeCache::available(int fd)
 }
 
 std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
-InodeCache::get(const std::string& path, ContentType type)
+InodeCache::get(const fs::path& path, ContentType type)
 {
   if (!initialize()) {
     return std::nullopt;
@@ -580,7 +583,7 @@ InodeCache::get(const std::string& path, ContentType type)
 }
 
 bool
-InodeCache::put(const std::string& path,
+InodeCache::put(const fs::path& path,
                 ContentType type,
                 const Hash::Digest& file_digest,
                 HashSourceCodeResult return_value)

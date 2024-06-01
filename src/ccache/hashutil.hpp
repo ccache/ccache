@@ -22,6 +22,7 @@
 #include <ccache/util/BitSet.hpp>
 
 #include <cstddef>
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -44,7 +45,7 @@ HashSourceCodeResult check_for_temporal_macros(std::string_view str);
 // Hash a source code file using the inode cache if enabled.
 HashSourceCodeResult hash_source_code_file(const Context& ctx,
                                            Hash::Digest& digest,
-                                           const std::string& path,
+                                           const std::filesystem::path& path,
                                            size_t size_hint = 0);
 
 // Hash a binary file (using the inode cache if enabled) and put its digest in
@@ -53,14 +54,16 @@ HashSourceCodeResult hash_source_code_file(const Context& ctx,
 // Returns true on success, otherwise false.
 bool hash_binary_file(const Context& ctx,
                       Hash::Digest& digest,
-                      const std::string& path,
+                      const std::filesystem::path& path,
                       size_t size_hint = 0);
 
 // Hash a binary file (using the inode cache if enabled) and hash the digest to
 // `hash`.
 //
 // Returns true on success, otherwise false.
-bool hash_binary_file(const Context& ctx, Hash& hash, const std::string& path);
+bool hash_binary_file(const Context& ctx,
+                      Hash& hash,
+                      const std::filesystem::path& path);
 
 // Hash the output of `command` (not executed via a shell). A "%compiler%"
 // string in `command` will be replaced with `compiler`.
