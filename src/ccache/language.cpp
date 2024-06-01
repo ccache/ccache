@@ -104,10 +104,10 @@ const struct
 
 } // namespace
 
-std::string
-language_for_file(const std::string& fname, CompilerType compiler_type)
+std::string_view
+language_for_file(const fs::path& path, CompilerType compiler_type)
 {
-  const auto ext = fs::path(fname).extension();
+  const auto ext = path.extension();
   if (ext == ".cu" && compiler_type == CompilerType::clang) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";

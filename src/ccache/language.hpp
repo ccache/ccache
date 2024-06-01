@@ -20,12 +20,14 @@
 
 #include <ccache/Config.hpp>
 
+#include <filesystem>
 #include <string>
+#include <string_view>
 
-// Guess the language of `fname` based on its extension and a compiler type.
+// Guess the language of `path` based on its extension and a compiler type.
 // Returns the empty string if the extension is unknown.
-std::string language_for_file(const std::string& fname,
-                              CompilerType compiler_type);
+std::string_view language_for_file(const std::filesystem::path& path,
+                                   CompilerType compiler_type);
 
 // Return the preprocessed language for `language`, or the empty string if
 // unknown.
