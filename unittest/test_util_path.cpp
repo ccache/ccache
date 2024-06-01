@@ -39,6 +39,12 @@ TEST_CASE("util::add_exe_suffix")
   CHECK(util::add_exe_suffix("foo.sh") == "foo.sh");
 }
 
+TEST_CASE("util::add_extension")
+{
+  CHECK(util::add_extension("foo.x", "") == "foo.x");
+  CHECK(util::add_extension("foo.x", ".y") == "foo.x.y");
+}
+
 TEST_CASE("util::is_full_path")
 {
   CHECK(!util::is_full_path(""));

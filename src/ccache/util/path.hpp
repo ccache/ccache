@@ -35,6 +35,11 @@ namespace util {
 // or ".sh".
 std::string add_exe_suffix(const std::string& program);
 
+// Return a new path with `extension` added to `path` (keeping any existing
+// extension).
+std::filesystem::path add_extension(const std::filesystem::path& path,
+                                    std::string_view extension);
+
 // Return current working directory (CWD) by reading the environment variable
 // PWD (thus keeping any symlink parts in the path and potentially ".." or "//"
 // parts). If PWD does not resolve to the same inode as `actual_cwd` then
@@ -78,6 +83,14 @@ bool path_starts_with(const std::filesystem::path& path,
 using pstr = PathString;
 
 // --- Inline implementations ---
+
+inline std::filesystem::path
+add_extension(const std::filesystem::path& path, std::string_view extension)
+{
+  std::filesystem::path result(path);
+  result += std::filesystem::path(extension);
+  return result;
+}
 
 inline bool
 is_dev_null_path(const std::filesystem::path& path)
