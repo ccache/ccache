@@ -20,6 +20,7 @@
 
 #include <ccache/Args.hpp>
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -29,7 +30,7 @@
 struct ArgsInfo
 {
   // The source file path.
-  std::string orig_input_file;
+  std::filesystem::path orig_input_file;
 
   // The source file path, potentially rewritten into relative.
   std::string input_file;

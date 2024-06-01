@@ -1308,7 +1308,7 @@ process_args(Context& ctx)
     }
   }
 
-  args_info.orig_input_file = util::pstr(state.input_files.front());
+  args_info.orig_input_file = state.input_files.front();
   // Rewrite to relative to increase hit rate.
   args_info.input_file =
     util::pstr(core::make_relative_path(ctx, args_info.orig_input_file));
@@ -1453,8 +1453,8 @@ process_args(Context& ctx)
     || is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
-    args_info.orig_output_obj =
-      args_info.orig_input_file + get_default_pch_file_extension(config);
+    args_info.orig_output_obj = util::pstr(util::add_extension(
+      args_info.orig_input_file, get_default_pch_file_extension(config)));
     args_info.output_obj =
       util::pstr(core::make_relative_path(ctx, args_info.orig_output_obj));
   }
@@ -1615,7 +1615,7 @@ process_args(Context& ctx)
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
           dep_target = util::pstr(util::with_extension(
-            fs::path(args_info.orig_input_file).filename(),
+            args_info.orig_input_file.filename(),
             get_default_object_file_extension(ctx.config)));
         } else {
           // How other compilers behave is currently unknown, so bail out.
@@ -1645,8 +1645,8 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_ipa_clones) {
-    fs::path ipa_path(args_info.orig_input_file + ".000i.ipa-clones");
-    args_info.output_ipa = util::pstr(core::make_relative_path(ctx, ipa_path));
+    args_info.output_ipa = util::pstr(core::make_relative_path(
+      ctx, util::add_extension(args_info.orig_input_file, ".000i.ipa-clones")));
   }
 
   Args compiler_args = state.common_args;
