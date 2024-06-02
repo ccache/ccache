@@ -773,15 +773,14 @@ process_option_arg(const Context& ctx,
 
     if (state.output_dep_origin <= OutputDepOrigin::mf) {
       state.output_dep_origin = OutputDepOrigin::mf;
-      args_info.output_dep =
-        util::pstr(core::make_relative_path(ctx, dep_file));
+      args_info.output_dep = core::make_relative_path(ctx, dep_file);
     }
     // Keep the format of the args the same.
     if (separate_argument) {
       state.dep_args.push_back("-MF");
       state.dep_args.push_back(args_info.output_dep);
     } else {
-      state.dep_args.push_back("-MF" + args_info.output_dep);
+      state.dep_args.push_back(FMT("-MF{}", args_info.output_dep));
     }
     return Statistic::none;
   }
@@ -1579,8 +1578,7 @@ process_args(Context& ctx)
 
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
-      args_info.output_dep =
-        util::pstr(util::with_extension(args_info.output_obj, ".d"));
+      args_info.output_dep = util::with_extension(args_info.output_obj, ".d");
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file

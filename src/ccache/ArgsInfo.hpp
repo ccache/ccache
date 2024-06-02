@@ -51,7 +51,7 @@ struct ArgsInfo
 
   // The path to the dependency file (implicit or specified with -MFdepfile,
   // -Wp,-MD,depfile or -Wp,-MMD,depfile).
-  std::string output_dep;
+  std::filesystem::path output_dep;
 
   // The path to the stack usage (implicit when using -fstack-usage).
   std::string output_su;

@@ -26,6 +26,7 @@
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
@@ -99,7 +100,7 @@ make_paths_relative_in_output_dep(const Context& ctx)
     return; // nothing to do
   }
 
-  const std::string& output_dep = ctx.args_info.output_dep;
+  const auto& output_dep = ctx.args_info.output_dep;
   const auto content = util::read_file<std::string>(output_dep);
   if (!content) {
     LOG("Failed to read dependency file {}: {}", output_dep, content.error());
