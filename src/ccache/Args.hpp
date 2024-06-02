@@ -19,6 +19,7 @@
 #pragma once
 
 #include <deque>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -79,8 +80,10 @@ public:
   void pop_front(size_t count = 1);
 
   // Add `arg` to the end.
+  void push_back(const char* arg);
   void push_back(const std::string& arg);
   void push_back(std::string&& arg);
+  void push_back(const std::filesystem::path& arg);
 
   // Add `args` to the end.
   void push_back(const Args& args);
@@ -132,6 +135,12 @@ Args::operator[](size_t i)
 }
 
 inline void
+Args::push_back(const char* arg)
+{
+  m_args.push_back(arg);
+}
+
+inline void
 Args::push_back(const std::string& arg)
 {
   m_args.push_back(arg);
@@ -141,4 +150,10 @@ inline void
 Args::push_back(std::string&& arg)
 {
   m_args.push_back(arg);
+}
+
+inline void
+Args::push_back(const std::filesystem::path& arg)
+{
+  m_args.push_back(arg.string());
 }
