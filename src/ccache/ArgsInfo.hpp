@@ -47,7 +47,7 @@ struct ArgsInfo
   std::filesystem::path orig_output_obj;
 
   // The output file being compiled to, potentially rewritten into relative.
-  std::string output_obj;
+  std::filesystem::path output_obj;
 
   // The path to the dependency file (implicit or specified with -MFdepfile,
   // -Wp,-MD,depfile or -Wp,-MMD,depfile).

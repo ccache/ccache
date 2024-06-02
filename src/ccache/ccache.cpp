@@ -325,18 +325,21 @@ guess_compiler(const fs::path& path)
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
 [[nodiscard]] tl::expected<void, Failure>
 remember_include_file(Context& ctx,
-                      std::string path,
+                      const fs::path& path,
                       Hash& cpp_hash,
                       bool system,
                       Hash* depend_mode_hash)
 {
-  if (path.length() >= 2 && path[0] == '<' && path[path.length() - 1] == '>') {
-    // Typically <built-in> or <command-line>.
+  if (path == ctx.args_info.input_file) {
+    // Don't remember the input file.
     return {};
   }
 
-  if (fs::path(path) == ctx.args_info.input_file) {
-    // Don't remember the input file.
+  std::string path_str = util::pstr(path);
+
+  if (path_str.length() >= 2 && path_str[0] == '<'
+      && path_str[path_str.length() - 1] == '>') {
+    // Typically <built-in> or <command-line>.
     return {};
   }
 
@@ -347,11 +350,11 @@ remember_include_file(Context& ctx,
   }
 
   // Canonicalize path for comparison; Clang uses ./header.h.
-  if (util::starts_with(path, "./")) {
-    path.erase(0, 2);
+  if (util::starts_with(path_str, "./")) {
+    path_str.erase(0, 2);
   }
 
-  if (ctx.included_files.find(path) != ctx.included_files.end()) {
+  if (ctx.included_files.find(path_str) != ctx.included_files.end()) {
     // Already known include file.
     return {};
   }
@@ -359,7 +362,7 @@ remember_include_file(Context& ctx,
 #ifdef _WIN32
   {
     // stat fails on directories on win32.
-    DWORD attributes = GetFileAttributes(path.c_str());
+    DWORD attributes = GetFileAttributes(path_str.c_str());
     if (attributes != INVALID_FILE_ATTRIBUTES
         && attributes & FILE_ATTRIBUTE_DIRECTORY) {
       return {};
@@ -387,7 +390,7 @@ remember_include_file(Context& ctx,
   }
 
   for (const auto& ignore_header_path : ctx.ignore_header_paths) {
-    if (file_path_matches_dir_prefix_or_file(ignore_header_path, path)) {
+    if (file_path_matches_dir_prefix_or_file(ignore_header_path, path_str)) {
       return {};
     }
   }
@@ -396,6 +399,8 @@ remember_include_file(Context& ctx,
   Hash::Digest file_digest;
 
   const bool is_pch = is_precompiled_header(path);
+
+  fs::path path2(path);
   if (is_pch && !ctx.args_info.generating_pch) {
     if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
@@ -404,15 +409,15 @@ remember_include_file(Context& ctx,
     if (ctx.config.pch_external_checksum()) {
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
-      std::string pch_sum_path = FMT("{}.sum", path);
+      fs::path pch_sum_path = util::add_extension(path, ".sum");
       if (DirEntry(pch_sum_path, DirEntry::LogOnError::yes).is_regular_file()) {
-        path = std::move(pch_sum_path);
+        path2 = std::move(pch_sum_path);
         using_pch_sum = true;
-        LOG("Using pch.sum file {}", path);
+        LOG("Using pch.sum file {}", path2);
       }
     }
 
-    if (!hash_binary_file(ctx, file_digest, path)) {
+    if (!hash_binary_file(ctx, file_digest, path2)) {
       return tl::unexpected(Statistic::bad_input_file);
     }
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
@@ -421,7 +426,7 @@ remember_include_file(Context& ctx,
 
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      auto ret = hash_source_code_file(ctx, file_digest, path);
+      auto ret = hash_source_code_file(ctx, file_digest, path2);
       if (ret.contains(HashSourceCode::error)) {
         return tl::unexpected(Statistic::bad_input_file);
       }
@@ -437,7 +442,7 @@ remember_include_file(Context& ctx,
     }
   }
 
-  ctx.included_files.emplace(path, file_digest);
+  ctx.included_files.emplace(util::pstr(path2), file_digest);
 
   return {};
 }
@@ -680,7 +685,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     }
     if (seen_colon) {
       fs::path path = core::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, util::pstr(path), hash, false, &hash));
+      TRY(remember_include_file(ctx, path, hash, false, &hash));
     } else if (token == ":") {
       seen_colon = true;
     }
@@ -693,7 +698,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    TRY(remember_include_file(ctx, util::pstr(pch_path), hash, false, nullptr));
+    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -742,7 +747,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
     const fs::path path = core::make_relative_path(ctx, include);
-    TRY(remember_include_file(ctx, util::pstr(path), hash, false, &hash));
+    TRY(remember_include_file(ctx, path, hash, false, &hash));
   }
 
   // Explicitly check the .pch file as it is not mentioned in the
@@ -752,7 +757,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
-    TRY(remember_include_file(ctx, util::pstr(pch_path), hash, false, nullptr));
+    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
 
   const bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -1548,8 +1553,8 @@ hash_common_info(const Context& ctx,
   // filename is included in the hash anyway.
   if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
     const std::string output_obj_dir =
-      fs::path(args_info.output_obj).is_absolute()
-        ? fs::path(args_info.output_obj).parent_path().string()
+      args_info.output_obj.is_absolute()
+        ? args_info.output_obj.parent_path().string()
         : util::pstr(ctx.actual_cwd);
     LOG("Hashing object file directory {}", output_obj_dir);
     hash.hash_delimiter("source path");
@@ -1563,7 +1568,7 @@ hash_common_info(const Context& ctx,
     // base name would be enough.
     LOG_RAW("Hashing object filename due to -gsplit-dwarf");
     hash.hash_delimiter("object file");
-    hash.hash(util::pstr(fs::path(ctx.args_info.output_obj).filename()));
+    hash.hash(util::pstr(ctx.args_info.output_obj.filename()));
   }
 
   if (ctx.args_info.profile_arcs) {
@@ -1591,11 +1596,11 @@ hash_common_info(const Context& ctx,
     if (!ctx.args_info.profile_path.empty()) {
       dir = ctx.args_info.profile_path;
     } else {
-      const auto output_dir = fs::path(ctx.args_info.output_obj).parent_path();
+      const auto output_dir = ctx.args_info.output_obj.parent_path();
       dir = fs::canonical(output_dir).value_or(output_dir).string();
     }
     std::string gcda_path =
-      FMT("{}/{}.gcda", dir, fs::path(ctx.args_info.output_obj).stem());
+      FMT("{}/{}.gcda", dir, ctx.args_info.output_obj.stem());
     LOG("Hashing coverage path {}", gcda_path);
     hash.hash_delimiter("gcda");
     hash.hash(gcda_path);

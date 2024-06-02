@@ -1340,10 +1340,9 @@ process_args(Context& ctx)
   // Determine output object file.
   bool output_obj_by_source = args_info.output_obj.empty();
   if (!output_obj_by_source && ctx.config.is_compiler_group_msvc()) {
-    if (*args_info.output_obj.rbegin() == '\\') {
+    if (util::pstr(args_info.output_obj).str().back() == '\\') {
       output_obj_by_source = true;
     } else if (DirEntry(args_info.output_obj).is_directory()) {
-      args_info.output_obj.append("\\");
       output_obj_by_source = true;
     }
   }
@@ -1357,13 +1356,12 @@ process_args(Context& ctx)
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
-    args_info.output_obj += util::pstr(util::with_extension(
-      fs::path(args_info.input_file).filename(), extension));
+    args_info.output_obj /= util::with_extension(
+      fs::path(args_info.input_file).filename(), extension);
   }
 
   args_info.orig_output_obj = args_info.output_obj;
-  args_info.output_obj =
-    util::pstr(core::make_relative_path(ctx, args_info.output_obj));
+  args_info.output_obj = core::make_relative_path(ctx, args_info.output_obj);
 
   // Determine a filepath for precompiled header.
   if (ctx.config.is_compiler_group_msvc() && args_info.generating_pch) {
@@ -1456,7 +1454,7 @@ process_args(Context& ctx)
     args_info.orig_output_obj = util::add_extension(
       args_info.orig_input_file, get_default_pch_file_extension(config));
     args_info.output_obj =
-      util::pstr(core::make_relative_path(ctx, args_info.orig_output_obj));
+      core::make_relative_path(ctx, args_info.orig_output_obj);
   }
 
   if (args_info.output_is_precompiled_header
@@ -1536,7 +1534,7 @@ process_args(Context& ctx)
     args_info.generating_dependencies = false;
   }
 
-  fs::path output_dir = fs::path(args_info.output_obj).parent_path();
+  fs::path output_dir = args_info.output_obj.parent_path();
   if (!output_dir.empty() && !fs::is_directory(output_dir)) {
     LOG("Directory does not exist: {}", output_dir);
     return tl::unexpected(Statistic::bad_output_file);
