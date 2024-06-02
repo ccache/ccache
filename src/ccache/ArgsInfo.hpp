@@ -60,7 +60,7 @@ struct ArgsInfo
   std::filesystem::path output_ci;
 
   // Diagnostic generation information (Clang). Contains pathname if not empty.
-  std::string output_dia;
+  std::filesystem::path output_dia;
 
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::string output_dwo;

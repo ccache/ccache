@@ -1010,8 +1010,7 @@ process_option_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
     args_info.generating_diagnostics = true;
-    args_info.output_dia =
-      util::pstr(core::make_relative_path(ctx, args[i + 1]));
+    args_info.output_dia = core::make_relative_path(ctx, args[i + 1]);
     i++;
     return Statistic::none;
   }
