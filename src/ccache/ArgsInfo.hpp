@@ -54,7 +54,7 @@ struct ArgsInfo
   std::filesystem::path output_dep;
 
   // The path to the stack usage (implicit when using -fstack-usage).
-  std::string output_su;
+  std::filesystem::path output_su;
 
   // The path to the callgraph info (implicit when using -fcallgraph-info).
   std::string output_ci;

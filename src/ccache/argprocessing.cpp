@@ -1630,8 +1630,7 @@ process_args(Context& ctx)
   if (args_info.generating_stackusage) {
     fs::path default_sufile_name =
       util::with_extension(args_info.output_obj, ".su");
-    args_info.output_su =
-      util::pstr(core::make_relative_path(ctx, default_sufile_name));
+    args_info.output_su = core::make_relative_path(ctx, default_sufile_name);
   }
 
   if (args_info.generating_callgraphinfo) {
