@@ -173,7 +173,7 @@ detect_pch(const std::string& option,
       pch_file = included_pch_file;
       included_pch_file.clear(); // reset pch file set from /Fp
     } else {
-      fs::path file = fs::path(arg).replace_extension(".pch");
+      fs::path file = util::with_extension(arg, ".pch");
       if (fs::is_regular_file(file)) {
         LOG("Detected use of precompiled header: {}", file);
         pch_file = util::pstr(file);
@@ -1357,8 +1357,8 @@ process_args(Context& ctx)
     } else {
       extension = get_default_object_file_extension(ctx.config);
     }
-    args_info.output_obj += util::pstr(
-      fs::path(args_info.input_file).filename().replace_extension(extension));
+    args_info.output_obj += util::pstr(util::with_extension(
+      fs::path(args_info.input_file).filename(), extension));
   }
 
   args_info.orig_output_obj = args_info.output_obj;
@@ -1379,9 +1379,8 @@ process_args(Context& ctx)
 
     if (included_pch_file_by_source && !args_info.input_file.empty()) {
       args_info.included_pch_file = util::pstr(
-        fs::path(args_info.input_file)
-          .filename()
-          .replace_extension(get_default_pch_file_extension(ctx.config)));
+        util::with_extension(fs::path(args_info.input_file).filename(),
+                             get_default_pch_file_extension(ctx.config)));
       LOG(
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
@@ -1520,7 +1519,7 @@ process_args(Context& ctx)
       args_info.seen_split_dwarf = false;
     } else {
       args_info.output_dwo =
-        util::pstr(fs::path(args_info.output_obj).replace_extension(".dwo"));
+        util::pstr(util::with_extension(args_info.output_obj, ".dwo"));
     }
   }
 
@@ -1582,7 +1581,7 @@ process_args(Context& ctx)
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
       args_info.output_dep =
-        util::pstr(fs::path(args_info.output_obj).replace_extension(".d"));
+        util::pstr(util::with_extension(args_info.output_obj, ".d"));
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -1615,11 +1614,9 @@ process_args(Context& ctx)
         } else if (config.compiler_type() == CompilerType::gcc) {
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
-          dep_target =
-            fs::path(args_info.orig_input_file)
-              .filename()
-              .replace_extension(get_default_object_file_extension(ctx.config))
-              .string();
+          dep_target = util::pstr(util::with_extension(
+            fs::path(args_info.orig_input_file).filename(),
+            get_default_object_file_extension(ctx.config)));
         } else {
           // How other compilers behave is currently unknown, so bail out.
           LOG_RAW(
@@ -1634,15 +1631,15 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_stackusage) {
-    std::string default_sufile_name =
-      fs::path(args_info.output_obj).replace_extension(".su").string();
+    fs::path default_sufile_name =
+      util::with_extension(args_info.output_obj, ".su");
     args_info.output_su =
       util::pstr(core::make_relative_path(ctx, default_sufile_name));
   }
 
   if (args_info.generating_callgraphinfo) {
-    std::string default_cifile_name =
-      fs::path(args_info.output_obj).replace_extension(".ci").string();
+    fs::path default_cifile_name =
+      util::with_extension(args_info.output_obj, ".ci");
     args_info.output_ci =
       util::pstr(core::make_relative_path(ctx, default_cifile_name));
   }

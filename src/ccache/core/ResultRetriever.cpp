@@ -164,9 +164,8 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::coverage_unmangled:
     if (m_ctx.args_info.generating_coverage) {
-      return fs::path(m_ctx.args_info.output_obj)
-        .replace_extension(".gcno")
-        .string();
+      return util::pstr(
+        util::with_extension(m_ctx.args_info.output_obj, ".gcno"));
     }
     break;
 

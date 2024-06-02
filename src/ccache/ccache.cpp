@@ -286,8 +286,8 @@ follow_symlinks(const fs::path& path)
 static CompilerType
 do_guess_compiler(const fs::path& path)
 {
-  const auto name =
-    util::to_lowercase(util::pstr(path.filename().replace_extension("")).str());
+  const auto name = util::to_lowercase(
+    util::pstr(util::with_extension(path.filename(), "")).str());
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
@@ -1963,7 +1963,7 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
   const std::string base_name =
-    util::pstr(fs::path(ctx.args_info.output_obj).replace_extension(""));
+    util::pstr(util::with_extension(ctx.args_info.output_obj, ""));
   std::string hashified_cwd = util::pstr(ctx.apparent_cwd);
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
