@@ -57,7 +57,7 @@ struct ArgsInfo
   std::filesystem::path output_su;
 
   // The path to the callgraph info (implicit when using -fcallgraph-info).
-  std::string output_ci;
+  std::filesystem::path output_ci;
 
   // Diagnostic generation information (Clang). Contains pathname if not empty.
   std::string output_dia;

@@ -1636,8 +1636,7 @@ process_args(Context& ctx)
   if (args_info.generating_callgraphinfo) {
     fs::path default_cifile_name =
       util::with_extension(args_info.output_obj, ".ci");
-    args_info.output_ci =
-      util::pstr(core::make_relative_path(ctx, default_cifile_name));
+    args_info.output_ci = core::make_relative_path(ctx, default_cifile_name);
   }
 
   if (args_info.generating_ipa_clones) {
