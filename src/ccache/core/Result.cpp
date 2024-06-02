@@ -254,7 +254,8 @@ Serializer::add_data(const FileType file_type, nonstd::span<const uint8_t> data)
 }
 
 bool
-Serializer::add_file(const FileType file_type, const std::string& path)
+Serializer::add_file(const FileType file_type,
+                     const std::filesystem::path& path)
 {
   m_serialized_size += 1 + 1 + 8; // marker + file_type + file_size
   if (!should_store_raw_file(m_config, file_type)) {
@@ -264,7 +265,7 @@ Serializer::add_file(const FileType file_type, const std::string& path)
     }
     m_serialized_size += entry.size();
   }
-  m_file_entries.push_back(FileEntry{file_type, path});
+  m_file_entries.push_back(FileEntry{file_type, path.string()});
   return true;
 }
 

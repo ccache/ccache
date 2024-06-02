@@ -92,8 +92,8 @@ public:
   // Clone, hard link or copy a file from `source` to `dest` depending on
   // settings in `ctx`. If cloning or hard linking cannot and should not be done
   // the file will be copied instead. Throws `core::Error` on error.
-  void clone_hard_link_or_copy_file(const std::string& source,
-                                    const std::string& dest,
+  void clone_hard_link_or_copy_file(const std::filesystem::path& source,
+                                    const std::filesystem::path& dest,
                                     bool via_tmp_file = false) const;
 
   // --- Statistics ---

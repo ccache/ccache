@@ -240,10 +240,12 @@ delete_file(const DirEntry& dir_entry,
 // to a temporary file and then renamed to `dest`. Throws `core::Error` on
 // error.
 static void
-clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
+clone_file(const std::filesystem::path& src,
+           const std::filesystem::path& dest,
+           bool via_tmp_file)
 {
 #  if defined(__linux__)
-  util::Fd src_fd(open(src.c_str(), O_RDONLY));
+  util::Fd src_fd(open(util::pstr(src).c_str(), O_RDONLY));
   if (!src_fd) {
     throw core::Error(FMT("{}: {}", src, strerror(errno)));
   }
@@ -281,7 +283,9 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   }
 #  elif defined(__APPLE__)
   (void)via_tmp_file;
-  if (clonefile(src.c_str(), dest.c_str(), CLONE_NOOWNERCOPY) != 0) {
+  if (clonefile(
+        util::pstr(src).c_str(), util::pstr(dest).c_str(), CLONE_NOOWNERCOPY)
+      != 0) {
     throw core::Error(strerror(errno));
   }
 #  else
@@ -670,8 +674,8 @@ LocalStorage::put_raw_files(
 }
 
 void
-LocalStorage::clone_hard_link_or_copy_file(const std::string& source,
-                                           const std::string& dest,
+LocalStorage::clone_hard_link_or_copy_file(const fs::path& source,
+                                           const fs::path& dest,
                                            bool via_tmp_file) const
 {
   if (m_config.file_clone()) {

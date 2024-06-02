@@ -25,8 +25,8 @@
 #include <nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
-#include <string>
 
 class Context;
 
@@ -57,9 +57,9 @@ private:
   const Context& m_ctx;
   std::optional<Hash::Digest> m_result_key;
 
-  std::string get_dest_path(Result::FileType file_type) const;
+  std::filesystem::path get_dest_path(Result::FileType file_type) const;
 
-  void write_dependency_file(const std::string& path,
+  void write_dependency_file(const std::filesystem::path& path,
                              nonstd::span<const uint8_t> data);
 };
 

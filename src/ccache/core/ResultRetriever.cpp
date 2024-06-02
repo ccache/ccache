@@ -144,7 +144,7 @@ ResultRetriever::on_raw_file(uint8_t file_number,
   }
 }
 
-std::string
+fs::path
 ResultRetriever::get_dest_path(FileType file_type) const
 {
   switch (file_type) {
@@ -164,8 +164,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::coverage_unmangled:
     if (m_ctx.args_info.generating_coverage) {
-      return util::pstr(
-        util::with_extension(m_ctx.args_info.output_obj, ".gcno"));
+      return util::with_extension(m_ctx.args_info.output_obj, ".gcno");
     }
     break;
 
@@ -216,13 +215,13 @@ ResultRetriever::get_dest_path(FileType file_type) const
 }
 
 void
-ResultRetriever::write_dependency_file(const std::string& path,
+ResultRetriever::write_dependency_file(const std::filesystem::path& path,
                                        nonstd::span<const uint8_t> data)
 {
   ASSERT(m_ctx.args_info.dependency_target);
 
-  util::Fd fd(
-    open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+  util::Fd fd(open(
+    util::pstr(path).c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
   if (!fd) {
     throw WriteError(FMT("Failed to open {} for writing", path));
   }
