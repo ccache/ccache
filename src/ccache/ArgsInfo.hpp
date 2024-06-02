@@ -72,7 +72,7 @@ struct ArgsInfo
   std::filesystem::path output_al;
 
   // The given PCH filepath being compiled to (by -Fp option).
-  std::string orig_included_pch_file;
+  std::filesystem::path orig_included_pch_file;
 
   // The .gch/.pch/.pth file or directory used for compilation.
   std::string included_pch_file;
