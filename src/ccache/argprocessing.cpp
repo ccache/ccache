@@ -1515,8 +1515,7 @@ process_args(Context& ctx)
       // we haven't seen the -gsplit-dwarf option.
       args_info.seen_split_dwarf = false;
     } else {
-      args_info.output_dwo =
-        util::pstr(util::with_extension(args_info.output_obj, ".dwo"));
+      args_info.output_dwo = util::with_extension(args_info.output_obj, ".dwo");
     }
   }
 

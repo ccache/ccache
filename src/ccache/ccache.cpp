@@ -1164,8 +1164,8 @@ to_cache(Context& ctx,
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
     // nonexistent .dwo files.
-    if (unlink(ctx.args_info.output_dwo.c_str()) != 0 && errno != ENOENT
-        && errno != ESTALE) {
+    if (unlink(util::pstr(ctx.args_info.output_dwo).c_str()) != 0
+        && errno != ENOENT && errno != ESTALE) {
       LOG("Failed to unlink {}: {}", ctx.args_info.output_dwo, strerror(errno));
       return tl::unexpected(Statistic::bad_output_file);
     }
