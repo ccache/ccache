@@ -82,6 +82,11 @@ bool path_starts_with(const std::filesystem::path& path,
 // std::filesystem::path::value_type is char (that is, not wchar_t).
 using pstr = PathString;
 
+// Return a new path with `extension` added to `path` (removing any existing
+// extension).
+std::filesystem::path with_extension(const std::filesystem::path& path,
+                                     std::string_view extension);
+
 // --- Inline implementations ---
 
 inline std::filesystem::path
@@ -111,6 +116,14 @@ is_full_path(const std::string_view path)
   }
 #endif
   return path.find('/') != std::string_view::npos;
+}
+
+inline std::filesystem::path
+with_extension(const std::filesystem::path& path, std::string_view extension)
+{
+  std::filesystem::path result(path);
+  result.replace_extension(extension);
+  return result;
 }
 
 } // namespace util

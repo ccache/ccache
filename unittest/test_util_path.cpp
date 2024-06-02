@@ -147,3 +147,9 @@ TEST_CASE("util::path_starts_with")
   CHECK(!util::path_starts_with("C:\\beh\\foo", "C:/foo"));
 #endif
 }
+
+TEST_CASE("util::with_extension")
+{
+  CHECK(util::with_extension("foo.x", "") == "foo");
+  CHECK(util::with_extension("foo.x", ".y") == "foo.y");
+}
