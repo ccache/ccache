@@ -66,7 +66,7 @@ struct ArgsInfo
   std::filesystem::path output_dwo;
 
   // The path to the ipa clones (implicit when using -fdump-ipa-clones).
-  std::string output_ipa;
+  std::filesystem::path output_ipa;
 
   // Assembler listing file.
   std::string output_al;

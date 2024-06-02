@@ -1638,8 +1638,8 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_ipa_clones) {
-    args_info.output_ipa = util::pstr(core::make_relative_path(
-      ctx, util::add_extension(args_info.orig_input_file, ".000i.ipa-clones")));
+    args_info.output_ipa = core::make_relative_path(
+      ctx, util::add_extension(args_info.orig_input_file, ".000i.ipa-clones"));
   }
 
   Args compiler_args = state.common_args;
