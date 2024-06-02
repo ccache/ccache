@@ -69,7 +69,7 @@ struct ArgsInfo
   std::filesystem::path output_ipa;
 
   // Assembler listing file.
-  std::string output_al;
+  std::filesystem::path output_al;
 
   // The given PCH filepath being compiled to (by -Fp option).
   std::string orig_included_pch_file;
