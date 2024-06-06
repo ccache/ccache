@@ -129,7 +129,7 @@ struct ArgsInfo
   bool profile_arcs = false;
 
   // Name of the custom profile directory or file.
-  std::string profile_path;
+  std::filesystem::path profile_path;
 
   // Profile generation / usage information.
   bool profile_use = false;

@@ -1592,15 +1592,14 @@ hash_common_info(const Context& ctx,
 
   // Possibly hash the coverage data file path.
   if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
-    std::string dir;
+    fs::path dir;
     if (!ctx.args_info.profile_path.empty()) {
       dir = ctx.args_info.profile_path;
     } else {
       const auto output_dir = ctx.args_info.output_obj.parent_path();
-      dir = fs::canonical(output_dir).value_or(output_dir).string();
+      dir = fs::canonical(output_dir).value_or(output_dir);
     }
-    std::string gcda_path =
-      FMT("{}/{}.gcda", dir, ctx.args_info.output_obj.stem());
+    fs::path gcda_path = dir / FMT("{}.gcda", ctx.args_info.output_obj.stem());
     LOG("Hashing coverage path {}", gcda_path);
     hash.hash_delimiter("gcda");
     hash.hash(gcda_path);
@@ -1966,27 +1965,27 @@ get_manifest_key(Context& ctx, Hash& hash)
 static bool
 hash_profile_data_file(const Context& ctx, Hash& hash)
 {
-  const std::string& profile_path = ctx.args_info.profile_path;
+  const fs::path& profile_path = ctx.args_info.profile_path;
   const std::string base_name =
     util::pstr(util::with_extension(ctx.args_info.output_obj, ""));
   std::string hashified_cwd = util::pstr(ctx.apparent_cwd);
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
-  std::vector<std::string> paths_to_try{
+  std::vector<fs::path> paths_to_try{
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC <9)
-    FMT("{}/{}.gcda", profile_path, base_name),
+    profile_path / FMT("{}.gcda", base_name),
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC >=9)
-    FMT("{}/{}#{}.gcda", profile_path, hashified_cwd, base_name),
+    profile_path / FMT("{}#{}.gcda", hashified_cwd, base_name),
     // -fprofile(-instr|-sample)-use=file (Clang), -fauto-profile=file (GCC >=5)
     profile_path,
     // -fprofile(-instr|-sample)-use=dir (Clang)
-    FMT("{}/default.profdata", profile_path),
+    profile_path / "default.profdata",
     // -fauto-profile (GCC >=5)
     "fbdata.afdo", // -fprofile-dir is not used
   };
 
   bool found = false;
-  for (const std::string& p : paths_to_try) {
+  for (const fs::path& p : paths_to_try) {
     LOG("Checking for profile data file {}", p);
     if (DirEntry(p).is_regular_file()) {
       LOG("Adding profile data {} to the hash", p);
@@ -2022,10 +2021,10 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
     // For a relative profile directory D the compiler stores $PWD/D as part of
     // the profile filename so we need to include the same information in the
     // hash.
-    const std::string profile_path =
-      fs::path(ctx.args_info.profile_path).is_absolute()
+    const fs::path profile_path =
+      ctx.args_info.profile_path.is_absolute()
         ? ctx.args_info.profile_path
-        : FMT("{}/{}", ctx.apparent_cwd, ctx.args_info.profile_path);
+        : ctx.apparent_cwd / ctx.args_info.profile_path;
     LOG("Adding profile directory {} to our hash", profile_path);
     hash.hash_delimiter("-fprofile-dir");
     hash.hash(profile_path);

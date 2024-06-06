@@ -254,7 +254,7 @@ process_profiling_option(const Context& ctx,
     return true;
   }
 
-  std::string new_profile_path;
+  std::filesystem::path new_profile_path;
   bool new_profile_use = false;
 
   if (util::starts_with(arg, "-fprofile-dir=")) {
@@ -265,7 +265,7 @@ process_profiling_option(const Context& ctx,
       new_profile_path = ".";
     } else {
       // GCC uses $PWD/$(basename $obj).
-      new_profile_path = util::pstr(ctx.apparent_cwd);
+      new_profile_path = ctx.apparent_cwd;
     }
   } else if (util::starts_with(arg, "-fprofile-generate=")
              || util::starts_with(arg, "-fprofile-instr-generate=")) {
@@ -1427,7 +1427,7 @@ process_args(Context& ctx)
   }
 
   if (args_info.profile_path.empty()) {
-    args_info.profile_path = util::pstr(ctx.apparent_cwd);
+    args_info.profile_path = ctx.apparent_cwd;
   }
 
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
