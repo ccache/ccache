@@ -144,7 +144,7 @@ struct ArgsInfo
   bool fno_pch_timestamp = false;
 
   // Files referenced by -fsanitize-blacklist options.
-  std::vector<std::string> sanitize_blacklists;
+  std::vector<std::filesystem::path> sanitize_blacklists;
 
   // Architectures from -arch options.
   std::vector<std::string> arch_args;
