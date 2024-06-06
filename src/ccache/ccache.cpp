@@ -644,8 +644,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
   // mention of it in the preprocessed output.
   if (!ctx.args_info.included_pch_file.empty()
       && !ctx.args_info.generating_pch) {
-    std::string pch_path = util::pstr(
-      core::make_relative_path(ctx, ctx.args_info.included_pch_file));
+    fs::path pch_path =
+      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
     hash.hash(pch_path);
     TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }

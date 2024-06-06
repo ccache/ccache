@@ -75,7 +75,7 @@ struct ArgsInfo
   std::filesystem::path orig_included_pch_file;
 
   // The .gch/.pch/.pth file or directory used for compilation.
-  std::string included_pch_file;
+  std::filesystem::path included_pch_file;
 
   // Language to use for the compilation target (see language.c).
   std::string actual_language;

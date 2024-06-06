@@ -79,7 +79,7 @@ struct ArgumentProcessingState
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
   bool found_Yc = false;
-  std::string found_Fp_file;
+  std::filesystem::path found_Fp_file;
   bool found_valid_Fp = false;
   bool found_syntax_only = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
@@ -157,7 +157,7 @@ detect_pch(const std::string& option,
   // If the option is an option for Clang (is_cc1_option), don't accept
   // anything just because it has a corresponding precompiled header,
   // because Clang doesn't behave that way either.
-  std::string pch_file;
+  std::filesystem::path pch_file;
   if (option == "-Yc") {
     state.found_Yc = true;
     args_info.generating_pch = true;
@@ -176,7 +176,7 @@ detect_pch(const std::string& option,
       fs::path file = util::with_extension(arg, ".pch");
       if (fs::is_regular_file(file)) {
         LOG("Detected use of precompiled header: {}", file);
-        pch_file = util::pstr(file);
+        pch_file = file;
       }
     }
   } else if (option == "-Fp") {
@@ -1374,9 +1374,9 @@ process_args(Context& ctx)
     }
 
     if (included_pch_file_by_source && !args_info.input_file.empty()) {
-      args_info.included_pch_file = util::pstr(
+      args_info.included_pch_file =
         util::with_extension(fs::path(args_info.input_file).filename(),
-                             get_default_pch_file_extension(ctx.config)));
+                             get_default_pch_file_extension(ctx.config));
       LOG(
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
