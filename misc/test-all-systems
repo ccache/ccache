@@ -34,6 +34,10 @@ build ubuntu-20.04 clang  clang++ clang
 build ubuntu-22.04 gcc-12 g++-12  gcc
 build ubuntu-22.04 clang  clang++ clang
 
+build ubuntu-24.04 gcc-13 g++-13  gcc
+build ubuntu-24.04 gcc-14 g++-14  gcc
+build ubuntu-24.04 clang  clang++ clang
+
 build centos-7     gcc    g++     gcc
 build centos-7     gcc    g++     clang
 
