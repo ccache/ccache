@@ -116,7 +116,7 @@ public:
   bool auto_depend_mode = false;
 
   // Register a temporary file to remove at program exit.
-  void register_pending_tmp_file(const std::string& path);
+  void register_pending_tmp_file(const std::filesystem::path& path);
 
 private:
   // Options to ignore for the hash.
@@ -125,7 +125,7 @@ private:
   // [Start of variables touched by the signal handler]
 
   // Temporary files to remove at program exit.
-  std::vector<std::string> m_pending_tmp_files;
+  std::vector<std::filesystem::path> m_pending_tmp_files;
 
   // [End of variables touched by the signal handler]
 

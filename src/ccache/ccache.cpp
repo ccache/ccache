@@ -725,7 +725,7 @@ get_tmp_fd(Context& ctx,
     auto tmp_stdout =
       util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
         FMT("{}/{}", ctx.config.temporary_dir(), description)));
-    ctx.register_pending_tmp_file(util::pstr(tmp_stdout.path));
+    ctx.register_pending_tmp_file(tmp_stdout.path);
     return {std::move(tmp_stdout.fd), std::move(tmp_stdout.path)};
   } else {
     const auto dev_null_path = util::get_dev_null_path();

@@ -78,7 +78,7 @@ Context::~Context()
 }
 
 void
-Context::register_pending_tmp_file(const std::string& path)
+Context::register_pending_tmp_file(const fs::path& path)
 {
   SignalHandlerBlocker signal_handler_blocker;
 
@@ -92,7 +92,7 @@ Context::unlink_pending_tmp_files_signal_safe()
        ++it) {
     // Don't call util::remove or std::filesystem::remove since they are not
     // signal safe.
-    unlink(it->c_str());
+    unlink(util::pstr(*it).c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.
 }
