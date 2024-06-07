@@ -74,7 +74,7 @@ public:
   bool diagnostics_color_failed = false;
 
   // The name of the temporary preprocessed file.
-  std::string i_tmpfile;
+  std::filesystem::path i_tmpfile;
 
   // The preprocessor's stderr output.
   util::Bytes cpp_stderr_data;

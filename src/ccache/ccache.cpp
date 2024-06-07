@@ -463,7 +463,7 @@ print_included_files(const Context& ctx, FILE* fp)
 //   when computing the hash sum.
 // - Stores the paths and hashes of included files in ctx.included_files.
 static tl::expected<void, Failure>
-process_preprocessed_file(Context& ctx, Hash& hash, const std::string& path)
+process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 {
   auto data = util::read_file<std::string>(path);
   if (!data) {
@@ -1285,13 +1285,13 @@ to_cache(Context& ctx,
 static tl::expected<Hash::Digest, Failure>
 get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
-  std::string preprocessed_path;
+  fs::path preprocessed_path;
   util::Bytes cpp_stderr_data;
 
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
-    preprocessed_path = util::pstr(ctx.args_info.input_file);
+    preprocessed_path = ctx.args_info.input_file;
   } else {
     // Run cpp on the input file to obtain the .i.
 
@@ -1301,7 +1301,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
         FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
         FMT(".{}", ctx.config.cpp_extension())));
-    preprocessed_path = tmp_stdout.path.string();
+    preprocessed_path = tmp_stdout.path;
     tmp_stdout.fd.close(); // We're only using the path.
     ctx.register_pending_tmp_file(preprocessed_path);
 
