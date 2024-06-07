@@ -335,10 +335,9 @@ remember_include_file(Context& ctx,
     return {};
   }
 
-  std::string path_str = util::pstr(path);
-
-  if (path_str.length() >= 2 && path_str[0] == '<'
-      && path_str[path_str.length() - 1] == '>') {
+  util::PathString path_str(path);
+  if (path_str.str().length() >= 2 && path_str.str()[0] == '<'
+      && path_str.str()[path_str.str().length() - 1] == '>') {
     // Typically <built-in> or <command-line>.
     return {};
   }
@@ -347,11 +346,6 @@ remember_include_file(Context& ctx,
       && ctx.config.sloppiness().contains(core::Sloppy::system_headers)) {
     // Don't remember this system header.
     return {};
-  }
-
-  // Canonicalize path for comparison; Clang uses ./header.h.
-  if (util::starts_with(path_str, "./")) {
-    path_str.erase(0, 2);
   }
 
   if (ctx.included_files.find(path_str) != ctx.included_files.end()) {
@@ -389,9 +383,16 @@ remember_include_file(Context& ctx,
     return tl::unexpected(Statistic::bad_input_file);
   }
 
-  for (const auto& ignore_header_path : ctx.ignore_header_paths) {
-    if (file_path_matches_dir_prefix_or_file(ignore_header_path, path_str)) {
-      return {};
+  if (!ctx.ignore_header_paths.empty()) {
+    // Canonicalize path for comparison; Clang uses ./header.h.
+    const std::string& canonical_path_str =
+      util::starts_with(path_str.str(), "./") ? path_str.str().substr(2)
+                                              : path_str;
+    for (const auto& ignore_header_path : ctx.ignore_header_paths) {
+      if (file_path_matches_dir_prefix_or_file(ignore_header_path,
+                                               canonical_path_str)) {
+        return {};
+      }
     }
   }
 
