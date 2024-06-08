@@ -884,7 +884,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_stats);
 
   case ConfigItem::stats_log:
-    return m_stats_log;
+    return m_stats_log.string();
 
   case ConfigItem::temporary_dir:
     return m_temporary_dir;

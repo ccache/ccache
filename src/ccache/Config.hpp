@@ -92,7 +92,7 @@ public:
   bool run_second_cpp() const;
   core::Sloppiness sloppiness() const;
   bool stats() const;
-  const std::string& stats_log() const;
+  const std::filesystem::path& stats_log() const;
   const std::string& namespace_() const;
   const std::string& temporary_dir() const;
   std::optional<mode_t> umask() const;
@@ -212,7 +212,7 @@ private:
   std::string m_remote_storage;
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
-  std::string m_stats_log;
+  std::filesystem::path m_stats_log;
   std::string m_namespace;
   std::string m_temporary_dir;
   std::optional<mode_t> m_umask;
@@ -485,7 +485,7 @@ Config::stats() const
   return m_stats;
 }
 
-inline const std::string&
+inline const std::filesystem::path&
 Config::stats_log() const
 {
   return m_stats_log;
