@@ -58,7 +58,7 @@ init(Config& config)
 {
   config.set_debug(true);
   config.set_inode_cache(true);
-  config.set_temporary_dir(util::pstr(*fs::current_path()));
+  config.set_temporary_dir(*fs::current_path());
 }
 
 bool

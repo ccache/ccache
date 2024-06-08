@@ -887,7 +887,7 @@ Config::get_string_value(const std::string& key) const
     return m_stats_log.string();
 
   case ConfigItem::temporary_dir:
-    return m_temporary_dir;
+    return m_temporary_dir.string();
 
   case ConfigItem::umask:
     return format_umask(m_umask);
@@ -1189,21 +1189,20 @@ Config::check_key_tables_consistency()
   }
 }
 
-std::string
+fs::path
 Config::default_temporary_dir() const
 {
-  static const std::string run_user_tmp_dir = [] {
+  static const fs::path run_user_tmp_dir = [] {
 #ifndef _WIN32
     const char* const xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
     if (xdg_runtime_dir && DirEntry(xdg_runtime_dir).is_directory()) {
-      auto dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
+      fs::path dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
       if (fs::create_directories(dir) && access(dir.c_str(), W_OK) == 0) {
         return dir;
       }
     }
 #endif
-    return std::string();
+    return fs::path();
   }();
-  return !run_user_tmp_dir.empty() ? run_user_tmp_dir
-                                   : util::pstr(m_cache_dir / "tmp");
+  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : m_cache_dir / "tmp";
 }

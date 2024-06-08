@@ -75,13 +75,13 @@ execute(Context& ctx,
                       1,
                       fd_out.release(),
                       fd_err.release(),
-                      ctx.config.temporary_dir());
+                      util::pstr(ctx.config.temporary_dir()));
 }
 
 void
-execute_noreturn(const char* const* argv, const std::string& temp_dir)
+execute_noreturn(const char* const* argv, const fs::path& temp_dir)
 {
-  win32execute(argv[0], argv, 0, -1, -1, temp_dir);
+  win32execute(argv[0], argv, 0, -1, -1, util::pstr(temp_dir).c_str());
 }
 
 std::string
@@ -361,7 +361,8 @@ execute(Context& ctx,
 }
 
 void
-execute_noreturn(const char* const* argv, const std::string& /*temp_dir*/)
+execute_noreturn(const char* const* argv,
+                 const std::filesystem::path& /*temp_dir*/)
 {
   execv(argv[0], const_cast<char* const*>(argv));
 }

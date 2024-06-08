@@ -2427,7 +2427,7 @@ cache_compilation(int argc, const char* const* argv)
   bool fall_back_to_original_compiler = false;
   Args saved_orig_args;
   std::optional<uint32_t> original_umask;
-  std::string saved_temp_dir;
+  fs::path saved_temp_dir;
 
   auto argv_parts = split_argv(argc, argv);
   if (argv_parts.compiler_and_args.empty()) {

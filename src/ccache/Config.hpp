@@ -94,7 +94,7 @@ public:
   bool stats() const;
   const std::filesystem::path& stats_log() const;
   const std::string& namespace_() const;
-  const std::string& temporary_dir() const;
+  const std::filesystem::path& temporary_dir() const;
   std::optional<mode_t> umask() const;
 
   // Return true for Clang and clang-cl.
@@ -104,7 +104,7 @@ public:
   bool is_compiler_group_msvc() const;
 
   util::SizeUnitPrefixType size_unit_prefix_type() const;
-  std::string default_temporary_dir() const;
+  std::filesystem::path default_temporary_dir() const;
 
   void set_base_dir(const std::filesystem::path& value);
   void set_cache_dir(const std::filesystem::path& value);
@@ -121,7 +121,7 @@ public:
   void set_max_files(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
   void set_run_second_cpp(bool value);
-  void set_temporary_dir(const std::string& value);
+  void set_temporary_dir(const std::filesystem::path& value);
 
   // Where to write configuration changes.
   const std::filesystem::path& config_path() const;
@@ -214,7 +214,7 @@ private:
   bool m_stats = true;
   std::filesystem::path m_stats_log;
   std::string m_namespace;
-  std::string m_temporary_dir;
+  std::filesystem::path m_temporary_dir;
   std::optional<mode_t> m_umask;
 
   bool m_temporary_dir_configured_explicitly = false;
@@ -497,7 +497,7 @@ Config::namespace_() const
   return m_namespace;
 }
 
-inline const std::string&
+inline const std::filesystem::path&
 Config::temporary_dir() const
 {
   return m_temporary_dir;
@@ -609,7 +609,7 @@ Config::set_run_second_cpp(bool value)
 }
 
 inline void
-Config::set_temporary_dir(const std::string& value)
+Config::set_temporary_dir(const std::filesystem::path& value)
 {
   m_temporary_dir = value;
 }

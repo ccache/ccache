@@ -31,7 +31,8 @@ int execute(Context& ctx,
             util::Fd&& fd_out,
             util::Fd&& fd_err);
 
-void execute_noreturn(const char* const* argv, const std::string& temp_dir);
+void execute_noreturn(const char* const* argv,
+                      const std::filesystem::path& temp_dir);
 
 // Find an executable named `name` in `$PATH`. Exclude any executables that are
 // links to `exclude_path`.

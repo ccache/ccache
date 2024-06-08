@@ -464,7 +464,7 @@ InodeCache::initialize()
 #else
       ULARGE_INTEGER free_space_for_user{};
 
-      if (GetDiskFreeSpaceExA(m_config.temporary_dir().c_str(),
+      if (GetDiskFreeSpaceExA(util::pstr(m_config.temporary_dir()).c_str(),
                               &free_space_for_user,
                               nullptr,
                               nullptr)
