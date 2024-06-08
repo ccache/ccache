@@ -20,6 +20,7 @@
 #include <ccache/Config.hpp>
 #include <ccache/util/FileStream.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/time.hpp>
@@ -38,10 +39,12 @@
 #  endif
 #endif
 
+namespace fs = util::filesystem;
+
 namespace {
 
 // Logfile path and file handle, read from Config::log_file().
-std::string logfile_path;
+fs::path logfile_path;
 util::FileStream logfile;
 
 // Whether to use syslog() instead.
@@ -123,7 +126,7 @@ namespace util::logging {
 
 // Initialize logging. Call only once.
 void
-init(bool debug, const std::string& log_file)
+init(bool debug, const fs::path& log_file)
 {
   debug_log_enabled = debug;
 

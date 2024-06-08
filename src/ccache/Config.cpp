@@ -823,7 +823,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_keep_comments_cpp);
 
   case ConfigItem::log_file:
-    return m_log_file;
+    return m_log_file.string();
 
   case ConfigItem::max_files:
     return FMT("{}", m_max_files);

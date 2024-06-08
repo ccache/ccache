@@ -21,6 +21,7 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -50,7 +51,7 @@ namespace util::logging {
 
 // Initialize global logging state. Must be called once before using the other
 // logging functions.
-void init(bool debug, const std::string& log_file);
+void init(bool debug, const std::filesystem::path& log_file);
 
 // Return whether logging is enabled to at least one destination.
 bool enabled();
