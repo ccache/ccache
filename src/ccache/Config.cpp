@@ -620,7 +620,7 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     set_config_path(config_dir / "ccache.conf");
   }
 
-  const std::string& cache_dir_before_config_file_was_read = cache_dir();
+  const fs::path& cache_dir_before_config_file_was_read = cache_dir();
 
   update_from_file(config_path());
 
@@ -634,10 +634,10 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 
   if (cache_dir().empty()) {
     if (legacy_ccache_dir_exists) {
-      set_cache_dir(util::pstr(legacy_ccache_dir));
+      set_cache_dir(legacy_ccache_dir);
 #ifdef _WIN32
     } else if (env_local_appdata) {
-      set_cache_dir(util::pstr(fs::path(env_local_appdata) / "ccache"));
+      set_cache_dir(fs::path(env_local_appdata) / "ccache");
     } else {
       throw core::Fatal(
         "could not find cache directory and the LOCALAPPDATA environment"
@@ -760,7 +760,7 @@ Config::get_string_value(const std::string& key) const
     return util::pstr(m_base_dir);
 
   case ConfigItem::cache_dir:
-    return m_cache_dir;
+    return m_cache_dir.string();
 
   case ConfigItem::compiler:
     return m_compiler;
@@ -1204,5 +1204,6 @@ Config::default_temporary_dir() const
 #endif
     return std::string();
   }();
-  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : m_cache_dir + "/tmp";
+  return !run_user_tmp_dir.empty() ? run_user_tmp_dir
+                                   : util::pstr(m_cache_dir / "tmp");
 }

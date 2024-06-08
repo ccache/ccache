@@ -750,7 +750,7 @@ LocalStorage::zero_all_statistics()
   const auto zeroable_fields = core::Statistics::get_zeroable_fields();
 
   for_each_level_1_and_2_stats_file(
-    m_config.cache_dir(), [=](const std::string& path) {
+    util::pstr(m_config.cache_dir()), [=](const std::string& path) {
       StatsFile(path).update([=](auto& cs) {
         for (const auto statistic : zeroable_fields) {
           cs.set(statistic, 0);
@@ -770,7 +770,7 @@ LocalStorage::get_all_statistics() const
 
   // Add up the stats in each directory.
   for_each_level_1_and_2_stats_file(
-    m_config.cache_dir(), [&](const auto& path) {
+    util::pstr(m_config.cache_dir()), [&](const auto& path) {
       counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
       counters.increment(StatsFile(path).read());
       zero_timestamp = std::max(counters.get(Statistic::stats_zeroed_timestamp),
@@ -1484,19 +1484,12 @@ LocalStorage::get_path_in_cache(const uint8_t level,
   ASSERT(level >= 1 && level <= 8);
   ASSERT(name.length() >= level);
 
-  std::string path(m_config.cache_dir());
-  path.reserve(path.size() + level * 2 + 1 + name.length() - level);
-
+  fs::path path(m_config.cache_dir());
   for (uint8_t i = 0; i < level; ++i) {
-    path.push_back('/');
-    path.push_back(name.at(i));
+    path /= std::string(1, name.at(i));
   }
 
-  path.push_back('/');
-  const std::string_view name_remaining = name.substr(level);
-  path.append(name_remaining.data(), name_remaining.length());
-
-  return path;
+  return (path / fs::path(name.substr(level))).string();
 }
 
 std::string

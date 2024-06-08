@@ -389,7 +389,8 @@ Statistics::format_human_readable(const Config& config,
   };
 
   if (verbosity > 0 && !from_log) {
-    table.add_row({"Cache directory:", C(config.cache_dir()).colspan(4)});
+    table.add_row(
+      {"Cache directory:", C(util::pstr(config.cache_dir())).colspan(4)});
     table.add_row(
       {"Config file:", C(util::pstr(config.config_path())).colspan(4)});
     table.add_row({"System config file:",
