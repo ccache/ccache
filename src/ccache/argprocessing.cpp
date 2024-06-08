@@ -918,7 +918,7 @@ process_option_arg(const Context& ctx,
     }
     state.common_args.push_back(args[i]);
     auto relpath = core::make_relative_path(ctx, args[i + 1]);
-    state.common_args.push_back(util::pstr(relpath));
+    state.common_args.push_back(relpath);
     i++;
     return Statistic::none;
   }
@@ -1125,7 +1125,7 @@ process_option_arg(const Context& ctx,
     if (next == 2) {
       dest_args.push_back(args[i + 1]);
     }
-    dest_args.push_back(util::pstr(relpath));
+    dest_args.push_back(relpath);
 
     i += next;
     return Statistic::none;
@@ -1595,7 +1595,7 @@ process_args(Context& ctx)
     }
 
     if (!args_info.dependency_target) {
-      std::string dep_target = util::pstr(args_info.orig_output_obj);
+      fs::path dep_target = args_info.orig_output_obj;
 
       // GCC and Clang behave differently when "-Wp,-M[M]D,wp.d" is used with
       // "-o" but with neither "-MMD" nor "-MT"/"-MQ": GCC uses a dependency
@@ -1609,9 +1609,9 @@ process_args(Context& ctx)
         } else if (config.compiler_type() == CompilerType::gcc) {
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
-          dep_target = util::pstr(util::with_extension(
-            args_info.orig_input_file.filename(),
-            get_default_object_file_extension(ctx.config)));
+          dep_target =
+            util::with_extension(args_info.orig_input_file.filename(),
+                                 get_default_object_file_extension(ctx.config));
         } else {
           // How other compilers behave is currently unknown, so bail out.
           LOG_RAW(
@@ -1621,7 +1621,8 @@ process_args(Context& ctx)
         }
       }
 
-      args_info.dependency_target = Depfile::escape_filename(dep_target);
+      args_info.dependency_target =
+        Depfile::escape_filename(util::pstr(dep_target).str());
     }
   }
 

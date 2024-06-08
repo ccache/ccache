@@ -1553,10 +1553,9 @@ hash_common_info(const Context& ctx,
   // even without debug flags. Hashing the directory should be enough since the
   // filename is included in the hash anyway.
   if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
-    const std::string output_obj_dir =
-      args_info.output_obj.is_absolute()
-        ? args_info.output_obj.parent_path().string()
-        : util::pstr(ctx.actual_cwd);
+    const fs::path& output_obj_dir = args_info.output_obj.is_absolute()
+                                       ? args_info.output_obj.parent_path()
+                                       : ctx.actual_cwd;
     LOG("Hashing object file directory {}", output_obj_dir);
     hash.hash_delimiter("source path");
     hash.hash(output_obj_dir);
