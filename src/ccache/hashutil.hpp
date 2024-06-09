@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <ccache/Hash.hpp>
-#include <ccache/util/BitSet.hpp>
+#include <ccache/hash.hpp>
+#include <ccache/util/bitset.hpp>
 
 #include <cstddef>
 #include <filesystem>

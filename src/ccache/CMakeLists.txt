@@ -1,26 +1,26 @@
 set(
   source_files
-  Args.cpp
-  Config.cpp
-  Context.cpp
-  Depfile.cpp
-  Hash.cpp
-  ProgressBar.cpp
   argprocessing.cpp
+  args.cpp
   ccache.cpp
   compopt.cpp
+  config.cpp
+  context.cpp
+  depfile.cpp
   execute.cpp
+  hash.cpp
   hashutil.cpp
   language.cpp
+  progressbar.cpp
   version.cpp
 )
 
 if(INODE_CACHE_SUPPORTED)
-  list(APPEND source_files InodeCache.cpp)
+  list(APPEND source_files inodecache.cpp)
 endif()
 
 if(NOT WIN32)
-  list(APPEND source_files SignalHandler.cpp)
+  list(APPEND source_files signalhandler.cpp)
 endif()
 
 file(GLOB headers *.hpp)

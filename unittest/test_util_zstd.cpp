@@ -16,9 +16,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "TestUtil.hpp"
+#include "testutil.hpp"
 
-#include <ccache/util/Bytes.hpp>
+#include <ccache/util/bytes.hpp>
 #include <ccache/util/zstd.hpp>
 
 #include <doctest/doctest.h>

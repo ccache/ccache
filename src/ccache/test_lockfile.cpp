@@ -16,11 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <ccache/Config.hpp>
-#include <ccache/util/LockFile.hpp>
-#include <ccache/util/LongLivedLockFileManager.hpp>
+#include <ccache/config.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/lockfile.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/longlivedlockfilemanager.hpp>
 #include <ccache/util/string.hpp>
 
 #include <memory>

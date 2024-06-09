@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/util/PathString.hpp>
+#include <ccache/util/pathstring.hpp>
 
 #include <filesystem>
 #include <string>

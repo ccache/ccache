@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <ccache/util/Bytes.hpp>
-#include <ccache/util/DirEntry.hpp>
-#include <ccache/util/TimePoint.hpp>
+#include <ccache/util/bytes.hpp>
+#include <ccache/util/direntry.hpp>
+#include <ccache/util/timepoint.hpp>
 #include <ccache/util/types.hpp>
 
 #include <nonstd/span.hpp>

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/util/Bytes.hpp>
+#include <ccache/util/bytes.hpp>
 
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>

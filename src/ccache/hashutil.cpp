@@ -18,14 +18,14 @@
 
 #include "hashutil.hpp"
 
-#include <ccache/Args.hpp>
-#include <ccache/Config.hpp>
-#include <ccache/Context.hpp>
+#include <ccache/args.hpp>
+#include <ccache/config.hpp>
+#include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/execute.hpp>
 #include <ccache/macroskip.hpp>
-#include <ccache/util/DirEntry.hpp>
 #include <ccache/util/cpu.hpp>
+#include <ccache/util/direntry.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -36,7 +36,7 @@
 #include <ccache/util/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
-#  include "InodeCache.hpp"
+#  include <ccache/inodecache.hpp>
 #endif
 
 #ifdef HAVE_SPAWN_H

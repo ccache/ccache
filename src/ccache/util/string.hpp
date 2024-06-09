@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/conversion.hpp>
+#include <ccache/util/tokenizer.hpp>
 
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>

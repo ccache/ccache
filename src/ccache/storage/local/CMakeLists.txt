@@ -1,7 +1,7 @@
 set(
   sources
-  LocalStorage.cpp
-  StatsFile.cpp
+  localstorage.cpp
+  statsfile.cpp
   util.cpp
 )
 

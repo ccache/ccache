@@ -16,13 +16,13 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "TestUtil.hpp"
+#include "testutil.hpp"
 
-#include <ccache/Args.hpp>
-#include <ccache/Config.hpp>
-#include <ccache/Context.hpp>
 #include <ccache/argprocessing.hpp>
-#include <ccache/core/Statistic.hpp>
+#include <ccache/args.hpp>
+#include <ccache/config.hpp>
+#include <ccache/context.hpp>
+#include <ccache/core/statistic.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>

@@ -18,7 +18,7 @@
 
 #include "path.hpp"
 
-#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/direntry.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>

@@ -18,21 +18,21 @@
 
 #include "argprocessing.hpp"
 
-#include <ccache/Args.hpp>
-#include <ccache/ArgsInfo.hpp>
-#include <ccache/Context.hpp>
-#include <ccache/Depfile.hpp>
+#include <ccache/args.hpp>
+#include <ccache/argsinfo.hpp>
 #include <ccache/compopt.hpp>
+#include <ccache/context.hpp>
 #include <ccache/core/common.hpp>
+#include <ccache/depfile.hpp>
 #include <ccache/language.hpp>
-#include <ccache/util/DirEntry.hpp>
-#include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/direntry.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
+#include <ccache/util/tokenizer.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #ifdef HAVE_UNISTD_H

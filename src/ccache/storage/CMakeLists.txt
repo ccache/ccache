@@ -3,7 +3,7 @@ add_subdirectory(remote)
 
 set(
   sources
-  Storage.cpp
+  storage.cpp
 )
 
 file(GLOB headers *.hpp)

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/Config.hpp>
+#include <ccache/config.hpp>
 
 #include <filesystem>
 #include <string>

@@ -18,15 +18,15 @@
 
 #include "common.hpp"
 
-#include <ccache/Context.hpp>
+#include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
-#include <ccache/util/Finalizer.hpp>
-#include <ccache/util/Tokenizer.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
+#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
+#include <ccache/util/tokenizer.hpp>
 
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 

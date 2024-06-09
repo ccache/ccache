@@ -19,23 +19,23 @@
 
 #include "execute.hpp"
 
-#include <ccache/Config.hpp>
-#include <ccache/Context.hpp>
-#include <ccache/SignalHandler.hpp>
 #include <ccache/ccache.hpp>
+#include <ccache/config.hpp>
+#include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
-#include <ccache/util/DirEntry.hpp>
-#include <ccache/util/Fd.hpp>
-#include <ccache/util/Finalizer.hpp>
-#include <ccache/util/TemporaryFile.hpp>
+#include <ccache/signalhandler.hpp>
+#include <ccache/util/direntry.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
+#include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
+#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
+#include <ccache/util/temporaryfile.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <vector>

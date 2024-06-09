@@ -1,19 +1,19 @@
 set(
   sources
-  AtomicFile.cpp
-  CacheEntry.cpp
-  FileRecompressor.cpp
-  Manifest.cpp
-  MsvcShowIncludesOutput.cpp
-  Result.cpp
-  ResultExtractor.cpp
-  ResultInspector.cpp
-  ResultRetriever.cpp
-  Statistics.cpp
-  StatisticsCounters.cpp
-  StatsLog.cpp
+  atomicfile.cpp
+  cacheentry.cpp
   common.cpp
+  filerecompressor.cpp
   mainoptions.cpp
+  manifest.cpp
+  msvcshowincludesoutput.cpp
+  result.cpp
+  resultextractor.cpp
+  resultinspector.cpp
+  resultretriever.cpp
+  statistics.cpp
+  statisticscounters.cpp
+  statslog.cpp
   types.cpp
 )
 

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/util/TimePoint.hpp>
+#include <ccache/util/timepoint.hpp>
 
 #include <ctime>
 #include <optional>

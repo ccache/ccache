@@ -16,10 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "TestUtil.hpp"
+#include "testutil.hpp"
 
-#include <ccache/util/Fd.hpp>
-#include <ccache/util/Finalizer.hpp>
+#include <ccache/util/fd.hpp>
+#include <ccache/util/finalizer.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>

@@ -18,7 +18,7 @@
 
 #include "types.hpp"
 
-#include <ccache/Config.hpp>
+#include <ccache/config.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/format.hpp>

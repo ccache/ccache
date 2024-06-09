@@ -17,9 +17,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <ccache/Config.hpp>
-#include <ccache/util/FileStream.hpp>
+#include <ccache/config.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filestream.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>

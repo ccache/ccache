@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <ccache/Args.hpp>
-#include <ccache/core/Statistic.hpp>
+#include <ccache/args.hpp>
+#include <ccache/core/statistic.hpp>
 
 #include <tl/expected.hpp>
 

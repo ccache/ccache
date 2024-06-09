@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/util/DirEntry.hpp>
+#include <ccache/util/direntry.hpp>
 
 #include <functional>
 #include <string>
