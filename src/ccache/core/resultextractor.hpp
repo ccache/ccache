@@ -23,6 +23,7 @@
 #include <nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -33,12 +34,12 @@ namespace core {
 class ResultExtractor : public Result::Deserializer::Visitor
 {
 public:
-  using GetRawFilePathFunction = std::function<std::string(uint8_t)>;
+  using GetRawFilePathFunction = std::function<std::filesystem::path(uint8_t)>;
 
   //`result_path` should be the path to the local result entry file if the
   // result comes from local storage.
   ResultExtractor(
-    const std::string& output_directory,
+    const std::filesystem::path& output_directory,
     std::optional<GetRawFilePathFunction> get_raw_file_path = std::nullopt);
 
   void on_embedded_file(uint8_t file_number,
@@ -49,7 +50,7 @@ public:
                    uint64_t file_size) override;
 
 private:
-  std::string m_output_directory;
+  std::filesystem::path m_output_directory;
   std::optional<GetRawFilePathFunction> m_get_raw_file_path;
 };
 

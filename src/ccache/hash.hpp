@@ -82,7 +82,7 @@ public:
   //
   // If hash debugging is enabled, the data is written verbatim to the text
   // input file.
-  tl::expected<void, std::string> hash_file(const std::string& path);
+  tl::expected<void, std::string> hash_file(const std::filesystem::path& path);
 
   // Add contents read from an open file descriptor to the hash.
   //

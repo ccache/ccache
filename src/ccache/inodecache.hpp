@@ -97,7 +97,7 @@ public:
   bool drop();
 
   // Returns name of the persistent file.
-  std::string get_file();
+  std::filesystem::path get_path();
 
   // Returns total number of cache hits.
   //
@@ -124,7 +124,7 @@ private:
   struct SharedRegion;
   using BucketHandler = std::function<void(Bucket* bucket)>;
 
-  bool mmap_file(const std::string& inode_cache_file);
+  bool mmap_file(const std::filesystem::path& path);
 
   bool hash_inode(const std::filesystem::path& path,
                   ContentType type,
@@ -133,7 +133,7 @@ private:
   bool with_bucket(const Hash::Digest& key_digest,
                    const BucketHandler& bucket_handler);
 
-  static bool create_new_file(const std::string& filename);
+  static bool create_new_file(const std::filesystem::path& path);
 
   bool initialize();
 

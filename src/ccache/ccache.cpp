@@ -890,7 +890,7 @@ update_manifest(Context& ctx,
 struct FindCoverageFileResult
 {
   bool found;
-  std::string path;
+  fs::path path;
   bool mangled;
 };
 
@@ -901,9 +901,9 @@ find_coverage_file(const Context& ctx)
   // (in CWD) if -fprofile-dir=DIR is present (regardless of DIR) instead of the
   // traditional /dir/to/example.gcno.
 
-  std::string mangled_form = core::Result::gcno_file_in_mangled_form(ctx);
-  std::string unmangled_form = core::Result::gcno_file_in_unmangled_form(ctx);
-  std::string found_file;
+  fs::path mangled_form = core::Result::gcno_file_in_mangled_form(ctx);
+  fs::path unmangled_form = core::Result::gcno_file_in_unmangled_form(ctx);
+  fs::path found_file;
   if (DirEntry(mangled_form).is_regular_file()) {
     LOG("Found coverage file {}", mangled_form);
     found_file = mangled_form;

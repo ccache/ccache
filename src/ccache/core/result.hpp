@@ -97,8 +97,8 @@ enum class FileType : UnderlyingFileTypeInt {
 
 const char* file_type_to_string(FileType type);
 
-std::string gcno_file_in_mangled_form(const Context& ctx);
-std::string gcno_file_in_unmangled_form(const Context& ctx);
+std::filesystem::path gcno_file_in_mangled_form(const Context& ctx);
+std::filesystem::path gcno_file_in_unmangled_form(const Context& ctx);
 
 // This class knows how to deserializer a result cache entry.
 class Deserializer

@@ -23,6 +23,7 @@
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/wincompat.hpp>
 
@@ -32,12 +33,14 @@
 
 #include <vector>
 
+namespace fs = util::filesystem;
+
 using util::DirEntry;
 
 namespace core {
 
 ResultExtractor::ResultExtractor(
-  const std::string& output_directory,
+  const fs::path& output_directory,
   std::optional<GetRawFilePathFunction> get_raw_file_path)
   : m_output_directory(output_directory),
     m_get_raw_file_path(get_raw_file_path)
@@ -58,7 +61,7 @@ ResultExtractor::on_embedded_file(uint8_t /*file_number*/,
     suffix.resize(suffix.length() - 1);
   }
 
-  const auto dest_path = FMT("{}/ccache-result{}", m_output_directory, suffix);
+  const auto dest_path = m_output_directory / FMT("ccache-result{}", suffix);
   util::throw_on_error<Error>(util::write_file(dest_path, data),
                               FMT("Failed to write to {}: ", dest_path));
 }

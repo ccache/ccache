@@ -80,10 +80,11 @@ public:
 
   void remove(const Hash::Digest& key, core::CacheEntryType type);
 
-  static std::string get_raw_file_path(std::string_view result_path,
-                                       uint8_t file_number);
-  std::string get_raw_file_path(const Hash::Digest& result_key,
-                                uint8_t file_number) const;
+  static std::filesystem::path
+  get_raw_file_path(const std::filesystem::path& result_path,
+                    uint8_t file_number);
+  std::filesystem::path get_raw_file_path(const Hash::Digest& result_key,
+                                          uint8_t file_number) const;
 
   void put_raw_files(
     const Hash::Digest& key,
@@ -137,12 +138,12 @@ private:
   // a statistics file in the finalize method.
   core::StatisticsCounters m_counter_updates;
 
-  std::vector<std::string> m_added_raw_files;
+  std::vector<std::filesystem::path> m_added_raw_files;
   bool m_stored_data = false;
 
   struct LookUpCacheFileResult
   {
-    std::string path;
+    std::filesystem::path path;
     util::DirEntry dir_entry;
     uint8_t level;
   };
@@ -150,8 +151,8 @@ private:
   LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key,
                                            core::CacheEntryType type) const;
 
-  std::string get_subdir(uint8_t l1_index) const;
-  std::string get_subdir(uint8_t l1_index, uint8_t l2_index) const;
+  std::filesystem::path get_subdir(uint8_t l1_index) const;
+  std::filesystem::path get_subdir(uint8_t l1_index, uint8_t l2_index) const;
 
   StatsFile get_stats_file(uint8_t l1_index) const;
   StatsFile get_stats_file(uint8_t l1_index, uint8_t l2_index) const;
@@ -159,7 +160,7 @@ private:
   void move_to_wanted_cache_level(const core::StatisticsCounters& counters,
                                   const Hash::Digest& key,
                                   core::CacheEntryType type,
-                                  const std::string& cache_file_path);
+                                  const std::filesystem::path& cache_file_path);
 
   void recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,
                            uint8_t l1_index);
@@ -180,7 +181,7 @@ private:
   struct EvaluateCleanupResult
   {
     uint8_t l1_index;
-    std::string l1_path;
+    std::filesystem::path l1_path;
     core::StatisticsCounters l1_counters;
     uint64_t total_files;
   };
@@ -195,9 +196,10 @@ private:
   // Join the cache directory, a '/' and `name` into a single path and return
   // it. Additionally, `level` single-character, '/'-separated subpaths are
   // split from the beginning of `name` before joining them all.
-  std::string get_path_in_cache(uint8_t level, std::string_view name) const;
+  std::filesystem::path get_path_in_cache(uint8_t level,
+                                          std::string_view name) const;
 
-  std::string get_lock_path(const std::string& name) const;
+  std::filesystem::path get_lock_path(const std::string& name) const;
 
   util::LockFile get_auto_cleanup_lock() const;
 

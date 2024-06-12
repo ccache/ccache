@@ -174,7 +174,7 @@ bulk_log(std::string_view message)
 }
 
 void
-dump_log(const std::string& path)
+dump_log(const fs::path& path)
 {
   if (!enabled()) {
     return;

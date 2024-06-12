@@ -161,22 +161,19 @@ file_type_to_string(FileType type)
   return k_unknown_file_type;
 }
 
-std::string
+fs::path
 gcno_file_in_mangled_form(const Context& ctx)
 {
   const auto& output_obj = ctx.args_info.output_obj;
-  const std::string abs_output_obj =
-    output_obj.is_absolute() ? util::pstr(output_obj)
-                             : FMT("{}/{}", ctx.apparent_cwd, output_obj);
-  std::string hashified_obj = abs_output_obj;
+  std::string hashified_obj = (ctx.apparent_cwd / output_obj).generic_string();
   std::replace(hashified_obj.begin(), hashified_obj.end(), '/', '#');
-  return util::pstr(util::with_extension(hashified_obj, ".gcno"));
+  return util::with_extension(hashified_obj, ".gcno");
 }
 
-std::string
+fs::path
 gcno_file_in_unmangled_form(const Context& ctx)
 {
-  return util::pstr(util::with_extension(ctx.args_info.output_obj, ".gcno"));
+  return util::with_extension(ctx.args_info.output_obj, ".gcno");
 }
 
 Deserializer::Deserializer(nonstd::span<const uint8_t> data) : m_data(data)

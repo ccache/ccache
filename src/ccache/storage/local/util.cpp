@@ -21,9 +21,12 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
+
+namespace fs = util::filesystem;
 
 using util::DirEntry;
 
@@ -53,8 +56,8 @@ for_each_cache_subdir(const ProgressReceiver& progress_receiver,
 
 void
 for_each_level_1_and_2_stats_file(
-  const std::string& cache_dir,
-  const std::function<void(const std::string& path)> function)
+  const fs::path& cache_dir,
+  const std::function<void(const fs::path& path)> function)
 {
   for (size_t level_1 = 0; level_1 <= 0xF; ++level_1) {
     function(FMT("{}/{:x}/stats", cache_dir, level_1));
@@ -65,7 +68,7 @@ for_each_level_1_and_2_stats_file(
 }
 
 std::vector<DirEntry>
-get_cache_dir_files(const std::string& dir)
+get_cache_dir_files(const fs::path& dir)
 {
   std::vector<DirEntry> files;
 

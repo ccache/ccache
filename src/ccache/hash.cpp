@@ -20,6 +20,7 @@
 
 #include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
@@ -32,6 +33,8 @@
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+
+namespace fs = util::filesystem;
 
 const uint8_t HASH_DELIMITER[] = {0, 'c', 'C', 'a', 'C', 'h', 'E', 0};
 
@@ -99,9 +102,9 @@ Hash::hash_fd(int fd)
 }
 
 tl::expected<void, std::string>
-Hash::hash_file(const std::string& path)
+Hash::hash_file(const fs::path& path)
 {
-  util::Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  util::Fd fd(open(util::pstr(path).c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     LOG("Failed to open {}: {}", path, strerror(errno));
     return tl::unexpected(strerror(errno));

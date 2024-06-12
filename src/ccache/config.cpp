@@ -424,10 +424,10 @@ using ConfigLineHandler = std::function<void(
 
 // Call `config_line_handler` for each line in `path`.
 bool
-parse_config_file(const std::string& path,
+parse_config_file(const fs::path& path,
                   const ConfigLineHandler& config_line_handler)
 {
-  std::ifstream file(path);
+  std::ifstream file(util::pstr(path).c_str());
   if (!file) {
     return false;
   }
@@ -686,8 +686,7 @@ bool
 Config::update_from_file(const fs::path& path)
 {
   return parse_config_file(
-    util::pstr(path),
-    [&](const auto& /*line*/, const auto& key, const auto& value) {
+    path, [&](const auto& /*line*/, const auto& key, const auto& value) {
       if (!key.empty()) {
         set_item(key, value, std::nullopt, false, util::pstr(path));
       }

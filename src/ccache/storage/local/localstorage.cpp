@@ -317,7 +317,7 @@ ratio(T numerator, T denominator)
 
 static CleanDirResult
 clean_dir(
-  const std::string& l2_dir,
+  const fs::path& l2_dir,
   const uint64_t max_size,
   const uint64_t max_files,
   const std::optional<uint64_t> max_age = std::nullopt,
@@ -333,7 +333,7 @@ clean_dir(
   uint64_t files_in_cache = 0;
   auto current_time = util::TimePoint::now();
   std::unordered_map<std::string /*result_file*/,
-                     std::vector<std::string> /*associated_raw_files*/>
+                     std::vector<fs::path> /*associated_raw_files*/>
     raw_files_map;
 
   for (size_t i = 0; i < files.size();
@@ -354,9 +354,9 @@ clean_dir(
 
     if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
       util::PathString path_str(file.path());
-      const auto result_filename =
+      const std::string result_path =
         FMT("{}R", path_str.str().substr(0, path_str.str().length() - 2));
-      raw_files_map[result_filename].push_back(util::pstr(file.path()));
+      raw_files_map[result_path].push_back(file.path());
     }
 
     cache_size += file.size_on_disk();
@@ -432,7 +432,7 @@ clean_dir(
 FileType
 file_type_from_path(const fs::path& path)
 {
-  std::string filename = util::pstr(path.filename());
+  std::string filename = path.filename().string();
   if (util::ends_with(filename, "M")) {
     return FileType::manifest;
   } else if (util::ends_with(filename, "R")) {
@@ -616,8 +616,8 @@ LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
     key, -1, -static_cast<int64_t>(cache_file.dir_entry.size_on_disk() / 1024));
 }
 
-std::string
-LocalStorage::get_raw_file_path(std::string_view result_path,
+fs::path
+LocalStorage::get_raw_file_path(const fs::path& result_path,
                                 uint8_t file_number)
 {
   if (file_number >= 10) {
@@ -627,11 +627,12 @@ LocalStorage::get_raw_file_path(std::string_view result_path,
     throw core::Error(FMT("Too high raw file entry number: {}", file_number));
   }
 
-  const auto prefix = result_path.substr(0, result_path.length() - 1);
-  return FMT("{}{}W", prefix, file_number);
+  std::string s = result_path.string();
+  s.pop_back();
+  return FMT("{}{}W", s, file_number);
 }
 
-std::string
+fs::path
 LocalStorage::get_raw_file_path(const Hash::Digest& result_key,
                                 uint8_t file_number) const
 {
@@ -646,7 +647,7 @@ LocalStorage::put_raw_files(
   const std::vector<core::Result::Serializer::RawFile>& raw_files)
 {
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
-  core::ensure_dir_exists(fs::path(cache_file.path).parent_path());
+  core::ensure_dir_exists(cache_file.path.parent_path());
 
   int64_t files_change = 0;
   int64_t size_kibibyte_change = 0;
@@ -750,7 +751,7 @@ LocalStorage::zero_all_statistics()
   const auto zeroable_fields = core::Statistics::get_zeroable_fields();
 
   for_each_level_1_and_2_stats_file(
-    util::pstr(m_config.cache_dir()), [=](const std::string& path) {
+    m_config.cache_dir(), [=](const fs::path& path) {
       StatsFile(path).update([=](auto& cs) {
         for (const auto statistic : zeroable_fields) {
           cs.set(statistic, 0);
@@ -770,7 +771,7 @@ LocalStorage::get_all_statistics() const
 
   // Add up the stats in each directory.
   for_each_level_1_and_2_stats_file(
-    util::pstr(m_config.cache_dir()), [&](const auto& path) {
+    m_config.cache_dir(), [&](const auto& path) {
       counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
       counters.increment(StatsFile(path).read());
       zero_timestamp = std::max(counters.get(Statistic::stats_zeroed_timestamp),
@@ -932,7 +933,8 @@ LocalStorage::recompress(const std::optional<int8_t> level,
             l2_progress_receiver(0.1 + 0.9 * ratio(i, files.size()));
           }
 
-          if (util::ends_with(l2_dir, "f/f")) {
+          if (l2_dir.filename() == "f"
+              && l2_dir.parent_path().filename() == "f") {
             // Wait here instead of after for_each_cache_subdir to avoid
             // updating the progress bar to 100% before all work is done.
             thread_pool.shut_down();
@@ -1019,16 +1021,16 @@ LocalStorage::recompress(const std::optional<int8_t> level,
 
 // Private methods
 
-std::string
+fs::path
 LocalStorage::get_subdir(uint8_t l1_index) const
 {
-  return FMT("{}/{:x}", m_config.cache_dir(), l1_index);
+  return m_config.cache_dir() / FMT("{:x}", l1_index);
 }
 
-std::string
+fs::path
 LocalStorage::get_subdir(uint8_t l1_index, uint8_t l2_index) const
 {
-  return FMT("{}/{:x}/{:x}", m_config.cache_dir(), l1_index, l2_index);
+  return m_config.cache_dir() / FMT("{:x}/{:x}", l1_index, l2_index);
 }
 
 LocalStorage::LookUpCacheFileResult
@@ -1069,14 +1071,14 @@ void
 LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
                                          const Hash::Digest& key,
                                          core::CacheEntryType type,
-                                         const std::string& cache_file_path)
+                                         const fs::path& cache_file_path)
 {
   const auto wanted_level =
     calculate_wanted_cache_level(counters.get(Statistic::files_in_cache));
   const auto wanted_path = get_path_in_cache(
     wanted_level, util::format_digest(key) + suffix_from_type(type));
   if (cache_file_path != wanted_path) {
-    core::ensure_dir_exists(fs::path(wanted_path).parent_path());
+    core::ensure_dir_exists(wanted_path.parent_path());
 
     // Note: Two ccache processes may move the file at the same time, so failure
     // to rename is OK.
@@ -1084,9 +1086,7 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     fs::rename(cache_file_path, wanted_path);
     for (const auto& raw_file : m_added_raw_files) {
       fs::rename(raw_file,
-                 FMT("{}/{}",
-                     fs::path(wanted_path).parent_path(),
-                     fs::path(raw_file).filename()));
+                 FMT("{}/{}", wanted_path.parent_path(), raw_file.filename()));
     }
   }
 }
@@ -1477,7 +1477,7 @@ LocalStorage::clean_internal_tempdir()
   util::write_file(cleaned_stamp, "");
 }
 
-std::string
+fs::path
 LocalStorage::get_path_in_cache(const uint8_t level,
                                 const std::string_view name) const
 {
@@ -1492,11 +1492,11 @@ LocalStorage::get_path_in_cache(const uint8_t level,
   return (path / fs::path(name.substr(level))).string();
 }
 
-std::string
+fs::path
 LocalStorage::get_lock_path(const std::string& name) const
 {
-  auto path = FMT("{}/lock/{}", m_config.cache_dir(), name);
-  core::ensure_dir_exists(fs::path(path).parent_path());
+  auto path = m_config.cache_dir() / "lock" / name;
+  core::ensure_dir_exists(path.parent_path());
   return path;
 }
 

@@ -20,16 +20,16 @@
 
 #include <ccache/core/statisticscounters.hpp>
 
+#include <filesystem>
 #include <functional>
 #include <optional>
-#include <string>
 
 namespace storage::local {
 
 class StatsFile
 {
 public:
-  explicit StatsFile(const std::string& path);
+  explicit StatsFile(const std::filesystem::path& path);
 
   // Read counters. No lock is acquired. If the file doesn't exist all returned
   // counters will be zero.
@@ -45,7 +45,7 @@ public:
          OnlyIfChanged only_if_changed = OnlyIfChanged::no) const;
 
 private:
-  std::string m_path;
+  std::filesystem::path m_path;
 };
 
 } // namespace storage::local

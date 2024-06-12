@@ -21,13 +21,16 @@
 #include <ccache/core/atomicfile.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/lockfile.hpp>
 #include <ccache/util/logging.hpp>
 
+namespace fs = util::filesystem;
+
 namespace storage::local {
 
-StatsFile::StatsFile(const std::string& path) : m_path(path)
+StatsFile::StatsFile(const fs::path& path) : m_path(path)
 {
 }
 

@@ -194,7 +194,7 @@ configuration_printer(const std::string& key,
 }
 
 static tl::expected<util::Bytes, std::string>
-read_from_path_or_stdin(const std::string& path)
+read_from_path_or_stdin(const fs::path& path)
 {
   if (path == "-") {
     return util::read_fd(STDIN_FILENO).transform_error([&](auto error) {
@@ -207,7 +207,7 @@ read_from_path_or_stdin(const std::string& path)
 }
 
 static int
-inspect_path(const std::string& path)
+inspect_path(const fs::path& path)
 {
   std::optional<util::DirEntry> orig_dir_entry;
   if (path != "-") {

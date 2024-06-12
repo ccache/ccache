@@ -254,13 +254,13 @@ struct InodeCache::SharedRegion
 };
 
 bool
-InodeCache::mmap_file(const std::string& inode_cache_file)
+InodeCache::mmap_file(const std::filesystem::path& path)
 {
   m_sr = nullptr;
   m_map.unmap();
-  m_fd = util::Fd(open(inode_cache_file.c_str(), O_RDWR));
+  m_fd = util::Fd(open(util::pstr(path).c_str(), O_RDWR));
   if (!m_fd) {
-    LOG("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
+    LOG("Failed to open inode cache {}: {}", path, strerror(errno));
     return false;
   }
   if (!fd_is_on_known_to_work_file_system(*m_fd)) {
@@ -269,7 +269,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 
   auto map = util::MemoryMap::map(*m_fd, sizeof(SharedRegion));
   if (!map) {
-    LOG("Failed to map inode cache file {}: {}", inode_cache_file, map.error());
+    LOG("Failed to map inode cache file {}: {}", path, map.error());
     return false;
   }
 
@@ -285,13 +285,13 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
       k_version);
     map->unmap();
     m_fd.close();
-    unlink(inode_cache_file.c_str());
+    fs::remove(path);
     return false;
   }
   m_map = std::move(*map);
   m_sr = sr;
   if (m_config.debug()) {
-    LOG("Inode cache file loaded: {}", inode_cache_file);
+    LOG("Inode cache file loaded: {}", path);
   }
   return true;
 }
@@ -368,11 +368,11 @@ InodeCache::with_bucket(const Hash::Digest& key_digest,
 }
 
 bool
-InodeCache::create_new_file(const std::string& filename)
+InodeCache::create_new_file(const fs::path& path)
 {
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
-  auto tmp_file = util::TemporaryFile::create(filename);
+  auto tmp_file = util::TemporaryFile::create(path);
   if (!tmp_file) {
     LOG("Failed to created inode cache file: {}", tmp_file.error());
     return false;
@@ -416,19 +416,19 @@ InodeCache::create_new_file(const std::string& filename)
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (link(tmp_file->path.c_str(), filename.c_str()) != 0) {
-    LOG("Failed to link new inode cache: {}", strerror(errno));
+  if (auto result = fs::create_hard_link(tmp_file->path, path); !result) {
+    LOG("Failed to link new inode cache: {}", result.error());
     return false;
   }
 #else
-  if (MoveFileA(util::PathString(tmp_file->path).c_str(), filename.c_str())
+  if (MoveFileA(util::pstr(tmp_file->path).c_str(), util::pstr(path).c_str())
       == 0) {
     unsigned error = GetLastError();
     if (error == ERROR_FILE_EXISTS) {
       // Not an error, another process won the race. Remove the file we just
       // created.
-      DeleteFileA(util::PathString(tmp_file->path).c_str());
-      LOG("Another process created inode cache {}", filename);
+      DeleteFileA(util::pstr(tmp_file->path).c_str());
+      LOG("Another process created inode cache {}", path);
       return true;
     } else {
       LOG("Failed to move new inode cache: {}", error);
@@ -437,7 +437,7 @@ InodeCache::create_new_file(const std::string& filename)
   }
 #endif
 
-  LOG("Created a new inode cache {}", filename);
+  LOG("Created a new inode cache {}", path);
   return true;
 }
 
@@ -486,19 +486,19 @@ InodeCache::initialize()
     return true;
   }
 
-  std::string filename = get_file();
-  if (m_sr || mmap_file(filename)) {
+  fs::path path = get_path();
+  if (m_sr || mmap_file(path)) {
     return true;
   }
 
   // Try to create a new cache if we failed to map an existing file.
-  create_new_file(filename);
+  create_new_file(path);
 
   // Concurrent processes could try to create new files simultaneously and the
   // file that actually landed on disk will be from the process that won the
   // race. Thus we try to open the file from disk instead of reusing the file
   // handle to the file we just created.
-  if (mmap_file(filename)) {
+  if (mmap_file(path)) {
     return true;
   }
 
@@ -622,20 +622,20 @@ InodeCache::drop()
   m_sr = nullptr;
   m_map.unmap();
   m_fd.close();
-  std::string file = get_file();
-  if (unlink(file.c_str()) != 0 && errno != ENOENT) {
+  fs::path path = get_path();
+  if (!fs::remove(path)) {
     return false;
   }
-  LOG("Dropped inode cache {}", file);
+  LOG("Dropped inode cache {}", path);
   return true;
 }
 
-std::string
-InodeCache::get_file()
+fs::path
+InodeCache::get_path()
 {
   const uint8_t arch_bits = 8 * sizeof(void*);
-  return FMT(
-    "{}/inode-cache-{}.v{}", m_config.temporary_dir(), arch_bits, k_version);
+  return m_config.temporary_dir()
+         / FMT("inode-cache-{}.v{}", arch_bits, k_version);
 }
 
 int64_t

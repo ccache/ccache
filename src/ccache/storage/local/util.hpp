@@ -20,8 +20,8 @@
 
 #include <ccache/util/direntry.hpp>
 
+#include <filesystem>
 #include <functional>
-#include <string>
 #include <vector>
 
 namespace storage::local {
@@ -37,8 +37,8 @@ void for_each_cache_subdir(const ProgressReceiver& progress_receiver,
                            const SubdirProgressVisitor& visitor);
 
 void for_each_level_1_and_2_stats_file(
-  const std::string& cache_dir,
-  const std::function<void(const std::string& path)> function);
+  const std::filesystem::path& cache_dir,
+  const std::function<void(const std::filesystem::path& path)> function);
 
 // Get a list of files in a subdirectory of the cache.
 //
@@ -50,6 +50,7 @@ void for_each_level_1_and_2_stats_file(
 // - CACHEDIR.TAG
 // - stats
 // - .nfs* (temporary NFS files that may be left for open but deleted files).
-std::vector<util::DirEntry> get_cache_dir_files(const std::string& dir);
+std::vector<util::DirEntry>
+get_cache_dir_files(const std::filesystem::path& dir);
 
 } // namespace storage::local
