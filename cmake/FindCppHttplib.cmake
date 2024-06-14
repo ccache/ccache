@@ -12,9 +12,9 @@ else()
     if(NOT "${CMAKE_MATCH_0}" STREQUAL "" AND "${_cpphttplib_version_string}" VERSION_GREATER_EQUAL "${CppHttplib_FIND_VERSION}")
       # Some dists like Fedora package cpp-httplib as a single header while some
       # dists like Debian package it as a traditional library.
-      find_library(CPPHTTPLIB_LIBRARY httplib)
+      find_library(CPPHTTPLIB_LIBRARY cpp-httplib)
       if(NOT CPPHTTPLIB_LIBRARY)
-        find_library(CPPHTTPLIB_LIBRARY cpp-httplib)
+        find_library(CPPHTTPLIB_LIBRARY httplib)
       endif()
 
       if(CPPHTTPLIB_LIBRARY)
