@@ -159,8 +159,8 @@ documentation.
 
 *-o* _KEY=VALUE_, *--set-config* _KEY_=_VALUE_::
 
-    Set configuration option _KEY_ to _VALUE_. See _<<Configuration>>_ for more
-    information.
+    Set configuration option _KEY_ to _VALUE_ in the configuration file. See
+    _<<Configuration>>_ for more information.
 
 *-x*, *--show-compression*::
 
