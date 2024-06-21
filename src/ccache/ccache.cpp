@@ -174,7 +174,7 @@ should_disable_ccache_for_input_file(const std::string& path)
 }
 
 static void
-add_prefix(Args& args, const std::string& prefix_command)
+add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 {
   if (prefix_command.empty()) {
     return;
@@ -183,6 +183,14 @@ add_prefix(Args& args, const std::string& prefix_command)
   Args prefixes;
   for (const auto& prefix : util::split_into_strings(prefix_command, " ")) {
     prefixes.push_back(prefix);
+  }
+
+  if (!prefixes.empty() && !util::is_full_path(prefixes[0])) {
+    std::string path = find_executable(ctx, prefixes[0], ctx.orig_args[0]);
+    if (path.empty()) {
+      throw core::Fatal(FMT("{}: {}", prefixes[0], strerror(errno)));
+    }
+    prefixes[0] = path;
   }
 
   LOG("Using command-line prefix {}", prefix_command);
@@ -1314,7 +1322,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     args.push_back(
       FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
-    add_prefix(args, ctx.config.prefix_command_cpp());
+    add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
     const auto result = do_execute(ctx, args, false);
     args.pop_back(args.size() - orig_args_size);
@@ -2462,7 +2470,7 @@ cache_compilation(int argc, const char* const* argv)
       ASSERT(!ctx.orig_args.empty());
 
       ctx.orig_args.erase_with_prefix("--ccache-");
-      add_prefix(ctx.orig_args, ctx.config.prefix_command());
+      add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
       LOG_RAW("Failed; falling back to running the real compiler");
 
@@ -2729,7 +2737,8 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  add_prefix(process_args_result->compiler_args, ctx.config.prefix_command());
+  add_prefix(
+    ctx, process_args_result->compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
