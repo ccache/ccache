@@ -705,28 +705,36 @@ fi
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_PREFIX"
-    cat <<'EOF' >prefix-a.sh
+
+    mkdir bin1 bin2
+
+    cat <<'EOF' >bin1/prefix-a.sh
 #!/bin/sh
+PATH=bin2:$PATH
 echo a >prefix.result
 exec "$@"
 EOF
-    cat <<'EOF' >prefix-b.sh
+    chmod +x bin1/prefix-a.sh
+
+    cat <<'EOF' >bin2/prefix-b.sh
 #!/bin/sh
 echo b >>prefix.result
 exec "$@"
 EOF
-    chmod +x prefix-a.sh prefix-b.sh
+    chmod +x bin2/prefix-b.sh
+
     cat <<'EOF' >file.c
 int foo;
 EOF
-    PATH=.:$PATH CCACHE_PREFIX="prefix-a.sh prefix-b.sh" $CCACHE_COMPILE -c file.c
+
+    PATH=bin1:$PATH CCACHE_PREFIX="prefix-a.sh prefix-b.sh" $CCACHE_COMPILE -c file.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_content prefix.result "a
 b"
 
-    PATH=.:$PATH CCACHE_PREFIX="prefix-a.sh prefix-b.sh" $CCACHE_COMPILE -c file.c
+    PATH=bin1:$PATH CCACHE_PREFIX="prefix-a.sh prefix-b.sh" $CCACHE_COMPILE -c file.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
@@ -734,12 +742,13 @@ b"
 b"
 
     rm -f prefix.result
-    PATH=.:$PATH CCACHE_PREFIX_CPP="prefix-a.sh prefix-b.sh" $CCACHE_COMPILE -c file.c
+    PATH=bin1:$PATH CCACHE_PREFIX_CPP="prefix-a.sh prefix-b.sh" $CCACHE_COMPILE -c file.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 2
     expect_stat cache_miss 1
     expect_content prefix.result "a
 b"
+
     # -------------------------------------------------------------------------
     TEST "Files in cache"
 
