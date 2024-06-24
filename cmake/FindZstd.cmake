@@ -56,10 +56,6 @@ if(_download_zstd)
     add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}" EXCLUDE_FROM_ALL)
   endif()
 
-  # Workaround until https://github.com/facebook/zstd/pull/3968 is included in a
-  # release:
-  set_target_properties(libzstd_static PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${zstd_SOURCE_DIR}/lib>")
-
   unset(ZSTD_BUILD_PROGRAMS)
   unset(ZSTD_BUILD_SHARED)
   unset(ZSTD_BUILD_STATIC)
