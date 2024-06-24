@@ -43,7 +43,7 @@ should be located or retrieved:
 - [cpp-httplib](https://github.com/yhirose/cpp-httplib)[^1]
 - [doctest](https://github.com/doctest/doctest)[^2] (optional, disable with `-D
   ENABLE_TESTING=OFF`)
-- [fmt](https://fmt.dev)[^2]
+- [fmt](https://fmt.dev)[^1]
 - [hiredis](https://github.com/redis/hiredis)[^2] (optional, disable with `-D
   REDIS_STORAGE_BACKEND=OFF`)
 - [span-lite](https://github.com/martinmoene/span-lite)[^1]

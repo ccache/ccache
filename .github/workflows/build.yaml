@@ -126,7 +126,6 @@ jobs:
             packages+=(libxxhash-dev)
           else
             cmake_params+=(-D DEP_DOCTEST=DOWNLOAD)
-            cmake_params+=(-D DEP_FMT=DOWNLOAD)
             cmake_params+=(-D DEP_XXHASH=DOWNLOAD)
           fi
           sudo apt-get install -y "${packages[@]}"
