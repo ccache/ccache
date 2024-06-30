@@ -591,7 +591,7 @@ process_option_arg(const Context& ctx,
   }
 
   // We must have -c.
-  if (arg == "-c" || arg == "--compile") {
+  if (arg == "-c" || arg == "--compile") { // --compile is NVCC
     state.found_c_opt = true;
     return Statistic::none;
   }
