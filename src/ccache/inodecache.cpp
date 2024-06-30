@@ -21,11 +21,11 @@
 #include <ccache/config.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/util/conversion.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
@@ -378,8 +378,7 @@ InodeCache::create_new_file(const fs::path& path)
     return false;
   }
 
-  util::Finalizer temp_file_remover(
-    [&] { unlink(util::pstr(tmp_file->path).c_str()); });
+  DEFER(unlink(util::pstr(tmp_file->path).c_str()));
 
   if (!fd_is_on_known_to_work_file_system(*tmp_file->fd)) {
     return false;

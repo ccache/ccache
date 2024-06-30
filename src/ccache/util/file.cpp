@@ -19,13 +19,13 @@
 #include "file.hpp"
 
 #include <ccache/util/bytes.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
@@ -254,7 +254,7 @@ fallocate(int fd, size_t new_size)
     lseek(fd, saved_pos, SEEK_SET);
     return tl::unexpected(strerror(ENOMEM));
   }
-  Finalizer buf_freer([&] { free(buf); });
+  DEFER(free(buf));
 
   return write_fd(fd, buf, bytes_to_write)
     .and_then([&]() -> tl::expected<void, std::string> {
@@ -576,7 +576,7 @@ traverse_directory(const fs::path& directory,
       FMT("Failed to traverse {}: {}", directory, strerror(errno)));
   }
 
-  Finalizer dir_closer([&] { closedir(dir); });
+  DEFER(closedir(dir));
 
   struct dirent* entry;
   while ((entry = readdir(dir))) {

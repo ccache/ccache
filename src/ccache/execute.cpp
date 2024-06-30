@@ -24,13 +24,13 @@
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/signalhandler.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
@@ -224,7 +224,7 @@ win32execute(const char* path,
   std::string full_path = util::add_exe_suffix(path);
   fs::path tmp_file_path;
 
-  util::Finalizer tmp_file_remover([&tmp_file_path] {
+  DEFER([&] {
     if (!tmp_file_path.empty()) {
       util::remove(tmp_file_path);
     }

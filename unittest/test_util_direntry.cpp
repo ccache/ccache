@@ -18,12 +18,12 @@
 
 #include "testutil.hpp"
 
+#include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
@@ -608,7 +608,7 @@ TEST_CASE("Win32 Pending Delete" * doctest::skip(running_under_wine()))
                 FILE_ATTRIBUTE_NORMAL,
                 nullptr);
   REQUIRE_MESSAGE(handle != INVALID_HANDLE_VALUE, "err=" << GetLastError());
-  util::Finalizer cleanup([&] { CloseHandle(handle); });
+  DEFER(CloseHandle(handle));
 
   // Mark file as deleted. This puts it into a "pending delete" state that
   // will persist until the handle is closed. Until the file is closed, new
@@ -641,7 +641,7 @@ TEST_CASE("Win32 No Sharing")
                               FILE_ATTRIBUTE_NORMAL,
                               nullptr);
   REQUIRE_MESSAGE(handle != INVALID_HANDLE_VALUE, "err=" << GetLastError());
-  util::Finalizer cleanup([&] { CloseHandle(handle); });
+  DEFER(CloseHandle(handle));
 
   // Sanity check we can't open the file for read/write access.
   REQUIRE(!util::read_file<std::string>("file"));

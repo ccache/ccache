@@ -18,8 +18,8 @@
 
 #include "testutil.hpp"
 
+#include <ccache/util/defer.hpp>
 #include <ccache/util/fd.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
@@ -104,8 +104,7 @@ TEST_CASE("bsd_mkstemps")
     ++rand_iter;
   });
 
-  util::Finalizer reset_random_source(
-    [] { bsd_mkstemp_set_random_source(nullptr); });
+  DEFER(bsd_mkstemp_set_random_source(nullptr));
 
   SUBCASE("successful")
   {

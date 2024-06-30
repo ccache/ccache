@@ -20,10 +20,10 @@
 
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/tokenizer.hpp>
@@ -134,7 +134,7 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
   // newlines a second time since we treat output as binary data. Make sure to
   // switch to binary mode.
   int oldmode = _setmode(fd, _O_BINARY);
-  util::Finalizer binary_mode_restorer([=] { _setmode(fd, oldmode); });
+  DEFER(_setmode(fd, oldmode));
 #endif
 
   if (ctx.args_info.strip_diagnostics_colors) {

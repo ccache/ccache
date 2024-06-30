@@ -47,6 +47,7 @@
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/conversion.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/duration.hpp>
 #include <ccache/util/environment.hpp>
@@ -55,7 +56,6 @@
 #include <ccache/util/file.hpp>
 #include <ccache/util/filestream.hpp>
 #include <ccache/util/filesystem.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/path.hpp>
@@ -2438,7 +2438,7 @@ cache_compilation(int argc, const char* const* argv)
     ctx.initialize(std::move(argv_parts.compiler_and_args),
                    argv_parts.config_settings);
     SignalHandler signal_handler(ctx);
-    util::Finalizer finalizer([&ctx] { finalize_at_exit(ctx); });
+    DEFER(finalize_at_exit(ctx));
 
     initialize(ctx, argv, argv_parts.masquerading_as_compiler);
 

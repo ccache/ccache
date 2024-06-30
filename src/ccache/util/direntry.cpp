@@ -18,8 +18,8 @@
 
 #include "direntry.hpp"
 
+#include <ccache/util/defer.hpp>
 #include <ccache/util/file.hpp>
-#include <ccache/util/finalizer.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/pathstring.hpp>
@@ -166,7 +166,7 @@ win32_stat_impl(const char* path,
     return false;
   }
 
-  util::Finalizer closer([&] { CloseHandle(handle); });
+  DEFER(CloseHandle(handle));
 
   switch (GetFileType(handle)) {
   case FILE_TYPE_DISK: {
