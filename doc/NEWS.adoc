@@ -1,5 +1,40 @@
 = Ccache news
 
+== Ccache 4.10.1
+
+Release date: 2024-06-30
+
+
+=== Bug fixes
+
+- Fixed prefix command lookup from `PATH`. +
+  [small]#_[contributed by Romain Geissler]_#
+
+
+=== Build improvements
+
+- Fixed detection and usage of system blake3. +
+  [small]#_[contributed by Carlo Cabrera]_#
+
+- Find CppHttplib named libhttplib.so as well. +
+  [small]#_[contributed by Sam James]_#
+
+- Removed Xcode assembly workaround for zstd. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Added bundled subset of Fmt again for convenience. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Removed no longer needed workaround when building downloaded Zstd. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Clarified that `--set`-config writes to the configuration file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.10
 
 Release date: 2024-05-29
