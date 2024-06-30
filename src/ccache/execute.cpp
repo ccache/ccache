@@ -300,43 +300,31 @@ execute(Context& ctx,
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 
+  posix_spawn_file_actions_t fa;
+
+  CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
+  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *fd_out, STDOUT_FILENO);
+  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *fd_out);
+  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *fd_err, STDERR_FILENO);
+  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *fd_err);
+
   int result;
-  posix_spawn_file_actions_t file_actions;
-  if ((result = posix_spawn_file_actions_init(&file_actions))) {
-    throw core::Fatal(
-      FMT("posix_spawn_file_actions_init failed: {}", strerror(result)));
-  }
-
-  if ((result = posix_spawn_file_actions_adddup2(
-         &file_actions, *fd_out, STDOUT_FILENO))
-      || (result = posix_spawn_file_actions_addclose(&file_actions, *fd_out))
-      || (result = posix_spawn_file_actions_adddup2(
-            &file_actions, *fd_err, STDERR_FILENO))
-      || (result = posix_spawn_file_actions_addclose(&file_actions, *fd_err))) {
-    throw core::Fatal(FMT("posix_spawn_file_actions_addclose/dup2 failed: {}",
-                          strerror(result)));
-  }
-
   {
     SignalHandlerBlocker signal_handler_blocker;
     pid_t pid;
     extern char** environ;
-    result = posix_spawn(&pid,
-                         argv[0],
-                         &file_actions,
-                         nullptr,
-                         const_cast<char* const*>(argv),
-                         environ);
-    if (!result) {
+    result = posix_spawn(
+      &pid, argv[0], &fa, nullptr, const_cast<char* const*>(argv), environ);
+    if (result == 0) {
       ctx.compiler_pid = pid;
     }
   }
 
-  posix_spawn_file_actions_destroy(&file_actions);
+  posix_spawn_file_actions_destroy(&fa);
   fd_out.close();
   fd_err.close();
 
-  if (result) {
+  if (result != 0) {
     return -1;
   }
 

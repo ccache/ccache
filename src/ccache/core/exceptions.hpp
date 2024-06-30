@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <fmt/core.h>
 
+#include <cstring>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -47,5 +48,15 @@ class Fatal : public ErrorBase
 {
   using ErrorBase::ErrorBase;
 };
+
+// Call a libc-style function (returns 0 on success and sets errno) and throw
+// Fatal on error.
+#define CHECK_LIB_CALL(function, ...)                                          \
+  {                                                                            \
+    int _result = function(__VA_ARGS__);                                       \
+    if (_result != 0) {                                                        \
+      throw core::Fatal(FMT(#function " failed: {}", strerror(_result)));      \
+    }                                                                          \
+  }
 
 } // namespace core

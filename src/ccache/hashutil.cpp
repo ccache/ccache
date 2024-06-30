@@ -376,9 +376,10 @@ hash_command_output(Hash& hash,
     }
   }
 
-  auto argv = args.to_argv();
+  auto arg_vector = args.to_argv();
+  auto argv = const_cast<char* const*>(arg_vector.data());
   LOG("Executing compiler check command {}",
-      util::format_argv_for_logging(argv.data()));
+      util::format_argv_for_logging(argv));
 
 #ifdef _WIN32
   PROCESS_INFORMATION pi;
@@ -410,7 +411,7 @@ hash_command_output(Hash& hash,
   if (using_cmd_exe) {
     win32args = adjusted_command; // quoted
   } else {
-    win32args = util::format_argv_as_win32_command_string(argv.data(), sh);
+    win32args = util::format_argv_as_win32_command_string(argv, sh);
   }
   BOOL ret = CreateProcess(path.c_str(),
                            const_cast<char*>(win32args.c_str()),
@@ -449,33 +450,21 @@ hash_command_output(Hash& hash,
     throw core::Fatal(FMT("pipe failed: {}", strerror(errno)));
   }
 
-  int result;
-  posix_spawn_file_actions_t file_actions;
-  if ((result = posix_spawn_file_actions_init(&file_actions))) {
-    throw core::Fatal(
-      FMT("posix_spawn_file_actions_init failed: {}", strerror(result)));
-  }
+  posix_spawn_file_actions_t fa;
 
-  if ((result = posix_spawn_file_actions_addclose(&file_actions, pipefd[0]))
-      || (result = posix_spawn_file_actions_addclose(&file_actions, 0))
-      || (result =
-            posix_spawn_file_actions_adddup2(&file_actions, pipefd[1], 1))
-      || (result =
-            posix_spawn_file_actions_adddup2(&file_actions, pipefd[1], 2))) {
-    throw core::Fatal(FMT("posix_spawn_file_actions_addclose/dup2 failed: {}",
-                          strerror(result)));
-  }
+  CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
+  CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
+  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, pipefd[0]);
+  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, 0);
+  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, pipefd[1], 1);
+  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, pipefd[1], 2);
 
   pid_t pid;
   extern char** environ;
-  result = posix_spawnp(&pid,
-                        argv[0],
-                        &file_actions,
-                        nullptr,
-                        const_cast<char* const*>(argv.data()),
-                        environ);
+  int result = posix_spawnp(
+    &pid, argv[0], &fa, nullptr, const_cast<char* const*>(argv), environ);
 
-  posix_spawn_file_actions_destroy(&file_actions);
+  posix_spawn_file_actions_destroy(&fa);
   close(pipefd[1]);
 
   const auto hash_result = hash.hash_fd(pipefd[0]);
@@ -484,7 +473,7 @@ hash_command_output(Hash& hash,
   }
   close(pipefd[0]);
 
-  if (result) {
+  if (result != 0) {
     LOG("posix_spawnp failed: {}", strerror(errno));
     return false;
   }
