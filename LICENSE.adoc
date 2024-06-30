@@ -448,7 +448,7 @@ SOFTWARE.
 ----
 
 
-=== src/third_party/fmt/fmt/*.h and src/third_party/fmt/format.cpp
+=== src/third_party/fmt/fmt/*.h and src/third_party/fmt/fmt/format.cc
 
 This is a subset of https://fmt.dev[fmt] 10.2.1 with the following license:
 
