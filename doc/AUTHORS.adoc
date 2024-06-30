@@ -31,6 +31,7 @@ Ccache is a collective work with contributions from many people, including:
 * Brendan Shanks
 * Breno Guimaraes
 * Byoungchan Lee
+* Carlo Cabrera
 * Chiaki Ishikawa
 * Chris AtLee
 * Chris Burr
@@ -139,6 +140,7 @@ Ccache is a collective work with contributions from many people, including:
 * Robert Yang
 * Robin H. Johnson
 * Rolf Bjarne Kvinge
+* Romain Geissler
 * Rosen Penev
 * R. Voggenauer
 * Ryan Brown
