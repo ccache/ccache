@@ -1,5 +1,5 @@
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
 // Copyright (C) 2002-2007 Andrew Tridgell
+// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
