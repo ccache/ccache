@@ -184,24 +184,23 @@ SUITE_profiling_gcc() {
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
+    if $COMPILER -Werror -fprofile-update=atomic -fprofile-generate -c test.c 2>/dev/null; then
+        TEST "-fprofile-update=atomic"
 
-    TEST "-fprofile-update=atomic"
+        $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
-    expect_stat direct_cache_hit 0
-    expect_stat cache_miss 1
+        $COMPILER -fprofile-generate -fprofile-update=atomic test.o -o test
 
-    $COMPILER -fprofile-generate -fprofile-update=atomic test.o -o test
+        ./test
 
-    ./test
+        $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
-    expect_stat direct_cache_hit 1
-    expect_stat cache_miss 1
-
-    $CCACHE_COMPILE -fprofile-use -c test.c
-    expect_stat direct_cache_hit 1
-    expect_stat cache_miss 2
-
-    # -------------------------------------------------------------------------
+        $CCACHE_COMPILE -fprofile-use -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+    fi
 }
