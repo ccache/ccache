@@ -1,5 +1,27 @@
 = Ccache news
 
+== Ccache 4.10.2
+
+Release date: 2024-07-22
+
+
+=== Build improvements
+
+- Fixed detection of Fmt version 11 and newer. +
+  [small]#_[contributed by Holger Hoffstätte and Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Made the "`-fprofile-update=atomic`" test only run when that option is
+  supported by the compiler. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made the color diagnostics tests work when the user running the tests has a
+  non-POSIX login shell. +
+  [small]#_[contributed by Anders F Björklund]_#
+
+
 == Ccache 4.10.1
 
 Release date: 2024-06-30
