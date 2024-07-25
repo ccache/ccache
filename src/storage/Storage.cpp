@@ -61,11 +61,12 @@ std::string
 get_features()
 {
   std::vector<std::string> features;
-  features.reserve(k_secondary_storage_implementations.size());
+  features.reserve(k_secondary_storage_implementations.size() + 1);
   std::transform(k_secondary_storage_implementations.begin(),
                  k_secondary_storage_implementations.end(),
                  std::back_inserter(features),
                  [](auto& entry) { return FMT("{}-storage", entry.first); });
+  features.push_back("topscc-support");
   std::sort(features.begin(), features.end());
   return util::join(features, " ");
 }
