@@ -299,6 +299,8 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != std::string_view::npos) {
     return CompilerType::nvcc;
+  } else if (name.find("topscc") != std::string_view::npos) {
+    return CompilerType::topscc;
   } else if (name == "icl") {
     return CompilerType::icl;
   } else if (name == "cl") {
@@ -1867,6 +1869,30 @@ hash_argument(const Context& ctx,
     }
   }
 
+  // acore op
+  if (ctx.config.compiler_type() == CompilerType::topscc) {
+    if (util::starts_with(args[i], "--tops-device-lib-path=")) {
+      auto ac_size = std::string("--tops-device-lib-path=").size();
+      auto acoreop = std::string(&args[i][ac_size]);
+      // if acoreop is not stop with /, just add / to it
+      if (acoreop[acoreop.size() - 1] != '/') {
+        acoreop += "/";
+      }
+
+      for (size_t j = 0; j < args.size(); j++) {
+        if (util::starts_with(args[j], "--tops-device-lib=")) {
+          acoreop +=
+            std::string(&args[j][std::string("--tops-device-lib=").size()]);
+          break;
+        }
+      }
+      DirEntry de(acoreop);
+      if (de.exists()) {
+        hash.hash_delimiter("plugin");
+        TRY(hash_compiler(ctx, hash, de, acoreop, false));
+      }
+    }
+  }
   if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
       && args[i + 2] == "-Xclang") {
     DirEntry dir_entry(args[i + 3], DirEntry::LogOnError::yes);
@@ -2096,8 +2122,23 @@ calculate_result_and_manifest_key(Context& ctx,
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
-  int is_clang = ctx.config.is_compiler_group_clang()
-                 || ctx.config.compiler_type() == CompilerType::other;
+  bool is_clang = ctx.config.is_compiler_group_clang()
+                  || ctx.config.compiler_type() == CompilerType::topscc
+                  || ctx.config.compiler_type() == CompilerType::other;
+  if (ctx.config.compiler_type() == CompilerType::topscc) {
+    auto topscc = std::string(args[0]);
+    auto topscc_len = std::string("topscc").size();
+    if (topscc.size() > topscc_len) {
+      std::string clang = topscc.replace(
+        topscc.size() - topscc_len, std::string("topscc").size(), "clang");
+
+      DirEntry de(clang);
+      if (de.exists()) {
+        hash.hash_delimiter("plugin");
+        TRY(hash_compiler(ctx, hash, de, clang, false));
+      }
+    }
+  }
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {

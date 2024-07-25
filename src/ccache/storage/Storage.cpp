@@ -63,11 +63,12 @@ std::vector<std::string>
 get_features()
 {
   std::vector<std::string> features;
-  features.reserve(k_remote_storage_implementations.size());
+  features.reserve(k_remote_storage_implementations.size() + 1);
   std::transform(k_remote_storage_implementations.begin(),
                  k_remote_storage_implementations.end(),
                  std::back_inserter(features),
                  [](auto& entry) { return FMT("{}-storage", entry.first); });
+  features.emplace_back("topscc-support");
   return features;
 }
 
