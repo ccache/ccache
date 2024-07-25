@@ -72,6 +72,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <iostream>
 
 #ifndef MYNAME
 #  define MYNAME "ccache"
@@ -232,7 +233,9 @@ guess_compiler(string_view path)
     return CompilerType::nvcc;
   } else if (name == "pump" || name == "distcc-pump") {
     return CompilerType::pump;
-  } else {
+  } else if (name.find("topscc") != nonstd::string_view::npos) {
+    return CompilerType::topscc;
+  } else{
     return CompilerType::other;
   }
 }
@@ -1040,6 +1043,11 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       args.push_back("-");
       args_added += 2;
     }
+    if (ctx.config.compiler_type() == CompilerType::topscc) {
+      args.push_back("-o");
+      args.push_back(stdout_path);
+      args_added += 2;
+    }
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
       args_added++;
@@ -1412,6 +1420,21 @@ calculate_result_and_manifest_key(Context& ctx,
   // those arguments.
   int is_clang = ctx.config.compiler_type() == CompilerType::clang
                  || ctx.config.compiler_type() == CompilerType::other;
+  int is_topscc = ctx.config.compiler_type() == CompilerType::topscc;
+  if (is_topscc) {
+    auto topscc = std::string(args[0]);
+    auto topscc_len = std::string("topscc").size();
+    if (topscc.size() > topscc_len) {
+      std::string clang = topscc.replace(topscc.size() - topscc_len,
+                          std::string("topscc").size(), "clang");
+
+      auto st = Stat::stat(clang, Stat::OnError::log);
+      if (st) {
+        hash.hash_delimiter("plugin");
+        TRY(hash_compiler(ctx, hash, st, clang, false));
+      }
+    }
+  }
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
@@ -1537,6 +1560,31 @@ calculate_result_and_manifest_key(Context& ctx,
         hash.hash_delimiter("plugin");
         TRY(hash_compiler(ctx, hash, st, &args[i][9], false));
         continue;
+      }
+    }
+
+    // acore op
+    if (is_topscc) {
+      if (util::starts_with(args[i], "--tops-device-lib-path=")) {
+        auto ac_size = std::string("--tops-device-lib-path=").size();
+        auto acoreop = std::string(&args[i][ac_size]);
+        // if acoreop is not stop with /, just add / to it
+        if (acoreop[acoreop.size() - 1] != '/') {
+          acoreop += "/";
+        }
+
+        for (size_t j=0; j < args.size(); j++) {
+          if (util::starts_with(args[j], "--tops-device-lib=")) {
+            acoreop += std::string(&args[j][std::string("--tops-device-lib=").size()]);
+            break;
+          }
+        }
+        auto st = Stat::stat(acoreop, Stat::OnError::log);
+        if (st) {
+          hash.hash_delimiter("plugin");
+          TRY(hash_compiler(ctx, hash, st, acoreop, false));
+          continue;
+        }
       }
     }
 

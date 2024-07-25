@@ -121,6 +121,8 @@ const CompOpt compopts[] = {
   {"-iquote", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-isysroot", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-isystem", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+  {"--tops-device-lib", AFFECTS_COMP | TAKES_ARG | TAKES_CONCAT_ARG}, // topscc
+  {"--tops-device-lib-path", AFFECTS_COMP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // topscc
   {"-ivfsoverlay", TAKES_ARG},
   {"-iwithprefix", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-iwithprefixbefore",

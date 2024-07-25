@@ -245,6 +245,8 @@ parse_compiler_type(const std::string& value)
     return CompilerType::gcc;
   } else if (value == "nvcc") {
     return CompilerType::nvcc;
+  } else if (value == "topscc") {
+    return CompilerType::topscc;
   } else if (value == "other") {
     return CompilerType::other;
   } else if (value == "pump") {
@@ -453,6 +455,7 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(clang);
     CASE(gcc);
     CASE(nvcc);
+    CASE(topscc);
     CASE(other);
     CASE(pump);
   }
