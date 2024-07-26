@@ -505,7 +505,7 @@ WARNING: Rewriting absolute paths to relative is kind of a brittle hack. It
 works OK in many cases, but there might be cases where things break. One known
 issue is that absolute paths are not reproduced in dependency files, which can
 mess up dependency detection in tools like Make and Ninja. If possible, use
-relative paths in the first place instead instead of using *base_dir*.
+relative paths in the first place instead of using *base_dir*.
 
 [#config_cache_dir]
 *cache_dir* (*CCACHE_DIR*)::
