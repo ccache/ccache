@@ -2099,8 +2099,8 @@ calculate_result_and_manifest_key(Context& ctx,
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
-  int is_clang = ctx.config.is_compiler_group_clang()
-                 || ctx.config.compiler_type() == CompilerType::other;
+  bool is_clang = ctx.config.is_compiler_group_clang()
+                  || ctx.config.compiler_type() == CompilerType::other;
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
