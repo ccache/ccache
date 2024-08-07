@@ -278,6 +278,8 @@ parse_compiler_type(const std::string& value)
     return CompilerType::msvc;
   } else if (value == "nvcc") {
     return CompilerType::nvcc;
+  } else if (value == "topscc") {
+    return CompilerType::topscc;
   } else if (value == "other") {
     return CompilerType::other;
   } else {
@@ -542,6 +544,7 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(icl);
     CASE(msvc);
     CASE(nvcc);
+    CASE(topscc);
     CASE(other);
   }
 #undef CASE
