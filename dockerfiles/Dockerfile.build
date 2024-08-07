@@ -1,0 +1,51 @@
+ARG CCACHE_DIR="/ccache"
+ARG CCACHE_LOC="/source"
+ARG COMMAND="${CCACHE_LOC}/ci/build"
+ARG INTERACTIVE
+ARG ASAN_OPTIONS
+ARG EXTRA_CMAKE_BUILD_FLAGS
+ARG CC
+ARG CFLAGS
+ARG CMAKE_PARAMS
+ARG CXX
+ARG CXXFLAGS
+ARG LDFLAGS
+ARG NO_TEST
+ARG SCAN_BUILD
+ARG SPECIAL
+ARG VERBOSE
+
+ARG INSTALL_PREFIX
+
+ENV TROOT="/tmp/build_cache_root"
+ENV CCACHE_BIN="${INSTALL_PREFIX}/bin/ccache"
+ENV CCACHE_ROOT="/root"
+ENV CCACHE_DIR="${CCACHE_ROOT}/.ccache"
+
+RUN mkdir -p ${CCACHE_DIR}
+RUN --mount=type=bind,from=buildcache,source=/,target=${TROOT} \
+ test ! -d ${TROOT}${CCACHE_DIR} || \
+  cp -a ${TROOT}${CCACHE_DIR} ${CCACHE_ROOT}/
+RUN --mount=type=bind,from=buildcache,source=/,target=${TROOT} \
+ test ! -e ${TROOT}${CCACHE_BIN} || \
+  cp ${TROOT}${CCACHE_BIN} ${CCACHE_BIN}
+RUN test ! -e ${CCACHE_BIN} || ${CCACHE_BIN} --max-size=10M
+RUN test ! -e ${CCACHE_BIN} || ${CCACHE_BIN} --set-config=hash_dir=false
+RUN test ! -e ${CCACHE_BIN} || ${CCACHE_BIN} --zero-stats
+
+WORKDIR ${CCACHE_LOC}
+
+COPY --exclude=.git* --exclude=dockerfiles . ${CCACHE_LOC}
+ARG BASE_IMAGE
+ARG TARGETPLATFORM
+RUN CMAKE_PARAMS="-DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
+  `./misc/get-arch-buildargs platformopts ${CMAKE_PARAMS}`" ${COMMAND}
+RUN make -C build install
+RUN ${CCACHE_BIN} --show-stats > ${CCACHE_DIR}/lastbuild.stats
+RUN cat ${CCACHE_DIR}/lastbuild.stats
+FROM scratch AS export
+ARG INSTALL_PREFIX
+ENV CCACHE_BIN="${INSTALL_PREFIX}/bin/ccache"
+ENV CCACHE_DIR="/root/.ccache"
+COPY --from=build ${CCACHE_BIN} ${CCACHE_BIN}
+COPY --from=build ${CCACHE_DIR} ${CCACHE_DIR}

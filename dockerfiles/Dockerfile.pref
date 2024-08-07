@@ -1,0 +1,6 @@
+# syntax=docker/dockerfile:1.7-labs
+
+ARG BASE_IMAGE
+ARG CACHE_IMAGE="scratch"
+
+FROM ${CACHE_IMAGE} AS buildcache

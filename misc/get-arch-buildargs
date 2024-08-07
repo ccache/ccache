@@ -1,0 +1,86 @@
+#!/bin/sh
+
+set -e
+
+fltimages() {
+  grep -v -e '^centos:7$' # EOLed
+}
+
+fltplatforms() {
+   FILT="grep -v -e unknown" # docker multi-arch is weird
+   case "${BASE_IMAGE}" in
+   alpine:3.15)
+     FILT="${FILT} -e ^linux/arm/v6\$" # bus error
+     ;;
+   ubuntu:20.04)
+     FILT="${FILT} -e ^linux/arm/v7\$" # broken cmake
+     ;;
+   *)
+     ;;
+  esac
+  ${FILT}
+}
+
+platformopts() {
+  case "${BASE_IMAGE}" in
+  almalinux:8)
+    case "${TARGETPLATFORM}" in
+    linux/ppc64le)
+      echo "-DNO_NOCPP2_TEST=ON" # Fails unit test
+      ;;
+    esac
+    ;;
+  debian:12)
+    case "${TARGETPLATFORM}" in
+    linux/arm/v5)
+      echo "-DLIBATOMIC_STATIC_PATH=/usr/lib/gcc/arm-linux-gnueabi/12"
+      ;;
+    esac
+    ;;
+  debian:11)
+    case "${TARGETPLATFORM}" in
+    linux/ppc64le | linux/arm/v7)
+      echo "-DHTTP_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  fedora:40)
+    case "${TARGETPLATFORM}" in
+    linux/s390x)
+      echo "-DHTTP_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  ubuntu:24.04)
+    case "${TARGETPLATFORM}" in
+    linux/s390x)
+      echo "-DHTTP_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  esac
+  echo "-DNO_REDIS_TEST=ON" # Fails randomly
+  if [ -e "${INSTALL_PREFIX}/bin/ccache" ]
+  then
+    echo "-DCMAKE_C_COMPILER_LAUNCHER=${INSTALL_PREFIX}/bin/ccache"
+    echo "-DCMAKE_CXX_COMPILER_LAUNCHER=${INSTALL_PREFIX}/bin/ccache"
+  fi
+  echo "${@}"
+}
+
+case "${1}" in
+platformopts)
+  shift
+  platformopts "${@}"
+  ;;
+fltplatforms)
+  fltplatforms
+  ;;
+fltimages)
+  fltimages
+  ;;
+*)
+  echo "usage: `basename "${0}"` (platformopts|fltplatforms) [opts]" 2>&1
+  exit 1
+  ;;
+esac
