@@ -24,26 +24,6 @@
 #include <algorithm>
 #include <cctype>
 
-namespace {
-
-template<typename T>
-std::vector<T>
-split_into(std::string_view string,
-           const char* separators,
-           util::Tokenizer::Mode mode,
-           util::Tokenizer::IncludeDelimiter include_delimiter)
-
-{
-  std::vector<T> result;
-  for (const auto token :
-       util::Tokenizer(string, separators, mode, include_delimiter)) {
-    result.emplace_back(token);
-  }
-  return result;
-}
-
-} // namespace
-
 namespace util {
 
 std::string
@@ -439,16 +419,6 @@ split_into_strings(std::string_view string,
   return split_into<std::string>(string, separators, mode, include_delimiter);
 }
 
-std::vector<std::string_view>
-split_into_views(std::string_view string,
-                 const char* separators,
-                 Tokenizer::Mode mode,
-                 Tokenizer::IncludeDelimiter include_delimiter)
-{
-  return split_into<std::string_view>(
-    string, separators, mode, include_delimiter);
-}
-
 std::pair<std::string_view, std::optional<std::string_view>>
 split_once(const char* string, const char split_char)
 {
@@ -503,19 +473,6 @@ split_option_with_concat_path(std::string_view string)
   return std::make_pair(string.substr(0, split_pos), string.substr(split_pos));
 }
 
-std::vector<std::filesystem::path>
-split_path_list(std::string_view path_list)
-{
-#ifdef _WIN32
-  const char path_delimiter[] = ";";
-#else
-  const char path_delimiter[] = ":";
-#endif
-  auto strings = split_into_views(path_list, path_delimiter);
-  std::vector<std::filesystem::path> paths;
-  std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
-  return paths;
-}
 
 std::string
 strip_whitespace(const std::string_view string)

@@ -20,6 +20,7 @@
 
 #include <tl/expected.hpp>
 
+#include <filesystem>
 #include <string>
 
 namespace util {
@@ -34,5 +35,17 @@ void setenv(const std::string& name, const std::string& value);
 
 // Unset environment variable `name`.
 void unsetenv(const std::string& name);
+
+// Get the value of environment variables that contain a filesystem path.
+// Necessary because on Windows they need to be retrieved as UTF-16.
+const std::filesystem::path get_envvar_path(const char* env_var);
+
+// Get the value of the PATH environment variable with the right encoding
+// depending on the platform, UTF-8 on Unix and UTF-16 on Windows.
+#ifndef _WIN32
+const std::string get_PATH();
+#else
+const std::u16string get_PATH();
+#endif
 
 } // namespace util

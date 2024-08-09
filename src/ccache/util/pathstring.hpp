@@ -19,6 +19,7 @@
 #pragma once
 
 #include <filesystem>
+#include <iterator>
 #include <string>
 
 namespace util {
@@ -26,52 +27,26 @@ namespace util {
 // std::filesystem::path wrapper for accessing the underlying path string
 // without having to copy it if std::filesystem::path::value_type is char (that
 // is, not wchar_t).
-class PathString
+template <typename CharT>
+class BasicPathString
 {
 public:
-  PathString(const std::filesystem::path& path);
+  inline BasicPathString(const std::filesystem::path& path) : m_path(path) {}
 
-  operator const std::string&() const;
-
-  const std::string& str() const;
-  const char* c_str() const;
+  inline operator const std::basic_string<CharT>&() const { return str(); }
+  inline const std::basic_string<CharT>& str() const { return m_path.native(); }
+  inline const CharT* c_str() const { return str().c_str(); }
+  inline std::basic_string<CharT>::iterator begin() const { return str().begin(); }
+  inline std::basic_string<CharT>::iterator end() const { return str().end(); }
 
 private:
-#ifdef _WIN32
-  std::string m_path;
-#else
   const std::filesystem::path& m_path;
-#endif
 };
 
-inline PathString::PathString(const std::filesystem::path& path)
-#ifdef _WIN32
-  : m_path(path.string())
+#ifndef _WIN32
+using PathString = BasicPathString<char>;
 #else
-  : m_path(path)
+using PathString = BasicPathString<char16_t>;
 #endif
-{
-}
-
-inline PathString::operator const std::string&() const
-{
-  return str();
-}
-
-inline const std::string&
-PathString::str() const
-{
-#ifdef _WIN32
-  return m_path;
-#else
-  return m_path.native();
-#endif
-}
-
-inline const char*
-PathString::c_str() const
-{
-  return str().c_str();
-}
 
 } // namespace util

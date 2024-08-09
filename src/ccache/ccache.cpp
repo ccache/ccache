@@ -1966,9 +1966,9 @@ static bool
 hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const fs::path& profile_path = ctx.args_info.profile_path;
-  const std::string base_name =
+  const auto base_name =
     util::pstr(util::with_extension(ctx.args_info.output_obj, ""));
-  std::string hashified_cwd = util::pstr(ctx.apparent_cwd);
+  auto hashified_cwd = util::pstr(ctx.apparent_cwd);
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
 
   std::vector<fs::path> paths_to_try{

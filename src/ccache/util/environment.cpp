@@ -102,4 +102,46 @@ unsetenv(const std::string& name)
 #endif
 }
 
+#ifdef _WIN32
+static const std::u16string
+win32_get_envvar(const char* env_var)
+{
+  size_t env_var_len = std::strlen(env_var) + 1;
+
+  wchar_t* env_var_wide = new wchar_t[env_var_len]
+
+  std::mbstowcs(env_var_wide, env_var, env_var_len);
+
+  std::u16string val = (char16_t*)_wgetenv(env_var_wide);
+
+  delete[] env_var_wide;
+
+  return val;
+}
+#endif
+
+const std::filesystem::path
+get_envvar_path(const char* env_var)
+{
+#ifndef _WIN32
+  return getenv(env_var);
+#else
+  return win32_get_envvar(env_var);
+#endif
+}
+
+#ifndef _WIN32
+const std::string
+get_PATH()
+{
+  return getenv("PATH");
+}
+#else
+const std::u16string
+get_PATH()
+{
+  return win32_get_envvar("PATH");
+}
+#endif
+
 } // namespace util

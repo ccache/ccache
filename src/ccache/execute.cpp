@@ -26,6 +26,7 @@
 #include <ccache/signalhandler.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/environment.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/fd.hpp>
@@ -84,14 +85,25 @@ execute_noreturn(const char* const* argv, const fs::path& temp_dir)
   win32execute(argv[0], argv, 0, -1, -1, util::pstr(temp_dir).c_str());
 }
 
-std::string
-win32getshell(const std::string& path)
+static const std::u16string
+getsh()
 {
-  const char* path_list = getenv("PATH");
-  std::string sh;
+  auto path_list = get_PATH();
+  sh = util::pstr(find_executable_in_path("sh.exe", path_list));
+  if (sh.empty()) {
+    sh = util::pstr(find_executable_in_path("bash.exe", path_list));
+  }
+  return sh;
+}
+
+const std::u16string
+win32getshell(const std::u16string& path)
+{
+  auto path_list = get_PATH();
+  std::u16string sh;
   if (util::to_lowercase(util::pstr(fs::path(path).extension()).str()) == ".sh"
       && path_list) {
-    sh = util::pstr(find_executable_in_path("sh.exe", path_list));
+    sh = getsh();
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
@@ -100,7 +112,7 @@ win32getshell(const std::string& path)
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
       if (std::string(buf) == "#!/bin/sh" && path_list) {
-        sh = util::pstr(find_executable_in_path("sh.exe", path_list));
+        sh = getsh();
       }
     }
   }
@@ -375,55 +387,4 @@ find_executable(const Context& ctx,
   }
 
   return find_executable_in_path(name, path_list, exclude_path).string();
-}
-
-fs::path
-find_executable_in_path(const std::string& name,
-                        const std::string& path_list,
-                        const std::optional<fs::path>& exclude_path)
-{
-  if (path_list.empty()) {
-    return {};
-  }
-
-  auto real_exclude_path =
-    exclude_path ? fs::canonical(*exclude_path).value_or("") : "";
-
-  // Search the path list looking for the first compiler of the right name that
-  // isn't us.
-  for (const auto& dir : util::split_path_list(path_list)) {
-    const std::vector<fs::path> candidates = {
-      dir / name,
-#ifdef _WIN32
-      dir / FMT("{}.exe", name),
-#endif
-    };
-    for (const auto& candidate : candidates) {
-      // A valid candidate:
-      //
-      // 1. Must exist (e.g., should not be a broken symlink) and be an
-      //    executable.
-      // 2. Must not resolve to the same program as argv[0] (i.e.,
-      //    exclude_path). This can happen if ccache is masquerading as the
-      //    compiler (with or without using a symlink).
-      // 3. As an extra safety measure: must not be a ccache executable after
-      //    resolving symlinks. This can happen if the candidate compiler is a
-      //    symlink to another ccache executable.
-      const bool candidate_exists =
-#ifdef _WIN32
-        util::DirEntry(candidate).is_regular_file();
-#else
-        access(candidate.c_str(), X_OK) == 0;
-#endif
-      if (candidate_exists) {
-        auto real_candidate = fs::canonical(candidate);
-        if (real_candidate && *real_candidate != real_exclude_path
-            && !is_ccache_executable(*real_candidate)) {
-          return candidate;
-        }
-      }
-    }
-  }
-
-  return {};
 }

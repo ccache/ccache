@@ -19,6 +19,7 @@
 #include "path.hpp"
 
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/environment.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
@@ -44,14 +45,14 @@ add_exe_suffix(const std::string& program)
   }
 }
 
-fs::path
+const fs::path
 apparent_cwd(const fs::path& actual_cwd)
 {
 #ifdef _WIN32
   return actual_cwd;
 #else
-  auto pwd = getenv("PWD");
-  if (!pwd || !fs::path(pwd).is_absolute()) {
+  auto pwd = get_envvar_path("PWD");
+  if (pwd.empty() || !pwd.is_absolute()) {
     return actual_cwd;
   }
 

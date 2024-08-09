@@ -152,6 +152,26 @@ std::string replace_first(std::string_view string,
                           std::string_view from,
                           std::string_view to);
 
+namespace {
+
+template<typename T, typename CharT>
+std::vector<T>
+split_into(std::basic_string_view<CharT> string,
+           CharT* separators,
+           util::Tokenizer::Mode mode,
+           util::Tokenizer::IncludeDelimiter include_delimiter)
+
+{
+  std::vector<T> result;
+  for (const auto token :
+       util::BasicTokenizer<CharT>(string, separators, mode, include_delimiter)) {
+    result.emplace_back(token);
+  }
+  return result;
+}
+
+} // namespace
+
 // Split `string` into tokens at any of the characters in `separators`.
 // `separators` must neither be the empty string nor a nullptr.
 std::vector<std::string>
@@ -164,12 +184,17 @@ split_into_strings(std::string_view string,
 // Split `string` into tokens at any of the characters in `separators`. These
 // tokens are views into `string`. `separators` must neither be the empty string
 // nor a nullptr.
-std::vector<std::string_view>
-split_into_views(std::string_view string,
-                 const char* separators,
+template<typename CharT>
+std::vector<std::basic_string_view<CharT>>
+split_into_views(std::basic_string_view<CharT> string,
+                 const CharT* separators,
                  Tokenizer::Mode mode = Tokenizer::Mode::skip_empty,
                  Tokenizer::IncludeDelimiter include_delimiter =
                    Tokenizer::IncludeDelimiter::no);
+{
+  return split_into<std::basic_string_view<CharT>>(
+    string, separators, mode, include_delimiter);
+}
 
 // Split `string` into two parts using `split_char` as the delimiter. The second
 // part will be `nullopt` if there is no `split_char` in `string.`
@@ -188,7 +213,20 @@ split_option_with_concat_path(std::string_view string);
 
 // Split a list of paths (such as the content of $PATH on Unix platforms or
 // %PATH% on Windows platforms) into paths.
-std::vector<std::filesystem::path> split_path_list(std::string_view path_list);
+template<typename CharT>
+std::vector<std::filesystem::path>
+split_path_list(std::basic_string_view<CharT> path_list)
+{
+#ifdef _WIN32
+  const char16_t path_delimiter[] = u";";
+#else
+  const char path_delimiter[] = ":";
+#endif
+  auto strings = split_into_views(path_list, path_delimiter);
+  std::vector<std::filesystem::path> paths;
+  std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
+  return paths;
+}
 
 // Return true if `prefix` is a prefix of `string`.
 bool starts_with(const char* string, std::string_view prefix);
