@@ -1,17 +1,13 @@
-ARG BASE_IMAGE=ubuntu:20.04
+ARG BASE_IMAGE=debian:12
 FROM ${BASE_IMAGE} AS build
 
-# Non-interactive: do not set up timezone settings.
 RUN apt-get update \
- && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
-        asciidoctor \
+ && apt-get install -y --no-install-recommends \
         bash \
         build-essential \
         ccache \
         clang \
         cmake \
-        docbook-xml \
-        docbook-xsl \
         elfutils \
         gcc \
         libhiredis-dev \
