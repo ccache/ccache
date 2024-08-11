@@ -1,4 +1,5 @@
-FROM fedora:40
+ARG BASE_IMAGE=fedora:40
+FROM ${BASE_IMAGE} AS build
 
 RUN dnf install -y \
         blake3-devel \
@@ -14,6 +15,7 @@ RUN dnf install -y \
         fmt-devel \
         gcc \
         gcc-c++ \
+        libstdc++-static \
         hiredis-devel \
         less \
         libzstd-devel \

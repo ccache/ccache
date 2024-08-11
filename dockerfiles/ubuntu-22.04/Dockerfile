@@ -1,6 +1,8 @@
-FROM ubuntu:22.04
+ARG BASE_IMAGE=ubuntu:22.04
+FROM ${BASE_IMAGE} AS build
 
 # Non-interactive: do not set up timezone settings.
+ARG GCC_APT="gcc-multilib"
 RUN apt-get update \
  && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
         asciidoctor \
@@ -12,7 +14,7 @@ RUN apt-get update \
         docbook-xml \
         docbook-xsl \
         elfutils \
-        gcc-multilib \
+        ${GCC_APT} \
         gcc-12 \
         g++-12 \
         libhiredis-dev \

@@ -1,5 +1,7 @@
-FROM debian:11
+ARG BASE_IMAGE=debian:11
+FROM ${BASE_IMAGE} AS build
 
+ARG GCC_APT="gcc-multilib"
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         bash \
@@ -8,7 +10,7 @@ RUN apt-get update \
         clang \
         cmake \
         elfutils \
-        gcc-multilib \
+        ${GCC_APT} \
         libhiredis-dev \
         libzstd-dev \
         python3 \
