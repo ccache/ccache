@@ -608,6 +608,18 @@ process_option_arg(const Context& ctx,
       state.input_files.emplace_back(arg.substr(3));
       return Statistic::none;
     }
+
+    if (arg == "-TC") {
+      args_info.actual_language = "c";
+      state.common_args.push_back(args[i]);
+      return Statistic::none;
+    }
+
+    if (arg == "-TP") {
+      args_info.actual_language = "c++";
+      state.common_args.push_back(args[i]);
+      return Statistic::none;
+    }
   }
 
   // when using nvcc with separable compilation, -dc implies -c
@@ -1439,7 +1451,7 @@ process_args(Context& ctx)
       return tl::unexpected(Statistic::unsupported_source_language);
     }
     args_info.actual_language = state.explicit_language;
-  } else {
+  } else if (args_info.actual_language.empty()) {
     args_info.actual_language =
       language_for_file(args_info.input_file, config.compiler_type());
   }
