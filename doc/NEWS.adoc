@@ -249,7 +249,7 @@ Release date: 2023-12-30
   [small]#_[contributed by Joel Rosdahl]_#
 
 - MSVC options `/Fd`, `/FS` and `/MP` are no longer included in the input hash. +
-  [small]#_[contributed by Huang Qin Jing]_#
+  [small]#_[contributed by Huang Qin Jin]_#
 
 - Made ccache terminate an ongoing compiler subprocess when terminated on all
   platforms, not only on Unix. +

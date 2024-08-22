@@ -57,7 +57,7 @@ Ccache is a collective work with contributions from many people, including:
 * Havard Graff
 * Holger Hoffstätte
 * Hongli Lai
-* Huang Qin Jing
+* Huang Qin Jin
 * Igor Pylypiv
 * Ivan Vaigult
 * Ivan Volnov
