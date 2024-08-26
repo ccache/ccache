@@ -174,4 +174,53 @@ strip_ansi_csi_seqs(std::string_view string)
   return result;
 }
 
+std::size_t
+get_diagnostics_path_length(std::string_view line)
+{
+  std::size_t path_end = 0;
+
+#ifdef _WIN32
+  // Check if the path starts with a drive letter.
+  if (line.size() >= 3 && line[1] == ':' && (line[2] == '\\' || line[2] == '/')
+      && ((line[0] >= 'A' && line[0] <= 'Z')
+          || (line[0] >= 'a' && line[0] <= 'z'))) {
+    path_end = line.find(':', 3);
+    if (path_end == std::string_view::npos) {
+      // Treat the dirve letter as "path".
+      path_end = 1;
+    }
+  } else {
+    path_end = line.find(':');
+  }
+#else
+  path_end = line.find(':');
+#endif
+
+  if (path_end == std::string_view::npos || path_end == 0) {
+    return 0;
+  }
+
+  line = line.substr(0, path_end);
+  // There could be an extra space before ':'.
+  // https://developercommunity.visualstudio.com/t/10729549
+  if (line.back() == ' ') {
+    line.remove_suffix(1);
+    path_end -= 1;
+  }
+
+  // MSVC: Strip "(line[,column])" component.
+  if (!line.empty() && line.back() == ')') {
+    do {
+      line.remove_suffix(1);
+    } while (!line.empty() && line.back() != '('
+             && (std::isdigit(line.back()) || line.back() == ','));
+
+    if (!line.empty() && line.back() == '(') {
+      path_end = line.size() - 1;
+    }
+  }
+
+  return path_end;
+}
+
 } // namespace core

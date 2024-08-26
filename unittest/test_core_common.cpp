@@ -83,4 +83,21 @@ TEST_CASE("core::strip_ansi_csi_seqs")
   CHECK(core::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
 }
 
+TEST_CASE("core::get_diagnostics_path_length")
+{
+  CHECK(core::get_diagnostics_path_length("a:1:") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1):") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1) :") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1,2):") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1,2) :") == 1);
+
+#ifdef _WIN32
+  CHECK(core::get_diagnostics_path_length("C:\\a:1:") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1):") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1) :") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1,2):") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1,2) :") == 4);
+#endif
+}
+
 TEST_SUITE_END();

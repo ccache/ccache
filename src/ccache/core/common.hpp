@@ -50,4 +50,10 @@ void send_to_console(const Context& ctx, std::string_view text, int fd);
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(std::string_view string);
 
+// Get the length of paths in compiler diagnostics messages in following forms:
+// 1. <path>:
+// 2. <path>(line[,column]):    // MSVC
+// 3. <path>(line[,column]) :   // MSVC
+std::size_t get_diagnostics_path_length(std::string_view line);
+
 } // namespace core
