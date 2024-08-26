@@ -494,6 +494,7 @@ TEST_CASE("util::replace_all")
   CHECK(util::replace_all("xabc", "abc", "defdef") == "xdefdef");
   CHECK(util::replace_all("abcx", "abc", "defdef") == "defdefx");
   CHECK(util::replace_all("xabcyabcz", "abc", "defdef") == "xdefdefydefdefz");
+  CHECK(util::replace_all(std::string_view("xaxbc", 4), "x", "y") == "yayb");
 }
 
 TEST_CASE("util::replace_first")
