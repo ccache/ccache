@@ -119,13 +119,11 @@ HttpStorageBackend::HttpStorageBackend(
     m_http_client.set_basic_auth(std::string(user), std::string(*password));
   }
 
-  m_http_client.set_default_headers({
-    {"User-Agent", FMT("ccache/{}", CCACHE_VERSION)},
-  });
-  m_http_client.set_keep_alive(true);
-
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
+
+  httplib::Headers default_headers;
+  default_headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
 
   for (const auto& attr : attributes) {
     if (attr.key == "bearer-token") {
@@ -146,6 +144,13 @@ HttpStorageBackend::HttpStorageBackend(
       }
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
+    } else if (attr.key == "header") {
+      const auto [key, value] = util::split_once(attr.value, '=');
+      if (value) {
+        default_headers.emplace(std::string(key), std::string(*value));
+      } else {
+        LOG("Incomplete header specification: {}", attr.value);
+      }
     } else if (!is_framework_attribute(attr.key)) {
       LOG("Unknown attribute: {}", attr.key);
     }
@@ -154,6 +159,8 @@ HttpStorageBackend::HttpStorageBackend(
   m_http_client.set_connection_timeout(connect_timeout);
   m_http_client.set_read_timeout(operation_timeout);
   m_http_client.set_write_timeout(operation_timeout);
+  m_http_client.set_keep_alive(true);
+  m_http_client.set_default_headers(default_headers);
 }
 
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
