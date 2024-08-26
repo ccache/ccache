@@ -110,8 +110,8 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
       result.append(csi_seq.data(), csi_seq.length());
       line = line.substr(csi_seq.length());
     }
-    size_t path_end = line.find(':');
-    if (path_end == std::string_view::npos) {
+    size_t path_end = get_diagnostics_path_length(line);
+    if (path_end == 0) {
       result.append(line.data(), line.length());
     } else {
       fs::path path(line.substr(0, path_end));

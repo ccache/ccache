@@ -33,11 +33,14 @@ void ensure_dir_exists(const std::filesystem::path& dir);
 std::filesystem::path make_relative_path(const Context& ctx,
                                          const std::filesystem::path& path);
 
-// Rewrite path to absolute path in `text` in the following two cases, where X
+// Rewrite path to absolute path in `text` in the following cases, where X
 // may be optional ANSI CSI sequences:
 //
 //     X<path>[:1:2]X: ...
 //     In file included from X<path>[:1:2]X:
+//     X<path>(line[,column])[ ]: ...
+//
+// See get_diagnostics_path_length().
 std::string rewrite_stderr_to_absolute_paths(std::string_view text);
 
 // Send `text` to file descriptor `fd` (typically stdout or stderr, which
