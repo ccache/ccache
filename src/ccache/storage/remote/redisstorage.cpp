@@ -32,7 +32,7 @@
 #  include <sys/utime.h> // for timeval
 #endif
 
-// Ignore "ISO C++ forbids flexible array member ‘buf’" warning from -Wpedantic.
+// Ignore "ISO C++ forbids flexible array member 'buf'" warning from -Wpedantic.
 #ifdef __GNUC__
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wpedantic"
