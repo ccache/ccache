@@ -70,6 +70,7 @@ const struct
   {".tcc", "c++-header"},
   {".TCC", "c++-header"},
   {".cu", "cu"}, // Special case in language_for_file: "cuda" for Clang
+  {".tops", "tops"}, // topscc
   {".hip", "hip"},
   {nullptr, nullptr},
 };
@@ -87,6 +88,7 @@ const struct
   {"c++-cpp-output", "c++-cpp-output"},
   {"c++-header", "c++-cpp-output"},
   {"cu", "cpp-output"},   // NVCC
+  {"tops", "tops"},   // topscc
   {"cuda", "cpp-output"}, // Clang
   {"hip", "cpp-output"},
   {"objective-c", "objective-c-cpp-output"},
@@ -111,6 +113,10 @@ language_for_file(const std::string& fname, CompilerType compiler_type)
   if (ext == ".cu" && compiler_type == CompilerType::clang) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";
+  }
+  if (ext == ".tops" && compiler_type == CompilerType::clang) {
+    // Special case: Clang maps .tops to tops.
+    return "tops";
   }
   for (size_t i = 0; k_ext_lang_table[i].extension; ++i) {
     if (k_ext_lang_table[i].extension == ext) {
