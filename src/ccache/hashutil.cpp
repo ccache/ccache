@@ -453,7 +453,6 @@ hash_command_output(Hash& hash,
   posix_spawn_file_actions_t fa;
 
   CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
-  CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
   CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, pipefd[0]);
   CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, 0);
   CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, pipefd[1], 1);
