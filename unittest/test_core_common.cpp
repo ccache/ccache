@@ -54,7 +54,16 @@ TEST_CASE("core::rewrite_stderr_to_absolute_paths")
 
   std::string input =
     "a:1:2\n"
+    "a(3):\n"
+    "a(3) :\n"
+    "a(3,4):\n"
+    "a(3,4) :\n"
+    "existing\n"
     "existing:3:4\n"
+    "existing(3):\n"
+    "existing(3) :\n"
+    "existing(3,4):\n"
+    "existing(3,4) :\n"
     "c:5:6\n"
     "\x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
     "\x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
@@ -62,7 +71,16 @@ TEST_CASE("core::rewrite_stderr_to_absolute_paths")
     "In file included from \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n";
   std::string expected = FMT(
     "a:1:2\n"
+    "a(3):\n"
+    "a(3) :\n"
+    "a(3,4):\n"
+    "a(3,4) :\n"
+    "existing\n"
     "{0}:3:4\n"
+    "{0}(3):\n"
+    "{0}(3) :\n"
+    "{0}(3,4):\n"
+    "{0}(3,4) :\n"
     "c:5:6\n"
     "\x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
     "\x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
@@ -81,6 +99,23 @@ TEST_CASE("core::strip_ansi_csi_seqs")
     " \x1B[1;32mbold green\x1B[m.\n";
 
   CHECK(core::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
+}
+
+TEST_CASE("core::get_diagnostics_path_length")
+{
+  CHECK(core::get_diagnostics_path_length("a:1:") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1):") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1) :") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1,2):") == 1);
+  CHECK(core::get_diagnostics_path_length("a(1,2) :") == 1);
+
+#ifdef _WIN32
+  CHECK(core::get_diagnostics_path_length("C:\\a:1:") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1):") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1) :") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1,2):") == 4);
+  CHECK(core::get_diagnostics_path_length("C:\\a(1,2) :") == 4);
+#endif
 }
 
 TEST_SUITE_END();
