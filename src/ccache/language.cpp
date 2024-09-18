@@ -88,7 +88,7 @@ const struct
   {"c++-cpp-output", "c++-cpp-output"},
   {"c++-header", "c++-cpp-output"},
   {"cu", "cpp-output"},   // NVCC
-  {"tops", "tops"},   // topscc
+  {"tops", "cpp-output"},   // topscc
   {"cuda", "cpp-output"}, // Clang
   {"hip", "cpp-output"},
   {"objective-c", "objective-c-cpp-output"},
