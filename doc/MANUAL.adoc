@@ -439,11 +439,11 @@ option key.
 *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
 
     This option specifies whether ccache should rewrite relative paths in the
-    compiler's standard error output to absolute paths. This can be useful if
-    you use <<config_base_dir,*base_dir*>> with a build system (e.g. CMake with
-    the "Unix Makefiles" generator) that executes the compiler in a different
-    working directory, which makes relative paths in compiler errors or
-    warnings incorrect. The default is false.
+    compiler's textual output (standard error and standard output) to absolute
+    paths. This can be useful if you use <<config_base_dir,*base_dir*>> with a
+    build system (e.g. CMake with the "Unix Makefiles" generator) that executes
+    the compiler in a different working directory, which makes relative paths in
+    compiler errors or warnings incorrect. The default is false.
 
 [#config_base_dir]
 *base_dir* (*CCACHE_BASEDIR*)::
