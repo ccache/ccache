@@ -119,6 +119,8 @@ HttpStorageBackend::HttpStorageBackend(
     m_http_client.set_basic_auth(std::string(user), std::string(*password));
   }
 
+  m_http_client.set_keep_alive(true);
+
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
 
@@ -159,7 +161,6 @@ HttpStorageBackend::HttpStorageBackend(
   m_http_client.set_connection_timeout(connect_timeout);
   m_http_client.set_read_timeout(operation_timeout);
   m_http_client.set_write_timeout(operation_timeout);
-  m_http_client.set_keep_alive(true);
   m_http_client.set_default_headers(default_headers);
 }
 
