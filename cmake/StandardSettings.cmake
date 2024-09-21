@@ -63,6 +63,7 @@ elseif(MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(standard_settings INTERFACE
       /Zc:__cplusplus
       $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.25>:/Zc:preprocessor>
+      /utf-8
   )
 endif()
 
