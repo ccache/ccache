@@ -261,7 +261,8 @@ init_hash_debug(Context& ctx,
 }
 
 #ifndef _WIN32
-std::string
+
+static fs::path
 follow_symlinks(const fs::path& path)
 {
   // Follow symlinks to the real compiler to learn its name. We're not using
@@ -279,8 +280,33 @@ follow_symlinks(const fs::path& path)
       p = p.parent_path() / *symlink_target;
     }
   }
+  if (p != path) {
+    LOG("Followed symlinks from {} to {} when guessing compiler type", path, p);
+  }
   return p;
 }
+
+static fs::path
+probe_generic_compiler(const fs::path& path)
+{
+  // Detect whether a generically named compiler (e.g. /usr/bin/cc) is a hard
+  // link to a compiler with a more specific name.
+  std::string name = util::pstr(path.filename()).str();
+  if (name == "cc" || name == "c++") {
+    static const char* candidate_names[] = {"gcc", "g++", "clang", "clang++"};
+    for (const char* candidate_name : candidate_names) {
+      fs::path candidate = path.parent_path() / candidate_name;
+      if (fs::equivalent(candidate, path)) {
+        LOG("Detected that {} is equivalent to {} when guessing compiler type",
+            path,
+            candidate);
+        return candidate;
+      }
+    }
+  }
+  return path;
+}
+
 #endif
 
 static CompilerType
@@ -314,7 +340,7 @@ guess_compiler(const fs::path& path)
   return type;
 #else
   if (type == CompilerType::other) {
-    return do_guess_compiler(follow_symlinks(path));
+    return do_guess_compiler(probe_generic_compiler(follow_symlinks(path)));
   } else {
     return type;
   }
