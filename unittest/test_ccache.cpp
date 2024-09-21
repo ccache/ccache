@@ -213,6 +213,16 @@ TEST_CASE("guess_compiler")
 
     CHECK(guess_compiler(clang_cl) == CompilerType::clang_cl);
   }
+
+  SUBCASE("Probe hardlink for actual compiler")
+  {
+    const auto cwd = *fs::current_path();
+    util::write_file(cwd / "gcc", "");
+    const auto cc = cwd / "cc";
+    CHECK(fs::create_hard_link("gcc", cc));
+
+    CHECK(guess_compiler(cc) == CompilerType::gcc);
+  }
 #endif
 }
 
