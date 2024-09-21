@@ -1060,7 +1060,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
       }
-      // MSVC /FC option causes the paths in diagnostics messages become
+      // The MSVC /FC option causes paths in diagnostics messages to become
       // absolute. Those within basedir need to be changed into relative paths.
       else if (std::size_t path_end = 0;
                ctx.config.compiler_type() == CompilerType::msvc
@@ -1068,7 +1068,6 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
                && (path_end = core::get_diagnostics_path_length(line)) != 0) {
         std::string_view abs_path = line.substr(0, path_end);
         fs::path rel_path = core::make_relative_path(ctx, abs_path);
-        // Use replace_all, e.g. https://github.com/mstorsjo/msvc-wine/pull/98.
         std::string line_with_rel =
           util::replace_all(line, abs_path, util::pstr(rel_path).str());
         new_stdout_data.insert(
