@@ -1613,10 +1613,39 @@ hash_common_info(const Context& ctx,
   if (ctx.args_info.profile_arcs) {
     // When using -fprofile-arcs (including implicitly via --coverage) the
     // object file contains a .gcda path based on the absolute object file path.
-    LOG_RAW("Hashing absolute object filename due to -fprofile-arcs");
-    hash.hash_delimiter("Absolute object file path");
-    // -fprofile-arcs stores "apparent absolute path" for some reason.
-    hash.hash(ctx.apparent_cwd / ctx.args_info.output_obj);
+    // This absolute path can be trimmed using the -fprofile-prefix-path=path
+    // option.
+    fs::path apparent_absolute_path =
+      ctx.apparent_cwd / ctx.args_info.output_obj;
+    if (ctx.args_info.profile_prefix_path.empty()) {
+      LOG_RAW("Hashing absolute object filename due to -fprofile-arcs");
+      hash.hash_delimiter("Absolute object file path");
+      // -fprofile-arcs stores "apparent absolute path" for .gcda file
+      // names/paths.
+      hash.hash(apparent_absolute_path);
+    } else {
+      if (util::path_starts_with(apparent_absolute_path,
+                                 ctx.args_info.profile_prefix_path)) {
+        LOG_RAW(
+          "Hashing trimmed absolute object filename due to -fprofile-arcs and "
+          "-fprofile-prefix-path=path");
+        std::string trimmed_absolute_path = apparent_absolute_path.string();
+        const std::string profile_prefix_path =
+          util::pstr(ctx.args_info.profile_prefix_path).str();
+        // Remove ctx.args_info.profile_prefix_path including the last path
+        // delimiter from the beginning of apparent_absolute_path
+        trimmed_absolute_path.erase(0, profile_prefix_path.size() + 1);
+        hash.hash_delimiter("Trimmed absolute object file path");
+        hash.hash(trimmed_absolute_path);
+      } else {
+        LOG_RAW(
+          "Hashing absolute object filename due to -fprofile-arcs and "
+          "-fprofile-prefix-path=path not being a prefix to the absolute "
+          "filename.");
+        hash.hash_delimiter("Absolute object file path");
+        hash.hash(apparent_absolute_path);
+      }
+    }
   }
 
   if (ctx.args_info.generating_coverage
@@ -1778,6 +1807,13 @@ hash_argument(const Context& ctx,
   if (util::starts_with(args[i], "-fmacro-prefix-map=")) {
     hash.hash_delimiter("arg");
     hash.hash("-fmacro-prefix-map=");
+    return {};
+  }
+  // -fprofile-prefix-path can also be used to reuse ccache results
+  // across different directories
+  if (util::starts_with(args[i], "-fprofile-prefix-path=")) {
+    hash.hash_delimiter("arg");
+    hash.hash("-fprofile-prefix-path=");
     return {};
   }
 

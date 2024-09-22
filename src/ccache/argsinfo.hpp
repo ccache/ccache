@@ -131,6 +131,11 @@ struct ArgsInfo
   // Name of the custom profile directory or file.
   std::filesystem::path profile_path;
 
+  // Path to the root of the source tree during a profile build.
+  // This path will be stripped from the beginning of the mangled absolute paths
+  // in the gcda file name
+  std::filesystem::path profile_prefix_path;
+
   // Profile generation / usage information.
   bool profile_use = false;
   bool profile_generate = false;

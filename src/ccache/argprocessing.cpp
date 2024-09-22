@@ -254,6 +254,13 @@ process_profiling_option(const Context& ctx,
     return true;
   }
 
+  if (util::starts_with(arg, "-fprofile-prefix-path=")) {
+    std::filesystem::path profile_prefix_path = arg.substr(arg.find('=') + 1);
+    args_info.profile_prefix_path = profile_prefix_path;
+    LOG("Set profile prefix path to {}", args_info.profile_prefix_path);
+    return true;
+  }
+
   std::filesystem::path new_profile_path;
   bool new_profile_use = false;
 
