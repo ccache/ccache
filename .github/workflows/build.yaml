@@ -568,7 +568,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install python3-pip
-          pip3 install codespell==2.2.6 typos==1.16.26
+          pip3 install codespell==2.3.0 typos==1.24.6
 
       - name: Run codespell
         run: codespell -q 7 -S ".git,build*,./misc/typos.toml,./src/third_party/*" -I misc/codespell-allowlist.txt
