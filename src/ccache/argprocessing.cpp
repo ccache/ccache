@@ -79,7 +79,7 @@ struct ArgumentProcessingState
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
   bool found_Yc = false;
-  std::filesystem::path found_Fp_file;
+  fs::path found_Fp_file;
   bool found_valid_Fp = false;
   bool found_syntax_only = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
@@ -157,7 +157,7 @@ detect_pch(const std::string& option,
   // If the option is an option for Clang (is_cc1_option), don't accept
   // anything just because it has a corresponding precompiled header,
   // because Clang doesn't behave that way either.
-  std::filesystem::path pch_file;
+  fs::path pch_file;
   if (option == "-Yc") {
     state.found_Yc = true;
     args_info.generating_pch = true;
@@ -236,7 +236,7 @@ detect_pch(const std::string& option,
 bool
 process_profiling_option(const Context& ctx,
                          ArgsInfo& args_info,
-                         const std::string& arg)
+                         std::string_view arg)
 {
   static const std::vector<std::string> known_simple_options = {
     "-fprofile-correction",
@@ -255,13 +255,12 @@ process_profiling_option(const Context& ctx,
   }
 
   if (util::starts_with(arg, "-fprofile-prefix-path=")) {
-    std::filesystem::path profile_prefix_path = arg.substr(arg.find('=') + 1);
-    args_info.profile_prefix_path = profile_prefix_path;
+    args_info.profile_prefix_path = arg.substr(arg.find('=') + 1);
     LOG("Set profile prefix path to {}", args_info.profile_prefix_path);
     return true;
   }
 
-  std::filesystem::path new_profile_path;
+  fs::path new_profile_path;
   bool new_profile_use = false;
 
   if (util::starts_with(arg, "-fprofile-dir=")) {

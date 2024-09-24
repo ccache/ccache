@@ -90,8 +90,7 @@ Context::unlink_pending_tmp_files_signal_safe()
 {
   for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
        ++it) {
-    // Don't call util::remove or std::filesystem::remove since they are not
-    // signal safe.
+    // Don't call util::remove or fs::remove since they are not signal safe.
     unlink(util::pstr(*it).c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.
