@@ -59,8 +59,11 @@
 DLLIMPORT extern char** environ;
 #endif
 
-// Make room for binary patching at install time.
-const char k_sysconfdir[4096 + 1] = SYSCONFDIR;
+// Make room for binary patching at install time. The extra pointer to a buffer
+// is needed to prevent the compiler from assuming too much about the string,
+// such as its actual length.
+const char k_sysconfdir_array[4096 + 1] = SYSCONFDIR;
+const char* k_sysconfdir = k_sysconfdir_array;
 
 namespace fs = util::filesystem;
 
