@@ -25,14 +25,11 @@
 #include <string_view>
 #include <vector>
 
+enum class AtFileFormat;
+
 class Args
 {
 public:
-  enum class AtFileFormat {
-    gcc,  // '\'' and '"' quote, '\\' escapes any character
-    msvc, // '"' quotes, '\\' escapes only '"' and '\\'
-  };
-
   Args() = default;
   Args(const Args& other) = default;
   Args(Args&& other) noexcept;
@@ -41,8 +38,7 @@ public:
   static Args from_string(std::string_view command);
 
   static std::optional<Args>
-  from_atfile(const std::string& filename,
-              AtFileFormat format = AtFileFormat::gcc);
+  from_atfile(const std::string& filename, AtFileFormat format);
 
   Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;

@@ -308,6 +308,51 @@ TEST_CASE("Config::update_from_environment")
   CHECK(!config.compression());
 }
 
+TEST_CASE("Config:atfile_format")
+{
+  Config config;
+
+  SUBCASE("from config gcc")
+  {
+    util::write_file("ccache.conf", "atfile_format = gcc");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::gcc);
+  }
+
+  SUBCASE("from config msvc")
+  {
+    util::write_file("ccache.conf", "atfile_format = msvc");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::msvc);
+  }
+
+  SUBCASE("from config msvc with clang compiler")
+  {
+    util::write_file("ccache.conf", "atfile_format = msvc\ncompiler_type = clang");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::msvc);
+  }
+
+  SUBCASE("guess from compiler gcc")
+  {
+    util::write_file("ccache.conf", "compiler_type = clang");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::gcc);
+  }
+
+  SUBCASE("guess from compiler msvc")
+  {
+    util::write_file("ccache.conf", "compiler_type = msvc");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::msvc);
+  }
+}
+
 TEST_CASE("Config::set_value_in_file")
 {
   TestContext test_context;
@@ -389,6 +434,7 @@ TEST_CASE("Config::visit_items")
   util::write_file(
     "test.conf",
     "absolute_paths_in_stderr = true\n"
+    "atfile_format = gcc\n"
 #ifndef _WIN32
     "base_dir = /bd\n"
 #else
@@ -451,6 +497,7 @@ TEST_CASE("Config::visit_items")
 
   std::vector<std::string> expected = {
     "(test.conf) absolute_paths_in_stderr = true",
+    "(test.conf) atfile_format = gcc",
 #ifndef _WIN32
     "(test.conf) base_dir = /bd",
 #else

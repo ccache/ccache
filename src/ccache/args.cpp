@@ -18,7 +18,9 @@
 
 #include "args.hpp"
 
+#include <ccache/config.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/util/assertions.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
@@ -48,6 +50,8 @@ Args::from_string(std::string_view command)
 std::optional<Args>
 Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
+  ASSERT(format != AtFileFormat::guess_from_compiler);
+
   const auto argtext = util::read_file<std::string>(filename);
   if (!argtext) {
     LOG("Failed to read atfile {}: {}", filename, argtext.error());
