@@ -24,20 +24,21 @@ ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^"system.hpp"$'
-    Priority: 1
-  - Regex: '^["<]third_party/'
-    Priority: 4
-  # System headers:
-  - Regex: '\.h>$'
-    Priority: 5
-  # C++ headers:
-  - Regex: '^<[^.]+>$'
-    Priority: 6
+  # Relative headers
   - Regex: '^"'
+    Priority: 1
+  # Ccache headers:
+  - Regex: '^<ccache/'
     Priority: 2
-  - Regex: '.*'
+  # Dependency headers:
+  - Regex: '^<(blake3\.h|cxxurl/url\.hpp|doctest/.*|fmt/.*|hiredis/.*|httplib\.h|nonstd/.*|tl/expected\.hpp|xx(hash|h_x86dispatch)\.h|zstd\.h)>$'
     Priority: 3
+  # System headers:
+  - Regex: '\.h.*>$'
+    Priority: 4
+  # C++ headers:
+  - Regex: '^<'
+    Priority: 5
 IndentPPDirectives: AfterHash
 KeepEmptyLinesAtTheStartOfBlocks: false
 PointerAlignment: Left

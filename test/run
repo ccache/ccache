@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2023 Joel Rosdahl and other contributors
+# Copyright (C) 2009-2024 Joel Rosdahl and other contributors
 #
 # See doc/AUTHORS.adoc for a complete list of contributors.
 #
@@ -439,7 +439,10 @@ run_suite() {
         fi
     fi
 
-    printf "Running test suite %s" "$(bold $suite_name)"
+    printf "Running test suite $(bold $suite_name)"
+    if $verbose; then
+        echo
+    fi
     SUITE_$suite_name
     echo
 
@@ -464,7 +467,7 @@ TEST() {
     reset_environment
 
     if $verbose; then
-        printf "\n  %s" "$CURRENT_TEST"
+        echo "  $CURRENT_TEST"
     else
         printf .
     fi

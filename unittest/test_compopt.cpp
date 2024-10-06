@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,9 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/compopt.hpp"
+#include <ccache/compopt.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest/doctest.h>
+
+#include <iostream> // for doctest stringification of std::string_view
 
 bool compopt_verify_sortedness_and_flags();
 
@@ -57,12 +59,12 @@ TEST_CASE("too_hard")
   CHECK(!compopt_too_hard("-fprofile-arcs"));
   CHECK(!compopt_too_hard("-ftest-coverage"));
   CHECK(!compopt_too_hard("-fstack-usage"));
+  CHECK(!compopt_too_hard("-fcallgraph-info"));
   CHECK(!compopt_too_hard("-doesntexist"));
 }
 
 TEST_CASE("too_hard_for_direct_mode")
 {
-  CHECK(compopt_too_hard_for_direct_mode("-Xpreprocessor"));
   CHECK(!compopt_too_hard_for_direct_mode("-nostdinc"));
 }
 
@@ -90,6 +92,12 @@ TEST_CASE("prefix_affects_compiler_output")
   CHECK(compopt_prefix_affects_compiler_output("-Wa,"));
   CHECK(compopt_prefix_affects_compiler_output("-Wa,something"));
   CHECK(!compopt_prefix_affects_compiler_output("-Wa"));
+}
+
+TEST_CASE("prefix_takes_path")
+{
+  CHECK(compopt_prefix_takes_path("-Dfoo") == std::nullopt);
+  CHECK(*compopt_prefix_takes_path("-Ifoo") == "foo");
 }
 
 TEST_SUITE_END();

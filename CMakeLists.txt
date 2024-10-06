@@ -66,6 +66,7 @@ if(ENABLE_IPO AND NOT MINGW)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
+include(Utils)
 include(CIBuildType)
 include(DefaultBuildType)
 include(UseFastestLinker)
@@ -78,46 +79,14 @@ include(EnableCcache)
 # Configuration
 #
 
+option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
+option(REDISS_STORAGE_BACKEND "Enable Redis SSL remote storage" OFF)
+option(ENABLE_TESTING "Enable tests" ON)
+
 include(InstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
-
-#
-# Third party
-#
-
-set(ZSTD_FROM_INTERNET AUTO CACHE STRING "Download and use libzstd from the Internet")
-set_property(CACHE ZSTD_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
-
-set(HIREDIS_FROM_INTERNET AUTO CACHE STRING "Download and use libhiredis from the Internet")
-set_property(CACHE HIREDIS_FROM_INTERNET PROPERTY STRINGS AUTO ON OFF)
-
-option(
-  OFFLINE "Do not download anything from the internet"
-  "$(FETCHCONTENT_FULLY_DISCONNECTED}"
-)
-if(OFFLINE)
-  set(FETCHCONTENT_FULLY_DISCONNECTED ON)
-  set(ZSTD_FROM_INTERNET OFF)
-  set(HIREDIS_FROM_INTERNET OFF)
-endif()
-
-find_package(zstd 1.1.2 MODULE REQUIRED)
-
-option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
-
-if(REDIS_STORAGE_BACKEND)
-  find_package(hiredis 0.13.3 MODULE REQUIRED)
-endif()
-
-option(REDISS_STORAGE_BACKEND "Enable Redis SSL remote storage" OFF)
-if(REDISS_STORAGE_BACKEND)
-  message(WARNING
-    "Linking against OpenSSL doubles ccache startup time. Distributions are "
-    "encouraged to provide two ccache binaries: one without any extra "
-    "backends and one with the all the desired backends enabled.")
-  find_package(hiredis 1.0.0 REQUIRED)
-endif()
+include(Dependencies)
 
 #
 # Special flags
@@ -126,17 +95,17 @@ endif()
 # doesn't get scanned.
 #
 include(CodeAnalysis)
-option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)
 
 #
 # Source code
 #
-add_subdirectory(src)
+add_subdirectory(src/third_party)
+add_subdirectory(src/ccache)
 
 #
 # ccache executable
 #
-add_executable(ccache src/main.cpp)
+add_executable(ccache src/ccache/main.cpp)
 target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_framework)
 
 #
@@ -160,16 +129,12 @@ include(CcachePackConfig)
 #
 # Tests
 #
-option(ENABLE_TESTING "Enable tests" ON)
 if(ENABLE_TESTING)
   enable_testing()
   add_subdirectory(unittest)
   add_subdirectory(test)
 
-  # Note: VERSION_GREATER_EQUAL requires CMake 3.17
-  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.17")
-    list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
-  endif()
+  list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 
   # Add "check" target which compiles and runs tests.
   set(
@@ -201,3 +166,17 @@ add_custom_target(
   COMMENT "Checking code formatting"
   USES_TERMINAL
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+#
+# Configuration summary
+#
+
+message(STATUS)
+message(STATUS "Configuration summary:")
+message(STATUS "  Storage backends:")
+message(STATUS "    file  ON")
+message(STATUS "    http  ON")
+message(STATUS "    redis ${REDIS_STORAGE_BACKEND}")
+message(STATUS "  Dependencies:")
+print_dependency_summary("    ")
+message(STATUS)

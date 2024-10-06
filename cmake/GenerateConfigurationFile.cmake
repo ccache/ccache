@@ -1,12 +1,15 @@
 include(CheckIncludeFile)
 set(include_files
+    cpuid.h
     dirent.h
     linux/fs.h
     pwd.h
+    spawn.h
     sys/clonefile.h
     sys/file.h
     sys/ioctl.h
     sys/mman.h
+    sys/sendfile.h
     sys/utime.h
     sys/wait.h
     syslog.h
@@ -69,8 +72,8 @@ include(CheckCXXSourceCompiles)
 check_cxx_source_compiles(
   [=[
     #include <immintrin.h>
-    #ifndef _MSC_VER // MSVC does not need explicit enabling of AVX2.
-    void func() __attribute__((target("avx2")));
+    #ifndef _MSC_VER
+    __attribute__((target("avx2")))
     #endif
     void func() { _mm256_abs_epi8(_mm256_set1_epi32(42)); }
     int main()
@@ -89,12 +92,12 @@ if(CMAKE_SYSTEM MATCHES "Darwin")
   set(_DARWIN_C_SOURCE 1)
 endif()
 
-# alias
-set(MTR_ENABLED "${ENABLE_TRACING}")
-
 if(HAVE_SYS_MMAN_H
    AND (HAVE_STRUCT_STAT_ST_MTIM OR HAVE_STRUCT_STAT_ST_MTIMESPEC)
    AND (HAVE_LINUX_FS_H OR HAVE_STRUCT_STATFS_F_FSTYPENAME))
+  set(INODE_CACHE_SUPPORTED 1)
+endif()
+if(WIN32)
   set(INODE_CACHE_SUPPORTED 1)
 endif()
 

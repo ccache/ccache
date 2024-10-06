@@ -631,14 +631,6 @@ fi
     # -------------------------------------------------------------------------
     TEST "Too new PCH file"
 
-    # If the precompiled header is too new we shouldn't cache the result at all
-    # since:
-    #
-    # - the precompiled header content must be included in the hash, but
-    # - we don't trust the precompiled header content so we can't hash it
-    #   ourselves, and
-    # - the preprocessed output doesn't contain the preprocessed header content.
-
     touch lib.h
     touch main.c
 
@@ -646,10 +638,7 @@ fi
     touch -d "@$(($(date +%s) + 60))" lib.h.gch # 1 minute in the future
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines,time_macros" $CCACHE_COMPILE -include lib.h -c main.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 0
-    expect_stat could_not_use_precompiled_header 1
+    expect_stat modified_input_file 1
 }
 
 pch_suite_clang() {

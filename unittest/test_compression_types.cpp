@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,11 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Config.hpp"
+#include <ccache/config.hpp>
+#include <ccache/core/types.hpp>
 
-#include <core/types.hpp>
-
-#include "third_party/doctest.h"
+#include <doctest/doctest.h>
 
 TEST_SUITE_BEGIN("compression");
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,13 +16,20 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <Util.hpp>
-#include <util/fmtmacros.hpp>
-#include <util/path.hpp>
+#include "testutil.hpp"
 
-#include <third_party/doctest.h>
+#include <ccache/util/environment.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
+
+#include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
+
+namespace fs = util::filesystem;
+
+using TestUtil::TestContext;
 
 TEST_CASE("util::add_exe_suffix")
 {
@@ -30,6 +37,12 @@ TEST_CASE("util::add_exe_suffix")
   CHECK(util::add_exe_suffix("foo.bat") == "foo.bat");
   CHECK(util::add_exe_suffix("foo.exe") == "foo.exe");
   CHECK(util::add_exe_suffix("foo.sh") == "foo.sh");
+}
+
+TEST_CASE("util::add_extension")
+{
+  CHECK(util::add_extension("foo.x", "") == "foo.x");
+  CHECK(util::add_extension("foo.x", ".y") == "foo.x.y");
 }
 
 TEST_CASE("util::is_full_path")
@@ -56,9 +69,66 @@ TEST_CASE("util::is_dev_null_path")
 #endif
 }
 
+TEST_CASE("util::make_relative_path")
+{
+  using util::make_relative_path;
+
+  const TestContext test_context;
+
+  const std::string cwd = util::pstr(*fs::current_path());
+  const std::string actual_cwd = FMT("{}/d", cwd);
+#if defined(_WIN32) || defined(__CYGWIN__)
+  const std::string apparent_cwd = actual_cwd;
+#else
+  const std::string apparent_cwd = FMT("{}/s", cwd);
+#endif
+
+  REQUIRE(fs::create_directory("d"));
+#ifndef _WIN32
+  REQUIRE(fs::create_symlink("d", "s"));
+#endif
+  REQUIRE(fs::current_path("d"));
+  util::setenv("PWD", apparent_cwd);
+
+  SUBCASE("Path matches neither actual nor apparent CWD")
+  {
+#ifdef _WIN32
+    CHECK(make_relative_path("C:/a", "C:/b", "C:/x") == "C:/x");
+#else
+    CHECK(make_relative_path("/a", "/b", "/x") == "/x");
+#endif
+  }
+
+  SUBCASE("Match of actual CWD")
+  {
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "/x")
+          == "x");
+#ifdef _WIN32
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "\\x")
+          == "x");
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "\\\\x")
+          == "x");
+#endif
+  }
+
+#ifndef _WIN32
+  SUBCASE("Match of apparent CWD")
+  {
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, apparent_cwd + "/x")
+          == "x");
+  }
+
+  SUBCASE("Match if using resolved (using realpath(3)) path")
+  {
+    CHECK(make_relative_path(actual_cwd, actual_cwd, apparent_cwd + "/x")
+          == "x");
+  }
+#endif
+}
+
 TEST_CASE("util::path_starts_with")
 {
-  CHECK(!util::path_starts_with("", ""));
+  CHECK(util::path_starts_with("", ""));
   CHECK(!util::path_starts_with("", "/"));
   CHECK(util::path_starts_with("/foo/bar", "/foo"));
   CHECK(!util::path_starts_with("/batz/bar", "/foo"));
@@ -76,4 +146,10 @@ TEST_CASE("util::path_starts_with")
   CHECK(!util::path_starts_with("C:\\beh\\foo", "/foo"));
   CHECK(!util::path_starts_with("C:\\beh\\foo", "C:/foo"));
 #endif
+}
+
+TEST_CASE("util::with_extension")
+{
+  CHECK(util::with_extension("foo.x", "") == "foo");
+  CHECK(util::with_extension("foo.x", ".y") == "foo.y");
 }

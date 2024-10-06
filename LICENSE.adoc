@@ -35,7 +35,7 @@ The copyright for ccache as a whole is as follows:
 
 ----
 Copyright (C) 2002-2007 Andrew Tridgell
-Copyright (C) 2009-2023 Joel Rosdahl and other contributors
+Copyright (C) 2009-2024 Joel Rosdahl and other contributors
 ----
 
 
@@ -48,31 +48,9 @@ the GPL: that is, if separated from the ccache sources, they may be usable
 under less restrictive terms.
 
 
-=== src/third_party/base32hex.*
+=== src/third_party/blake3/blake3/*
 
-This base32hex implementation comes from
-<https://github.com/pmconrad/tinydnssec>.
-
-----
-(C) 2012 Peter Conrad <conrad@quisquis.de>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 3 as
-published by the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-----
-
-
-=== src/third_party/blake3/blake3_*
-
-This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.5.0 with the
+This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 1.5.1 with the
 following license:
 
 ----
@@ -409,15 +387,16 @@ express Statement of Purpose.
 ----
 
 
-=== src/third_party/doctest.h
+=== src/third_party/cpp-httplib/httplib.h
 
-This is the single header version of https://github.com/onqtam/doctest[doctest]
-2.4.10 with the following license:
+cpp-httplib - A C++11 cross-platform HTTP/HTTPS library. Copied from cpp-httplib
+v0.15.3 downloaded from https://github.com/yhirose/cpp-httplib[cpp-httplib]. The
+library has the following license:
 
 ----
 The MIT License (MIT)
 
-Copyright (c) 2016-2021 Viktor Kirilov
+Copyright (c) 2024 yhirose
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -439,9 +418,39 @@ SOFTWARE.
 ----
 
 
-=== src/third_party/fmt/*.h and src/third_party/format.cpp
+=== src/third_party/cxxurl/cxxurl/url.*
 
-This is a subset of https://fmt.dev[fmt] 10.1.1 with the following license:
+CxxUrl - A simple C++ URL class. Copied from CxxUrl v0.3 downloaded from
+<https://github.com/chmike/CxxUrl>. It has the following license text:
+
+----
+The MIT License (MIT)
+
+Copyright (c) 2015 Christophe Meessen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+----
+
+
+=== src/third_party/fmt/fmt/*.h and src/third_party/fmt/fmt/format.cc
+
+This is a subset of https://fmt.dev[fmt] 10.2.1 with the following license:
 
 ----
 Formatting library for C++
@@ -475,109 +484,10 @@ without including the above copyright and permission notices.
 ----
 
 
-=== src/third_party/getopt_long.*
-
-This implementation of `getopt_long()` was copied from
-https://www.postgresql.org[PostgreSQL] and has the following license text:
-
-----
-Portions Copyright (c) 1987, 1993, 1994
-The Regents of the University of California.  All rights reserved.
-
-Portions Copyright (c) 2003
-PostgreSQL Global Development Group
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-3. Neither the name of the University nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-SUCH DAMAGE.
-----
-
-
-=== src/third_party/httplib.*
-
-cpp-httplib - A C++11 cross-platform HTTP/HTTPS library. Copied from cpp-httplib
-v0.14. downloaded from https://github.com/yhirose/cpp-httplib[cpp-httplib]. The
-library has the following license:
-
-----
-The MIT License (MIT)
-
-Copyright (c) 2023 yhirose
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-----
-
-
-=== src/third_party/minitrace.*
-
-A library for producing JSON traces suitable for Chrome's built-in trace viewer
-(chrome://tracing). Downloaded from <https://github.com/hrydgard/minitrace>.
-
-----
-The MIT License (MIT)
-
-Copyright (c) 2014 Henrik Rydgård
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-----
-
-
-=== src/third_party/nonstd/span.hpp
+=== src/third_party/nonstd-span/nonstd/span.hpp
 
 This is the single header version of
-https://github.com/martinmoene/span-lite[expected-lite] 0.10.3 with the
+https://github.com/martinmoene/span-lite[span-lite] 0.11.0 with the
 following license:
 
 ----
@@ -609,7 +519,7 @@ DEALINGS IN THE SOFTWARE.
 ----
 
 
-=== src/third_party/tl/expected.hpp
+=== src/third_party/tl-expected/tl/expected.hpp
 
 This is https://github.com/TartanLlama/expected[TartanLlama expected] 1.1.0 with
 the following license:
@@ -739,37 +649,7 @@ express Statement of Purpose.
 ----
 
 
-=== src/third_party/url.*
-
-CxxUrl - A simple C++ URL class. Copied from CxxUrl v0.3 downloaded from
-<https://github.com/chmike/CxxUrl>. It has the following license text:
-
-----
-The MIT License (MIT)
-
-Copyright (c) 2015 Christophe Meessen
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-----
-
-
-=== src/third_party/win32/getopt.*
+=== src/third_party/win32-compat/win32/getopt.*
 
 This implementation of `getopt_long()` for Win32 was taken from
 https://www.codeproject.com/Articles/157001/Full-getopt-Port-for-Unicode-and-Multibyte-Microso
@@ -779,7 +659,7 @@ The full license text can be found in LGPL-3.0.txt and at
 https://www.gnu.org/licenses/lgpl-3.0.html.
 
 
-=== src/third_party/win32/mktemp.*
+=== src/third_party/win32-compat/win32/mktemp.*
 
 This implementation of `mkstemp()` for Win32 was adapted from
 <https://github.com/openbsd/src/blob/99b791d14c0f1858d87a0c33b55880fb9b00be66/lib/libc/stdio/mktemp.c>
@@ -803,7 +683,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ----
 
 
-=== src/third_party/win32/winerror_to_errno.h
+=== src/third_party/win32-compat/win32/winerror_to_errno.h
 
 The implementation of `winerror_to_errno()` was adapted from
 <https://github.com/python/cpython/blob/1a79785e3e8fea80bcf6a800b45a04e06c787480/PC/errmap.h>
@@ -857,40 +737,4 @@ products or services of Licensee, or any third party.
 8. By copying, installing or otherwise using Python, Licensee
 agrees to be bound by the terms and conditions of this License
 Agreement.
-----
-
-
-=== src/third_party/xxh*
-
-xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.1 downloaded
-from <https://github.com/Cyan4973/xxHash/releases>.
-
-----
-Copyright (c) 2012-2021 Yann Collet
-All rights reserved.
-
-BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-    * Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above
-copyright notice, this list of conditions and the following disclaimer
-in the documentation and/or other materials provided with the
-distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----

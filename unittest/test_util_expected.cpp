@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,10 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <util/expected.hpp>
+#include <ccache/util/expected.hpp>
 
-#include <third_party/doctest.h>
-#include <third_party/tl/expected.hpp>
+#include <doctest/doctest.h>
+#include <tl/expected.hpp>
 
 #include <iostream> // macOS bug: https://github.com/onqtam/doctest/issues/126
 #include <memory>

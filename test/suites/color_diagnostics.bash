@@ -79,6 +79,8 @@ color_diagnostics_generate_permutations() {
 }
 
 color_diagnostics_run_on_pty() {
+    # command uses bash syntax, make sure that script uses the bash shell to run
+    SHELL=$BASH \
     script --return --quiet --command "unset GCC_COLORS; CCACHE_DIR='$CCACHE_DIR' ${2:?}" /dev/null </dev/null >"${1:?}"
 
     # script returns early on some platforms (leaving a child process living for

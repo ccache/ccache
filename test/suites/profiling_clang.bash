@@ -131,4 +131,50 @@ SUITE_profiling_clang() {
     $CCACHE_COMPILE -fprofile-sample-use=sample.prof -c test.c
     expect_stat direct_cache_hit 3
     expect_stat cache_miss 3
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-update=single"
+
+    if $COMPILER -fprofile-update=single -fprofile-generate -c test.c 2>/dev/null; then
+
+        $CCACHE_COMPILE -fprofile-update=single -fprofile-generate -c test.c
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $COMPILER -fprofile-generate -fprofile-update=single test.o -o test
+
+        ./test
+
+        $CCACHE_COMPILE -fprofile-update=single -fprofile-generate -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -fprofile-use -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-update=atomic"
+
+    if $COMPILER -fprofile-update=atomic -fprofile-generate -c test.c 2>/dev/null; then
+
+        $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $COMPILER -fprofile-generate -fprofile-update=atomic test.o -o test
+
+        ./test
+
+        $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -fprofile-use -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    fi
 }

@@ -1,8 +1,242 @@
 = Ccache news
 
+== Ccache 4.10.2
+
+Release date: 2024-07-22
+
+
+=== Build improvements
+
+- Fixed detection of Fmt version 11 and newer. +
+  [small]#_[contributed by Holger Hoffstätte and Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Made the "`-fprofile-update=atomic`" test only run when that option is
+  supported by the compiler. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made the color diagnostics tests work when the user running the tests has a
+  non-POSIX login shell. +
+  [small]#_[contributed by Anders F Björklund]_#
+
+
+== Ccache 4.10.1
+
+Release date: 2024-06-30
+
+
+=== Bug fixes
+
+- Fixed prefix command lookup from `PATH`. +
+  [small]#_[contributed by Romain Geissler]_#
+
+
+=== Build improvements
+
+- Fixed detection and usage of system blake3. +
+  [small]#_[contributed by Carlo Cabrera]_#
+
+- Find CppHttplib named libhttplib.so as well. +
+  [small]#_[contributed by Sam James]_#
+
+- Removed Xcode assembly workaround for zstd. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Added bundled subset of Fmt again for convenience. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Removed no longer needed workaround when building downloaded Zstd. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Clarified that `--set`-config writes to the configuration file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.10
+
+Release date: 2024-05-29
+
+
+=== New features and improvements
+
+- Added support for GCC option `-fcallgraph-info`. +
+  [small]#_[contributed by Raihaan Shouhell]_#
+
+- Added support for GCC option `-fprofile-update`. +
+  [small]#_[contributed by Raihaan Shouhell]_#
+
+- Added support for GCC option `-fdump-ipa-clones`. +
+  [small]#_[contributed by Jiri Slaby]_#
+
+- Added support for the MSVC `/Yc` option (precompiled header). +
+  [small]#_[contributed by Clemens Wasser, Thomas Ferrand and Silver Zachara]_#
+
+- Added support for the MSVC `/Tc<path>` and `/Tp<path>` options (specifying
+  source code type). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added an experimental inode cache implementation for Windows. This speeds up
+  ccache a lot when many headers are included, both for cache hits and cache
+  misses.
++
+NOTE: This feature is currently disabled by default, but interested Windows
+users are encouraged to try it out by setting
+https://ccache.dev/manual/4.10.html#config_inode_cache[_inode_cache = true_].
++
+[small]#_[contributed by Thomas Ferrand]_#
+
+- Added knowledge of Xcode option `-ivfsstatcache`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for Apple Clang option `-Xpreprocessor -fopenmp` in direct mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added knowledge of Emscripten option `--em-config`. +
+  [small]#_[contributed by Byoungchan Lee]_#
+
+- Reduced the risk of false positive direct mode hits. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Clear direct mode manifest on recache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Optimized file reading on Windows. +
+  [small]#_[contributed by Clemens Wasser]_#
+
+- Optimized file copying performed when
+  https://ccache.dev/manual/4.10.html#config_hard_link[hard linking] or
+  https://ccache.dev/manual/4.9.html#config_file_clone[file cloning] is enabled. +
+  [small]#_[contributed by Raihaan Shouhell]_#
+
+- Use `posix_spawn(3)` for executing compiler check commands. +
+  [small]#_[contributed by Brendan Shanks]_#
+
+- The
+  https://ccache.dev/manual/4.10.html#config_prefix_command[_prefix_command_]
+  and
+  https://ccache.dev/manual/4.10.html#config_prefix_command_cpp[_prefix_command_cpp_]
+  configuration options now allow any prefix, not only programs that exist in
+  `PATH`. This means that _prefix_command_ now can be a program with arguments. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a new `incbin`
+  https://ccache.dev/manual/4.10.html#config_sloppiness[_sloppiness_] value for
+  ignoring presence of `.incbin` directives in the source code. +
+  [small]#_[contributed by Raihaan Shouhell]_#
+
+- Added a `--print-log-stats` option that prints a machine-parsable variant of
+  `--show-log-stats`. +
+  [small]#_[contributed Kaspar Schleiser]_#
+
+- Added a `--format` option for selecting JSON or tab format for `--print-stats`
+  and `--print-log-stats`. +
+  [small]#_[contributed Kaspar Schleiser]_#
+
+- Added a `--print-version` option for printing ccache version in
+  machine-parsable format. +
+  [small]#_[contributed by Silver Zachara]_#
+
+- The `--inspect` option now retains access time (atime) of the inspected file
+  if possible. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed reading of files larger than 2^31^ bytes on some systems where this was
+  a problem. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved handling of large files on 32-bit systems. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Nonexistent include files are allowed in preprocessor mode again, fixing
+  regression in ccache 4.9.1. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- The Clang `-fdiagnostics-color` option is now handled again, fixing regression
+  in ccache 4.6.2. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed assertion failure on Windows mapped network drives. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed handling of MSVC options `/Fp` and `/Yu`. +
+  [small]#_[contributed by Silver Zachara]_#
+
+- Fixed lock file implementation on MSYS2. +
+  [small]#_[contributed by an anonymous user]_#
+
+- The "`apparent real path`" of the object file is now added to the input hash
+  when using `-fprofile-arcs` to avoid false positive hits in some scenarios. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- When generating profiling information,
+  https://ccache.dev/manual/4.10.html#config_[_run_second_cpp_] is now forced to
+  true so that the coverage report won't refer to a temporary preprocessed file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Improved handling of ccache dependencies. A new `DEPS` CMake variable selects
+  how software library dependencies should be located or retrieved, replacing
+  the old `HIREDIS_FROM_INTERNET`, `ZSTD_FROM_INTERNET` and `OFFLINE` variables.
+  Options are `AUTO` (the default) for automatically downloading missing
+  dependencies, `DOWNLOAD` for always downloading and `LOCAL` for never
+  downloading. See
+  https://github.com/ccache/ccache/blob/v4.10/doc/INSTALL.md#software-library-dependencies[_Software library dependencies_] for details. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for using a local installation of BLAKE3, cpp-httplib,
+  nonstd-span and tl-expected instead of linking to bundled copies. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Removed bundled copies of doctest, fmt, getopt_long and xxhash. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Changed to use the Windows BLAKE3 implementation when building on MSYS2. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Improved documentation of "`gcno_cwd sloppiness`". +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.9.1
+
+Release date: 2024-02-05
+
+
+=== Bug fixes
+
+- Improved detection of bad remote storage URLs gracefully. This also fixes
+  crashes seen in ccache's own test suite. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made caching completely disabled when modification of a source or include file
+  is detected during ccache invocation. Previously this was only done for the
+  direct mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed an MSVC crash when using `/Zi` with many concurrent compilations. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a crash when `-arch` is the last compiler option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.9
 
 Release date: 2023-12-30
+
 
 === New features and improvements
 
@@ -15,7 +249,7 @@ Release date: 2023-12-30
   [small]#_[contributed by Joel Rosdahl]_#
 
 - MSVC options `/Fd`, `/FS` and `/MP` are no longer included in the input hash. +
-  [small]#_[contributed by Huang Qin Jing]_#
+  [small]#_[contributed by Huang Qin Jin]_#
 
 - Made ccache terminate an ongoing compiler subprocess when terminated on all
   platforms, not only on Unix. +
@@ -125,6 +359,7 @@ Release date: 2023-12-30
 == Ccache 4.8.3
 
 Release date: 2023-08-29
+
 
 === Bug fixes
 
@@ -384,6 +619,7 @@ Release date: 2023-03-12
 == Ccache 4.7.5
 
 Release date: 2023-03-20
+
 
 === Bug fixes
 
@@ -2656,6 +2892,7 @@ Release date: 2018-02-11
 
 Release date: 2018-01-28
 
+
 === New features and enhancements
 
 - Improved instructions on how to get cache hits between different working
@@ -2715,6 +2952,7 @@ Release date: 2018-01-13
 == Ccache 3.3.4
 
 Release date: 2017-02-17
+
 
 === New features and enhancements
 
@@ -2779,6 +3017,7 @@ Release date: 2016-09-07
 == Ccache 3.3
 
 Release date: 2016-08-27
+
 
 === Notes
 

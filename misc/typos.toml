@@ -8,13 +8,15 @@ ignore-hidden = false
 
 [default]
 extend-ignore-re = [
-    "clang-analyzer-optin",
-    "seve\\\\nth",
-    "thi\\\\\\\\rd",
     " -ot ",
-    "tar -caf",
-    "[/-]Fo\\b",
     "/FoN\\.",
+    "[/-]Fo\\b",
+    "Andrew Stubbs",
+    "clang-analyzer-optin",
+    "pn\\d",
+    "seve\\\\nth",
+    "tar -caf",
+    "thi\\\\\\\\rd",
 ]
 
 [default.extend-words]

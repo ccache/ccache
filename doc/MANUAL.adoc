@@ -159,8 +159,8 @@ documentation.
 
 *-o* _KEY=VALUE_, *--set-config* _KEY_=_VALUE_::
 
-    Set configuration option _KEY_ to _VALUE_. See _<<Configuration>>_ for more
-    information.
+    Set configuration option _KEY_ to _VALUE_ in the configuration file. See
+    _<<Configuration>>_ for more information.
 
 *-x*, *--show-compression*::
 
@@ -258,6 +258,18 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     working directory. This option is only useful when debugging ccache and its
     behavior.
 
+*--format* _FORMAT_::
+
+    Specify format for `--print-log-stats` and `--print-stats`. Possible values
+    are:
++
+--
+*tab*::
+    Tab separated. This is the default.
+*json*::
+    JSON formatted.
+--
+
 *-k* _KEY_, *--get-config* _KEY_::
 
     Print the value of configuration option _KEY_. See _<<Configuration>>_ for
@@ -276,10 +288,20 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     the file content. This option is only useful when debugging ccache and its
     behavior.
 
+*--print-log-stats*::
+
+    Print statistics counters from the stats log in machine-parsable
+    (tab-separated or JSON) format. See <<config_stats_log,*stats_log*>> and
+    `--format`.
+
 *--print-stats*::
 
     Print statistics counter IDs and corresponding values in machine-parsable
-    (tab-separated) format.
+    (tab-separated or JSON) format. See `--format`.
+
+*--print-version*::
+
+    Print version and don't do anything else.
 
 
 
@@ -417,11 +439,11 @@ option key.
 *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
 
     This option specifies whether ccache should rewrite relative paths in the
-    compiler's standard error output to absolute paths. This can be useful if
-    you use <<config_base_dir,*base_dir*>> with a build system (e.g. CMake with
-    the "Unix Makefiles" generator) that executes the compiler in a different
-    working directory, which makes relative paths in compiler errors or
-    warnings incorrect. The default is false.
+    compiler's textual output (standard error and standard output) to absolute
+    paths. This can be useful if you use <<config_base_dir,*base_dir*>> with a
+    build system (e.g. CMake with the "Unix Makefiles" generator) that executes
+    the compiler in a different working directory, which makes relative paths in
+    compiler errors or warnings incorrect. The default is false.
 
 [#config_base_dir]
 *base_dir* (*CCACHE_BASEDIR*)::
@@ -483,7 +505,7 @@ WARNING: Rewriting absolute paths to relative is kind of a brittle hack. It
 works OK in many cases, but there might be cases where things break. One known
 issue is that absolute paths are not reproduced in dependency files, which can
 mess up dependency detection in tools like Make and Ninja. If possible, use
-relative paths in the first place instead instead of using *base_dir*.
+relative paths in the first place instead of using *base_dir*.
 
 [#config_cache_dir]
 *cache_dir* (*CCACHE_DIR*)::
@@ -814,7 +836,8 @@ might be incorrect.
     requires <<config_temporary_dir,*temporary_dir*>> to be located on a local
     filesystem of a supported type.
 +
-NOTE: The inode cache feature is currently not available on Windows.
+NOTE: Support for the inode cache feature on Windows is experimental. On Windows
+the default is false.
 
 [#config_keep_comments_cpp]
 *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see _<<Boolean values>>_ above)::
@@ -1019,21 +1042,32 @@ preprocessing first.
     backdating files' mtimes in a controlled way.
 *gcno_cwd*::
     By default, ccache will include the current working directory in the hash
-    when producing a `.gcno` file (when compiling with `-ftest-coverage` or
-    `--coverage`). This is because GCC 9+ includes the current working directory
-    in the `.gcno` file. The *gcno_cwd* sloppiness makes ccache not hash the
-    current working directory so that you can get cache hits when compiling in
-    different directories, with the tradeoff of potentially getting an incorrect
-    directory in the `.gcno` file. *gcno_cwd* also disables hashing of the
-    current working directory if `-fprofile-abs-path` is used.
+    when producing a `.gcno` file (when compiling with `-ftest-coverage`). This
+    is because GCC 9+ includes the current working directory in the `.gcno`
+    file. The *gcno_cwd* sloppiness makes ccache not hash the current working
+    directory so that you can get cache hits when compiling in different
+    directories, with the tradeoff of potentially getting an incorrect directory
+    in the `.gcno` file. *gcno_cwd* also disables hashing of the current working
+    directory if `-fprofile-abs-path` is used.
++
+NOTE: `gcno_cwd` sloppiness will not have any effect when compiling with
+`--coverage` since that implies `-fprofile-arcs` which always forces CWD to be
+included in the input hash.
+*incbin*::
+    By default, ccache will ignore all files containing an `.incbin` directive.
+    While this is the correct behaviour as ccache does not detect incbin changes,
+    this restriction can make some projects difficult to cache. This sloppiness
+    will pretend the `.incbin` directive doesn't exist and simply allow caching.
 *include_file_ctime*::
-    By default, ccache will disable the direct mode if an include file has too
-    new ctime. This sloppiness disables that check. See also _<<Handling of
-    newly created header files>>_.
+    By default, ccache will disable caching if a source code file has a status
+    change time (ctime) after the start of the ccache invocation. This
+    sloppiness disables that check. See also _<<Handling of newly created source
+    files>>_.
 *include_file_mtime*::
-    By default, ccache will disable the direct mode if an include file has too
-    new mtime. This sloppiness disables that check. See also _<<Handling of
-    newly created header files>>_.
+    By default, ccache will disable caching if a source code file has a
+    modification time (mtime) after the start of the ccache invocation. This
+    sloppiness disables that check. See also _<<Handling of newly created source
+    files>>_.
 *ivfsoverlay*::
     Ignore the Clang compiler option `-ivfsoverlay` and its argument. This is
     useful if you use Xcode, which uses a virtual file system (VFS) for things
@@ -1275,6 +1309,9 @@ values.
 --
 +
 The default is *subdirs*.
+* *header*: Add the key=value pair to the HTTP headers of the request. For example:
+   `+header=Content-Type=application/octet-stream+` adds
+   "Content-Type: application/octet-stream" to the http headers of the request.
 * *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
 
 
@@ -1433,6 +1470,9 @@ Preconditions for using <<C++ modules>> were not fulfilled.
 Preconditions for using <<Precompiled headers,precompiled headers>> were not
 fulfilled.
 
+| Could not read or parse input file |
+An input file could not be read or parsed (see the debug log for details).
+
 | Could not write to output file |
 The output path specified with `-o` could not be written to.
 
@@ -1460,6 +1500,9 @@ Failure reading a file specified by
 
 | Forced recache |
 <<config_recache,*CCACHE_RECACHE*>> was used to overwrite an existing result.
+
+| Input file modified during compilation |
+An input file was modified during compilation.
 
 | Internal error |
 Unexpected failure, e.g. due to problems reading/writing the cache.
@@ -1593,10 +1636,10 @@ The direct mode will be disabled if any of the following holds:
 * <<config_direct_mode,*direct_mode*>> is false
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
-* a compiler option not supported by the direct mode is used:
+* a compiler option not supported by the direct mode is used, for example:
 ** a `-Wp,++*++` compiler option other than `-Wp,-MD,<path>`, `-Wp,-MMD,<path>`,
    `-Wp,-D<macro[=defn]>` or `-Wp,-U<macro>`
-** `-Xpreprocessor`
+** most uses of `-Xpreprocessor`
 * the string `+__TIME__+` is present in the source code
 
 
@@ -1635,31 +1678,23 @@ The depend mode will be disabled if any of the following holds:
   `/showIncludes` is added automatically if not specified by the user).
 
 
-== Handling of newly created header files
+== Handling of newly created source files
 
-If modification time (mtime) or status change time (ctime) of one of the include
-files is equal to (or newer than) the time compilation is being done, ccache
-disables the direct mode (or, in the case of a <<Precompiled headers,precompiled
-header>>, disables caching completely). This done as a safety measure to avoid a
-race condition (see below).
-
-To be able to use a newly created header files in direct mode (or use a newly
-precompiled header), either:
-
-* create the include file earlier in the build process, or
-* set <<config_sloppiness,*sloppiness*>> to
-  *include_file_ctime,include_file_mtime* if you are willing to take the risk,
-  for instance if you know that your build system is robust enough not to
-  trigger the race condition.
+If modification time (mtime) or status change time (ctime) of the source file or
+one of the include files is equal to (or newer than) the time that ccache was
+invoked, ccache disables caching completely. This is done as a safety measure to
+avoid a race condition (see below). In practice, this is only a problem when
+using file systems with very low timestamp granularity. You can set
+<<config_sloppiness,*sloppiness*>> to *include_file_ctime,include_file_mtime* to
+opt out of the safety measure.
 
 For reference, the race condition mentioned above consists of these events:
 
-1. The preprocessor is run.
-2. An include file is modified by someone.
-3. The new include file is hashed by ccache.
-4. The real compiler is run on the preprocessor's output, which contains data
-   from the old header file.
-5. The wrong object file is stored in the cache.
+1. A source code file is read by ccache and added to the input hash.
+2. The source code file is modified.
+3. The compiler is executed and reads the modified source code.
+4. Ccache stores the compiler output in the cache associated with the incorrect
+   key (based on the unmodified source code).
 
 
 == Cache debugging
@@ -1771,7 +1806,7 @@ to do some things to make it work properly:
   works in combination with precompiled headers.
 * You may also want to include *include_file_mtime,include_file_ctime* in
   <<config_sloppiness,*sloppiness*>>. See
-  _<<Handling of newly created header files>>_.
+  _<<Handling of newly created source files>>_.
 * You must either:
 +
 --
@@ -1936,9 +1971,8 @@ problems and what may be done to increase the hit rate:
    `-Wp,-MMD,<path>`, and `-Wp,-D<define>`) is used.
 ** This was the first compilation with a new value of the
    <<config_base_dir,base directory>>.
-** A modification or status change time of one of the include files is too new
-   (created the same second as the compilation is being done). See
-   _<<Handling of newly created header files>>_.
+** A modification or status change time of one of the include files is too new .
+   See _<<Handling of newly created source files>>_.
 ** The `+__TIME__+` preprocessor macro is (potentially) being used. Ccache turns
    off direct mode if `+__TIME__+` is present in the source code. This is done
    as a safety measure since the string indicates that a `+__TIME__+` macro

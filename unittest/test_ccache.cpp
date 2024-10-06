@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,17 +16,17 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Context.hpp"
-#include "../src/ccache.hpp"
-#include "TestUtil.hpp"
+#include "testutil.hpp"
 
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
-#include <util/path.hpp>
-#include <util/wincompat.hpp>
+#include <ccache/ccache.hpp>
+#include <ccache/context.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
+#include <ccache/util/wincompat.hpp>
 
-#include "third_party/doctest.h"
+#include <doctest/doctest.h>
 
 #include <optional>
 #include <string>
@@ -195,7 +195,7 @@ TEST_CASE("guess_compiler")
 #ifndef _WIN32
   SUBCASE("Follow symlink to actual compiler")
   {
-    const auto cwd = fs::path(util::actual_cwd());
+    const auto cwd = *fs::current_path();
     util::write_file(cwd / "gcc", "");
     CHECK(fs::create_symlink("gcc", cwd / "intermediate"));
     const auto cc = cwd / "cc";
@@ -206,12 +206,22 @@ TEST_CASE("guess_compiler")
 
   SUBCASE("Classify clang-cl symlink to clang")
   {
-    const auto cwd = fs::path(util::actual_cwd());
+    const auto cwd = *fs::current_path();
     util::write_file(cwd / "clang", "");
     const auto clang_cl = cwd / "clang-cl";
     CHECK(fs::create_symlink("clang", clang_cl));
 
     CHECK(guess_compiler(clang_cl) == CompilerType::clang_cl);
+  }
+
+  SUBCASE("Probe hardlink for actual compiler")
+  {
+    const auto cwd = *fs::current_path();
+    util::write_file(cwd / "gcc", "");
+    const auto cc = cwd / "cc";
+    CHECK(fs::create_hard_link("gcc", cc));
+
+    CHECK(guess_compiler(cc) == CompilerType::gcc);
   }
 #endif
 }

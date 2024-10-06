@@ -67,9 +67,10 @@
 #  pragma clang diagnostic pop
 #endif
 
-#cmakedefine MTR_ENABLED
-
 // === Header files ===
+
+// Define if you have the <cpuid.h> header file.
+#cmakedefine HAVE_CPUID_H
 
 // Define if you have the <dirent.h> header file.
 #cmakedefine HAVE_DIRENT_H
@@ -80,6 +81,9 @@
 // Define if you have the <pwd.h> header file.
 #cmakedefine HAVE_PWD_H
 
+// Define if you have the <spawn.h> header file.
+#cmakedefine HAVE_SPAWN_H
+
 // Define if you have the <sys/clonefile.h> header file.
 #cmakedefine HAVE_SYS_CLONEFILE_H
 
@@ -88,6 +92,9 @@
 
 // Define if you have the <sys/mman.h> header file.
 #cmakedefine HAVE_SYS_MMAN_H
+
+// Define if you have the <sys/sendfile.h> header file.
+#cmakedefine HAVE_SYS_SENDFILE_H 
 
 // Define if you have the <sys/utime.h> header file.
 #cmakedefine HAVE_SYS_UTIME_H

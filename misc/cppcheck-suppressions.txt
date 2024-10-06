@@ -1,5 +1,5 @@
-ConfigurationNotChecked
-missingIncludeSystem
-
 // Ignore third party code.
-*:src/third_party
+*:*/third_party/*
+
+// Not interesting enough to enforce.
+noExplicitConstructor

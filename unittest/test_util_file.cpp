@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,19 +16,23 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "TestUtil.hpp"
+#include "testutil.hpp"
 
-#include <util/Bytes.hpp>
-#include <util/DirEntry.hpp>
-#include <util/Fd.hpp>
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
-#include <util/string.hpp>
+#include <ccache/util/bytes.hpp>
+#include <ccache/util/direntry.hpp>
+#include <ccache/util/fd.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/string.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #include <fcntl.h>
+
+#ifndef _WIN32
+#  include <unistd.h>
+#endif
 
 #include <cstring>
 #include <string>
@@ -61,30 +65,38 @@ TEST_CASE("util::fallocate")
 
 TEST_CASE("util::likely_size_on_disk")
 {
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(0) == 0);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(1) == 4096);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(4095) == 4096);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(4096) == 4096);
+  // cppcheck-suppress knownConditionTrueFalse
   CHECK(util::likely_size_on_disk(4097) == 8192);
 }
 
-TEST_CASE("util::read_file and util::write_file, text data")
+TEST_CASE("util::read_file, util::write_file and util::copy_file, text data")
 {
   TestContext test_context;
 
   REQUIRE(util::write_file("test", "foo\nbar\n"));
-  auto data = util::read_file<std::string>("test");
+  CHECK(util::copy_file("test", "test2"));
+  auto data = util::read_file<std::string>("test2");
   REQUIRE(data);
   CHECK(*data == "foo\nbar\n");
 
   REQUIRE(util::write_file("test", "foo\r\nbar\r\n"));
-  data = util::read_file<std::string>("test");
+  CHECK(util::copy_file("test", "test2", util::ViaTmpFile::yes));
+  data = util::read_file<std::string>("test2");
   REQUIRE(data);
   CHECK(*data == "foo\r\nbar\r\n");
 
   // Newline handling
   REQUIRE(util::write_file("test", "foo\r\nbar\n"));
-  auto bin_data = util::read_file<std::vector<uint8_t>>("test");
+  CHECK(util::copy_file("test", "test2"));
+  auto bin_data = util::read_file<std::vector<uint8_t>>("test2");
   REQUIRE(bin_data);
 #ifdef _WIN32
   const std::string expected_bin_data = "foo\r\r\nbar\r\n";
@@ -116,7 +128,7 @@ TEST_CASE("util::read_file and util::write_file, text data")
   CHECK(result.error() == "No such file or directory");
 }
 
-TEST_CASE("util::read_file and util::write_file, binary data")
+TEST_CASE("util::read_file, util::write_file and util::copy_file, binary data")
 {
   TestContext test_context;
 
@@ -126,7 +138,8 @@ TEST_CASE("util::read_file and util::write_file, binary data")
   }
 
   CHECK(util::write_file("test", expected));
-  auto actual = util::read_file<std::vector<uint8_t>>("test");
+  CHECK(util::copy_file("test", "test2", util::ViaTmpFile::yes));
+  auto actual = util::read_file<std::vector<uint8_t>>("test2");
   REQUIRE(actual);
   CHECK(*actual == expected);
 
@@ -204,6 +217,37 @@ TEST_CASE("util::read_file_part")
     CHECK(*data == "an");
   }
 }
+
+#ifndef _WIN32
+TEST_CASE("util::write_file modes")
+{
+  TestContext test_context;
+
+  CHECK(util::write_file("test", "foo"));
+  CHECK(link("test", "test2") == 0);
+
+  SUBCASE("WriteFileMode::unlink")
+  {
+    CHECK(util::write_file("test", "bar", util::WriteFileMode::unlink));
+    CHECK(*util::read_file<std::string>("test2") == "foo");
+  }
+
+  SUBCASE("WriteFileMode::in_place")
+  {
+    CHECK(util::write_file("test", "bar", util::WriteFileMode::in_place));
+    CHECK(*util::read_file<std::string>("test2") == "bar");
+  }
+
+  SUBCASE("WriteFileMode::exclusive")
+  {
+    auto result =
+      util::write_file("test", "bar", util::WriteFileMode::exclusive);
+    CHECK(result.error() == "File exists");
+    CHECK(util::write_file("test3", "bar", util::WriteFileMode::exclusive));
+    CHECK(*util::read_file<std::string>("test3") == "bar");
+  }
+}
+#endif
 
 TEST_CASE("util::traverse_directory")
 {

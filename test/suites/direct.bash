@@ -617,6 +617,52 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    TEST "-fcallgraph-info"
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fcallgraph-info code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fcallgraph-info code.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+
+        rm code.ci
+
+        $CCACHE_COMPILE -c -fcallgraph-info code.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fcallgraph-info=su,da"
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fcallgraph-info=su,da code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fcallgraph-info=su,da code.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+
+        rm code.ci
+
+        $CCACHE_COMPILE -c -fcallgraph-info=su,da code.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.ci
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Direct mode on cache created by ccache without direct mode support"
 
     CCACHE_NODIRECT=1 $CCACHE_COMPILE -c -MD test.c
@@ -1073,27 +1119,6 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
-    TEST "Too new include file disables direct mode"
-
-    cat <<EOF >new.c
-#include "new.h"
-EOF
-    cat <<EOF >new.h
-int test;
-EOF
-    touch -t 203801010000 new.h
-
-    $CCACHE_COMPILE -c new.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-
-    $CCACHE_COMPILE -c new.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 1
-    expect_stat cache_miss 1
-
-    # -------------------------------------------------------------------------
     TEST "__DATE__ in header file results in direct cache hit as the date remains the same"
 
     cat <<EOF >test_date2.c
@@ -1113,27 +1138,6 @@ EOF
     expect_stat cache_miss 1
 
     $CCACHE_COMPILE -MP -MMD -MF test_date2.d -c test_date2.c
-    expect_stat direct_cache_hit 1
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-
-    # -------------------------------------------------------------------------
-    TEST "New include file ignored if sloppy"
-
-    cat <<EOF >new.c
-#include "new.h"
-EOF
-    cat <<EOF >new.h
-int test;
-EOF
-    touch -t 203801010000 new.h
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
-    expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 1
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
@@ -1339,22 +1343,71 @@ EOF
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_RECACHE doesn't add a new manifest entry"
+    TEST "CCACHE_RECACHE clears existing manifest"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat recache 0
     expect_stat files_in_cache 2 # result + manifest
 
-    manifest_file=$(find $CCACHE_DIR -name '*M')
-    cp $manifest_file saved.manifest
+    mv test3.h test3.h.saved
+    echo 'int new_content;' >test3.h
+    backdate test3.h
 
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat recache 1
-    expect_stat files_in_cache 2
+    expect_stat files_in_cache 3 # 2 * result + manifest
 
-    expect_equal_content $manifest_file saved.manifest
+    mv test3.h.saved test3.h
+    backdate test3.h
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat recache 1
+    expect_stat files_in_cache 3 # 2 * recache + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of appearing include directories"
+
+    cat <<EOF >main.c
+#include <foo.h>
+EOF
+    backdate main.c
+    mkdir a
+    cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+    backdate a/foo.h
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    mkdir b
+    cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -Ib -Ia main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
 }

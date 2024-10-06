@@ -200,21 +200,24 @@ fi
 
     mkdir obj1 obj2
 
-    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj1/test.o
+    cd obj1
+    $CCACHE_COMPILE -fprofile-arcs -c ../test.c -o test.o
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj1/test.o
+    $CCACHE_COMPILE -fprofile-arcs -c ../test.c -o test.o
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
 
-    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj2/test.o
-    expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
+    cd ../obj2
+
+    $CCACHE_COMPILE -fprofile-arcs -c ../test.c -o test.o
+    expect_different_content ../obj1/test.o test.o # different paths to .gcda file
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
 
-    $CCACHE_COMPILE -fprofile-arcs -c test.c -o obj2/test.o
-    expect_different_content obj1/test.o obj2/test.o # different paths to .gcda file
+    $CCACHE_COMPILE -fprofile-arcs -c ../test.c -o test.o
+    expect_different_content ../obj1/test.o test.o # different paths to .gcda file
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 2
 

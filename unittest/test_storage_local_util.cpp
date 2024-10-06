@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,14 +16,14 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "TestUtil.hpp"
+#include "testutil.hpp"
 
-#include <storage/local/util.hpp>
-#include <util/file.hpp>
-#include <util/filesystem.hpp>
-#include <util/fmtmacros.hpp>
+#include <ccache/storage/local/util.hpp>
+#include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
 
-#include <third_party/doctest.h>
+#include <doctest/doctest.h>
 
 #include <algorithm>
 #include <string>
@@ -32,16 +32,6 @@
 using TestUtil::TestContext;
 
 namespace fs = util::filesystem;
-
-static inline std::string
-os_path(std::string path)
-{
-#if defined(_WIN32) && !defined(HAVE_DIRENT_H)
-  std::replace(path.begin(), path.end(), '/', '\\');
-#endif
-
-  return path;
-}
 
 TEST_SUITE_BEGIN("storage::local::util");
 
@@ -93,13 +83,13 @@ TEST_CASE("storage::local::get_cache_dir_files")
       return f1.path() < f2.path();
     });
 
-    CHECK(files[0].path() == os_path("0/1/file_b"));
+    CHECK(files[0].path() == "0/1/file_b");
     CHECK(files[0].size() == 1);
-    CHECK(files[1].path() == os_path("0/1/file_c"));
+    CHECK(files[1].path() == "0/1/file_c");
     CHECK(files[1].size() == 2);
-    CHECK(files[2].path() == os_path("0/f/c/file_d"));
+    CHECK(files[2].path() == "0/f/c/file_d");
     CHECK(files[2].size() == 3);
-    CHECK(files[3].path() == os_path("0/file_a"));
+    CHECK(files[3].path() == "0/file_a");
     CHECK(files[3].size() == 0);
   }
 }

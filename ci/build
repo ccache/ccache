@@ -26,21 +26,26 @@ else
     cd "${BUILDDIR}"
     ${CMAKE_PREFIX} cmake ${CMAKE_PARAMS} ${CCACHE_LOC}
 
-    case "${CMAKE_GENERATOR}" in
+    case "${CMAKE_GENERATOR:-}" in
         [Vv]isual" "[Ss]tudio*) # MSBuild, use all CPUs.
             ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS} -- -m
             ;;
-        *) # Ninja automatically uses all available CPUs.
-            ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS}
+        *)
+            ${CMAKE_PREFIX} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS} -- -j "${JOBS}"
             ;;
     esac
+
+    if [ -x ccache ]; then
+        ./ccache --version
+    elif command -v wine >/dev/null && [ -f ccache.exe ]; then
+        wine ccache.exe --version
+    fi
 
     case "${RUN_TESTS:-all}" in
         all)
             CC="${TEST_CC}" ctest --output-on-failure -j"${JOBS}" "$@"
             ;;
         unittest-in-wine)
-            wine ccache.exe --version
             wine unittest/unittest.exe
             ;;
         none)
