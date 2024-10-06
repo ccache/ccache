@@ -5,7 +5,7 @@ set(
   remotestorage.cpp
 )
 
-if(REDIS_STORAGE_BACKEND)
+if(REDIS_STORAGE_BACKEND OR REDISS_STORAGE_BACKEND)
   list(APPEND sources redisstorage.cpp)
 endif()
 

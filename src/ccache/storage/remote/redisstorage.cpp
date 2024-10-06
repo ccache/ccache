@@ -42,6 +42,9 @@
 #  pragma warning(disable : 4200)
 #endif
 #include <hiredis/hiredis.h>
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+#  include <hiredis/hiredis_ssl.h>
+#endif
 #ifdef _MSC_VER
 #  pragma warning(pop)
 #endif
@@ -58,6 +61,10 @@ namespace storage::remote {
 namespace {
 
 using RedisContext = std::unique_ptr<redisContext, decltype(&redisFree)>;
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+using RedisSSLContext =
+  std::unique_ptr<redisSSLContext, decltype(&redisFreeSSLContext)>;
+#endif
 using RedisReply = std::unique_ptr<redisReply, decltype(&freeReplyObject)>;
 
 const uint32_t DEFAULT_PORT = 6379;
@@ -79,10 +86,22 @@ public:
 
 private:
   const std::string m_prefix;
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  RedisSSLContext m_ssl_context;
+#endif
   RedisContext m_context;
 
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  void init_ssl(const Url& url,
+                std::optional<std::string> ca_cert,
+                std::optional<std::string> cert,
+                std::optional<std::string> key);
+#endif
   void
   connect(const Url& url, uint32_t connect_timeout, uint32_t operation_timeout);
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  void initiate_ssl(const Url& url);
+#endif
   void select_database(const Url& url);
   void authenticate(const Url& url);
   tl::expected<RedisReply, Failure> redis_command(const char* format, ...);
@@ -114,13 +133,29 @@ split_user_info(const std::string& user_info)
   }
 }
 
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+inline bool
+is_secure(const Url& url)
+{
+  return url.scheme() == "rediss";
+}
+#endif
+
 RedisStorageBackend::RedisStorageBackend(
   const Url& url,
   const std::vector<Backend::Attribute>& attributes)
   : m_prefix("ccache"), // TODO: attribute
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+    m_ssl_context(nullptr, redisFreeSSLContext),
+#endif
     m_context(nullptr, redisFree)
 {
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix"
+         || url.scheme() == "rediss");
+#else
   ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix");
+#endif
   if (url.scheme() == "redis+unix" && !url.host().empty()
       && url.host() != "localhost") {
     throw core::Fatal(
@@ -130,11 +165,20 @@ RedisStorageBackend::RedisStorageBackend(
           url.host()));
   }
 
+  std::optional<std::string> cacert;
+  std::optional<std::string> cert;
+  std::optional<std::string> key;
   auto connect_timeout = k_default_connect_timeout;
   auto operation_timeout = k_default_operation_timeout;
 
   for (const auto& attr : attributes) {
-    if (attr.key == "connect-timeout") {
+    if (attr.key == "cacert") {
+      cacert = attr.value;
+    } else if (attr.key == "cert") {
+      cert = attr.value;
+    } else if (attr.key == "key") {
+      key = attr.value;
+    } else if (attr.key == "connect-timeout") {
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
@@ -143,9 +187,15 @@ RedisStorageBackend::RedisStorageBackend(
     }
   }
 
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  init_ssl(url, cacert, cert, key);
+#endif
   connect(url,
           static_cast<uint32_t>(connect_timeout.count()),
           static_cast<uint32_t>(operation_timeout.count()));
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+  initiate_ssl(url);
+#endif
   authenticate(url);
   select_database(url);
 }
@@ -235,6 +285,33 @@ RedisStorageBackend::remove(const Hash::Digest& key)
   }
 }
 
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+void
+RedisStorageBackend::init_ssl(const Url& url,
+                              std::optional<std::string> ca_cert,
+                              std::optional<std::string> cert,
+                              std::optional<std::string> key)
+{
+  if (is_secure(url)) {
+    if (redisInitOpenSSL() != REDIS_OK) {
+      throw Failed("Redis SSL init OpenSSL failed");
+    }
+    redisSSLContextError ssl_error;
+    m_ssl_context.reset(
+      redisCreateSSLContext((ca_cert ? ca_cert->c_str() : NULL),
+                            NULL,
+                            (cert ? cert->c_str() : NULL),
+                            (key ? key->c_str() : NULL),
+                            NULL,
+                            &ssl_error));
+    if (!m_ssl_context) {
+      throw Failed(FMT("Redis context construction error: {}",
+                       redisSSLContextGetError(ssl_error)));
+    }
+  }
+}
+#endif
+
 void
 RedisStorageBackend::connect(const Url& url,
                              const uint32_t connect_timeout,
@@ -282,6 +359,19 @@ RedisStorageBackend::connect(const Url& url,
 
   LOG_RAW("Redis connection OK");
 }
+
+#ifdef HAVE_REDISS_STORAGE_BACKEND
+void
+RedisStorageBackend::initiate_ssl(const Url& url)
+{
+  if (is_secure(url)) {
+    if (redisInitiateSSLWithContext(m_context.get(), m_ssl_context.get())
+        != REDIS_OK) {
+      throw Failed("Failed to initiate ssl");
+    }
+  }
+}
+#endif
 
 void
 RedisStorageBackend::select_database(const Url& url)
