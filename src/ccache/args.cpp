@@ -72,6 +72,8 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
     switch (*pos) {
     case '\\':
       switch (format) {
+      default:
+        break;
       case AtFileFormat::gcc:
         pos++;
         if (*pos == '\0') {
