@@ -43,6 +43,12 @@ enum class CompilerType {
   other
 };
 
+enum class AtFileFormat {
+  gcc,  // '\'' and '"' quote, '\\' escapes any character
+  msvc, // '"' quotes, '\\' escapes only '"' and '\\'
+  guess_from_compiler,
+};
+
 std::string compiler_type_to_string(CompilerType compiler_type);
 
 class Config : util::NonCopyable
@@ -53,6 +59,7 @@ public:
   void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
+  AtFileFormat atfile_format() const;
   const std::filesystem::path& base_dir() const;
   const std::filesystem::path& cache_dir() const;
   const std::string& compiler() const;
@@ -168,6 +175,7 @@ private:
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
+  AtFileFormat m_atfile_format = AtFileFormat::guess_from_compiler;
   std::filesystem::path m_base_dir;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
@@ -234,6 +242,20 @@ inline bool
 Config::absolute_paths_in_stderr() const
 {
   return m_absolute_paths_in_stderr;
+}
+
+inline AtFileFormat
+Config::atfile_format() const
+{
+  if (m_atfile_format != AtFileFormat::guess_from_compiler) {
+    return m_atfile_format;
+  }
+
+  if (is_compiler_group_msvc()) {
+    return AtFileFormat::msvc;
+  }
+
+  return AtFileFormat::gcc;
 }
 
 inline const std::filesystem::path&

@@ -71,6 +71,7 @@ namespace {
 
 enum class ConfigItem {
   absolute_paths_in_stderr,
+  atfile_format,
   base_dir,
   cache_dir,
   compiler,
@@ -127,6 +128,7 @@ struct ConfigKeyTableEntry
 const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
   {
     {"absolute_paths_in_stderr", {ConfigItem::absolute_paths_in_stderr}},
+    {"atfile_format", {ConfigItem::atfile_format}},
     {"base_dir", {ConfigItem::base_dir}},
     {"cache_dir", {ConfigItem::cache_dir}},
     {"compiler", {ConfigItem::compiler}},
@@ -175,6 +177,7 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"ABSSTDERR", "absolute_paths_in_stderr"},
+  {"ATFILE_FORMAT", "atfile_format"},
   {"BASEDIR", "base_dir"},
   {"CC", "compiler"}, // Alias for CCACHE_COMPILER
   {"COMMENTS", "keep_comments_cpp"},
@@ -221,6 +224,18 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"TEMPDIR", "temporary_dir"},
   {"UMASK", "umask"},
 };
+
+AtFileFormat
+parse_atfile_format(const std::string& value)
+{
+  if (value == "msvc") {
+    return AtFileFormat::msvc;
+  } else if (value == "gcc") {
+    return AtFileFormat::gcc;
+  } else {
+    throw core::Error(FMT("invalid value for atfile format: \"{}\"", value));
+  }
+}
 
 bool
 parse_bool(const std::string& value,
@@ -523,6 +538,21 @@ home_directory()
 }
 
 std::string
+atfile_format_to_string(AtFileFormat atfile_format)
+{
+  switch (atfile_format) {
+  case AtFileFormat::guess_from_compiler:
+    return "guess_from_compiler";
+  case AtFileFormat::gcc:
+    return "gcc";
+  case AtFileFormat::msvc:
+    return "msvc";
+  }
+
+  ASSERT(false);
+}
+
+std::string
 compiler_type_to_string(CompilerType compiler_type)
 {
 #define CASE(type)                                                             \
@@ -755,6 +785,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::absolute_paths_in_stderr:
     return format_bool(m_absolute_paths_in_stderr);
 
+  case ConfigItem::atfile_format:
+    return atfile_format_to_string(m_atfile_format);
+
   case ConfigItem::base_dir:
     return util::pstr(m_base_dir);
 
@@ -979,6 +1012,10 @@ Config::set_item(const std::string& key,
   switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
     m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::atfile_format:
+    m_atfile_format = parse_atfile_format(value);
     break;
 
   case ConfigItem::base_dir:
