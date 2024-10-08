@@ -330,7 +330,8 @@ TEST_CASE("Config:atfile_format")
 
   SUBCASE("from config msvc with clang compiler")
   {
-    util::write_file("ccache.conf", "atfile_format = msvc\ncompiler_type = clang");
+    util::write_file("ccache.conf",
+                     "atfile_format = msvc\ncompiler_type = clang");
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.atfile_format() == AtFileFormat::msvc);
