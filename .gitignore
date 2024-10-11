@@ -14,6 +14,10 @@ misc/.clang-format-exe
 # Emacs save files
 *~
 
+# unittest generated files
+fs_test.tmp.*
+testdir
+
 # Vim save files
 .*.sw?
 .*.un~
