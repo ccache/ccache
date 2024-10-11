@@ -68,6 +68,10 @@
 #include <ccache/util/umaskscope.hpp>
 #include <ccache/util/wincompat.hpp>
 
+#ifdef CXX20_MODULE_FEATURES
+#  include <ccache/cxx_modules.hpp>
+#endif
+
 #include <fcntl.h>
 
 #include <optional>
