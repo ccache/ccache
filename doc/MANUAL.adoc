@@ -1099,11 +1099,11 @@ included in the input hash.
     `LC_MESSAGES` in the hash by default since they may affect localization of
     compiler warning messages. Set this sloppiness to tell ccache not to do
     that.
-*modules*::
+*clang_modules*::
     By default, ccache will not cache compilations if `-fmodules` is used since
-    it cannot hash the state of compiler's internal representation of relevant
+    it cannot hash the state of Clang's internal representation of relevant
     modules. This sloppiness allows caching in such a case. See
-    _<<C++ modules>>_ for more information.
+    _<<Clang modules>>_ for more information.
 *pch_defines*::
     Be sloppy about `#define` directives when precompiling a header file. See
     _<<Precompiled headers>>_ for more information.
@@ -1491,8 +1491,8 @@ The compiler was called for preprocessing, not compiling.
 | Ccache disabled |
 Ccache was disabled by a `ccache:disable` string in the source code file.
 
-| Could not use modules |
-Preconditions for using <<C++ modules>> were not fulfilled.
+| Could not use Clang modules |
+Preconditions for using <<Clang modules>> were not fulfilled.
 
 | Could not use precompiled header |
 Preconditions for using <<Precompiled headers,precompiled headers>> were not
@@ -1858,19 +1858,38 @@ increase the statistics counter "`Preprocessing failed`" (if the non-precompiled
 header file is not available).
 
 
-== C++ modules
+== C++20 standard modules
 
-Ccache has support for Clang's `-fmodules` option. In practice ccache only
-additionally hashes `module.modulemap` files; it does not know how Clang
-handles its cached binary form of modules so those are ignored. This should not
-matter in practice: as long as everything else (including `module.modulemap`
-files) is the same the cached result should work. Still, you must set
-<<config_sloppiness,*sloppiness*>> to *modules* to allow caching.
+TBA
 
-You must use both <<The direct mode,*direct mode*>> and
-<<The depend mode,*depend mode*>>. When using
-<<The preprocessor mode,the preprocessor mode>> Clang does not provide enough
-information to allow hashing of `module.modulemap` files.
+
+== Clang modules
+
+Clang additionally supports an alternative non-standard form of modules which
+are different from and pre-date C++20 standard modules. This non-standard form
+of modules is not limited to C++ but supports other C-family languages.
+
+This alternative form of modules is enabled for Clang in the following scenarios:
+
+1. When the `-fmodules` option is used without `-std=c++20` or newer
+2. When `module.modulemap` files are used
+
+For compilation of these non-standard modules, ccache in practice only hashes
+the `module.modulemap` files and no additional data. This is because there isn't
+enough information exposed about this compilation model by Clang for ccache to
+comprehensively hash and cache all the extra structures involved.
+
+This limitation should not matter in practice: as long as everything else
+(including `module.modulemap` files) is the same the cached result should work.
+
+Still, you must set <<config_sloppiness,*sloppiness*>> to *clang_modules* to
+enable the caching.
+
+You must also use both <<The direct mode,*direct mode*>> and
+<<The depend mode,*depend mode*>>.
+
+When using <<The preprocessor mode,the preprocessor mode>> Clang does not
+provide enough information even to allow hashing of `module.modulemap` files.
 
 
 == Sharing a local cache
@@ -2048,7 +2067,7 @@ problems and what may be done to increase the hit rate:
   remedy this.
 * If "`Could not use precompiled header`" has been incremented, see
   _<<Precompiled headers>>_.
-* If "`Could not use modules`" has been incremented, see _<<C++ modules>>_.
+* If "`Could not use Clang modules`" has been incremented, see _<<Clang modules>>_.
 
 
 === Corrupt object files

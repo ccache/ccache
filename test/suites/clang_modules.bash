@@ -1,4 +1,4 @@
-SUITE_modules_PROBE() {
+SUITE_clang_modules_PROBE() {
     if ! $COMPILER_TYPE_CLANG || $COMPILER_USES_MSVC; then
         echo "-fmodules/-fcxx-modules not supported by compiler"
     else
@@ -7,7 +7,7 @@ SUITE_modules_PROBE() {
     fi
 }
 
-SUITE_modules_SETUP() {
+SUITE_clang_modules_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_DEPEND=1
 
@@ -30,7 +30,7 @@ int main() { return 0; }
 EOF
 }
 
-SUITE_modules() {
+SUITE_clang_modules() {
     # -------------------------------------------------------------------------
     TEST "fall back to real compiler, no sloppiness"
 
@@ -45,27 +45,27 @@ SUITE_modules() {
 
     unset CCACHE_DEPEND
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat could_not_use_modules 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat could_not_use_modules 2
 
     # -------------------------------------------------------------------------
     TEST "cache hit"
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
     TEST "cache miss"
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat cache_miss 1
 
     cat <<EOF >test1.h
@@ -74,12 +74,12 @@ void f();
 EOF
     backdate test1.h
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat cache_miss 2
 
     echo >>module.modulemap
     backdate test1.h
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat cache_miss 3
 }
