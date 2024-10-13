@@ -126,7 +126,6 @@ const CompOpt compopts[] = {
   {"-fmodule-header", TOO_HARD},
   {"-fmodule-map-file=", TAKES_CONCAT_ARG | TAKES_PATH},
   {"-fmodules-cache-path=", TAKES_CONCAT_ARG | TAKES_PATH},
-  {"-fmodules-ts", TOO_HARD},
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},
