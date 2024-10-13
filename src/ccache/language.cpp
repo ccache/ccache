@@ -38,6 +38,7 @@ const struct
   {".cp", "c++"},
   {".CP", "c++"},
   {".cpp", "c++"},
+  {".cppm", "c++-module"},
   {".CPP", "c++"},
   {".cxx", "c++"},
   {".CXX", "c++"},
@@ -51,6 +52,8 @@ const struct
   // Preprocessed:
   {".i", "cpp-output"},
   {".ii", "c++-cpp-output"},
+  {".iim", "c++-module-cpp-output"},
+  {".ixx", "c++-module"},
   {".mi", "objective-c-cpp-output"},
   {".mii", "objective-c++-cpp-output"},
   {".s", "assembler"},
@@ -86,6 +89,7 @@ const struct
   {"c++", "c++-cpp-output"},
   {"c++-cpp-output", "c++-cpp-output"},
   {"c++-header", "c++-cpp-output"},
+  {"c++-module", "c++-module-cpp-output"},
   {"cu", "cpp-output"},   // NVCC
   {"cuda", "cpp-output"}, // Clang
   {"hip", "cpp-output"},
