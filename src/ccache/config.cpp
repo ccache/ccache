@@ -314,6 +314,8 @@ parse_sloppiness(const std::string& value)
   for (const auto token : util::Tokenizer(value, ", ")) {
     if (token == "clang_index_store") {
       result.insert(core::Sloppy::clang_index_store);
+    } else if (token == "clang_modules") {
+      result.insert(core::Sloppy::clang_modules);
     } else if (token == "file_stat_matches") {
       result.insert(core::Sloppy::file_stat_matches);
     } else if (token == "file_stat_matches_ctime") {
@@ -330,8 +332,10 @@ parse_sloppiness(const std::string& value)
       result.insert(core::Sloppy::ivfsoverlay);
     } else if (token == "locale") {
       result.insert(core::Sloppy::locale);
-    } else if (token == "modules") {
-      result.insert(core::Sloppy::modules);
+    }
+    // Deprecated alias
+    else if (token == "modules") {
+      result.insert(core::Sloppy::clang_modules);
     } else if (token == "pch_defines") {
       result.insert(core::Sloppy::pch_defines);
     } else if (token == "random_seed") {
@@ -352,6 +356,9 @@ format_sloppiness(core::Sloppiness sloppiness)
   std::string result;
   if (sloppiness.contains(core::Sloppy::clang_index_store)) {
     result += "clang_index_store, ";
+  }
+  if (sloppiness.contains(core::Sloppy::clang_modules)) {
+    result += "clang_modules, ";
   }
   if (sloppiness.contains(core::Sloppy::file_stat_matches)) {
     result += "file_stat_matches, ";
@@ -376,9 +383,6 @@ format_sloppiness(core::Sloppiness sloppiness)
   }
   if (sloppiness.contains(core::Sloppy::locale)) {
     result += "locale, ";
-  }
-  if (sloppiness.contains(core::Sloppy::modules)) {
-    result += "modules, ";
   }
   if (sloppiness.contains(core::Sloppy::pch_defines)) {
     result += "pch_defines, ";

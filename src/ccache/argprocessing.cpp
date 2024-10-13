@@ -574,10 +574,10 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // Modules are handled on demand as necessary in the background, so there is
-  // no need to cache them, they can in practice be ignored. All that is needed
-  // is to correctly depend also on module.modulemap files, and those are
-  // included only in depend mode (preprocessed output does not list them).
+  // Clang modules are handled on demand as necessary in the background, so
+  // there is no need to cache them, they can in practice be ignored. All that
+  // is needed is to correctly depend also on module.modulemap files, and those
+  // are included only in depend mode (preprocessed output does not list them).
   // Still, not including the modules themselves in the hash could possibly
   // result in an object file that would be different from the actual
   // compilation (even though it should be compatible), so require a sloppiness
@@ -586,12 +586,12 @@ process_option_arg(const Context& ctx,
     if (!config.depend_mode() || !config.direct_mode()) {
       LOG("Compiler option {} is unsupported without direct depend mode",
           args[i]);
-      return Statistic::could_not_use_modules;
-    } else if (!(config.sloppiness().contains(core::Sloppy::modules))) {
+      return Statistic::could_not_use_clang_modules;
+    } else if (!(config.sloppiness().contains(core::Sloppy::clang_modules))) {
       LOG_RAW(
-        "You have to specify \"modules\" sloppiness when using"
+        "You have to specify \"clang_modules\" sloppiness when using"
         " -fmodules to get hits");
-      return Statistic::could_not_use_modules;
+      return Statistic::could_not_use_clang_modules;
     }
   }
 
