@@ -134,6 +134,14 @@ struct ArgumentProcessingState
 
   // Whether to include the actual CWD in the hash.
   bool hash_actual_cwd = false;
+
+#ifdef CXX20_MODULE_FEATURES
+  bool found_fmodules_ts = false;
+
+  bool found_interface = false;
+
+  bool found_precompile = false;
+#endif
 };
 
 bool
