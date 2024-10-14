@@ -1834,6 +1834,31 @@ process_args(Context& ctx)
     args_info.strip_diagnostics_colors = false;
   }
 
+#ifdef CXX20_MODULE_FEATURES
+  for ([[maybe_unused]] const auto& [name, path] :
+       args_info.cxx_modules_names_paths) {
+    // TODO:
+    // - maintain map (for locating module names to paths, when parsing .ddi)
+  }
+
+  for ([[maybe_unused]] const auto& path : args_info.cxx_modules_units_paths) {
+    // TODO:
+    // - scan (via toolchain) module file to obtain provided module name
+    // - add provided module name to module map
+  }
+
+  if (args_info.cxx_modules_generating_bmi) {
+    // TODO:
+    // - cache
+  }
+
+  if (!args_info.cxx_modules_output_ddi.empty()) {
+    // TODO:
+    // - cache
+    // - parse dependency p1689r5 graph and conditionally invalidate cache
+  }
+#endif
+
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
       args_info.output_dep = util::with_extension(args_info.output_obj, ".d");
