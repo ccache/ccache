@@ -45,9 +45,12 @@
 #include <cstdlib>
 #include <iterator>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+using namespace std::literals::string_view_literals;
 
 namespace fs = util::filesystem;
 
@@ -1161,6 +1164,202 @@ process_option_arg(const Context& ctx,
     state.cpp_args.push_back(args[i]);
     return Statistic::none;
   }
+
+#ifdef CXX20_MODULE_FEATURES
+  // Process C++20 modules detection
+  {
+    // gcc
+    if (arg == "-fmodules-ts") {
+      state.found_fmodules_ts = true;
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_generating_bmi = true;
+      return Statistic::none;
+    }
+    if (arg == "-interface") {
+      state.found_interface = true;
+      state.common_args.push_back(arg);
+      args_info.actual_language = "c++-module";
+      args_info.cxx_modules_generating_bmi = true;
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 dynamic dependency information options
+  {
+    // gcc
+    if (const auto prefix = "-fdeps-format="sv;
+        util::starts_with(arg, prefix)) {
+      const auto pos = prefix.size();
+      state.common_args.push_back(arg);
+      args_info.ddi_format = arg.substr(pos);
+      return Statistic::none;
+    }
+
+    // gcc
+    if (const auto prefix = "-fdeps-file="sv; util::starts_with(arg, prefix)) {
+      const auto pos = prefix.size();
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_output_ddi = arg.substr(pos);
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-scanDependencies"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      args_info.expect_output_obj = false;
+      // -scanDependencies<path>
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules_output_ddi = arg.substr(pre.size());
+      }
+      // -scanDependencies <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules_output_ddi = args[i];
+      }
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-sourceDependencies"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      // -sourceDependencies<path>
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules_output_ddi = arg.substr(pre.size());
+      }
+      // -sourceDependencies <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules_output_ddi = args[i];
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules two-phase compilation options
+  {
+    // clang
+    if (arg == "--precompile") {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_generating_bmi = true;
+      args_info.cxx_modules_precompiling_bmi = true;
+      args_info.expect_output_obj = false;
+      return Statistic::none;
+    }
+    // msvc
+    if (arg == "-ifcOnly") {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_generating_bmi = true;
+      args_info.cxx_modules_precompiling_bmi = true;
+      args_info.expect_output_obj = false;
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules bmi output file options
+  {
+    // clang
+    if (const std::string_view pre = "-fmodule-output"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_generating_bmi = true;
+      // -fmodule-output=<path>
+      if (pre.size() < arg.size() && arg[pre.size()] == '=') {
+        args_info.cxx_modules_output_bmi = arg.substr(pre.size() + 1);
+      }
+      // -fmodule-output
+      else {
+        // TODO: guess output
+      }
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-ifcOutput";
+        util::starts_with(arg, pre)) {
+      // -ifcOutput<path>.ext seems to cause cl.exe to parse incorrectly
+      if (arg.contains('.')) {
+        return Statistic::bad_compiler_arguments;
+      }
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_generating_bmi = true;
+      // -ifcOutput<path> (no extension)
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules_output_bmi = arg.substr(pre.size());
+      }
+      // -ifcOutput <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules_output_bmi = args[i];
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules name/path mapping options
+  {
+    std::string_view module_name_path;
+    std::string_view opt = arg;
+
+    // clang
+    if (const auto pre = "-fmodule-file="sv; util::starts_with(opt, pre)) {
+      const auto pos = pre.size();
+      module_name_path = opt.substr(pos);
+      state.common_args.push_back(arg);
+    }
+    // msvc
+    if (const auto pre = "-reference"sv; util::starts_with(opt, pre)) {
+      state.common_args.push_back(arg);
+      if (pre.size() < opt.size()) {
+        module_name_path = opt.substr(pre.size());
+      } else if (i != args.size() - 1) {
+        i += 1;
+        module_name_path = args[i];
+        state.common_args.push_back(args[i]);
+      }
+    }
+    // handle <name>=<path>
+    if (!module_name_path.empty()) {
+      if (const auto pos = module_name_path.find('=');
+          pos != std::string::npos) {
+        const auto name = module_name_path.substr(0, pos);
+        const auto path = module_name_path.substr(pos + 1);
+        args_info.cxx_modules_names_paths.emplace(name, path);
+      } else {
+        const auto& path = module_name_path;
+        args_info.cxx_modules_units_paths.emplace_back(path);
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules search dir
+  {
+    // clang
+    if (const auto pre = "-fprebuilt-module-path="sv;
+        util::starts_with(arg, pre)) {
+      const auto str = std::string_view(arg);
+      const auto pos = pre.size();
+      const auto search_dir = str.substr(pos);
+      state.common_args.push_back(arg);
+      args_info.cxx_modules_search_dirs.emplace_back(search_dir);
+      return Statistic::none;
+    }
+    // msvc
+    if (const auto pre = "-ifcSearchDir"sv; util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules_search_dirs.emplace_back(arg.substr(pre.size()));
+      } else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules_search_dirs.emplace_back(args[i]);
+      }
+      return Statistic::none;
+    }
+  }
+#endif
 
   if (compopt_takes_arg(arg) && compopt_takes_path(arg)) {
     if (i == args.size() - 1) {
