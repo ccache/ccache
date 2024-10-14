@@ -27,6 +27,7 @@
 #include <ccache/language.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
@@ -45,6 +46,7 @@
 #include <cstdlib>
 #include <iterator>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -77,6 +79,7 @@ struct ArgumentProcessingState
   bool found_dc_opt = false;
   bool found_S_opt = false;
   bool found_analyze_opt = false;
+  bool found_fmodules_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
@@ -145,6 +148,39 @@ color_output_possible()
   return isatty(STDERR_FILENO) && term_env
          && util::to_lowercase(term_env) != "dumb";
 }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+auto
+detect_use_cxx_modules(const Context& ctx, const ArgumentProcessingState& state)
+  -> bool
+{
+  const auto& cxx_modules = ctx.args_info.cxx_modules;
+
+  // NOTE: In the future this will likely become less reliable due to compilers
+  // defaulting to C++20 mode with module support implicitly enabled.
+
+  // TODO: Consider including file extension checks here:
+  // - Clang: .cppm
+  // -  MSVC: .ixx
+
+  // Assume `-fmodules` always implies C++20 modules for non-Clang compilers.
+  const bool not_clang_modules =
+    state.found_fmodules_opt && ctx.config.compiler() != Compiler::type::clang;
+
+  return not_clang_modules                                           //
+         || ctx.args_info.actual_language == "c++-module"            //
+         || ctx.args_info.actual_language == "c++-module-cpp-output" //
+         || !cxx_modules.ddi_format.empty()                          //
+         || cxx_modules.precompiling_bmi                             //
+         || cxx_modules.generating_bmi                               //
+         || cxx_modules.generating_ddi                               //
+         || cxx_modules.generating_msvc_source_dependencies          //
+         || !cxx_modules.names_paths.empty()                         //
+         || !cxx_modules.units_paths.empty()                         //
+         || !cxx_modules.search_dirs.empty()                         //
+    ;
+}
+#endif
 
 bool
 detect_pch(const std::string& option,
@@ -571,25 +607,10 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // Clang modules are handled on demand as necessary in the background, so
-  // there is no need to cache them, they can in practice be ignored. All that
-  // is needed is to correctly depend also on module.modulemap files, and those
-  // are included only in depend mode (preprocessed output does not list them).
-  // Still, not including the modules themselves in the hash could possibly
-  // result in an object file that would be different from the actual
-  // compilation (even though it should be compatible), so require a sloppiness
-  // flag.
-  if (arg == "-fmodules") {
-    if (!config.depend_mode() || !config.direct_mode()) {
-      LOG("Compiler option {} is unsupported without direct depend mode",
-          args[i]);
-      return Statistic::could_not_use_modules;
-    } else if (!(config.sloppiness().contains(core::Sloppy::clang_modules))) {
-      LOG_RAW(
-        "You have to specify \"clang_modules\" sloppiness when using"
-        " -fmodules to get hits");
-      return Statistic::could_not_use_modules;
-    }
+  if (arg == "-fmodules" || arg == "-fmodules-ts") {
+    state.common_args.push_back(arg);
+    state.found_fmodules_opt = true;
+    return Statistic::none;
   }
 
   // We must have -c.
@@ -1182,6 +1203,200 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  // Process C++20 modules detection
+  {
+    if (arg == "-interface") {
+      state.common_args.push_back(arg);
+      args_info.actual_language = "c++-module";
+      args_info.cxx_modules.generating_bmi = true;
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 dynamic dependency information options
+  {
+    // gcc
+    if (const auto prefix = "-fdeps-format="sv;
+        util::starts_with(arg, prefix)) {
+      const auto pos = prefix.size();
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.ddi_format = arg.substr(pos);
+      return Statistic::none;
+    }
+
+    // gcc
+    if (const auto prefix = "-fdeps-file="sv; util::starts_with(arg, prefix)) {
+      const auto pos = prefix.size();
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_ddi = true;
+      args_info.cxx_modules.output_ddi = arg.substr(pos);
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-scanDependencies"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      args_info.expect_output_obj = false;
+      // -scanDependencies<path>
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.generating_ddi = true;
+        args_info.cxx_modules.output_ddi = arg.substr(pre.size());
+      }
+      // -scanDependencies <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.generating_ddi = true;
+        args_info.cxx_modules.output_ddi = args[i];
+      }
+      return Statistic::called_for_preprocessing;
+    }
+    // msvc
+    if (const std::string_view pre = "-sourceDependencies"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      // -sourceDependencies<path>
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.generating_msvc_source_dependencies = true;
+        args_info.cxx_modules.output_msvc_source_dependencies =
+          arg.substr(pre.size());
+      }
+      // -sourceDependencies <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.generating_msvc_source_dependencies = true;
+        args_info.cxx_modules.output_msvc_source_dependencies = args[i];
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules two-phase compilation options
+  {
+    // clang
+    if (arg == "--precompile") {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      args_info.cxx_modules.precompiling_bmi = true;
+      args_info.expect_output_obj = false;
+      return Statistic::none;
+    }
+    // msvc
+    if (arg == "-ifcOnly") {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      args_info.cxx_modules.precompiling_bmi = true;
+      args_info.expect_output_obj = false;
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules bmi output file options
+  {
+    // clang
+    if (const std::string_view pre = "-fmodule-output"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      // -fmodule-output=<path>
+      if (pre.size() < arg.size() && arg[pre.size()] == '=') {
+        args_info.cxx_modules.output_bmi = arg.substr(pre.size() + 1);
+      }
+      // -fmodule-output
+      else {
+        // TODO: guess output
+      }
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-ifcOutput";
+        util::starts_with(arg, pre)) {
+      // -ifcOutput<path>.ext seems to cause cl.exe to parse incorrectly
+      if (arg.contains('.')) {
+        return Statistic::bad_compiler_arguments;
+      }
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      // -ifcOutput<path> (no extension)
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.output_bmi = arg.substr(pre.size());
+      }
+      // -ifcOutput <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.output_bmi = args[i];
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules name/path mapping options
+  {
+    std::string_view module_name_path;
+    std::string_view opt = arg;
+
+    // clang
+    if (const auto pre = "-fmodule-file="sv; util::starts_with(opt, pre)) {
+      const auto pos = pre.size();
+      module_name_path = opt.substr(pos);
+      state.common_args.push_back(arg);
+    }
+    // msvc
+    if (const auto pre = "-reference"sv; util::starts_with(opt, pre)) {
+      state.common_args.push_back(arg);
+      if (pre.size() < opt.size()) {
+        module_name_path = opt.substr(pre.size());
+      } else if (i != args.size() - 1) {
+        i += 1;
+        module_name_path = args[i];
+        state.common_args.push_back(args[i]);
+      }
+    }
+    // handle <name>=<path>
+    if (!module_name_path.empty()) {
+      if (const auto pos = module_name_path.find('=');
+          pos != std::string::npos) {
+        const auto name = module_name_path.substr(0, pos);
+        const auto path = module_name_path.substr(pos + 1);
+        args_info.cxx_modules.names_paths.emplace(name, path);
+      } else {
+        const auto& path = module_name_path;
+        args_info.cxx_modules.units_paths.emplace_back(path);
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules search dir
+  {
+    // clang
+    if (const auto pre = "-fprebuilt-module-path="sv;
+        util::starts_with(arg, pre)) {
+      const auto str = std::string_view(arg);
+      const auto pos = pre.size();
+      const auto search_dir = str.substr(pos);
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.search_dirs.emplace_back(search_dir);
+      return Statistic::none;
+    }
+    // msvc
+    if (const auto pre = "-ifcSearchDir"sv; util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.search_dirs.emplace_back(arg.substr(pre.size()));
+      } else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.search_dirs.emplace_back(args[i]);
+      }
+      return Statistic::none;
+    }
+  }
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
   if (compopt_takes_arg(arg) && compopt_takes_path(arg)) {
     if (i == args.size() - 1) {
       LOG("Missing argument to {}", args[i]);
@@ -1516,6 +1731,43 @@ process_args(Context& ctx)
   } else if (args_info.actual_language.empty()) {
     args_info.actual_language =
       language_for_file(args_info.input_file, config.compiler());
+  }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  if (detect_use_cxx_modules(ctx, state)) {
+    if (!config.depend_mode() || !config.direct_mode()) {
+      LOG_RAW(
+        "Compiling with C++20 modules requires ccache direct depend mode");
+      return tl::unexpected(Statistic::could_not_use_modules);
+    }
+    if (!config.cxx_modules_mode()) {
+      LOG_RAW(
+        "Compiling with C++20 modules requires ccache C++20 modules mode");
+      return tl::unexpected(Statistic::could_not_use_modules);
+    }
+  } else
+#endif
+    if (state.found_fmodules_opt
+        && ctx.config.compiler() == Compiler::type::clang) {
+    if (!config.depend_mode() || !config.direct_mode()) {
+      LOG_RAW(
+        "Compiling with Clang modules requires ccache direct depend mode");
+      return tl::unexpected(Statistic::could_not_use_modules);
+    }
+    if (!config.sloppiness().contains(core::Sloppy::clang_modules)) {
+      // Clang modules are handled on demand as necessary in the background,
+      // so there is no need to cache them, they can in practice be ignored.
+      // All that is needed is to correctly depend also on module.modulemap
+      // files, and those are included only in depend mode (preprocessed
+      // output does not list them). Still, not including the modules
+      // themselves in the hash could possibly result in an object file that
+      // would be different from the actual compilation (even though it should
+      // be compatible), so require a sloppiness flag.
+      LOG_RAW(
+        "Compiling with Clang modules requires specifying \"clang_modules\" "
+        "sloppiness");
+      return tl::unexpected(Statistic::could_not_use_modules);
+    }
   }
 
   args_info.output_is_precompiled_header =
