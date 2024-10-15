@@ -2670,8 +2670,9 @@ do_cache_compilation(Context& ctx)
   if (!ctx.args_info.output_dwo.empty()) {
     LOG("Split dwarf file: {}", ctx.args_info.output_dwo);
   }
-
-  LOG("Object file: {}", ctx.args_info.output_obj);
+  if (ctx.args_info.expect_output_obj) {
+    LOG("Object file: {}", ctx.args_info.output_obj);
+  }
 
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.apparent_cwd,
