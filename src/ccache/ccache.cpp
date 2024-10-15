@@ -2635,6 +2635,25 @@ do_cache_compilation(Context& ctx)
 
   LOG("Object file: {}", ctx.args_info.output_obj);
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  if (ctx.args_info.cxx_modules.generating_bmi) {
+    LOG("C++20 modules BMI file: {}", ctx.args_info.cxx_modules.output_bmi);
+  }
+  if (ctx.args_info.cxx_modules.generating_ddi) {
+    LOG("C++20 modules p1689 DDI file: {}",
+        ctx.args_info.cxx_modules.output_ddi);
+  }
+  for (const auto& [name, path] : ctx.args_info.cxx_modules.names_paths) {
+    LOG("C++20 modules name/path mapping: {}={}", name, path);
+  }
+  for (const auto& path : ctx.args_info.cxx_modules.units_paths) {
+    LOG("C++20 modules unit path: {}", path);
+  }
+  for (const auto& dir : ctx.args_info.cxx_modules.search_dirs) {
+    LOG("C++20 modules search dir: {}", dir);
+  }
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.apparent_cwd,
                                          ctx.config.debug_dir(),
