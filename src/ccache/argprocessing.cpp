@@ -620,11 +620,31 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     }
 
-    // MSVC /Tc and /Tp options in concatenated form for specifying input file.
-    if (arg.length() > 3 && util::starts_with(arg, "-T")
-        && (arg[2] == 'c' || arg[2] == 'p')) {
-      args_info.input_file_prefix = arg.substr(0, 3);
-      state.input_files.emplace_back(arg.substr(3));
+    if (const auto pre = "-Tc"sv; util::starts_with(arg, pre)) {
+      args_info.input_file_prefix = arg.substr(0, pre.size());
+      // Tc<path>
+      if (pre.size() < arg.size()) {
+        state.input_files.emplace_back(arg.substr(pre.size()));
+      }
+      // Tc <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.input_files.emplace_back(args[i]);
+      }
+      return Statistic::none;
+    }
+
+    if (const auto pre = "-Tp"sv; util::starts_with(arg, pre)) {
+      args_info.input_file_prefix = arg.substr(0, pre.size());
+      // Tp<path>
+      if (pre.size() < arg.size()) {
+        state.input_files.emplace_back(arg.substr(pre.size()));
+      }
+      // Tp <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.input_files.emplace_back(args[i]);
+      }
       return Statistic::none;
     }
 
