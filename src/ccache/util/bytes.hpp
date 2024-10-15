@@ -240,9 +240,9 @@ Bytes::insert(const uint8_t* pos, const char* data, size_t size) noexcept
 }
 
 inline void
-Bytes::insert(const uint8_t* pos, nonstd::span<const uint8_t> data) noexcept
+Bytes::insert(const uint8_t* pos, nonstd::span<const uint8_t> span) noexcept
 {
-  return insert(pos, &*data.begin(), &*data.end());
+  return insert(pos, span.data(), span.size());
 }
 
 } // namespace util
