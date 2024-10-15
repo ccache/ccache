@@ -1118,4 +1118,61 @@ TEST_CASE("MSVC specify object file options")
   }
 }
 
+TEST_CASE("MSVC specify source file type options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.c", "");
+  util::write_file("foo.cpp", "");
+
+  SUBCASE("cl /TC <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /TC foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.c");
+  }
+
+  SUBCASE("cl /Tc<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tcfoo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.c");
+  }
+
+  SUBCASE("cl /Tc <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tc foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.c");
+  }
+
+  SUBCASE("cl /TP <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /TP foo.cpp");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.cpp");
+  }
+
+  SUBCASE("cl /Tp<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tpfoo.cpp");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.cpp");
+  }
+
+  SUBCASE("cl /Tp <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tp foo.cpp");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.cpp");
+  }
+}
+
 TEST_SUITE_END();
