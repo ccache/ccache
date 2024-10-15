@@ -2673,6 +2673,29 @@ do_cache_compilation(Context& ctx)
   if (ctx.args_info.expect_output_obj) {
     LOG("Object file: {}", ctx.args_info.output_obj);
   }
+#ifdef CXX20_MODULE_FEATURES
+  if (!ctx.args_info.cxx_modules_output_bmi.empty()) {
+    LOG("C++20 modules bmi file: {}", ctx.args_info.cxx_modules_output_bmi);
+  }
+  if (!ctx.args_info.cxx_modules_output_ddi.empty()) {
+    LOG("C++20 modules ddi file: {}", ctx.args_info.cxx_modules_output_ddi);
+  }
+  if (util::logging::enabled()) {
+    for (const auto& [name, path] : ctx.args_info.cxx_modules_names_paths) {
+      LOG("C++20 modules name/path mapping: {}={}", name, path);
+    }
+  }
+  if (util::logging::enabled()) {
+    for (const auto& path : ctx.args_info.cxx_modules_units_paths) {
+      LOG("C++20 modules unit path: {}", path);
+    }
+  }
+  if (util::logging::enabled()) {
+    for (const auto& dir : ctx.args_info.cxx_modules_search_dirs) {
+      LOG("C++20 modules search dir: {}", dir);
+    }
+  }
+#endif
 
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.apparent_cwd,
