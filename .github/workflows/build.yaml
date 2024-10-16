@@ -83,14 +83,6 @@ jobs:
           #   compiler: gcc
           #   version: "14"
 
-          - os: macOS-12
-            compiler: xcode
-            version: "13.4.1"
-
-          - os: macOS-12
-            compiler: xcode
-            version: "14.2"
-
           - os: macOS-13
             compiler: xcode
             version: "15.0.1"
