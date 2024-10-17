@@ -330,7 +330,6 @@ jobs:
           - name: Windows VS2019 32-bit MSBuild
             os: windows-2019
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 16 2019
@@ -349,7 +348,6 @@ jobs:
           - name: Windows VS2019 64-bit MSBuild
             os: windows-2019
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 16 2019
@@ -359,7 +357,6 @@ jobs:
           - name: Windows VS2022 32-bit Ninja
             os: windows-2022
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
@@ -369,7 +366,6 @@ jobs:
           - name: Windows VS2022 32-bit MSBuild
             os: windows-2022
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
@@ -379,7 +375,6 @@ jobs:
           - name: Windows VS2022 64-bit Ninja
             os: windows-2022
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
@@ -389,7 +384,6 @@ jobs:
           - name: Windows VS2022 64-bit MSBuild
             os: windows-2022
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
