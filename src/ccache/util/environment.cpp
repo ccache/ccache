@@ -18,8 +18,12 @@
 
 #include "environment.hpp"
 
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/string.hpp>
 #include <ccache/util/wincompat.hpp>
+
+namespace fs = util::filesystem;
 
 namespace util {
 
@@ -78,6 +82,91 @@ expand_environment_variables(const std::string& str)
   result += left;
   return result;
 }
+
+#ifdef _WIN32
+
+static std::wstring
+wide_getenv(const char* name)
+{
+  std::vector<wchar_t> wname(strlen(name) + 1);
+  size_t n = mbstowcs(wname.data(), name, wname.size());
+  if (n == static_cast<size_t>(-1)) {
+    return {};
+  }
+
+  std::vector<wchar_t> value(1024);
+  auto len = GetEnvironmentVariableW(wname.data(), value.data(), value.size());
+  if (len == 0) {
+    // Variable not set.
+    return {};
+  }
+  if (len >= value.size()) {
+    // len is the number of needed characters including the terminating null.
+    value.resize(len);
+    len = GetEnvironmentVariableW(wname.data(), value.data(), value.size());
+  }
+  // len is the number of characters excluding the terminating null
+  return std::wstring(value.data(), len);
+}
+
+fs::path
+getenv_path(const char* name)
+{
+  return fs::path(wide_getenv(name));
+}
+
+std::vector<fs::path>
+getenv_path_list(const char* name)
+{
+  std::wstring value = wide_getenv(name);
+  if (value.empty()) {
+    return {};
+  }
+
+  std::vector<fs::path> result;
+  std::wstring_view view(value);
+  size_t left = 0;
+  while (left < view.size()) {
+    size_t right = view.find(';', left);
+    if (right == std::wstring_view::npos) {
+      right = view.length();
+    }
+    std::wstring_view path = view.substr(left, right - left);
+    if (!path.empty()) {
+      result.push_back(fs::path(path));
+    }
+    if (right == std::wstring_view::npos) {
+      break;
+    }
+    left = right + 1;
+  }
+  return result;
+}
+
+#else // _WIN32
+
+fs::path
+getenv_path(const char* name)
+{
+  const char* value = getenv(name);
+  return value ? value : "";
+}
+
+std::vector<fs::path>
+getenv_path_list(const char* name)
+{
+  const char* value = getenv(name);
+  if (!value) {
+    return {};
+  }
+
+  auto strings = split_into_views(value, ":");
+  std::vector<fs::path> paths;
+  std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
+  return paths;
+}
+
+#endif //_WIN32
 
 void
 setenv(const std::string& name, const std::string& value)

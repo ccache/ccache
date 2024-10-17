@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,9 @@
 
 #include <tl/expected.hpp>
 
+#include <filesystem>
 #include <string>
+#include <vector>
 
 namespace util {
 
@@ -28,6 +30,13 @@ namespace util {
 // in `str`.
 tl::expected<std::string, std::string>
 expand_environment_variables(const std::string& str);
+
+// Get value of environment variable `name` as a path.
+std::filesystem::path getenv_path(const char* name);
+
+// Get value of environment variable `name` as a vector of paths where the value
+// is delimited by ';' on Windows and ':' on other systems..
+std::vector<std::filesystem::path> getenv_path_list(const char* name);
 
 // Set environment variable `name` to `value`.
 void setenv(const std::string& name, const std::string& value);
