@@ -308,7 +308,7 @@ TEST_CASE("Config::update_from_environment")
   CHECK(!config.compression());
 }
 
-TEST_CASE("Config:atfile_format")
+TEST_CASE("Config::atfile_format")
 {
   Config config;
 
