@@ -308,13 +308,13 @@ TEST_CASE("Config::update_from_environment")
   CHECK(!config.compression());
 }
 
-TEST_CASE("Config::atfile_format")
+TEST_CASE("Config::response_file_format")
 {
   Config config;
 
   SUBCASE("from config gcc")
   {
-    util::write_file("ccache.conf", "atfile_format = gcc");
+    util::write_file("ccache.conf", "response_file_format = gcc");
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.atfile_format() == AtFileFormat::gcc);
@@ -322,7 +322,7 @@ TEST_CASE("Config::atfile_format")
 
   SUBCASE("from config msvc")
   {
-    util::write_file("ccache.conf", "atfile_format = msvc");
+    util::write_file("ccache.conf", "response_file_format = msvc");
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.atfile_format() == AtFileFormat::msvc);
@@ -331,7 +331,7 @@ TEST_CASE("Config::atfile_format")
   SUBCASE("from config msvc with clang compiler")
   {
     util::write_file("ccache.conf",
-                     "atfile_format = msvc\ncompiler_type = clang");
+                     "response_file_format = msvc\ncompiler_type = clang");
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.atfile_format() == AtFileFormat::msvc);
@@ -435,7 +435,6 @@ TEST_CASE("Config::visit_items")
   util::write_file(
     "test.conf",
     "absolute_paths_in_stderr = true\n"
-    "atfile_format = gcc\n"
 #ifndef _WIN32
     "base_dir = /bd\n"
 #else
@@ -477,6 +476,7 @@ TEST_CASE("Config::visit_items")
     "remote_only = true\n"
     "remote_storage = rs\n"
     "reshare = true\n"
+    "response_file_format = gcc\n"
     "run_second_cpp = false\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
@@ -498,7 +498,6 @@ TEST_CASE("Config::visit_items")
 
   std::vector<std::string> expected = {
     "(test.conf) absolute_paths_in_stderr = true",
-    "(test.conf) atfile_format = gcc",
 #ifndef _WIN32
     "(test.conf) base_dir = /bd",
 #else
@@ -540,6 +539,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) remote_only = true",
     "(test.conf) remote_storage = rs",
     "(test.conf) reshare = true",
+    "(test.conf) response_file_format = gcc",
     "(test.conf) run_second_cpp = false",
     "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
     " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"

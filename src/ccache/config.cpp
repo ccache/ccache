@@ -71,7 +71,6 @@ namespace {
 
 enum class ConfigItem {
   absolute_paths_in_stderr,
-  atfile_format,
   base_dir,
   cache_dir,
   compiler,
@@ -109,6 +108,7 @@ enum class ConfigItem {
   remote_only,
   remote_storage,
   reshare,
+  response_file_format,
   run_second_cpp,
   sloppiness,
   stats,
@@ -128,7 +128,6 @@ struct ConfigKeyTableEntry
 const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
   {
     {"absolute_paths_in_stderr", {ConfigItem::absolute_paths_in_stderr}},
-    {"atfile_format", {ConfigItem::atfile_format}},
     {"base_dir", {ConfigItem::base_dir}},
     {"cache_dir", {ConfigItem::cache_dir}},
     {"compiler", {ConfigItem::compiler}},
@@ -166,6 +165,7 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"remote_only", {ConfigItem::remote_only}},
     {"remote_storage", {ConfigItem::remote_storage}},
     {"reshare", {ConfigItem::reshare}},
+    {"response_file_format", {ConfigItem::response_file_format}},
     {"run_second_cpp", {ConfigItem::run_second_cpp}},
     {"secondary_storage", {ConfigItem::remote_storage, "remote_storage"}},
     {"sloppiness", {ConfigItem::sloppiness}},
@@ -177,7 +177,6 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"ABSSTDERR", "absolute_paths_in_stderr"},
-  {"ATFILE_FORMAT", "atfile_format"},
   {"BASEDIR", "base_dir"},
   {"CC", "compiler"}, // Alias for CCACHE_COMPILER
   {"COMMENTS", "keep_comments_cpp"},
@@ -217,6 +216,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"REMOTE_ONLY", "remote_only"},
   {"REMOTE_STORAGE", "remote_storage"},
   {"RESHARE", "reshare"},
+  {"RESPONSE_FILE_FORMAT", "response_file_format"},
   {"SECONDARY_STORAGE", "remote_storage"}, // Alias for CCACHE_REMOTE_STORAGE
   {"SLOPPINESS", "sloppiness"},
   {"STATS", "stats"},
@@ -226,7 +226,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
 };
 
 AtFileFormat
-parse_atfile_format(const std::string& value)
+parse_response_file_format(const std::string& value)
 {
   if (value == "msvc") {
     return AtFileFormat::msvc;
@@ -785,9 +785,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::absolute_paths_in_stderr:
     return format_bool(m_absolute_paths_in_stderr);
 
-  case ConfigItem::atfile_format:
-    return atfile_format_to_string(m_atfile_format);
-
   case ConfigItem::base_dir:
     return util::pstr(m_base_dir);
 
@@ -906,6 +903,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::reshare:
     return format_bool(m_reshare);
 
+  case ConfigItem::response_file_format:
+    return atfile_format_to_string(m_atfile_format);
+
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
 
@@ -1012,10 +1012,6 @@ Config::set_item(const std::string& key,
   switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
     m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
-    break;
-
-  case ConfigItem::atfile_format:
-    m_atfile_format = parse_atfile_format(value);
     break;
 
   case ConfigItem::base_dir:
@@ -1175,6 +1171,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::reshare:
     m_reshare = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::response_file_format:
+    m_atfile_format = parse_response_file_format(value);
     break;
 
   case ConfigItem::run_second_cpp:
