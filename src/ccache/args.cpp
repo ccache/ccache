@@ -72,7 +72,8 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
     switch (*pos) {
     case '\\':
       switch (format) {
-      default:
+      case AtFileFormat::auto_guess:
+        ASSERT(false); // Can't happen
         break;
       case AtFileFormat::gcc:
         pos++;
