@@ -46,7 +46,7 @@ enum class CompilerType {
 enum class AtFileFormat {
   gcc,  // '\'' and '"' quote, '\\' escapes any character
   msvc, // '"' quotes, '\\' escapes only '"' and '\\'
-  guess_from_compiler,
+  auto_guess,
 };
 
 std::string compiler_type_to_string(CompilerType compiler_type);
@@ -175,7 +175,7 @@ private:
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
-  AtFileFormat m_atfile_format = AtFileFormat::guess_from_compiler;
+  AtFileFormat m_atfile_format = AtFileFormat::auto_guess;
   std::filesystem::path m_base_dir;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
@@ -247,7 +247,7 @@ Config::absolute_paths_in_stderr() const
 inline AtFileFormat
 Config::atfile_format() const
 {
-  if (m_atfile_format != AtFileFormat::guess_from_compiler) {
+  if (m_atfile_format != AtFileFormat::auto_guess) {
     return m_atfile_format;
   }
 

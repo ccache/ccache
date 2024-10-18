@@ -50,7 +50,7 @@ Args::from_string(std::string_view command)
 std::optional<Args>
 Args::from_atfile(const std::string& filename, AtFileFormat format)
 {
-  ASSERT(format != AtFileFormat::guess_from_compiler);
+  ASSERT(format != AtFileFormat::auto_guess);
 
   const auto argtext = util::read_file<std::string>(filename);
   if (!argtext) {

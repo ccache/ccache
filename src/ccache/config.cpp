@@ -233,7 +233,7 @@ parse_atfile_format(const std::string& value)
   } else if (value == "gcc") {
     return AtFileFormat::gcc;
   } else {
-    throw core::Error(FMT("invalid value for atfile format: \"{}\"", value));
+    return AtFileFormat::auto_guess;
   }
 }
 
@@ -541,8 +541,8 @@ std::string
 atfile_format_to_string(AtFileFormat atfile_format)
 {
   switch (atfile_format) {
-  case AtFileFormat::guess_from_compiler:
-    return "guess_from_compiler";
+  case AtFileFormat::auto_guess:
+    return "auto";
   case AtFileFormat::gcc:
     return "gcc";
   case AtFileFormat::msvc:
