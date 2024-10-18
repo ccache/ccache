@@ -228,9 +228,9 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
 AtFileFormat
 parse_response_file_format(const std::string& value)
 {
-  if (value == "msvc") {
+  if (value == "windows") {
     return AtFileFormat::msvc;
-  } else if (value == "gcc") {
+  } else if (value == "posix") {
     return AtFileFormat::gcc;
   } else {
     return AtFileFormat::auto_guess;
@@ -544,9 +544,9 @@ atfile_format_to_string(AtFileFormat atfile_format)
   case AtFileFormat::auto_guess:
     return "auto";
   case AtFileFormat::gcc:
-    return "gcc";
+    return "posix";
   case AtFileFormat::msvc:
-    return "msvc";
+    return "windows";
   }
 
   ASSERT(false);
