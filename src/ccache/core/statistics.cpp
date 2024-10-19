@@ -127,8 +127,10 @@ const StatisticsField k_statistics_fields[] = {
   // The compiler to execute could not be found.
   FIELD(could_not_find_compiler, "Could not find compiler", FLAG_ERROR),
 
-  // Preconditions for using C++ modules were not fulfilled.
-  FIELD(could_not_use_modules, "Could not use modules", FLAG_UNCACHEABLE),
+  // Preconditions for using Clang modules were not fulfilled.
+  FIELD(could_not_use_clang_modules,
+        "Could not use Clang modules",
+        FLAG_UNCACHEABLE),
 
   // Preconditions for using precompiled headers were not fulfilled.
   FIELD(could_not_use_precompiled_header,

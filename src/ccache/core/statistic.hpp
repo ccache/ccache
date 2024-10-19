@@ -54,7 +54,7 @@ enum class Statistic {
   cleanups_performed = 29,
   unsupported_code_directive = 30,
   stats_zeroed_timestamp = 31,
-  could_not_use_modules = 32,
+  could_not_use_clang_modules = 32,
   direct_cache_miss = 33,
   preprocessed_cache_miss = 34,
   local_storage_read_hit = 35,
