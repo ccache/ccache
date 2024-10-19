@@ -308,6 +308,52 @@ TEST_CASE("Config::update_from_environment")
   CHECK(!config.compression());
 }
 
+TEST_CASE("Config::response_file_format")
+{
+  Config config;
+
+  SUBCASE("from config gcc")
+  {
+    util::write_file("ccache.conf", "response_file_format = posix");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::gcc);
+  }
+
+  SUBCASE("from config msvc")
+  {
+    util::write_file("ccache.conf", "response_file_format = windows");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::msvc);
+  }
+
+  SUBCASE("from config msvc with clang compiler")
+  {
+    util::write_file("ccache.conf",
+                     "response_file_format = windows\ncompiler_type = clang");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::msvc);
+  }
+
+  SUBCASE("guess from compiler gcc")
+  {
+    util::write_file("ccache.conf", "compiler_type = clang");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::gcc);
+  }
+
+  SUBCASE("guess from compiler msvc")
+  {
+    util::write_file("ccache.conf", "compiler_type = msvc");
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.atfile_format() == AtFileFormat::msvc);
+  }
+}
+
 TEST_CASE("Config::set_value_in_file")
 {
   TestContext test_context;
@@ -430,6 +476,7 @@ TEST_CASE("Config::visit_items")
     "remote_only = true\n"
     "remote_storage = rs\n"
     "reshare = true\n"
+    "response_file_format = posix\n"
     "run_second_cpp = false\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
@@ -492,6 +539,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) remote_only = true",
     "(test.conf) remote_storage = rs",
     "(test.conf) reshare = true",
+    "(test.conf) response_file_format = posix",
     "(test.conf) run_second_cpp = false",
     "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
     " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"
