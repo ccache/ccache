@@ -103,5 +103,5 @@ ProgressBar::update(double value)
           unfilled_bar_width);
   }
 
-  fflush(stdout);
+  std::ignore = fflush(stdout);
 }

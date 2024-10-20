@@ -100,7 +100,7 @@ SignalHandler::on_signal(int signum)
 
   // Unregister handler for this signal so that we can send the signal to
   // ourselves at the end of the handler.
-  signal(signum, SIG_DFL);
+  std::ignore = signal(signum, SIG_DFL);
 
   // If ccache was killed explicitly, then bring the compiler subprocess (if
   // any) with us as well.
