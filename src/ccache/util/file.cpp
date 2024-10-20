@@ -318,7 +318,7 @@ tl::expected<T, std::string>
 read_file(const fs::path& path, size_t size_hint)
 {
   const int open_flags = [] {
-    if constexpr (std::is_same<T, std::string>::value) {
+    if constexpr (std::is_same_v<T, std::string>) {
       return O_RDONLY | O_TEXT;
     } else {
       return O_RDONLY | O_BINARY;
@@ -376,7 +376,7 @@ read_file(const fs::path& path, size_t size_hint)
   result.resize(pos);
 
 #ifdef _WIN32
-  if constexpr (std::is_same<T, std::string>::value) {
+  if constexpr (std::is_same_v<T, std::string>) {
     // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
     if (has_utf16_le_bom(result)) {
       result.erase(0, 2); // Remove BOM.
