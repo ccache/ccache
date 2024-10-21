@@ -67,8 +67,9 @@ Context::initialize(Args&& compiler_and_args,
   // initial configuration file. The intention is that all files and directories
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
-  if (config.umask()) {
-    original_umask = util::set_umask(*config.umask());
+  auto mask = config.umask();
+  if (mask) {
+    original_umask = util::set_umask(*mask);
   }
 }
 
