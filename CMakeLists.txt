@@ -80,6 +80,7 @@ include(EnableCcache)
 #
 
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
+option(REDISS_STORAGE_BACKEND "Enable Redis SSL remote storage" OFF)
 option(ENABLE_TESTING "Enable tests" ON)
 
 include(InstallDirs)
