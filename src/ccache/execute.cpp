@@ -300,13 +300,16 @@ execute(Context& ctx,
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 
+  util::Fd out(std::move(fd_out));
+  util::Fd err(std::move(fd_err));
+
   posix_spawn_file_actions_t fa;
 
   CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
-  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *fd_out, STDOUT_FILENO);
-  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *fd_out);
-  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *fd_err, STDERR_FILENO);
-  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *fd_err);
+  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *out, STDOUT_FILENO);
+  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *out);
+  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *err, STDERR_FILENO);
+  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *err);
 
   int result;
   {
@@ -321,8 +324,8 @@ execute(Context& ctx,
   }
 
   posix_spawn_file_actions_destroy(&fa);
-  fd_out.close();
-  fd_err.close();
+  out.close();
+  err.close();
 
   if (result != 0) {
     return -1;
