@@ -78,7 +78,7 @@ public:
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
-  const std::string m_prefix;
+  std::string m_prefix;
   RedisContext m_context;
 
   void

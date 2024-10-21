@@ -56,7 +56,7 @@ public:
 private:
   enum class Layout { bazel, flat, subdirs };
 
-  const std::string m_url_path;
+  std::string m_url_path;
   httplib::Client m_http_client;
   Layout m_layout = Layout::subdirs;
 
