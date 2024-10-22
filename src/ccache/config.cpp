@@ -111,6 +111,7 @@ enum class ConfigItem {
   remote_only,
   remote_storage,
   reshare,
+  response_file_format,
   run_second_cpp,
   sloppiness,
   stats,
@@ -167,6 +168,7 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"remote_only", {ConfigItem::remote_only}},
     {"remote_storage", {ConfigItem::remote_storage}},
     {"reshare", {ConfigItem::reshare}},
+    {"response_file_format", {ConfigItem::response_file_format}},
     {"run_second_cpp", {ConfigItem::run_second_cpp}},
     {"secondary_storage", {ConfigItem::remote_storage, "remote_storage"}},
     {"sloppiness", {ConfigItem::sloppiness}},
@@ -217,6 +219,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"REMOTE_ONLY", "remote_only"},
   {"REMOTE_STORAGE", "remote_storage"},
   {"RESHARE", "reshare"},
+  {"RESPONSE_FILE_FORMAT", "response_file_format"},
   {"SECONDARY_STORAGE", "remote_storage"}, // Alias for CCACHE_REMOTE_STORAGE
   {"SLOPPINESS", "sloppiness"},
   {"STATS", "stats"},
@@ -224,6 +227,18 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"TEMPDIR", "temporary_dir"},
   {"UMASK", "umask"},
 };
+
+AtFileFormat
+parse_response_file_format(const std::string& value)
+{
+  if (value == "windows") {
+    return AtFileFormat::msvc;
+  } else if (value == "posix") {
+    return AtFileFormat::gcc;
+  } else {
+    return AtFileFormat::auto_guess;
+  }
+}
 
 bool
 parse_bool(const std::string& value,
@@ -523,6 +538,21 @@ home_directory()
   throw core::Fatal(
     "Could not determine home directory from $HOME or getpwuid(3)");
 #endif
+}
+
+std::string
+atfile_format_to_string(AtFileFormat atfile_format)
+{
+  switch (atfile_format) {
+  case AtFileFormat::auto_guess:
+    return "auto";
+  case AtFileFormat::gcc:
+    return "posix";
+  case AtFileFormat::msvc:
+    return "windows";
+  }
+
+  ASSERT(false);
 }
 
 std::string
@@ -876,6 +906,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::reshare:
     return format_bool(m_reshare);
 
+  case ConfigItem::response_file_format:
+    return atfile_format_to_string(m_atfile_format);
+
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
 
@@ -1141,6 +1174,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::reshare:
     m_reshare = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::response_file_format:
+    m_atfile_format = parse_response_file_format(value);
     break;
 
   case ConfigItem::run_second_cpp:
