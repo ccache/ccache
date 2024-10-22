@@ -621,7 +621,7 @@ tl::expected<void, std::string>
 traverse_directory(const fs::path& directory,
                    const TraverseDirectoryVisitor& visitor)
 {
-  // Note: Intentionally not using std::filesystem::recursive_directory_iterator
+  // Note: Intentionally not using fs::recursive_directory_iterator
   // since it visits directories in preorder.
 
   DirEntry dir_entry(directory);
@@ -633,7 +633,7 @@ traverse_directory(const fs::path& directory,
   }
 
   try {
-    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    for (const auto& entry : fs::directory_iterator(directory)) {
       if (entry.is_directory()) {
         traverse_directory(entry.path(), visitor);
       } else {

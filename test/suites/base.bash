@@ -284,8 +284,9 @@ fi
     # -------------------------------------------------------------------------
     TEST "Too new source file"
 
+    futuretimestamp=$(expr 1 + $(date -u +%Y))01030000
     touch new.c
-    touch -t 203801010000 new.c
+    touch -t $futuretimestamp new.c
 
     $CCACHE_COMPILE -c new.c
     expect_stat modified_input_file 1
@@ -304,7 +305,7 @@ EOF
     cat <<EOF >new.h
 int test;
 EOF
-    touch -t 203801010000 new.h
+    touch -t $futuretimestamp new.h
 
     $CCACHE_COMPILE -c new.c
     expect_stat modified_input_file 1
@@ -318,7 +319,7 @@ EOF
     TEST "Too new source file ignored if sloppy"
 
     touch new.c
-    touch -t 203801010000 new.c
+    touch -t $futuretimestamp new.c
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
     expect_stat cache_miss 1

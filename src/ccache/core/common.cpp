@@ -79,8 +79,8 @@ ensure_dir_exists(const fs::path& dir)
   }
 }
 
-std::filesystem::path
-make_relative_path(const Context& ctx, const std::filesystem::path& path)
+fs::path
+make_relative_path(const Context& ctx, const fs::path& path)
 {
   if (!ctx.config.base_dir().empty() && path.is_absolute()
       && util::path_starts_with(path, ctx.config.base_dir())) {

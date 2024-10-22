@@ -240,9 +240,7 @@ delete_file(const DirEntry& dir_entry,
 // to a temporary file and then renamed to `dest`. Throws `core::Error` on
 // error.
 static void
-clone_file(const std::filesystem::path& src,
-           const std::filesystem::path& dest,
-           bool via_tmp_file)
+clone_file(const fs::path& src, const fs::path& dest, bool via_tmp_file)
 {
 #  if defined(__linux__)
   util::Fd src_fd(open(util::pstr(src).c_str(), O_RDONLY));

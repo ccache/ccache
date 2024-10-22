@@ -254,7 +254,7 @@ struct InodeCache::SharedRegion
 };
 
 bool
-InodeCache::mmap_file(const std::filesystem::path& path)
+InodeCache::mmap_file(const fs::path& path)
 {
   m_sr = nullptr;
   m_map.unmap();

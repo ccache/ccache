@@ -215,7 +215,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 }
 
 void
-ResultRetriever::write_dependency_file(const std::filesystem::path& path,
+ResultRetriever::write_dependency_file(const fs::path& path,
                                        nonstd::span<const uint8_t> data)
 {
   ASSERT(m_ctx.args_info.dependency_target);

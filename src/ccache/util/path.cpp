@@ -67,7 +67,7 @@ get_dev_null_path()
   return k_dev_null_path;
 }
 
-std::filesystem::path
+fs::path
 make_relative_path(const fs::path& actual_cwd,
                    const fs::path& apparent_cwd,
                    const fs::path& path)

@@ -349,8 +349,7 @@ execute(Context& ctx,
 }
 
 void
-execute_noreturn(const char* const* argv,
-                 const std::filesystem::path& /*temp_dir*/)
+execute_noreturn(const char* const* argv, const fs::path& /*temp_dir*/)
 {
   execv(argv[0], const_cast<char* const*>(argv));
 }
