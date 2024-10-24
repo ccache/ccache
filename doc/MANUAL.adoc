@@ -514,7 +514,7 @@ relative paths in the first place instead of using *base_dir*.
 +
 On non-Windows systems, the default is `$HOME/.ccache` if such a directory
 exists, otherwise `$XDG_CACHE_HOME/ccache` if `XDG_CACHE_HOME` is set, otherwise
-`$HOME/Library/Caches/ccache` (macOS) or `$HOME/.config/ccache` (other systems).
+`$HOME/Library/Caches/ccache` (macOS) or `$HOME/.cache/ccache` (other systems).
 +
 On Windows, the default is `%USERPROFILE%\.ccache` if such a directory exists,
 otherwise `%LOCALAPPDATA%\ccache`.
