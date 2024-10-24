@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <ccache/args.hpp>
 #include <ccache/core/sloppiness.hpp>
 #include <ccache/util/noncopyable.hpp>
 #include <ccache/util/string.hpp>
@@ -43,12 +44,6 @@ enum class CompilerType {
   other
 };
 
-enum class AtFileFormat {
-  gcc,  // '\'' and '"' quote, '\\' escapes any character
-  msvc, // '"' quotes, '\\' escapes only '"' and '\\'
-  auto_guess,
-};
-
 std::string compiler_type_to_string(CompilerType compiler_type);
 
 class Config : util::NonCopyable
@@ -59,7 +54,7 @@ public:
   void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
-  AtFileFormat atfile_format() const;
+  Args::ResponseFileFormat response_file_format() const;
   const std::filesystem::path& base_dir() const;
   const std::filesystem::path& cache_dir() const;
   const std::string& compiler() const;
@@ -175,7 +170,8 @@ private:
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
-  AtFileFormat m_atfile_format = AtFileFormat::auto_guess;
+  Args::ResponseFileFormat m_response_file_format =
+    Args::ResponseFileFormat::auto_guess;
   std::filesystem::path m_base_dir;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
@@ -244,18 +240,15 @@ Config::absolute_paths_in_stderr() const
   return m_absolute_paths_in_stderr;
 }
 
-inline AtFileFormat
-Config::atfile_format() const
+inline Args::ResponseFileFormat
+Config::response_file_format() const
 {
-  if (m_atfile_format != AtFileFormat::auto_guess) {
-    return m_atfile_format;
+  if (m_response_file_format != Args::ResponseFileFormat::auto_guess) {
+    return m_response_file_format;
   }
 
-  if (is_compiler_group_msvc()) {
-    return AtFileFormat::msvc;
-  }
-
-  return AtFileFormat::gcc;
+  return is_compiler_group_msvc() ? Args::ResponseFileFormat::windows
+                                  : Args::ResponseFileFormat::posix;
 }
 
 inline const std::filesystem::path&

@@ -994,16 +994,17 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
 [#config_response_file_format]
 *response_file_format* (*CCACHE_RESPONSE_FILE_FORMAT*)::
 
-    Ccache normally guesses the response file format based on the compiler type. The
-    *response_file_format* option lets you force the response file quoting behavior.
-    This can be useful if the compiler supports both posix and windows response file
-    quoting. Possible values are:
+    Ccache normally guesses the response file format based on the compiler type.
+    The *response_file_format* option lets you force the response file quoting
+    behavior. This can be useful if the compiler supports both POSIX and Windows
+    response file quoting. Possible values are:
 +
 --
 *auto*::
-    Guess one of the formats below based on the compiler type. This is the default.
+    Guess one of the formats below based on the compiler type. This is the
+    default.
 *posix*::
-    Posix quoting behavior.
+    POSIX quoting behavior.
 *windows*::
     Windows quoting behavior.
 --

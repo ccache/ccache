@@ -228,15 +228,15 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"UMASK", "umask"},
 };
 
-AtFileFormat
+Args::ResponseFileFormat
 parse_response_file_format(const std::string& value)
 {
-  if (value == "windows") {
-    return AtFileFormat::msvc;
-  } else if (value == "posix") {
-    return AtFileFormat::gcc;
+  if (value == "posix") {
+    return Args::ResponseFileFormat::posix;
+  } else if (value == "windows") {
+    return Args::ResponseFileFormat::windows;
   } else {
-    return AtFileFormat::auto_guess;
+    return Args::ResponseFileFormat::auto_guess;
   }
 }
 
@@ -541,14 +541,14 @@ home_directory()
 }
 
 std::string
-atfile_format_to_string(AtFileFormat atfile_format)
+response_file_format_to_string(Args::ResponseFileFormat response_file_format)
 {
-  switch (atfile_format) {
-  case AtFileFormat::auto_guess:
+  switch (response_file_format) {
+  case Args::ResponseFileFormat::auto_guess:
     return "auto";
-  case AtFileFormat::gcc:
+  case Args::ResponseFileFormat::posix:
     return "posix";
-  case AtFileFormat::msvc:
+  case Args::ResponseFileFormat::windows:
     return "windows";
   }
 
@@ -907,7 +907,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_reshare);
 
   case ConfigItem::response_file_format:
-    return atfile_format_to_string(m_atfile_format);
+    return response_file_format_to_string(m_response_file_format);
 
   case ConfigItem::run_second_cpp:
     return format_bool(m_run_second_cpp);
@@ -1177,7 +1177,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::response_file_format:
-    m_atfile_format = parse_response_file_format(value);
+    m_response_file_format = parse_response_file_format(value);
     break;
 
   case ConfigItem::run_second_cpp:

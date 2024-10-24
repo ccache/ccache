@@ -79,44 +79,46 @@ TEST_CASE("Args::from_string")
   CHECK(args[3] == "f");
 }
 
-TEST_CASE("Args::from_atfile")
+TEST_CASE("Args::from_response_file")
 {
   TestContext test_context;
+  using ResponseFileFormat = Args::ResponseFileFormat;
 
   Args args;
 
   SUBCASE("Nonexistent file")
   {
-    CHECK(Args::from_atfile("at_file", AtFileFormat::gcc) == std::nullopt);
+    CHECK(Args::from_response_file("rsp_file", ResponseFileFormat::posix)
+          == std::nullopt);
   }
 
   SUBCASE("Empty")
   {
-    util::write_file("at_file", "");
-    args = *Args::from_atfile("at_file", AtFileFormat::gcc);
+    util::write_file("rsp_file", "");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 0);
   }
 
   SUBCASE("One argument without newline")
   {
-    util::write_file("at_file", "foo");
-    args = *Args::from_atfile("at_file", AtFileFormat::gcc);
+    util::write_file("rsp_file", "foo");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 1);
     CHECK(args[0] == "foo");
   }
 
   SUBCASE("One argument with newline")
   {
-    util::write_file("at_file", "foo\n");
-    args = *Args::from_atfile("at_file", AtFileFormat::gcc);
+    util::write_file("rsp_file", "foo\n");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 1);
     CHECK(args[0] == "foo");
   }
 
   SUBCASE("Multiple simple arguments")
   {
-    util::write_file("at_file", "x y z\n");
-    args = *Args::from_atfile("at_file", AtFileFormat::gcc);
+    util::write_file("rsp_file", "x y z\n");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 3);
     CHECK(args[0] == "x");
     CHECK(args[1] == "y");
@@ -126,10 +128,10 @@ TEST_CASE("Args::from_atfile")
   SUBCASE("Tricky quoting")
   {
     util::write_file(
-      "at_file",
+      "rsp_file",
       "first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
       " 'seve\nth'\\");
-    args = *Args::from_atfile("at_file", AtFileFormat::gcc);
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 7);
     CHECK(args[0] == "first");
     CHECK(args[1] == "sec\tond");
@@ -142,8 +144,8 @@ TEST_CASE("Args::from_atfile")
 
   SUBCASE("Ignore single quote in MSVC format")
   {
-    util::write_file("at_file", "'a b'");
-    args = *Args::from_atfile("at_file", AtFileFormat::msvc);
+    util::write_file("rsp_file", "'a b'");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 2);
     CHECK(args[0] == "'a");
     CHECK(args[1] == "b'");
@@ -151,24 +153,24 @@ TEST_CASE("Args::from_atfile")
 
   SUBCASE("Backslash as directory separator in MSVC format")
   {
-    util::write_file("at_file", R"("-DDIRSEP='A\B\C'")");
-    args = *Args::from_atfile("at_file", AtFileFormat::msvc);
+    util::write_file("rsp_file", R"("-DDIRSEP='A\B\C'")");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 1);
     CHECK(args[0] == R"(-DDIRSEP='A\B\C')");
   }
 
   SUBCASE("Backslash before quote in MSVC format")
   {
-    util::write_file("at_file", R"(/Fo"N.dir\Release\\")");
-    args = *Args::from_atfile("at_file", AtFileFormat::msvc);
+    util::write_file("rsp_file", R"(/Fo"N.dir\Release\\")");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 1);
     CHECK(args[0] == R"(/FoN.dir\Release\)");
   }
 
   SUBCASE("Arguments on multiple lines in MSVC format")
   {
-    util::write_file("at_file", "a\nb");
-    args = *Args::from_atfile("at_file", AtFileFormat::msvc);
+    util::write_file("rsp_file", "a\nb");
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 2);
     CHECK(args[0] == "a");
     CHECK(args[1] == "b");
@@ -177,11 +179,11 @@ TEST_CASE("Args::from_atfile")
   SUBCASE("Tricky quoting in MSVC format (#1247)")
   {
     util::write_file(
-      "at_file",
+      "rsp_file",
       R"(\ \\ '\\' "\\" '"\\"' "'\\'" '''\\''' ''"\\"'' '"'\\'"' '""\\""' "''\\''" "'"\\"'" ""'\\'"" """\\""" )"
       R"(\'\' '\'\'' "\'\'" ''\'\''' '"\'\'"' "'\'\''" ""\'\'"" '''\'\'''' ''"\'\'"'' '"'\'\''"' '""\'\'""' "''\'\'''" "'"\'\'"'" ""'\'\''"" """\'\'""" )"
       R"(\"\" '\"\"' "\"\"" ''\"\"'' '"\"\""' "'\"\"'" ""\"\""" '''\"\"''' ''"\"\""'' '"'\"\"'"' '""\"\"""' "''\"\"''" "'"\"\""'" ""'\"\"'"" """\"\"""")");
-    args = *Args::from_atfile("at_file", AtFileFormat::msvc);
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 44);
     CHECK(args[0] == R"(\)");
     CHECK(args[1] == R"(\\)");
@@ -233,12 +235,12 @@ TEST_CASE("Args::from_atfile")
   {
     // See
     // https://learn.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
-    util::write_file("at_file",
+    util::write_file("rsp_file",
                      R"("abc" d e )"
                      R"(a\\\b d"e f"g h )"
                      R"(a\\\"b c d )"
                      R"(a\\\\"b c" d e)");
-    args = *Args::from_atfile("at_file", AtFileFormat::msvc);
+    args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 12);
     CHECK(args[0] == R"(abc)");
     CHECK(args[1] == R"(d)");

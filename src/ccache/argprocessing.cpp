@@ -399,7 +399,8 @@ process_option_arg(const Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
-    auto file_args = Args::from_atfile(argpath, config.atfile_format());
+    auto file_args =
+      Args::from_response_file(argpath, config.response_file_format());
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -422,7 +423,8 @@ process_option_arg(const Context& ctx,
     // Argument is a comma-separated list of files.
     auto paths = util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args = Args::from_atfile(*it, AtFileFormat::gcc);
+      auto file_args =
+        Args::from_response_file(*it, Args::ResponseFileFormat::posix);
       if (!file_args) {
         LOG("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;

@@ -310,6 +310,8 @@ TEST_CASE("Config::update_from_environment")
 
 TEST_CASE("Config::response_file_format")
 {
+  using ResponseFileFormat = Args::ResponseFileFormat;
+
   Config config;
 
   SUBCASE("from config gcc")
@@ -317,7 +319,7 @@ TEST_CASE("Config::response_file_format")
     util::write_file("ccache.conf", "response_file_format = posix");
     CHECK(config.update_from_file("ccache.conf"));
 
-    CHECK(config.atfile_format() == AtFileFormat::gcc);
+    CHECK(config.response_file_format() == ResponseFileFormat::posix);
   }
 
   SUBCASE("from config msvc")
@@ -325,7 +327,7 @@ TEST_CASE("Config::response_file_format")
     util::write_file("ccache.conf", "response_file_format = windows");
     CHECK(config.update_from_file("ccache.conf"));
 
-    CHECK(config.atfile_format() == AtFileFormat::msvc);
+    CHECK(config.response_file_format() == ResponseFileFormat::windows);
   }
 
   SUBCASE("from config msvc with clang compiler")
@@ -334,7 +336,7 @@ TEST_CASE("Config::response_file_format")
                      "response_file_format = windows\ncompiler_type = clang");
     CHECK(config.update_from_file("ccache.conf"));
 
-    CHECK(config.atfile_format() == AtFileFormat::msvc);
+    CHECK(config.response_file_format() == ResponseFileFormat::windows);
   }
 
   SUBCASE("guess from compiler gcc")
@@ -342,7 +344,7 @@ TEST_CASE("Config::response_file_format")
     util::write_file("ccache.conf", "compiler_type = clang");
     CHECK(config.update_from_file("ccache.conf"));
 
-    CHECK(config.atfile_format() == AtFileFormat::gcc);
+    CHECK(config.response_file_format() == ResponseFileFormat::posix);
   }
 
   SUBCASE("guess from compiler msvc")
@@ -350,7 +352,7 @@ TEST_CASE("Config::response_file_format")
     util::write_file("ccache.conf", "compiler_type = msvc");
     CHECK(config.update_from_file("ccache.conf"));
 
-    CHECK(config.atfile_format() == AtFileFormat::msvc);
+    CHECK(config.response_file_format() == ResponseFileFormat::windows);
   }
 }
 
