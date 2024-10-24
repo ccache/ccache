@@ -159,4 +159,23 @@ struct ArgsInfo
 
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
+
+#ifdef CXX20_MODULE_FEATURES
+  std::string ddi_format;
+
+  bool cxx_modules_precompiling_bmi = false;
+
+  bool cxx_modules_generating_bmi = false;
+
+  std::filesystem::path cxx_modules_output_bmi;
+
+  std::filesystem::path cxx_modules_output_ddi;
+
+  std::unordered_map<std::string, std::filesystem::path>
+    cxx_modules_names_paths;
+
+  std::vector<std::filesystem::path> cxx_modules_units_paths;
+
+  std::vector<std::filesystem::path> cxx_modules_search_dirs;
+#endif
 };
