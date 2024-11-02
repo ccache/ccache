@@ -186,7 +186,7 @@ get_diagnostics_path_length(std::string_view line)
           || (line[0] >= 'a' && line[0] <= 'z'))) {
     path_end = line.find(':', 3);
     if (path_end == std::string_view::npos) {
-      // Treat the dirve letter as "path".
+      // Treat the drive letter as "path".
       path_end = 1;
     }
   } else {
