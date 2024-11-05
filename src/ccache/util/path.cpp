@@ -128,14 +128,24 @@ path_starts_with(const fs::path& path, const fs::path& prefix)
   // Note: Not all paths on Windows are case insensitive, but for our purposes
   // (checking whether a path is below the base directory) users will expect
   // them to be.
-  fs::path p1 = util::to_lowercase(path.string());
-  fs::path p2 = util::to_lowercase(prefix.string());
+  fs::path p1 = util::to_lowercase(path.lexically_normal().string());
+  fs::path p2 = util::to_lowercase(prefix.lexically_normal().string());
 #else
   const fs::path& p1 = path;
   const fs::path& p2 = prefix;
 #endif
-  return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2.end()).second
-         == p2.end();
+
+  // Skip empty part at the end that originates from a trailing slash.
+  auto p2_end = p2.end();
+  if (!p2.empty()) {
+    --p2_end;
+    if (!p2_end->empty()) {
+      ++p2_end;
+    }
+  }
+
+  return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2_end).second
+         == p2_end;
 }
 
 } // namespace util
