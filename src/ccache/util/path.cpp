@@ -77,6 +77,11 @@ make_relative_path(const fs::path& actual_cwd,
   DEBUG_ASSERT(path.is_absolute());
 
   fs::path normalized_path = path.lexically_normal();
+  if (!normalized_path.has_filename()) {
+    // Skip trailing slash since fs::equivalent doesn't work otherwise on
+    // Windows.
+    normalized_path = normalized_path.parent_path();
+  }
   fs::path closest_existing_path = normalized_path;
   std::vector<fs::path> relpath_candidates;
   fs::path path_suffix;

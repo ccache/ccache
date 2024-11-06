@@ -101,6 +101,8 @@ TEST_CASE("util::make_relative_path")
 
   SUBCASE("Match of actual CWD")
   {
+    REQUIRE(fs::create_directory("d"));
+
     CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "/x")
           == "x");
     CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "/d")
