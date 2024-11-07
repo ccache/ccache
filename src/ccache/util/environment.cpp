@@ -85,20 +85,20 @@ expand_environment_variables(const std::string& str)
 
 #ifdef _WIN32
 
-static std::wstring
+static std::optional<std::wstring>
 wide_getenv(const char* name)
 {
   std::vector<wchar_t> wname(strlen(name) + 1);
   size_t n = mbstowcs(wname.data(), name, wname.size());
   if (n == static_cast<size_t>(-1)) {
-    return {};
+    return std::nullopt;
   }
 
   std::vector<wchar_t> value(1024);
   auto len = GetEnvironmentVariableW(wname.data(), value.data(), value.size());
   if (len == 0) {
     // Variable not set.
-    return {};
+    return std::nullopt;
   }
   if (len >= value.size()) {
     // len is the number of needed characters including the terminating null.
@@ -109,22 +109,23 @@ wide_getenv(const char* name)
   return std::wstring(value.data(), len);
 }
 
-fs::path
+std::optional<fs::path>
 getenv_path(const char* name)
 {
-  return fs::path(wide_getenv(name));
+  auto value = wide_getenv(name);
+  return value ? std::optional(fs::path(*value)) : std::nullopt;
 }
 
 std::vector<fs::path>
 getenv_path_list(const char* name)
 {
-  std::wstring value = wide_getenv(name);
-  if (value.empty()) {
+  auto value = wide_getenv(name);
+  if (!value) {
     return {};
   }
 
   std::vector<fs::path> result;
-  std::wstring_view view(value);
+  std::wstring_view view(*value);
   size_t left = 0;
   while (left < view.size()) {
     size_t right = view.find(';', left);
@@ -145,11 +146,11 @@ getenv_path_list(const char* name)
 
 #else // _WIN32
 
-fs::path
+std::optional<fs::path>
 getenv_path(const char* name)
 {
   const char* value = getenv(name);
-  return value ? value : "";
+  return value ? std::optional(value) : std::nullopt;
 }
 
 std::vector<fs::path>

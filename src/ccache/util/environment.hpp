@@ -21,6 +21,7 @@
 #include <tl/expected.hpp>
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,7 +33,7 @@ tl::expected<std::string, std::string>
 expand_environment_variables(const std::string& str);
 
 // Get value of environment variable `name` as a path.
-std::filesystem::path getenv_path(const char* name);
+std::optional<std::filesystem::path> getenv_path(const char* name);
 
 // Get value of environment variable `name` as a vector of paths where the value
 // is delimited by ';' on Windows and ':' on other systems..
