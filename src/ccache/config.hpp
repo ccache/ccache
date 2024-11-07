@@ -21,6 +21,7 @@
 #include <ccache/args.hpp>
 #include <ccache/core/sloppiness.hpp>
 #include <ccache/util/noncopyable.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 
 #include <sys/types.h>
@@ -533,13 +534,13 @@ Config::size_unit_prefix_type() const
 inline void
 Config::set_base_dir(const std::filesystem::path& value)
 {
-  m_base_dir = value;
+  m_base_dir = util::lexically_normal(value);
 }
 
 inline void
 Config::set_cache_dir(const std::filesystem::path& value)
 {
-  m_cache_dir = value;
+  m_cache_dir = util::lexically_normal(value);
   if (!m_temporary_dir_configured_explicitly) {
     m_temporary_dir = default_temporary_dir();
   }
@@ -626,5 +627,5 @@ Config::set_run_second_cpp(bool value)
 inline void
 Config::set_temporary_dir(const std::filesystem::path& value)
 {
-  m_temporary_dir = value;
+  m_temporary_dir = util::lexically_normal(value);
 }

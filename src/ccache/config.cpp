@@ -708,13 +708,13 @@ Config::system_config_path() const
 void
 Config::set_config_path(const fs::path& path)
 {
-  m_config_path = path;
+  m_config_path = util::lexically_normal(path);
 }
 
 void
 Config::set_system_config_path(const fs::path& path)
 {
-  m_system_config_path = path;
+  m_system_config_path = util::lexically_normal(path);
 }
 
 bool
