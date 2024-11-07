@@ -489,31 +489,31 @@ create_cmdline_settings_map(const std::vector<std::string>& settings)
   return result;
 }
 
-} // namespace
-
 #ifndef _WIN32
-static std::string
-default_cache_dir(const std::string& home_dir)
+
+fs::path
+default_cache_dir(const fs::path& home_dir)
 {
 #  ifdef __APPLE__
-  return home_dir + "/Library/Caches/ccache";
+  return home_dir / "Library/Caches/ccache";
 #  else
-  return home_dir + "/.cache/ccache";
+  return home_dir / ".cache/ccache";
 #  endif
 }
 
-static std::string
-default_config_dir(const std::string& home_dir)
+fs::path
+default_config_dir(const fs::path& home_dir)
 {
 #  ifdef __APPLE__
-  return home_dir + "/Library/Preferences/ccache";
+  return home_dir / "Library/Preferences/ccache";
 #  else
-  return home_dir + "/.config/ccache";
+  return home_dir / ".config/ccache";
 #  endif
 }
-#endif
 
-std::string
+#endif // !_WIN32
+
+fs::path
 home_directory()
 {
 #ifdef _WIN32
@@ -554,6 +554,8 @@ response_file_format_to_string(Args::ResponseFileFormat response_file_format)
 
   ASSERT(false);
 }
+
+} // namespace
 
 std::string
 compiler_type_to_string(CompilerType compiler_type)
