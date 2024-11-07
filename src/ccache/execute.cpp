@@ -26,6 +26,7 @@
 #include <ccache/signalhandler.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/environment.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/fd.hpp>
@@ -87,10 +88,14 @@ execute_noreturn(const char* const* argv, const fs::path& temp_dir)
 std::string
 win32getshell(const std::string& path)
 {
-  const char* path_list = getenv("PATH");
+  auto path_list = util::getenv_path_list("PATH");
+  if (path_list.empty()) {
+    return {};
+  }
+
   std::string sh;
-  if (util::to_lowercase(util::pstr(fs::path(path).extension()).str()) == ".sh"
-      && path_list) {
+  if (util::to_lowercase(util::pstr(fs::path(path).extension()).str())
+      == ".sh") {
     sh = util::pstr(find_executable_in_path("sh.exe", path_list));
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
@@ -99,7 +104,7 @@ win32getshell(const std::string& path)
     if (fp) {
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
-      if (std::string(buf) == "#!/bin/sh" && path_list) {
+      if (std::string(buf) == "#!/bin/sh") {
         sh = util::pstr(find_executable_in_path("sh.exe", path_list));
       }
     }
@@ -367,9 +372,9 @@ find_executable(const Context& ctx,
     return name;
   }
 
-  std::string path_list = ctx.config.path();
+  auto path_list = util::split_path_list(ctx.config.path());
   if (path_list.empty()) {
-    path_list = getenv("PATH");
+    path_list = util::getenv_path_list("PATH");
   }
   if (path_list.empty()) {
     LOG_RAW("No PATH variable");
@@ -381,7 +386,7 @@ find_executable(const Context& ctx,
 
 fs::path
 find_executable_in_path(const std::string& name,
-                        const std::string& path_list,
+                        const std::vector<fs::path>& path_list,
                         const std::optional<fs::path>& exclude_path)
 {
   if (path_list.empty()) {
@@ -393,7 +398,7 @@ find_executable_in_path(const std::string& name,
 
   // Search the path list looking for the first compiler of the right name that
   // isn't us.
-  for (const auto& dir : util::split_path_list(path_list)) {
+  for (const auto& dir : path_list) {
     const std::vector<fs::path> candidates = {
       dir / name,
 #ifdef _WIN32

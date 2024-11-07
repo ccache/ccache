@@ -26,6 +26,7 @@
 #include <ccache/macroskip.hpp>
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/environment.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -387,7 +388,8 @@ hash_command_output(Hash& hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  auto path = find_executable_in_path(args[0], getenv("PATH")).string();
+  auto path =
+    find_executable_in_path(args[0], util::getenv_path_list("PATH")).string();
   if (path.empty()) {
     path = args[0];
   }

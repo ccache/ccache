@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 class Context;
 
@@ -42,7 +43,7 @@ std::string find_executable(const Context& ctx,
 
 std::filesystem::path find_executable_in_path(
   const std::string& name,
-  const std::string& path_list,
+  const std::vector<std::filesystem::path>& path_list,
   const std::optional<std::filesystem::path>& exclude_path = std::nullopt);
 
 #ifdef _WIN32
