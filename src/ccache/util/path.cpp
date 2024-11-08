@@ -83,12 +83,7 @@ make_relative_path(const fs::path& actual_cwd,
   DEBUG_ASSERT(apparent_cwd.is_absolute());
   DEBUG_ASSERT(path.is_absolute());
 
-  fs::path normalized_path = path.lexically_normal();
-  if (!normalized_path.has_filename()) {
-    // Skip trailing slash since fs::equivalent doesn't work otherwise on
-    // Windows.
-    normalized_path = normalized_path.parent_path();
-  }
+  fs::path normalized_path = util::lexically_normal(path);
   fs::path closest_existing_path = normalized_path;
   std::vector<fs::path> relpath_candidates;
   fs::path path_suffix;
@@ -140,8 +135,8 @@ path_starts_with(const fs::path& path, const fs::path& prefix)
   // Note: Not all paths on Windows are case insensitive, but for our purposes
   // (checking whether a path is below the base directory) users will expect
   // them to be.
-  fs::path p1 = util::to_lowercase(path.lexically_normal().string());
-  fs::path p2 = util::to_lowercase(prefix.lexically_normal().string());
+  fs::path p1 = util::to_lowercase(util::lexically_normal(path).string());
+  fs::path p2 = util::to_lowercase(util::lexically_normal(prefix).string());
 #else
   const fs::path& p1 = path;
   const fs::path& p2 = prefix;

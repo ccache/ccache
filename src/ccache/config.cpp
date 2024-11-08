@@ -1021,7 +1021,7 @@ Config::set_item(const std::string& key,
     m_base_dir = value;
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
-      m_base_dir = m_base_dir.lexically_normal();
+      m_base_dir = util::lexically_normal(m_base_dir);
     }
     break;
 
