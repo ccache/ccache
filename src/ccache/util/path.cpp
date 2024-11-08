@@ -68,6 +68,13 @@ get_dev_null_path()
 }
 
 fs::path
+lexically_normal(const fs::path& path)
+{
+  auto result = path.lexically_normal();
+  return result.has_filename() ? result : result.parent_path();
+}
+
+fs::path
 make_relative_path(const fs::path& actual_cwd,
                    const fs::path& apparent_cwd,
                    const fs::path& path)

@@ -48,6 +48,9 @@ std::filesystem::path apparent_cwd(const std::filesystem::path& actual_cwd);
 
 const char* get_dev_null_path();
 
+// Return lexically normal `path` without trailing slash.
+std::filesystem::path lexically_normal(const std::filesystem::path& path);
+
 // Return whether `path` is /dev/null or (on Windows) NUL.
 bool is_dev_null_path(const std::filesystem::path& path);
 
