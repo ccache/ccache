@@ -1823,6 +1823,18 @@ hash_argument(const Context& ctx,
     return {};
   }
 
+  static const std::string_view frandomize_layout_seed_file =
+    "-frandomize-layout-seed-file=";
+  if (util::starts_with(args[i], frandomize_layout_seed_file)) {
+    hash.hash_delimiter(frandomize_layout_seed_file);
+    auto file = args[i].substr(frandomize_layout_seed_file.length());
+    if (!hash_binary_file(ctx, hash, file)) {
+      LOG("Failed to hash {}", file);
+      return tl::unexpected(Statistic::bad_input_file);
+    }
+    return {};
+  }
+
   // When using the preprocessor, some arguments don't contribute to the hash.
   // The theory is that these arguments will change the output of -E if they are
   // going to have any effect at all. For precompiled headers this might not be
