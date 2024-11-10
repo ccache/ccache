@@ -78,7 +78,7 @@ do_log(std::string_view message, bool bulk)
 {
   static char prefix[200];
 
-  if (!bulk) {
+  if (!bulk || prefix[0] == '\0') {
     char timestamp[100];
     auto now = util::TimePoint::now();
     auto tm = util::localtime(now);
@@ -98,12 +98,16 @@ do_log(std::string_view message, bool bulk)
              static_cast<int>(getpid()));
   }
 
-  if (logfile
-      && (fputs(prefix, *logfile) == EOF
-          || fwrite(message.data(), message.length(), 1, *logfile) != 1
-          || fputc('\n', *logfile) == EOF
-          || (!bulk && fflush(*logfile) == EOF))) {
-    print_fatal_error_and_exit();
+  if (logfile) {
+    util::FileLock lock(fileno(*logfile));
+    if (!bulk) {
+      std::ignore = lock.acquire(); // Garbled logs are better than no logs
+    }
+    if (fputs(prefix, *logfile) == EOF
+        || fwrite(message.data(), message.length(), 1, *logfile) != 1
+        || fputc('\n', *logfile) == EOF || fflush(*logfile) == EOF) {
+      print_fatal_error_and_exit();
+    }
   }
 #ifdef HAVE_SYSLOG
   if (use_syslog) {
@@ -165,15 +169,6 @@ log(std::string_view message)
 }
 
 void
-bulk_log(std::string_view message)
-{
-  if (!enabled()) {
-    return;
-  }
-  do_log(message, true);
-}
-
-void
 dump_log(const fs::path& path)
 {
   if (!enabled()) {
@@ -185,6 +180,22 @@ dump_log(const fs::path& path)
   } else {
     LOG("Failed to open {}: {}", path, strerror(errno));
   }
+}
+
+BulkLogger::BulkLogger() : m_file_lock(logfile ? fileno(*logfile) : -1)
+{
+  if (logfile) {
+    std::ignore = m_file_lock.acquire(); // Garbled logs are better than no logs
+  }
+}
+
+void
+BulkLogger::log(std::string_view message)
+{
+  if (!enabled()) {
+    return;
+  }
+  do_log(message, true);
 }
 
 } // namespace util::logging
