@@ -900,6 +900,7 @@ process_option_arg(const Context& ctx,
       // the actual CWD in the .gcno file.
       state.hash_actual_cwd = true;
     }
+    state.common_args.push_back(args[i]);
     return Statistic::none;
   }
 
