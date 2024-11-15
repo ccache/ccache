@@ -254,7 +254,7 @@ jobs:
   build_macos_universal:
     timeout-minutes: 30
     name: macOS universal binary
-    runs-on: macos-12
+    runs-on: macos-15
     env:
       CMAKE_GENERATOR: Ninja
     steps:
