@@ -25,6 +25,8 @@
 #include <ccache/util/logging.hpp>
 #include <ccache/util/time.hpp>
 
+#include <string>
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif

@@ -24,7 +24,6 @@
 #include <fmt/format.h>
 
 #include <filesystem>
-#include <string>
 #include <string_view>
 
 // Log a raw message (plus a newline character).
