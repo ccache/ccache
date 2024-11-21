@@ -132,6 +132,10 @@ const StatisticsField k_statistics_fields[] = {
         "Could not use Clang modules",
         FLAG_UNCACHEABLE),
 
+  // Preconditions for using C++20 modules were not fulfilled.
+  FIELD(
+    could_not_use_cxx_modules, "Could not use C++20 modules", FLAG_UNCACHEABLE),
+
   // Preconditions for using precompiled headers were not fulfilled.
   FIELD(could_not_use_precompiled_header,
         "Could not use precompiled header",

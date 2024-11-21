@@ -81,7 +81,10 @@ enum class Statistic {
   disabled = 81,
   bad_input_file = 82,
   modified_input_file = 83,
-  END = 84
+
+  could_not_use_cxx_modules = 84,
+
+  END = 85
 };
 
 enum class StatisticsFormat {
