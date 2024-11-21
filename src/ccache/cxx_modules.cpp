@@ -157,6 +157,12 @@ path_view::operator std::filesystem::path() const
   return std::filesystem::path(m_repr);
 }
 
+auto
+RequiredModuleDesc::is_system() const noexcept -> bool
+{
+  return lookup_method == LookupMethod::IncludeAngle;
+}
+
 DepFile::ParseError::ParseError(glz::error_ctx&& ctx) : m_repr(ctx)
 {
 }

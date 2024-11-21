@@ -697,8 +697,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static tl::expected<Hash::Digest, Failure>
-result_key_from_depfile(Context& ctx, Hash& hash)
+static tl::expected<Hash, Failure>
+hash_includes_from_depfile(Context& ctx, Hash& hash)
 {
   // Make sure that result hash will always be different from the manifest hash
   // since there otherwise may a storage key collision (in case the dependency
@@ -715,16 +715,34 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   }
 
   bool seen_colon = false;
-  for (std::string_view token : Depfile::tokenize(*file_content)) {
-    if (token.empty()) {
-      seen_colon = false;
-      continue;
-    }
-    if (seen_colon) {
-      fs::path path = core::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, path, hash, false, &hash));
-    } else if (token == ":") {
-      seen_colon = true;
+
+  {
+    const auto& tokens = Depfile::tokenize(*file_content);
+    std::size_t pos = 0;
+
+    while (pos < tokens.size()) {
+      // Skip phony GCC C++ module targets
+      if (ctx.config.compiler_type() == CompilerType::gcc) {
+        bool skip_phony_rule = false;
+        skip_phony_rule |= tokens[pos] == ".PHONY";
+        skip_phony_rule |= tokens[pos] == ":|";
+        if (skip_phony_rule) {
+          do {
+            ++pos;
+          } while (!tokens[pos].empty());
+        }
+      }
+
+      if (tokens[pos].empty()) {
+        seen_colon = false;
+      } else if (seen_colon) {
+        fs::path path = core::make_relative_path(ctx, tokens[pos]);
+        TRY(remember_include_file(ctx, path, hash, false, &hash));
+      } else if (tokens[pos] == ":") {
+        seen_colon = true;
+      }
+
+      ++pos;
     }
   }
 
@@ -743,8 +761,78 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     print_included_files(ctx, stdout);
   }
 
-  return hash.digest();
+  return hash;
 }
+
+#ifdef CXX20_MODULE_FEATURES
+static tl::expected<Hash, Failure>
+cxx_modules_hash_require_compiled_module_path(
+  Context& ctx,
+  std::optional<cxx_modules::depfiles::path_view> compiled_module_path,
+  Hash& hash,
+  bool system)
+{
+  std::filesystem::path path;
+  if (compiled_module_path.has_value()) {
+    path = core::make_relative_path(
+      ctx, std::filesystem::path{compiled_module_path.value()});
+  } else {
+    // REVISIT:
+  }
+  TRY(remember_include_file(ctx, path, hash, system, &hash));
+  return hash;
+}
+
+static tl::expected<Hash, Failure>
+cxx_modules_hash_require_source_path(
+  Context& ctx,
+  std::optional<cxx_modules::depfiles::path_view> source_path,
+  Hash& hash,
+  bool system)
+{
+  std::filesystem::path path;
+  if (source_path.has_value()) {
+    path =
+      core::make_relative_path(ctx, std::filesystem::path{source_path.value()});
+  } else {
+    // REVISIT:
+  }
+  TRY(remember_include_file(ctx, path, hash, system, &hash));
+  return hash;
+}
+
+static tl::expected<Hash, Failure>
+cxx_modules_hash_imports_from_p1689(Context& ctx, Hash& hash)
+{
+  const auto file_content =
+    util::read_file<std::string>(ctx.args_info.cxx_modules_output_ddi);
+  if (!file_content.has_value()) {
+    LOG("Failed to read p1689 file {}: {}",
+        ctx.args_info.cxx_modules_output_ddi,
+        file_content.error());
+    return tl::unexpected(Statistic::bad_input_file);
+  }
+  const auto ddi = cxx_modules::depfiles::DepFile::parse(*file_content);
+  if (!ddi.has_value()) {
+    LOG("Failed to read p1689 file {}: {}",
+        ctx.args_info.cxx_modules_output_ddi,
+        ddi.error().format(*file_content));
+    return tl::unexpected(Statistic::bad_input_file);
+  }
+  for (const auto& rule : ddi->rules) {
+    if (!rule.requires_.has_value())
+      continue;
+    for (const auto& require : rule.requires_.value()) {
+      const auto system = require.is_system();
+      TRY(cxx_modules_hash_require_compiled_module_path(
+        ctx, require.compiled_module_path, hash, system));
+      TRY(cxx_modules_hash_require_source_path(
+        ctx, require.source_path, hash, system));
+    }
+  }
+  return hash;
+}
+#endif
 
 struct GetTmpFdResult
 {
@@ -778,8 +866,10 @@ struct DoExecuteResult
 
 // Extract the used includes from /showIncludes output in stdout. Note that we
 // cannot distinguish system headers from other includes here.
-static tl::expected<Hash::Digest, Failure>
-result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
+static tl::expected<Hash, Failure>
+hash_includes_from_show_includes(Context& ctx,
+                                 Hash& hash,
+                                 std::string_view stdout_data)
 {
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
@@ -802,7 +892,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
     print_included_files(ctx, stdout);
   }
 
-  return hash.digest();
+  return hash;
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -1261,22 +1351,28 @@ to_cache(Context& ctx,
 
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
+    tl::expected<Hash, Failure> expected_hash = *depend_mode_hash;
     if (ctx.args_info.generating_dependencies) {
-      auto key = result_key_from_depfile(ctx, *depend_mode_hash);
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
-    } else if (ctx.args_info.generating_includes) {
-      auto key = result_key_from_includes(
-        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data));
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
-    } else {
-      ASSERT(false);
+      expected_hash = expected_hash.and_then(
+        [&](auto hash) { return hash_includes_from_depfile(ctx, hash); });
     }
+    if (ctx.args_info.generating_includes) {
+      expected_hash = expected_hash.and_then([&](auto hash) {
+        return hash_includes_from_show_includes(
+          ctx, hash, util::to_string_view(result->stdout_data));
+      });
+    }
+#ifdef CXX20_MODULE_FEATURES
+    if (!ctx.args_info.cxx_modules_output_ddi.empty()) {
+      expected_hash = expected_hash.and_then([&](auto hash) {
+        return cxx_modules_hash_imports_from_p1689(ctx, hash);
+      });
+    }
+#endif
+    if (!expected_hash) {
+      return tl::unexpected(expected_hash.error());
+    }
+    result_key = expected_hash->digest();
     LOG_RAW("Got result key from dependency file");
     LOG("Result key: {}", util::format_digest(*result_key));
   }

@@ -99,6 +99,8 @@ public:
   std::optional<bool> unique_on_source_path = false;
   name_view logical_name;
   std::optional<LookupMethod> lookup_method = LookupMethod::ByName;
+
+  [[nodiscard]] auto is_system() const noexcept -> bool;
 };
 
 static_assert(std::is_trivially_copyable_v<RequiredModuleDesc>);
