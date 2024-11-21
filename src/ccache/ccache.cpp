@@ -90,6 +90,7 @@
 #include <initializer_list>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 using namespace std::literals::string_view_literals;
@@ -726,16 +727,76 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   }
 
   bool seen_colon = false;
-  for (std::string_view token : Depfile::tokenize(*file_content)) {
-    if (token.empty()) {
-      seen_colon = false;
-      continue;
+
+  {
+    const auto& tokens = Depfile::tokenize(*file_content);
+    std::size_t pos = 0;
+
+    std::unordered_set<std::string_view> gcc_phony_cxx_imports{};
+    std::vector<std::string_view> include_paths{};
+
+    // NOTE: When GCC compiles with `-fmodules-ts` and `-MD` it adds several new
+    // types of rules to the depfiles that we must take special care to
+    // process.
+    //
+    // Some of the new rules appear to follow the design described in p1602
+    // "Make Me A Module"[1]. However, the correspondence is not exact and thus
+    // far the precise output appears to be absent from the GCC documentation.
+    //
+    // [1]: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1602r0.pdf
+
+    while (pos < tokens.size()) {
+      // Process special GCC depfile rules when compiling with C++20 modules
+      if (ctx.config.compiler_type() == CompilerType::gcc) {
+        // Skip the entire rest of the rule if we encounter any of:
+        // - A .PHONY target
+        // - An order-only prerequisite
+        // - A fake <module>.c++m target
+        if (tokens[pos] == ".PHONY" || tokens[pos] == ":|"
+            || util::ends_with(tokens[pos], ".c++m")) {
+          do {
+            ++pos;
+          } while (!tokens[pos].empty());
+        }
+        // If we encounter `CXX_IMPORTS` ...
+        if (tokens[pos] == "CXX_IMPORTS" && tokens[pos + 1] == "+=") {
+          pos += 2;
+          while (!tokens[pos].empty()) {
+            // ... record the fake <module>.c++m imports to filter out later
+            if (util::ends_with(tokens[pos], ".c++m")) {
+              gcc_phony_cxx_imports.emplace(tokens[pos]);
+            }
+            ++pos;
+          }
+        }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+        if (!seen_colon && ctx.args_info.cxx_modules.output_bmi.empty()
+            && util::ends_with(tokens[pos], ".gcm")) {
+          ctx.args_info.cxx_modules.generating_bmi = true;
+          ctx.args_info.cxx_modules.output_bmi = tokens[pos];
+        }
+#endif // CCACHE_CXX20_MODULES_FEATURE
+      }
+
+      if (tokens[pos].empty()) {
+        seen_colon = false;
+      } else if (seen_colon) {
+        include_paths.emplace_back(tokens[pos]);
+      } else if (tokens[pos] == ":") {
+        seen_colon = true;
+      }
+
+      ++pos;
     }
-    if (seen_colon) {
-      fs::path path = core::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, path, hash, false, &hash));
-    } else if (token == ":") {
-      seen_colon = true;
+
+    for (const auto& include_path : include_paths) {
+      // Remember all of the include files we encountered except the fake
+      // <module>.c++m files from CXX_IMPORTS.
+      if (gcc_phony_cxx_imports.find(include_path)
+          == gcc_phony_cxx_imports.end()) {
+        fs::path path = core::make_relative_path(ctx, include_path);
+        TRY(remember_include_file(ctx, path, hash, false, &hash));
+      }
     }
   }
 
