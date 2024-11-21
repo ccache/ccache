@@ -90,6 +90,7 @@
 #include <initializer_list>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 using namespace std::literals::string_view_literals;
@@ -637,16 +638,81 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   }
 
   bool seen_colon = false;
-  for (std::string_view token : Depfile::tokenize(*file_content)) {
-    if (token.empty()) {
-      seen_colon = false;
-      continue;
+
+  {
+    const auto& tokens = Depfile::tokenize(*file_content);
+    std::size_t pos = 0;
+
+    std::unordered_set<std::string_view> gcc_phony{};
+    std::vector<std::string_view> include_paths{};
+
+    // NOTE: When GCC compiles modules with `-fmodules[-ts]` or equivalent, it
+    // optionally includes additional module dependency information as several
+    // new types of rules in the Make depfiles it produces, unless
+    // `-fdeps-format` is specified, in which case it will omit the additional
+    // depfile rules and only provide the module dependency information in the
+    // p1689r5 dynamic dependency files.
+    //
+    // Some of the new rules appear to follow the design described in p1602
+    // "Make Me A Module"[1]. However, the correspondence is not exact and thus
+    // far the precise output appears to be absent from the GCC documentation.
+    //
+    // The best place to refer for the current rule formatting is the GCC
+    // sources, specifically `gcc/libcpp/mkdeps.cc`.
+    //
+    // [1]: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1602r0.pdf
+
+    while (pos < tokens.size()) {
+      // Process special GCC depfile rules when compiling with C++20 modules
+      if (ctx.config.compiler() == Compiler::type::gcc) {
+        // Skip the entire rest of the rule if we encounter any of:
+        if (tokens[pos] == ":|"                            // order-only prereq
+            || tokens[pos] == ".PHONY"                     // .PHONY rule
+            || util::ends_with(tokens[pos], ".c++m")       // phony target
+            || util::ends_with(tokens[pos], ".c++-module") // phony target
+        ) {
+          do {
+            ++pos;
+          } while (!tokens[pos].empty());
+        }
+        // If we encounter `CXX_IMPORTS` ...
+        if (tokens[pos] == "CXX_IMPORTS" && tokens[pos + 1] == "+=") {
+          pos += 2;
+          while (!tokens[pos].empty()) {
+            // ... record the phony target to filter later
+            gcc_phony.emplace(tokens[pos]);
+            ++pos;
+          }
+        }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+        if (!seen_colon && ctx.args_info.cxx_modules.output_bmi.empty()
+            && util::ends_with(tokens[pos], ".gcm")) {
+          ctx.args_info.cxx_modules.generating_bmi = true;
+          ctx.args_info.cxx_modules.output_bmi = tokens[pos];
+        }
+#endif // CCACHE_CXX20_MODULES_FEATURE
+      }
+
+      if (tokens[pos].empty()) {
+        seen_colon = false;
+      } else if (seen_colon) {
+        include_paths.emplace_back(tokens[pos]);
+      } else if (tokens[pos] == ":") {
+        seen_colon = true;
+      }
+
+      ++pos;
     }
-    if (seen_colon) {
-      fs::path path = core::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, path, hash, false, &hash));
-    } else if (token == ":") {
-      seen_colon = true;
+
+    for (const auto& include_path : include_paths) {
+      if (gcc_phony.find(include_path) != gcc_phony.end()) {
+        // Exclude the phony targets from files to include
+        continue;
+      }
+      // TODO: make this more robust; implement separate classifier function
+      const auto is_system = false;
+      fs::path path = core::make_relative_path(ctx, include_path);
+      TRY(remember_include_file(ctx, path, hash, is_system, &hash));
     }
   }
 
