@@ -191,9 +191,10 @@ static std::string
 suffix_from_type(const core::CacheEntryType type)
 {
   switch (type) {
+  case core::CacheEntryType::cxx_module_ref:
+    return "CXX";
   case core::CacheEntryType::manifest:
     return "M";
-
   case core::CacheEntryType::result:
     return "R";
   }
@@ -431,7 +432,9 @@ FileType
 file_type_from_path(const fs::path& path)
 {
   std::string filename = path.filename().string();
-  if (util::ends_with(filename, "M")) {
+  if (util::ends_with(filename, "CXX")) {
+    return FileType::cxx_module_ref;
+  } else if (util::ends_with(filename, "M")) {
     return FileType::manifest;
   } else if (util::ends_with(filename, "R")) {
     return FileType::result;
