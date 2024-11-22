@@ -92,6 +92,8 @@
 #include <unordered_map>
 #include <utility>
 
+using namespace std::literals::string_view_literals;
+
 namespace fs = util::filesystem;
 
 using core::Statistic;
@@ -415,10 +417,25 @@ remember_include_file(Context& ctx,
   }
 
   if (!ctx.ignore_header_paths.empty()) {
-    // Canonicalize path for comparison; Clang uses ./header.h.
-    const std::string& canonical_path_str =
-      util::starts_with(path_str.str(), "./") ? path_str.str().substr(2)
-                                              : path_str;
+    // Canonicalize path for comparison:
+    // - Clang uses ./header.h
+    // - MSVC  uses .\\header.h
+
+    // First initialize directly without canonicalization.
+    std::string canonical_path_str = path_str.str();
+
+#ifdef _WIN32
+    static const auto prefixes = std::array{R"(.\\)"sv, "./"sv};
+#else
+    static const auto prefixes = std::array{"./"sv};
+#endif
+    // Next perform canonicalization if any prefixes match.
+    for (const auto& pre : prefixes) {
+      if (util::starts_with(path_str.str(), pre)) {
+        canonical_path_str = path_str.str().substr(pre.size());
+      }
+    }
+
     for (const auto& ignore_header_path : ctx.ignore_header_paths) {
       if (file_path_matches_dir_prefix_or_file(ignore_header_path,
                                                canonical_path_str)) {
