@@ -231,17 +231,20 @@ inspect_path(const fs::path& path)
   const auto payload = cache_entry.payload();
 
   switch (cache_entry.header().entry_type) {
+  case core::CacheEntryType::cxx_module_ref: {
+  }
   case core::CacheEntryType::manifest: {
     core::Manifest manifest;
     manifest.read(payload);
     manifest.inspect(stdout);
     break;
   }
-  case core::CacheEntryType::result:
+  case core::CacheEntryType::result: {
     Result::Deserializer result_deserializer(payload);
     ResultInspector result_inspector(stdout);
     result_deserializer.visit(result_inspector);
     break;
+  }
   }
 
   cache_entry.verify_checksum();

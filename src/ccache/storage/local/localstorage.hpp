@@ -57,7 +57,7 @@ struct CompressionStatistics
   uint64_t incompressible_size;
 };
 
-enum class FileType { result, manifest, raw, unknown };
+enum class FileType { result, manifest, raw, unknown, cxx_module_ref };
 
 FileType file_type_from_path(const std::filesystem::path& path);
 

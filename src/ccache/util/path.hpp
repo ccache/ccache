@@ -20,6 +20,7 @@
 
 #include <ccache/util/pathstring.hpp>
 
+#include <algorithm>
 #include <filesystem>
 #include <string>
 #include <string_view>

@@ -15,6 +15,10 @@ set(
   version.cpp
 )
 
+if(CXX20_MODULE_FEATURES)
+  list(APPEND source_files cxx_modules.cpp)
+endif()
+
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files inodecache.cpp)
 endif()
@@ -64,6 +68,11 @@ endif()
 
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR})
+
+if(CXX20_MODULE_FEATURES)
+  target_compile_definitions(ccache_framework PUBLIC -DCXX20_MODULE_FEATURES)
+  target_link_libraries(ccache_framework PUBLIC dep_glaze)
+endif()
 
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)

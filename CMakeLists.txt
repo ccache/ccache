@@ -82,6 +82,30 @@ include(EnableCcache)
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
 option(ENABLE_TESTING "Enable tests" ON)
 
+#
+# Configuration validation
+#
+
+if(DEFINED CXX20_MODULE_FEATURES)
+  if(NOT CMAKE_CXX_BYTE_ORDER STREQUAL LITTLE_ENDIAN)
+    message(FATAL_ERROR "The C++20 module features require the glaze dependency which only supports little endian architectures")
+  endif()
+endif()
+
+if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "18")
+OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
+OR (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND MSVC_TOOLSET_VERSION VERSION_GREATER_EQUAL "143"))
+  if(NOT DEFINED CXX20_MODULE_FEATURES)
+    if(CMAKE_CXX_BYTE_ORDER STREQUAL LITTLE_ENDIAN)
+      option(CXX20_MODULE_FEATURES "Enable C++20 module features" ON)
+    endif()
+  endif()
+elseif(DEFINED CXX20_MODULE_FEATURES)
+  message(WARNING "`CXX20_MODULE_FEATURES` is not known to work with this compiler")
+else()
+  option(CXX20_MODULE_FEATURES "Enable C++20 module features" OFF)
+endif()
+
 include(InstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
@@ -172,6 +196,7 @@ add_custom_target(
 
 message(STATUS)
 message(STATUS "Configuration summary:")
+message(STATUS "  C++20 module features: ${CXX20_MODULE_FEATURES}")
 message(STATUS "  Storage backends:")
 message(STATUS "    file  ON")
 message(STATUS "    http  ON")
