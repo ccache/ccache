@@ -40,6 +40,7 @@ enum class CompilerType {
   clang_cl,
   gcc,
   icl,
+  icx,
   msvc,
   nvcc,
   other
@@ -103,7 +104,7 @@ public:
   // Return true for Clang and clang-cl.
   bool is_compiler_group_clang() const;
 
-  // Return true for MSVC (cl.exe), clang-cl, and icl.
+  // Return true for MSVC (cl.exe), clang-cl, icl, and icx.
   bool is_compiler_group_msvc() const;
 
   util::SizeUnitPrefixType size_unit_prefix_type() const;
@@ -294,7 +295,8 @@ Config::is_compiler_group_msvc() const
 {
   return m_compiler_type == CompilerType::msvc
          || m_compiler_type == CompilerType::clang_cl
-         || m_compiler_type == CompilerType::icl;
+         || m_compiler_type == CompilerType::icl
+         || m_compiler_type == CompilerType::icx;
 }
 
 inline bool
