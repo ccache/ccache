@@ -290,8 +290,7 @@ parse_compiler_type(const std::string& value)
     return CompilerType::gcc;
   } else if (value == "icl") {
     return CompilerType::icl;
-  } else if (value == "icx"
-             || value == "icx-cl") {
+  } else if (value == "icx" || value == "icx-cl") {
     return CompilerType::icx;
   } else if (value == "msvc") {
     return CompilerType::msvc;

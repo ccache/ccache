@@ -325,8 +325,7 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::nvcc;
   } else if (name == "icl") {
     return CompilerType::icl;
-  } else if (name == "icx"
-             || name == "icx-cl") {
+  } else if (name == "icx" || name == "icx-cl") {
     return CompilerType::icx;
   } else if (name == "cl") {
     return CompilerType::msvc;
