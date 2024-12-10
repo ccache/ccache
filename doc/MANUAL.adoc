@@ -612,8 +612,8 @@ _<<Using ccache with other compiler wrappers>>_.
     GCC-based compiler.
 *icl*::
     Intel compiler on Windows.
-*icx*::
-    Intel LLVM-based compiler on Windows.
+*icx/icx-cl*::
+    Intel LLVM-based MSVC-compatible compiler on Windows.
 *msvc*::
     Microsoft Visual C++ (MSVC).
 *nvcc*::

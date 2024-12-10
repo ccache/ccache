@@ -104,7 +104,7 @@ public:
   // Return true for Clang and clang-cl.
   bool is_compiler_group_clang() const;
 
-  // Return true for MSVC (cl.exe), clang-cl, icl, and icx.
+  // Return true for MSVC (cl.exe), clang-cl, icl, icx and icx-cl.
   bool is_compiler_group_msvc() const;
 
   util::SizeUnitPrefixType size_unit_prefix_type() const;
