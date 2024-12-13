@@ -1,4 +1,5 @@
-FROM ubuntu:24.04
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE} AS build
 
 # Non-interactive: do not set up timezone settings.
 RUN apt-get update \
@@ -12,7 +13,7 @@ RUN apt-get update \
         docbook-xml \
         docbook-xsl \
         elfutils \
-        gcc-multilib \
+        gcc \
         g++-13 \
         g++-14 \
         libhiredis-dev \
