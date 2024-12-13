@@ -51,7 +51,6 @@ target_link_libraries(
     dep_tlexpected
     dep_xxhash
   PRIVATE
-    dep_cpphttplib
     dep_zstd
     standard_settings
     standard_warnings
@@ -68,6 +67,11 @@ target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(ccache_framework PRIVATE dep_hiredis)
+endif()
+
+if(HTTP_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_HTTP_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
 endif()
 
 add_executable(test-lockfile test_lockfile.cpp)
