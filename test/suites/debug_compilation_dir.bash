@@ -5,7 +5,7 @@ SUITE_debug_compilation_dir_PROBE() {
     fi
 
     if ! $RUN_WIN_XFAIL; then
-        echo "debug_compilation-dir tests are broken on Windows."
+        echo "debug-compilation-dir tests are broken on Windows."
         return
     fi
 }

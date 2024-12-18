@@ -160,6 +160,7 @@ struct ArgsInfo
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
 
-  // Compilation directory as passed in `-ffile-compilation-dir` or `-ffdebug-compilation-dir`.
+  // Compilation directory as passed in `-ffile-compilation-dir` or
+  // `-ffdebug-compilation-dir`.
   std::string compilation_dir;
 };

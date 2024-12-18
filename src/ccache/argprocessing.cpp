@@ -712,7 +712,8 @@ process_option_arg(const Context& ctx,
   // TODO: how to handle repeated arguments
   if (util::starts_with(arg, "-fdebug-compilation-dir")
       || util::starts_with(arg, "-ffile-compilation-dir")) {
-    const size_t dir_pos = util::starts_with(arg, "-fdebug-compilation-dir") ? 24 : 23;
+    const size_t dir_pos =
+      util::starts_with(arg, "-fdebug-compilation-dir") ? 24 : 23;
     args_info.compilation_dir = arg.substr(dir_pos);
     state.common_args.push_back(args[i]);
     return Statistic::none;
