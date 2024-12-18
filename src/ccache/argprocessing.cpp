@@ -709,12 +709,21 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // TODO: how to handle repeated arguments
   if (util::starts_with(arg, "-fdebug-compilation-dir")
       || util::starts_with(arg, "-ffile-compilation-dir")) {
-    const size_t dir_pos =
-      util::starts_with(arg, "-fdebug-compilation-dir") ? 24 : 23;
-    args_info.compilation_dir = arg.substr(dir_pos);
+    std::string compilation_dir;
+    if (arg == "-fdebug-compilation-dir") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.common_args.push_back(args[i]);
+      compilation_dir = args[i + 1];
+      i++;
+    } else {
+      compilation_dir = arg.substr(arg.find('=') + 1);
+    }
+    args_info.compilation_dir = std::move(compilation_dir);
     state.common_args.push_back(args[i]);
     return Statistic::none;
   }

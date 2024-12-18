@@ -30,7 +30,7 @@ SUITE_debug_compilation_dir() {
     TEST "Setting compilation directory"
 
     cd dir1
-    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-compilation-dir some_name_not_likely_to_exist_in_path -c $(pwd)/src/test.c -o $(pwd)/test.o
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-compilation-dir=some_name_not_likely_to_exist_in_path -c $(pwd)/src/test.c -o $(pwd)/test.o
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
@@ -39,7 +39,7 @@ SUITE_debug_compilation_dir() {
     expect_objdump_contains test.o some_name_not_likely_to_exist_in_path
 
     cd ../dir2
-    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-compilation-dir some_name_not_likely_to_exist_in_path -c $(pwd)/src/test.c -o $(pwd)/test.o
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-compilation-dir=some_name_not_likely_to_exist_in_path -c $(pwd)/src/test.c -o $(pwd)/test.o
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
