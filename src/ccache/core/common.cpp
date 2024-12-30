@@ -93,7 +93,17 @@ make_relative_path(const Context& ctx, const fs::path& path)
 std::string
 rewrite_stderr_to_absolute_paths(std::string_view text)
 {
-  const std::string_view in_file_included_from = "In file included from ";
+  // Line prefixes from gcc compiler plus extra space at the end
+  // https://gcc.gnu.org/git?p=gcc.git;a=blob;f=gcc/diagnostic-format-text.cc;h=856d25e8482cd0bff39bd8076e6e529e184362cc;hb=HEAD#l676
+  const std::string_view in_file_included_from_msgs[] = {
+    "                 from ",
+    "In file included from ",
+    "        included from ",
+    "In module imported at ", // longer message first to match in full
+    "In module ",
+    "of module ",
+    "imported at ",
+  };
 
   std::string result;
   using util::Tokenizer;
@@ -101,9 +111,12 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
                              "\n",
                              Tokenizer::Mode::include_empty,
                              Tokenizer::IncludeDelimiter::yes)) {
-    if (util::starts_with(line, in_file_included_from)) {
-      result += in_file_included_from;
-      line = line.substr(in_file_included_from.length());
+    for (auto& in_file_included_from : in_file_included_from_msgs) {
+      if (util::starts_with(line, in_file_included_from)) {
+        result += in_file_included_from;
+        line = line.substr(in_file_included_from.length());
+        break;
+      }
     }
     while (!line.empty() && line[0] == 0x1b) {
       auto csi_seq = find_first_ansi_csi_seq(line);
