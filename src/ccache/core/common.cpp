@@ -93,9 +93,10 @@ make_relative_path(const Context& ctx, const fs::path& path)
 std::string
 rewrite_stderr_to_absolute_paths(std::string_view text)
 {
-  // Line prefixes from gcc compiler plus extra space at the end
-  // https://gcc.gnu.org/git?p=gcc.git;a=blob;f=gcc/diagnostic-format-text.cc;h=856d25e8482cd0bff39bd8076e6e529e184362cc;hb=HEAD#l676
-  const std::string_view in_file_included_from_msgs[] = {
+  // Line prefixes from GCC plus extra space at the end. Reference:
+  // <https://gcc.gnu.org/git?p=gcc.git;a=blob;f=gcc/diagnostic-format-text.cc;
+  // h=856d25e8482cd0bff39bd8076e6e529e184362cc;hb=HEAD#l676>
+  static const std::string_view in_file_included_from_msgs[] = {
     "                 from ",
     "In file included from ",
     "        included from ",
@@ -111,7 +112,7 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
                              "\n",
                              Tokenizer::Mode::include_empty,
                              Tokenizer::IncludeDelimiter::yes)) {
-    for (auto& in_file_included_from : in_file_included_from_msgs) {
+    for (const auto& in_file_included_from : in_file_included_from_msgs) {
       if (util::starts_with(line, in_file_included_from)) {
         result += in_file_included_from;
         line = line.substr(in_file_included_from.length());
