@@ -766,8 +766,9 @@ struct DoExecuteResult
   util::Bytes stderr_data;
 };
 
-// Extract the used includes from /showIncludes output in stdout. Note that we
-// cannot distinguish system headers from other includes here.
+// Extract the used includes from /showIncludes (or clang-cl's
+// /showIncludes:user) output in stdout. Note that we cannot distinguish system
+// headers from other includes when /showIncludes is used.
 static tl::expected<Hash::Digest, Failure>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {

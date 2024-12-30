@@ -847,7 +847,9 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (arg == "-showIncludes") {
+  if (arg == "-showIncludes"
+      // clang-cl:
+      || arg == "-showIncludes:user") {
     args_info.generating_includes = true;
     state.dep_args.push_back(args[i]);
     return Statistic::none;
