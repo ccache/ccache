@@ -99,9 +99,9 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
     "                 from ",
     "In file included from ",
     "        included from ",
+    "In module imported at ", // longer message first to match in full
     "In module ",
     "of module ",
-    "In module imported at ",
     "imported at ",
   };
 
