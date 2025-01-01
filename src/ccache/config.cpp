@@ -290,6 +290,10 @@ parse_compiler_type(const std::string& value)
     return CompilerType::gcc;
   } else if (value == "icl") {
     return CompilerType::icl;
+  } else if (value == "icx") {
+    return CompilerType::icx;
+  } else if (value == "icx-cl") {
+    return CompilerType::icx_cl;
   } else if (value == "msvc") {
     return CompilerType::msvc;
   } else if (value == "nvcc") {
@@ -571,10 +575,13 @@ compiler_type_to_string(CompilerType compiler_type)
     return "auto";
   case CompilerType::clang_cl:
     return "clang-cl";
+  case CompilerType::icx_cl:
+    return "icx-cl";
 
     CASE(clang);
     CASE(gcc);
     CASE(icl);
+    CASE(icx);
     CASE(msvc);
     CASE(nvcc);
     CASE(other);
