@@ -25,9 +25,10 @@ top_dir="$(dirname "$(realpath "$0")")/.."
 tag="ccache-build:$name"
 command="${COMMAND:-/source/ci/build}"
 interactive="${INTERACTIVE:+--interactive --tty}"
+nocache="${NOCACHE:+--no-cache}"
 
 # Build (if not exists):
-docker build -t "$tag" "${top_dir}/dockerfiles/$name"
+docker build -t "$tag" ${nocache} "${top_dir}/dockerfiles/$name"
 
 # Cache compilation across docker sessions
 mkdir -p "${top_dir}/build-in-docker"
