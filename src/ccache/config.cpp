@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -598,9 +598,7 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     create_cmdline_settings_map(cmdline_config_settings);
 
   const fs::path home_dir = home_directory();
-  const fs::path legacy_ccache_dir = home_dir / ".ccache";
-  const bool legacy_ccache_dir_exists =
-    DirEntry(legacy_ccache_dir).is_directory();
+  const util::DirEntry legacy_ccache_dir = home_dir / ".ccache";
 #ifdef _WIN32
   auto env_appdata = util::getenv_path("APPDATA");
   auto env_local_appdata = util::getenv_path("LOCALAPPDATA");
@@ -639,8 +637,8 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
       config_dir = *env_ccache_dir;
     } else if (!cache_dir().empty() && !env_ccache_dir) {
       config_dir = cache_dir();
-    } else if (legacy_ccache_dir_exists) {
-      config_dir = legacy_ccache_dir;
+    } else if (legacy_ccache_dir.is_directory()) {
+      config_dir = legacy_ccache_dir.path();
 #ifdef _WIN32
     } else if (env_local_appdata
                && fs::exists(*env_local_appdata / "ccache/ccache.conf")) {
@@ -677,8 +675,8 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   update_from_map(cmdline_settings_map);
 
   if (cache_dir().empty()) {
-    if (legacy_ccache_dir_exists) {
-      set_cache_dir(legacy_ccache_dir);
+    if (legacy_ccache_dir.is_directory()) {
+      set_cache_dir(legacy_ccache_dir.path());
 #ifdef _WIN32
     } else if (env_local_appdata) {
       set_cache_dir(*env_local_appdata / "ccache");
