@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -290,6 +290,10 @@ parse_compiler_type(const std::string& value)
     return CompilerType::gcc;
   } else if (value == "icl") {
     return CompilerType::icl;
+  } else if (value == "icx") {
+    return CompilerType::icx;
+  } else if (value == "icx-cl") {
+    return CompilerType::icx_cl;
   } else if (value == "msvc") {
     return CompilerType::msvc;
   } else if (value == "nvcc") {
@@ -571,10 +575,13 @@ compiler_type_to_string(CompilerType compiler_type)
     return "auto";
   case CompilerType::clang_cl:
     return "clang-cl";
+  case CompilerType::icx_cl:
+    return "icx-cl";
 
     CASE(clang);
     CASE(gcc);
     CASE(icl);
+    CASE(icx);
     CASE(msvc);
     CASE(nvcc);
     CASE(other);
@@ -591,9 +598,7 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     create_cmdline_settings_map(cmdline_config_settings);
 
   const fs::path home_dir = home_directory();
-  const fs::path legacy_ccache_dir = home_dir / ".ccache";
-  const bool legacy_ccache_dir_exists =
-    DirEntry(legacy_ccache_dir).is_directory();
+  const util::DirEntry legacy_ccache_dir = home_dir / ".ccache";
 #ifdef _WIN32
   auto env_appdata = util::getenv_path("APPDATA");
   auto env_local_appdata = util::getenv_path("LOCALAPPDATA");
@@ -632,8 +637,8 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
       config_dir = *env_ccache_dir;
     } else if (!cache_dir().empty() && !env_ccache_dir) {
       config_dir = cache_dir();
-    } else if (legacy_ccache_dir_exists) {
-      config_dir = legacy_ccache_dir;
+    } else if (legacy_ccache_dir.is_directory()) {
+      config_dir = legacy_ccache_dir.path();
 #ifdef _WIN32
     } else if (env_local_appdata
                && fs::exists(*env_local_appdata / "ccache/ccache.conf")) {
@@ -670,8 +675,8 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   update_from_map(cmdline_settings_map);
 
   if (cache_dir().empty()) {
-    if (legacy_ccache_dir_exists) {
-      set_cache_dir(legacy_ccache_dir);
+    if (legacy_ccache_dir.is_directory()) {
+      set_cache_dir(legacy_ccache_dir.path());
 #ifdef _WIN32
     } else if (env_local_appdata) {
       set_cache_dir(*env_local_appdata / "ccache");

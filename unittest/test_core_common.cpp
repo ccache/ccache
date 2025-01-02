@@ -68,7 +68,19 @@ TEST_CASE("core::rewrite_stderr_to_absolute_paths")
     "\x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
     "\x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
     "In file included from \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
-    "In file included from \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n";
+    "In file included from \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "                 from \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
+    "                 from \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "        included from \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
+    "        included from \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "In module \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
+    "In module \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "of module \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
+    "of module \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "In module imported at \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
+    "In module imported at \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "imported at \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
+    "imported at \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n";
   std::string expected = FMT(
     "a:1:2\n"
     "a(3):\n"
@@ -85,7 +97,19 @@ TEST_CASE("core::rewrite_stderr_to_absolute_paths")
     "\x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
     "\x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
     "In file included from \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
-    "In file included from \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n",
+    "In file included from \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "                 from \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
+    "                 from \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "        included from \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
+    "        included from \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "In module \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
+    "In module \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "of module \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
+    "of module \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "In module imported at \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
+    "In module imported at \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "imported at \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
+    "imported at \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n",
     *fs::canonical("existing"));
   CHECK(core::rewrite_stderr_to_absolute_paths(input) == expected);
 }

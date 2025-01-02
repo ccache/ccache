@@ -15,8 +15,8 @@ if [ -n "${CLANG_FORMAT:-}" ]; then
     exec "$CLANG_FORMAT" "$@"
 fi
 
-top_dir="$(dirname "$0")"
-clang_format_exe="$top_dir/.clang-format-exe"
+misc_dir="$(dirname "$0")"
+clang_format_exe="${misc_dir}/.clang-format-exe"
 clang_format_version=11
 clang_format_release=master-1d7ec53d
 url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/${clang_format_release}/clang-format-${clang_format_version}_"
