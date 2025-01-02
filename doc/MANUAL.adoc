@@ -792,9 +792,9 @@ WARNING: Do not enable this option unless you are aware of these caveats:
     If true (which is the default), ccache will include the current working
     directory (CWD) in the hash that is used to distinguish two compilations
     when generating debug info (compiler option `-g` with variations).
-    Exception: The CWD will not be included in the hash if
-    <<config_base_dir,*base_dir*>> is set (and matches the CWD) and the
-    compiler option `-fdebug-prefix-map` is used. See also the discussion under
+    Exception: The CWD will not be included in the hash if the
+    compiler options `-fdebug-prefix-map` or `-fdebug-compilation-dir` are used
+    appropriately. See also the discussion under
     _<<Compiling in different directories>>_.
 +
 The reason for including the CWD in the hash by default is to prevent a problem
@@ -1798,8 +1798,10 @@ directories:
 
 * If you build with `-g` (or similar) to add debug information to the object
   file, you must either:
-** use the compiler option `-fdebug-prefix-map=<old>=<new>` for relocating
-   debug info to a common prefix (e.g. `-fdebug-prefix-map=$PWD=.`); or
+** use the compiler options `-fdebug-prefix-map=<old>=<new>` or
+   `-fdebug-compilation-dir` for relocating
+   debug info to a common prefix (e.g. `-fdebug-prefix-map=$PWD=.` or
+   `-fdebug-compilation-dir=.`); or
 ** set *hash_dir = false*.
 * If you use absolute paths anywhere on the command line (e.g. the source code
   file path or an argument to compiler options like `-I` and `-MF`), you must

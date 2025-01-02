@@ -161,6 +161,6 @@ struct ArgsInfo
   std::vector<std::string> debug_prefix_maps;
 
   // Compilation directory as passed in `-ffile-compilation-dir` or
-  // `-ffdebug-compilation-dir`.
+  // `-fdebug-compilation-dir`.
   std::string compilation_dir;
 };
