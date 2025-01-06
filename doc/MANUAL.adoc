@@ -1388,9 +1388,15 @@ Cleanup can be triggered in two different ways: automatic and manual.
 After a new compilation result has been written to the local cache, ccache will
 trigger an automatic cleanup if <<config_max_size,*max_size*>> or
 <<config_max_files,*max_files*>> is exceeded. The cleanup removes cache entries
-in LRU (least recently used) order based on the modification time (mtime) of
-files in the cache. For this reason, ccache updates mtime of the cache files
-read on a cache hit to mark them as recently used.
+in approximate LRU (least recently used) order based on the modification time
+(mtime) of files in the cache. For this reason, ccache updates mtime of the
+cache files read on a cache hit to mark them as recently used.
+
+For performance reasons only entries in a subset of the cache are considered
+when automatic cleanup is triggered. This means that there is no guarantee that
+the oldest entries of the whole cache are evicted on each individual cleanup,
+but over time the cache as a whole will be have "approximate LRU eviction"
+behavior.
 
 
 === Manual cleanup
@@ -1399,6 +1405,10 @@ You can run `ccache -c/--cleanup` to force cleanup of the whole cache. This will
 recalculate the cache size information and also make sure that the cache size
 does not exceed <<config_max_size,*max_size*>> and
 <<config_max_files,*max_files*>>.
+
+Note that there is no guarantee that only the oldest entries are evicted, as
+discussed in _<<Automatic cleanup>>_ above. To evict based on age you can use
+`ccache --evict-older-than AGE`.
 
 
 == Cache compression
