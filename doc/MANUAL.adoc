@@ -1395,7 +1395,7 @@ cache files read on a cache hit to mark them as recently used.
 For performance reasons only entries in a subset of the cache are considered
 when automatic cleanup is triggered. This means that there is no guarantee that
 the oldest entries of the whole cache are evicted on each individual cleanup,
-but over time the cache as a whole will be have "approximate LRU eviction"
+but over time the cache as a whole will have "approximate LRU eviction"
 behavior.
 
 
