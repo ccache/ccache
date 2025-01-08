@@ -67,8 +67,9 @@ Context::initialize(Args&& compiler_and_args,
   // initial configuration file. The intention is that all files and directories
   // in the cache directory should be affected by the configured umask and that
   // no other files and directories should.
-  if (config.umask()) {
-    original_umask = util::set_umask(*config.umask());
+  auto mask = config.umask();
+  if (mask) {
+    original_umask = util::set_umask(*mask);
   }
 }
 
@@ -90,8 +91,7 @@ Context::unlink_pending_tmp_files_signal_safe()
 {
   for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
        ++it) {
-    // Don't call util::remove or std::filesystem::remove since they are not
-    // signal safe.
+    // Don't call util::remove or fs::remove since they are not signal safe.
     unlink(util::pstr(*it).c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.

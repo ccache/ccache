@@ -318,7 +318,7 @@ tl::expected<T, std::string>
 read_file(const fs::path& path, size_t size_hint)
 {
   const int open_flags = [] {
-    if constexpr (std::is_same<T, std::string>::value) {
+    if constexpr (std::is_same_v<T, std::string>) {
       return O_RDONLY | O_TEXT;
     } else {
       return O_RDONLY | O_BINARY;
@@ -376,7 +376,7 @@ read_file(const fs::path& path, size_t size_hint)
   result.resize(pos);
 
 #ifdef _WIN32
-  if constexpr (std::is_same<T, std::string>::value) {
+  if constexpr (std::is_same_v<T, std::string>) {
     // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
     if (has_utf16_le_bom(result)) {
       result.erase(0, 2); // Remove BOM.
@@ -621,7 +621,7 @@ tl::expected<void, std::string>
 traverse_directory(const fs::path& directory,
                    const TraverseDirectoryVisitor& visitor)
 {
-  // Note: Intentionally not using std::filesystem::recursive_directory_iterator
+  // Note: Intentionally not using fs::recursive_directory_iterator
   // since it visits directories in preorder.
 
   DirEntry dir_entry(directory);
@@ -633,7 +633,7 @@ traverse_directory(const fs::path& directory,
   }
 
   try {
-    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    for (const auto& entry : fs::directory_iterator(directory)) {
       if (entry.is_directory()) {
         traverse_directory(entry.path(), visitor);
       } else {

@@ -94,7 +94,7 @@ const util::Duration k_fs_space_check_valid_duration(1);
 
 static_assert(std::tuple_size<Hash::Digest>() == 20,
               "Increment version number if size of digest is changed.");
-static_assert(std::is_trivially_copyable<Hash::Digest>::value,
+static_assert(std::is_trivially_copyable_v<Hash::Digest>,
               "Digest is expected to be trivially copyable.");
 
 static_assert(
@@ -254,7 +254,7 @@ struct InodeCache::SharedRegion
 };
 
 bool
-InodeCache::mmap_file(const std::filesystem::path& path)
+InodeCache::mmap_file(const fs::path& path)
 {
   m_sr = nullptr;
   m_map.unmap();

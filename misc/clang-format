@@ -15,8 +15,8 @@ if [ -n "${CLANG_FORMAT:-}" ]; then
     exec "$CLANG_FORMAT" "$@"
 fi
 
-top_dir="$(dirname "$0")"
-clang_format_exe="$top_dir/.clang-format-exe"
+misc_dir="$(dirname "$0")"
+clang_format_exe="${misc_dir}/.clang-format-exe"
 clang_format_version=11
 clang_format_release=master-1d7ec53d
 url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/${clang_format_release}/clang-format-${clang_format_version}_"
@@ -54,7 +54,7 @@ if [ ! -x "$clang_format_exe" ]; then
 
     if ! command -v sha256sum >/dev/null; then
         echo "Warning: sha256sum not found, not verifying clang-format integrity" >&2
-    elif ! echo "$checksum $clang_format_exe.tmp" | sha256sum --status -c; then
+    elif ! echo "$checksum $clang_format_exe.tmp" | sha256sum --status -c -; then
         echo "Error: Bad checksum of downloaded clang-format" >&2
         exit 1
     fi

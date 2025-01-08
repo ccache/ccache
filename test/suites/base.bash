@@ -284,8 +284,7 @@ fi
     # -------------------------------------------------------------------------
     TEST "Too new source file"
 
-    touch new.c
-    touch -t 203801010000 new.c
+    postdate new.c
 
     $CCACHE_COMPILE -c new.c
     expect_stat modified_input_file 1
@@ -304,7 +303,7 @@ EOF
     cat <<EOF >new.h
 int test;
 EOF
-    touch -t 203801010000 new.h
+    postdate new.h
 
     $CCACHE_COMPILE -c new.c
     expect_stat modified_input_file 1
@@ -317,8 +316,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Too new source file ignored if sloppy"
 
-    touch new.c
-    touch -t 203801010000 new.c
+    postdate new.c
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
     expect_stat cache_miss 1

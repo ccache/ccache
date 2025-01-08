@@ -18,11 +18,12 @@
 
 #pragma once
 
+#include <ccache/util/filelock.hpp>
+
 #include <fmt/core.h>
 #include <fmt/format.h>
 
 #include <filesystem>
-#include <string>
 #include <string_view>
 
 // Log a raw message (plus a newline character).
@@ -40,12 +41,8 @@
 // Log a message (plus a newline character) described by a format string with at
 // least one placeholder without flushing and with a reused timestamp. `format`
 // is checked at compile time.
-#define BULK_LOG(format_, ...)                                                 \
-  do {                                                                         \
-    if (util::logging::enabled()) {                                            \
-      util::logging::bulk_log(fmt::format(FMT_STRING(format_), __VA_ARGS__));  \
-    }                                                                          \
-  } while (false)
+#define BULK_LOG(logger_, format_, ...)                                        \
+  logger_.log(fmt::format(FMT_STRING(format_), __VA_ARGS__));
 
 namespace util::logging {
 
@@ -59,11 +56,19 @@ bool enabled();
 // Log `message` (plus a newline character).
 void log(std::string_view message);
 
-// Log `message` (plus a newline character) without flushing and with a reused
-// timestamp.
-void bulk_log(std::string_view message);
-
 // Write the current log memory buffer to `path`.
 void dump_log(const std::filesystem::path& path);
+
+class BulkLogger
+{
+public:
+  BulkLogger();
+
+  // Log `message` (plus a newline character) with a reused timestamp.
+  void log(std::string_view message);
+
+private:
+  util::FileLock m_file_lock;
+};
 
 } // namespace util::logging

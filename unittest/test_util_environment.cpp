@@ -17,10 +17,97 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <ccache/util/environment.hpp>
+#include <ccache/util/filesystem.hpp>
 
 #include <doctest/doctest.h>
 
+#include <vector>
+
+namespace fs = util::filesystem;
+
 TEST_SUITE_BEGIN("util");
+
+#ifdef _WIN32
+
+TEST_CASE("util::getenv_path_list")
+{
+  SUBCASE("unset")
+  {
+    util::unsetenv("test");
+    std::vector<fs::path> expected;
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("empty")
+  {
+    util::setenv("test", "");
+    std::vector<fs::path> expected = {};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("delimiters")
+  {
+    util::setenv("test", ";;");
+    std::vector<fs::path> expected = {};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("multiple")
+  {
+    util::setenv("test", "c:\\foo;/bar");
+    std::vector<fs::path> expected = {"c:\\foo", "/bar"};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("delimiters around")
+  {
+    util::setenv("test", ";c:\\foo;");
+    std::vector<fs::path> expected = {"c:\\foo"};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+}
+
+#else
+
+TEST_CASE("util::getenv_path_list")
+{
+  SUBCASE("unset")
+  {
+    util::unsetenv("test");
+    std::vector<fs::path> expected;
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("empty")
+  {
+    util::setenv("test", "");
+    std::vector<fs::path> expected = {};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("delimiters")
+  {
+    util::setenv("test", "::");
+    std::vector<fs::path> expected = {};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("multiple")
+  {
+    util::setenv("test", "/foo:/bar");
+    std::vector<fs::path> expected = {"/foo", "/bar"};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+
+  SUBCASE("delimiters around")
+  {
+    util::setenv("test", ":/foo:");
+    std::vector<fs::path> expected = {"/foo"};
+    CHECK(util::getenv_path_list("test") == expected);
+  }
+}
+
+#endif
 
 TEST_CASE("util::expand_environment_variables")
 {

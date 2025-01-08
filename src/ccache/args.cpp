@@ -18,7 +18,9 @@
 
 #include "args.hpp"
 
+#include <ccache/config.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/util/assertions.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
@@ -46,11 +48,13 @@ Args::from_string(std::string_view command)
 }
 
 std::optional<Args>
-Args::from_atfile(const std::string& filename, AtFileFormat format)
+Args::from_response_file(const std::string& filename, ResponseFileFormat format)
 {
+  ASSERT(format != ResponseFileFormat::auto_guess);
+
   const auto argtext = util::read_file<std::string>(filename);
   if (!argtext) {
-    LOG("Failed to read atfile {}: {}", filename, argtext.error());
+    LOG("Failed to read response file {}: {}", filename, argtext.error());
     return std::nullopt;
   }
 
@@ -68,13 +72,16 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
     switch (*pos) {
     case '\\':
       switch (format) {
-      case AtFileFormat::gcc:
+      case ResponseFileFormat::auto_guess:
+        ASSERT(false); // Can't happen
+        break;
+      case ResponseFileFormat::posix:
         pos++;
         if (*pos == '\0') {
           continue;
         }
         break;
-      case AtFileFormat::msvc:
+      case ResponseFileFormat::windows:
         size_t count = 0;
         while (*pos == '\\') {
           count++;
@@ -106,7 +113,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
       break;
 
     case '\'':
-      if (format == AtFileFormat::msvc) {
+      if (format == ResponseFileFormat::windows) {
         break;
       }
       [[fallthrough]];
@@ -116,7 +123,7 @@ Args::from_atfile(const std::string& filename, AtFileFormat format)
         if (quoting == *pos) {
           quoting = '\0';
           pos++;
-          if (format == AtFileFormat::msvc && *pos == '"') {
+          if (format == ResponseFileFormat::windows && *pos == '"') {
             // Any double-quote directly following a closing quote is treated as
             // (or as part of) plain unwrapped text that is adjacent to the
             // double-quoted group

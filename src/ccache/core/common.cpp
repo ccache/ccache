@@ -79,8 +79,8 @@ ensure_dir_exists(const fs::path& dir)
   }
 }
 
-std::filesystem::path
-make_relative_path(const Context& ctx, const std::filesystem::path& path)
+fs::path
+make_relative_path(const Context& ctx, const fs::path& path)
 {
   if (!ctx.config.base_dir().empty() && path.is_absolute()
       && util::path_starts_with(path, ctx.config.base_dir())) {
@@ -93,7 +93,18 @@ make_relative_path(const Context& ctx, const std::filesystem::path& path)
 std::string
 rewrite_stderr_to_absolute_paths(std::string_view text)
 {
-  const std::string_view in_file_included_from = "In file included from ";
+  // Line prefixes from GCC plus extra space at the end. Reference:
+  // <https://gcc.gnu.org/git?p=gcc.git;a=blob;f=gcc/diagnostic-format-text.cc;
+  // h=856d25e8482cd0bff39bd8076e6e529e184362cc;hb=HEAD#l676>
+  static const std::string_view in_file_included_from_msgs[] = {
+    "                 from ",
+    "In file included from ",
+    "        included from ",
+    "In module imported at ", // longer message first to match in full
+    "In module ",
+    "of module ",
+    "imported at ",
+  };
 
   std::string result;
   using util::Tokenizer;
@@ -101,9 +112,12 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
                              "\n",
                              Tokenizer::Mode::include_empty,
                              Tokenizer::IncludeDelimiter::yes)) {
-    if (util::starts_with(line, in_file_included_from)) {
-      result += in_file_included_from;
-      line = line.substr(in_file_included_from.length());
+    for (const auto& in_file_included_from : in_file_included_from_msgs) {
+      if (util::starts_with(line, in_file_included_from)) {
+        result += in_file_included_from;
+        line = line.substr(in_file_included_from.length());
+        break;
+      }
     }
     while (!line.empty() && line[0] == 0x1b) {
       auto csi_seq = find_first_ansi_csi_seq(line);
@@ -186,7 +200,7 @@ get_diagnostics_path_length(std::string_view line)
           || (line[0] >= 'a' && line[0] <= 'z'))) {
     path_end = line.find(':', 3);
     if (path_end == std::string_view::npos) {
-      // Treat the dirve letter as "path".
+      // Treat the drive letter as "path".
       path_end = 1;
     }
   } else {

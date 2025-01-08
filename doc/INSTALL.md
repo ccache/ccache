@@ -40,7 +40,8 @@ should be located or retrieved:
 ### Dependencies
 
 - [BLAKE3](https://github.com/BLAKE3-team/BLAKE3)[^1]
-- [cpp-httplib](https://github.com/yhirose/cpp-httplib)[^1]
+- [cpp-httplib](https://github.com/yhirose/cpp-httplib)[^1] (optional, disable
+  with `-DHTTP_STORAGE_BACKEND=OFF`)
 - [doctest](https://github.com/doctest/doctest)[^2] (optional, disable with `-D
   ENABLE_TESTING=OFF`)
 - [fmt](https://fmt.dev)[^1]

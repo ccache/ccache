@@ -69,6 +69,16 @@ TEST_CASE("util::is_dev_null_path")
 #endif
 }
 
+TEST_CASE("util::lexically_normal")
+{
+  CHECK(util::lexically_normal("") == "");
+  CHECK(util::lexically_normal("/") == "/");
+  CHECK(util::lexically_normal("x") == "x");
+  CHECK(util::lexically_normal("x/../y") == "y");
+  CHECK(util::lexically_normal("x/") == "x");
+  CHECK(util::lexically_normal("x/.") == "x");
+}
+
 TEST_CASE("util::make_relative_path")
 {
   using util::make_relative_path;
@@ -101,8 +111,21 @@ TEST_CASE("util::make_relative_path")
 
   SUBCASE("Match of actual CWD")
   {
+    REQUIRE(fs::create_directory("d"));
+
     CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "/x")
           == "x");
+    CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "/d")
+          == "d");
+    CHECK(make_relative_path(
+            actual_cwd + "/", apparent_cwd + "/", actual_cwd + "/d")
+          == "d");
+    CHECK(make_relative_path(
+            actual_cwd + "/", apparent_cwd + "/", actual_cwd + "/d/")
+          == "d");
+    CHECK(make_relative_path(
+            actual_cwd + "/", apparent_cwd + "/", actual_cwd + "/d/.")
+          == "d");
 #ifdef _WIN32
     CHECK(make_relative_path(actual_cwd, apparent_cwd, actual_cwd + "\\x")
           == "x");
@@ -131,16 +154,22 @@ TEST_CASE("util::path_starts_with")
   CHECK(util::path_starts_with("", ""));
   CHECK(!util::path_starts_with("", "/"));
   CHECK(util::path_starts_with("/foo/bar", "/foo"));
+  CHECK(util::path_starts_with("/foo/bar/", "/foo"));
+  CHECK(util::path_starts_with("/foo/bar", "/foo/"));
   CHECK(!util::path_starts_with("/batz/bar", "/foo"));
   CHECK(!util::path_starts_with("/foo/bar", "/foo/baz"));
   CHECK(!util::path_starts_with("/beh/foo", "/foo"));
 #ifdef _WIN32
   CHECK(util::path_starts_with("C:/foo/bar", "C:\\foo"));
+  CHECK(util::path_starts_with("C:/foo/bar\\", "C:\\foo"));
+  CHECK(util::path_starts_with("C:/foo/bar", "C:\\foo\\"));
   CHECK(util::path_starts_with("C:/foo/bar", "C:\\\\foo"));
   CHECK(util::path_starts_with("C:\\foo\\bar", "C:/foo"));
   CHECK(util::path_starts_with("C:\\\\foo\\\\bar", "C:/foo"));
   CHECK(util::path_starts_with("C:/FOO/BAR", "c:\\foo"));
   CHECK(util::path_starts_with("c:/foo/bar", "C:\\FOO"));
+  CHECK(util::path_starts_with("c:/foo/bar/", "C:\\FOO"));
+  CHECK(util::path_starts_with("c:/foo/bar", "C:\\FOO\\"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "/foo/baz"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "C:/foo/baz"));
   CHECK(!util::path_starts_with("C:\\beh\\foo", "/foo"));

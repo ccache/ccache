@@ -85,7 +85,7 @@ public:
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
-  const std::string m_prefix;
+  std::string m_prefix;
 #ifdef HAVE_REDISS_STORAGE_BACKEND
   RedisSSLContext m_ssl_context;
 #endif

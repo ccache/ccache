@@ -23,7 +23,9 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/core/statistic.hpp>
 #include <ccache/storage/remote/filestorage.hpp>
-#include <ccache/storage/remote/httpstorage.hpp>
+#ifdef HAVE_HTTP_STORAGE_BACKEND
+#  include <ccache/storage/remote/httpstorage.hpp>
+#endif
 #if defined(HAVE_REDIS_STORAGE_BACKEND) || defined(HAVE_REDISS_STORAGE_BACKEND)
 #  include <ccache/storage/remote/redisstorage.hpp>
 #endif
@@ -52,7 +54,9 @@ const std::unordered_map<std::string /*scheme*/,
                          std::shared_ptr<remote::RemoteStorage>>
   k_remote_storage_implementations = {
     {"file", std::make_shared<remote::FileStorage>()},
+#ifdef HAVE_HTTP_STORAGE_BACKEND
     {"http", std::make_shared<remote::HttpStorage>()},
+#endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
     {"redis", std::make_shared<remote::RedisStorage>()},
     {"redis+unix", std::make_shared<remote::RedisStorage>()},

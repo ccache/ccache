@@ -28,9 +28,10 @@
 class Args
 {
 public:
-  enum class AtFileFormat {
-    gcc,  // '\'' and '"' quote, '\\' escapes any character
-    msvc, // '"' quotes, '\\' escapes only '"' and '\\'
+  enum class ResponseFileFormat {
+    auto_guess,
+    posix,   // '\'' and '"' quote, '\\' escapes any character
+    windows, // '"' quotes, '\\' escapes only '"' and '\\'
   };
 
   Args() = default;
@@ -40,9 +41,8 @@ public:
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(std::string_view command);
 
-  static std::optional<Args>
-  from_atfile(const std::string& filename,
-              AtFileFormat format = AtFileFormat::gcc);
+  static std::optional<Args> from_response_file(const std::string& filename,
+                                                ResponseFileFormat format);
 
   Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;

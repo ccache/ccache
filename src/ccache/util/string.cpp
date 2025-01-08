@@ -19,10 +19,13 @@
 #include "string.hpp"
 
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 
 #include <algorithm>
 #include <cctype>
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -503,7 +506,7 @@ split_option_with_concat_path(std::string_view string)
   return std::make_pair(string.substr(0, split_pos), string.substr(split_pos));
 }
 
-std::vector<std::filesystem::path>
+std::vector<fs::path>
 split_path_list(std::string_view path_list)
 {
 #ifdef _WIN32
@@ -512,7 +515,7 @@ split_path_list(std::string_view path_list)
   const char path_delimiter[] = ":";
 #endif
   auto strings = split_into_views(path_list, path_delimiter);
-  std::vector<std::filesystem::path> paths;
+  std::vector<fs::path> paths;
   std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
   return paths;
 }

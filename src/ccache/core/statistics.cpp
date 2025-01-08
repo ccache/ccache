@@ -52,10 +52,10 @@ struct StatisticsField
   {
   }
 
-  const Statistic statistic;
-  const char* const id;          // for --print-stats
-  const char* const description; // for --show-stats --verbose
-  const unsigned flags;          // bitmask of FLAG_* values
+  Statistic statistic;
+  const char* id;          // for --print-stats
+  const char* description; // for --show-stats --verbose
+  unsigned flags;          // bitmask of FLAG_* values
 };
 
 } // namespace

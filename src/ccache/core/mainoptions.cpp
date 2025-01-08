@@ -226,7 +226,7 @@ inspect_path(const fs::path& path)
   }
 
   core::CacheEntry cache_entry(*cache_entry_data);
-  fputs(cache_entry.header().inspect().c_str(), stdout);
+  std::ignore = fputs(cache_entry.header().inspect().c_str(), stdout);
 
   const auto payload = cache_entry.payload();
 

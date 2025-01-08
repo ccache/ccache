@@ -514,7 +514,7 @@ relative paths in the first place instead of using *base_dir*.
 +
 On non-Windows systems, the default is `$HOME/.ccache` if such a directory
 exists, otherwise `$XDG_CACHE_HOME/ccache` if `XDG_CACHE_HOME` is set, otherwise
-`$HOME/Library/Caches/ccache` (macOS) or `$HOME/.config/ccache` (other systems).
+`$HOME/Library/Caches/ccache` (macOS) or `$HOME/.cache/ccache` (other systems).
 +
 On Windows, the default is `%USERPROFILE%\.ccache` if such a directory exists,
 otherwise `%LOCALAPPDATA%\ccache`.
@@ -612,6 +612,10 @@ _<<Using ccache with other compiler wrappers>>_.
     GCC-based compiler.
 *icl*::
     Intel compiler on Windows.
+*icx*::
+    Intel LLVM-based compiler.
+*icx-cl*::
+    Intel LLVM-based MSVC-compatible compiler.
 *msvc*::
     Microsoft Visual C++ (MSVC).
 *nvcc*::
@@ -990,6 +994,24 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
 
     If true, ccache will write results to remote storage even for local storage
     cache hits. The default is false.
+
+[#config_response_file_format]
+*response_file_format* (*CCACHE_RESPONSE_FILE_FORMAT*)::
+
+    Ccache normally guesses the response file format based on the compiler type.
+    The *response_file_format* option lets you force the response file quoting
+    behavior. This can be useful if the compiler supports both POSIX and Windows
+    response file quoting. Possible values are:
++
+--
+*auto*::
+    Guess one of the formats below based on the compiler type. This is the
+    default.
+*posix*::
+    POSIX quoting behavior.
+*windows*::
+    Windows quoting behavior.
+--
 
 [#config_run_second_cpp]
 *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see _<<Boolean values>>_ above)::
@@ -1370,9 +1392,15 @@ Cleanup can be triggered in two different ways: automatic and manual.
 After a new compilation result has been written to the local cache, ccache will
 trigger an automatic cleanup if <<config_max_size,*max_size*>> or
 <<config_max_files,*max_files*>> is exceeded. The cleanup removes cache entries
-in LRU (least recently used) order based on the modification time (mtime) of
-files in the cache. For this reason, ccache updates mtime of the cache files
-read on a cache hit to mark them as recently used.
+in approximate LRU (least recently used) order based on the modification time
+(mtime) of files in the cache. For this reason, ccache updates mtime of the
+cache files read on a cache hit to mark them as recently used.
+
+For performance reasons only entries in a subset of the cache are considered
+when automatic cleanup is triggered. This means that there is no guarantee that
+the oldest entries of the whole cache are evicted on each individual cleanup,
+but over time the cache as a whole will have "approximate LRU eviction"
+behavior.
 
 
 === Manual cleanup
@@ -1381,6 +1409,10 @@ You can run `ccache -c/--cleanup` to force cleanup of the whole cache. This will
 recalculate the cache size information and also make sure that the cache size
 does not exceed <<config_max_size,*max_size*>> and
 <<config_max_files,*max_files*>>.
+
+Note that there is no guarantee that only the oldest entries are evicted, as
+discussed in _<<Automatic cleanup>>_ above. To evict based on age you can use
+`ccache --evict-older-than AGE`.
 
 
 == Cache compression

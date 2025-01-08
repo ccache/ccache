@@ -39,14 +39,19 @@ template<typename Proc>
 Proc*
 get_proc_address(HMODULE module, const char* proc_name)
 {
-#  if defined __GNUC__
+#  if __GNUC__ >= 8
 #    pragma GCC diagnostic push
-#    if __GNUC__ >= 8
-#      pragma GCC diagnostic ignored "-Wcast-function-type"
-#    endif
+#    pragma GCC diagnostic ignored "-Wcast-function-type"
+#  endif
+#  if __clang_major__ >= 19
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
 #  endif
   return reinterpret_cast<Proc*>(GetProcAddress(module, proc_name));
-#  if defined __GNUC__
+#  if __clang_major__ >= 19
+#    pragma clang diagnostic pop
+#  endif
+#  if __GNUC__ >= 8
 #    pragma GCC diagnostic pop
 #  endif
 }

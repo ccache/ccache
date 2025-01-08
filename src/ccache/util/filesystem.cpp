@@ -26,12 +26,14 @@
 
 namespace util::filesystem {
 
+namespace fs = std::filesystem;
+
 tl::expected<void, std::error_code>
-rename(const std::filesystem::path& old_p, const std::filesystem::path& new_p)
+rename(const fs::path& old_p, const fs::path& new_p)
 {
 #ifndef _WIN32
   std::error_code ec;
-  std::filesystem::rename(old_p, new_p, ec);
+  fs::rename(old_p, new_p, ec);
   if (ec) {
     return tl::unexpected(ec);
   }

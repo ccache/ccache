@@ -7,6 +7,7 @@ set(
   environment.cpp
   error.cpp
   file.cpp
+  filelock.cpp
   filesystem.cpp
   lockfile.cpp
   logging.cpp

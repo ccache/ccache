@@ -79,7 +79,7 @@ struct ArgumentProcessingState
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
   bool found_Yc = false;
-  std::filesystem::path found_Fp_file;
+  fs::path found_Fp_file;
   bool found_valid_Fp = false;
   bool found_syntax_only = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
@@ -157,7 +157,7 @@ detect_pch(const std::string& option,
   // If the option is an option for Clang (is_cc1_option), don't accept
   // anything just because it has a corresponding precompiled header,
   // because Clang doesn't behave that way either.
-  std::filesystem::path pch_file;
+  fs::path pch_file;
   if (option == "-Yc") {
     state.found_Yc = true;
     args_info.generating_pch = true;
@@ -236,7 +236,7 @@ detect_pch(const std::string& option,
 bool
 process_profiling_option(const Context& ctx,
                          ArgsInfo& args_info,
-                         const std::string& arg)
+                         std::string_view arg)
 {
   static const std::vector<std::string> known_simple_options = {
     "-fprofile-correction",
@@ -255,13 +255,12 @@ process_profiling_option(const Context& ctx,
   }
 
   if (util::starts_with(arg, "-fprofile-prefix-path=")) {
-    std::filesystem::path profile_prefix_path = arg.substr(arg.find('=') + 1);
-    args_info.profile_prefix_path = profile_prefix_path;
+    args_info.profile_prefix_path = arg.substr(arg.find('=') + 1);
     LOG("Set profile prefix path to {}", args_info.profile_prefix_path);
     return true;
   }
 
-  std::filesystem::path new_profile_path;
+  fs::path new_profile_path;
   bool new_profile_use = false;
 
   if (util::starts_with(arg, "-fprofile-dir=")) {
@@ -400,10 +399,8 @@ process_option_arg(const Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
-    auto file_args = Args::from_atfile(argpath,
-                                       config.is_compiler_group_msvc()
-                                         ? Args::AtFileFormat::msvc
-                                         : Args::AtFileFormat::gcc);
+    auto file_args =
+      Args::from_response_file(argpath, config.response_file_format());
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -426,7 +423,8 @@ process_option_arg(const Context& ctx,
     // Argument is a comma-separated list of files.
     auto paths = util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args = Args::from_atfile(*it);
+      auto file_args =
+        Args::from_response_file(*it, Args::ResponseFileFormat::posix);
       if (!file_args) {
         LOG("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;
@@ -849,7 +847,9 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (arg == "-showIncludes") {
+  if (arg == "-showIncludes"
+      // clang-cl:
+      || arg == "-showIncludes:user") {
     args_info.generating_includes = true;
     state.dep_args.push_back(args[i]);
     return Statistic::none;
@@ -902,6 +902,7 @@ process_option_arg(const Context& ctx,
       // the actual CWD in the .gcno file.
       state.hash_actual_cwd = true;
     }
+    state.common_args.push_back(args[i]);
     return Statistic::none;
   }
 

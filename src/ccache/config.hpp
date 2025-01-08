@@ -18,8 +18,10 @@
 
 #pragma once
 
+#include <ccache/args.hpp>
 #include <ccache/core/sloppiness.hpp>
 #include <ccache/util/noncopyable.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 
 #include <sys/types.h>
@@ -38,6 +40,8 @@ enum class CompilerType {
   clang_cl,
   gcc,
   icl,
+  icx,
+  icx_cl,
   msvc,
   nvcc,
   other
@@ -53,6 +57,7 @@ public:
   void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
+  Args::ResponseFileFormat response_file_format() const;
   const std::filesystem::path& base_dir() const;
   const std::filesystem::path& cache_dir() const;
   const std::string& compiler() const;
@@ -97,10 +102,10 @@ public:
   const std::filesystem::path& temporary_dir() const;
   std::optional<mode_t> umask() const;
 
-  // Return true for Clang and clang-cl.
+  // Return true for Clang, clang-cl and icx (not on Windows).
   bool is_compiler_group_clang() const;
 
-  // Return true for MSVC (cl.exe), clang-cl, and icl.
+  // Return true for MSVC (cl.exe), clang-cl, icl, icx-cl, and icx (on Windows).
   bool is_compiler_group_msvc() const;
 
   util::SizeUnitPrefixType size_unit_prefix_type() const;
@@ -168,6 +173,8 @@ private:
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
+  Args::ResponseFileFormat m_response_file_format =
+    Args::ResponseFileFormat::auto_guess;
   std::filesystem::path m_base_dir;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
@@ -236,6 +243,17 @@ Config::absolute_paths_in_stderr() const
   return m_absolute_paths_in_stderr;
 }
 
+inline Args::ResponseFileFormat
+Config::response_file_format() const
+{
+  if (m_response_file_format != Args::ResponseFileFormat::auto_guess) {
+    return m_response_file_format;
+  }
+
+  return is_compiler_group_msvc() ? Args::ResponseFileFormat::windows
+                                  : Args::ResponseFileFormat::posix;
+}
+
 inline const std::filesystem::path&
 Config::base_dir() const
 {
@@ -270,6 +288,9 @@ inline bool
 Config::is_compiler_group_clang() const
 {
   return m_compiler_type == CompilerType::clang
+#ifndef _WIN32
+         || m_compiler_type == CompilerType::icx
+#endif
          || m_compiler_type == CompilerType::clang_cl;
 }
 
@@ -278,7 +299,11 @@ Config::is_compiler_group_msvc() const
 {
   return m_compiler_type == CompilerType::msvc
          || m_compiler_type == CompilerType::clang_cl
-         || m_compiler_type == CompilerType::icl;
+         || m_compiler_type == CompilerType::icl
+#ifdef _WIN32
+         || m_compiler_type == CompilerType::icx
+#endif
+         || m_compiler_type == CompilerType::icx_cl;
 }
 
 inline bool
@@ -518,13 +543,13 @@ Config::size_unit_prefix_type() const
 inline void
 Config::set_base_dir(const std::filesystem::path& value)
 {
-  m_base_dir = value;
+  m_base_dir = util::lexically_normal(value);
 }
 
 inline void
 Config::set_cache_dir(const std::filesystem::path& value)
 {
-  m_cache_dir = value;
+  m_cache_dir = util::lexically_normal(value);
   if (!m_temporary_dir_configured_explicitly) {
     m_temporary_dir = default_temporary_dir();
   }
@@ -611,5 +636,5 @@ Config::set_run_second_cpp(bool value)
 inline void
 Config::set_temporary_dir(const std::filesystem::path& value)
 {
-  m_temporary_dir = value;
+  m_temporary_dir = util::lexically_normal(value);
 }

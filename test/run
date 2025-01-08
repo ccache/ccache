@@ -141,6 +141,10 @@ backdate() {
     touch -t $((199901010000 + m)) "$@"
 }
 
+postdate() {
+    touch -t "$(($(date -u +%Y) + 1))01030000" "$@"
+}
+
 file_size() {
     wc -c $1 | awk '{print $1}'
 }

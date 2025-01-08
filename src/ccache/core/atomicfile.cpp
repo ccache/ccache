@@ -42,7 +42,7 @@ AtomicFile::~AtomicFile()
 {
   if (m_stream) {
     // commit() was not called so remove the lingering temporary file.
-    fclose(m_stream);
+    std::ignore = fclose(m_stream); // Not much to do if fclose fails here
     util::remove(m_tmp_path);
   }
 }

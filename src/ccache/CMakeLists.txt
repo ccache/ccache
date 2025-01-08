@@ -51,7 +51,6 @@ target_link_libraries(
     dep_tlexpected
     dep_xxhash
   PRIVATE
-    dep_cpphttplib
     dep_zstd
     standard_settings
     standard_warnings
@@ -72,6 +71,11 @@ endif()
 if(REDISS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDISS_STORAGE_BACKEND)
   target_link_libraries(ccache_framework PRIVATE dep_hiredis dep_hiredis_ssl)
+endif()
+
+if(HTTP_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_HTTP_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
 endif()
 
 add_executable(test-lockfile test_lockfile.cpp)

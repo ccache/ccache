@@ -325,6 +325,10 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::nvcc;
   } else if (name == "icl") {
     return CompilerType::icl;
+  } else if (name == "icx") {
+    return CompilerType::icx;
+  } else if (name == "icx-cl") {
+    return CompilerType::icx_cl;
   } else if (name == "cl") {
     return CompilerType::msvc;
   } else {
@@ -766,8 +770,9 @@ struct DoExecuteResult
   util::Bytes stderr_data;
 };
 
-// Extract the used includes from /showIncludes output in stdout. Note that we
-// cannot distinguish system headers from other includes here.
+// Extract the used includes from /showIncludes (or clang-cl's
+// /showIncludes:user) output in stdout. Note that we cannot distinguish system
+// headers from other includes when /showIncludes is used.
 static tl::expected<Hash::Digest, Failure>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
@@ -1823,6 +1828,18 @@ hash_argument(const Context& ctx,
     return {};
   }
 
+  static const std::string_view frandomize_layout_seed_file =
+    "-frandomize-layout-seed-file=";
+  if (util::starts_with(args[i], frandomize_layout_seed_file)) {
+    hash.hash_delimiter(frandomize_layout_seed_file);
+    auto file = args[i].substr(frandomize_layout_seed_file.length());
+    if (!hash_binary_file(ctx, hash, file)) {
+      LOG("Failed to hash {}", file);
+      return tl::unexpected(Statistic::bad_input_file);
+    }
+    return {};
+  }
+
   // When using the preprocessor, some arguments don't contribute to the hash.
   // The theory is that these arguments will change the output of -E if they are
   // going to have any effect at all. For precompiled headers this might not be
@@ -2354,29 +2371,32 @@ find_compiler(Context& ctx,
 static void
 initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
 {
-  LOG("=== CCACHE {} STARTED =========================================",
-      CCACHE_VERSION);
+  if (util::logging::enabled()) {
+    util::logging::BulkLogger logger;
 
-  LOG("Configuration file: {}", ctx.config.config_path());
-  LOG("System configuration file: {}", ctx.config.system_config_path());
+    BULK_LOG(logger,
+             "=== CCACHE {} STARTED =========================================",
+             CCACHE_VERSION);
+    BULK_LOG(logger, "Configuration file: {}", ctx.config.config_path());
+    BULK_LOG(
+      logger, "System configuration file: {}", ctx.config.system_config_path());
 
-  if (!ctx.config.log_file().empty() || ctx.config.debug()) {
-    ctx.config.visit_items([&ctx](const std::string& key,
-                                  const std::string& value,
-                                  const std::string& origin) {
+    ctx.config.visit_items([&](const std::string& key,
+                               const std::string& value,
+                               const std::string& origin) {
       const auto& log_value =
         key == "remote_storage"
           ? ctx.storage.get_remote_storage_config_for_logging()
           : value;
-      BULK_LOG("Config: ({}) {} = {}", origin, key, log_value);
+      BULK_LOG(logger, "Config: ({}) {} = {}", origin, key, log_value);
     });
-  }
 
-  LOG("Command line: {}", util::format_argv_for_logging(argv));
-  LOG("Hostname: {}", util::get_hostname());
-  LOG("Working directory: {}", ctx.actual_cwd);
-  if (ctx.apparent_cwd != ctx.actual_cwd) {
-    LOG("Apparent working directory: {}", ctx.apparent_cwd);
+    BULK_LOG(logger, "Command line: {}", util::format_argv_for_logging(argv));
+    BULK_LOG(logger, "Hostname: {}", util::get_hostname());
+    BULK_LOG(logger, "Working directory: {}", ctx.actual_cwd);
+    if (ctx.apparent_cwd != ctx.actual_cwd) {
+      BULK_LOG(logger, "Apparent working directory: {}", ctx.apparent_cwd);
+    }
   }
 
   ctx.storage.initialize();

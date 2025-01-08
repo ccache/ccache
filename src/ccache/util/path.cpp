@@ -67,7 +67,14 @@ get_dev_null_path()
   return k_dev_null_path;
 }
 
-std::filesystem::path
+fs::path
+lexically_normal(const fs::path& path)
+{
+  auto result = path.lexically_normal();
+  return result.has_filename() ? result : result.parent_path();
+}
+
+fs::path
 make_relative_path(const fs::path& actual_cwd,
                    const fs::path& apparent_cwd,
                    const fs::path& path)
@@ -76,7 +83,7 @@ make_relative_path(const fs::path& actual_cwd,
   DEBUG_ASSERT(apparent_cwd.is_absolute());
   DEBUG_ASSERT(path.is_absolute());
 
-  fs::path normalized_path = path.lexically_normal();
+  fs::path normalized_path = util::lexically_normal(path);
   fs::path closest_existing_path = normalized_path;
   std::vector<fs::path> relpath_candidates;
   fs::path path_suffix;
@@ -128,14 +135,24 @@ path_starts_with(const fs::path& path, const fs::path& prefix)
   // Note: Not all paths on Windows are case insensitive, but for our purposes
   // (checking whether a path is below the base directory) users will expect
   // them to be.
-  fs::path p1 = util::to_lowercase(path.string());
-  fs::path p2 = util::to_lowercase(prefix.string());
+  fs::path p1 = util::to_lowercase(util::lexically_normal(path).string());
+  fs::path p2 = util::to_lowercase(util::lexically_normal(prefix).string());
 #else
   const fs::path& p1 = path;
   const fs::path& p2 = prefix;
 #endif
-  return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2.end()).second
-         == p2.end();
+
+  // Skip empty part at the end that originates from a trailing slash.
+  auto p2_end = p2.end();
+  if (!p2.empty()) {
+    --p2_end;
+    if (!p2_end->empty()) {
+      ++p2_end;
+    }
+  }
+
+  return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2_end).second
+         == p2_end;
 }
 
 } // namespace util
