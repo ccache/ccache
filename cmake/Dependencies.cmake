@@ -34,6 +34,17 @@ if(ENABLE_TESTING)
   find_package(Doctest 2.4.6 MODULE REQUIRED)
 endif()
 
-if(REDIS_STORAGE_BACKEND)
-  find_package(Hiredis 0.13.3 MODULE REQUIRED)
+if(REDIS_STORAGE_BACKEND OR REDISS_STORAGE_BACKEND)
+  if(REDISS_STORAGE_BACKEND)
+    find_package(Hiredis 1.0.0 MODULE REQUIRED)
+  else()
+    find_package(Hiredis 0.13.3 MODULE REQUIRED)
+  endif()
+endif()
+
+if(REDISS_STORAGE_BACKEND)
+  message(WARNING
+    "Linking against OpenSSL doubles ccache startup time. Distributions are "
+    "encouraged to provide two ccache binaries: one without any extra "
+    "backends and one with the all the desired backends enabled.")
 endif()
