@@ -1,4 +1,5 @@
-FROM alpine:3.15
+ARG BASE_IMAGE=alpine:3.15
+FROM ${BASE_IMAGE} AS build
 
 RUN apk add --no-cache \
         bash \
