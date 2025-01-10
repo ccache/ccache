@@ -31,8 +31,8 @@ namespace util {
 
 // --- Interface ---
 
-// Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat"
-// or ".sh".
+// Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat",
+// ".cmd" or ".sh".
 std::string add_exe_suffix(const std::string& program);
 
 // Return a new path with `extension` added to `path` (keeping any existing

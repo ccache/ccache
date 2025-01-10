@@ -37,7 +37,7 @@ std::string
 add_exe_suffix(const std::string& program)
 {
   std::string ext = util::to_lowercase(fs::path(program).extension().string());
-  if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
+  if (ext == ".exe" || ext == ".bat" || ext == ".cmd" || ext == ".sh") {
     return program;
   } else {
     return program + ".exe";

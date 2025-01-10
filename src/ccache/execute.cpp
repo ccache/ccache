@@ -244,7 +244,7 @@ win32execute(const char* path,
     tmp_file_path = tmp_file.path;
     LOG("Arguments from {}", tmp_file.path);
   }
-  BOOL ret = CreateProcess(full_path.c_str(),
+  BOOL ret = CreateProcess(nullptr,
                            const_cast<char*>(args.c_str()),
                            nullptr,
                            nullptr,
