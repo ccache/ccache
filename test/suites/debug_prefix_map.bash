@@ -45,6 +45,7 @@ SUITE_debug_prefix_map() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
     expect_objdump_not_contains test.o "$(pwd)"
+    expect_objdump_contains test.o some_name_not_likely_to_exist_in_path
 
     # -------------------------------------------------------------------------
     TEST "Multiple -fdebug-prefix-map"

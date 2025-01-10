@@ -709,6 +709,29 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (util::starts_with(arg, "-fdebug-compilation-dir")
+      || util::starts_with(arg, "-ffile-compilation-dir")) {
+    std::string compilation_dir;
+    // -ffile-compilation-dir cannot be followed by a space.
+    if (arg == "-fdebug-compilation-dir") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.common_args.push_back(args[i]);
+      compilation_dir = args[i + 1];
+      i++;
+    } else {
+      const auto eq_pos = arg.find('=');
+      if (eq_pos != std::string_view::npos) {
+        compilation_dir = arg.substr(eq_pos + 1);
+      }
+    }
+    args_info.compilation_dir = std::move(compilation_dir);
+    state.common_args.push_back(args[i]);
+    return Statistic::none;
+  }
+
   // Debugging is handled specially, so that we know if we can strip line
   // number info.
   if (util::starts_with(arg, "-g")) {
