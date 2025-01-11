@@ -56,8 +56,7 @@
 namespace fs = util::filesystem;
 
 #ifdef _WIN32
-static int win32execute(const char* path,
-                        const char* const* argv,
+static int win32execute(const char* const* argv,
                         int doreturn,
                         int fd_stdout,
                         int fd_stderr,
@@ -71,8 +70,7 @@ execute(Context& ctx,
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 
-  return win32execute(argv[0],
-                      argv,
+  return win32execute(argv,
                       1,
                       fd_out.release(),
                       fd_err.release(),
@@ -82,7 +80,7 @@ execute(Context& ctx,
 void
 execute_noreturn(const char* const* argv, const fs::path& temp_dir)
 {
-  win32execute(argv[0], argv, 0, -1, -1, util::pstr(temp_dir).c_str());
+  win32execute(argv, 0, -1, -1, util::pstr(temp_dir).c_str());
 }
 
 std::string
@@ -114,8 +112,7 @@ win32getshell(const std::string& path)
 }
 
 int
-win32execute(const char* path,
-             const char* const* argv,
+win32execute(const char* const* argv,
              int doreturn,
              int fd_stdout,
              int fd_stderr,
@@ -198,11 +195,6 @@ win32execute(const char* path,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  std::string sh = win32getshell(path);
-  if (!sh.empty()) {
-    path = sh.c_str();
-  }
-
   si.cb = sizeof(STARTUPINFO);
   if (fd_stdout != -1) {
     si.hStdOutput = (HANDLE)_get_osfhandle(fd_stdout);
@@ -225,10 +217,9 @@ win32execute(const char* path,
     }
   }
 
-  std::string args = util::format_argv_as_win32_command_string(argv, sh);
-  std::string full_path = util::add_exe_suffix(path);
-  fs::path tmp_file_path;
+  std::string args = util::format_argv_as_win32_command_string(argv);
 
+  fs::path tmp_file_path;
   DEFER([&] {
     if (!tmp_file_path.empty()) {
       util::remove(tmp_file_path);
@@ -238,11 +229,16 @@ win32execute(const char* path,
   if (args.length() > 8192) {
     auto tmp_file = util::value_or_throw<core::Fatal>(
       util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
-    args = util::format_argv_as_win32_command_string(argv + 1, sh, true);
+    args = util::format_argv_as_win32_command_string(argv + 1, true);
     util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT(R"("{}" "@{}")", full_path, tmp_file.path);
+    args = FMT(R"("{}" "@{}")", argv[0], tmp_file.path);
     tmp_file_path = tmp_file.path;
     LOG("Arguments from {}", tmp_file.path);
+  }
+
+  std::string sh = win32getshell(argv[0]);
+  if (!sh.empty()) {
+    args = FMT(R"("{}" {})", sh, args);
   }
   BOOL ret = CreateProcess(nullptr,
                            const_cast<char*>(args.c_str()),
@@ -261,7 +257,7 @@ win32execute(const char* path,
   if (ret == 0) {
     DWORD error = GetLastError();
     LOG("failed to execute {}: {} ({})",
-        full_path,
+        argv[0],
         util::win32_error_message(error),
         error);
     return -1;
@@ -272,8 +268,8 @@ win32execute(const char* path,
       TerminateProcess(pi.hProcess, 1);
 
       DWORD error = GetLastError();
-      LOG("failed to assign process to job object {}: {} ({})",
-          full_path,
+      LOG("failed to assign process to job object for {}: {} ({})",
+          argv[0],
           util::win32_error_message(error),
           error);
       return -1;

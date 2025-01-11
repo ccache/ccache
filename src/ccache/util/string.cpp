@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,14 +51,12 @@ namespace util {
 
 std::string
 format_argv_as_win32_command_string(const char* const* argv,
-                                    const std::string& prefix,
                                     bool escape_backslashes)
 {
   std::string result;
-  size_t i = 0;
-  const char* arg = prefix.empty() ? argv[i++] : prefix.c_str();
 
-  do {
+  for (size_t i = 0; argv[i]; ++i) {
+    const char* arg = argv[i];
     int bs = 0;
     result += '"';
     for (size_t j = 0; arg[j]; ++j) {
@@ -88,7 +86,7 @@ format_argv_as_win32_command_string(const char* const* argv,
       --bs;
     }
     result += "\" ";
-  } while ((arg = argv[i++]));
+  }
 
   result.resize(result.length() - 1);
   return result;

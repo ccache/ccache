@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -43,34 +43,30 @@ TEST_CASE("util::format_argv_as_win32_command_string")
 {
   {
     const char* const argv[] = {"a", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "") == R"("a")");
-  }
-  {
-    const char* const argv[] = {"a", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "p") == R"("p" "a")");
+    CHECK(util::format_argv_as_win32_command_string(argv) == R"("a")");
   }
   {
     const char* const argv[] = {"a", "b c", "\"d\"", "'e'", "\\\"h", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "")
+    CHECK(util::format_argv_as_win32_command_string(argv)
           == R"("a" "b c" "\"d\"" "'e'" "\\\"h")");
   }
   {
     const char* const argv[] = {"a\\b\\c", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "") == R"("a\b\c")");
+    CHECK(util::format_argv_as_win32_command_string(argv) == R"("a\b\c")");
   }
   {
     const char* const argv[] = {"a\\b\\c", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "", true)
+    CHECK(util::format_argv_as_win32_command_string(argv, true)
           == R"("a\\b\\c")");
   }
   {
     const char* const argv[] = {R"(a\b \"c\" \)", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "")
+    CHECK(util::format_argv_as_win32_command_string(argv)
           == R"("a\b \\\"c\\\" \\")");
   }
   {
     const char* const argv[] = {R"(a\b \"c\" \)", nullptr};
-    CHECK(util::format_argv_as_win32_command_string(argv, "", true)
+    CHECK(util::format_argv_as_win32_command_string(argv, true)
           == R"("a\\b \\\"c\\\" \\")");
   }
 }

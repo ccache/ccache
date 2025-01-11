@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,7 +50,6 @@ bool ends_with(std::string_view string, std::string_view suffix);
 // is not at the end of `argv[i]` either.
 std::string
 format_argv_as_win32_command_string(const char* const* argv,
-                                    const std::string& prefix,
                                     bool escape_backslashes = false);
 
 // Format `argv` as a simple string for logging purposes. That is, the result is

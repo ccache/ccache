@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -367,6 +367,13 @@ hash_command_output(Hash& hash,
     using_cmd_exe = false;
   }
   Args args = Args::from_string(adjusted_command);
+  {
+    auto full_path =
+      find_executable_in_path(args[0], util::getenv_path_list("PATH")).string();
+    if (!full_path.empty()) {
+      args[0] = full_path;
+    }
+  }
 #else
   Args args = Args::from_string(command);
 #endif
@@ -388,16 +395,6 @@ hash_command_output(Hash& hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  auto path =
-    find_executable_in_path(args[0], util::getenv_path_list("PATH")).string();
-  if (path.empty()) {
-    path = args[0];
-  }
-  std::string sh = win32getshell(path);
-  if (!sh.empty()) {
-    path = sh;
-  }
-
   si.cb = sizeof(STARTUPINFO);
 
   HANDLE pipe_out[2];
@@ -409,14 +406,18 @@ hash_command_output(Hash& hash,
   si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
   si.dwFlags = STARTF_USESTDHANDLES;
 
-  std::string win32args;
+  std::string commandline;
   if (using_cmd_exe) {
-    win32args = adjusted_command; // quoted
+    commandline = adjusted_command; // quoted
   } else {
-    win32args = util::format_argv_as_win32_command_string(argv, sh);
+    commandline = util::format_argv_as_win32_command_string(argv);
+    std::string sh = win32getshell(args[0]);
+    if (!sh.empty()) {
+      commandline = FMT(R"("{}" {})", sh, commandline);
+    }
   }
-  BOOL ret = CreateProcess(path.c_str(),
-                           const_cast<char*>(win32args.c_str()),
+  BOOL ret = CreateProcess(nullptr,
+                           const_cast<char*>(commandline.c_str()),
                            nullptr,
                            nullptr,
                            1,
