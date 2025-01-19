@@ -1,0 +1,84 @@
+#!/bin/sh
+
+set -e
+
+fltimages() {
+  grep -v -e '^centos:7$' # EOLed
+}
+
+fltplatforms() {
+   FILT="grep -v -e unknown" # docker multi-arch is weird
+   case "${BASE_IMAGE}" in
+   alpine:3.15)
+     FILT="${FILT} -e ^linux/arm/v6\$" # bus error
+     ;;
+   ubuntu:20.04)
+     FILT="${FILT} -e ^linux/arm/v7\$" # broken cmake
+     ;;
+   *)
+     ;;
+  esac
+  ${FILT}
+}
+
+platformopts() {
+  case "${BASE_IMAGE}" in
+  alpine:3.15)
+    ;;
+  debian:12)
+    case "${TARGETPLATFORM}" in
+    linux/mips64le)
+      echo "-DREDIS_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  debian:11)
+    case "${TARGETPLATFORM}" in
+    linux/ppc64le | linux/arm/v7)
+      echo "-DHTTP_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  fedora:40)
+    case "${TARGETPLATFORM}" in
+    linux/s390x)
+      echo "-DHTTP_STORAGE_BACKEND=OFF" # Fails unit test
+      echo "-DREDIS_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  ubuntu:22.04)
+    case "${TARGETPLATFORM}" in
+    linux/arm64)
+      echo "-DREDIS_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  ubuntu:24.04)
+    case "${TARGETPLATFORM}" in
+    linux/s390x)
+      echo "-DHTTP_STORAGE_BACKEND=OFF" # Fails unit test
+      echo "-DREDIS_STORAGE_BACKEND=OFF" # Fails unit test
+      ;;
+    esac
+    ;;
+  esac
+  echo "${@}"
+}
+
+case "${1}" in
+platformopts)
+  shift
+  platformopts "${@}"
+  ;;
+fltplatforms)
+  fltplatforms
+  ;;
+fltimages)
+  fltimages
+  ;;
+*)
+  echo "usage: `basename "${0}"` (platformopts|fltplatforms) [opts]" 2>&1
+  exit 1
+  ;;
+esac
