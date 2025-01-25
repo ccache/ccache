@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -107,6 +107,15 @@ TEST_CASE("split_argv")
     CHECK(!argv_parts.masquerading_as_compiler);
     CHECK(argv_parts.config_settings
           == std::vector<std::string>{"a=b", "c = d"});
+    CHECK(argv_parts.compiler_and_args == Args::from_string("/usr/bin/gcc"));
+  }
+
+  SUBCASE("compilation with config option ending with /ccache")
+  {
+    const char* const argv[] = {"ccache", "a=b/ccache", "/usr/bin/gcc"};
+    argv_parts = split_argv(std::size(argv), argv);
+    CHECK(!argv_parts.masquerading_as_compiler);
+    CHECK(argv_parts.config_settings == std::vector<std::string>{"a=b/ccache"});
     CHECK(argv_parts.compiler_and_args == Args::from_string("/usr/bin/gcc"));
   }
 }

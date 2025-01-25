@@ -2504,7 +2504,8 @@ split_argv(int argc, const char* const* argv)
 {
   ArgvParts argv_parts;
   int i = 0;
-  while (i < argc && is_ccache_executable(argv[i])) {
+  while (i < argc && !std::strchr(argv[i], '=')
+         && is_ccache_executable(argv[i])) {
     argv_parts.masquerading_as_compiler = false;
     ++i;
   }
