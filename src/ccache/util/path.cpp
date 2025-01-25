@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,12 +36,7 @@ namespace util {
 std::string
 add_exe_suffix(const std::string& program)
 {
-  std::string ext = util::to_lowercase(fs::path(program).extension().string());
-  if (ext == ".exe" || ext == ".bat" || ext == ".cmd" || ext == ".sh") {
-    return program;
-  } else {
-    return program + ".exe";
-  }
+  return fs::path(program).has_extension() ? program : program + ".exe";
 }
 
 fs::path

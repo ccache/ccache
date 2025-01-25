@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,8 +31,7 @@ namespace util {
 
 // --- Interface ---
 
-// Add ".exe" suffix to `program` if it doesn't already end with ".exe", ".bat",
-// ".cmd" or ".sh".
+// Add ".exe" suffix to `program` if it doesn't already have an extension.
 std::string add_exe_suffix(const std::string& program);
 
 // Return a new path with `extension` added to `path` (keeping any existing
