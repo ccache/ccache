@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -561,7 +561,7 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case TRIM_METHOD:
-      trim_lru_mtime = (arg == "ctime");
+      trim_lru_mtime = (arg == "mtime");
       break;
 
     case TRIM_RECOMPRESS:
