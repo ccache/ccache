@@ -54,6 +54,18 @@ jobs:
             compiler: gcc
             version: "14"
 
+          - os: ubuntu-24.04
+            compiler: clang
+            version: "16"
+
+          - os: ubuntu-24.04
+            compiler: clang
+            version: "17"
+
+          - os: ubuntu-24.04
+            compiler: clang
+            version: "18"
+
           - os: macOS-13
             compiler: xcode
             version: "15.0.1"
