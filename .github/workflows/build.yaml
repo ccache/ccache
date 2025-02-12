@@ -73,6 +73,10 @@ jobs:
           - os: macOS-14
             compiler: xcode
             version: "15.3"
+
+          - os: macOS-15
+            compiler: xcode
+            version: "16.0"
     steps:
       - name: Install dependencies on Linux
         if: ${{ runner.os == 'Linux' }}
