@@ -20,7 +20,7 @@ jobs:
     env:
       CMAKE_GENERATOR: Ninja
 
-    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}
+    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }} ${{ matrix.stdlib }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -60,11 +60,26 @@ jobs:
 
           - os: ubuntu-24.04
             compiler: clang
+            version: "16"
+            stdlib: "libc++"
+
+          - os: ubuntu-24.04
+            compiler: clang
             version: "17"
 
           - os: ubuntu-24.04
             compiler: clang
+            version: "17"
+            stdlib: "libc++"
+
+          - os: ubuntu-24.04
+            compiler: clang
             version: "18"
+
+          - os: ubuntu-24.04
+            compiler: clang
+            version: "18"
+            stdlib: "libc++"
 
           - os: macOS-13
             compiler: xcode
@@ -121,11 +136,16 @@ jobs:
               # work.
               echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
             fi
-          else
+          elif [ "${{ matrix.compiler }}" = "clang" ]; then
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
 
             sudo apt-get install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
+            if [ "${{ matrix.stdlib }}" = "libc++" ]; then
+              sudo apt-get install -y libc++-dev libc++abi-dev
+              echo "CXXFLAGS=-stdlib=libc++" >> $GITHUB_ENV
+              echo "LDFLAGS=-stdlib=libc++ -lc++abi" >> $GITHUB_ENV
+            fi
           fi
 
           case "${{ matrix.os }}" in
