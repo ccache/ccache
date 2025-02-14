@@ -83,6 +83,24 @@ option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
 option(HTTP_STORAGE_BACKEND "Enable HTTP remote storage" ON)
 option(ENABLE_TESTING "Enable tests" ON)
 
+#
+# Configuration validation
+#
+
+if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "18")
+OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
+OR (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND MSVC_TOOLSET_VERSION VERSION_GREATER_EQUAL "143"))
+  if(NOT DEFINED CCACHE_CXX20_MODULES_FEATURE)
+    if(CMAKE_CXX_BYTE_ORDER STREQUAL LITTLE_ENDIAN)
+      option(CCACHE_CXX20_MODULES_FEATURE "Enable C++20 module features" ON)
+    endif()
+  endif()
+elseif(DEFINED CCACHE_CXX20_MODULES_FEATURE)
+  message(WARNING "`CCACHE_CXX20_MODULES_FEATURE` is not known to work with this compiler")
+else()
+  option(CCACHE_CXX20_MODULES_FEATURE "Enable ccache C++20 modules feature" OFF)
+endif()
+
 include(InstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
@@ -177,6 +195,7 @@ add_custom_target(
 
 message(STATUS)
 message(STATUS "Configuration summary:")
+message(STATUS "  C++20 modules feature: ${CCACHE_CXX20_MODULES_FEATURE}")
 message(STATUS "  Storage backends:")
 message(STATUS "    file  ON")
 message(STATUS "    http  ${HTTP_STORAGE_BACKEND}")
