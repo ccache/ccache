@@ -69,6 +69,11 @@ endif()
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR})
 
+if(CCACHE_CXX20_MODULES_FEATURE)
+  target_compile_definitions(ccache_framework PUBLIC -DCCACHE_CXX20_MODULES_FEATURE)
+  target_link_libraries(ccache_framework PUBLIC dep_glaze)
+endif()
+
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
   target_link_libraries(ccache_framework PRIVATE dep_hiredis)
