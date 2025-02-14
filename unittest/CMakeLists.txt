@@ -38,6 +38,10 @@ set(
   testutil.cpp
 )
 
+if(CCACHE_CXX20_MODULES_FEATURE)
+  list(APPEND source_files test_cxx_modules.cpp)
+endif()
+
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_inodecache.cpp)
 endif()

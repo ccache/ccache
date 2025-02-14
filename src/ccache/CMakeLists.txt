@@ -16,6 +16,11 @@ set(
   version.cpp
 )
 
+if(CCACHE_CXX20_MODULES_FEATURE)
+  list(APPEND source_files cxx_modules/common.cpp)
+  list(APPEND source_files cxx_modules/json.cpp)
+endif()
+
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files inodecache.cpp)
 endif()
