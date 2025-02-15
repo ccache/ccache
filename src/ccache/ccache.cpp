@@ -620,8 +620,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static tl::expected<Hash::Digest, Failure>
-result_key_from_depfile(Context& ctx, Hash& hash)
+static tl::expected<void, Failure>
+update_result_key_with_depfile(Context& ctx, Hash& hash)
 {
   // Make sure that result hash will always be different from the manifest hash
   // since there otherwise may a storage key collision (in case the dependency
@@ -731,8 +731,9 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     print_included_files(ctx, stdout);
   }
 
-  return hash.digest();
+  return {};
 }
+
 
 struct GetTmpFdResult
 {
@@ -767,8 +768,10 @@ struct DoExecuteResult
 // Extract the used includes from /showIncludes (or clang-cl's
 // /showIncludes:user) output in stdout. Note that we cannot distinguish system
 // headers from other includes when /showIncludes is used.
-static tl::expected<Hash::Digest, Failure>
-result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
+static tl::expected<void, Failure>
+update_result_key_with_showIncludes(Context& ctx,
+                                    Hash& hash,
+                                    std::string_view stdout_data)
 {
   for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
@@ -791,7 +794,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
     print_included_files(ctx, stdout);
   }
 
-  return hash.digest();
+  return {};
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -1252,22 +1255,16 @@ to_cache(Context& ctx,
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
     if (ctx.args_info.generating_dependencies) {
-      auto key = result_key_from_depfile(ctx, *depend_mode_hash);
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
-    } else if (ctx.args_info.generating_includes) {
-      auto key = result_key_from_includes(
-        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data));
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
-    } else {
-      ASSERT(false);
+      TRY(update_result_key_with_depfile(ctx, *depend_mode_hash));
+      LOG_RAW("Updated result key with dependency file");
     }
-    LOG_RAW("Got result key from dependency file");
+    if (ctx.args_info.generating_includes) {
+      TRY(update_result_key_with_showIncludes(
+        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data)));
+      LOG_RAW("Updated result key with showIncludes");
+    }
+
+    result_key = depend_mode_hash->digest();
     LOG("Result key: {}", util::format_digest(*result_key));
   }
 
