@@ -51,7 +51,7 @@ namespace core {
 
 using Result::FileType;
 
-ResultRetriever::ResultRetriever(const Context& ctx,
+ResultRetriever::ResultRetriever(Context& ctx,
                                  std::optional<Hash::Digest> result_key)
   : m_ctx(ctx),
     m_result_key(result_key)
@@ -217,7 +217,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
 void
 ResultRetriever::write_dependency_file(const fs::path& path,
-                                       nonstd::span<const uint8_t> data)
+                                       nonstd::span<const uint8_t> data) const
 {
   ASSERT(m_ctx.args_info.dependency_target);
 
