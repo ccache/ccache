@@ -19,6 +19,7 @@
 #include "testutil.hpp"
 
 #include <ccache/cxx_modules/json.hpp>
+#include <ccache/cxx_modules/msvc/sourcedependencies.hpp>
 #include <ccache/cxx_modules/p1689.hpp>
 
 #include <doctest/doctest.h>
@@ -191,6 +192,147 @@ TEST_CASE("json::parse<deps::p1689::DepFile>: error missing_key")
     "revision": 0
   })"sv;
   const auto deps = json::parse<deps::p1689::DepFile>(buffer);
+
+  CHECK(not deps.has_value());
+  CHECK(deps.error() == json::ParseError::code::missing_key);
+  CHECK(deps.error().format(buffer).contains("missing_key"));
+}
+
+TEST_CASE("json::parse<deps::msvc::SourceDependencies>")
+{
+  static constexpr auto buffer = R"({
+    "Version": "1.2",
+    "Data": {
+      "Source": "F:/Sample/myproject/modulee.ixx",
+      "ProvidedModule": "ModuleE",
+      "Includes": [],
+      "ImportedModules": [
+        {
+          "Name": "ModuleC",
+          "BMI": "F:/Sample/Outputs/Intermediate/MyProject/x64/Debug/ModuleC.ixx.ifc"
+        },
+        {
+          "Name": "ModuleB",
+          "BMI": "F:/Sample/Outputs/Intermediate/ModuleB/x64/Debug/ModuleB.ixx.ifc"
+        },
+        {
+          "Name": "ModuleD",
+          "BMI": "F:/Sample/Outputs/Intermediate/MyProject/x64/Debug/ModuleD.cppm.ifc"
+        }
+      ],
+      "ImportedHeaderUnits": [
+        {
+          "Header": "f:/visual studio 16 main/vc/tools/msvc/14.29.30030/include/iostream",
+          "BMI": "F:/Sample/Outputs/Intermediate/HeaderUnits/x64/Debug/iostream_W4L4JYGFJ3GL8OG9.ifc"
+        }
+      ]
+    }
+  })"sv;
+  const auto deps = json::parse<deps::msvc::SourceDependencies>(buffer);
+
+  CHECK(deps.has_value());
+
+  CHECK(deps->version == "1.2"sv);
+
+  CHECK(deps->data.source == "F:/Sample/myproject/modulee.ixx"sv);
+  CHECK(deps->data.provided_module == "ModuleE"sv);
+  CHECK(deps->data.includes.empty());
+
+  CHECK(deps->data.imported_modules.size() == 3);
+  CHECK(deps->data.imported_modules[0].name == "ModuleC"sv);
+  CHECK(
+    deps->data.imported_modules[0].bmi
+    == "F:/Sample/Outputs/Intermediate/MyProject/x64/Debug/ModuleC.ixx.ifc"sv);
+  CHECK(deps->data.imported_modules[1].name == "ModuleB"sv);
+  CHECK(
+    deps->data.imported_modules[1].bmi
+    == "F:/Sample/Outputs/Intermediate/ModuleB/x64/Debug/ModuleB.ixx.ifc"sv);
+  CHECK(deps->data.imported_modules[2].name == "ModuleD"sv);
+  CHECK(
+    deps->data.imported_modules[2].bmi
+    == "F:/Sample/Outputs/Intermediate/MyProject/x64/Debug/ModuleD.cppm.ifc"sv);
+
+  CHECK(deps->data.imported_header_units.size() == 1);
+  CHECK(
+    deps->data.imported_header_units[0].header
+    == "f:/visual studio 16 main/vc/tools/msvc/14.29.30030/include/iostream"sv);
+  CHECK(deps->data.imported_header_units[0].bmi == "F:/Sample/Outputs/Intermediate/HeaderUnits/x64/Debug/iostream_W4L4JYGFJ3GL8OG9.ifc"sv);
+}
+
+TEST_CASE("json::parse<deps::msvc::SourceDependencies>: ignores unknown keys")
+{
+  static constexpr auto buffer = R"({
+    "Version": "1.2",
+    "UNKNOWN": {},
+    "Data": {
+      "Source": "F:/Sample/myproject/modulee.ixx",
+      "ProvidedModule": "ModuleE",
+      "Includes": [],
+      "ImportedModules": [
+        {
+          "Name": "ModuleC",
+          "BMI": "F:/Sample/Outputs/Intermediate/MyProject/x64/Debug/ModuleC.ixx.ifc"
+        },
+        {
+          "Name": "ModuleB",
+          "BMI": "F:/Sample/Outputs/Intermediate/ModuleB/x64/Debug/ModuleB.ixx.ifc"
+        },
+        {
+          "Name": "ModuleD",
+          "BMI": "F:/Sample/Outputs/Intermediate/MyProject/x64/Debug/ModuleD.cppm.ifc"
+        }
+      ],
+      "ImportedHeaderUnits": [
+        {
+          "Header": "f:/visual studio 16 main/vc/tools/msvc/14.29.30030/include/iostream",
+          "BMI": "F:/Sample/Outputs/Intermediate/HeaderUnits/x64/Debug/iostream_W4L4JYGFJ3GL8OG9.ifc"
+        }
+      ]
+    }
+  })"sv;
+  const auto deps = json::parse<deps::msvc::SourceDependencies>(buffer);
+
+  CHECK(deps.has_value());
+}
+
+TEST_CASE("json::parse<deps::msvc::SourceDependencies>: expected brace")
+{
+  static constexpr auto buffer = R"({
+    "Version": "1.2",
+    "Data":  
+  })"sv;
+
+  const auto deps = json::parse<deps::msvc::SourceDependencies>(buffer);
+
+  CHECK(not deps.has_value());
+  CHECK(deps.error() == json::ParseError::code::expected_brace);
+  CHECK(deps.error().format(buffer).contains("expected_brace"));
+}
+
+TEST_CASE("json::parse<deps::msvc::SourceDependencies>: expected bracket")
+{
+  static constexpr auto buffer = R"({
+    "Version": "1.2",
+    "Data": {
+      "Source": "F:/Sample/myproject/modulee.ixx",
+      "ProvidedModule": "ModuleE",
+      "Includes": 
+  })"sv;
+
+  const auto deps = json::parse<deps::msvc::SourceDependencies>(buffer);
+
+  CHECK(not deps.has_value());
+  CHECK(deps.error() == json::ParseError::code::expected_bracket);
+  CHECK(deps.error().format(buffer).contains("expected_bracket"));
+}
+
+TEST_CASE("json::parse<deps::msvc::SourceDependencies>: error missing_key")
+{
+  static constexpr auto buffer = R"({
+    "Version": "1.2"
+  })"sv;
+
+  const auto deps = json::parse<deps::msvc::SourceDependencies>(buffer);
 
   CHECK(not deps.has_value());
   CHECK(deps.error() == json::ParseError::code::missing_key);
