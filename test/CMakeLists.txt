@@ -1,7 +1,11 @@
+if(NOT DEFINED CCACHE_CTEST_BASH)
+  set(CCACHE_CTEST_BASH bash)
+endif()
+
 function(addtest name)
   add_test(
     NAME "test.${name}"
-    COMMAND bash ${CMAKE_SOURCE_DIR}/test/run ${name}
+    COMMAND ${CCACHE_CTEST_BASH} ${CMAKE_SOURCE_DIR}/test/run ${name}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   set_tests_properties(
