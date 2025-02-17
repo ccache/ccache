@@ -69,6 +69,11 @@
 #include <ccache/util/umaskscope.hpp>
 #include <ccache/util/wincompat.hpp>
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+#  include <ccache/cxx_modules/json.hpp>
+#  include <ccache/cxx_modules/p1689.hpp>
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
 #include <fcntl.h>
 
 #include <optional>
@@ -267,7 +272,7 @@ init_hash_debug(Context& ctx,
 
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
-[[nodiscard]] tl::expected<void, Failure>
+[[nodiscard]] tl::expected<void, Statistic>
 remember_include_file(Context& ctx,
                       const fs::path& path,
                       Hash& cpp_hash,
@@ -735,6 +740,167 @@ update_result_key_with_depfile(Context& ctx, Hash& hash)
   return {};
 }
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+namespace cxx_modules::deps::p1689 {
+
+static void
+synthesize_output_bmi(Context& ctx, const ProvidedModuleDesc& provided) noexcept
+{
+  if (!ctx.args_info.cxx_modules.output_bmi.empty()) {
+    return;
+  }
+
+  std::string&& path{};
+
+  if (path.empty() && provided.compiled_module_path) {
+    path = provided.compiled_module_path.value();
+  }
+
+  if (path.empty() && ctx.config.compiler() == Compiler::type::gcc) {
+    const auto bmi_path = ctx.config.compiler().paths().binary_module_path;
+    const auto bmi_file_ext =
+      ctx.config.compiler().file_exts().binary_module_interface;
+
+    // These should always be defined for GCC.
+    ASSERT(bmi_path.has_value());
+    ASSERT(bmi_file_ext.has_value());
+
+    path += *bmi_path;
+    path += "/";
+    path += provided.logical_name;
+    path += *bmi_file_ext;
+  }
+
+  ctx.args_info.cxx_modules.output_bmi = std::move(path);
+  ctx.args_info.cxx_modules.generating_bmi = true;
+
+  LOG("Synthesized C++20 modules BMI path: {}",
+      std::string_view(ctx.args_info.cxx_modules.output_bmi));
+}
+
+static void
+process_provides(Context& ctx, const std::vector<ProvidedModuleDesc>& provides)
+{
+  DEBUG_ASSERT(provides.size() == 1);
+
+  if (provides.empty()) {
+    return;
+  }
+
+  const auto& provided = provides.front();
+
+  synthesize_output_bmi(ctx, provided);
+}
+
+static tl::expected<void, Statistic>
+process_require(Context& ctx, const RequiredModuleDesc& require, Hash& hash)
+{
+  const auto system = require.is_system();
+
+  if (require.source_path) {
+    // require.
+  }
+
+  if (require.compiled_module_path.has_value()) {
+    // NOTE: This is the best case scenario for locating the BMI and ideally we
+    // would rely on this alone and not even need to parse the Make depfiles.
+    //
+    // Unfortunately, as of early 2025, the major compilers do not usually
+    // include this information and we need a secondary mechanism to provide
+    // this information, such as Make depfiles.
+    //
+    // That also means that most of the time this function is invoked this code
+    // block is skipped (because the field is absent) or the required BMI has
+    // already been hashed from another source (in which case it is skipped).
+    //
+    // The situation should improve as more tooling is built around modules so
+    // it's a good idea to handle this field if present.
+    const auto view = require.compiled_module_path.value();
+    const auto view_path = std::filesystem::path{view};
+    const auto path = core::make_relative_path(ctx, view_path);
+    TRY(remember_include_file(ctx, path, hash, system, &hash));
+    return {};
+  }
+
+  const auto name = std::string(require.logical_name);
+  const auto it = ctx.args_info.cxx_modules.names_paths.find(name);
+  if (it != ctx.args_info.cxx_modules.names_paths.end()) {
+    const auto& path = it->second;
+    LOG("Synthesized C++20 modules BMI file path for logical name: {}",
+        std::string_view(path));
+    TRY(remember_include_file(ctx, fs::path(path), hash, system, &hash));
+  }
+
+  return {};
+}
+
+auto
+process_output_ddi(Context& ctx, Hash* hash, const deps::p1689::DepFile& ddi)
+  -> tl::expected<void, Statistic>
+{
+  if (ddi.rules.empty()) {
+    return {};
+  }
+
+  DEBUG_ASSERT(ddi.rules.size() == 1);
+
+  const auto& rule = ddi.rules.front();
+
+  if (rule.primary_output) {
+    const auto& ext = ctx.config.compiler().file_exts().object;
+    const auto& primary_output = std::string_view{rule.primary_output.value()};
+    ctx.args_info.expect_output_obj = util::ends_with(primary_output, ext);
+
+    if (ctx.args_info.output_obj.empty()) {
+      ctx.args_info.output_obj = primary_output;
+    } else {
+      DEBUG_ASSERT(ctx.args_info.output_obj == primary_output);
+    }
+  }
+
+  // for (const auto& output :
+  //      rule.outputs.value_or(std::vector<cxx_modules::p1689::path_view>{})) {
+  //   // TODO: Determine whether we can process these in a useful way.
+  // }
+
+  if (rule.provides) {
+    process_provides(ctx, *rule.provides);
+  }
+
+  if (rule.requires_) {
+    for (const auto& require : *rule.requires_) {
+      TRY(process_require(ctx, require, *hash));
+    }
+  }
+
+  return {};
+}
+
+auto
+load_output_ddi(Context& ctx, Hash* hash) -> tl::expected<void, Statistic>
+{
+  const auto& path = fs::path(ctx.args_info.cxx_modules.output_ddi);
+  if (path.empty()) {
+    return {};
+  }
+
+  const auto& text = util::read_file<std::string>(path);
+  if (!text) {
+    LOG("Failed to read p1689 file {}: {}", path, text.error());
+    return tl::unexpected(Statistic::bad_input_file);
+  }
+
+  const auto& parse = cxx_modules::json::parse<deps::p1689::DepFile>(*text);
+  if (!parse) {
+    LOG("Failed to parse p1689 file {}: {}", path, parse.error().format(*text));
+    return tl::unexpected(Statistic::bad_input_file);
+  }
+
+  return process_output_ddi(ctx, hash, *parse);
+}
+
+} // namespace cxx_modules::deps::p1689
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
 struct GetTmpFdResult
 {
@@ -1040,6 +1206,36 @@ write_result(Context& ctx,
     LOG("Assembler listing file {} missing", ctx.args_info.output_al);
     return false;
   }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  if (ctx.args_info.cxx_modules.generating_ddi) {
+    const auto output_ddi =
+      std::filesystem::path(ctx.args_info.cxx_modules.output_ddi);
+    if (!serializer.add_file(core::Result::FileType::cxx_modules_ddi,
+                             output_ddi)) {
+      LOG("C++20 modules p1689 DDI file {} missing", output_ddi);
+    }
+  }
+  if (ctx.args_info.cxx_modules.generating_bmi) {
+    if (ctx.args_info.cxx_modules.output_bmi.empty()) {
+      LOG_RAW("C++20 modules BMI file path not determined");
+    } else {
+      // Serialize the path of the output_bmi so we can infer this later during
+      // deserialization without having to reprocess the entire DDI.
+      const auto& output_bmi = ctx.args_info.cxx_modules.output_bmi;
+      const auto output_bmi_data = std::span<const uint8_t>(
+        reinterpret_cast<const uint8_t*>(output_bmi.data()), output_bmi.size());
+      serializer.add_data(core::Result::FileType::cxx_modules_bmi_path,
+                          output_bmi_data);
+      // Serialize the bytes of the output_bmi.
+      if (!serializer.add_file(
+            core::Result::FileType::cxx_modules_bmi,
+            std::filesystem::path(ctx.args_info.cxx_modules.output_bmi))) {
+        LOG("C++20 modules BMI file {} missing",
+            std::string_view(ctx.args_info.cxx_modules.output_bmi));
+      }
+    }
+  }
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
@@ -1194,6 +1390,12 @@ to_cache(Context& ctx,
         ctx, *depend_mode_hash, result->console()));
       LOG_RAW("Updated result key with showIncludes");
     }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    if (ctx.args_info.cxx_modules.generating_ddi) {
+      TRY(cxx_modules::deps::p1689::load_output_ddi(ctx, depend_mode_hash));
+      LOG_RAW("Updated result key with p1689 DDI file");
+    }
+#endif
 
     result_key = depend_mode_hash->digest();
     LOG("Result key: {}", util::format_digest(*result_key));

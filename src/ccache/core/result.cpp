@@ -156,6 +156,17 @@ file_type_to_string(FileType type)
 
   case FileType::ipa_clones:
     return ".000i.ipa-clones";
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case FileType::cxx_modules_bmi_path:
+    return "<C++20 module BMI path>";
+
+  case FileType::cxx_modules_bmi:
+    return ".gcm";
+
+  case FileType::cxx_modules_ddi:
+    return ".ddi";
+#endif
   }
 
   return k_unknown_file_type;

@@ -75,6 +75,18 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       m_ctx, console.stdout_text().filtered(), STDOUT_FILENO);
   } else if (file_type == FileType::stderr_output) {
     core::send_to_console(m_ctx, util::to_string_view(data), STDERR_FILENO);
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  } else if (file_type == FileType::cxx_modules_bmi_path) {
+    // Read the deserialized C++20 BMI file path and use it to set output_bmi
+    std::string_view output_bmi_new =
+      std::string_view(reinterpret_cast<const char*>(data.data()), data.size());
+    auto& output_bmi_old = m_ctx.args_info.cxx_modules.output_bmi;
+    DEBUG_ASSERT(output_bmi_old.empty() || output_bmi_old == output_bmi_new);
+    if (output_bmi_old.empty()) {
+      output_bmi_old = output_bmi_new;
+      m_ctx.args_info.cxx_modules.generating_bmi = true;
+    }
+#endif // CCACHE_CXX20_MODULES_FEATURE
   } else {
     const auto dest_path = get_dest_path(file_type);
     if (dest_path.empty()) {
@@ -86,6 +98,17 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       if (file_type == FileType::dependency) {
         write_dependency_file(dest_path, data);
       } else {
+        // Ensure parent directories are created before writing file.
+        //
+        // This is needed for GCC in particular because it outputs BMI
+        // files into the special `gcm.cache/` directory. But other compilers
+        // may also write module artifacts to subdirectories depending on
+        // configuration so we should always perform this check first.
+        if (dest_path.has_parent_path()) {
+          util::throw_on_error<WriteError>(
+            fs::create_directories(dest_path.parent_path()),
+            FMT("Failed to create parent directories for {}: ", dest_path));
+        }
         util::throw_on_error<WriteError>(
           util::write_file(dest_path, data),
           FMT("Failed to write to {}: ", dest_path));
@@ -210,6 +233,43 @@ ResultRetriever::get_dest_path(FileType file_type) const
       return m_ctx.args_info.output_ipa;
     }
     break;
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case FileType::cxx_modules_bmi_path:
+    // Should never get here.
+    break;
+
+  case FileType::cxx_modules_bmi:
+    if (m_ctx.args_info.cxx_modules.generating_bmi) {
+      // The `output_bmi` will often be `output_obj` with extension replaced.
+      //
+      // However, this is not *necessarily* the case because of the fact that
+      // C++20 module names are not tied to file-names in any way, and there is
+      // no guarantee or specification for how the the compiler will generate
+      // the module-name -> BMI file-name mapping (in the scenario where the BMI
+      // name is not specified by a compiler flag).
+      //
+      // GCC in particular is the difficult case here because, unlike Clang and
+      // MSVC, GCC does not currently have compiler flags to directly control
+      // the output BMI file-name.
+      //
+      // There are a few strategies to handle this situation:
+      //
+      //   1. Store additional data in the result
+      //   2. Reparse the DDI after deserialization and infer from "provided"
+      //   3. Some sort of monitoring with heuristics? Probably not viable
+      //
+      // Option (1) seems most efficient and what we have currently implemented.
+      return m_ctx.args_info.cxx_modules.output_bmi;
+    }
+    break;
+
+  case FileType::cxx_modules_ddi:
+    if (m_ctx.args_info.cxx_modules.generating_ddi) {
+      return fs::path(m_ctx.args_info.cxx_modules.output_ddi);
+    }
+    break;
+#endif // CCACHE_CXX20_MODULES_FEATURE
   }
 
   return {};
