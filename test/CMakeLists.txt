@@ -8,6 +8,12 @@ function(addtest name)
     COMMAND ${CCACHE_CTEST_BASH} ${CMAKE_SOURCE_DIR}/test/run ${name}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
+  list(APPEND env
+    CCACHE=$<TARGET_FILE:ccache>
+    EXIT_IF_SKIPPED=true
+    HTTP_STORAGE_BACKEND=$<BOOL:${HTTP_STORAGE_BACKEND}>
+    CCACHE_CXX20_MODULES_FEATURE=$<BOOL:${CCACHE_CXX20_MODULES_FEATURE}>
+  )
   set_tests_properties(
     "test.${name}"
     PROPERTIES
@@ -42,6 +48,7 @@ addtest(input_charset)
 addtest(ivfsoverlay)
 addtest(masquerading)
 addtest(clang_modules)
+addtest(cxx_modules)
 addtest(multi_arch)
 addtest(namespace)
 addtest(no_compression)
