@@ -47,6 +47,9 @@ TEST_CASE("Config: default values")
   CHECK(config.compression());
   CHECK(config.compression_level() == 0);
   CHECK(config.cpp_extension().empty());
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  CHECK(!config.cxx_modules_mode());
+#endif // CCACHE_CXX20_MODULES_FEATURE
   CHECK(!config.debug());
   CHECK(config.debug_dir().empty());
   CHECK(config.debug_level() == 2);
@@ -113,6 +116,9 @@ TEST_CASE("Config::update_from_file")
     "compression=false\n"
     "compression_level= 2\n"
     "cpp_extension = .foo\n"
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    "cxx_modules_mode = true\n"
+#endif // CCACHE_CXX20_MODULES_FEATURE
     "debug_dir = $USER$/${USER}/.ccache_debug\n"
     "debug_level = 2\n"
     "depend_mode = true\n"
@@ -157,6 +163,9 @@ TEST_CASE("Config::update_from_file")
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  CHECK(config.cxx_modules_mode());
+#endif // CCACHE_CXX20_MODULES_FEATURE
   CHECK(config.debug_dir() == FMT("{0}$/{0}/.ccache_debug", user));
   CHECK(config.debug_level() == 2);
   CHECK(config.depend_mode());
@@ -449,6 +458,9 @@ TEST_CASE("Config::visit_items")
     "compression = true\n"
     "compression_level = 8\n"
     "cpp_extension = ce\n"
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    "cxx_modules_mode = true\n"
+#endif // CCACHE_CXX20_MODULES_FEATURE
     "debug = false\n"
     "debug_dir = /dd\n"
     "debug_level = 2\n"
@@ -512,6 +524,9 @@ TEST_CASE("Config::visit_items")
     "(test.conf) compression = true",
     "(test.conf) compression_level = 8",
     "(test.conf) cpp_extension = ce",
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    "(test.conf) cxx_modules_mode = true",
+#endif // CCACHE_CXX20_MODULES_FEATURE
     "(test.conf) debug = false",
     "(test.conf) debug_dir = /dd",
     "(test.conf) debug_level = 2",

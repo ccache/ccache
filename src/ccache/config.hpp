@@ -53,6 +53,9 @@ public:
   bool compression() const;
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  bool cxx_modules_mode() const;
+#endif
   bool debug() const;
   const std::filesystem::path& debug_dir() const;
   uint8_t debug_level() const;
@@ -103,6 +106,7 @@ public:
   void set_compiler_name(std::string&& value);
   void set_compiler_type(Compiler::Type value);
   void set_cpp_extension(const std::string& value);
+  void set_cxx_modules_mode(bool value);
   void set_debug(bool value);
   void set_depend_mode(bool value);
   void set_direct_mode(bool value);
@@ -169,6 +173,9 @@ private:
   bool m_compression = true;
   int8_t m_compression_level = 0; // Use default level
   std::string m_cpp_extension;
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  bool m_cxx_modules_mode = false;
+#endif // CCACHE_CXX20_MODULES_FEATURE
   bool m_debug = false;
   std::filesystem::path m_debug_dir;
   uint8_t m_debug_level = 2;
@@ -303,6 +310,14 @@ Config::cpp_extension() const
 {
   return m_cpp_extension;
 }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+inline bool
+Config::cxx_modules_mode() const
+{
+  return m_cxx_modules_mode;
+}
+#endif
 
 inline bool
 Config::debug() const
@@ -556,6 +571,14 @@ Config::set_compiler_type(Compiler::Type value)
 {
   m_compiler = Compiler(value, std::move(m_compiler.name()));
 }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+inline void
+Config::set_cxx_modules_mode(bool value)
+{
+  m_cxx_modules_mode = value;
+}
+#endif
 
 inline void
 Config::set_depend_mode(bool value)

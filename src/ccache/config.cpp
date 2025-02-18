@@ -82,6 +82,9 @@ enum class ConfigItem : uint8_t {
   compression,
   compression_level,
   cpp_extension,
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  cxx_modules_mode,
+#endif // CCACHE_CXX20_MODULES_FEATURE
   debug,
   debug_dir,
   debug_level,
@@ -139,6 +142,9 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"compression", {ConfigItem::compression}},
     {"compression_level", {ConfigItem::compression_level}},
     {"cpp_extension", {ConfigItem::cpp_extension}},
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    {"cxx_modules_mode", {ConfigItem::cxx_modules_mode}},
+#endif // CCACHE_CXX20_MODULES_FEATURE
     {"debug", {ConfigItem::debug}},
     {"debug_dir", {ConfigItem::debug_dir}},
     {"debug_level", {ConfigItem::debug_level}},
@@ -189,6 +195,9 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"COMPRESS", "compression"},
   {"COMPRESSLEVEL", "compression_level"},
   {"CPP2", "run_second_cpp"},
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  {"CXX_MODULES", "cxx_modules_mode"},
+#endif // CCACHE_CXX20_MODULES_FEATURE
   {"DEBUG", "debug"},
   {"DEBUGDIR", "debug_dir"},
   {"DEBUGLEVEL", "debug_level"},
@@ -770,6 +779,11 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::cpp_extension:
     return m_cpp_extension;
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case ConfigItem::cxx_modules_mode:
+    return format_bool(m_cxx_modules_mode);
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
   case ConfigItem::debug:
     return format_bool(m_debug);
 
@@ -1012,6 +1026,12 @@ Config::set_item(const std::string& key,
   case ConfigItem::cpp_extension:
     m_cpp_extension = value;
     break;
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case ConfigItem::cxx_modules_mode:
+    m_cxx_modules_mode = parse_bool(value, env_var_key, negate);
+    break;
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   case ConfigItem::debug:
     m_debug = parse_bool(value, env_var_key, negate);
