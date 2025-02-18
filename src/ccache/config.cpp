@@ -86,6 +86,9 @@ enum class ConfigItem {
   debug_dir,
   debug_level,
   depend_mode,
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  depend_mode_cxx_modules,
+#endif // CCACHE_CXX20_MODULES_FEATURE
   direct_mode,
   disable,
   extra_files_to_hash,
@@ -143,6 +146,9 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"debug_dir", {ConfigItem::debug_dir}},
     {"debug_level", {ConfigItem::debug_level}},
     {"depend_mode", {ConfigItem::depend_mode}},
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    {"depend_mode_cxx_modules", {ConfigItem::depend_mode_cxx_modules}},
+#endif // CCACHE_CXX20_MODULES_FEATURE
     {"direct_mode", {ConfigItem::direct_mode}},
     {"disable", {ConfigItem::disable}},
     {"extra_files_to_hash", {ConfigItem::extra_files_to_hash}},
@@ -193,6 +199,9 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"DEBUGDIR", "debug_dir"},
   {"DEBUGLEVEL", "debug_level"},
   {"DEPEND", "depend_mode"},
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  {"DEPEND_CXX_MODULES", "depend_mode_cxx_modules"},
+#endif // CCACHE_CXX20_MODULES_FEATURE
   {"DIR", "cache_dir"},
   {"DIRECT", "direct_mode"},
   {"DISABLE", "disable"},
@@ -837,6 +846,11 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::depend_mode:
     return format_bool(m_depend_mode);
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case ConfigItem::depend_mode_cxx_modules:
+    return format_bool(m_depend_mode_cxx_modules);
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
   case ConfigItem::direct_mode:
     return format_bool(m_direct_mode);
 
@@ -1083,6 +1097,12 @@ Config::set_item(const std::string& key,
   case ConfigItem::depend_mode:
     m_depend_mode = parse_bool(value, env_var_key, negate);
     break;
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case ConfigItem::depend_mode_cxx_modules:
+    m_depend_mode_cxx_modules = parse_bool(value, env_var_key, negate);
+    break;
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   case ConfigItem::direct_mode:
     m_direct_mode = parse_bool(value, env_var_key, negate);
