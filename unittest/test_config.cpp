@@ -41,9 +41,9 @@ TEST_CASE("Config: default values")
 
   CHECK(config.base_dir().empty());
   CHECK(config.cache_dir().empty()); // Set later
-  CHECK(config.compiler().empty());
+  CHECK(!config.compiler().name().has_value());
   CHECK(config.compiler_check() == "mtime");
-  CHECK(config.compiler_type() == CompilerType::auto_guess);
+  CHECK(config.compiler() == Compiler::type::auto_guess);
   CHECK(config.compression());
   CHECK(config.compression_level() == 0);
   CHECK(config.cpp_extension().empty());
@@ -151,9 +151,9 @@ TEST_CASE("Config::update_from_file")
   REQUIRE(config.update_from_file("ccache.conf"));
   CHECK(config.base_dir() == base_dir);
   CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
-  CHECK(config.compiler() == "foo");
+  CHECK(config.compiler().name() == "foo");
   CHECK(config.compiler_check() == "none");
-  CHECK(config.compiler_type() == CompilerType::nvcc);
+  CHECK(config.compiler() == Compiler::type::nvcc);
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");

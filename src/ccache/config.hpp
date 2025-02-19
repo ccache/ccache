@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/args.hpp>
+#include <ccache/compiler.hpp>
 #include <ccache/core/sloppiness.hpp>
 #include <ccache/util/noncopyable.hpp>
 #include <ccache/util/path.hpp>
@@ -34,20 +35,7 @@
 #include <unordered_map>
 #include <vector>
 
-enum class CompilerType {
-  auto_guess,
-  clang,
-  clang_cl,
-  gcc,
-  icl,
-  icx,
-  icx_cl,
-  msvc,
-  nvcc,
-  other
-};
-
-std::string compiler_type_to_string(CompilerType compiler_type);
+using namespace ccache;
 
 class Config : util::NonCopyable
 {
@@ -60,9 +48,8 @@ public:
   Args::ResponseFileFormat response_file_format() const;
   const std::filesystem::path& base_dir() const;
   const std::filesystem::path& cache_dir() const;
-  const std::string& compiler() const;
+  const Compiler& compiler() const;
   const std::string& compiler_check() const;
-  CompilerType compiler_type() const;
   bool compression() const;
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
@@ -113,8 +100,8 @@ public:
 
   void set_base_dir(const std::filesystem::path& value);
   void set_cache_dir(const std::filesystem::path& value);
-  void set_compiler(const std::string& value);
-  void set_compiler_type(CompilerType value);
+  void set_compiler_name(std::string&& value);
+  void set_compiler_type(Compiler::Type value);
   void set_cpp_extension(const std::string& value);
   void set_debug(bool value);
   void set_depend_mode(bool value);
@@ -177,9 +164,8 @@ private:
     Args::ResponseFileFormat::auto_guess;
   std::filesystem::path m_base_dir;
   std::filesystem::path m_cache_dir;
-  std::string m_compiler;
+  Compiler m_compiler = Compiler(Compiler::type::auto_guess);
   std::string m_compiler_check = "mtime";
-  CompilerType m_compiler_type = CompilerType::auto_guess;
   bool m_compression = true;
   int8_t m_compression_level = 0; // Use default level
   std::string m_cpp_extension;
@@ -266,7 +252,7 @@ Config::cache_dir() const
   return m_cache_dir;
 }
 
-inline const std::string&
+inline const Compiler&
 Config::compiler() const
 {
   return m_compiler;
@@ -278,32 +264,26 @@ Config::compiler_check() const
   return m_compiler_check;
 }
 
-inline CompilerType
-Config::compiler_type() const
-{
-  return m_compiler_type;
-}
-
 inline bool
 Config::is_compiler_group_clang() const
 {
-  return m_compiler_type == CompilerType::clang
+  return m_compiler == Compiler::type::clang
 #ifndef _WIN32
-         || m_compiler_type == CompilerType::icx
+         || m_compiler == Compiler::type::icx
 #endif
-         || m_compiler_type == CompilerType::clang_cl;
+         || m_compiler == Compiler::type::clang_cl;
 }
 
 inline bool
 Config::is_compiler_group_msvc() const
 {
-  return m_compiler_type == CompilerType::msvc
-         || m_compiler_type == CompilerType::clang_cl
-         || m_compiler_type == CompilerType::icl
+  return m_compiler == Compiler::type::msvc
+         || m_compiler == Compiler::type::clang_cl
+         || m_compiler == Compiler::type::icl
 #ifdef _WIN32
-         || m_compiler_type == CompilerType::icx
+         || m_compiler == Compiler::type::icx
 #endif
-         || m_compiler_type == CompilerType::icx_cl;
+         || m_compiler == Compiler::type::icx_cl;
 }
 
 inline bool
@@ -562,15 +542,19 @@ Config::set_cpp_extension(const std::string& value)
 }
 
 inline void
-Config::set_compiler(const std::string& value)
+Config::set_compiler_name(std::string&& value)
 {
-  m_compiler = value;
+  if (value.empty()) {
+    m_compiler.name().reset();
+  } else {
+    m_compiler.name().emplace(std::move(value));
+  }
 }
 
 inline void
-Config::set_compiler_type(CompilerType value)
+Config::set_compiler_type(Compiler::Type value)
 {
-  m_compiler_type = value;
+  m_compiler = Compiler(value, std::move(m_compiler.name()));
 }
 
 inline void

@@ -3,6 +3,7 @@ set(
   argprocessing.cpp
   args.cpp
   ccache.cpp
+  compiler.cpp
   compopt.cpp
   config.cpp
   context.cpp

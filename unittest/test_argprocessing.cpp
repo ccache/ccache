@@ -630,7 +630,7 @@ TEST_CASE("cuda_option_file")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_compiler_type(Compiler::type::nvcc);
   ctx.orig_args = Args::from_string("nvcc -optf foo.optf,bar.optf");
   util::write_file("foo.c", "");
   util::write_file("foo.optf", "-c foo.c -g -Wall -o");
@@ -649,7 +649,7 @@ TEST_CASE("nvcc_warning_flags_short")
   // With -Werror. This should conflict with host's -Werror flag.
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_compiler_type(Compiler::type::nvcc);
   ctx.orig_args =
     Args::from_string("nvcc -Werror all-warnings -Xcompiler -Werror -c foo.cu");
   util::write_file("foo.cu", "");
@@ -667,7 +667,7 @@ TEST_CASE("nvcc_warning_flags_long")
   // With --Werror. This shouldn't conflict with host's -Werror flag.
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_compiler_type(Compiler::type::nvcc);
   ctx.orig_args = Args::from_string(
     "nvcc --Werror all-warnings -Xcompiler -Werror -c foo.cu");
   util::write_file("foo.cu", "");
@@ -684,7 +684,7 @@ TEST_CASE("-Xclang")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::clang);
+  ctx.config.set_compiler_type(Compiler::type::clang);
 
   const std::string common_args =
     "-Xclang -fno-pch-timestamp"
@@ -799,7 +799,7 @@ TEST_CASE("MSVC options"
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
 
   util::write_file("foo.c", "");
 
@@ -815,7 +815,7 @@ TEST_CASE("MSVC PCH options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -858,7 +858,7 @@ TEST_CASE("MSVC PCH options with empty -Yc")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -901,7 +901,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -911,6 +911,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
     ctx.orig_args = Args::from_string("cl.exe /Yc /Fopch.cpp.obj /c pch.cpp");
     const auto result = process_args(ctx);
     REQUIRE(result);
+    CHECK(ctx.config.compiler() == Compiler::type::msvc);
     CHECK(ctx.args_info.generating_pch);
     CHECK(ctx.args_info.included_pch_file == "pch.pch");
     CHECK(ctx.args_info.output_obj == "pch.cpp.obj");
@@ -941,7 +942,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp and -Fo")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -981,7 +982,7 @@ TEST_CASE("MSVC PCH unsupported options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
 
@@ -1011,7 +1012,7 @@ TEST_CASE("MSVC debug information format options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.c", "");
 
   SUBCASE("Only /Z7")
@@ -1060,7 +1061,7 @@ TEST_CASE("ClangCL Debug information options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  ctx.config.set_compiler_type(Compiler::type::clang_cl);
   util::write_file("foo.c", "");
 
   SUBCASE("/Z7")
@@ -1084,7 +1085,7 @@ TEST_CASE("MSVC specify object file options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.c", "");
 
   SUBCASE("cl /c /Fo<file>.obj <file>.c")
@@ -1122,7 +1123,7 @@ TEST_CASE("MSVC specify source file type options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.c", "");
   util::write_file("foo.cpp", "");
 

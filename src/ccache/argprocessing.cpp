@@ -414,7 +414,7 @@ process_option_arg(const Context& ctx,
   }
 
   // Handle cuda "-optf" and "--options-file" argument.
-  if (config.compiler_type() == CompilerType::nvcc
+  if (config.compiler() == Compiler::type::nvcc
       && (arg == "-optf" || arg == "--options-file")) {
     if (i == args.size() - 1) {
       LOG("Expected argument after {}", args[i]);
@@ -550,7 +550,7 @@ process_option_arg(const Context& ctx,
     // Note: "-Xclang -option-that-takes-arg -Xclang arg" is not handled below
     // yet.
     if (compopt_takes_arg(arg)
-        || (config.compiler_type() == CompilerType::nvcc && arg == "-Werror")) {
+        || (config.compiler() == Compiler::type::nvcc && arg == "-Werror")) {
       if (i == args.size() - 1) {
         LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
@@ -663,7 +663,7 @@ process_option_arg(const Context& ctx,
 
   // when using nvcc with separable compilation, -dc implies -c
   if ((arg == "-dc" || arg == "--device-c")
-      && config.compiler_type() == CompilerType::nvcc) {
+      && config.compiler() == Compiler::type::nvcc) {
     state.found_dc_opt = true;
     return Statistic::none;
   }
@@ -728,9 +728,8 @@ process_option_arg(const Context& ctx,
   // Cl does support it as deprecated, but also has -openmp or -link -out
   // which can confuse this and cause incorrect output_obj (and thus
   // ccache debug file location), so better ignore it.
-  if (util::starts_with(arg, "-o")
-      && config.compiler_type() != CompilerType::nvcc
-      && config.compiler_type() != CompilerType::msvc) {
+  if (util::starts_with(arg, "-o") && config.compiler() != Compiler::type::nvcc
+      && config.compiler() != Compiler::type::msvc) {
     args_info.output_obj = arg.substr(2);
     return Statistic::none;
   }
@@ -1092,7 +1091,7 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.compiler_type() == CompilerType::gcc) {
+  if (config.compiler() == Compiler::type::gcc) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
       state.compiler_only_args_no_hash.push_back(args[i]);
@@ -1327,18 +1326,6 @@ process_arg(const Context& ctx,
   return Statistic::none;
 }
 
-const char*
-get_default_object_file_extension(const Config& config)
-{
-  return config.is_compiler_group_msvc() ? ".obj" : ".o";
-}
-
-const char*
-get_default_pch_file_extension(const Config& config)
-{
-  return config.is_compiler_group_msvc() ? ".pch" : ".gch";
-}
-
 } // namespace
 
 tl::expected<ProcessArgsResult, core::Statistic>
@@ -1433,7 +1420,7 @@ process_args(Context& ctx)
     } else if (state.found_S_opt) {
       extension = ".s";
     } else {
-      extension = get_default_object_file_extension(ctx.config);
+      extension = ctx.config.compiler().file_exts().object;
     }
     args_info.output_obj /= util::with_extension(
       fs::path(args_info.input_file).filename(), extension);
@@ -1455,9 +1442,15 @@ process_args(Context& ctx)
     }
 
     if (included_pch_file_by_source && !args_info.input_file.empty()) {
-      args_info.included_pch_file =
-        util::with_extension(fs::path(args_info.input_file).filename(),
-                             get_default_pch_file_extension(ctx.config));
+      const auto file_ext_pch =
+        ctx.config.compiler().file_exts().precompiled_header;
+      if (!file_ext_pch.has_value()) {
+        LOG("PCH file extension unknown for compiler: {}",
+            std::string_view(ctx.config.compiler()));
+        return tl::unexpected(Statistic::could_not_use_precompiled_header);
+      }
+      args_info.included_pch_file = util::with_extension(
+        fs::path(args_info.input_file).filename(), *file_ext_pch);
       LOG(
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
@@ -1522,7 +1515,7 @@ process_args(Context& ctx)
     args_info.actual_language = state.explicit_language;
   } else if (args_info.actual_language.empty()) {
     args_info.actual_language =
-      language_for_file(args_info.input_file, config.compiler_type());
+      language_for_file(args_info.input_file, config.compiler());
   }
 
   args_info.output_is_precompiled_header =
@@ -1530,8 +1523,14 @@ process_args(Context& ctx)
     || is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
-    args_info.orig_output_obj = util::add_extension(
-      args_info.orig_input_file, get_default_pch_file_extension(config));
+    const auto file_ext_pch = config.compiler().file_exts().precompiled_header;
+    if (!file_ext_pch.has_value()) {
+      LOG("PCH file extension unknown for compiler: {}",
+          std::string_view(ctx.config.compiler()));
+      return tl::unexpected(Statistic::could_not_use_precompiled_header);
+    }
+    args_info.orig_output_obj =
+      util::add_extension(args_info.orig_input_file, *file_ext_pch);
     args_info.output_obj =
       core::make_relative_path(ctx, args_info.orig_output_obj);
   }
@@ -1648,7 +1647,7 @@ process_args(Context& ctx)
     if (args_info.actual_language != "assembler") {
       diagnostics_color_arg = "-fcolor-diagnostics";
     }
-  } else if (config.compiler_type() == CompilerType::gcc) {
+  } else if (config.compiler() == Compiler::type::gcc) {
     diagnostics_color_arg = "-fdiagnostics-color";
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
@@ -1684,15 +1683,15 @@ process_args(Context& ctx)
       // filename.
       if (state.found_wp_md_or_mmd_opt && !args_info.output_obj.empty()
           && !state.found_md_or_mmd_opt) {
-        if (config.compiler_type() == CompilerType::clang) {
+        if (config.compiler() == Compiler::type::clang) {
           // Clang does the sane thing: the dependency target is the output file
           // so that the dependency file actually makes sense.
-        } else if (config.compiler_type() == CompilerType::gcc) {
+        } else if (config.compiler() == Compiler::type::gcc) {
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
           dep_target =
             util::with_extension(args_info.orig_input_file.filename(),
-                                 get_default_object_file_extension(ctx.config));
+                                 ctx.config.compiler().file_exts().object);
         } else {
           // How other compilers behave is currently unknown, so bail out.
           LOG_RAW(
@@ -1818,7 +1817,7 @@ process_args(Context& ctx)
   }
 
   if (ctx.config.depend_mode() && !args_info.generating_includes
-      && ctx.config.compiler_type() == CompilerType::msvc) {
+      && ctx.config.compiler() == Compiler::type::msvc) {
     ctx.auto_depend_mode = true;
     args_info.generating_includes = true;
     compiler_args.push_back("/showIncludes");

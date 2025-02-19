@@ -128,7 +128,7 @@ TEST_CASE("MsvcShowIncludesOutput::strip_includes")
     CHECK(result == input);
   }
 
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
 
   SUBCASE("Simple output")
   {

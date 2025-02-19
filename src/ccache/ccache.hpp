@@ -52,8 +52,6 @@ void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function,
                    bool masquerading_as_compiler);
 
-CompilerType guess_compiler(const std::filesystem::path& path);
-
 bool is_ccache_executable(const std::filesystem::path& path);
 
 bool file_path_matches_dir_prefix_or_file(

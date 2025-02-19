@@ -263,97 +263,6 @@ init_hash_debug(Context& ctx,
   }
 }
 
-#ifndef _WIN32
-
-static fs::path
-follow_symlinks(const fs::path& path)
-{
-  // Follow symlinks to the real compiler to learn its name. We're not using
-  // util::real_path in order to save some unnecessary stat calls.
-  fs::path p = path;
-  while (true) {
-    auto symlink_target = fs::read_symlink(p);
-    if (!symlink_target) {
-      // Not a symlink.
-      break;
-    }
-    if (symlink_target->is_absolute()) {
-      p = *symlink_target;
-    } else {
-      p = p.parent_path() / *symlink_target;
-    }
-  }
-  if (p != path) {
-    LOG("Followed symlinks from {} to {} when guessing compiler type", path, p);
-  }
-  return p;
-}
-
-static fs::path
-probe_generic_compiler(const fs::path& path)
-{
-  // Detect whether a generically named compiler (e.g. /usr/bin/cc) is a hard
-  // link to a compiler with a more specific name.
-  std::string name = util::pstr(path.filename()).str();
-  if (name == "cc" || name == "c++") {
-    static const char* candidate_names[] = {"gcc", "g++", "clang", "clang++"};
-    for (const char* candidate_name : candidate_names) {
-      fs::path candidate = path.parent_path() / candidate_name;
-      if (fs::equivalent(candidate, path)) {
-        LOG("Detected that {} is equivalent to {} when guessing compiler type",
-            path,
-            candidate);
-        return candidate;
-      }
-    }
-  }
-  return path;
-}
-
-#endif
-
-static CompilerType
-do_guess_compiler(const fs::path& path)
-{
-  const auto name = util::to_lowercase(
-    util::pstr(util::with_extension(path.filename(), "")).str());
-  if (name.find("clang-cl") != std::string_view::npos) {
-    return CompilerType::clang_cl;
-  } else if (name.find("clang") != std::string_view::npos) {
-    return CompilerType::clang;
-  } else if (name.find("gcc") != std::string_view::npos
-             || name.find("g++") != std::string_view::npos) {
-    return CompilerType::gcc;
-  } else if (name.find("nvcc") != std::string_view::npos) {
-    return CompilerType::nvcc;
-  } else if (name == "icl") {
-    return CompilerType::icl;
-  } else if (name == "icx") {
-    return CompilerType::icx;
-  } else if (name == "icx-cl") {
-    return CompilerType::icx_cl;
-  } else if (name == "cl") {
-    return CompilerType::msvc;
-  } else {
-    return CompilerType::other;
-  }
-}
-
-CompilerType
-guess_compiler(const fs::path& path)
-{
-  CompilerType type = do_guess_compiler(path);
-#ifdef _WIN32
-  return type;
-#else
-  if (type == CompilerType::other) {
-    return do_guess_compiler(probe_generic_compiler(follow_symlinks(path)));
-  } else {
-    return type;
-  }
-#endif
-}
-
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
 [[nodiscard]] tl::expected<void, Failure>
@@ -827,7 +736,7 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
   util::UmaskScope umask_scope(ctx.original_umask);
 
   if (ctx.diagnostics_color_failed) {
-    DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
+    DEBUG_ASSERT(ctx.config.compiler() == Compiler::type::gcc);
     args.erase_last("-fdiagnostics-color");
   }
 
@@ -839,11 +748,11 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
                        std::move(tmp_stdout.fd),
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.config.compiler_type() == CompilerType::gcc) {
+      && ctx.config.compiler() == Compiler::type::gcc) {
     const auto errors = util::read_file<std::string>(tmp_stderr.path);
     if (errors && errors->find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
-      // non-GCC compilers misclassified as CompilerType::gcc might not do it
+      // non-GCC compilers misclassified as Compiler::type::gcc might not do it
       // either. We assume that if the error message contains
       // "fdiagnostics-color" then the compilation failed due to
       // -fdiagnostics-color being unsupported and we then retry without the
@@ -1096,7 +1005,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
       // used headers. Headers within basedir need to be changed into relative
       // paths because otherwise Ninja will use the abs path to original header
       // to check if a file needs to be recompiled.
-      else if (ctx.config.compiler_type() == CompilerType::msvc
+      else if (ctx.config.compiler() == Compiler::type::msvc
                && !ctx.config.base_dir().empty()
                && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
         std::string orig_line(line.data(), line.length());
@@ -1112,7 +1021,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
       }
       // The MSVC /FC option causes paths in diagnostics messages to become
       // absolute. Those within basedir need to be changed into relative paths.
-      else if (ctx.config.compiler_type() == CompilerType::msvc
+      else if (ctx.config.compiler() == Compiler::type::msvc
                && !ctx.config.base_dir().empty()) {
         size_t path_end = core::get_diagnostics_path_length(line);
         if (path_end != 0) {
@@ -1728,7 +1637,7 @@ hash_common_info(const Context& ctx, const Args& args, Hash& hash)
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
-  if (ctx.config.compiler_type() == CompilerType::gcc) {
+  if (ctx.config.compiler() == Compiler::type::gcc) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
@@ -2221,7 +2130,7 @@ calculate_result_and_manifest_key(Context& ctx,
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
   bool is_clang = ctx.config.is_compiler_group_clang()
-                  || ctx.config.compiler_type() == CompilerType::other;
+                  || ctx.config.compiler() == Compiler::type::other;
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
@@ -2323,7 +2232,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
   if ((ctx.config.is_compiler_group_clang()
-       || ctx.config.compiler_type() == CompilerType::other)
+       || ctx.config.compiler() == Compiler::type::other)
       && ctx.args_info.output_is_precompiled_header
       && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
@@ -2372,14 +2281,18 @@ find_compiler(Context& ctx,
               bool masquerading_as_compiler)
 {
   // Support user override of the compiler.
-  const std::string compiler =
-    !ctx.config.compiler().empty()
-      ? ctx.config.compiler()
-      // In case ccache is masquerading as the compiler, use only base_name so
-      // the real compiler can be determined.
-      : (masquerading_as_compiler
-           ? fs::path(ctx.orig_args[0]).filename().string()
-           : ctx.orig_args[0]);
+  std::string&& compiler = [&] {
+    const auto& name = ctx.config.compiler().name();
+    if (name.has_value()) {
+      return *name;
+    } else if (masquerading_as_compiler) {
+      // In case ccache is masquerading as the compiler, use only base_name
+      // so the real compiler can be determined.
+      return fs::path(ctx.orig_args[0]).filename().string();
+    } else {
+      return ctx.orig_args[0];
+    }
+  }();
 
   const std::string resolved_compiler =
     util::is_full_path(compiler)
@@ -2435,13 +2348,14 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
   // Guess compiler after logging the config value in order to be able to
   // display "compiler_type = auto" before overwriting the value with the
   // guess.
-  if (ctx.config.compiler_type() == CompilerType::auto_guess) {
-    ctx.config.set_compiler_type(guess_compiler(ctx.orig_args[0]));
+  if (ctx.config.compiler() == Compiler::type::auto_guess) {
+    const auto type = Compiler::Type::guess(ctx.orig_args[0]);
+    ctx.config.set_compiler_type(type);
   }
-  DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
+  DEBUG_ASSERT(ctx.config.compiler() != Compiler::type::auto_guess);
 
   LOG("Compiler: {}", ctx.orig_args[0]);
-  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
+  LOG("Compiler type: {}", std::string(ctx.config.compiler().type_()));
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -2655,7 +2569,7 @@ do_cache_compilation(Context& ctx)
 
   // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
   // directly to Visual Studio.
-  if (ctx.config.compiler_type() == CompilerType::msvc) {
+  if (ctx.config.compiler() == Compiler::type::msvc) {
     util::unsetenv("VS_UNICODE_OUTPUT");
   }
 

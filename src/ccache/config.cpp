@@ -279,33 +279,6 @@ format_bool(bool value)
   return value ? "true" : "false";
 }
 
-CompilerType
-parse_compiler_type(const std::string& value)
-{
-  if (value == "clang") {
-    return CompilerType::clang;
-  } else if (value == "clang-cl") {
-    return CompilerType::clang_cl;
-  } else if (value == "gcc") {
-    return CompilerType::gcc;
-  } else if (value == "icl") {
-    return CompilerType::icl;
-  } else if (value == "icx") {
-    return CompilerType::icx;
-  } else if (value == "icx-cl") {
-    return CompilerType::icx_cl;
-  } else if (value == "msvc") {
-    return CompilerType::msvc;
-  } else if (value == "nvcc") {
-    return CompilerType::nvcc;
-  } else if (value == "other") {
-    return CompilerType::other;
-  } else {
-    // Allow any unknown value for forward compatibility.
-    return CompilerType::auto_guess;
-  }
-}
-
 core::Sloppiness
 parse_sloppiness(const std::string& value)
 {
@@ -567,34 +540,6 @@ response_file_format_to_string(Args::ResponseFileFormat response_file_format)
 
 } // namespace
 
-std::string
-compiler_type_to_string(CompilerType compiler_type)
-{
-#define CASE(type)                                                             \
-  case CompilerType::type:                                                     \
-    return #type
-
-  switch (compiler_type) {
-  case CompilerType::auto_guess:
-    return "auto";
-  case CompilerType::clang_cl:
-    return "clang-cl";
-  case CompilerType::icx_cl:
-    return "icx-cl";
-
-    CASE(clang);
-    CASE(gcc);
-    CASE(icl);
-    CASE(icx);
-    CASE(msvc);
-    CASE(nvcc);
-    CASE(other);
-  }
-#undef CASE
-
-  ASSERT(false);
-}
-
 void
 Config::read(const std::vector<std::string>& cmdline_config_settings)
 {
@@ -808,13 +753,13 @@ Config::get_string_value(const std::string& key) const
     return m_cache_dir.string();
 
   case ConfigItem::compiler:
-    return m_compiler;
+    return std::string(m_compiler.name().value_or(""));
 
   case ConfigItem::compiler_check:
     return m_compiler_check;
 
   case ConfigItem::compiler_type:
-    return compiler_type_to_string(m_compiler_type);
+    return std::string(m_compiler.type_());
 
   case ConfigItem::compression:
     return format_bool(m_compression);
@@ -1043,16 +988,17 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compiler:
-    m_compiler = value;
+    set_compiler_name(std::move(value));
     break;
 
   case ConfigItem::compiler_check:
     m_compiler_check = value;
     break;
 
-  case ConfigItem::compiler_type:
-    m_compiler_type = parse_compiler_type(value);
+  case ConfigItem::compiler_type: {
+    set_compiler_type(Compiler::Type::parse(value));
     break;
+  }
 
   case ConfigItem::compression:
     m_compression = parse_bool(value, env_var_key, negate);
