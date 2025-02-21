@@ -164,4 +164,7 @@ struct ArgsInfo
   // Compilation directory as passed in -ffile-compilation-dir or
   // -fdebug-compilation-dir.
   std::string compilation_dir;
+
+  // Build session file as passed in -fbuild-session-file.
+  std::filesystem::path build_session_file;
 };
