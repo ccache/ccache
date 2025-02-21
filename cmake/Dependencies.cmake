@@ -35,5 +35,5 @@ if(ENABLE_TESTING)
 endif()
 
 if(REDIS_STORAGE_BACKEND)
-  find_package(Hiredis 0.13.3 MODULE REQUIRED)
+  find_package(RedisPlusPlus 1.3.10 MODULE REQUIRED)
 endif()

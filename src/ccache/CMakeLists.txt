@@ -66,7 +66,7 @@ target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR
 
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
-  target_link_libraries(ccache_framework PRIVATE dep_hiredis)
+  target_link_libraries(ccache_framework PRIVATE dep_redisplusplus)
 endif()
 
 if(HTTP_STORAGE_BACKEND)

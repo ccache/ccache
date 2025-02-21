@@ -36,6 +36,7 @@ namespace storage::remote {
 
 const auto k_default_connect_timeout = std::chrono::milliseconds{100};
 const auto k_default_operation_timeout = std::chrono::milliseconds{10000};
+const auto k_default_prefix = std::string("ccache");
 
 // This class defines the API that a remote storage must implement.
 class RemoteStorage

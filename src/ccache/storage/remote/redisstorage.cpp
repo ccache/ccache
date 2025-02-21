@@ -27,6 +27,7 @@
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/wincompat.hpp> // for timeval
+#include <nonstd/span.hpp>
 
 #ifdef HAVE_SYS_UTIME_H
 #  include <sys/utime.h> // for timeval
@@ -41,7 +42,7 @@
 #  pragma warning(push)
 #  pragma warning(disable : 4200)
 #endif
-#include <hiredis/hiredis.h>
+#include <sw/redis++/redis++.h>
 #ifdef _MSC_VER
 #  pragma warning(pop)
 #endif
@@ -57,8 +58,7 @@ namespace storage::remote {
 
 namespace {
 
-using RedisContext = std::unique_ptr<redisContext, decltype(&redisFree)>;
-using RedisReply = std::unique_ptr<redisReply, decltype(&freeReplyObject)>;
+using namespace sw::redis;
 
 const uint32_t DEFAULT_PORT = 6379;
 
@@ -79,13 +79,10 @@ public:
 
 private:
   std::string m_prefix;
-  RedisContext m_context;
+  std::unique_ptr<RedisCluster> m_redis_cluster;
+  std::unique_ptr<Redis> m_redis;
+  bool is_cluster;
 
-  void
-  connect(const Url& url, uint32_t connect_timeout, uint32_t operation_timeout);
-  void select_database(const Url& url);
-  void authenticate(const Url& url);
-  tl::expected<RedisReply, Failure> redis_command(const char* format, ...);
   std::string get_key_string(const Hash::Digest& digest) const;
 };
 
@@ -96,6 +93,117 @@ to_timeval(const uint32_t ms)
   tv.tv_sec = ms / 1000;
   tv.tv_usec = (ms % 1000) * 1000;
   return tv;
+}
+
+RedisStorageBackend::RedisStorageBackend(
+  const Url& url,
+  const std::vector<Backend::Attribute>& attributes)
+{
+  ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix" || url.scheme() == "tcp");
+
+  m_prefix = k_default_prefix;
+  auto connect_timeout = k_default_connect_timeout;
+  auto operation_timeout = k_default_operation_timeout;
+  is_cluster = false;
+  auto cluster_role = Role::MASTER;
+
+  for (const auto& attr : attributes) {
+    if (attr.key == "connect-timeout") {
+      connect_timeout = parse_timeout_attribute(attr.value);
+    } else if (attr.key == "operation-timeout") {
+      operation_timeout = parse_timeout_attribute(attr.value);
+    } else if (attr.key == "prefix") {
+      m_prefix = attr.value;
+    } else if (attr.key == "cluster") {
+      is_cluster = util::to_lowercase(attr.value) == "true";
+    } else if (attr.key == "cluster-role") {
+      if (!is_cluster) {
+        LOG("Cannot set cluster role {} since cluster is false", attr.value);
+      } else if (util::to_lowercase(attr.value) == "slave") {
+        cluster_role = Role::SLAVE;
+      } else if (util::to_lowercase(attr.value) != "master") {
+        LOG("Unkown cluster role: {}", attr.value);
+      }
+    } else if (!is_framework_attribute(attr.key)) {
+      LOG("Unknown attribute: {}", attr.key);
+    }
+  }
+
+  if (url.scheme() == "redis+unix" && !url.host().empty()
+      && url.host() != "localhost") {
+    throw core::Fatal(
+      FMT("invalid file path \"{}\": specifying a host other than localhost is"
+        " not supported",
+      url.str(),
+      url.host())
+    );
+  }
+
+  if (url.scheme() == "redis+unix" && is_cluster) {
+    throw core::Fatal("cannot connect to a redis cluster using a UNIX socket");
+  }
+
+  ConnectionOptions copts;
+  if (url.scheme() == "redis+unix") {
+    LOG("Redis connecting to {} (connect timeout {} ms)",
+        url.path(),
+        connect_timeout);
+    copts.path = url.path();
+  } else {
+    const std::string host = url.host().empty() ? "localhost" : url.host();
+    const uint32_t port =
+      url.port().empty()
+        ? DEFAULT_PORT
+        : static_cast<uint32_t>(util::value_or_throw<core::Fatal>(
+          util::parse_unsigned(url.port(), 1, 65535, "port")));
+    ASSERT(url.path().empty() || url.path()[0] == '/');
+    copts.host = host;
+    copts.port = port;
+    LOG("Redis connecting to {}:{} (connect timeout {} ms)",
+        host,
+        port,
+        connect_timeout);
+  }
+  const auto [user, password] = split_user_info(url.user_info());
+  if (password) {
+    copts.password = *password;
+    if (user) {
+      // redis://user:password@host
+      copts.user = *user;
+      LOG("Redis AUTH {} {}", *user, storage::k_redacted_password);
+    } else {
+      // redis://password@host
+      LOG("Redis AUTH {}", storage::k_redacted_password);
+    }
+  }
+  std::optional<std::string> db;
+  if (url.scheme() == "redis+unix") {
+    for (const auto& param : url.query()) {
+      if (param.key() == "db") {
+        db = param.val();
+        break;
+      }
+    }
+  } else if (!url.path().empty()) {
+    db = url.path().substr(1);
+  }
+  const uint32_t db_number =
+    !db ? 0
+        : static_cast<uint32_t>(
+          util::value_or_throw<core::Fatal>(util::parse_unsigned(
+            *db, 0, std::numeric_limits<uint32_t>::max(), "db number")));
+  copts.db = db_number;
+  if (db_number != 0) {
+    LOG("Using database #{}", db_number);
+  }
+  copts.connect_timeout = connect_timeout;
+  copts.socket_timeout = operation_timeout;
+  if (is_cluster) {
+    m_redis_cluster = std::make_unique<RedisCluster>(RedisCluster(copts, {}, cluster_role));
+  } else {
+    m_redis = std::make_unique<Redis>(Redis(copts));
+  }
+  LOG_RAW("Redis connection OK");
 }
 
 std::pair<std::optional<std::string>, std::optional<std::string>>
@@ -112,42 +220,6 @@ split_user_info(const std::string& user_info)
     // redis://PASSWORD@HOST
     return {std::nullopt, std::string(left)};
   }
-}
-
-RedisStorageBackend::RedisStorageBackend(
-  const Url& url,
-  const std::vector<Backend::Attribute>& attributes)
-  : m_prefix("ccache"), // TODO: attribute
-    m_context(nullptr, redisFree)
-{
-  ASSERT(url.scheme() == "redis" || url.scheme() == "redis+unix");
-  if (url.scheme() == "redis+unix" && !url.host().empty()
-      && url.host() != "localhost") {
-    throw core::Fatal(
-      FMT("invalid file path \"{}\": specifying a host other than localhost is"
-          " not supported",
-          url.str(),
-          url.host()));
-  }
-
-  auto connect_timeout = k_default_connect_timeout;
-  auto operation_timeout = k_default_operation_timeout;
-
-  for (const auto& attr : attributes) {
-    if (attr.key == "connect-timeout") {
-      connect_timeout = parse_timeout_attribute(attr.value);
-    } else if (attr.key == "operation-timeout") {
-      operation_timeout = parse_timeout_attribute(attr.value);
-    } else if (!is_framework_attribute(attr.key)) {
-      LOG("Unknown attribute: {}", attr.key);
-    }
-  }
-
-  connect(url,
-          static_cast<uint32_t>(connect_timeout.count()),
-          static_cast<uint32_t>(operation_timeout.count()));
-  authenticate(url);
-  select_database(url);
 }
 
 inline bool
@@ -173,16 +245,16 @@ RedisStorageBackend::get(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis GET {}", key_string);
-  const auto reply = redis_command("GET %s", key_string.c_str());
-  if (!reply) {
-    return tl::unexpected(reply.error());
-  } else if ((*reply)->type == REDIS_REPLY_STRING) {
-    return util::Bytes((*reply)->str, (*reply)->len);
-  } else if ((*reply)->type == REDIS_REPLY_NIL) {
-    return std::nullopt;
+  OptionalString val;
+  if (is_cluster) {
+    val = m_redis_cluster->get(key_string); 
   } else {
-    LOG("Unknown reply type: {}", (*reply)->type);
-    return tl::unexpected(Failure::error);
+    val = m_redis->get(key_string);
+  }
+  if (val) {
+    return util::Bytes(util::to_span(std::string_view(*val)));
+  } else {
+    return std::nullopt;
   }
 }
 
@@ -192,31 +264,27 @@ RedisStorageBackend::put(const Hash::Digest& key,
                          bool only_if_missing)
 {
   const auto key_string = get_key_string(key);
-
   if (only_if_missing) {
     LOG("Redis EXISTS {}", key_string);
-    const auto reply = redis_command("EXISTS %s", key_string.c_str());
-    if (!reply) {
-      return tl::unexpected(reply.error());
-    } else if ((*reply)->type != REDIS_REPLY_INTEGER) {
-      LOG("Unknown reply type: {}", (*reply)->type);
-    } else if ((*reply)->integer > 0) {
+    long long exists;
+    if (is_cluster) {
+      exists = m_redis_cluster->exists(key_string);
+    } else {
+      exists = m_redis->exists(key_string);
+    }
+    if (exists > 0) {
       LOG("Entry {} already in Redis", key_string);
       return false;
     }
   }
-
   LOG("Redis SET {} [{} bytes]", key_string, value.size());
-  const auto reply =
-    redis_command("SET %s %b", key_string.c_str(), value.data(), value.size());
-  if (!reply) {
-    return tl::unexpected(reply.error());
-  } else if ((*reply)->type == REDIS_REPLY_STATUS) {
-    return true;
+  bool was_put;
+  if (is_cluster) {
+    was_put = m_redis_cluster->set(key_string, std::string(value.begin(), value.end()));
   } else {
-    LOG("Unknown reply type: {}", (*reply)->type);
-    return tl::unexpected(Failure::error);
+    was_put = m_redis->set(key_string, std::string(value.begin(), value.end()));
   }
+  return was_put;
 }
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
@@ -224,127 +292,13 @@ RedisStorageBackend::remove(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis DEL {}", key_string);
-  const auto reply = redis_command("DEL %s", key_string.c_str());
-  if (!reply) {
-    return tl::unexpected(reply.error());
-  } else if ((*reply)->type == REDIS_REPLY_INTEGER) {
-    return (*reply)->integer > 0;
+  long long deleted;
+  if (is_cluster) {
+    deleted = m_redis_cluster->del(key_string); 
   } else {
-    LOG("Unknown reply type: {}", (*reply)->type);
-    return tl::unexpected(Failure::error);
+    deleted = m_redis->del(key_string);
   }
-}
-
-void
-RedisStorageBackend::connect(const Url& url,
-                             const uint32_t connect_timeout,
-                             const uint32_t operation_timeout)
-{
-  if (url.scheme() == "redis+unix") {
-    LOG("Redis connecting to {} (connect timeout {} ms)",
-        url.path(),
-        connect_timeout);
-    m_context.reset(redisConnectUnixWithTimeout(url.path().c_str(),
-                                                to_timeval(connect_timeout)));
-  } else {
-    const std::string host = url.host().empty() ? "localhost" : url.host();
-    const uint32_t port =
-      url.port().empty()
-        ? DEFAULT_PORT
-        : static_cast<uint32_t>(util::value_or_throw<core::Fatal>(
-          util::parse_unsigned(url.port(), 1, 65535, "port")));
-    ASSERT(url.path().empty() || url.path()[0] == '/');
-
-    LOG("Redis connecting to {}:{} (connect timeout {} ms)",
-        host,
-        port,
-        connect_timeout);
-    m_context.reset(
-      redisConnectWithTimeout(host.c_str(), port, to_timeval(connect_timeout)));
-  }
-
-  if (!m_context) {
-    throw Failed("Redis context construction error");
-  }
-  if (is_timeout(m_context->err)) {
-    throw Failed(FMT("Redis connection timeout: {}", m_context->errstr),
-                 Failure::timeout);
-  }
-  if (is_error(m_context->err)) {
-    throw Failed(FMT("Redis connection error: {}", m_context->errstr));
-  }
-
-  LOG("Redis operation timeout set to {} ms", operation_timeout);
-  if (redisSetTimeout(m_context.get(), to_timeval(operation_timeout))
-      != REDIS_OK) {
-    throw Failed("Failed to set operation timeout");
-  }
-
-  LOG_RAW("Redis connection OK");
-}
-
-void
-RedisStorageBackend::select_database(const Url& url)
-{
-  std::optional<std::string> db;
-  if (url.scheme() == "redis+unix") {
-    for (const auto& param : url.query()) {
-      if (param.key() == "db") {
-        db = param.val();
-        break;
-      }
-    }
-  } else if (!url.path().empty()) {
-    db = url.path().substr(1);
-  }
-  const uint32_t db_number =
-    !db ? 0
-        : static_cast<uint32_t>(
-          util::value_or_throw<core::Fatal>(util::parse_unsigned(
-            *db, 0, std::numeric_limits<uint32_t>::max(), "db number")));
-
-  if (db_number != 0) {
-    LOG("Redis SELECT {}", db_number);
-    util::value_or_throw<Failed>(redis_command("SELECT %d", db_number));
-  }
-}
-
-void
-RedisStorageBackend::authenticate(const Url& url)
-{
-  const auto [user, password] = split_user_info(url.user_info());
-  if (password) {
-    if (user) {
-      // redis://user:password@host
-      LOG("Redis AUTH {} {}", *user, storage::k_redacted_password);
-      util::value_or_throw<Failed>(
-        redis_command("AUTH %s %s", user->c_str(), password->c_str()));
-    } else {
-      // redis://password@host
-      LOG("Redis AUTH {}", storage::k_redacted_password);
-      util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
-    }
-  }
-}
-
-tl::expected<RedisReply, RemoteStorage::Backend::Failure>
-RedisStorageBackend::redis_command(const char* format, ...)
-{
-  va_list ap;
-  va_start(ap, format);
-  auto reply =
-    static_cast<redisReply*>(redisvCommand(m_context.get(), format, ap));
-  va_end(ap);
-  if (!reply) {
-    LOG("Redis command failed: {}", m_context->errstr);
-    return tl::unexpected(is_timeout(m_context->err) ? Failure::timeout
-                                                     : Failure::error);
-  } else if (reply->type == REDIS_REPLY_ERROR) {
-    LOG("Redis command failed: {}", reply->str);
-    return tl::unexpected(Failure::error);
-  } else {
-    return RedisReply(reply, freeReplyObject);
-  }
+  return deleted > 0;
 }
 
 std::string

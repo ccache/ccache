@@ -1,21 +1,21 @@
-mark_as_advanced(HIREDIS_INCLUDE_DIR HIREDIS_LIBRARY)
+mark_as_advanced(REDISPLUSPLUS_INCLUDE_DIR REDISPLUSPLUS_LIBRARY)
 
-if(DEPS STREQUAL "DOWNLOAD" OR DEP_HIREDIS STREQUAL "DOWNLOAD")
-  message(STATUS "Downloading Hiredis as requested")
-  set(_download_hiredis TRUE)
+if(DEPS STREQUAL "DOWNLOAD" OR DEP_REDISPLUSPLUS STREQUAL "DOWNLOAD")
+  message(STATUS "Downloading redis-plus-plus as requested")
+  set(_download_redisplusplus TRUE)
 else()
-  find_path(HIREDIS_INCLUDE_DIR hiredis/hiredis.h)
-  find_library(HIREDIS_LIBRARY hiredis)
-  if(HIREDIS_INCLUDE_DIR AND HIREDIS_LIBRARY)
-    file(READ "${HIREDIS_INCLUDE_DIR}/hiredis/hiredis.h" _hiredis_h)
-    string(REGEX MATCH "#define HIREDIS_MAJOR +([0-9]+).*#define HIREDIS_MINOR +([0-9]+).*#define HIREDIS_PATCH +([0-9]+)" _ "${_hiredis_h}")
-    set(_hiredis_version_string "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
-    if(NOT "${CMAKE_MATCH_0}" STREQUAL "" AND "${_hiredis_version_string}" VERSION_GREATER_EQUAL "${Hiredis_FIND_VERSION}")
-      message(STATUS "Using system Hiredis (${HIREDIS_LIBRARY})")
-      set(_hiredis_origin "SYSTEM (${HIREDIS_LIBRARY})")
-      add_library(dep_hiredis UNKNOWN IMPORTED)
+  find_path(REDISPLUSPLUS_INCLUDE_DIR sw)
+  find_library(REDISPLUSPLUS_LIBRARY redis++)
+  if(REDISPLUSPLUS_INCLUDE_DIR AND REDISPLUSPLUS_LIBRARY)
+    file(READ "${REDISPLUSPLUS_INCLUDE_DIR}/redis++/version.h" _redisplusplus_h)
+    string(REGEX MATCH "#define VERSION_MAJOR +([0-9]+).*#define VERSION_MINOR +([0-9]+).*#define VERSION_PATCH +([0-9]+)" _ "${_redisplusplus_h}")
+    set(_redisplusplus_version_string "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+    if(NOT "${CMAKE_MATCH_0}" STREQUAL "" AND "${_redisplusplus_version_string}" VERSION_GREATER_EQUAL "${RedisPlusPlus_FIND_VERSION}")
+      message(STATUS "Using system RedisPlusPlus (${REDISPLUSPLUS_LIBRARY})")
+      set(_redisplusplus_origin "SYSTEM (${REDISPLUSPLUS_LIBRARY})")
+      add_library(dep_redisplusplus UNKNOWN IMPORTED)
       set_target_properties(
-        dep_hiredis
+        dep_redisplusplus
         PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_INCLUDE_DIR}"
         IMPORTED_LOCATION "${HIREDIS_LIBRARY}"
