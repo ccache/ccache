@@ -95,6 +95,22 @@ to_timeval(const uint32_t ms)
   return tv;
 }
 
+std::pair<std::optional<std::string>, std::optional<std::string>>
+split_user_info(const std::string& user_info)
+{
+  const auto [left, right] = util::split_once(user_info, ':');
+  if (left.empty()) {
+    // redis://HOST
+    return {std::nullopt, std::nullopt};
+  } else if (right) {
+    // redis://USERNAME:PASSWORD@HOST
+    return {std::string(left), std::string(*right)};
+  } else {
+    // redis://PASSWORD@HOST
+    return {std::nullopt, std::string(left)};
+  }
+}
+
 RedisStorageBackend::RedisStorageBackend(
   const Url& url,
   const std::vector<Backend::Attribute>& attributes)
@@ -206,22 +222,6 @@ RedisStorageBackend::RedisStorageBackend(
   LOG_RAW("Redis connection OK");
 }
 
-std::pair<std::optional<std::string>, std::optional<std::string>>
-split_user_info(const std::string& user_info)
-{
-  const auto [left, right] = util::split_once(user_info, ':');
-  if (left.empty()) {
-    // redis://HOST
-    return {std::nullopt, std::nullopt};
-  } else if (right) {
-    // redis://USERNAME:PASSWORD@HOST
-    return {std::string(left), std::string(*right)};
-  } else {
-    // redis://PASSWORD@HOST
-    return {std::nullopt, std::string(left)};
-  }
-}
-
 inline bool
 is_error(int err)
 {
@@ -247,7 +247,7 @@ RedisStorageBackend::get(const Hash::Digest& key)
   LOG("Redis GET {}", key_string);
   OptionalString val;
   if (is_cluster) {
-    val = m_redis_cluster->get(key_string); 
+    val = m_redis_cluster->get(key_string);
   } else {
     val = m_redis->get(key_string);
   }
@@ -294,7 +294,7 @@ RedisStorageBackend::remove(const Hash::Digest& key)
   LOG("Redis DEL {}", key_string);
   long long deleted;
   if (is_cluster) {
-    deleted = m_redis_cluster->del(key_string); 
+    deleted = m_redis_cluster->del(key_string);
   } else {
     deleted = m_redis->del(key_string);
   }

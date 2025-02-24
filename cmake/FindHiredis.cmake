@@ -1,25 +1,33 @@
-mark_as_advanced(REDISPLUSPLUS_INCLUDE_DIR REDISPLUSPLUS_LIBRARY)
+mark_as_advanced(HIREDIS_INCLUDE_DIR HIREDIS_LIBRARY)
 
-if(DEPS STREQUAL "DOWNLOAD" OR DEP_REDISPLUSPLUS STREQUAL "DOWNLOAD")
-  message(STATUS "Downloading redis-plus-plus as requested")
-  set(_download_redisplusplus TRUE)
+if(DEPS STREQUAL "DOWNLOAD" OR DEP_HIREDIS STREQUAL "DOWNLOAD")
+  message(STATUS "Downloading Hiredis as requested")
+  set(_download_hiredis TRUE)
 else()
-  include(FindPkgConfig)
-  pkg_check_modules(REDISPLUSPLUS redis++>=${RedisPlusPlus_FIND_VERSION})
-  if(REDISPLUSPLUS_INCLUDE_DIR AND REDISPLUSPLUS_LIBRARY)
-    set_target_properties(
-        dep_redisplusplus
+  find_path(HIREDIS_INCLUDE_DIR hiredis/hiredis.h)
+  find_library(HIREDIS_LIBRARY hiredis)
+  if(HIREDIS_INCLUDE_DIR AND HIREDIS_LIBRARY)
+    file(READ "${HIREDIS_INCLUDE_DIR}/hiredis/hiredis.h" _hiredis_h)
+    string(REGEX MATCH "#define HIREDIS_MAJOR +([0-9]+).*#define HIREDIS_MINOR +([0-9]+).*#define HIREDIS_PATCH +([0-9]+)" _ "${_hiredis_h}")
+    set(_hiredis_version_string "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+    if(NOT "${CMAKE_MATCH_0}" STREQUAL "" AND "${_hiredis_version_string}" VERSION_GREATER_EQUAL "${Hiredis_FIND_VERSION}")
+      message(STATUS "Using system Hiredis (${HIREDIS_LIBRARY})")
+      set(_hiredis_origin "SYSTEM (${HIREDIS_LIBRARY})")
+      add_library(dep_hiredis UNKNOWN IMPORTED)
+      set_target_properties(
+        dep_hiredis
         PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${REDISPLUSPLUS_INCLUDE_DIR}"
-        IMPORTED_LOCATION "${REDISPLUSPLUS_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_INCLUDE_DIR}"
+        IMPORTED_LOCATION "${HIREDIS_LIBRARY}"
       )
+    endif()
   endif()
-  if(NOT _redisplusplus_origin)
+  if(NOT _hiredis_origin)
     if(DEPS STREQUAL "AUTO")
-      message(STATUS "Downloading RedisPlusPlus from the internet since RedisPlusPlus>=${RedisPlusPlus_FIND_VERSION} was not found locally and DEPS=AUTO")
-      set(_download_redisplusplus TRUE)
+      message(STATUS "Downloading Hiredis from the internet since Hiredis>=${Hiredis_FIND_VERSION} was not found locally and DEPS=AUTO")
+      set(_download_hiredis TRUE)
     else()
-      message(FATAL_ERROR "Could not find RedisPlusPlus>=${RedisPlusPlus_FIND_VERSION}")
+      message(FATAL_ERROR "Could not find Hiredis>=${Hiredis_FIND_VERSION}")
     endif()
   endif()
 endif()
