@@ -138,7 +138,12 @@ private:
   // a statistics file in the finalize method.
   core::StatisticsCounters m_counter_updates;
 
-  std::vector<std::filesystem::path> m_added_raw_files;
+  struct AddedRawFile
+  {
+    uint8_t file_number;
+    std::filesystem::path dest_path;
+  };
+  std::vector<AddedRawFile> m_added_raw_files;
   bool m_stored_data = false;
 
   struct LookUpCacheFileResult
