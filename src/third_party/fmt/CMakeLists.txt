@@ -1,4 +1,4 @@
-register_dependency(Fmt BUNDLED 10.2.1)
+register_dependency(Fmt BUNDLED 11.1.4)
 
 add_library(dep_fmt STATIC fmt/format.cc)
 target_include_directories(dep_fmt SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
