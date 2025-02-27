@@ -6,6 +6,9 @@ if(DEPS STREQUAL "DOWNLOAD" OR DEP_HIREDIS STREQUAL "DOWNLOAD")
 else()
   find_path(HIREDIS_INCLUDE_DIR hiredis/hiredis.h)
   find_library(HIREDIS_LIBRARY hiredis)
+  # if tls enabled
+  find_path(HIREDIS_SSL_INCLUDE_DIR hiredis/hiredis_ssl.h)
+  find_library(HIREDIS_SSL_LIBRARY hiredis_ssl)
   if(HIREDIS_INCLUDE_DIR AND HIREDIS_LIBRARY)
     file(READ "${HIREDIS_INCLUDE_DIR}/hiredis/hiredis.h" _hiredis_h)
     string(REGEX MATCH "#define HIREDIS_MAJOR +([0-9]+).*#define HIREDIS_MINOR +([0-9]+).*#define HIREDIS_PATCH +([0-9]+)" _ "${_hiredis_h}")
@@ -14,11 +17,19 @@ else()
       message(STATUS "Using system Hiredis (${HIREDIS_LIBRARY})")
       set(_hiredis_origin "SYSTEM (${HIREDIS_LIBRARY})")
       add_library(dep_hiredis UNKNOWN IMPORTED)
+      # if tls enabled
+      add_library(dep_hiredis_ssl UNKNOWN IMPORTED)
       set_target_properties(
         dep_hiredis
         PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_INCLUDE_DIR}"
         IMPORTED_LOCATION "${HIREDIS_LIBRARY}"
+      )
+      set_target_properties(
+        dep_hiredis_ssl
+        PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_SSL_INCLUDE_DIR}"
+        IMPORTED_LOCATION "${HIREDIS_SSL_LIBRARY}"
       )
     endif()
   endif()

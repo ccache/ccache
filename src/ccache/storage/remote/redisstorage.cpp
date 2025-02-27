@@ -82,18 +82,8 @@ private:
   std::unique_ptr<RedisCluster> m_redis_cluster;
   std::unique_ptr<Redis> m_redis;
   bool is_cluster;
-
   std::string get_key_string(const Hash::Digest& digest) const;
 };
-
-timeval
-to_timeval(const uint32_t ms)
-{
-  timeval tv;
-  tv.tv_sec = ms / 1000;
-  tv.tv_usec = (ms % 1000) * 1000;
-  return tv;
-}
 
 std::pair<std::optional<std::string>, std::optional<std::string>>
 split_user_info(const std::string& user_info)
@@ -144,7 +134,6 @@ RedisStorageBackend::RedisStorageBackend(
       LOG("Unknown attribute: {}", attr.key);
     }
   }
-
   if (url.scheme() == "redis+unix" && !url.host().empty()
       && url.host() != "localhost") {
     throw core::Fatal(
@@ -154,16 +143,14 @@ RedisStorageBackend::RedisStorageBackend(
       url.host())
     );
   }
-
   if (url.scheme() == "redis+unix" && is_cluster) {
     throw core::Fatal("cannot connect to a redis cluster using a UNIX socket");
   }
-
   ConnectionOptions copts;
   if (url.scheme() == "redis+unix") {
     LOG("Redis connecting to {} (connect timeout {} ms)",
         url.path(),
-        connect_timeout);
+        connect_timeout.count());
     copts.path = url.path();
   } else {
     const std::string host = url.host().empty() ? "localhost" : url.host();
@@ -178,7 +165,7 @@ RedisStorageBackend::RedisStorageBackend(
     LOG("Redis connecting to {}:{} (connect timeout {} ms)",
         host,
         port,
-        connect_timeout);
+        connect_timeout.count());
   }
   const auto [user, password] = split_user_info(url.user_info());
   if (password) {
@@ -214,10 +201,14 @@ RedisStorageBackend::RedisStorageBackend(
   }
   copts.connect_timeout = connect_timeout;
   copts.socket_timeout = operation_timeout;
-  if (is_cluster) {
-    m_redis_cluster = std::make_unique<RedisCluster>(RedisCluster(copts, {}, cluster_role));
-  } else {
-    m_redis = std::make_unique<Redis>(Redis(copts));
+  try {
+    if (is_cluster) {
+      m_redis_cluster = std::make_unique<RedisCluster>(RedisCluster(copts, {}, cluster_role));
+    } else {
+      m_redis = std::make_unique<Redis>(Redis(copts));
+    }
+  } catch(const Error& error) {
+    throw Failed(FMT("Redis context construction error: {}", error.what()));
   }
   LOG_RAW("Redis connection OK");
 }
@@ -240,16 +231,25 @@ is_timeout(int err)
 #endif
 }
 
+// maybe the try catches should be handled better with a lambda of smtn
+// but maybe I'm fed up :D
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 RedisStorageBackend::get(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis GET {}", key_string);
   OptionalString val;
-  if (is_cluster) {
-    val = m_redis_cluster->get(key_string);
-  } else {
-    val = m_redis->get(key_string);
+  try {
+    if (is_cluster) {
+      val = m_redis_cluster->get(key_string);
+    } else {
+      val = m_redis->get(key_string);
+    }
+  } catch (const TimeoutError& _) {
+    return  tl::unexpected(Failure::timeout);
+  } catch (const Error& err) {
+    LOG("Failed to get key {}: {}", key_string, err.what());
+    return tl::unexpected(Failure::error);
   }
   if (val) {
     return util::Bytes(util::to_span(std::string_view(*val)));
@@ -279,10 +279,17 @@ RedisStorageBackend::put(const Hash::Digest& key,
   }
   LOG("Redis SET {} [{} bytes]", key_string, value.size());
   bool was_put;
-  if (is_cluster) {
-    was_put = m_redis_cluster->set(key_string, std::string(value.begin(), value.end()));
-  } else {
-    was_put = m_redis->set(key_string, std::string(value.begin(), value.end()));
+  try {
+    if (is_cluster) {
+      was_put = m_redis_cluster->set(key_string, std::string(value.begin(), value.end()));
+    } else {
+      was_put = m_redis->set(key_string, std::string(value.begin(), value.end()));
+    }
+  } catch (const TimeoutError& _) {
+    return  tl::unexpected(Failure::timeout);
+  } catch (const Error& err) {
+    LOG("Failed to put key {}: {}", key_string, err.what());
+    return tl::unexpected(Failure::error);
   }
   return was_put;
 }
@@ -293,12 +300,19 @@ RedisStorageBackend::remove(const Hash::Digest& key)
   const auto key_string = get_key_string(key);
   LOG("Redis DEL {}", key_string);
   long long deleted;
-  if (is_cluster) {
-    deleted = m_redis_cluster->del(key_string);
-  } else {
-    deleted = m_redis->del(key_string);
+  try {
+    if (is_cluster) {
+      deleted = m_redis_cluster->del(key_string);
+    } else {
+      deleted = m_redis->del(key_string);
+    }
+    return deleted > 0;
+  } catch (const TimeoutError& _) {
+    return tl::unexpected(Failure::timeout);
+  } catch (const Error& err) {
+    LOG("Failed to put key {}: {}", key_string, err.what());
+    return tl::unexpected(Failure::error);
   }
-  return deleted > 0;
 }
 
 std::string
