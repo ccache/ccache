@@ -59,6 +59,7 @@ const CompOpt compopts[] = {
   {"--gcc-toolchain=", TAKES_CONCAT_ARG | TAKES_PATH}, // Clang
   {"--include", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
+  {"--offload-compress", AFFECTS_COMP},               // Clang
   {"--output-directory", AFFECTS_CPP | TAKES_ARG},    // nvcc
   {"--param", TAKES_ARG},
   {"--save-temps", TOO_HARD},
