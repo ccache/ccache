@@ -656,7 +656,7 @@ LocalStorage::put_raw_files(
     old_dir_entry.refresh();
     try {
       clone_hard_link_or_copy_file(source_path, dest_path, true);
-      m_added_raw_files.push_back(dest_path);
+      m_added_raw_files.push_back(AddedRawFile{file_number, dest_path});
     } catch (core::Error& e) {
       LOG("Failed to store {} as raw file {}: {}",
           source_path,
@@ -1082,9 +1082,8 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     // to rename is OK.
     LOG("Moving {} to {}", cache_file_path, wanted_path);
     fs::rename(cache_file_path, wanted_path);
-    for (const auto& raw_file : m_added_raw_files) {
-      fs::rename(raw_file,
-                 FMT("{}/{}", wanted_path.parent_path(), raw_file.filename()));
+    for (auto [file_number, dest_path] : m_added_raw_files) {
+      fs::rename(dest_path, get_raw_file_path(wanted_path, file_number));
     }
   }
 }
