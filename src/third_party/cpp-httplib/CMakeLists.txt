@@ -1,2 +1,2 @@
-register_dependency(CppHttplib BUNDLED 0.15.3)
+register_dependency(CppHttplib BUNDLED 0.19.0)
 add_header_only_library(cpphttplib DIR "${CMAKE_CURRENT_SOURCE_DIR}")
