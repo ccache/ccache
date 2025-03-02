@@ -254,6 +254,24 @@ EOF
     done
 
     # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_CLANG; then
+        TEST "-fbuild-session-file/absolute/path"
+        cd dir1
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -fbuild-session-file="$(pwd)/src/test.c" -c src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -fbuild-session-file="$(pwd)/src/test.c" -c src/test.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        cd ..
+    fi
+
+    # -------------------------------------------------------------------------
     if $HOST_OS_WINDOWS; then
         additional_options=
     else
