@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1491,10 +1491,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
-hash_common_info(const Context& ctx,
-                 const Args& args,
-                 Hash& hash,
-                 const ArgsInfo& args_info)
+hash_common_info(const Context& ctx, const Args& args, Hash& hash)
 {
   hash.hash(HASH_PREFIX);
 
@@ -1570,12 +1567,12 @@ hash_common_info(const Context& ctx,
   }
 
   // Possibly hash the current working directory.
-  if (args_info.generating_debuginfo && ctx.config.hash_dir()) {
+  if (ctx.args_info.generating_debuginfo && ctx.config.hash_dir()) {
     std::string dir_to_hash = util::pstr(ctx.apparent_cwd);
-    if (!args_info.compilation_dir.empty()) {
-      dir_to_hash = args_info.compilation_dir;
+    if (!ctx.args_info.compilation_dir.empty()) {
+      dir_to_hash = ctx.args_info.compilation_dir;
     } else {
-      for (const auto& map : args_info.debug_prefix_maps) {
+      for (const auto& map : ctx.args_info.debug_prefix_maps) {
         size_t sep_pos = map.find('=');
         if (sep_pos != std::string::npos) {
           std::string old_path = map.substr(0, sep_pos);
@@ -1601,8 +1598,8 @@ hash_common_info(const Context& ctx,
   // even without debug flags. Hashing the directory should be enough since the
   // filename is included in the hash anyway.
   if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
-    const fs::path& output_obj_dir = args_info.output_obj.is_absolute()
-                                       ? args_info.output_obj.parent_path()
+    const fs::path& output_obj_dir = ctx.args_info.output_obj.is_absolute()
+                                       ? ctx.args_info.output_obj.parent_path()
                                        : ctx.actual_cwd;
     LOG("Hashing object file directory {}", output_obj_dir);
     hash.hash_delimiter("source path");
@@ -1683,7 +1680,7 @@ hash_common_info(const Context& ctx,
   }
 
   // Possibly hash the sanitize blacklist file path.
-  for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
+  for (const auto& sanitize_blacklist : ctx.args_info.sanitize_blacklists) {
     LOG("Hashing sanitize blacklist {}", sanitize_blacklist);
     hash.hash_delimiter("sanitizeblacklist");
     if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
@@ -2722,8 +2719,8 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::disabled);
   }
 
-  TRY(hash_common_info(
-    ctx, process_args_result->preprocessor_args, common_hash, ctx.args_info));
+  TRY(
+    hash_common_info(ctx, process_args_result->preprocessor_args, common_hash));
 
   if (process_args_result->hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
