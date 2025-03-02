@@ -52,9 +52,9 @@ void throw_on_error(const T& value, std::string_view prefix);
 
 #define TRY(x_)                                                                \
   do {                                                                         \
-    const auto result = x_;                                                    \
-    if (!result) {                                                             \
-      return tl::unexpected(result.error());                                   \
+    const auto _result = x_;                                                   \
+    if (!_result) {                                                            \
+      return tl::unexpected(_result.error());                                  \
     }                                                                          \
   } while (false)
 

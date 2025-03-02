@@ -20,6 +20,10 @@
 
 #include <ccache/args.hpp>
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+#  include <ccache/cxx_modules/p1689.hpp>
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -164,4 +168,34 @@ struct ArgsInfo
   // Compilation directory as passed in -ffile-compilation-dir or
   // -fdebug-compilation-dir.
   std::string compilation_dir;
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  // TODO: Add note about using `string` instead of `filesystem::path`.
+  struct CxxModules
+  {
+    std::string ddi_format;
+
+    bool precompiling_bmi = false;
+
+    bool generating_bmi = false;
+
+    std::string output_bmi;
+
+    bool generating_ddi = false;
+
+    std::string output_ddi;
+
+    bool generating_msvc_source_dependencies = false;
+
+    std::string output_msvc_source_dependencies;
+
+    std::unordered_map<std::string, std::string> names_paths;
+
+    std::vector<std::string> units_paths;
+
+    std::vector<std::string> search_dirs;
+  };
+
+  CxxModules cxx_modules;
+#endif // CCACHE_CXX20_MODULES_FEATURE
 };

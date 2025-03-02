@@ -23,14 +23,14 @@
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>
 
-static bool
+[[maybe_unused]] static bool
 operator==(std::pair<std::string, std::optional<std::string>> left,
            std::pair<std::string, std::optional<std::string>> right)
 {
   return left.first == right.first && left.second == right.second;
 }
 
-static bool
+[[maybe_unused]] static bool
 operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
            std::pair<std::string_view, std::optional<std::string_view>> right)
 {
