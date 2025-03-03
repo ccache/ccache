@@ -25,6 +25,9 @@ build() {
 
 #     NAME         CC     CXX     TEST_CC CMAKE_PARAMS
 
+build alma-8       gcc    g++     gcc
+build alma-8       clang  clang++ clang
+
 build debian-11    gcc    g++     gcc
 build debian-11    clang  clang++ clang
 
