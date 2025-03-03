@@ -124,7 +124,10 @@ const CompOpt compopts[] = {
   {"-emit-pth", AFFECTS_COMP},         // Clang
   {"-external:I",
    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH}, // msvc
+  {"-fbuild-session-file=", TAKES_CONCAT_ARG | TAKES_PATH},
   {"-fmodule-header", TOO_HARD},
+  {"-fmodule-map-file=", TAKES_CONCAT_ARG | TAKES_PATH},
+  {"-fmodules-cache-path=", TAKES_CONCAT_ARG | TAKES_PATH},
   {"-fmodules-ts", TOO_HARD},
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
@@ -147,7 +150,7 @@ const CompOpt compopts[] = {
   {"-iquote", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-isysroot", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-isystem", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
-  {"-ivfsoverlay", TAKES_ARG},
+  {"-ivfsoverlay", TAKES_ARG | TAKES_PATH},
   {"-ivfsstatcache", TAKES_ARG},
   {"-iwithprefix", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-iwithprefixbefore",

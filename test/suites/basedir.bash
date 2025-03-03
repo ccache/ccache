@@ -17,6 +17,8 @@ int test;
 EOF
     cp -r dir1 dir2
     backdate dir1/include/test.h dir2/include/test.h
+    mkdir dir3
+    touch dir3/build-session-file.bin
 }
 
 SUITE_basedir() {
@@ -252,6 +254,26 @@ EOF
         expect_content_pattern foo.d "test.o:*"
         cd ..
     done
+
+    # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_CLANG; then
+        TEST "-fbuild-session-file/absolute/path"
+        
+        build_session_file_path="$(pwd)/dir3/build-session-file.bin"
+        cd dir1
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -fbuild-session-file="$build_session_file_path" -c src/test.c
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -fbuild-session-file="$build_session_file_path" -c src/test.c
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        cd ..
+    fi
 
     # -------------------------------------------------------------------------
     if $HOST_OS_WINDOWS; then

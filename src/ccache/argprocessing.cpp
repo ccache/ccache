@@ -1120,6 +1120,11 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (util::starts_with(arg, "-fbuild-session-file")
+      && !(config.sloppiness().contains(core::Sloppy::time_macros))) {
+    args_info.build_session_file = arg.substr(arg.find('=') + 1);
+  }
+
   if (config.sloppiness().contains(core::Sloppy::clang_index_store)
       && arg == "-index-store-path") {
     // Xcode 9 or later calls Clang with this option. The given path includes a
