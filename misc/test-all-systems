@@ -28,6 +28,9 @@ build() {
 build debian-11    gcc    g++     gcc
 build debian-11    clang  clang++ clang
 
+build debian-12    gcc    g++     gcc
+build debian-12    clang  clang++ clang
+
 build ubuntu-20.04 gcc    g++     gcc
 build ubuntu-20.04 clang  clang++ clang
 
