@@ -1688,6 +1688,14 @@ hash_common_info(const Context& ctx, const Args& args, Hash& hash)
     }
   }
 
+  if (!(ctx.args_info.build_session_file.empty())) {
+    // When using -fbuild-session-file, the actual mtime needs to be
+    // added to the hash to prevent false positive cache hits if the
+    // mtime of the file changes.
+    hash.hash_delimiter("-fbuild-session-file mtime");
+    hash.hash(DirEntry(ctx.args_info.build_session_file).mtime().nsec());
+  }
+
   if (!ctx.config.extra_files_to_hash().empty()) {
     for (const auto& path :
          util::split_path_list(ctx.config.extra_files_to_hash())) {

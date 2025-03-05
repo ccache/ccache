@@ -317,6 +317,95 @@ TEST_CASE(
   CHECK(result->preprocessor_args[2] == "foo");
 }
 
+TEST_CASE("fbuild_session_file_should_be_rewritten_if_basedir_is_used")
+{
+  TestContext test_context;
+
+  Context ctx;
+
+  util::write_file("foo.c", "");
+  ctx.config.set_base_dir(get_root());
+  std::string arg_string =
+    FMT("cc -fbuild-session-file={}/foo/bar -c foo.c", ctx.actual_cwd);
+  ctx.orig_args = Args::from_string(arg_string);
+
+  const auto result = process_args(ctx);
+  CHECK(result);
+#ifdef _WIN32
+  CHECK(result->preprocessor_args[1] == "-fbuild-session-file=foo\\bar");
+#else
+  CHECK(result->preprocessor_args[1] == "-fbuild-session-file=foo/bar");
+#endif
+}
+
+TEST_CASE(
+  "ivfsoverlay_with_separate_argument_should_be_rewritten_if_basedir_is_used")
+{
+  TestContext test_context;
+
+  Context ctx;
+  ctx.config.update_from_map({{"sloppiness", "ivfsoverlay"}});
+
+  util::write_file("foo.c", "");
+  ctx.config.set_base_dir(get_root());
+  std::string arg_string =
+    FMT("cc -ivfsoverlay {}/foo -c foo.c", ctx.actual_cwd);
+  ctx.orig_args = Args::from_string(arg_string);
+
+  const auto result = process_args(ctx);
+  CHECK(result);
+  CHECK(result->preprocessor_args[1] == "-ivfsoverlay");
+  CHECK(result->preprocessor_args[2] == "foo");
+}
+
+TEST_CASE(
+  "fmodules_cache_path_with_separate_argument_should_be_rewritten_if_basedir_"
+  "is_used")
+{
+  TestContext test_context;
+
+  Context ctx;
+  ctx.config.update_from_map({{"sloppiness", "modules"}});
+
+  util::write_file("foo.c", "");
+  ctx.config.set_base_dir(get_root());
+  std::string arg_string =
+    FMT("cc -fmodules-cache-path={}/foo/bar -c foo.c", ctx.actual_cwd);
+  ctx.orig_args = Args::from_string(arg_string);
+
+  const auto result = process_args(ctx);
+  CHECK(result);
+#ifdef _WIN32
+  CHECK(result->preprocessor_args[1] == "-fmodules-cache-path=foo\\bar");
+#else
+  CHECK(result->preprocessor_args[1] == "-fmodules-cache-path=foo/bar");
+#endif
+}
+
+TEST_CASE(
+  "fmodules_map_file_with_separate_argument_should_be_rewritten_if_basedir_"
+  "is_used")
+{
+  TestContext test_context;
+
+  Context ctx;
+  ctx.config.update_from_map({{"sloppiness", "modules"}});
+
+  util::write_file("foo.c", "");
+  ctx.config.set_base_dir(get_root());
+  std::string arg_string =
+    FMT("cc -fmodule-map-file={}/foo/bar -c foo.c", ctx.actual_cwd);
+  ctx.orig_args = Args::from_string(arg_string);
+
+  const auto result = process_args(ctx);
+  CHECK(result);
+#ifdef _WIN32
+  CHECK(result->preprocessor_args[1] == "-fmodule-map-file=foo\\bar");
+#else
+  CHECK(result->preprocessor_args[1] == "-fmodule-map-file=foo/bar");
+#endif
+}
+
 TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
 {
   TestContext test_context;
