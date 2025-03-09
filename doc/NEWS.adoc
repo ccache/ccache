@@ -1,5 +1,143 @@
 = Ccache news
 
+== Ccache 4.11
+
+Release date: 2025-03-09
+
+
+=== New features and improvements
+
+- Added ability to send arbitrary HTTP headers to HTTP storage. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Added support for MSVC's `/TC` and `/TP` options. +
+  [small]#_[contributed by Huang Qin Jin]_#
+
+- Made the `absolute_paths_in_stderr` feature also handle MSVC diagnostics
+  messages. +
+  [small]#_[contributed by Huang Qin Jin]_#
+
+- Absolute paths in MSVC diagnostics messages are now rewritten to relative if
+  `base_dir` is in effect. +
+  [small]#_[contributed by Huang Qin Jin]_#
+
+- Added support for NVCC's `--compile` option. +
+  [small]#_[contributed by Laurent Bouhier]_#
+
+- `posix_spawn` is now used instead `execv` to execute the compiler on POSIX
+  systems. +
+  [small]#_[contributed by Brendan Shanks]_#
+
+- Added support for GCC's `-fprofile-prefix-path` option. +
+  [small]#_[contributed by Dávid Péter Jánosa]_#
+
+- Added `response_file_format` config option to control response file format. +
+  [small]#_[contributed by Max Winkler]_#
+
+- Added support for Clang `-frandomize-layout-seed-file` option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved `absolute_paths_in_stderr` to recognize more paths patterns. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Added support for the clang-cl option `/showIncludes:user`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for Intel's LLVM-based compilers `icx` and `icx-cl`. +
+  [small]#_[contributed by Nick Sarnie]_#
+
+- A stat call for `~/.ccache` is now avoided if `CCACHE_DIR` is set. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added Support for `.bat` and `.cmd` scripts as the compiler on Windows. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Added support for Clang's `-f{debug,file}-compilation-dir` options. +
+  [small]#_[contributed by Henrique Ferreiro]_#
+
+- Added knowledge about Clang's `--offload-compress` option. This will avoid
+  errors when ccache runs the compiler in preprocessor mode. +
+  [small]#_[contributed by Icarus Sparry]_#
+
+- Added knowledge about Clang options `-fmodules-cache-path`,
+  `-fmodule-map-file` and `-fbuild-session-file`. +
+  [small]#_[contributed by an anonymous user]_#
+
+
+=== Bug fixes
+
+- Improved handling of paths internally, thereby fixing some issues on Windows
+  (for example when using non-ASCII paths). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed interpretation of non-ASCII paths in environment variables on Windows. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made sure that remote storage `keep-alive` can be overridden as expected. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Fixed detection of compiler type for hard-linked generic compiler name. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed problems with matching a path with `base_dir` if either ends with a
+  slash. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- The `-fprofile-abs-path` option is now correctly passed through to GCC. +
+  [small]#_[contributed by Matt Johnston]_#
+
+- Writes to the log file are now synchronized. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Command line config options ending with "`/ccache`" are now handled properly. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made `--trim-method mtime` actually use mtime instead of atime. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a bug where ccache failed to rename raw files correctly for large caches
+  that have more than two cache levels. +
+  [small]#_[contributed by Oded Shimon]_#
+
+
+=== Build improvements
+
+- Instructed MSVC to accept UTF-8 characters in ccache's own source code. +
+  [small]#_[contributed by Huang Qin Jin]_#
+
+- Fixed binary patching of `sysconfdir` for the prebuilt Linux binary. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added an `HTTP_STORAGE_BACKEND` build option to make it possible to turn off
+  the http storage backend. +
+  [small]#_[contributed by Maksym Sobolyev]_#
+
+- Fixed call to `sha256sum` on macOS. +
+  [small]#_[contributed by Henrique Ferreiro]_#
+
+
+=== Test improvements
+
+- Made tests pass in year 2038. +
+  [small]#_[contributed by Bernhard M. Wiedemann]_#
+
+- Refreshed some Dockerfiles. +
+  [small]#_[contributed by Maksym Sobolyev]_#
+
+
+=== Documentation improvements
+
+- Added documentation saying that `absolute_paths_in_stderr` also applies to
+  stdout. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed description of `default cache_dir` on non-macOS POSIX systems. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Clarified how ccache's LRU cleanup works. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.10.2
 
 Release date: 2024-07-22
@@ -354,6 +492,12 @@ Release date: 2023-12-30
 
 - Fixed regex in direct.bash. +
   [small]#_[contributed by Viktor Szépe]_#
+
+
+=== Other improvements
+
+- Remove duplicated call to `posix_spawn_file_actions_init`. +
+  [small]#_[contributed by Juan Manuel Martinez Caamaño]_#
 
 
 == Ccache 4.8.3
