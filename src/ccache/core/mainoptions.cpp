@@ -84,7 +84,7 @@ constexpr const char VERSION_TEXT[] =
 Features: {2}
 
 Copyright (C) 2002-2007 Andrew Tridgell
-Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 
 See <https://ccache.dev/credits.html> for a complete list of contributors.
 
