@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Joel Rosdahl and other contributors
+// Copyright (C) 2024-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -64,7 +64,11 @@ FileLock::acquire()
   if (handle == INVALID_HANDLE_VALUE) {
     return false;
   }
-  m_acquired = LockFile(handle, 0, 0, MAXDWORD, MAXDWORD) != 0;
+  OVERLAPPED overlapped{};
+  m_acquired =
+    LockFileEx(
+      handle, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &overlapped)
+    != 0;
 #else
   struct flock lock;
   memset(&lock, 0, sizeof(lock));
