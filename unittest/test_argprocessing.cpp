@@ -1080,4 +1080,42 @@ TEST_CASE("ClangCL Debug information options")
   }
 }
 
+TEST_CASE("MSVC specify object file options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  util::write_file("foo.c", "");
+
+  SUBCASE("cl /c /Fo<file>.obj <file>.c")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fobar.obj foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+
+  SUBCASE("cl /Fo<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fobar.obj foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+
+  SUBCASE("cl /Fo:<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fo:bar.obj foo.c");
+    const auto result = process_args(ctx);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+
+  SUBCASE("cl /Fo: <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fo: bar.obj foo.c");
+    const auto result = process_args(ctx);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+}
+
 TEST_SUITE_END();

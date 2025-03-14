@@ -49,6 +49,8 @@
 #include <utility>
 #include <vector>
 
+using namespace std::literals::string_view_literals;
+
 namespace fs = util::filesystem;
 
 using core::Statistic;
@@ -597,9 +599,24 @@ process_option_arg(const Context& ctx,
   }
 
   if (config.is_compiler_group_msvc()) {
-    // MSVC /Fo with no space.
-    if (util::starts_with(arg, "-Fo")) {
-      args_info.output_obj = arg.substr(3);
+    if (const auto pre = "-Fo"sv; util::starts_with(arg, pre)) {
+      // "-Fo" arg must be longer than "-Fo" plus one more character
+      if (arg.size() < pre.size() + 1) {
+        return Statistic::bad_compiler_arguments;
+      }
+      // /Fo<file>
+      if (arg[3] != ':') {
+        args_info.output_obj = arg.substr(3);
+      }
+      // /Fo:<file>
+      else if (4 < arg.size()) {
+        args_info.output_obj = arg.substr(4);
+      }
+      // /Fo: <file>
+      else if (i != args.size() - 1) {
+        i += 1;
+        args_info.output_obj = args[i];
+      }
       return Statistic::none;
     }
 
