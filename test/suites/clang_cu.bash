@@ -50,7 +50,7 @@ EOF
 }
 
 clang_cu_tests() {
-    REAL_CLANG="clang --cuda-path=/usr/local/cuda-11.4"
+    REAL_CLANG="clang"
     clang_opts_cpp="-c -x c++"
     clang_opts_cuda="-c -x cu"
     clang_opts_gpu1="--cuda-gpu-arch=sm_50"
