@@ -24,6 +24,7 @@ set(
   tokenizer.cpp
   umaskscope.cpp
   zstd.cpp
+  clang.cpp
 )
 
 file(GLOB headers *.hpp)
