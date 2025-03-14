@@ -1397,8 +1397,9 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   if (is_clang_cu) {
     util::write_file(preprocessed_path, cpp_stdout_data);
 
-    auto i_list = util::split_preprocess_file_in_clang_cuda(preprocessed_path);
-    for (size_t i = 0; i < i_list.size(); i++) {
+    auto split_preprocess_file_list =
+      util::split_preprocess_file_in_clang_cuda(preprocessed_path.string());
+    for (size_t i = 0; i < split_preprocess_file_list.size(); i++) {
       auto tmp_stdout =
         util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
           FMT("{}/cuda_tmp_{}.i", ctx.config.temporary_dir(), i),
@@ -1406,7 +1407,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       auto i_preprocessed_path = tmp_stdout.path;
       tmp_stdout.fd.close();
 
-      util::write_file(i_preprocessed_path, i_list[i]);
+      util::write_file(i_preprocessed_path, split_preprocess_file_list[i]);
       ctx.register_pending_tmp_file(i_preprocessed_path);
 
       hash.hash_delimiter(FMT("cu_{}", i));

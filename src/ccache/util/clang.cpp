@@ -16,7 +16,7 @@ split_preprocess_file_in_clang_cuda(const std::string& mixed_preprocessed_path)
   std::vector<std::string> split_preprocess_file_list;
 
   if (!infile) {
-    LOG("cant open file {}", mixed_preprocessed_path);
+    LOG("can't open file {}", mixed_preprocessed_path);
     return split_preprocess_file_list;
   }
 
