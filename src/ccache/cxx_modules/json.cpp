@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,20 +16,29 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include <ccache/cxx_modules/json.hpp>
 
-namespace util {
+namespace cxx_modules::json {
 
-class NonCopyable
+ParseError::ParseError(glz::error_ctx&& ctx) : m_repr(ctx)
 {
-public:
-  NonCopyable(const NonCopyable&) = delete;
-  NonCopyable& operator=(const NonCopyable&) = delete;
+}
 
-protected:
-  NonCopyable() = default;
-  NonCopyable(NonCopyable&&) noexcept = default;
-  NonCopyable& operator=(NonCopyable&&) noexcept = default;
-};
+ParseError::operator bool() const noexcept
+{
+  return m_repr.operator bool();
+}
 
-} // namespace util
+auto
+ParseError::operator==(ParseError::code const err) const noexcept -> bool
+{
+  return m_repr.operator==(err);
+}
+
+auto
+ParseError::format(std::string_view borrowed) const -> std::string
+{
+  return glz::format_error(m_repr, borrowed);
+}
+
+} // namespace cxx_modules::json

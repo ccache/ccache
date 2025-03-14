@@ -70,6 +70,9 @@ public:
   const std::filesystem::path& debug_dir() const;
   uint8_t debug_level() const;
   bool depend_mode() const;
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  bool depend_mode_cxx_modules() const;
+#endif
   bool direct_mode() const;
   bool disable() const;
   const std::string& extra_files_to_hash() const;
@@ -187,6 +190,9 @@ private:
   std::filesystem::path m_debug_dir;
   uint8_t m_debug_level = 2;
   bool m_depend_mode = false;
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  bool m_depend_mode_cxx_modules = false;
+#endif // CCACHE_CXX20_MODULES_FEATURE
   bool m_direct_mode = true;
   bool m_disable = false;
   std::string m_extra_files_to_hash;
@@ -347,6 +353,14 @@ Config::depend_mode() const
 {
   return m_depend_mode;
 }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+inline bool
+Config::depend_mode_cxx_modules() const
+{
+  return m_depend_mode_cxx_modules;
+}
+#endif
 
 inline bool
 Config::direct_mode() const

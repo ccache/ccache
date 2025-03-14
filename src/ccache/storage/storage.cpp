@@ -42,6 +42,7 @@
 
 #include <cxxurl/url.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
