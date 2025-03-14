@@ -19,8 +19,6 @@
 
 #include "ccache.hpp"
 
-#include "ccache/config.hpp"
-
 #include <ccache/argprocessing.hpp>
 #include <ccache/args.hpp>
 #include <ccache/argsinfo.hpp>
