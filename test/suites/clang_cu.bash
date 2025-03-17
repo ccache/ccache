@@ -1,3 +1,4 @@
+
 clang_cu_PROBE() {
     if [ -z "$REAL_NVCC" ]; then
         echo "nvcc is not available"
@@ -7,6 +8,12 @@ clang_cu_PROBE() {
     elif ! command -v clang >/dev/null; then
         echo "clang is not available"
     fi
+
+    touch test.cu
+    if ! clang -c -x cu test.cu  >/dev/null 2>&1; then
+        echo "Clang's CUDA support is not compatible."
+    fi
+
 }
 
 clang_cu_SETUP() {

@@ -1333,8 +1333,14 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   fs::path preprocessed_path;
   util::Bytes cpp_stderr_data;
   util::Bytes cpp_stdout_data;
+
+  // When Clang runs in verbose mode, it outputs command details to stdout,
+  // which can corrupt the output of precompiled CUDA files.
+  // Therefore, caching is disabled in this scenario.
+  // (Is there a better approach to handle this?)
   const bool is_clang_cu = ctx.config.is_compiler_group_clang()
-                           && ctx.args_info.actual_language == "cu";
+                           && ctx.args_info.actual_language == "cu"
+                           && !ctx.args_info.show_verbose;
 
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage

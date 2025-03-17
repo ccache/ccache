@@ -599,6 +599,11 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg == "-v") {
+    args_info.show_verbose = true;
+    return Statistic::none;
+  }
+
   if (config.is_compiler_group_msvc()) {
     // MSVC /Fo with no space.
     if (util::starts_with(arg, "-Fo")) {
