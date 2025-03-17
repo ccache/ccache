@@ -1,5 +1,16 @@
 = Ccache news
 
+== Ccache 4.11.1
+
+Release date: 2025-03-17
+
+
+=== Bug fixes
+
+- Fixed erroneous log file locking on Windows (regression in ccache 4.11). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.11
 
 Release date: 2025-03-09
