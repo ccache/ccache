@@ -46,6 +46,7 @@
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
+#include <ccache/util/clang.hpp>
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
@@ -1331,6 +1332,15 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
   fs::path preprocessed_path;
   util::Bytes cpp_stderr_data;
+  util::Bytes cpp_stdout_data;
+
+  // When Clang runs in verbose mode, it outputs command details to stdout,
+  // which can corrupt the output of precompiled CUDA files.
+  // Therefore, caching is disabled in this scenario.
+  // (Is there a better approach to handle this?)
+  const bool is_clang_cu = ctx.config.is_compiler_group_clang()
+                           && ctx.args_info.actual_language == "cu"
+                           && !ctx.args_info.show_verbose;
 
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
@@ -1363,8 +1373,10 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       args.push_back(FMT("-Fi{}", preprocessed_path));
     } else {
       args.push_back("-E");
-      args.push_back("-o");
-      args.push_back(preprocessed_path);
+      if (!is_clang_cu) {
+        args.push_back("-o");
+        args.push_back(preprocessed_path);
+      }
     }
 
     args.push_back(
@@ -1372,7 +1384,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
-    const auto result = do_execute(ctx, args, false);
+    const auto result = do_execute(ctx, args, true);
     args.pop_back(args.size() - orig_args_size);
 
     if (!result) {
@@ -1383,13 +1395,40 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     }
 
     cpp_stderr_data = result->stderr_data;
+    cpp_stdout_data = result->stdout_data;
   }
 
-  hash.hash_delimiter("cpp");
-  TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
+  if (is_clang_cu) {
+    util::write_file(preprocessed_path, cpp_stdout_data);
 
-  hash.hash_delimiter("cppstderr");
-  hash.hash(util::to_string_view(cpp_stderr_data));
+    auto split_preprocess_file_list =
+      util::split_preprocess_file_in_clang_cuda(preprocessed_path.string());
+    for (size_t i = 0; i < split_preprocess_file_list.size(); i++) {
+      auto tmp_stdout =
+        util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
+          FMT("{}/cuda_tmp_{}.i", ctx.config.temporary_dir(), i),
+          FMT(".{}", ctx.config.cpp_extension())));
+      auto i_preprocessed_path = tmp_stdout.path;
+      tmp_stdout.fd.close();
+
+      util::write_file(i_preprocessed_path, split_preprocess_file_list[i]);
+      ctx.register_pending_tmp_file(i_preprocessed_path);
+
+      hash.hash_delimiter(FMT("cu_{}", i));
+
+      TRY(process_preprocessed_file(ctx, hash, i_preprocessed_path));
+    }
+
+    hash.hash_delimiter("cppstderr");
+    hash.hash(util::to_string_view(cpp_stderr_data));
+
+  } else {
+    hash.hash_delimiter("cpp");
+    TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
+
+    hash.hash_delimiter("cppstderr");
+    hash.hash(util::to_string_view(cpp_stderr_data));
+  }
 
   ctx.i_tmpfile = preprocessed_path;
 
