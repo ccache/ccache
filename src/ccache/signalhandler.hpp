@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <vector>
+
 class Context;
 
 class SignalHandler
@@ -29,6 +31,8 @@ public:
   static void on_signal(int signum);
   static void block_signals();
   static void unblock_signals();
+
+  static const std::vector<int>& get_handled_signals();
 
 private:
 #ifndef _WIN32

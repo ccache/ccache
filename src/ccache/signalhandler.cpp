@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,7 +31,7 @@ namespace {
 SignalHandler* g_the_signal_handler = nullptr;
 sigset_t g_fatal_signal_set;
 
-const int k_handled_signals[] = {
+const std::vector<int> k_handled_signals = {
   SIGINT,
   SIGTERM,
 #ifdef SIGHUP
@@ -133,6 +133,12 @@ SignalHandler::unblock_signals()
   sigset_t empty;
   sigemptyset(&empty);
   sigprocmask(SIG_SETMASK, &empty, nullptr);
+}
+
+const std::vector<int>&
+SignalHandler::get_handled_signals()
+{
+  return k_handled_signals;
 }
 
 SignalHandlerBlocker::SignalHandlerBlocker()

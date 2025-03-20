@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,6 +51,10 @@
 
 #ifdef HAVE_SYS_WAIT_H
 #  include <sys/wait.h>
+#endif
+
+#ifndef _WIN32
+#  include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
 #endif
 
 namespace fs = util::filesystem;
@@ -312,13 +316,30 @@ execute(Context& ctx,
   CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, *err, STDERR_FILENO);
   CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, *err);
 
+  posix_spawnattr_t attr;
+  CHECK_LIB_CALL(posix_spawnattr_init, &attr);
+  CHECK_LIB_CALL(posix_spawnattr_setflags,
+                 &attr,
+                 POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK);
+
+  sigset_t sigmask;
+  CHECK_LIB_CALL(sigemptyset, &sigmask);
+  CHECK_LIB_CALL(posix_spawnattr_setsigmask, &attr, &sigmask);
+
+  sigset_t sigdefault;
+  CHECK_LIB_CALL(sigemptyset, &sigdefault);
+  for (int signum : SignalHandler::get_handled_signals()) {
+    CHECK_LIB_CALL(sigaddset, &sigdefault, signum);
+  }
+  CHECK_LIB_CALL(posix_spawnattr_setsigdefault, &attr, &sigdefault);
+
   int result;
   {
     SignalHandlerBlocker signal_handler_blocker;
     pid_t pid;
     extern char** environ;
     result = posix_spawn(
-      &pid, argv[0], &fa, nullptr, const_cast<char* const*>(argv), environ);
+      &pid, argv[0], &fa, &attr, const_cast<char* const*>(argv), environ);
     if (result == 0) {
       ctx.compiler_pid = pid;
     }
