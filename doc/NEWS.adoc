@@ -1,5 +1,17 @@
 = Ccache news
 
+== Ccache 4.11.2
+
+Release date: 2025-03-22
+
+
+=== Bug fixes
+
+- Reset signal mask and signal defaults when executing compiler (regression in
+  ccache 4.11). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.11.1
 
 Release date: 2025-03-17
