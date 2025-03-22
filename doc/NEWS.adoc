@@ -7,8 +7,9 @@ Release date: 2025-03-22
 
 === Bug fixes
 
-- Reset signal mask and signal defaults when executing compiler (regression in
-  ccache 4.11). +
+- Reset signal mask and signal defaults when executing compiler. This fixes a
+  problem where interrupting the compilation (e.g. with Ctrl+C) wouldn't kill
+  the compiler (regression in ccache 4.11). +
   [small]#_[contributed by Joel Rosdahl]_#
 
 
