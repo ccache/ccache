@@ -1,4 +1,5 @@
 mark_as_advanced(HIREDIS_INCLUDE_DIR HIREDIS_LIBRARY)
+mark_as_advanced(HIREDIS_SSL_INCLUDE_DIR HIREDIS_SSL_LIBRARY)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_HIREDIS STREQUAL "DOWNLOAD")
   message(STATUS "Downloading Hiredis as requested")
@@ -6,6 +7,8 @@ if(DEPS STREQUAL "DOWNLOAD" OR DEP_HIREDIS STREQUAL "DOWNLOAD")
 else()
   find_path(HIREDIS_INCLUDE_DIR hiredis/hiredis.h)
   find_library(HIREDIS_LIBRARY hiredis)
+  find_path(HIREDIS_SSL_INCLUDE_DIR hiredis/hiredis_ssl.h)
+  find_library(HIREDIS_SSL_LIBRARY hiredis_ssl)
   if(HIREDIS_INCLUDE_DIR AND HIREDIS_LIBRARY)
     file(READ "${HIREDIS_INCLUDE_DIR}/hiredis/hiredis.h" _hiredis_h)
     string(REGEX MATCH "#define HIREDIS_MAJOR +([0-9]+).*#define HIREDIS_MINOR +([0-9]+).*#define HIREDIS_PATCH +([0-9]+)" _ "${_hiredis_h}")
@@ -20,6 +23,17 @@ else()
         INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_INCLUDE_DIR}"
         IMPORTED_LOCATION "${HIREDIS_LIBRARY}"
       )
+      if(HIREDIS_SSL_INCLUDE_DIR AND HIREDIS_SSL_LIBRARY)
+        message(STATUS "Using system Hiredis_ssl (${HIREDIS_SSL_LIBRARY})")
+        add_library(dep_hiredis_ssl UNKNOWN IMPORTED)
+        set_target_properties(
+          dep_hiredis_ssl
+          PROPERTIES
+          INTERFACE_INCLUDE_DIRECTORIES "${HIREDIS_SSL_INCLUDE_DIR}"
+          IMPORTED_LOCATION "${HIREDIS_SSL_LIBRARY}"
+          INTERFACE_COMPILE_OPTIONS "${HIREDIS_SSL_CFLAGS_OTHER}"
+        )
+      endif()
     endif()
   endif()
   if(NOT _hiredis_origin)
@@ -46,6 +60,7 @@ if(_download_hiredis)
   # Intentionally not using hiredis's build system since it doesn't put headers
   # in a hiredis subdirectory.
   FetchContent_Populate(Hiredis)
+  find_package(OpenSSL)
   set(
     _hiredis_sources
     "${hiredis_SOURCE_DIR}/alloc.c"
@@ -57,7 +72,12 @@ if(_download_hiredis)
     "${hiredis_SOURCE_DIR}/sds.c"
     "${hiredis_SOURCE_DIR}/sockcompat.c"
   )
+  set(
+    _hiredis_ssl_sources
+    "${hiredis_SOURCE_DIR}/ssl.c"
+  )
   add_library(dep_hiredis STATIC EXCLUDE_FROM_ALL "${_hiredis_sources}")
+  add_library(dep_hiredis_ssl STATIC EXCLUDE_FROM_ALL "${_hiredis_ssl_sources}")
   if(WIN32)
     target_compile_definitions(dep_hiredis PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
@@ -66,6 +86,12 @@ if(_download_hiredis)
   file(COPY ${_hiredis_headers} DESTINATION "${hiredis_SOURCE_DIR}/include/hiredis")
   target_include_directories(
     dep_hiredis SYSTEM INTERFACE "$<BUILD_INTERFACE:${hiredis_SOURCE_DIR}/include>"
+  )
+  target_include_directories(
+    dep_hiredis_ssl SYSTEM INTERFACE "$<BUILD_INTERFACE:${hiredis_SOURCE_DIR}/include>"
+  )
+  target_link_libraries(
+    dep_hiredis_ssl PRIVATE OpenSSL::SSL
   )
 endif()
 
