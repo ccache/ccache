@@ -71,17 +71,17 @@ WARNING: The technique of letting ccache masquerade as the compiler works well,
 but currently doesn't interact well with other tools that do the same thing. See
 _<<Using ccache with other compiler wrappers>>_.
 
-NOTE: For building Android, the Android compiler system named "soong" uses multiple 
+NOTE: When building Android, the Android compiler system named "soong" uses multiple 
 different versions of clang++ so the above methods wont work as you can only link
 to one version of a compiler (the one that is installed on the system).
-Soong looks for CCACHE_EXEC to find where the ccache binary is located, so you
-must use the following command in your shell to enable ccache when compiling Android:
-+
+
+Soong uses $CCACHE_EXEC to find where the ccache binary is located, so you must use
+the following commands in your shell to enable ccache when compiling Android:
+
 -------------------------------------------------------------------------------
 export USE_CCACHE=1
 export CCACHE_EXEC=/usr/bin/ccache
 -------------------------------------------------------------------------------
-+
 
 == Command line options
 
