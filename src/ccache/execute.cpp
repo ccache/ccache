@@ -233,11 +233,11 @@ win32execute(const char* const* argv,
   if (args.length() > 8192) {
     auto tmp_file = util::value_or_throw<core::Fatal>(
       util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
+    LOG("Arguments from {}", tmp_file.path);
     args = util::format_argv_as_win32_command_string(argv + 1, true);
     util::write_fd(*tmp_file.fd, args.data(), args.length());
     args = FMT(R"("{}" "@{}")", argv[0], tmp_file.path);
     tmp_file_path = tmp_file.path;
-    LOG("Arguments from {}", tmp_file.path);
   }
 
   std::string sh = win32getshell(argv[0]);
