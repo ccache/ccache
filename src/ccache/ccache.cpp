@@ -2601,6 +2601,7 @@ cache_compilation(int argc, const char* const* argv)
       FMT("execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno)));
   }
 
+  LOG_RAW("=== CCACHE DONE ===");
   return EXIT_SUCCESS;
 }
 
