@@ -41,9 +41,9 @@ TEST_CASE("Config: default values")
 
   CHECK(config.base_dir().empty());
   CHECK(config.cache_dir().empty()); // Set later
-  CHECK(config.compiler().empty());
+  CHECK(config.compiler().name().empty());
   CHECK(config.compiler_check() == "mtime");
-  CHECK(config.compiler_type() == CompilerType::auto_guess);
+  CHECK(config.compiler() == Compiler::type::auto_guess);
   CHECK(config.compression());
   CHECK(config.compression_level() == 0);
   CHECK(config.cpp_extension().empty());
@@ -51,6 +51,9 @@ TEST_CASE("Config: default values")
   CHECK(config.debug_dir().empty());
   CHECK(config.debug_level() == 2);
   CHECK(!config.depend_mode());
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  CHECK(!config.depend_mode_cxx_modules());
+#endif // CCACHE_CXX20_MODULES_FEATURE
   CHECK(config.direct_mode());
   CHECK(!config.disable());
   CHECK(config.extra_files_to_hash().empty());
@@ -116,6 +119,9 @@ TEST_CASE("Config::update_from_file")
     "debug_dir = $USER$/${USER}/.ccache_debug\n"
     "debug_level = 2\n"
     "depend_mode = true\n"
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    "depend_mode_cxx_modules = true\n"
+#endif // CCACHE_CXX20_MODULES_FEATURE
     "direct_mode = false\n"
     "disable = true\n"
     "extra_files_to_hash = a:b c:$USER\n"
@@ -151,15 +157,18 @@ TEST_CASE("Config::update_from_file")
   REQUIRE(config.update_from_file("ccache.conf"));
   CHECK(config.base_dir() == base_dir);
   CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
-  CHECK(config.compiler() == "foo");
+  CHECK(config.compiler().name() == "foo");
   CHECK(config.compiler_check() == "none");
-  CHECK(config.compiler_type() == CompilerType::nvcc);
+  CHECK(config.compiler() == Compiler::type::nvcc);
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");
   CHECK(config.debug_dir() == FMT("{0}$/{0}/.ccache_debug", user));
   CHECK(config.debug_level() == 2);
   CHECK(config.depend_mode());
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  CHECK(config.depend_mode_cxx_modules());
+#endif // CCACHE_CXX20_MODULES_FEATURE
   CHECK_FALSE(config.direct_mode());
   CHECK(config.disable());
   CHECK(config.extra_files_to_hash() == FMT("a:b c:{}", user));
@@ -453,6 +462,9 @@ TEST_CASE("Config::visit_items")
     "debug_dir = /dd\n"
     "debug_level = 2\n"
     "depend_mode = true\n"
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    "depend_mode_cxx_modules = true\n"
+#endif // CCACHE_CXX20_MODULES_FEATURE
     "direct_mode = false\n"
     "disable = true\n"
     "extra_files_to_hash = efth\n"
@@ -516,6 +528,9 @@ TEST_CASE("Config::visit_items")
     "(test.conf) debug_dir = /dd",
     "(test.conf) debug_level = 2",
     "(test.conf) depend_mode = true",
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    "(test.conf) depend_mode_cxx_modules = true",
+#endif // CCACHE_CXX20_MODULES_FEATURE
     "(test.conf) direct_mode = false",
     "(test.conf) disable = true",
     "(test.conf) extra_files_to_hash = efth",

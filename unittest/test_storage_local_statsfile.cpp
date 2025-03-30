@@ -61,7 +61,7 @@ TEST_CASE("Read existing")
 
   REQUIRE(counters.size() == static_cast<size_t>(Statistic::END));
   CHECK(counters.get(Statistic::cache_miss) == 27);
-  CHECK(counters.get(Statistic::could_not_use_modules) == 0);
+  CHECK(counters.get(Statistic::could_not_use_clang_modules) == 0);
 }
 
 TEST_CASE("Read future counters")

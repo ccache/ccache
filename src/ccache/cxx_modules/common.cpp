@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,20 +16,37 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include <ccache/cxx_modules/common.hpp>
 
-namespace util {
+namespace cxx_modules {
 
-class NonCopyable
+name_view::name_view() noexcept = default;
+
+name_view::name_view(std::string_view view) noexcept
+  : m_repr(view),
+    m_dotted(m_repr.contains('.'))
 {
-public:
-  NonCopyable(const NonCopyable&) = delete;
-  NonCopyable& operator=(const NonCopyable&) = delete;
+}
 
-protected:
-  NonCopyable() = default;
-  NonCopyable(NonCopyable&&) noexcept = default;
-  NonCopyable& operator=(NonCopyable&&) noexcept = default;
-};
+name_view::operator std::string_view() const noexcept
+{
+  return m_repr;
+}
 
-} // namespace util
+path_view::path_view() noexcept = default;
+
+path_view::path_view(std::string_view view) noexcept : m_repr(view)
+{
+}
+
+path_view::operator std::string_view() const noexcept
+{
+  return m_repr;
+}
+
+path_view::operator std::filesystem::path() const
+{
+  return std::filesystem::path(m_repr);
+}
+
+} // namespace cxx_modules

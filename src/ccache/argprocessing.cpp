@@ -27,6 +27,7 @@
 #include <ccache/language.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
@@ -45,9 +46,12 @@
 #include <cstdlib>
 #include <iterator>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+using namespace std::literals::string_view_literals;
 
 namespace fs = util::filesystem;
 
@@ -412,7 +416,7 @@ process_option_arg(const Context& ctx,
   }
 
   // Handle cuda "-optf" and "--options-file" argument.
-  if (config.compiler_type() == CompilerType::nvcc
+  if (config.compiler() == Compiler::type::nvcc
       && (arg == "-optf" || arg == "--options-file")) {
     if (i == args.size() - 1) {
       LOG("Expected argument after {}", args[i]);
@@ -551,7 +555,7 @@ process_option_arg(const Context& ctx,
     // Note: "-Xclang -option-that-takes-arg -Xclang arg" is not handled below
     // yet.
     if (compopt_takes_arg(arg)
-        || (config.compiler_type() == CompilerType::nvcc && arg == "-Werror")) {
+        || (config.compiler() == Compiler::type::nvcc && arg == "-Werror")) {
       if (i == args.size() - 1) {
         LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
@@ -572,10 +576,10 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // Modules are handled on demand as necessary in the background, so there is
-  // no need to cache them, they can in practice be ignored. All that is needed
-  // is to correctly depend also on module.modulemap files, and those are
-  // included only in depend mode (preprocessed output does not list them).
+  // Clang modules are handled on demand as necessary in the background, so
+  // there is no need to cache them, they can in practice be ignored. All that
+  // is needed is to correctly depend also on module.modulemap files, and those
+  // are included only in depend mode (preprocessed output does not list them).
   // Still, not including the modules themselves in the hash could possibly
   // result in an object file that would be different from the actual
   // compilation (even though it should be compatible), so require a sloppiness
@@ -584,12 +588,12 @@ process_option_arg(const Context& ctx,
     if (!config.depend_mode() || !config.direct_mode()) {
       LOG("Compiler option {} is unsupported without direct depend mode",
           args[i]);
-      return Statistic::could_not_use_modules;
-    } else if (!(config.sloppiness().contains(core::Sloppy::modules))) {
+      return Statistic::could_not_use_clang_modules;
+    } else if (!(config.sloppiness().contains(core::Sloppy::clang_modules))) {
       LOG_RAW(
-        "You have to specify \"modules\" sloppiness when using"
+        "You have to specify \"clang_modules\" sloppiness when using"
         " -fmodules to get hits");
-      return Statistic::could_not_use_modules;
+      return Statistic::could_not_use_clang_modules;
     }
   }
 
@@ -600,17 +604,52 @@ process_option_arg(const Context& ctx,
   }
 
   if (config.is_compiler_group_msvc()) {
-    // MSVC /Fo with no space.
-    if (util::starts_with(arg, "-Fo")) {
-      args_info.output_obj = arg.substr(3);
+    if (const auto pre = "-Fo"sv; util::starts_with(arg, pre)) {
+      // "-Fo" arg must be longer than "-Fo" plus one more character
+      if (arg.size() < pre.size() + 1) {
+        return Statistic::bad_compiler_arguments;
+      }
+      // /Fo<file>
+      if (arg[3] != ':') {
+        args_info.output_obj = arg.substr(3);
+      }
+      // /Fo:<file>
+      else if (4 < arg.size()) {
+        args_info.output_obj = arg.substr(4);
+      }
+      // /Fo: <file>
+      else if (i != args.size() - 1) {
+        i += 1;
+        args_info.output_obj = args[i];
+      }
       return Statistic::none;
     }
 
-    // MSVC /Tc and /Tp options in concatenated form for specifying input file.
-    if (arg.length() > 3 && util::starts_with(arg, "-T")
-        && (arg[2] == 'c' || arg[2] == 'p')) {
-      args_info.input_file_prefix = arg.substr(0, 3);
-      state.input_files.emplace_back(arg.substr(3));
+    if (const auto pre = "-Tc"sv; util::starts_with(arg, pre)) {
+      args_info.input_file_prefix = arg.substr(0, pre.size());
+      // Tc<path>
+      if (pre.size() < arg.size()) {
+        state.input_files.emplace_back(arg.substr(pre.size()));
+      }
+      // Tc <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.input_files.emplace_back(args[i]);
+      }
+      return Statistic::none;
+    }
+
+    if (const auto pre = "-Tp"sv; util::starts_with(arg, pre)) {
+      args_info.input_file_prefix = arg.substr(0, pre.size());
+      // Tp<path>
+      if (pre.size() < arg.size()) {
+        state.input_files.emplace_back(arg.substr(pre.size()));
+      }
+      // Tp <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.input_files.emplace_back(args[i]);
+      }
       return Statistic::none;
     }
 
@@ -629,7 +668,7 @@ process_option_arg(const Context& ctx,
 
   // when using nvcc with separable compilation, -dc implies -c
   if ((arg == "-dc" || arg == "--device-c")
-      && config.compiler_type() == CompilerType::nvcc) {
+      && config.compiler() == Compiler::type::nvcc) {
     state.found_dc_opt = true;
     return Statistic::none;
   }
@@ -694,9 +733,8 @@ process_option_arg(const Context& ctx,
   // Cl does support it as deprecated, but also has -openmp or -link -out
   // which can confuse this and cause incorrect output_obj (and thus
   // ccache debug file location), so better ignore it.
-  if (util::starts_with(arg, "-o")
-      && config.compiler_type() != CompilerType::nvcc
-      && config.compiler_type() != CompilerType::msvc) {
+  if (util::starts_with(arg, "-o") && config.compiler() != Compiler::type::nvcc
+      && config.compiler() != Compiler::type::msvc) {
     args_info.output_obj = arg.substr(2);
     return Statistic::none;
   }
@@ -1058,7 +1096,7 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.compiler_type() == CompilerType::gcc) {
+  if (config.compiler() == Compiler::type::gcc) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
       state.compiler_only_args_no_hash.push_back(args[i]);
@@ -1148,6 +1186,207 @@ process_option_arg(const Context& ctx,
     state.cpp_args.push_back(args[i]);
     return Statistic::none;
   }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  // Process C++20 modules detection
+  {
+    // gcc
+    if (arg == "-fmodules-ts") {
+      state.common_args.push_back(arg);
+      // NOTE: This flag alone is not sufficient to determine whether GCC will
+      // output a BMI. We must check the p1689 .ddi for a "provides" field.
+      return Statistic::none;
+    }
+    if (arg == "-interface") {
+      state.common_args.push_back(arg);
+      args_info.actual_language = "c++-module";
+      args_info.cxx_modules.generating_bmi = true;
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 dynamic dependency information options
+  {
+    // gcc
+    if (const auto prefix = "-fdeps-format="sv;
+        util::starts_with(arg, prefix)) {
+      const auto pos = prefix.size();
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.ddi_format = arg.substr(pos);
+      return Statistic::none;
+    }
+
+    // gcc
+    if (const auto prefix = "-fdeps-file="sv; util::starts_with(arg, prefix)) {
+      const auto pos = prefix.size();
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_ddi = true;
+      args_info.cxx_modules.output_ddi = arg.substr(pos);
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-scanDependencies"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      args_info.expect_output_obj = false;
+      // -scanDependencies<path>
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.generating_ddi = true;
+        args_info.cxx_modules.output_ddi = arg.substr(pre.size());
+      }
+      // -scanDependencies <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.generating_ddi = true;
+        args_info.cxx_modules.output_ddi = args[i];
+      }
+      return Statistic::called_for_preprocessing;
+    }
+    // msvc
+    if (const std::string_view pre = "-sourceDependencies"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      // -sourceDependencies<path>
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.generating_msvc_source_dependencies = true;
+        args_info.cxx_modules.output_msvc_source_dependencies =
+          arg.substr(pre.size());
+      }
+      // -sourceDependencies <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.generating_msvc_source_dependencies = true;
+        args_info.cxx_modules.output_msvc_source_dependencies = args[i];
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules two-phase compilation options
+  {
+    // clang
+    if (arg == "--precompile") {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      args_info.cxx_modules.precompiling_bmi = true;
+      args_info.expect_output_obj = false;
+      return Statistic::none;
+    }
+    // msvc
+    if (arg == "-ifcOnly") {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      args_info.cxx_modules.precompiling_bmi = true;
+      args_info.expect_output_obj = false;
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules bmi output file options
+  {
+    // clang
+    if (const std::string_view pre = "-fmodule-output"sv;
+        util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      // -fmodule-output=<path>
+      if (pre.size() < arg.size() && arg[pre.size()] == '=') {
+        args_info.cxx_modules.output_bmi = arg.substr(pre.size() + 1);
+      }
+      // -fmodule-output
+      else {
+        // TODO: guess output
+      }
+      return Statistic::none;
+    }
+    // msvc
+    if (const std::string_view pre = "-ifcOutput";
+        util::starts_with(arg, pre)) {
+      // -ifcOutput<path>.ext seems to cause cl.exe to parse incorrectly
+      if (arg.contains('.')) {
+        return Statistic::bad_compiler_arguments;
+      }
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.generating_bmi = true;
+      // -ifcOutput<path> (no extension)
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.output_bmi = arg.substr(pre.size());
+      }
+      // -ifcOutput <path>
+      else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.output_bmi = args[i];
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules name/path mapping options
+  {
+    std::string_view module_name_path;
+    std::string_view opt = arg;
+
+    // clang
+    if (const auto pre = "-fmodule-file="sv; util::starts_with(opt, pre)) {
+      const auto pos = pre.size();
+      module_name_path = opt.substr(pos);
+      state.common_args.push_back(arg);
+    }
+    // msvc
+    if (const auto pre = "-reference"sv; util::starts_with(opt, pre)) {
+      state.common_args.push_back(arg);
+      if (pre.size() < opt.size()) {
+        module_name_path = opt.substr(pre.size());
+      } else if (i != args.size() - 1) {
+        i += 1;
+        module_name_path = args[i];
+        state.common_args.push_back(args[i]);
+      }
+    }
+    // handle <name>=<path>
+    if (!module_name_path.empty()) {
+      if (const auto pos = module_name_path.find('=');
+          pos != std::string::npos) {
+        const auto name = module_name_path.substr(0, pos);
+        const auto path = module_name_path.substr(pos + 1);
+        args_info.cxx_modules.names_paths.emplace(name, path);
+      } else {
+        const auto& path = module_name_path;
+        args_info.cxx_modules.units_paths.emplace_back(path);
+      }
+      return Statistic::none;
+    }
+  }
+
+  // Process C++20 modules search dir
+  {
+    // clang
+    if (const auto pre = "-fprebuilt-module-path="sv;
+        util::starts_with(arg, pre)) {
+      const auto str = std::string_view(arg);
+      const auto pos = pre.size();
+      const auto search_dir = str.substr(pos);
+      state.common_args.push_back(arg);
+      args_info.cxx_modules.search_dirs.emplace_back(search_dir);
+      return Statistic::none;
+    }
+    // msvc
+    if (const auto pre = "-ifcSearchDir"sv; util::starts_with(arg, pre)) {
+      state.common_args.push_back(arg);
+      if (pre.size() < arg.size()) {
+        args_info.cxx_modules.search_dirs.emplace_back(arg.substr(pre.size()));
+      } else if (i != args.size() - 1) {
+        i += 1;
+        state.common_args.push_back(args[i]);
+        args_info.cxx_modules.search_dirs.emplace_back(args[i]);
+      }
+      return Statistic::none;
+    }
+  }
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   if (compopt_takes_arg(arg) && compopt_takes_path(arg)) {
     if (i == args.size() - 1) {
@@ -1293,18 +1532,6 @@ process_arg(const Context& ctx,
   return Statistic::none;
 }
 
-const char*
-get_default_object_file_extension(const Config& config)
-{
-  return config.is_compiler_group_msvc() ? ".obj" : ".o";
-}
-
-const char*
-get_default_pch_file_extension(const Config& config)
-{
-  return config.is_compiler_group_msvc() ? ".pch" : ".gch";
-}
-
 } // namespace
 
 tl::expected<ProcessArgsResult, core::Statistic>
@@ -1399,7 +1626,7 @@ process_args(Context& ctx)
     } else if (state.found_S_opt) {
       extension = ".s";
     } else {
-      extension = get_default_object_file_extension(ctx.config);
+      extension = ctx.config.compiler().file_exts().object;
     }
     args_info.output_obj /= util::with_extension(
       fs::path(args_info.input_file).filename(), extension);
@@ -1421,9 +1648,10 @@ process_args(Context& ctx)
     }
 
     if (included_pch_file_by_source && !args_info.input_file.empty()) {
-      args_info.included_pch_file =
-        util::with_extension(fs::path(args_info.input_file).filename(),
-                             get_default_pch_file_extension(ctx.config));
+      const auto file_ext_pch =
+        ctx.config.compiler().file_exts().precompiled_header;
+      args_info.included_pch_file = util::with_extension(
+        fs::path(args_info.input_file).filename(), *file_ext_pch);
       LOG(
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
@@ -1488,7 +1716,7 @@ process_args(Context& ctx)
     args_info.actual_language = state.explicit_language;
   } else if (args_info.actual_language.empty()) {
     args_info.actual_language =
-      language_for_file(args_info.input_file, config.compiler_type());
+      language_for_file(args_info.input_file, config.compiler());
   }
 
   args_info.output_is_precompiled_header =
@@ -1496,8 +1724,9 @@ process_args(Context& ctx)
     || is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
-    args_info.orig_output_obj = util::add_extension(
-      args_info.orig_input_file, get_default_pch_file_extension(config));
+    const auto file_ext_pch = config.compiler().file_exts().precompiled_header;
+    args_info.orig_output_obj =
+      util::add_extension(args_info.orig_input_file, *file_ext_pch);
     args_info.output_obj =
       core::make_relative_path(ctx, args_info.orig_output_obj);
   }
@@ -1614,7 +1843,7 @@ process_args(Context& ctx)
     if (args_info.actual_language != "assembler") {
       diagnostics_color_arg = "-fcolor-diagnostics";
     }
-  } else if (config.compiler_type() == CompilerType::gcc) {
+  } else if (config.compiler() == Compiler::type::gcc) {
     diagnostics_color_arg = "-fdiagnostics-color";
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
@@ -1650,15 +1879,15 @@ process_args(Context& ctx)
       // filename.
       if (state.found_wp_md_or_mmd_opt && !args_info.output_obj.empty()
           && !state.found_md_or_mmd_opt) {
-        if (config.compiler_type() == CompilerType::clang) {
+        if (config.compiler() == Compiler::type::clang) {
           // Clang does the sane thing: the dependency target is the output file
           // so that the dependency file actually makes sense.
-        } else if (config.compiler_type() == CompilerType::gcc) {
+        } else if (config.compiler() == Compiler::type::gcc) {
           // GCC strangely uses the base name of the source file but with a .o
           // extension.
           dep_target =
             util::with_extension(args_info.orig_input_file.filename(),
-                                 get_default_object_file_extension(ctx.config));
+                                 ctx.config.compiler().file_exts().object);
         } else {
           // How other compilers behave is currently unknown, so bail out.
           LOG_RAW(
@@ -1784,7 +2013,7 @@ process_args(Context& ctx)
   }
 
   if (ctx.config.depend_mode() && !args_info.generating_includes
-      && ctx.config.compiler_type() == CompilerType::msvc) {
+      && ctx.config.compiler() == Compiler::type::msvc) {
     ctx.auto_depend_mode = true;
     args_info.generating_includes = true;
     compiler_args.push_back("/showIncludes");

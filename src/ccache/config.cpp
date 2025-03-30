@@ -86,6 +86,9 @@ enum class ConfigItem {
   debug_dir,
   debug_level,
   depend_mode,
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  depend_mode_cxx_modules,
+#endif // CCACHE_CXX20_MODULES_FEATURE
   direct_mode,
   disable,
   extra_files_to_hash,
@@ -143,6 +146,9 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"debug_dir", {ConfigItem::debug_dir}},
     {"debug_level", {ConfigItem::debug_level}},
     {"depend_mode", {ConfigItem::depend_mode}},
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    {"depend_mode_cxx_modules", {ConfigItem::depend_mode_cxx_modules}},
+#endif // CCACHE_CXX20_MODULES_FEATURE
     {"direct_mode", {ConfigItem::direct_mode}},
     {"disable", {ConfigItem::disable}},
     {"extra_files_to_hash", {ConfigItem::extra_files_to_hash}},
@@ -193,6 +199,9 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"DEBUGDIR", "debug_dir"},
   {"DEBUGLEVEL", "debug_level"},
   {"DEPEND", "depend_mode"},
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  {"DEPEND_CXX_MODULES", "depend_mode_cxx_modules"},
+#endif // CCACHE_CXX20_MODULES_FEATURE
   {"DIR", "cache_dir"},
   {"DIRECT", "direct_mode"},
   {"DISABLE", "disable"},
@@ -279,33 +288,6 @@ format_bool(bool value)
   return value ? "true" : "false";
 }
 
-CompilerType
-parse_compiler_type(const std::string& value)
-{
-  if (value == "clang") {
-    return CompilerType::clang;
-  } else if (value == "clang-cl") {
-    return CompilerType::clang_cl;
-  } else if (value == "gcc") {
-    return CompilerType::gcc;
-  } else if (value == "icl") {
-    return CompilerType::icl;
-  } else if (value == "icx") {
-    return CompilerType::icx;
-  } else if (value == "icx-cl") {
-    return CompilerType::icx_cl;
-  } else if (value == "msvc") {
-    return CompilerType::msvc;
-  } else if (value == "nvcc") {
-    return CompilerType::nvcc;
-  } else if (value == "other") {
-    return CompilerType::other;
-  } else {
-    // Allow any unknown value for forward compatibility.
-    return CompilerType::auto_guess;
-  }
-}
-
 core::Sloppiness
 parse_sloppiness(const std::string& value)
 {
@@ -314,6 +296,8 @@ parse_sloppiness(const std::string& value)
   for (const auto token : util::Tokenizer(value, ", ")) {
     if (token == "clang_index_store") {
       result.insert(core::Sloppy::clang_index_store);
+    } else if (token == "clang_modules") {
+      result.insert(core::Sloppy::clang_modules);
     } else if (token == "file_stat_matches") {
       result.insert(core::Sloppy::file_stat_matches);
     } else if (token == "file_stat_matches_ctime") {
@@ -330,8 +314,10 @@ parse_sloppiness(const std::string& value)
       result.insert(core::Sloppy::ivfsoverlay);
     } else if (token == "locale") {
       result.insert(core::Sloppy::locale);
-    } else if (token == "modules") {
-      result.insert(core::Sloppy::modules);
+    }
+    // Deprecated alias
+    else if (token == "modules") {
+      result.insert(core::Sloppy::clang_modules);
     } else if (token == "pch_defines") {
       result.insert(core::Sloppy::pch_defines);
     } else if (token == "random_seed") {
@@ -352,6 +338,9 @@ format_sloppiness(core::Sloppiness sloppiness)
   std::string result;
   if (sloppiness.contains(core::Sloppy::clang_index_store)) {
     result += "clang_index_store, ";
+  }
+  if (sloppiness.contains(core::Sloppy::clang_modules)) {
+    result += "clang_modules, ";
   }
   if (sloppiness.contains(core::Sloppy::file_stat_matches)) {
     result += "file_stat_matches, ";
@@ -376,9 +365,6 @@ format_sloppiness(core::Sloppiness sloppiness)
   }
   if (sloppiness.contains(core::Sloppy::locale)) {
     result += "locale, ";
-  }
-  if (sloppiness.contains(core::Sloppy::modules)) {
-    result += "modules, ";
   }
   if (sloppiness.contains(core::Sloppy::pch_defines)) {
     result += "pch_defines, ";
@@ -562,34 +548,6 @@ response_file_format_to_string(Args::ResponseFileFormat response_file_format)
 }
 
 } // namespace
-
-std::string
-compiler_type_to_string(CompilerType compiler_type)
-{
-#define CASE(type)                                                             \
-  case CompilerType::type:                                                     \
-    return #type
-
-  switch (compiler_type) {
-  case CompilerType::auto_guess:
-    return "auto";
-  case CompilerType::clang_cl:
-    return "clang-cl";
-  case CompilerType::icx_cl:
-    return "icx-cl";
-
-    CASE(clang);
-    CASE(gcc);
-    CASE(icl);
-    CASE(icx);
-    CASE(msvc);
-    CASE(nvcc);
-    CASE(other);
-  }
-#undef CASE
-
-  ASSERT(false);
-}
 
 void
 Config::read(const std::vector<std::string>& cmdline_config_settings)
@@ -804,13 +762,13 @@ Config::get_string_value(const std::string& key) const
     return m_cache_dir.string();
 
   case ConfigItem::compiler:
-    return m_compiler;
+    return std::string(m_compiler.name());
 
   case ConfigItem::compiler_check:
     return m_compiler_check;
 
   case ConfigItem::compiler_type:
-    return compiler_type_to_string(m_compiler_type);
+    return std::string(m_compiler.type_());
 
   case ConfigItem::compression:
     return format_bool(m_compression);
@@ -832,6 +790,11 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::depend_mode:
     return format_bool(m_depend_mode);
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case ConfigItem::depend_mode_cxx_modules:
+    return format_bool(m_depend_mode_cxx_modules);
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   case ConfigItem::direct_mode:
     return format_bool(m_direct_mode);
@@ -1039,16 +1002,21 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compiler:
-    m_compiler = value;
+    m_compiler.name() = value;
     break;
 
   case ConfigItem::compiler_check:
     m_compiler_check = value;
     break;
 
-  case ConfigItem::compiler_type:
-    m_compiler_type = parse_compiler_type(value);
+  case ConfigItem::compiler_type: {
+    // remember the compiler name since updating the type will rename to default
+    std::string name = m_compiler.name();
+    set_compiler_type(Compiler::Type::parse(value));
+    // restore the compiler name
+    m_compiler.name() = name;
     break;
+  }
 
   case ConfigItem::compression:
     m_compression = parse_bool(value, env_var_key, negate);
@@ -1079,6 +1047,12 @@ Config::set_item(const std::string& key,
   case ConfigItem::depend_mode:
     m_depend_mode = parse_bool(value, env_var_key, negate);
     break;
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  case ConfigItem::depend_mode_cxx_modules:
+    m_depend_mode_cxx_modules = parse_bool(value, env_var_key, negate);
+    break;
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   case ConfigItem::direct_mode:
     m_direct_mode = parse_bool(value, env_var_key, negate);

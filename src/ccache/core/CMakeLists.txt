@@ -3,6 +3,7 @@ set(
   atomicfile.cpp
   cacheentry.cpp
   common.cpp
+  compiler.cpp
   filerecompressor.cpp
   mainoptions.cpp
   manifest.cpp
