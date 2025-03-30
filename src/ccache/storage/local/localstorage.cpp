@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1465,7 +1465,13 @@ LocalStorage::clean_internal_tempdir()
       return;
     }
     if (de && de.mtime() + k_tempdir_cleanup_interval < now) {
-      util::remove(de.path());
+      LOG("Removing {} (mtime: {})",
+          de.path(),
+          util::format_iso8601_timestamp(de.mtime()));
+      auto result = fs::remove(de.path());
+      if (!result) {
+        LOG("Removal failed: {}", result.error().message());
+      }
     }
   }).or_else([&](const auto& error) {
     LOG("Failed to clean up {}: {}", m_config.temporary_dir(), error);
