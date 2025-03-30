@@ -21,6 +21,7 @@
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/time.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -183,6 +184,23 @@ format_human_readable_size(uint64_t size, SizeUnitPrefixType prefix_type)
   } else {
     return FMT("{} bytes", size);
   }
+}
+
+std::string
+format_iso8601_timestamp(const TimePoint& time, TimeZone time_zone)
+{
+  char timestamp[100];
+  const auto tm =
+    (time_zone == TimeZone::local ? util::localtime : util::gmtime)(time);
+  if (tm) {
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
+  } else {
+    snprintf(timestamp,
+             sizeof(timestamp),
+             "%llu",
+             static_cast<long long unsigned int>(time.sec()));
+  }
+  return timestamp;
 }
 
 tl::expected<double, std::string>

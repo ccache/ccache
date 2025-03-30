@@ -274,6 +274,17 @@ TEST_CASE("util::format_human_readable_size")
   }
 }
 
+TEST_CASE("util::format_iso8601_timestamp")
+{
+  using util::TimePoint;
+  using util::TimeZone;
+
+  CHECK(util::format_iso8601_timestamp(TimePoint(0), TimeZone::utc)
+        == "1970-01-01T00:00:00");
+  CHECK(util::format_iso8601_timestamp(TimePoint(1234567890), TimeZone::utc)
+        == "2009-02-13T23:31:30");
+}
+
 TEST_CASE("util::join")
 {
   {

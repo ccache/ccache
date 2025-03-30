@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,24 @@
 #include "time.hpp"
 
 namespace util {
+
+std::optional<tm>
+gmtime(std::optional<TimePoint> time)
+{
+  time_t timestamp = time ? time->sec() : TimePoint::now().sec();
+#ifdef HAVE_GMTIME_R
+  struct tm result;
+  if (gmtime_r(&timestamp, &result)) {
+    return result;
+  }
+#else
+  struct tm* result = ::gmtime(&timestamp);
+  if (result) {
+    return *result;
+  }
+#endif
+  return std::nullopt;
+}
 
 std::optional<tm>
 localtime(std::optional<TimePoint> time)

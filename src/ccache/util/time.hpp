@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,6 +24,10 @@
 #include <optional>
 
 namespace util {
+
+// Thread-safe version of `gmtime(3)`. If `time` is not specified the current
+// time of day is used.
+std::optional<tm> gmtime(std::optional<TimePoint> time = {});
 
 // Thread-safe version of `localtime(3)`. If `time` is not specified the current
 // time of day is used.

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/util/conversion.hpp>
+#include <ccache/util/timepoint.hpp>
 #include <ccache/util/tokenizer.hpp>
 
 #include <nonstd/span.hpp>
@@ -40,6 +41,7 @@ namespace util {
 // --- Interface ---
 
 enum class SizeUnitPrefixType { binary, decimal };
+enum class TimeZone { local, utc };
 
 // Return true if `suffix` is a suffix of `string`.
 bool ends_with(std::string_view string, std::string_view suffix);
@@ -80,6 +82,10 @@ std::string format_human_readable_diff(int64_t diff,
 // Format `size` as a human-readable string.
 std::string format_human_readable_size(uint64_t size,
                                        SizeUnitPrefixType prefix_type);
+
+// Format `time` as a human-readable ISO8601 timestamp string.
+std::string format_iso8601_timestamp(const TimePoint& time,
+                                     TimeZone time_zone = TimeZone::local);
 
 // Join stringified elements of `container` delimited by `delimiter` into a
 // string. There must exist an `std::string to_string(T::value_type)` function.

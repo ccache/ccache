@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,6 +23,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
+#include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
 
 #include <string>
@@ -81,21 +82,11 @@ do_log(std::string_view message, bool bulk)
   static char prefix[200];
 
   if (!bulk || prefix[0] == '\0') {
-    char timestamp[100];
-    auto now = util::TimePoint::now();
-    auto tm = util::localtime(now);
-    if (tm) {
-      strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
-    } else {
-      snprintf(timestamp,
-               sizeof(timestamp),
-               "%llu",
-               static_cast<long long unsigned int>(now.sec()));
-    }
+    const auto now = util::TimePoint::now();
     snprintf(prefix,
              sizeof(prefix),
              "[%s.%06u %-5d] ",
-             timestamp,
+             util::format_iso8601_timestamp(now).c_str(),
              static_cast<unsigned int>(now.nsec_decimal_part() / 1000),
              static_cast<int>(getpid()));
   }
