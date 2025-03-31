@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -162,6 +162,7 @@ Manifest::look_up_result_digest(const Context& ctx) const
   for (size_t i = m_results.size(); i > 0; i--) {
     const auto& result = m_results[i - 1];
     if (result_matches(ctx, result, stated_files, hashed_files)) {
+      LOG("Result entry {} matched in manifest", i - 1);
       return result.key;
     }
   }
