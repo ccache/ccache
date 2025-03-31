@@ -542,6 +542,10 @@ process_option_arg(const Context& ctx,
   if (compopt_affects_compiler_output(arg)
       || (i + 1 < args.size() && arg == "-Xclang"
           && compopt_affects_compiler_output(args[i + 1]))) {
+    if (arg == "-v") {
+      args_info.show_verbose = true;
+    }
+
     if (i + 1 < args.size() && arg == "-Xclang") {
       state.compiler_only_args.push_back(args[i]);
       ++i;
@@ -596,11 +600,6 @@ process_option_arg(const Context& ctx,
   // We must have -c.
   if (arg == "-c" || arg == "--compile") { // --compile is NVCC
     state.found_c_opt = true;
-    return Statistic::none;
-  }
-
-  if (arg == "-v") {
-    args_info.show_verbose = true;
     return Statistic::none;
   }
 

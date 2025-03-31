@@ -1,72 +1,14 @@
-setup_clang() {
-    local CUDA_PATH="--cuda-path=/usr/local/cuda"
-    if [  ! -z "$CUDA_HOME" ]; then
-        local CUDA_PATH="--cuda-path=$CUDA_HOME"
-    fi
-
-    export REAL_CLANG="clang $CUDA_PATH"
+SUITE_clang_cu_direct_PROBE() {
+    clang_cu_PROBE
 }
 
-clang_cu_PROBE() {
-    if [ -z "$REAL_NVCC" ]; then
-        echo "nvcc is not available"
-    elif ! command -v cuobjdump >/dev/null; then
-        echo "cuobjdump is not available"
+SUITE_clang_cu_direct_SETUP() {
+    unset CCACHE_NODIRECT
 
-    elif ! command -v clang >/dev/null; then
-        echo "clang is not available"
-    fi
-
-    setup_clang
-
-    touch test.cu
-    if ! $REAL_CLANG -c -x cu test.cu  >/dev/null 2>&1; then
-        echo "Clang's CUDA support is not compatible."
-    fi
-
+    clang_cu_SETUP
 }
 
-clang_cu_SETUP() {
-    # Test code using only c++ (option --x c++). Faster than compiling cuda.
-    cat <<EOF > test_cpp.cu
-#ifndef NUM
-#define NUM 10000
-#endif
-
-void caller() {
-  for (int i = 0; i < NUM; ++i);
-}
-EOF
-
-    # Option files to modify the define.
-    cat <<EOF >test1.optf
--DNUM=1
-EOF
-    cat <<EOF >test2.optf
--DNUM=2
-EOF
-
-    # Test code using cuda.
-    cat <<EOF >test_cuda.cu
-#ifndef NUM
-#define NUM 10000
-#endif
-
-__global__
-void add(int *a, int *b) {
-  int i = blockIdx.x;
-  if (i < NUM) {
-    b[i] = 2 * a[i];
-  }
-}
-
-void caller() {
-  add<<<NUM, 1>>>(NULL,NULL);
-}
-EOF
-}
-
-clang_cu_tests() {
+SUITE_clang_cu_direct() {
     setup_clang
 
     clang_opts_cpp="-c -x c++"
@@ -84,15 +26,15 @@ clang_cu_tests() {
 
     # First compile.
     $ccache_clang_cpp test_cpp.cu
-    expect_stat preprocessed_cache_hit 0
+     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     $ccache_clang_cpp test_cpp.cu
-    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     # -------------------------------------------------------------------------
@@ -109,39 +51,39 @@ clang_cu_tests() {
     expect_different_content reference_test2.dump reference_test3.dump
 
     $ccache_clang_cuda test_cuda.cu
-    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 2
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test1.dump test1.dump
 
     # Other GPU.
     $ccache_clang_cuda $clang_opts_gpu1 test_cuda.cu
-    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 2
-    expect_stat files_in_cache 2
+    expect_stat files_in_cache 4
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test2.dump test1.dump
 
     $ccache_clang_cuda $clang_opts_gpu1 test_cuda.cu
-    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
-    expect_stat files_in_cache 2
+    expect_stat files_in_cache 4
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test2.dump test1.dump
 
     # Another GPU.
     $ccache_clang_cuda $clang_opts_gpu2 test_cuda.cu
-    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 1
     expect_stat cache_miss 3
-    expect_stat files_in_cache 3
+    expect_stat files_in_cache 6
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test3.dump test1.dump
 
     $ccache_clang_cuda $clang_opts_gpu2 test_cuda.cu
-    expect_stat preprocessed_cache_hit 2
+    expect_stat direct_cache_hit 2
     expect_stat cache_miss 3
-    expect_stat files_in_cache 3
+    expect_stat files_in_cache 6
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test3.dump test1.dump
 
@@ -152,16 +94,16 @@ clang_cu_tests() {
     $cuobjdump reference_test4.o > reference_test4.dump
 
     $ccache_clang_cuda -fgpu-rdc -o test_cuda.o test_cuda.cu
-    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 2
     $cuobjdump test_cuda.o > test4.dump
     expect_equal_content test4.dump reference_test4.dump
 
     $ccache_clang_cuda -fgpu-rdc -o test_cuda.o test_cuda.cu
-    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 2
     $cuobjdump test_cuda.o > test4.dump
     expect_equal_content test4.dump reference_test4.dump
 
@@ -173,29 +115,30 @@ clang_cu_tests() {
     expect_different_content reference_test1.o reference_test2.o
 
     $ccache_clang_cpp test_cpp.cu
-    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 2
     expect_equal_content reference_test1.o test_cpp.o
 
     # Specified define, but unused. Can only be found by preprocessed mode.
     $ccache_clang_cpp -DDUMMYENV=1 test_cpp.cu
     expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
-    expect_stat files_in_cache 1
+    expect_stat files_in_cache 3
     expect_equal_content reference_test1.o test_cpp.o
 
     # Specified used define.
     $ccache_clang_cpp -DNUM=10 test_cpp.cu
-    expect_stat preprocessed_cache_hit 1
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 2
-    expect_stat files_in_cache 2
+    expect_stat files_in_cache 5
     expect_equal_content reference_test2.o test_cpp.o
 
     $ccache_clang_cpp -DNUM=10 test_cpp.cu
-    expect_stat preprocessed_cache_hit 2
+    expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
-    expect_stat files_in_cache 2
+    expect_stat files_in_cache 5
     expect_equal_content reference_test2.o test_cpp.o
 
     TEST "No cache(verbose mode)"
@@ -205,28 +148,16 @@ clang_cu_tests() {
 
     # First compile.
     $ccache_clang_cuda -v test_cuda.cu
-    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 0
     expect_stat files_in_cache 0
     $cuobjdump test_cuda.o > test5_1.dump
     expect_equal_content test5_1.dump reference_test5.dump
 
     $ccache_clang_cuda -v test_cuda.cu
-    expect_stat preprocessed_cache_hit 0
+    expect_stat direct_cache_hit 0
     expect_stat cache_miss 0
     expect_stat files_in_cache 0
     $cuobjdump test_cuda.o > test5_2.dump
     expect_equal_content test5_2.dump reference_test5.dump
-}
-
-SUITE_clang_cu_PROBE() {
-    clang_cu_PROBE
-}
-
-SUITE_clang_cu_SETUP() {
-    clang_cu_SETUP
-}
-
-SUITE_clang_cu() {
-    clang_cu_tests
 }
