@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -57,6 +57,7 @@ class Fatal : public ErrorBase
     if (_result != 0) {                                                        \
       throw core::Fatal(FMT(#function " failed: {}", strerror(_result)));      \
     }                                                                          \
-  }
+  }                                                                            \
+  static_assert(true) /* allow semicolon after macro */
 
 } // namespace core

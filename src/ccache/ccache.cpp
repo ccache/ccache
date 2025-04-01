@@ -1882,7 +1882,7 @@ hash_argument(const Context& ctx,
       auto p = compopt_prefix_takes_path(args[i]);
       if (p) {
         path = *p;
-      };
+      }
     }
     if (path) {
       hash.hash_delimiter("path exists");

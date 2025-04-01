@@ -3,6 +3,7 @@ set(
   -Wcast-align
   -Wdouble-promotion
   -Wextra
+  -Wextra-semi
   -Wnon-virtual-dtor
   -Wnull-dereference
   -Woverloaded-virtual
@@ -32,6 +33,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
       -Wno-error=unreachable-code
     )
   endif()
+
+  add_compile_flag_if_supported(CCACHE_COMPILER_WARNINGS "-Wextra-semi-stmt")
 
   # If compiler supports -Wshadow-field-in-constructor, disable only that.
   # Otherwise disable shadow.

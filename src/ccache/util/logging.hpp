@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -42,7 +42,7 @@
 // least one placeholder without flushing and with a reused timestamp. `format`
 // is checked at compile time.
 #define BULK_LOG(logger_, format_, ...)                                        \
-  logger_.log(fmt::format(FMT_STRING(format_), __VA_ARGS__));
+  logger_.log(fmt::format(FMT_STRING(format_), __VA_ARGS__))
 
 namespace util::logging {
 

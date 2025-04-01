@@ -243,7 +243,7 @@ parse_duration(std::string_view duration)
   auto value = parse_unsigned(duration.substr(0, duration.length() - 1));
   if (!value) {
     return value;
-  };
+  }
   return factor * *value;
 }
 

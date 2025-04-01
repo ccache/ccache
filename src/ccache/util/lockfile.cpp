@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -64,7 +64,7 @@ public:
   get()
   {
     return m_distribution(m_random_engine);
-  };
+  }
 
 private:
   std::random_device m_random_device;
