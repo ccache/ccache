@@ -1342,6 +1342,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
                            && ctx.args_info.actual_language == "cu"
                            && !ctx.args_info.show_verbose;
 
+  const bool capture_stdout = is_clang_cu;
+
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
@@ -1384,7 +1386,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
-    const auto result = do_execute(ctx, args, true);
+    const auto result = do_execute(ctx, args, capture_stdout);
     args.pop_back(args.size() - orig_args_size);
 
     if (!result) {

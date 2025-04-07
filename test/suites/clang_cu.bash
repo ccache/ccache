@@ -38,13 +38,6 @@ void caller() {
 }
 EOF
 
-    # Option files to modify the define.
-    cat <<EOF >test1.optf
--DNUM=1
-EOF
-    cat <<EOF >test2.optf
--DNUM=2
-EOF
 
     # Test code using cuda.
     cat <<EOF >test_cuda.cu
@@ -197,6 +190,18 @@ clang_cu_tests() {
     expect_stat cache_miss 2
     expect_stat files_in_cache 2
     expect_equal_content reference_test2.o test_cpp.o
+
+    TEST "No cache(preprocess failed)"
+
+    $ccache_clang_cuda -DNUM=i test_cuda.cu
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat files_in_cache 0
+
+    $ccache_clang_cuda -DNUM=i test_cuda.cu
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat files_in_cache 0
 
     TEST "No cache(verbose mode)"
 
