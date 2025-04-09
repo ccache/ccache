@@ -1,5 +1,6 @@
 # Typical build directories
 /build*/
+.cache/
 
 # CLion
 /.idea/
