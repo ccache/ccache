@@ -94,12 +94,17 @@ clang_cu_tests() {
     $REAL_CLANG $clang_opts_cuda                 -o reference_test1.o test_cuda.cu
     $REAL_CLANG $clang_opts_cuda $clang_opts_gpu1 -o reference_test2.o test_cuda.cu
     $REAL_CLANG $clang_opts_cuda $clang_opts_gpu2 -o reference_test3.o test_cuda.cu
+    $REAL_CLANG $clang_opts_cuda $clang_opts_gpu1  $clang_opts_gpu2 -o reference_test4.o test_cuda.cu
+
     $cuobjdump reference_test1.o > reference_test1.dump
     $cuobjdump reference_test2.o > reference_test2.dump
     $cuobjdump reference_test3.o > reference_test3.dump
+    $cuobjdump reference_test4.o > reference_test4.dump
     expect_different_content reference_test1.dump reference_test2.dump
     expect_different_content reference_test1.dump reference_test3.dump
     expect_different_content reference_test2.dump reference_test3.dump
+    expect_different_content reference_test4.dump reference_test3.dump
+    expect_different_content reference_test4.dump reference_test2.dump
 
     $ccache_clang_cuda test_cuda.cu
     expect_stat preprocessed_cache_hit 0
@@ -137,6 +142,21 @@ clang_cu_tests() {
     expect_stat files_in_cache 3
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_content reference_test3.dump test1.dump
+
+    # Multi GPU
+    $ccache_clang_cuda $clang_opts_gpu1 $clang_opts_gpu2 test_cuda.cu
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 4
+    expect_stat files_in_cache 4
+    $cuobjdump test_cuda.o > test1.dump
+    expect_equal_content reference_test4.dump test1.dump
+
+    $ccache_clang_cuda $clang_opts_gpu1 $clang_opts_gpu2 test_cuda.cu
+    expect_stat preprocessed_cache_hit 3
+    expect_stat cache_miss 4
+    expect_stat files_in_cache 4
+    $cuobjdump test_cuda.o > test1.dump
+    expect_equal_content reference_test4.dump test1.dump
 
     # -------------------------------------------------------------------------
     TEST "Option -fgpu-rdc"
