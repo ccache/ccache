@@ -1,0 +1,2 @@
+CompileFlags:
+    Add: ["/clang:-std=c++23"]
