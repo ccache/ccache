@@ -1325,6 +1325,40 @@ to_cache(Context& ctx,
   return *result_key;
 }
 
+// Process a CUDA preprocessed chunk for a specific architecture
+static tl::expected<void, Failure>
+process_cuda_chunk(Context& ctx,
+                   Hash& hash,
+                   const std::string& chunk,
+                   size_t index)
+{
+  // 1. Create a temp file for this CUDA chunk
+  auto tmp_result = util::TemporaryFile::create(
+    FMT("{}/cuda_tmp_{}.i", ctx.config.temporary_dir(), index),
+    FMT(".{}", ctx.config.cpp_extension()));
+  if (!tmp_result) {
+    return tl::unexpected(Statistic::internal_error);
+  }
+
+  const auto& chunk_path = tmp_result->path;
+  tmp_result->fd.close(); // we only need the path, not the open fd
+
+  // 2. Write the chunk contents into the temp file
+  if (auto write_result = util::write_file(chunk_path, chunk); !write_result) {
+    return tl::unexpected(Statistic::internal_error);
+  }
+  // 3. Register the file so it gets cleaned up later
+  ctx.register_pending_tmp_file(chunk_path);
+
+  // 4. Add a unique hash delimiter for this chunk
+  hash.hash_delimiter(FMT("cu_{}", index));
+
+  // 5. Process the chunk just like a normal preprocessed file
+  TRY(process_preprocessed_file(ctx, hash, chunk_path));
+
+  return {};
+}
+
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
 static tl::expected<Hash::Digest, Failure>
@@ -1403,34 +1437,21 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   if (is_clang_cu) {
     util::write_file(preprocessed_path, cpp_stdout_data);
 
-    auto split_preprocess_file_list =
+    auto chunks =
       util::split_preprocess_file_in_clang_cuda(preprocessed_path.string());
-    for (size_t i = 0; i < split_preprocess_file_list.size(); i++) {
-      auto tmp_stdout =
-        util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
-          FMT("{}/cuda_tmp_{}.i", ctx.config.temporary_dir(), i),
-          FMT(".{}", ctx.config.cpp_extension())));
-      auto i_preprocessed_path = tmp_stdout.path;
-      tmp_stdout.fd.close();
 
-      util::write_file(i_preprocessed_path, split_preprocess_file_list[i]);
-      ctx.register_pending_tmp_file(i_preprocessed_path);
-
-      hash.hash_delimiter(FMT("cu_{}", i));
-
-      TRY(process_preprocessed_file(ctx, hash, i_preprocessed_path));
+    for (size_t i = 0; i < chunks.size(); ++i) {
+      TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
     }
-
-    hash.hash_delimiter("cppstderr");
-    hash.hash(util::to_string_view(cpp_stderr_data));
 
   } else {
     hash.hash_delimiter("cpp");
-    TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
 
-    hash.hash_delimiter("cppstderr");
-    hash.hash(util::to_string_view(cpp_stderr_data));
+    TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
   }
+
+  hash.hash_delimiter("cppstderr");
+  hash.hash(util::to_string_view(cpp_stderr_data));
 
   ctx.i_tmpfile = preprocessed_path;
 
