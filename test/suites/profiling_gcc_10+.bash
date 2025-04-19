@@ -90,12 +90,12 @@ SUITE_profiling_gcc_10+() {
     done
 
     cd obj1
-    gcda_cycle -fprofile-prefix-path=/you/shall/not/pass -fprofile-dir=.
+    gcda_cycle -fprofile-prefix-path=/you/shall/not/pass -fprofile-dir=. 2>/dev/null
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
 
     cd ../obj2
-    gcda_cycle -fprofile-prefix-path=/you/shall/not/pass -fprofile-dir=.
+    gcda_cycle -fprofile-prefix-path=/you/shall/not/pass -fprofile-dir=. 2>/dev/null
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 2
 
