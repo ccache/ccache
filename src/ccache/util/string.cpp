@@ -193,12 +193,12 @@ format_iso8601_timestamp(const TimePoint& time, TimeZone time_zone)
   const auto tm =
     (time_zone == TimeZone::local ? util::localtime : util::gmtime)(time);
   if (tm) {
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
+    (void)strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
   } else {
-    snprintf(timestamp,
-             sizeof(timestamp),
-             "%llu",
-             static_cast<long long unsigned int>(time.sec()));
+    (void)snprintf(timestamp,
+                   sizeof(timestamp),
+                   "%llu",
+                   static_cast<long long unsigned int>(time.sec()));
   }
   return timestamp;
 }
@@ -440,9 +440,9 @@ replace_first(const std::string_view string,
   std::string result;
   const auto pos = string.find(from);
   if (pos != std::string_view::npos) {
-    result.append(string.data(), pos);
-    result.append(to.data(), to.length());
-    result.append(string.data() + pos + from.size());
+    result.append(string.substr(0, pos));
+    result.append(to);
+    result.append(string.substr(pos + from.size()));
   } else {
     result = std::string(string);
   }

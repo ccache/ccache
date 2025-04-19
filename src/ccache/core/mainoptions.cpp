@@ -433,7 +433,7 @@ get_usage_text(const std::string_view ccache_name)
   return FMT(USAGE_TEXT, ccache_name);
 }
 
-enum {
+enum : uint8_t {
   CHECKSUM_FILE,
   CONFIG_PATH,
   DUMP_MANIFEST,

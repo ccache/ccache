@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -274,7 +274,7 @@ format_timestamp(const util::TimePoint& value)
     const auto tm = util::localtime(value);
     char buffer[100] = "?";
     if (tm) {
-      strftime(buffer, sizeof(buffer), "%c", &*tm);
+      (void)strftime(buffer, sizeof(buffer), "%c", &*tm);
     }
     return buffer;
   }

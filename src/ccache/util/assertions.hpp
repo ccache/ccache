@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -31,7 +31,8 @@
 // release builds.
 #define ASSERT(condition)                                                      \
   do {                                                                         \
-    if (!(condition)) {                                                        \
+    if (condition) {                                                           \
+    } else {                                                                   \
       util::handle_failed_assertion(                                           \
         __FILE__, __LINE__, CCACHE_FUNCTION, #condition);                      \
     }                                                                          \

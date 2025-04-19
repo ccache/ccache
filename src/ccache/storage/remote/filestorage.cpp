@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -59,7 +59,7 @@ public:
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
-  enum class Layout { flat, subdirs };
+  enum class Layout : uint8_t { flat, subdirs };
 
   std::string m_dir;
   std::optional<mode_t> m_umask;

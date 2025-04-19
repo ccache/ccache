@@ -25,7 +25,6 @@ endforeach()
 
 include(CheckFunctionExists)
 set(functions
-    asctime_r
     getopt_long
     getpwuid
     localtime_r

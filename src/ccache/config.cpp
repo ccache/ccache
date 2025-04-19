@@ -72,7 +72,7 @@ using util::make_path;
 
 namespace {
 
-enum class ConfigItem {
+enum class ConfigItem : uint8_t {
   absolute_paths_in_stderr,
   base_dir,
   cache_dir,
@@ -120,7 +120,7 @@ enum class ConfigItem {
   umask,
 };
 
-enum class ConfigKeyType { normal, alias };
+enum class ConfigKeyType : uint8_t { normal, alias };
 
 struct ConfigKeyTableEntry
 {
@@ -1217,7 +1217,7 @@ Config::set_item(const std::string& key,
     break;
   }
 
-  const std::string canonical_key = it->second.alias ? *it->second.alias : key;
+  const std::string& canonical_key = it->second.alias.value_or(key);
   const auto& [element, inserted] = m_origins.emplace(canonical_key, origin);
   if (!inserted) {
     element->second = origin;

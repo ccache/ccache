@@ -307,17 +307,8 @@ hash_source_code_file(const Context& ctx,
       return result;
     }
     hash.hash_delimiter("timestamp");
-#ifdef HAVE_ASCTIME_R
-    char buffer[26];
-    const char* timestamp = asctime_r(&*modified_time, buffer);
-#else
-    // cppcheck-suppress asctimeCalled; thread-safety not needed here
-    const char* timestamp = asctime(&*modified_time);
-#endif
-    if (!timestamp) {
-      result.insert(HashSourceCode::error);
-      return result;
-    }
+    char timestamp[26];
+    (void)strftime(timestamp, sizeof(timestamp), "%c", &*modified_time);
     hash.hash(timestamp);
   }
 
@@ -463,8 +454,7 @@ hash_command_output(Hash& hash,
 
   pid_t pid;
   extern char** environ;
-  int result = posix_spawnp(
-    &pid, argv[0], &fa, nullptr, const_cast<char* const*>(argv), environ);
+  int result = posix_spawnp(&pid, argv[0], &fa, nullptr, argv, environ);
 
   posix_spawn_file_actions_destroy(&fa);
   close(pipefd[1]);

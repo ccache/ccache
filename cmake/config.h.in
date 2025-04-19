@@ -113,9 +113,6 @@
 
 // === Functions ===
 
-// Define if you have the "asctime_r" function.
-#cmakedefine HAVE_ASCTIME_R
-
 // Define if you have the "getopt_long" function.
 #cmakedefine HAVE_GETOPT_LONG
 

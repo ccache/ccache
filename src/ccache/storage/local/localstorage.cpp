@@ -786,17 +786,17 @@ LocalStorage::evict(const ProgressReceiver& progress_receiver,
                     std::optional<uint64_t> max_age,
                     std::optional<std::string> namespace_)
 {
-  return do_clean_all(progress_receiver, 0, 0, max_age, namespace_);
+  do_clean_all(progress_receiver, 0, 0, max_age, namespace_);
 }
 
 void
 LocalStorage::clean_all(const ProgressReceiver& progress_receiver)
 {
-  return do_clean_all(progress_receiver,
-                      m_config.max_size(),
-                      m_config.max_files(),
-                      std::nullopt,
-                      std::nullopt);
+  do_clean_all(progress_receiver,
+               m_config.max_size(),
+               m_config.max_files(),
+               std::nullopt,
+               std::nullopt);
 }
 
 // Wipe all cached files in all subdirectories.
@@ -1082,7 +1082,7 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     // to rename is OK.
     LOG("Moving {} to {}", cache_file_path, wanted_path);
     fs::rename(cache_file_path, wanted_path);
-    for (auto [file_number, dest_path] : m_added_raw_files) {
+    for (const auto& [file_number, dest_path] : m_added_raw_files) {
       fs::rename(dest_path, get_raw_file_path(wanted_path, file_number));
     }
   }

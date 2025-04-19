@@ -102,6 +102,7 @@ Manifest::read(nonstd::span<const uint8_t> data)
   }
 
   const auto file_count = reader.read_int<uint32_t>();
+  files.reserve(file_count);
   for (uint32_t i = 0; i < file_count; ++i) {
     files.emplace_back(reader.read_str(reader.read_int<uint16_t>()));
   }

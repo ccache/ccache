@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -54,7 +54,7 @@ public:
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
-  enum class Layout { bazel, flat, subdirs };
+  enum class Layout : uint8_t { bazel, flat, subdirs };
 
   std::string m_url_path;
   httplib::Client m_http_client;

@@ -70,7 +70,7 @@ print_fatal_error_and_exit()
           "ccache: error: Failed to write to {}: {}\n",
           logfile_path,
           strerror(errno));
-  } catch (std::runtime_error&) {
+  } catch (std::runtime_error&) { // NOLINT: this is deliberate
     // Ignore since we can't do anything about it.
   }
   exit(EXIT_FAILURE);
@@ -83,12 +83,12 @@ do_log(std::string_view message, bool bulk)
 
   if (!bulk || prefix[0] == '\0') {
     const auto now = util::TimePoint::now();
-    snprintf(prefix,
-             sizeof(prefix),
-             "[%s.%06u %-5d] ",
-             util::format_iso8601_timestamp(now).c_str(),
-             static_cast<unsigned int>(now.nsec_decimal_part() / 1000),
-             static_cast<int>(getpid()));
+    (void)snprintf(prefix,
+                   sizeof(prefix),
+                   "[%s.%06u %-5d] ",
+                   util::format_iso8601_timestamp(now).c_str(),
+                   static_cast<unsigned int>(now.nsec_decimal_part() / 1000),
+                   static_cast<int>(getpid()));
   }
 
   if (logfile) {
