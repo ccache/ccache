@@ -8,7 +8,6 @@ gcda_cycle() {
 
 SUITE_profiling_gcc_10+_PROBE() {
     echo 'int main(void) { return 0; }' >test.c
-    $COMPILER --coverage -fprofile-prefix-path=. -c test.c
     if ! $COMPILER_TYPE_GCC; then
         echo "compiler is not GCC"
     fi
@@ -19,7 +18,7 @@ SUITE_profiling_gcc_10+_PROBE() {
         echo "compiler does not support -fprofile-prefix-path=path"
     fi
     if ! $COMPILER --coverage -fprofile-dir=. -c test.c 2>/dev/null; then
-        echo "compiler does not support -fprofile-prefix-path=path"
+        echo "compiler does not support -fprofile-dir=path"
     fi
 }
 
@@ -30,8 +29,9 @@ SUITE_profiling_gcc_10+_SETUP() {
 
 SUITE_profiling_gcc_10+() {
     # -------------------------------------------------------------------------
-    TEST "-fprofile-prefirx-path=path, gcc coverage build"
-    # When using a relative path for -fprofile-dir in gcc 9+, absolute object file path will be mangled in the .gcda filename
+    TEST "-fprofile-prefix-path=path, gcc coverage build"
+    # When using a relative path for -fprofile-dir in GCC 9+, absolute object
+    # file path will be mangled in the .gcda filename.
     CCACHE_SLOPPINESS_OLD="$CCACHE_SLOPPINESS"
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS gcno_cwd"
 
@@ -53,9 +53,10 @@ SUITE_profiling_gcc_10+() {
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS_OLD"
 
     # -------------------------------------------------------------------------
-    TEST "-fprofile-prefirx-path=pwd, -fprofile-dir=., gcc coverage build"
-    # GCC 10 and newer allows to lstrip the mangled absolute path in the generated gcda file name
-    # This doesn't effect the absolute cwd path in the gcno file (but there's sloppiness for that)
+    TEST "-fprofile-prefix-path=pwd, -fprofile-dir=., gcc coverage build"
+    # GCC 10 and newer allows to lstrip the mangled absolute path in the
+    # generated gcda file name. This doesn't effect the absolute cwd path in the
+    # gcno file (but there's sloppiness for that).
     CCACHE_SLOPPINESS_OLD="$CCACHE_SLOPPINESS"
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS gcno_cwd"
 
@@ -79,8 +80,9 @@ SUITE_profiling_gcc_10+() {
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS_OLD"
 
     # -------------------------------------------------------------------------
-    TEST "-fprofile-prefirx-path=dummy, -fprofile-dir=., gcc coverage build"
-    # lstripping the mangled .gcda filename only works with a correct -fprofile-prefirx-path
+    TEST "-fprofile-prefix-path=dummy, -fprofile-dir=., gcc coverage build"
+    # lstripping the mangled .gcda filename only works with a correct
+    # -fprofile-prefix-path
     CCACHE_SLOPPINESS_OLD="$CCACHE_SLOPPINESS"
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS gcno_cwd"
 
@@ -101,4 +103,3 @@ SUITE_profiling_gcc_10+() {
 
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS_OLD"
 }
-
