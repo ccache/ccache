@@ -463,10 +463,7 @@ process_option_arg(const Context& ctx,
       LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
-    if (args[i + 1] == "-fopenmp") {
-      ++i;
-      return Statistic::none;
-    } else {
+    if (args[i + 1] != "-fopenmp") {
       LOG("Unsupported compiler option for direct mode: {} {}",
           args[i],
           args[i + 1]);
