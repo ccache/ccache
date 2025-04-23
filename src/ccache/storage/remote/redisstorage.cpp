@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -101,7 +101,7 @@ to_timeval(const uint32_t ms)
 std::pair<std::optional<std::string>, std::optional<std::string>>
 split_user_info(const std::string& user_info)
 {
-  const auto [left, right] = util::split_once(user_info, ':');
+  const auto [left, right] = util::split_once_into_views(user_info, ':');
   if (left.empty()) {
     // redis://HOST
     return {std::nullopt, std::nullopt};

@@ -111,7 +111,8 @@ HttpStorageBackend::HttpStorageBackend(
     m_http_client(get_url(url))
 {
   if (!url.user_info().empty()) {
-    const auto [user, password] = util::split_once(url.user_info(), ':');
+    const auto [user, password] =
+      util::split_once_into_views(url.user_info(), ':');
     if (!password) {
       throw core::Fatal(FMT("Expected username:password in URL but got \"{}\"",
                             url.user_info()));
@@ -147,7 +148,7 @@ HttpStorageBackend::HttpStorageBackend(
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "header") {
-      const auto [key, value] = util::split_once(attr.value, '=');
+      const auto [key, value] = util::split_once_into_views(attr.value, '=');
       if (value) {
         default_headers.emplace(std::string(key), std::string(*value));
       } else {

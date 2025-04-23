@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -162,7 +162,8 @@ parse_storage_config(const std::string_view entry)
     if (parts[i].empty()) {
       continue;
     }
-    const auto [key, right_hand_side] = util::split_once(parts[i], '=');
+    const auto [key, right_hand_side] =
+      util::split_once_into_views(parts[i], '=');
     const auto& raw_value = right_hand_side.value_or("true");
     const auto value =
       util::value_or_throw<core::Error>(util::percent_decode(raw_value));
