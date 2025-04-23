@@ -34,13 +34,13 @@ endif()
 
 if(_download_hiredis)
   set(_hiredis_origin DOWNLOADED)
-  set(_hiredis_version_string 1.2.0)
+  set(_hiredis_version_string 1.3.0)
 
   include(FetchContent)
   FetchContent_Declare(
     Hiredis
     URL "https://github.com/redis/hiredis/archive/refs/tags/v${_hiredis_version_string}.tar.gz"
-    URL_HASH SHA256=82ad632d31ee05da13b537c124f819eb88e18851d9cb0c30ae0552084811588c
+    URL_HASH SHA256=25cee4500f359cf5cad3b51ed62059aadfc0939b05150c1f19c7e2829123631c
   )
 
   # Intentionally not using hiredis's build system since it doesn't put headers
