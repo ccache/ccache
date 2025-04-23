@@ -41,7 +41,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install ninja-build elfutils libzstd-dev pkg-config libhiredis-dev
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: cpp
         queries: +security-and-quality
@@ -54,4 +54,4 @@ jobs:
         EXTRA_CMAKE_BUILD_FLAGS: --target ccache
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
