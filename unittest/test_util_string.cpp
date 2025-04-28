@@ -23,20 +23,6 @@
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>
 
-static bool
-operator==(std::pair<std::string, std::optional<std::string>> left,
-           std::pair<std::string, std::optional<std::string>> right)
-{
-  return left.first == right.first && left.second == right.second;
-}
-
-static bool
-operator==(std::pair<std::string_view, std::optional<std::string_view>> left,
-           std::pair<std::string_view, std::optional<std::string_view>> right)
-{
-  return left.first == right.first && left.second == right.second;
-}
-
 TEST_SUITE_BEGIN("util");
 
 TEST_CASE("util::format_argv_as_win32_command_string")
@@ -520,65 +506,66 @@ TEST_CASE("util::split_into_views")
 
 TEST_CASE("util::split_once")
 {
-  using std::make_pair;
+  using SResult = std::pair<std::string, std::optional<std::string>>;
+  using SVResult = std::pair<std::string_view, std::optional<std::string_view>>;
   using std::nullopt;
   using util::split_once;
 
   SUBCASE("const char*")
   {
-    CHECK(split_once("", '=') == make_pair("", nullopt));
-    CHECK(split_once("a", '=') == make_pair("a", nullopt));
-    CHECK(split_once("=a", '=') == make_pair("", "a"));
-    CHECK(split_once("a=", '=') == make_pair("a", ""));
-    CHECK(split_once("a==", '=') == make_pair("a", "="));
-    CHECK(split_once("a=b", '=') == make_pair("a", "b"));
-    CHECK(split_once("a=b=", '=') == make_pair("a", "b="));
-    CHECK(split_once("a=b=c", '=') == make_pair("a", "b=c"));
-    CHECK(split_once("x y", ' ') == make_pair("x", "y"));
+    CHECK(split_once("", '=') == SVResult("", nullopt));
+    CHECK(split_once("a", '=') == SVResult("a", nullopt));
+    CHECK(split_once("=a", '=') == SVResult("", "a"));
+    CHECK(split_once("a=", '=') == SVResult("a", ""));
+    CHECK(split_once("a==", '=') == SVResult("a", "="));
+    CHECK(split_once("a=b", '=') == SVResult("a", "b"));
+    CHECK(split_once("a=b=", '=') == SVResult("a", "b="));
+    CHECK(split_once("a=b=c", '=') == SVResult("a", "b=c"));
+    CHECK(split_once("x y", ' ') == SVResult("x", "y"));
   }
 
   SUBCASE("std::string&&")
   {
-    CHECK(split_once(std::string(""), '=') == make_pair("", nullopt));
-    CHECK(split_once(std::string("a"), '=') == make_pair("a", nullopt));
-    CHECK(split_once(std::string("=a"), '=') == make_pair("", "a"));
-    CHECK(split_once(std::string("a="), '=') == make_pair("a", ""));
-    CHECK(split_once(std::string("a=="), '=') == make_pair("a", "="));
-    CHECK(split_once(std::string("a=b"), '=') == make_pair("a", "b"));
-    CHECK(split_once(std::string("a=b="), '=') == make_pair("a", "b="));
-    CHECK(split_once(std::string("a=b=c"), '=') == make_pair("a", "b=c"));
-    CHECK(split_once(std::string("x y"), ' ') == make_pair("x", "y"));
+    CHECK(split_once(std::string(""), '=') == SResult("", nullopt));
+    CHECK(split_once(std::string("a"), '=') == SResult("a", nullopt));
+    CHECK(split_once(std::string("=a"), '=') == SResult("", "a"));
+    CHECK(split_once(std::string("a="), '=') == SResult("a", ""));
+    CHECK(split_once(std::string("a=="), '=') == SResult("a", "="));
+    CHECK(split_once(std::string("a=b"), '=') == SResult("a", "b"));
+    CHECK(split_once(std::string("a=b="), '=') == SResult("a", "b="));
+    CHECK(split_once(std::string("a=b=c"), '=') == SResult("a", "b=c"));
+    CHECK(split_once(std::string("x y"), ' ') == SResult("x", "y"));
   }
 
   SUBCASE("std::string_view")
   {
-    CHECK(split_once(std::string_view(""), '=') == make_pair("", nullopt));
-    CHECK(split_once(std::string_view("a"), '=') == make_pair("a", nullopt));
-    CHECK(split_once(std::string_view("=a"), '=') == make_pair("", "a"));
-    CHECK(split_once(std::string_view("a="), '=') == make_pair("a", ""));
-    CHECK(split_once(std::string_view("a=="), '=') == make_pair("a", "="));
-    CHECK(split_once(std::string_view("a=b"), '=') == make_pair("a", "b"));
-    CHECK(split_once(std::string_view("a=b="), '=') == make_pair("a", "b="));
-    CHECK(split_once(std::string_view("a=b=c"), '=') == make_pair("a", "b=c"));
-    CHECK(split_once(std::string_view("x y"), ' ') == make_pair("x", "y"));
+    CHECK(split_once(std::string_view(""), '=') == SVResult("", nullopt));
+    CHECK(split_once(std::string_view("a"), '=') == SVResult("a", nullopt));
+    CHECK(split_once(std::string_view("=a"), '=') == SVResult("", "a"));
+    CHECK(split_once(std::string_view("a="), '=') == SVResult("a", ""));
+    CHECK(split_once(std::string_view("a=="), '=') == SVResult("a", "="));
+    CHECK(split_once(std::string_view("a=b"), '=') == SVResult("a", "b"));
+    CHECK(split_once(std::string_view("a=b="), '=') == SVResult("a", "b="));
+    CHECK(split_once(std::string_view("a=b=c"), '=') == SVResult("a", "b=c"));
+    CHECK(split_once(std::string_view("x y"), ' ') == SVResult("x", "y"));
   }
 }
 
 TEST_CASE("util::split_option_with_concat_path")
 {
-  using std::make_pair;
+  using Result = std::pair<std::string_view, std::optional<std::string_view>>;
   using std::nullopt;
   const auto split = util::split_option_with_concat_path;
 
-  CHECK(split("-I/c/foo") == make_pair("-I", "/c/foo"));
-  CHECK(split("-W,path/c/foo") == make_pair("-W,path", "/c/foo"));
-  CHECK(split("-DMACRO") == make_pair("-DMACRO", nullopt));
+  CHECK(split("-I/c/foo") == Result("-I", "/c/foo"));
+  CHECK(split("-W,path/c/foo") == Result("-W,path", "/c/foo"));
+  CHECK(split("-DMACRO") == Result("-DMACRO", nullopt));
 #ifdef _WIN32
-  CHECK(split("-I/C:/foo") == make_pair("-I", "/C:/foo"));
-  CHECK(split("-IC:/foo") == make_pair("-I", "C:/foo"));
-  CHECK(split("-W,path/c:/foo") == make_pair("-W,path", "/c:/foo"));
-  CHECK(split("-W,pathc:/foo") == make_pair("-W,path", "c:/foo"));
-  CHECK(split("-opt:value") == make_pair("-opt:value", nullopt));
+  CHECK(split("-I/C:/foo") == Result("-I", "/C:/foo"));
+  CHECK(split("-IC:/foo") == Result("-I", "C:/foo"));
+  CHECK(split("-W,path/c:/foo") == Result("-W,path", "/c:/foo"));
+  CHECK(split("-W,pathc:/foo") == Result("-W,path", "c:/foo"));
+  CHECK(split("-opt:value") == Result("-opt:value", nullopt));
 #endif
 }
 
