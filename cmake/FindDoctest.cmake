@@ -28,12 +28,12 @@ endif()
 
 if(_download_doctest)
   set(_doctest_origin DOWNLOADED)
-  set(_doctest_version_string 2.4.11)
+  set(_doctest_version_string 2.4.12)
 
   add_header_only_library(
     doctest
     URL "https://github.com/doctest/doctest/releases/download/v${_doctest_version_string}/doctest.h"
-    SHA256 44faa038e9c3f9728efbda143748d01124ea0a27f4bf78f35a15d8fab2e039fb
+    SHA256 2a31654ead2a6e5ef93086ca97659b701710c80275207b3bdb12676c012daceb
     SUBDIR doctest
   )
 endif()
