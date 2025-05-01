@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <ccache/compiler/invoke.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/filesystem.hpp>
 

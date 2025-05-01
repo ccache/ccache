@@ -4,6 +4,9 @@ set(
   args.cpp
   ccache.cpp
   compiler.cpp
+  compiler/console.cpp
+  compiler/invoke.cpp
+  compiler/msvc.cpp
   compopt.cpp
   config.cpp
   context.cpp

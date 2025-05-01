@@ -22,6 +22,7 @@
 #include <ccache/argprocessing.hpp>
 #include <ccache/args.hpp>
 #include <ccache/argsinfo.hpp>
+#include <ccache/compiler.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/cacheentry.hpp>
@@ -771,10 +772,9 @@ struct DoExecuteResult
 static tl::expected<void, Failure>
 update_result_key_with_showIncludes(Context& ctx,
                                     Hash& hash,
-                                    std::string_view stdout_data)
+                                    const compiler::Console& console)
 {
-  for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
-         stdout_data, ctx.config.msvc_dep_prefix())) {
+  for (std::string_view include : console.msvc().show_includes()) {
     const fs::path path = core::make_relative_path(ctx, include);
     TRY(remember_include_file(ctx, path, hash, false, &hash));
   }
@@ -956,18 +956,19 @@ find_coverage_file(const Context& ctx)
 [[nodiscard]] static bool
 write_result(Context& ctx,
              const Hash::Digest& result_key,
-             const util::Bytes& stdout_data,
-             const util::Bytes& stderr_data)
+             const compiler::Execution& result)
 {
   core::Result::Serializer serializer(ctx.config);
 
-  if (!stderr_data.empty()) {
-    serializer.add_data(core::Result::FileType::stderr_output, stderr_data);
+  if (!result.stderr_data().empty()) {
+    serializer.add_data(core::Result::FileType::stderr_output,
+                        result.stderr_data());
   }
   // Write stdout only after stderr (better with MSVC), as ResultRetriever
   // will later print process them in the order they are read.
-  if (!stdout_data.empty()) {
-    serializer.add_data(core::Result::FileType::stdout_output, stdout_data);
+  if (!result.stdout_data().empty()) {
+    serializer.add_data(core::Result::FileType::stdout_output,
+                        result.stdout_data());
   }
   if (ctx.args_info.expect_output_obj
       && !serializer.add_file(core::Result::FileType::object,
@@ -1053,62 +1054,6 @@ write_result(Context& ctx,
   ctx.storage.put(result_key, core::CacheEntryType::result, cache_entry_data);
 
   return true;
-}
-
-static util::Bytes
-rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
-{
-  using util::Tokenizer;
-  using Mode = Tokenizer::Mode;
-  using IncludeDelimiter = Tokenizer::IncludeDelimiter;
-  if (!stdout_data.empty()) {
-    util::Bytes new_stdout_data;
-    for (const auto line : Tokenizer(util::to_string_view(stdout_data),
-                                     "\n",
-                                     Mode::include_empty,
-                                     IncludeDelimiter::yes)) {
-      if (util::starts_with(line, "__________")) {
-        core::send_to_console(ctx, line, STDOUT_FILENO);
-      }
-      // Ninja uses the lines with 'Note: including file: ' to determine the
-      // used headers. Headers within basedir need to be changed into relative
-      // paths because otherwise Ninja will use the abs path to original header
-      // to check if a file needs to be recompiled.
-      else if (ctx.config.compiler() == Compiler::type::msvc
-               && !ctx.config.base_dir().empty()
-               && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
-        std::string orig_line(line.data(), line.length());
-        std::string abs_inc_path =
-          util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
-        abs_inc_path = util::strip_whitespace(abs_inc_path);
-        fs::path rel_inc_path = core::make_relative_path(ctx, abs_inc_path);
-        std::string line_with_rel_inc = util::replace_first(
-          orig_line, abs_inc_path, util::pstr(rel_inc_path).str());
-        new_stdout_data.insert(new_stdout_data.end(),
-                               line_with_rel_inc.data(),
-                               line_with_rel_inc.size());
-      }
-      // The MSVC /FC option causes paths in diagnostics messages to become
-      // absolute. Those within basedir need to be changed into relative paths.
-      else if (ctx.config.compiler() == Compiler::type::msvc
-               && !ctx.config.base_dir().empty()) {
-        size_t path_end = core::get_diagnostics_path_length(line);
-        if (path_end != 0) {
-          std::string_view abs_path = line.substr(0, path_end);
-          fs::path rel_path = core::make_relative_path(ctx, abs_path);
-          std::string line_with_rel =
-            util::replace_all(line, abs_path, util::pstr(rel_path).str());
-          new_stdout_data.insert(
-            new_stdout_data.end(), line_with_rel.data(), line_with_rel.size());
-        }
-      } else {
-        new_stdout_data.insert(new_stdout_data.end(), line.data(), line.size());
-      }
-    }
-    return new_stdout_data;
-  } else {
-    return std::move(stdout_data);
-  }
 }
 
 static std::string
@@ -1216,39 +1161,25 @@ to_cache(Context& ctx,
 
   LOG_RAW("Running real compiler");
 
-  tl::expected<DoExecuteResult, Failure> result;
-  result = do_execute(ctx, args);
+  const auto invocation = compiler::Invocation(ctx, args);
+  const auto result = invocation.execute();
+
   args.pop_back(3);
 
   if (!result) {
     return tl::unexpected(result.error());
   }
 
-  // Merge stderr from the preprocessor (if any) and stderr from the real
-  // compiler.
-  if (!ctx.cpp_stderr_data.empty()) {
-    result->stderr_data.insert(result->stderr_data.begin(),
-                               ctx.cpp_stderr_data.begin(),
-                               ctx.cpp_stderr_data.end());
-  }
-
-  result->stdout_data =
-    rewrite_stdout_from_compiler(ctx, std::move(result->stdout_data));
-
-  if (result->exit_status != 0) {
-    LOG("Compiler gave exit status {}", result->exit_status);
+  if (result->exit_status() != 0) {
+    LOG("Compiler gave exit status {}", result->exit_status());
 
     // We can output stderr immediately instead of rerunning the compiler.
+    core::send_to_console(ctx, result->console().stderr_text(), STDERR_FILENO);
     core::send_to_console(
-      ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
-    core::send_to_console(
-      ctx,
-      util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
-        ctx, std::move(result->stdout_data))),
-      STDOUT_FILENO);
+      ctx, result->console().stdout_text().filtered(), STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
-    failure.set_exit_code(result->exit_status);
+    failure.set_exit_code(result->exit_status());
     return tl::unexpected(failure);
   }
 
@@ -1260,7 +1191,7 @@ to_cache(Context& ctx,
     }
     if (ctx.args_info.generating_includes) {
       TRY(update_result_key_with_showIncludes(
-        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data)));
+        ctx, *depend_mode_hash, result->console()));
       LOG_RAW("Updated result key with showIncludes");
     }
 
@@ -1298,20 +1229,15 @@ to_cache(Context& ctx,
     }
   }
 
-  if (!write_result(
-        ctx, *result_key, result->stdout_data, result->stderr_data)) {
+  if (!write_result(ctx, *result_key, *result)) {
     return tl::unexpected(Statistic::compiler_produced_no_output);
   }
 
   // Everything OK.
-  core::send_to_console(
-    ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
+  core::send_to_console(ctx, result->console().stderr_text(), STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
   core::send_to_console(
-    ctx,
-    util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
-      ctx, std::move(result->stdout_data))),
-    STDOUT_FILENO);
+    ctx, result->console().stdout_text().filtered(), STDOUT_FILENO);
 
   return *result_key;
 }
