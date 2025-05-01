@@ -180,6 +180,7 @@ jobs:
           - sys: mingw64
             env: x86_64
             compiler: clang
+            extra_cmake_params: -DENABLE_TESTING=OFF # clang currently triggers warnings with doctest
 
     name: 'Windows MSYS2 ${{ matrix.sys }} ${{ matrix.compiler }}'
     defaults:
@@ -211,6 +212,9 @@ jobs:
             echo "CC=clang" >> $GITHUB_ENV
             echo "CXX=clang++" >> $GITHUB_ENV
           fi
+          cmake_params=(-DCMAKE_BUILD_TYPE=CI)
+          cmake_params+=(${{matrix.extra_cmake_params}})
+          echo "CMAKE_PARAMS=${cmake_params[*]}" >> $GITHUB_ENV
 
       - name: Get source
         uses: actions/checkout@v4
@@ -221,7 +225,6 @@ jobs:
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
           CMAKE_GENERATOR: Ninja
-          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
           TEST_CC: gcc
 
       - name: Collect testdir from failed tests
