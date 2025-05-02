@@ -1341,7 +1341,7 @@ The default is *subdirs*.
 
 URL formats:
 
-`+redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]+` +
+`+redis[s]://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]+`
 `+redis+unix:SOCKET_PATH[?db=DBNUMBER]+` +
 `+redis+unix://[[USERNAME:]PASSWORD@localhost]SOCKET_PATH[?db=DBNUMBER]+`
 
@@ -1365,9 +1365,13 @@ Examples:
 * `+redis+unix:/run/redis.sock+`
 * `+redis+unix:///run/redis.sock+`
 * `+redis+unix://p4ssw0rd@localhost/run/redis.sock?db=0+`
+* `+rediss://localhost+`
 
 Optional attributes:
 
+* *cacert*: Path to a SSL Root CA file.
+* *cert*: Path to a SSL certificate file.
+* *key*: Path to a SSL private key file.
 * *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
 * *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
 
