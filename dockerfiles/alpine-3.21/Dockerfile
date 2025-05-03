@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=alpine:3.11
+ARG BASE_IMAGE=alpine:3.21
 FROM ${BASE_IMAGE} AS build
 
 RUN apk add --no-cache \

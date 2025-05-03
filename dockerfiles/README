@@ -1,11 +1,12 @@
-This directory contains Dockerfiles for building and testing ccache in
-different build environments.
+This directory contains Dockerfiles for building and testing ccache in different
+build environments. These are unofficial Dockerfiles only intended for use by
+ccache developers locally.
 
-For instance, run something like this to build ccache in Ubuntu 20.04:
+For instance, run something like this to build ccache in Ubuntu 24.04:
 
-    misc/build-in-docker ubuntu-20.04
+    misc/build-in-docker ubuntu-24.04
 
-The above command will first build the Ubuntu 20.04 Docker image if needed and
+The above command will first build the Ubuntu 24.04 Docker image if needed and
 finally build ccache and run the ccache test suite.
 
-See also misc/test-all-systems.
+See also misc/test-some-systems.
