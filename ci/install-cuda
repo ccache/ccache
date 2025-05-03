@@ -23,7 +23,10 @@ retry sudo apt-get update -qq
 
 cuda_prefix=${CUDA:0:4}
 cuda_prefix=${cuda_prefix/./-}
-retry sudo apt-get install --allow-unauthenticated -y cuda-command-line-tools-${cuda_prefix}
+retry sudo apt-get install --allow-unauthenticated -y \
+    cuda-command-line-tools-${cuda_prefix} \
+    libcurand-dev-${cuda_prefix}
+
 retry sudo apt-get clean
 
 cuda_home=/usr/local/cuda-${CUDA:0:4}
