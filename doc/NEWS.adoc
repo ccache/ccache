@@ -1,5 +1,29 @@
 = Ccache news
 
+== Ccache 4.11.3
+
+Release date: 2025-05-03
+
+
+=== Bug fixes
+
+- Fixed handling of Apple Clang `-Xpreprocessor -fopenmp` options (regression in
+  ccache 4.10). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Adapted unit test code to compile with doctest 2.4.12. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Silenced benign compiler warning in the profiling_gcc_10+ suite. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.11.2
 
 Release date: 2025-03-22
