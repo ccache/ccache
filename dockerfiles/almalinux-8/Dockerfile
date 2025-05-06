@@ -17,6 +17,8 @@ RUN dnf install -y dnf-plugins-core \
         fmt-devel \
         gcc \
         gcc-c++ \
+        libstdc++-devel \
+        libstdc++-static \
         hiredis-devel \
         less \
         libzstd-devel \
