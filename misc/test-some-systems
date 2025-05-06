@@ -33,8 +33,8 @@ build() {
 
 #     NAME         CC     CXX     TEST_CC CMAKE_PARAMS
 
-build alma-8       gcc    g++     gcc     -D DEPS=DOWNLOAD
-build alma-8       clang  clang++ clang   -D DEPS=DOWNLOAD
+build almalinux-8  gcc    g++     gcc     -D DEPS=DOWNLOAD
+build almalinux-8  clang  clang++ clang   -D DEPS=DOWNLOAD
 
 build alpine-3.21  gcc    g++     gcc     -D DEPS=DOWNLOAD
 build alpine-3.21  clang  clang++ clang   -D DEPS=DOWNLOAD
