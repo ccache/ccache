@@ -141,9 +141,6 @@ struct ArgsInfo
   bool profile_use = false;
   bool profile_generate = false;
 
-  // verbose information
-  bool show_verbose = false;
-
   // Whether we are using a precompiled header (either via -include, #include or
   // Clang's -include-pch or -include-pth).
   bool using_precompiled_header = false;

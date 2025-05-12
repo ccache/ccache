@@ -1359,6 +1359,18 @@ process_cuda_chunk(Context& ctx,
   return {};
 }
 
+static bool
+get_clang_cu_enable_verbose_mode(Args& args)
+{
+  for (size_t i = 1; i < args.size(); i++) {
+    if (args[i] == "-v") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
 static tl::expected<Hash::Digest, Failure>
@@ -1374,7 +1386,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   // (Is there a better approach to handle this?)
   const bool is_clang_cu = ctx.config.is_compiler_group_clang()
                            && ctx.args_info.actual_language == "cu"
-                           && !ctx.args_info.show_verbose;
+                           && !get_clang_cu_enable_verbose_mode(args);
 
   const bool capture_stdout = is_clang_cu;
 
@@ -1392,7 +1404,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
         FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
         FMT(".{}", ctx.config.cpp_extension())));
     preprocessed_path = tmp_stdout.path;
-    tmp_stdout.fd.close(); // We're only using the path.
+    tmp_stdout.fd.close();
     ctx.register_pending_tmp_file(preprocessed_path);
 
     const size_t orig_args_size = args.size();

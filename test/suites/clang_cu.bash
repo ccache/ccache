@@ -223,23 +223,23 @@ clang_cu_tests() {
     expect_stat cache_miss 0
     expect_stat files_in_cache 0
 
-    TEST "No cache(verbose mode)"
+    TEST "verbose mode"
 
-    $REAL_CLANG $clang_opts_cuda -v -o reference_test5.o test_cuda.cu
+    $REAL_CLANG $clang_opts_cuda -o reference_test5.o test_cuda.cu
     $cuobjdump reference_test5.o > reference_test5.dump
 
     # First compile.
     $ccache_clang_cuda -v test_cuda.cu
     expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 0
-    expect_stat files_in_cache 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     $cuobjdump test_cuda.o > test5_1.dump
     expect_equal_content test5_1.dump reference_test5.dump
 
     $ccache_clang_cuda -v test_cuda.cu
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 0
-    expect_stat files_in_cache 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 1
     $cuobjdump test_cuda.o > test5_2.dump
     expect_equal_content test5_2.dump reference_test5.dump
 }
