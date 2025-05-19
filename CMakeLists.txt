@@ -108,6 +108,10 @@ add_subdirectory(src/ccache)
 add_executable(ccache src/ccache/main.cpp)
 target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_framework)
 
+if(CLANGTIDY)
+  set_target_properties(ccache PROPERTIES CXX_CLANG_TIDY "${CLANGTIDY}")
+endif()
+
 #
 # Documentation
 #

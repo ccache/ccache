@@ -57,6 +57,10 @@ target_link_libraries(
     Threads::Threads
 )
 
+if(CLANGTIDY)
+  set_target_properties(ccache_framework PROPERTIES CXX_CLANG_TIDY "${CLANGTIDY}")
+endif()
+
 if(WIN32)
   target_link_libraries(ccache_framework PUBLIC win32_compat)
 endif()
