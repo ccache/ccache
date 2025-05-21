@@ -23,6 +23,8 @@
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
 
+#include <algorithm>
+
 #ifdef _WIN32
 const char k_dev_null_path[] = "nul:";
 #else

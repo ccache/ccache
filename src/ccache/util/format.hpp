@@ -25,14 +25,22 @@
 #include <string_view>
 #include <system_error>
 
+// Only use FMT_STRING wrapper for older compilers lacking consteval:
+// https://github.com/fmtlib/fmt/issues/4304#issuecomment-2585293055
+#ifdef FMT_HAS_CONSTEVAL
+#  define CCACHE_FMT_STRING(format_) format_
+#else
+#  define CCACHE_FMT_STRING(format_) FMT_STRING(format_)
+#endif
+
 // Convenience macro for calling `fmt::format` with `FMT_STRING` around the
 // format string literal.
-#define FMT(format_, ...) fmt::format(FMT_STRING(format_), __VA_ARGS__)
+#define FMT(format_, ...) fmt::format(CCACHE_FMT_STRING(format_), __VA_ARGS__)
 
 // Convenience macro for calling `fmt::print` with `FMT_STRING` around the
 // format string literal.
 #define PRINT(stream_, format_, ...)                                           \
-  fmt::print(stream_, FMT_STRING(format_), __VA_ARGS__)
+  fmt::print(stream_, CCACHE_FMT_STRING(format_), __VA_ARGS__)
 
 // Convenience macro for calling `fmt::print` with a message that is not a
 // format string.

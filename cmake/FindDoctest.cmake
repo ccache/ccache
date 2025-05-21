@@ -32,8 +32,8 @@ if(_download_doctest)
 
   add_header_only_library(
     doctest
-    URL "https://github.com/doctest/doctest/releases/download/v${_doctest_version_string}/doctest.h"
-    SHA256 2a31654ead2a6e5ef93086ca97659b701710c80275207b3bdb12676c012daceb
+    URL "https://raw.githubusercontent.com/doctest/doctest/5eb20178ba43d7b3fd6dbf97b4d2a0907b59a42a/doctest/doctest.h"
+    SHA256 2b143b93771ec9a2e76cf41fb5705d3fa8ade00268c91ab3e99703ffeadc44a3
     SUBDIR doctest
   )
 endif()

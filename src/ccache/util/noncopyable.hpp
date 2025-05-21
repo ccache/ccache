@@ -28,6 +28,8 @@ public:
 
 protected:
   NonCopyable() = default;
+  NonCopyable(NonCopyable&&) noexcept = default;
+  NonCopyable& operator=(NonCopyable&&) noexcept = default;
 };
 
 } // namespace util

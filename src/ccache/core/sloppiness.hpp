@@ -46,7 +46,7 @@ enum class Sloppy : uint32_t {
   // Ignore locale settings.
   locale = 1U << 8,
   // Allow caching even if -fmodules is used.
-  modules = 1U << 9,
+  clang_modules = 1U << 9,
   // Ignore virtual file system (VFS) overlay file.
   ivfsoverlay = 1U << 10,
   // Allow us to include incorrect working directory in .gcno files.

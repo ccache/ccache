@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/util/filelock.hpp>
+#include <ccache/util/format.hpp>
 
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -36,13 +37,14 @@
 
 // Log a message (plus a newline character) described by a format string with at
 // least one placeholder. `format` is checked at compile time.
-#define LOG(format_, ...) LOG_RAW(fmt::format(FMT_STRING(format_), __VA_ARGS__))
+#define LOG(format_, ...)                                                      \
+  LOG_RAW(fmt::format(CCACHE_FMT_STRING(format_), __VA_ARGS__))
 
 // Log a message (plus a newline character) described by a format string with at
 // least one placeholder without flushing and with a reused timestamp. `format`
 // is checked at compile time.
 #define BULK_LOG(logger_, format_, ...)                                        \
-  logger_.log(fmt::format(FMT_STRING(format_), __VA_ARGS__))
+  logger_.log(fmt::format(CCACHE_FMT_STRING(format_), __VA_ARGS__))
 
 namespace util::logging {
 

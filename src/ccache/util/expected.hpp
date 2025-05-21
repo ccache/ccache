@@ -50,13 +50,15 @@ template<typename E, typename T> void throw_on_error(const T& value);
 template<typename E, typename T>
 void throw_on_error(const T& value, std::string_view prefix);
 
-#define TRY(x_)                                                                \
+#define TRY_COUNTER1(expr, suffix)                                             \
   do {                                                                         \
-    const auto result = x_;                                                    \
-    if (!result) {                                                             \
-      return tl::unexpected(result.error());                                   \
+    const auto result##suffix = (expr);                                        \
+    if (!result##suffix) {                                                     \
+      return tl::unexpected(result##suffix.error());                           \
     }                                                                          \
   } while (false)
+#define TRY_COUNTER0(expr, suffix) TRY_COUNTER1(expr, suffix)
+#define TRY(expr) TRY_COUNTER0(expr, __COUNTER__)
 
 // --- Inline implementations ---
 

@@ -1,6 +1,6 @@
 name: Build
 on:
-  push:
+  # push:
   pull_request:
 
 env:
@@ -20,7 +20,7 @@ jobs:
     env:
       CMAKE_GENERATOR: Ninja
 
-    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}
+    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }} ${{ matrix.stdlib }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -60,11 +60,26 @@ jobs:
 
           - os: ubuntu-24.04
             compiler: clang
+            version: "16"
+            stdlib: "libc++"
+
+          - os: ubuntu-24.04
+            compiler: clang
             version: "17"
 
           - os: ubuntu-24.04
             compiler: clang
+            version: "17"
+            stdlib: "libc++"
+
+          - os: ubuntu-24.04
+            compiler: clang
             version: "18"
+
+          - os: ubuntu-24.04
+            compiler: clang
+            version: "18"
+            stdlib: "libc++"
 
           - os: macOS-13
             compiler: xcode
@@ -73,6 +88,10 @@ jobs:
           - os: macOS-14
             compiler: xcode
             version: "15.3"
+
+          - os: macOS-15
+            compiler: xcode
+            version: "16.0"
     steps:
       - name: Install dependencies on Linux
         if: ${{ runner.os == 'Linux' }}
@@ -117,11 +136,16 @@ jobs:
               # work.
               echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
             fi
-          else
+          elif [ "${{ matrix.compiler }}" = "clang" ]; then
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
 
             sudo apt-get install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
+            if [ "${{ matrix.stdlib }}" = "libc++" ]; then
+              sudo apt-get install -y libc++-dev libc++abi-dev
+              echo "CXXFLAGS=-stdlib=libc++" >> $GITHUB_ENV
+              echo "LDFLAGS=-stdlib=libc++ -lc++abi" >> $GITHUB_ENV
+            fi
           fi
 
           case "${{ matrix.os }}" in
@@ -208,6 +232,7 @@ jobs:
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             echo "CC=gcc" >> $GITHUB_ENV
             echo "CXX=g++" >> $GITHUB_ENV
+            echo CXXFLAGS="-Wno-maybe-uninitialized ${CXXFLAGS}" >> $GITHUB_ENV
           else
             echo "CC=clang" >> $GITHUB_ENV
             echo "CXX=clang++" >> $GITHUB_ENV
@@ -317,7 +342,6 @@ jobs:
           - name: Windows VS2019 32-bit MSBuild
             os: windows-2019
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 16 2019
@@ -336,7 +360,6 @@ jobs:
           - name: Windows VS2019 64-bit MSBuild
             os: windows-2019
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 16 2019
@@ -346,7 +369,6 @@ jobs:
           - name: Windows VS2022 32-bit Ninja
             os: windows-2022
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
@@ -356,7 +378,6 @@ jobs:
           - name: Windows VS2022 32-bit MSBuild
             os: windows-2022
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
@@ -366,7 +387,6 @@ jobs:
           - name: Windows VS2022 64-bit Ninja
             os: windows-2022
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Ninja
@@ -376,7 +396,6 @@ jobs:
           - name: Windows VS2022 64-bit MSBuild
             os: windows-2022
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022

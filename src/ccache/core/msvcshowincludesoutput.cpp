@@ -56,7 +56,7 @@ strip_includes(const Context& ctx, util::Bytes&& stdout_data)
   using IncludeDelimiter = Tokenizer::IncludeDelimiter;
 
   if (stdout_data.empty() || !ctx.auto_depend_mode
-      || ctx.config.compiler_type() != CompilerType::msvc) {
+      || ctx.config.compiler() != Compiler::type::msvc) {
     return std::move(stdout_data);
   }
 

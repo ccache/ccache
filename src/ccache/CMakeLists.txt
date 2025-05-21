@@ -3,6 +3,10 @@ set(
   argprocessing.cpp
   args.cpp
   ccache.cpp
+  compiler.cpp
+  compiler/console.cpp
+  compiler/invoke.cpp
+  compiler/msvc.cpp
   compopt.cpp
   config.cpp
   context.cpp
@@ -14,6 +18,11 @@ set(
   progressbar.cpp
   version.cpp
 )
+
+if(CCACHE_CXX20_MODULES_FEATURE)
+  list(APPEND source_files cxx_modules/common.cpp)
+  list(APPEND source_files cxx_modules/json.cpp)
+endif()
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files inodecache.cpp)
@@ -57,12 +66,21 @@ target_link_libraries(
     Threads::Threads
 )
 
+if(CLANGTIDY)
+  set_target_properties(ccache_framework PROPERTIES CXX_CLANG_TIDY "${CLANGTIDY}")
+endif()
+
 if(WIN32)
   target_link_libraries(ccache_framework PUBLIC win32_compat)
 endif()
 
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR})
+
+if(CCACHE_CXX20_MODULES_FEATURE)
+  target_compile_definitions(ccache_framework PUBLIC -DCCACHE_CXX20_MODULES_FEATURE)
+  target_link_libraries(ccache_framework PUBLIC dep_glaze)
+endif()
 
 if(REDIS_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
