@@ -208,6 +208,7 @@ jobs:
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             echo "CC=gcc" >> $GITHUB_ENV
             echo "CXX=g++" >> $GITHUB_ENV
+            echo CXXFLAGS="-Wno-maybe-uninitialized ${CXXFLAGS}" >> $GITHUB_ENV
           else
             echo "CC=clang" >> $GITHUB_ENV
             echo "CXX=clang++" >> $GITHUB_ENV
