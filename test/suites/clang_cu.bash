@@ -10,11 +10,13 @@ setup_clang() {
 clang_cu_PROBE() {
     if [ -z "$REAL_NVCC" ]; then
         echo "nvcc is not available"
+        return
     elif ! command -v cuobjdump >/dev/null; then
         echo "cuobjdump is not available"
-
+        return
     elif ! command -v clang >/dev/null; then
         echo "clang is not available"
+        return
     fi
 
     setup_clang
@@ -27,7 +29,7 @@ clang_cu_PROBE() {
 }
 
 clang_cu_SETUP() {
-    # Test code using only c++ (option --x c++). Faster than compiling cuda.
+    # Test code using only c++ (option -x c++). Faster than compiling cuda.
     cat <<EOF > test_cpp.cu
 #ifndef NUM
 #define NUM 10000

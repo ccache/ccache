@@ -1344,7 +1344,7 @@ process_cuda_chunk(Context& ctx,
   tmp_result->fd.close(); // we only need the path, not the open fd
 
   // 2. Write the chunk contents into the temp file
-  if (auto write_result = util::write_file(chunk_path, chunk); !write_result) {
+  if (!util::write_file(chunk_path, chunk)) {
     return tl::unexpected(Statistic::internal_error);
   }
   // 3. Register the file so it gets cleaned up later
@@ -1404,7 +1404,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
         FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
         FMT(".{}", ctx.config.cpp_extension())));
     preprocessed_path = tmp_stdout.path;
-    tmp_stdout.fd.close();
+    tmp_stdout.fd.close(); // We're only using the path.
     ctx.register_pending_tmp_file(preprocessed_path);
 
     const size_t orig_args_size = args.size();
