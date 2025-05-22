@@ -20,6 +20,7 @@ set(
   test_storage_local_util.cpp
   test_util_bitset.cpp
   test_util_bytes.cpp
+  test_util_clang.cpp
   test_util_conversion.cpp
   test_util_direntry.cpp
   test_util_duration.cpp

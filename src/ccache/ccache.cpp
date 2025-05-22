@@ -46,6 +46,7 @@
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
+#include <ccache/util/clang.hpp>
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
@@ -1327,6 +1328,52 @@ to_cache(Context& ctx,
   return *result_key;
 }
 
+// Process a CUDA preprocessed chunk for a specific architecture
+static tl::expected<void, Failure>
+process_cuda_chunk(Context& ctx,
+                   Hash& hash,
+                   const std::string& chunk,
+                   size_t index)
+{
+  // 1. Create a temp file for this CUDA chunk
+  auto tmp_result = util::TemporaryFile::create(
+    FMT("{}/cuda_tmp_{}.i", ctx.config.temporary_dir(), index),
+    FMT(".{}", ctx.config.cpp_extension()));
+  if (!tmp_result) {
+    return tl::unexpected(Statistic::internal_error);
+  }
+
+  const auto& chunk_path = tmp_result->path;
+  tmp_result->fd.close(); // we only need the path, not the open fd
+
+  // 2. Write the chunk contents into the temp file
+  if (!util::write_file(chunk_path, chunk)) {
+    return tl::unexpected(Statistic::internal_error);
+  }
+  // 3. Register the file so it gets cleaned up later
+  ctx.register_pending_tmp_file(chunk_path);
+
+  // 4. Add a unique hash delimiter for this chunk
+  hash.hash_delimiter(FMT("cu_{}", index));
+
+  // 5. Process the chunk just like a normal preprocessed file
+  TRY(process_preprocessed_file(ctx, hash, chunk_path));
+
+  return {};
+}
+
+static bool
+get_clang_cu_enable_verbose_mode(Args& args)
+{
+  for (size_t i = 1; i < args.size(); i++) {
+    if (args[i] == "-v") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
 static tl::expected<Hash::Digest, Failure>
@@ -1334,6 +1381,17 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
   fs::path preprocessed_path;
   util::Bytes cpp_stderr_data;
+  util::Bytes cpp_stdout_data;
+
+  // When Clang runs in verbose mode, it outputs command details to stdout,
+  // which can corrupt the output of precompiled CUDA files.
+  // Therefore, caching is disabled in this scenario.
+  // (Is there a better approach to handle this?)
+  const bool is_clang_cu = ctx.config.is_compiler_group_clang()
+                           && ctx.args_info.actual_language == "cu"
+                           && !get_clang_cu_enable_verbose_mode(args);
+
+  const bool capture_stdout = is_clang_cu;
 
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
@@ -1366,8 +1424,10 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
       args.push_back(FMT("-Fi{}", preprocessed_path));
     } else {
       args.push_back("-E");
-      args.push_back("-o");
-      args.push_back(preprocessed_path);
+      if (!is_clang_cu) {
+        args.push_back("-o");
+        args.push_back(preprocessed_path);
+      }
     }
 
     args.push_back(
@@ -1375,7 +1435,7 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG_RAW("Running preprocessor");
-    const auto result = do_execute(ctx, args, false);
+    const auto result = do_execute(ctx, args, capture_stdout);
     args.pop_back(args.size() - orig_args_size);
 
     if (!result) {
@@ -1386,10 +1446,24 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
     }
 
     cpp_stderr_data = result->stderr_data;
+    cpp_stdout_data = result->stdout_data;
   }
 
-  hash.hash_delimiter("cpp");
-  TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
+  if (is_clang_cu) {
+    util::write_file(preprocessed_path, cpp_stdout_data);
+
+    auto chunks =
+      util::split_preprocess_file_in_clang_cuda(preprocessed_path.string());
+
+    for (size_t i = 0; i < chunks.size(); ++i) {
+      TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
+    }
+
+  } else {
+    hash.hash_delimiter("cpp");
+
+    TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
+  }
 
   hash.hash_delimiter("cppstderr");
   hash.hash(util::to_string_view(cpp_stderr_data));
