@@ -2,6 +2,7 @@ set(
   sources
   assertions.cpp
   bytes.cpp
+  clang.cpp
   cpu.cpp
   direntry.cpp
   environment.cpp
@@ -24,7 +25,6 @@ set(
   tokenizer.cpp
   umaskscope.cpp
   zstd.cpp
-  clang.cpp
 )
 
 file(GLOB headers *.hpp)

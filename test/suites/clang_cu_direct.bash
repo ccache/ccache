@@ -9,7 +9,7 @@ SUITE_clang_cu_direct_SETUP() {
 }
 
 SUITE_clang_cu_direct() {
-    setup_clang
+    set_up_clang
 
     clang_opts_cpp="-c -x c++"
     clang_opts_cuda="-c -x $CLANG_CU_LANG_TYPE"

@@ -18,48 +18,51 @@
 
 #include "clang.hpp"
 
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
 
+#include <cerrno>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <vector>
+
+namespace fs = util::filesystem;
 
 namespace util {
 
 std::vector<std::string>
-split_preprocess_file_in_clang_cuda(const std::string& mixed_preprocessed_path)
+split_preprocessed_file_from_clang_cuda(const fs::path& path)
 {
-  std::ifstream infile(mixed_preprocessed_path);
-  std::vector<std::string> split_preprocess_file_list;
+  std::ifstream infile(path);
+  std::vector<std::string> chunks;
 
   if (!infile) {
-    LOG("Can't open file {}", mixed_preprocessed_path);
-    return split_preprocess_file_list;
+    LOG("Failed to open {}: {}", path, strerror(errno));
+    return chunks;
   }
 
   std::string delimiter;
   if (!std::getline(infile, delimiter)) {
-    return split_preprocess_file_list;
+    return chunks;
   }
 
-  std::string currentPart = delimiter + "\n";
+  std::string current_part = delimiter + "\n";
   std::string line;
 
   while (std::getline(infile, line)) {
     if (line == delimiter) {
-      split_preprocess_file_list.push_back(currentPart);
-      currentPart = delimiter + "\n";
+      chunks.push_back(current_part);
+      current_part = delimiter + "\n";
     } else {
-      currentPart += line + "\n";
+      current_part += line + "\n";
     }
   }
 
-  if (!currentPart.empty()) {
-    split_preprocess_file_list.push_back(currentPart);
+  if (!current_part.empty()) {
+    chunks.push_back(current_part);
   }
 
-  return split_preprocess_file_list;
+  return chunks;
 }
 
 } // namespace util

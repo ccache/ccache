@@ -18,12 +18,13 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
 namespace util {
 
 std::vector<std::string>
-split_preprocess_file_in_clang_cuda(const std::string& mixed_preprocessed_path);
+split_preprocessed_file_from_clang_cuda(const std::filesystem::path& path);
 
 } // namespace util

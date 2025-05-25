@@ -1335,9 +1335,8 @@ process_cuda_chunk(Context& ctx,
                    const std::string& chunk,
                    size_t index)
 {
-  // 1. Create a temp file for this CUDA chunk
   auto tmp_result = util::TemporaryFile::create(
-    FMT("{}/cuda_tmp_{}.i", ctx.config.temporary_dir(), index),
+    FMT("{}/cuda_tmp_{}", ctx.config.temporary_dir(), index),
     FMT(".{}", ctx.config.cpp_extension()));
   if (!tmp_result) {
     return tl::unexpected(Statistic::internal_error);
@@ -1346,24 +1345,18 @@ process_cuda_chunk(Context& ctx,
   const auto& chunk_path = tmp_result->path;
   tmp_result->fd.close(); // we only need the path, not the open fd
 
-  // 2. Write the chunk contents into the temp file
   if (!util::write_file(chunk_path, chunk)) {
     return tl::unexpected(Statistic::internal_error);
   }
-  // 3. Register the file so it gets cleaned up later
   ctx.register_pending_tmp_file(chunk_path);
-
-  // 4. Add a unique hash delimiter for this chunk
   hash.hash_delimiter(FMT("cu_{}", index));
-
-  // 5. Process the chunk just like a normal preprocessed file
   TRY(process_preprocessed_file(ctx, hash, chunk_path));
 
   return {};
 }
 
 static bool
-get_clang_cu_enable_verbose_mode(Args& args)
+get_clang_cu_enable_verbose_mode(const Args& args)
 {
   for (size_t i = 1; i < args.size(); i++) {
     if (args[i] == "-v") {
@@ -1384,9 +1377,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   util::Bytes cpp_stdout_data;
 
   // When Clang runs in verbose mode, it outputs command details to stdout,
-  // which can corrupt the output of precompiled CUDA files.
-  // Therefore, caching is disabled in this scenario.
-  // (Is there a better approach to handle this?)
+  // which can corrupt the output of precompiled CUDA files. Therefore, caching
+  // is disabled in this scenario. (Is there a better approach to handle this?)
   const bool is_clang_cu = ctx.config.is_compiler_group_clang()
                            && (ctx.args_info.actual_language == "cu"
                                || ctx.args_info.actual_language == "cuda")
@@ -1452,10 +1444,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
 
   if (is_clang_cu) {
     util::write_file(preprocessed_path, cpp_stdout_data);
-
     auto chunks =
-      util::split_preprocess_file_in_clang_cuda(preprocessed_path.string());
-
+      util::split_preprocessed_file_from_clang_cuda(preprocessed_path);
     for (size_t i = 0; i < chunks.size(); ++i) {
       TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
     }

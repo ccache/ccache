@@ -1,4 +1,4 @@
-setup_clang() {
+set_up_clang() {
     local CUDA_PATH="--cuda-path=/usr/local/cuda"
     if [  ! -z "$CUDA_HOME" ]; then
         local CUDA_PATH="--cuda-path=$CUDA_HOME"
@@ -23,11 +23,11 @@ clang_cu_PROBE() {
         return
     fi
 
-    setup_clang
+    set_up_clang
 
     touch test.cu
     if ! $REAL_CLANG -c -x cu test.cu  >/dev/null 2>&1; then
-        echo "Clang's CUDA support is not compatible."
+        echo "Clang's CUDA support is not compatible"
     fi
 
 }
@@ -43,7 +43,6 @@ void caller() {
   for (int i = 0; i < NUM; ++i);
 }
 EOF
-
 
     # Test code using cuda.
     cat <<EOF >test_cuda.cu
@@ -66,7 +65,7 @@ EOF
 }
 
 clang_cu_tests() {
-    setup_clang
+    set_up_clang
 
     clang_opts_cpp="-c -x c++"
     clang_opts_cuda="-c -x $CLANG_CU_LANG_TYPE"
