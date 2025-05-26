@@ -578,6 +578,11 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       }
 
       while (q < end && *q != '"' && *q != '\n') {
+        //replace line num to '0' avoid hash change
+        if(*q > '0' && *q <= '9')
+        {
+				  *q = '0';
+        }
         q++;
       }
       if (q < end && *q == '\n') {
