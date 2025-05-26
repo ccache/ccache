@@ -12,7 +12,7 @@ SUITE_clang_cu_direct() {
     setup_clang
 
     clang_opts_cpp="-c -x c++"
-    clang_opts_cuda="-c -x cu"
+    clang_opts_cuda="-c -x $CLANG_CU_LANG_TYPE"
     clang_opts_gpu1="--cuda-gpu-arch=sm_50"
     clang_opts_gpu2="--cuda-gpu-arch=sm_75"
     ccache_clang_cpp="$CCACHE $REAL_CLANG $clang_opts_cpp"

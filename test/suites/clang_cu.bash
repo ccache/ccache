@@ -4,6 +4,10 @@ setup_clang() {
         local CUDA_PATH="--cuda-path=$CUDA_HOME"
     fi
 
+    if [ -z "$CLANG_CU_LANG_TYPE" ]; then
+        export CLANG_CU_LANG_TYPE="cu"
+    fi
+
     export REAL_CLANG="clang $CUDA_PATH"
 }
 
@@ -65,7 +69,7 @@ clang_cu_tests() {
     setup_clang
 
     clang_opts_cpp="-c -x c++"
-    clang_opts_cuda="-c -x cu"
+    clang_opts_cuda="-c -x $CLANG_CU_LANG_TYPE"
     clang_opts_gpu1="--cuda-gpu-arch=sm_50"
     clang_opts_gpu2="--cuda-gpu-arch=sm_75"
     ccache_clang_cpp="$CCACHE $REAL_CLANG $clang_opts_cpp"
