@@ -1388,7 +1388,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   // Therefore, caching is disabled in this scenario.
   // (Is there a better approach to handle this?)
   const bool is_clang_cu = ctx.config.is_compiler_group_clang()
-                           && ctx.args_info.actual_language == "cu"
+                           && (ctx.args_info.actual_language == "cu"
+                               || ctx.args_info.actual_language == "cuda")
                            && !get_clang_cu_enable_verbose_mode(args);
 
   const bool capture_stdout = is_clang_cu;
