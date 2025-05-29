@@ -22,6 +22,7 @@
 #include <ccache/argprocessing.hpp>
 #include <ccache/args.hpp>
 #include <ccache/argsinfo.hpp>
+#include <ccache/compiler.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/cacheentry.hpp>
@@ -69,6 +70,11 @@
 #include <ccache/util/umaskscope.hpp>
 #include <ccache/util/wincompat.hpp>
 
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+#  include <ccache/cxx_modules/json.hpp>
+#  include <ccache/cxx_modules/p1689.hpp>
+#endif // CCACHE_CXX20_MODULES_FEATURE
+
 #include <fcntl.h>
 
 #include <optional>
@@ -91,7 +97,10 @@
 #include <initializer_list>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
+
+using namespace std::literals::string_view_literals;
 
 namespace fs = util::filesystem;
 
@@ -262,100 +271,9 @@ init_hash_debug(Context& ctx,
   }
 }
 
-#ifndef _WIN32
-
-static fs::path
-follow_symlinks(const fs::path& path)
-{
-  // Follow symlinks to the real compiler to learn its name. We're not using
-  // util::real_path in order to save some unnecessary stat calls.
-  fs::path p = path;
-  while (true) {
-    auto symlink_target = fs::read_symlink(p);
-    if (!symlink_target) {
-      // Not a symlink.
-      break;
-    }
-    if (symlink_target->is_absolute()) {
-      p = *symlink_target;
-    } else {
-      p = p.parent_path() / *symlink_target;
-    }
-  }
-  if (p != path) {
-    LOG("Followed symlinks from {} to {} when guessing compiler type", path, p);
-  }
-  return p;
-}
-
-static fs::path
-probe_generic_compiler(const fs::path& path)
-{
-  // Detect whether a generically named compiler (e.g. /usr/bin/cc) is a hard
-  // link to a compiler with a more specific name.
-  std::string name = util::pstr(path.filename()).str();
-  if (name == "cc" || name == "c++") {
-    static const char* candidate_names[] = {"gcc", "g++", "clang", "clang++"};
-    for (const char* candidate_name : candidate_names) {
-      fs::path candidate = path.parent_path() / candidate_name;
-      if (fs::equivalent(candidate, path)) {
-        LOG("Detected that {} is equivalent to {} when guessing compiler type",
-            path,
-            candidate);
-        return candidate;
-      }
-    }
-  }
-  return path;
-}
-
-#endif
-
-static CompilerType
-do_guess_compiler(const fs::path& path)
-{
-  const auto name = util::to_lowercase(
-    util::pstr(util::with_extension(path.filename(), "")).str());
-  if (name.find("clang-cl") != std::string_view::npos) {
-    return CompilerType::clang_cl;
-  } else if (name.find("clang") != std::string_view::npos) {
-    return CompilerType::clang;
-  } else if (name.find("gcc") != std::string_view::npos
-             || name.find("g++") != std::string_view::npos) {
-    return CompilerType::gcc;
-  } else if (name.find("nvcc") != std::string_view::npos) {
-    return CompilerType::nvcc;
-  } else if (name == "icl") {
-    return CompilerType::icl;
-  } else if (name == "icx") {
-    return CompilerType::icx;
-  } else if (name == "icx-cl") {
-    return CompilerType::icx_cl;
-  } else if (name == "cl") {
-    return CompilerType::msvc;
-  } else {
-    return CompilerType::other;
-  }
-}
-
-CompilerType
-guess_compiler(const fs::path& path)
-{
-  CompilerType type = do_guess_compiler(path);
-#ifdef _WIN32
-  return type;
-#else
-  if (type == CompilerType::other) {
-    return do_guess_compiler(probe_generic_compiler(follow_symlinks(path)));
-  } else {
-    return type;
-  }
-#endif
-}
-
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
-[[nodiscard]] tl::expected<void, Failure>
+[[nodiscard]] tl::expected<void, Statistic>
 remember_include_file(Context& ctx,
                       const fs::path& path,
                       Hash& cpp_hash,
@@ -416,10 +334,25 @@ remember_include_file(Context& ctx,
   }
 
   if (!ctx.ignore_header_paths.empty()) {
-    // Canonicalize path for comparison; Clang uses ./header.h.
-    const std::string& canonical_path_str =
-      util::starts_with(path_str.str(), "./") ? path_str.str().substr(2)
-                                              : path_str;
+    // Canonicalize path for comparison:
+    // - Clang uses ./header.h
+    // - MSVC  uses .\\header.h
+
+    // First initialize directly without canonicalization.
+    std::string canonical_path_str = path_str.str();
+
+#ifdef _WIN32
+    static const auto prefixes = std::array{R"(.\\)"sv, "./"sv};
+#else
+    static const auto prefixes = std::array{"./"sv};
+#endif
+    // Next perform canonicalization if any prefixes match.
+    for (const auto& pre : prefixes) {
+      if (util::starts_with(path_str.str(), pre)) {
+        canonical_path_str = path_str.str().substr(pre.size());
+      }
+    }
+
     for (const auto& ignore_header_path : ctx.ignore_header_paths) {
       if (file_path_matches_dir_prefix_or_file(ignore_header_path,
                                                canonical_path_str)) {
@@ -694,8 +627,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static tl::expected<Hash::Digest, Failure>
-result_key_from_depfile(Context& ctx, Hash& hash)
+static tl::expected<void, Failure>
+update_result_key_with_depfile(Context& ctx, Hash& hash)
 {
   // Make sure that result hash will always be different from the manifest hash
   // since there otherwise may a storage key collision (in case the dependency
@@ -712,16 +645,81 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   }
 
   bool seen_colon = false;
-  for (std::string_view token : Depfile::tokenize(*file_content)) {
-    if (token.empty()) {
-      seen_colon = false;
-      continue;
+
+  {
+    const auto& tokens = Depfile::tokenize(*file_content);
+    std::size_t pos = 0;
+
+    std::unordered_set<std::string_view> gcc_phony{};
+    std::vector<std::string_view> include_paths{};
+
+    // NOTE: When GCC compiles modules with `-fmodules[-ts]` or equivalent, it
+    // optionally includes additional module dependency information as several
+    // new types of rules in the Make depfiles it produces, unless
+    // `-fdeps-format` is specified, in which case it will omit the additional
+    // depfile rules and only provide the module dependency information in the
+    // p1689r5 dynamic dependency files.
+    //
+    // Some of the new rules appear to follow the design described in p1602
+    // "Make Me A Module"[1]. However, the correspondence is not exact and thus
+    // far the precise output appears to be absent from the GCC documentation.
+    //
+    // The best place to refer for the current rule formatting is the GCC
+    // sources, specifically `gcc/libcpp/mkdeps.cc`.
+    //
+    // [1]: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1602r0.pdf
+
+    while (pos < tokens.size()) {
+      // Process special GCC depfile rules when compiling with C++20 modules
+      if (ctx.config.compiler() == Compiler::type::gcc) {
+        // Skip the entire rest of the rule if we encounter any of:
+        if (tokens[pos] == ":|"                            // order-only prereq
+            || tokens[pos] == ".PHONY"                     // .PHONY rule
+            || util::ends_with(tokens[pos], ".c++m")       // phony target
+            || util::ends_with(tokens[pos], ".c++-module") // phony target
+        ) {
+          do {
+            ++pos;
+          } while (!tokens[pos].empty());
+        }
+        // If we encounter `CXX_IMPORTS` ...
+        if (tokens[pos] == "CXX_IMPORTS" && tokens[pos + 1] == "+=") {
+          pos += 2;
+          while (!tokens[pos].empty()) {
+            // ... record the phony target to filter later
+            gcc_phony.emplace(tokens[pos]);
+            ++pos;
+          }
+        }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+        if (!seen_colon && ctx.args_info.cxx_modules.output_bmi.empty()
+            && util::ends_with(tokens[pos], ".gcm")) {
+          ctx.args_info.cxx_modules.generating_bmi = true;
+          ctx.args_info.cxx_modules.output_bmi = tokens[pos];
+        }
+#endif // CCACHE_CXX20_MODULES_FEATURE
+      }
+
+      if (tokens[pos].empty()) {
+        seen_colon = false;
+      } else if (seen_colon) {
+        include_paths.emplace_back(tokens[pos]);
+      } else if (tokens[pos] == ":") {
+        seen_colon = true;
+      }
+
+      ++pos;
     }
-    if (seen_colon) {
-      fs::path path = core::make_relative_path(ctx, token);
-      TRY(remember_include_file(ctx, path, hash, false, &hash));
-    } else if (token == ":") {
-      seen_colon = true;
+
+    for (const auto& include_path : include_paths) {
+      if (gcc_phony.find(include_path) != gcc_phony.end()) {
+        // Exclude the phony targets from files to include
+        continue;
+      }
+      // TODO: make this more robust; implement separate classifier function
+      const auto is_system = false;
+      fs::path path = core::make_relative_path(ctx, include_path);
+      TRY(remember_include_file(ctx, path, hash, is_system, &hash));
     }
   }
 
@@ -740,8 +738,170 @@ result_key_from_depfile(Context& ctx, Hash& hash)
     print_included_files(ctx, stdout);
   }
 
-  return hash.digest();
+  return {};
 }
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+namespace cxx_modules::deps::p1689 {
+
+static void
+synthesize_output_bmi(Context& ctx, const ProvidedModuleDesc& provided) noexcept
+{
+  if (!ctx.args_info.cxx_modules.output_bmi.empty()) {
+    return;
+  }
+
+  std::string&& path{};
+
+  if (path.empty() && provided.compiled_module_path) {
+    path = provided.compiled_module_path.value();
+  }
+
+  if (path.empty() && ctx.config.compiler() == Compiler::type::gcc) {
+    const auto bmi_path = ctx.config.compiler().paths().binary_module_path;
+    const auto bmi_file_ext =
+      ctx.config.compiler().file_exts().binary_module_interface;
+
+    // These should always be defined for GCC.
+    ASSERT(bmi_path.has_value());
+    ASSERT(bmi_file_ext.has_value());
+
+    path += *bmi_path;
+    path += "/";
+    path += provided.logical_name;
+    path += *bmi_file_ext;
+  }
+
+  ctx.args_info.cxx_modules.output_bmi = std::move(path);
+  ctx.args_info.cxx_modules.generating_bmi = true;
+
+  LOG("Synthesized C++20 modules BMI path: {}",
+      std::string_view(ctx.args_info.cxx_modules.output_bmi));
+}
+
+static void
+process_provides(Context& ctx, const std::vector<ProvidedModuleDesc>& provides)
+{
+  DEBUG_ASSERT(provides.size() == 1);
+
+  if (provides.empty()) {
+    return;
+  }
+
+  const auto& provided = provides.front();
+
+  synthesize_output_bmi(ctx, provided);
+}
+
+static tl::expected<void, Statistic>
+process_require(Context& ctx, const RequiredModuleDesc& require, Hash& hash)
+{
+  const auto system = require.is_system();
+
+  if (require.source_path) {
+    // require.
+  }
+
+  if (require.compiled_module_path.has_value()) {
+    // NOTE: This is the best case scenario for locating the BMI and ideally we
+    // would rely on this alone and not even need to parse the Make depfiles.
+    //
+    // Unfortunately, as of early 2025, the major compilers do not usually
+    // include this information and we need a secondary mechanism to provide
+    // this information, such as Make depfiles.
+    //
+    // That also means that most of the time this function is invoked this code
+    // block is skipped (because the field is absent) or the required BMI has
+    // already been hashed from another source (in which case it is skipped).
+    //
+    // The situation should improve as more tooling is built around modules so
+    // it's a good idea to handle this field if present.
+    const auto view = require.compiled_module_path.value();
+    const auto view_path = std::filesystem::path{view};
+    const auto path = core::make_relative_path(ctx, view_path);
+    TRY(remember_include_file(ctx, path, hash, system, &hash));
+    return {};
+  }
+
+  const auto name = std::string(require.logical_name);
+  const auto it = ctx.args_info.cxx_modules.names_paths.find(name);
+  if (it != ctx.args_info.cxx_modules.names_paths.end()) {
+    const auto& path = it->second;
+    LOG("Synthesized C++20 modules BMI file path for logical name: {}",
+        std::string_view(path));
+    TRY(remember_include_file(ctx, fs::path(path), hash, system, &hash));
+  }
+
+  return {};
+}
+
+auto
+process_output_ddi(Context& ctx, Hash* hash, const deps::p1689::DepFile& ddi)
+  -> tl::expected<void, Statistic>
+{
+  if (ddi.rules.empty()) {
+    return {};
+  }
+
+  DEBUG_ASSERT(ddi.rules.size() == 1);
+
+  const auto& rule = ddi.rules.front();
+
+  if (rule.primary_output) {
+    const auto& ext = ctx.config.compiler().file_exts().object;
+    const auto& primary_output = std::string_view{rule.primary_output.value()};
+    ctx.args_info.expect_output_obj = util::ends_with(primary_output, ext);
+
+    if (ctx.args_info.output_obj.empty()) {
+      ctx.args_info.output_obj = primary_output;
+    } else {
+      DEBUG_ASSERT(ctx.args_info.output_obj == primary_output);
+    }
+  }
+
+  // for (const auto& output :
+  //      rule.outputs.value_or(std::vector<cxx_modules::p1689::path_view>{})) {
+  //   // TODO: Determine whether we can process these in a useful way.
+  // }
+
+  if (rule.provides) {
+    process_provides(ctx, *rule.provides);
+  }
+
+  if (rule.requires_) {
+    for (const auto& require : *rule.requires_) {
+      TRY(process_require(ctx, require, *hash));
+    }
+  }
+
+  return {};
+}
+
+auto
+load_output_ddi(Context& ctx, Hash* hash) -> tl::expected<void, Statistic>
+{
+  const auto& path = fs::path(ctx.args_info.cxx_modules.output_ddi);
+  if (path.empty()) {
+    return {};
+  }
+
+  const auto& text = util::read_file<std::string>(path);
+  if (!text) {
+    LOG("Failed to read p1689 file {}: {}", path, text.error());
+    return tl::unexpected(Statistic::bad_input_file);
+  }
+
+  const auto& parse = cxx_modules::json::parse<deps::p1689::DepFile>(*text);
+  if (!parse) {
+    LOG("Failed to parse p1689 file {}: {}", path, parse.error().format(*text));
+    return tl::unexpected(Statistic::bad_input_file);
+  }
+
+  return process_output_ddi(ctx, hash, *parse);
+}
+
+} // namespace cxx_modules::deps::p1689
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
 struct GetTmpFdResult
 {
@@ -776,11 +936,12 @@ struct DoExecuteResult
 // Extract the used includes from /showIncludes (or clang-cl's
 // /showIncludes:user) output in stdout. Note that we cannot distinguish system
 // headers from other includes when /showIncludes is used.
-static tl::expected<Hash::Digest, Failure>
-result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
+static tl::expected<void, Failure>
+update_result_key_with_showIncludes(Context& ctx,
+                                    Hash& hash,
+                                    const compiler::Console& console)
 {
-  for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
-         stdout_data, ctx.config.msvc_dep_prefix())) {
+  for (std::string_view include : console.msvc().show_includes()) {
     const fs::path path = core::make_relative_path(ctx, include);
     TRY(remember_include_file(ctx, path, hash, false, &hash));
   }
@@ -800,7 +961,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
     print_included_files(ctx, stdout);
   }
 
-  return hash.digest();
+  return {};
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -811,7 +972,7 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
   util::UmaskScope umask_scope(ctx.original_umask);
 
   if (ctx.diagnostics_color_failed) {
-    DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
+    DEBUG_ASSERT(ctx.config.compiler() == Compiler::type::gcc);
     args.erase_last("-fdiagnostics-color");
   }
 
@@ -823,11 +984,11 @@ do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
                        std::move(tmp_stdout.fd),
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.config.compiler_type() == CompilerType::gcc) {
+      && ctx.config.compiler() == Compiler::type::gcc) {
     const auto errors = util::read_file<std::string>(tmp_stderr.path);
     if (errors && errors->find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
-      // non-GCC compilers misclassified as CompilerType::gcc might not do it
+      // non-GCC compilers misclassified as Compiler::type::gcc might not do it
       // either. We assume that if the error message contains
       // "fdiagnostics-color" then the compilation failed due to
       // -fdiagnostics-color being unsupported and we then retry without the
@@ -962,18 +1123,19 @@ find_coverage_file(const Context& ctx)
 [[nodiscard]] static bool
 write_result(Context& ctx,
              const Hash::Digest& result_key,
-             const util::Bytes& stdout_data,
-             const util::Bytes& stderr_data)
+             const compiler::Execution& result)
 {
   core::Result::Serializer serializer(ctx.config);
 
-  if (!stderr_data.empty()) {
-    serializer.add_data(core::Result::FileType::stderr_output, stderr_data);
+  if (!result.stderr_data().empty()) {
+    serializer.add_data(core::Result::FileType::stderr_output,
+                        result.stderr_data());
   }
   // Write stdout only after stderr (better with MSVC), as ResultRetriever
   // will later print process them in the order they are read.
-  if (!stdout_data.empty()) {
-    serializer.add_data(core::Result::FileType::stdout_output, stdout_data);
+  if (!result.stdout_data().empty()) {
+    serializer.add_data(core::Result::FileType::stdout_output,
+                        result.stdout_data());
   }
   if (ctx.args_info.expect_output_obj
       && !serializer.add_file(core::Result::FileType::object,
@@ -1045,6 +1207,36 @@ write_result(Context& ctx,
     LOG("Assembler listing file {} missing", ctx.args_info.output_al);
     return false;
   }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  if (ctx.args_info.cxx_modules.generating_ddi) {
+    const auto output_ddi =
+      std::filesystem::path(ctx.args_info.cxx_modules.output_ddi);
+    if (!serializer.add_file(core::Result::FileType::cxx_modules_ddi,
+                             output_ddi)) {
+      LOG("C++20 modules p1689 DDI file {} missing", output_ddi);
+    }
+  }
+  if (ctx.args_info.cxx_modules.generating_bmi) {
+    if (ctx.args_info.cxx_modules.output_bmi.empty()) {
+      LOG_RAW("C++20 modules BMI file path not determined");
+    } else {
+      // Serialize the path of the output_bmi so we can infer this later during
+      // deserialization without having to reprocess the entire DDI.
+      const auto& output_bmi = ctx.args_info.cxx_modules.output_bmi;
+      const auto output_bmi_data = std::span<const uint8_t>(
+        reinterpret_cast<const uint8_t*>(output_bmi.data()), output_bmi.size());
+      serializer.add_data(core::Result::FileType::cxx_modules_bmi_path,
+                          output_bmi_data);
+      // Serialize the bytes of the output_bmi.
+      if (!serializer.add_file(
+            core::Result::FileType::cxx_modules_bmi,
+            std::filesystem::path(ctx.args_info.cxx_modules.output_bmi))) {
+        LOG("C++20 modules BMI file {} missing",
+            std::string_view(ctx.args_info.cxx_modules.output_bmi));
+      }
+    }
+  }
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
@@ -1059,62 +1251,6 @@ write_result(Context& ctx,
   ctx.storage.put(result_key, core::CacheEntryType::result, cache_entry_data);
 
   return true;
-}
-
-static util::Bytes
-rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
-{
-  using util::Tokenizer;
-  using Mode = Tokenizer::Mode;
-  using IncludeDelimiter = Tokenizer::IncludeDelimiter;
-  if (!stdout_data.empty()) {
-    util::Bytes new_stdout_data;
-    for (const auto line : Tokenizer(util::to_string_view(stdout_data),
-                                     "\n",
-                                     Mode::include_empty,
-                                     IncludeDelimiter::yes)) {
-      if (util::starts_with(line, "__________")) {
-        core::send_to_console(ctx, line, STDOUT_FILENO);
-      }
-      // Ninja uses the lines with 'Note: including file: ' to determine the
-      // used headers. Headers within basedir need to be changed into relative
-      // paths because otherwise Ninja will use the abs path to original header
-      // to check if a file needs to be recompiled.
-      else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dir().empty()
-               && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
-        std::string orig_line(line.data(), line.length());
-        std::string abs_inc_path =
-          util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
-        abs_inc_path = util::strip_whitespace(abs_inc_path);
-        fs::path rel_inc_path = core::make_relative_path(ctx, abs_inc_path);
-        std::string line_with_rel_inc = util::replace_first(
-          orig_line, abs_inc_path, util::pstr(rel_inc_path).str());
-        new_stdout_data.insert(new_stdout_data.end(),
-                               line_with_rel_inc.data(),
-                               line_with_rel_inc.size());
-      }
-      // The MSVC /FC option causes paths in diagnostics messages to become
-      // absolute. Those within basedir need to be changed into relative paths.
-      else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dir().empty()) {
-        size_t path_end = core::get_diagnostics_path_length(line);
-        if (path_end != 0) {
-          std::string_view abs_path = line.substr(0, path_end);
-          fs::path rel_path = core::make_relative_path(ctx, abs_path);
-          std::string line_with_rel =
-            util::replace_all(line, abs_path, util::pstr(rel_path).str());
-          new_stdout_data.insert(
-            new_stdout_data.end(), line_with_rel.data(), line_with_rel.size());
-        }
-      } else {
-        new_stdout_data.insert(new_stdout_data.end(), line.data(), line.size());
-      }
-    }
-    return new_stdout_data;
-  } else {
-    return std::move(stdout_data);
-  }
 }
 
 static std::string
@@ -1222,61 +1358,47 @@ to_cache(Context& ctx,
 
   LOG_RAW("Running real compiler");
 
-  tl::expected<DoExecuteResult, Failure> result;
-  result = do_execute(ctx, args);
+  const auto invocation = compiler::Invocation(ctx, args);
+  const auto result = invocation.execute();
+
   args.pop_back(3);
 
   if (!result) {
     return tl::unexpected(result.error());
   }
 
-  // Merge stderr from the preprocessor (if any) and stderr from the real
-  // compiler.
-  if (!ctx.cpp_stderr_data.empty()) {
-    result->stderr_data.insert(result->stderr_data.begin(),
-                               ctx.cpp_stderr_data.begin(),
-                               ctx.cpp_stderr_data.end());
-  }
-
-  result->stdout_data =
-    rewrite_stdout_from_compiler(ctx, std::move(result->stdout_data));
-
-  if (result->exit_status != 0) {
-    LOG("Compiler gave exit status {}", result->exit_status);
+  if (result->exit_status() != 0) {
+    LOG("Compiler gave exit status {}", result->exit_status());
 
     // We can output stderr immediately instead of rerunning the compiler.
+    core::send_to_console(ctx, result->console().stderr_text(), STDERR_FILENO);
     core::send_to_console(
-      ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
-    core::send_to_console(
-      ctx,
-      util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
-        ctx, std::move(result->stdout_data))),
-      STDOUT_FILENO);
+      ctx, result->console().stdout_text().filtered(), STDOUT_FILENO);
 
     auto failure = Failure(Statistic::compile_failed);
-    failure.set_exit_code(result->exit_status);
+    failure.set_exit_code(result->exit_status());
     return tl::unexpected(failure);
   }
 
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
     if (ctx.args_info.generating_dependencies) {
-      auto key = result_key_from_depfile(ctx, *depend_mode_hash);
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
-    } else if (ctx.args_info.generating_includes) {
-      auto key = result_key_from_includes(
-        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data));
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
-    } else {
-      ASSERT(false);
+      TRY(update_result_key_with_depfile(ctx, *depend_mode_hash));
+      LOG_RAW("Updated result key with dependency file");
     }
-    LOG_RAW("Got result key from dependency file");
+    if (ctx.args_info.generating_includes) {
+      TRY(update_result_key_with_showIncludes(
+        ctx, *depend_mode_hash, result->console()));
+      LOG_RAW("Updated result key with showIncludes");
+    }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+    if (ctx.args_info.cxx_modules.generating_ddi) {
+      TRY(cxx_modules::deps::p1689::load_output_ddi(ctx, depend_mode_hash));
+      LOG_RAW("Updated result key with p1689 DDI file");
+    }
+#endif
+
+    result_key = depend_mode_hash->digest();
     LOG("Result key: {}", util::format_digest(*result_key));
   }
 
@@ -1310,20 +1432,15 @@ to_cache(Context& ctx,
     }
   }
 
-  if (!write_result(
-        ctx, *result_key, result->stdout_data, result->stderr_data)) {
+  if (!write_result(ctx, *result_key, *result)) {
     return tl::unexpected(Statistic::compiler_produced_no_output);
   }
 
   // Everything OK.
-  core::send_to_console(
-    ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
+  core::send_to_console(ctx, result->console().stderr_text(), STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
   core::send_to_console(
-    ctx,
-    util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
-      ctx, std::move(result->stdout_data))),
-    STDOUT_FILENO);
+    ctx, result->console().stdout_text().filtered(), STDOUT_FILENO);
 
   return *result_key;
 }
@@ -1776,7 +1893,7 @@ hash_common_info(const Context& ctx, const Args& args, Hash& hash)
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
-  if (ctx.config.compiler_type() == CompilerType::gcc) {
+  if (ctx.config.compiler() == Compiler::type::gcc) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
@@ -2269,7 +2386,7 @@ calculate_result_and_manifest_key(Context& ctx,
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
   bool is_clang = ctx.config.is_compiler_group_clang()
-                  || ctx.config.compiler_type() == CompilerType::other;
+                  || ctx.config.compiler() == Compiler::type::other;
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
@@ -2371,7 +2488,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
   if ((ctx.config.is_compiler_group_clang()
-       || ctx.config.compiler_type() == CompilerType::other)
+       || ctx.config.compiler() == Compiler::type::other)
       && ctx.args_info.output_is_precompiled_header
       && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
@@ -2420,14 +2537,18 @@ find_compiler(Context& ctx,
               bool masquerading_as_compiler)
 {
   // Support user override of the compiler.
-  const std::string compiler =
-    !ctx.config.compiler().empty()
-      ? ctx.config.compiler()
-      // In case ccache is masquerading as the compiler, use only base_name so
-      // the real compiler can be determined.
-      : (masquerading_as_compiler
-           ? fs::path(ctx.orig_args[0]).filename().string()
-           : ctx.orig_args[0]);
+  std::string&& compiler = [&] {
+    const auto& name = ctx.config.compiler().name();
+    if (name.has_value()) {
+      return *name;
+    } else if (masquerading_as_compiler) {
+      // In case ccache is masquerading as the compiler, use only base_name
+      // so the real compiler can be determined.
+      return fs::path(ctx.orig_args[0]).filename().string();
+    } else {
+      return ctx.orig_args[0];
+    }
+  }();
 
   const std::string resolved_compiler =
     util::is_full_path(compiler)
@@ -2483,13 +2604,14 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
   // Guess compiler after logging the config value in order to be able to
   // display "compiler_type = auto" before overwriting the value with the
   // guess.
-  if (ctx.config.compiler_type() == CompilerType::auto_guess) {
-    ctx.config.set_compiler_type(guess_compiler(ctx.orig_args[0]));
+  if (ctx.config.compiler() == Compiler::type::auto_guess) {
+    const auto type = Compiler::Type::guess(ctx.orig_args[0]);
+    ctx.config.set_compiler_type(type);
   }
-  DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
+  DEBUG_ASSERT(ctx.config.compiler() != Compiler::type::auto_guess);
 
   LOG("Compiler: {}", ctx.orig_args[0]);
-  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
+  LOG("Compiler type: {}", std::string(ctx.config.compiler().type_()));
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -2703,7 +2825,7 @@ do_cache_compilation(Context& ctx)
 
   // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
   // directly to Visual Studio.
-  if (ctx.config.compiler_type() == CompilerType::msvc) {
+  if (ctx.config.compiler() == Compiler::type::msvc) {
     util::unsetenv("VS_UNICODE_OUTPUT");
   }
 
@@ -2768,6 +2890,25 @@ do_cache_compilation(Context& ctx)
   }
 
   LOG("Object file: {}", ctx.args_info.output_obj);
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  if (ctx.args_info.cxx_modules.generating_bmi) {
+    LOG("C++20 modules BMI file: {}", ctx.args_info.cxx_modules.output_bmi);
+  }
+  if (ctx.args_info.cxx_modules.generating_ddi) {
+    LOG("C++20 modules p1689 DDI file: {}",
+        ctx.args_info.cxx_modules.output_ddi);
+  }
+  for (const auto& [name, path] : ctx.args_info.cxx_modules.names_paths) {
+    LOG("C++20 modules name/path mapping: {}={}", name, path);
+  }
+  for (const auto& path : ctx.args_info.cxx_modules.units_paths) {
+    LOG("C++20 modules unit path: {}", path);
+  }
+  for (const auto& dir : ctx.args_info.cxx_modules.search_dirs) {
+    LOG("C++20 modules search dir: {}", dir);
+  }
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.apparent_cwd,

@@ -1,8 +1,18 @@
+if(NOT DEFINED CCACHE_CTEST_BASH)
+  set(CCACHE_CTEST_BASH bash)
+endif()
+
 function(addtest name)
   add_test(
     NAME "test.${name}"
-    COMMAND bash ${CMAKE_SOURCE_DIR}/test/run ${name}
+    COMMAND ${CCACHE_CTEST_BASH} ${CMAKE_SOURCE_DIR}/test/run ${name}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  list(APPEND env
+    CCACHE=$<TARGET_FILE:ccache>
+    EXIT_IF_SKIPPED=true
+    HTTP_STORAGE_BACKEND=$<BOOL:${HTTP_STORAGE_BACKEND}>
+    CCACHE_CXX20_MODULES_FEATURE=$<BOOL:${CCACHE_CXX20_MODULES_FEATURE}>
   )
   set_tests_properties(
     "test.${name}"
@@ -41,7 +51,8 @@ addtest(inode_cache)
 addtest(input_charset)
 addtest(ivfsoverlay)
 addtest(masquerading)
-addtest(modules)
+addtest(clang_modules)
+addtest(cxx_modules)
 addtest(multi_arch)
 addtest(namespace)
 addtest(no_compression)
@@ -59,9 +70,7 @@ addtest(profiling_hip_clang)
 addtest(readonly)
 addtest(readonly_direct)
 addtest(remote_file)
-if(HTTP_STORAGE_BACKEND)
-  addtest(remote_http)
-endif()
+addtest(remote_http)
 addtest(remote_only)
 addtest(remote_redis)
 addtest(remote_redis_unix)

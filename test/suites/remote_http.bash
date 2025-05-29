@@ -27,6 +27,10 @@ maybe_start_ipv6_http_server() {
 }
 
 SUITE_remote_http_PROBE() {
+    if ! $CCACHE --version | grep -Fq -- http-storage &> /dev/null; then
+        echo "http-storage not available"
+        return
+    fi
     if ! "${HTTP_SERVER}" --help >/dev/null 2>&1; then
         echo "cannot execute ${HTTP_SERVER} - Python 3 might be missing"
     fi

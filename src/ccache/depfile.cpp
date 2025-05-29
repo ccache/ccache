@@ -169,8 +169,13 @@ tokenize(std::string_view text)
     }
 
     if (text[i] == ':') {
-      tokens.emplace_back(":");
-      ++i;
+      if (i + 1 < length && text[i + 1] == '|') {
+        tokens.emplace_back(":|");
+        i += 2;
+      } else {
+        tokens.emplace_back(":");
+        i += 1;
+      }
       continue;
     }
 

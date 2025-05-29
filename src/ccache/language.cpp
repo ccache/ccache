@@ -38,6 +38,7 @@ const struct
   {".cp", "c++"},
   {".CP", "c++"},
   {".cpp", "c++"},
+  {".cppm", "c++-module"},
   {".CPP", "c++"},
   {".cxx", "c++"},
   {".CXX", "c++"},
@@ -51,6 +52,8 @@ const struct
   // Preprocessed:
   {".i", "cpp-output"},
   {".ii", "c++-cpp-output"},
+  {".iim", "c++-module-cpp-output"},
+  {".ixx", "c++-module"},
   {".mi", "objective-c-cpp-output"},
   {".mii", "objective-c++-cpp-output"},
   {".s", "assembler"},
@@ -86,6 +89,7 @@ const struct
   {"c++", "c++-cpp-output"},
   {"c++-cpp-output", "c++-cpp-output"},
   {"c++-header", "c++-cpp-output"},
+  {"c++-module", "c++-module-cpp-output"},
   {"cu", "cpp-output"},   // NVCC
   {"cuda", "cpp-output"}, // Clang
   {"hip", "cpp-output"},
@@ -105,10 +109,10 @@ const struct
 } // namespace
 
 std::string_view
-language_for_file(const fs::path& path, CompilerType compiler_type)
+language_for_file(const fs::path& path, Compiler::Type compiler_type)
 {
   const auto ext = path.extension();
-  if (ext == ".cu" && compiler_type == CompilerType::clang) {
+  if (ext == ".cu" && compiler_type == Compiler::type::clang) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";
   }

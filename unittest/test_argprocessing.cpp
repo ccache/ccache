@@ -630,7 +630,7 @@ TEST_CASE("cuda_option_file")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_compiler_type(Compiler::type::nvcc);
   ctx.orig_args = Args::from_string("nvcc -optf foo.optf,bar.optf");
   util::write_file("foo.c", "");
   util::write_file("foo.optf", "-c foo.c -g -Wall -o");
@@ -649,7 +649,7 @@ TEST_CASE("nvcc_warning_flags_short")
   // With -Werror. This should conflict with host's -Werror flag.
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_compiler_type(Compiler::type::nvcc);
   ctx.orig_args =
     Args::from_string("nvcc -Werror all-warnings -Xcompiler -Werror -c foo.cu");
   util::write_file("foo.cu", "");
@@ -667,7 +667,7 @@ TEST_CASE("nvcc_warning_flags_long")
   // With --Werror. This shouldn't conflict with host's -Werror flag.
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_compiler_type(Compiler::type::nvcc);
   ctx.orig_args = Args::from_string(
     "nvcc --Werror all-warnings -Xcompiler -Werror -c foo.cu");
   util::write_file("foo.cu", "");
@@ -684,7 +684,7 @@ TEST_CASE("-Xclang")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::clang);
+  ctx.config.set_compiler_type(Compiler::type::clang);
 
   const std::string common_args =
     "-Xclang -fno-pch-timestamp"
@@ -799,7 +799,7 @@ TEST_CASE("MSVC options"
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
 
   util::write_file("foo.c", "");
 
@@ -815,7 +815,7 @@ TEST_CASE("MSVC PCH options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -858,7 +858,7 @@ TEST_CASE("MSVC PCH options with empty -Yc")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -901,7 +901,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -911,6 +911,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
     ctx.orig_args = Args::from_string("cl.exe /Yc /Fopch.cpp.obj /c pch.cpp");
     const auto result = process_args(ctx);
     REQUIRE(result);
+    CHECK(ctx.config.compiler() == Compiler::type::msvc);
     CHECK(ctx.args_info.generating_pch);
     CHECK(ctx.args_info.included_pch_file == "pch.pch");
     CHECK(ctx.args_info.output_obj == "pch.cpp.obj");
@@ -941,7 +942,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp and -Fo")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.cpp", "");
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
@@ -981,7 +982,7 @@ TEST_CASE("MSVC PCH unsupported options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("pch.h", "");
   util::write_file("pch.cpp", "");
 
@@ -1011,7 +1012,7 @@ TEST_CASE("MSVC debug information format options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_compiler_type(Compiler::type::msvc);
   util::write_file("foo.c", "");
 
   SUBCASE("Only /Z7")
@@ -1060,7 +1061,7 @@ TEST_CASE("ClangCL Debug information options")
 {
   TestContext test_context;
   Context ctx;
-  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  ctx.config.set_compiler_type(Compiler::type::clang_cl);
   util::write_file("foo.c", "");
 
   SUBCASE("/Z7")
@@ -1079,5 +1080,584 @@ TEST_CASE("ClangCL Debug information options")
     CHECK(result->preprocessor_args.to_string() == "clang-cl.exe /Zi");
   }
 }
+
+TEST_CASE("MSVC specify object file options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(Compiler::type::msvc);
+  util::write_file("foo.c", "");
+
+  SUBCASE("cl /c /Fo<file>.obj <file>.c")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fobar.obj foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+
+  SUBCASE("cl /Fo<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fobar.obj foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+
+  SUBCASE("cl /Fo:<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fo:bar.obj foo.c");
+    const auto result = process_args(ctx);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+
+  SUBCASE("cl /Fo: <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Fo: bar.obj foo.c");
+    const auto result = process_args(ctx);
+    CHECK(ctx.args_info.output_obj == "bar.obj");
+  }
+}
+
+TEST_CASE("MSVC specify source file type options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(Compiler::type::msvc);
+  util::write_file("foo.c", "");
+  util::write_file("foo.cpp", "");
+
+  SUBCASE("cl /TC <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /TC foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.c");
+  }
+
+  SUBCASE("cl /Tc<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tcfoo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.c");
+  }
+
+  SUBCASE("cl /Tc <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tc foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.c");
+  }
+
+  SUBCASE("cl /TP <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /TP foo.cpp");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.cpp");
+  }
+
+  SUBCASE("cl /Tp<file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tpfoo.cpp");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.cpp");
+  }
+
+  SUBCASE("cl /Tp <file>")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c /Tp foo.cpp");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.input_file == "foo.cpp");
+  }
+}
+
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+TEST_CASE("C++20 modules")
+{
+  Context ctx;
+  ctx.config.set_direct_mode(true);
+  ctx.config.set_depend_mode(true);
+  ctx.config.set_cxx_modules_mode(true);
+  TestContext test_context;
+  util::write_file("foo.cpp", "");
+  util::write_file("foo.cppm", "");
+  util::write_file("foo.ixx", "");
+
+  SUBCASE("cc -c <path>.cpp")
+  {
+    ctx.config.set_compiler_type(Compiler::type::auto_guess);
+    ctx.orig_args = Args::from_string(R"(cc -std=c++20 -c foo.cpp)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "c++");
+  }
+
+  SUBCASE("clang++ -x c++-module -c <path>.cpp")
+  {
+    ctx.config.set_compiler_type(Compiler::type::auto_guess);
+    ctx.orig_args =
+      Args::from_string(R"(clang++ -std=c++20 -x c++-module -c foo.cpp)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "c++-module");
+  }
+
+  SUBCASE("cl /c /interface /Tp <path>.cpp")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args =
+      Args::from_string(R"(cl.exe /std:c++20 /c /interface /Tp foo.cpp)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "c++-module");
+  }
+
+  SUBCASE("cc -c <path>.cppm")
+  {
+    ctx.config.set_compiler_type(Compiler::type::auto_guess);
+    ctx.orig_args = Args::from_string(R"(cc -std=c++20 -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "c++-module");
+  }
+
+  SUBCASE("cc -c <path>.ixx")
+  {
+    ctx.config.set_compiler_type(Compiler::type::auto_guess);
+    ctx.orig_args = Args::from_string(R"(cc -std=c++20 -c foo.ixx)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "c++-module");
+  }
+
+  SUBCASE("g++ -fmodules")
+  {
+    ctx.config.set_compiler_type(Compiler::type::gcc);
+    ctx.orig_args =
+      Args::from_string(R"(g++ -std=gnu++20 -fmodules -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(result->preprocessor_args.to_string()
+          == R"(g++ -std=gnu++20 -fmodules)");
+    CHECK(result->compiler_args.to_string()
+          == R"(g++ -std=gnu++20 -fmodules -c -fdiagnostics-color)");
+    CHECK(ctx.args_info.actual_language == "c++-module");
+  }
+
+  SUBCASE("g++ -fmodules-ts")
+  {
+    ctx.config.set_compiler_type(Compiler::type::gcc);
+    ctx.orig_args =
+      Args::from_string(R"(g++ -std=gnu++20 -fmodules-ts -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(result->preprocessor_args.to_string()
+          == R"(g++ -std=gnu++20 -fmodules-ts)");
+    CHECK(result->compiler_args.to_string()
+          == R"(g++ -std=gnu++20 -fmodules-ts -c -fdiagnostics-color)");
+    CHECK(ctx.args_info.actual_language == "c++-module");
+  }
+
+  SUBCASE("g++ -fdeps-format=p1689r5")
+  {
+    ctx.config.set_compiler_type(Compiler::type::gcc);
+    ctx.orig_args = Args::from_string(
+      R"(g++ -std=gnu++20 -fmodules -fdeps-format=p1689r5 -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(result->preprocessor_args.to_string()
+          == R"(g++ -std=gnu++20 -fmodules -fdeps-format=p1689r5)");
+    CHECK(
+      result->compiler_args.to_string()
+      == R"(g++ -std=gnu++20 -fmodules -fdeps-format=p1689r5 -c -fdiagnostics-color)");
+    CHECK(ctx.args_info.cxx_modules.ddi_format == "p1689r5");
+  }
+
+  SUBCASE("g++ -fdeps-file=")
+  {
+    ctx.config.set_compiler_type(Compiler::type::gcc);
+    ctx.orig_args = Args::from_string(
+      R"(g++ -std=gnu++20 -fmodules -fdeps-format=p1689r5 -fdeps-file=foo.ddi -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(
+      result->preprocessor_args.to_string()
+      == R"(g++ -std=gnu++20 -fmodules -fdeps-format=p1689r5 -fdeps-file=foo.ddi)");
+    CHECK(
+      result->compiler_args.to_string()
+      == R"(g++ -std=gnu++20 -fmodules -fdeps-format=p1689r5 -fdeps-file=foo.ddi -c -fdiagnostics-color)");
+    CHECK(ctx.args_info.cxx_modules.output_ddi == "foo.ddi");
+  }
+
+  SUBCASE("cl /scanDependencies-")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /scanDependencies- /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result.error() == Statistic::called_for_preprocessing);
+    CHECK(!ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.output_ddi == "-");
+  }
+
+  SUBCASE("cl /scanDependencies<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /scanDependenciesfoo.ddi /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result.error() == Statistic::called_for_preprocessing);
+    CHECK(!ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.output_ddi == "foo.ddi");
+  }
+
+  SUBCASE("cl /scanDependencies -")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /scanDependencies - /c /interface /Tp foo.cpp)");
+    const auto result = process_args(ctx);
+    REQUIRE(result.error() == Statistic::called_for_preprocessing);
+    CHECK(!ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.output_ddi == "-");
+  }
+
+  SUBCASE("cl /scanDependencies <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /scanDependencies foo.ddi /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result.error() == Statistic::called_for_preprocessing);
+    CHECK(!ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.output_ddi == "foo.ddi");
+  }
+
+  SUBCASE("cl /sourceDependencies-")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /sourceDependencies- /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.generating_msvc_source_dependencies);
+    CHECK(ctx.args_info.cxx_modules.output_msvc_source_dependencies == "-");
+  }
+
+  SUBCASE("cl /sourceDependencies<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /sourceDependenciesfoo.json /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.generating_msvc_source_dependencies);
+    CHECK(ctx.args_info.cxx_modules.output_msvc_source_dependencies
+          == "foo.json");
+  }
+
+  SUBCASE("cl /sourceDependencies -")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /sourceDependencies - /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.generating_msvc_source_dependencies);
+    CHECK(ctx.args_info.cxx_modules.output_msvc_source_dependencies == "-");
+  }
+
+  SUBCASE("cl /sourceDependencies <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 /sourceDependencies foo.json /c /interface /Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.expect_output_obj);
+    CHECK(ctx.args_info.cxx_modules.generating_msvc_source_dependencies);
+    CHECK(ctx.args_info.cxx_modules.output_msvc_source_dependencies
+          == "foo.json");
+  }
+
+  SUBCASE("clang++ --precompile")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fmodule-output --precompile -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.generating_bmi);
+    CHECK(ctx.args_info.cxx_modules.precompiling_bmi);
+    CHECK(!ctx.args_info.expect_output_obj);
+  }
+
+  SUBCASE("cl /ifcOnly")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -ifcOnly -c -interface -Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.generating_bmi);
+    CHECK(ctx.args_info.cxx_modules.precompiling_bmi);
+    CHECK(!ctx.args_info.expect_output_obj);
+  }
+
+  SUBCASE("clang++ -fmodule-output")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args =
+      Args::from_string(R"(clang++ -std=gnu++20 -fmodule-output -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.generating_bmi);
+  }
+
+  SUBCASE("clang++ -fmodule-output=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fmodule-output=foo.pcm -c foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.generating_bmi);
+    CHECK(ctx.args_info.cxx_modules.output_bmi == "foo.pcm");
+  }
+
+  SUBCASE("cl /ifcOutput<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -ifcOutputfoo -c -interface -Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.output_bmi == "foo");
+  }
+
+  SUBCASE("cl /ifcOutput <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -ifcOutput foo.ifc -c -interface -Tp foo.cppm)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.output_bmi == "foo.ifc");
+  }
+
+  SUBCASE("clang++ -fmodule-file=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fmodule-file=bar.pcm -c foo.cppm)");
+    const std::vector<std::string> expected = {"bar.pcm"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.units_paths == expected);
+  }
+
+  SUBCASE("clang++ -fmodule-file=<path> ... -fmodule-file=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fmodule-file=bar.pcm -fmodule-file=baz.pcm -fmodule-file=qux.pcm -c foo.cppm)");
+    const std::vector<std::string> expected = {"bar.pcm", "baz.pcm", "qux.pcm"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.units_paths == expected);
+  }
+
+  SUBCASE("clang++ -fmodule-file=<path>=<name>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fmodule-file=bar=bar.pcm -c foo.cppm)");
+    const std::unordered_map<std::string, std::string> expected = {
+      {"bar", "bar.pcm"}};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.names_paths == expected);
+  }
+
+  SUBCASE("clang++ -fmodule-file=<path>=<name> ... -fmodule-file=<path>=<name>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fmodule-file=bar=bar.pcm -fmodule-file=baz=baz.pcm -fmodule-file=qux=qux.pcm -c foo.cppm)");
+    const std::unordered_map<std::string, std::string> expected = {
+      {{"bar", "bar.pcm"}, {"baz", "baz.pcm"}, {"qux", "qux.pcm"}}};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.names_paths == expected);
+  }
+
+  SUBCASE("cl /reference<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      "cl.exe /std:c++20 -referencebar.ifc -c -interface -Tp foo.cppm");
+    const std::vector<std::string> expected = {"bar.ifc"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.units_paths == expected);
+  }
+
+  SUBCASE("cl /reference <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -reference bar.ifc -c -interface -Tp foo.cppm)");
+    const std::vector<std::string> expected = {"bar.ifc"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.units_paths == expected);
+  }
+
+  SUBCASE("cl /reference<path> ... /reference<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -referencebar.ifc -referencebaz.ifc -referencequx.ifc -c -interface -Tp foo.cppm)");
+    const std::vector<std::string> expected = {"bar.ifc", "baz.ifc", "qux.ifc"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.units_paths == expected);
+  }
+
+  SUBCASE("cl /reference <path> ... /reference <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -reference bar.ifc -reference baz.ifc -reference qux.ifc -c -interface -Tp foo.cppm)");
+    const std::vector<std::string> expected = {"bar.ifc", "baz.ifc", "qux.ifc"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.units_paths == expected);
+  }
+
+  SUBCASE("cl /reference<name>=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      "cl.exe /std:c++20 -referencebar=bar.ifc -c -interface -Tp foo.cppm");
+    const std::unordered_map<std::string, std::string> expected = {
+      {{"bar", "bar.ifc"}}};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.names_paths == expected);
+  }
+
+  SUBCASE("cl /reference <name>=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -reference bar=bar.ifc -c -interface -Tp foo.cppm)");
+    const std::unordered_map<std::string, std::string> expected = {
+      {{"bar", "bar.ifc"}}};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.names_paths == expected);
+  }
+
+  SUBCASE("cl /reference<name>=<path> ... /reference<name>=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -referencebar=bar.ifc -referencebaz=baz.ifc -referencequx=qux.ifc -c -interface -Tp foo.cppm)");
+    const std::unordered_map<std::string, std::string> expected = {
+      {{"bar", "bar.ifc"}, {"baz", "baz.ifc"}, {"qux", "qux.ifc"}}};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.names_paths == expected);
+  }
+
+  SUBCASE("cl /reference <name>=<path> ... /reference <name>=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -reference bar=bar.ifc -reference baz=baz.ifc -reference qux=qux.ifc -c -interface -Tp foo.cppm)");
+    const std::unordered_map<std::string, std::string> expected = {
+      {{"bar", "bar.ifc"}, {"baz", "baz.ifc"}, {"qux", "qux.ifc"}}};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.names_paths == expected);
+  }
+
+  SUBCASE("clang++ -fprebuilt-module-path=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fprebuilt-module-path=bar -c foo.cppm)");
+    const std::vector<std::string> expected = {"bar"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.search_dirs == expected);
+  }
+
+  SUBCASE(
+    "clang++ -fprebuilt-module-path=<path> ... -fprebuilt-module-path=<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::clang);
+    ctx.orig_args = Args::from_string(
+      R"(clang++ -std=gnu++20 -fprebuilt-module-path=bar -fprebuilt-module-path=baz -fprebuilt-module-path=qux -c foo.cppm)");
+    const std::vector<std::string> expected = {"bar", "baz", "qux"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.search_dirs == expected);
+  }
+
+  SUBCASE("cl /ifcSearchDir<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      "cl.exe /std:c++20 -ifcSearchDirbar -c -interface -Tp foo.cppm");
+    const std::vector<std::string> expected = {"bar"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.search_dirs == expected);
+  }
+
+  SUBCASE("cl /ifcSearchDir<path> ... /ifcSearchDir<path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -ifcSearchDirbar -ifcSearchDirbaz -ifcSearchDirqux -c -interface -Tp foo.cppm)");
+    const std::vector<std::string> expected = {"bar", "baz", "qux"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.search_dirs == expected);
+  }
+
+  SUBCASE("cl /ifcSearchDir <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -ifcSearchDir bar -c -interface -Tp foo.cppm)");
+    const std::vector<std::string> expected = {"bar"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.search_dirs == expected);
+  }
+
+  SUBCASE("cl /ifcSearchDir <path> ... /ifcSearchDir <path>")
+  {
+    ctx.config.set_compiler_type(Compiler::type::msvc);
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /std:c++20 -ifcSearchDir bar -ifcSearchDir baz -ifcSearchDir qux -c -interface -Tp foo.cppm)");
+    const std::vector<std::string> expected = {"bar", "baz", "qux"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.cxx_modules.search_dirs == expected);
+  }
+}
+#endif // CCACHE_CXX20_MODULES_FEATURE
 
 TEST_SUITE_END();

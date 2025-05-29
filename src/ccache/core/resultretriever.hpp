@@ -43,7 +43,7 @@ public:
 
   //`path` should be the path to the local result entry file if the result comes
   // from local storage.
-  ResultRetriever(const Context& ctx,
+  ResultRetriever(Context& ctx,
                   std::optional<Hash::Digest> result_key = std::nullopt);
 
   void on_embedded_file(uint8_t file_number,
@@ -54,13 +54,13 @@ public:
                    uint64_t file_size) override;
 
 private:
-  const Context& m_ctx;
+  Context& m_ctx;
   std::optional<Hash::Digest> m_result_key;
 
   std::filesystem::path get_dest_path(Result::FileType file_type) const;
 
   void write_dependency_file(const std::filesystem::path& path,
-                             nonstd::span<const uint8_t> data);
+                             nonstd::span<const uint8_t> data) const;
 };
 
 } // namespace core

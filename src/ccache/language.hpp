@@ -27,7 +27,7 @@
 // Guess the language of `path` based on its extension and a compiler type.
 // Returns the empty string if the extension is unknown.
 std::string_view language_for_file(const std::filesystem::path& path,
-                                   CompilerType compiler_type);
+                                   Compiler::Type compiler_type);
 
 // Return the preprocessed language for `language`, or the empty string if
 // unknown.

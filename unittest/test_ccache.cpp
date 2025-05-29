@@ -55,7 +55,7 @@ helper(bool masquerading_as_compiler,
     };
 
   Context ctx;
-  ctx.config.set_compiler(config_compiler);
+  ctx.config.set_compiler_name(config_compiler);
   ctx.orig_args = Args::from_string(args);
   find_compiler(ctx, find_executable_stub, masquerading_as_compiler);
   return ctx.orig_args.to_string();
@@ -181,24 +181,28 @@ TEST_CASE("guess_compiler")
 
   SUBCASE("Compiler not in file system")
   {
-    CHECK(guess_compiler("/test/prefix/clang") == CompilerType::clang);
-    CHECK(guess_compiler("/test/prefix/clang-3.8") == CompilerType::clang);
-    CHECK(guess_compiler("/test/prefix/clang++") == CompilerType::clang);
-    CHECK(guess_compiler("/test/prefix/clang++-10") == CompilerType::clang);
+    CHECK(Compiler::Type::guess("/test/prefix/clang") == Compiler::type::clang);
+    CHECK(Compiler::Type::guess("/test/prefix/clang-3.8")
+          == Compiler::type::clang);
+    CHECK(Compiler::Type::guess("/test/prefix/clang++")
+          == Compiler::type::clang);
+    CHECK(Compiler::Type::guess("/test/prefix/clang++-10")
+          == Compiler::type::clang);
 
-    CHECK(guess_compiler("/test/prefix/gcc") == CompilerType::gcc);
-    CHECK(guess_compiler("/test/prefix/gcc-4.8") == CompilerType::gcc);
-    CHECK(guess_compiler("/test/prefix/g++") == CompilerType::gcc);
-    CHECK(guess_compiler("/test/prefix/g++-9") == CompilerType::gcc);
-    CHECK(guess_compiler("/test/prefix/x86_64-w64-mingw32-gcc-posix")
-          == CompilerType::gcc);
+    CHECK(Compiler::Type::guess("/test/prefix/gcc") == Compiler::type::gcc);
+    CHECK(Compiler::Type::guess("/test/prefix/gcc-4.8") == Compiler::type::gcc);
+    CHECK(Compiler::Type::guess("/test/prefix/g++") == Compiler::type::gcc);
+    CHECK(Compiler::Type::guess("/test/prefix/g++-9") == Compiler::type::gcc);
+    CHECK(Compiler::Type::guess("/test/prefix/x86_64-w64-mingw32-gcc-posix")
+          == Compiler::type::gcc);
 
-    CHECK(guess_compiler("/test/prefix/nvcc") == CompilerType::nvcc);
-    CHECK(guess_compiler("/test/prefix/nvcc-10.1.243") == CompilerType::nvcc);
+    CHECK(Compiler::Type::guess("/test/prefix/nvcc") == Compiler::type::nvcc);
+    CHECK(Compiler::Type::guess("/test/prefix/nvcc-10.1.243")
+          == Compiler::type::nvcc);
 
-    CHECK(guess_compiler("/test/prefix/x") == CompilerType::other);
-    CHECK(guess_compiler("/test/prefix/cc") == CompilerType::other);
-    CHECK(guess_compiler("/test/prefix/c++") == CompilerType::other);
+    CHECK(Compiler::Type::guess("/test/prefix/x") == Compiler::type::other);
+    CHECK(Compiler::Type::guess("/test/prefix/cc") == Compiler::type::other);
+    CHECK(Compiler::Type::guess("/test/prefix/c++") == Compiler::type::other);
   }
 
 #ifndef _WIN32
@@ -210,7 +214,7 @@ TEST_CASE("guess_compiler")
     const auto cc = cwd / "cc";
     CHECK(fs::create_symlink("intermediate", cc));
 
-    CHECK(guess_compiler(cc) == CompilerType::gcc);
+    CHECK(Compiler::Type::guess(cc) == Compiler::type::gcc);
   }
 
   SUBCASE("Classify clang-cl symlink to clang")
@@ -220,7 +224,7 @@ TEST_CASE("guess_compiler")
     const auto clang_cl = cwd / "clang-cl";
     CHECK(fs::create_symlink("clang", clang_cl));
 
-    CHECK(guess_compiler(clang_cl) == CompilerType::clang_cl);
+    CHECK(Compiler::Type::guess(clang_cl) == Compiler::type::clang_cl);
   }
 
   SUBCASE("Probe hardlink for actual compiler")
@@ -230,7 +234,7 @@ TEST_CASE("guess_compiler")
     const auto cc = cwd / "cc";
     CHECK(fs::create_hard_link("gcc", cc));
 
-    CHECK(guess_compiler(cc) == CompilerType::gcc);
+    CHECK(Compiler::Type::guess(cc) == Compiler::type::gcc);
   }
 #endif
 }

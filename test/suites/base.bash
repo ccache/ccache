@@ -78,17 +78,30 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Debug option"
 
-    $CCACHE_COMPILE -c test1.c -g
+    local debug_format
+    if $HOST_OS_WINDOWS; then
+        # Set debug format to DWARF on Windows, otherwise the test below fails. There are two
+        # reasons for this failure:
+        # 1. The debug PDB format includes the command line args, which will differ because the
+        #    filenames differ (reference_test1.o != test1.o)
+        # 2. The ccache compilation forces color diagnostics with `-fcolor-diagnostics` but this
+        #    option is not used for the reference compilation
+        local debug_format=-gdwarf
+    fi
+
+    $CCACHE_COMPILE -c test1.c -g $debug_format
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
 
-    $CCACHE_COMPILE -c test1.c -g
+    $CCACHE_COMPILE -c test1.c -g $debug_format
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
-    $COMPILER -c -o reference_test1.o test1.c -g
+    $COMPILER -c -o reference_test1.o test1.c -g $debug_format
     expect_equal_object_files reference_test1.o test1.o
+
+    unset debug_format
 
     # -------------------------------------------------------------------------
     TEST "Output option"

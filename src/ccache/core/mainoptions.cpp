@@ -422,6 +422,9 @@ get_version_text(const std::string_view ccache_name)
   if (util::cpu_supports_avx2()) {
     features.emplace_back("avx2");
   }
+#ifdef CCACHE_CXX20_MODULES_FEATURE
+  features.emplace_back("C++20-modules");
+#endif
   std::sort(features.begin(), features.end());
   return FMT(
     VERSION_TEXT, ccache_name, CCACHE_VERSION, util::join(features, " "));
