@@ -120,6 +120,9 @@ endif()
 # Installation
 #
 install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(WIN32)
+  install(FILES ${CMAKE_CURRENT_LIST_DIR}/misc/ccache.exe.manifest TYPE BIN DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 #
 # Packaging
