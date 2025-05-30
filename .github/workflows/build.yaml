@@ -305,44 +305,6 @@ jobs:
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
-          - name: Windows VS2019 32-bit Ninja
-            os: windows-2019
-            msvc_arch: x64_x86
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
-            TEST_CC: clang -target i686-pc-windows-msvc
-
-          - name: Windows VS2019 32-bit MSBuild
-            os: windows-2019
-            msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Visual Studio 16 2019
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A Win32
-            TEST_CC: clang -target i686-pc-windows-msvc
-
-          - name: Windows VS2019 64-bit Ninja
-            os: windows-2019
-            msvc_arch: x64
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
-            TEST_CC: clang -target x86_64-pc-windows-msvc
-
-          - name: Windows VS2019 64-bit MSBuild
-            os: windows-2019
-            msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Visual Studio 16 2019
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A x64
-            TEST_CC: clang -target x86_64-pc-windows-msvc
-
           - name: Windows VS2022 32-bit Ninja
             os: windows-2022
             msvc_arch: x64_x86
