@@ -295,7 +295,7 @@ probe_generic_compiler(const fs::path& path)
   // link to a compiler with a more specific name.
   std::string name = util::pstr(path.filename()).str();
   if (name == "cc" || name == "c++") {
-    static const char* candidate_names[] = {"gcc", "g++", "clang", "clang++"};
+    static const char* candidate_names[] = {"clang", "clang++", "gcc", "g++"};
     for (const char* candidate_name : candidate_names) {
       fs::path candidate = path.parent_path() / candidate_name;
       if (fs::equivalent(candidate, path)) {

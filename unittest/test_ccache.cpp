@@ -223,14 +223,39 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler(clang_cl) == CompilerType::clang_cl);
   }
 
-  SUBCASE("Probe hardlink for actual compiler")
+  SUBCASE("Probe hardlink for actual compiler, gcc")
   {
     const auto cwd = *fs::current_path();
-    util::write_file(cwd / "gcc", "");
     const auto cc = cwd / "cc";
-    CHECK(fs::create_hard_link("gcc", cc));
+    const auto gcc = cwd / "gcc";
+    util::write_file(cwd / "cc", "");
+    CHECK(fs::create_hard_link(cc, gcc));
 
     CHECK(guess_compiler(cc) == CompilerType::gcc);
+  }
+
+  SUBCASE("Probe hardlink for actual compiler, clang")
+  {
+    const auto cwd = *fs::current_path();
+    const auto cc = cwd / "cc";
+    const auto clang = cwd / "clang";
+    util::write_file(cwd / "cc", "");
+    CHECK(fs::create_hard_link(cc, clang));
+
+    CHECK(guess_compiler(cc) == CompilerType::clang);
+  }
+
+  SUBCASE("Probe hardlink for actual compiler, gcc+clang")
+  {
+    const auto cwd = *fs::current_path();
+    const auto cc = cwd / "cc";
+    const auto gcc = cwd / "gcc";
+    const auto clang = cwd / "clang";
+    util::write_file(cwd / "cc", "");
+    CHECK(fs::create_hard_link(cc, gcc));
+    CHECK(fs::create_hard_link(cc, clang));
+
+    CHECK(guess_compiler(cc) == CompilerType::clang);
   }
 #endif
 }
