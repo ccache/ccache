@@ -162,6 +162,9 @@ Manifest::look_up_result_digest(const Context& ctx) const
   // Check newest result first since it's more likely to match.
   for (size_t i = m_results.size(); i > 0; i--) {
     const auto& result = m_results[i - 1];
+    LOG("Considering result entry {} ({})",
+        i - 1,
+        util::format_digest(result.key));
     if (result_matches(ctx, result, stated_files, hashed_files)) {
       LOG("Result entry {} matched in manifest", i - 1);
       return result.key;
@@ -367,7 +370,7 @@ Manifest::result_matches(
     if (stated_files_iter == stated_files.end()) {
       util::DirEntry entry(path);
       if (!entry) {
-        LOG("Info: {} is mentioned in a manifest entry but can't be read ({})",
+        LOG("{} is mentioned in a manifest entry but can't be read ({})",
             path,
             strerror(entry.error_number()));
         return false;
@@ -380,7 +383,8 @@ Manifest::result_matches(
     }
     const FileStats& fs = stated_files_iter->second;
 
-    if (fi.fsize != fs.size) {
+    if (fs.size != fi.fsize) {
+      LOG("Mismatch for {}: size {} != {}", path, fs.size, fi.fsize);
       return false;
     }
 
@@ -422,13 +426,18 @@ Manifest::result_matches(
         return false;
       }
       if (ret.contains(HashSourceCode::found_time)) {
+        // hash_source_code_file has already logged.
         return false;
       }
 
       hashed_files_iter = hashed_files.emplace(path, actual_digest).first;
     }
 
-    if (fi.digest != hashed_files_iter->second) {
+    if (hashed_files_iter->second != fi.digest) {
+      LOG("Mismatch for {}: hash {} != {}",
+          path,
+          util::format_digest(hashed_files_iter->second),
+          util::format_digest(fi.digest));
       return false;
     }
   }
