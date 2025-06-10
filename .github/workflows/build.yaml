@@ -173,11 +173,9 @@ jobs:
       matrix:
         include:
           - sys: mingw64
-            env: x86_64
             compiler: gcc
 
           - sys: mingw64
-            env: x86_64
             compiler: clang
             extra_cmake_params: -DENABLE_TESTING=OFF # clang currently triggers warnings with doctest
 
@@ -195,12 +193,13 @@ jobs:
             git
             diffutils
             tar
-            mingw-w64-${{matrix.env}}-toolchain
-            mingw-w64-${{matrix.env}}-cmake
-            mingw-w64-${{matrix.env}}-ninja
-            mingw-w64-${{matrix.env}}-hiredis
-            mingw-w64-${{matrix.env}}-lld
-            mingw-w64-${{matrix.env}}-${{matrix.compiler}}
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            ninja:p
+            hiredis:p
+            lld:p
+            ${{matrix.compiler}}:p
 
       - name: Set up environment
         run: |
@@ -234,7 +233,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.sys}}-${{ matrix.env }}-${{ matrix.compiler }}-testdir.tar.xz
+          name: ${{ matrix.sys }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
   build_macos_universal:
