@@ -190,7 +190,7 @@ jobs:
 
           - sys: mingw64
             compiler: clang
-            extra_cmake_params: -DENABLE_TESTING=OFF # clang currently triggers warnings with doctest
+            extra_cmake_params: -DCMAKE_CXX_FLAGS=-Wno-deprecated # doctest issue #900
             os: windows-2025
 
           - sys: clangarm64
