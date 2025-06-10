@@ -167,17 +167,23 @@ jobs:
 
   build_and_test_msys:
     timeout-minutes: 30
-    runs-on: windows-2025
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - sys: mingw64
             compiler: gcc
+            os: windows-2025
 
           - sys: mingw64
             compiler: clang
             extra_cmake_params: -DENABLE_TESTING=OFF # clang currently triggers warnings with doctest
+            os: windows-2025
+
+          - sys: clangarm64
+            compiler: clang
+            os: windows-11-arm
 
     name: 'Windows MSYS2 ${{ matrix.sys }} ${{ matrix.compiler }}'
     defaults:
@@ -223,7 +229,7 @@ jobs:
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
           CMAKE_GENERATOR: Ninja
-          TEST_CC: gcc
+          TEST_CC: ${{ matrix.compiler }}
 
       - name: Collect testdir from failed tests
         if: failure()
