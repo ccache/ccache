@@ -29,6 +29,9 @@
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <ccache/storage/remote/redisstorage.hpp>
 #endif
+#ifdef HAVE_EXPERIMENTAL_STORAGE_BACKEND
+#  include "ccache/storage/remote/socketstorage.hpp"
+#endif
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/expected.hpp>
@@ -60,6 +63,11 @@ const std::unordered_map<std::string /*scheme*/,
 #ifdef HAVE_REDIS_STORAGE_BACKEND
     {"redis", std::make_shared<remote::RedisStorage>()},
     {"redis+unix", std::make_shared<remote::RedisStorage>()},
+#endif
+#ifdef HAVE_EXPERIMENTAL_STORAGE_BACKEND
+    {"socket+http", std::make_shared<remote::SocketStorage>()},
+    {"socket+https", std::make_shared<remote::SocketStorage>()},
+    {"socket+gs", std::make_shared<remote::SocketStorage>()},
 #endif
 };
 

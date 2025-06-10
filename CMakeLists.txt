@@ -81,6 +81,9 @@ include(EnableCcache)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
 option(HTTP_STORAGE_BACKEND "Enable HTTP remote storage" ON)
+
+# add the option for experimental storage
+option(EXPERIMENTAL_STORAGE_BACKEND "Enable experimental remote storage" ON)
 option(ENABLE_TESTING "Enable tests" ON)
 
 include(InstallDirs)
