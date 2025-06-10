@@ -84,7 +84,6 @@ jobs:
             elfutils
             libhiredis-dev
             libzstd-dev
-            ninja-build
             python3
             redis-server
             redis-tools
@@ -137,7 +136,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-            brew install ninja hiredis redis
+            brew install hiredis redis
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
@@ -247,10 +246,6 @@ jobs:
     steps:
       - name: Get source
         uses: actions/checkout@v4
-      - name: Install Dependencies
-        run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-              brew install ninja
       - name: Build macOS universal binary
         run: ci/build-macos-binary
       - name: Archive universal binary
@@ -377,14 +372,14 @@ jobs:
             CXX: g++
             SPECIAL: build-and-verify-package
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
-            apt_get: elfutils libzstd-dev libhiredis-dev ninja-build
+            apt_get: elfutils libzstd-dev libhiredis-dev
 
           - name: Source package
             os: ubuntu-22.04
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev libhiredis-dev ninja-build asciidoctor
+            apt_get: elfutils libzstd-dev libhiredis-dev asciidoctor
 
           - name: HTML documentation
             os: ubuntu-22.04
