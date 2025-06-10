@@ -271,6 +271,78 @@ jobs:
           name: macOS-binary
           path: build_universal/ccache
 
+  build_linux_binary:
+    timeout-minutes: 30
+    name: Linux ${{ matrix.arch }} binary
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x86_64
+
+          - os: ubuntu-22.04-arm
+            arch: aarch64
+
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        run: ci/build-binary
+      - name: Archive binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary-${{ matrix.arch }}
+          path: install/bin/ccache
+
+  build_windows_binary:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: i686
+            toolchain: i686-w64-mingw32-posix
+            apt_get: g++-mingw-w64-i686-posix
+
+          - arch: x86_64
+            toolchain: x86_64-w64-mingw32-posix
+            apt_get: g++-mingw-w64-x86-64-posix
+
+          - arch: aarch64
+            toolchain: aarch64-w64-mingw32
+            llvm_mingw: true
+
+    name: Windows ${{ matrix.arch }} binary
+    steps:
+      - name: Run apt-get
+        if: matrix.apt_get != ''
+        run: sudo apt-get update && sudo apt-get install ${{ matrix.apt_get }}
+      - name: Install llvm-mingw
+        if: matrix.llvm_mingw != ''
+        run: |
+          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20250709/llvm-mingw-20250709-ucrt-ubuntu-22.04-x86_64.tar.xz
+          tar -Jxf llvm-mingw-*.tar.xz
+          rm *.tar.xz
+          sudo mkdir -p /opt
+          sudo mv llvm-mingw-* /opt/llvm-mingw
+          echo /opt/llvm-mingw/bin >> $GITHUB_PATH
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_PARAMS: -D CMAKE_TOOLCHAIN_FILE=../toolchains/${{ matrix.toolchain }}.cmake
+        run: ci/build-binary
+      - name: Archive binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary-${{ matrix.arch }}
+          path: install/bin/ccache.exe
+
   specific_tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
