@@ -345,15 +345,15 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
-          # Doesn't run tests as windows machines are x86
           - name: Windows VS2022 ARM64 MSBuild
-            os: windows-2022
+            os: windows-11-arm
             msvc_arch: ARM64
+            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -DENABLE_TESTING=OFF -A ARM64
-            RUN_TESTS: none
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A ARM64
+            TEST_CC: clang -target aarch64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
             os: ubuntu-22.04
