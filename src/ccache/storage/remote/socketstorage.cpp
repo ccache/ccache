@@ -25,6 +25,8 @@
 
 namespace storage::remote {
 
+constexpr std::chrono::seconds STARTUP_DELAY(5);
+
 class BackendNode : public RemoteStorage::Backend
 {
 public:
@@ -98,21 +100,67 @@ BackendNode::BackendNode(const Url& url,
   : bsock(std::make_unique<UnixSocket>(name, ' ')),
     m_msg_handler(std::make_unique<msgr::MessageHandler>())
 {
-  fs::path sock_path = bsock->generate_path();
-  if (!bsock->exists()) {
-    LOG("DEBUG Socket on {} does not seem to exist!",
-        sock_path.generic_string());
-    backend::start_daemon(
-      url.scheme(), sock_path, url.str() + attributes, BUFFERSIZE);
-    sleep(1); // wait a second
+  if (bsock->start(false)) {
+    return;
   }
 
-  if (!bsock->start(false)) {
-    LOG("DEBUG socket {} in use but process dead!", sock_path.generic_string());
+  fs::path sock_path = bsock->generate_path();
+  fs::path lock_path = sock_path.string() + ".lock";
+
+  int lock_fd = open(lock_path.c_str(), O_RDWR | O_CREAT, 0666);
+  if (lock_fd < 0) {
+    throw std::runtime_error("Failed to open lock file: " + lock_path.string());
+  }
+
+  bool daemon_started = false;
+  util::FileLock lock(lock_fd);
+
+  if (lock.acquire()) {
+    if (bsock->start(false)) {
+      lock.release();
+      close(lock_fd);
+      return;
+    }
+
+    LOG("Process {} creating socket on {}.",
+        getpid(),
+        sock_path.generic_string());
+
+    if (bsock->exists()) {
+      fs::remove(sock_path);
+    }
+
     backend::start_daemon(
       url.scheme(), sock_path, url.str() + attributes, BUFFERSIZE);
-    sleep(1); // wait a second
+
+    daemon_started = true;
+  } else {
+    LOG("Process {} is waiting for others to intialise daemon", getpid());
+    // just be a tiny bit patient
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
+
+  auto start_time = std::chrono::steady_clock::now();
+  while (std::chrono::steady_clock::now() - start_time < STARTUP_DELAY) {
+    if (bsock->exists() && bsock->start(false)) {
+      lock.release();
+      close(lock_fd);
+      fs::remove(lock_path); // this can be parallelised
+      return;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  if (daemon_started) {
+    LOG("ERROR: Daemon started but socket not available after timeout", "");
+  } else {
+    LOG("ERROR: Timed out waiting for other process to create socket", "");
+  }
+
+  lock.release();
+  close(lock_fd);        // failed to intialise!
+  fs::remove(lock_path); // this can be parallelised
+  assert(false && "Failed to initialize backend node");
 }
 
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
