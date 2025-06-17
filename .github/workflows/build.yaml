@@ -75,7 +75,7 @@ jobs:
             version: "15.3"
     steps:
       - name: Install dependencies on Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
 
@@ -134,7 +134,7 @@ jobs:
           echo "CMAKE_PARAMS=${cmake_params[*]}" >> $GITHUB_ENV
 
       - name: Install dependencies on macOS
-        if: ${{ runner.os == 'macOS' }}
+        if: runner.os == 'macOS'
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
             brew install ninja hiredis redis
