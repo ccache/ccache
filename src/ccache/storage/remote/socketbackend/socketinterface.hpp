@@ -7,10 +7,12 @@
 
 #include <fcntl.h>
 #include <netdb.h>
+#include <readerwriterqueue/readerwritercircularbuffer.hpp>
 
 #include <cassert>
 #include <cctype>
 #include <cstdint>
+#include <functional>
 #include <thread>
 
 #ifdef _WIN32
@@ -33,7 +35,6 @@ constexpr auto invalid_socket_t = -1;
 #include <unistd.h>
 
 #include <filesystem>
-#include <future>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -47,6 +48,7 @@ constexpr auto SOCKET_PATH_TEMPLATE =
   "/home/rocky/repos/py_server_script/daemons/backend-%s.sock";
 
 constexpr auto BUFFERSIZE = 8192;
+constexpr auto LOCKFREEQUEUE_CAP = 8;
 
 constexpr std::size_t MESSAGE_TIMEOUT = 15;
 constexpr std::size_t READ_TIMEOUT_SECOND = 5;
@@ -134,8 +136,8 @@ public:
 
   size_t size() const;
 
-  std::optional<std::string> getline(std::optional<char> delimiter,
-                                     const std::atomic<bool>& shouldStop);
+  std::optional<std::string> getbytes(std::optional<char> delimiter,
+                                      const std::atomic<bool>& shouldStop);
 
 private:
   void append(char c);
@@ -177,8 +179,8 @@ StreamReader::size() const
 }
 
 inline std::optional<std::string>
-StreamReader::getline(const std::optional<char> delimiter,
-                      const std::atomic<bool>& shouldStop)
+StreamReader::getbytes(const std::optional<char> delimiter,
+                       const std::atomic<bool>& shouldStop)
 {
   m_fixed_buffer_used_size = 0;
   m_buffer.clear();
@@ -240,18 +242,6 @@ private:
   /// @brief specifies the stream for reading / writing
   std::shared_ptr<Stream> m_socket_stream;
 
-  /// @brief signals socket is ready for next message
-  std::atomic<bool> m_send_next_msg = false;
-
-  /// @brief provides wait logic when receiving messages
-  std::condition_variable m_send_next_msg_cv;
-
-  /// @brief serves as lock for future/promise
-  std::mutex m_promise_mutex;
-
-  /// @brief hold the next message to arrive
-  std::promise<std::string> m_next_msg_promise;
-
   /// @brief is behaviour after message receival set?
   std::atomic<bool> m_message_callback = false;
   /// @brief called upon receiving a message
@@ -259,6 +249,9 @@ private:
 
   /// @brief listens for messages over stream
   std::thread m_listen_thread;
+
+  /// @brief buffer pool for message receival
+  moodycamel::BlockingReaderWriterCircularBuffer<std::string> m_msg_queue;
 
   /// @brief waits for messages - called by the listener thread
   void wait_for_messages();
@@ -322,7 +315,6 @@ UnixSocket::set_response_behaviour(
 
 inline UnixSocket::~UnixSocket()
 {
-  m_send_next_msg_cv.notify_all();
 #ifdef _WIN32
   if (WSACleanup() != 0) {
     std::cerr << "WSACleanup() failed";
@@ -387,7 +379,8 @@ UnixSocket::start(bool is_server)
 
 inline UnixSocket::UnixSocket(const std::string& host, const char msg_delimiter)
   : m_path(host),
-    m_delimiter(msg_delimiter)
+    m_delimiter(msg_delimiter),
+    m_msg_queue(LOCKFREEQUEUE_CAP)
 {
 }
 
@@ -454,24 +447,16 @@ UnixSocket::send(const T& msg)
 inline OpCode
 UnixSocket::receive(std::string& result, const bool timeout)
 {
-  std::unique_lock<std::mutex> lock(m_promise_mutex);
-
-  m_next_msg_promise = std::promise<std::string>();
-  std::future<std::string> futureMessage = m_next_msg_promise.get_future();
-
-  m_send_next_msg.store(true, std::memory_order_release);
-  m_send_next_msg_cv.notify_one();
-  lock.unlock();
+  bool got_message = false;
 
   if (!timeout) {
-    result = futureMessage.get();
+    m_msg_queue.try_dequeue(result);
+    got_message = true;
   } else {
-    std::future_status status =
-      futureMessage.wait_for(std::chrono::seconds(MESSAGE_TIMEOUT));
+    got_message = m_msg_queue.wait_dequeue_timed(
+      result, std::chrono::seconds(MESSAGE_TIMEOUT));
 
-    if (status == std::future_status::ready) {
-      result = futureMessage.get();
-    } else {
+    if (!got_message) {
       return OpCode::timeout;
     }
   }
@@ -483,40 +468,19 @@ UnixSocket::wait_for_messages()
 {
   const auto bufsiz = BUFFERSIZE;
   char buf[bufsiz];
-  auto req =
-    std::isblank(m_delimiter) ? std::nullopt : std::optional<char>(m_delimiter);
 
   // disattached thread keeps working through this cycle
   while (!m_should_end) {
     StreamReader reader(*m_socket_stream, buf, bufsiz);
 
-    const auto message = reader.getline(req, m_should_end);
+    const auto message = reader.getbytes(m_delimiter, m_should_end);
 
     if (m_should_end) {
       break;
     }
 
     if (message.has_value()) {
-      // Wait efficiently for the send_next_msg flag
-      {
-        std::unique_lock<std::mutex> lock(m_promise_mutex);
-        m_send_next_msg_cv.wait(lock, [this] {
-          return m_send_next_msg.load(std::memory_order_acquire)
-                 || m_should_end;
-        });
-
-        if (m_should_end) {
-          break;
-        }
-
-        try {
-          m_next_msg_promise.set_value(message.value());
-        } catch (const std::future_error& e) {
-          std::cerr << "Failed to set promise value: " << e.what() << "\n";
-        }
-
-        m_send_next_msg.store(false, std::memory_order_release);
-      }
+      m_msg_queue.try_enqueue(message.value());
 
       if (m_message_callback) {
         message_callback(*message);
