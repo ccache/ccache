@@ -11,11 +11,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <cassert>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -24,8 +25,6 @@
 #include <vector>
 
 constexpr auto MAX_CLIENT_SUPPORTED = 32;
-constexpr auto PACKET_SIZE = BUFFERSIZE / 2;
-constexpr size_t BODY_SIZE = PACKET_SIZE - 16;
 
 constexpr auto MSG_GET = "1"sv;
 constexpr auto MSG_PUT = "2"sv;
@@ -118,14 +117,12 @@ uint8_t PREV_ACK = 0;
 struct Packet
 {
   uint8_t MsgType;
-  uint8_t Rest;
+  uint8_t FileDescriptor;
   uint8_t MsgID;
   uint8_t Ack;
-  uint16_t Reserved1;
-  uint16_t Reserved2;
   uint32_t MsgLength;
   uint32_t Offset;
-  std::array<uint8_t, BODY_SIZE> Body;
+  std::vector<uint8_t> Body;
 
   /**
    * @brief Serializes the data fields and encodes the combined result into a
@@ -192,7 +189,6 @@ struct Packet
 
 inline Packet::Packet(const std::string_view& data)
 {
-  assert(data.length() >= 32 && "sizeof(data) should be at least 16 bytes");
   decode(data);
 }
 
@@ -200,9 +196,8 @@ inline void
 Packet::print() const
 {
   std::cerr << "<---------->";
-  std::cerr << "\n\tHEAD:   " << int(MsgType) << " " << int(Rest) << " "
-            << int(MsgID) << " " << int(Ack);
-  std::cerr << "\n\tUnused: " << Reserved1 << " " << Reserved2;
+  std::cerr << "\n\tHEAD:   " << int(MsgType) << " " << int(FileDescriptor)
+            << " " << int(MsgID) << " " << int(Ack);
   std::cerr << "\n\tLength: " << MsgLength;
   std::cerr << "\n\tOffset: " << Offset << "\n";
   std::cerr << "</--------->" << "\n";
@@ -213,11 +208,9 @@ Packet::encode(std::string& result) const
 {
   result.clear();
   impl::serialize(result, MsgType);
-  impl::serialize(result, Rest);
+  impl::serialize(result, FileDescriptor);
   impl::serialize(result, MsgID);
   impl::serialize(result, Ack);
-  impl::serialize(result, Reserved1);
-  impl::serialize(result, Reserved2);
   impl::serialize(result, MsgLength);
   impl::serialize(result, Offset);
   for (auto octet : Body) {
@@ -230,21 +223,21 @@ Packet::decode(const std::string_view& result)
 {
   auto it = result.cbegin();
   MsgType = impl::deserialize<decltype(MsgType)>(it, result.cend());
-  Rest = impl::deserialize<decltype(Rest)>(it, result.cend());
+  FileDescriptor =
+    impl::deserialize<decltype(FileDescriptor)>(it, result.cend());
   MsgID = impl::deserialize<decltype(MsgID)>(it, result.cend());
   Ack = impl::deserialize<decltype(Ack)>(it, result.cend());
-  Reserved1 = impl::deserialize<decltype(Reserved1)>(it, result.cend());
-  Reserved2 = impl::deserialize<decltype(Reserved2)>(it, result.cend());
   MsgLength = impl::deserialize<decltype(MsgLength)>(it, result.cend());
   Offset = impl::deserialize<decltype(Offset)>(it, result.cend());
-  for (uint8_t& octet : Body) {
-    octet = impl::deserialize<uint8_t>(it, result.cend());
+  while (it != result.cend()) {
+    uint8_t octet = impl::deserialize<uint8_t>(it, result.cend());
+    Body.push_back(octet);
   }
 }
 
 struct MessageHandler
 {
-  std::vector<Packet> packets;
+  Packet packet;
 
   /**
    * @brief Creates data packets representing a message of provided type for
@@ -313,97 +306,66 @@ MessageHandler::create(const std::string_view& msgType,
                        const T& key,
                        Args... args)
 {
-  uint8_t type;
-  std::from_chars(msgType.begin(), msgType.end(), type);
+  packet = Packet();
+  uint8_t type_enc = 0;
+  std::from_chars(msgType.begin(), msgType.end(), type_enc);
 
-  std::vector<uint8_t> body;
   static_assert(impl::is_iterable<decltype(key)>::value,
                 "type of key should be iterable");
-  for (auto e : key) {
-    body.push_back(e);
-  }
+  packet.Body.insert(packet.Body.end(), std::begin(key), std::end(key));
 
   if constexpr (sizeof...(args) == 2) { // we have a put call
-    auto unpacked = std::make_tuple(args...);
-    auto dataSpan = std::get<0>(unpacked);
+    auto [dataSpan, flag] = std::forward_as_tuple(args...);
     static_assert(impl::is_iterable<decltype(dataSpan)>::value,
                   "type of data span should be iterable");
-    auto flag = std::get<1>(unpacked);
-    static_assert(std::is_same_v<decltype(flag), bool>,
+    static_assert(std::is_same_v<std::decay_t<decltype(flag)>, bool>,
                   "type of flag should be bool");
 
-    for (auto e : dataSpan) {
-      body.push_back(e);
-    }
-
-    body.push_back(static_cast<uint8_t>(flag));
+    packet.Body.insert(packet.Body.end(), std::begin(dataSpan), std::end(dataSpan));
+    packet.Body.push_back(static_cast<uint8_t>(flag));
   }
 
-  unsigned int pck_count =
-    (body.size() + (PACKET_SIZE - 16) - 1) / (PACKET_SIZE - 16);
-  for (unsigned int i = 0; i < pck_count; i++) {
-    Packet p;
-    p.MsgType = type;
-    p.Rest = pck_count - i - 1;
-    p.MsgID = PCK_ID;
-    p.Ack = PREV_ACK;
-    // p.Reserved1, p.Reserved2
-    p.MsgLength = std::min(static_cast<unsigned long>(PACKET_SIZE - 16),
-                           body.size() - (i * (PACKET_SIZE - 16)));
-    // p.Offset
-    for (uint32_t j = 0; j < p.MsgLength; j++) {
-      p.Body[j] = body[j + (i * (PACKET_SIZE - 16))];
-    }
-
-    packets.push_back(p);
-    PCK_ID++;
-  }
+  packet.MsgType = type_enc;
+  packet.FileDescriptor = 0;
+  packet.MsgID = PCK_ID;
+  packet.Ack = PREV_ACK;
+  packet.MsgLength = packet.Body.size();
+  PCK_ID = (PCK_ID + 1) % 100;
 }
 
 inline std::optional<RemoteStorage::Backend::Failure>
 MessageHandler::dispatch(std::vector<uint8_t>& result, UnixSocket& sock)
 {
-  auto opcode = sock.send(packets);
-  Packet packet{};
-  std::string recv;
-
+  auto opcode = sock.send(packet);
   if (opcode == OpCode::error) {
-    packets.clear();
     return RemoteStorage::Backend::Failure::error;
   } else if (opcode == OpCode::timeout) {
-    packets.clear();
     return RemoteStorage::Backend::Failure::timeout;
   }
 
-  do {
-    opcode = sock.receive(recv);
-    if (opcode == OpCode::timeout) {
-      packets.clear();
-      result.clear();
-      return RemoteStorage::Backend::Failure::timeout;
-    }
-    packet.decode(recv);
-    result.insert(
-      result.end(), packet.Body.begin(), packet.Body.data() + packet.MsgLength);
-    recv.clear();
-  } while (packet.Rest != 0x00);
+  std::string recv;
+  opcode = sock.receive(recv);
+  if (opcode == OpCode::timeout) {
+    LOG("Client Timeout!", "");
+    return RemoteStorage::Backend::Failure::timeout;
+  }
+  packet = Packet(std::move(recv));
 
   if (packet.Ack == ResponseStatus::NO_FILE) {
     LOG("Client: File not found on server", "");
-    packets.clear();
-    result.clear();
     return std::nullopt;
   }
 
   if (packet.Ack != ResponseStatus::SUCCESS) {
     LOG("Response Status {}: Error Occured With Storage!", int(packet.Ack));
-    packets.clear();
     result.clear();
     return packet.Ack == TIMEOUT ? RemoteStorage::Backend::Failure::timeout
                                  : RemoteStorage::Backend::Failure::error;
   }
 
-  packets.clear();
+  result.insert(result.end(), 
+                 std::make_move_iterator(packet.Body.begin()),
+                 std::make_move_iterator(packet.Body.end()));
   return std::nullopt;
 }
 

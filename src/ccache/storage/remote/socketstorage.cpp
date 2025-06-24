@@ -97,7 +97,7 @@ SocketStorage::setup_backend_service(UnixSocket& sock) const
 BackendNode::BackendNode(const Url& url,
                          const std::string& name,
                          std::string attributes)
-  : bsock(std::make_unique<UnixSocket>(name, ' ')),
+  : bsock(std::make_unique<UnixSocket>(name, 0xFF)),
     m_msg_handler(std::make_unique<msgr::MessageHandler>())
 {
   if (bsock->start(false)) {

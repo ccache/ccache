@@ -194,11 +194,11 @@ StreamReader::getline(const std::optional<char> delimiter,
       continue;
     }
 
-    append(byte[0]);
-    if (byte[0] == delimiter || size() == BUFFERSIZE) {
+    if (byte[0] == delimiter) {
       // message complete
       return std::string(ptr(), size());
     }
+    append(byte[0]);
   }
 
   return std::nullopt;
@@ -354,6 +354,10 @@ UnixSocket::start(bool is_server)
     return true;
   }
 
+  if (!exists()) {
+    return false;
+  }
+
   establish_connection = ([this, is_server](struct sockaddr_un& sun) {
     return is_server ? ::bind(m_socket_id,
                               reinterpret_cast<struct sockaddr*>(&sun),
@@ -438,19 +442,13 @@ UnixSocket::exists()
 
 template<typename T>
 inline OpCode
-UnixSocket::send(const T& msg_args)
+UnixSocket::send(const T& msg)
 {
-  for (auto packet : msg_args) {
-    std::string msg_string;
-    packet.encode(msg_string);
-    assert(msg_string.length() == BUFFERSIZE);
-    const bool success = send_message(msg_string);
-    if (!success) {
-      return OpCode::error;
-    }
-  }
+  std::string msg_string;
+  msg.encode(msg_string);
 
-  return OpCode::ok;
+  const bool success = send_message(msg_string + m_delimiter);
+  return success ? OpCode::ok : OpCode::error;
 }
 
 inline OpCode
