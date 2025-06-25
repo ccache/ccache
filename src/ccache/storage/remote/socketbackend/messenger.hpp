@@ -68,7 +68,6 @@ serialize(std::string& result, T data)
 {
   static_assert(std::is_unsigned_v<T>, "Only unsigned types are supported");
   const size_t byteCount = sizeof(T);
-  result.reserve(byteCount * 2);
   for (size_t i = 0; i < byteCount; ++i) {
     unsigned char byte =
       static_cast<unsigned char>((data >> (8 * (byteCount - 1 - i))) & 0xFF);
@@ -123,6 +122,8 @@ struct Packet
   uint32_t MsgLength;
   uint32_t Offset;
   std::vector<uint8_t> Body;
+  static constexpr auto m_header_size = sizeof(MsgType) + sizeof(FileDescriptor) + sizeof(MsgID) + 
+                     sizeof(Ack) + sizeof(MsgLength) + sizeof(Offset);
 
   /**
    * @brief Serializes the data fields and encodes the combined result into a
@@ -185,6 +186,8 @@ struct Packet
   Packet(const Packet&) = default;
   Packet& operator=(const Packet&) = default;
   Packet(const std::string_view& data);
+  Packet(Packet&& other) noexcept = default;
+  Packet& operator=(Packet&& other) noexcept = default;
 };
 
 inline Packet::Packet(const std::string_view& data)
@@ -207,6 +210,7 @@ inline void
 Packet::encode(std::string& result) const
 {
   result.clear();
+  result.reserve(m_header_size * 2 + Body.size());
   impl::serialize(result, MsgType);
   impl::serialize(result, FileDescriptor);
   impl::serialize(result, MsgID);
@@ -229,9 +233,12 @@ Packet::decode(const std::string_view& result)
   Ack = impl::deserialize<decltype(Ack)>(it, result.cend());
   MsgLength = impl::deserialize<decltype(MsgLength)>(it, result.cend());
   Offset = impl::deserialize<decltype(Offset)>(it, result.cend());
+  Body.resize(std::distance(it, result.cend()) / 2);
+  auto bit = Body.begin();
   while (it != result.cend()) {
     uint8_t octet = impl::deserialize<uint8_t>(it, result.cend());
-    Body.push_back(octet);
+    *bit = octet;
+    bit++;
   }
 }
 
