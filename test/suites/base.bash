@@ -1342,6 +1342,38 @@ EOF
     expect_equal_text_content reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
+    TEST "Line number in compiler warning"
+
+    cat <<'EOF' >hello.h
+#define A a
+
+// comment
+
+#define B \
+  x \
+  y \
+  z
+
+int hello(void) {
+  // trigger warning by having no return statement
+}
+EOF
+    cat <<'EOF' >hello.c
+#include "hello.h"
+EOF
+
+    export CCACHE_DEBUG=1
+    $COMPILER -c -Wall -c hello.c 2>stderr_1_ref.txt
+    $CCACHE_COMPILE -Wall -c hello.c 2>stderr_1.txt
+    expect_equal_text_content stderr_1_ref.txt stderr_1.txt
+
+    sed -i 's/comment/comment\n/' hello.h
+
+    $COMPILER -c -Wall -c hello.c 2>stderr_2_ref.txt
+    $CCACHE_COMPILE -Wall -c hello.c 2>stderr_2.txt
+    expect_equal_text_content stderr_2_ref.txt stderr_2.txt
+
+    # -------------------------------------------------------------------------
     TEST "Merging stderr"
 
     cat >compiler.sh <<EOF
