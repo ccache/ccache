@@ -102,11 +102,24 @@ include(CodeAnalysis)
 add_subdirectory(src/third_party)
 add_subdirectory(src/ccache)
 
+# Win32 version library
+if(WIN32)
+  add_library(ccache_win32_manifest OBJECT "${CMAKE_CURRENT_BINARY_DIR}/version.rc")
+  set_property(TARGET ccache_win32_manifest PROPERTY INCLUDE_DIRECTORIES "")
+endif()
+
+
 #
 # ccache executable
 #
 add_executable(ccache src/ccache/main.cpp)
 target_link_libraries(ccache PRIVATE standard_settings standard_warnings ccache_framework)
+if(WIN32)
+  if(MSVC)
+      target_link_options(ccache PUBLIC "/MANIFEST:NO")
+  endif()
+  target_link_libraries(ccache PRIVATE ccache_win32_manifest)
+endif()
 
 #
 # Documentation
@@ -120,9 +133,6 @@ endif()
 # Installation
 #
 install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
-if(WIN32)
-  install(FILES ${CMAKE_CURRENT_LIST_DIR}/misc/ccache.exe.manifest TYPE BIN DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
 
 #
 # Packaging
