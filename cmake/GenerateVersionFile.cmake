@@ -5,7 +5,7 @@ configure_file(
 
 if(WIN32)
 
-  if(CCACHE_VERSION MATCHES "^([0-9]+)([0-9]+)([0-9]+)$")
+  if(CCACHE_VERSION MATCHES "^([0-9]+)\.([0-9]+)\.([0-9]+)\$")
     set(CCACHE_RCVERSION_MAJOR "${CMAKE_MATCH_1}")
     set(CCACHE_RCVERSION_MINOR "${CMAKE_MATCH_2}")
     set(CCACHE_RCVERSION_PATCH "${CMAKE_MATCH_3}")
