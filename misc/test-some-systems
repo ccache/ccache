@@ -33,31 +33,34 @@ build() {
 
 #     NAME         CC     CXX     TEST_CC CMAKE_PARAMS
 
-build almalinux-8  gcc    g++     gcc     -D DEPS=DOWNLOAD
-build almalinux-8  clang  clang++ clang   -D DEPS=DOWNLOAD
+build almalinux-8    gcc    g++     gcc     -D DEPS=DOWNLOAD
+build almalinux-8    clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build almalinux-9  gcc    g++     gcc     -D DEPS=DOWNLOAD
-build almalinux-9  clang  clang++ clang   -D DEPS=DOWNLOAD
+build manylinux-2.28 gcc    g++     gcc     -D DEPS=DOWNLOAD
+build manylinux-2.28 clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build alpine-3.21  gcc    g++     gcc     -D DEPS=DOWNLOAD
-build alpine-3.21  clang  clang++ clang   -D DEPS=DOWNLOAD
+build almalinux-9    gcc    g++     gcc     -D DEPS=DOWNLOAD
+build almalinux-9    clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build debian-11    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build debian-11    clang  clang++ clang   -D DEPS=DOWNLOAD
+build alpine-3.21    gcc    g++     gcc     -D DEPS=DOWNLOAD
+build alpine-3.21    clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build debian-12    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build debian-12    clang  clang++ clang   -D DEPS=DOWNLOAD
+build debian-11      gcc    g++     gcc     -D DEPS=DOWNLOAD
+build debian-11      clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build fedora-42    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build fedora-42    clang  clang++ clang   -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF # doctest issue #900
+build debian-12      gcc    g++     gcc     -D DEPS=DOWNLOAD
+build debian-12      clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build ubuntu-20.04 gcc    g++     gcc     -D DEPS=DOWNLOAD
-build ubuntu-20.04 clang  clang++ clang   -D DEPS=DOWNLOAD
+build fedora-42      gcc    g++     gcc     -D DEPS=DOWNLOAD
+build fedora-42      clang  clang++ clang   -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF # doctest issue #900
 
-build ubuntu-22.04 gcc-11 g++-11  gcc     -D DEPS=DOWNLOAD
-build ubuntu-22.04 gcc-12 g++-12  gcc     -D DEPS=DOWNLOAD
-build ubuntu-22.04 clang  clang++ clang   -D DEPS=DOWNLOAD
+build ubuntu-20.04   gcc    g++     gcc     -D DEPS=DOWNLOAD
+build ubuntu-20.04   clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build ubuntu-24.04 gcc-13 g++-13  gcc     -D DEPS=DOWNLOAD
-build ubuntu-24.04 gcc-14 g++-14  gcc     -D DEPS=DOWNLOAD
-build ubuntu-24.04 clang  clang++ clang   -D DEPS=DOWNLOAD
+build ubuntu-22.04   gcc-11 g++-11  gcc     -D DEPS=DOWNLOAD
+build ubuntu-22.04   gcc-12 g++-12  gcc     -D DEPS=DOWNLOAD
+build ubuntu-22.04   clang  clang++ clang   -D DEPS=DOWNLOAD
+
+build ubuntu-24.04   gcc-13 g++-13  gcc     -D DEPS=DOWNLOAD
+build ubuntu-24.04   gcc-14 g++-14  gcc     -D DEPS=DOWNLOAD
+build ubuntu-24.04   clang  clang++ clang   -D DEPS=DOWNLOAD
