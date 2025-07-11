@@ -19,7 +19,7 @@
 #pragma once
 
 #include "ccache/storage/remote/remotestorage.hpp"
-#include "socketbackend/socketinterface.hpp"
+#include "ccache/util/socketinterface.hpp"
 
 #include <ccache/hash.hpp>
 #include <ccache/util/bytes.hpp>

@@ -2,7 +2,7 @@
 
 #include "ccache/storage/remote/remotestorage.hpp"
 #include "ccache/util/logging.hpp"
-#include "socketinterface.hpp"
+#include "ccache/util/socketinterface.hpp"
 
 #include <ccache/util/bytes.hpp>
 
