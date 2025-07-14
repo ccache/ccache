@@ -48,7 +48,11 @@ if(_download_zstd)
     SOURCE_SUBDIR build/cmake
     ${_zstd_patch}
   )
+  set(_saved_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+  set(BUILD_SHARED_LIBS OFF) # avoid warning from zstd's CMake scripts.
   FetchContent_MakeAvailable(Zstd)
+  set(BUILD_SHARED_LIBS ${_saved_BUILD_SHARED_LIBS})
+  unset(_saved_BUILD_SHARED_LIBS)
 
   unset(ZSTD_BUILD_PROGRAMS)
   unset(ZSTD_BUILD_SHARED)
