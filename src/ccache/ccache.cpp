@@ -2086,6 +2086,8 @@ get_manifest_key(Context& ctx, Hash& hash)
     "OBJCPLUS_INCLUDE_PATH",        // Clang
     "CLANG_CONFIG_FILE_SYSTEM_DIR", // Clang
     "CLANG_CONFIG_FILE_USER_DIR",   // Clang
+    "INCLUDE",                      // MSVC
+    "EXTERNAL_INCLUDE",             // MSVC
     nullptr,
   };
   for (const char** p = envvars; *p; ++p) {
