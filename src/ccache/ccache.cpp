@@ -1379,7 +1379,8 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   // When Clang runs in verbose mode, it outputs command details to stdout,
   // which can corrupt the output of precompiled CUDA files. Therefore, caching
   // is disabled in this scenario. (Is there a better approach to handle this?)
-  const bool is_clang_cu = ctx.config.is_compiler_group_clang()
+  const bool is_clang_cu = (ctx.config.is_compiler_group_clang()
+                            && !ctx.config.is_compiler_group_msvc())
                            && (ctx.args_info.actual_language == "cu"
                                || ctx.args_info.actual_language == "cuda")
                            && !get_clang_cu_enable_verbose_mode(args);
