@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.18)
 
 project(ccache LANGUAGES C CXX ASM ASM_MASM)
 if(MSVC)
