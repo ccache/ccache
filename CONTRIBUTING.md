@@ -85,7 +85,7 @@ format is loosely based on [LLVM's code formatting
 style](https://llvm.org/docs/CodingStandards.html) with some exceptions. Run
 `make format` (or `ninja format` if you use Ninja) to format changes according
 to ccache's code style. Or even better: set up your editor to run
-`<ccache-top-dir>/misc/clang-format` (or any other Clang-Format version 11
+`<ccache-top-dir>/misc/clang-format` (or any other Clang-Format version 18
 binary) automatically when saving. Newer Clang-Format versions likely also work
 fine.
 

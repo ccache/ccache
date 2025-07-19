@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -46,22 +46,22 @@ constexpr auto S_IWUSR = mode_t{_S_IWRITE};
 #  endif
 
 #  ifndef S_ISREG
-#    define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #  endif
 #  ifndef S_ISDIR
-#    define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
+#    define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #  endif
 #  ifndef S_ISFIFO
-#    define S_ISFIFO(m) (((m)&S_IFMT) == S_IFIFO)
+#    define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
 #  endif
 #  ifndef S_ISCHR
-#    define S_ISCHR(m) (((m)&S_IFMT) == S_IFCHR)
+#    define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
 #  endif
 #  ifndef S_ISLNK
-#    define S_ISLNK(m) (((m)&S_IFMT) == S_IFLNK)
+#    define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
 #  endif
 #  ifndef S_ISBLK
-#    define S_ISBLK(m) (((m)&S_IFMT) == S_IFBLK)
+#    define S_ISBLK(m) (((m) & S_IFMT) == S_IFBLK)
 #  endif
 
 #  include <direct.h>
@@ -70,7 +70,6 @@ constexpr auto S_IWUSR = mode_t{_S_IWRITE};
 #  include <process.h>
 #  define NOMINMAX 1
 #  define WIN32_NO_STATUS
-// clang-format off
 #  include <winsock2.h> // struct timeval
 // windows must be included after winsock2
 // https://stackoverflow.com/questions/1372480/c-redefinition-header-files-winsock2-h
@@ -78,7 +77,6 @@ constexpr auto S_IWUSR = mode_t{_S_IWRITE};
 //  bccrypt must go after windows.h
 // https://stackoverflow.com/questions/57472787/compile-errors-when-using-c-and-bcrypt-header
 #  include <bcrypt.h> // NTSTATUS
-// clang-format on
 #  undef WIN32_NO_STATUS
 #  include <ntstatus.h>
 

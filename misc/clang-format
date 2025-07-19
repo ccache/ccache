@@ -17,23 +17,23 @@ fi
 
 misc_dir="$(dirname "$0")"
 clang_format_exe="${misc_dir}/.clang-format-exe"
-clang_format_version=11
-clang_format_release=master-1d7ec53d
+clang_format_version=18
+clang_format_release=master-2da3e7b
 url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/${clang_format_release}/clang-format-${clang_format_version}_"
 
 if [ ! -x "$clang_format_exe" ]; then
     case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
         *mingw*|*cygwin*|*msys*)
             url_suffix=windows-amd64.exe
-            checksum=7167f201acbd8ff06a7327d14db0d8a169393384bbc42873bb8277b788cc4469
+            checksum=4c7c29320e7b17901fa39ad7068b309756c121b83e4008669711e55dd4459793
             ;;
         *darwin*)
             url_suffix=macosx-amd64
-            checksum=0cab857e66aa9ed9ea00eee3c94bfc91a2d72ab440327e15784852cf94b1814b
+            checksum=aebb3bc3f6fa286373e03c096ae0a6408d37e8f837b43cdbda6f6203ba2bbb14
             ;;
         *linux*)
             url_suffix=linux-amd64
-            checksum=a9d76e3275823ea308bc2e4d2a6e3cc693f38c29d891f1d74cb0e1553e698dea
+            checksum=d126ba919b7913cd352ca669c669024c0edac3e93311d9a52a45bffb6169f4de
             ;;
         *)
             echo "Error: Please set CLANG_FORMAT to clang-format version $clang_format_version" >&2
@@ -55,7 +55,7 @@ if [ ! -x "$clang_format_exe" ]; then
     if ! command -v sha256sum >/dev/null; then
         echo "Warning: sha256sum not found, not verifying clang-format integrity" >&2
     elif ! echo "$checksum $clang_format_exe.tmp" | sha256sum --status -c -; then
-        echo "Error: Bad checksum of downloaded clang-format" >&2
+        echo "Error: Bad checksum of downloaded clang-format: expected ${checksum}, actual $(sha256sum ${clang_format_exe}.tmp | awk '{print $1}')" >&2
         exit 1
     fi
 
