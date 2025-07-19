@@ -18,12 +18,4 @@ SUITE_input_charset() {
     $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
-
-    CCACHE_NOCPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-    expect_stat preprocessed_cache_hit 1
-    expect_stat cache_miss 2
-
-    CCACHE_NOCPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-    expect_stat preprocessed_cache_hit 2
-    expect_stat cache_miss 2
 }

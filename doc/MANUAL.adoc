@@ -1013,31 +1013,6 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
     Windows quoting behavior.
 --
 
-[#config_run_second_cpp]
-*run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see _<<Boolean values>>_ above)::
-
-    If true, ccache will first run the preprocessor to preprocess the source
-    code (see _<<The preprocessor mode>>_) and then on a cache miss run the
-    compiler on the source code to get hold of the object file. This is the
-    default.
-+
-If false, ccache will first run preprocessor to preprocess the source code and
-then on a cache miss run the compiler on the _preprocessed source code_ instead
-of the original source code. This makes cache misses slightly faster since the
-source code only has to be preprocessed once. The downside is that some
-compilers won't produce the same result (for instance diagnostics warnings)
-when compiling preprocessed source code.
-+
-A solution to the above mentioned downside is to set *run_second_cpp* to false
-and pass `-fdirectives-only` (for GCC) or `-frewrite-includes` (for Clang) to
-the compiler. This will cause the compiler to leave the macros and other
-preprocessor information, and only process the *#include* directives. When run
-in this way, the preprocessor arguments will be passed to the compiler since it
-still has to do _some_ preprocessing (like macros).
-+
-This option is ignored with MSVC, as there is no way to make it compile without
-preprocessing first.
-
 [#config_sloppiness]
 *sloppiness* (*CCACHE_SLOPPINESS*)::
 
@@ -1703,7 +1678,6 @@ Disadvantages:
 The depend mode will be disabled if any of the following holds:
 
 * <<config_depend_mode,*depend_mode*>> is false.
-* <<config_run_second_cpp,*run_second_cpp*>> is false.
 * The compiler is not generating dependencies using `-MD` or `-MMD` (for MSVC,
   `/showIncludes` is added automatically if not specified by the user).
 

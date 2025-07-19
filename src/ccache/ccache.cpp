@@ -1202,12 +1202,8 @@ to_cache(Context& ctx,
     args.push_back("--");
   }
 
-  if (ctx.config.run_second_cpp()) {
-    args.push_back(
-      FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
-  } else {
-    args.push_back(ctx.i_tmpfile);
-  }
+  args.push_back(
+    FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
   if (ctx.args_info.seen_split_dwarf) {
     // Remove any pre-existing .dwo file since we want to check if the compiler
@@ -1462,14 +1458,6 @@ get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
   hash.hash(util::to_string_view(cpp_stderr_data));
 
   ctx.i_tmpfile = preprocessed_path;
-
-  if (!ctx.config.run_second_cpp()) {
-    // If we are using the CPP trick, we need to remember this stderr data and
-    // output it just before the main stderr from the compiler pass.
-    ctx.cpp_stderr_data = std::move(cpp_stderr_data);
-    hash.hash_delimiter("runsecondcpp");
-    hash.hash("false");
-  }
 
   return hash.digest();
 }
@@ -2727,15 +2715,9 @@ do_cache_compilation(Context& ctx)
     }
   }
 
-  if (!ctx.config.run_second_cpp() && ctx.config.is_compiler_group_msvc()) {
-    LOG_RAW("Second preprocessor cannot be disabled");
-    ctx.config.set_run_second_cpp(true);
-  }
-
   if (ctx.config.depend_mode()
-      && !(ctx.config.run_second_cpp()
-           && (ctx.args_info.generating_dependencies
-               || ctx.args_info.generating_includes))) {
+      && !(ctx.args_info.generating_dependencies
+           || ctx.args_info.generating_includes)) {
     LOG_RAW("Disabling depend mode");
     ctx.config.set_depend_mode(false);
   }

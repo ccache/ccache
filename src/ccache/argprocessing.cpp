@@ -83,8 +83,6 @@ struct ArgumentProcessingState
   bool found_valid_Fp = false;
   bool found_syntax_only = false;
   ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
-  bool found_directives_only = false;
-  bool found_rewrite_includes = false;
   std::unordered_map<std::string, std::vector<std::string>> xarch_args;
   bool found_mf_opt = false;
   bool found_wp_md_or_mmd_opt = false;
@@ -105,15 +103,11 @@ struct ArgumentProcessingState
   std::vector<fs::path> input_files;
 
   // common_args contains all original arguments except:
-  // * those that never should be passed to the preprocessor,
-  // * those that only should be passed to the preprocessor (if run_second_cpp
-  //   is false), and
+  // * those that never should be passed to the preprocessor, and
   // * dependency options (like -MD and friends).
   Args common_args;
 
-  // cpp_args contains arguments that were not added to common_args, i.e. those
-  // that should only be passed to the preprocessor if run_second_cpp is false.
-  // If run_second_cpp is true, they will be passed to the compiler as well.
+  // cpp_args contains arguments that were not added to common_args.
   Args cpp_args;
 
   // dep_args contains dependency options like -MD. They are only passed to the
@@ -492,9 +486,6 @@ process_option_arg(const Context& ctx,
     }
     ++i;
     args_info.arch_args.emplace_back(args[i]);
-    if (args_info.arch_args.size() == 2) {
-      config.set_run_second_cpp(true);
-    }
     return Statistic::none;
   }
 
@@ -979,8 +970,6 @@ process_option_arg(const Context& ctx,
     // Avoid passing -P to the preprocessor since it removes preprocessor
     // information we need.
     state.compiler_only_args.push_back(args[i]);
-    LOG("{} used; not compiling preprocessed code", args[i]);
-    config.set_run_second_cpp(true);
     return Statistic::none;
   }
 
@@ -1091,18 +1080,6 @@ process_option_arg(const Context& ctx,
       state.compiler_only_args_no_hash.push_back(args[i]);
       return Statistic::none;
     }
-  }
-
-  // GCC
-  if (arg == "-fdirectives-only") {
-    state.found_directives_only = true;
-    return Statistic::none;
-  }
-
-  // Clang
-  if (arg == "-frewrite-includes") {
-    state.found_rewrite_includes = true;
-    return Statistic::none;
   }
 
   if (arg == "-fno-pch-timestamp") {
@@ -1437,22 +1414,6 @@ process_args(Context& ctx)
     return tl::unexpected(*argument_error);
   }
 
-  if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
-    // Debug level 3 makes line number information incorrect when compiling
-    // preprocessed code.
-    LOG_RAW("Generating debug info level 3; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
-  }
-
-#ifdef __APPLE__
-  // Newer Clang versions on macOS are known to produce different debug
-  // information when compiling preprocessed code.
-  if (args_info.generating_debuginfo && !config.run_second_cpp()) {
-    LOG_RAW("Generating debug info; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
-  }
-#endif
-
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
     if (!(config.sloppiness().contains(core::Sloppy::time_macros))) {
@@ -1462,12 +1423,6 @@ process_args(Context& ctx)
       LOG_RAW("Disabling direct mode");
       return tl::unexpected(Statistic::could_not_use_precompiled_header);
     }
-  }
-
-  if (args_info.profile_generate && !config.run_second_cpp()) {
-    LOG_RAW(
-      "Generating profiling information; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
   }
 
   if (args_info.profile_path.empty()) {
@@ -1532,21 +1487,7 @@ process_args(Context& ctx)
     args_info.generating_dependencies = false;
   }
 
-  if (!config.run_second_cpp()
-      && (args_info.actual_language == "cu"
-          || args_info.actual_language == "cuda")) {
-    LOG("Source language is \"{}\"; not compiling preprocessed code",
-        args_info.actual_language);
-    config.set_run_second_cpp(true);
-  }
-
   args_info.direct_i_file = language_is_preprocessed(args_info.actual_language);
-
-  if (args_info.output_is_precompiled_header && !config.run_second_cpp()) {
-    // It doesn't work to create the .gch from preprocessed source.
-    LOG_RAW("Creating precompiled header; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
-  }
 
   if (config.cpp_extension().empty()) {
     std::string p_language = p_language_for_language(args_info.actual_language);
@@ -1621,21 +1562,6 @@ process_args(Context& ctx)
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
       args_info.output_dep = util::with_extension(args_info.output_obj, ".d");
-      if (!config.run_second_cpp()) {
-        // If we're compiling preprocessed code we're sending dep_args to the
-        // preprocessor so we need to use -MF to write to the correct .d file
-        // location since the preprocessor doesn't know the final object path.
-        state.dep_args.push_back("-MF");
-        state.dep_args.push_back(args_info.output_dep);
-      }
-    }
-
-    if (!args_info.dependency_target && !config.run_second_cpp()) {
-      // If we're compiling preprocessed code we're sending dep_args to the
-      // preprocessor so we need to use -MQ to get the correct target object
-      // file in the .d file.
-      state.dep_args.push_back("-MQ");
-      state.dep_args.push_back(args_info.output_obj);
     }
 
     if (!args_info.dependency_target) {
@@ -1690,31 +1616,7 @@ process_args(Context& ctx)
   Args compiler_args = state.common_args;
   compiler_args.push_back(state.compiler_only_args_no_hash);
   compiler_args.push_back(state.compiler_only_args);
-
-  if (config.run_second_cpp()) {
-    compiler_args.push_back(state.cpp_args);
-  } else if (state.found_directives_only || state.found_rewrite_includes) {
-    // Need to pass the macros and any other preprocessor directives again.
-    compiler_args.push_back(state.cpp_args);
-    if (state.found_directives_only) {
-      state.cpp_args.push_back("-fdirectives-only");
-      // The preprocessed source code still needs some more preprocessing.
-      compiler_args.push_back("-fpreprocessed");
-      compiler_args.push_back("-fdirectives-only");
-    }
-    if (state.found_rewrite_includes) {
-      state.cpp_args.push_back("-frewrite-includes");
-      // The preprocessed source code still needs some more preprocessing.
-      compiler_args.push_back("-x");
-      compiler_args.push_back(args_info.actual_language);
-    }
-  } else if (!state.explicit_language.empty()) {
-    // Workaround for a bug in Apple's patched distcc -- it doesn't properly
-    // reset the language specified with -x, so if -x is given, we have to
-    // specify the preprocessed language explicitly.
-    compiler_args.push_back("-x");
-    compiler_args.push_back(p_language_for_language(state.explicit_language));
-  }
+  compiler_args.push_back(state.cpp_args);
 
   if (state.found_c_opt) {
     compiler_args.push_back("-c");
@@ -1750,34 +1652,16 @@ process_args(Context& ctx)
 
   Args preprocessor_args = state.common_args;
   preprocessor_args.push_back(state.cpp_args);
-
-  if (config.run_second_cpp()) {
-    // When not compiling the preprocessed source code, only pass dependency
-    // arguments to the compiler to avoid having to add -MQ, supporting e.g.
-    // EDG-based compilers which don't support -MQ.
-    compiler_args.push_back(state.dep_args);
-  } else {
-    // When compiling the preprocessed source code, pass dependency arguments to
-    // the preprocessor since the compiler doesn't produce a .d file when
-    // compiling preprocessed source code.
-    preprocessor_args.push_back(state.dep_args);
-  }
+  compiler_args.push_back(state.dep_args);
 
   Args extra_args_to_hash = state.compiler_only_args;
-  if (config.run_second_cpp()) {
-    extra_args_to_hash.push_back(state.dep_args);
-  }
+  extra_args_to_hash.push_back(state.dep_args);
   if (state.hash_full_command_line) {
     extra_args_to_hash.push_back(ctx.orig_args);
   }
 
   if (diagnostics_color_arg) {
     compiler_args.push_back(*diagnostics_color_arg);
-    if (!config.run_second_cpp()) {
-      // If we're compiling preprocessed code we're keeping any warnings from
-      // the preprocessor, so we need to make sure that they are in color.
-      preprocessor_args.push_back(*diagnostics_color_arg);
-    }
   }
 
   if (ctx.config.depend_mode() && !args_info.generating_includes

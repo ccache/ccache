@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,8 +36,8 @@ int TAKES_CONCAT_ARG = 1 << 3;
 // used.
 int TAKES_PATH = 1 << 4;
 
-// The option only affects preprocessing; not passed to the compiler if
-// run_second_cpp is false.
+// The option only affects preprocessing; not included in the input hash in
+// preprocessor mode.
 int AFFECTS_CPP = 1 << 5;
 
 // The option only affects compilation; not passed to the preprocessor.

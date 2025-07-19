@@ -28,12 +28,6 @@ SUITE_color_diagnostics_PROBE() {
 }
 
 SUITE_color_diagnostics_SETUP() {
-    if $run_second_cpp; then
-        export CCACHE_CPP2=1
-    else
-        export CCACHE_NOCPP2=1
-    fi
-
     unset GCC_COLORS
     export TERM=vt100
 }
@@ -93,9 +87,9 @@ color_diagnostics_run_on_pty() {
     done
 }
 
-color_diagnostics_test() {
+SUITE_color_diagnostics() {
     # -------------------------------------------------------------------------
-    TEST "Colored diagnostics automatically disabled when stderr is not a TTY (run_second_cpp=$run_second_cpp)"
+    TEST "Colored diagnostics automatically disabled when stderr is not a TTY"
 
     color_diagnostics_generate_code test1.c
     $CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
@@ -108,7 +102,7 @@ color_diagnostics_test() {
     expect_stat preprocessed_cache_hit 1
 
     # -------------------------------------------------------------------------
-    TEST "Colored diagnostics automatically enabled when stderr is a TTY (run_second_cpp=$run_second_cpp)"
+    TEST "Colored diagnostics automatically enabled when stderr is a TTY"
 
     color_diagnostics_generate_code test1.c
     color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c"
@@ -169,7 +163,7 @@ color_diagnostics_test() {
 
     while read -r case; do
         # ---------------------------------------------------------------------
-        TEST "Cache object shared across ${case} (run_second_cpp=$run_second_cpp)"
+        TEST "Cache object shared across ${case}"
 
         color_diagnostics_generate_code test1.c
         local each
@@ -201,9 +195,4 @@ color_diagnostics_test() {
         A=({color,nocolor},{tty,notty})
         color_diagnostics_generate_permutations "${#A[@]}"
     )
-}
-
-SUITE_color_diagnostics() {
-    run_second_cpp=true color_diagnostics_test
-    run_second_cpp=false color_diagnostics_test
 }

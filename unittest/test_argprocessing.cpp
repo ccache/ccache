@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -96,26 +96,7 @@ TEST_CASE("dash_M_should_be_unsupported")
   CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
 }
 
-TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
-{
-  TestContext test_context;
-  const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
-    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
-  Context ctx;
-  ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
-  util::write_file("foo.c", "");
-  ctx.config.set_run_second_cpp(false);
-
-  const auto result = process_args(ctx);
-
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string() == "cc " + dep_args);
-  CHECK(result->extra_args_to_hash.to_string() == "");
-  CHECK(result->compiler_args.to_string() == "cc -c");
-}
-
-TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
+TEST_CASE("dependency_args_to_compiler")
 {
   TestContext test_context;
   const std::string dep_args =
@@ -133,34 +114,7 @@ TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
   CHECK(result->compiler_args.to_string() == "cc -c " + dep_args);
 }
 
-TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
-{
-  TestContext test_context;
-  const std::string cpp_args =
-    "-I. -idirafter . -iframework. -imacros . -imultilib . -include test.h"
-    " -include-pch test.pch -iprefix . -iquote . -isysroot . -isystem ."
-    " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."
-    " -trigraphs -fworking-directory -fno-working-directory";
-  const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
-    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
-  Context ctx;
-  ctx.orig_args =
-    Args::from_string("cc " + cpp_args + " " + dep_args + " -c foo.c -o foo.o");
-  util::write_file("foo.c", "");
-  ctx.config.set_run_second_cpp(false);
-
-  const auto result = process_args(ctx);
-
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string()
-        == "cc " + cpp_args + " " + dep_args);
-  CHECK(result->extra_args_to_hash.to_string() == "");
-  CHECK(result->compiler_args.to_string() == "cc -c");
-}
-
-TEST_CASE(
-  "cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true")
+TEST_CASE("cpp_only_args_to_preprocessor_and_compiler")
 {
   TestContext test_context;
   const std::string cpp_args =
@@ -199,68 +153,6 @@ TEST_CASE(
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == dep_args);
   CHECK(result->compiler_args.to_string() == "cc -c " + dep_args);
-}
-
-TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
-{
-  TestContext test_context;
-  Context ctx;
-  ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
-  util::write_file("foo.c", "");
-
-  const auto result = process_args(ctx);
-
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string() == "cc");
-  CHECK(result->extra_args_to_hash.to_string() == "-MD -MF foo.d");
-  CHECK(result->compiler_args.to_string() == "cc -c -MD -MF foo.d");
-}
-
-TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
-{
-  TestContext test_context;
-  Context ctx;
-  ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
-  util::write_file("foo.c", "");
-  ctx.config.set_run_second_cpp(false);
-
-  const auto result = process_args(ctx);
-
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string() == "cc -MD -MF foo.d -MQ foo.o");
-  CHECK(result->extra_args_to_hash.to_string() == "");
-  CHECK(result->compiler_args.to_string() == "cc -c");
-}
-
-TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
-{
-  TestContext test_context;
-  Context ctx;
-  ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
-  util::write_file("foo.c", "");
-  ctx.config.set_run_second_cpp(false);
-
-  const auto result = process_args(ctx);
-
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string() == "cc -MD -MF foo.d -MQ foo.o");
-  CHECK(result->extra_args_to_hash.to_string() == "");
-  CHECK(result->compiler_args.to_string() == "cc -c");
-}
-
-TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
-{
-  TestContext test_context;
-  Context ctx;
-  ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
-  util::write_file("foo.c", "");
-
-  const auto result = process_args(ctx);
-
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string() == "cc");
-  CHECK(result->extra_args_to_hash.to_string() == "-MD");
-  CHECK(result->compiler_args.to_string() == "cc -c -MD");
 }
 
 TEST_CASE("equal_sign_after_MF_should_be_removed")

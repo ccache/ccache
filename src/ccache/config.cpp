@@ -112,7 +112,6 @@ enum class ConfigItem : uint8_t {
   remote_storage,
   reshare,
   response_file_format,
-  run_second_cpp,
   sloppiness,
   stats,
   stats_log,
@@ -169,7 +168,6 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"remote_storage",             {ConfigItem::remote_storage}                  },
     {"reshare",                    {ConfigItem::reshare}                         },
     {"response_file_format",       {ConfigItem::response_file_format}            },
-    {"run_second_cpp",             {ConfigItem::run_second_cpp}                  },
     {"secondary_storage",          {ConfigItem::remote_storage, "remote_storage"}},
     {"sloppiness",                 {ConfigItem::sloppiness}                      },
     {"stats",                      {ConfigItem::stats}                           },
@@ -188,7 +186,6 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"COMPILERTYPE",         "compiler_type"             },
   {"COMPRESS",             "compression"               },
   {"COMPRESSLEVEL",        "compression_level"         },
-  {"CPP2",                 "run_second_cpp"            },
   {"DEBUG",                "debug"                     },
   {"DEBUGDIR",             "debug_dir"                 },
   {"DEBUGLEVEL",           "debug_level"               },
@@ -918,9 +915,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::response_file_format:
     return response_file_format_to_string(m_response_file_format);
 
-  case ConfigItem::run_second_cpp:
-    return format_bool(m_run_second_cpp);
-
   case ConfigItem::sloppiness:
     return format_sloppiness(m_sloppiness);
 
@@ -1187,10 +1181,6 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::response_file_format:
     m_response_file_format = parse_response_file_format(value);
-    break;
-
-  case ConfigItem::run_second_cpp:
-    m_run_second_cpp = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::sloppiness:
