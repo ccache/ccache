@@ -442,7 +442,8 @@ file_type_from_path(const fs::path& path)
   }
 }
 
-LocalStorage::LocalStorage(const Config& config) : m_config(config)
+LocalStorage::LocalStorage(const Config& config)
+  : m_config(config)
 {
 }
 

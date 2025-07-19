@@ -66,7 +66,8 @@ inline TimePoint::TimePoint(int64_t sec, int64_t nsec)
 {
 }
 
-inline TimePoint::TimePoint(const TimePoint& other) : m_ns(other.m_ns)
+inline TimePoint::TimePoint(const TimePoint& other)
+  : m_ns(other.m_ns)
 {
 }
 

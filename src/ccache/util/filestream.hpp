@@ -48,7 +48,9 @@ private:
   bool m_owned = false;
 };
 
-inline FileStream::FileStream(FILE* const file) : m_file(file), m_owned(false)
+inline FileStream::FileStream(FILE* const file)
+  : m_file(file),
+    m_owned(false)
 {
 }
 

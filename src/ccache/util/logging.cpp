@@ -175,7 +175,8 @@ dump_log(const fs::path& path)
   }
 }
 
-BulkLogger::BulkLogger() : m_file_lock(logfile ? fileno(*logfile) : -1)
+BulkLogger::BulkLogger()
+  : m_file_lock(logfile ? fileno(*logfile) : -1)
 {
   if (logfile) {
     std::ignore = m_file_lock.acquire(); // Garbled logs are better than no logs

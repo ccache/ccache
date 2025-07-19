@@ -24,7 +24,8 @@
 
 namespace core {
 
-ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
+ResultInspector::ResultInspector(FILE* stream)
+  : m_stream(stream)
 {
 }
 

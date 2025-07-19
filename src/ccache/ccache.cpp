@@ -135,7 +135,8 @@ private:
   std::optional<int> m_exit_code;
 };
 
-inline Failure::Failure(const Statistic statistic) : m_counters({statistic})
+inline Failure::Failure(const Statistic statistic)
+  : m_counters({statistic})
 {
 }
 

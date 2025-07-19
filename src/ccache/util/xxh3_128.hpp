@@ -49,7 +49,8 @@ private:
   XXH3_state_t* m_state;
 };
 
-inline XXH3_128::XXH3_128() : m_state(XXH3_createState())
+inline XXH3_128::XXH3_128()
+  : m_state(XXH3_createState())
 {
   reset();
 }

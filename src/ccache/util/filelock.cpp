@@ -32,7 +32,8 @@
 
 namespace util {
 
-FileLock::FileLock(int fd) : m_fd(fd)
+FileLock::FileLock(int fd)
+  : m_fd(fd)
 {
 }
 

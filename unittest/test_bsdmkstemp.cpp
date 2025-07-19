@@ -42,11 +42,13 @@ class ScopedHANDLE
 public:
   ScopedHANDLE() = default;
 
-  explicit ScopedHANDLE(HANDLE handle) : m_handle(handle)
+  explicit ScopedHANDLE(HANDLE handle)
+    : m_handle(handle)
   {
   }
 
-  ScopedHANDLE(ScopedHANDLE&& other) : ScopedHANDLE(other.release())
+  ScopedHANDLE(ScopedHANDLE&& other)
+    : ScopedHANDLE(other.release())
   {
   }
 

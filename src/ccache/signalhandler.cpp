@@ -64,7 +64,8 @@ deregister_signal_handler(int signum)
 
 } // namespace
 
-SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
+SignalHandler::SignalHandler(Context& ctx)
+  : m_ctx(ctx)
 {
   ASSERT(!g_the_signal_handler);
   g_the_signal_handler = this;

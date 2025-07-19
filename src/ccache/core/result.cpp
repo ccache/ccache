@@ -176,7 +176,8 @@ gcno_file_in_unmangled_form(const Context& ctx)
   return util::with_extension(ctx.args_info.output_obj, ".gcno");
 }
 
-Deserializer::Deserializer(nonstd::span<const uint8_t> data) : m_data(data)
+Deserializer::Deserializer(nonstd::span<const uint8_t> data)
+  : m_data(data)
 {
 }
 

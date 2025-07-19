@@ -194,7 +194,8 @@ CacheEntry::Header::uncompressed_payload_size() const
                                - k_epilogue_fields_size);
 }
 
-CacheEntry::CacheEntry(nonstd::span<const uint8_t> data) : m_header(data)
+CacheEntry::CacheEntry(nonstd::span<const uint8_t> data)
+  : m_header(data)
 {
   const size_t non_payload_size =
     m_header.serialized_size() + k_epilogue_fields_size;

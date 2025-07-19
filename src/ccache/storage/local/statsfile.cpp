@@ -30,7 +30,8 @@ namespace fs = util::filesystem;
 
 namespace storage::local {
 
-StatsFile::StatsFile(const fs::path& path) : m_path(path)
+StatsFile::StatsFile(const fs::path& path)
+  : m_path(path)
 {
 }
 

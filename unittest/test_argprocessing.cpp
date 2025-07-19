@@ -344,7 +344,9 @@ TEST_CASE(
   TestContext test_context;
 
   Context ctx;
-  ctx.config.update_from_map({{"sloppiness", "ivfsoverlay"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "ivfsoverlay"}
+  });
 
   util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
@@ -365,7 +367,9 @@ TEST_CASE(
   TestContext test_context;
 
   Context ctx;
-  ctx.config.update_from_map({{"sloppiness", "modules"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "modules"}
+  });
 
   util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
@@ -389,7 +393,9 @@ TEST_CASE(
   TestContext test_context;
 
   Context ctx;
-  ctx.config.update_from_map({{"sloppiness", "modules"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "modules"}
+  });
 
   util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
@@ -836,7 +842,9 @@ TEST_CASE("MSVC PCH options")
   }
 
   util::write_file("pch.cpp.pch", "");
-  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "pch_defines,time_macros"}
+  });
 
   SUBCASE("Consume PCH")
   {
@@ -879,7 +887,9 @@ TEST_CASE("MSVC PCH options with empty -Yc")
   }
 
   util::write_file("pch.cpp.pch", "");
-  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "pch_defines,time_macros"}
+  });
 
   SUBCASE("Consume PCH")
   {
@@ -919,7 +929,9 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
   }
 
   util::write_file("pch.pch", "");
-  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "pch_defines,time_macros"}
+  });
 
   SUBCASE("Consume PCH")
   {
@@ -959,7 +971,9 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp and -Fo")
   }
 
   util::write_file("pch.pch", "");
-  ctx.config.update_from_map({{"sloppiness", "pch_defines,time_macros"}});
+  ctx.config.update_from_map({
+    {"sloppiness", "pch_defines,time_macros"}
+  });
 
   SUBCASE("Consume PCH")
   {

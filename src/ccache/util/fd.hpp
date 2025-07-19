@@ -53,11 +53,13 @@ private:
   int m_fd = -1;
 };
 
-inline Fd::Fd(int fd) : m_fd(fd)
+inline Fd::Fd(int fd)
+  : m_fd(fd)
 {
 }
 
-inline Fd::Fd(Fd&& other_fd) noexcept : m_fd(other_fd.release())
+inline Fd::Fd(Fd&& other_fd) noexcept
+  : m_fd(other_fd.release())
 {
 }
 

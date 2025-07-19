@@ -41,7 +41,8 @@ private:
 
 // --- Inline implementations ---
 
-inline StatsLog::StatsLog(const std::filesystem::path& path) : m_path(path)
+inline StatsLog::StatsLog(const std::filesystem::path& path)
+  : m_path(path)
 {
 }
 

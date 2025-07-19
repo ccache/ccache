@@ -116,15 +116,18 @@ TextTable::render() const
   return result;
 }
 
-TextTable::Cell::Cell(const std::string& text) : m_text(text)
+TextTable::Cell::Cell(const std::string& text)
+  : m_text(text)
 {
 }
 
-TextTable::Cell::Cell(std::string_view text) : Cell(std::string(text))
+TextTable::Cell::Cell(std::string_view text)
+  : Cell(std::string(text))
 {
 }
 
-TextTable::Cell::Cell(const char* text) : Cell(std::string(text))
+TextTable::Cell::Cell(const char* text)
+  : Cell(std::string(text))
 {
 }
 
