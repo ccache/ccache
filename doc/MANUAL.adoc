@@ -1654,10 +1654,12 @@ result.
 
 There is a catch with the direct mode: header files that were used by the
 compiler are recorded, but header files that were *not* used, but would have
-been used if they existed, are not. So, when ccache checks if a result can be
-taken from the cache, it currently can't check if the existence of a new header
-file should invalidate the result. In practice, the direct mode is safe to use
-in the absolute majority of cases.
+been used if they existed, are not. To mitigate this problem, ccache records
+whether directories specified with `-I` and similar exist at the time of
+compilation, which handles most cases. Still, when ccache checks if a result can
+be taken from the cache, it currently can't check with 100% accuracy if the
+existence of a new header file should invalidate the result. In practice, the
+direct mode is safe to use in the absolute majority of cases.
 
 The direct mode will be disabled if any of the following holds:
 
