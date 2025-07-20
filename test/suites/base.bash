@@ -1667,6 +1667,19 @@ EOF
     rm compiler.args
 
     # -------------------------------------------------------------------------
+    if $COMPILER -Wdelete-non-virtual-dtor -c test1.c 2>/dev/null && ! $COMPILER -Werror -Wdelete-non-virtual-dtor -c test1.c 2>/dev/null; then
+        TEST "Ordering of warning options"
+
+        if $CCACHE_COMPILE -Werror -Wdelete-non-virtual-dtor -c test1.c 2>stderr.txt; then
+            test_failed "-Werror -Wdelete-non-virtual-dtor did not result in an error; stderr: [$(<stderr.txt)]"
+        fi
+
+        if ! $CCACHE_COMPILE -Wdelete-non-virtual-dtor -Werror -c test1.c 2>stderr.txt; then
+            test_failed "-Wdelete-non-virtual-dtor -Werror resulted in an error; stderr: [$(<stderr.txt)]"
+        fi
+    fi
+
+    # -------------------------------------------------------------------------
 if ! $COMPILER_USES_MSVC; then
     for src in test1.c build/test1.c; do
         for obj in test1.o build/test1.o; do

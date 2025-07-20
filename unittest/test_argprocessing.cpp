@@ -111,7 +111,7 @@ TEST_CASE("dependency_args_to_compiler")
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == dep_args);
-  CHECK(result->compiler_args.to_string() == "cc -c " + dep_args);
+  CHECK(result->compiler_args.to_string() == "cc " + dep_args + " -c");
 }
 
 TEST_CASE("cpp_only_args_to_preprocessor_and_compiler")
@@ -135,7 +135,7 @@ TEST_CASE("cpp_only_args_to_preprocessor_and_compiler")
   CHECK(result->preprocessor_args.to_string() == "cc " + cpp_args);
   CHECK(result->extra_args_to_hash.to_string() == dep_args);
   CHECK(result->compiler_args.to_string()
-        == "cc " + cpp_args + " -c " + dep_args);
+        == "cc " + cpp_args + " " + dep_args + " -c");
 }
 
 TEST_CASE(
@@ -152,7 +152,7 @@ TEST_CASE(
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == dep_args);
-  CHECK(result->compiler_args.to_string() == "cc -c " + dep_args);
+  CHECK(result->compiler_args.to_string() == "cc " + dep_args + " -c");
 }
 
 TEST_CASE("equal_sign_after_MF_should_be_removed")
@@ -167,7 +167,7 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == "-MFpath");
-  CHECK(result->compiler_args.to_string() == "cc -c -MFpath");
+  CHECK(result->compiler_args.to_string() == "cc -MFpath -c");
 }
 
 TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
@@ -318,7 +318,7 @@ TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == "-MMD -MT bar -MFfoo.d");
-  CHECK(result->compiler_args.to_string() == "cc -c -MMD -MT bar -MFfoo.d");
+  CHECK(result->compiler_args.to_string() == "cc -MMD -MT bar -MFfoo.d -c");
 }
 
 TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
@@ -337,7 +337,7 @@ TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
   CHECK(result->extra_args_to_hash.to_string()
         == "-MMD -MFfoo.d -MT foo -MTbar");
   CHECK(result->compiler_args.to_string()
-        == "cc -c -MMD -MFfoo.d -MT foo -MTbar");
+        == "cc -MMD -MFfoo.d -MT foo -MTbar -c");
 }
 
 TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
@@ -356,7 +356,7 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
   CHECK(result->extra_args_to_hash.to_string()
         == "-MMD -MFfoo.d -MQ foo -MQbar");
   CHECK(result->compiler_args.to_string()
-        == "cc -c -MMD -MFfoo.d -MQ foo -MQbar");
+        == "cc -MMD -MFfoo.d -MQ foo -MQbar -c");
 }
 
 TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
@@ -372,7 +372,7 @@ TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
   CHECK(result->preprocessor_args.to_string() == "gcc");
   CHECK(result->extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MQ foo.d");
   CHECK(result->compiler_args.to_string()
-        == "gcc -c -MD -MP -MFfoo.d -MQ foo.d");
+        == "gcc -MD -MP -MFfoo.d -MQ foo.d -c");
 }
 
 TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
@@ -388,7 +388,7 @@ TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
   CHECK(result->preprocessor_args.to_string() == "gcc");
   CHECK(result->extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MT foo.d");
   CHECK(result->compiler_args.to_string()
-        == "gcc -c -MD -MP -MFfoo.d -MT foo.d");
+        == "gcc -MD -MP -MFfoo.d -MT foo.d -c");
 }
 
 TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
@@ -404,7 +404,7 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
   CHECK(result->preprocessor_args.to_string() == "gcc");
   CHECK(result->extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MQfoo.d");
   CHECK(result->compiler_args.to_string()
-        == "gcc -c -MD -MP -MFfoo.d -MQfoo.d");
+        == "gcc -MD -MP -MFfoo.d -MQfoo.d -c");
 }
 
 TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
@@ -420,7 +420,7 @@ TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
   CHECK(result->preprocessor_args.to_string() == "gcc");
   CHECK(result->extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MTfoo.d");
   CHECK(result->compiler_args.to_string()
-        == "gcc -c -MD -MP -MFfoo.d -MTfoo.d");
+        == "gcc -MD -MP -MFfoo.d -MTfoo.d -c");
 }
 
 TEST_CASE(
@@ -521,7 +521,7 @@ TEST_CASE("options_not_to_be_passed_to_the_preprocessor")
   CHECK(result->extra_args_to_hash.to_string()
         == "-Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error");
   CHECK(result->compiler_args.to_string()
-        == "cc -g -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error -DX -c");
+        == "cc -Wa,foo -g -DX -Werror -Xlinker fie -Xlinker,fum -Wno-error -c");
 }
 
 TEST_CASE("cuda_option_file")
@@ -611,7 +611,7 @@ TEST_CASE("-Xclang")
   CHECK(result->extra_args_to_hash.to_string() == extra_args);
   CHECK(result->compiler_args.to_string()
         == "clang " + common_args + " " + color_diag + " " + extra_args + " "
-             + pch_pth_variants + " -c -fcolor-diagnostics");
+             + pch_pth_variants + " -fcolor-diagnostics -c");
 }
 
 TEST_CASE("-x")
@@ -706,7 +706,7 @@ TEST_CASE("MSVC options"
   const auto result = process_args(ctx);
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cl.exe /foobar");
-  CHECK(result->compiler_args.to_string() == "cl.exe /foobar -c");
+  CHECK(result->compiler_args.to_string() == "cl.exe /foobar /c");
 }
 
 TEST_CASE("MSVC PCH options")
@@ -730,7 +730,7 @@ TEST_CASE("MSVC PCH options")
     CHECK(result->preprocessor_args.to_string()
           == "cl.exe /Ycpch.h /Fppch.cpp.pch /FIpch.h");
     CHECK(result->compiler_args.to_string()
-          == "cl.exe /Ycpch.h /Fppch.cpp.pch /FIpch.h -c");
+          == "cl.exe /Ycpch.h /Fppch.cpp.pch /FIpch.h /c");
   }
 
   util::write_file("pch.cpp.pch", "");
@@ -750,7 +750,7 @@ TEST_CASE("MSVC PCH options")
     CHECK(result->preprocessor_args.to_string()
           == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h");
     CHECK(result->compiler_args.to_string()
-          == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h -c");
+          == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h /c");
   }
 }
 
@@ -775,7 +775,7 @@ TEST_CASE("MSVC PCH options with empty -Yc")
     CHECK(result->preprocessor_args.to_string()
           == "cl.exe /Yc /Fppch.cpp.pch /FIpch.h");
     CHECK(result->compiler_args.to_string()
-          == "cl.exe /Yc /Fppch.cpp.pch /FIpch.h -c");
+          == "cl.exe /Yc /Fppch.cpp.pch /FIpch.h /c");
   }
 
   util::write_file("pch.cpp.pch", "");
@@ -795,7 +795,7 @@ TEST_CASE("MSVC PCH options with empty -Yc")
     CHECK(result->preprocessor_args.to_string()
           == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h");
     CHECK(result->compiler_args.to_string()
-          == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h -c");
+          == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h /c");
   }
 }
 
@@ -817,7 +817,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
     CHECK(ctx.args_info.included_pch_file == "pch.pch");
     CHECK(ctx.args_info.output_obj == "pch.cpp.obj");
     CHECK(result->preprocessor_args.to_string() == "cl.exe /Yc");
-    CHECK(result->compiler_args.to_string() == "cl.exe /Yc -c");
+    CHECK(result->compiler_args.to_string() == "cl.exe /Yc /c");
   }
 
   util::write_file("pch.pch", "");
@@ -837,7 +837,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp")
     CHECK(result->preprocessor_args.to_string()
           == "cl.exe /Yupch.h /Fppch.pch /FIpch.h");
     CHECK(result->compiler_args.to_string()
-          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h -c");
+          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h /c");
   }
 }
 
@@ -859,7 +859,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp and -Fo")
     CHECK(ctx.args_info.included_pch_file == "pch.pch");
     CHECK(ctx.args_info.output_obj == "pch.obj");
     CHECK(result->preprocessor_args.to_string() == "cl.exe /Yc");
-    CHECK(result->compiler_args.to_string() == "cl.exe /Yc -c");
+    CHECK(result->compiler_args.to_string() == "cl.exe /Yc /c");
   }
 
   util::write_file("pch.pch", "");
@@ -879,7 +879,7 @@ TEST_CASE("MSVC PCH options with empty -Yc and without -Fp and -Fo")
     CHECK(result->preprocessor_args.to_string()
           == "cl.exe /Yupch.h /Fppch.pch /FIpch.h");
     CHECK(result->compiler_args.to_string()
-          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h -c");
+          == "cl.exe /Yupch.h /Fppch.pch /FIpch.h /c");
   }
 }
 
@@ -926,7 +926,7 @@ TEST_CASE("MSVC debug information format options")
     const auto result = process_args(ctx);
     REQUIRE(result);
     CHECK(result->preprocessor_args.to_string() == "cl.exe /Z7");
-    CHECK(result->compiler_args.to_string() == "cl.exe /Z7 -c");
+    CHECK(result->compiler_args.to_string() == "cl.exe /Z7 /c");
   }
 
   SUBCASE("Only /Zi")
@@ -956,7 +956,7 @@ TEST_CASE("MSVC debug information format options")
     const auto result = process_args(ctx);
     REQUIRE(result);
     CHECK(result->preprocessor_args.to_string() == "cl.exe /Zi /Z7");
-    CHECK(result->compiler_args.to_string() == "cl.exe /Zi /Z7 -c");
+    CHECK(result->compiler_args.to_string() == "cl.exe /Zi /Z7 /c");
   }
 }
 
