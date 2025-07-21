@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <deque>
 #include <filesystem>
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -35,6 +36,7 @@ public:
   };
 
   Args() = default;
+  Args(std::initializer_list<std::string>) noexcept;
   Args(const Args& other) = default;
   Args(Args&& other) noexcept;
 

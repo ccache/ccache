@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,6 +28,11 @@
 Args::Args(Args&& other) noexcept
   : m_args(std::move(other.m_args))
 {
+}
+
+Args::Args(std::initializer_list<std::string> init) noexcept
+{
+  m_args.assign(init.begin(), init.end());
 }
 
 Args

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -34,21 +34,24 @@ TEST_CASE("Args default constructor")
   CHECK(args.size() == 0);
 }
 
+TEST_CASE("Args initializer list constructor")
+{
+  Args args{"foo", "bar"};
+  CHECK(args.size() == 2);
+  CHECK(args[0] == "foo");
+  CHECK(args[1] == "bar");
+}
+
 TEST_CASE("Args copy constructor")
 {
-  Args args1;
-  args1.push_back("foo");
-  args1.push_back("bar");
-
+  Args args1{"foo", "bar"};
   Args args2(args1);
   CHECK(args1 == args2);
 }
 
 TEST_CASE("Args move constructor")
 {
-  Args args1;
-  args1.push_back("foo");
-  args1.push_back("bar");
+  Args args1{"foo", "bar"};
   const char* foo_pointer = args1[0].c_str();
   const char* bar_pointer = args1[1].c_str();
 
