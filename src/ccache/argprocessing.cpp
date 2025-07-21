@@ -865,7 +865,7 @@ process_option_arg(const Context& ctx,
       args_info.dependency_target = "";
     }
     *args_info.dependency_target +=
-      is_mq ? Depfile::escape_filename(dep_target) : dep_target;
+      is_mq ? depfile::escape_filename(dep_target) : dep_target;
 
     return Statistic::none;
   }
@@ -1612,7 +1612,7 @@ process_args(Context& ctx)
       }
 
       args_info.dependency_target =
-        Depfile::escape_filename(util::pstr(dep_target).str());
+        depfile::escape_filename(util::pstr(dep_target).str());
     }
   }
 

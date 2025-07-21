@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -49,13 +49,13 @@ ResultExtractor::ResultExtractor(
 
 void
 ResultExtractor::on_embedded_file(uint8_t /*file_number*/,
-                                  Result::FileType file_type,
+                                  result::FileType file_type,
                                   nonstd::span<const uint8_t> data)
 {
-  std::string suffix = Result::file_type_to_string(file_type);
-  if (suffix == Result::k_unknown_file_type) {
+  std::string suffix = result::file_type_to_string(file_type);
+  if (suffix == result::k_unknown_file_type) {
     suffix =
-      FMT(".type_{}", static_cast<Result::UnderlyingFileTypeInt>(file_type));
+      FMT(".type_{}", static_cast<result::UnderlyingFileTypeInt>(file_type));
   } else if (suffix[0] == '<') {
     suffix[0] = '.';
     suffix.resize(suffix.length() - 1);
@@ -68,7 +68,7 @@ ResultExtractor::on_embedded_file(uint8_t /*file_number*/,
 
 void
 ResultExtractor::on_raw_file(uint8_t file_number,
-                             Result::FileType file_type,
+                             result::FileType file_type,
                              uint64_t file_size)
 {
   if (!m_get_raw_file_path) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,18 +28,18 @@
 namespace core {
 
 // This class writes information about the result entry to `stream`.
-class ResultInspector : public Result::Deserializer::Visitor
+class ResultInspector : public result::Deserializer::Visitor
 {
 public:
   ResultInspector(FILE* stream);
 
-  void on_header(const Result::Deserializer::Header& header) override;
+  void on_header(const result::Deserializer::Header& header) override;
 
   void on_embedded_file(uint8_t file_number,
-                        Result::FileType file_type,
+                        result::FileType file_type,
                         nonstd::span<const uint8_t> data) override;
   void on_raw_file(uint8_t file_number,
-                   Result::FileType file_type,
+                   result::FileType file_type,
                    uint64_t file_size) override;
 
 private:

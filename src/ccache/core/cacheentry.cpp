@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -91,7 +91,7 @@ CacheEntry::Header::Header(const Config& config,
     compression_type(compression_type_from_config(config)),
     compression_level(compression_level_from_config(config)),
     self_contained(entry_type != CacheEntryType::result
-                   || !core::Result::Serializer::use_raw_files(config)),
+                   || !core::result::Serializer::use_raw_files(config)),
     creation_time(util::TimePoint::now().sec()),
     ccache_version(CCACHE_VERSION),
     namespace_(config.namespace_()),

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -48,7 +48,7 @@ using util::DirEntry;
 
 namespace core {
 
-using Result::FileType;
+using result::FileType;
 
 ResultRetriever::ResultRetriever(const Context& ctx,
                                  std::optional<Hash::Digest> result_key)
@@ -64,7 +64,7 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
 {
   LOG("Reading embedded entry #{} {} ({} bytes)",
       file_number,
-      Result::file_type_to_string(file_type),
+      result::file_type_to_string(file_type),
       data.size());
 
   if (file_type == FileType::stdout_output) {
@@ -100,7 +100,7 @@ ResultRetriever::on_raw_file(uint8_t file_number,
 {
   LOG("Reading raw entry #{} {} ({} bytes)",
       file_number,
-      Result::file_type_to_string(file_type),
+      result::file_type_to_string(file_type),
       file_size);
 
   if (!m_result_key) {
@@ -140,7 +140,7 @@ ResultRetriever::on_raw_file(uint8_t file_number,
     // Should never happen.
     LOG("Did not copy {} since destination path is unknown for type {}",
         raw_file_path,
-        static_cast<Result::UnderlyingFileTypeInt>(file_type));
+        static_cast<result::UnderlyingFileTypeInt>(file_type));
   }
 }
 
@@ -189,7 +189,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::coverage_mangled:
     if (m_ctx.args_info.generating_coverage) {
-      return Result::gcno_file_in_mangled_form(m_ctx);
+      return result::gcno_file_in_mangled_form(m_ctx);
     }
     break;
 

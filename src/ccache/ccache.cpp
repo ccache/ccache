@@ -713,7 +713,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   }
 
   bool seen_colon = false;
-  for (std::string_view token : Depfile::tokenize(*file_content)) {
+  for (std::string_view token : depfile::tokenize(*file_content)) {
     if (token.empty()) {
       seen_colon = false;
       continue;
@@ -936,8 +936,8 @@ find_coverage_file(const Context& ctx)
   // (in CWD) if -fprofile-dir=DIR is present (regardless of DIR) instead of the
   // traditional /dir/to/example.gcno.
 
-  fs::path mangled_form = core::Result::gcno_file_in_mangled_form(ctx);
-  fs::path unmangled_form = core::Result::gcno_file_in_unmangled_form(ctx);
+  fs::path mangled_form = core::result::gcno_file_in_mangled_form(ctx);
+  fs::path unmangled_form = core::result::gcno_file_in_unmangled_form(ctx);
   fs::path found_file;
   if (DirEntry(mangled_form).is_regular_file()) {
     LOG("Found coverage file {}", mangled_form);
@@ -966,29 +966,29 @@ write_result(Context& ctx,
              const util::Bytes& stdout_data,
              const util::Bytes& stderr_data)
 {
-  core::Result::Serializer serializer(ctx.config);
+  core::result::Serializer serializer(ctx.config);
 
   if (!stderr_data.empty()) {
-    serializer.add_data(core::Result::FileType::stderr_output, stderr_data);
+    serializer.add_data(core::result::FileType::stderr_output, stderr_data);
   }
   // Write stdout only after stderr (better with MSVC), as ResultRetriever
   // will later print process them in the order they are read.
   if (!stdout_data.empty()) {
-    serializer.add_data(core::Result::FileType::stdout_output, stdout_data);
+    serializer.add_data(core::result::FileType::stdout_output, stdout_data);
   }
   if (ctx.args_info.expect_output_obj
-      && !serializer.add_file(core::Result::FileType::object,
+      && !serializer.add_file(core::result::FileType::object,
                               ctx.args_info.output_obj)) {
     LOG("Object file {} missing", ctx.args_info.output_obj);
     return false;
   }
   if (ctx.args_info.generating_pch
-      && !serializer.add_file(core::Result::FileType::included_pch_file,
+      && !serializer.add_file(core::result::FileType::included_pch_file,
                               ctx.args_info.included_pch_file)) {
     LOG("PCH file {} missing", ctx.args_info.included_pch_file);
   }
   if (ctx.args_info.generating_dependencies
-      && !serializer.add_file(core::Result::FileType::dependency,
+      && !serializer.add_file(core::result::FileType::dependency,
                               ctx.args_info.output_dep)) {
     LOG("Dependency file {} missing", ctx.args_info.output_dep);
     return false;
@@ -1000,33 +1000,33 @@ write_result(Context& ctx,
       return false;
     }
     if (!serializer.add_file(coverage_file.mangled
-                               ? core::Result::FileType::coverage_mangled
-                               : core::Result::FileType::coverage_unmangled,
+                               ? core::result::FileType::coverage_mangled
+                               : core::result::FileType::coverage_unmangled,
                              coverage_file.path)) {
       LOG("Coverage file {} missing", coverage_file.path);
       return false;
     }
   }
   if (ctx.args_info.generating_stackusage
-      && !serializer.add_file(core::Result::FileType::stackusage,
+      && !serializer.add_file(core::result::FileType::stackusage,
                               ctx.args_info.output_su)) {
     LOG("Stack usage file {} missing", ctx.args_info.output_su);
     return false;
   }
   if (ctx.args_info.generating_callgraphinfo
-      && !serializer.add_file(core::Result::FileType::callgraph_info,
+      && !serializer.add_file(core::result::FileType::callgraph_info,
                               ctx.args_info.output_ci)) {
     LOG("Callgraph info file {} missing", ctx.args_info.output_ci);
     return false;
   }
   if (ctx.args_info.generating_ipa_clones
-      && !serializer.add_file(core::Result::FileType::ipa_clones,
+      && !serializer.add_file(core::result::FileType::ipa_clones,
                               ctx.args_info.output_ipa)) {
     LOG("IPA clones file {} missing", ctx.args_info.output_ipa);
     return false;
   }
   if (ctx.args_info.generating_diagnostics
-      && !serializer.add_file(core::Result::FileType::diagnostic,
+      && !serializer.add_file(core::result::FileType::diagnostic,
                               ctx.args_info.output_dia)) {
     LOG("Diagnostics file {} missing", ctx.args_info.output_dia);
     return false;
@@ -1035,13 +1035,13 @@ write_result(Context& ctx,
       // Only store .dwo file if it was created by the compiler (GCC and Clang
       // behave differently e.g. for "-gsplit-dwarf -g1").
       && DirEntry(ctx.args_info.output_dwo).is_regular_file()
-      && !serializer.add_file(core::Result::FileType::dwarf_object,
+      && !serializer.add_file(core::result::FileType::dwarf_object,
                               ctx.args_info.output_dwo)) {
     LOG("Split dwarf file {} missing", ctx.args_info.output_dwo);
     return false;
   }
   if (!ctx.args_info.output_al.empty()
-      && !serializer.add_file(core::Result::FileType::assembler_listing,
+      && !serializer.add_file(core::result::FileType::assembler_listing,
                               ctx.args_info.output_al)) {
     LOG("Assembler listing file {} missing", ctx.args_info.output_al);
     return false;
@@ -1289,7 +1289,7 @@ to_cache(Context& ctx,
   }
 
   if (ctx.args_info.generating_dependencies) {
-    Depfile::make_paths_relative_in_output_dep(ctx);
+    depfile::make_paths_relative_in_output_dep(ctx);
   }
 
   if (!ctx.args_info.expect_output_obj) {
@@ -2251,7 +2251,7 @@ calculate_result_and_manifest_key(Context& ctx,
   hash.hash(core::CacheEntry::k_format_version);
 
   hash.hash_delimiter("result version");
-  hash.hash(core::Result::k_format_version);
+  hash.hash(core::result::k_format_version);
 
   if (direct_mode) {
     hash.hash_delimiter("manifest version");
@@ -2384,7 +2384,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
   try {
     core::CacheEntry cache_entry(cache_entry_data);
     cache_entry.verify_checksum();
-    core::Result::Deserializer deserializer(cache_entry.payload());
+    core::result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_key);
     util::UmaskScope umask_scope(ctx.original_umask);
     deserializer.visit(result_retriever);

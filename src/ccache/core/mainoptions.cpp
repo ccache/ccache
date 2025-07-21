@@ -238,7 +238,7 @@ inspect_path(const fs::path& path)
     break;
   }
   case core::CacheEntryType::result:
-    Result::Deserializer result_deserializer(payload);
+    result::Deserializer result_deserializer(payload);
     ResultInspector result_inspector(stdout);
     result_deserializer.visit(result_inspector);
     break;
@@ -651,7 +651,7 @@ process_main_options(int argc, const char* const* argv)
       core::CacheEntry cache_entry(*cache_entry_data);
       const auto payload = cache_entry.payload();
 
-      Result::Deserializer result_deserializer(payload);
+      result::Deserializer result_deserializer(payload);
       result_deserializer.visit(result_extractor);
       cache_entry.verify_checksum();
       return EXIT_SUCCESS;

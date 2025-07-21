@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -33,7 +33,7 @@ class Context;
 namespace core {
 
 // This class retrieves a result entry to the local file system.
-class ResultRetriever : public Result::Deserializer::Visitor
+class ResultRetriever : public result::Deserializer::Visitor
 {
 public:
   class WriteError : public Error
@@ -47,17 +47,17 @@ public:
                   std::optional<Hash::Digest> result_key = std::nullopt);
 
   void on_embedded_file(uint8_t file_number,
-                        Result::FileType file_type,
+                        result::FileType file_type,
                         nonstd::span<const uint8_t> data) override;
   void on_raw_file(uint8_t file_number,
-                   Result::FileType file_type,
+                   result::FileType file_type,
                    uint64_t file_size) override;
 
 private:
   const Context& m_ctx;
   std::optional<Hash::Digest> m_result_key;
 
-  std::filesystem::path get_dest_path(Result::FileType file_type) const;
+  std::filesystem::path get_dest_path(result::FileType file_type) const;
 
   void write_dependency_file(const std::filesystem::path& path,
                              nonstd::span<const uint8_t> data);

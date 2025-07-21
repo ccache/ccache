@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,7 +25,7 @@ class Context;
 #include <string_view>
 #include <vector>
 
-namespace Depfile {
+namespace depfile {
 
 std::string escape_filename(std::string_view filename);
 
@@ -41,4 +41,4 @@ std::vector<std::string> tokenize(std::string_view text);
 // Return text from `tokens` that originate from `tokenize`.
 std::string untokenize(const std::vector<std::string>& tokens);
 
-} // namespace Depfile
+} // namespace depfile

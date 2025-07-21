@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -81,9 +81,9 @@ const uint8_t k_raw_file_marker = 1;
 const uint8_t k_max_raw_file_entries = 10;
 
 bool
-should_store_raw_file(const Config& config, core::Result::FileType type)
+should_store_raw_file(const Config& config, core::result::FileType type)
 {
-  if (!core::Result::Serializer::use_raw_files(config)) {
+  if (!core::result::Serializer::use_raw_files(config)) {
     return false;
   }
 
@@ -103,12 +103,12 @@ should_store_raw_file(const Config& config, core::Result::FileType type)
   // files that become large enough that it's of interest to clone or hard link
   // them, so we keep things simple for now. This will also save i-nodes in the
   // cache.
-  return type == core::Result::FileType::object;
+  return type == core::result::FileType::object;
 }
 
 } // namespace
 
-namespace core::Result {
+namespace core::result {
 
 const uint8_t k_format_version = 0;
 
@@ -338,4 +338,4 @@ Serializer::get_raw_files() const
   return m_raw_files;
 }
 
-} // namespace core::Result
+} // namespace core::result
