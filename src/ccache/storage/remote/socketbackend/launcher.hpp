@@ -1,11 +1,14 @@
 #pragma once
 
+#include "ccache/storage/remote/remotestorage.hpp"
+#include "ccache/util/environment.hpp"
 #include "ccache/util/logging.hpp"
 
 #include <unistd.h>
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace storage::remote::backend {
 namespace fs = std::filesystem;
@@ -14,6 +17,7 @@ inline void
 start_daemon(const std::string type,
              const fs::path& socket_path,
              const std::string& url,
+             const std::vector<RemoteStorage::Backend::Attribute> attributes,
              const size_t buffer_size)
 {
   fs::path helper_exec;
@@ -29,6 +33,8 @@ start_daemon(const std::string type,
     return;
   }
 #else
+  // TODO for later find_executable
+  //            find_executable_in_path("executable", {"path1", "path2"});
   helper_exec = // "/etc/libexec/ccache-backend";
     "/home/rocky/repos/py_server_script" / fs::path("ccache-backend-" + type);
 #endif
@@ -36,9 +42,17 @@ start_daemon(const std::string type,
   if (!fs::exists(helper_exec)) { // TODO
   }
 
-  std::string socket_flag = "--socket=" + socket_path.generic_string();
-  std::string buffer_flag = "--bufsize=" + std::to_string(buffer_size);
-  std::string url_flag = "--url=" + url;
+  // extern char **environ;
+  util::setenv("_CCACHE_REMOTE_URL", url);
+  util::setenv("_CCACHE_SOCKET_PATH", socket_path.generic_string());
+  util::setenv("_CCACHE_BUFFER_SIZE", std::to_string(buffer_size));
+  util::setenv("_CCACHE_NUM_ATTR", std::to_string(attributes.size()));
+
+  for (size_t i = 0; i < attributes.size(); i++) {
+    std::string k = std::to_string(i);
+    util::setenv("_CCACHE_ATTR_KEY_" + k, attributes[i].key);
+    util::setenv("_CCACHE_ATTR_VALUE_" + k, attributes[i].value);
+  }
 
 #ifdef _WIN32
   STARTUPINFO si;
@@ -47,8 +61,8 @@ start_daemon(const std::string type,
   si.cb = sizeof(si);
   ZeroMemory(&pi, sizeof(pi));
 
-  std::string commandLine = helper_exec.string() + " " + socketFlag + " "
-                            + bufferFlag + " " + urlFlag + " 2>&1";
+  std::string commandLine = helper_exec.string() + " 2>&1";
+  // + " " + socketFlag + " " + bufferFlag + " " + urlFlag + " 2>&1";
   if (!CreateProcessA(nullptr,
                       const_cast<char*>(commandLine.c_str()),
                       nullptr,
@@ -68,13 +82,11 @@ start_daemon(const std::string type,
 #else
   pid_t pid = fork();
   if (pid == 0) { // Child process
-    execlp(helper_exec.c_str(),
+    execle(helper_exec.c_str(),
            helper_exec.c_str(),
-           socket_flag.c_str(),
-           buffer_flag.c_str(),
-           url_flag.c_str(),
            "2>&1",
-           nullptr);
+           nullptr, // arguments until a NULL pointer
+           environ);
     LOG("DEBUG Failed to start helper process {}",
         helper_exec.generic_string());
     exit(EXIT_FAILURE);

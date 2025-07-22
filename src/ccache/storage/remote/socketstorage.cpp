@@ -2,10 +2,12 @@
 
 #include "ccache/hash.hpp"
 #include "ccache/storage/remote/remotestorage.hpp"
+#include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
+#include "ccache/storage/remote/socketbackend/tlv_protocol.hpp"
+#include "ccache/util/bytes.hpp"
 #include "ccache/util/logging.hpp"
 #include "ccache/util/string.hpp"
 #include "socketbackend/launcher.hpp"
-#include "socketbackend/messenger.hpp"
 
 #include <cxxurl/url.hpp>
 #include <fmt/base.h>
@@ -21,6 +23,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace storage::remote {
@@ -30,7 +33,9 @@ constexpr std::chrono::seconds STARTUP_DELAY(5);
 class BackendNode : public RemoteStorage::Backend
 {
 public:
-  BackendNode(const Url& url, const std::string& name, std::string attributes);
+  BackendNode(const Url& url,
+              const std::string& name,
+              const std::vector<RemoteStorage::Backend::Attribute>& attributes);
 
   tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
   get(const Hash::Digest& key) override;
@@ -45,9 +50,6 @@ public:
 
   // The Unix domain socket used for IPC with the backend service.
   std::unique_ptr<UnixSocket> bsock;
-
-  // The messaging handler object responsible for managing message passing.
-  std::unique_ptr<msgr::MessageHandler> m_msg_handler;
 };
 
 std::unique_ptr<RemoteStorage::Backend>
@@ -60,17 +62,15 @@ SocketStorage::create_backend(
 
   // Unix socket named something like ${TEMPDIR}/backend-<unique hash>.sock
   Hash name = Hash{};
-  std::string attr_str;
   name.hash(real_url.str());
   for (const auto& a : attributes) {
-    attr_str += "|" + a.key + "=" + a.raw_value;
     name.hash(a.key);
     name.hash(a.value);
     name.hash(a.raw_value);
   }
 
   auto rbackend = std::make_unique<BackendNode>(
-    real_url, util::format_base16(name.digest()), attr_str);
+    real_url, util::format_base16(name.digest()), attributes);
 
   if (setup_backend_service(*rbackend->bsock) < 1) {
     return nullptr;
@@ -81,24 +81,26 @@ SocketStorage::create_backend(
 int
 SocketStorage::setup_backend_service(UnixSocket& sock) const
 {
-  msgr::MessageHandler msg_handler;
   std::vector<uint8_t> transaction_result;
-  msg_handler.create(MSG_TEST, std::array<uint8_t, 3>{1, 2, 3});
-  auto status = msg_handler.dispatch(transaction_result, sock);
+  auto status = tlv::dispatch(transaction_result,
+                              sock,
+                              tlv::MSG_TYPE_SETUP_REQUEST,
+                              std::array<uint8_t, 3>{1, 2, 3});
 
-  if (status.has_value()) {
-    LOG("DEBUG {} message went wrong!", MSG_TEST);
+  if (status != tlv::SUCCESS) {
+    LOG("DEBUG msg_type_notify {} message went wrong!",
+        tlv::MSG_TYPE_SETUP_REQUEST);
     return INVALID_SOCKET;
   }
 
   return 1;
 }
 
-BackendNode::BackendNode(const Url& url,
-                         const std::string& name,
-                         std::string attributes)
-  : bsock(std::make_unique<UnixSocket>(name, 0xFF)),
-    m_msg_handler(std::make_unique<msgr::MessageHandler>())
+BackendNode::BackendNode(
+  const Url& url,
+  const std::string& name,
+  const std::vector<RemoteStorage::Backend::Attribute>& attributes)
+  : bsock(std::make_unique<UnixSocket>(name, 0xFF))
 {
   if (bsock->start(false)) {
     return;
@@ -131,7 +133,7 @@ BackendNode::BackendNode(const Url& url,
     }
 
     backend::start_daemon(
-      url.scheme(), sock_path, url.str() + attributes, BUFFERSIZE);
+      url.scheme(), sock_path, url.str(), attributes, BUFFERSIZE);
 
     daemon_started = true;
   } else {
@@ -167,13 +169,15 @@ tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 BackendNode::get(const Hash::Digest& key)
 {
   std::vector<uint8_t> transaction_result;
-  m_msg_handler->create(MSG_GET, key);
-  auto status = m_msg_handler->dispatch(transaction_result, *bsock);
+  auto status =
+    tlv::dispatch(transaction_result, *bsock, tlv::MSG_TYPE_GET_REQUEST, key);
 
-  if (status.has_value()) {
-    LOG("{} occured on sending message! ",
-        (int(*status) ? "ERROR" : "TIMEOUT"));
-    return tl::unexpected<RemoteStorage::Backend::Failure>(*status);
+  if (status != tlv::SUCCESS) {
+    LOG("{} occured on sending message!",
+        (status == tlv::ERROR ? "ERROR" : "TIMEOUT"));
+    return tl::unexpected<RemoteStorage::Backend::Failure>(
+      status == tlv::ERROR ? RemoteStorage::Backend::Failure::error
+                           : RemoteStorage::Backend::Failure::timeout);
   }
 
   if (transaction_result.empty()) {
@@ -189,13 +193,19 @@ BackendNode::put(const Hash::Digest& key,
                  bool only_if_missing)
 {
   std::vector<uint8_t> transaction_result;
-  m_msg_handler->create(MSG_PUT, key, value, only_if_missing);
-  auto status = m_msg_handler->dispatch(transaction_result, *bsock);
+  auto status = tlv::dispatch(transaction_result,
+                              *bsock,
+                              tlv::MSG_TYPE_PUT_REQUEST,
+                              key,
+                              value,
+                              only_if_missing);
 
-  if (status.has_value()) {
+  if (status != tlv::SUCCESS) {
     LOG("{} occured on sending message! ",
-        (int(*status) ? "ERROR" : "TIMEOUT"));
-    return tl::unexpected<RemoteStorage::Backend::Failure>(*status);
+        (status == tlv::ERROR ? "ERROR" : "TIMEOUT"));
+    return tl::unexpected<RemoteStorage::Backend::Failure>(
+      status == tlv::ERROR ? RemoteStorage::Backend::Failure::error
+                           : RemoteStorage::Backend::Failure::timeout);
   }
 
   if (transaction_result.empty()) {
@@ -210,13 +220,15 @@ tl::expected<bool, RemoteStorage::Backend::Failure>
 BackendNode::remove(const Hash::Digest& key)
 {
   std::vector<uint8_t> transaction_result;
-  m_msg_handler->create(MSG_RM, key);
-  auto status = m_msg_handler->dispatch(transaction_result, *bsock);
+  auto status =
+    tlv::dispatch(transaction_result, *bsock, tlv::MSG_TYPE_DEL_REQUEST, key);
 
-  if (status.has_value()) {
+  if (status != tlv::SUCCESS) {
     LOG("{} occured on sending message! ",
-        (int(*status) ? "ERROR" : "TIMEOUT"));
-    return tl::unexpected<RemoteStorage::Backend::Failure>(*status);
+        (status == tlv::ERROR ? "ERROR" : "TIMEOUT"));
+    return tl::unexpected<RemoteStorage::Backend::Failure>(
+      status == tlv::ERROR ? RemoteStorage::Backend::Failure::error
+                           : RemoteStorage::Backend::Failure::timeout);
   }
 
   if (transaction_result.empty()) {
