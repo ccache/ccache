@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -35,7 +35,7 @@
 
 namespace fs = util::filesystem;
 
-namespace Depfile {
+namespace depfile {
 
 std::string
 escape_filename(std::string_view filename)
@@ -254,4 +254,4 @@ untokenize(const std::vector<std::string>& tokens)
   return result;
 }
 
-} // namespace Depfile
+} // namespace depfile

@@ -85,7 +85,7 @@ format is loosely based on [LLVM's code formatting
 style](https://llvm.org/docs/CodingStandards.html) with some exceptions. Run
 `make format` (or `ninja format` if you use Ninja) to format changes according
 to ccache's code style. Or even better: set up your editor to run
-`<ccache-top-dir>/misc/clang-format` (or any other Clang-Format version 11
+`<ccache-top-dir>/misc/clang-format` (or any other Clang-Format version 18
 binary) automatically when saving. Newer Clang-Format versions likely also work
 fine.
 
@@ -94,8 +94,7 @@ Please follow these conventions:
 * Use `UpperCamelCase` for types (e.g. classes and structs).
 * Use `UPPER_CASE` names for macros and (non-class) enum values.
 * Use `snake_case` for other names (namespaces, functions, variables, enum class
-  values, etc.). (Namespaces used to be in `UpperCamelCase`; transition is work
-  in progress.)
+  values, etc.).
 * Use an `m_` prefix for non-public member variables.
 * Use a `g_` prefix for global mutable variables.
 * Use a `k_` prefix for global constants.

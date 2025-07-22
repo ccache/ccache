@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -79,7 +79,6 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.remote_only());
   CHECK(config.remote_storage().empty());
   CHECK_FALSE(config.reshare());
-  CHECK(config.run_second_cpp());
   CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
@@ -138,7 +137,6 @@ TEST_CASE("Config::update_from_file")
     "read_only_direct = true\n"
     "recache = true\n"
     "reshare = true\n"
-    "run_second_cpp = false\n"
     "sloppiness =     time_macros   ,include_file_mtime"
     "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
     " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,"
@@ -182,7 +180,6 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.read_only_direct());
   CHECK(config.recache());
   CHECK(config.reshare());
-  CHECK_FALSE(config.run_second_cpp());
   CHECK(config.sloppiness().to_bitmask()
         == (static_cast<uint32_t>(core::Sloppy::clang_index_store)
             | static_cast<uint32_t>(core::Sloppy::file_stat_matches)
@@ -479,7 +476,6 @@ TEST_CASE("Config::visit_items")
     "remote_storage = rs\n"
     "reshare = true\n"
     "response_file_format = posix\n"
-    "run_second_cpp = false\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
     " clang_index_store, ivfsoverlay, gcno_cwd \n"
@@ -542,7 +538,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) remote_storage = rs",
     "(test.conf) reshare = true",
     "(test.conf) response_file_format = posix",
-    "(test.conf) run_second_cpp = false",
     "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
     " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"
     " include_file_mtime, ivfsoverlay, pch_defines, system_headers,"

@@ -1,6 +1,6 @@
 mark_as_advanced(FMT_INCLUDE_DIR FMT_LIBRARY)
 
-if(DEP_FMT STREQUAL "BUNDLED")
+if(DEPS STREQUAL "DOWNLOAD" OR DEP_FMT STREQUAL "BUNDLED")
   message(STATUS "Using bundled Fmt as requested")
 else()
   find_path(FMT_INCLUDE_DIR NAMES fmt/base.h fmt/core.h)

@@ -42,11 +42,13 @@ class ScopedHANDLE
 public:
   ScopedHANDLE() = default;
 
-  explicit ScopedHANDLE(HANDLE handle) : m_handle(handle)
+  explicit ScopedHANDLE(HANDLE handle)
+    : m_handle(handle)
   {
   }
 
-  ScopedHANDLE(ScopedHANDLE&& other) : ScopedHANDLE(other.release())
+  ScopedHANDLE(ScopedHANDLE&& other)
+    : ScopedHANDLE(other.release())
   {
   }
 
@@ -64,7 +66,8 @@ public:
     return *this;
   }
 
-  explicit operator bool() const
+  explicit
+  operator bool() const
   {
     return m_handle != INVALID_HANDLE_VALUE;
   }

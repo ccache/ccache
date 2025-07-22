@@ -48,9 +48,6 @@ build debian-12    clang  clang++ clang   -D DEPS=DOWNLOAD
 build fedora-42    gcc    g++     gcc     -D DEPS=DOWNLOAD
 build fedora-42    clang  clang++ clang   -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF # doctest issue #900
 
-build ubuntu-20.04 gcc    g++     gcc     -D DEPS=DOWNLOAD
-build ubuntu-20.04 clang  clang++ clang   -D DEPS=DOWNLOAD
-
 build ubuntu-22.04 gcc-11 g++-11  gcc     -D DEPS=DOWNLOAD
 build ubuntu-22.04 gcc-12 g++-12  gcc     -D DEPS=DOWNLOAD
 build ubuntu-22.04 clang  clang++ clang   -D DEPS=DOWNLOAD

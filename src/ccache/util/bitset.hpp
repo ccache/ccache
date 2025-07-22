@@ -54,7 +54,8 @@ inline BitSet<T>::BitSet(T value)
 }
 
 template<typename T>
-inline BitSet<T>::BitSet(const BitSet& set) : m_value(set.m_value)
+inline BitSet<T>::BitSet(const BitSet& set)
+  : m_value(set.m_value)
 {
 }
 

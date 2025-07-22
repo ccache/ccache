@@ -56,12 +56,12 @@ namespace storage {
 const std::unordered_map<std::string /*scheme*/,
                          std::shared_ptr<remote::RemoteStorage>>
   k_remote_storage_implementations = {
-    {"file", std::make_shared<remote::FileStorage>()},
+    {"file",       std::make_shared<remote::FileStorage>() },
 #ifdef HAVE_HTTP_STORAGE_BACKEND
-    {"http", std::make_shared<remote::HttpStorage>()},
+    {"http",       std::make_shared<remote::HttpStorage>() },
 #endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
-    {"redis", std::make_shared<remote::RedisStorage>()},
+    {"redis",      std::make_shared<remote::RedisStorage>()},
     {"redis+unix", std::make_shared<remote::RedisStorage>()},
 #endif
 #ifdef HAVE_EXPERIMENTAL_STORAGE_BACKEND
@@ -253,7 +253,9 @@ get_storage(const std::string& scheme)
   }
 }
 
-Storage::Storage(const Config& config) : local(config), m_config(config)
+Storage::Storage(const Config& config)
+  : local(config),
+    m_config(config)
 {
 }
 

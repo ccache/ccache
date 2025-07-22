@@ -442,7 +442,8 @@ file_type_from_path(const fs::path& path)
   }
 }
 
-LocalStorage::LocalStorage(const Config& config) : m_config(config)
+LocalStorage::LocalStorage(const Config& config)
+  : m_config(config)
 {
 }
 
@@ -642,7 +643,7 @@ LocalStorage::get_raw_file_path(const Hash::Digest& result_key,
 void
 LocalStorage::put_raw_files(
   const Hash::Digest& key,
-  const std::vector<core::Result::Serializer::RawFile>& raw_files)
+  const std::vector<core::result::Serializer::RawFile>& raw_files)
 {
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
   core::ensure_dir_exists(cache_file.path.parent_path());

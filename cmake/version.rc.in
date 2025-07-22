@@ -1,0 +1,27 @@
+#include <winres.h>
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "ccache.exe.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @CCACHE_RCVERSION@
+PRODUCTVERSION  @CCACHE_RCVERSION@
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "InternalName",     "ccache\0"
+            VALUE "LegalCopyright",   "This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.\0"
+            VALUE "OriginalFilename", "ccache.exe\0"
+            VALUE "ProductName",      "Ccache\0"
+            VALUE "ProductVersion",   "@CCACHE_VERSION@\0"
+            VALUE "FileDescription",  "@CMAKE_PROJECT_DESCRIPTION@\0"
+            VALUE "FileVersion",      "@CCACHE_VERSION@\0"
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

@@ -31,7 +31,7 @@ size_t TestContext::m_subdir_counter = 0;
 
 TestContext::TestContext()
   : m_test_dir(util::value_or_throw<core::Error>(
-    fs::current_path(), "Failed to retrieve current directory"))
+      fs::current_path(), "Failed to retrieve current directory"))
 {
   if (m_test_dir.parent_path().filename() != "testdir") {
     throw core::Error("TestContext instantiated outside test directory");

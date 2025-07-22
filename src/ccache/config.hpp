@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -94,7 +94,6 @@ public:
   bool remote_only() const;
   const std::string& remote_storage() const;
   bool reshare() const;
-  bool run_second_cpp() const;
   core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::filesystem::path& stats_log() const;
@@ -125,7 +124,6 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
-  void set_run_second_cpp(bool value);
   void set_temporary_dir(const std::filesystem::path& value);
 
   // Where to write configuration changes.
@@ -214,7 +212,6 @@ private:
   bool m_read_only_direct = false;
   bool m_recache = false;
   bool m_reshare = false;
-  bool m_run_second_cpp = true;
   bool m_remote_only = false;
   std::string m_remote_storage;
   core::Sloppiness m_sloppiness;
@@ -481,12 +478,6 @@ Config::reshare() const
 }
 
 inline bool
-Config::run_second_cpp() const
-{
-  return m_run_second_cpp;
-}
-
-inline bool
 Config::remote_only() const
 {
   return m_remote_only;
@@ -625,12 +616,6 @@ inline void
 Config::set_msvc_dep_prefix(const std::string& value)
 {
   m_msvc_dep_prefix = value;
-}
-
-inline void
-Config::set_run_second_cpp(bool value)
-{
-  m_run_second_cpp = value;
 }
 
 inline void

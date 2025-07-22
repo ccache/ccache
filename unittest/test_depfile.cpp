@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -33,21 +33,21 @@ namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
 
-TEST_SUITE_BEGIN("Depfile");
+TEST_SUITE_BEGIN("depfile");
 
-TEST_CASE("Depfile::escape_filename")
+TEST_CASE("depfile::escape_filename")
 {
-  CHECK(Depfile::escape_filename("") == "");
-  CHECK(Depfile::escape_filename("foo") == "foo");
-  CHECK(Depfile::escape_filename("foo\\bar") == "foo\\\\bar");
-  CHECK(Depfile::escape_filename("foo#bar") == "foo\\#bar");
-  CHECK(Depfile::escape_filename("foo:bar") == "foo\\:bar");
-  CHECK(Depfile::escape_filename("foo bar") == "foo\\ bar");
-  CHECK(Depfile::escape_filename("foo\tbar") == "foo\\\tbar");
-  CHECK(Depfile::escape_filename("foo$bar") == "foo$$bar");
+  CHECK(depfile::escape_filename("") == "");
+  CHECK(depfile::escape_filename("foo") == "foo");
+  CHECK(depfile::escape_filename("foo\\bar") == "foo\\\\bar");
+  CHECK(depfile::escape_filename("foo#bar") == "foo\\#bar");
+  CHECK(depfile::escape_filename("foo:bar") == "foo\\:bar");
+  CHECK(depfile::escape_filename("foo bar") == "foo\\ bar");
+  CHECK(depfile::escape_filename("foo\tbar") == "foo\\\tbar");
+  CHECK(depfile::escape_filename("foo$bar") == "foo$$bar");
 }
 
-TEST_CASE("Depfile::rewrite_source_paths")
+TEST_CASE("depfile::rewrite_source_paths")
 {
   Context ctx;
 
@@ -59,27 +59,27 @@ TEST_CASE("Depfile::rewrite_source_paths")
     "\n"
     " {0}/bar/bar.h: \n"
     " {1}/fie.h:\n",
-    Depfile::escape_filename(util::pstr(cwd).str()),
-    Depfile::escape_filename(util::pstr(cwd.parent_path()).str()));
+    depfile::escape_filename(util::pstr(cwd).str()),
+    depfile::escape_filename(util::pstr(cwd.parent_path()).str()));
 
   SUBCASE("Base directory not in dep file content")
   {
     ctx.config.set_base_dir("/foo/bar");
-    CHECK(!Depfile::rewrite_source_paths(ctx, ""));
-    CHECK(!Depfile::rewrite_source_paths(ctx, content));
+    CHECK(!depfile::rewrite_source_paths(ctx, ""));
+    CHECK(!depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Base directory in dep file content but not matching")
   {
     ctx.config.set_base_dir((cwd.parent_path() / "other").string());
-    CHECK(!Depfile::rewrite_source_paths(ctx, ""));
-    CHECK(!Depfile::rewrite_source_paths(ctx, content));
+    CHECK(!depfile::rewrite_source_paths(ctx, ""));
+    CHECK(!depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Absolute paths under base directory rewritten")
   {
     ctx.config.set_base_dir(cwd.string());
-    const auto actual = Depfile::rewrite_source_paths(ctx, content);
+    const auto actual = depfile::rewrite_source_paths(ctx, content);
     const auto expected = FMT(
       "{0}/foo.o: \\\n"
       " bar.c \\\n"
@@ -87,26 +87,26 @@ TEST_CASE("Depfile::rewrite_source_paths")
       " {1}/fie.h\n"
       "{2}:\n"
       "{1}/fie.h:\n",
-      Depfile::escape_filename(util::pstr(cwd).str()),
-      Depfile::escape_filename(util::pstr(cwd.parent_path()).str()),
-      Depfile::escape_filename(
+      depfile::escape_filename(util::pstr(cwd).str()),
+      depfile::escape_filename(util::pstr(cwd.parent_path()).str()),
+      depfile::escape_filename(
         util::pstr(fs::path("bar/bar.h").lexically_normal()).str()));
     REQUIRE(actual);
     CHECK(*actual == expected);
   }
 }
 
-TEST_CASE("Depfile::tokenize")
+TEST_CASE("depfile::tokenize")
 {
   SUBCASE("Empty")
   {
-    auto result = Depfile::tokenize("");
+    auto result = depfile::tokenize("");
     CHECK(result.size() == 0);
   }
 
   SUBCASE("Simple")
   {
-    auto result = Depfile::tokenize("cat.o: meow meow purr");
+    auto result = depfile::tokenize("cat.o: meow meow purr");
     REQUIRE(result.size() == 6);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -118,7 +118,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Dollar sign followed by a dollar sign")
   {
-    auto result = Depfile::tokenize("cat.o: meow$$");
+    auto result = depfile::tokenize("cat.o: meow$$");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -128,7 +128,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Dollar sign followed by an alphabet")
   {
-    auto result = Depfile::tokenize("cat.o: meow$w");
+    auto result = depfile::tokenize("cat.o: meow$w");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -138,7 +138,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Backslash followed by a number sign or a colon")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\# meow\\:");
+    auto result = depfile::tokenize("cat.o: meow\\# meow\\:");
     REQUIRE(result.size() == 5);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -149,7 +149,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Backslash followed by an alphabet")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\w purr\\r");
+    auto result = depfile::tokenize("cat.o: meow\\w purr\\r");
     REQUIRE(result.size() == 5);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -160,7 +160,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Backslash followed by a space or a tab")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\ meow purr\\\tpurr");
+    auto result = depfile::tokenize("cat.o: meow\\ meow purr\\\tpurr");
     REQUIRE(result.size() == 5);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -171,7 +171,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Backslashes followed by a space or a tab")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\\\\\ meow purr\\\\ purr");
+    auto result = depfile::tokenize("cat.o: meow\\\\\\ meow purr\\\\ purr");
     REQUIRE(result.size() == 6);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -183,7 +183,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Backslash newline")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\\nmeow\\\n purr\\\n\tpurr");
+    auto result = depfile::tokenize("cat.o: meow\\\nmeow\\\n purr\\\n\tpurr");
     REQUIRE(result.size() == 7);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -198,8 +198,8 @@ TEST_CASE("Depfile::tokenize")
   {
     // This is an invalid dependency file since it has multiple lines without
     // backslash, which is not valid Makefile syntax. However, the
-    // Depfile::tokenize's simplistic parser accepts them.
-    auto result = Depfile::tokenize("cat.o: meow\nmeow\npurr\n");
+    // depfile::tokenize's simplistic parser accepts them.
+    auto result = depfile::tokenize("cat.o: meow\nmeow\npurr\n");
     REQUIRE(result.size() == 8);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -213,7 +213,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Multiple entries")
   {
-    auto result = Depfile::tokenize(
+    auto result = depfile::tokenize(
       "foo.o bar.o: a.h \\\n"
       "  b.h\\\n"
       " c.h\n"
@@ -237,7 +237,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Trailing dollar sign")
   {
-    auto result = Depfile::tokenize("cat.o: meow$");
+    auto result = depfile::tokenize("cat.o: meow$");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -247,7 +247,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Trailing backslash")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\");
+    auto result = depfile::tokenize("cat.o: meow\\");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -257,7 +257,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Trailing backslash newline")
   {
-    auto result = Depfile::tokenize("cat.o: meow\\\n");
+    auto result = depfile::tokenize("cat.o: meow\\\n");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -267,7 +267,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Space before the colon but not after")
   {
-    auto result = Depfile::tokenize("cat.o :meow");
+    auto result = depfile::tokenize("cat.o :meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -277,7 +277,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Space around the colon")
   {
-    auto result = Depfile::tokenize("cat.o    :    meow");
+    auto result = depfile::tokenize("cat.o    :    meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -287,7 +287,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("No space between colon and dependency")
   {
-    auto result = Depfile::tokenize("cat.o:meow");
+    auto result = depfile::tokenize("cat.o:meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -297,7 +297,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename (with backslashes in target)")
   {
-    auto result = Depfile::tokenize("e:\\cat.o: meow");
+    auto result = depfile::tokenize("e:\\cat.o: meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "e:\\cat.o");
     CHECK(result[1] == ":");
@@ -307,7 +307,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename (with backslashes in prerequisite)")
   {
-    auto result = Depfile::tokenize("cat.o: c:\\meow\\purr");
+    auto result = depfile::tokenize("cat.o: c:\\meow\\purr");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -317,7 +317,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename (with slashes in target)")
   {
-    auto result = Depfile::tokenize("e:/cat.o: meow");
+    auto result = depfile::tokenize("e:/cat.o: meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "e:/cat.o");
     CHECK(result[1] == ":");
@@ -327,7 +327,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename (with slashes in prerequisite)")
   {
-    auto result = Depfile::tokenize("cat.o: c:/meow/purr");
+    auto result = depfile::tokenize("cat.o: c:/meow/purr");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat.o");
     CHECK(result[1] == ":");
@@ -337,7 +337,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: cat:/meow")
   {
-    auto result = Depfile::tokenize("cat:/meow");
+    auto result = depfile::tokenize("cat:/meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -347,7 +347,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: cat:\\meow")
   {
-    auto result = Depfile::tokenize("cat:\\meow");
+    auto result = depfile::tokenize("cat:\\meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -357,7 +357,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: cat:\\ meow")
   {
-    auto result = Depfile::tokenize("cat:\\ meow");
+    auto result = depfile::tokenize("cat:\\ meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -367,7 +367,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: cat:c:/meow")
   {
-    auto result = Depfile::tokenize("cat:c:/meow");
+    auto result = depfile::tokenize("cat:c:/meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -377,7 +377,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: cat:c:\\meow")
   {
-    auto result = Depfile::tokenize("cat:c:\\meow");
+    auto result = depfile::tokenize("cat:c:\\meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -388,7 +388,7 @@ TEST_CASE("Depfile::tokenize")
   // Invalid pattern but tested for documentative purposes.
   SUBCASE("Windows filename: cat:c:")
   {
-    auto result = Depfile::tokenize("cat:c:");
+    auto result = depfile::tokenize("cat:c:");
     REQUIRE(result.size() == 5);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -400,7 +400,7 @@ TEST_CASE("Depfile::tokenize")
   // Invalid pattern but tested for documentative purposes.
   SUBCASE("Windows filename: cat:c:\\")
   {
-    auto result = Depfile::tokenize("cat:c:\\");
+    auto result = depfile::tokenize("cat:c:\\");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -410,7 +410,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: cat:c:/")
   {
-    auto result = Depfile::tokenize("cat:c:/");
+    auto result = depfile::tokenize("cat:c:/");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -421,7 +421,7 @@ TEST_CASE("Depfile::tokenize")
   // Invalid pattern but tested for documentative purposes.
   SUBCASE("Windows filename: cat:c:meow")
   {
-    auto result = Depfile::tokenize("cat:c:meow");
+    auto result = depfile::tokenize("cat:c:meow");
     REQUIRE(result.size() == 6);
     CHECK(result[0] == "cat");
     CHECK(result[1] == ":");
@@ -433,7 +433,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: c:c:/meow")
   {
-    auto result = Depfile::tokenize("c:c:/meow");
+    auto result = depfile::tokenize("c:c:/meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "c");
     CHECK(result[1] == ":");
@@ -443,7 +443,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: c:c:\\meow")
   {
-    auto result = Depfile::tokenize("c:c:\\meow");
+    auto result = depfile::tokenize("c:c:\\meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "c");
     CHECK(result[1] == ":");
@@ -453,7 +453,7 @@ TEST_CASE("Depfile::tokenize")
 
   SUBCASE("Windows filename: c:z:\\meow")
   {
-    auto result = Depfile::tokenize("c:z:\\meow");
+    auto result = depfile::tokenize("c:z:\\meow");
     REQUIRE(result.size() == 4);
     CHECK(result[0] == "c");
     CHECK(result[1] == ":");
@@ -464,7 +464,7 @@ TEST_CASE("Depfile::tokenize")
   // Invalid pattern but tested for documentative purposes.
   SUBCASE("Windows filename: c:cd:\\meow")
   {
-    auto result = Depfile::tokenize("c:cd:\\meow");
+    auto result = depfile::tokenize("c:cd:\\meow");
     REQUIRE(result.size() == 6);
     CHECK(result[0] == "c");
     CHECK(result[1] == ":");
@@ -475,12 +475,12 @@ TEST_CASE("Depfile::tokenize")
   }
 }
 
-TEST_CASE("Depfile::untokenize")
+TEST_CASE("depfile::untokenize")
 {
-  CHECK(Depfile::untokenize({}) == "");
-  CHECK(Depfile::untokenize({"foo.o"}) == "foo.o\n");
-  CHECK(Depfile::untokenize({"foo.o", ":"}) == "foo.o:\n");
-  CHECK(Depfile::untokenize({"foo.o", ":", "bar.h"})
+  CHECK(depfile::untokenize({}) == "");
+  CHECK(depfile::untokenize({"foo.o"}) == "foo.o\n");
+  CHECK(depfile::untokenize({"foo.o", ":"}) == "foo.o:\n");
+  CHECK(depfile::untokenize({"foo.o", ":", "bar.h"})
         == ("foo.o: \\\n"
             " bar.h\n"));
 }

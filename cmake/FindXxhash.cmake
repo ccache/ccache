@@ -42,8 +42,8 @@ if(_download_xxhash)
     URL "https://github.com/Cyan4973/xxhash/archive/refs/tags/v${_xxhash_version_string}.tar.gz"
     URL_HASH SHA256=aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80
   )
+  FetchContent_MakeAvailable(Xxhash)
 
-  FetchContent_Populate(Xxhash)
   set(_xxhash_sources "${xxhash_SOURCE_DIR}/xxhash.c")
   if(PLATFORM STREQUAL x86_64 OR PLATFORM STREQUAL AMD64)
     list(APPEND _xxhash_sources "${xxhash_SOURCE_DIR}/xxh_x86dispatch.c")

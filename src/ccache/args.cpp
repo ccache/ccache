@@ -25,7 +25,8 @@
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
 
-Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
+Args::Args(Args&& other) noexcept
+  : m_args(std::move(other.m_args))
 {
 }
 

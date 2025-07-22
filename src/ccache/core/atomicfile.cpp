@@ -30,7 +30,8 @@ namespace fs = util::filesystem;
 
 namespace core {
 
-AtomicFile::AtomicFile(const fs::path& path, Mode mode) : m_path(path)
+AtomicFile::AtomicFile(const fs::path& path, Mode mode)
+  : m_path(path)
 {
   auto tmp_file =
     util::value_or_throw<core::Error>(util::TemporaryFile::create(path));

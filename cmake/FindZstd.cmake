@@ -48,13 +48,11 @@ if(_download_zstd)
     SOURCE_SUBDIR build/cmake
     ${_zstd_patch}
   )
-
-  # When it works: Use FetchContent_MakeAvailable(Zstd) instead
-  FetchContent_GetProperties(zstd)
-  if(NOT zstd_POPULATED)
-    FetchContent_Populate(Zstd)
-    add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}" EXCLUDE_FROM_ALL)
-  endif()
+  set(_saved_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+  set(BUILD_SHARED_LIBS OFF) # avoid warning from zstd's CMake scripts.
+  FetchContent_MakeAvailable(Zstd)
+  set(BUILD_SHARED_LIBS ${_saved_BUILD_SHARED_LIBS})
+  unset(_saved_BUILD_SHARED_LIBS)
 
   unset(ZSTD_BUILD_PROGRAMS)
   unset(ZSTD_BUILD_SHARED)

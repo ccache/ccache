@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,12 +24,13 @@
 
 namespace core {
 
-ResultInspector::ResultInspector(FILE* stream) : m_stream(stream)
+ResultInspector::ResultInspector(FILE* stream)
+  : m_stream(stream)
 {
 }
 
 void
-ResultInspector::on_header(const Result::Deserializer::Header& header)
+ResultInspector::on_header(const result::Deserializer::Header& header)
 {
   PRINT(m_stream, "Result format version: {}\n", header.format_version);
   PRINT(m_stream, "Number of files: {}\n", header.n_files);
@@ -37,25 +38,25 @@ ResultInspector::on_header(const Result::Deserializer::Header& header)
 
 void
 ResultInspector::on_embedded_file(uint8_t file_number,
-                                  Result::FileType file_type,
+                                  result::FileType file_type,
                                   nonstd::span<const uint8_t> data)
 {
   PRINT(m_stream,
         "Embedded file #{}: {} ({} bytes)\n",
         file_number,
-        Result::file_type_to_string(file_type),
+        result::file_type_to_string(file_type),
         data.size());
 }
 
 void
 ResultInspector::on_raw_file(uint8_t file_number,
-                             Result::FileType file_type,
+                             result::FileType file_type,
                              uint64_t file_size)
 {
   PRINT(m_stream,
         "Raw file #{}: {} ({} bytes)\n",
         file_number,
-        Result::file_type_to_string(file_type),
+        result::file_type_to_string(file_type),
         file_size);
 }
 

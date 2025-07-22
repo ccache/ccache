@@ -1342,7 +1342,39 @@ EOF
     expect_equal_text_content reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
-    TEST "Merging stderr"
+    TEST "Line number in compiler warning"
+
+    cat <<'EOF' >hello.h
+#define A a
+
+// comment
+
+#define B \
+  x \
+  y \
+  z
+
+int hello(void) {
+  // trigger warning by having no return statement
+}
+EOF
+    cat <<'EOF' >hello.c
+#include "hello.h"
+EOF
+
+    export CCACHE_DEBUG=1
+    $COMPILER -c -Wall -c hello.c 2>stderr_1_ref.txt
+    $CCACHE_COMPILE -Wall -c hello.c 2>stderr_1.txt
+    expect_equal_text_content stderr_1_ref.txt stderr_1.txt
+
+    sed -i 's/comment/comment\n/' hello.h
+
+    $COMPILER -c -Wall -c hello.c 2>stderr_2_ref.txt
+    $CCACHE_COMPILE -Wall -c hello.c 2>stderr_2.txt
+    expect_equal_text_content stderr_2_ref.txt stderr_2.txt
+
+    # -------------------------------------------------------------------------
+    TEST "Stderr from cpp not emitted"
 
     cat >compiler.sh <<EOF
 #!/bin/sh
@@ -1356,18 +1388,11 @@ fi
 EOF
     chmod +x compiler.sh
 
-    unset CCACHE_NOCPP2
     stderr=$($CCACHE ./compiler.sh -c test1.c 2>stderr)
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
     expect_content stderr "[cc_stderr]"
-
-    stderr=$(CCACHE_NOCPP2=1 $CCACHE ./compiler.sh -c test1.c 2>stderr)
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 2
-    expect_stat files_in_cache 2
-    expect_content stderr "[cpp_stderr][cc_stderr]"
 
     # -------------------------------------------------------------------------
     TEST "Stderr and dependency file"
@@ -1622,9 +1647,7 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    if [ -z "$CCACHE_NOCPP2" ]; then
-        expect_content_pattern compiler.args "(-E -o * test1.c)(-c -o test1.o test1.c)"
-    fi
+    expect_content_pattern compiler.args "(-E -o * test1.c)(-c -o test1.o test1.c)"
     rm compiler.args
 
     $CCACHE ./compiler.sh -c test1.c
@@ -1640,10 +1663,21 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 2
     expect_stat files_in_cache 2
-    if [ -z "$CCACHE_NOCPP2" ]; then
-        expect_content_pattern compiler.args "(-E -o * test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
-    fi
+    expect_content_pattern compiler.args "(-E -o * test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
     rm compiler.args
+
+    # -------------------------------------------------------------------------
+    if $COMPILER -Wdelete-non-virtual-dtor -c test1.c 2>/dev/null && ! $COMPILER -Werror -Wdelete-non-virtual-dtor -c test1.c 2>/dev/null; then
+        TEST "Ordering of warning options"
+
+        if $CCACHE_COMPILE -Werror -Wdelete-non-virtual-dtor -c test1.c 2>stderr.txt; then
+            test_failed "-Werror -Wdelete-non-virtual-dtor did not result in an error; stderr: [$(<stderr.txt)]"
+        fi
+
+        if ! $CCACHE_COMPILE -Wdelete-non-virtual-dtor -Werror -c test1.c 2>stderr.txt; then
+            test_failed "-Wdelete-non-virtual-dtor -Werror resulted in an error; stderr: [$(<stderr.txt)]"
+        fi
+    fi
 
     # -------------------------------------------------------------------------
 if ! $COMPILER_USES_MSVC; then

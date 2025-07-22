@@ -238,7 +238,7 @@ inspect_path(const fs::path& path)
     break;
   }
   case core::CacheEntryType::result:
-    Result::Deserializer result_deserializer(payload);
+    result::Deserializer result_deserializer(payload);
     ResultInspector result_inspector(stdout);
     result_deserializer.visit(result_inspector);
     break;
@@ -453,51 +453,49 @@ enum : uint8_t {
   TRIM_MAX_SIZE,
   TRIM_METHOD,
   TRIM_RECOMPRESS,
-  TRIM_RECOMPRESS_THREADS,
+  TRIM_RECOMP_THREADS,
 };
 
 const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
 const option long_options[] = {
-  {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
-  {"cleanup", no_argument, nullptr, 'c'},
-  {"clear", no_argument, nullptr, 'C'},
-  {"config-path", required_argument, nullptr, CONFIG_PATH},
-  {"dir", required_argument, nullptr, 'd'},
-  {"directory", required_argument, nullptr, 'd'},               // bwd compat
-  {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST}, // bwd compat
-  {"dump-result", required_argument, nullptr, DUMP_RESULT},     // bwd compat
-  {"evict-namespace", required_argument, nullptr, EVICT_NAMESPACE},
-  {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
-  {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
-  {"format", required_argument, nullptr, FORMAT},
-  {"get-config", required_argument, nullptr, 'k'},
-  {"hash-file", required_argument, nullptr, HASH_FILE},
-  {"help", no_argument, nullptr, 'h'},
-  {"inspect", required_argument, nullptr, INSPECT},
-  {"max-files", required_argument, nullptr, 'F'},
-  {"max-size", required_argument, nullptr, 'M'},
-  {"print-log-stats", no_argument, nullptr, PRINT_LOG_STATS},
-  {"print-stats", no_argument, nullptr, PRINT_STATS},
-  {"print-version", no_argument, nullptr, PRINT_VERSION},
-  {"recompress", required_argument, nullptr, 'X'},
-  {"recompress-threads", required_argument, nullptr, RECOMPRESS_THREADS},
-  {"set-config", required_argument, nullptr, 'o'},
-  {"show-compression", no_argument, nullptr, 'x'},
-  {"show-config", no_argument, nullptr, 'p'},
-  {"show-log-stats", no_argument, nullptr, SHOW_LOG_STATS},
-  {"show-stats", no_argument, nullptr, 's'},
-  {"trim-dir", required_argument, nullptr, TRIM_DIR},
-  {"trim-max-size", required_argument, nullptr, TRIM_MAX_SIZE},
-  {"trim-method", required_argument, nullptr, TRIM_METHOD},
-  {"trim-recompress", required_argument, nullptr, TRIM_RECOMPRESS},
-  {"trim-recompress-threads",
-   required_argument,
-   nullptr,
-   TRIM_RECOMPRESS_THREADS},
-  {"verbose", no_argument, nullptr, 'v'},
-  {"version", no_argument, nullptr, 'V'},
-  {"zero-stats", no_argument, nullptr, 'z'},
-  {nullptr, 0, nullptr, 0}};
+  {"checksum-file",           required_argument, nullptr, CHECKSUM_FILE      },
+  {"cleanup",                 no_argument,       nullptr, 'c'                },
+  {"clear",                   no_argument,       nullptr, 'C'                },
+  {"config-path",             required_argument, nullptr, CONFIG_PATH        },
+  {"dir",                     required_argument, nullptr, 'd'                },
+  {"directory",               required_argument, nullptr, 'd'                }, // bwd compat
+  {"dump-manifest",           required_argument, nullptr, DUMP_MANIFEST      }, // bwd compat
+  {"dump-result",             required_argument, nullptr, DUMP_RESULT        }, // bwd compat
+  {"evict-namespace",         required_argument, nullptr, EVICT_NAMESPACE    },
+  {"evict-older-than",        required_argument, nullptr, EVICT_OLDER_THAN   },
+  {"extract-result",          required_argument, nullptr, EXTRACT_RESULT     },
+  {"format",                  required_argument, nullptr, FORMAT             },
+  {"get-config",              required_argument, nullptr, 'k'                },
+  {"hash-file",               required_argument, nullptr, HASH_FILE          },
+  {"help",                    no_argument,       nullptr, 'h'                },
+  {"inspect",                 required_argument, nullptr, INSPECT            },
+  {"max-files",               required_argument, nullptr, 'F'                },
+  {"max-size",                required_argument, nullptr, 'M'                },
+  {"print-log-stats",         no_argument,       nullptr, PRINT_LOG_STATS    },
+  {"print-stats",             no_argument,       nullptr, PRINT_STATS        },
+  {"print-version",           no_argument,       nullptr, PRINT_VERSION      },
+  {"recompress",              required_argument, nullptr, 'X'                },
+  {"recompress-threads",      required_argument, nullptr, RECOMPRESS_THREADS },
+  {"set-config",              required_argument, nullptr, 'o'                },
+  {"show-compression",        no_argument,       nullptr, 'x'                },
+  {"show-config",             no_argument,       nullptr, 'p'                },
+  {"show-log-stats",          no_argument,       nullptr, SHOW_LOG_STATS     },
+  {"show-stats",              no_argument,       nullptr, 's'                },
+  {"trim-dir",                required_argument, nullptr, TRIM_DIR           },
+  {"trim-max-size",           required_argument, nullptr, TRIM_MAX_SIZE      },
+  {"trim-method",             required_argument, nullptr, TRIM_METHOD        },
+  {"trim-recompress",         required_argument, nullptr, TRIM_RECOMPRESS    },
+  {"trim-recompress-threads", required_argument, nullptr, TRIM_RECOMP_THREADS},
+  {"verbose",                 no_argument,       nullptr, 'v'                },
+  {"version",                 no_argument,       nullptr, 'V'                },
+  {"zero-stats",              no_argument,       nullptr, 'z'                },
+  {nullptr,                   0,                 nullptr, 0                  }
+};
 
 int
 process_main_options(int argc, const char* const* argv)
@@ -568,7 +566,7 @@ process_main_options(int argc, const char* const* argv)
       trim_recompress = parse_compression_level(arg);
       break;
 
-    case TRIM_RECOMPRESS_THREADS:
+    case TRIM_RECOMP_THREADS:
       trim_recompress_threads =
         static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
           arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
@@ -607,7 +605,7 @@ process_main_options(int argc, const char* const* argv)
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
     case TRIM_RECOMPRESS:
-    case TRIM_RECOMPRESS_THREADS:
+    case TRIM_RECOMP_THREADS:
     case 'v': // --verbose
       // Already handled in the first pass.
       break;
@@ -653,7 +651,7 @@ process_main_options(int argc, const char* const* argv)
       core::CacheEntry cache_entry(*cache_entry_data);
       const auto payload = cache_entry.payload();
 
-      Result::Deserializer result_deserializer(payload);
+      result::Deserializer result_deserializer(payload);
       result_deserializer.visit(result_extractor);
       cache_entry.verify_checksum();
       return EXIT_SUCCESS;

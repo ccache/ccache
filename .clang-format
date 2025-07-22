@@ -1,8 +1,9 @@
-# This configuration should work with Clang-Format 11 and higher.
+# This configuration should work with Clang-Format 18 and higher.
 ---
 Language: Cpp
 BasedOnStyle: LLVM
 
+AlignArrayOfStructures: Left
 AllowAllConstructorInitializersOnNextLine: false
 AllowShortFunctionsOnASingleLine: None
 AlwaysBreakAfterReturnType: AllDefinitions
@@ -40,7 +41,9 @@ IncludeCategories:
   - Regex: '^<'
     Priority: 5
 IndentPPDirectives: AfterHash
+InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: false
+PackConstructorInitializers: Never
 PointerAlignment: Left
 SpaceAfterTemplateKeyword: false
 Standard: Cpp11

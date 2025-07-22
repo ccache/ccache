@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -32,16 +32,17 @@ class Context;
 
 struct ProcessArgsResult
 {
-  // Arguments (except -E) to send to the preprocessor.
+  // Arguments (except "-E -o output.i") to send to the preprocessor. These are
+  // part of the input hash (except those marked as AFFECTS_CPP in compopt.cpp).
   Args preprocessor_args;
 
-  // Arguments not sent to the preprocessor but that should be part of the hash.
-  Args extra_args_to_hash;
-
-  // Arguments to send to the real compiler.
+  // Arguments to send to the real compiler. Not part of the input hash.
   Args compiler_args;
 
-  // Whether to include the actual CWD in the hash.
+  // Arguments not sent to the preprocessor but added to the input hash anyway.
+  Args extra_args_to_hash;
+
+  // Whether to include the actual CWD in the input hash.
   bool hash_actual_cwd = false;
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -36,7 +36,7 @@ namespace core {
 
 class CacheEntryDataParser;
 
-namespace Result {
+namespace result {
 
 extern const uint8_t k_format_version;
 
@@ -186,6 +186,6 @@ private:
   std::vector<RawFile> m_raw_files;
 };
 
-} // namespace Result
+} // namespace result
 
 } // namespace core

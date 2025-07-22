@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -88,7 +88,7 @@ public:
 
   void put_raw_files(
     const Hash::Digest& key,
-    const std::vector<core::Result::Serializer::RawFile>& raw_files);
+    const std::vector<core::result::Serializer::RawFile>& raw_files);
 
   // Clone, hard link or copy a file from `source` to `dest` depending on
   // settings in `ctx`. If cloning or hard linking cannot and should not be done

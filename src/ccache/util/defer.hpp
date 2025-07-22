@@ -37,7 +37,8 @@ private:
   std::function<void()> m_func;
 };
 
-inline Deferrer::Deferrer(std::function<void()> func) : m_func(func)
+inline Deferrer::Deferrer(std::function<void()> func)
+  : m_func(func)
 {
 }
 

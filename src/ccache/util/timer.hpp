@@ -33,7 +33,8 @@ private:
   std::chrono::steady_clock::time_point m_start;
 };
 
-inline Timer::Timer() : m_start(std::chrono::steady_clock::now())
+inline Timer::Timer()
+  : m_start(std::chrono::steady_clock::now())
 {
 }
 

@@ -41,11 +41,13 @@ if(_download_hiredis)
     Hiredis
     URL "https://github.com/redis/hiredis/archive/refs/tags/v${_hiredis_version_string}.tar.gz"
     URL_HASH SHA256=25cee4500f359cf5cad3b51ed62059aadfc0939b05150c1f19c7e2829123631c
+    # Intentionally not using hiredis's build system since it doesn't put
+    # headers in a hiredis subdirectory. Reference:
+    # https://discourse.cmake.org/t/prevent-fetchcontent-makeavailable-to-execute-cmakelists-txt/12704/3
+    SOURCE_SUBDIR dummy
   )
+  FetchContent_MakeAvailable(Hiredis)
 
-  # Intentionally not using hiredis's build system since it doesn't put headers
-  # in a hiredis subdirectory.
-  FetchContent_Populate(Hiredis)
   set(
     _hiredis_sources
     "${hiredis_SOURCE_DIR}/alloc.c"
