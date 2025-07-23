@@ -341,27 +341,14 @@ hash_command_output(Hash& hash,
                     const std::string& command,
                     const std::string& compiler)
 {
-#ifdef _WIN32
-  std::string adjusted_command = util::strip_whitespace(command);
-
-  // Add "echo" command.
-  bool using_cmd_exe;
-  if (util::starts_with(adjusted_command, "echo")) {
-    adjusted_command = FMT("cmd.exe /c \"{}\"", adjusted_command);
-    using_cmd_exe = true;
-  } else {
-    using_cmd_exe = false;
-  }
-  util::Args args = util::Args::from_string(adjusted_command);
-  {
-    auto full_path =
-      find_executable_in_path(args[0], util::getenv_path_list("PATH")).string();
-    if (!full_path.empty()) {
-      args[0] = full_path;
-    }
-  }
-#else
   util::Args args = util::Args::from_string(command);
+#ifdef _WIN32
+  // CreateProcess does not search PATH.
+  auto full_path =
+    find_executable_in_path(args[0], util::getenv_path_list("PATH")).string();
+  if (!full_path.empty()) {
+    args[0] = full_path;
+  }
 #endif
 
   for (size_t i = 0; i < args.size(); i++) {
@@ -393,15 +380,7 @@ hash_command_output(Hash& hash,
   si.dwFlags = STARTF_USESTDHANDLES;
 
   std::string commandline;
-  if (using_cmd_exe) {
-    commandline = adjusted_command; // quoted
-  } else {
-    commandline = util::format_argv_as_win32_command_string(argv);
-    std::string sh = win32getshell(args[0]);
-    if (!sh.empty()) {
-      commandline = FMT(R"("{}" {})", sh, commandline);
-    }
-  }
+  commandline = util::format_argv_as_win32_command_string(argv);
   BOOL ret = CreateProcess(nullptr,
                            const_cast<char*>(commandline.c_str()),
                            nullptr,

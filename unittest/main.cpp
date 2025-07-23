@@ -35,7 +35,7 @@ int
 main(int argc, char** argv)
 {
 #ifdef _WIN32
-  util::setenv("CCACHE_DETECT_SHEBANG", "1");
+  util::setenv("_CCACHE_TEST", "1");
 #endif
   util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 

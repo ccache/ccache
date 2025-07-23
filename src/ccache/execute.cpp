@@ -87,34 +87,6 @@ execute_noreturn(const char* const* argv, const fs::path& temp_dir)
   win32execute(argv, 0, -1, -1, util::pstr(temp_dir).c_str());
 }
 
-std::string
-win32getshell(const std::string& path)
-{
-  auto path_list = util::getenv_path_list("PATH");
-  if (path_list.empty()) {
-    return {};
-  }
-
-  std::string sh;
-  if (util::to_lowercase(util::pstr(fs::path(path).extension()).str())
-      == ".sh") {
-    sh = util::pstr(find_executable_in_path("sh.exe", path_list));
-  }
-  if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
-    // Detect shebang.
-    util::FileStream fp(path, "r");
-    if (fp) {
-      char buf[10] = {0};
-      fgets(buf, sizeof(buf) - 1, fp.get());
-      if (std::string(buf) == "#!/bin/sh") {
-        sh = util::pstr(find_executable_in_path("sh.exe", path_list));
-      }
-    }
-  }
-
-  return sh;
-}
-
 int
 win32execute(const char* const* argv,
              int doreturn,
@@ -240,10 +212,6 @@ win32execute(const char* const* argv,
     tmp_file_path = tmp_file.path;
   }
 
-  std::string sh = win32getshell(argv[0]);
-  if (!sh.empty()) {
-    commandline = FMT(R"("{}" {})", sh, commandline);
-  }
   BOOL ret = CreateProcess(nullptr,
                            const_cast<char*>(commandline.c_str()),
                            nullptr,
