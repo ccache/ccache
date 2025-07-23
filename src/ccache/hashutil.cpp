@@ -349,11 +349,6 @@ hash_command_output(Hash& hash,
   if (util::starts_with(adjusted_command, "echo")) {
     adjusted_command = FMT("cmd.exe /c \"{}\"", adjusted_command);
     using_cmd_exe = true;
-  } else if (util::starts_with(adjusted_command, "%compiler%")
-             && compiler == "echo") {
-    adjusted_command =
-      FMT("cmd.exe /c \"{}{}\"", compiler, adjusted_command.substr(10));
-    using_cmd_exe = true;
   } else {
     using_cmd_exe = false;
   }
