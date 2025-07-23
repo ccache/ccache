@@ -307,7 +307,7 @@ TEST_CASE("Config::update_from_environment")
 
 TEST_CASE("Config::response_file_format")
 {
-  using ResponseFileFormat = Args::ResponseFileFormat;
+  using ResponseFileFormat = util::Args::ResponseFileFormat;
 
   Config config;
 

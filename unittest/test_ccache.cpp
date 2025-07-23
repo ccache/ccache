@@ -38,6 +38,7 @@
 
 namespace fs = util::filesystem;
 using TestUtil::TestContext;
+using util::Args;
 
 TEST_SUITE_BEGIN("ccache");
 

@@ -19,10 +19,10 @@
 #include "testutil.hpp"
 
 #include <ccache/argprocessing.hpp>
-#include <ccache/args.hpp>
 #include <ccache/config.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/statistic.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -38,6 +38,7 @@ namespace fs = util::filesystem;
 
 using core::Statistic;
 using TestUtil::TestContext;
+using util::Args;
 
 namespace {
 

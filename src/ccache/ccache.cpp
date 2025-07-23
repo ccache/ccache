@@ -20,7 +20,6 @@
 #include "ccache.hpp"
 
 #include <ccache/argprocessing.hpp>
-#include <ccache/args.hpp>
 #include <ccache/argsinfo.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
@@ -44,6 +43,7 @@
 #include <ccache/hashutil.hpp>
 #include <ccache/signalhandler.hpp>
 #include <ccache/storage/storage.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/clang.hpp>
@@ -174,13 +174,15 @@ should_disable_ccache_for_input_file(const fs::path& path)
 }
 
 static void
-add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
+add_prefix(const Context& ctx,
+           util::Args& args,
+           const std::string& prefix_command)
 {
   if (prefix_command.empty()) {
     return;
   }
 
-  Args prefixes;
+  util::Args prefixes;
   for (const auto& prefix : util::split_into_strings(prefix_command, " ")) {
     prefixes.push_back(prefix);
   }
@@ -807,7 +809,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
 static tl::expected<DoExecuteResult, Failure>
-do_execute(Context& ctx, Args& args, const bool capture_stdout = true)
+do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
 {
   util::UmaskScope umask_scope(ctx.original_umask);
 
@@ -1174,7 +1176,7 @@ source_file_is_too_new(const Context& ctx, const fs::path& path)
 // Run the real compiler and put the result in cache. Returns the result key.
 static tl::expected<Hash::Digest, Failure>
 to_cache(Context& ctx,
-         Args& args,
+         util::Args& args,
          std::optional<Hash::Digest> result_key,
          Hash* depend_mode_hash)
 {
@@ -1353,7 +1355,7 @@ process_cuda_chunk(Context& ctx,
 }
 
 static bool
-get_clang_cu_enable_verbose_mode(const Args& args)
+get_clang_cu_enable_verbose_mode(const util::Args& args)
 {
   for (size_t i = 1; i < args.size(); i++) {
     if (args[i] == "-v") {
@@ -1367,7 +1369,7 @@ get_clang_cu_enable_verbose_mode(const Args& args)
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
 static tl::expected<Hash::Digest, Failure>
-get_result_key_from_cpp(Context& ctx, Args& args, Hash& hash)
+get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
 {
   fs::path preprocessed_path;
   util::Bytes cpp_stderr_data;
@@ -1549,7 +1551,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
-hash_common_info(const Context& ctx, const Args& args, Hash& hash)
+hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
 {
   hash.hash(HASH_PREFIX);
 
@@ -1779,7 +1781,7 @@ hash_common_info(const Context& ctx, const Args& args, Hash& hash)
 
 static std::tuple<std::optional<std::string_view>,
                   std::optional<std::string_view>>
-get_option_and_value(std::string_view option, const Args& args, size_t& i)
+get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
 {
   if (args[i] == option) {
     if (i + 1 < args.size()) {
@@ -1797,7 +1799,7 @@ get_option_and_value(std::string_view option, const Args& args, size_t& i)
 
 static tl::expected<void, Failure>
 hash_argument(const Context& ctx,
-              const Args& args,
+              const util::Args& args,
               size_t& i,
               Hash& hash,
               const bool is_clang,
@@ -2240,9 +2242,9 @@ static tl::expected<
   std::pair<std::optional<Hash::Digest>, std::optional<Hash::Digest>>,
   Failure>
 calculate_result_and_manifest_key(Context& ctx,
-                                  const Args& args,
+                                  const util::Args& args,
                                   Hash& hash,
-                                  Args* preprocessor_args)
+                                  util::Args* preprocessor_args)
 {
   bool direct_mode = !preprocessor_args;
   bool found_ccbin = false;
@@ -2578,7 +2580,7 @@ split_argv(int argc, const char* const* argv)
     argv_parts.config_settings.emplace_back(argv[i]);
     ++i;
   }
-  argv_parts.compiler_and_args = Args::from_argv(argc - i, argv + i);
+  argv_parts.compiler_and_args = util::Args::from_argv(argc - i, argv + i);
   return argv_parts;
 }
 
@@ -2589,7 +2591,7 @@ cache_compilation(int argc, const char* const* argv)
   tzset(); // Needed for localtime_r.
 
   bool fall_back_to_original_compiler = false;
-  Args saved_orig_args;
+  util::Args saved_orig_args;
   std::optional<uint32_t> original_umask;
   fs::path saved_temp_dir;
 
@@ -2795,7 +2797,7 @@ do_cache_compilation(Context& ctx)
   Hash direct_hash = common_hash;
   init_hash_debug(ctx, direct_hash, 'd', "DIRECT MODE", debug_text_file);
 
-  Args args_to_hash = process_args_result->preprocessor_args;
+  util::Args args_to_hash = process_args_result->preprocessor_args;
   args_to_hash.push_back(process_args_result->extra_args_to_hash);
 
   bool put_result_in_manifest = false;

@@ -18,12 +18,12 @@
 
 #include "hashutil.hpp"
 
-#include <ccache/args.hpp>
 #include <ccache/config.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/execute.hpp>
 #include <ccache/macroskip.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/environment.hpp>
@@ -357,7 +357,7 @@ hash_command_output(Hash& hash,
   } else {
     using_cmd_exe = false;
   }
-  Args args = Args::from_string(adjusted_command);
+  util::Args args = util::Args::from_string(adjusted_command);
   {
     auto full_path =
       find_executable_in_path(args[0], util::getenv_path_list("PATH")).string();
@@ -366,7 +366,7 @@ hash_command_output(Hash& hash,
     }
   }
 #else
-  Args args = Args::from_string(command);
+  util::Args args = util::Args::from_string(command);
 #endif
 
   for (size_t i = 0; i < args.size(); i++) {

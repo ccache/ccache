@@ -18,13 +18,13 @@
 
 #include "argprocessing.hpp"
 
-#include <ccache/args.hpp>
 #include <ccache/argsinfo.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/depfile.hpp>
 #include <ccache/language.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/filesystem.hpp>
@@ -151,9 +151,9 @@ public:
   }
 
 private:
-  Args m_preprocessor_args;
-  Args m_compiler_args;
-  Args m_extra_args_to_hash;
+  util::Args m_preprocessor_args;
+  util::Args m_compiler_args;
+  util::Args m_extra_args_to_hash;
 };
 
 bool
@@ -363,7 +363,7 @@ std::optional<Statistic>
 process_option_arg(const Context& ctx,
                    ArgsInfo& args_info,
                    Config& config,
-                   Args& args,
+                   util::Args& args,
                    size_t& args_index,
                    ArgumentProcessingState& state)
 {
@@ -420,7 +420,7 @@ process_option_arg(const Context& ctx,
       ++argpath;
     }
     auto file_args =
-      Args::from_response_file(argpath, config.response_file_format());
+      util::Args::from_response_file(argpath, config.response_file_format());
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -443,8 +443,8 @@ process_option_arg(const Context& ctx,
     // Argument is a comma-separated list of files.
     auto paths = util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args =
-        Args::from_response_file(*it, Args::ResponseFileFormat::posix);
+      auto file_args = util::Args::from_response_file(
+        *it, util::Args::ResponseFileFormat::posix);
       if (!file_args) {
         LOG("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;
@@ -1251,7 +1251,7 @@ Statistic
 process_arg(const Context& ctx,
             ArgsInfo& args_info,
             Config& config,
-            Args& args,
+            util::Args& args,
             size_t& args_index,
             ArgumentProcessingState& state)
 {
@@ -1312,7 +1312,7 @@ process_args(Context& ctx)
   // args is a copy of the original arguments given to the compiler but with
   // arguments from @file and similar constructs expanded. It's only used as a
   // temporary data structure to loop over.
-  Args args = ctx.orig_args;
+  util::Args args = ctx.orig_args;
   ArgumentProcessingState state;
 
   state.add_common_arg(args[0]); // Compiler

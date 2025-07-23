@@ -18,8 +18,8 @@
 
 #include "testutil.hpp"
 
-#include <ccache/args.hpp>
 #include <ccache/config.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/file.hpp>
 
 #include <doctest/doctest.h>
@@ -27,6 +27,7 @@
 TEST_SUITE_BEGIN("Args");
 
 using TestUtil::TestContext;
+using util::Args;
 
 TEST_CASE("Args default constructor")
 {

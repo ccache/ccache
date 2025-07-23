@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,7 +51,7 @@ Context::Context()
 }
 
 void
-Context::initialize(Args&& compiler_and_args,
+Context::initialize(util::Args&& compiler_and_args,
                     const std::vector<std::string>& cmdline_config_settings)
 {
   orig_args = std::move(compiler_and_args);

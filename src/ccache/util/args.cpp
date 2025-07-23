@@ -25,6 +25,8 @@
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
 
+namespace util {
+
 Args::Args(Args&& other) noexcept
   : m_args(std::move(other.m_args))
 {
@@ -274,3 +276,5 @@ Args::replace(size_t index, const Args& args)
     insert(index, args);
   }
 }
+
+} // namespace util

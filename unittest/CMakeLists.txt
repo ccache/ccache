@@ -2,7 +2,6 @@ set(
   source_files
   main.cpp
   test_argprocessing.cpp
-  test_args.cpp
   test_ccache.cpp
   test_compopt.cpp
   test_compression_types.cpp
@@ -18,6 +17,7 @@ set(
   test_hashutil.cpp
   test_storage_local_statsfile.cpp
   test_storage_local_util.cpp
+  test_util_args.cpp
   test_util_bitset.cpp
   test_util_bytes.cpp
   test_util_clang.cpp

@@ -26,6 +26,8 @@
 #include <string_view>
 #include <vector>
 
+namespace util {
+
 class Args
 {
 public:
@@ -159,3 +161,5 @@ Args::push_back(const std::filesystem::path& arg)
 {
   m_args.push_back(arg.string());
 }
+
+} // namespace util
