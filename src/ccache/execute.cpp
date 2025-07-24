@@ -221,7 +221,7 @@ win32execute(const char* const* argv,
     }
   }
 
-  std::string args = util::format_argv_as_win32_command_string(argv);
+  std::string commandline = util::format_argv_as_win32_command_string(argv);
 
   fs::path tmp_file_path;
   DEFER([&] {
@@ -230,22 +230,22 @@ win32execute(const char* const* argv,
     }
   });
 
-  if (args.length() > 8192) {
+  if (commandline.length() > 8192) {
     auto tmp_file = util::value_or_throw<core::Fatal>(
       util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
     LOG("Arguments from {}", tmp_file.path);
-    args = util::format_argv_as_win32_command_string(argv + 1, true);
-    util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = FMT(R"("{}" "@{}")", argv[0], tmp_file.path);
+    commandline = util::format_argv_as_win32_command_string(argv + 1, true);
+    util::write_fd(*tmp_file.fd, commandline.data(), commandline.length());
+    commandline = FMT(R"("{}" "@{}")", argv[0], tmp_file.path);
     tmp_file_path = tmp_file.path;
   }
 
   std::string sh = win32getshell(argv[0]);
   if (!sh.empty()) {
-    args = FMT(R"("{}" {})", sh, args);
+    commandline = FMT(R"("{}" {})", sh, commandline);
   }
   BOOL ret = CreateProcess(nullptr,
-                           const_cast<char*>(args.c_str()),
+                           const_cast<char*>(commandline.c_str()),
                            nullptr,
                            nullptr,
                            1,
