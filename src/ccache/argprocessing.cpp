@@ -139,6 +139,13 @@ public:
     m_extra_args_to_hash.push_back(std::forward<T>(args));
   }
 
+  template<typename T>
+  void
+  add_native_arg(T&& arg)
+  {
+    m_native_args.push_back(std::forward<T>(arg));
+  }
+
   ProcessArgsResult
   to_result()
   {
@@ -146,6 +153,7 @@ public:
       m_preprocessor_args,
       m_compiler_args,
       m_extra_args_to_hash,
+      m_native_args,
       hash_actual_cwd,
     };
   }
@@ -154,6 +162,7 @@ private:
   util::Args m_preprocessor_args;
   util::Args m_compiler_args;
   util::Args m_extra_args_to_hash;
+  util::Args m_native_args;
 };
 
 bool
@@ -1137,6 +1146,14 @@ process_option_arg(const Context& ctx,
     state.hash_full_command_line = true;
     LOG_RAW(
       "Found -frecord-gcc-switches, hashing original command line unmodified");
+  }
+
+  // -march=native, -mcpu=native and -mtune=native make the compiler optimize
+  // differently depending on platform.
+  if (arg == "-march=native" || arg == "-mcpu=native"
+      || arg == "-mtune=native") {
+    LOG("Detected system dependent argument: {}", args[i]);
+    state.add_native_arg(args[i]);
   }
 
   // MSVC -u is something else than GCC -u, handle it specially.

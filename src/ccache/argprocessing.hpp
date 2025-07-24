@@ -42,6 +42,9 @@ struct ProcessArgsResult
   // Arguments not sent to the preprocessor but added to the input hash anyway.
   util::Args extra_args_to_hash;
 
+  // -m*=native arguments to let the preprocessor expand.
+  util::Args native_args;
+
   // Whether to include the actual CWD in the input hash.
   bool hash_actual_cwd = false;
 };

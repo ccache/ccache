@@ -52,6 +52,7 @@
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/duration.hpp>
 #include <ccache/util/environment.hpp>
+#include <ccache/util/exec.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/fd.hpp>
 #include <ccache/util/file.hpp>
@@ -1779,6 +1780,51 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   return {};
 }
 
+static tl::expected<void, Failure>
+hash_native_args(Context& ctx, const util::Args& native_args, Hash& hash)
+{
+  if (native_args.empty()) {
+    return {};
+  }
+
+  LOG("Querying compiler about {}", native_args.to_string());
+
+  util::Args args{ctx.orig_args[0], "-###", "-E", "-"};
+  args.push_back(native_args);
+  auto output = util::exec_to_string(args);
+  if (!output) {
+    LOG("Failed to query compiler about {}: {}",
+        native_args.to_string(),
+        output.error());
+    return tl::unexpected(Statistic::internal_error);
+  }
+
+  std::string_view search_string =
+    ctx.config.is_compiler_group_clang()
+      ? "\"-cc1\"" // "/usr/lib/llvm-18/bin/clang" "-cc1" "-triple" ...
+      : "/cc1 -E"; // /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 -E -quiet ...
+  std::optional<std::string_view> line_to_hash;
+  for (const auto line : util::Tokenizer(*output, "\n")) {
+    if (line.find(search_string) != std::string_view::npos) {
+      line_to_hash = line;
+      break;
+    }
+  }
+  if (!line_to_hash) {
+    LOG("Did not find line to hash for {}", native_args.to_string());
+    return tl::unexpected(Statistic::internal_error);
+  }
+
+  hash.hash_delimiter(native_args.to_string());
+
+  // We could potentially work out exactly which options -m*=native expand to
+  // and hash only those, but to keep things simple we include the full line
+  // where cc1 was found for now.
+  hash.hash(*line_to_hash);
+
+  return {};
+}
+
 static std::tuple<std::optional<std::string_view>,
                   std::optional<std::string_view>>
 get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
@@ -2787,6 +2833,7 @@ do_cache_compilation(Context& ctx)
 
   TRY(
     hash_common_info(ctx, process_args_result->preprocessor_args, common_hash));
+  TRY(hash_native_args(ctx, process_args_result->native_args, common_hash));
 
   if (process_args_result->hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
