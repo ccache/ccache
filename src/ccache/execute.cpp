@@ -72,8 +72,6 @@ execute(Context& ctx,
         util::Fd&& fd_out,
         util::Fd&& fd_err)
 {
-  LOG("Executing {}", util::format_argv_for_logging(argv));
-
   return win32execute(argv,
                       1,
                       fd_out.release(),
@@ -94,6 +92,8 @@ win32execute(const char* const* argv,
              int fd_stderr,
              const std::string& temp_dir)
 {
+  LOG("Executing {}", util::format_argv_for_logging(argv));
+
   BOOL is_process_in_job = false;
   DWORD dw_creation_flags = 0;
 
@@ -102,7 +102,7 @@ win32execute(const char* const* argv,
       IsProcessInJob(GetCurrentProcess(), nullptr, &is_process_in_job);
     if (!job_success) {
       DWORD error = GetLastError();
-      LOG("failed to IsProcessInJob: {} ({})",
+      LOG("Failed to IsProcessInJob: {} ({})",
           util::win32_error_message(error),
           error);
       return 0;
@@ -117,7 +117,7 @@ win32execute(const char* const* argv,
                                   nullptr);
       if (!querySuccess) {
         DWORD error = GetLastError();
-        LOG("failed to QueryInformationJobObject: {} ({})",
+        LOG("Failed to QueryInformationJobObject: {} ({})",
             util::win32_error_message(error),
             error);
         return 0;
@@ -140,7 +140,7 @@ win32execute(const char* const* argv,
     job = CreateJobObject(nullptr, nullptr);
     if (job == nullptr) {
       DWORD error = GetLastError();
-      LOG("failed to CreateJobObject: {} ({})",
+      LOG("Failed to CreateJobObject: {} ({})",
           util::win32_error_message(error),
           error);
       return -1;
@@ -157,7 +157,7 @@ win32execute(const char* const* argv,
         job, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo));
       if (!job_success) {
         DWORD error = GetLastError();
-        LOG("failed to JobObjectExtendedLimitInformation: {} ({})",
+        LOG("Failed to JobObjectExtendedLimitInformation: {} ({})",
             util::win32_error_message(error),
             error);
         return -1;
@@ -228,10 +228,8 @@ win32execute(const char* const* argv,
   }
   if (ret == 0) {
     DWORD error = GetLastError();
-    LOG("failed to execute {}: {} ({})",
-        argv[0],
-        util::win32_error_message(error),
-        error);
+    LOG(
+      "CreateProcess failed: {} ({})", util::win32_error_message(error), error);
     return -1;
   }
   if (job) {
@@ -240,7 +238,7 @@ win32execute(const char* const* argv,
       TerminateProcess(pi.hProcess, 1);
 
       DWORD error = GetLastError();
-      LOG("failed to assign process to job object for {}: {} ({})",
+      LOG("Failed to assign process to job object for {}: {} ({})",
           argv[0],
           util::win32_error_message(error),
           error);
@@ -344,6 +342,8 @@ execute(Context& ctx,
 void
 execute_noreturn(const char* const* argv, const fs::path& /*temp_dir*/)
 {
+  LOG("Executing {}", util::format_argv_for_logging(argv));
+
   execv(argv[0], const_cast<char* const*>(argv));
 }
 #endif
