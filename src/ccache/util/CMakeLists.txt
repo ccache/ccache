@@ -8,6 +8,7 @@ set(
   direntry.cpp
   environment.cpp
   error.cpp
+  exec.cpp
   file.cpp
   filelock.cpp
   filesystem.cpp

@@ -57,6 +57,17 @@
 #  include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
 #endif
 
+// Call a libc-style function (returns 0 on success and sets errno) and throw
+// Fatal on error.
+#define CHECK_LIB_CALL(function, ...)                                          \
+  {                                                                            \
+    int _result = function(__VA_ARGS__);                                       \
+    if (_result != 0) {                                                        \
+      throw core::Fatal(FMT(#function " failed: {}", strerror(_result)));      \
+    }                                                                          \
+  }                                                                            \
+  static_assert(true) /* allow semicolon after macro */
+
 namespace fs = util::filesystem;
 
 #ifdef _WIN32

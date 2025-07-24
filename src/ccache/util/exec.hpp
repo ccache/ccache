@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,35 +18,16 @@
 
 #pragma once
 
-#include <fmt/core.h>
+#include <ccache/util/args.hpp>
 
-#include <cstring>
-#include <optional>
-#include <stdexcept>
+#include <tl/expected.hpp>
+
 #include <string>
-#include <utility>
 
-namespace core {
+namespace util {
 
-// Don't throw or catch ErrorBase directly, use a subclass.
-class ErrorBase : public std::runtime_error
-{
-  using std::runtime_error::runtime_error;
-};
+// Execute command in `args` and capture output (stdout and stderr combined),
+// similar to execvp(2)/popen(3).
+tl::expected<std::string, std::string> exec_to_string(const Args& args);
 
-// Throw an Error to indicate a potentially non-fatal error that may be caught
-// and handled by callers. An uncaught Error that reaches the top level will be
-// treated similar to Fatal.
-class Error : public ErrorBase
-{
-  using ErrorBase::ErrorBase;
-};
-
-// Throw a Fatal to make ccache print the error message to stderr and exit
-// with a non-zero exit code.
-class Fatal : public ErrorBase
-{
-  using ErrorBase::ErrorBase;
-};
-
-} // namespace core
+} // namespace util

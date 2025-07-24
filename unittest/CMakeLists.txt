@@ -25,6 +25,7 @@ set(
   test_util_direntry.cpp
   test_util_duration.cpp
   test_util_environment.cpp
+  test_util_exec.cpp
   test_util_expected.cpp
   test_util_file.cpp
   test_util_lockfile.cpp

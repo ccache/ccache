@@ -27,6 +27,7 @@
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/environment.hpp>
+#include <ccache/util/exec.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -34,22 +35,9 @@
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
-#include <ccache/util/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include <ccache/inodecache.hpp>
-#endif
-
-#ifdef HAVE_SPAWN_H
-#  include <spawn.h>
-#endif
-
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-#endif
-
-#ifdef HAVE_SYS_WAIT_H
-#  include <sys/wait.h>
 #endif
 
 #ifdef HAVE_AVX2
@@ -357,107 +345,14 @@ hash_command_output(Hash& hash,
     }
   }
 
-  auto arg_vector = args.to_argv();
-  auto argv = const_cast<char* const*>(arg_vector.data());
-  LOG("Executing compiler check command {}",
-      util::format_argv_for_logging(argv));
-
-#ifdef _WIN32
-  PROCESS_INFORMATION pi;
-  memset(&pi, 0x00, sizeof(pi));
-  STARTUPINFO si;
-  memset(&si, 0x00, sizeof(si));
-
-  si.cb = sizeof(STARTUPINFO);
-
-  HANDLE pipe_out[2];
-  SECURITY_ATTRIBUTES sa = {sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE};
-  CreatePipe(&pipe_out[0], &pipe_out[1], &sa, 0);
-  SetHandleInformation(pipe_out[0], HANDLE_FLAG_INHERIT, 0);
-  si.hStdOutput = pipe_out[1];
-  si.hStdError = pipe_out[1];
-  si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-  si.dwFlags = STARTF_USESTDHANDLES;
-
-  std::string commandline;
-  commandline = util::format_argv_as_win32_command_string(argv);
-  BOOL ret = CreateProcess(nullptr,
-                           const_cast<char*>(commandline.c_str()),
-                           nullptr,
-                           nullptr,
-                           1,
-                           0,
-                           nullptr,
-                           nullptr,
-                           &si,
-                           &pi);
-  CloseHandle(pipe_out[1]);
-  if (ret == 0) {
-    return false;
-  }
-  int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
-  const auto compiler_check_result = hash.hash_fd(fd);
-  if (!compiler_check_result) {
-    LOG("Error hashing compiler check command output: {}",
-        compiler_check_result.error());
-  }
-  WaitForSingleObject(pi.hProcess, INFINITE);
-  DWORD exitcode;
-  GetExitCodeProcess(pi.hProcess, &exitcode);
-  CloseHandle(pipe_out[0]);
-  CloseHandle(pi.hProcess);
-  CloseHandle(pi.hThread);
-  if (exitcode != 0) {
-    LOG("Compiler check command returned {}", exitcode);
-    return false;
-  }
-  return bool(compiler_check_result);
-#else
-  int pipefd[2];
-  if (pipe(pipefd) == -1) {
-    throw core::Fatal(FMT("pipe failed: {}", strerror(errno)));
-  }
-
-  posix_spawn_file_actions_t fa;
-
-  CHECK_LIB_CALL(posix_spawn_file_actions_init, &fa);
-  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, pipefd[0]);
-  CHECK_LIB_CALL(posix_spawn_file_actions_addclose, &fa, 0);
-  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, pipefd[1], 1);
-  CHECK_LIB_CALL(posix_spawn_file_actions_adddup2, &fa, pipefd[1], 2);
-
-  pid_t pid;
-  extern char** environ;
-  int result = posix_spawnp(&pid, argv[0], &fa, nullptr, argv, environ);
-
-  posix_spawn_file_actions_destroy(&fa);
-  close(pipefd[1]);
-
-  const auto hash_result = hash.hash_fd(pipefd[0]);
-  if (!hash_result) {
-    LOG("Error hashing compiler check command output: {}", hash_result.error());
-  }
-  close(pipefd[0]);
-
-  if (result != 0) {
-    LOG("posix_spawnp failed: {}", strerror(errno));
+  auto result = util::exec_to_string(args);
+  if (!result) {
+    LOG("Error executing compiler check command: {}", result.error());
     return false;
   }
 
-  int status;
-  while ((result = waitpid(pid, &status, 0)) != pid) {
-    if (result == -1 && errno == EINTR) {
-      continue;
-    }
-    LOG("waitpid failed: {}", strerror(errno));
-    return false;
-  }
-  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-    LOG("Compiler check command returned {}", WEXITSTATUS(status));
-    return false;
-  }
-  return bool(hash_result);
-#endif
+  hash.hash(*result);
+  return true;
 }
 
 bool
