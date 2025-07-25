@@ -521,7 +521,7 @@ DEALINGS IN THE SOFTWARE.
 
 === src/third_party/tl-expected/tl/expected.hpp
 
-This is https://github.com/TartanLlama/expected[TartanLlama expected] 1.1.0 with
+This is https://github.com/TartanLlama/expected[TartanLlama expected] 1.2.0 with
 the following license:
 
 ----
