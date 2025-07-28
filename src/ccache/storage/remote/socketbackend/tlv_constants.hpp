@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace tlv {
+constexpr uint16_t TLV_VERSION = 0x01; // Protocol version
 // SETUP-specific types (0x01 - 0x80)
 constexpr uint8_t SETUP_TYPE_VERSION = 0x01; // Protocol version
 constexpr uint8_t SETUP_TYPE_CONNECT_TIMEOUT =
