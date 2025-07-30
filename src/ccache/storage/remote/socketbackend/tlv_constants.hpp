@@ -55,6 +55,17 @@ constexpr uint16_t TLV_MAX_FIELD_SIZE = 0xFFFF;
 // Flags
 constexpr uint8_t OVERWRITE_FLAG = 0x01;
 
+// Status codes
+enum ResponseStatus : uint8_t {
+  LOCAL_ERROR,
+  NO_FILE,
+  TIMEOUT,
+  SIGWAIT,
+  SUCCESS,
+  REDIRECT,
+  ERROR
+};
+
 namespace meta {
 template<typename T, typename = void> struct is_iterable : std::false_type
 {
@@ -137,32 +148,26 @@ interpret_data(const uint8_t* pos, uint32_t length)
     if (length != sizeof(uint8_t)) {
       throw std::runtime_error("Invalid length for uint8_t");
     }
-    return *pos;
+    return nonstd::span(pos, length);
   } else if constexpr (std::is_same_v<DataType, uint16_t>) {
     if (length != sizeof(uint16_t)) {
       throw std::runtime_error("Invalid length for uint16_t");
     }
-    uint16_t val;
-    std::memcpy(&val, pos, sizeof(uint16_t));
-    return val;
+    return nonstd::span(pos, length);
   } else if constexpr (std::is_same_v<DataType, uint32_t>) {
     if (length != sizeof(uint32_t)) {
       throw std::runtime_error("Invalid length for uint32_t");
     }
-    uint32_t val;
-    std::memcpy(&val, pos, sizeof(uint32_t));
-    return val;
+    return nonstd::span(pos, length);
   } else if constexpr (std::is_same_v<DataType, uint64_t>) {
     if (length != sizeof(uint64_t)) {
       throw std::runtime_error("Invalid length for uint64_t");
     }
-    uint64_t val;
-    std::memcpy(&val, pos, sizeof(uint64_t));
-    return val;
+    return nonstd::span(pos, length);
   } else if constexpr (std::is_same_v<DataType, std::string>) {
-    return std::string(reinterpret_cast<const char*>(pos), length);
+    return nonstd::span(pos, length);
   } else if constexpr (std::is_same_v<DataType, util::Bytes>) {
-    return util::Bytes(pos, length);
+    return nonstd::span(pos, length);
   } else {
     static_assert(always_false<DataType>::value, "Unknown DataType");
   }
