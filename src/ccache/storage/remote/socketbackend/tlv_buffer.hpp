@@ -1,67 +1,92 @@
 #pragma once
 
 #include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
-#include <vector>
+
 #include <mutex>
+#include <vector>
 
 namespace tlv {
 
-template<typename T>
-class BigBuffer {
+template<typename T> class BigBuffer
+{
 public:
-    /// Returns the singleton instance
-    static BigBuffer& getInstance() {
-        static BigBuffer instance;
-        return instance;
-    }
+  /// Returns a singleton instance for reading
+  static BigBuffer&
+  readInstance()
+  {
+    static BigBuffer readBuf;
+    return readBuf;
+  }
 
-    BigBuffer(const BigBuffer&) = delete;
-    BigBuffer& operator=(const BigBuffer&) = delete;
-    BigBuffer(BigBuffer&&) = delete;
-    BigBuffer& operator=(BigBuffer&&) = delete;
+  /// Returns a singleton instance for writing
+  static BigBuffer&
+  writeInstance()
+  {
+    static BigBuffer mainBuf;
+    return mainBuf;
+  }
 
-    /// Access buffer data
-    T* data() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_buffer.data();
-    }
+  BigBuffer(const BigBuffer&) = delete;
+  BigBuffer& operator=(const BigBuffer&) = delete;
+  BigBuffer(BigBuffer&&) = delete;
+  BigBuffer& operator=(BigBuffer&&) = delete;
 
-    /// Get buffer capacity before needing to allocate more memory.
-    size_t capacity() const {
-        return m_buffer.capacity();
-    }
+  /// Access buffer data
+  T*
+  data()
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_buffer.data();
+  }
 
-    /// Resize buffer to preallocate a buffer of n elements.
-    void resize(size_t n) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (n > m_buffer.capacity()) {
-            m_buffer.reserve(n);
-        }
-        m_buffer.resize(n);
-    }
+  /// Get buffer capacity before needing to allocate more memory.
+  size_t
+  capacity() const
+  {
+    return m_buffer.capacity();
+  }
 
-    /// Releases (clears) buffer and default allocates.
-    void release() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_buffer.clear();
-        resize(TLV_MAX_FIELD_SIZE);
+  /// Resize buffer to preallocate a buffer of n elements.
+  void
+  resize(size_t n)
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (n > m_buffer.capacity()) {
+      m_buffer.reserve(n);
     }
+    m_buffer.resize(n);
+  }
 
-    /// Returns the number of elements in the buffer
-    size_t size() const {
-        return m_buffer.size();
-    }
+  /// Releases (clears) buffer and default allocates.
+  void
+  release()
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_buffer.clear();
+    m_buffer.reserve(TLV_MAX_FIELD_SIZE);
+    m_buffer.resize(TLV_MAX_FIELD_SIZE);
+  }
+
+  /// Returns the number of elements in the buffer
+  size_t
+  size() const
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_buffer.size();
+  }
 
 private:
-    BigBuffer() {
-        /// initial capacity is TLV_MAX_FIELD_SIZE
-        m_buffer.reserve(TLV_MAX_FIELD_SIZE);
-    }
+  BigBuffer()
+  {
+    /// initial capacity is TLV_MAX_FIELD_SIZE
+    m_buffer.reserve(TLV_MAX_FIELD_SIZE);
+  }
 
-    std::vector<T> m_buffer;
-    mutable std::mutex m_mutex;
+  std::vector<T> m_buffer;
+  mutable std::mutex m_mutex;
 };
 
-BigBuffer<uint8_t>& tlv_buffer = BigBuffer<uint8_t>::getInstance();
+inline BigBuffer<uint8_t>& g_write_buffer = BigBuffer<uint8_t>::writeInstance();
+inline BigBuffer<uint8_t>& g_read_buffer = BigBuffer<uint8_t>::readInstance();
 
-}
+} // namespace tlv
