@@ -1,10 +1,10 @@
 #include "ccache/util/assertions.hpp"
-#include "ccache/util/bytes.hpp"
 #include "ccache/util/socketinterface.hpp"
 #include "tlv_buffer.hpp"
 #include "tlv_constants.hpp"
 
 #include <nonstd/span.hpp>
+#include <tl/expected.hpp>
 
 #include <bits/floatn-common.h>
 #include <emmintrin.h>
@@ -14,15 +14,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace tlv {
-
-enum ResponseStatus : uint8_t { SUCCESS, NO_FILE, TIMEOUT, ERROR };
 
 struct __attribute__((packed)) MessageHeader
 {
@@ -43,14 +39,14 @@ struct TLVFieldRef
   {
   }
 
-  TLVFieldRef(uint8_t t, uint64_t len, std::string_view str)
+  TLVFieldRef(uint8_t t, uint64_t len, nonstd::span<const uint8_t> data)
     : tag(t),
       length(len),
-      data(reinterpret_cast<const uint8_t*>(str.data()), str.size())
+      data(data)
   {
-    ASSERT(len == str.size());
+    ASSERT(len == data.size());
   }
-
+};
 
 TLVFieldRef*
 getfield(std::vector<TLVFieldRef>& fields, uint16_t target_tag)
@@ -146,7 +142,9 @@ private:
         tag, length, meta::interpret_data<FIELD_TYPE_FLAGS>(pos, length));
       return;
     default:
-      throw std::runtime_error("Unavailable data type");
+      std::string err_str = "Unavailable data type for " + std::to_string(tag)
+                            + " " + std::to_string(length);
+      throw std::runtime_error(err_str);
     }
   }
 
@@ -157,12 +155,12 @@ public:
   }
 
   ParseResult&
-  parse(util::Bytes data, size_t length)
+  parse(nonstd::span<uint8_t> data)
   {
     m_result.fields.clear();
     m_result.success = false;
 
-    if (length < TLV_HEADER_SIZE) { // ok..
+    if (data.size() < TLV_HEADER_SIZE) { // ok..
       return m_result;
     }
 
@@ -175,17 +173,14 @@ public:
     // TODO checks on the version
     m_result.msg_type = msghdr.msg_type;
     pos += TLV_HEADER_SIZE;
-    const uint8_t* end = data.data() + length;
-    std::cerr << length << " here is length\n";
+    const uint8_t* end = data.data() + data.size();
 
-    while (pos + 2 <= end) {
+    while (pos != end) {
       // parse tag
-      std::cerr << int(data[0]) << " printed data[0]\n";
       uint8_t p_tag;
       std::memcpy(&p_tag, pos, 1);
       pos++;
 
-      std::cerr << int(data[1]) << " printed data[1]\n";
       auto [field_length, length_bytes] = ndn::decode_length(pos, end - pos);
       if (length_bytes == 0) {
         break; // Invalid length encoding
@@ -195,7 +190,6 @@ public:
       if (pos + field_length > end) {
         break;
       }
-      std::cerr << int(p_tag) << " printed tag\n";
       // parse value and create field
       parse_value(p_tag, field_length, pos);
       pos += field_length;
@@ -221,12 +215,12 @@ public:
   bool
   begin_message(const MessageHeader& msghdr)
   {
-    m_buffer = tlv_buffer.data();
+    m_buffer = g_write_buffer.data();
     if (!m_buffer) {
       return false;
     }
 
-    m_capacity = tlv_buffer.capacity();
+    m_capacity = g_write_buffer.capacity();
     m_position = TLV_HEADER_SIZE; // position past header
 
     std::memcpy(m_buffer, &msghdr, sizeof(MessageHeader));
@@ -234,7 +228,7 @@ public:
   }
 
   template<typename T>
-  bool
+  std::enable_if_t<std::is_integral_v<T>, bool>
   addfield(uint16_t tag, const T& value)
   {
     return addfield_raw(tag, &value, sizeof(T));
@@ -247,7 +241,7 @@ public:
   }
 
   bool
-  addfield(uint16_t tag, const util::Bytes& value)
+  addfield(uint16_t tag, const nonstd::span<const uint8_t>& value)
   {
     return addfield_raw(tag, value.data(), value.size());
   }
@@ -263,10 +257,12 @@ public:
 
     if (auto newsize = (m_position + needed); newsize > m_capacity) {
       // TODO allocate more first if it fails return false
-      if (newsize > sizeof(size_t)) {
+      if (newsize > MAX_FIELD_SIZE) {
         return false;
       }
-      tlv_buffer.resize(newsize * 2);
+      g_write_buffer.resize(newsize * 2);
+      m_buffer = g_write_buffer.data();
+      m_capacity = newsize * 2;
     }
 
     // Write tag
@@ -301,7 +297,7 @@ public:
   release()
   {
     if (m_buffer) {
-      tlv_buffer.release();
+      g_write_buffer.release();
       m_buffer = nullptr;
       m_capacity = 0;
       m_position = 0;
@@ -309,54 +305,56 @@ public:
   }
 };
 
-template<typename T, typename... Args>
-inline ResponseStatus
-dispatch(std::vector<uint8_t>& result,
+template<typename... Args>
+inline tl::expected<TLVParser::ParseResult, ResponseStatus>
+dispatch(TLVParser& parser,
          UnixSocket& sock,
          const int& msg_tag,
-         const T& key,
-         Args... args)
+         Args&&... args)
 {
+  static_assert(sizeof...(args) % 2 == 0,
+                "Arguments must come in pairs: tag, value, tag, value, ...");
   TLVSerializer serializer;
-  // pass message type to the header
-  serializer.begin_message({0x01, static_cast<uint16_t>(msg_tag)});
 
-  // process data into tlv binary to dispatch
-  static_assert(meta::is_iterable<decltype(key)>::value,
-                "type of key should be iterable");
-  serializer.addfield(FIELD_TYPE_KEY, key);
+  g_read_buffer.release();
+  serializer.begin_message({TLV_VERSION, static_cast<uint16_t>(msg_tag)});
 
-  if constexpr (sizeof...(args) == 2) { // we have a put call
-    auto [data_span, flag] = std::forward_as_tuple(args...);
-    static_assert(meta::is_iterable<decltype(data_span)>::value,
-                  "type of data span should be iterable");
-    static_assert(std::is_same_v<std::decay_t<decltype(flag)>, bool>,
-                  "type of flag should be bool");
+  auto serialise_fields = [&serializer](auto&& self,
+                                        auto&& first,
+                                        auto&& second,
+                                        auto&&... rest) -> void {
+    serializer.addfield(std::forward<decltype(first)>(first),
+                        std::forward<decltype(second)>(second));
+    if constexpr (sizeof...(rest) > 0) {
+      self(self, std::forward<decltype(rest)>(rest)...);
+    }
+  };
 
-    serializer.addfield(FIELD_TYPE_VALUE, data_span);
-    serializer.addfield(FIELD_TYPE_FLAGS, flag);
+  if constexpr (sizeof...(args) > 0) {
+    serialise_fields(serialise_fields, std::forward<Args>(args)...);
   }
 
   auto [data, length] = serializer.finalize();
 
   auto opcode = sock.send({data, data + length});
   if (opcode == OpCode::error) {
-    return ERROR;
+    return tl::unexpected<ResponseStatus>(ERROR);
   } else if (opcode == OpCode::timeout) {
-    return TIMEOUT;
+    return tl::unexpected<ResponseStatus>(TIMEOUT);
   }
 
-  std::string received_bytes;
-  opcode = sock.receive(received_bytes);
-  if (opcode == OpCode::timeout) {
-    return TIMEOUT;
+  serializer.release();
+  size_t received_size;
+  opcode = sock.receive(received_size);
+  if (opcode == OpCode::error) {
+    return tl::unexpected<ResponseStatus>(ERROR);
+  } else if (opcode == OpCode::timeout) {
+    return tl::unexpected<ResponseStatus>(TIMEOUT);
   }
 
-  TLVParser parser;
-  auto& res = parser.parse({received_bytes.data(), received_bytes.size()},
-                           received_bytes.size());
+  auto& res = parser.parse({g_read_buffer.data(), received_size});
   if (!res.success) {
-    return ERROR;
+    return tl::unexpected<ResponseStatus>(ERROR);
   }
 
   ResponseStatus status_code;
@@ -365,12 +363,10 @@ dispatch(std::vector<uint8_t>& result,
   std::cerr << "status=" << int(status_code) << "\n";
   if (status_code != SUCCESS) {
     // TODO LOG the error message?
-    return status_code;
+    return tl::unexpected<ResponseStatus>(status_code);
   }
 
-  const TLVFieldRef* val_field = getfield(res.fields, FIELD_TYPE_VALUE);
-  result.insert(result.end(), val_field->data.begin(), val_field->data.end());
-  return SUCCESS;
+  return res;
 }
 
 } // namespace tlv
