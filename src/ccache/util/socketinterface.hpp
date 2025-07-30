@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "ccache/storage/remote/socketbackend/tlv_buffer.hpp"
+
 #include <nonstd/span.hpp>
 
 #include <fcntl.h>
@@ -39,7 +41,6 @@ constexpr auto invalid_socket_t = -1;
 #include <iostream>
 #include <optional>
 #include <string>
-#include <string_view>
 
 using namespace std::literals::string_view_literals;
 namespace fs = std::filesystem;
@@ -74,8 +75,6 @@ public:
   template<typename T> int read(nonstd::span<T>& ptr);
   /// @brief sends messages over stream
   template<typename T> int write(const nonstd::span<T>& ptr) const;
-  /// @brief calls write(const nonstd::span<T>& ptr)
-  int write(const std::string_view& s) const;
 
 private:
   /// @brief the socket identifier
@@ -121,111 +120,113 @@ Stream::write(const nonstd::span<T>& ptr) const
   return ::send(m_sock, ptr.data(), static_cast<int>(ptr.size()), MSG_NOSIGNAL);
 }
 
-inline int
-Stream::write(const std::string_view& s) const
-{
-  return write(nonstd::span<const char>(s.data(), s.size()));
-}
-
 // adapted from cpp-httplib
 class StreamReader
 {
 public:
-  StreamReader(Stream& strm, char* fixed_buffer, size_t fixed_buffer_size);
+  StreamReader(Stream& strm);
 
   const char* ptr() const;
 
   size_t size() const;
 
-  std::optional<std::string> getbytes(std::optional<char> delimiter,
-                                      const std::atomic<bool>& shouldStop);
+  std::optional<size_t> getbytes(std::optional<char> delimiter,
+                                 const std::atomic<bool>& shouldStop);
+
+  void clear();
 
 private:
-  void append(char c);
+  void append(uint8_t c);
+  void appendChunk(const uint8_t* data, size_t len);
 
-  size_t m_fixed_buffer_size;
-  char* m_fixed_buffer;
+  std::function<void(char byte)> m_callback;
   std::reference_wrapper<Stream> m_strm;
-  size_t m_fixed_buffer_used_size;
-  std::string m_buffer;
+  tlv::BigBuffer<uint8_t>* m_buffer; // Reference to BigBuffer
+  size_t m_current_size = 0;         // Track buffer content
 };
 
-inline StreamReader::StreamReader(Stream& strm,
-                                  char* fixed_buffer,
-                                  const size_t fixed_buffer_size)
-  : m_fixed_buffer_size(fixed_buffer_size),
-    m_fixed_buffer(fixed_buffer),
-    m_strm(strm)
+inline StreamReader::StreamReader(Stream& strm)
+  : m_strm(strm),
+    m_buffer(&tlv::g_read_buffer)
 {
+  m_buffer->release(); // Reset buffer
 }
 
 inline const char*
 StreamReader::ptr() const
 {
-  if (m_buffer.empty()) {
-    return m_fixed_buffer;
-  } else {
-    return m_buffer.data();
-  }
+  return reinterpret_cast<const char*>(m_buffer->data());
 }
 
 inline size_t
 StreamReader::size() const
 {
-  if (m_buffer.empty()) {
-    return m_fixed_buffer_used_size;
-  } else {
-    return m_buffer.size();
-  }
+  return m_current_size;
 }
 
-inline std::optional<std::string>
+inline void
+StreamReader::clear()
+{
+  m_current_size = 0;
+  // TODO should we release the buffer or just reset our tracking?
+}
+
+inline void
+StreamReader::append(uint8_t c)
+{
+  if (m_current_size >= m_buffer->capacity()) {
+    m_buffer->resize(m_buffer->capacity() * 2);
+  }
+
+  m_buffer->data()[m_current_size++] = c;
+}
+
+inline std::optional<size_t>
 StreamReader::getbytes(const std::optional<char> delimiter,
                        const std::atomic<bool>& shouldStop)
 {
-  m_fixed_buffer_used_size = 0;
-  m_buffer.clear();
+  constexpr size_t CHUNK_SIZE = 1024;
+  std::array<unsigned char, CHUNK_SIZE> chunk_buffer;
 
   while (!shouldStop) {
-    std::array<unsigned char, 1> byte_holder;
-    nonstd::span<unsigned char> byte(byte_holder);
+    nonstd::span<unsigned char> chunk(chunk_buffer);
+    int byte_count = m_strm.get().read(chunk);
 
-    int byte_count = m_strm.get().read(byte);
     if (byte_count == 0) {
-      if (!size()) {
+      if (size() == 0) {
         return std::nullopt;
       }
-      std::cerr << "\n";
-      return std::string(ptr(), size());
+      return m_current_size;
     } else if (byte_count < 0) {
       continue;
-    } else {
-      std::cerr << int(byte_holder[0]) << " ";
     }
 
-    if (byte[0] == delimiter) {
-      // message complete
-      return std::string(ptr(), size());
+    for (int i = 0; i < byte_count; ++i) {
+      uint8_t byte = chunk_buffer[i];
+
+      if (delimiter && byte == *delimiter) {
+        // Message complete
+        return m_current_size;
+      }
+
+      append(byte);
     }
-    append(byte[0]);
   }
 
   return std::nullopt;
 }
 
 inline void
-StreamReader::append(char c)
+StreamReader::appendChunk(const uint8_t* data, size_t len)
 {
-  if (m_fixed_buffer_used_size + 1 < m_fixed_buffer_size) {
-    m_fixed_buffer[m_fixed_buffer_used_size++] = c;
-    m_fixed_buffer[m_fixed_buffer_used_size] = '\0';
-  } else {
-    if (m_buffer.empty()) {
-      assert(m_fixed_buffer[m_fixed_buffer_used_size] == '\0');
-      m_buffer.assign(m_fixed_buffer, m_fixed_buffer_used_size);
-    }
-    m_buffer += c;
+  if (m_current_size + len > m_buffer->capacity()) {
+    size_t new_capacity =
+      std::max(m_buffer->capacity() * 2, m_current_size + len);
+    m_buffer->resize(new_capacity);
   }
+
+  memcpy(m_buffer->data() + m_current_size, data, len);
+  m_current_size += len;
 }
 
 class UnixSocket
@@ -249,16 +250,11 @@ private:
   /// @brief specifies the stream for reading / writing
   std::shared_ptr<Stream> m_socket_stream;
 
-  /// @brief is behaviour after message receival set?
-  std::atomic<bool> m_message_callback = false;
-  /// @brief called upon receiving a message
-  std::function<void(const std::string& message)> message_callback;
-
   /// @brief listens for messages over stream
   std::thread m_listen_thread;
 
   /// @brief buffer pool for message receival
-  moodycamel::BlockingReaderWriterCircularBuffer<std::string> m_msg_queue;
+  moodycamel::BlockingReaderWriterCircularBuffer<size_t> m_msg_queue;
 
   /// @brief waits for messages - called by the listener thread
   void wait_for_messages();
@@ -293,32 +289,21 @@ public:
   bool exists();
 
   /// @brief calls send and waits for an upcoming response
-  OpCode send(const std::string& msg_args);
+  OpCode send(const nonstd::span<uint8_t>& msg_args);
 
   /// @brief calls send and waits for an upcoming response
-  OpCode receive(std::string& result, bool timeout = true);
+  OpCode receive(size_t& res_size, bool timeout = true);
 
 private:
   /// @brief sends message over the stream
-  bool send_message(const std::string& msg_args) const;
+  bool send_message(const nonstd::span<uint8_t>& msg_args) const;
 
   /// @brief returns true on connection error
   bool is_connection_error() const;
 
-  /// @brief sets the callback function on messag receival
-  void set_response_behaviour(
-    std::function<void(const std::string& message)> callback);
-
   /// @brief closes the socket
   int close() const;
 };
-
-inline void
-UnixSocket::set_response_behaviour(
-  const std::function<void(const std::string& message)> callback)
-{
-  message_callback = callback;
-}
 
 inline UnixSocket::~UnixSocket()
 {
@@ -429,7 +414,7 @@ UnixSocket::close() const
 }
 
 inline bool
-UnixSocket::send_message(const std::string& msg_args) const
+UnixSocket::send_message(const nonstd::span<uint8_t>& msg_args) const
 {
   return m_socket_stream->write(msg_args) != -1;
 }
@@ -441,23 +426,23 @@ UnixSocket::exists()
 }
 
 inline OpCode
-UnixSocket::send(const std::string& msg)
+UnixSocket::send(const nonstd::span<uint8_t>& msg)
 {
   const bool success = send_message(msg);
   return success ? OpCode::ok : OpCode::error;
 }
 
 inline OpCode
-UnixSocket::receive(std::string& result, const bool timeout)
+UnixSocket::receive(size_t& res_size, const bool timeout)
 {
   bool got_message = false;
 
   if (!timeout) {
-    m_msg_queue.try_dequeue(result);
+    m_msg_queue.try_dequeue(res_size);
     got_message = true;
   } else {
     got_message = m_msg_queue.wait_dequeue_timed(
-      result, std::chrono::seconds(MESSAGE_TIMEOUT));
+      res_size, std::chrono::seconds(MESSAGE_TIMEOUT));
 
     if (!got_message) {
       return OpCode::timeout;
@@ -469,14 +454,11 @@ UnixSocket::receive(std::string& result, const bool timeout)
 inline void
 UnixSocket::wait_for_messages()
 {
-  const auto bufsiz = BUFFERSIZE;
-  char buf[bufsiz];
-
+  StreamReader reader(*m_socket_stream);
   // disattached thread keeps working through this cycle
   while (!m_should_end) {
-    StreamReader reader(*m_socket_stream, buf, bufsiz);
-
     const auto message = reader.getbytes(m_delimiter, m_should_end);
+    reader.clear();
 
     if (m_should_end) {
       break;
@@ -484,10 +466,6 @@ UnixSocket::wait_for_messages()
 
     if (message.has_value()) {
       m_msg_queue.try_enqueue(message.value());
-
-      if (m_message_callback) {
-        message_callback(*message);
-      }
     }
   }
 }
