@@ -83,13 +83,14 @@ SocketStorage::create_backend(
 int
 SocketStorage::setup_backend_service(UnixSocket& sock) const
 {
-  std::vector<uint8_t> transaction_result;
-  auto status = tlv::dispatch(transaction_result,
-                              sock,
-                              tlv::MSG_TYPE_SETUP_REQUEST,
-                              std::array<uint8_t, 3>{1, 2, 3});
+  tlv::TLVParser parser;
+  auto res = tlv::dispatch(parser,
+                           sock,
+                           tlv::MSG_TYPE_SETUP_REQUEST,
+                           tlv::SETUP_TYPE_VERSION,
+                           tlv::TLV_VERSION);
 
-  if (status != tlv::SUCCESS) {
+  if (!res) {
     LOG("DEBUG msg_type_notify {} message went wrong!",
         tlv::MSG_TYPE_SETUP_REQUEST);
     return INVALID_SOCKET;
@@ -170,23 +171,24 @@ BackendNode::BackendNode(
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 BackendNode::get(const Hash::Digest& key)
 {
-  std::vector<uint8_t> transaction_result;
-  auto status =
-    tlv::dispatch(transaction_result, *bsock, tlv::MSG_TYPE_GET_REQUEST, key);
+  tlv::TLVParser parser;
+  auto res = tlv::dispatch(
+    parser, *bsock, tlv::MSG_TYPE_GET_REQUEST, tlv::FIELD_TYPE_KEY, key);
 
-  if (status != tlv::SUCCESS) {
+  if (!res) {
+    if (res.error() == tlv::NO_FILE) {
+      return std::nullopt; // not found 404
+    }
     LOG("{} occured on sending message!",
-        (status == tlv::ERROR ? "ERROR" : "TIMEOUT"));
+        (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
-      status == tlv::ERROR ? RemoteStorage::Backend::Failure::error
-                           : RemoteStorage::Backend::Failure::timeout);
+      res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
+                                : RemoteStorage::Backend::Failure::timeout);
   }
 
-  if (transaction_result.empty()) {
-    return std::nullopt;
-  }
-
-  return util::Bytes(transaction_result.data(), transaction_result.size());
+  const tlv::TLVFieldRef* val_field =
+    getfield(res->fields, tlv::FIELD_TYPE_VALUE);
+  return util::Bytes(val_field->data.data(), val_field->length);
 }
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
@@ -194,25 +196,27 @@ BackendNode::put(const Hash::Digest& key,
                  nonstd::span<const uint8_t> value,
                  bool only_if_missing)
 {
-  std::vector<uint8_t> transaction_result;
-  auto status = tlv::dispatch(transaction_result,
-                              *bsock,
-                              tlv::MSG_TYPE_PUT_REQUEST,
-                              key,
-                              value,
-                              only_if_missing);
+  tlv::TLVParser parser;
+  auto res =
+    tlv::dispatch(parser,
+                  *bsock,
+                  tlv::MSG_TYPE_PUT_REQUEST,
+                  tlv::FIELD_TYPE_KEY,
+                  key,
+                  tlv::FIELD_TYPE_VALUE,
+                  value,
+                  tlv::FIELD_TYPE_FLAGS,
+                  only_if_missing ? uint8_t(0x0) : tlv::OVERWRITE_FLAG);
 
-  if (status != tlv::SUCCESS) {
-    LOG("{} occured on sending message! ",
-        (status == tlv::ERROR ? "ERROR" : "TIMEOUT"));
+  if (!res) {
+    if (res.error() == tlv::SUCCESS) {
+      return false; // not found 404
+    }
+    LOG("{} occured on sending message!",
+        (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
-      status == tlv::ERROR ? RemoteStorage::Backend::Failure::error
-                           : RemoteStorage::Backend::Failure::timeout);
-  }
-
-  if (transaction_result.empty()) {
-    return tl::unexpected<RemoteStorage::Backend::Failure>(
-      RemoteStorage::Backend::Failure::error);
+      res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
+                                : RemoteStorage::Backend::Failure::timeout);
   }
 
   return true;
@@ -221,22 +225,21 @@ BackendNode::put(const Hash::Digest& key,
 tl::expected<bool, RemoteStorage::Backend::Failure>
 BackendNode::remove(const Hash::Digest& key)
 {
-  std::vector<uint8_t> transaction_result;
-  auto status =
-    tlv::dispatch(transaction_result, *bsock, tlv::MSG_TYPE_DEL_REQUEST, key);
+  tlv::TLVParser parser;
+  auto res = tlv::dispatch(
+    parser, *bsock, tlv::MSG_TYPE_DEL_REQUEST, tlv::FIELD_TYPE_KEY, key);
 
-  if (status != tlv::SUCCESS) {
-    LOG("{} occured on sending message! ",
-        (status == tlv::ERROR ? "ERROR" : "TIMEOUT"));
+  if (!res) {
+    if (res.error() == tlv::SUCCESS) {
+      return false; // not found 404
+    }
+    LOG("{} occured on sending message!",
+        (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
-      status == tlv::ERROR ? RemoteStorage::Backend::Failure::error
-                           : RemoteStorage::Backend::Failure::timeout);
+      res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
+                                : RemoteStorage::Backend::Failure::timeout);
   }
 
-  if (transaction_result.empty()) {
-    return tl::unexpected<RemoteStorage::Backend::Failure>(
-      RemoteStorage::Backend::Failure::error);
-  }
   return true;
 }
 
