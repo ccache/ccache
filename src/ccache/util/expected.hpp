@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -52,9 +52,9 @@ void throw_on_error(const T& value, std::string_view prefix);
 
 #define TRY(x_)                                                                \
   do {                                                                         \
-    const auto result = x_;                                                    \
-    if (!result) {                                                             \
-      return tl::unexpected(result.error());                                   \
+    const auto result_ = x_;                                                   \
+    if (!result_) {                                                            \
+      return tl::unexpected(result_.error());                                  \
     }                                                                          \
   } while (false)
 
