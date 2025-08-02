@@ -168,7 +168,7 @@ jobs:
 
   build_and_test_msys:
     timeout-minutes: 30
-    runs-on: windows-latest
+    runs-on: windows-2025
     strategy:
       fail-fast: false
       matrix:
