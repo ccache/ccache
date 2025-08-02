@@ -1190,10 +1190,11 @@ to_cache(Context& ctx,
 
   if (ctx.config.hard_link()
       && !util::is_dev_null_path(ctx.args_info.output_obj)) {
-    // Workaround for Clang bug where it overwrites an existing object file
-    // when it's compiling an assembler file, see
-    // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
-    util::remove_nfs_safe(ctx.args_info.output_obj);
+    // Workaround for Clang bug where it overwrites an existing object file when
+    // it's compiling an assembler file (see
+    // <https://bugs.llvm.org/show_bug.cgi?id=39782>): remove any preexisting
+    // output object file.
+    util::remove_nfs_safe(ctx.args_info.output_obj, util::LogFailure::no);
   }
 
   if (ctx.args_info.generating_diagnostics) {
