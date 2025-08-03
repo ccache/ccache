@@ -58,6 +58,13 @@ void throw_on_error(const T& value, std::string_view prefix);
     }                                                                          \
   } while (false)
 
+#define TRY_ASSIGN(var_, expression_)                                          \
+  auto result_##__LINE__##_ = (expression_);                                   \
+  if (!result_##__LINE__##_) {                                                 \
+    return tl::unexpected(std::move(result_##__LINE__##_.error()));            \
+  }                                                                            \
+  var_ = std::move(*result_##__LINE__##_)
+
 // --- Inline implementations ---
 
 template<typename E, typename T>
