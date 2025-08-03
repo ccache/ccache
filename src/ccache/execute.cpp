@@ -331,11 +331,10 @@ execute(Context& ctx,
   }
 
   int status;
-  while ((result = waitpid(ctx.compiler_pid, &status, 0)) != ctx.compiler_pid) {
-    if (result == -1 && errno == EINTR) {
-      continue;
+  while (waitpid(ctx.compiler_pid, &status, 0) == -1) {
+    if (errno != EINTR) {
+      throw core::Fatal(FMT("waitpid failed: {}", strerror(errno)));
     }
-    throw core::Fatal(FMT("waitpid failed: {}", strerror(errno)));
   }
 
   {

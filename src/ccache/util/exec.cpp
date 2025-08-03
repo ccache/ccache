@@ -146,11 +146,10 @@ exec_to_string(const Args& args)
   });
 
   int status;
-  while ((result = waitpid(pid, &status, 0)) != pid) {
-    if (result == -1 && errno == EINTR) {
-      continue;
+  while (waitpid(pid, &status, 0) == -1) {
+    if (errno != EINTR) {
+      return tl::unexpected(FMT("waitpid failed: {}", strerror(errno)));
     }
-    return tl::unexpected(FMT("waitpid failed: {}", strerror(errno)));
   }
   if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
     return tl::unexpected(FMT("Non-zero exit code: {}", WEXITSTATUS(status)));
