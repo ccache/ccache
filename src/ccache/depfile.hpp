@@ -20,6 +20,8 @@
 
 class Context;
 
+#include <tl/expected.hpp>
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -32,7 +34,8 @@ std::string escape_filename(std::string_view filename);
 std::optional<std::string> rewrite_source_paths(const Context& ctx,
                                                 std::string_view file_content);
 
-void make_paths_relative_in_output_dep(const Context& ctx);
+tl::expected<void, std::string>
+make_paths_relative_in_output_dep(const Context& ctx);
 
 // Split `text` into tokens. A colon token delimits the target tokens from
 // dependency tokens. An empty token marks the end of an entry.

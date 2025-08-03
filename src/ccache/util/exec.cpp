@@ -130,18 +130,19 @@ exec_to_string(const Args& args)
 
   pid_t pid;
   auto argv_mutable = const_cast<char* const*>(argv.data());
-  int result = posix_spawnp(&pid, argv[0], &fa, nullptr, argv_mutable, environ);
+  int spawn_result =
+    posix_spawnp(&pid, argv[0], &fa, nullptr, argv_mutable, environ);
   int saved_errno = errno;
   posix_spawn_file_actions_destroy(&fa);
   close(pipefd[1]);
 
-  if (result != 0) {
+  if (spawn_result != 0) {
     close(pipefd[0]);
     return tl::unexpected(
       FMT("posix_spawnp failed: {}", strerror(saved_errno)));
   }
 
-  read_fd(pipefd[0], [&](auto data) {
+  auto read_result = read_fd(pipefd[0], [&](auto data) {
     output.append(reinterpret_cast<const char*>(data.data()), data.size());
   });
 
@@ -150,6 +151,9 @@ exec_to_string(const Args& args)
     if (errno != EINTR) {
       return tl::unexpected(FMT("waitpid failed: {}", strerror(errno)));
     }
+  }
+  if (!read_result) {
+    return tl::unexpected(FMT("failed to read pipe: {}", read_result.error()));
   }
   if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
     return tl::unexpected(FMT("Non-zero exit code: {}", WEXITSTATUS(status)));

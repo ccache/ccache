@@ -209,7 +209,7 @@ win32execute(const char* const* argv,
   fs::path tmp_file_path;
   DEFER([&] {
     if (!tmp_file_path.empty()) {
-      util::remove(tmp_file_path);
+      std::ignore = util::remove(tmp_file_path);
     }
   });
 
@@ -218,7 +218,12 @@ win32execute(const char* const* argv,
       util::TemporaryFile::create(FMT("{}/cmd_args", temp_dir)));
     LOG("Arguments from {}", tmp_file.path);
     commandline = util::format_argv_as_win32_command_string(argv + 1, true);
-    util::write_fd(*tmp_file.fd, commandline.data(), commandline.length());
+    if (auto r = util::write_fd(
+          *tmp_file.fd, commandline.data(), commandline.length());
+        !r) {
+      LOG("Failed to write {}: {}", tmp_file.path, r.error());
+      return -1;
+    }
     commandline = FMT(R"("{}" "@{}")", argv[0], tmp_file.path);
     tmp_file_path = tmp_file.path;
   }

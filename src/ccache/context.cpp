@@ -104,7 +104,7 @@ Context::unlink_pending_tmp_files()
 
   for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
        ++it) {
-    util::remove(*it, util::LogFailure::no);
+    std::ignore = util::remove(*it, util::LogFailure::no);
   }
   m_pending_tmp_files.clear();
 }

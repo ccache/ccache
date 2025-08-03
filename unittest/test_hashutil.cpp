@@ -33,10 +33,10 @@ static bool
 hco(Hash& hash, const std::string& command, const std::string& compiler)
 {
 #ifdef _WIN32
-  util::write_file("command.bat", FMT("@echo off\r\n{}\r\n", command));
+  REQUIRE(util::write_file("command.bat", FMT("@echo off\r\n{}\r\n", command)));
   return hash_command_output(hash, "command.bat", compiler);
 #else
-  util::write_file("command.sh", FMT("#!/bin/sh\n{}\n", command));
+  REQUIRE(util::write_file("command.sh", FMT("#!/bin/sh\n{}\n", command)));
   chmod("command.sh", 0555);
   return hash_command_output(hash, "./command.sh", compiler);
 #endif
@@ -89,7 +89,7 @@ TEST_CASE("hash_command_output_compiler_substitution")
 
   CHECK(hco(h1, "echo foo", "not used"));
 #ifdef _WIN32
-  util::write_file("command.bat", "@echo off\r\necho foo\r\n");
+  REQUIRE(util::write_file("command.bat", "@echo off\r\necho foo\r\n"));
   CHECK(hash_command_output(h2, "%compiler%", "command.bat"));
 #else
   CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
@@ -105,7 +105,7 @@ TEST_CASE("hash_command_output_stdout_versus_stderr")
   Hash h2;
 
 #ifdef _WIN32
-  util::write_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
+  REQUIRE(util::write_file("stderr.bat", "@echo off\r\necho foo>&2\r\n"));
   CHECK(hco(h1, "echo foo", "not used"));
   CHECK(hco(h2, "stderr.bat", "not used"));
 #else
@@ -124,8 +124,8 @@ TEST_CASE("hash_multicommand_output")
 
 #ifdef _WIN32
   h2.hash("foo\r\nbar\r\n");
-  util::write_file("foo.bat", "@echo off\r\necho foo\r\n");
-  util::write_file("bar.bat", "@echo off\r\necho bar\r\n");
+  REQUIRE(util::write_file("foo.bat", "@echo off\r\necho foo\r\n"));
+  REQUIRE(util::write_file("bar.bat", "@echo off\r\necho bar\r\n"));
   CHECK(hash_multicommand_output(h1, "foo.bat; bar.bat", "not used"));
 #else
   h2.hash("foo\nbar\n");

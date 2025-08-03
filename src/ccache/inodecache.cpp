@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -285,7 +285,7 @@ InodeCache::mmap_file(const fs::path& path)
       k_version);
     map->unmap();
     m_fd.close();
-    fs::remove(path);
+    std::ignore = util::remove(path);
     return false;
   }
   m_map = std::move(*map);

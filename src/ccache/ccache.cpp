@@ -221,7 +221,7 @@ prepare_debug_path(const fs::path& cwd,
   // Ignore any error from fs::create_directories since we can't handle an error
   // in another way in this context. The caller takes care of logging when
   // trying to open the path for writing.
-  fs::create_directories(prefix.parent_path());
+  std::ignore = fs::create_directories(prefix.parent_path());
 
   char timestamp[100];
   const auto tm = util::localtime(time_of_invocation);
@@ -1194,7 +1194,8 @@ to_cache(Context& ctx,
     // it's compiling an assembler file (see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>): remove any preexisting
     // output object file.
-    util::remove_nfs_safe(ctx.args_info.output_obj, util::LogFailure::no);
+    std::ignore =
+      util::remove_nfs_safe(ctx.args_info.output_obj, util::LogFailure::no);
   }
 
   if (ctx.args_info.generating_diagnostics) {
@@ -1293,7 +1294,12 @@ to_cache(Context& ctx,
   }
 
   if (ctx.args_info.generating_dependencies) {
-    depfile::make_paths_relative_in_output_dep(ctx);
+    if (auto r = depfile::make_paths_relative_in_output_dep(ctx); !r) {
+      LOG("Failed to make paths relative in {}: {}",
+          ctx.args_info.output_dep,
+          r.error());
+      return tl::unexpected(Statistic::internal_error);
+    }
   }
 
   if (!ctx.args_info.expect_output_obj) {
@@ -1445,7 +1451,10 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
   }
 
   if (is_clang_cu) {
-    util::write_file(preprocessed_path, cpp_stdout_data);
+    if (auto r = util::write_file(preprocessed_path, cpp_stdout_data); !r) {
+      LOG("Failed to write {}: {}", preprocessed_path, r.error());
+      return tl::unexpected(Statistic::internal_error);
+    }
     auto chunks =
       util::split_preprocessed_file_from_clang_cuda(preprocessed_path);
     for (size_t i = 0; i < chunks.size(); ++i) {

@@ -346,7 +346,7 @@ clean_dir(
     // Delete any tmp files older than 1 hour right away.
     if (file.mtime() + util::Duration(3600) < current_time
         && util::TemporaryFile::is_tmp_file(file.path())) {
-      util::remove(file.path());
+      std::ignore = util::remove(file.path());
       continue;
     }
 
@@ -605,7 +605,7 @@ LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
     if (!l2_content_lock.acquire()) {
       LOG("Not removing {} due to lock failure", cache_file.path);
     }
-    util::remove_nfs_safe(cache_file.path);
+    std::ignore = util::remove_nfs_safe(cache_file.path);
   }
 
   LOG("Removed {} from local storage ({})",
@@ -696,7 +696,7 @@ LocalStorage::clone_hard_link_or_copy_file(const fs::path& source,
     // run, but it's only we who can create the file entry now so we don't try
     // to handle a race between remove() and create_hard_link() below.
 
-    fs::remove(dest); // Ignore any error.
+    std::ignore = fs::remove(dest); // Ignore any error.
     LOG("Hard linking {} to {}", source, dest);
     if (auto result = fs::create_hard_link(source, dest); !result) {
       LOG("Failed to hard link {} to {}: {}",
@@ -820,7 +820,7 @@ LocalStorage::wipe_all(const ProgressReceiver& progress_receiver)
           l2_progress_receiver(0.5);
 
           for (size_t i = 0; i < files.size(); ++i) {
-            util::remove_nfs_safe(files[i].path());
+            std::ignore = util::remove_nfs_safe(files[i].path());
             l2_progress_receiver(0.5 + 0.5 * ratio(i, files.size()));
           }
 
@@ -1082,9 +1082,10 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
     // Note: Two ccache processes may move the file at the same time, so failure
     // to rename is OK.
     LOG("Moving {} to {}", cache_file_path, wanted_path);
-    fs::rename(cache_file_path, wanted_path);
+    std::ignore = fs::rename(cache_file_path, wanted_path);
     for (const auto& [file_number, dest_path] : m_added_raw_files) {
-      fs::rename(dest_path, get_raw_file_path(wanted_path, file_number));
+      std::ignore =
+        fs::rename(dest_path, get_raw_file_path(wanted_path, file_number));
     }
   }
 }
@@ -1461,7 +1462,8 @@ LocalStorage::clean_internal_tempdir()
 
   LOG("Cleaning up {}", m_config.temporary_dir());
   core::ensure_dir_exists(m_config.temporary_dir());
-  util::traverse_directory(m_config.temporary_dir(), [now](const auto& de) {
+
+  auto remove_old = [now](const auto& de) {
     if (de.is_directory()) {
       return;
     }
@@ -1474,11 +1476,15 @@ LocalStorage::clean_internal_tempdir()
         LOG("Removal failed: {}", result.error().message());
       }
     }
-  }).or_else([&](const auto& error) {
-    LOG("Failed to clean up {}: {}", m_config.temporary_dir(), error);
-  });
+  };
+  if (auto r = util::traverse_directory(m_config.temporary_dir(), remove_old);
+      !r) {
+    LOG("Failed to clean up {}: {}", m_config.temporary_dir(), r.error());
+  }
 
-  util::write_file(cleaned_stamp, "");
+  if (auto r = util::write_file(cleaned_stamp, ""); !r) {
+    LOG("Failed to create {}: {}", cleaned_stamp, r.error());
+  }
 }
 
 fs::path

@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -254,10 +254,10 @@ TEST_CASE("util::traverse_directory")
   TestContext test_context;
 
   REQUIRE(fs::create_directories("dir-with-subdir-and-file/subdir"));
-  util::write_file("dir-with-subdir-and-file/subdir/f", "");
+  REQUIRE(util::write_file("dir-with-subdir-and-file/subdir/f", ""));
   REQUIRE(fs::create_directory("dir-with-files"));
-  util::write_file("dir-with-files/f1", "");
-  util::write_file("dir-with-files/f2", "");
+  REQUIRE(util::write_file("dir-with-files/f1", ""));
+  REQUIRE(util::write_file("dir-with-files/f2", ""));
   REQUIRE(fs::create_directory("empty-dir"));
 
   std::vector<std::string> visited;
@@ -282,14 +282,14 @@ TEST_CASE("util::traverse_directory")
 
   SUBCASE("traverse empty directory")
   {
-    CHECK_NOTHROW(util::traverse_directory("empty-dir", visitor));
+    std::ignore = util::traverse_directory("empty-dir", visitor);
     REQUIRE(visited.size() == 1);
     CHECK(visited[0] == "[d] empty-dir");
   }
 
   SUBCASE("traverse directory with files")
   {
-    CHECK_NOTHROW(util::traverse_directory("dir-with-files", visitor));
+    std::ignore = util::traverse_directory("dir-with-files", visitor);
     REQUIRE(visited.size() == 3);
     fs::path f1("[f] dir-with-files/f1");
     fs::path f2("[f] dir-with-files/f2");
@@ -300,8 +300,7 @@ TEST_CASE("util::traverse_directory")
 
   SUBCASE("traverse directory hierarchy")
   {
-    CHECK_NOTHROW(
-      util::traverse_directory("dir-with-subdir-and-file", visitor));
+    std::ignore = util::traverse_directory("dir-with-subdir-and-file", visitor);
     REQUIRE(visited.size() == 3);
     CHECK(visited[0] == fs::path("[f] dir-with-subdir-and-file/subdir/f"));
     CHECK(visited[1] == fs::path("[d] dir-with-subdir-and-file/subdir"));

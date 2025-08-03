@@ -98,14 +98,14 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Empty")
   {
-    util::write_file("rsp_file", "");
+    REQUIRE(util::write_file("rsp_file", ""));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 0);
   }
 
   SUBCASE("One argument without newline")
   {
-    util::write_file("rsp_file", "foo");
+    REQUIRE(util::write_file("rsp_file", "foo"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 1);
     CHECK(args[0] == "foo");
@@ -113,7 +113,7 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("One argument with newline")
   {
-    util::write_file("rsp_file", "foo\n");
+    REQUIRE(util::write_file("rsp_file", "foo\n"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 1);
     CHECK(args[0] == "foo");
@@ -121,7 +121,7 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Multiple simple arguments")
   {
-    util::write_file("rsp_file", "x y z\n");
+    REQUIRE(util::write_file("rsp_file", "x y z\n"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 3);
     CHECK(args[0] == "x");
@@ -131,10 +131,10 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Tricky quoting")
   {
-    util::write_file(
+    REQUIRE(util::write_file(
       "rsp_file",
       "first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
-      " 'seve\nth'\\");
+      " 'seve\nth'\\"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::posix);
     CHECK(args.size() == 7);
     CHECK(args[0] == "first");
@@ -148,7 +148,7 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Ignore single quote in MSVC format")
   {
-    util::write_file("rsp_file", "'a b'");
+    REQUIRE(util::write_file("rsp_file", "'a b'"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 2);
     CHECK(args[0] == "'a");
@@ -157,7 +157,7 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Backslash as directory separator in MSVC format")
   {
-    util::write_file("rsp_file", R"("-DDIRSEP='A\B\C'")");
+    REQUIRE(util::write_file("rsp_file", R"("-DDIRSEP='A\B\C'")"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 1);
     CHECK(args[0] == R"(-DDIRSEP='A\B\C')");
@@ -165,7 +165,7 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Backslash before quote in MSVC format")
   {
-    util::write_file("rsp_file", R"(/Fo"N.dir\Release\\")");
+    REQUIRE(util::write_file("rsp_file", R"(/Fo"N.dir\Release\\")"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 1);
     CHECK(args[0] == R"(/FoN.dir\Release\)");
@@ -173,7 +173,7 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Arguments on multiple lines in MSVC format")
   {
-    util::write_file("rsp_file", "a\nb");
+    REQUIRE(util::write_file("rsp_file", "a\nb"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 2);
     CHECK(args[0] == "a");
@@ -182,11 +182,11 @@ TEST_CASE("Args::from_response_file")
 
   SUBCASE("Tricky quoting in MSVC format (#1247)")
   {
-    util::write_file(
+    REQUIRE(util::write_file(
       "rsp_file",
       R"(\ \\ '\\' "\\" '"\\"' "'\\'" '''\\''' ''"\\"'' '"'\\'"' '""\\""' "''\\''" "'"\\"'" ""'\\'"" """\\""" )"
       R"(\'\' '\'\'' "\'\'" ''\'\''' '"\'\'"' "'\'\''" ""\'\'"" '''\'\'''' ''"\'\'"'' '"'\'\''"' '""\'\'""' "''\'\'''" "'"\'\'"'" ""'\'\''"" """\'\'""" )"
-      R"(\"\" '\"\"' "\"\"" ''\"\"'' '"\"\""' "'\"\"'" ""\"\""" '''\"\"''' ''"\"\""'' '"'\"\"'"' '""\"\"""' "''\"\"''" "'"\"\""'" ""'\"\"'"" """\"\"""")");
+      R"(\"\" '\"\"' "\"\"" ''\"\"'' '"\"\""' "'\"\"'" ""\"\""" '''\"\"''' ''"\"\""'' '"'\"\"'"' '""\"\"""' "''\"\"''" "'"\"\""'" ""'\"\"'"" """\"\"""")"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 44);
     CHECK(args[0] == R"(\)");
@@ -239,11 +239,11 @@ TEST_CASE("Args::from_response_file")
   {
     // See
     // https://learn.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
-    util::write_file("rsp_file",
-                     R"("abc" d e )"
-                     R"(a\\\b d"e f"g h )"
-                     R"(a\\\"b c d )"
-                     R"(a\\\\"b c" d e)");
+    REQUIRE(util::write_file("rsp_file",
+                             R"("abc" d e )"
+                             R"(a\\\b d"e f"g h )"
+                             R"(a\\\"b c d )"
+                             R"(a\\\\"b c" d e)"));
     args = *Args::from_response_file("rsp_file", ResponseFileFormat::windows);
     CHECK(args.size() == 12);
     CHECK(args[0] == R"(abc)");

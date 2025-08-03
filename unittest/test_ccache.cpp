@@ -206,7 +206,7 @@ TEST_CASE("guess_compiler")
   SUBCASE("Follow symlink to actual compiler")
   {
     const auto cwd = *fs::current_path();
-    util::write_file(cwd / "gcc", "");
+    REQUIRE(util::write_file(cwd / "gcc", ""));
     CHECK(fs::create_symlink("gcc", cwd / "intermediate"));
     const auto cc = cwd / "cc";
     CHECK(fs::create_symlink("intermediate", cc));
@@ -217,7 +217,7 @@ TEST_CASE("guess_compiler")
   SUBCASE("Classify clang-cl symlink to clang")
   {
     const auto cwd = *fs::current_path();
-    util::write_file(cwd / "clang", "");
+    REQUIRE(util::write_file(cwd / "clang", ""));
     const auto clang_cl = cwd / "clang-cl";
     CHECK(fs::create_symlink("clang", clang_cl));
 
@@ -229,7 +229,7 @@ TEST_CASE("guess_compiler")
     const auto cwd = *fs::current_path();
     const auto cc = cwd / "cc";
     const auto gcc = cwd / "gcc";
-    util::write_file(cwd / "cc", "");
+    REQUIRE(util::write_file(cwd / "cc", ""));
     CHECK(fs::create_hard_link(cc, gcc));
 
     CHECK(guess_compiler(cc) == CompilerType::gcc);
@@ -240,7 +240,7 @@ TEST_CASE("guess_compiler")
     const auto cwd = *fs::current_path();
     const auto cc = cwd / "cc";
     const auto clang = cwd / "clang";
-    util::write_file(cwd / "cc", "");
+    REQUIRE(util::write_file(cwd / "cc", ""));
     CHECK(fs::create_hard_link(cc, clang));
 
     CHECK(guess_compiler(cc) == CompilerType::clang);
@@ -252,7 +252,7 @@ TEST_CASE("guess_compiler")
     const auto cc = cwd / "cc";
     const auto gcc = cwd / "gcc";
     const auto clang = cwd / "clang";
-    util::write_file(cwd / "cc", "");
+    REQUIRE(util::write_file(cwd / "cc", ""));
     CHECK(fs::create_hard_link(cc, gcc));
     CHECK(fs::create_hard_link(cc, clang));
 

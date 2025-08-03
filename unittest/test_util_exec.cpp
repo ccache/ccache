@@ -35,7 +35,8 @@ TEST_CASE("util::exec_to_string")
   SUBCASE("stdout + stderr")
   {
 #ifdef _WIN32
-    util::write_file("command.bat", "@echo off\r\necho fisk\r\necho sork>&2");
+    REQUIRE(util::write_file("command.bat",
+                             "@echo off\r\necho fisk\r\necho sork>&2"));
     util::Args args{"command.bat"};
 #else
     util::Args args{"sh", "-c", "echo fisk; echo sork >&2"};

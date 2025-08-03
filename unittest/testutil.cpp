@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -38,15 +38,16 @@ TestContext::TestContext()
   }
   ++m_subdir_counter;
   fs::path subtest_dir = m_test_dir / FMT("test_{}", m_subdir_counter);
-  fs::create_directories(subtest_dir);
-  if (!fs::current_path(subtest_dir)) {
-    throw core::Error(FMT("Failed to change directory to {}", subtest_dir));
-  }
+  util::throw_on_error<core::Error>(fs::create_directories(subtest_dir),
+                                    FMT("Failed to create {}: ", subtest_dir));
+  util::throw_on_error<core::Error>(
+    fs::current_path(subtest_dir),
+    FMT("Failed to change directory to {}", subtest_dir));
 }
 
 TestContext::~TestContext()
 {
-  fs::current_path(m_test_dir);
+  std::ignore = fs::current_path(m_test_dir);
 }
 
 } // namespace TestUtil
