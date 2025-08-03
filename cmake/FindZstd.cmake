@@ -46,7 +46,6 @@ if(_download_zstd)
     URL "https://github.com/facebook/zstd/releases/download/v${_zstd_version_string}/zstd-${_zstd_version_string}.tar.gz"
     URL_HASH SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
     SOURCE_SUBDIR build/cmake
-    ${_zstd_patch}
   )
   set(_saved_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
   set(BUILD_SHARED_LIBS OFF) # avoid warning from zstd's CMake scripts.
