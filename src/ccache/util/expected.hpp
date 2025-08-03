@@ -50,11 +50,11 @@ template<typename E, typename T> void throw_on_error(const T& value);
 template<typename E, typename T>
 void throw_on_error(const T& value, std::string_view prefix);
 
-#define TRY(x_)                                                                \
+#define TRY(expression_)                                                       \
   do {                                                                         \
-    const auto result_ = x_;                                                   \
+    auto result_ = (expression_);                                              \
     if (!result_) {                                                            \
-      return tl::unexpected(result_.error());                                  \
+      return tl::unexpected(std::move(result_.error()));                       \
     }                                                                          \
   } while (false)
 
