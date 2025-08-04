@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <ccache/args.hpp>
 #include <ccache/config.hpp>
+#include <ccache/util/args.hpp>
 
 #include <filesystem>
 #include <functional>
@@ -43,7 +43,7 @@ struct ArgvParts
 {
   bool masquerading_as_compiler = true;
   std::vector<std::string> config_settings;
-  Args compiler_and_args;
+  util::Args compiler_and_args;
 };
 
 ArgvParts split_argv(int argc, const char* const* argv);

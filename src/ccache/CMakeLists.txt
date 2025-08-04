@@ -1,7 +1,6 @@
 set(
   source_files
   argprocessing.cpp
-  args.cpp
   ccache.cpp
   compopt.cpp
   config.cpp

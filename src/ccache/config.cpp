@@ -225,15 +225,15 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"UMASK",                "umask"                     },
 };
 
-Args::ResponseFileFormat
+util::Args::ResponseFileFormat
 parse_response_file_format(const std::string& value)
 {
   if (value == "posix") {
-    return Args::ResponseFileFormat::posix;
+    return util::Args::ResponseFileFormat::posix;
   } else if (value == "windows") {
-    return Args::ResponseFileFormat::windows;
+    return util::Args::ResponseFileFormat::windows;
   } else {
-    return Args::ResponseFileFormat::auto_guess;
+    return util::Args::ResponseFileFormat::auto_guess;
   }
 }
 
@@ -544,14 +544,15 @@ home_directory()
 }
 
 std::string
-response_file_format_to_string(Args::ResponseFileFormat response_file_format)
+response_file_format_to_string(
+  util::Args::ResponseFileFormat response_file_format)
 {
   switch (response_file_format) {
-  case Args::ResponseFileFormat::auto_guess:
+  case util::Args::ResponseFileFormat::auto_guess:
     return "auto";
-  case Args::ResponseFileFormat::posix:
+  case util::Args::ResponseFileFormat::posix:
     return "posix";
-  case Args::ResponseFileFormat::windows:
+  case util::Args::ResponseFileFormat::windows:
     return "windows";
   }
 

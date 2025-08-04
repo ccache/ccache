@@ -23,6 +23,7 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -92,26 +93,24 @@ rewrite_source_paths(const Context& ctx, std::string_view content)
 }
 
 // Replace absolute paths with relative paths in the provided dependency file.
-void
+tl::expected<void, std::string>
 make_paths_relative_in_output_dep(const Context& ctx)
 {
   if (ctx.config.base_dir().empty()) {
     LOG_RAW("Base dir not set, skip using relative paths");
-    return; // nothing to do
+    return {}; // nothing to do
   }
 
   const auto& output_dep = ctx.args_info.output_dep;
-  const auto content = util::read_file<std::string>(output_dep);
-  if (!content) {
-    LOG("Failed to read dependency file {}: {}", output_dep, content.error());
-    return;
-  }
-  const auto new_content = rewrite_source_paths(ctx, *content);
+  TRY_ASSIGN(auto content, util::read_file<std::string>(output_dep));
+  const auto new_content = rewrite_source_paths(ctx, content);
   if (new_content) {
-    util::write_file(output_dep, *new_content);
+    TRY(util::write_file(output_dep, *new_content));
   } else {
     LOG("No paths in dependency file {} made relative", output_dep);
   }
+
+  return {};
 }
 
 std::vector<std::string>

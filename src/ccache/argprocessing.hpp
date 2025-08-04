@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <ccache/args.hpp>
 #include <ccache/core/statistic.hpp>
+#include <ccache/util/args.hpp>
 
 #include <tl/expected.hpp>
 
@@ -34,13 +34,16 @@ struct ProcessArgsResult
 {
   // Arguments (except "-E -o output.i") to send to the preprocessor. These are
   // part of the input hash (except those marked as AFFECTS_CPP in compopt.cpp).
-  Args preprocessor_args;
+  util::Args preprocessor_args;
 
   // Arguments to send to the real compiler. Not part of the input hash.
-  Args compiler_args;
+  util::Args compiler_args;
 
   // Arguments not sent to the preprocessor but added to the input hash anyway.
-  Args extra_args_to_hash;
+  util::Args extra_args_to_hash;
+
+  // -m*=native arguments to let the preprocessor expand.
+  util::Args native_args;
 
   // Whether to include the actual CWD in the input hash.
   bool hash_actual_cwd = false;

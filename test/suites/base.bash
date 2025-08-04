@@ -1633,6 +1633,44 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    TEST "-march=native, GCC"
+
+    CC1_ARGS=one $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    CC1_ARGS=one $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+
+    CC1_ARGS=two $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
+
+    CC1_ARGS=two $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "-march=native, Clang"
+
+    CC1_ARGS=one $CCACHE "$TEST_BASE_DIR/fake-compilers/clang-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    CC1_ARGS=one $CCACHE "$TEST_BASE_DIR/fake-compilers/clang-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+
+    CC1_ARGS=two $CCACHE "$TEST_BASE_DIR/fake-compilers/clang-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
+
+    CC1_ARGS=two $CCACHE "$TEST_BASE_DIR/fake-compilers/clang-march-native.sh" -march=native -c test1.c
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
     TEST "Handling of compiler-only arguments"
 
     cat >compiler.sh <<EOF

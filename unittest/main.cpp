@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <ccache/util/environment.hpp>
+#include <ccache/util/expected.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
@@ -29,32 +30,47 @@
 #  include <unistd.h>
 #endif
 
+#include <string>
+
 namespace fs = util::filesystem;
 
-int
-main(int argc, char** argv)
+tl::expected<int, std::error_code>
+prepare_test(int argc, char** argv)
 {
-#ifdef _WIN32
-  util::setenv("CCACHE_DETECT_SHEBANG", "1");
-#endif
-  util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
-
   auto dir_before = *fs::current_path();
-  std::string testdir = FMT("testdir/{}", getpid());
-  fs::remove_all(testdir);
-  fs::create_directories(testdir);
-  fs::current_path(testdir);
+  fs::path testdir = FMT("testdir/{}", getpid());
+
+  TRY(fs::remove_all(testdir));
+  TRY(fs::create_directories(testdir));
+  TRY(fs::current_path(testdir));
 
   doctest::Context context;
   context.applyCommandLine(argc, argv);
   int result = context.run();
 
-  if (result == 0) {
-    fs::current_path(dir_before);
-    fs::remove_all(testdir);
+  if (result == EXIT_SUCCESS) {
+    TRY(fs::current_path(dir_before));
+    TRY(fs::remove_all(testdir));
   } else {
     PRINT(stderr, "Note: Test data has been left in {}\n", testdir);
   }
 
   return result;
+}
+
+int
+main(int argc, char** argv)
+{
+#ifdef _WIN32
+  util::setenv("_CCACHE_TEST", "1");
+#endif
+  util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
+
+  auto result = prepare_test(argc, argv);
+  if (result) {
+    return *result;
+  } else {
+    PRINT(stderr, "error: {}\n", result.error());
+    return EXIT_FAILURE;
+  }
 }

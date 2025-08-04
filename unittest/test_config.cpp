@@ -98,52 +98,55 @@ TEST_CASE("Config::update_from_file")
   std::string base_dir = FMT("C:/{0}/foo/{0}", user);
 #endif
 
-  util::write_file(
+  REQUIRE(util::write_file(
     "ccache.conf",
-    "base_dir = " + base_dir + "\n"
-    "cache_dir=\n"
-    "cache_dir = $USER$/${USER}/.ccache\n"
-    "\n"
-    "\n"
-    "  #A comment\n"
-    "\t compiler = foo\n"
-    "compiler_check = none\n"
-    "compiler_type = nvcc\n"
-    "compression=false\n"
-    "compression_level= 2\n"
-    "cpp_extension = .foo\n"
-    "debug_dir = $USER$/${USER}/.ccache_debug\n"
-    "debug_level = 2\n"
-    "depend_mode = true\n"
-    "direct_mode = false\n"
-    "disable = true\n"
-    "extra_files_to_hash = a:b c:$USER\n"
-    "file_clone = true\n"
-    "hard_link = true\n"
-    "hash_dir = false\n"
-    "ignore_headers_in_manifest = a:b/c\n"
-    "ignore_options = -a=* -b\n"
-    "inode_cache = false\n"
-    "keep_comments_cpp = true\n"
-    "log_file = $USER${USER} \n"
-    "max_files = 17\n"
-    "max_size = 123M\n"
-    "msvc_dep_prefix = Some other prefix:\n"
-    "path = $USER.x\n"
-    "pch_external_checksum = true\n"
-    "prefix_command = x$USER\n"
-    "prefix_command_cpp = y\n"
-    "read_only = true\n"
-    "read_only_direct = true\n"
-    "recache = true\n"
-    "reshare = true\n"
-    "sloppiness =     time_macros   ,include_file_mtime"
-    "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
-    " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,"
-    " gcno_cwd,\n"
-    "stats = false\n"
-    "temporary_dir = ${USER}_foo\n"
-    "umask = 777"); // Note: no newline.
+    "base_dir = " + base_dir
+      + "\n"
+        "cache_dir=\n"
+        "cache_dir = $USER$/${USER}/.ccache\n"
+        "\n"
+        "\n"
+        "  #A comment\n"
+        "\t compiler = foo\n"
+        "compiler_check = none\n"
+        "compiler_type = nvcc\n"
+        "compression=false\n"
+        "compression_level= 2\n"
+        "cpp_extension = .foo\n"
+        "debug_dir = $USER$/${USER}/.ccache_debug\n"
+        "debug_level = 2\n"
+        "depend_mode = true\n"
+        "direct_mode = false\n"
+        "disable = true\n"
+        "extra_files_to_hash = a:b c:$USER\n"
+        "file_clone = true\n"
+        "hard_link = true\n"
+        "hash_dir = false\n"
+        "ignore_headers_in_manifest = a:b/c\n"
+        "ignore_options = -a=* -b\n"
+        "inode_cache = false\n"
+        "keep_comments_cpp = true\n"
+        "log_file = $USER${USER} \n"
+        "max_files = 17\n"
+        "max_size = 123M\n"
+        "msvc_dep_prefix = Some other prefix:\n"
+        "path = $USER.x\n"
+        "pch_external_checksum = true\n"
+        "prefix_command = x$USER\n"
+        "prefix_command_cpp = y\n"
+        "read_only = true\n"
+        "read_only_direct = true\n"
+        "recache = true\n"
+        "reshare = true\n"
+        "sloppiness =     time_macros   ,include_file_mtime"
+        "  "
+        "include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_"
+        "defines"
+        " ,  no_system_headers,system_headers,clang_index_store,ivfsoverlay,"
+        " gcno_cwd,\n"
+        "stats = false\n"
+        "temporary_dir = ${USER}_foo\n"
+        "umask = 777")); // Note: no newline.
 
   Config config;
   REQUIRE(config.update_from_file("ccache.conf"));
@@ -204,31 +207,31 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SUBCASE("missing equal sign")
   {
-    util::write_file("ccache.conf", "no equal sign");
+    REQUIRE(util::write_file("ccache.conf", "no equal sign"));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: missing equal sign");
   }
 
   SUBCASE("unknown key")
   {
-    util::write_file("ccache.conf", "# Comment\nfoo = bar");
+    REQUIRE(util::write_file("ccache.conf", "# Comment\nfoo = bar"));
     CHECK(config.update_from_file("ccache.conf"));
   }
 
   SUBCASE("invalid bool")
   {
-    util::write_file("ccache.conf", "disable=");
+    REQUIRE(util::write_file("ccache.conf", "disable="));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: not a boolean value: \"\"");
 
-    util::write_file("ccache.conf", "disable=foo");
+    REQUIRE(util::write_file("ccache.conf", "disable=foo"));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: not a boolean value: \"foo\"");
   }
 
   SUBCASE("invalid variable reference")
   {
-    util::write_file("ccache.conf", "base_dir = ${foo");
+    REQUIRE(util::write_file("ccache.conf", "base_dir = ${foo"));
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       "ccache.conf:1: syntax error: missing '}' after \"foo\"");
@@ -237,14 +240,14 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SUBCASE("empty umask")
   {
-    util::write_file("ccache.conf", "umask = ");
+    REQUIRE(util::write_file("ccache.conf", "umask = "));
     CHECK(config.update_from_file("ccache.conf"));
     CHECK(config.umask() == std::nullopt);
   }
 
   SUBCASE("invalid size")
   {
-    util::write_file("ccache.conf", "max_size = foo");
+    REQUIRE(util::write_file("ccache.conf", "max_size = foo"));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: invalid size: \"foo\"");
     // Other cases tested in test_Util.c.
@@ -252,7 +255,7 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SUBCASE("unknown sloppiness")
   {
-    util::write_file("ccache.conf", "sloppiness = time_macros, foo");
+    REQUIRE(util::write_file("ccache.conf", "sloppiness = time_macros, foo"));
     CHECK(config.update_from_file("ccache.conf"));
     CHECK(config.sloppiness().to_bitmask()
           == static_cast<uint32_t>(core::Sloppy::time_macros));
@@ -260,15 +263,15 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SUBCASE("invalid unsigned")
   {
-    util::write_file("ccache.conf", "max_files =");
+    REQUIRE(util::write_file("ccache.conf", "max_files ="));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: invalid unsigned integer: \"\"");
 
-    util::write_file("ccache.conf", "max_files = -42");
+    REQUIRE(util::write_file("ccache.conf", "max_files = -42"));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: invalid unsigned integer: \"-42\"");
 
-    util::write_file("ccache.conf", "max_files = foo");
+    REQUIRE(util::write_file("ccache.conf", "max_files = foo"));
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         "ccache.conf:1: invalid unsigned integer: \"foo\"");
   }
@@ -280,12 +283,12 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SUBCASE("relative base dir")
   {
-    util::write_file("ccache.conf", "base_dir = relative/path");
+    REQUIRE(util::write_file("ccache.conf", "base_dir = relative/path"));
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       "ccache.conf:1: not an absolute path: \"relative/path\"");
 
-    util::write_file("ccache.conf", "base_dir =");
+    REQUIRE(util::write_file("ccache.conf", "base_dir ="));
     CHECK(config.update_from_file("ccache.conf"));
   }
 }
@@ -307,13 +310,13 @@ TEST_CASE("Config::update_from_environment")
 
 TEST_CASE("Config::response_file_format")
 {
-  using ResponseFileFormat = Args::ResponseFileFormat;
+  using ResponseFileFormat = util::Args::ResponseFileFormat;
 
   Config config;
 
   SUBCASE("from config gcc")
   {
-    util::write_file("ccache.conf", "response_file_format = posix");
+    REQUIRE(util::write_file("ccache.conf", "response_file_format = posix"));
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.response_file_format() == ResponseFileFormat::posix);
@@ -321,7 +324,7 @@ TEST_CASE("Config::response_file_format")
 
   SUBCASE("from config msvc")
   {
-    util::write_file("ccache.conf", "response_file_format = windows");
+    REQUIRE(util::write_file("ccache.conf", "response_file_format = windows"));
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.response_file_format() == ResponseFileFormat::windows);
@@ -329,8 +332,8 @@ TEST_CASE("Config::response_file_format")
 
   SUBCASE("from config msvc with clang compiler")
   {
-    util::write_file("ccache.conf",
-                     "response_file_format = windows\ncompiler_type = clang");
+    REQUIRE(util::write_file(
+      "ccache.conf", "response_file_format = windows\ncompiler_type = clang"));
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.response_file_format() == ResponseFileFormat::windows);
@@ -338,7 +341,7 @@ TEST_CASE("Config::response_file_format")
 
   SUBCASE("guess from compiler gcc")
   {
-    util::write_file("ccache.conf", "compiler_type = clang");
+    REQUIRE(util::write_file("ccache.conf", "compiler_type = clang"));
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.response_file_format() == ResponseFileFormat::posix);
@@ -346,7 +349,7 @@ TEST_CASE("Config::response_file_format")
 
   SUBCASE("guess from compiler msvc")
   {
-    util::write_file("ccache.conf", "compiler_type = msvc");
+    REQUIRE(util::write_file("ccache.conf", "compiler_type = msvc"));
     CHECK(config.update_from_file("ccache.conf"));
 
     CHECK(config.response_file_format() == ResponseFileFormat::windows);
@@ -360,7 +363,7 @@ TEST_CASE("Config::set_value_in_file")
 
   SUBCASE("set new value")
   {
-    util::write_file("ccache.conf", "path = vanilla\n");
+    REQUIRE(util::write_file("ccache.conf", "path = vanilla\n"));
     config.set_value_in_file("ccache.conf", "compiler", "chocolate");
     std::string content = *util::read_file<std::string>("ccache.conf");
     CHECK(content == "path = vanilla\ncompiler = chocolate\n");
@@ -368,7 +371,8 @@ TEST_CASE("Config::set_value_in_file")
 
   SUBCASE("existing value")
   {
-    util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
+    REQUIRE(
+      util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n"));
     config.set_value_in_file("ccache.conf", "path", "vanilla");
     std::string content = *util::read_file<std::string>("ccache.conf");
     CHECK(content == "path = vanilla\nstats = chocolate\n");
@@ -376,7 +380,8 @@ TEST_CASE("Config::set_value_in_file")
 
   SUBCASE("unknown option")
   {
-    util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
+    REQUIRE(
+      util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n"));
     try {
       config.set_value_in_file("ccache.conf", "foo", "bar");
       CHECK(false);
@@ -390,7 +395,7 @@ TEST_CASE("Config::set_value_in_file")
 
   SUBCASE("unknown sloppiness")
   {
-    util::write_file("ccache.conf", "path = vanilla\n");
+    REQUIRE(util::write_file("ccache.conf", "path = vanilla\n"));
     config.set_value_in_file("ccache.conf", "sloppiness", "foo");
     std::string content = *util::read_file<std::string>("ccache.conf");
     CHECK(content == "path = vanilla\nsloppiness = foo\n");
@@ -398,7 +403,7 @@ TEST_CASE("Config::set_value_in_file")
 
   SUBCASE("comments are kept")
   {
-    util::write_file("ccache.conf", "# c1\npath = blueberry\n#c2\n");
+    REQUIRE(util::write_file("ccache.conf", "# c1\npath = blueberry\n#c2\n"));
     config.set_value_in_file("ccache.conf", "path", "vanilla");
     config.set_value_in_file("ccache.conf", "compiler", "chocolate");
     std::string content = *util::read_file<std::string>("ccache.conf");
@@ -431,14 +436,16 @@ TEST_CASE("Config::visit_items")
 {
   TestContext test_context;
 
-  util::write_file(
+#ifndef _WIN32
+#  define BASE_DIR "/bd\n"
+#else
+#  define BASE_DIR "C:\\bd\n"
+#endif
+
+  REQUIRE(util::write_file(
     "test.conf",
     "absolute_paths_in_stderr = true\n"
-#ifndef _WIN32
-    "base_dir = /bd\n"
-#else
-    "base_dir = C:\\bd\n"
-#endif
+    "base_dir = " BASE_DIR
     "cache_dir = cd\n"
     "compiler = c\n"
     "compiler_check = cc\n"
@@ -482,7 +489,8 @@ TEST_CASE("Config::visit_items")
     "stats = false\n"
     "stats_log = sl\n"
     "temporary_dir = td\n"
-    "umask = 022\n");
+    "umask = 022\n"));
+#undef BASE_DIR
 
   Config config;
   config.update_from_file("test.conf");

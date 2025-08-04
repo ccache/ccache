@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -51,14 +51,14 @@ TEST_CASE("storage::local::get_cache_dir_files")
 {
   TestContext test_context;
 
-  fs::create_directories("e/m/p/t/y");
+  REQUIRE(fs::create_directories("e/m/p/t/y"));
 
-  fs::create_directories("0/1");
-  fs::create_directories("0/f/c");
-  util::write_file("0/file_a", "");
-  util::write_file("0/1/file_b", "1");
-  util::write_file("0/1/file_c", "12");
-  util::write_file("0/f/c/file_d", "123");
+  REQUIRE(fs::create_directories("0/1"));
+  REQUIRE(fs::create_directories("0/f/c"));
+  REQUIRE(util::write_file("0/file_a", ""));
+  REQUIRE(util::write_file("0/1/file_b", "1"));
+  REQUIRE(util::write_file("0/1/file_c", "12"));
+  REQUIRE(util::write_file("0/f/c/file_d", "123"));
 
   SUBCASE("nonexistent subdirectory")
   {

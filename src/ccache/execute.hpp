@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -45,7 +45,3 @@ std::filesystem::path find_executable_in_path(
   const std::string& name,
   const std::vector<std::filesystem::path>& path_list,
   const std::optional<std::filesystem::path>& exclude_path = std::nullopt);
-
-#ifdef _WIN32
-std::string win32getshell(const std::string& path);
-#endif

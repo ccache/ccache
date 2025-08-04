@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <ccache/args.hpp>
 #include <ccache/core/sloppiness.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/noncopyable.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
@@ -57,7 +57,7 @@ public:
   void read(const std::vector<std::string>& cmdline_config_settings = {});
 
   bool absolute_paths_in_stderr() const;
-  Args::ResponseFileFormat response_file_format() const;
+  util::Args::ResponseFileFormat response_file_format() const;
   const std::filesystem::path& base_dir() const;
   const std::filesystem::path& cache_dir() const;
   const std::string& compiler() const;
@@ -171,8 +171,8 @@ private:
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
-  Args::ResponseFileFormat m_response_file_format =
-    Args::ResponseFileFormat::auto_guess;
+  util::Args::ResponseFileFormat m_response_file_format =
+    util::Args::ResponseFileFormat::auto_guess;
   std::filesystem::path m_base_dir;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
@@ -240,15 +240,15 @@ Config::absolute_paths_in_stderr() const
   return m_absolute_paths_in_stderr;
 }
 
-inline Args::ResponseFileFormat
+inline util::Args::ResponseFileFormat
 Config::response_file_format() const
 {
-  if (m_response_file_format != Args::ResponseFileFormat::auto_guess) {
+  if (m_response_file_format != util::Args::ResponseFileFormat::auto_guess) {
     return m_response_file_format;
   }
 
-  return is_compiler_group_msvc() ? Args::ResponseFileFormat::windows
-                                  : Args::ResponseFileFormat::posix;
+  return is_compiler_group_msvc() ? util::Args::ResponseFileFormat::windows
+                                  : util::Args::ResponseFileFormat::posix;
 }
 
 inline const std::filesystem::path&

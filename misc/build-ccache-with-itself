@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# Example usage:
+#
+# COMMAND=/source/misc/build-ccache-with-itself misc/build-in-docker debian-12
+
+set -eu
+
+# Set default values.
+: ${BUILDDIR:=build}
+: ${CCACHE_LOC:=..}
+: ${CMAKE_PARAMS:=}
+: ${EXTRA_CMAKE_BUILD_FLAGS:=}
+: ${JOBS:=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}
+: ${VERBOSE:=}
+
+if [ -n "${VERBOSE}" ]; then
+    set -x
+fi
+
+build_ccache() {
+    mkdir -p "${BUILDDIR}"
+    cmake ${CMAKE_PARAMS} -S "${CCACHE_LOC}" -B "${BUILDDIR}"
+    cmake --build "${BUILDDIR}" ${EXTRA_CMAKE_BUILD_FLAGS} -- -j "${JOBS}"
+}
+
+# Bootstrap
+build_ccache
+cmake --install "${BUILDDIR}"
+rm -rf "${BUILDDIR}"
+
+export CCACHE_DIR=/tmp/ccache
+export CMAKE_PARAMS="${CMAKE_PARAMS} -D CMAKE_C_COMPILER_LAUNCHER=/usr/local/bin/ccache -D CMAKE_CXX_COMPILER_LAUNCHER=/usr/local/bin/ccache"
+rm -f /usr/local/bin/gcc /usr/local/bin/g++
+
+# Build with empty cache
+build_ccache
+ccache -sv
+
+# Rebuild with warm cache
+export CCACHE_STATSLOG="$PWD/stats.log"
+rm -rf "${BUILDDIR}"
+build_ccache
+ccache -sv
+
+echo
+echo "Cache misses:"
+awk '/^cache_miss$/ { print substr(previous, 3) } { previous = $0 }' "${CCACHE_STATSLOG}"
+
+echo
+echo "Rebuild statistics:"
+ccache --show-log-stats -v

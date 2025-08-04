@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,7 @@
 #include <ccache/hash.hpp>
 #include <ccache/hashutil.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/format.hpp>
 
 #include <doctest/doctest.h>
 
@@ -28,45 +29,71 @@
 
 using TestUtil::TestContext;
 
+static bool
+hco(Hash& hash, const std::string& command, const std::string& compiler)
+{
+#ifdef _WIN32
+  REQUIRE(util::write_file("command.bat", FMT("@echo off\r\n{}\r\n", command)));
+  return hash_command_output(hash, "command.bat", compiler);
+#else
+  REQUIRE(util::write_file("command.sh", FMT("#!/bin/sh\n{}\n", command)));
+  chmod("command.sh", 0555);
+  return hash_command_output(hash, "./command.sh", compiler);
+#endif
+}
+
 TEST_SUITE_BEGIN("hashutil");
 
 TEST_CASE("hash_command_output_simple")
 {
+  TestContext test_context;
+
   Hash h1;
   Hash h2;
 
-  CHECK(hash_command_output(h1, "echo", "not used"));
-  CHECK(hash_command_output(h2, "echo", "not used"));
+  CHECK(hco(h1, "echo", "not used"));
+  CHECK(hco(h2, "echo", "not used"));
   CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_command_output_space_removal")
 {
+  TestContext test_context;
+
   Hash h1;
   Hash h2;
 
-  CHECK(hash_command_output(h1, "echo", "not used"));
-  CHECK(hash_command_output(h2, " echo ", "not used"));
+  CHECK(hco(h1, "echo", "not used"));
+  CHECK(hco(h2, " echo ", "not used"));
   CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_command_output_hash_inequality")
 {
+  TestContext test_context;
+
   Hash h1;
   Hash h2;
 
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "echo bar", "not used"));
+  CHECK(hco(h1, "echo foo", "not used"));
+  CHECK(hco(h2, "echo bar", "not used"));
   CHECK(h1.digest() != h2.digest());
 }
 
 TEST_CASE("hash_command_output_compiler_substitution")
 {
+  TestContext test_context;
+
   Hash h1;
   Hash h2;
 
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
+  CHECK(hco(h1, "echo foo", "not used"));
+#ifdef _WIN32
+  REQUIRE(util::write_file("command.bat", "@echo off\r\necho foo\r\n"));
+  CHECK(hash_command_output(h2, "%compiler%", "command.bat"));
+#else
   CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
+#endif
   CHECK(h1.digest() == h2.digest());
 }
 
@@ -77,39 +104,40 @@ TEST_CASE("hash_command_output_stdout_versus_stderr")
   Hash h1;
   Hash h2;
 
-#ifndef _WIN32
-  util::write_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
-  chmod("stderr.sh", 0555);
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "./stderr.sh", "not used"));
+#ifdef _WIN32
+  REQUIRE(util::write_file("stderr.bat", "@echo off\r\necho foo>&2\r\n"));
+  CHECK(hco(h1, "echo foo", "not used"));
+  CHECK(hco(h2, "stderr.bat", "not used"));
 #else
-  util::write_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "stderr.bat", "not used"));
+  CHECK(hco(h1, "echo foo", "not used"));
+  CHECK(hco(h2, "echo foo >&2", "not used"));
 #endif
   CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_multicommand_output")
 {
+  TestContext test_context;
+
   Hash h1;
   Hash h2;
 
-#ifndef _WIN32
-  util::write_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
-  chmod("foo.sh", 0555);
-  CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
-  CHECK(hash_multicommand_output(h1, "./foo.sh", "not used"));
+#ifdef _WIN32
+  h2.hash("foo\r\nbar\r\n");
+  REQUIRE(util::write_file("foo.bat", "@echo off\r\necho foo\r\n"));
+  REQUIRE(util::write_file("bar.bat", "@echo off\r\necho bar\r\n"));
+  CHECK(hash_multicommand_output(h1, "foo.bat; bar.bat", "not used"));
 #else
-  util::write_file("foo.bat", "@echo off\r\necho foo\r\necho bar\r\n");
-  CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
-  CHECK(hash_multicommand_output(h1, "foo.bat", "not used"));
-#endif
+  h2.hash("foo\nbar\n");
+  CHECK(hash_multicommand_output(h1, "echo foo; echo bar", "not used"));
   CHECK(h1.digest() == h2.digest());
+#endif
 }
 
 TEST_CASE("hash_multicommand_output_error_handling")
 {
+  TestContext test_context;
+
   Hash h1;
   Hash h2;
 
@@ -118,6 +146,8 @@ TEST_CASE("hash_multicommand_output_error_handling")
 
 TEST_CASE("check_for_temporal_macros")
 {
+  TestContext test_context;
+
   const std::string_view time_start =
     "__TIME__\n"
     "int a;\n";

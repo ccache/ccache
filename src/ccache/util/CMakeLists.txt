@@ -1,5 +1,6 @@
 set(
   sources
+  args.cpp
   assertions.cpp
   bytes.cpp
   clang.cpp
@@ -7,6 +8,7 @@ set(
   direntry.cpp
   environment.cpp
   error.cpp
+  exec.cpp
   file.cpp
   filelock.cpp
   filesystem.cpp

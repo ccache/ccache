@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -209,7 +209,7 @@ TEST_CASE("Stat file descriptor")
 {
   TestContext test_context;
 
-  util::write_file("a", "123");
+  REQUIRE(util::write_file("a", "123"));
 
   util::Fd fd(open("a", O_RDONLY));
   DirEntry entry("a", *fd);
@@ -225,12 +225,12 @@ TEST_CASE("Caching and refresh")
 {
   TestContext test_context;
 
-  util::write_file("a", "");
+  REQUIRE(util::write_file("a", ""));
 
   DirEntry entry("a");
   CHECK(entry.size() == 0);
 
-  util::write_file("a", "123", util::WriteFileMode::in_place);
+  REQUIRE(util::write_file("a", "123", util::WriteFileMode::in_place));
   CHECK(entry.size() == 0);
   entry.refresh();
   CHECK(entry.size() == 3);
@@ -240,15 +240,15 @@ TEST_CASE("Same i-node as")
 {
   TestContext test_context;
 
-  util::write_file("a", "");
-  util::write_file("b", "");
+  REQUIRE(util::write_file("a", ""));
+  REQUIRE(util::write_file("b", ""));
   DirEntry entry_a("a");
   DirEntry entry_b("b");
 
   CHECK(entry_a.same_inode_as(entry_a));
   CHECK(!entry_a.same_inode_as(entry_b));
 
-  util::write_file("a", "change size", util::WriteFileMode::in_place);
+  REQUIRE(util::write_file("a", "change size", util::WriteFileMode::in_place));
   CHECK(DirEntry("a").same_inode_as(entry_a));
 
   CHECK(!DirEntry("nonexistent").same_inode_as(DirEntry("nonexistent")));
@@ -258,7 +258,7 @@ TEST_CASE("Get path")
 {
   TestContext test_context;
 
-  util::write_file("a", "");
+  REQUIRE(util::write_file("a", ""));
   CHECK(DirEntry("a").path() == "a");
   CHECK(DirEntry("does_not_exist").path() == "does_not_exist");
 }
@@ -267,7 +267,7 @@ TEST_CASE("Return values when file exists")
 {
   TestContext test_context;
 
-  util::write_file("file", "1234567");
+  REQUIRE(util::write_file("file", "1234567"));
 
   DirEntry de("file");
   CHECK(de);
@@ -362,7 +362,7 @@ TEST_CASE("Symlink to file" * doctest::skip(!symlinks_supported()))
 {
   TestContext test_context;
 
-  util::write_file("file", "1234567");
+  REQUIRE(util::write_file("file", "1234567"));
 
 #ifdef _WIN32
   // SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE: 0x2
@@ -431,7 +431,7 @@ TEST_CASE("Hard links")
 {
   TestContext test_context;
 
-  util::write_file("a", "");
+  REQUIRE(util::write_file("a", ""));
 
 #ifdef _WIN32
   REQUIRE(CreateHardLinkA("b", "a", nullptr));
@@ -461,7 +461,7 @@ TEST_CASE("Hard links")
   CHECK(entry_a.inode() == entry_b.inode());
   CHECK(entry_a.same_inode_as(entry_b));
 
-  util::write_file("a", "1234567", util::WriteFileMode::in_place);
+  REQUIRE(util::write_file("a", "1234567", util::WriteFileMode::in_place));
   entry_b.refresh();
   CHECK(entry_b.size() == 7);
 }
@@ -553,7 +553,7 @@ TEST_CASE("Win32 Readonly File")
 {
   TestContext test_context;
 
-  util::write_file("file", "");
+  REQUIRE(util::write_file("file", ""));
 
   DWORD prev_attrs = GetFileAttributesA("file");
   REQUIRE(prev_attrs != INVALID_FILE_ATTRIBUTES);

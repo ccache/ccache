@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,38 +18,46 @@
 
 #include "testutil.hpp"
 
-#include <ccache/core/statslog.hpp>
+#include <ccache/util/exec.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/string.hpp>
 
 #include <doctest/doctest.h>
 
-using core::Statistic;
-using core::StatsLog;
 using TestUtil::TestContext;
 
-TEST_SUITE_BEGIN("core::StatsFile");
-
-TEST_CASE("read")
+TEST_CASE("util::exec_to_string")
 {
+  using util::exec_to_string;
+
   TestContext test_context;
 
-  REQUIRE(util::write_file("stats.log", "# comment\ndirect_cache_hit\n"));
-  const auto counters = StatsLog("stats.log").read();
+  SUBCASE("stdout + stderr")
+  {
+#ifdef _WIN32
+    REQUIRE(util::write_file("command.bat",
+                             "@echo off\r\necho fisk\r\necho sork>&2"));
+    util::Args args{"command.bat"};
+#else
+    util::Args args{"sh", "-c", "echo fisk; echo sork >&2"};
+#endif
+    auto result = exec_to_string(args);
+    REQUIRE(result);
+#ifdef _WIN32
+    CHECK(*result == "fisk\r\nsork\r\n");
+#else
+    CHECK(*result == "fisk\nsork\n");
+#endif
+  }
 
-  CHECK(counters.get(Statistic::direct_cache_hit) == 1);
-  CHECK(counters.get(Statistic::cache_miss) == 0);
+  SUBCASE("error")
+  {
+    auto result = exec_to_string({"doesnotexist"});
+    REQUIRE(!result);
+#ifdef _WIN32
+    CHECK(util::starts_with(result.error(), "CreateProcess failure: "));
+#else
+    CHECK(result.error() == "posix_spawnp failed: No such file or directory");
+#endif
+  }
 }
-
-TEST_CASE("log_result")
-{
-  TestContext test_context;
-
-  StatsLog stats_log("stats.log");
-  stats_log.log_result("foo.c", {"cache_miss"});
-  stats_log.log_result("bar.c", {"preprocessed_cache_hit"});
-
-  CHECK(*util::read_file<std::string>("stats.log")
-        == "# foo.c\ncache_miss\n# bar.c\npreprocessed_cache_hit\n");
-}
-
-TEST_SUITE_END();

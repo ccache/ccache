@@ -176,13 +176,12 @@ FileStorageBackend::put(const Hash::Digest& key,
 tl::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::remove(const Hash::Digest& key)
 {
-  auto entry_path = get_entry_path(key);
-  auto result = util::remove_nfs_safe(entry_path);
-  if (!result) {
-    LOG("Failed to remove {}: {}", entry_path, result.error().message());
+  auto result = util::remove_nfs_safe(get_entry_path(key));
+  if (result) {
+    return *result;
+  } else {
     return tl::unexpected(RemoteStorage::Backend::Failure::error);
   }
-  return *result;
 }
 
 std::string

@@ -162,8 +162,12 @@ LockFile::release()
   if (m_lock_manager) {
     m_lock_manager->deregister_alive_file(m_alive_file);
   }
-  fs::remove(m_alive_file);
-  fs::remove(m_lock_file);
+  if (auto r = fs::remove(m_alive_file); !r) {
+    LOG("Failed to remove {}: {}", m_alive_file, r.error());
+  }
+  if (auto r = fs::remove(m_lock_file); !r) {
+    LOG("Failed to remove {}: {}", m_lock_file, r.error());
+  }
 #else
   CloseHandle(m_handle);
 #endif

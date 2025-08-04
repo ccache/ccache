@@ -614,11 +614,17 @@ process_main_options(int argc, const char* const* argv)
       util::XXH3_128 checksum;
       util::Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       if (fd) {
-        util::read_fd(*fd, [&checksum](auto data) { checksum.update(data); });
+        auto r =
+          util::read_fd(*fd, [&checksum](auto data) { checksum.update(data); });
+        if (!r) {
+          PRINT(stderr, "Error: Failed to checksum {}: {}\n", arg, r.error());
+          return EXIT_FAILURE;
+        }
         const auto digest = checksum.digest();
         PRINT(stdout, "{}\n", util::format_base16(digest));
       } else {
         PRINT(stderr, "Error: Failed to checksum {}\n", arg);
+        return EXIT_FAILURE;
       }
       break;
     }

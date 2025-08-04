@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,13 +50,20 @@ template<typename E, typename T> void throw_on_error(const T& value);
 template<typename E, typename T>
 void throw_on_error(const T& value, std::string_view prefix);
 
-#define TRY(x_)                                                                \
+#define TRY(expression_)                                                       \
   do {                                                                         \
-    const auto result = x_;                                                    \
-    if (!result) {                                                             \
-      return tl::unexpected(result.error());                                   \
+    auto result_ = (expression_);                                              \
+    if (!result_) {                                                            \
+      return tl::unexpected(std::move(result_.error()));                       \
     }                                                                          \
   } while (false)
+
+#define TRY_ASSIGN(var_, expression_)                                          \
+  auto result_##__LINE__##_ = (expression_);                                   \
+  if (!result_##__LINE__##_) {                                                 \
+    return tl::unexpected(std::move(result_##__LINE__##_.error()));            \
+  }                                                                            \
+  var_ = std::move(*result_##__LINE__##_)
 
 // --- Inline implementations ---
 

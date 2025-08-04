@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,10 +20,13 @@
 
 #include <deque>
 #include <filesystem>
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
+
+namespace util {
 
 class Args
 {
@@ -35,6 +38,7 @@ public:
   };
 
   Args() = default;
+  Args(std::initializer_list<std::string>) noexcept;
   Args(const Args& other) = default;
   Args(Args&& other) noexcept;
 
@@ -157,3 +161,5 @@ Args::push_back(const std::filesystem::path& arg)
 {
   m_args.push_back(arg.string());
 }
+
+} // namespace util

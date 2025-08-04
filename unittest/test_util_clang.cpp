@@ -39,7 +39,7 @@ TEST_CASE("util::split_preprocessed_file_from_clang_cuda")
   SUBCASE("normal")
   {
     fs::path filename = "test_normal.txt";
-    util::write_file(filename, R"(# 1 "test_cuda.cu"
+    REQUIRE(util::write_file(filename, R"(# 1 "test_cuda.cu"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
 void caller() {
@@ -48,7 +48,7 @@ void caller() {
 # 1 "test_cuda.cu"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
-)");
+)"));
 
     auto result = util::split_preprocessed_file_from_clang_cuda(filename);
 
@@ -75,7 +75,7 @@ void caller() {
   SUBCASE("empty file")
   {
     fs::path filename = "test_empty.txt";
-    util::write_file(filename, "");
+    REQUIRE(util::write_file(filename, ""));
 
     CHECK(util::split_preprocessed_file_from_clang_cuda(filename).empty());
   }

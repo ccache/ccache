@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include <ccache/args.hpp>
 #include <ccache/argsinfo.hpp>
 #include <ccache/config.hpp>
 #include <ccache/core/manifest.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/storage/storage.hpp>
+#include <ccache/util/args.hpp>
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/filestream.hpp>
 #include <ccache/util/noncopyable.hpp>
@@ -52,7 +52,7 @@ public:
 
   // Read configuration, initialize logging, etc. Typically not called from unit
   // tests.
-  void initialize(Args&& compiler_and_args,
+  void initialize(util::Args&& compiler_and_args,
                   const std::vector<std::string>& cmdline_config_settings);
 
   ArgsInfo args_info;
@@ -65,7 +65,7 @@ public:
   std::filesystem::path apparent_cwd;
 
   // The original argument list.
-  Args orig_args;
+  util::Args orig_args;
 
   // Files included by the preprocessor and their hashes.
   std::unordered_map<std::string, Hash::Digest> included_files;

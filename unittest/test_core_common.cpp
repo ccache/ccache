@@ -43,14 +43,14 @@ TEST_CASE("core::ensure_dir_exists")
   CHECK_NOTHROW(core::ensure_dir_exists("create/dir"));
   CHECK(DirEntry("create/dir").is_directory());
 
-  util::write_file("create/dir/file", "");
+  REQUIRE(util::write_file("create/dir/file", ""));
   CHECK_THROWS_AS(core::ensure_dir_exists("create/dir/file"), core::Fatal);
 }
 
 TEST_CASE("core::rewrite_stderr_to_absolute_paths")
 {
   TestContext test_context;
-  util::write_file("existing", "");
+  REQUIRE(util::write_file("existing", ""));
 
   std::string input =
     "a:1:2\n"
