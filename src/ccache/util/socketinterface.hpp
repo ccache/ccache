@@ -11,6 +11,7 @@
 
 #include <cassert>
 #include <cctype>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <thread>
@@ -51,8 +52,8 @@ constexpr auto BUFFERSIZE = 8192;
 constexpr auto LOCKFREEQUEUE_CAP = 8;
 
 constexpr std::size_t MESSAGE_TIMEOUT = 15;
-constexpr std::size_t READ_TIMEOUT_SECOND = 5;
-constexpr std::size_t READ_TIMEOUT_USECOND = 0;
+constexpr std::size_t READ_TIMEOUT_SECOND = 0;
+constexpr std::size_t READ_TIMEOUT_USECOND = 100;
 
 // assertion for the current state of serialisation
 static_assert(BUFFERSIZE % 2 == 0,
@@ -110,7 +111,7 @@ Stream::read(nonstd::span<T>& ptr)
       > 0) {
     return ::recv(m_sock, ptr.data(), static_cast<int>(ptr.size_bytes()), 0);
   }
-  return -1;
+  return 0;
 }
 
 template<typename T>
@@ -186,14 +187,20 @@ StreamReader::getbytes(const std::optional<char> delimiter,
   m_buffer.clear();
 
   while (!shouldStop) {
-    std::array<char, 1> byte_holder;
-    nonstd::span<char> byte(byte_holder);
+    std::array<unsigned char, 1> byte_holder;
+    nonstd::span<unsigned char> byte(byte_holder);
 
-    int next_byte = m_strm.get().read(byte);
-    if (next_byte == 0) {
-      return std::nullopt;
-    } else if (next_byte < 0) {
+    int byte_count = m_strm.get().read(byte);
+    if (byte_count == 0) {
+      if (!size()) {
+        return std::nullopt;
+      }
+      std::cerr << "\n";
+      return std::string(ptr(), size());
+    } else if (byte_count < 0) {
       continue;
+    } else {
+      std::cerr << int(byte_holder[0]) << " ";
     }
 
     if (byte[0] == delimiter) {
@@ -286,7 +293,7 @@ public:
   bool exists();
 
   /// @brief calls send and waits for an upcoming response
-  template<typename T> OpCode send(const T& msg_args);
+  OpCode send(const std::string& msg_args);
 
   /// @brief calls send and waits for an upcoming response
   OpCode receive(std::string& result, bool timeout = true);
@@ -433,14 +440,10 @@ UnixSocket::exists()
   return fs::exists(generate_path());
 }
 
-template<typename T>
 inline OpCode
-UnixSocket::send(const T& msg)
+UnixSocket::send(const std::string& msg)
 {
-  std::string msg_string;
-  msg.encode(msg_string);
-
-  const bool success = send_message(msg_string + m_delimiter);
+  const bool success = send_message(msg);
   return success ? OpCode::ok : OpCode::error;
 }
 
