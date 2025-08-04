@@ -16,6 +16,7 @@
 #include <tl/expected.hpp>
 
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -71,6 +72,7 @@ SocketStorage::create_backend(
 
   auto rbackend = std::make_unique<BackendNode>(
     real_url, util::format_base16(name.digest()), attributes);
+  sleep(1);
 
   if (setup_backend_service(*rbackend->bsock) < 1) {
     return nullptr;
