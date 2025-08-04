@@ -36,7 +36,7 @@ start_daemon(const std::string type,
   // TODO for later find_executable
   //            find_executable_in_path("executable", {"path1", "path2"});
   helper_exec = // "/etc/libexec/ccache-backend";
-    "/home/rocky/repos/py_server_script" / fs::path("ccache-backend-" + type);
+    "/home/rocky/repos/py_server_script/bin" / fs::path("ccache-backend-" + type);
 #endif
 
   if (!fs::exists(helper_exec)) { // TODO
@@ -82,13 +82,13 @@ start_daemon(const std::string type,
 #else
   pid_t pid = fork();
   if (pid == 0) { // Child process
-    execle(helper_exec.c_str(),
+    int exres = execle(helper_exec.c_str(),
            helper_exec.c_str(),
            "2>&1",
            nullptr, // arguments until a NULL pointer
            environ);
-    LOG("DEBUG Failed to start helper process {}",
-        helper_exec.generic_string());
+    LOG("DEBUG Failure {} to start helper process {}",
+        exres, helper_exec.generic_string());
     exit(EXIT_FAILURE);
   } else if (pid < 0) {
     LOG("DEBUG Failed to fork process {}", helper_exec.generic_string());
