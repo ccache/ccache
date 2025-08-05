@@ -9,10 +9,11 @@
 
 #include <fcntl.h>
 #include <netdb.h>
-#include <readerwriterqueue/readerwritercircularbuffer.hpp>
 
+#include <atomic>
 #include <cassert>
 #include <cctype>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -50,7 +51,6 @@ constexpr auto SOCKET_PATH_TEMPLATE =
   "/home/rocky/repos/py_server_script/daemons/backend-%s.sock";
 
 constexpr auto BUFFERSIZE = 8192;
-constexpr auto LOCKFREEQUEUE_CAP = 8;
 
 constexpr std::size_t MESSAGE_TIMEOUT = 15;
 constexpr std::size_t READ_TIMEOUT_SECOND = 0;
@@ -253,8 +253,12 @@ private:
   /// @brief listens for messages over stream
   std::thread m_listen_thread;
 
-  /// @brief buffer pool for message receival
-  moodycamel::BlockingReaderWriterCircularBuffer<size_t> m_msg_queue;
+  /// @brief stores the number of bytes available
+  std::atomic<size_t> m_bytes_available{0};
+
+  /// @brief signals whether message is ready
+  std::mutex m_signal_mutex;
+  std::condition_variable m_signal_cond;
 
   /// @brief waits for messages - called by the listener thread
   void wait_for_messages();
@@ -292,7 +296,7 @@ public:
   OpCode send(const nonstd::span<uint8_t>& msg_args);
 
   /// @brief calls send and waits for an upcoming response
-  OpCode receive(size_t& res_size, bool timeout = true);
+  OpCode receive(size_t& res_size);
 
 private:
   /// @brief sends message over the stream
@@ -371,8 +375,7 @@ UnixSocket::start(bool is_server)
 
 inline UnixSocket::UnixSocket(const std::string& host, const char msg_delimiter)
   : m_path(host),
-    m_delimiter(msg_delimiter),
-    m_msg_queue(LOCKFREEQUEUE_CAP)
+    m_delimiter(msg_delimiter)
 {
 }
 
@@ -433,21 +436,16 @@ UnixSocket::send(const nonstd::span<uint8_t>& msg)
 }
 
 inline OpCode
-UnixSocket::receive(size_t& res_size, const bool timeout)
+UnixSocket::receive(size_t& res_size)
 {
-  bool got_message = false;
-
-  if (!timeout) {
-    m_msg_queue.try_dequeue(res_size);
-    got_message = true;
-  } else {
-    got_message = m_msg_queue.wait_dequeue_timed(
-      res_size, std::chrono::seconds(MESSAGE_TIMEOUT));
-
-    if (!got_message) {
-      return OpCode::timeout;
-    }
+  std::unique_lock<std::mutex> lock(m_signal_mutex);
+  if (!m_signal_cond.wait_for(lock, std::chrono::seconds(MESSAGE_TIMEOUT), [&] {
+        return m_bytes_available.load() > 0;
+      })) {
+    return OpCode::timeout;
   }
+  res_size = m_bytes_available.load();
+  m_bytes_available.store(0);
   return OpCode::ok;
 }
 
@@ -465,7 +463,11 @@ UnixSocket::wait_for_messages()
     }
 
     if (message.has_value()) {
-      m_msg_queue.try_enqueue(message.value());
+      {
+        std::lock_guard<std::mutex> lock(m_signal_mutex);
+        m_bytes_available.store(message.value());
+      }
+      m_signal_cond.notify_one();
     }
   }
 }
