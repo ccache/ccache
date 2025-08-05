@@ -56,10 +56,6 @@ target_link_libraries(
     Threads::Threads
 )
 
-if(EXPERIMENTAL_STORAGE_BACKEND)
-target_link_libraries(ccache_framework PUBLIC dep_rwqueue)
-endif()
-
 if(WIN32)
   target_link_libraries(ccache_framework PUBLIC win32_compat)
 endif()
