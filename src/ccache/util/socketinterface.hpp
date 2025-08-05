@@ -141,21 +141,21 @@ private:
 
   std::function<void(char byte)> m_callback;
   std::reference_wrapper<Stream> m_strm;
-  tlv::BigBuffer<uint8_t>* m_buffer; // Reference to BigBuffer
+  std::reference_wrapper<tlv::BigBuffer<uint8_t>> m_buffer; // Reference to BigBuffer
   size_t m_current_size = 0;         // Track buffer content
 };
 
 inline StreamReader::StreamReader(Stream& strm)
   : m_strm(strm),
-    m_buffer(&tlv::g_read_buffer)
+    m_buffer(tlv::g_read_buffer)
 {
-  m_buffer->release(); // Reset buffer
+  m_buffer.get().release(); // Reset buffer
 }
 
 inline const char*
 StreamReader::ptr() const
 {
-  return reinterpret_cast<const char*>(m_buffer->data());
+  return reinterpret_cast<const char*>(m_buffer.get().data());
 }
 
 inline size_t
@@ -174,11 +174,11 @@ StreamReader::clear()
 inline void
 StreamReader::append(uint8_t c)
 {
-  if (m_current_size >= m_buffer->capacity()) {
-    m_buffer->resize(m_buffer->capacity() * 2);
+  if (m_current_size >= m_buffer.get().capacity()) {
+    m_buffer.get().resize(m_buffer.get().capacity() * 2);
   }
 
-  m_buffer->data()[m_current_size++] = c;
+  m_buffer.get().data()[m_current_size++] = c;
 }
 
 inline std::optional<size_t>
@@ -219,13 +219,13 @@ StreamReader::getbytes(const std::optional<char> delimiter,
 inline void
 StreamReader::appendChunk(const uint8_t* data, size_t len)
 {
-  if (m_current_size + len > m_buffer->capacity()) {
+  if (m_current_size + len > m_buffer.get().capacity()) {
     size_t new_capacity =
-      std::max(m_buffer->capacity() * 2, m_current_size + len);
-    m_buffer->resize(new_capacity);
+      std::max(m_buffer.get().capacity() * 2, m_current_size + len);
+    m_buffer.get().resize(new_capacity);
   }
 
-  memcpy(m_buffer->data() + m_current_size, data, len);
+  memcpy(m_buffer.get().data() + m_current_size, data, len);
   m_current_size += len;
 }
 
