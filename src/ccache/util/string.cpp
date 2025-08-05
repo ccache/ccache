@@ -19,6 +19,7 @@
 #include "string.hpp"
 
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/expected.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/time.hpp>
@@ -330,12 +331,8 @@ parse_size(const std::string& value)
 tl::expected<mode_t, std::string>
 parse_umask(std::string_view value)
 {
-  auto result = parse_unsigned(value, 0, 0777, "umask", 8);
-  if (result) {
-    return static_cast<mode_t>(*result);
-  } else {
-    return tl::unexpected(result.error());
-  }
+  TRY_ASSIGN(auto mode, parse_unsigned(value, 0, 0777, "umask", 8));
+  return static_cast<mode_t>(mode);
 }
 
 tl::expected<uint64_t, std::string>

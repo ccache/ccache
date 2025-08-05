@@ -89,11 +89,8 @@ copy_file_impl(const fs::path& src,
 {
   auto dst_cstr = dest.c_str();
   if (via_tmp_file == ViaTmpFile::yes) {
-    auto temp_file = TemporaryFile::create(dest);
-    if (!temp_file) {
-      return tl::unexpected(temp_file.error());
-    }
-    tmp_file = std::move(temp_file->path);
+    TRY_ASSIGN(auto temp_file, TemporaryFile::create(dest));
+    tmp_file = std::move(temp_file.path);
     dst_cstr = tmp_file.c_str();
   }
   unlink(util::pstr(dest).c_str());
@@ -143,12 +140,9 @@ copy_file_impl(const fs::path& src,
 
   Fd dst_fd;
   if (via_tmp_file == ViaTmpFile::yes) {
-    auto temp_file = TemporaryFile::create(dest);
-    if (!temp_file) {
-      return tl::unexpected(temp_file.error());
-    }
-    dst_fd = std::move(temp_file->fd);
-    tmp_file = std::move(temp_file->path);
+    TRY_ASSIGN(auto temp_file, TemporaryFile::create(dest));
+    dst_fd = std::move(temp_file.fd);
+    tmp_file = std::move(temp_file.path);
   } else {
     dst_fd = Fd(open(
       util::pstr(dest).c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
@@ -198,11 +192,7 @@ tl::expected<void, std::string>
 copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
 {
   fs::path tmp_file;
-  auto r = copy_file_impl(src, dest, via_tmp_file, tmp_file);
-  if (!r) {
-    return tl::unexpected(r.error());
-  }
-
+  TRY(copy_file_impl(src, dest, via_tmp_file, tmp_file));
   if (via_tmp_file == ViaTmpFile::yes) {
     const auto result = fs::rename(tmp_file, dest);
     if (!result) {

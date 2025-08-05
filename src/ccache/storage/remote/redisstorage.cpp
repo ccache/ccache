@@ -173,15 +173,13 @@ RedisStorageBackend::get(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis GET {}", key_string);
-  const auto reply = redis_command("GET %s", key_string.c_str());
-  if (!reply) {
-    return tl::unexpected(reply.error());
-  } else if ((*reply)->type == REDIS_REPLY_STRING) {
-    return util::Bytes((*reply)->str, (*reply)->len);
-  } else if ((*reply)->type == REDIS_REPLY_NIL) {
+  TRY_ASSIGN(const auto reply, redis_command("GET %s", key_string.c_str()));
+  if (reply->type == REDIS_REPLY_STRING) {
+    return util::Bytes(reply->str, reply->len);
+  } else if (reply->type == REDIS_REPLY_NIL) {
     return std::nullopt;
   } else {
-    LOG("Unknown reply type: {}", (*reply)->type);
+    LOG("Unknown reply type: {}", reply->type);
     return tl::unexpected(Failure::error);
   }
 }
@@ -195,26 +193,24 @@ RedisStorageBackend::put(const Hash::Digest& key,
 
   if (only_if_missing) {
     LOG("Redis EXISTS {}", key_string);
-    const auto reply = redis_command("EXISTS %s", key_string.c_str());
-    if (!reply) {
-      return tl::unexpected(reply.error());
-    } else if ((*reply)->type != REDIS_REPLY_INTEGER) {
-      LOG("Unknown reply type: {}", (*reply)->type);
-    } else if ((*reply)->integer > 0) {
+    TRY_ASSIGN(const auto reply,
+               redis_command("EXISTS %s", key_string.c_str()));
+    if (reply->type != REDIS_REPLY_INTEGER) {
+      LOG("Unknown reply type: {}", reply->type);
+    } else if (reply->integer > 0) {
       LOG("Entry {} already in Redis", key_string);
       return false;
     }
   }
 
   LOG("Redis SET {} [{} bytes]", key_string, value.size());
-  const auto reply =
-    redis_command("SET %s %b", key_string.c_str(), value.data(), value.size());
-  if (!reply) {
-    return tl::unexpected(reply.error());
-  } else if ((*reply)->type == REDIS_REPLY_STATUS) {
+  TRY_ASSIGN(
+    const auto reply,
+    redis_command("SET %s %b", key_string.c_str(), value.data(), value.size()));
+  if (reply->type == REDIS_REPLY_STATUS) {
     return true;
   } else {
-    LOG("Unknown reply type: {}", (*reply)->type);
+    LOG("Unknown reply type: {}", reply->type);
     return tl::unexpected(Failure::error);
   }
 }
@@ -224,13 +220,11 @@ RedisStorageBackend::remove(const Hash::Digest& key)
 {
   const auto key_string = get_key_string(key);
   LOG("Redis DEL {}", key_string);
-  const auto reply = redis_command("DEL %s", key_string.c_str());
-  if (!reply) {
-    return tl::unexpected(reply.error());
-  } else if ((*reply)->type == REDIS_REPLY_INTEGER) {
-    return (*reply)->integer > 0;
+  TRY_ASSIGN(const auto reply, redis_command("DEL %s", key_string.c_str()));
+  if (reply->type == REDIS_REPLY_INTEGER) {
+    return reply->integer > 0;
   } else {
-    LOG("Unknown reply type: {}", (*reply)->type);
+    LOG("Unknown reply type: {}", reply->type);
     return tl::unexpected(Failure::error);
   }
 }

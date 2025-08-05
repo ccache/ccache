@@ -1263,18 +1263,12 @@ to_cache(Context& ctx,
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
     if (ctx.args_info.generating_dependencies) {
-      auto key = result_key_from_depfile(ctx, *depend_mode_hash);
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
+      TRY_ASSIGN(result_key, result_key_from_depfile(ctx, *depend_mode_hash));
     } else if (ctx.args_info.generating_includes) {
-      auto key = result_key_from_includes(
-        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data));
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
+      TRY_ASSIGN(
+        result_key,
+        result_key_from_includes(
+          ctx, *depend_mode_hash, util::to_string_view(result->stdout_data)));
     } else {
       ASSERT(false);
     }
@@ -2351,21 +2345,14 @@ calculate_result_and_manifest_key(Context& ctx,
   std::optional<Hash::Digest> manifest_key;
 
   if (direct_mode) {
-    const auto manifest_key_result = get_manifest_key(ctx, hash);
-    if (!manifest_key_result) {
-      return tl::unexpected(manifest_key_result.error());
-    }
-    manifest_key = *manifest_key_result;
+    TRY_ASSIGN(manifest_key, get_manifest_key(ctx, hash));
     if (manifest_key && !ctx.config.recache()) {
       LOG("Manifest key: {}", util::format_digest(*manifest_key));
       result_key = get_result_key_from_manifest(ctx, *manifest_key);
     }
   } else if (ctx.args_info.arch_args.empty()) {
-    const auto digest = get_result_key_from_cpp(ctx, *preprocessor_args, hash);
-    if (!digest) {
-      return tl::unexpected(digest.error());
-    }
-    result_key = *digest;
+    TRY_ASSIGN(result_key,
+               get_result_key_from_cpp(ctx, *preprocessor_args, hash));
     LOG_RAW("Got result key from preprocessor");
   } else {
     preprocessor_args->push_back("-arch");
@@ -2381,12 +2368,8 @@ calculate_result_and_manifest_key(Context& ctx,
           xarch_count += 2;
         }
       }
-      const auto digest =
-        get_result_key_from_cpp(ctx, *preprocessor_args, hash);
-      if (!digest) {
-        return tl::unexpected(digest.error());
-      }
-      result_key = *digest;
+      TRY_ASSIGN(result_key,
+                 get_result_key_from_cpp(ctx, *preprocessor_args, hash));
       LOG("Got result key from preprocessor with -arch {}", arch);
       if (i != ctx.args_info.arch_args.size() - 1) {
         result_key = std::nullopt;
@@ -2743,12 +2726,7 @@ do_cache_compilation(Context& ctx)
   // be disabled.
   util::setenv("CCACHE_DISABLE", "1");
 
-  auto process_args_result = process_args(ctx);
-
-  if (!process_args_result) {
-    return tl::unexpected(process_args_result.error());
-  }
-
+  TRY_ASSIGN(auto processed_args, process_args(ctx));
   TRY(set_up_uncached_err());
 
   // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
@@ -2841,11 +2819,10 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::disabled);
   }
 
-  TRY(
-    hash_common_info(ctx, process_args_result->preprocessor_args, common_hash));
-  TRY(hash_native_args(ctx, process_args_result->native_args, common_hash));
+  TRY(hash_common_info(ctx, processed_args.preprocessor_args, common_hash));
+  TRY(hash_native_args(ctx, processed_args.native_args, common_hash));
 
-  if (process_args_result->hash_actual_cwd) {
+  if (processed_args.hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
     common_hash.hash(ctx.actual_cwd);
   }
@@ -2854,8 +2831,8 @@ do_cache_compilation(Context& ctx)
   Hash direct_hash = common_hash;
   init_hash_debug(ctx, direct_hash, 'd', "DIRECT MODE", debug_text_file);
 
-  util::Args args_to_hash = process_args_result->preprocessor_args;
-  args_to_hash.push_back(process_args_result->extra_args_to_hash);
+  util::Args args_to_hash = processed_args.preprocessor_args;
+  args_to_hash.push_back(processed_args.extra_args_to_hash);
 
   bool put_result_in_manifest = false;
   std::optional<Hash::Digest> result_key;
@@ -2864,19 +2841,15 @@ do_cache_compilation(Context& ctx)
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");
-    const auto result_and_manifest_key = calculate_result_and_manifest_key(
-      ctx, args_to_hash, direct_hash, nullptr);
-    if (!result_and_manifest_key) {
-      return tl::unexpected(result_and_manifest_key.error());
-    }
-    std::tie(result_key, manifest_key) = *result_and_manifest_key;
+    TRY_ASSIGN(const auto result_and_manifest_key,
+               calculate_result_and_manifest_key(
+                 ctx, args_to_hash, direct_hash, nullptr));
+    std::tie(result_key, manifest_key) = result_and_manifest_key;
     if (result_key) {
       // If we can return from cache at this point then do so.
-      const auto from_cache_result =
-        from_cache(ctx, FromCacheCallMode::direct, *result_key);
-      if (!from_cache_result) {
-        return tl::unexpected(from_cache_result.error());
-      } else if (*from_cache_result) {
+      TRY_ASSIGN(bool hit,
+                 from_cache(ctx, FromCacheCallMode::direct, *result_key));
+      if (hit) {
         return Statistic::direct_cache_hit;
       }
 
@@ -2906,12 +2879,11 @@ do_cache_compilation(Context& ctx)
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx, cpp_hash, 'p', "PREPROCESSOR MODE", debug_text_file);
 
-    const auto result_and_manifest_key = calculate_result_and_manifest_key(
-      ctx, args_to_hash, cpp_hash, &process_args_result->preprocessor_args);
-    if (!result_and_manifest_key) {
-      return tl::unexpected(result_and_manifest_key.error());
-    }
-    result_key = result_and_manifest_key->first;
+    TRY_ASSIGN(
+      const auto result_and_manifest_key,
+      calculate_result_and_manifest_key(
+        ctx, args_to_hash, cpp_hash, &processed_args.preprocessor_args));
+    result_key = result_and_manifest_key.first;
 
     // calculate_result_and_manifest_key always returns a non-nullopt result_key
     // in preprocessor mode (non-nullptr last argument).
@@ -2939,11 +2911,8 @@ do_cache_compilation(Context& ctx)
     }
 
     // If we can return from cache at this point then do.
-    const auto from_cache_result =
-      from_cache(ctx, FromCacheCallMode::cpp, *result_key);
-    if (!from_cache_result) {
-      return tl::unexpected(from_cache_result.error());
-    } else if (*from_cache_result) {
+    TRY_ASSIGN(bool hit, from_cache(ctx, FromCacheCallMode::cpp, *result_key));
+    if (hit) {
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest(ctx, *manifest_key, *result_key);
       }
@@ -2960,19 +2929,15 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  add_prefix(
-    ctx, process_args_result->compiler_args, ctx.config.prefix_command());
+  add_prefix(ctx, processed_args.compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
-  const auto digest = to_cache(
-    ctx, process_args_result->compiler_args, result_key, depend_mode_hash);
-  if (!digest) {
-    return tl::unexpected(digest.error());
-  }
-  result_key = *digest;
+  TRY_ASSIGN(
+    result_key,
+    to_cache(ctx, processed_args.compiler_args, result_key, depend_mode_hash));
   if (ctx.config.direct_mode()) {
     ASSERT(manifest_key);
     update_manifest(ctx, *manifest_key, *result_key);
