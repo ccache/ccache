@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,33 +18,6 @@
 
 #pragma once
 
-#include <ccache/util/macro.hpp>
-
-#include <functional>
-
-#define DEFER(...)                                                             \
-  util::Deferrer UNIQUE_VARNAME(_deferrer_)([&] { (void)__VA_ARGS__; })
-
-namespace util {
-
-class Deferrer
-{
-public:
-  Deferrer(std::function<void()> func);
-  ~Deferrer();
-
-private:
-  std::function<void()> m_func;
-};
-
-inline Deferrer::Deferrer(std::function<void()> func)
-  : m_func(func)
-{
-}
-
-inline Deferrer::~Deferrer()
-{
-  m_func();
-}
-
-} // namespace util
+#define UNIQUE_VARNAME_CONCAT_HELPER(x, y) x##y
+#define UNIQUE_VARNAME_CONCAT(x, y) UNIQUE_VARNAME_CONCAT_HELPER(x, y)
+#define UNIQUE_VARNAME(prefix) UNIQUE_VARNAME_CONCAT(prefix, __LINE__)
