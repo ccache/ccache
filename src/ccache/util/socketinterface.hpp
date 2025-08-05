@@ -83,7 +83,8 @@ private:
   int select_read(time_t sec, time_t usec) const;
 };
 
-inline Stream::Stream(socket_t sock) : m_sock(sock)
+inline Stream::Stream(socket_t sock)
+  : m_sock(sock)
 {
 }
 
@@ -141,8 +142,9 @@ private:
 
   std::function<void(char byte)> m_callback;
   std::reference_wrapper<Stream> m_strm;
-  std::reference_wrapper<tlv::BigBuffer<uint8_t>> m_buffer; // Reference to BigBuffer
-  size_t m_current_size = 0;         // Track buffer content
+  std::reference_wrapper<tlv::BigBuffer<uint8_t>>
+    m_buffer;                // Reference to BigBuffer
+  size_t m_current_size = 0; // Track buffer content
 };
 
 inline StreamReader::StreamReader(Stream& strm)
@@ -242,7 +244,7 @@ private:
   std::string m_path;
 
   /// @brief specifies whether connection should close
-  std::atomic<bool> m_should_end = true;
+  std::atomic<bool> m_should_end{true};
 
   /// @brief negotiated delimiter
   char m_delimiter;
