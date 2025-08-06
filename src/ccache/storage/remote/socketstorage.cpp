@@ -24,7 +24,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace storage::remote {
@@ -77,7 +76,7 @@ SocketStorage::create_backend(
   if (setup_backend_service(*rbackend->bsock) < 1) {
     return nullptr;
   }
-  return std::move(rbackend);
+  return rbackend;
 }
 
 int
