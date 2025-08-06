@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,5 +24,10 @@
 namespace storage {
 
 using EntryWriter = std::function<bool(const std::string& path)>;
+
+enum class Overwrite {
+  yes, // Overwrite any preexisting value
+  no,  // OK to not overwrite any preexisting value (but OK to overwrite anyway)
+};
 
 } // namespace storage

@@ -2279,7 +2279,8 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.local.put(manifest_key,
                           core::CacheEntryType::manifest,
-                          core::CacheEntry::serialize(header, ctx.manifest));
+                          core::CacheEntry::serialize(header, ctx.manifest),
+                          storage::Overwrite::yes);
   }
 
   return result_key;

@@ -73,7 +73,7 @@ public:
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
                                   nonstd::span<const uint8_t> value,
-                                  bool only_if_missing) override;
+                                  Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
@@ -187,11 +187,11 @@ RedisStorageBackend::get(const Hash::Digest& key)
 tl::expected<bool, RemoteStorage::Backend::Failure>
 RedisStorageBackend::put(const Hash::Digest& key,
                          nonstd::span<const uint8_t> value,
-                         bool only_if_missing)
+                         Overwrite overwrite)
 {
   const auto key_string = get_key_string(key);
 
-  if (only_if_missing) {
+  if (overwrite == Overwrite::no) {
     LOG("Redis EXISTS {}", key_string);
     TRY_ASSIGN(const auto reply,
                redis_command("EXISTS %s", key_string.c_str()));

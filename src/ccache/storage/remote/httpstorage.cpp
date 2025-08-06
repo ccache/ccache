@@ -49,7 +49,7 @@ public:
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
                                   nonstd::span<const uint8_t> value,
-                                  bool only_if_missing) override;
+                                  Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
@@ -193,11 +193,11 @@ HttpStorageBackend::get(const Hash::Digest& key)
 tl::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
-                        const bool only_if_missing)
+                        const Overwrite overwrite)
 {
   const auto url_path = get_entry_path(key);
 
-  if (only_if_missing) {
+  if (overwrite == Overwrite::no) {
     const auto result = m_http_client.Head(url_path);
     LOG("HEAD {}{} -> {}", m_url.str(), url_path, result->status);
 

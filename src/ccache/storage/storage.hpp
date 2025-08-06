@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,6 +22,7 @@
 #include <ccache/hash.hpp>
 #include <ccache/storage/local/localstorage.hpp>
 #include <ccache/storage/remote/remotestorage.hpp>
+#include <ccache/storage/types.hpp>
 #include <ccache/util/bytes.hpp>
 
 #include <nonstd/span.hpp>
@@ -88,7 +89,7 @@ private:
 
   void put_in_remote_storage(const Hash::Digest& key,
                              nonstd::span<const uint8_t> value,
-                             bool only_if_missing);
+                             Overwrite overwrite);
 
   void remove_from_remote_storage(const Hash::Digest& key);
 };

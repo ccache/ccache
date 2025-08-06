@@ -54,7 +54,7 @@ public:
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
                                   nonstd::span<const uint8_t> value,
-                                  bool only_if_missing) override;
+                                  Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
@@ -140,11 +140,11 @@ FileStorageBackend::get(const Hash::Digest& key)
 tl::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
-                        const bool only_if_missing)
+                        const Overwrite overwrite)
 {
   const auto path = get_entry_path(key);
 
-  if (only_if_missing && DirEntry(path).exists()) {
+  if (overwrite == Overwrite::no && DirEntry(path).exists()) {
     LOG("{} already in cache", path);
     return false;
   }
