@@ -1802,7 +1802,7 @@ directories:
 
 == Precompiled headers
 
-Ccache has support for precompiled headers with GCC and Clang. However, you have
+Ccache has limited support for precompiled headers with GCC and Clang. You have
 to do some things to make it work properly:
 
 * You must set <<config_sloppiness,*sloppiness*>> to *pch_defines,time_macros*.
@@ -1832,6 +1832,9 @@ If you don't do this, either the non-precompiled version of the header file will
 be used (if available) or ccache will fall back to running the real compiler and
 increase the statistics counter "`Preprocessing failed`" (if the non-precompiled
 header file is not available).
+
+Also, you might get into trouble if header files use `#pragma once` instead of
+include guards.
 
 
 == C++ modules
