@@ -179,7 +179,7 @@ BackendNode::get(const Hash::Digest& key)
     if (res.error() == tlv::NO_FILE) {
       return std::nullopt; // not found 404
     }
-    LOG("{} occured on sending message!",
+    LOG("{} occured on GET message!",
         (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
       res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
@@ -212,7 +212,7 @@ BackendNode::put(const Hash::Digest& key,
     if (res.error() == tlv::SUCCESS) {
       return false; // not found 404
     }
-    LOG("{} occured on sending message!",
+    LOG("{} occured on PUT message!",
         (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
       res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
@@ -233,7 +233,7 @@ BackendNode::remove(const Hash::Digest& key)
     if (res.error() == tlv::SUCCESS) {
       return false; // not found 404
     }
-    LOG("{} occured on sending message!",
+    LOG("{} occured on REMOVE message!",
         (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
       res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error

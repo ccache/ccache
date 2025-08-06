@@ -14,22 +14,22 @@
 #include <vector>
 
 namespace tlv {
-constexpr uint16_t TLV_VERSION = 0x01; // Protocol version
+// Current protocol version
+constexpr uint16_t TLV_VERSION = 0x01;
+
 // SETUP-specific types (0x01 - 0x80)
-constexpr uint8_t SETUP_TYPE_VERSION = 0x01; // Protocol version
-constexpr uint8_t SETUP_TYPE_CONNECT_TIMEOUT =
-  0x02; // Timeout in milliseconds (uint32)
-constexpr uint8_t SETUP_TYPE_OPERATION_TIMEOUT =
-  0x03; // Timeout in milliseconds (uint32)
-constexpr uint8_t SETUP_TYPE_BUFFERSIZE = 0x04; // Buffersize
+constexpr uint8_t SETUP_TYPE_VERSION = 0x01;
+constexpr uint8_t SETUP_TYPE_CONNECT_TIMEOUT = 0x02;
+constexpr uint8_t SETUP_TYPE_OPERATION_TIMEOUT = 0x03;
+constexpr uint8_t SETUP_TYPE_BUFFERSIZE = 0x04;
 
 // Application Types (0x81 - 0xFF)
-constexpr uint8_t FIELD_TYPE_KEY = 0x81;         // KEY string
-constexpr uint8_t FIELD_TYPE_VALUE = 0x82;       // VALUE string
-constexpr uint8_t FIELD_TYPE_TIMESTAMP = 0x83;   // Unix timestamp (UINT64)
-constexpr uint8_t FIELD_TYPE_STATUS_CODE = 0x84; // Status code
-constexpr uint8_t FIELD_TYPE_ERROR_MSG = 0x85;   // Error message (STRING)
-constexpr uint8_t FIELD_TYPE_FLAGS = 0x86;       // Flags field
+constexpr uint8_t FIELD_TYPE_KEY = 0x81;
+constexpr uint8_t FIELD_TYPE_VALUE = 0x82;
+constexpr uint8_t FIELD_TYPE_TIMESTAMP = 0x83;
+constexpr uint8_t FIELD_TYPE_STATUS_CODE = 0x84;
+constexpr uint8_t FIELD_TYPE_ERROR_MSG = 0x85;
+constexpr uint8_t FIELD_TYPE_FLAGS = 0x86;
 
 // Message Types
 constexpr uint16_t MSG_TYPE_SETUP_REQUEST = 0x01;
