@@ -6,7 +6,6 @@
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
-#include <bits/floatn-common.h>
 #include <emmintrin.h>
 #include <sys/types.h>
 
@@ -99,6 +98,36 @@ public:
 private:
   ParseResult m_result; // Reused to avoid allocations
 
+  std::pair<uint32_t, size_t>
+  decode_length(const uint8_t* buffer, size_t available)
+  {
+    if (available < 1) {
+      return {0, 0};
+    }
+
+    uint8_t first_byte = buffer[0];
+
+    if (first_byte <= LENGTH_1_BYTE_MAX) {
+      return {first_byte, 1};
+    } else if (first_byte == LENGTH_3_BYTE_FLAG) {
+      if (available < 3) {
+        return {0, 0};
+      }
+      uint16_t length;
+      std::memcpy(&length, buffer + 1, 2);
+      return {length, 3};
+    } else if (first_byte == LENGTH_5_BYTE_FLAG) {
+      if (available < 5) {
+        return {0, 0};
+      }
+      uint32_t length;
+      std::memcpy(&length, buffer + 1, 4);
+      return {length, 5};
+    }
+
+    return {0, 0}; // Invalid encoding
+  }
+
   void
   parse_value(uint8_t tag, uint32_t length, const uint8_t* pos)
   {
@@ -181,7 +210,7 @@ public:
       std::memcpy(&p_tag, pos, 1);
       pos++;
 
-      auto [field_length, length_bytes] = ndn::decode_length(pos, end - pos);
+      auto [field_length, length_bytes] = decode_length(pos, end - pos);
       if (length_bytes == 0) {
         break; // Invalid length encoding
       }
@@ -205,9 +234,24 @@ public:
 class TLVSerializer
 {
 private:
-  uint8_t* m_buffer = nullptr;
-  std::size_t m_capacity{};
-  std::size_t m_position{};
+  std::size_t m_position{0};
+
+  size_t
+  encode_length(uint32_t length)
+  {
+    if (length <= LENGTH_1_BYTE_MAX) {
+      g_write_buffer.write(&length, sizeof(uint8_t));
+      return 1;
+    } else if (length <= 0xFFFF) {
+      g_write_buffer.write(&LENGTH_3_BYTE_FLAG, sizeof(uint8_t));
+      g_write_buffer.write(&length, sizeof(uint16_t));
+      return 3;
+    } else {
+      g_write_buffer.write(&LENGTH_5_BYTE_FLAG, sizeof(uint8_t));
+      g_write_buffer.write(&length, sizeof(uint32_t));
+      return 5;
+    }
+  }
 
 public:
   TLVSerializer() = default;
@@ -215,15 +259,8 @@ public:
   bool
   begin_message(const MessageHeader& msghdr)
   {
-    m_buffer = g_write_buffer.data();
-    if (!m_buffer) {
-      return false;
-    }
-
-    m_capacity = g_write_buffer.capacity();
     m_position = TLV_HEADER_SIZE; // position past header
-
-    std::memcpy(m_buffer, &msghdr, sizeof(MessageHeader));
+    g_write_buffer.write(&msghdr, sizeof(MessageHeader));
     return true;
   }
 
@@ -255,25 +292,19 @@ public:
                                                                 : 5;
     size_t needed = 1 + length_encoding_size + length;
 
-    if (auto newsize = (m_position + needed); newsize > m_capacity) {
-      // TODO allocate more first if it fails return false
-      if (newsize > MAX_FIELD_SIZE) {
-        return false;
-      }
-      g_write_buffer.resize(newsize * 2);
-      m_buffer = g_write_buffer.data();
-      m_capacity = newsize * 2;
+    if ((m_position + needed) > MAX_MSG_SIZE) {
+      return false;
     }
 
     // Write tag
-    std::memcpy(m_buffer + m_position, &tag, 1);
+    g_write_buffer.write(&tag, sizeof(uint8_t));
     m_position++;
 
     // Write variable length
-    m_position += ndn::encode_length(m_buffer + m_position, length);
+    m_position += encode_length(length);
 
     // Write value
-    std::memcpy(m_buffer + m_position, data, length);
+    g_write_buffer.write(data, length);
     m_position += length;
     return true;
   }
@@ -287,21 +318,17 @@ public:
   std::pair<uint8_t*, size_t>
   finalize() const
   {
-    if (!m_buffer) {
+    if (m_position == 0) {
       return {nullptr, 0};
     }
-    return {m_buffer, m_position};
+    return {g_write_buffer.data(), m_position};
   }
 
   void
   release()
   {
-    if (m_buffer) {
-      g_write_buffer.release();
-      m_buffer = nullptr;
-      m_capacity = 0;
-      m_position = 0;
-    }
+    g_write_buffer.release();
+    m_position = 0;
   }
 };
 
@@ -360,7 +387,7 @@ dispatch(TLVParser& parser,
   ResponseStatus status_code;
   auto errcode_field = getfield(res.fields, FIELD_TYPE_STATUS_CODE);
   std::memcpy(&status_code, errcode_field->data.data(), errcode_field->length);
-  std::cerr << "status=" << int(status_code) << "\n";
+
   if (status_code != SUCCESS) {
     // TODO LOG the error message?
     return tl::unexpected<ResponseStatus>(status_code);

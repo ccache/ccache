@@ -8,7 +8,6 @@
 #include <nonstd/span.hpp>
 
 #include <fcntl.h>
-#include <netdb.h>
 
 #include <atomic>
 #include <cassert>
@@ -176,11 +175,8 @@ StreamReader::clear()
 inline void
 StreamReader::append(uint8_t c)
 {
-  if (m_current_size >= m_buffer.get().capacity()) {
-    m_buffer.get().resize(m_buffer.get().capacity() * 2);
-  }
-
-  m_buffer.get().data()[m_current_size++] = c;
+  m_buffer.get().write(&c, sizeof(uint8_t));
+  m_current_size++;
 }
 
 inline std::optional<size_t>
@@ -221,13 +217,7 @@ StreamReader::getbytes(const std::optional<char> delimiter,
 inline void
 StreamReader::appendChunk(const uint8_t* data, size_t len)
 {
-  if (m_current_size + len > m_buffer.get().capacity()) {
-    size_t new_capacity =
-      std::max(m_buffer.get().capacity() * 2, m_current_size + len);
-    m_buffer.get().resize(new_capacity);
-  }
-
-  memcpy(m_buffer.get().data() + m_current_size, data, len);
+  m_buffer.get().write(data, len);
   m_current_size += len;
 }
 

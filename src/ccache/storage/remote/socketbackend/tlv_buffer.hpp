@@ -2,7 +2,8 @@
 
 #include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
 
-#include <mutex>
+#include <cstddef>
+#include <cstring>
 #include <vector>
 
 namespace tlv {
@@ -22,8 +23,8 @@ public:
   static BigBuffer&
   writeInstance()
   {
-    static BigBuffer mainBuf;
-    return mainBuf;
+    static BigBuffer writeBuf;
+    return writeBuf;
   }
 
   BigBuffer(const BigBuffer&) = delete;
@@ -35,7 +36,6 @@ public:
   T*
   data()
   {
-    std::lock_guard<std::mutex> lock(m_mutex);
     return m_buffer.data();
   }
 
@@ -46,44 +46,54 @@ public:
     return m_buffer.capacity();
   }
 
-  /// Resize buffer to preallocate a buffer of n elements.
-  void
-  resize(size_t n)
-  {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (n > m_buffer.capacity()) {
-      m_buffer.reserve(n);
-    }
-    m_buffer.resize(n);
-  }
-
   /// Releases (clears) buffer and default allocates.
   void
   release()
   {
-    std::lock_guard<std::mutex> lock(m_mutex);
     m_buffer.clear();
-    m_buffer.reserve(TLV_MAX_FIELD_SIZE);
-    m_buffer.resize(TLV_MAX_FIELD_SIZE);
+    m_size = 0;
+    m_buffer.reserve(DEFAULT_ALLOC);
   }
 
   /// Returns the number of elements in the buffer
   size_t
   size() const
   {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_buffer.size();
+    return m_size;
+  }
+
+  bool
+  write(const void *src, size_t n)
+  {
+    if (n + m_size > MAX_MSG_SIZE) {
+      return false;
+    } else if (n + m_size > m_buffer.size()) {
+      resize(1.5 * (m_size + n));
+    }
+
+    std::memcpy(m_buffer.data() + m_size, src, n);
+    m_size += n;
+    return true;
   }
 
 private:
   BigBuffer()
   {
-    /// initial capacity is TLV_MAX_FIELD_SIZE
-    m_buffer.reserve(TLV_MAX_FIELD_SIZE);
+    m_buffer.reserve(DEFAULT_ALLOC);
+  }
+
+  /// Resize buffer to preallocate a buffer of n elements.
+  void
+  resize(size_t n)
+  {
+    if (n > m_buffer.capacity()) {
+      m_buffer.reserve(n);
+    }
+    m_buffer.resize(n);
   }
 
   std::vector<T> m_buffer;
-  mutable std::mutex m_mutex;
+  size_t m_size{0};
 };
 
 inline BigBuffer<uint8_t>& g_write_buffer = BigBuffer<uint8_t>::writeInstance();
