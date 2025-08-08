@@ -1,3 +1,5 @@
+add_subdirectory(socketbackend)
+
 set(
   sources
   filestorage.cpp
@@ -10,6 +12,10 @@ endif()
 
 if(HTTP_STORAGE_BACKEND)
   list(APPEND sources httpstorage.cpp)
+endif()
+
+if(EXPERIMENTAL_STORAGE_BACKEND)
+  list(APPEND sources socketstorage.cpp)
 endif()
 
 file(GLOB headers *.hpp)
