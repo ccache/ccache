@@ -43,6 +43,8 @@ std::vector<std::string> get_features();
 struct RemoteStorageBackendEntry;
 struct RemoteStorageEntry;
 
+std::string get_redacted_url_str_for_logging(const Url& url);
+
 class Storage
 {
 public:

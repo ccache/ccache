@@ -245,6 +245,16 @@ get_storage(const std::string& scheme)
   }
 }
 
+std::string
+get_redacted_url_str_for_logging(const Url& url)
+{
+  Url redacted_url(url);
+  if (!url.user_info().empty()) {
+    redacted_url.user_info(k_redacted_password);
+  }
+  return redacted_url.str();
+}
+
 Storage::Storage(const Config& config)
   : local(config),
     m_config(config)
@@ -316,16 +326,6 @@ bool
 Storage::has_remote_storage() const
 {
   return !m_remote_storages.empty();
-}
-
-static std::string
-get_redacted_url_str_for_logging(const Url& url)
-{
-  Url redacted_url(url);
-  if (!url.user_info().empty()) {
-    redacted_url.user_info(k_redacted_password);
-  }
-  return redacted_url.str();
 }
 
 std::string
