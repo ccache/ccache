@@ -7,6 +7,7 @@
 #include <tl/expected.hpp>
 
 #include <emmintrin.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 
 #include <cassert>
@@ -181,6 +182,7 @@ public:
   TLVParser()
   {
     m_result.fields.reserve(4); // Pre-allocate for common case
+    g_read_buffer.release();
   }
 
   ParseResult&
@@ -225,8 +227,6 @@ public:
     }
 
     m_result.success = (pos == end);
-    std::cerr << "did we parse well? " << (m_result.success ? "yes" : "no")
-              << "\n";
     return m_result;
   }
 };
@@ -252,9 +252,6 @@ private:
       return 5;
     }
   }
-
-public:
-  TLVSerializer() = default;
 
   bool
   begin_message(const MessageHeader& msghdr)
@@ -324,44 +321,52 @@ public:
     return {g_write_buffer.data(), m_position};
   }
 
+public:
+  TLVSerializer() {
+    g_write_buffer.release();
+  }
+
   void
   release()
   {
     g_write_buffer.release();
     m_position = 0;
   }
+
+  template<typename... Args>
+  std::pair<uint8_t*, size_t>
+  serialize(const int& msg_tag, Args&&... args)
+  {
+    g_read_buffer.release();
+    begin_message({TLV_VERSION, static_cast<uint16_t>(msg_tag)});
+
+    auto serialise_fields =
+      [this](auto&& self, auto&& first, auto&& second, auto&&... rest) -> void {
+      this->addfield(std::forward<decltype(first)>(first),
+               std::forward<decltype(second)>(second));
+      if constexpr (sizeof...(rest) > 0) {
+        self(self, std::forward<decltype(rest)>(rest)...);
+      }
+    };
+
+    if constexpr (sizeof...(args) > 0) {
+      serialise_fields(serialise_fields, std::forward<Args>(args)...);
+    }
+
+    return finalize();
+  }
 };
 
 template<typename... Args>
 inline tl::expected<TLVParser::ParseResult, ResponseStatus>
-dispatch(TLVParser& parser,
-         UnixSocket& sock,
+dispatch(UnixSocket& sock,
          const int& msg_tag,
          Args&&... args)
 {
   static_assert(sizeof...(args) % 2 == 0,
                 "Arguments must come in pairs: tag, value, tag, value, ...");
   TLVSerializer serializer;
-
-  g_read_buffer.release();
-  serializer.begin_message({TLV_VERSION, static_cast<uint16_t>(msg_tag)});
-
-  auto serialise_fields = [&serializer](auto&& self,
-                                        auto&& first,
-                                        auto&& second,
-                                        auto&&... rest) -> void {
-    serializer.addfield(std::forward<decltype(first)>(first),
-                        std::forward<decltype(second)>(second));
-    if constexpr (sizeof...(rest) > 0) {
-      self(self, std::forward<decltype(rest)>(rest)...);
-    }
-  };
-
-  if constexpr (sizeof...(args) > 0) {
-    serialise_fields(serialise_fields, std::forward<Args>(args)...);
-  }
-
-  auto [data, length] = serializer.finalize();
+  auto [data, length] = serializer.serialize(msg_tag, std::forward<Args>(args)...);
 
   auto opcode = sock.send({data, data + length});
   if (opcode == OpCode::error) {
@@ -369,8 +374,8 @@ dispatch(TLVParser& parser,
   } else if (opcode == OpCode::timeout) {
     return tl::unexpected<ResponseStatus>(TIMEOUT);
   }
-
-  serializer.release();
+  
+  TLVParser parser;
   size_t received_size;
   opcode = sock.receive(received_size);
   if (opcode == OpCode::error) {
