@@ -1075,6 +1075,44 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  // we don't support gcc's -fdiagnostics-add-output yet
+  if (arg == "-fdiagnostics-format") {
+    if (i == args.size() - 1) {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
+    }
+    if (args[i + 1] == "sarif-file") {
+      args_info.generating_sarif = true;
+    }
+    i++;
+    return Statistic::none;
+  }
+
+  const std::string_view msvc_sarif_switch = "-experimental:log";
+  if (util::starts_with(arg, msvc_sarif_switch)) {
+    // the argument can be seperated by space, but don't have to be
+    std::string_view param;
+    if (arg.size() == msvc_sarif_switch.size()) {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      param = args[i + 1];
+    } else {
+      param = std::string_view(arg).substr(msvc_sarif_switch.size());
+    }
+    args_info.generating_sarif = true;
+    // The param can be a filename or a dir (ends with '\'), both absolute or
+    // relative
+    // TODO should we reject to handle absolute paths?
+    if (util::ends_with(param, "\\")) {
+      args_info.output_sarif = param;
+    } else {
+      args_info.output_sarif =
+        core::make_relative_path(ctx, std::string(param) + ".sarif");
+    }
+  }
+
   if (config.compiler_type() == CompilerType::gcc) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
@@ -1439,6 +1477,18 @@ process_args(Context& ctx)
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
         args_info.included_pch_file);
+    }
+  }
+
+  if (args_info.generating_sarif) {
+    if (ctx.config.is_compiler_group_msvc()) {
+      if (args_info.output_sarif.native().back() == '\\') {
+        args_info.output_sarif /=
+          args_info.input_file.filename().generic_string() + ".sarif";
+      }
+    } else {
+      args_info.output_sarif = args_info.input_file;
+      args_info.output_sarif.append(".sarif");
     }
   }
 
