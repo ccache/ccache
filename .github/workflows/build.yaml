@@ -255,6 +255,69 @@ jobs:
           name: ${{ matrix.sys }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
+  build_linux_aarch64_binary:
+    timeout-minutes: 30
+    name: Linux aarch64 binary
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: |
+            -D CMAKE_TOOLCHAIN_FILE=../toolchains/aarch64-linux-gnu.cmake
+            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary-aarch64
+          path: install/bin/ccache
+
+  build_linux_x86_64_binary:
+    timeout-minutes: 30
+    name: Linux x86_64 binary
+    runs-on: ubuntu-22.04
+    container:
+      image: almalinux:8
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled powertools
+          dnf install -y epel-release
+          dnf install -y \
+            --setopt=install_weak_deps=False \
+            --setopt=tsflags=nodocs \
+            cmake \
+            gcc \
+            gcc-c++ \
+            gcc-toolset-11 \
+            git \
+            ninja-build
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: |
+          scl enable gcc-toolset-11 ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary-x86_64
+          path: install/bin/ccache
+
   build_macos_universal:
     timeout-minutes: 30
     name: macOS universal binary
@@ -271,33 +334,6 @@ jobs:
         with:
           name: macOS-binary
           path: build_universal/ccache
-
-  build_linux_binary:
-    timeout-minutes: 30
-    name: Linux ${{ matrix.arch }} binary
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            arch: x86_64
-
-          - os: ubuntu-22.04-arm
-            arch: aarch64
-
-    env:
-      CMAKE_GENERATOR: Ninja
-    steps:
-      - name: Get source
-        uses: actions/checkout@v4
-      - name: Build binary
-        run: ci/build-binary
-      - name: Archive binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-binary-${{ matrix.arch }}
-          path: install/bin/ccache
 
   build_windows_binary:
     timeout-minutes: 30
@@ -338,7 +374,7 @@ jobs:
         env:
           CMAKE_PARAMS: -D CMAKE_TOOLCHAIN_FILE=../toolchains/${{ matrix.toolchain }}.cmake
         run: ci/build-binary
-      - name: Archive binary
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: windows-binary-${{ matrix.arch }}
