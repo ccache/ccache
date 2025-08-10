@@ -1055,6 +1055,12 @@ write_result(Context& ctx,
     LOG("Source dependencies file {} missing", ctx.args_info.output_sd);
     return false;
   }
+  if (ctx.args_info.generating_sarif
+      && !serializer.add_file(core::result::FileType::sarif,
+                              ctx.args_info.output_sarif)) {
+    LOG("Sarif file {} missing", ctx.args_info.output_sarif);
+    return false;
+  }
   if (ctx.args_info.seen_split_dwarf
       // Only store .dwo file if it was created by the compiler (GCC and Clang
       // behave differently e.g. for "-gsplit-dwarf -g1").
@@ -1221,6 +1227,24 @@ to_cache(Context& ctx,
     std::ignore =
       util::remove_nfs_safe(ctx.args_info.output_obj, util::LogFailure::no);
   }
+
+  if (ctx.args_info.generating_diagnostics) {
+    args.push_back("--serialize-diagnostics");
+    args.push_back(ctx.args_info.output_dia);
+  }
+
+  /*
+  // TODO we don't have to add it back when it was never removed, or should we?
+  if (ctx.args_info.generating_sarif) {
+    if (ctx.config.is_compiler_group_msvc()) {
+      args.push_back("-experimental:log");
+      args.push_back(ctx.args_info.output_sarif);
+    } else {
+      args.push_back("-fdiagnostics-format");
+      args.push_back("sarif-file");
+    }
+  }
+  */
 
   if (ctx.args_info.seen_double_dash) {
     args.push_back("--");
@@ -2972,6 +2996,9 @@ do_cache_compilation(Context& ctx)
   }
   if (!ctx.args_info.output_sd.empty()) {
     LOG("Source dependencies file: {}", ctx.args_info.output_sd);
+  }
+  if (ctx.args_info.generating_sarif) {
+    LOG("Sarif file: {}", ctx.args_info.output_sarif);
   }
   if (!ctx.args_info.output_dwo.empty()) {
     LOG("Split dwarf file: {}", ctx.args_info.output_dwo);
