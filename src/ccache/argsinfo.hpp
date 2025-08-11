@@ -100,11 +100,13 @@ struct ArgsInfo
   // Is the compiler being asked to output stack usage?
   bool generating_stackusage = false;
 
+  // -fdump-ipa-clones
   bool generating_ipa_clones = false;
 
+  // -fcallgraph-info
   bool generating_callgraphinfo = false;
 
-  // Us the compiler being asked to generate diagnostics
+  // Is the compiler being asked to generate diagnostics
   // (--serialize-diagnostics)?
   bool generating_diagnostics = false;
 
