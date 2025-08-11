@@ -99,8 +99,7 @@ private:
   std::reference_wrapper<Stream> m_stream;
   // The buffer to read data into.
   std::reference_wrapper<StreamBuffer> m_buffer;
-  // Tracks how many bytes this reader has conceptually consumed from the
-  // buffer.
+  // Tracks how many bytes this reader has read into the buffer.
   size_t m_bytes_consumed{0};
 };
 
@@ -119,17 +118,8 @@ private:
   /// @brief specifies whether connection should close
   std::atomic<bool> m_should_end_flag{false};
 
-  /// @brief signals that we are expecting data
-  std::atomic<bool> m_is_receiving{false};
-
   /// @brief the stream interface for reading / writing
   std::unique_ptr<Stream> m_socket_stream;
-
-  /// @brief the buffer for reading incoming data
-  std::reference_wrapper<StreamBuffer> m_read_buffer;
-
-  /// @brief the buffer for preparing outgoing data
-  std::reference_wrapper<StreamBuffer> m_write_buffer;
 
   /// @brief listens for messages over stream; reads into m_read_buffer
   std::thread m_listen_thread;
