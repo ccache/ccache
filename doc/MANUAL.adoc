@@ -1087,9 +1087,9 @@ included in the input hash.
     hash. This is useful if your build system generates different seeds between
     builds and you are OK with reusing cached results.
 *system_headers*::
-    Only check non-system headers in direct mode.
-    This can be useful if e.g. your system headers tend to change but you know that
-    the changes don't matter. Notes:
+    Only check non-system headers in direct mode. This can be useful if e.g.
+    your system headers tend to change but you know that the changes don't
+    matter. Notes:
 +
 * This sloppiness is only supported for GCC-like compilers, not MSVC.
 * System headers are still taken into account for preprocessed lookup.
