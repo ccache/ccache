@@ -31,11 +31,30 @@ public:
     return m_buffer.data();
   }
 
+  // Const access to buffer data
+  const T*
+  data() const
+  {
+    return m_buffer.data();
+  }
+
   /// Get buffer capacity before needing to allocate more memory.
   size_t
   capacity() const
   {
     return m_buffer.capacity();
+  }
+
+  bool
+  empty() const
+  {
+    return m_size == 0;
+  }
+
+  void
+  clear()
+  {
+    m_size = 0;
   }
 
   /// Releases (clears) buffer and default allocates.
@@ -108,6 +127,18 @@ public:
 
     // Return a span to the newly available space.
     return {m_buffer.data() + m_size, n};
+  }
+
+  nonstd::span<const T>
+  view() const
+  {
+    return {m_buffer.data(), m_size};
+  }
+
+  nonstd::span<T>
+  view()
+  {
+    return {m_buffer.data(), m_size};
   }
 
 private:
