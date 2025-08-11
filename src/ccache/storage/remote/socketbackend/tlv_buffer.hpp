@@ -2,35 +2,27 @@
 
 #include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
 
+#include <nonstd/span.hpp>
+
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <vector>
 
 namespace tlv {
 
-template<typename T> class BigBuffer
+template<typename T> class StreamBuffer
 {
 public:
-  /// Returns a singleton instance for reading
-  static BigBuffer&
-  readInstance()
+  StreamBuffer()
+   : m_buffer(DEFAULT_ALLOC)
   {
-    static BigBuffer readBuf;
-    return readBuf;
   }
-
-  /// Returns a singleton instance for writing
-  static BigBuffer&
-  writeInstance()
-  {
-    static BigBuffer writeBuf;
-    return writeBuf;
-  }
-
-  BigBuffer(const BigBuffer&) = delete;
-  BigBuffer& operator=(const BigBuffer&) = delete;
-  BigBuffer(BigBuffer&&) = delete;
-  BigBuffer& operator=(BigBuffer&&) = delete;
+  StreamBuffer(const StreamBuffer&) = default;
+  StreamBuffer& operator=(const StreamBuffer&) = default;
+  StreamBuffer(StreamBuffer&&) = default;
+  StreamBuffer& operator=(StreamBuffer&&) = default;
+  ~StreamBuffer() = default;
 
   /// Access buffer data
   T*
@@ -53,6 +45,7 @@ public:
     m_buffer.clear();
     m_size = 0;
     m_buffer.reserve(DEFAULT_ALLOC);
+    m_buffer.resize(DEFAULT_ALLOC);
   }
 
   /// Returns the number of elements in the buffer
@@ -62,13 +55,17 @@ public:
     return m_size;
   }
 
+  // Writes `n` bytes from `src` into the buffer.
   bool
-  write(const void *src, size_t n)
+  write(const void* src, size_t n)
   {
-    if (n + m_size > MAX_MSG_SIZE) {
+    if (n + m_size > MAX_MSG_SIZE || n == 0) {
       return false;
-    } else if (n + m_size > m_buffer.size()) {
-      resize(1.5 * (m_size + n));
+    }
+
+    if (!ensure_capacity(m_size + n)) {
+      std::cerr << "StreamBuffer::write: Error - failed to ensure capacity\n";
+      return false;
     }
 
     std::memcpy(m_buffer.data() + m_size, src, n);
@@ -76,12 +73,44 @@ public:
     return true;
   }
 
-private:
-  BigBuffer()
+  // After writing into the span, this commits the number of elements written
+  void
+  commit(size_t n)
   {
-    m_buffer.reserve(DEFAULT_ALLOC);
+    if (n > MAX_MSG_SIZE) {
+      throw std::logic_error("Committing more than MAX_MSG_SIZE");
+    }
+    if (m_size + n > capacity()) {
+      throw std::logic_error("Committing beyond buffer capacity");
+    }
+    m_size += n;
   }
 
+  // Prepares a writable span of `n` items in the buffer
+  //
+  // Note: The vector's `size()` might still be less than `m_msize + n` if
+  // only `reserve` was used. This is why `commit_write` or a later `resize`
+  // is important.
+  nonstd::span<T>
+  prepare(size_t n)
+  {
+    if (m_size + n > MAX_MSG_SIZE || n == 0) {
+      std::cerr << "StreamBuffer::prepare: Cannot prepare span for n=" << n
+                << ".\n";
+      return {};
+    }
+
+    if (!ensure_capacity(m_size + n)) {
+      std::cerr
+        << "StreamBuffer::prepare: Error - failed to ensure capacity.\n";
+      return {};
+    }
+
+    // Return a span to the newly available space.
+    return {m_buffer.data() + m_size, n};
+  }
+
+private:
   /// Resize buffer to preallocate a buffer of n elements.
   void
   resize(size_t n)
@@ -92,11 +121,33 @@ private:
     m_buffer.resize(n);
   }
 
+  // Ensures the buffer has at least `required_capacity` bytes of
+  bool
+  ensure_capacity(size_t required_capacity)
+  {
+    if (required_capacity > m_buffer.capacity()) {
+      // Calculate new capacity: 1.5x growth factor, or required_capacity if
+      // it's larger. Guard against potential overflow for very large
+      // capacities.
+      size_t new_capacity = required_capacity;
+      if (m_buffer.capacity() > 0) {
+        new_capacity = std::max(required_capacity,
+                                static_cast<size_t>(m_buffer.capacity() * 1.5));
+      }
+
+      try {
+        m_buffer.reserve(new_capacity);
+      } catch (const std::bad_alloc& e) {
+        std::cerr << "StreamBuffer error: Failed to reserve capacity: "
+                  << e.what() << "\n";
+        return false;
+      }
+    }
+    return true;
+  }
+
   std::vector<T> m_buffer;
   size_t m_size{0};
 };
-
-inline BigBuffer<uint8_t>& g_write_buffer = BigBuffer<uint8_t>::writeInstance();
-inline BigBuffer<uint8_t>& g_read_buffer = BigBuffer<uint8_t>::readInstance();
 
 } // namespace tlv
