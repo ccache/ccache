@@ -48,15 +48,11 @@ constexpr auto SOCKET_PATH_LENGTH = 256;
 constexpr auto SOCKET_PATH_TEMPLATE =
   "/home/rocky/repos/py_server_script/daemons/backend-%s.sock";
 
-constexpr auto BUFFERSIZE = 8192;
+constexpr auto BUFFERSIZE = 1024;
 
-constexpr std::size_t MESSAGE_TIMEOUT = 15;
+constexpr std::chrono::seconds MESSAGE_TIMEOUT{15};
 constexpr std::chrono::seconds READ_TIMEOUT_SECOND{0};
 constexpr std::chrono::microseconds READ_TIMEOUT_USECOND{100};
-
-// assertion for the current state of serialisation
-static_assert(BUFFERSIZE % 2 == 0,
-              "Buffer size should be set to a value dividable by 2!");
 
 enum class OpCode : uint8_t {
   error,
@@ -92,7 +88,7 @@ public:
 
   /// @brief Reads data from the stream into the buffer until a condition is met
   /// or an error occurs
-  std::optional<size_t> read_all(const std::atomic<bool>& shouldStop);
+  std::optional<size_t> read_all();
 
   /// @brief Clears the internal tracking of read data, but does NOT clear the
   /// buffer itself
@@ -164,6 +160,9 @@ public:
   UnixSocket() = delete;
   UnixSocket(const std::string& host);
   ~UnixSocket();
+
+  /// @brief the buffer used for reading and writing
+  StreamBuffer connection_stream;
 
   /// @brief generate an encoded file system path to the socket
   std::filesystem::path generate_path() const;

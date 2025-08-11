@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <future>
 #include <iostream>
 
 Stream::Stream(socket_t sock)
@@ -128,18 +129,14 @@ StreamReader::reset_read_state()
 }
 
 std::optional<size_t>
-StreamReader::read_all(const std::atomic<bool>& shouldStop)
+StreamReader::read_all()
 {
-  // The chunk size determines how much data we try to read at once.
-  // This should be efficient for the underlying socket and buffer.
-  constexpr size_t CHUNK_SIZE = 1024; // read in 1KB chunks.
-
-  while (!shouldStop) {
+  while (true) {
     // Get a writable span in the buffer. The buffer handles resizing.
     // The span's size indicates how much space is available to fill.
     nonstd::span<uint8_t> writable_span;
     try {
-      writable_span = m_buffer.get().prepare(CHUNK_SIZE);
+      writable_span = m_buffer.get().prepare(BUFFERSIZE);
     } catch (const std::out_of_range& e) {
       std::cerr << "StreamReader error: " << e.what() << "\n";
       return std::nullopt;
@@ -152,12 +149,6 @@ StreamReader::read_all(const std::atomic<bool>& shouldStop)
     // space. This might happen if CHUNK_SIZE was 0 or MAX_MSG_SIZE was hit and
     // we couldn't grow.
     if (writable_span.empty()) {
-      // If there's already data read but we can't get more space, it implies a
-      // limit hit. If m_bytes_consumed is 0 and we can't even get a chunk, it's
-      // an error/stuck state.
-      if (m_bytes_consumed == 0) {
-        return std::nullopt; // Cannot proceed
-      }
       break; // Exit loop to return current progress.
     }
 
@@ -169,13 +160,13 @@ StreamReader::read_all(const std::atomic<bool>& shouldStop)
       m_bytes_consumed += bytes_read;
     } else if (bytes_read == 0) {
       if (m_bytes_consumed == 0) {
-        return std::nullopt;
+        continue;
       }
       // We have some data, but no more will come -> break and return
       break;
     } else { // bytes_read < 0
       // An error occurred during read but it should be handled already.
-      return std::nullopt;
+      break;
     }
   }
 
@@ -190,9 +181,7 @@ StreamReader::read_all(const std::atomic<bool>& shouldStop)
 }
 
 UnixSocket::UnixSocket(const std::string& host)
-  : m_path(host),
-    m_read_buffer(tlv::g_read_buffer),
-    m_write_buffer(tlv::g_write_buffer)
+  : m_path(host)
 {
 }
 
@@ -251,16 +240,17 @@ UnixSocket::start(bool is_server)
   // TODO Decide if clearing here is appropriate i.e. m_write_buffer.clear();
   m_socket_stream = std::make_unique<Stream>(m_socket_id);
 
-  m_should_end_flag.store(false); // Reset flag
+  if (is_server) {
+    m_should_end_flag.store(false); // Reset flag
+  }
   m_init_status = true;
 
-  // Start the listener thread.
-  // Ensure any previous thread is joined before starting a new one.
-  if (m_listen_thread.joinable()) {
-    m_listen_thread.join();
+  if (is_server) {
+    if (m_listen_thread.joinable()) {
+      m_listen_thread.join();
+    }
+    m_listen_thread = std::thread(&UnixSocket::listener_loop, this);
   }
-  m_listen_thread = std::thread(&UnixSocket::listener_loop, this);
-
   return true;
 }
 
@@ -353,28 +343,32 @@ UnixSocket::send(nonstd::span<const uint8_t> msg)
 OpCode
 UnixSocket::receive(size_t& bytes_available)
 {
-  m_is_receiving.store(true);
-  std::unique_lock<std::mutex> lock(m_buffer_data_mutex);
-  if (!m_buffer_data_cond.wait_for(
-        lock, std::chrono::seconds(MESSAGE_TIMEOUT), [&] {
-          m_is_receiving.store(false);
-          return m_bytes_available_in_buffer.load() > 0;
-        })) {
-    return OpCode::timeout;
+  if (!m_init_status || !m_socket_stream) {
+    return OpCode::error;
   }
-  bytes_available = m_bytes_available_in_buffer.load();
-  m_bytes_available_in_buffer.store(0);
-  m_is_receiving.store(false);
-  return OpCode::ok;
+
+  StreamReader reader(*m_socket_stream, connection_stream);
+  auto future =
+    std::async(std::launch::async, [&reader]() { return reader.read_all(); });
+  future.wait_for(MESSAGE_TIMEOUT);
+  const auto message = future.get();
+
+  if (message.has_value()) {
+    bytes_available = message.value();
+    return OpCode::ok;
+  } else {
+    bytes_available = 0;
+    return OpCode::timeout; // or OpCode::error depending on why read_all failed
+  }
 }
 
 void
 UnixSocket::listener_loop()
 {
-  StreamReader reader(*m_socket_stream, m_read_buffer);
+  StreamReader reader(*m_socket_stream, connection_stream);
   // disattached thread keeps working through this cycle
   while (!m_should_end_flag) {
-    const auto message = reader.read_all(m_should_end_flag);
+    const auto message = reader.read_all();
     reader.reset_read_state();
 
     if (m_should_end_flag) {
