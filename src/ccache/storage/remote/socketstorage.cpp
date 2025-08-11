@@ -6,6 +6,7 @@
 #include "ccache/storage/remote/socketbackend/tlv_protocol.hpp"
 #include "ccache/util/bytes.hpp"
 #include "ccache/util/logging.hpp"
+#include "ccache/util/socketinterface.hpp"
 #include "ccache/util/string.hpp"
 #include "socketbackend/launcher.hpp"
 
@@ -32,10 +33,17 @@ constexpr std::chrono::seconds STARTUP_DELAY(5);
 
 class BackendNode : public RemoteStorage::Backend
 {
+private:
+  template<typename... Args>
+  tl::expected<tlv::TLVParser::ParseResult, tlv::ResponseStatus>
+  dispatch(const int& msg_tag, Args&&... args);
+
 public:
   BackendNode(const Url& url,
               const std::string& name,
               const std::vector<RemoteStorage::Backend::Attribute>& attributes);
+
+  int setup_backend_service();
 
   tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
   get(const Hash::Digest& key) override;
@@ -73,21 +81,17 @@ SocketStorage::create_backend(
     real_url, util::format_base16(name.digest()), attributes);
   sleep(1);
 
-  if (setup_backend_service(*rbackend->bsock) < 1) {
+  if (rbackend->setup_backend_service() < 1) {
     return nullptr;
   }
   return rbackend;
 }
 
 int
-SocketStorage::setup_backend_service(UnixSocket& sock) const
+BackendNode::setup_backend_service()
 {
-  tlv::TLVParser parser;
-  auto res = tlv::dispatch(parser,
-                           sock,
-                           tlv::MSG_TYPE_SETUP_REQUEST,
-                           tlv::SETUP_TYPE_VERSION,
-                           tlv::TLV_VERSION);
+  auto res = dispatch(
+    tlv::MSG_TYPE_SETUP_REQUEST, tlv::SETUP_TYPE_VERSION, tlv::TLV_VERSION);
 
   if (!res) {
     LOG("DEBUG msg_type_notify {} message went wrong!",
@@ -102,7 +106,7 @@ BackendNode::BackendNode(
   const Url& url,
   const std::string& name,
   const std::vector<RemoteStorage::Backend::Attribute>& attributes)
-  : bsock(std::make_unique<UnixSocket>(name, 0xFF))
+  : bsock(std::make_unique<UnixSocket>(name))
 {
   if (bsock->start(false)) {
     return;
@@ -170,9 +174,7 @@ BackendNode::BackendNode(
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 BackendNode::get(const Hash::Digest& key)
 {
-  tlv::TLVParser parser;
-  auto res = tlv::dispatch(
-    parser, *bsock, tlv::MSG_TYPE_GET_REQUEST, tlv::FIELD_TYPE_KEY, key);
+  auto res = dispatch(tlv::MSG_TYPE_GET_REQUEST, tlv::FIELD_TYPE_KEY, key);
 
   if (!res) {
     if (res.error() == tlv::NO_FILE) {
@@ -195,17 +197,13 @@ BackendNode::put(const Hash::Digest& key,
                  nonstd::span<const uint8_t> value,
                  bool only_if_missing)
 {
-  tlv::TLVParser parser;
-  auto res =
-    tlv::dispatch(parser,
-                  *bsock,
-                  tlv::MSG_TYPE_PUT_REQUEST,
-                  tlv::FIELD_TYPE_KEY,
-                  key,
-                  tlv::FIELD_TYPE_VALUE,
-                  value,
-                  tlv::FIELD_TYPE_FLAGS,
-                  only_if_missing ? uint8_t(0x0) : tlv::OVERWRITE_FLAG);
+  auto res = dispatch(tlv::MSG_TYPE_PUT_REQUEST,
+                      tlv::FIELD_TYPE_KEY,
+                      key,
+                      tlv::FIELD_TYPE_VALUE,
+                      value,
+                      tlv::FIELD_TYPE_FLAGS,
+                      only_if_missing ? uint8_t(0x0) : tlv::OVERWRITE_FLAG);
 
   if (!res) {
     if (res.error() == tlv::SUCCESS) {
@@ -221,12 +219,55 @@ BackendNode::put(const Hash::Digest& key,
   return true;
 }
 
+template<typename... Args>
+inline tl::expected<tlv::TLVParser::ParseResult, tlv::ResponseStatus>
+BackendNode::dispatch(const int& msg_tag, Args&&... args)
+{
+  static_assert(sizeof...(args) % 2 == 0,
+                "Arguments must come in pairs: tag, value, tag, value, ...");
+  tlv::TLVSerializer serializer{bsock->connection_stream};
+  auto [data, length] =
+    serializer.serialize(msg_tag, std::forward<Args>(args)...);
+
+  auto opcode = bsock->send({data, data + length});
+  serializer.release();
+  if (opcode == OpCode::error) {
+    return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
+  } else if (opcode == OpCode::timeout) {
+    return tl::unexpected<tlv::ResponseStatus>(tlv::TIMEOUT);
+  }
+
+  tlv::TLVParser parser;
+  size_t received_size;
+  opcode = bsock->receive(received_size);
+  if (opcode == OpCode::error) {
+    return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
+  } else if (opcode == OpCode::timeout) {
+    return tl::unexpected<tlv::ResponseStatus>(tlv::TIMEOUT);
+  }
+
+  auto& res = parser.parse({bsock->connection_stream.data(), received_size});
+  if (!res.success) {
+    return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
+  }
+
+  tlv::ResponseStatus status_code;
+  auto errcode_field = getfield(res.fields, tlv::FIELD_TYPE_STATUS_CODE);
+  std::memcpy(&status_code, errcode_field->data.data(), errcode_field->length);
+
+  if (status_code != tlv::SUCCESS) {
+    // TODO LOG the error message?
+    return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
+  }
+
+  return res;
+}
+
 tl::expected<bool, RemoteStorage::Backend::Failure>
 BackendNode::remove(const Hash::Digest& key)
 {
   tlv::TLVParser parser;
-  auto res = tlv::dispatch(
-    parser, *bsock, tlv::MSG_TYPE_DEL_REQUEST, tlv::FIELD_TYPE_KEY, key);
+  auto res = dispatch(tlv::MSG_TYPE_DEL_REQUEST, tlv::FIELD_TYPE_KEY, key);
 
   if (!res) {
     if (res.error() == tlv::SUCCESS) {

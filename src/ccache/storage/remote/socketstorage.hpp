@@ -19,7 +19,6 @@
 #pragma once
 
 #include "ccache/storage/remote/remotestorage.hpp"
-#include "ccache/util/socketinterface.hpp"
 
 #include <ccache/hash.hpp>
 #include <ccache/util/bytes.hpp>
@@ -44,8 +43,6 @@ public:
   std::unique_ptr<Backend> create_backend(
     const Url& url,
     const std::vector<Backend::Attribute>& attributes) const override;
-
-  int setup_backend_service(UnixSocket& sock) const;
 };
 
 } // namespace storage::remote

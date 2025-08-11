@@ -1,5 +1,4 @@
 #include "ccache/util/assertions.hpp"
-#include "ccache/util/socketinterface.hpp"
 #include "tlv_buffer.hpp"
 #include "tlv_constants.hpp"
 
@@ -14,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -182,7 +182,6 @@ public:
   TLVParser()
   {
     m_result.fields.reserve(4); // Pre-allocate for common case
-    g_read_buffer.release();
   }
 
   ParseResult&
@@ -235,20 +234,21 @@ class TLVSerializer
 {
 private:
   std::size_t m_position{0};
+  std::reference_wrapper<StreamBuffer<uint8_t>> m_buffer;
 
   size_t
   encode_length(uint32_t length)
   {
     if (length <= LENGTH_1_BYTE_MAX) {
-      g_write_buffer.write(&length, sizeof(uint8_t));
+      m_buffer.get().write(&length, sizeof(uint8_t));
       return 1;
     } else if (length <= 0xFFFF) {
-      g_write_buffer.write(&LENGTH_3_BYTE_FLAG, sizeof(uint8_t));
-      g_write_buffer.write(&length, sizeof(uint16_t));
+      m_buffer.get().write(&LENGTH_3_BYTE_FLAG, sizeof(uint8_t));
+      m_buffer.get().write(&length, sizeof(uint16_t));
       return 3;
     } else {
-      g_write_buffer.write(&LENGTH_5_BYTE_FLAG, sizeof(uint8_t));
-      g_write_buffer.write(&length, sizeof(uint32_t));
+      m_buffer.get().write(&LENGTH_5_BYTE_FLAG, sizeof(uint8_t));
+      m_buffer.get().write(&length, sizeof(uint32_t));
       return 5;
     }
   }
@@ -257,7 +257,7 @@ private:
   begin_message(const MessageHeader& msghdr)
   {
     m_position = TLV_HEADER_SIZE; // position past header
-    g_write_buffer.write(&msghdr, sizeof(MessageHeader));
+    m_buffer.get().write(&msghdr, sizeof(MessageHeader));
     return true;
   }
 
@@ -294,14 +294,14 @@ private:
     }
 
     // Write tag
-    g_write_buffer.write(&tag, sizeof(uint8_t));
+    m_buffer.get().write(&tag, sizeof(uint8_t));
     m_position++;
 
     // Write variable length
     m_position += encode_length(length);
 
     // Write value
-    g_write_buffer.write(data, length);
+    m_buffer.get().write(data, length);
     m_position += length;
     return true;
   }
@@ -318,18 +318,25 @@ private:
     if (m_position == 0) {
       return {nullptr, 0};
     }
-    return {g_write_buffer.data(), m_position};
+    return {m_buffer.get().data(), m_position};
   }
 
 public:
-  TLVSerializer() {
-    g_write_buffer.release();
-  }
+  TLVSerializer(StreamBuffer<uint8_t>& stream) 
+  : m_buffer(stream)
+  {
+  } 
+  TLVSerializer() = delete;
+  TLVSerializer(const TLVSerializer&) = delete;
+  TLVSerializer& operator=(const TLVSerializer&) = delete;
+  TLVSerializer(TLVSerializer&&) = delete;
+  TLVSerializer& operator=(TLVSerializer&&) = delete;
+  ~TLVSerializer() = default;
 
   void
   release()
   {
-    g_write_buffer.release();
+    m_buffer.get().release();
     m_position = 0;
   }
 
@@ -337,7 +344,7 @@ public:
   std::pair<uint8_t*, size_t>
   serialize(const int& msg_tag, Args&&... args)
   {
-    g_read_buffer.release();
+    m_buffer.get().release();
     begin_message({TLV_VERSION, static_cast<uint16_t>(msg_tag)});
 
     auto serialise_fields =
@@ -356,49 +363,5 @@ public:
     return finalize();
   }
 };
-
-template<typename... Args>
-inline tl::expected<TLVParser::ParseResult, ResponseStatus>
-dispatch(UnixSocket& sock,
-         const int& msg_tag,
-         Args&&... args)
-{
-  static_assert(sizeof...(args) % 2 == 0,
-                "Arguments must come in pairs: tag, value, tag, value, ...");
-  TLVSerializer serializer;
-  auto [data, length] = serializer.serialize(msg_tag, std::forward<Args>(args)...);
-
-  auto opcode = sock.send({data, data + length});
-  if (opcode == OpCode::error) {
-    return tl::unexpected<ResponseStatus>(ERROR);
-  } else if (opcode == OpCode::timeout) {
-    return tl::unexpected<ResponseStatus>(TIMEOUT);
-  }
-  
-  TLVParser parser;
-  size_t received_size;
-  opcode = sock.receive(received_size);
-  if (opcode == OpCode::error) {
-    return tl::unexpected<ResponseStatus>(ERROR);
-  } else if (opcode == OpCode::timeout) {
-    return tl::unexpected<ResponseStatus>(TIMEOUT);
-  }
-
-  auto& res = parser.parse({g_read_buffer.data(), received_size});
-  if (!res.success) {
-    return tl::unexpected<ResponseStatus>(ERROR);
-  }
-
-  ResponseStatus status_code;
-  auto errcode_field = getfield(res.fields, FIELD_TYPE_STATUS_CODE);
-  std::memcpy(&status_code, errcode_field->data.data(), errcode_field->length);
-
-  if (status_code != SUCCESS) {
-    // TODO LOG the error message?
-    return tl::unexpected<ResponseStatus>(status_code);
-  }
-
-  return res;
-}
 
 } // namespace tlv
