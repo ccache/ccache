@@ -1,5 +1,5 @@
 #include "ccache/util/assertions.hpp"
-#include "tlv_buffer.hpp"
+#include "ccache/util/streambuffer.hpp"
 #include "tlv_constants.hpp"
 
 #include <nonstd/span.hpp>

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ccache/storage/remote/socketbackend/tlv_buffer.hpp"
+#include "ccache/util/streambuffer.hpp"
 
 #include <nonstd/span.hpp>
 
