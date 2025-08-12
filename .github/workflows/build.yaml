@@ -195,6 +195,7 @@ jobs:
 
           - sys: clangarm64
             compiler: clang
+            extra_cmake_params: -DENABLE_TESTING=OFF # occasionally crashes with "Exception: SegFault"
             os: windows-11-arm
 
     name: 'Windows MSYS2 ${{ matrix.sys }} ${{ matrix.compiler }}'
