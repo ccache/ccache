@@ -51,34 +51,9 @@ struct TLVFieldRef
 TLVFieldRef*
 getfield(std::vector<TLVFieldRef>& fields, uint16_t target_tag)
 {
-  if (fields.size() < 8) {
-    for (auto& field : fields) {
-      if (field.tag == target_tag) {
-        return &field;
-      }
-    }
-    return nullptr;
-  }
-
-  // SIMD search for larger field counts
-  __m128i target = _mm_set1_epi16(target_tag);
-
-  for (size_t i = 0; i + 8 <= fields.size(); i += 8) {
-    __m128i tags =
-      _mm_loadu_si128(reinterpret_cast<const __m128i*>(&fields[i].tag));
-
-    __m128i cmp = _mm_cmpeq_epi16(tags, target);
-    int mask = _mm_movemask_epi8(cmp);
-
-    if (mask) {
-      int pos = __builtin_ctz(mask) / 2; // Convert byte mask to element
-      return &fields[i + pos];
-    }
-  }
-
-  for (size_t i = fields.size() & ~7; i < fields.size(); ++i) {
-    if (fields[i].tag == target_tag) {
-      return &fields[i];
+  for (auto& field : fields) {
+    if (field.tag == target_tag) {
+      return &field;
     }
   }
 
