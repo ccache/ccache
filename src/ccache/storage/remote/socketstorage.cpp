@@ -3,7 +3,7 @@
 #include "ccache/hash.hpp"
 #include "ccache/storage/remote/remotestorage.hpp"
 #include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
-#include "ccache/storage/remote/socketbackend/tlv_protocol.hpp"
+#include "ccache/storage/remote/socketbackend/tlv_codec.hpp"
 #include "ccache/util/bytes.hpp"
 #include "ccache/util/logging.hpp"
 #include "ccache/util/socketinterface.hpp"
