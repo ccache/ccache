@@ -45,6 +45,9 @@ Here are some hints to make the process smoother:
   post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
 * Please add test cases for your new changes if applicable.
 * Please follow the ccache's code style (see the section below).
+* Ccache allows the separate development of a backend process which connects to
+  a remote storage and propagates requests from ccache to it. If you wish to
+  implement a backend process have a look in `doc/REMOTE_STORAGE.md`.
 
 ## Commit message conventions
 
