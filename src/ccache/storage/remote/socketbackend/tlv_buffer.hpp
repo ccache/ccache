@@ -15,7 +15,7 @@ template<typename T> class StreamBuffer
 {
 public:
   StreamBuffer()
-   : m_buffer(DEFAULT_ALLOC)
+    : m_buffer(DEFAULT_ALLOC)
   {
   }
   StreamBuffer(const StreamBuffer&) = default;
@@ -93,16 +93,19 @@ public:
   }
 
   // After writing into the span, this commits the number of elements written
-  void
+  bool
   commit(size_t n)
   {
     if (n > MAX_MSG_SIZE) {
-      throw std::logic_error("Committing more than MAX_MSG_SIZE");
+      std::cerr << "StreamBuffer::commit: Committing more than MAX_MSG_SIZE\n";
+      return false;
     }
     if (m_size + n > capacity()) {
-      throw std::logic_error("Committing beyond buffer capacity");
+      std::cerr << "StreamBuffer::commit: Committing beyond buffer capacity\n";
+      return false;
     }
     m_size += n;
+    return true;
   }
 
   // Prepares a writable span of `n` items in the buffer
@@ -114,14 +117,13 @@ public:
   prepare(size_t n)
   {
     if (m_size + n > MAX_MSG_SIZE || n == 0) {
-      std::cerr << "StreamBuffer::prepare: Cannot prepare span for n=" << n
+      std::cerr << "StreamBuffer::prepare: Warning. n=" << n
                 << ".\n";
       return {};
     }
 
     if (!ensure_capacity(m_size + n)) {
-      std::cerr
-        << "StreamBuffer::prepare: Error - failed to ensure capacity.\n";
+      std::cerr << "StreamBuffer::prepare: Error - failed to ensure capacity\n";
       return {};
     }
 
@@ -146,9 +148,6 @@ private:
   void
   resize(size_t n)
   {
-    if (n > m_buffer.capacity()) {
-      m_buffer.reserve(n);
-    }
     m_buffer.resize(n);
   }
 
@@ -168,6 +167,7 @@ private:
 
       try {
         m_buffer.reserve(new_capacity);
+        m_buffer.resize(new_capacity);
       } catch (const std::bad_alloc& e) {
         std::cerr << "StreamBuffer error: Failed to reserve capacity: "
                   << e.what() << "\n";
