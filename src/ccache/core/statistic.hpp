@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -81,7 +81,9 @@ enum class Statistic {
   disabled = 81,
   bad_input_file = 82,
   modified_input_file = 83,
-  END = 84
+  unsupported_source_encoding = 84,
+
+  END = 85,
 };
 
 enum class StatisticsFormat {
