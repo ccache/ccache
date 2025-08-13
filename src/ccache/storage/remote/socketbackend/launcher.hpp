@@ -7,39 +7,95 @@
 #include <unistd.h>
 
 #include <cstddef>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 namespace storage::remote::backend {
 namespace fs = std::filesystem;
 
-inline void
+const std::vector<fs::path> k_fix_paths_to_search{
+#ifdef _WIN32
+  "C:\\Program Files\\ccache",
+  "C:\\Program Files (x86)\\ccache",
+#else
+  "/usr/local/libexec/ccache", "/usr/libexec/ccache"
+#endif
+};
+
+fs::path
+search_for_executable(const std::string& name, const fs::path& dir)
+{
+  if (dir.empty()) {
+    return {};
+  }
+
+  const std::vector<fs::path> candidates = {
+    dir / name,
+#ifdef _WIN32
+    dir / FMT("{}.exe", name),
+#endif
+  };
+  for (const auto& candidate : candidates) {
+    const bool candidate_exists =
+#ifdef _WIN32
+      util::DirEntry(candidate).is_regular_file();
+#else
+      access(candidate.c_str(), X_OK) == 0;
+#endif
+    if (candidate_exists) {
+      return candidate;
+    }
+  }
+
+  return {};
+}
+
+// Looks for the executable binary for helper process
+//
+// (a) in the directory where the ccache binary is located
+// (b) in $PATH, and
+// (c) in ccache's libexec path.
+fs::path
+find_remote_helper(const std::string& executable_name)
+{
+  // find in ccache binary directory (current directory)
+  if (auto result = search_for_executable(executable_name, fs::current_path());
+      !result.empty()) {
+    return result;
+  }
+
+  // find in PATH
+  for (const auto& dir : util::getenv_path_list("PATH")) {
+    if (auto result = search_for_executable(executable_name, dir);
+        !result.empty()) {
+      return result;
+    }
+  }
+
+  // look into the libexec directory
+  for (const auto& dir : k_fix_paths_to_search) {
+    if (auto result = search_for_executable(executable_name, dir);
+        !result.empty()) {
+      return result;
+    }
+  }
+
+  return {};
+}
+
+inline bool
 start_daemon(const std::string type,
              const fs::path& socket_path,
              const std::string& url,
-             const std::vector<RemoteStorage::Backend::Attribute> attributes,
+             const std::vector<RemoteStorage::Backend::Attribute>& attributes,
              const size_t buffer_size)
 {
-  fs::path helper_exec;
-
-#ifdef _WIN32
-  PWSTR path_tmp;
-  if (SUCCEEDED(
-        SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_tmp))) {
-    helper_exec = fs::path(path_tmp) / ("ccache-backend-" + type);
-    CoTaskMemFree(path_tmp);
-  } else {
-    LOG("Failed to get known folder path! ERROR {}", "WIN32");
-    return;
-  }
-#else
-  // TODO for later find_executable
-  //            find_executable_in_path("executable", {"path1", "path2"});
-  helper_exec = // "/etc/libexec/ccache-backend";
-    "/home/rocky/repos/py_server_script/bin" / fs::path("ccache-backend-" + type);
-#endif
-
-  if (!fs::exists(helper_exec)) { // TODO
+  const std::string executable_name = "ccache-" + type + "-storage";
+  const fs::path helper_exec = find_remote_helper(executable_name);
+  if (!fs::exists(helper_exec)) {
+    LOG("No storage executable found for scheme '{}'!", type);
+    return false; // return false TODO
   }
 
   // extern char **environ;
@@ -61,10 +117,9 @@ start_daemon(const std::string type,
   si.cb = sizeof(si);
   ZeroMemory(&pi, sizeof(pi));
 
-  std::string commandLine = helper_exec.string() + " 2>&1";
-  // + " " + socketFlag + " " + bufferFlag + " " + urlFlag + " 2>&1";
+  std::string command_line = helper_exec.string() + " 2>&1";
   if (!CreateProcessA(nullptr,
-                      const_cast<char*>(commandLine.c_str()),
+                      const_cast<char*>(command_line.c_str()),
                       nullptr,
                       nullptr,
                       FALSE,
@@ -74,7 +129,7 @@ start_daemon(const std::string type,
                       &si,
                       &pi)) {
     LOG("Failed to start helper process {}", helper_exec.generic_string());
-    return;
+    return false;
   }
 
   CloseHandle(pi.hProcess);
@@ -83,17 +138,19 @@ start_daemon(const std::string type,
   pid_t pid = fork();
   if (pid == 0) { // Child process
     int exres = execle(helper_exec.c_str(),
-           helper_exec.c_str(),
-           "2>&1",
-           nullptr, // arguments until a NULL pointer
-           environ);
+                       helper_exec.c_str(),
+                       "2>&1",
+                       nullptr, // arguments until a NULL pointer
+                       environ);
     LOG("DEBUG Failure {} to start helper process {}",
-        exres, helper_exec.generic_string());
+        exres,
+        helper_exec.generic_string());
     exit(EXIT_FAILURE);
   } else if (pid < 0) {
     LOG("DEBUG Failed to fork process {}", helper_exec.generic_string());
     exit(EXIT_FAILURE);
   }
 #endif
+  return true;
 }
 } // namespace storage::remote::backend

@@ -138,10 +138,8 @@ BackendNode::BackendNode(
       fs::remove(sock_path);
     }
 
-    backend::start_daemon(
+    daemon_started = backend::start_daemon(
       url.scheme(), sock_path, url.str(), attributes, BUFFERSIZE);
-
-    daemon_started = true;
   } else {
     LOG("Process {} is waiting for others to intialise daemon", getpid());
     // just be a tiny bit patient
