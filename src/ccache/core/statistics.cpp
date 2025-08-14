@@ -60,7 +60,10 @@ struct StatisticsField
 
 } // namespace
 
-#define FIELD(id, ...) {Statistic::id, #id, __VA_ARGS__}
+#define FIELD(id, ...)                                                         \
+  {                                                                            \
+    Statistic::id, #id, __VA_ARGS__                                            \
+  }
 
 const StatisticsField k_statistics_fields[] = {
   // Field "none" intentionally omitted.
