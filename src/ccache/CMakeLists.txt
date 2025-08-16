@@ -56,6 +56,10 @@ target_link_libraries(
     Threads::Threads
 )
 
+if(EXPERIMENTAL_STORAGE_BACKEND)
+target_link_libraries(ccache_framework PUBLIC dep_rwqueue)
+endif()
+
 if(WIN32)
   target_link_libraries(ccache_framework PUBLIC win32_compat)
 endif()
@@ -71,6 +75,10 @@ endif()
 if(HTTP_STORAGE_BACKEND)
   target_compile_definitions(ccache_framework PUBLIC -DHAVE_HTTP_STORAGE_BACKEND)
   target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
+endif()
+
+if(EXPERIMENTAL_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_EXPERIMENTAL_STORAGE_BACKEND)
 endif()
 
 add_executable(test-lockfile test_lockfile.cpp)
