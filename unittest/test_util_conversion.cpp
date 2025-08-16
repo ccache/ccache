@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,11 +17,14 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <ccache/util/conversion.hpp>
+#include <ccache/util/filesystem.hpp>
 
 #include <doctest/doctest.h>
 
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>
+
+namespace fs = util::filesystem;
 
 TEST_SUITE_BEGIN("util");
 
@@ -131,6 +134,7 @@ TEST_CASE("util::to_string")
   CHECK(util::to_string(nonstd::span<const uint8_t>(bytes))
         == std::string(str));
   CHECK(util::to_string(util::Bytes(bytes, 3)) == std::string(str));
+  CHECK(util::to_string(fs::path("foo/bar")) == std::string("foo/bar"));
 }
 
 TEST_CASE("util::to_string_view")

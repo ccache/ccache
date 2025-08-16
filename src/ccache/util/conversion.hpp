@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,6 +23,7 @@
 #include <nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -154,6 +155,13 @@ inline std::string
 to_string(const Bytes& bytes)
 {
   return std::string(to_string_view(bytes));
+}
+
+template<>
+inline std::string
+to_string(const std::filesystem::path& path)
+{
+  return path.string();
 }
 
 inline std::string_view
