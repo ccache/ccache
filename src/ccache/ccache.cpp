@@ -618,7 +618,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       while (!inc_path.empty() && inc_path.back() == '/') {
         inc_path.pop_back();
       }
-      if (!ctx.config.base_dir().empty()) {
+      if (!ctx.config.base_dirs().empty()) {
         auto it = relative_inc_path_cache.find(inc_path);
         if (it == relative_inc_path_cache.end()) {
           std::string rel_inc_path =
@@ -1085,7 +1085,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
       // paths because otherwise Ninja will use the abs path to original header
       // to check if a file needs to be recompiled.
       else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dir().empty()
+               && !ctx.config.base_dirs().empty()
                && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
         std::string orig_line(line.data(), line.length());
         std::string abs_inc_path =
@@ -1101,7 +1101,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
       // The MSVC /FC option causes paths in diagnostics messages to become
       // absolute. Those within basedir need to be changed into relative paths.
       else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dir().empty()) {
+               && !ctx.config.base_dirs().empty()) {
         size_t path_end = core::get_diagnostics_path_length(line);
         if (path_end != 0) {
           std::string_view abs_path = line.substr(0, path_end);

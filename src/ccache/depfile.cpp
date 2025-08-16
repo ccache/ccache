@@ -64,7 +64,7 @@ escape_filename(std::string_view filename)
 std::optional<std::string>
 rewrite_source_paths(const Context& ctx, std::string_view content)
 {
-  ASSERT(!ctx.config.base_dir().empty());
+  ASSERT(!ctx.config.base_dirs().empty());
 
   bool rewritten = false;
   bool first = true;
@@ -96,7 +96,7 @@ rewrite_source_paths(const Context& ctx, std::string_view content)
 tl::expected<void, std::string>
 make_paths_relative_in_output_dep(const Context& ctx)
 {
-  if (ctx.config.base_dir().empty()) {
+  if (ctx.config.base_dirs().empty()) {
     LOG_RAW("Base dir not set, skip using relative paths");
     return {}; // nothing to do
   }

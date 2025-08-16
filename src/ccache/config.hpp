@@ -58,7 +58,7 @@ public:
 
   bool absolute_paths_in_stderr() const;
   util::Args::ResponseFileFormat response_file_format() const;
-  const std::filesystem::path& base_dir() const;
+  const std::vector<std::filesystem::path>& base_dirs() const;
   const std::filesystem::path& cache_dir() const;
   const std::string& compiler() const;
   const std::string& compiler_check() const;
@@ -111,6 +111,7 @@ public:
   std::filesystem::path default_temporary_dir() const;
 
   void set_base_dir(const std::filesystem::path& value);
+  void set_base_dirs(const std::vector<std::filesystem::path>& value);
   void set_cache_dir(const std::filesystem::path& value);
   void set_compiler(const std::string& value);
   void set_compiler_type(CompilerType value);
@@ -173,7 +174,7 @@ private:
   bool m_absolute_paths_in_stderr = false;
   util::Args::ResponseFileFormat m_response_file_format =
     util::Args::ResponseFileFormat::auto_guess;
-  std::filesystem::path m_base_dir;
+  std::vector<std::filesystem::path> m_base_dirs;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
   std::string m_compiler_check = "mtime";
@@ -251,10 +252,10 @@ Config::response_file_format() const
                                   : util::Args::ResponseFileFormat::posix;
 }
 
-inline const std::filesystem::path&
-Config::base_dir() const
+inline const std::vector<std::filesystem::path>&
+Config::base_dirs() const
 {
-  return m_base_dir;
+  return m_base_dirs;
 }
 
 inline const std::filesystem::path&
@@ -534,7 +535,16 @@ Config::size_unit_prefix_type() const
 inline void
 Config::set_base_dir(const std::filesystem::path& value)
 {
-  m_base_dir = util::lexically_normal(value);
+  set_base_dirs({value});
+}
+
+inline void
+Config::set_base_dirs(const std::vector<std::filesystem::path>& value)
+{
+  m_base_dirs.clear();
+  for (const auto& path : value) {
+    m_base_dirs.push_back(util::lexically_normal(path));
+  }
 }
 
 inline void

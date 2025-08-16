@@ -22,6 +22,7 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/file.hpp>
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 
 #include <doctest/doctest.h>
@@ -29,6 +30,8 @@
 #include <limits>
 #include <string>
 #include <vector>
+
+namespace fs = util::filesystem;
 
 using doctest::Approx;
 using TestUtil::TestContext;
@@ -39,7 +42,7 @@ TEST_CASE("Config: default values")
 {
   Config config;
 
-  CHECK(config.base_dir().empty());
+  CHECK(config.base_dirs().empty());
   CHECK(config.cache_dir().empty()); // Set later
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
@@ -150,7 +153,7 @@ TEST_CASE("Config::update_from_file")
 
   Config config;
   REQUIRE(config.update_from_file("ccache.conf"));
-  CHECK(config.base_dir() == base_dir);
+  CHECK(config.base_dirs() == std::vector<fs::path>{base_dir});
   CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
   CHECK(config.compiler() == "foo");
   CHECK(config.compiler_check() == "none");
@@ -283,10 +286,9 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SUBCASE("relative base dir")
   {
-    REQUIRE(util::write_file("ccache.conf", "base_dir = relative/path"));
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      "ccache.conf:1: not an absolute path: \"relative/path\"");
+    REQUIRE(util::write_file("ccache.conf", "base_dir = relative"));
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        "ccache.conf:1: not an absolute path: \"relative\"");
 
     REQUIRE(util::write_file("ccache.conf", "base_dir ="));
     CHECK(config.update_from_file("ccache.conf"));

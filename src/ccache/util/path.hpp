@@ -19,13 +19,14 @@
 #pragma once
 
 #include <ccache/util/pathstring.hpp>
+#ifdef _WIN32
+#  include <ccache/util/string.hpp>
+#endif
 
 #include <filesystem>
 #include <string>
 #include <string_view>
-#ifdef _WIN32
-#  include <ccache/util/string.hpp>
-#endif
+#include <vector>
 
 namespace util {
 
@@ -79,6 +80,11 @@ make_path(const T&... args)
 // Windows.
 bool path_starts_with(const std::filesystem::path& path,
                       const std::filesystem::path& prefix);
+
+// Return whether `path` starts with any of `prefixes` considering path
+// specifics on Windows.
+bool path_starts_with(const std::filesystem::path& path,
+                      const std::vector<std::filesystem::path>& prefixes);
 
 // Access the underlying path string without having to copy it if
 // std::filesystem::path::value_type is char (that is, not wchar_t).

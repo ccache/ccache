@@ -64,21 +64,21 @@ TEST_CASE("depfile::rewrite_source_paths")
 
   SUBCASE("Base directory not in dep file content")
   {
-    ctx.config.set_base_dir("/foo/bar");
+    ctx.config.set_base_dirs({"/foo/bar"});
     CHECK(!depfile::rewrite_source_paths(ctx, ""));
     CHECK(!depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Base directory in dep file content but not matching")
   {
-    ctx.config.set_base_dir((cwd.parent_path() / "other").string());
+    ctx.config.set_base_dirs({(cwd.parent_path() / "other").string()});
     CHECK(!depfile::rewrite_source_paths(ctx, ""));
     CHECK(!depfile::rewrite_source_paths(ctx, content));
   }
 
   SUBCASE("Absolute paths under base directory rewritten")
   {
-    ctx.config.set_base_dir(cwd.string());
+    ctx.config.set_base_dirs({cwd.string()});
     const auto actual = depfile::rewrite_source_paths(ctx, content);
     const auto expected = FMT(
       "{0}/foo.o: \\\n"

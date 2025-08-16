@@ -56,6 +56,23 @@ SUITE_basedir() {
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
+    TEST "Several entries in CCACHE_BASEDIR"
+
+    basedir="$(pwd)/dir1:$(pwd)/dir2"
+
+    cd dir1
+    CCACHE_BASEDIR="${basedir}" $CCACHE_COMPILE -I"$(pwd)"/include -c src/test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    cd ../dir2
+    CCACHE_BASEDIR="${basedir}" $CCACHE_COMPILE -I"$(pwd)"/include -c src/test.c
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     TEST "Path normalization"
 

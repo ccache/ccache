@@ -150,4 +150,14 @@ path_starts_with(const fs::path& path, const fs::path& prefix)
          == p2_end;
 }
 
+bool
+path_starts_with(const std::filesystem::path& path,
+                 const std::vector<std::filesystem::path>& prefixes)
+{
+  return std::any_of(
+    std::begin(prefixes), std::end(prefixes), [&](const fs::path& prefix) {
+      return path_starts_with(path, prefix);
+    });
+}
+
 } // namespace util
