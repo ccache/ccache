@@ -31,6 +31,12 @@ namespace fs = util::filesystem;
 
 namespace {
 
+#ifdef _WIN32
+const char k_path_delimiter[] = ";";
+#else
+const char k_path_delimiter[] = ":";
+#endif
+
 template<typename T>
 std::vector<T>
 split_into(std::string_view string,
@@ -205,6 +211,12 @@ format_iso8601_timestamp(const TimePoint& time, TimeZone time_zone)
                    static_cast<long long unsigned int>(time.sec()));
   }
   return timestamp;
+}
+
+std::string
+join_path_list(const std::vector<std::filesystem::path>& path_list)
+{
+  return join(path_list, k_path_delimiter);
 }
 
 tl::expected<double, std::string>
@@ -515,12 +527,7 @@ split_option_with_concat_path(std::string_view string)
 std::vector<fs::path>
 split_path_list(std::string_view path_list)
 {
-#ifdef _WIN32
-  const char path_delimiter[] = ";";
-#else
-  const char path_delimiter[] = ":";
-#endif
-  auto strings = split_into_views(path_list, path_delimiter);
+  auto strings = split_into_views(path_list, k_path_delimiter);
   std::vector<fs::path> paths;
   std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
   return paths;
