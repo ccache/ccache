@@ -255,6 +255,30 @@ jobs:
           name: ${{ matrix.sys }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
+  build_documentation:
+    timeout-minutes: 30
+    name: Documentation
+    runs-on: ubuntu-24.04
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Prepare environment
+        run: |
+          sudo apt-get install -y asciidoctor
+      - name: Build documentation
+        run: ci/build-docs
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: |
+            doc/INSTALL.md
+            GPL-3.0.txt
+            install
+            README.md
+
   build_linux_aarch64_binary:
     timeout-minutes: 30
     name: Linux aarch64 binary
@@ -506,18 +530,6 @@ jobs:
             CXX: g++
             SPECIAL: build-and-verify-source-package
             apt_get: elfutils libzstd-dev libhiredis-dev asciidoctor
-
-          - name: HTML documentation
-            os: ubuntu-22.04
-            EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
-            RUN_TESTS: none
-            apt_get: libzstd-dev libhiredis-dev asciidoctor
-
-          - name: Manual page
-            os: ubuntu-22.04
-            EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
-            RUN_TESTS: none
-            apt_get: libzstd-dev libhiredis-dev asciidoctor
 
           - name: Clang-Tidy
             os: ubuntu-22.04
