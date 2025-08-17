@@ -342,18 +342,18 @@ jobs:
           name: linux-binary-x86_64
           path: install/bin/ccache
 
-  build_macos_universal:
+  build_macos_binary:
     timeout-minutes: 30
-    name: macOS universal binary
+    name: Build macOS binary
     runs-on: macos-15
     env:
       CMAKE_GENERATOR: Ninja
     steps:
       - name: Get source
         uses: actions/checkout@v4
-      - name: Build macOS universal binary
+      - name: Build macOS binary
         run: ci/build-macos-binary
-      - name: Archive universal binary
+      - name: Archive binary
         uses: actions/upload-artifact@v4
         with:
           name: macOS-binary
