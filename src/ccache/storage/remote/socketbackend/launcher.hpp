@@ -139,6 +139,7 @@ start_daemon(const std::string type,
   if (pid == 0) { // Child process
     int exres = execle(helper_exec.c_str(),
                        helper_exec.c_str(),
+                       util::logging::enabled() ? "--debug=1" : "",
                        "2>&1",
                        nullptr, // arguments until a NULL pointer
                        environ);
