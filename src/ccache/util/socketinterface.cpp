@@ -1,7 +1,9 @@
 #include "socketinterface.hpp"
 
+#include <sys/ioctl.h>
 #include <sys/types.h>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <future>
@@ -129,9 +131,9 @@ StreamReader::reset_read_state()
 }
 
 std::optional<size_t>
-StreamReader::read_all()
+StreamReader::read_all(const std::atomic<bool>& should_stop)
 {
-  while (true) {
+  while (!should_stop.load()) {
     // Get a writable span in the buffer. The buffer handles resizing.
     // The span's size indicates how much space is available to fill.
     nonstd::span<uint8_t> writable_span;
@@ -341,16 +343,19 @@ UnixSocket::send(nonstd::span<const uint8_t> msg)
 }
 
 OpCode
-UnixSocket::receive(size_t& bytes_available)
+UnixSocket::receive(size_t& bytes_available, bool is_op)
 {
   if (!m_init_status || !m_socket_stream) {
     return OpCode::error;
   }
 
+  std::atomic<bool> end_read{false};
   StreamReader reader(*m_socket_stream, connection_stream);
-  auto future =
-    std::async(std::launch::async, [&reader]() { return reader.read_all(); });
-  future.wait_for(MESSAGE_TIMEOUT);
+  auto future = std::async(std::launch::async, [&reader, &end_read]() {
+    return reader.read_all(end_read);
+  });
+  future.wait_for(is_op ? OPERATION_TIMEOUT : CONNECTION_TIMEOUT);
+  end_read.store(true);
   const auto message = future.get();
 
   if (message.has_value()) {
@@ -368,7 +373,7 @@ UnixSocket::listener_loop()
   StreamReader reader(*m_socket_stream, connection_stream);
   // disattached thread keeps working through this cycle
   while (!m_should_end_flag) {
-    const auto message = reader.read_all();
+    const auto message = reader.read_all(m_should_end_flag);
     reader.reset_read_state();
 
     if (m_should_end_flag) {

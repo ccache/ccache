@@ -89,7 +89,7 @@ public:
 
   /// @brief Reads data from the stream into the buffer until a condition is met
   /// or an error occurs
-  std::optional<size_t> read_all();
+  std::optional<size_t> read_all(const std::atomic<bool>& should_stop);
 
   /// @brief Clears the internal tracking of read data, but does NOT clear the
   /// buffer itself
@@ -171,7 +171,7 @@ public:
   OpCode send(nonstd::span<const uint8_t> msg);
 
   /// @brief receives a notification that data is available in the read buffer
-  OpCode receive(size_t& bytes_available);
+  OpCode receive(size_t& bytes_available, bool is_op = true);
 
 private:
   // Helper to establish the socket connection (bind/connect)
