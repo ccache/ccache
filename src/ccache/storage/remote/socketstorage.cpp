@@ -2,8 +2,8 @@
 
 #include "ccache/hash.hpp"
 #include "ccache/storage/remote/remotestorage.hpp"
-#include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
 #include "ccache/storage/remote/socketbackend/tlv_codec.hpp"
+#include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
 #include "ccache/util/bytes.hpp"
 #include "ccache/util/logging.hpp"
 #include "ccache/util/socketinterface.hpp"
@@ -90,13 +90,38 @@ SocketStorage::create_backend(
 int
 BackendNode::setup_backend_service()
 {
-  auto res = dispatch(
-    tlv::MSG_TYPE_SETUP_REQUEST, tlv::SETUP_TYPE_VERSION, tlv::TLV_VERSION);
+  auto res = dispatch(tlv::MSG_TYPE_SETUP_REQUEST,
+                      tlv::SETUP_TYPE_VERSION,
+                      tlv::TLV_VERSION,
+                      tlv::SETUP_TYPE_BUFFERSIZE,
+                      BUFFERSIZE,
+                      tlv::SETUP_TYPE_OPERATION_TIMEOUT,
+                      OPERATION_TIMEOUT);
 
   if (!res) {
     LOG("DEBUG msg_type_notify {} message went wrong!",
         tlv::MSG_TYPE_SETUP_REQUEST);
-    return INVALID_SOCKET;
+    return invalid_socket_t; // signals that no connection is possible
+  }
+
+  tlv::ResponseStatus status_code;
+  auto field = getfield(res->fields, tlv::FIELD_TYPE_STATUS_CODE);
+  std::memcpy(&status_code, field->data.data(), field->length);
+  if (field->data[0] == tlv::LOCAL_ERROR) {
+    field = getfield(res->fields, tlv::SETUP_TYPE_VERSION);
+    if (field) {
+      return invalid_socket_t;
+    }
+    field = getfield(res->fields, tlv::SETUP_TYPE_OPERATION_TIMEOUT);
+    if (field) {
+      uint32_t op_timeout;
+      std::memcpy(&op_timeout, field->data.data(), field->length);
+      OPERATION_TIMEOUT = std::chrono::seconds{op_timeout};
+    }
+    field = getfield(res->fields, tlv::SETUP_TYPE_BUFFERSIZE);
+    if (field) {
+      std::memcpy(&BUFFERSIZE, field->data.data(), field->length);
+    }
   }
 
   return 1;
@@ -237,7 +262,8 @@ BackendNode::dispatch(const int& msg_tag, Args&&... args)
 
   tlv::TLVParser parser;
   size_t received_size;
-  opcode = bsock->receive(received_size);
+  opcode =
+    bsock->receive(received_size, msg_tag != tlv::MSG_TYPE_SETUP_REQUEST);
   if (opcode == OpCode::error) {
     return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
   } else if (opcode == OpCode::timeout) {
@@ -253,7 +279,7 @@ BackendNode::dispatch(const int& msg_tag, Args&&... args)
   auto errcode_field = getfield(res.fields, tlv::FIELD_TYPE_STATUS_CODE);
   std::memcpy(&status_code, errcode_field->data.data(), errcode_field->length);
 
-  if (status_code != tlv::SUCCESS) {
+  if (status_code != tlv::SUCCESS && msg_tag != tlv::MSG_TYPE_SETUP_REQUEST) {
     // TODO LOG the error message?
     return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
   }
