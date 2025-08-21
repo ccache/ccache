@@ -1632,12 +1632,11 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   if (!(ctx.config.sloppiness().contains(core::Sloppy::locale))) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
-    const char* envvars[] = {
-      "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", nullptr};
-    for (const char** p = envvars; *p; ++p) {
-      const char* v = getenv(*p);
+    std::array envvars = {"LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES"};
+    for (const char* name : envvars) {
+      const char* v = getenv(name);
       if (v) {
-        hash.hash_delimiter(*p);
+        hash.hash_delimiter(name);
         hash.hash(v);
       }
     }
@@ -2132,7 +2131,7 @@ static tl::expected<std::optional<Hash::Digest>, Failure>
 get_manifest_key(Context& ctx, Hash& hash)
 {
   // Hash environment variables that affect the preprocessor output.
-  const char* envvars[] = {
+  std::array envvars = {
     "CPATH",
     "C_INCLUDE_PATH",
     "CPLUS_INCLUDE_PATH",
@@ -2142,12 +2141,11 @@ get_manifest_key(Context& ctx, Hash& hash)
     "CLANG_CONFIG_FILE_USER_DIR",   // Clang
     "INCLUDE",                      // MSVC
     "EXTERNAL_INCLUDE",             // MSVC
-    nullptr,
   };
-  for (const char** p = envvars; *p; ++p) {
-    const char* v = getenv(*p);
+  for (const char* name : envvars) {
+    const char* v = getenv(name);
     if (v) {
-      hash.hash_delimiter(*p);
+      hash.hash_delimiter(name);
       hash.hash(v);
     }
   }
