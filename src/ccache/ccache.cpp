@@ -1209,19 +1209,6 @@ to_cache(Context& ctx,
     args.push_back(ctx.args_info.output_dia);
   }
 
-  /*
-  // TODO we don't have to add it back when it was never removed, or should we?
-  if (ctx.args_info.generating_sarif) {
-    if (ctx.config.is_compiler_group_msvc()) {
-      args.push_back("-experimental:log");
-      args.push_back(ctx.args_info.output_sarif);
-    } else {
-      args.push_back("-fdiagnostics-format");
-      args.push_back("sarif-file");
-    }
-  }
-  */
-
   if (ctx.args_info.seen_double_dash) {
     args.push_back("--");
   }

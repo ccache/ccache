@@ -1076,21 +1076,20 @@ process_option_arg(const Context& ctx,
   }
 
   // we don't support gcc's -fdiagnostics-add-output yet
-  if (arg == "-fdiagnostics-format") {
-    if (i == args.size() - 1) {
-      LOG("Missing argument to {}", args[i]);
-      return Statistic::bad_compiler_arguments;
-    }
-    if (args[i + 1] == "sarif-file") {
+  if (arg == "-fdiagnostics-format=") {
+    using namespace std::string_view_literals;
+    auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
+    if (param == "sarif-file") {
       args_info.generating_sarif = true;
     }
-    i++;
+    state.add_compiler_only_arg(args[i]);
     return Statistic::none;
   }
 
   const std::string_view msvc_sarif_switch = "-experimental:log";
   if (util::starts_with(arg, msvc_sarif_switch)) {
-    // the argument can be seperated by space, but don't have to be
+    state.add_compiler_only_arg(args[i]);
+    // The argument can be separated by space, but doesn't have to be.
     std::string_view param;
     if (arg.size() == msvc_sarif_switch.size()) {
       if (i == args.size() - 1) {
@@ -1098,19 +1097,21 @@ process_option_arg(const Context& ctx,
         return Statistic::bad_compiler_arguments;
       }
       param = args[i + 1];
+      state.add_compiler_only_arg(args[i + 1]);
     } else {
       param = std::string_view(arg).substr(msvc_sarif_switch.size());
     }
     args_info.generating_sarif = true;
     // The param can be a filename or a dir (ends with '\'), both absolute or
     // relative
-    // TODO should we reject to handle absolute paths?
     if (util::ends_with(param, "\\")) {
       args_info.output_sarif = param;
     } else {
-      args_info.output_sarif =
-        core::make_relative_path(ctx, std::string(param) + ".sarif");
+      args_info.output_sarif = std::string(param) + ".sarif";
     }
+    args_info.output_sarif =
+      core::make_relative_path(ctx, args_info.output_sarif);
+    return Statistic::none;
   }
 
   if (config.compiler_type() == CompilerType::gcc) {
