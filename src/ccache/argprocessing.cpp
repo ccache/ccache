@@ -471,7 +471,9 @@ process_option_arg(const Context& ctx,
   // These are always too hard.
   if (compopt_too_hard(arg) || arg.starts_with("-fdump-")
       || arg.starts_with("-MJ") || arg.starts_with("--config-system-dir=")
-      || arg.starts_with("--config-user-dir=")) {
+      || arg.starts_with("--config-user-dir=")
+      || arg.starts_with("-fdiagnostics-add-output=")
+      || arg.starts_with("-fdiagnostics-set-output=")){
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
