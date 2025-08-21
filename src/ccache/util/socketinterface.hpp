@@ -48,9 +48,10 @@ constexpr auto SOCKET_PATH_LENGTH = 256;
 constexpr auto SOCKET_PATH_TEMPLATE =
   "/home/rocky/repos/py_server_script/daemons/backend-%s.sock";
 
-constexpr auto BUFFERSIZE = 1024;
+size_t BUFFERSIZE = 1024;
+std::chrono::seconds OPERATION_TIMEOUT{15};
 
-constexpr std::chrono::seconds MESSAGE_TIMEOUT{15};
+constexpr std::chrono::seconds CONNECTION_TIMEOUT{5};
 constexpr std::chrono::seconds READ_TIMEOUT_SECOND{0};
 constexpr std::chrono::microseconds READ_TIMEOUT_USECOND{100};
 

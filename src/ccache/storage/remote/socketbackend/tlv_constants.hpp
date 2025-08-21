@@ -19,9 +19,8 @@ constexpr uint16_t TLV_VERSION = 0x01;
 
 // SETUP-specific types (0x01 - 0x80)
 constexpr uint8_t SETUP_TYPE_VERSION = 0x01;
-constexpr uint8_t SETUP_TYPE_CONNECT_TIMEOUT = 0x02;
-constexpr uint8_t SETUP_TYPE_OPERATION_TIMEOUT = 0x03;
-constexpr uint8_t SETUP_TYPE_BUFFERSIZE = 0x04;
+constexpr uint8_t SETUP_TYPE_OPERATION_TIMEOUT = 0x02;
+constexpr uint8_t SETUP_TYPE_BUFFERSIZE = 0x03;
 
 // Application Types (0x81 - 0xFF)
 constexpr uint8_t FIELD_TYPE_KEY = 0x81;
@@ -92,7 +91,7 @@ template<> struct TagType<SETUP_TYPE_VERSION>
   using type = uint8_t;
 };
 
-template<> struct TagType<SETUP_TYPE_CONNECT_TIMEOUT>
+template<> struct TagType<SETUP_TYPE_OPERATION_TIMEOUT>
 {
   using type = uint32_t;
 };
