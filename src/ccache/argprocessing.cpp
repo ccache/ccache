@@ -1098,8 +1098,9 @@ process_option_arg(const Context& ctx,
         LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
       }
-      param = args[i + 1];
-      state.add_compiler_only_arg(args[i + 1]);
+      ++i;
+      param = args[i];
+      state.add_compiler_only_arg(args[i]);
     } else {
       param = std::string_view(arg).substr(msvc_sarif_switch.size());
     }
