@@ -1,8 +1,8 @@
-ARG BASE_IMAGE=almalinux:8
+ARG BASE_IMAGE=almalinux:9
 FROM ${BASE_IMAGE} AS build
 
 RUN dnf install -y dnf-plugins-core \
- && dnf config-manager --set-enabled powertools \
+ && dnf config-manager --set-enabled crb \
  && dnf install -y epel-release \
  && dnf install -y \
         blake3-devel \
@@ -17,6 +17,8 @@ RUN dnf install -y dnf-plugins-core \
         fmt-devel \
         gcc \
         gcc-c++ \
+        libstdc++-devel \
+        libstdc++-static \
         hiredis-devel \
         less \
         libzstd-devel \
