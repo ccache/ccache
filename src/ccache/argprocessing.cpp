@@ -1107,13 +1107,19 @@ process_option_arg(const Context& ctx,
     args_info.generating_sarif = true;
     // The param can be a filename or a dir (ends with '\'), both absolute or
     // relative
-    if (util::ends_with(param, "\\")) {
+    bool was_folder = util::ends_with(param, "\\");
+    if (was_folder) {
       args_info.output_sarif = param;
     } else {
       args_info.output_sarif = std::string(param) + ".sarif";
     }
     args_info.output_sarif =
       core::make_relative_path(ctx, args_info.output_sarif);
+    if (was_folder) {
+      // core::make_relative_path removes the trailing '\', but we need it
+      // later. So add it back
+      args_info.output_sarif += '\\';
+    }
     return Statistic::none;
   }
 
@@ -1488,7 +1494,7 @@ process_args(Context& ctx)
     if (ctx.config.is_compiler_group_msvc()) {
       if (args_info.output_sarif.native().back() == '\\') {
         args_info.output_sarif /=
-          args_info.input_file.filename().generic_string() + ".sarif";
+          args_info.input_file.stem().generic_string() + ".sarif";
       }
     } else {
       args_info.output_sarif = args_info.input_file;
