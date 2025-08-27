@@ -342,22 +342,22 @@ jobs:
           name: linux-binary-x86_64
           path: install/bin/ccache
 
-  build_macos_binary:
+  build_darwin_binary:
     timeout-minutes: 30
-    name: Build macOS binary
+    name: Build Darwin (macOS) binary
     runs-on: macos-15
     env:
       CMAKE_GENERATOR: Ninja
     steps:
       - name: Get source
         uses: actions/checkout@v4
-      - name: Build macOS binary
-        run: ci/build-macos-binary
-      - name: Archive binary
+      - name: Build Darwin binary
+        run: ci/build-darwin-binary
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: macOS-binary
-          path: build_universal/ccache
+          name: darwin-binary
+          path: install/bin/ccache
 
   build_windows_binary:
     timeout-minutes: 30
