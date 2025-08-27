@@ -385,13 +385,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install ${{ matrix.apt_get }}
       - name: Install llvm-mingw
         if: matrix.llvm_mingw != ''
+        env:
+          TOOLCHAIN_URL_PREFIX: "https://github.com/mstorsjo/llvm-mingw/releases/download/20250709/"
+          TOOLCHAIN_FILENAME: "llvm-mingw-20250709-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          TOOLCHAIN_SHA256: "60cafae6474c7411174cff1d4ba21a8e46cadbaeb05a1bace306add301628337"
         run: |
-          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20250709/llvm-mingw-20250709-ucrt-ubuntu-22.04-x86_64.tar.xz
-          tar -Jxf llvm-mingw-*.tar.xz
-          rm *.tar.xz
+          curl -LO ${TOOLCHAIN_URL_PREFIX}${TOOLCHAIN_FILENAME}
+          echo ${TOOLCHAIN_SHA256} ${TOOLCHAIN_FILENAME} | sha256sum -c
+          tar -xf ${TOOLCHAIN_FILENAME}
+          rm ${TOOLCHAIN_FILENAME}
           sudo mkdir -p /opt
-          sudo mv llvm-mingw-* /opt/llvm-mingw
-          echo /opt/llvm-mingw/bin >> $GITHUB_PATH
+          sudo mv $(basename ${TOOLCHAIN_FILENAME} .tar.xz) /opt/llvm-mingw
+          echo /opt/llvm-mingw/bin >>${GITHUB_PATH}
       - name: Get source
         uses: actions/checkout@v4
       - name: Build binary
