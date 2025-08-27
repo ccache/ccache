@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 build() {
     mkdir -p "build_$1"
@@ -29,3 +29,5 @@ done
 mkdir -p install/bin
 lipo -create $FILES -output install/bin/ccache
 lipo -info install/bin/ccache
+
+find install -ls

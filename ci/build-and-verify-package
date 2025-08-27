@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 # Ninja builds with relative paths so that ccache can be used to cache the build
 # without resorting to setting base_dir.

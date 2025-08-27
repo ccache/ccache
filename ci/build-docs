@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 dir=build
 cmake -B "${dir}" -D CMAKE_INSTALL_PREFIX="$(pwd)/install"

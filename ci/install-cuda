@@ -2,7 +2,7 @@
 #
 # Version is given in the CUDA variable.
 
-set -eu
+set -eux
 
 retry() {
     local i=0

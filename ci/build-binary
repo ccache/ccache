@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 : ${CMAKE_PARAMS:=}
 
@@ -15,3 +15,6 @@ cmake \
     ..
 cmake --build .
 cmake --install . --strip
+
+cd ..
+find install -ls
