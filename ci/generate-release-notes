@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -euo pipefail
+
+version=$(echo "$1" | sed 's/^v//')
+u_version=$(echo "${version}" | sed 's/\./_/g')
+url_prefix="https://github.com/ccache/ccache/releases/download/v${version}"
+
+source_extensions=(tar.gz tar.xz)
+linux_archs=(aarch64 x86_64)
+windows_archs=(aarch64 i686 x86_64)
+
+retcode=0
+
+add() {
+    local descr=$1
+    local file=$2
+
+    for f in "${file}" "${file}.minisig"; do
+        if [[ ! -f "${f}" ]]; then
+            echo "Error: ${f} does not exist" >&2
+            retcode=1
+        fi
+    done
+cat <<EOF
+* [${descr}](${url_prefix}/${file}) ([signature](${url_prefix}/${file}.minisig))
+EOF
+}
+
+cd release
+
+for ext in "${source_extensions[@]}"; do
+    add "Generic source code release (${ext})" "ccache-${version}.${ext}"
+done
+add "Darwin (macOS) universal binary release" "ccache-${version}-darwin.tar.gz"
+for arch in "${linux_archs[@]}"; do
+    add "Linux ${arch} binary release" "ccache-${version}-linux-${arch}.tar.xz"
+done
+for arch in "${windows_archs[@]}"; do
+    add "Windows ${arch} binary release" "ccache-${version}-windows-${arch}.zip"
+done
+
+cat <<EOF
+* [Release notes](https://ccache.dev/releasenotes.html#_ccache_${u_version})
+* [Manual](https://ccache.dev/manual/${version}.html)
+EOF
+
+exit "${retcode}"

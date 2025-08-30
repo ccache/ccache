@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -euxo pipefail
+
+if [[ ${GITHUB_REF} = refs/tags/v* ]]; then
+    VERSION=${GITHUB_REF#refs/tags/v}
+else
+    VERSION=${GITHUB_REF_NAME}.$(git rev-parse --short=8 @)
+fi
+
+prepare_source_release() {
+    local name="ccache-${VERSION}"
+    local tarfile="release/${name}.tar"
+    git archive --prefix="${name}/" -o "${tarfile}" HEAD
+    gzip --keep -9 "${tarfile}"
+    xz --keep -9 "${tarfile}"
+    rm "${tarfile}"
+}
+
+prepare_posix_binary_release() {
+    local arch=$1
+    local compression=$2
+
+    local name="ccache-${VERSION}-${arch}"
+    mkdir "${name}"
+    cp "${arch}-binary/ccache" "${name}"
+    chmod +x "${name}/ccache"
+    cp misc/Makefile.posix-binary-release "${name}/Makefile"
+    cp docs/install/share/doc/ccache/* "${name}"
+    cp docs/install/share/man/man1/ccache.1 "${name}"
+    tar -caf "release/${name}.tar.${compression}" "${name}"
+}
+
+prepare_windows_binary_release() {
+    local arch=$1
+
+    local name="ccache-${VERSION}-${arch}"
+    mkdir "${name}"
+    cp "${arch}-binary/ccache.exe" "${name}"
+    cp docs/install/share/doc/ccache/* "${name}"
+    zip -r "release/${name}.zip" "${name}"
+}
+
+mkdir release
+
+prepare_source_release
+
+prepare_posix_binary_release darwin gz
+prepare_posix_binary_release linux-aarch64 xz
+prepare_posix_binary_release linux-x86_64 xz
+
+prepare_windows_binary_release windows-aarch64
+prepare_windows_binary_release windows-i686
+prepare_windows_binary_release windows-x86_64
+
+ls -l . release

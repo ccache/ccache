@@ -2,6 +2,11 @@ name: Build
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Optional tag name to simulate release'
+        required: false
 
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
@@ -622,6 +627,85 @@ jobs:
         with:
           name: ${{ matrix.name }} - testdir.tar.xz
           path: testdir.tar.xz
+
+  build_release:
+    name: Build release
+    needs:
+      - build_darwin_binary
+      - build_linux_aarch64_binary
+      - build_linux_x86_64_binary
+      - build_windows_binary
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y minisign
+
+      - name: Get source
+        uses: actions/checkout@v4
+
+      - name: Download binaries
+        uses: actions/download-artifact@v5
+        with:
+          pattern: "*-binary"
+
+      - name: Download docs
+        uses: actions/download-artifact@v5
+        with:
+          pattern: docs
+          path: docs
+
+      - name: Build release
+        run: ci/prepare-release
+
+      - name: Sign release archives
+        if: env.MINISIGN_KEY != ''
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+        run: |
+          mkdir -p ~/.minisign
+          echo "${MINISIGN_KEY}" | base64 -d > ~/.minisign/minisign.key
+          minisign -Sm release/*
+
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        if: ${{ github.ref_type == 'tag' || github.event.inputs.test_tag != '' }}
+        with:
+          name: release
+          path: release
+          retention-days: 3
+
+  create_release:
+    name: Create release
+    needs:
+      - build_release
+    permissions:
+      contents: write
+    if: ${{ github.ref_type == 'tag' || github.event.inputs.test_tag != '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Download release
+        uses: actions/download-artifact@v5
+        with:
+          name: release
+          path: release
+      - name: Create release notes
+        run: |
+          TAG_NAME="${{ github.event.inputs.test_tag || github.ref_name }}"
+          ci/generate-release-notes "${TAG_NAME}" >release-notes.md
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ github.event.inputs.test_tag || github.ref_name }}"
+          gh release create "${TAG_NAME}" \
+            --draft \
+            --notes-file release-notes.md \
+            --title "${TAG_NAME}" \
+            release/*
 
   check_format:
     timeout-minutes: 30
