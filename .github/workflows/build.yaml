@@ -304,6 +304,7 @@ jobs:
         with:
           name: linux-aarch64-binary
           path: install/bin/ccache
+          retention-days: 3
 
   build_linux_x86_64_binary:
     timeout-minutes: 30
@@ -341,6 +342,7 @@ jobs:
         with:
           name: linux-x86_64-binary
           path: install/bin/ccache
+          retention-days: 3
 
   build_darwin_binary:
     timeout-minutes: 30
@@ -358,6 +360,7 @@ jobs:
         with:
           name: darwin-binary
           path: install/bin/ccache
+          retention-days: 3
 
   build_windows_binary:
     timeout-minutes: 30
@@ -408,6 +411,7 @@ jobs:
         with:
           name: windows-${{ matrix.arch }}-binary
           path: install/bin/ccache.exe
+          retention-days: 3
 
   specific_tests:
     name: ${{ matrix.name }}
