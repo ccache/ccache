@@ -281,12 +281,6 @@ private:
     return true;
   }
 
-  size_t
-  size() const noexcept
-  {
-    return m_position;
-  }
-
   std::pair<uint8_t*, size_t>
   finalize() const
   {
@@ -313,6 +307,12 @@ public:
   {
     m_buffer.get().release();
     m_position = 0;
+  }
+
+  size_t
+  size() const noexcept
+  {
+    return m_position;
   }
 
   template<typename... Args>
