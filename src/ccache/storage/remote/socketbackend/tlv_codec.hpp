@@ -48,7 +48,7 @@ struct TLVFieldRef
   }
 };
 
-TLVFieldRef*
+inline TLVFieldRef*
 getfield(std::vector<TLVFieldRef>& fields, uint16_t target_tag)
 {
   for (auto& field : fields) {
