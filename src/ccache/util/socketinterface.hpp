@@ -174,6 +174,7 @@ public:
   OpCode receive(size_t& bytes_available, bool is_op = true);
 
 private:
+  bool m_is_server = false;
   // Helper to establish the socket connection (bind/connect)
   int establish_connection(const std::filesystem::path& path,
                            bool is_server) const;

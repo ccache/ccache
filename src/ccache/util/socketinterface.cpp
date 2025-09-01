@@ -213,6 +213,7 @@ UnixSocket::start(bool is_server)
   if (m_init_status) {
     return true;
   }
+  m_is_server = is_server;
 
   // If this is a server and the socket path already exists, it might mean a
   // stale socket. We might want to clean it up. For client, existence is
@@ -486,7 +487,7 @@ UnixSocket::create_and_connect_socket()
 
   // make the socket ready
   set_nonblocking(true);
-  if (establish_connection(socket_path, false) < 0) {
+  if (establish_connection(socket_path, m_is_server) < 0) {
     // Handle connection/bind errors. Wait for socket to become ready to confirm
     // connect success/failure.
     if (!wait_until_ready(1, 0, false, true)) { // Wait for write readiness
