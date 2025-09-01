@@ -112,11 +112,11 @@ private:
       m_result.fields.emplace_back(
         tag, length, meta::interpret_data<SETUP_TYPE_VERSION>(pos, length));
       return;
-    case SETUP_TYPE_CONNECT_TIMEOUT:
+    case SETUP_TYPE_OPERATION_TIMEOUT:
       m_result.fields.emplace_back(
         tag,
         length,
-        meta::interpret_data<SETUP_TYPE_CONNECT_TIMEOUT>(pos, length));
+        meta::interpret_data<SETUP_TYPE_OPERATION_TIMEOUT>(pos, length));
       return;
     case SETUP_TYPE_BUFFERSIZE:
       m_result.fields.emplace_back(
