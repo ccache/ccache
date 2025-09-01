@@ -78,7 +78,7 @@ public:
   bool
   write(const void* src, size_t n)
   {
-    if (n + m_size > MAX_MSG_SIZE || n == 0) {
+    if (src == nullptr || n + m_size > MAX_MSG_SIZE || n == 0) {
       return false;
     }
 
