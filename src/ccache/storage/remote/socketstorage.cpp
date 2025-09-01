@@ -96,7 +96,7 @@ BackendNode::setup_backend_service()
                       tlv::SETUP_TYPE_BUFFERSIZE,
                       BUFFERSIZE,
                       tlv::SETUP_TYPE_OPERATION_TIMEOUT,
-                      OPERATION_TIMEOUT);
+                      g_operation_timeout.count());
 
   if (!res) {
     LOG("DEBUG msg_type_notify {} message went wrong!",
