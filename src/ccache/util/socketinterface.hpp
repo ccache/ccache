@@ -48,8 +48,9 @@ constexpr auto SOCKET_PATH_LENGTH = 256;
 constexpr auto SOCKET_PATH_TEMPLATE =
   "/home/rocky/repos/py_server_script/daemons/backend-%s.sock";
 
-size_t BUFFERSIZE = 1024;
-std::chrono::seconds OPERATION_TIMEOUT{15};
+static size_t g_buffersize = 1024;
+static std::chrono::seconds g_operation_timeout{15};
+
 
 constexpr std::chrono::seconds CONNECTION_TIMEOUT{5};
 constexpr std::chrono::seconds READ_TIMEOUT_SECOND{0};

@@ -138,7 +138,7 @@ StreamReader::read_all(const std::atomic<bool>& should_stop)
     // The span's size indicates how much space is available to fill.
     nonstd::span<uint8_t> writable_span;
     try {
-      writable_span = m_buffer.get().prepare(BUFFERSIZE);
+      writable_span = m_buffer.get().prepare(g_buffersize);
     } catch (const std::out_of_range& e) {
       std::cerr << "StreamReader error: " << e.what() << "\n";
       return std::nullopt;
@@ -355,7 +355,7 @@ UnixSocket::receive(size_t& bytes_available, bool is_op)
   auto future = std::async(std::launch::async, [&reader, &end_read]() {
     return reader.read_all(end_read);
   });
-  future.wait_for(is_op ? OPERATION_TIMEOUT : CONNECTION_TIMEOUT);
+  future.wait_for(is_op ? g_operation_timeout : CONNECTION_TIMEOUT);
   end_read.store(true);
   const auto message = future.get();
 

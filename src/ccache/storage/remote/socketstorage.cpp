@@ -94,7 +94,7 @@ BackendNode::setup_backend_service()
                       tlv::SETUP_TYPE_VERSION,
                       tlv::TLV_VERSION,
                       tlv::SETUP_TYPE_BUFFERSIZE,
-                      BUFFERSIZE,
+                      g_buffersize,
                       tlv::SETUP_TYPE_OPERATION_TIMEOUT,
                       g_operation_timeout.count());
 
@@ -116,11 +116,11 @@ BackendNode::setup_backend_service()
     if (field) {
       uint32_t op_timeout;
       std::memcpy(&op_timeout, field->data.data(), field->length);
-      OPERATION_TIMEOUT = std::chrono::seconds{op_timeout};
+      g_operation_timeout = std::chrono::seconds{op_timeout};
     }
     field = getfield(res->fields, tlv::SETUP_TYPE_BUFFERSIZE);
     if (field) {
-      std::memcpy(&BUFFERSIZE, field->data.data(), field->length);
+      std::memcpy(&g_buffersize, field->data.data(), field->length);
     }
   }
 
@@ -164,7 +164,7 @@ BackendNode::BackendNode(
     }
 
     daemon_started = backend::start_daemon(
-      url.scheme(), sock_path, url.str(), attributes, BUFFERSIZE);
+      url.scheme(), sock_path, url.str(), attributes, g_buffersize);
   } else {
     LOG("Process {} is waiting for others to intialise daemon", getpid());
     // just be a tiny bit patient
