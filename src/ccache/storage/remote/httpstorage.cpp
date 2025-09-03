@@ -169,12 +169,25 @@ HttpStorageBackend::HttpStorageBackend(
   m_http_client.set_default_headers(default_headers);
 }
 
+void
+log_request(const char* method,
+            std::string_view redacted_url,
+            std::string_view url_path,
+            const httplib::Result& result)
+{
+  LOG("{} {}{} -> {}",
+      method,
+      redacted_url,
+      url_path,
+      result ? std::to_string(result->status) : to_string(result.error()));
+}
+
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 HttpStorageBackend::get(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Get(url_path);
-  LOG("GET {}{} -> {}", m_redacted_url, url_path, result->status);
+  log_request("GET", m_redacted_url, url_path, result);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to get {} from http storage: {} ({})",
@@ -201,7 +214,7 @@ HttpStorageBackend::put(const Hash::Digest& key,
 
   if (overwrite == Overwrite::no) {
     const auto result = m_http_client.Head(url_path);
-    LOG("HEAD {}{} -> {}", m_redacted_url, url_path, result->status);
+    log_request("HEAD", m_redacted_url, url_path, result);
 
     if (result.error() != httplib::Error::Success || !result) {
       LOG("Failed to check for {} in http storage: {} ({})",
@@ -225,7 +238,7 @@ HttpStorageBackend::put(const Hash::Digest& key,
                       reinterpret_cast<const char*>(value.data()),
                       value.size(),
                       content_type);
-  LOG("PUT {}{} -> {}", m_redacted_url, url_path, result->status);
+  log_request("PUT", m_redacted_url, url_path, result);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to put {} to http storage: {} ({})",
@@ -250,7 +263,7 @@ HttpStorageBackend::remove(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Delete(url_path);
-  LOG("DELETE {}{} -> {}", m_redacted_url, url_path, result->status);
+  log_request("DELETE", m_redacted_url, url_path, result);
 
   if (result.error() != httplib::Error::Success || !result) {
     LOG("Failed to delete {} from http storage: {} ({})",
