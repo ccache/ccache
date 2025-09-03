@@ -387,8 +387,8 @@ read_file(const fs::path& path, size_t size_hint)
         return result;
       }
 
-      std::wstring result_as_u16((result.size() / 2) + 1, '\0');
-      result_as_u16 = reinterpret_cast<const wchar_t*>(result.c_str());
+      std::wstring result_as_u16(
+        reinterpret_cast<const wchar_t*>(result.data()), result.size() / 2);
       const int size = WideCharToMultiByte(CP_UTF8,
                                            WC_ERR_INVALID_CHARS,
                                            result_as_u16.c_str(),
