@@ -239,21 +239,18 @@ UnixSocket::start(bool is_server)
     return false; // Socket creation/connection failed.
   }
 
+  // For server mode, use client socket for Stream after accept
+  socket_t stream_socket = m_is_server ? m_client_socket_id : m_socket_id;
+
   // Set up the Stream with the socket and the buffer instances.
   // TODO Decide if clearing here is appropriate i.e. m_write_buffer.clear();
-  m_socket_stream = std::make_unique<Stream>(m_socket_id);
+  m_socket_stream = std::make_unique<Stream>(stream_socket);
 
   if (is_server) {
     m_should_end_flag.store(false); // Reset flag
   }
   m_init_status = true;
 
-  if (is_server) {
-    if (m_listen_thread.joinable()) {
-      m_listen_thread.join();
-    }
-    m_listen_thread = std::thread(&UnixSocket::listener_loop, this);
-  }
   return true;
 }
 
@@ -277,16 +274,7 @@ UnixSocket::end()
     return;
   }
 
-  m_should_end_flag.store(true); // Signal the listener thread to stop.
-  // If a listener thread is active, wait for it to finish.
-  if (m_listen_thread.joinable()) {
-    // We need to unblock the listener thread if it's waiting on select or read.
-    // A common way is to close the socket, which will cause recv/select to
-    // return an error. Alternatively, a special "shutdown" message or event
-    // could be used. For simplicity here, we just close the socket.
-    close();
-    m_listen_thread.join();
-  }
+  m_should_end_flag.store(true); // Stop signal
 
   if (m_socket_id != invalid_socket_t) {
     close();
@@ -368,36 +356,16 @@ UnixSocket::receive(size_t& bytes_available, bool is_op)
   }
 }
 
-void
-UnixSocket::listener_loop()
-{
-  StreamReader reader(*m_socket_stream, connection_stream);
-  // disattached thread keeps working through this cycle
-  while (!m_should_end_flag) {
-    const auto message = reader.read_all(m_should_end_flag);
-    reader.reset_read_state();
-
-    if (m_should_end_flag) {
-      break;
-    }
-
-    if (message.has_value()) {
-      {
-        std::lock_guard<std::mutex> lock(m_buffer_data_mutex);
-        m_bytes_available_in_buffer.store(message.value());
-      }
-      m_buffer_data_cond.notify_one();
-    }
-  }
-}
-
 bool
 UnixSocket::wait_until_ready(time_t sec,
                              time_t usec,
                              bool read_ready,
                              bool write_ready) const
 {
-  if (m_socket_id == invalid_socket_t) {
+  // Use appropriate socket for waiting (client socket for server mode)
+  socket_t wait_socket = m_is_server ? m_client_socket_id : m_socket_id;
+
+  if (wait_socket == invalid_socket_t) {
     return false;
   }
   // https://beej.us/guide/bgnet/html/#select
@@ -407,17 +375,17 @@ UnixSocket::wait_until_ready(time_t sec,
   FD_ZERO(&write_fds);
 
   if (read_ready) {
-    FD_SET(m_socket_id, &read_fds);
+    FD_SET(wait_socket, &read_fds);
   }
   if (write_ready) {
-    FD_SET(m_socket_id, &write_fds);
+    FD_SET(wait_socket, &write_fds);
   }
 
   timeval tv;
   tv.tv_sec = static_cast<long>(sec);
   tv.tv_usec = static_cast<long>(usec);
 
-  int ready_fds = ::select(static_cast<int>(m_socket_id + 1),
+  int ready_fds = ::select(static_cast<int>(wait_socket + 1),
                            read_ready ? &read_fds : nullptr,
                            write_ready ? &write_fds : nullptr,
                            nullptr, // Exceptfds
@@ -431,10 +399,10 @@ UnixSocket::wait_until_ready(time_t sec,
     return false;
   }
 
-  if (read_ready && FD_ISSET(m_socket_id, &read_fds)) {
+  if (read_ready && FD_ISSET(wait_socket, &read_fds)) {
     return true;
   }
-  if (write_ready && FD_ISSET(m_socket_id, &write_fds)) {
+  if (write_ready && FD_ISSET(wait_socket, &write_fds)) {
     return true;
   }
 
@@ -523,14 +491,17 @@ UnixSocket::create_and_connect_socket()
   // communication, so making it blocking again after successful connect might
   // simplify the read/write logic. However, `Stream` uses select, so keeping it
   // non-blocking is likely intended.
-  set_nonblocking(false);
+  if (!m_is_server) {
+    set_nonblocking(false);
+  }
+
   return m_socket_id;
 }
 
 // establish_connection helper (for bind/connect)
 int
 UnixSocket::establish_connection(const std::filesystem::path& path,
-                                 bool is_server) const
+                                 bool is_server)
 {
   struct sockaddr_un addr;
   memset(&addr, 0, sizeof(addr));
@@ -540,6 +511,9 @@ UnixSocket::establish_connection(const std::filesystem::path& path,
 
   if (is_server) {
     // Server: Bind the socket to the address.
+    // We allow the socket to act as a server although this is not required within ccache
+    // * as it helps creating a simple unittest for testing out the socket send and receive
+    // * methods.
     if (::bind(
           m_socket_id, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
         < 0) {
@@ -552,15 +526,22 @@ UnixSocket::establish_connection(const std::filesystem::path& path,
       std::cerr << "Listen failed: " << strerror(errno) << "\n";
       return -1;
     }
-    // For a server, we'd typically then call accept() in a loop,
-    // but this is a single-client connection per UnixSocket object.
-    // So, after listen, we wait for the client to connect (which happens in
-    // wait_until_ready on connect call). The `connect` call below will be
-    // done by the client side. If this `UnixSocket` object is meant to be a
-    // server that ACCEPTS connections, the logic needs to be different
-    // (handling multiple clients). For now, assuming this UnixSocket object
-    // represents one end of a client-server connection. If this IS the server
-    // socket, us bind() to create the socket.
+
+    // Accept one client connection
+    struct sockaddr_un client_addr;
+    socklen_t client_len = sizeof(client_addr);
+
+    set_nonblocking(false);
+    m_client_socket_id =
+      ::accept(m_socket_id,
+               reinterpret_cast<struct sockaddr*>(&client_addr),
+               &client_len);
+
+    if (m_client_socket_id < 0) {
+      std::cerr << "Accept failed: " << strerror(errno) << "\n";
+      return -1;
+    }
+
     return 0;
   } else {
     // Client: Connect to the server address.

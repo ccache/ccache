@@ -113,6 +113,7 @@ private:
 
   /// @brief the socket descriptor
   socket_t m_socket_id = invalid_socket_t;
+  socket_t m_client_socket_id = invalid_socket_t;
 
   /// @brief specifies where the socket is
   std::string m_path;
@@ -123,18 +124,12 @@ private:
   /// @brief the stream interface for reading / writing
   std::unique_ptr<Stream> m_socket_stream;
 
-  /// @brief listens for messages over stream; reads into m_read_buffer
-  std::thread m_listen_thread;
-
   /// @brief stores the number of bytes available
   std::atomic<size_t> m_bytes_available_in_buffer{0};
 
   /// @brief signals whether message is ready for processing from buffer
   std::mutex m_buffer_data_mutex;
   std::condition_variable m_buffer_data_cond;
-
-  // Internal listener thread function
-  void listener_loop();
 
   // Helper to create and connect the socket
   socket_t create_and_connect_socket();
@@ -178,7 +173,7 @@ private:
   bool m_is_server = false;
   // Helper to establish the socket connection (bind/connect)
   int establish_connection(const std::filesystem::path& path,
-                           bool is_server) const;
+                           bool is_server);
 
   /// @brief closes the socket
   int close() const;
