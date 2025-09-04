@@ -174,6 +174,10 @@ private:
         return false;
       }
     }
+
+    if (required_capacity > m_buffer.size()) {
+      m_buffer.resize(m_buffer.capacity());
+    }
     return true;
   }
 
