@@ -3,9 +3,14 @@
 set -euxo pipefail
 
 if [[ ${GITHUB_REF} = refs/tags/v* ]]; then
-    VERSION=${GITHUB_REF#refs/tags/v}
+    VERSION="${GITHUB_REF#refs/tags/v}"
 else
-    VERSION=${GITHUB_REF_NAME}.$(git rev-parse --short=8 @)
+    hash=$(git rev-parse --short=8 @)
+    if [[ ${GITHUB_REF} =~ ^refs/pull/([^/]+)/merge$ ]]; then
+        VERSION="${BASH_REMATCH[1]}.${hash}"
+    else
+        VERSION="${GITHUB_REF_NAME}.$(git rev-parse --short=8 @)"
+    fi
 fi
 
 prepare_source_release() {
