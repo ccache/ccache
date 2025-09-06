@@ -115,8 +115,8 @@ _add_blake3_source_if_enabled(sse41 "" "-msse4.1" "_mm_test_all_ones(_mm_set1_ep
 _add_blake3_source_if_enabled(avx2 "/arch:AVX2" "-mavx2" "_mm256_abs_epi8(_mm256_set1_epi32(42))")
 _add_blake3_source_if_enabled(avx512 "/arch:AVX512" "-mavx512f -mavx512vl" "_mm256_abs_epi64(_mm256_set1_epi32(42))")
 
-# Neon is always available on AArch64
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+# Neon is always available on AArch64, but blake3_neon.c only supports little-endian
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_C_BYTE_ORDER STREQUAL "LITTLE_ENDIAN")
   # https://developer.arm.com/architectures/instruction-sets/simd-isas/neon/intrinsics
   check_c_source_compiles(
     [=[
