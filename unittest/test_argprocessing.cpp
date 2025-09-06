@@ -48,9 +48,11 @@ get_root()
 #ifndef _WIN32
   return "/";
 #else
-  char volume[4]; // "C:\"
-  GetVolumePathName(
-    util::pstr(*fs::current_path()).c_str(), volume, sizeof(volume));
+  char volume[MAX_PATH]; // "C:\"
+  auto path = util::pstr(*fs::current_path());
+  if (GetVolumePathName(path.c_str(), volume, sizeof(volume)) == 0) {
+    FAIL("GetVolumePathName failed with error ", GetLastError());
+  }
   return volume;
 #endif
 }
