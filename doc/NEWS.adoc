@@ -239,7 +239,7 @@ Release date: 2024-06-30
 
 === Documentation improvements
 
-- Clarified that `--set`-config writes to the configuration file. +
+- Clarified that `--set-config` writes to the configuration file. +
   [small]#_[contributed by Joel Rosdahl]_#
 
 
