@@ -2048,8 +2048,7 @@ hash_argument(const Context& ctx,
 
   if (util::starts_with(args[i], "-specs=")
       || util::starts_with(args[i], "--specs=")
-      || (args[i] == "-specs" || args[i] == "--specs")
-      || args[i] == "--config") {
+      || (args[i] == "-specs" || args[i] == "--specs")) {
     std::string path;
     size_t eq_pos = args[i].find('=');
     if (eq_pos == std::string::npos) {
@@ -2063,13 +2062,6 @@ hash_argument(const Context& ctx,
       path = args[i].substr(eq_pos + 1);
     }
 
-    if (args[i] == "--config" && path.find('/') == std::string::npos) {
-      // --config FILE without / in FILE: the file is searched for in Clang's
-      // user/system/executable directories.
-      LOG("Argument to compiler option {} is too hard", args[i]);
-      return tl::unexpected(Statistic::unsupported_compiler_option);
-    }
-
     DirEntry dir_entry(path, DirEntry::LogOnError::yes);
     if (dir_entry.is_regular_file()) {
       // If given an explicit specs file, then hash that file, but don't
@@ -2081,6 +2073,46 @@ hash_argument(const Context& ctx,
       LOG("While processing {}: {} is missing", args[i], path);
       return tl::unexpected(Statistic::bad_compiler_arguments);
     }
+  }
+
+  if (args[i] == "--config" || util::starts_with(args[i], "--config=")) {
+    // Clang's --config(=)name option behaves like this:
+    //
+    // --config foo     -> read /usr/lib/llvm-$ver/bin/foo.cfg (ver < 16)
+    // --config foo     -> read /usr/lib/llvm-$ver/bin/foo     (ver >= 16)
+    // --config=foo     -> read /usr/lib/llvm-$ver/bin/foo     (ver >= 16)
+    // --config foo.cfg -> read /usr/lib/llvm-$ver/bin/foo.cfg (all versions)
+    // --config foo/bar -> read foo/bar                        (all versions)
+    // --config=foo/bar -> read foo/bar                        (Clang >= 16)
+    //
+    // Since there doesn't seem to be an easy way to query which directory is
+    // used we only support names with a slash for now.
+
+    auto [_option, config] = util::split_once_into_views(args[i], '=');
+    if (!config) {
+      if (i + 1 >= args.size()) {
+        LOG("Missing argument for \"{}\"", args[i]);
+        return tl::unexpected(Statistic::bad_compiler_arguments);
+      }
+      config = args[i + 1];
+      i++;
+    }
+
+    auto path = *config;
+
+    if (path.find('/') == std::string_view::npos) {
+      // --config FILE without / in FILE: the file is searched for in Clang's
+      // user/system/executable directories.
+      LOG("Argument to --config option is too hard: {}", path);
+      return tl::unexpected(Statistic::unsupported_compiler_option);
+    }
+
+    LOG("Hashing Clang config file {}", path);
+    hash.hash_delimiter("config");
+    if (auto r = hash.hash_file(path); !r) {
+      LOG("Failed to hash option file {}: {}", path, r.error());
+    }
+    return {};
   }
 
   if (util::starts_with(args[i], "-fplugin=")) {
