@@ -2046,33 +2046,43 @@ hash_argument(const Context& ctx,
     }
   }
 
-  if (util::starts_with(args[i], "-specs=")
-      || util::starts_with(args[i], "--specs=")
-      || (args[i] == "-specs" || args[i] == "--specs")) {
-    std::string path;
-    size_t eq_pos = args[i].find('=');
-    if (eq_pos == std::string::npos) {
+  if (util::starts_with(args[i], "-specs=") || args[i] == "-specs"
+      || util::starts_with(args[i], "--specs=") || args[i] == "--specs") {
+    auto [_option, specs] = util::split_once_into_views(args[i], '=');
+    if (!specs) {
       if (i + 1 >= args.size()) {
-        LOG("missing argument for \"{}\"", args[i]);
+        LOG("Missing argument for \"{}\"", args[i]);
         return tl::unexpected(Statistic::bad_compiler_arguments);
       }
-      path = args[i + 1];
+      specs = args[i + 1];
       i++;
-    } else {
-      path = args[i].substr(eq_pos + 1);
     }
 
-    DirEntry dir_entry(path, DirEntry::LogOnError::yes);
-    if (dir_entry.is_regular_file()) {
-      // If given an explicit specs file, then hash that file, but don't
-      // include the path to it in the hash.
-      hash.hash_delimiter("specs");
-      TRY(hash_compiler(ctx, hash, dir_entry, path, false));
+    if (ctx.config.is_compiler_group_clang()) {
+      // Clang accepts -specs but ignores it.
+      if (!util::ends_with(args[i], "=")) {
+        hash.hash_delimiter("arg");
+        hash.hash(args[i - 1]);
+      }
+      hash.hash_delimiter("arg");
+      hash.hash(args[i]);
       return {};
-    } else {
-      LOG("While processing {}: {} is missing", args[i], path);
+    }
+
+    auto output = util::exec_to_string(
+      {ctx.orig_args[0], FMT("-print-file-name={}", *specs)});
+    if (!output) {
+      LOG("Failed to query specs location: {}", output.error());
+      return tl::unexpected(Statistic::internal_error);
+    }
+    auto path = util::strip_whitespace(*output);
+    LOG("Hashing specs file {}", path);
+    hash.hash_delimiter("specs");
+    if (auto r = hash.hash_file(path); !r) {
+      LOG("Failed to hash specs file {}: {}", path, r.error());
       return tl::unexpected(Statistic::bad_compiler_arguments);
     }
+    return {};
   }
 
   if (args[i] == "--config" || util::starts_with(args[i], "--config=")) {
