@@ -1540,6 +1540,10 @@ A compiler option not supported by ccache was found.
 | Unsupported environment variable |
 An environment variable not supported by ccache was set.
 
+| Unsupported source encoding |
+Source file (or an included header) has unsupported encoding. ccache currently
+requires UTF-8-encoded source code for MSVC.
+
 | Unsupported source language |
 A source language e.g. specified with `-x` was unsupported by ccache.
 
