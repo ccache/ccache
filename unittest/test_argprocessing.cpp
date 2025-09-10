@@ -42,18 +42,14 @@ using util::Args;
 
 namespace {
 
-std::string
+fs::path
 get_root()
 {
-#ifndef _WIN32
-  return "/";
-#else
   auto cwd = fs::current_path();
   if (!cwd) {
     FAIL("get_root failed: ", cwd.error());
   }
-  return cwd->root_path().generic_u8string();
-#endif
+  return cwd->root_path();
 }
 
 } // namespace
