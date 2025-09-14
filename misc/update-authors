@@ -1,17 +1,66 @@
-#!/bin/sh
+#!/usr/bin/env python3
 
-anonymous="^(6d5CfLQ3dYAb|bengtj|cupu|DarkShadow44|Delgan|Doekin|DS|dsilakov|dsrowell|gitmodimo|Kreijstal|kzlar|luzpaz|Mikhail B|Moritz|rblx-kbuck|RW|vsplesk)$"
+"""Update doc/AUTHORS.adoc with Git commit authors.
 
-if [ -d .git ]; then
-    # Fetch full Git history if needed, e.g. when run via CI.
-    git fetch --unshallow 2>/dev/null
+Authors include those specified by "Co-authored-by:" in commit messages.
+"""
 
-    # Update doc/AUTHORS.adoc with Git commit authors plus authors mentioned via
-    # a "Co-authored-by:" in the commit message.
-    (git log | grep -Po "(?<=Co-authored-by: )(.*)(?= <)"; \
-     git log --format="%aN") \
-        | grep -Ev "$anonymous" \
-        | sed 's/^/* /' \
-        | LANG=en_US.utf8 sort -uf \
-        | perl -00 -p -i -e 's/^\*.*/<STDIN> . "\n"/es' doc/AUTHORS.adoc
-fi
+import re
+from functools import cmp_to_key
+from locale import LC_ALL, setlocale, strcoll
+from pathlib import Path
+from subprocess import run
+
+ANONYMOUS = {
+    "6d5CfLQ3dYAb",
+    "bengtj",
+    "cupu",
+    "DarkShadow44",
+    "Delgan",
+    "Doekin",
+    "DS",
+    "dsilakov",
+    "dsrowell",
+    "gitmodimo",
+    "Kreijstal",
+    "kzlar",
+    "luzpaz",
+    "Mikhail B",
+    "Moritz",
+    "rblx-kbuck",
+    "RW",
+    "vsplesk",
+}
+
+AUTHORS_ADOC = Path(__file__).parents[1] / "doc/AUTHORS.adoc"
+
+
+def git(*args):
+    return run(["git", *args], capture_output=True, check=True, text=True).stdout
+
+
+def main():
+    setlocale(LC_ALL, "en_US.utf8")
+
+    primary_authors = set(git("log", "--format=%aN").splitlines())
+
+    git_log = git("log", "--format=%b")
+    co_authors = set(re.findall(r"Co-authored-by: ([^<]+) <.*", git_log))
+
+    authors = (primary_authors | co_authors) - ANONYMOUS
+
+    authors_lines = AUTHORS_ADOC.read_text().splitlines()
+    with AUTHORS_ADOC.open("w") as f:
+        in_list = False
+        for line in authors_lines:
+            if line.startswith("* "):
+                in_list = True
+            else:
+                if in_list:
+                    for author in sorted(authors, key=cmp_to_key(strcoll)):
+                        f.write(f"* {author}\n")
+                    in_list = False
+                f.write(f"{line}\n")
+
+
+main()
