@@ -1,5 +1,152 @@
 = Ccache news
 
+== Ccache 4.12
+
+Release date: 2025-09-14
+
+
+=== Upgrade notes
+
+- CMake version 3.18 or higher is now needed to build ccache.
+
+
+=== New deliverables
+
+- Added binary releases for Linux aarch64 and Windows aarch64. +
+  [small]#_[contributed by Joel Rosdahl and Martin Storsjö]_#
+
+
+=== New features and improvements
+
+- Enabled awareness of long paths and wide characters on Windows by embedding an
+  application manifest in `ccache.exe`. +
+  [small]#_[contributed by Morten Engelhardt Olsen and Joel Rosdahl]_#
+
+- Added support for multiple directories in `base_dir`/`CCACHE_BASEDIR`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for Clang compiling CUDA code. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Added support `-x cu` and `-x cuda` in Clang CUDA mode. +
+  [small]#_[contributed by an anonymous user]_#
+
+- Added support for Clang's `--config=` option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added logging of process exit. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added logging of mtime for files removed from the internal temporary
+  directory. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added logging of URLs requested by the http storage backend. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved logging of manifest lookup.  +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved logging of executed processes. +
+  [small]#_[contributed by Joel Rosdahl with a fix by Leander Schulten]_#
+
+
+=== Removed features
+
+- Removed support for avoiding the second preprocessor call
+  (`run_second_cpp=false`/`CCACHE_NOCPP2`). This feature added complexity while
+  offering little practical value, as it was rarely used and modern compilers
+  have increasingly poor support for compiling preprocessed source code. The
+  maintenance cost therefore outweighed the benefit of keeping it. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes
+
+- Fixed handling of compiler arguments so that ccache now preserves their
+  original order, resolving issues where order-sensitive options such as
+  `-Werror` could be reordered. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Implemented expansion of system-dependent `-m{arch,cpu,tune}=native` options
+  to prevent false cache hits when compiling on different hardware. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed rewriting of absolute paths to relative (with `base_dir` in effect) so
+  that paths with dereferenced symlinks are no longer considered as
+  candidates. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed compiler detection to check Clang before GCC for `cc`/`c++` hard links. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed hashing of GCC specs file. Previously specs files located in system
+  directories could not be found. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added MSVC variables `INCLUDE` and `EXTERNAL_INCLUDE` to the input hash since
+  they affect compilation. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed bad conversion from UTF-16 when reading files on Windows. +
+  [small]#_[contributed by Leander Schulten]_#
+
+- Removed misleading logging of failure to remove output file in hard link
+  mode. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Made ccache link statically with libatomic when STATIC_LINK is set. +
+  [small]#_[contributed by Maksym Sobolyev]_#
+
+- Made ccache buildable with tl-expected 1.2.0. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- The bundled copy of libfmt is now used as documented if `DEPS=DOWNLOAD`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Switched to use `FetchContent_MakeAvailable` instead of
+  `FetchContent_Populate` to avoid warnings with newer CMake versions. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Set variables to avoid a warning from downloaded zstd's CMake scripts. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added CMake toolchain file for (cross) compilation to aarch64-w64-mingw32. +
+  [small]#_[contributed by Martin Storsjö]_#
+
+- Disabled use of BLAKE3 NEON code on big-endian aarch64 since only
+  little-endian is supported. +
+  [small]#_[contributed by Jontathan Neuschäfer]_#
+
+
+=== Test improvements
+
+- Added test for tricky preprocessed cache hit case. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed calculation of root directory to avoid crashes on some Windows
+  systems. +
+  [small]#_[contributed by Leander Schulten]_#
+
+
+=== Documentation improvements
+
+- Documented that the direct mode has now (since ccache 4.10) less risk to read
+  headers from incorrect locations. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Documented that `#pragma once` can be problematic with precompiler headers
+  (PCH). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added missing documentation of `"Unsupported source encoding"` statistics
+  counter. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.11.3
 
 Release date: 2025-05-03
