@@ -704,7 +704,7 @@ jobs:
           gh release create "${TAG_NAME}" \
             --draft \
             --notes-file release-notes.md \
-            --title "${TAG_NAME}" \
+            --title "${TAG_NAME#v*}" \
             release/*
 
   check_format:
