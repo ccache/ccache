@@ -239,7 +239,7 @@ fallocate(int fd, size_t new_size)
   // The underlying filesystem does not support the operation so fall back to
   // lseek.
 #endif
-  off_t saved_pos = lseek(fd, 0, SEEK_END);
+  off_t saved_pos = lseek(fd, 0, SEEK_CUR);
   off_t old_size = lseek(fd, 0, SEEK_END);
   if (old_size == -1) {
     int err = errno;
