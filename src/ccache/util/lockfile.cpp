@@ -339,7 +339,12 @@ LockFile::do_acquire(const bool blocking)
           m_lock_file,
           inactive_duration.sec(),
           inactive_duration.nsec_decimal_part() / 1'000'000);
-      if (!fs::remove(m_alive_file) || !fs::remove(m_lock_file)) {
+      if (auto r = fs::remove(m_alive_file);
+          !r && r.error() != std::errc::no_such_file_or_directory) {
+        return false;
+      }
+      if (auto r = fs::remove(m_lock_file);
+          !r && r.error() != std::errc::no_such_file_or_directory) {
         return false;
       }
 
