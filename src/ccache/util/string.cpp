@@ -61,6 +61,10 @@ std::string
 format_argv_as_win32_command_string(const char* const* argv,
                                     bool escape_backslashes)
 {
+  if (!argv || !argv[0]) {
+    return {};
+  }
+
   std::string result;
   if (getenv("_CCACHE_TEST") && argv[0] && util::ends_with(argv[0], ".sh")) {
     result += "sh.exe ";
