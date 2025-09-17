@@ -6,7 +6,6 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <future>
 #include <iostream>
 
 Stream::Stream(socket_t sock)
@@ -44,7 +43,7 @@ Stream::select_read(time_t sec,
 }
 
 size_t
-Stream::read(const nonstd::span<uint8_t> writable_span)
+Stream::read(const nonstd::span<uint8_t> writable_span) const
 {
   try {
     // Check if the buffer is actually ready to write into.
@@ -55,37 +54,20 @@ Stream::read(const nonstd::span<uint8_t> writable_span)
       return 0;
     }
 
-    // Wait for the socket to be ready for reading.
-    // We pass the size of the span we prepared as the amount we *want* to read.
-    // The select timeout is handled by constants.
-    int event_result = select_read(
-      std::chrono::duration_cast<std::chrono::seconds>(READ_TIMEOUT_SECOND)
-        .count(),
-      std::chrono::duration_cast<std::chrono::microseconds>(
-        READ_TIMEOUT_USECOND)
-          .count()
-        % 1000000,
-      true,
-      false);
+    // Before calling the recv function make sure select_read was called over
+    // the socket. It waits for the socket to be ready for reading. We pass the
+    // size of the span we prepared as the amount we *want* to read. The select
+    // timeout is handled by StreamReader. If event_result > 0, the socket is
+    // ready for reading.
 
-    if (event_result < 0) {
-      // Select error
-      return -1;
-    } else if (event_result == 0) {
-      // Timeout
-      return 0; // Indicate no data received due to timeout
-    }
-    // If event_result > 0, the socket is ready for reading.
-
-    // Now, read directly into the span provided by the buffer.
     // The actual number of bytes to attempt to read is the size of the span.
     ssize_t bytes_read = ::recv(m_sock,
                                 writable_span.data(),
-                                static_cast<int>(writable_span.size()),
+                                writable_span.size(),
                                 0); // MSG_NOSIGNAL on send usually, not recv
 
     if (bytes_read > 0) {
-      return static_cast<int>(bytes_read);
+      return bytes_read;
     } else if (bytes_read == 0) {
       // Connection closed by peer.
       return 0;
@@ -114,72 +96,77 @@ Stream::read(const nonstd::span<uint8_t> writable_span)
 size_t
 Stream::write(nonstd::span<const uint8_t> ptr) const
 {
-  return ::send(m_sock, ptr.data(), static_cast<int>(ptr.size()), MSG_NOSIGNAL);
+  return ::send(m_sock, ptr.data(), ptr.size(), MSG_NOSIGNAL);
 }
 
-StreamReader::StreamReader(Stream& strm, StreamBuffer& buffer)
-  : m_stream(strm),
-    m_buffer(buffer)
+BufferedStreamReader::SocketStreamBuf::SocketStreamBuf(
+  Stream& stream, std::chrono::milliseconds timeout)
+  : m_buffer(g_buffersize),
+    m_stream(stream),
+    m_timeout(timeout)
 {
-  // Buffer's state (clearing, etc.) should be managed externally
+  // Initialize empty buffer
+  setg(m_buffer.data(), m_buffer.data(), m_buffer.data());
 }
 
-void
-StreamReader::reset_read_state()
+std::streambuf::int_type
+BufferedStreamReader::SocketStreamBuf::underflow()
 {
-  m_bytes_consumed = 0;
-}
-
-std::optional<size_t>
-StreamReader::read_all(const std::atomic<bool>& should_stop)
-{
-  while (!should_stop.load()) {
-    // Get a writable span in the buffer. The buffer handles resizing.
-    // The span's size indicates how much space is available to fill.
-    nonstd::span<uint8_t> writable_span;
-    try {
-      writable_span = m_buffer.get().prepare(g_buffersize);
-    } catch (const std::out_of_range& e) {
-      std::cerr << "StreamReader error: " << e.what() << "\n";
-      return std::nullopt;
-    } catch (const std::logic_error& e) {
-      std::cerr << "StreamReader buffer error: " << e.what() << "\n";
-      return std::nullopt;
-    }
-
-    // If prepare_write_span returned an empty span, it means we couldn't get
-    // space. This might happen if CHUNK_SIZE was 0 or MAX_MSG_SIZE was hit and
-    // we couldn't grow.
-    if (writable_span.empty()) {
-      break; // Exit loop to return current progress.
-    }
-
-    // Read data from the stream into the prepared span.
-    int bytes_read = m_stream.get().read(writable_span);
-
-    if (bytes_read > 0) {
-      m_buffer.get().commit(bytes_read);
-      m_bytes_consumed += bytes_read;
-    } else if (bytes_read == 0) {
-      if (m_bytes_consumed == 0) {
-        continue;
-      }
-      // We have some data, but no more will come -> break and return
-      break;
-    } else { // bytes_read < 0
-      // An error occurred during read but it should be handled already.
-      break;
-    }
+  if (gptr() < egptr()) {
+    return traits_type::to_int_type(*gptr());
   }
 
-  // Return the total number of bytes read into the buffer by this reader.
-  // The caller can then parse from the referenced read buffer.
-  if (m_bytes_consumed > 0) {
-    return m_bytes_consumed;
-  } else {
-    // If loop exited due to shouldStop or timeout with no data read.
-    return std::nullopt;
+  int ready = m_stream.get().select_read(m_timeout.count(), 0, true, false);
+  if (ready <= 0) {
+    return traits_type::eof();
   }
+
+  nonstd::span<uint8_t> write_span(reinterpret_cast<uint8_t*>(m_buffer.data()),
+                                   g_buffersize);
+  size_t bytes_read = m_stream.get().read(write_span);
+
+  if (bytes_read == 0) {
+    return traits_type::eof();
+  }
+
+  // Update buffer pointers
+  setg(m_buffer.data(), m_buffer.data(), m_buffer.data() + bytes_read);
+  return traits_type::to_int_type(*gptr());
+}
+
+// BufferedStreamReader implementation
+BufferedStreamReader::BufferedStreamReader(Stream& stream,
+                                           std::chrono::milliseconds timeout)
+  : m_streambuf(stream, timeout),
+    m_stream(&m_streambuf)
+{
+}
+
+tl::expected<size_t, OpError>
+BufferedStreamReader::read_exactly(size_t n, nonstd::span<uint8_t> result)
+{
+  if (result.size() < n) {
+    return tl::unexpected<OpError>(OpError::error);
+  }
+
+  m_stream.read(reinterpret_cast<char*>(result.data()), n);
+
+  if (m_stream.gcount() != static_cast<std::streamsize>(n)) {
+    return tl::unexpected<OpError>(m_stream.eof() ? OpError::timeout
+                                                  : OpError::error);
+  }
+
+  return n;
+}
+
+tl::expected<uint8_t, OpError>
+BufferedStreamReader::read_byte()
+{
+  int c = m_stream.get();
+  if (c == std::istream::traits_type::eof()) {
+    return tl::unexpected<OpError>(OpError::error);
+  }
+  return static_cast<uint8_t>(c);
 }
 
 UnixSocket::UnixSocket(const std::string& host)
@@ -229,8 +216,6 @@ UnixSocket::start(bool is_server)
       // Decide if this should be a fatal error or just a warning.
     }
   } else if (!is_server && !exists()) {
-    // std::cerr << "Error: Socket path " << generate_path()
-    //           << " does not exist (client mode)." << "\n";
     return false;
   }
 
@@ -306,54 +291,41 @@ UnixSocket::exists() const
 }
 
 // send method: Serializes message, writes to buffer, then sends.
-OpCode
+tl::expected<size_t, OpError>
 UnixSocket::send(nonstd::span<const uint8_t> msg)
 {
   if (!m_init_status || !m_socket_stream) {
-    return OpCode::error;
+    return tl::unexpected<OpError>(OpError::error);
   }
 
-  int bytes_sent = m_socket_stream->write(msg);
+  size_t bytes_sent = m_socket_stream->write(msg);
 
   if (bytes_sent < 0) {
-    return OpCode::error;
-  } else if (static_cast<size_t>(bytes_sent) < msg.size()) {
+    return tl::unexpected<OpError>(OpError::error);
+  } else if (bytes_sent < msg.size()) {
+    // TODO: currently not handled
     // Partial send. This implies the socket might be blocked or the receiver is
     // slow. For simplicity, we treat partial sends as an error or a condition
     // needing retry. POSSIBLE implementation may loop, robustly sending
     // remaining data.
     std::cerr << "UnixSocket WARNING: Partial send, only " << bytes_sent
               << " of " << msg.size() << " bytes sent\n";
-    return OpCode::error;
+    return tl::unexpected<OpError>(OpError::interrupted);
   }
 
   // Message successfully sent.
-  return OpCode::ok;
+  return bytes_sent;
 }
 
-OpCode
-UnixSocket::receive(size_t& bytes_available, bool is_op)
+std::unique_ptr<BufferedStreamReader>
+UnixSocket::create_reader(bool is_op)
 {
   if (!m_init_status || !m_socket_stream) {
-    return OpCode::error;
+    return nullptr;
   }
 
-  std::atomic<bool> end_read{false};
-  StreamReader reader(*m_socket_stream, connection_stream);
-  auto future = std::async(std::launch::async, [&reader, &end_read]() {
-    return reader.read_all(end_read);
-  });
-  future.wait_for(is_op ? g_operation_timeout : CONNECTION_TIMEOUT);
-  end_read.store(true);
-  const auto message = future.get();
-
-  if (message.has_value()) {
-    bytes_available = message.value();
-    return OpCode::ok;
-  } else {
-    bytes_available = 0;
-    return OpCode::timeout; // or OpCode::error depending on why read_all failed
-  }
+  return std::make_unique<BufferedStreamReader>(
+    *m_socket_stream, is_op ? g_operation_timeout : CONNECTION_TIMEOUT);
 }
 
 bool
@@ -511,9 +483,9 @@ UnixSocket::establish_connection(const std::filesystem::path& path,
 
   if (is_server) {
     // Server: Bind the socket to the address.
-    // We allow the socket to act as a server although this is not required within ccache
-    // * as it helps creating a simple unittest for testing out the socket send and receive
-    // * methods.
+    // We allow the socket to act as a server although this is not required
+    // within ccache as it helps creating a simple unittest for testing out the
+    // socket send and receive methods.
     if (::bind(
           m_socket_id, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
         < 0) {
