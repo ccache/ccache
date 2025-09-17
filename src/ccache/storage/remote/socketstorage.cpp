@@ -79,7 +79,6 @@ SocketStorage::create_backend(
 
   auto rbackend = std::make_unique<BackendNode>(
     real_url, util::format_base16(name.digest()), attributes);
-  sleep(1);
 
   if (rbackend->setup_backend_service() < 1) {
     return nullptr;
