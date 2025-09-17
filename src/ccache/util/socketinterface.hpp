@@ -62,11 +62,13 @@ enum class OpError : uint8_t {
 
 class Stream
 {
+  friend class BufferedStreamReader;
+
 public:
   Stream(socket_t sock);
 
   /// @brief receives messages from stream
-  size_t read(nonstd::span<uint8_t> writable_span);
+  size_t read(nonstd::span<uint8_t> writable_span) const;
   /// @brief sends messages over stream
   size_t write(nonstd::span<const uint8_t> ptr) const;
 
