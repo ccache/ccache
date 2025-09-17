@@ -83,27 +83,36 @@ private:
                   bool write_possible) const;
 };
 
-// adapted from cpp-httplib
-class StreamReader
+// Implement std::streambuf for optimal read buffering
+class BufferedStreamReader
 {
-public:
-  StreamReader(Stream& strm, StreamBuffer& buffer);
-
-  /// @brief Reads data from the stream into the buffer until a condition is met
-  /// or an error occurs
-  std::optional<size_t> read_all(const std::atomic<bool>& should_stop);
-
-  /// @brief Clears the internal tracking of read data, but does NOT clear the
-  /// buffer itself
-  void reset_read_state();
-
 private:
-  // The stream to read from.
-  std::reference_wrapper<Stream> m_stream;
-  // The buffer to read data into.
-  std::reference_wrapper<StreamBuffer> m_buffer;
-  // Tracks how many bytes this reader has read into the buffer.
-  size_t m_bytes_consumed{0};
+  class SocketStreamBuf : public std::streambuf
+  {
+  private:
+    std::vector<char> m_buffer;
+    std::reference_wrapper<Stream> m_stream;
+    std::chrono::milliseconds m_timeout;
+
+  public:
+    SocketStreamBuf(Stream& stream, std::chrono::milliseconds timeout);
+
+  protected:
+    int_type underflow() override;
+  };
+
+  SocketStreamBuf m_streambuf;
+  std::istream m_stream;
+
+public:
+  BufferedStreamReader(Stream& stream, std::chrono::milliseconds timeout);
+
+  /// Read exactly n bytes into the provided buffer
+  tl::expected<size_t, OpError> read_exactly(size_t n,
+                                             nonstd::span<uint8_t> result);
+
+  /// Read a single byte from the stream
+  tl::expected<uint8_t, OpError> read_byte();
 };
 
 class UnixSocket
