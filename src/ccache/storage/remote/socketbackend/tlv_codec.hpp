@@ -1,5 +1,6 @@
-#include "ccache/util/assertions.hpp"
-#include "ccache/util/streambuffer.hpp"
+#include "ccache/util/bytes.hpp"
+#include "ccache/util/logging.hpp"
+#include "ccache/util/socketinterface.hpp"
 #include "tlv_constants.hpp"
 
 #include <nonstd/span.hpp>
@@ -9,148 +10,163 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <functional>
-#include <string>
+#include <memory>
 #include <utility>
-#include <vector>
 
 namespace tlv {
 
 struct __attribute__((packed)) MessageHeader
 {
-  uint16_t version;
+  uint8_t version;
+  uint8_t num_fields;
   uint16_t msg_type;
 };
-
-struct TLVFieldRef
-{
-  uint8_t tag;
-  uint64_t length;
-  nonstd::span<const uint8_t> data; // View into original buffer
-
-  TLVFieldRef(uint8_t t, uint32_t len, const uint8_t* ptr)
-    : tag(t),
-      length(len),
-      data(ptr, len)
-  {
-  }
-
-  TLVFieldRef(uint8_t t, uint64_t len, nonstd::span<const uint8_t> data)
-    : tag(t),
-      length(len),
-      data(data)
-  {
-    ASSERT(len == data.size());
-  }
-};
-
-inline TLVFieldRef*
-getfield(std::vector<TLVFieldRef>& fields, uint16_t target_tag)
-{
-  for (auto& field : fields) {
-    if (field.tag == target_tag) {
-      return &field;
-    }
-  }
-
-  return nullptr;
-}
 
 class TLVParser
 {
 public:
   struct ParseResult
   {
-    uint16_t version;
-    uint16_t msg_type;
-    std::vector<TLVFieldRef> fields; // Pre-allocated
+    MessageHeader header;
     bool success;
+    tlv::ResponseStatus status;
+    std::vector<UintField> fields; // Pre-allocated
+    util::Bytes value;
   };
 
 private:
   ParseResult m_result; // Reused to avoid allocations
 
-  std::pair<uint32_t, size_t>
-  decode_length(const uint8_t* buffer, size_t available)
+  size_t
+  decode_length(const uint8_t first_byte)
   {
-    if (available < 1) {
-      return {0, 0};
+    switch (first_byte) {
+    case LENGTH_3_BYTE_FLAG:
+      return 2;
+    case LENGTH_5_BYTE_FLAG:
+      return 4;
+    case LENGTH_9_BYTE_FLAG:
+      return 8;
+    default:
+      // One byte representable
+      return 0;
     }
-
-    uint8_t first_byte = buffer[0];
-
-    if (first_byte <= LENGTH_1_BYTE_MAX) {
-      return {first_byte, 1};
-    } else if (first_byte == LENGTH_3_BYTE_FLAG) {
-      if (available < 3) {
-        return {0, 0};
-      }
-      uint16_t length;
-      std::memcpy(&length, buffer + 1, 2);
-      return {length, 3};
-    } else if (first_byte == LENGTH_5_BYTE_FLAG) {
-      if (available < 5) {
-        return {0, 0};
-      }
-      uint32_t length;
-      std::memcpy(&length, buffer + 1, 4);
-      return {length, 5};
-    }
-
-    return {0, 0}; // Invalid encoding
   }
 
-  void
-  parse_value(uint8_t tag, uint32_t length, const uint8_t* pos)
+  bool
+  read_uint_field(uint8_t tag,
+                  uint32_t length,
+                  std::unique_ptr<BufferedStreamReader>& reader) noexcept
   {
+    std::array<uint8_t, 8> payload;
+    auto res = reader->read_exactly(length, payload);
+    if (!res.has_value()) {
+      return false;
+    }
+
     switch (tag) {
     case SETUP_TYPE_VERSION:
       m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<SETUP_TYPE_VERSION>(pos, length));
-      return;
+        make_tlv_field<SETUP_TYPE_VERSION>(tag, payload.data(), length));
+      break;
     case SETUP_TYPE_OPERATION_TIMEOUT:
-      m_result.fields.emplace_back(
-        tag,
-        length,
-        meta::interpret_data<SETUP_TYPE_OPERATION_TIMEOUT>(pos, length));
-      return;
+      m_result.fields.emplace_back(make_tlv_field<SETUP_TYPE_OPERATION_TIMEOUT>(
+        tag, payload.data(), length));
+      break;
     case SETUP_TYPE_BUFFERSIZE:
       m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<SETUP_TYPE_BUFFERSIZE>(pos, length));
-      return;
-    case FIELD_TYPE_KEY:
-      m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<FIELD_TYPE_KEY>(pos, length));
-      return;
-    case FIELD_TYPE_VALUE:
-      m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<FIELD_TYPE_VALUE>(pos, length));
-      return;
+        make_tlv_field<SETUP_TYPE_BUFFERSIZE>(tag, payload.data(), length));
+      break;
     case FIELD_TYPE_TIMESTAMP:
       m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<FIELD_TYPE_TIMESTAMP>(pos, length));
-      return;
-    case FIELD_TYPE_STATUS_CODE:
-      m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<FIELD_TYPE_STATUS_CODE>(pos, length));
-      return;
-    case FIELD_TYPE_ERROR_MSG:
-      m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<FIELD_TYPE_ERROR_MSG>(pos, length));
-      return;
+        make_tlv_field<FIELD_TYPE_TIMESTAMP>(tag, payload.data(), length));
+      break;
     case FIELD_TYPE_FLAGS:
       m_result.fields.emplace_back(
-        tag, length, meta::interpret_data<FIELD_TYPE_FLAGS>(pos, length));
-      return;
-    default:
-      std::string err_str = "Unavailable data type for " + std::to_string(tag)
-                            + " " + std::to_string(length);
-      throw std::runtime_error(err_str);
+        make_tlv_field<FIELD_TYPE_FLAGS>(tag, payload.data(), length));
+      break;
+    case FIELD_TYPE_STATUS_CODE:
+      m_result.fields.emplace_back(
+        make_tlv_field<FIELD_TYPE_STATUS_CODE>(tag, payload.data(), length));
+      break;
     }
+    return true;
+  }
+
+  bool
+  read_value_field(uint32_t length,
+                   std::unique_ptr<BufferedStreamReader>& reader)
+  {
+    m_result.value.resize(length);
+    auto res = reader->read_exactly(length, m_result.value);
+    return res.has_value();
+  }
+
+  bool
+  read_error_message(uint32_t length,
+                     std::unique_ptr<BufferedStreamReader>& reader)
+  {
+    // Error message uses same result field as value
+    m_result.value.reserve(length);
+    auto res = reader->read_exactly(length, m_result.value);
+    return res.has_value();
+  }
+
+  bool
+  handle_unknown_tag(uint8_t tag, uint32_t length) noexcept
+  {
+    LOG("Unavailable data type for tag={} length={}", tag, length);
+    return false;
+  }
+
+  bool
+  parse_value(uint8_t tag,
+              uint32_t length,
+              std::unique_ptr<BufferedStreamReader>& reader)
+  {
+    if (length == 0) {
+      return false;
+    }
+    // compiler can optimize this into jump table
+    switch (tag) {
+    case SETUP_TYPE_VERSION:
+    case SETUP_TYPE_OPERATION_TIMEOUT:
+    case SETUP_TYPE_BUFFERSIZE:
+    case FIELD_TYPE_TIMESTAMP:
+    case FIELD_TYPE_FLAGS:
+    case FIELD_TYPE_STATUS_CODE:
+      return read_uint_field(tag, length, reader);
+    case FIELD_TYPE_KEY:
+      // TODO jump over the key length
+      return true; // Ignore key when parsing from reader
+    case FIELD_TYPE_VALUE:
+      return read_value_field(length, reader);
+    case FIELD_TYPE_ERROR_MSG:
+      return read_error_message(length, reader);
+    default:
+      return handle_unknown_tag(tag, length);
+    }
+  }
+
+  bool
+  parse_header(std::unique_ptr<BufferedStreamReader>& reader)
+  {
+    std::array<uint8_t, sizeof(MessageHeader)> hdr_stream;
+    auto res = reader->read_exactly(sizeof(MessageHeader), hdr_stream);
+    if (!res.has_value()) {
+      LOG("Parser: Reading Header {}",
+          (res.error() == OpError::error) ? "ERROR" : "TIMEOUT");
+      return false;
+    }
+
+    std::memcpy(&m_result.header, hdr_stream.data(), sizeof(MessageHeader));
+    return true;
   }
 
 public:
@@ -160,47 +176,52 @@ public:
   }
 
   ParseResult&
-  parse(nonstd::span<uint8_t> data)
+  parse(std::unique_ptr<BufferedStreamReader>& reader)
   {
-    m_result.fields.clear();
-    m_result.success = false;
+    // parse_header may modify the m_result to add the version, type.
+    // Thus, even if they fail, the m_result object would contain
+    // information about possible issues.
+    m_result.success = true;
+    m_result.status = SUCCESS;
 
-    if (data.size() < TLV_HEADER_SIZE) { // ok..
+    if (!parse_header(reader)) {
+      m_result.status = ERROR;
       return m_result;
     }
 
-    const uint8_t* pos = data.data();
-
-    // Parse header
-    MessageHeader msghdr;
-    std::memcpy(&msghdr, pos, sizeof(MessageHeader));
-    m_result.version = msghdr.version;
-    // TODO checks on the version
-    m_result.msg_type = msghdr.msg_type;
-    pos += TLV_HEADER_SIZE;
-    const uint8_t* end = data.data() + data.size();
-
-    while (pos != end) {
-      // parse tag
-      uint8_t p_tag;
-      std::memcpy(&p_tag, pos, 1);
-      pos++;
-
-      auto [field_length, length_bytes] = decode_length(pos, end - pos);
-      if (length_bytes == 0) {
-        break; // Invalid length encoding
-      }
-      pos += length_bytes;
-
-      if (pos + field_length > end) {
+    // Create a reusable temporary buffer for the data. Max possible length
+    // encoding is 8 bytes
+    //
+    // The loop first reads two bytes (tag and length). It decodes length first.
+    // In case the length is 1 byte represantable it proceeds to decode the
+    // value. Otherwise, first read the actual length of value (multiple bytes)
+    // and then parse the value!
+    std::array<uint8_t, 8> tmp_buffer;
+    for (uint8_t i = 0; i < m_result.header.num_fields; i++) {
+      auto res = reader->read_exactly(2, tmp_buffer);
+      uint8_t tag = tmp_buffer[0];
+      size_t val_len = tmp_buffer[1];
+      if (!res.has_value()) {
+        m_result.status = ERROR;
         break;
       }
-      // parse value and create field
-      parse_value(p_tag, field_length, pos);
-      pos += field_length;
+
+      // read actual value length
+      auto length_encoding = decode_length(val_len);
+      if (length_encoding) {
+        if (!reader->read_exactly(length_encoding, tmp_buffer).has_value()) {
+          m_result.status = ERROR;
+          break;
+        }
+        std::memcpy(&val_len, tmp_buffer.data(), length_encoding);
+      }
+
+      if (!parse_value(tag, val_len, reader)) {
+        m_result.status = ERROR;
+        break;
+      }
     }
 
-    m_result.success = (pos == end);
     return m_result;
   }
 };
