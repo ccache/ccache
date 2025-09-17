@@ -6,6 +6,7 @@
 #include "ccache/util/streambuffer.hpp"
 
 #include <nonstd/span.hpp>
+#include <tl/expected.hpp>
 
 #include <fcntl.h>
 
@@ -113,10 +114,15 @@ private:
 
   /// @brief the socket descriptor
   socket_t m_socket_id = invalid_socket_t;
+
+  /// @brief used for testing a server instance
   socket_t m_client_socket_id = invalid_socket_t;
 
   /// @brief specifies where the socket is
   std::string m_path;
+
+  /// @brief set to true when this socket is intended to serve
+  bool m_is_server = false;
 
   /// @brief specifies whether connection should close
   std::atomic<bool> m_should_end_flag{false};
@@ -126,10 +132,6 @@ private:
 
   /// @brief stores the number of bytes available
   std::atomic<size_t> m_bytes_available_in_buffer{0};
-
-  /// @brief signals whether message is ready for processing from buffer
-  std::mutex m_buffer_data_mutex;
-  std::condition_variable m_buffer_data_cond;
 
   // Helper to create and connect the socket
   socket_t create_and_connect_socket();
@@ -164,16 +166,14 @@ public:
   bool exists() const;
 
   /// @brief sends data (e.g., a serialized message)
-  OpCode send(nonstd::span<const uint8_t> msg);
+  tl::expected<size_t, OpError> send(nonstd::span<const uint8_t> msg);
 
   /// @brief receives a notification that data is available in the read buffer
-  OpCode receive(size_t& bytes_available, bool is_op = true);
+  std::unique_ptr<BufferedStreamReader> create_reader(bool is_op = true);
 
 private:
-  bool m_is_server = false;
   // Helper to establish the socket connection (bind/connect)
-  int establish_connection(const std::filesystem::path& path,
-                           bool is_server);
+  int establish_connection(const std::filesystem::path& path, bool is_server);
 
   /// @brief closes the socket
   int close() const;
