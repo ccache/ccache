@@ -13,11 +13,10 @@
 #include <atomic>
 #include <cassert>
 #include <cctype>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <thread>
+#include <memory>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -39,7 +38,6 @@ constexpr auto invalid_socket_t = -1;
 #include <unistd.h>
 
 #include <filesystem>
-#include <optional>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -51,7 +49,6 @@ constexpr auto SOCKET_PATH_TEMPLATE =
 
 static size_t g_buffersize = 1024;
 static std::chrono::seconds g_operation_timeout{15};
-
 
 constexpr std::chrono::seconds CONNECTION_TIMEOUT{5};
 constexpr std::chrono::seconds READ_TIMEOUT_SECOND{0};
