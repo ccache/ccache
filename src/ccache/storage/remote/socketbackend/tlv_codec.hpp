@@ -340,8 +340,10 @@ public:
   std::pair<uint8_t*, size_t>
   serialize(const int& msg_tag, Args&&... args)
   {
+    constexpr auto args_len = sizeof...(args);
+    constexpr uint8_t num_fields = args_len / 2;
     m_buffer.get().release();
-    begin_message({TLV_VERSION, static_cast<uint16_t>(msg_tag)});
+    begin_message({TLV_VERSION, num_fields, static_cast<uint16_t>(msg_tag)});
 
     auto serialise_fields =
       [this](auto&& self, auto&& first, auto&& second, auto&&... rest) -> void {
@@ -352,7 +354,7 @@ public:
       }
     };
 
-    if constexpr (sizeof...(args) > 0) {
+    if constexpr (args_len > 0) {
       serialise_fields(serialise_fields, std::forward<Args>(args)...);
     }
 
