@@ -45,6 +45,7 @@ constexpr uint16_t MSG_TYPE_DEL_RESPONSE = 0x8004;
 constexpr uint8_t LENGTH_1_BYTE_MAX = 252;  // 0xFC
 constexpr uint8_t LENGTH_3_BYTE_FLAG = 253; // 0xFD
 constexpr uint8_t LENGTH_5_BYTE_FLAG = 254; // 0xFE
+constexpr uint8_t LENGTH_9_BYTE_FLAG = 255; // 0xFE
 
 // Size constants
 constexpr uint16_t TLV_HEADER_SIZE = 0x04;
