@@ -54,10 +54,10 @@ constexpr std::chrono::seconds CONNECTION_TIMEOUT{5};
 constexpr std::chrono::seconds READ_TIMEOUT_SECOND{0};
 constexpr std::chrono::microseconds READ_TIMEOUT_USECOND{100};
 
-enum class OpCode : uint8_t {
+enum class OpError : uint8_t {
   error,
   timeout,
-  ok,
+  interrupted,
 };
 
 class Stream
