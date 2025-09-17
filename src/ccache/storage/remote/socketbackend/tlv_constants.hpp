@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 namespace tlv {
@@ -51,7 +52,7 @@ constexpr uint8_t LENGTH_9_BYTE_FLAG = 255; // 0xFE
 constexpr uint16_t TLV_HEADER_SIZE = 0x04;
 constexpr uint16_t TLV_MAX_FIELD_SIZE = 0xFFFF;
 constexpr uint32_t MAX_MSG_SIZE = 0xFFFFFFFF;
-constexpr uint32_t DEFAULT_ALLOC = 0x5000;
+constexpr uint32_t DEFAULT_ALLOC = 1024;
 
 // Flags
 constexpr uint8_t OVERWRITE_FLAG = 0x01;
@@ -138,41 +139,59 @@ template<uint8_t Tag> struct TagType
   using type = std::vector<uint8_t>; // just raw bytes
 };
 
-// TODO take care of error handling after making sure this works right
-template<uint8_t Tag>
-auto
-interpret_data(const uint8_t* pos, uint32_t length)
-{
-  using DataType = typename TagType<Tag>::type;
+} // namespace meta
 
-  if constexpr (std::is_same_v<DataType, uint8_t>) {
-    if (length != sizeof(uint8_t)) {
-      throw std::runtime_error("Invalid length for uint8_t");
-    }
-    return nonstd::span(pos, length);
-  } else if constexpr (std::is_same_v<DataType, uint16_t>) {
-    if (length != sizeof(uint16_t)) {
-      throw std::runtime_error("Invalid length for uint16_t");
-    }
-    return nonstd::span(pos, length);
-  } else if constexpr (std::is_same_v<DataType, uint32_t>) {
-    if (length != sizeof(uint32_t)) {
-      throw std::runtime_error("Invalid length for uint32_t");
-    }
-    return nonstd::span(pos, length);
-  } else if constexpr (std::is_same_v<DataType, uint64_t>) {
-    if (length != sizeof(uint64_t)) {
-      throw std::runtime_error("Invalid length for uint64_t");
-    }
-    return nonstd::span(pos, length);
-  } else if constexpr (std::is_same_v<DataType, std::string>) {
-    return nonstd::span(pos, length);
-  } else if constexpr (std::is_same_v<DataType, util::Bytes>) {
-    return nonstd::span(pos, length);
-  } else {
-    static_assert(always_false<DataType>::value, "Unknown DataType");
+template<typename T> struct UintFieldRef
+{
+  static_assert(std::is_arithmetic_v<T>,
+                "TLVFieldRef only supports arithmetic types");
+
+  uint8_t tag;
+  T value;
+
+  UintFieldRef(uint8_t t, T val)
+    : tag(t),
+      value(val)
+  {
   }
+};
+
+using UintField = std::variant<UintFieldRef<uint8_t>,
+                              UintFieldRef<uint16_t>,
+                              UintFieldRef<uint32_t>,
+                              UintFieldRef<uint64_t>>;
+
+template<uint8_t Tag>
+inline UintFieldRef<typename meta::TagType<Tag>::type>*
+get_field(std::vector<UintField>& fields)
+{
+  using DataType = typename meta::TagType<Tag>::type;
+  for (auto& field : fields) {
+    if (auto* ref = std::get_if<UintFieldRef<DataType>>(&field)) {
+      if (ref->tag == Tag) { // Use template parameter
+        return ref;
+      }
+    }
+  }
+  return nullptr;
 }
 
-} // namespace meta
+// Factory function
+template<uint8_t Tag>
+UintField
+make_tlv_field(uint8_t tag, const uint8_t* ptr, uint32_t len)
+{
+  using DataType = typename meta::TagType<Tag>::type;
+  static_assert(std::is_arithmetic_v<DataType>, "DataType must be arithmetic");
+
+  if (len != sizeof(DataType)) {
+    throw std::runtime_error("Length mismatch: expected "
+                             + std::to_string(sizeof(DataType)) + " bytes, got "
+                             + std::to_string(len));
+  }
+
+  DataType val;
+  std::memcpy(&val, ptr, sizeof(DataType));
+  return UintFieldRef<DataType>(tag, val);
+}
 } // namespace tlv
