@@ -312,10 +312,10 @@ private:
   }
 
 public:
-  TLVSerializer(StreamBuffer<uint8_t>& stream) 
-  : m_buffer(stream)
+  TLVSerializer(StreamBuffer<uint8_t>& stream)
+    : m_buffer(stream)
   {
-  } 
+  }
   TLVSerializer() = delete;
   TLVSerializer(const TLVSerializer&) = delete;
   TLVSerializer& operator=(const TLVSerializer&) = delete;
@@ -346,7 +346,7 @@ public:
     auto serialise_fields =
       [this](auto&& self, auto&& first, auto&& second, auto&&... rest) -> void {
       this->addfield(std::forward<decltype(first)>(first),
-               std::forward<decltype(second)>(second));
+                     std::forward<decltype(second)>(second));
       if constexpr (sizeof...(rest) > 0) {
         self(self, std::forward<decltype(rest)>(rest)...);
       }
