@@ -25,6 +25,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace storage::remote {
@@ -103,23 +104,21 @@ BackendNode::setup_backend_service()
     return invalid_socket_t; // signals that no connection is possible
   }
 
-  tlv::ResponseStatus status_code;
-  auto field = getfield(res->fields, tlv::FIELD_TYPE_STATUS_CODE);
-  std::memcpy(&status_code, field->data.data(), field->length);
-  if (field->data[0] == tlv::LOCAL_ERROR) {
-    field = getfield(res->fields, tlv::SETUP_TYPE_VERSION);
-    if (field) {
+  tlv::ResponseStatus status_code = res->status;
+  if (status_code == tlv::LOCAL_ERROR) {
+    auto* vfield = tlv::get_field<tlv::SETUP_TYPE_VERSION>(res->fields);
+    if (vfield) {
       return invalid_socket_t;
     }
-    field = getfield(res->fields, tlv::SETUP_TYPE_OPERATION_TIMEOUT);
-    if (field) {
-      uint32_t op_timeout;
-      std::memcpy(&op_timeout, field->data.data(), field->length);
+    auto* ofield =
+      tlv::get_field<tlv::SETUP_TYPE_OPERATION_TIMEOUT>(res->fields);
+    if (ofield) {
+      auto op_timeout = ofield->value;
       g_operation_timeout = std::chrono::seconds{op_timeout};
     }
-    field = getfield(res->fields, tlv::SETUP_TYPE_BUFFERSIZE);
-    if (field) {
-      std::memcpy(&g_buffersize, field->data.data(), field->length);
+    auto* bfield = tlv::get_field<tlv::SETUP_TYPE_BUFFERSIZE>(res->fields);
+    if (bfield) {
+      g_buffersize = bfield->value;
     }
   }
 
@@ -209,9 +208,7 @@ BackendNode::get(const Hash::Digest& key)
                                 : RemoteStorage::Backend::Failure::timeout);
   }
 
-  const tlv::TLVFieldRef* val_field =
-    getfield(res->fields, tlv::FIELD_TYPE_VALUE);
-  return util::Bytes(val_field->data.data(), val_field->length);
+  return std::move(res->value);
 }
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
@@ -222,10 +219,10 @@ BackendNode::put(const Hash::Digest& key,
   auto res = dispatch(tlv::MSG_TYPE_PUT_REQUEST,
                       tlv::FIELD_TYPE_KEY,
                       key,
-                      tlv::FIELD_TYPE_VALUE,
-                      value,
                       tlv::FIELD_TYPE_FLAGS,
-                      only_if_missing ? uint8_t(0x0) : tlv::OVERWRITE_FLAG);
+                      only_if_missing ? uint8_t(0x0) : tlv::OVERWRITE_FLAG,
+                      tlv::FIELD_TYPE_VALUE,
+                      value);
 
   if (!res) {
     if (res.error() == tlv::SUCCESS) {
@@ -251,35 +248,25 @@ BackendNode::dispatch(const int& msg_tag, Args&&... args)
   auto [data, length] =
     serializer.serialize(msg_tag, std::forward<Args>(args)...);
 
-  auto opcode = bsock->send({data, data + length});
+  auto send_res = bsock->send({data, data + length});
   serializer.release();
-  if (opcode == OpCode::error) {
-    return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
-  } else if (opcode == OpCode::timeout) {
-    return tl::unexpected<tlv::ResponseStatus>(tlv::TIMEOUT);
+  if (!send_res.has_value()) {
+    return tl::unexpected<tlv::ResponseStatus>(
+      send_res.error() == OpError::timeout ? tlv::TIMEOUT : tlv::ERROR);
   }
 
   tlv::TLVParser parser;
-  size_t received_size;
-  opcode =
-    bsock->receive(received_size, msg_tag != tlv::MSG_TYPE_SETUP_REQUEST);
-  if (opcode == OpCode::error) {
+  auto reader = bsock->create_reader(msg_tag != tlv::MSG_TYPE_SETUP_REQUEST);
+  if (!reader) {
     return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
-  } else if (opcode == OpCode::timeout) {
-    return tl::unexpected<tlv::ResponseStatus>(tlv::TIMEOUT);
   }
 
-  auto& res = parser.parse({bsock->connection_stream.data(), received_size});
+  auto& res = parser.parse(reader);
   if (!res.success) {
     return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
   }
 
-  tlv::ResponseStatus status_code;
-  auto errcode_field = getfield(res.fields, tlv::FIELD_TYPE_STATUS_CODE);
-  std::memcpy(&status_code, errcode_field->data.data(), errcode_field->length);
-
-  if (status_code != tlv::SUCCESS && msg_tag != tlv::MSG_TYPE_SETUP_REQUEST) {
-    // TODO LOG the error message?
+  if (res.status != tlv::SUCCESS && msg_tag != tlv::MSG_TYPE_SETUP_REQUEST) {
     return tl::unexpected<tlv::ResponseStatus>(tlv::ERROR);
   }
 
