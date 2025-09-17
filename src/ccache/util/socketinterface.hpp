@@ -44,8 +44,11 @@ namespace fs = std::filesystem;
 using StreamBuffer = tlv::StreamBuffer<uint8_t>;
 
 constexpr auto SOCKET_PATH_LENGTH = 256;
-constexpr auto SOCKET_PATH_TEMPLATE =
-  "/home/rocky/repos/py_server_script/daemons/backend-%s.sock";
+#ifdef _WIN32
+constexpr auto SOCKET_PATH_TEMPLATE = "%TEMP%\\backend-%s.sock";
+#else
+constexpr auto SOCKET_PATH_TEMPLATE = "/tmp/backend-%s.sock";
+#endif
 
 static size_t g_buffersize = 1024;
 static std::chrono::seconds g_operation_timeout{15};
