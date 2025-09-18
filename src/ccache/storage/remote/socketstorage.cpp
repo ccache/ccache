@@ -4,6 +4,7 @@
 #include "ccache/storage/remote/remotestorage.hpp"
 #include "ccache/storage/remote/socketbackend/tlv_codec.hpp"
 #include "ccache/storage/remote/socketbackend/tlv_constants.hpp"
+#include "ccache/storage/types.hpp"
 #include "ccache/util/bytes.hpp"
 #include "ccache/util/logging.hpp"
 #include "ccache/util/socketinterface.hpp"
@@ -44,7 +45,7 @@ public:
   tl::expected<bool, RemoteStorage::Backend::Failure>
   put(const Hash::Digest& key,
       nonstd::span<const uint8_t> value,
-      bool only_if_missing = false) override;
+      Overwrite overwrite) override;
 
   tl::expected<bool, RemoteStorage::Backend::Failure>
   remove(const Hash::Digest& key) override;
@@ -206,13 +207,13 @@ BackendNode::get(const Hash::Digest& key)
 tl::expected<bool, RemoteStorage::Backend::Failure>
 BackendNode::put(const Hash::Digest& key,
                  nonstd::span<const uint8_t> value,
-                 bool only_if_missing)
+                 Overwrite overwrite)
 {
   auto res = dispatch(tlv::MSG_TYPE_PUT_REQUEST,
                       tlv::FIELD_TYPE_KEY,
                       key,
                       tlv::FIELD_TYPE_FLAGS,
-                      only_if_missing ? uint8_t(0x0) : tlv::OVERWRITE_FLAG,
+                      uint8_t(overwrite == Overwrite::yes),
                       tlv::FIELD_TYPE_VALUE,
                       value);
 
