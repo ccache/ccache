@@ -27,13 +27,13 @@
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
-#include <sched.h>
-#include <sys/un.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
-#include <cstdlib>
-#include <memory>
-#include <vector>
+#ifdef _WIN32
+#  include <io.h>
+#endif
 
 namespace storage::remote {
 

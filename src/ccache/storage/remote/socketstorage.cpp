@@ -10,18 +10,10 @@
 #include "ccache/util/string.hpp"
 #include "socketbackend/launcher.hpp"
 
-#include <cxxurl/url.hpp>
-#include <fmt/base.h>
 #include <httplib.h>
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
 #include <memory>
 #include <optional>
 #include <string>

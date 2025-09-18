@@ -29,13 +29,14 @@
 using socket_t = SOCKET;
 constexpr auto invalid_socket_t = INVALID_SOCKET;
 #else
+#  include <cerrno>
+#  include <sys/un.h>
 #  include <sys/socket.h>
+#  include <unistd.h>
 
 using socket_t = int;
 constexpr auto invalid_socket_t = -1;
 #endif
-#include <sys/un.h>
-#include <unistd.h>
 
 #include <filesystem>
 #include <string>

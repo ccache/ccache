@@ -1,8 +1,5 @@
 #include "socketinterface.hpp"
 
-#include <sys/ioctl.h>
-#include <sys/types.h>
-
 #include <atomic>
 #include <cstddef>
 #include <cstdint>

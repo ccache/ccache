@@ -4,7 +4,13 @@
 #include "ccache/util/environment.hpp"
 #include "ccache/util/logging.hpp"
 
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
+#ifdef _WIN32
+#  include <io.h>
+#endif
 
 #include <cstddef>
 #include <filesystem>

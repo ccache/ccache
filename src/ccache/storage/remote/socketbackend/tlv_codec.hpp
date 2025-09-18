@@ -6,10 +6,6 @@
 #include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
-#include <emmintrin.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-
 #include <array>
 #include <cassert>
 #include <cstddef>
