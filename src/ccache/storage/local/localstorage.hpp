@@ -25,6 +25,7 @@
 #include <ccache/hash.hpp>
 #include <ccache/storage/local/statsfile.hpp>
 #include <ccache/storage/local/util.hpp>
+#include <ccache/storage/types.hpp>
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/lockfile.hpp>
@@ -76,7 +77,7 @@ public:
   void put(const Hash::Digest& key,
            core::CacheEntryType type,
            nonstd::span<const uint8_t> value,
-           bool only_if_missing = false);
+           Overwrite overwrite);
 
   void remove(const Hash::Digest& key, core::CacheEntryType type);
 

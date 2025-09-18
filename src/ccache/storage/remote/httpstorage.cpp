@@ -49,7 +49,7 @@ public:
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
                                   nonstd::span<const uint8_t> value,
-                                  bool only_if_missing) override;
+                                  Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
@@ -57,6 +57,7 @@ private:
   enum class Layout : uint8_t { bazel, flat, subdirs };
 
   Url m_url;
+  std::string m_redacted_url;
   std::string m_url_path;
   httplib::Client m_http_client;
   Layout m_layout = Layout::subdirs;
@@ -109,6 +110,7 @@ failure_from_httplib_error(httplib::Error error)
 HttpStorageBackend::HttpStorageBackend(
   const Url& url, const std::vector<Backend::Attribute>& attributes)
   : m_url(url),
+    m_redacted_url(get_redacted_url_str_for_logging(url)),
     m_url_path(get_url_path(url)),
     m_http_client(get_url(url))
 {
@@ -172,15 +174,16 @@ HttpStorageBackend::get(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Get(url_path);
-  LOG("GET {}{} -> {}", m_url.str(), url_path, result->status);
 
-  if (result.error() != httplib::Error::Success || !result) {
+  if (!result || result.error() != httplib::Error::Success) {
     LOG("Failed to get {} from http storage: {} ({})",
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
     return tl::unexpected(failure_from_httplib_error(result.error()));
   }
+
+  LOG("GET {}{} -> {}", m_redacted_url, url_path, result->status);
 
   if (result->status < 200 || result->status >= 300) {
     // Don't log failure if the entry doesn't exist.
@@ -193,21 +196,21 @@ HttpStorageBackend::get(const Hash::Digest& key)
 tl::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::put(const Hash::Digest& key,
                         const nonstd::span<const uint8_t> value,
-                        const bool only_if_missing)
+                        const Overwrite overwrite)
 {
   const auto url_path = get_entry_path(key);
 
-  if (only_if_missing) {
+  if (overwrite == Overwrite::no) {
     const auto result = m_http_client.Head(url_path);
-    LOG("HEAD {}{} -> {}", m_url.str(), url_path, result->status);
-
-    if (result.error() != httplib::Error::Success || !result) {
+    if (!result || result.error() != httplib::Error::Success) {
       LOG("Failed to check for {} in http storage: {} ({})",
           url_path,
           to_string(result.error()),
           static_cast<int>(result.error()));
       return tl::unexpected(failure_from_httplib_error(result.error()));
     }
+
+    LOG("HEAD {}{} -> {}", m_redacted_url, url_path, result->status);
 
     if (result->status >= 200 && result->status < 300) {
       LOG("Found entry {} already within http storage: status code: {}",
@@ -223,15 +226,16 @@ HttpStorageBackend::put(const Hash::Digest& key,
                       reinterpret_cast<const char*>(value.data()),
                       value.size(),
                       content_type);
-  LOG("PUT {}{} -> {}", m_url.str(), url_path, result->status);
 
-  if (result.error() != httplib::Error::Success || !result) {
+  if (!result || result.error() != httplib::Error::Success) {
     LOG("Failed to put {} to http storage: {} ({})",
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
     return tl::unexpected(failure_from_httplib_error(result.error()));
   }
+
+  LOG("PUT {}{} -> {}", m_redacted_url, url_path, result->status);
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to put {} to http storage: status code: {}",
@@ -248,15 +252,16 @@ HttpStorageBackend::remove(const Hash::Digest& key)
 {
   const auto url_path = get_entry_path(key);
   const auto result = m_http_client.Delete(url_path);
-  LOG("DELETE {}{} -> {}", m_url.str(), url_path, result->status);
 
-  if (result.error() != httplib::Error::Success || !result) {
+  if (!result || result.error() != httplib::Error::Success) {
     LOG("Failed to delete {} from http storage: {} ({})",
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
     return tl::unexpected(failure_from_httplib_error(result.error()));
   }
+
+  LOG("DELETE {}{} -> {}", m_redacted_url, url_path, result->status);
 
   if (result->status < 200 || result->status >= 300) {
     LOG("Failed to delete {} from http storage: status code: {}",

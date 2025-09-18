@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -eux
+
+dir=build
+cmake -B "${dir}" -D CMAKE_INSTALL_PREFIX="$(pwd)/install"
+ninja -C "${dir}" doc/install

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,12 +18,12 @@
 
 #pragma once
 
+#include <ccache/util/macro.hpp>
+
 #include <functional>
 
-#define DEFER_CONCAT2(x, y) x##y
-#define DEFER_CONCAT1(x, y) DEFER_CONCAT2(x, y)
-#define DEFER_VARNAME DEFER_CONCAT1(_deferrer_, __LINE__)
-#define DEFER(...) util::Deferrer DEFER_VARNAME([&] { (void)__VA_ARGS__; })
+#define DEFER(...)                                                             \
+  util::Deferrer UNIQUE_VARNAME(_deferrer_)([&] { (void)__VA_ARGS__; })
 
 namespace util {
 

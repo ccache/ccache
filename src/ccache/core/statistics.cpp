@@ -60,7 +60,10 @@ struct StatisticsField
 
 } // namespace
 
-#define FIELD(id, ...) {Statistic::id, #id, __VA_ARGS__}
+#define FIELD(id, ...)                                                         \
+  {                                                                            \
+    Statistic::id, #id, __VA_ARGS__                                            \
+  }
 
 const StatisticsField k_statistics_fields[] = {
   // Field "none" intentionally omitted.
@@ -247,6 +250,12 @@ const StatisticsField k_statistics_fields[] = {
   // An environment variable not supported by ccache was set.
   FIELD(unsupported_environment_variable,
         "Unsupported environment variable",
+        FLAG_UNCACHEABLE),
+
+  // Source file (or an included header) has unsupported encoding. ccache
+  // currently requires UTF-8-encoded source code for MSVC.
+  FIELD(unsupported_source_encoding,
+        "Unsupported source encoding",
         FLAG_UNCACHEABLE),
 
   // A source language e.g. specified with -x was unsupported by ccache.

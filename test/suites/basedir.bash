@@ -56,6 +56,23 @@ SUITE_basedir() {
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
+    TEST "Several entries in CCACHE_BASEDIR"
+
+    basedir="$(pwd)/dir1:$(pwd)/dir2"
+
+    cd dir1
+    CCACHE_BASEDIR="${basedir}" $CCACHE_COMPILE -I"$(pwd)"/include -c src/test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    cd ../dir2
+    CCACHE_BASEDIR="${basedir}" $CCACHE_COMPILE -I"$(pwd)"/include -c src/test.c
+    expect_stat direct_cache_hit 1
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     TEST "Path normalization"
 
@@ -100,7 +117,7 @@ fi
 
     # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
-    TEST "Symlink to source file"
+    TEST "Symlink to source file, shorter symlink path"
 
     mkdir dir
     cd dir
@@ -115,6 +132,29 @@ EOF
     ln -s d/c.c c.c
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/c.c
+    $COMPILER c.o -o c
+    if [ "$(./c)" != OK ]; then
+        test_failed "Incorrect header file used"
+    fi
+fi
+
+    # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
+    TEST "Symlink to source file, longer symlink path"
+
+    mkdir dir
+    cd dir
+    mkdir d
+    echo '#define A "BUG"' >h.h
+    cat <<EOF >c.c
+#include <stdio.h>
+#include "h.h"
+int main() { printf("%s\n", A); }
+EOF
+    echo '#define A "OK"' >d/h.h
+    ln -s ../c.c d/c.c
+
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d/c.c
     $COMPILER c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
@@ -258,7 +298,7 @@ EOF
     # -------------------------------------------------------------------------
     if $COMPILER_TYPE_CLANG; then
         TEST "-fbuild-session-file/absolute/path"
-        
+
         build_session_file_path="$(pwd)/dir3/build-session-file.bin"
         cd dir1
         CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -fbuild-session-file="$build_session_file_path" -c src/test.c
@@ -301,6 +341,7 @@ EOF
         expect_content_pattern test.d "$(pwd)/foo.o:*"
         cd ..
     done
+
     # -------------------------------------------------------------------------
     # When BASEDIR is set to /, check that -MF, -MQ and -MT arguments with
     # absolute paths are rewritten to relative and that the dependency file
@@ -343,6 +384,7 @@ EOF
         expect_stat cache_miss 1
         cd ..
     done
+
     # -------------------------------------------------------------------------
 if $RUN_WIN_XFAIL; then
     TEST "Absolute paths in stderr"
@@ -387,17 +429,18 @@ EOF
         expect_equal_content reference.stderr ccache.stderr
     fi
 fi
+
     # -------------------------------------------------------------------------
     TEST "Relative PWD"
 
     cd dir1
-    CCACHE_BASEDIR="$(pwd)" PWD=. $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    CCACHE_BASEDIR="$(pwd -P)" PWD=. $CCACHE_COMPILE -I$(pwd -P)/include -c src/test.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
     cd ../dir2
-    CCACHE_BASEDIR="$(pwd)" PWD=. $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    CCACHE_BASEDIR="$(pwd -P)" PWD=. $CCACHE_COMPILE -I$(pwd -P)/include -c src/test.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
@@ -408,13 +451,13 @@ fi
     unset PWD
 
     cd dir1
-    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    CCACHE_BASEDIR="$(pwd -P)" $CCACHE_COMPILE -I$(pwd -P)/include -c src/test.c
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
     cd ../dir2
-    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    CCACHE_BASEDIR="$(pwd -P)" $CCACHE_COMPILE -I$(pwd -P)/include -c src/test.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1

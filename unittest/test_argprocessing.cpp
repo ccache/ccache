@@ -42,17 +42,14 @@ using util::Args;
 
 namespace {
 
-std::string
+fs::path
 get_root()
 {
-#ifndef _WIN32
-  return "/";
-#else
-  char volume[4]; // "C:\"
-  GetVolumePathName(
-    util::pstr(*fs::current_path()).c_str(), volume, sizeof(volume));
-  return volume;
-#endif
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    FAIL("get_root failed: ", cwd.error());
+  }
+  return cwd->root_path();
 }
 
 } // namespace

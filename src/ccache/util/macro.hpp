@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,16 +18,6 @@
 
 #pragma once
 
-#include <functional>
-#include <string>
-
-namespace storage {
-
-using EntryWriter = std::function<bool(const std::string& path)>;
-
-enum class Overwrite {
-  yes, // Overwrite any preexisting value
-  no,  // OK to not overwrite any preexisting value (but OK to overwrite anyway)
-};
-
-} // namespace storage
+#define UNIQUE_VARNAME_CONCAT_HELPER(x, y) x##y
+#define UNIQUE_VARNAME_CONCAT(x, y) UNIQUE_VARNAME_CONCAT_HELPER(x, y)
+#define UNIQUE_VARNAME(prefix) UNIQUE_VARNAME_CONCAT(prefix, __LINE__)

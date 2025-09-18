@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eux
+
+: ${CMAKE_PARAMS:=}
+
+mkdir -p "build"
+cd "build"
+cmake \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D DEPS=DOWNLOAD \
+    -D ENABLE_TESTING=OFF \
+    -D CMAKE_INSTALL_PREFIX=$(pwd)/../install \
+    ${CMAKE_PARAMS} \
+    ..
+cmake --build .
+cmake --install . --strip
+
+cd ..
+find install -ls

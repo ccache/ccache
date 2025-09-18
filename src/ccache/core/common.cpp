@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -82,8 +82,8 @@ ensure_dir_exists(const fs::path& dir)
 fs::path
 make_relative_path(const Context& ctx, const fs::path& path)
 {
-  if (!ctx.config.base_dir().empty() && path.is_absolute()
-      && util::path_starts_with(path, ctx.config.base_dir())) {
+  if (!ctx.config.base_dirs().empty() && path.is_absolute()
+      && util::path_starts_with(path, ctx.config.base_dirs())) {
     return util::make_relative_path(ctx.actual_cwd, ctx.apparent_cwd, path);
   } else {
     return path;

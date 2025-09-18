@@ -91,18 +91,11 @@ make_relative_path(const fs::path& actual_cwd,
     closest_existing_path = closest_existing_path.parent_path();
   }
 
-  const auto add_relpath_candidates = [&](auto p) {
-    relpath_candidates.push_back(p.lexically_relative(actual_cwd));
-    if (apparent_cwd != actual_cwd) {
-      relpath_candidates.emplace_back(p.lexically_relative(apparent_cwd));
-    }
-  };
-
-  add_relpath_candidates(closest_existing_path);
-  const fs::path real_closest_existing_path =
-    fs::canonical(closest_existing_path).value_or(closest_existing_path);
-  if (real_closest_existing_path != closest_existing_path) {
-    add_relpath_candidates(real_closest_existing_path);
+  relpath_candidates.push_back(
+    closest_existing_path.lexically_relative(actual_cwd));
+  if (apparent_cwd != actual_cwd) {
+    relpath_candidates.emplace_back(
+      closest_existing_path.lexically_relative(apparent_cwd));
   }
 
   // Find best (i.e. shortest existing) match:
@@ -148,6 +141,16 @@ path_starts_with(const fs::path& path, const fs::path& prefix)
 
   return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2_end).second
          == p2_end;
+}
+
+bool
+path_starts_with(const std::filesystem::path& path,
+                 const std::vector<std::filesystem::path>& prefixes)
+{
+  return std::any_of(
+    std::begin(prefixes), std::end(prefixes), [&](const fs::path& prefix) {
+      return path_starts_with(path, prefix);
+    });
 }
 
 } // namespace util

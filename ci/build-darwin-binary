@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 build() {
     mkdir -p "build_$1"
@@ -26,6 +26,8 @@ for i in "$@"; do
     FILES="${FILES} build_$i/ccache"
 done
 
-mkdir -p build_universal
-lipo -create $FILES -output build_universal/ccache
-lipo -info build_universal/ccache
+mkdir -p install/bin
+lipo -create $FILES -output install/bin/ccache
+lipo -info install/bin/ccache
+
+find install -ls

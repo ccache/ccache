@@ -632,7 +632,7 @@ fi
 
 export TEST_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-all_suites="$(sed -En 's/^addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
+all_suites="$(sed -En 's/^ *addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
 for suite in $all_suites; do
     . "$TEST_BASE_DIR"/suites/$suite.bash
 done

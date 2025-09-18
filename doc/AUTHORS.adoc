@@ -74,6 +74,7 @@ Ccache is a collective work with contributions from many people, including:
 * Joel Rosdahl
 * John Basila
 * John Coiner
+* Jonathan Neuschäfer
 * Jon Bernard
 * Jonny Yu
 * Jon Petrissans
@@ -92,6 +93,7 @@ Ccache is a collective work with contributions from many people, including:
 * Lalit Chhabra
 * Lars Gustäbel
 * Laurent Bouhier
+* Leander Schulten
 * Leanid Chaika
 * Loïc Yhuel
 * Louis Caron
@@ -103,6 +105,7 @@ Ccache is a collective work with contributions from many people, including:
 * Martin Blanchard
 * Martin Ettl
 * Martin Pool
+* Martin Storsjö
 * Mathias De Maré
 * Matthias Kretz
 * Matt Johnston
@@ -119,6 +122,7 @@ Ccache is a collective work with contributions from many people, including:
 * Mike Gulick
 * Mikhail Kolomeytsev
 * Mizuha Himuraki
+* Morten Engelhardt Olsen
 * Mostyn Bramley-Moore
 * Neil Mushell
 * Nicholas Hutchinson

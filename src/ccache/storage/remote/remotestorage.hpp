@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/hash.hpp>
+#include <ccache/storage/types.hpp>
 #include <ccache/util/bytes.hpp>
 
 #include <cxxurl/url.hpp>
@@ -75,12 +76,11 @@ public:
     virtual tl::expected<std::optional<util::Bytes>, Failure>
     get(const Hash::Digest& key) = 0;
 
-    // Put `value` associated to `key` in the storage. A true `only_if_missing`
-    // is a hint that the value does not have to be set if already present.
-    // Returns true if the entry was stored, otherwise false.
+    // Put `value` associated to `key` in the storage. Returns true if the entry
+    // was stored, otherwise false.
     virtual tl::expected<bool, Failure> put(const Hash::Digest& key,
                                             nonstd::span<const uint8_t> value,
-                                            bool only_if_missing = false) = 0;
+                                            Overwrite overwrite) = 0;
 
     // Remove `key` and its associated value. Returns true if the entry was
     // removed, otherwise false.

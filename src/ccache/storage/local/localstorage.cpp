@@ -527,10 +527,10 @@ void
 LocalStorage::put(const Hash::Digest& key,
                   const core::CacheEntryType type,
                   nonstd::span<const uint8_t> value,
-                  bool only_if_missing)
+                  Overwrite overwrite)
 {
   const auto cache_file = look_up_cache_file(key, type);
-  if (only_if_missing && cache_file.dir_entry.exists()) {
+  if (overwrite == Overwrite::no && cache_file.dir_entry.exists()) {
     LOG("Not storing {} in local storage since it already exists",
         cache_file.path);
     return;

@@ -99,6 +99,9 @@ template<typename T>
 std::string
 join(const T& begin, const T& end, const std::string_view delimiter);
 
+// Join paths into a string with system-dependent delimiter.
+std::string join_path_list(const std::vector<std::filesystem::path>& path_list);
+
 // Parse a string into a double.
 //
 // Returns an error string if `value` cannot be parsed as a double.

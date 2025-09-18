@@ -3,7 +3,7 @@
 # Test that it works to build from a source archive exported by "git archive"
 # outside a Git repository.
 
-set -eu
+set -eux
 
 # Unset CI variable to trigger ccache user build mode.
 unset CI

@@ -2,6 +2,11 @@ name: Build
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Optional tag name to simulate release'
+        required: false
 
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
@@ -46,6 +51,10 @@ jobs:
             compiler: clang
             version: "15"
 
+          - os: ubuntu-22.04-arm
+            compiler: gcc
+            version: "11"
+
           - os: ubuntu-24.04
             compiler: gcc
             version: "13"
@@ -66,6 +75,10 @@ jobs:
             compiler: clang
             version: "18"
 
+          - os: ubuntu-24.04-arm
+            compiler: gcc
+            version: "13"
+
           - os: macOS-13
             compiler: xcode
             version: "15.0.1"
@@ -84,7 +97,6 @@ jobs:
             elfutils
             libhiredis-dev
             libzstd-dev
-            ninja-build
             python3
             redis-server
             redis-tools
@@ -109,7 +121,11 @@ jobs:
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
 
-            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            sudo apt-get install -y g++-${{ matrix.version }}
+            if [ "${{ !endsWith(matrix.os, '-arm') }}" = "true" ]; then
+              # The -multilib packages are only available on x86.
+              sudo apt-get install -y g++-${{ matrix.version }}-multilib
+            fi
             if [ "${{ matrix.version }}" = 8 ]; then
               # The compilation test in StdFilesystem.cmake doesn't work when
               # GCC 9 is installed as well, so need to force linking with
@@ -137,7 +153,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-            brew install ninja hiredis redis
+            brew install hiredis redis
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
@@ -168,19 +184,24 @@ jobs:
 
   build_and_test_msys:
     timeout-minutes: 30
-    runs-on: windows-2025
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - sys: mingw64
-            env: x86_64
             compiler: gcc
+            os: windows-2025
 
           - sys: mingw64
-            env: x86_64
             compiler: clang
-            extra_cmake_params: -DENABLE_TESTING=OFF # clang currently triggers warnings with doctest
+            extra_cmake_params: -DCMAKE_CXX_FLAGS=-Wno-deprecated # doctest issue #900
+            os: windows-2025
+
+          - sys: clangarm64
+            compiler: clang
+            extra_cmake_params: -DENABLE_TESTING=OFF # occasionally crashes with "Exception: SegFault"
+            os: windows-11-arm
 
     name: 'Windows MSYS2 ${{ matrix.sys }} ${{ matrix.compiler }}'
     defaults:
@@ -196,12 +217,13 @@ jobs:
             git
             diffutils
             tar
-            mingw-w64-${{matrix.env}}-toolchain
-            mingw-w64-${{matrix.env}}-cmake
-            mingw-w64-${{matrix.env}}-ninja
-            mingw-w64-${{matrix.env}}-hiredis
-            mingw-w64-${{matrix.env}}-lld
-            mingw-w64-${{matrix.env}}-${{matrix.compiler}}
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            ninja:p
+            hiredis:p
+            lld:p
+            ${{matrix.compiler}}:p
 
       - name: Set up environment
         run: |
@@ -225,7 +247,7 @@ jobs:
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
           CMAKE_GENERATOR: Ninja
-          TEST_CC: gcc
+          TEST_CC: ${{ matrix.compiler }}
 
       - name: Collect testdir from failed tests
         if: failure()
@@ -235,29 +257,166 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.sys}}-${{ matrix.env }}-${{ matrix.compiler }}-testdir.tar.xz
+          name: ${{ matrix.sys }}-${{ matrix.compiler }}-testdir.tar.xz
           path: testdir.tar.xz
 
-  build_macos_universal:
+  build_documentation:
     timeout-minutes: 30
-    name: macOS universal binary
+    name: Documentation
+    runs-on: ubuntu-24.04
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Prepare environment
+        run: |
+          sudo apt-get install -y asciidoctor
+      - name: Build documentation
+        run: ci/build-docs
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: |
+            doc/INSTALL.md
+            GPL-3.0.txt
+            install
+            README.md
+
+  build_linux_aarch64_binary:
+    timeout-minutes: 30
+    name: Linux aarch64 binary
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: |
+            -D CMAKE_TOOLCHAIN_FILE=../toolchains/aarch64-linux-gnu.cmake
+            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-aarch64-binary
+          path: install/bin/ccache
+          retention-days: 3
+
+  build_linux_x86_64_binary:
+    timeout-minutes: 30
+    name: Linux x86_64 binary
+    runs-on: ubuntu-22.04
+    container:
+      image: almalinux:8
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled powertools
+          dnf install -y epel-release
+          dnf install -y \
+            --setopt=install_weak_deps=False \
+            --setopt=tsflags=nodocs \
+            cmake \
+            gcc \
+            gcc-c++ \
+            gcc-toolset-11 \
+            git \
+            ninja-build
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: |
+          scl enable gcc-toolset-11 ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64-binary
+          path: install/bin/ccache
+          retention-days: 3
+
+  build_darwin_binary:
+    timeout-minutes: 30
+    name: Build Darwin (macOS) binary
     runs-on: macos-15
     env:
       CMAKE_GENERATOR: Ninja
     steps:
       - name: Get source
         uses: actions/checkout@v4
-      - name: Install Dependencies
-        run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-              brew install ninja
-      - name: Build macOS universal binary
-        run: ci/build-macos-binary
-      - name: Archive universal binary
+      - name: Build Darwin binary
+        run: ci/build-darwin-binary
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: macOS-binary
-          path: build_universal/ccache
+          name: darwin-binary
+          path: install/bin/ccache
+          retention-days: 3
+
+  build_windows_binary:
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: i686
+            toolchain: i686-w64-mingw32-posix
+            apt_get: g++-mingw-w64-i686-posix
+
+          - arch: x86_64
+            toolchain: x86_64-w64-mingw32-posix
+            apt_get: g++-mingw-w64-x86-64-posix
+
+          - arch: aarch64
+            toolchain: aarch64-w64-mingw32
+            llvm_mingw: true
+
+    name: Windows ${{ matrix.arch }} binary
+    steps:
+      - name: Run apt-get
+        if: matrix.apt_get != ''
+        run: sudo apt-get update && sudo apt-get install ${{ matrix.apt_get }}
+      - name: Install llvm-mingw
+        if: matrix.llvm_mingw != ''
+        env:
+          TOOLCHAIN_URL_PREFIX: "https://github.com/mstorsjo/llvm-mingw/releases/download/20250709/"
+          TOOLCHAIN_FILENAME: "llvm-mingw-20250709-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          TOOLCHAIN_SHA256: "60cafae6474c7411174cff1d4ba21a8e46cadbaeb05a1bace306add301628337"
+        run: |
+          curl -LO ${TOOLCHAIN_URL_PREFIX}${TOOLCHAIN_FILENAME}
+          echo ${TOOLCHAIN_SHA256} ${TOOLCHAIN_FILENAME} | sha256sum -c
+          tar -xf ${TOOLCHAIN_FILENAME}
+          rm ${TOOLCHAIN_FILENAME}
+          sudo mkdir -p /opt
+          sudo mv $(basename ${TOOLCHAIN_FILENAME} .tar.xz) /opt/llvm-mingw
+          echo /opt/llvm-mingw/bin >>${GITHUB_PATH}
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_PARAMS: -D CMAKE_TOOLCHAIN_FILE=../toolchains/${{ matrix.toolchain }}.cmake
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}-binary
+          path: install/bin/ccache.exe
+          retention-days: 3
 
   specific_tests:
     name: ${{ matrix.name }}
@@ -345,15 +504,15 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
-          # Doesn't run tests as windows machines are x86
           - name: Windows VS2022 ARM64 MSBuild
-            os: windows-2022
+            os: windows-11-arm
             msvc_arch: ARM64
+            allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -DENABLE_TESTING=OFF -A ARM64
-            RUN_TESTS: none
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A ARM64
+            TEST_CC: clang -target aarch64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
             os: ubuntu-22.04
@@ -377,26 +536,14 @@ jobs:
             CXX: g++
             SPECIAL: build-and-verify-package
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
-            apt_get: elfutils libzstd-dev libhiredis-dev ninja-build
+            apt_get: elfutils libzstd-dev libhiredis-dev
 
           - name: Source package
             os: ubuntu-22.04
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev libhiredis-dev ninja-build asciidoctor
-
-          - name: HTML documentation
-            os: ubuntu-22.04
-            EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
-            RUN_TESTS: none
-            apt_get: libzstd-dev libhiredis-dev asciidoctor
-
-          - name: Manual page
-            os: ubuntu-22.04
-            EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
-            RUN_TESTS: none
-            apt_get: libzstd-dev libhiredis-dev asciidoctor
+            apt_get: elfutils libzstd-dev libhiredis-dev asciidoctor
 
           - name: Clang-Tidy
             os: ubuntu-22.04
@@ -481,6 +628,85 @@ jobs:
           name: ${{ matrix.name }} - testdir.tar.xz
           path: testdir.tar.xz
 
+  build_release:
+    name: Build release
+    needs:
+      - build_darwin_binary
+      - build_linux_aarch64_binary
+      - build_linux_x86_64_binary
+      - build_windows_binary
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y minisign
+
+      - name: Get source
+        uses: actions/checkout@v4
+
+      - name: Download binaries
+        uses: actions/download-artifact@v5
+        with:
+          pattern: "*-binary"
+
+      - name: Download docs
+        uses: actions/download-artifact@v5
+        with:
+          pattern: docs
+          path: docs
+
+      - name: Build release
+        run: ci/prepare-release
+
+      - name: Sign release archives
+        if: env.MINISIGN_KEY != ''
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+        run: |
+          mkdir -p ~/.minisign
+          echo "${MINISIGN_KEY}" | base64 -d > ~/.minisign/minisign.key
+          minisign -Sm release/*
+
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        if: ${{ github.ref_type == 'tag' || github.event.inputs.test_tag != '' }}
+        with:
+          name: release
+          path: release
+          retention-days: 3
+
+  create_release:
+    name: Create release
+    needs:
+      - build_release
+    permissions:
+      contents: write
+    if: ${{ github.ref_type == 'tag' || github.event.inputs.test_tag != '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Download release
+        uses: actions/download-artifact@v5
+        with:
+          name: release
+          path: release
+      - name: Create release notes
+        run: |
+          TAG_NAME="${{ github.event.inputs.test_tag || github.ref_name }}"
+          ci/generate-release-notes "${TAG_NAME}" >release-notes.md
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ github.event.inputs.test_tag || github.ref_name }}"
+          gh release create "${TAG_NAME}" \
+            --draft \
+            --notes-file release-notes.md \
+            --title "${TAG_NAME}" \
+            release/*
+
   check_format:
     timeout-minutes: 30
     name: Code formatting
@@ -508,7 +734,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install python3-pip
-          pip3 install codespell==2.3.0 typos==1.24.6
+          pip3 install codespell==2.4.1 typos==1.35.6
 
       - name: Run codespell
         run: codespell -q 7 -S ".git,build*,./misc/typos.toml,./src/third_party/*" -I misc/codespell-allowlist.txt

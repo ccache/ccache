@@ -1,8 +1,13 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
-    <asmv3:application xmlns="urn:schemas-microsoft-com:asm.v3">
-        <asmv3:windowsSettings xmlns:ws2="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
-            <ws2:longPathAware>true</ws2:longPathAware>
-        </asmv3:windowsSettings>
-    </asmv3:application>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1"
+          xmlns:asmv3="urn:schemas-microsoft-com:asm.v3"
+          xmlns:ws2016="http://schemas.microsoft.com/SMI/2016/WindowsSettings"
+          xmlns:ws2019="http://schemas.microsoft.com/SMI/2019/WindowsSettings"
+          manifestVersion="1.0">
+  <asmv3:application>
+    <asmv3:windowsSettings>
+      <ws2016:longPathAware>true</ws2016:longPathAware>
+      <ws2019:activeCodePage>UTF-8</ws2019:activeCodePage>
+    </asmv3:windowsSettings>
+  </asmv3:application>
 </assembly>

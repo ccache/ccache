@@ -18,22 +18,22 @@ fi
 misc_dir="$(dirname "$0")"
 clang_format_exe="${misc_dir}/.clang-format-exe"
 clang_format_version=18
-clang_format_release=master-2da3e7b
+clang_format_release=master-609f1513
 url_prefix="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/${clang_format_release}/clang-format-${clang_format_version}_"
 
 if [ ! -x "$clang_format_exe" ]; then
     case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
         *mingw*|*cygwin*|*msys*)
             url_suffix=windows-amd64.exe
-            checksum=4c7c29320e7b17901fa39ad7068b309756c121b83e4008669711e55dd4459793
+            checksum=d8c788f0d983177ae2ebcac6cb32d0e9bd79f93bae5aab5197b1d5998be4f90b
             ;;
         *darwin*)
             url_suffix=macosx-amd64
-            checksum=aebb3bc3f6fa286373e03c096ae0a6408d37e8f837b43cdbda6f6203ba2bbb14
+            checksum=de1a6affc3253af8cf48130d2940375b284025bedbb2b812d55e85cfdff69e83
             ;;
         *linux*)
             url_suffix=linux-amd64
-            checksum=d126ba919b7913cd352ca669c669024c0edac3e93311d9a52a45bffb6169f4de
+            checksum=2a6cd633f85e96a32f68cca3f1ac2ef63c677cae0f2b2a7f2a0c3f81a36a2353
             ;;
         *)
             echo "Error: Please set CLANG_FORMAT to clang-format version $clang_format_version" >&2

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/util/format.hpp>
+#include <ccache/util/macro.hpp>
 
 #include <tl/expected.hpp>
 
@@ -59,11 +60,11 @@ void throw_on_error(const T& value, std::string_view prefix);
   } while (false)
 
 #define TRY_ASSIGN(var_, expression_)                                          \
-  auto result_##__LINE__##_ = (expression_);                                   \
-  if (!result_##__LINE__##_) {                                                 \
-    return tl::unexpected(std::move(result_##__LINE__##_.error()));            \
+  auto UNIQUE_VARNAME(_result_) = (expression_);                               \
+  if (!UNIQUE_VARNAME(_result_)) {                                             \
+    return tl::unexpected(std::move(UNIQUE_VARNAME(_result_).error()));        \
   }                                                                            \
-  var_ = std::move(*result_##__LINE__##_)
+  var_ = std::move(*UNIQUE_VARNAME(_result_))
 
 // --- Inline implementations ---
 

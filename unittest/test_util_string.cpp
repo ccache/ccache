@@ -293,6 +293,16 @@ TEST_CASE("util::join")
   }
 }
 
+TEST_CASE("util::join_path_list")
+{
+  CHECK(util::join_path_list({}).empty());
+#ifdef _WIN32
+  CHECK(util::join_path_list({"a", "b"}) == "a;b");
+#else
+  CHECK(util::join_path_list({"a", "b"}) == "a:b");
+#endif
+}
+
 TEST_CASE("util::parse_double")
 {
   CHECK(*util::parse_double("0") == doctest::Approx(0.0));

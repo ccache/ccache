@@ -19,6 +19,7 @@
 #include "string.hpp"
 
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/expected.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/time.hpp>
@@ -29,6 +30,12 @@
 namespace fs = util::filesystem;
 
 namespace {
+
+#ifdef _WIN32
+const char k_path_delimiter[] = ";";
+#else
+const char k_path_delimiter[] = ":";
+#endif
 
 template<typename T>
 std::vector<T>
@@ -206,6 +213,12 @@ format_iso8601_timestamp(const TimePoint& time, TimeZone time_zone)
   return timestamp;
 }
 
+std::string
+join_path_list(const std::vector<std::filesystem::path>& path_list)
+{
+  return join(path_list, k_path_delimiter);
+}
+
 tl::expected<double, std::string>
 parse_double(const std::string& value)
 {
@@ -330,12 +343,8 @@ parse_size(const std::string& value)
 tl::expected<mode_t, std::string>
 parse_umask(std::string_view value)
 {
-  auto result = parse_unsigned(value, 0, 0777, "umask", 8);
-  if (result) {
-    return static_cast<mode_t>(*result);
-  } else {
-    return tl::unexpected(result.error());
-  }
+  TRY_ASSIGN(auto mode, parse_unsigned(value, 0, 0777, "umask", 8));
+  return static_cast<mode_t>(mode);
 }
 
 tl::expected<uint64_t, std::string>
@@ -518,12 +527,7 @@ split_option_with_concat_path(std::string_view string)
 std::vector<fs::path>
 split_path_list(std::string_view path_list)
 {
-#ifdef _WIN32
-  const char path_delimiter[] = ";";
-#else
-  const char path_delimiter[] = ":";
-#endif
-  auto strings = split_into_views(path_list, path_delimiter);
+  auto strings = split_into_views(path_list, k_path_delimiter);
   std::vector<fs::path> paths;
   std::copy(strings.cbegin(), strings.cend(), std::back_inserter(paths));
   return paths;

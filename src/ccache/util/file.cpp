@@ -89,11 +89,8 @@ copy_file_impl(const fs::path& src,
 {
   auto dst_cstr = dest.c_str();
   if (via_tmp_file == ViaTmpFile::yes) {
-    auto temp_file = TemporaryFile::create(dest);
-    if (!temp_file) {
-      return tl::unexpected(temp_file.error());
-    }
-    tmp_file = std::move(temp_file->path);
+    TRY_ASSIGN(auto temp_file, TemporaryFile::create(dest));
+    tmp_file = std::move(temp_file.path);
     dst_cstr = tmp_file.c_str();
   }
   unlink(util::pstr(dest).c_str());
@@ -143,12 +140,9 @@ copy_file_impl(const fs::path& src,
 
   Fd dst_fd;
   if (via_tmp_file == ViaTmpFile::yes) {
-    auto temp_file = TemporaryFile::create(dest);
-    if (!temp_file) {
-      return tl::unexpected(temp_file.error());
-    }
-    dst_fd = std::move(temp_file->fd);
-    tmp_file = std::move(temp_file->path);
+    TRY_ASSIGN(auto temp_file, TemporaryFile::create(dest));
+    dst_fd = std::move(temp_file.fd);
+    tmp_file = std::move(temp_file.path);
   } else {
     dst_fd = Fd(open(
       util::pstr(dest).c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
@@ -198,11 +192,7 @@ tl::expected<void, std::string>
 copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
 {
   fs::path tmp_file;
-  auto r = copy_file_impl(src, dest, via_tmp_file, tmp_file);
-  if (!r) {
-    return tl::unexpected(r.error());
-  }
-
+  TRY(copy_file_impl(src, dest, via_tmp_file, tmp_file));
   if (via_tmp_file == ViaTmpFile::yes) {
     const auto result = fs::rename(tmp_file, dest);
     if (!result) {
@@ -392,37 +382,36 @@ read_file(const fs::path& path, size_t size_hint)
   if constexpr (std::is_same_v<T, std::string>) {
     // Convert to UTF-8 if the content starts with a UTF-16 little-endian BOM.
     if (has_utf16_le_bom(result)) {
-      result.erase(0, 2); // Remove BOM.
-      if (result.empty()) {
-        return result;
-      }
-
-      std::wstring result_as_u16((result.size() / 2) + 1, '\0');
-      result_as_u16 = reinterpret_cast<const wchar_t*>(result.c_str());
-      const int size = WideCharToMultiByte(CP_UTF8,
-                                           WC_ERR_INVALID_CHARS,
-                                           result_as_u16.c_str(),
-                                           int(result_as_u16.size()),
-                                           nullptr,
-                                           0,
-                                           nullptr,
-                                           nullptr);
-      if (size <= 0) {
+      DEBUG_ASSERT(result.size() >= 2);
+      const wchar_t* utf16 =
+        reinterpret_cast<const wchar_t*>(result.data() + 2);
+      const int utf16_size = static_cast<int>((result.size() - 2) / 2);
+      const int utf8_size = WideCharToMultiByte(CP_UTF8,
+                                                WC_ERR_INVALID_CHARS,
+                                                utf16,
+                                                utf16_size,
+                                                nullptr,
+                                                0,
+                                                nullptr,
+                                                nullptr);
+      if (utf8_size <= 0) {
         return tl::unexpected(
           FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
               path,
               util::win32_error_message(GetLastError())));
       }
 
-      result = std::string(size, '\0');
+      std::string utf8(utf8_size, '\0');
       WideCharToMultiByte(CP_UTF8,
                           0,
-                          result_as_u16.c_str(),
-                          int(result_as_u16.size()),
-                          &result.at(0),
-                          size,
+                          utf16,
+                          utf16_size,
+                          utf8.data(),
+                          utf8_size,
                           nullptr,
                           nullptr);
+
+      result.swap(utf8);
     }
   }
 #endif

@@ -448,13 +448,14 @@ option key.
 [#config_base_dir]
 *base_dir* (*CCACHE_BASEDIR*)::
 
-    This option should be an absolute path to a directory. If set, ccache will
+    This option is a list of absolute directory paths. The list separator is
+    semicolon on Windows systems and colon on other systems. If set, ccache will
     rewrite absolute paths into paths relative to the current working directory,
-    but only absolute paths that begin with *base_dir*. Cache results can then
-    be shared for compilations in different directories even if the project uses
-    absolute paths in the compiler command line. See also the discussion under
-    _<<Compiling in different directories>>_. If set to the empty string (which
-    is the default), no rewriting is done.
+    but only absolute paths that begin with one of the *base_dir* paths. Cache
+    results can then be shared for compilations in different directories even if
+    the project uses absolute paths in the compiler command line. See also the
+    discussion under _<<Compiling in different directories>>_. If set to the
+    empty string (which is the default), no rewriting is done.
 +
 A typical path to use as *base_dir* is your home directory or another directory
 that is a parent of your project directories. Don't use `/` as the base
@@ -1087,9 +1088,9 @@ included in the input hash.
     hash. This is useful if your build system generates different seeds between
     builds and you are OK with reusing cached results.
 *system_headers*::
-    Only check non-system headers in direct mode.
-    This can be useful if e.g. your system headers tend to change but you know that
-    the changes don't matter. Notes:
+    Only check non-system headers in direct mode. This can be useful if e.g.
+    your system headers tend to change but you know that the changes don't
+    matter. Notes:
 +
 * This sloppiness is only supported for GCC-like compilers, not MSVC.
 * System headers are still taken into account for preprocessed lookup.
@@ -1539,6 +1540,10 @@ A compiler option not supported by ccache was found.
 | Unsupported environment variable |
 An environment variable not supported by ccache was set.
 
+| Unsupported source encoding |
+Source file (or an included header) has unsupported encoding. ccache currently
+requires UTF-8-encoded source code for MSVC.
+
 | Unsupported source language |
 A source language e.g. specified with `-x` was unsupported by ccache.
 
@@ -1802,7 +1807,7 @@ directories:
 
 == Precompiled headers
 
-Ccache has support for precompiled headers with GCC and Clang. However, you have
+Ccache has limited support for precompiled headers with GCC and Clang. You have
 to do some things to make it work properly:
 
 * You must set <<config_sloppiness,*sloppiness*>> to *pch_defines,time_macros*.
@@ -1832,6 +1837,9 @@ If you don't do this, either the non-precompiled version of the header file will
 be used (if available) or ccache will fall back to running the real compiler and
 increase the statistics counter "`Preprocessing failed`" (if the non-precompiled
 header file is not available).
+
+Also, you might get into trouble if header files use `#pragma once` instead of
+include guards.
 
 
 == C++ modules

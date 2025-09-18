@@ -407,10 +407,12 @@ format_umask(std::optional<mode_t> umask)
 }
 
 void
-verify_absolute_path(const fs::path& value)
+verify_absolute_paths(const std::vector<fs::path>& paths)
 {
-  if (!value.is_absolute()) {
-    throw core::Error(FMT("not an absolute path: \"{}\"", value));
+  for (const auto& path : paths) {
+    if (!path.is_absolute()) {
+      throw core::Error(FMT("not an absolute path: \"{}\"", path));
+    }
   }
 }
 
@@ -796,7 +798,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_absolute_paths_in_stderr);
 
   case ConfigItem::base_dir:
-    return util::pstr(m_base_dir);
+    return util::join_path_list(m_base_dirs);
 
   case ConfigItem::cache_dir:
     return m_cache_dir.string();
@@ -1022,11 +1024,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::base_dir:
-    m_base_dir = value;
-    if (!m_base_dir.empty()) { // The empty string means "disable"
-      verify_absolute_path(m_base_dir);
-      m_base_dir = util::lexically_normal(m_base_dir);
-    }
+    set_base_dirs(util::split_path_list(value));
+    verify_absolute_paths(m_base_dirs);
     break;
 
   case ConfigItem::cache_dir:

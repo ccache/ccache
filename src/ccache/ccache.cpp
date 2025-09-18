@@ -618,7 +618,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       while (!inc_path.empty() && inc_path.back() == '/') {
         inc_path.pop_back();
       }
-      if (!ctx.config.base_dir().empty()) {
+      if (!ctx.config.base_dirs().empty()) {
         auto it = relative_inc_path_cache.find(inc_path);
         if (it == relative_inc_path_cache.end()) {
           std::string rel_inc_path =
@@ -1085,7 +1085,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
       // paths because otherwise Ninja will use the abs path to original header
       // to check if a file needs to be recompiled.
       else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dir().empty()
+               && !ctx.config.base_dirs().empty()
                && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
         std::string orig_line(line.data(), line.length());
         std::string abs_inc_path =
@@ -1101,7 +1101,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
       // The MSVC /FC option causes paths in diagnostics messages to become
       // absolute. Those within basedir need to be changed into relative paths.
       else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dir().empty()) {
+               && !ctx.config.base_dirs().empty()) {
         size_t path_end = core::get_diagnostics_path_length(line);
         if (path_end != 0) {
           std::string_view abs_path = line.substr(0, path_end);
@@ -1263,18 +1263,12 @@ to_cache(Context& ctx,
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
     if (ctx.args_info.generating_dependencies) {
-      auto key = result_key_from_depfile(ctx, *depend_mode_hash);
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
+      TRY_ASSIGN(result_key, result_key_from_depfile(ctx, *depend_mode_hash));
     } else if (ctx.args_info.generating_includes) {
-      auto key = result_key_from_includes(
-        ctx, *depend_mode_hash, util::to_string_view(result->stdout_data));
-      if (!key) {
-        return tl::unexpected(key.error());
-      }
-      result_key = *key;
+      TRY_ASSIGN(
+        result_key,
+        result_key_from_includes(
+          ctx, *depend_mode_hash, util::to_string_view(result->stdout_data)));
     } else {
       ASSERT(false);
     }
@@ -1421,6 +1415,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     // compilers that don't exit with a proper status on write error to stdout.
     // See also <https://github.com/llvm/llvm-project/issues/56499>.
     if (ctx.config.is_compiler_group_msvc()) {
+      args.push_back("-utf-8"); // Avoid garbling filenames in output
       args.push_back("-P");
       args.push_back(FMT("-Fi{}", preprocessed_path));
     } else {
@@ -1448,6 +1443,17 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
 
     cpp_stderr_data = result->stderr_data;
     cpp_stdout_data = result->stdout_data;
+
+    if (ctx.config.is_compiler_group_msvc()) {
+      // Check that usage of -utf-8 didn't garble the preprocessor output.
+      static constexpr char warning_c4828[] =
+        "warning C4828: The file contains a character starting at offset";
+      if (util::to_string_view(cpp_stderr_data).find(warning_c4828)
+          != std::string_view::npos) {
+        LOG_RAW("Non-UTF-8 source code unsupported in preprocessor mode");
+        return tl::unexpected(Statistic::unsupported_source_encoding);
+      }
+    }
   }
 
   if (is_clang_cu) {
@@ -1626,12 +1632,11 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   if (!(ctx.config.sloppiness().contains(core::Sloppy::locale))) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
-    const char* envvars[] = {
-      "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", nullptr};
-    for (const char** p = envvars; *p; ++p) {
-      const char* v = getenv(*p);
+    std::array envvars = {"LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES"};
+    for (const char* name : envvars) {
+      const char* v = getenv(name);
       if (v) {
-        hash.hash_delimiter(*p);
+        hash.hash_delimiter(name);
         hash.hash(v);
       }
     }
@@ -2041,41 +2046,83 @@ hash_argument(const Context& ctx,
     }
   }
 
-  if (util::starts_with(args[i], "-specs=")
-      || util::starts_with(args[i], "--specs=")
-      || (args[i] == "-specs" || args[i] == "--specs")
-      || args[i] == "--config") {
-    std::string path;
-    size_t eq_pos = args[i].find('=');
-    if (eq_pos == std::string::npos) {
+  if (util::starts_with(args[i], "-specs=") || args[i] == "-specs"
+      || util::starts_with(args[i], "--specs=") || args[i] == "--specs") {
+    auto [_option, specs] = util::split_once_into_views(args[i], '=');
+    if (!specs) {
       if (i + 1 >= args.size()) {
-        LOG("missing argument for \"{}\"", args[i]);
+        LOG("Missing argument for \"{}\"", args[i]);
         return tl::unexpected(Statistic::bad_compiler_arguments);
       }
-      path = args[i + 1];
+      specs = args[i + 1];
       i++;
-    } else {
-      path = args[i].substr(eq_pos + 1);
     }
 
-    if (args[i] == "--config" && path.find('/') == std::string::npos) {
+    if (ctx.config.is_compiler_group_clang()) {
+      // Clang accepts -specs but ignores it.
+      if (!util::ends_with(args[i], "=")) {
+        hash.hash_delimiter("arg");
+        hash.hash(args[i - 1]);
+      }
+      hash.hash_delimiter("arg");
+      hash.hash(args[i]);
+      return {};
+    }
+
+    auto output = util::exec_to_string(
+      {ctx.orig_args[0], FMT("-print-file-name={}", *specs)});
+    if (!output) {
+      LOG("Failed to query specs location: {}", output.error());
+      return tl::unexpected(Statistic::internal_error);
+    }
+    auto path = util::strip_whitespace(*output);
+    LOG("Hashing specs file {}", path);
+    hash.hash_delimiter("specs");
+    if (auto r = hash.hash_file(path); !r) {
+      LOG("Failed to hash specs file {}: {}", path, r.error());
+      return tl::unexpected(Statistic::bad_compiler_arguments);
+    }
+    return {};
+  }
+
+  if (args[i] == "--config" || util::starts_with(args[i], "--config=")) {
+    // Clang's --config(=)name option behaves like this:
+    //
+    // --config foo     -> read /usr/lib/llvm-$ver/bin/foo.cfg (ver < 16)
+    // --config foo     -> read /usr/lib/llvm-$ver/bin/foo     (ver >= 16)
+    // --config=foo     -> read /usr/lib/llvm-$ver/bin/foo     (ver >= 16)
+    // --config foo.cfg -> read /usr/lib/llvm-$ver/bin/foo.cfg (all versions)
+    // --config foo/bar -> read foo/bar                        (all versions)
+    // --config=foo/bar -> read foo/bar                        (Clang >= 16)
+    //
+    // Since there doesn't seem to be an easy way to query which directory is
+    // used we only support names with a slash for now.
+
+    auto [_option, config] = util::split_once_into_views(args[i], '=');
+    if (!config) {
+      if (i + 1 >= args.size()) {
+        LOG("Missing argument for \"{}\"", args[i]);
+        return tl::unexpected(Statistic::bad_compiler_arguments);
+      }
+      config = args[i + 1];
+      i++;
+    }
+
+    auto path = *config;
+
+    if (path.find('/') == std::string_view::npos) {
       // --config FILE without / in FILE: the file is searched for in Clang's
       // user/system/executable directories.
-      LOG("Argument to compiler option {} is too hard", args[i]);
+      LOG("Argument to --config option is too hard: {}", path);
       return tl::unexpected(Statistic::unsupported_compiler_option);
     }
 
-    DirEntry dir_entry(path, DirEntry::LogOnError::yes);
-    if (dir_entry.is_regular_file()) {
-      // If given an explicit specs file, then hash that file, but don't
-      // include the path to it in the hash.
-      hash.hash_delimiter("specs");
-      TRY(hash_compiler(ctx, hash, dir_entry, path, false));
-      return {};
-    } else {
-      LOG("While processing {}: {} is missing", args[i], path);
-      return tl::unexpected(Statistic::bad_compiler_arguments);
+    LOG("Hashing Clang config file {}", path);
+    hash.hash_delimiter("config");
+    if (auto r = hash.hash_file(path); !r) {
+      LOG("Failed to hash option file {}: {}", path, r.error());
     }
+    return {};
   }
 
   if (util::starts_with(args[i], "-fplugin=")) {
@@ -2126,7 +2173,7 @@ static tl::expected<std::optional<Hash::Digest>, Failure>
 get_manifest_key(Context& ctx, Hash& hash)
 {
   // Hash environment variables that affect the preprocessor output.
-  const char* envvars[] = {
+  std::array envvars = {
     "CPATH",
     "C_INCLUDE_PATH",
     "CPLUS_INCLUDE_PATH",
@@ -2136,12 +2183,11 @@ get_manifest_key(Context& ctx, Hash& hash)
     "CLANG_CONFIG_FILE_USER_DIR",   // Clang
     "INCLUDE",                      // MSVC
     "EXTERNAL_INCLUDE",             // MSVC
-    nullptr,
   };
-  for (const char** p = envvars; *p; ++p) {
-    const char* v = getenv(*p);
+  for (const char* name : envvars) {
+    const char* v = getenv(name);
     if (v) {
-      hash.hash_delimiter(*p);
+      hash.hash_delimiter(name);
       hash.hash(v);
     }
   }
@@ -2285,7 +2331,8 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.local.put(manifest_key,
                           core::CacheEntryType::manifest,
-                          core::CacheEntry::serialize(header, ctx.manifest));
+                          core::CacheEntry::serialize(header, ctx.manifest),
+                          storage::Overwrite::yes);
   }
 
   return result_key;
@@ -2351,21 +2398,14 @@ calculate_result_and_manifest_key(Context& ctx,
   std::optional<Hash::Digest> manifest_key;
 
   if (direct_mode) {
-    const auto manifest_key_result = get_manifest_key(ctx, hash);
-    if (!manifest_key_result) {
-      return tl::unexpected(manifest_key_result.error());
-    }
-    manifest_key = *manifest_key_result;
+    TRY_ASSIGN(manifest_key, get_manifest_key(ctx, hash));
     if (manifest_key && !ctx.config.recache()) {
       LOG("Manifest key: {}", util::format_digest(*manifest_key));
       result_key = get_result_key_from_manifest(ctx, *manifest_key);
     }
   } else if (ctx.args_info.arch_args.empty()) {
-    const auto digest = get_result_key_from_cpp(ctx, *preprocessor_args, hash);
-    if (!digest) {
-      return tl::unexpected(digest.error());
-    }
-    result_key = *digest;
+    TRY_ASSIGN(result_key,
+               get_result_key_from_cpp(ctx, *preprocessor_args, hash));
     LOG_RAW("Got result key from preprocessor");
   } else {
     preprocessor_args->push_back("-arch");
@@ -2381,12 +2421,8 @@ calculate_result_and_manifest_key(Context& ctx,
           xarch_count += 2;
         }
       }
-      const auto digest =
-        get_result_key_from_cpp(ctx, *preprocessor_args, hash);
-      if (!digest) {
-        return tl::unexpected(digest.error());
-      }
-      result_key = *digest;
+      TRY_ASSIGN(result_key,
+                 get_result_key_from_cpp(ctx, *preprocessor_args, hash));
       LOG("Got result key from preprocessor with -arch {}", arch);
       if (i != ctx.args_info.arch_args.size() - 1) {
         result_key = std::nullopt;
@@ -2743,12 +2779,7 @@ do_cache_compilation(Context& ctx)
   // be disabled.
   util::setenv("CCACHE_DISABLE", "1");
 
-  auto process_args_result = process_args(ctx);
-
-  if (!process_args_result) {
-    return tl::unexpected(process_args_result.error());
-  }
-
+  TRY_ASSIGN(auto processed_args, process_args(ctx));
   TRY(set_up_uncached_err());
 
   // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
@@ -2841,11 +2872,10 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::disabled);
   }
 
-  TRY(
-    hash_common_info(ctx, process_args_result->preprocessor_args, common_hash));
-  TRY(hash_native_args(ctx, process_args_result->native_args, common_hash));
+  TRY(hash_common_info(ctx, processed_args.preprocessor_args, common_hash));
+  TRY(hash_native_args(ctx, processed_args.native_args, common_hash));
 
-  if (process_args_result->hash_actual_cwd) {
+  if (processed_args.hash_actual_cwd) {
     common_hash.hash_delimiter("actual_cwd");
     common_hash.hash(ctx.actual_cwd);
   }
@@ -2854,8 +2884,8 @@ do_cache_compilation(Context& ctx)
   Hash direct_hash = common_hash;
   init_hash_debug(ctx, direct_hash, 'd', "DIRECT MODE", debug_text_file);
 
-  util::Args args_to_hash = process_args_result->preprocessor_args;
-  args_to_hash.push_back(process_args_result->extra_args_to_hash);
+  util::Args args_to_hash = processed_args.preprocessor_args;
+  args_to_hash.push_back(processed_args.extra_args_to_hash);
 
   bool put_result_in_manifest = false;
   std::optional<Hash::Digest> result_key;
@@ -2864,19 +2894,15 @@ do_cache_compilation(Context& ctx)
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");
-    const auto result_and_manifest_key = calculate_result_and_manifest_key(
-      ctx, args_to_hash, direct_hash, nullptr);
-    if (!result_and_manifest_key) {
-      return tl::unexpected(result_and_manifest_key.error());
-    }
-    std::tie(result_key, manifest_key) = *result_and_manifest_key;
+    TRY_ASSIGN(const auto result_and_manifest_key,
+               calculate_result_and_manifest_key(
+                 ctx, args_to_hash, direct_hash, nullptr));
+    std::tie(result_key, manifest_key) = result_and_manifest_key;
     if (result_key) {
       // If we can return from cache at this point then do so.
-      const auto from_cache_result =
-        from_cache(ctx, FromCacheCallMode::direct, *result_key);
-      if (!from_cache_result) {
-        return tl::unexpected(from_cache_result.error());
-      } else if (*from_cache_result) {
+      TRY_ASSIGN(bool hit,
+                 from_cache(ctx, FromCacheCallMode::direct, *result_key));
+      if (hit) {
         return Statistic::direct_cache_hit;
       }
 
@@ -2906,12 +2932,11 @@ do_cache_compilation(Context& ctx)
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx, cpp_hash, 'p', "PREPROCESSOR MODE", debug_text_file);
 
-    const auto result_and_manifest_key = calculate_result_and_manifest_key(
-      ctx, args_to_hash, cpp_hash, &process_args_result->preprocessor_args);
-    if (!result_and_manifest_key) {
-      return tl::unexpected(result_and_manifest_key.error());
-    }
-    result_key = result_and_manifest_key->first;
+    TRY_ASSIGN(
+      const auto result_and_manifest_key,
+      calculate_result_and_manifest_key(
+        ctx, args_to_hash, cpp_hash, &processed_args.preprocessor_args));
+    result_key = result_and_manifest_key.first;
 
     // calculate_result_and_manifest_key always returns a non-nullopt result_key
     // in preprocessor mode (non-nullptr last argument).
@@ -2939,11 +2964,8 @@ do_cache_compilation(Context& ctx)
     }
 
     // If we can return from cache at this point then do.
-    const auto from_cache_result =
-      from_cache(ctx, FromCacheCallMode::cpp, *result_key);
-    if (!from_cache_result) {
-      return tl::unexpected(from_cache_result.error());
-    } else if (*from_cache_result) {
+    TRY_ASSIGN(bool hit, from_cache(ctx, FromCacheCallMode::cpp, *result_key));
+    if (hit) {
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest(ctx, *manifest_key, *result_key);
       }
@@ -2960,19 +2982,15 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  add_prefix(
-    ctx, process_args_result->compiler_args, ctx.config.prefix_command());
+  add_prefix(ctx, processed_args.compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
-  const auto digest = to_cache(
-    ctx, process_args_result->compiler_args, result_key, depend_mode_hash);
-  if (!digest) {
-    return tl::unexpected(digest.error());
-  }
-  result_key = *digest;
+  TRY_ASSIGN(
+    result_key,
+    to_cache(ctx, processed_args.compiler_args, result_key, depend_mode_hash));
   if (ctx.config.direct_mode()) {
     ASSERT(manifest_key);
     update_manifest(ctx, *manifest_key, *result_key);

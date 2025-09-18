@@ -36,6 +36,9 @@ build() {
 build alma-8       gcc    g++     gcc     -D DEPS=DOWNLOAD
 build alma-8       clang  clang++ clang   -D DEPS=DOWNLOAD
 
+build alma-9       gcc    g++     gcc     -D DEPS=DOWNLOAD
+build alma-9       clang  clang++ clang   -D DEPS=DOWNLOAD
+
 build alpine-3.21  gcc    g++     gcc     -D DEPS=DOWNLOAD
 build alpine-3.21  clang  clang++ clang   -D DEPS=DOWNLOAD
 
@@ -44,6 +47,9 @@ build debian-11    clang  clang++ clang   -D DEPS=DOWNLOAD
 
 build debian-12    gcc    g++     gcc     -D DEPS=DOWNLOAD
 build debian-12    clang  clang++ clang   -D DEPS=DOWNLOAD
+
+build debian-13    gcc    g++     gcc     -D DEPS=DOWNLOAD
+build debian-13    clang  clang++ clang   -D DEPS=DOWNLOAD
 
 build fedora-42    gcc    g++     gcc     -D DEPS=DOWNLOAD
 build fedora-42    clang  clang++ clang   -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF # doctest issue #900

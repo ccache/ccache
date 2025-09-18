@@ -253,6 +253,16 @@ get_storage(const std::string& scheme)
   }
 }
 
+std::string
+get_redacted_url_str_for_logging(const Url& url)
+{
+  Url redacted_url(url);
+  if (!url.user_info().empty()) {
+    redacted_url.user_info(k_redacted_password);
+  }
+  return redacted_url.str();
+}
+
 Storage::Storage(const Config& config)
   : local(config),
     m_config(config)
@@ -284,7 +294,7 @@ Storage::get(const Hash::Hash::Digest& key,
     auto value = local.get(key, type);
     if (value) {
       if (m_config.reshare()) {
-        put_in_remote_storage(key, *value, true);
+        put_in_remote_storage(key, *value, Overwrite::no);
       }
       if (entry_receiver(std::move(*value))) {
         return;
@@ -294,7 +304,7 @@ Storage::get(const Hash::Hash::Digest& key,
 
   get_from_remote_storage(key, type, [&](util::Bytes&& data) {
     if (!m_config.remote_only()) {
-      local.put(key, type, data, true);
+      local.put(key, type, data, Overwrite::no);
     }
     return entry_receiver(std::move(data));
   });
@@ -306,9 +316,9 @@ Storage::put(const Hash::Digest& key,
              nonstd::span<const uint8_t> value)
 {
   if (!m_config.remote_only()) {
-    local.put(key, type, value);
+    local.put(key, type, value, Overwrite::yes);
   }
-  put_in_remote_storage(key, value, false);
+  put_in_remote_storage(key, value, Overwrite::yes);
 }
 
 void
@@ -324,16 +334,6 @@ bool
 Storage::has_remote_storage() const
 {
   return !m_remote_storages.empty();
-}
-
-static std::string
-get_redacted_url_str_for_logging(const Url& url)
-{
-  Url redacted_url(url);
-  if (!url.user_info().empty()) {
-    redacted_url.user_info(k_redacted_password);
-  }
-  return redacted_url.str();
 }
 
 std::string
@@ -510,7 +510,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
 void
 Storage::put_in_remote_storage(const Hash::Digest& key,
                                nonstd::span<const uint8_t> value,
-                               bool only_if_missing)
+                               Overwrite overwrite)
 {
   if (!core::CacheEntry::Header(value).self_contained) {
     LOG("Not putting {} in remote storage since it's not self-contained",
@@ -525,7 +525,7 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
     }
 
     Timer timer;
-    const auto result = backend->impl->put(key, value, only_if_missing);
+    const auto result = backend->impl->put(key, value, overwrite);
     const auto ms = timer.measure_ms();
     if (!result) {
       // The backend is expected to log details about the error.
