@@ -156,7 +156,7 @@ BackendNode::BackendNode(
     daemon_started = backend::start_daemon(
       url.scheme(), sock_path, url.str(), attributes, g_buffersize);
   } else {
-    LOG("Process {} is waiting for others to intialise daemon", getpid());
+    LOG("Process {} is waiting for others to initialise daemon", getpid());
     // just be a tiny bit patient
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
@@ -179,7 +179,7 @@ BackendNode::BackendNode(
   }
 
   lock.release();
-  close(lock_fd);        // failed to intialise!
+  close(lock_fd);        // failed to initialise!
   fs::remove(lock_path); // this can be parallelised
   assert(false && "Failed to initialize backend node");
 }
@@ -193,7 +193,7 @@ BackendNode::get(const Hash::Digest& key)
     if (res.error() == tlv::NO_FILE) {
       return std::nullopt; // not found 404
     }
-    LOG("{} occured on GET message!",
+    LOG("{} occurred on GET message!",
         (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
       res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
@@ -220,7 +220,7 @@ BackendNode::put(const Hash::Digest& key,
     if (res.error() == tlv::SUCCESS) {
       return false; // not found 404
     }
-    LOG("{} occured on PUT message!",
+    LOG("{} occurred on PUT message!",
         (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
       res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
@@ -275,7 +275,7 @@ BackendNode::remove(const Hash::Digest& key)
     if (res.error() == tlv::SUCCESS) {
       return false; // not found 404
     }
-    LOG("{} occured on REMOVE message!",
+    LOG("{} occurred on REMOVE message!",
         (res.error() == tlv::ERROR ? "ERROR" : "TIMEOUT"));
     return tl::unexpected<RemoteStorage::Backend::Failure>(
       res.error() == tlv::ERROR ? RemoteStorage::Backend::Failure::error
