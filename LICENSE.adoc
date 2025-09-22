@@ -450,7 +450,7 @@ SOFTWARE.
 
 === src/third_party/fmt/fmt/*.h and src/third_party/fmt/fmt/format.cc
 
-This is a subset of https://fmt.dev[fmt] 11.1.4 with the following license:
+This is a subset of https://fmt.dev[fmt] 12.0.0 with the following license:
 
 ----
 Formatting library for C++
