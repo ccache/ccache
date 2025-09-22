@@ -331,8 +331,7 @@ InodeCache::hash_inode(const fs::path& path,
   key.st_size = de.size();
 
   Hash hash;
-  hash.hash(nonstd::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&key),
-                                        sizeof(key)));
+  hash.hash({reinterpret_cast<const uint8_t*>(&key), sizeof(key)});
   digest = hash.digest();
   return true;
 }

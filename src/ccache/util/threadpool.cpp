@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -85,7 +85,11 @@ ThreadPool::worker_thread_main()
     }
 
     m_task_popped_condition.notify_all();
-    task();
+    try {
+      task();
+    } catch (...) {
+      // We'll have to ignore it for now.
+    }
   }
 }
 
