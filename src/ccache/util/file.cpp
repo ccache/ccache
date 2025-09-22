@@ -160,6 +160,7 @@ copy_file_impl(const fs::path& src,
     return tl::unexpected(
       FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
   }
+  return {};
 #  elif defined(HAVE_SYS_SENDFILE_H)
   DirEntry dir_entry(src, *src_fd);
   if (!dir_entry) {
@@ -180,10 +181,10 @@ copy_file_impl(const fs::path& src,
     }
     bytes_left -= n;
   }
+  return {};
 #  else
   return copy_fd(*src_fd, *dst_fd);
 #  endif
-  return {};
 }
 
 #endif
