@@ -181,7 +181,7 @@ copy_file_impl(const fs::path& src,
     bytes_left -= n;
   }
 #  else
-  copy_fd(*src_fd, *dst_fd);
+  return copy_fd(*src_fd, *dst_fd);
 #  endif
   return {};
 }
