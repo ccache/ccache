@@ -18,6 +18,7 @@ set(
   memorymap.cpp
   path.cpp
   process.cpp
+  socketinterface.cpp
   string.cpp
   temporaryfile.cpp
   texttable.cpp

@@ -1,0 +1,192 @@
+// Guide for internet sockets https://beej.us/guide/bgnet/html/
+// But applied to a unix socket
+
+#pragma once
+
+#include "ccache/util/streambuffer.hpp"
+
+#include <nonstd/span.hpp>
+#include <tl/expected.hpp>
+
+#include <fcntl.h>
+
+#include <atomic>
+#include <cassert>
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <memory>
+
+#ifdef _WIN32
+#  include <windows.h>
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
+// AF_UNIX comes to Windows
+// https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
+#  include <afunix.h>
+
+using socket_t = SOCKET;
+constexpr auto invalid_socket_t = INVALID_SOCKET;
+#else
+#  include <cerrno>
+#  include <sys/un.h>
+#  include <sys/socket.h>
+#  include <unistd.h>
+
+using socket_t = int;
+constexpr auto invalid_socket_t = -1;
+#endif
+
+#include <filesystem>
+#include <string>
+
+namespace fs = std::filesystem;
+using StreamBuffer = tlv::StreamBuffer<uint8_t>;
+
+constexpr auto SOCKET_PATH_LENGTH = 256;
+#ifdef _WIN32
+constexpr auto SOCKET_PATH_TEMPLATE = "%TEMP%\\backend-%s.sock";
+#else
+constexpr auto SOCKET_PATH_TEMPLATE = "/tmp/backend-%s.sock";
+#endif
+
+static size_t g_buffersize = 1024;
+static std::chrono::seconds g_operation_timeout{15};
+
+constexpr std::chrono::seconds CONNECTION_TIMEOUT{5};
+constexpr std::chrono::seconds READ_TIMEOUT_SECOND{0};
+constexpr std::chrono::microseconds READ_TIMEOUT_USECOND{100};
+
+enum class OpError : uint8_t {
+  error,
+  timeout,
+  interrupted,
+};
+
+class Stream
+{
+  friend class BufferedStreamReader;
+
+public:
+  Stream(socket_t sock);
+
+  /// @brief receives messages from stream
+  size_t read(nonstd::span<uint8_t> writable_span) const;
+  /// @brief sends messages over stream
+  size_t write(nonstd::span<const uint8_t> ptr) const;
+
+private:
+  /// @brief the socket identifier
+  socket_t m_sock;
+  /// @brief calls select() and waits until timeout
+  int select_read(time_t sec,
+                  time_t usec,
+                  bool read_possible,
+                  bool write_possible) const;
+};
+
+// Implement std::streambuf for optimal read buffering
+class BufferedStreamReader
+{
+private:
+  class SocketStreamBuf : public std::streambuf
+  {
+  private:
+    std::vector<char> m_buffer;
+    std::reference_wrapper<Stream> m_stream;
+    std::chrono::milliseconds m_timeout;
+
+  public:
+    SocketStreamBuf(Stream& stream, std::chrono::milliseconds timeout);
+
+  protected:
+    int_type underflow() override;
+  };
+
+  SocketStreamBuf m_streambuf;
+  std::istream m_stream;
+
+public:
+  BufferedStreamReader(Stream& stream, std::chrono::milliseconds timeout);
+
+  /// Read exactly n bytes into the provided buffer
+  tl::expected<size_t, OpError> read_exactly(size_t n,
+                                             nonstd::span<uint8_t> result);
+
+  /// Read a single byte from the stream
+  tl::expected<uint8_t, OpError> read_byte();
+};
+
+class UnixSocket
+{
+private:
+  /// @brief describes the state of the socket (initialised/closed)
+  bool m_init_status = false;
+
+  /// @brief the socket descriptor
+  socket_t m_socket_id = invalid_socket_t;
+
+  /// @brief used for testing a server instance
+  socket_t m_client_socket_id = invalid_socket_t;
+
+  /// @brief specifies where the socket is
+  std::string m_path;
+
+  /// @brief set to true when this socket is intended to serve
+  bool m_is_server = false;
+
+  /// @brief specifies whether connection should close
+  std::atomic<bool> m_should_end_flag{false};
+
+  /// @brief the stream interface for reading / writing
+  std::unique_ptr<Stream> m_socket_stream;
+
+  /// @brief stores the number of bytes available
+  std::atomic<size_t> m_bytes_available_in_buffer{0};
+
+  // Helper to create and connect the socket
+  socket_t create_and_connect_socket();
+
+  // Helper to set non-blocking mode
+  void set_nonblocking(bool nonblocking) const;
+
+  // Helper to wait for socket readiness (for connect, send, recv)
+  bool wait_until_ready(time_t sec,
+                        time_t usec,
+                        bool read_ready,
+                        bool write_ready) const;
+
+public:
+  UnixSocket() = delete;
+  UnixSocket(const std::string& host);
+  ~UnixSocket();
+
+  /// @brief the buffer used for reading and writing
+  StreamBuffer connection_stream;
+
+  /// @brief generate an encoded file system path to the socket
+  std::filesystem::path generate_path() const;
+
+  /// @brief starts the connection over socket
+  bool start(bool is_server = false);
+
+  /// @brief ends the connection and terminates listener thread
+  void end();
+
+  /// @brief checks whether the socket's path exists
+  bool exists() const;
+
+  /// @brief sends data (e.g., a serialized message)
+  tl::expected<size_t, OpError> send(nonstd::span<const uint8_t> msg);
+
+  /// @brief receives a notification that data is available in the read buffer
+  std::unique_ptr<BufferedStreamReader> create_reader(bool is_op = true);
+
+private:
+  // Helper to establish the socket connection (bind/connect)
+  int establish_connection(const std::filesystem::path& path, bool is_server);
+
+  /// @brief closes the socket
+  int close() const;
+};
