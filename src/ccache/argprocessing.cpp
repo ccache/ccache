@@ -509,6 +509,10 @@ process_option_arg(const Context& ctx,
     const auto arch = arg.substr(7);
     auto it = state.xarch_args.emplace(arch, std::vector<std::string>()).first;
     it->second.emplace_back(args[i + 1]);
+    if (arch == "host" || arch == "device") {
+      state.add_common_arg(args[i]);
+      state.add_common_arg(args[i + 1]);
+    }
     ++i;
     return Statistic::none;
   }
@@ -1648,6 +1652,17 @@ process_args(Context& ctx)
   if (args_info.generating_ipa_clones) {
     args_info.output_ipa = core::make_relative_path(
       ctx, util::add_extension(args_info.orig_input_file, ".000i.ipa-clones"));
+  }
+
+  if (state.xarch_args.size() > 1) {
+    if (state.xarch_args.find("host") != state.xarch_args.end()) {
+      LOG_RAW("-Xarch_host in combination with other -Xarch_* is too hard");
+      return tl::unexpected(Statistic::unsupported_compiler_option);
+    }
+    if (state.xarch_args.find("device") != state.xarch_args.end()) {
+      LOG_RAW("-Xarch_device in combination with other -Xarch_* is too hard");
+      return tl::unexpected(Statistic::unsupported_compiler_option);
+    }
   }
 
   if (!state.xarch_args.empty()) {
