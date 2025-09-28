@@ -984,4 +984,82 @@ TEST_CASE("ClangCL Debug information options")
   }
 }
 
+TEST_CASE("Supports -Xarch_host without other -Xarch_*")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args =
+    Args::from_string("clang -Xarch_host -foo -c foo.c -Xarch_host -bar");
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(result->preprocessor_args.to_string()
+        == "clang -Xarch_host -foo -Xarch_host -bar");
+  CHECK(result->extra_args_to_hash.to_string() == "");
+  CHECK(result->compiler_args.to_string()
+        == "clang -Xarch_host -foo -Xarch_host -bar -c");
+}
+
+TEST_CASE("Supports -Xarch_device without other -Xarch_*")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args =
+    Args::from_string("clang -Xarch_device -foo -c foo.c -Xarch_device -bar");
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(result->preprocessor_args.to_string()
+        == "clang -Xarch_device -foo -Xarch_device -bar");
+  CHECK(result->extra_args_to_hash.to_string() == "");
+  CHECK(result->compiler_args.to_string()
+        == "clang -Xarch_device -foo -Xarch_device -bar -c");
+}
+
+TEST_CASE("-Xarch_host with -Xarch_device is too hard")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args =
+    Args::from_string("clang -Xarch_device -foo -c foo.c -Xarch_host -bar");
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("-Xarch_host with -Xarch_x86_64 is too hard")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args =
+    Args::from_string("clang -Xarch_host -foo -c foo.c -Xarch_x86_64 -bar");
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("-Xarch_device with -Xarch_x86_64 is too hard")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args =
+    Args::from_string("clang -Xarch_device -foo -c foo.c -Xarch_x86_64 -bar");
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
 TEST_SUITE_END();
