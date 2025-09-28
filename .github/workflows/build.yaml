@@ -271,7 +271,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Prepare environment
         run: |
-          sudo apt-get install -y asciidoctor
+          sudo apt-get install -y asciidoctor pandoc
       - name: Build documentation
         run: ci/build-docs
       - name: Upload documentation

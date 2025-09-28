@@ -9,14 +9,14 @@ sysconfdir = $(prefix)/etc
 
 default_sysconfdir = /usr/local/etc
 doc_files = \
-    LICENSE.adoc \
+    LICENSE.md \
     LICENSE.html \
-    MANUAL.adoc \
+    MANUAL.md \
     MANUAL.html \
-    NEWS.adoc \
+    NEWS.md \
     NEWS.html \
     GPL-3.0.txt \
-    LICENSE.adoc \
+    LICENSE.md \
     README.md
 
 PYTHON = python3

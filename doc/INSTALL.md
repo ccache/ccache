@@ -13,9 +13,11 @@ To build ccache you need:
 
 Optional:
 
-- GNU Bourne Again SHell (bash) for tests.
-- [Asciidoctor](https://asciidoctor.org) to build the HTML documentation.
-- [Python](https://www.python.org) to debug and run the performance test suite.
+- [Bash](https://www.gnu.org/software/bash) and [Python](https://www.python.org)
+  to run the test suite.
+- [Asciidoctor](https://asciidoctor.org) to build documentation in HTML and
+  Markdown format.
+- [Pandoc](https://pandoc.org) to build documentation in Markdown format.
 
 See also [CI configurations](../.github/workflows/build.yaml) for regularly
 tested build setups, including cross-compilation and dependencies required in

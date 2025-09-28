@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -euo pipefail
+
+asciidoctor=$1
+pandoc=$2
+stylesheet=$3
+version=$4
+input=$5
+output=$6
+
+tmpfile=$(mktemp)
+trap 'rm -f "${tmpfile}"' EXIT
+
+"${asciidoctor}" \
+  -a revnumber="${version}" \
+  -a icons=font \
+  -a toc=left \
+  -a sectanchors \
+  -a stylesheet="${stylesheet}" \
+  -b docbook \
+  -o "${tmpfile}" \
+  "${input}"
+
+# "\\-" -> "- " in tables, "-" otherwise
+pandoc -f docbook -t markdown "${tmpfile}" | \
+    sed -e 's/\\- /-  /' -e 's/\\-/-/' >"${output}"
