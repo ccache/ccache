@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Update doc/AUTHORS.adoc with Git commit authors.
+"""Update doc/authors.adoc with Git commit authors.
 
 Authors include those specified by "Co-authored-by:" in commit messages.
 """
@@ -34,7 +34,7 @@ ANONYMOUS = {
     "vsplesk",
 }
 
-AUTHORS_ADOC = Path(__file__).parents[1] / "doc/AUTHORS.adoc"
+AUTHORS_ADOC = Path(__file__).parents[1] / "doc/authors.adoc"
 
 
 def git(*args):

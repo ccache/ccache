@@ -26,7 +26,7 @@ https://www.gnu.org/licenses/gpl-3.0.html.
 == Copyright and authors
 
 Ccache is a collective work with contributions from many people, listed in
-AUTHORS.adoc and at https://ccache.dev/credits.html. Subsequent additions by
+doc/authors.adoc and at https://ccache.dev/credits.html. Subsequent additions by
 contributing authors are implicitly licensed to the public under the same terms
 (GNU GPL version 3 or later), but the contributing authors retain copyrights on
 their portions of the work.

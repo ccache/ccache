@@ -46,9 +46,9 @@ else()
   # HTML documentation
   #
   generate_doc(html    LICENSE.adoc     LICENSE.html)
-  generate_doc(html    doc/AUTHORS.adoc AUTHORS.html)
-  generate_doc(html    doc/MANUAL.adoc  MANUAL.html)
-  generate_doc(html    doc/NEWS.adoc    NEWS.html)
+  generate_doc(html    doc/authors.adoc AUTHORS.html)
+  generate_doc(html    doc/manual.adoc  MANUAL.html)
+  generate_doc(html    doc/news.adoc    NEWS.html)
   add_custom_target(doc-html DEPENDS "${html_doc_files}")
 
   if(PANDOC_EXE)
@@ -56,9 +56,9 @@ else()
     # Markdown documentation
     #
     generate_doc(markdown LICENSE.adoc     LICENSE.md)
-    generate_doc(markdown doc/AUTHORS.adoc AUTHORS.md)
-    generate_doc(markdown doc/MANUAL.adoc  MANUAL.md)
-    generate_doc(markdown doc/NEWS.adoc    NEWS.md)
+    generate_doc(markdown doc/authors.adoc AUTHORS.md)
+    generate_doc(markdown doc/manual.adoc  MANUAL.md)
+    generate_doc(markdown doc/news.adoc    NEWS.md)
     add_custom_target(doc-markdown DEPENDS "${markdown_doc_files}")
   else()
     message(WARNING "Could not find pandoc; markdown documentation will not be generated")
@@ -67,7 +67,7 @@ else()
   #
   # Man page
   #
-  generate_doc(manpage doc/MANUAL.adoc ccache.1)
+  generate_doc(manpage doc/manual.adoc ccache.1)
   add_custom_target(doc-man-page DEPENDS ccache.1)
 
   add_custom_target(doc ALL DEPENDS doc-html doc-man-page)
