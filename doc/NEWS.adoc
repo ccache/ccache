@@ -138,7 +138,7 @@ Release date: 2025-09-14
   headers from incorrect locations. +
   [small]#_[contributed by Joel Rosdahl]_#
 
-- Documented that `#pragma once` can be problematic with precompiler headers
+- Documented that `\#pragma once` can be problematic with precompiler headers
   (PCH). +
   [small]#_[contributed by Joel Rosdahl]_#
 
