@@ -82,7 +82,7 @@ const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
 // Maximum time the spin lock loop will try before giving up.
-const auto k_max_lock_duration = util::Duration(5);
+const std::chrono::seconds k_max_lock_duration{5};
 
 // The memory-mapped file may reside on a filesystem with compression. Memory
 // accesses to the file risk crashing if such a filesystem gets full, so stop
@@ -90,7 +90,7 @@ const auto k_max_lock_duration = util::Duration(5);
 const uint64_t k_min_fs_mib_left = 100; // 100 MiB
 
 // How long a filesystem space check is valid before we make a new one.
-const util::Duration k_fs_space_check_valid_duration(1);
+const std::chrono::seconds k_fs_space_check_valid_duration{1};
 
 static_assert(std::tuple_size<Hash::Digest>() == 20,
               "Increment version number if size of digest is changed.");
@@ -184,7 +184,7 @@ spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
   pid_t prev_pid = 0;
   pid_t lock_pid = 0;
   bool reset_timer = false;
-  util::TimePoint lock_time;
+  auto lock_time = std::chrono::steady_clock::now();
   while (true) {
     for (int i = 0; i < 10000; ++i) {
       lock_pid = owner_pid.load(std::memory_order_relaxed);
@@ -204,9 +204,10 @@ spin_lock(std::atomic<pid_t>& owner_pid, const pid_t self_pid)
     }
     // If everything is OK, we should never hit this.
     if (reset_timer) {
-      lock_time = util::TimePoint::now();
+      lock_time = std::chrono::steady_clock::now();
       reset_timer = false;
-    } else if (util::TimePoint::now() - lock_time > k_max_lock_duration) {
+    } else if (std::chrono::steady_clock::now() - lock_time
+               > k_max_lock_duration) {
       return false;
     }
   }
@@ -447,7 +448,7 @@ InodeCache::initialize()
   }
 
   if (m_fd) {
-    auto now = util::TimePoint::now();
+    auto now = std::chrono::time_point<std::chrono::steady_clock>();
     if (now > m_last_fs_space_check + k_fs_space_check_valid_duration) {
       m_last_fs_space_check = now;
 

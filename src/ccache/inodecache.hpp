@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -27,6 +27,7 @@
 
 #include <sys/types.h>
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -143,6 +144,6 @@ private:
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
   const pid_t m_self_pid;
-  util::TimePoint m_last_fs_space_check;
+  std::chrono::time_point<std::chrono::steady_clock> m_last_fs_space_check;
   util::MemoryMap m_map;
 };
