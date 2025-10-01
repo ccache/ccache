@@ -21,7 +21,8 @@ Release date: 2025-10-01
 
 - Added missing `return` in `copy_file_impl` fallback code, fixing a compilation
   error with tl::expected ≥ 1.2.0 on non-Apple platforms where `sendfile(2)` is
-  unavailable.
+  unavailable. +
+  [small]#_[contributed by an anonymous user]_#
 
 
 === Other
