@@ -7,11 +7,21 @@ Release date: 2025-10-01
 
 === Bug fixes
 
-- Corrected saving of current position in fallocate fallback code. +
+- Fixed handling of `-Xarch_host`/`-Xarch_device` options. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed saving of current position in fallocate fallback code. +
   [small]#_[contributed by Joel Rosdahl]_#
 
 - Fixed handling of `ENOENT`  when trying to break a lockfile lock. +
   [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build fixes
+
+- Added missing `return` in `copy_file_impl` fallback code, fixing a compilation
+  error with tl::expected ≥ 1.2.0 on non-Apple platforms where `sendfile(2)` is
+  unavailable.
 
 
 === Other
