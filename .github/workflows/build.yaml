@@ -198,10 +198,10 @@ jobs:
             extra_cmake_params: -DCMAKE_CXX_FLAGS=-Wno-deprecated # doctest issue #900
             os: windows-2025
 
-          - sys: clangarm64
-            compiler: clang
-            extra_cmake_params: -DENABLE_TESTING=OFF # occasionally crashes with "Exception: SegFault"
-            os: windows-11-arm
+          # - sys: clangarm64
+          #   compiler: clang
+          #   extra_cmake_params: -DENABLE_TESTING=OFF # occasionally crashes with "Exception: SegFault"
+          #   os: windows-11-arm
 
     name: 'Windows MSYS2 ${{ matrix.sys }} ${{ matrix.compiler }}'
     defaults:
