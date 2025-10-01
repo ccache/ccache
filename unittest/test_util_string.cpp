@@ -584,7 +584,7 @@ TEST_CASE("util::split_option_with_concat_path")
   CHECK(split("-I/C:/foo") == Result("-I", "/C:/foo"));
   CHECK(split("-IC:/foo") == Result("-I", "C:/foo"));
   CHECK(split("-W,path/c:/foo") == Result("-W,path", "/c:/foo"));
-  CHECK(split("-W,pathc:/foo") == Result("-W,path", "c:/foo"));
+  CHECK(split("-W,pathC:/foo") == Result("-W,path", "C:/foo"));
   CHECK(split("-opt:value") == Result("-opt:value", nullopt));
 #endif
 }
