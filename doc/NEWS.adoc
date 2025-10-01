@@ -1,5 +1,25 @@
 = Ccache news
 
+== Ccache 4.12.1
+
+Release date: 2025-10-01
+
+
+=== Bug fixes
+
+- Corrected saving of current position in fallocate fallback code. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed handling of `ENOENT`  when trying to break a lockfile lock. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Other
+
+- Added missing documentation files to Linux/macOS binary releases. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.12
 
 Release date: 2025-09-14
