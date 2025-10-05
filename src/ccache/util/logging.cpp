@@ -82,12 +82,12 @@ do_log(std::string_view message, bool bulk)
   static char prefix[200];
 
   if (!bulk || prefix[0] == '\0') {
-    const auto now = util::TimePoint::now();
+    const auto now = util::now();
     (void)snprintf(prefix,
                    sizeof(prefix),
                    "[%s.%06u %-5d] ",
                    util::format_iso8601_timestamp(now).c_str(),
-                   static_cast<unsigned int>(now.nsec_decimal_part() / 1000),
+                   static_cast<unsigned int>(util::nsec_part(now) / 1000),
                    static_cast<int>(getpid()));
   }
 

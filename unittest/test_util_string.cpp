@@ -20,8 +20,11 @@
 
 #include <doctest/doctest.h>
 
+#include <chrono>
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>
+
+using namespace std::literals::chrono_literals;
 
 TEST_SUITE_BEGIN("util");
 
@@ -265,9 +268,9 @@ TEST_CASE("util::format_iso8601_timestamp")
   using util::TimePoint;
   using util::TimeZone;
 
-  CHECK(util::format_iso8601_timestamp(TimePoint(0), TimeZone::utc)
+  CHECK(util::format_iso8601_timestamp(TimePoint(0s), TimeZone::utc)
         == "1970-01-01T00:00:00");
-  CHECK(util::format_iso8601_timestamp(TimePoint(1234567890), TimeZone::utc)
+  CHECK(util::format_iso8601_timestamp(TimePoint(1234567890s), TimeZone::utc)
         == "2009-02-13T23:31:30");
 }
 

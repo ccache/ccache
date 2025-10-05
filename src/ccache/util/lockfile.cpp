@@ -41,13 +41,15 @@
 #include <random>
 #include <sstream>
 
+using namespace std::literals::chrono_literals;
+
+namespace fs = util::filesystem;
+
 const uint32_t k_min_sleep_time_ms = 10;
 const uint32_t k_max_sleep_time_ms = 50;
 #ifndef _WIN32
-const util::Duration k_staleness_limit(2);
+const auto k_staleness_limit = 2s;
 #endif
-
-namespace fs = util::filesystem;
 
 namespace {
 
@@ -230,7 +232,7 @@ LockFile::do_acquire(const bool blocking)
 
   TimePoint last_seen_activity = [this] {
     const auto last_lock_update = get_last_lock_update();
-    return last_lock_update ? *last_lock_update : TimePoint::now();
+    return last_lock_update ? *last_lock_update : util::now();
   }();
 
   std::string initial_content;
@@ -238,9 +240,9 @@ LockFile::do_acquire(const bool blocking)
                                            k_max_sleep_time_ms);
 
   while (true) {
-    const auto now = TimePoint::now();
+    const auto now = util::now();
     const auto my_content =
-      FMT("{}-{}.{}", content_prefix, now.sec(), now.nsec_decimal_part());
+      FMT("{}-{}.{}", content_prefix, util::sec(now), util::nsec_part(now));
 #  ifdef __CYGWIN__
     // Cygwin/MSYS2 does not support allow a symlink to have a nonexistent
     // target, so use plain files instead.
@@ -326,19 +328,19 @@ LockFile::do_acquire(const bool blocking)
       last_seen_activity = *last_lock_update;
     }
 
-    const Duration inactive_duration = TimePoint::now() - last_seen_activity;
+    const auto inactive_duration = util::now() - last_seen_activity;
 
     if (inactive_duration < k_staleness_limit) {
       LOG("Lock {} held by another process active {}.{:03} seconds ago",
           m_lock_file,
-          inactive_duration.sec(),
-          inactive_duration.nsec_decimal_part() / 1'000'000);
+          util::sec(inactive_duration),
+          util::nsec_part(inactive_duration) / 1'000'000);
     } else if (content == initial_content) {
       // The lock seems to be stale -- break it and try again.
       LOG("Breaking {} since it has been inactive for {}.{:03} seconds",
           m_lock_file,
-          inactive_duration.sec(),
-          inactive_duration.nsec_decimal_part() / 1'000'000);
+          util::sec(inactive_duration),
+          util::nsec_part(inactive_duration) / 1'000'000);
       if (auto r = fs::remove(m_alive_file);
           !r && r.error() != std::errc::no_such_file_or_directory) {
         return false;

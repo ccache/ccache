@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,7 +20,7 @@
 
 #include <ccache/util/longlivedlockfilemanager.hpp>
 #include <ccache/util/noncopyable.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 
 #include <filesystem>
 #include <optional>

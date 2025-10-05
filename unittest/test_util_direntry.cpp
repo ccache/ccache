@@ -162,10 +162,10 @@ TEST_CASE("Default constructor")
   CHECK(entry.device() == 0);
   CHECK(entry.inode() == 0);
   CHECK(entry.mode() == 0);
-  CHECK(entry.ctime().sec() == 0);
-  CHECK(entry.ctime().nsec() == 0);
-  CHECK(entry.mtime().sec() == 0);
-  CHECK(entry.mtime().nsec() == 0);
+  CHECK(util::sec(entry.ctime()) == 0);
+  CHECK(util::nsec_part(entry.ctime()) == 0);
+  CHECK(util::sec(entry.mtime()) == 0);
+  CHECK(util::nsec_part(entry.mtime()) == 0);
   CHECK(entry.size() == 0);
   CHECK(entry.size_on_disk() == 0);
   CHECK(!entry.is_directory());
@@ -188,10 +188,10 @@ TEST_CASE("Construction for missing entry")
   CHECK(entry.device() == 0);
   CHECK(entry.inode() == 0);
   CHECK(entry.mode() == 0);
-  CHECK(entry.ctime().sec() == 0);
-  CHECK(entry.ctime().nsec() == 0);
-  CHECK(entry.mtime().sec() == 0);
-  CHECK(entry.mtime().nsec() == 0);
+  CHECK(util::sec(entry.ctime()) == 0);
+  CHECK(util::nsec_part(entry.ctime()) == 0);
+  CHECK(util::sec(entry.mtime()) == 0);
+  CHECK(util::nsec_part(entry.mtime()) == 0);
   CHECK(entry.size() == 0);
   CHECK(entry.size_on_disk() == 0);
   CHECK(!entry.is_directory());
@@ -294,10 +294,10 @@ TEST_CASE("Return values when file exists")
   struct timespec last_write_time =
     win32_filetime_to_timespec(info.ftLastWriteTime);
 
-  CHECK(de.ctime().sec() == creation_time.tv_sec);
-  CHECK(de.ctime().nsec_decimal_part() == creation_time.tv_nsec);
-  CHECK(de.mtime().sec() == last_write_time.tv_sec);
-  CHECK(de.mtime().nsec_decimal_part() == last_write_time.tv_nsec);
+  CHECK(util::sec(de.ctime()) == creation_time.tv_sec);
+  CHECK(util::nsec_part(de.ctime()) == creation_time.tv_nsec);
+  CHECK(util::sec(de.mtime()) == last_write_time.tv_sec);
+  CHECK(util::nsec_part(de.mtime()) == last_write_time.tv_nsec);
 
   CHECK(de.size_on_disk() == ((de.size() + 4095) & ~4095));
   CHECK(de.file_attributes() == info.dwFileAttributes);
@@ -313,25 +313,25 @@ TEST_CASE("Return values when file exists")
   CHECK(de.size_on_disk() == util::likely_size_on_disk(st.st_size));
 
 #  ifdef HAVE_STRUCT_STAT_ST_CTIM
-  CHECK(de.ctime().sec() == st.st_ctim.tv_sec);
-  CHECK(de.ctime().nsec_decimal_part() == st.st_ctim.tv_nsec);
+  CHECK(util::sec(de.ctime()) == st.st_ctim.tv_sec);
+  CHECK(util::nsec_part(de.ctime()) == st.st_ctim.tv_nsec);
 #  elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
-  CHECK(de.ctime().sec() == st.st_ctimespec.tv_sec);
-  CHECK(de.ctime().nsec_decimal_part() == st.st_ctimespec.tv_nsec);
+  CHECK(util::sec(de.ctime()) == st.st_ctimespec.tv_sec);
+  CHECK(util::nsec_part(de.ctime()) == st.st_ctimespec.tv_nsec);
 #  else
-  CHECK(de.ctime().sec() == st.st_ctime);
-  CHECK(de.ctime().nsec_decimal_part() == 0);
+  CHECK(util::sec(de.ctime()) == st.st_ctime);
+  CHECK(util::nsec_part(de.ctime()) == 0);
 #  endif
 
 #  ifdef HAVE_STRUCT_STAT_ST_MTIM
-  CHECK(de.mtime().sec() == st.st_mtim.tv_sec);
-  CHECK(de.mtime().nsec_decimal_part() == st.st_mtim.tv_nsec);
+  CHECK(util::sec(de.mtime()) == st.st_mtim.tv_sec);
+  CHECK(util::nsec_part(de.mtime()) == st.st_mtim.tv_nsec);
 #  elif defined(HAVE_STRUCT_STAT_ST_MTIMESPEC)
-  CHECK(de.mtime().sec() == st.st_mtimespec.tv_sec);
-  CHECK(de.mtime().nsec_decimal_part() == st.st_mtimespec.tv_nsec);
+  CHECK(util::sec(de.mtime()) == st.st_mtimespec.tv_sec);
+  CHECK(util::nsec_part(de.mtime()) == st.st_mtimespec.tv_nsec);
 #  else
-  CHECK(de.mtime().sec() == st.st_mtime);
-  CHECK(de.mtime().nsec_decimal_part() == 0);
+  CHECK(util::sec(de.mtime()) == st.st_mtime);
+  CHECK(util::nsec_part(de.mtime()) == 0);
 #  endif
 #endif
 }

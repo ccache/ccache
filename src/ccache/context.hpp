@@ -27,7 +27,7 @@
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/filestream.hpp>
 #include <ccache/util/noncopyable.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include <ccache/inodecache.hpp>

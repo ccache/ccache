@@ -54,6 +54,8 @@
 
 namespace fs = util::filesystem;
 
+using namespace std::literals::chrono_literals;
+
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
 // level is a hash table consisting of buckets. Each bucket contains entries
@@ -309,7 +311,7 @@ InodeCache::hash_inode(const fs::path& path,
   }
 
   // See comment for InodeCache::InodeCache why this check is done.
-  auto now = util::TimePoint::now();
+  auto now = util::now();
   if (now - de.ctime() < m_min_age || now - de.mtime() < m_min_age) {
     LOG("Too new ctime or mtime of {}, not considering for inode cache", path);
     return false;
@@ -323,10 +325,10 @@ InodeCache::hash_inode(const fs::path& path,
   key.st_mode = de.mode();
   // Note: Manually copying sec and nsec of mtime and ctime to prevent copying
   // the padding bytes.
-  auto mtime = de.mtime().to_timespec();
+  auto mtime = util::to_timespec(de.mtime());
   key.st_mtim.tv_sec = mtime.tv_sec;
   key.st_mtim.tv_nsec = mtime.tv_nsec;
-  auto ctime = de.ctime().to_timespec();
+  auto ctime = util::to_timespec(de.ctime());
   key.st_ctim.tv_sec = ctime.tv_sec;
   key.st_ctim.tv_nsec = ctime.tv_nsec;
   key.st_size = de.size();
@@ -505,12 +507,11 @@ InodeCache::initialize()
   return false;
 }
 
-InodeCache::InodeCache(const Config& config, util::Duration min_age)
+InodeCache::InodeCache(const Config& config, std::chrono::nanoseconds min_age)
   : m_config(config),
     // CCACHE_DISABLE_INODE_CACHE_MIN_AGE is only for testing purposes; see
     // test/suites/inode_cache.bash.
-    m_min_age(getenv("CCACHE_DISABLE_INODE_CACHE_MIN_AGE") ? util::Duration(0)
-                                                           : min_age),
+    m_min_age(getenv("CCACHE_DISABLE_INODE_CACHE_MIN_AGE") ? 0ns : min_age),
     m_self_pid(getpid())
 {
 }

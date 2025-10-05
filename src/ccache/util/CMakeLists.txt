@@ -23,7 +23,6 @@ set(
   texttable.cpp
   threadpool.cpp
   time.cpp
-  timepoint.cpp
   tokenizer.cpp
   umaskscope.cpp
   zstd.cpp

@@ -28,7 +28,6 @@
 #include <ccache/core/manifest.hpp>
 #include <ccache/core/statistics.hpp>
 #include <ccache/util/assertions.hpp>
-#include <ccache/util/duration.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filestream.hpp>
@@ -42,6 +41,7 @@
 #include <ccache/util/temporaryfile.hpp>
 #include <ccache/util/texttable.hpp>
 #include <ccache/util/threadpool.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -85,6 +85,8 @@
 
 namespace fs = util::filesystem;
 
+using namespace std::literals::chrono_literals;
+
 using core::AtomicFile;
 using core::Statistic;
 using core::StatisticsCounters;
@@ -94,7 +96,7 @@ namespace storage::local {
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
-const util::Duration k_tempdir_cleanup_interval(2 * 24 * 60 * 60); // 2 days
+const auto k_tempdir_cleanup_interval = 2 * 24 * 60 * 60s; // C++20: 2d
 
 // Maximum files per cache directory. This constant is somewhat arbitrarily
 // chosen to be large enough to avoid unnecessary cache levels but small enough
@@ -329,7 +331,7 @@ clean_dir(
 
   uint64_t cache_size = 0;
   uint64_t files_in_cache = 0;
-  auto current_time = util::TimePoint::now();
+  auto current_time = util::now();
   std::unordered_map<std::string /*result_file*/,
                      std::vector<fs::path> /*associated_raw_files*/>
     raw_files_map;
@@ -344,7 +346,7 @@ clean_dir(
     }
 
     // Delete any tmp files older than 1 hour right away.
-    if (file.mtime() + util::Duration(3600) < current_time
+    if (file.mtime() + 1h < current_time
         && util::TemporaryFile::is_tmp_file(file.path())) {
       std::ignore = util::remove(file.path());
       continue;
@@ -383,7 +385,7 @@ clean_dir(
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
         && (!max_age
-            || file.mtime() > (current_time - util::Duration(*max_age)))
+            || file.mtime() > (current_time - std::chrono::seconds(*max_age)))
         && (!namespace_ || max_age)) {
       break;
     }
@@ -746,7 +748,7 @@ LocalStorage::increment_statistics(const StatisticsCounters& statistics)
 void
 LocalStorage::zero_all_statistics()
 {
-  const auto now = util::TimePoint::now();
+  const auto now = util::now();
   const auto zeroable_fields = core::Statistics::get_zeroable_fields();
 
   for_each_level_1_and_2_stats_file(
@@ -755,7 +757,7 @@ LocalStorage::zero_all_statistics()
         for (const auto statistic : zeroable_fields) {
           cs.set(statistic, 0);
         }
-        cs.set(Statistic::stats_zeroed_timestamp, now.sec());
+        cs.set(Statistic::stats_zeroed_timestamp, util::sec(now));
       });
     });
 }
@@ -1451,7 +1453,7 @@ LocalStorage::acquire_all_level_2_content_locks(
 void
 LocalStorage::clean_internal_tempdir()
 {
-  const auto now = util::TimePoint::now();
+  const auto now = util::now();
   const auto cleaned_stamp = FMT("{}/.cleaned", m_config.temporary_dir());
   DirEntry cleaned_dir_entry(cleaned_stamp);
   if (cleaned_dir_entry.is_regular_file()

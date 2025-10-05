@@ -19,7 +19,7 @@
 #pragma once
 
 #include <ccache/util/conversion.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/tokenizer.hpp>
 
 #include <nonstd/span.hpp>
@@ -27,6 +27,7 @@
 
 #include <sys/stat.h> // for mode_t
 
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>

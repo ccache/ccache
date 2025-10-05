@@ -30,7 +30,7 @@
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/lockfile.hpp>
 #include <ccache/util/longlivedlockfilemanager.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 
 #include <nonstd/span.hpp>
 

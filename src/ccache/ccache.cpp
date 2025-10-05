@@ -50,7 +50,6 @@
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
-#include <ccache/util/duration.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/exec.hpp>
 #include <ccache/util/expected.hpp>
@@ -65,7 +64,6 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/temporaryfile.hpp>
 #include <ccache/util/time.hpp>
-#include <ccache/util/timepoint.hpp>
 #include <ccache/util/tokenizer.hpp>
 #include <ccache/util/umaskscope.hpp>
 #include <ccache/util/wincompat.hpp>
@@ -95,6 +93,8 @@
 #include <utility>
 
 namespace fs = util::filesystem;
+
+using namespace std::literals::chrono_literals;
 
 using core::Statistic;
 using util::DirEntry;
@@ -223,21 +223,19 @@ prepare_debug_path(const fs::path& cwd,
   // trying to open the path for writing.
   std::ignore = fs::create_directories(prefix.parent_path());
 
-  char timestamp[100];
+  std::string timestamp;
   const auto tm = util::localtime(time_of_invocation);
   if (tm) {
-    (void)strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &*tm);
+    char t[100];
+    (void)strftime(t, sizeof(t), "%Y%m%d_%H%M%S", &*tm);
+    timestamp = t;
   } else {
-    (void)snprintf(
-      timestamp,
-      sizeof(timestamp),
-      "%llu",
-      static_cast<long long unsigned int>(time_of_invocation.sec()));
+    timestamp = std::to_string(util::sec(time_of_invocation));
   }
   return FMT("{}.{}_{:06}.ccache-{}",
              prefix,
              timestamp,
-             time_of_invocation.nsec_decimal_part() / 1000,
+             util::nsec_part(time_of_invocation) / 1000,
              suffix);
 }
 
@@ -1124,7 +1122,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
 static std::string
 format_epoch_time(const util::TimePoint& tp)
 {
-  return FMT("{}.{:09}", tp.sec(), tp.nsec_decimal_part());
+  return FMT("{}.{:09}", util::sec(tp), util::nsec_part(tp));
 }
 
 static bool
@@ -1146,8 +1144,7 @@ source_file_is_too_new(const Context& ctx, const fs::path& path)
   // A relatively small safety margin is used in this case to make things safe
   // on common filesystems while also not bailing out when creating a source
   // file reasonably close in time before the compilation.
-  const util::Duration min_age(0, 100'000'000); // 0.1 s
-  util::TimePoint deadline = ctx.time_of_invocation + min_age;
+  util::TimePoint deadline = ctx.time_of_invocation + 100ms;
 
   DirEntry dir_entry(path);
 
@@ -1495,7 +1492,7 @@ hash_compiler(const Context& ctx,
   } else if (ctx.config.compiler_check() == "mtime") {
     hash.hash_delimiter("cc_mtime");
     hash.hash(dir_entry.size());
-    hash.hash(dir_entry.mtime().nsec());
+    hash.hash(util::nsec_tot(dir_entry.mtime()));
   } else if (util::starts_with(ctx.config.compiler_check(), "string:")) {
     hash.hash_delimiter("cc_hash");
     hash.hash(&ctx.config.compiler_check()[7]);
@@ -1769,7 +1766,8 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     // added to the hash to prevent false positive cache hits if the
     // mtime of the file changes.
     hash.hash_delimiter("-fbuild-session-file mtime");
-    hash.hash(DirEntry(ctx.args_info.build_session_file).mtime().nsec());
+    hash.hash(
+      util::nsec_tot(DirEntry(ctx.args_info.build_session_file).mtime()));
   }
 
   if (!ctx.config.extra_files_to_hash().empty()) {

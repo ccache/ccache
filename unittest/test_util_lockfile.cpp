@@ -21,6 +21,7 @@
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/lockfile.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
@@ -116,7 +117,7 @@ TEST_CASE("Break stale lock, blocking")
   TestContext test_context;
 
   REQUIRE(util::write_file("test.alive", ""));
-  const util::TimePoint long_time_ago(0, 0);
+  const util::TimePoint long_time_ago(0s);
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 
@@ -131,7 +132,7 @@ TEST_CASE("Break stale lock, non-blocking")
   TestContext test_context;
 
   REQUIRE(util::write_file("test.alive", ""));
-  const util::TimePoint long_time_ago(0, 0);
+  const util::TimePoint long_time_ago(0s);
   util::set_timestamps("test.alive", long_time_ago);
   CHECK(symlink("foo", "test.lock") == 0);
 

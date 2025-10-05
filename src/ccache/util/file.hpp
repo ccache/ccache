@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,7 +20,7 @@
 
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/direntry.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/types.hpp>
 
 #include <nonstd/span.hpp>

@@ -29,7 +29,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/xxh3_128.hpp>
 #include <ccache/util/zstd.hpp>
 
@@ -92,7 +92,7 @@ CacheEntry::Header::Header(const Config& config,
     compression_level(compression_level_from_config(config)),
     self_contained(entry_type != CacheEntryType::result
                    || !core::result::Serializer::use_raw_files(config)),
-    creation_time(util::TimePoint::now().sec()),
+    creation_time(util::sec(util::now())),
     ccache_version(CCACHE_VERSION),
     namespace_(config.namespace_()),
     entry_size(0)

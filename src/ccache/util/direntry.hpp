@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <sys/stat.h>
@@ -212,13 +212,14 @@ inline util::TimePoint
 DirEntry::atime() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_ATIM)
-  return util::TimePoint(do_stat().st_atim);
+  return util::timepoint_from_timespec(do_stat().st_atim);
 #elif defined(HAVE_STRUCT_STAT_ST_ATIMESPEC)
-  return util::TimePoint(do_stat().st_atimespec);
+  return util::timepoint_from_timespec(do_stat().st_atimespec);
 #elif defined(HAVE_STRUCT_STAT_ST_ATIMENSEC)
-  return util::TimePoint(do_stat().st_atime, do_stat().st_atimensec);
+  return util::timepoint_from_sec_nsec(do_stat().st_atime,
+                                       do_stat().st_atimensec);
 #else
-  return util::TimePoint(do_stat().st_atime, 0);
+  return util::timepoint_from_sec_nsec(do_stat().st_atime, 0);
 #endif
 }
 
@@ -226,13 +227,14 @@ inline util::TimePoint
 DirEntry::ctime() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_CTIM)
-  return util::TimePoint(do_stat().st_ctim);
+  return util::timepoint_from_timespec(do_stat().st_ctim);
 #elif defined(HAVE_STRUCT_STAT_ST_CTIMESPEC)
-  return util::TimePoint(do_stat().st_ctimespec);
+  return util::timepoint_from_timespec(do_stat().st_ctimespec);
 #elif defined(HAVE_STRUCT_STAT_ST_CTIMENSEC)
-  return util::TimePoint(do_stat().st_ctime, do_stat().st_ctimensec);
+  return util::timepoint_from_sec_nsec(do_stat().st_ctime,
+                                       do_stat().st_ctimensec);
 #else
-  return util::TimePoint(do_stat().st_ctime, 0);
+  return util::timepoint_from_sec_nsec(do_stat().st_ctime, 0);
 #endif
 }
 
@@ -240,13 +242,14 @@ inline util::TimePoint
 DirEntry::mtime() const
 {
 #if defined(_WIN32) || defined(HAVE_STRUCT_STAT_ST_MTIM)
-  return util::TimePoint(do_stat().st_mtim);
+  return util::timepoint_from_timespec(do_stat().st_mtim);
 #elif defined(HAVE_STRUCT_STAT_ST_MTIMESPEC)
-  return util::TimePoint(do_stat().st_mtimespec);
+  return util::timepoint_from_timespec(do_stat().st_mtimespec);
 #elif defined(HAVE_STRUCT_STAT_ST_MTIMENSEC)
-  return util::TimePoint(do_stat().st_mtime, do_stat().st_mtimensec);
+  return util::timepoint_from_sec_nsec(do_stat().st_mtime,
+                                       do_stat().st_mtimensec);
 #else
-  return util::TimePoint(do_stat().st_mtime, 0);
+  return util::timepoint_from_sec_nsec(do_stat().st_mtime, 0);
 #endif
 }
 

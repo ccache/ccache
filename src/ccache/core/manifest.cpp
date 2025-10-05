@@ -115,8 +115,10 @@ Manifest::read(nonstd::span<const uint8_t> data)
     reader.read_int(entry.index);
     reader.read_and_copy_bytes(entry.digest);
     reader.read_int(entry.fsize);
-    entry.mtime.set_nsec(reader.read_int<int64_t>());
-    entry.ctime.set_nsec(reader.read_int<int64_t>());
+    entry.mtime =
+      util::TimePoint(std::chrono::nanoseconds(reader.read_int<int64_t>()));
+    entry.ctime =
+      util::TimePoint(std::chrono::nanoseconds(reader.read_int<int64_t>()));
   }
 
   const auto result_count = reader.read_int<uint32_t>();
@@ -282,8 +284,8 @@ Manifest::serialize(util::Bytes& output)
     writer.write_int<uint32_t>(file_info.index);
     writer.write_bytes(file_info.digest);
     writer.write_int(file_info.fsize);
-    writer.write_int(file_info.mtime.nsec());
-    writer.write_int(file_info.ctime.nsec());
+    writer.write_int(util::nsec_tot(file_info.mtime));
+    writer.write_int(util::nsec_tot(file_info.ctime));
   }
 
   writer.write_int(static_cast<uint32_t>(m_results.size()));
@@ -467,16 +469,16 @@ Manifest::inspect(FILE* const stream) const
     } else {
       PRINT(stream,
             "    Mtime: {}.{:09}\n",
-            m_file_infos[i].mtime.sec(),
-            m_file_infos[i].mtime.nsec_decimal_part());
+            util::sec(m_file_infos[i].mtime),
+            util::nsec_part(m_file_infos[i].mtime));
     }
     if (m_file_infos[i].ctime == util::TimePoint()) {
       PRINT_RAW(stream, "    Ctime: -\n");
     } else {
       PRINT(stream,
             "    Ctime: {}.{:09}\n",
-            m_file_infos[i].ctime.sec(),
-            m_file_infos[i].ctime.nsec_decimal_part());
+            util::sec(m_file_infos[i].ctime),
+            util::nsec_part(m_file_infos[i].ctime));
     }
   }
 

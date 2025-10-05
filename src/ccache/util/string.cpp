@@ -203,18 +203,15 @@ format_human_readable_size(uint64_t size, SizeUnitPrefixType prefix_type)
 std::string
 format_iso8601_timestamp(const TimePoint& time, TimeZone time_zone)
 {
-  char timestamp[100];
   const auto tm =
     (time_zone == TimeZone::local ? util::localtime : util::gmtime)(time);
   if (tm) {
+    char timestamp[100];
     (void)strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
+    return timestamp;
   } else {
-    (void)snprintf(timestamp,
-                   sizeof(timestamp),
-                   "%llu",
-                   static_cast<long long unsigned int>(time.sec()));
+    return std::to_string(util::sec(time));
   }
-  return timestamp;
 }
 
 std::string

@@ -34,7 +34,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <chrono>
+
 namespace fs = util::filesystem;
+
+using namespace std::literals::chrono_literals;
 
 using TestUtil::TestContext;
 
@@ -84,7 +88,7 @@ TEST_CASE("Test disabled")
   Config config;
   init(config);
   config.set_inode_cache(false);
-  InodeCache inode_cache(config, util::Duration(0));
+  InodeCache inode_cache(config, 0ns);
 
   CHECK(!inode_cache.get("a",
                          InodeCache::ContentType::checked_for_temporal_macros));
@@ -104,7 +108,7 @@ TEST_CASE("Test lookup nonexistent")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config, util::Duration(0));
+  InodeCache inode_cache(config, 0ns);
   REQUIRE(util::write_file("a", ""));
 
   CHECK(!inode_cache.get("a",
@@ -121,7 +125,7 @@ TEST_CASE("Test put and lookup")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config, util::Duration(0));
+  InodeCache inode_cache(config, 0ns);
   REQUIRE(util::write_file("a", "a text"));
 
   HashSourceCodeResult result;
@@ -169,7 +173,7 @@ TEST_CASE("Drop file")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config, util::Duration(0));
+  InodeCache inode_cache(config, 0ns);
 
   inode_cache.get("a", InodeCache::ContentType::raw);
   CHECK(util::DirEntry(inode_cache.get_path()));
@@ -185,7 +189,7 @@ TEST_CASE("Test content type")
   Config config;
   init(config);
 
-  InodeCache inode_cache(config, util::Duration(0));
+  InodeCache inode_cache(config, 0ns);
   REQUIRE(util::write_file("a", "a text"));
   auto binary_digest = Hash().hash("binary").digest();
   auto code_digest = Hash().hash("code").digest();

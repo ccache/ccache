@@ -23,7 +23,6 @@ set(
   test_util_clang.cpp
   test_util_conversion.cpp
   test_util_direntry.cpp
-  test_util_duration.cpp
   test_util_environment.cpp
   test_util_exec.cpp
   test_util_expected.cpp
@@ -32,7 +31,6 @@ set(
   test_util_path.cpp
   test_util_string.cpp
   test_util_texttable.cpp
-  test_util_timepoint.cpp
   test_util_tokenizer.cpp
   test_util_xxh3_128.cpp
   test_util_xxh3_64.cpp

@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -21,7 +21,7 @@
 #include <ccache/core/serializer.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/util/bytes.hpp>
-#include <ccache/util/timepoint.hpp>
+#include <ccache/util/time.hpp>
 
 #include <nonstd/span.hpp>
 

@@ -23,7 +23,7 @@ namespace util {
 std::optional<tm>
 gmtime(std::optional<TimePoint> time)
 {
-  time_t timestamp = time ? time->sec() : TimePoint::now().sec();
+  time_t timestamp = time ? sec(*time) : sec(now());
 #ifdef HAVE_GMTIME_R
   struct tm result;
   if (gmtime_r(&timestamp, &result)) {
@@ -41,7 +41,7 @@ gmtime(std::optional<TimePoint> time)
 std::optional<tm>
 localtime(std::optional<TimePoint> time)
 {
-  time_t timestamp = time ? time->sec() : TimePoint::now().sec();
+  time_t timestamp = time ? sec(*time) : sec(now());
 #ifdef HAVE_LOCALTIME_R
   struct tm result;
   if (localtime_r(&timestamp, &result)) {

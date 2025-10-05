@@ -540,26 +540,26 @@ set_timestamps(const fs::path& path,
 #ifdef HAVE_UTIMENSAT
   timespec atime_mtime[2];
   if (mtime) {
-    atime_mtime[0] = (atime ? *atime : *mtime).to_timespec();
-    atime_mtime[1] = mtime->to_timespec();
+    atime_mtime[0] = util::to_timespec(atime ? *atime : *mtime);
+    atime_mtime[1] = util::to_timespec(*mtime);
   }
   utimensat(
     AT_FDCWD, util::pstr(path).c_str(), mtime ? atime_mtime : nullptr, 0);
 #elif defined(HAVE_UTIMES)
   timeval atime_mtime[2];
   if (mtime) {
-    atime_mtime[0].tv_sec = atime ? atime->sec() : mtime->sec();
+    atime_mtime[0].tv_sec = atime ? util::sec(*atime) : util::sec(*mtime);
     atime_mtime[0].tv_usec =
       (atime ? atime->nsec_decimal_part() : mtime->nsec_decimal_part()) / 1000;
-    atime_mtime[1].tv_sec = mtime->sec();
+    atime_mtime[1].tv_sec = util::sec(*mtime);
     atime_mtime[1].tv_usec = mtime->nsec_decimal_part() / 1000;
   }
   utimes(util::pstr(path).c_str(), mtime ? atime_mtime : nullptr);
 #else
   utimbuf atime_mtime;
   if (mtime) {
-    atime_mtime.actime = atime ? atime->sec() : mtime->sec();
-    atime_mtime.modtime = mtime->sec();
+    atime_mtime.actime = atime ? util::sec(*atime) : util::sec(*mtime);
+    atime_mtime.modtime = util::sec(*mtime);
     utime(util::pstr(path).c_str(), &atime_mtime);
   } else {
     utime(util::pstr(path).c_str(), nullptr);

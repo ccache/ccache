@@ -20,10 +20,8 @@
 
 #include <ccache/hash.hpp>
 #include <ccache/hashutil.hpp>
-#include <ccache/util/duration.hpp>
 #include <ccache/util/fd.hpp>
 #include <ccache/util/memorymap.hpp>
-#include <ccache/util/timepoint.hpp>
 
 #include <sys/types.h>
 
@@ -71,7 +69,8 @@ public:
   // timestamp was updated more than `min_age` ago. The default value is a
   // conservative 2 seconds since not all file systems have subsecond
   // resolution.
-  InodeCache(const Config& config, util::Duration min_age = util::Duration(2));
+  InodeCache(const Config& config,
+             std::chrono::nanoseconds min_age = std::chrono::seconds(2));
   ~InodeCache();
 
   // Return whether it's possible to use the inode cache on the filesystem
@@ -139,7 +138,7 @@ private:
   bool initialize();
 
   const Config& m_config;
-  util::Duration m_min_age;
+  std::chrono::nanoseconds m_min_age;
   util::Fd m_fd;
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
