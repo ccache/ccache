@@ -34,10 +34,10 @@ public:
   ~FileLock();
 
   // Acquire lock, blocking. Returns true if acquired, otherwise false.
-  [[nodiscard]] bool acquire();
+  [[nodiscard]] bool acquire() noexcept;
 
   // Release lock early. If not previously acquired, nothing happens.
-  void release();
+  void release() noexcept;
 
   // Return whether the lock is acquired successfully.
   bool acquired() const;

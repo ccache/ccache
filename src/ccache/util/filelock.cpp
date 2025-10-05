@@ -49,6 +49,7 @@ FileLock&
 FileLock::operator=(FileLock&& other) noexcept
 {
   if (&other != this) {
+    release();
     m_fd = other.m_fd;
     m_acquired = other.m_acquired;
     other.m_fd = -1;
@@ -58,8 +59,12 @@ FileLock::operator=(FileLock&& other) noexcept
 }
 
 bool
-FileLock::acquire()
+FileLock::acquire() noexcept
 {
+  if (m_fd == -1) {
+    return false;
+  }
+
 #ifdef _WIN32
   HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(m_fd));
   if (handle == INVALID_HANDLE_VALUE) {
@@ -85,16 +90,17 @@ FileLock::acquire()
 }
 
 void
-FileLock::release()
+FileLock::release() noexcept
 {
-  if (!acquired()) {
+  if (!acquired() || m_fd == -1) {
     return;
   }
 
 #ifdef _WIN32
   HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(m_fd));
   if (handle != INVALID_HANDLE_VALUE) {
-    UnlockFile(handle, 0, 0, MAXDWORD, MAXDWORD);
+    OVERLAPPED overlapped{};
+    UnlockFileEx(handle, 0, MAXDWORD, MAXDWORD, &overlapped);
   }
 #else
   struct flock lock;
