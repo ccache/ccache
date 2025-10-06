@@ -410,7 +410,7 @@ is whitespace surrounding keys and values. Example:
 
 -------------------------------------------------------------------------------
 # Set maximum cache size to 10 GB:
-max_size = 10G
+max_size = 10GB
 -------------------------------------------------------------------------------
 
 === Boolean values
