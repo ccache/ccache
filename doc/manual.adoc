@@ -878,8 +878,8 @@ file in `/etc/rsyslog.d`:
 *max_size* (*CCACHE_MAXSIZE*)::
 
     This option specifies the maximum size of the cache. Use 0 for no limit. The
-    default value is 5GiB. Available suffixes: k, M, G, T (decimal) and Ki, Mi,
-    Gi, Ti (binary). The default suffix is GiB. See also
+    default value is 5GiB. Available suffixes: kB, MB, GB, TB (decimal) and KiB, MiB,
+    GiB, TiB (binary). The default suffix is GiB. See also
     _<<Cache size management>>_.
 
 [#config_msvc_dep_prefix]
