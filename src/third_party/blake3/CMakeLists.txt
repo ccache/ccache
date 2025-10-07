@@ -129,7 +129,11 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND
   if(HAVE_NEON)
     target_sources(dep_blake3 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/blake3/blake3_neon.c")
     target_compile_definitions(dep_blake3 PRIVATE BLAKE3_USE_NEON)
+  else()
+    target_compile_definitions(dep_blake3 PRIVATE BLAKE3_NO_NEON_CHECK)
   endif()
+else()
+  target_compile_definitions(dep_blake3 PRIVATE BLAKE3_NO_NEON_CHECK)
 endif()
 
 file(GLOB headers *.h)
