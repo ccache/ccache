@@ -183,7 +183,8 @@ documentation.
 *-s*, *--show-stats*::
 
     Print a summary of configuration and statistics counters in human-readable
-    format. Use `-v`/`--verbose` once or twice for more details.
+    format. Use `-v`/`--verbose` once or twice for more details. See
+    <<_cache_statistics,Cache statistics>> for more information.
 
 *-v*, *--verbose*::
 
@@ -1439,6 +1440,18 @@ cleanups (number of performed cleanups, either implicitly due to a cache size
 limit being reached or due to explicit `ccache -c` calls), overall hit rate, hit
 rate for <<The direct mode,direct>>/<<The preprocessor mode,preprocessed>> modes
 and hit rate for local and <<config_remote_storage,remote storage>>.
+
+The statistics counters are not used by ccache itself during builds. This means
+that you can safely reset them at any time using `ccache --zero-stats` without
+affecting the build process. For example, you might reset them before a build so
+that `ccache --show-stats` will only summarize the results from that specific
+build. Alternatively, you can set <<config_stats_log,*stats_log*> before
+starting the build and then run `ccache --show-log-stats` afterward to view
+build-specific statistics. This approach allows the statistics counters to
+continue tracking the entire lifetime of the cache while still giving you
+detailed information for individual builds. Another advantage of *stats_log* is
+that it collects statistics without interference from other concurrent builds
+that access the same cache.
 
 The summary also includes counters called "`Errors`" and "`Uncacheable`", which
 are sums of more detailed counters. To see those detailed counters, use the
