@@ -20,6 +20,7 @@ RUN dnf install -y dnf-plugins-core \
         gcc-toolset-11 \
         hiredis-devel \
         less \
+        libstdc++-devel \
         libstdc++-static \
         libzstd-devel \
         make \
