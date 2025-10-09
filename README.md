@@ -16,7 +16,7 @@ General information
 * [Main web site](https://ccache.dev)
 * [Supported platforms, compilers and languages](https://ccache.dev/platform-compiler-language-support.html)
 * [Documentation](https://ccache.dev/documentation.html)
-* [Installation instructions](https://github.com/ccache/ccache/blob/master/doc/INSTALL.md)
+* [Installation instructions](https://github.com/ccache/ccache/blob/master/doc/install.md)
 * [Release notes](https://ccache.dev/releasenotes.html)
 * [Credits and history](https://ccache.dev/credits.html)
 * [License and copyright](https://ccache.dev/license.html)
