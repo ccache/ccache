@@ -733,6 +733,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (util::starts_with(arg, "-fcoverage-prefix-map=")) {
+    args_info.coverage_prefix_map = arg.substr(arg.find('=') + 1);
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   if (util::starts_with(arg, "-fdebug-compilation-dir")
       || util::starts_with(arg, "-ffile-compilation-dir")) {
     std::string compilation_dir;
@@ -752,6 +758,15 @@ process_option_arg(const Context& ctx,
       }
     }
     args_info.compilation_dir = std::move(compilation_dir);
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
+  if (util::starts_with(arg, "-fcoverage-compilation-dir")) {
+    const auto eq_pos = arg.find('=');
+    if (eq_pos != std::string_view::npos) {
+      args_info.coverage_compilation_dir = arg.substr(eq_pos + 1);
+    }
     state.add_common_arg(args[i]);
     return Statistic::none;
   }
