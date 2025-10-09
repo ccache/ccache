@@ -11,7 +11,7 @@ if(OFFLINE)
 endif()
 
 # How to locate/retrieve dependencies. See the Dependencies section in
-# doc/INSTALL.md.
+# doc/install.md.
 set(DEPS AUTO CACHE STRING "How to retrieve third party dependencies")
 set_property(CACHE DEPS PROPERTY STRINGS AUTO DOWNLOAD LOCAL)
 

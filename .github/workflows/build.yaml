@@ -279,7 +279,7 @@ jobs:
         with:
           name: docs
           path: |
-            doc/INSTALL.md
+            doc/install.md
             GPL-3.0.txt
             install
             README.md
