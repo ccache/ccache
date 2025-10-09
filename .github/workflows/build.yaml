@@ -137,7 +137,23 @@ jobs:
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
 
-            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib lld-${{ matrix.version }}
+            sudo apt-get install -y \
+              clang-${{ matrix.version }} \
+              g++-multilib \
+              lld-${{ matrix.version }} \
+              llvm-${{ matrix.version }}
+
+            if [ "${{ matrix.os }}" = "ubuntu-24.04" ]; then
+              sudo apt-get install -y libclang-rt-${{ matrix.version }}-dev
+            fi
+
+            for binary_name in clang llvm-profdata; do
+              TARGET_PATH=$(which "${binary_name}-${{ matrix.version }}")
+              PREFIX=$(dirname "${TARGET_PATH}")
+
+              sudo update-alternatives --install "${PREFIX}/${binary_name}" "${binary_name}" "${TARGET_PATH}" 20
+              sudo update-alternatives --set "${binary_name}" "${TARGET_PATH}"
+            done
           fi
 
           case "${{ matrix.os }}" in
