@@ -632,6 +632,7 @@ jobs:
     name: Build release
     needs:
       - build_darwin_binary
+      - build_documentation
       - build_linux_aarch64_binary
       - build_linux_x86_64_binary
       - build_windows_binary
