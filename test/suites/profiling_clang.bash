@@ -1,11 +1,12 @@
 SUITE_profiling_clang_PROBE() {
+    touch test.c
     if ! $COMPILER_TYPE_CLANG; then
         echo "compiler is not Clang"
     elif ! command -v llvm-profdata$CLANG_VERSION_SUFFIX >/dev/null; then
         echo "llvm-profdata$CLANG_VERSION_SUFFIX tool not found"
-    elif ! $COMPILER -fdebug-prefix-map=x=y -c test.c 2>/dev/null; then
+    elif ! $COMPILER -c -fdebug-prefix-map=old=new test.c 2>/dev/null; then
         echo "compiler does not support -fdebug-prefix-map"
-    elif ! $COMPILER -fprofile-sample-accurate -c test.c 2>/dev/null; then
+    elif ! $COMPILER -c -fprofile-sample-accurate test.c 2>/dev/null; then
         echo "compiler does not support -fprofile-sample-accurate"
     fi
 }
@@ -126,7 +127,7 @@ SUITE_profiling_clang() {
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 3
 
-     echo 'main:1:1' > sample.prof
+    echo 'main:1:1' > sample.prof
 
     $CCACHE_COMPILE -fprofile-sample-use=sample.prof -c test.c
     expect_stat direct_cache_hit 3
@@ -144,6 +145,7 @@ SUITE_profiling_clang() {
         $COMPILER -fprofile-generate -fprofile-update=single test.o -o test
 
         ./test
+        llvm-profdata$CLANG_VERSION_SUFFIX merge -output default.profdata default_*.profraw
 
         $CCACHE_COMPILE -fprofile-update=single -fprofile-generate -c test.c
         expect_stat direct_cache_hit 1
@@ -166,6 +168,7 @@ SUITE_profiling_clang() {
         $COMPILER -fprofile-generate -fprofile-update=atomic test.o -o test
 
         ./test
+        llvm-profdata$CLANG_VERSION_SUFFIX merge -output default.profdata default_*.profraw
 
         $CCACHE_COMPILE -fprofile-update=atomic -fprofile-generate -c test.c
         expect_stat direct_cache_hit 1
@@ -174,7 +177,5 @@ SUITE_profiling_clang() {
         $CCACHE_COMPILE -fprofile-use -c test.c
         expect_stat direct_cache_hit 1
         expect_stat cache_miss 2
-
-    # -------------------------------------------------------------------------
     fi
 }
