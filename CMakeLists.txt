@@ -21,6 +21,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# determine, whether we want a static binary
+SET(STATIC_LINKING FALSE CACHE BOOL "Build a static binary?")
+
+# build a static executable for old distros
+IF(STATIC_LINKING)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+ENDIF(STATIC_LINKING)
 #
 # Minimum compiler requirements (fail gracefully instead of producing cryptic
 # C++ error messages)
@@ -120,6 +127,11 @@ if(WIN32)
   endif()
   target_link_libraries(ccache PRIVATE ccache_win32_manifest)
 endif()
+# build a static executable for old distros
+IF(STATIC_LINKING)
+    SET_TARGET_PROPERTIES(ccache PROPERTIES LINK_SEARCH_END_STATIC 1)
+    SET(CMAKE_EXE_LINKER_FLAGS "-static")
+ENDIF(STATIC_LINKING)
 
 #
 # Documentation
