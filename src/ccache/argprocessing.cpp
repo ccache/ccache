@@ -964,8 +964,10 @@ process_option_arg(const Context& ctx,
   }
 
   if (util::starts_with(arg, "-fsanitize-blacklist=")) {
-    args_info.sanitize_blacklists.emplace_back(args[i].substr(21));
-    state.add_common_arg(args[i]);
+    auto path = std::string_view(args[i]).substr(21);
+    args_info.sanitize_blacklists.emplace_back(path);
+    auto relpath = core::make_relative_path(ctx, path);
+    state.add_common_arg(FMT("-fsanitize-blacklist={}", relpath));
     return Statistic::none;
   }
 
