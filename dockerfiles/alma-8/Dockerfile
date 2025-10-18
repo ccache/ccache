@@ -19,6 +19,7 @@ RUN dnf install -y dnf-plugins-core \
         gcc-c++ \
         hiredis-devel \
         less \
+        libstdc++-static \
         libzstd-devel \
         make \
         ninja-build \
