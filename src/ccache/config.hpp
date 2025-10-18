@@ -31,6 +31,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -228,7 +229,7 @@ private:
 
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
 
-  void set_item(const std::string& key,
+  void set_item(const std::string_view& key,
                 const std::string& unexpanded_value,
                 const std::optional<std::string>& env_var_key,
                 bool negate,

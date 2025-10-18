@@ -4,6 +4,7 @@ set(
   assertions.cpp
   bytes.cpp
   clang.cpp
+  configreader.cpp
   cpu.cpp
   direntry.cpp
   environment.cpp

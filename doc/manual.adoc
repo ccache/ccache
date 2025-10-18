@@ -406,6 +406,33 @@ whitespace surrounding keys and values. Example:
 max_size = 10GB
 -------------------------------------------------------------------------------
 
+==== Multi-line values
+
+Values can span multiple lines using indentation-based continuation. Lines that
+start with whitespace (spaces or tabs) are treated as continuation lines and are
+joined to the previous value with a single space. Comments and blank lines
+within a multi-line value are skipped. For example:
+
+-------------------------------------------------------------------------------
+ignore_options =
+  -Wall
+  -Wextra
+  # This is a comment within the value
+  -pedantic
+# This ends the multi-line value
+compiler = gcc
+-------------------------------------------------------------------------------
+
+This is equivalent to:
+
+-------------------------------------------------------------------------------
+ignore_options = -Wall -Wextra -pedantic
+compiler = gcc
+-------------------------------------------------------------------------------
+
+Multi-line values are particularly useful for options that accept multiple
+items.
+
 === Boolean values
 
 Some configuration options are boolean values (i.e. truth values). In a
@@ -964,19 +991,23 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
 [#config_remote_storage]
 *remote_storage* (*CCACHE_REMOTE_STORAGE*)::
 
-    This option specifies one or several storage backends (separated by space)
-    to query after checking the local cache (unless
+    This option specifies one or several storage backends (separated by
+    whitespace) to query after checking the local cache (unless
     <<config_remote_only,*remote_only*>> is true). See
     _<<Remote storage backends>>_ for documentation of syntax and available
     backends.
 +
 Examples:
 +
-* `+file:/shared/nfs/directory+`
-* `+file:///shared/nfs/one|read-only file:///shared/nfs/two+`
-* `+file:///Z:/example/windows/folder+`
-* `+http://example.com/cache+`
-* `+redis://example.com+`
+----
+remote_storage = file:/shared/nfs/directory+`
+remote_storage =
+  file:///shared/nfs/one|read-only
+  file:///shared/nfs/two
+remote_storage = file:///Z:/example/windows/folder
+remote_storage = http://example.com/cache
+remote_storage = redis://example.com
+----
 +
 NOTE: In previous ccache versions this option was called *secondary_storage*
 (*CCACHE_SECONDARY_STORAGE*), which can still be used as an alias.
