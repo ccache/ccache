@@ -1949,6 +1949,11 @@ hash_argument(const Context& ctx,
     hash.hash("-fprofile-prefix-path=");
     return {};
   }
+  if (util::starts_with(args[i], "-fcoverage-prefix-map=")) {
+    hash.hash_delimiter("arg");
+    hash.hash("-fcoverage-prefix-map=");
+    return {};
+  }
 
   if (util::starts_with(args[i], "-frandom-seed=")
       && ctx.config.sloppiness().contains(core::Sloppy::random_seed)) {
@@ -2284,10 +2289,29 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
     // For a relative profile directory D the compiler stores $PWD/D as part of
     // the profile filename so we need to include the same information in the
     // hash.
-    const fs::path profile_path =
-      ctx.args_info.profile_path.is_absolute()
-        ? ctx.args_info.profile_path
-        : ctx.apparent_cwd / ctx.args_info.profile_path;
+    fs::path profile_path = ctx.args_info.profile_path.is_absolute()
+                              ? ctx.args_info.profile_path
+                              : ctx.apparent_cwd / ctx.args_info.profile_path;
+
+    if (!ctx.args_info.coverage_compilation_dir.empty()) {
+      profile_path = ctx.args_info.coverage_compilation_dir;
+    } else if (!ctx.args_info.coverage_prefix_map.empty()) {
+      for (const auto& map : ctx.args_info.coverage_prefix_map) {
+        size_t sep_pos = map.find('=');
+        if (sep_pos != std::string::npos) {
+          std::string old_path = map.substr(0, sep_pos);
+          std::string new_path = map.substr(sep_pos + 1);
+          LOG("Relocating coverage info from {} to {} (CWD: {})",
+              old_path,
+              new_path,
+              profile_path);
+          if (util::starts_with(util::pstr(profile_path).str(), old_path)) {
+            profile_path =
+              new_path + util::pstr(profile_path).str().substr(old_path.size());
+          }
+        }
+      }
+    }
     LOG("Adding profile directory {} to our hash", profile_path);
     hash.hash_delimiter("-fprofile-dir");
     hash.hash(profile_path);
