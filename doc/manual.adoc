@@ -1154,11 +1154,11 @@ filesystem as the `CCACHE_DIR` path, but this requirement has been relaxed.
 
 === Disabling ccache
 
-To disable ccache completely for all invocations, set <<config_disable,*disable
-= true*>> (`CCACHE_DISABLE=1`). You can also disable ccache for a certain source
-code file by adding the string `ccache:disable` in a comment in the first 4096
-bytes of the file. In the latter case the `Ccache disabled` statistics counter
-will be increased.
+To disable ccache completely for all invocations, set
+<<config_disable,*disable = true*>> (`CCACHE_DISABLE=1`). You can also disable
+ccache for a certain source code file by adding the string `ccache:disable` in a
+comment in the first 4096 bytes of the file. In the latter case the `Ccache
+disabled` statistics counter will be increased.
 
 
 == Remote storage backends
@@ -1578,16 +1578,16 @@ integrity, cached data is protected with XXH3 checksums to detect corruption.
 Ccache has two strategies for gathering the information used to create cache
 lookup keys:
 
-* **Preprocessor mode**: Ccache runs the preprocessor on the source code and
+* *Preprocessor mode*: Ccache runs the preprocessor on the source code and
   hashes the result.
-* **Direct mode**: Ccache hashes the source code and include files directly.
+* *Direct mode*: Ccache hashes the source code and include files directly.
 
 Direct mode is generally faster because it avoids the overhead of running the
 preprocessor.
 
 When direct mode doesn't find a cached result (cache miss), ccache falls back to
-preprocessor mode unless **depend mode** is enabled. In depend mode, ccache
-never runs the preprocessor, even on cache misses. See _<<The depend mode>>_ for
+preprocessor mode unless *depend mode* is enabled. In depend mode, ccache never
+runs the preprocessor, even on cache misses. See _<<The depend mode>>_ for
 details.
 
 
