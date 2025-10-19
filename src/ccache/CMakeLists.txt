@@ -76,6 +76,10 @@ if(HTTP_STORAGE_BACKEND)
   endif()
 endif()
 
+if(EXPERIMENTAL_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_EXPERIMENTAL_STORAGE_BACKEND)
+endif()
+
 add_executable(test-lockfile test_lockfile.cpp)
 target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
 
