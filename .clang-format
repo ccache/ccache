@@ -46,4 +46,4 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 PackConstructorInitializers: Never
 PointerAlignment: Left
 SpaceAfterTemplateKeyword: false
-Standard: Cpp11
+Standard: c++17
