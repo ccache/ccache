@@ -1563,6 +1563,32 @@ hash_nvcc_host_compiler(const Context& ctx,
   return {};
 }
 
+static void
+apply_prefix_remapping(const std::vector<std::string>& maps, fs::path& path)
+{
+  for (const auto& map : maps) {
+    const size_t sep_pos{map.find('=')};
+    if (sep_pos == std::string::npos) {
+      continue;
+    }
+
+    const std::string old_prefix{map.substr(0, sep_pos)};
+    const std::string new_prefix{map.substr(sep_pos + 1)};
+    if (!util::starts_with(util::pstr(path).str(), old_prefix)) {
+      continue;
+    }
+
+    LOG("Relocating from '{}' to '{}' (original path: '{}')",
+        old_prefix,
+        new_prefix,
+        path);
+    fs::path suffix{util::pstr(path).str().substr(old_prefix.size())};
+    path = new_prefix / suffix;
+
+    return;
+  }
+}
+
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
 hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
@@ -1641,26 +1667,12 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
 
   // Possibly hash the current working directory.
   if (ctx.args_info.generating_debuginfo && ctx.config.hash_dir()) {
-    std::string dir_to_hash = util::pstr(ctx.apparent_cwd);
+    fs::path dir_to_hash{ctx.apparent_cwd};
     if (!ctx.args_info.compilation_dir.empty()) {
       dir_to_hash = ctx.args_info.compilation_dir;
     } else {
-      for (const auto& map : ctx.args_info.debug_prefix_maps) {
-        size_t sep_pos = map.find('=');
-        if (sep_pos != std::string::npos) {
-          std::string old_path = map.substr(0, sep_pos);
-          std::string new_path = map.substr(sep_pos + 1);
-          LOG("Relocating debuginfo from {} to {} (CWD: {})",
-              old_path,
-              new_path,
-              ctx.apparent_cwd);
-          if (util::starts_with(util::pstr(ctx.apparent_cwd).str(), old_path)) {
-            dir_to_hash =
-              new_path
-              + util::pstr(ctx.apparent_cwd).str().substr(old_path.size());
-          }
-        }
-      }
+      LOG("Applying debug prefix maps to CWD path '{}'", dir_to_hash);
+      apply_prefix_remapping(ctx.args_info.debug_prefix_maps, dir_to_hash);
     }
     LOG("Hashing CWD {}", dir_to_hash);
     hash.hash_delimiter("cwd");
@@ -1947,6 +1959,11 @@ hash_argument(const Context& ctx,
   if (util::starts_with(args[i], "-fprofile-prefix-path=")) {
     hash.hash_delimiter("arg");
     hash.hash("-fprofile-prefix-path=");
+    return {};
+  }
+  if (util::starts_with(args[i], "-fcoverage-prefix-map=")) {
+    hash.hash_delimiter("arg");
+    hash.hash("-fcoverage-prefix-map=");
     return {};
   }
 
@@ -2284,11 +2301,17 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
     // For a relative profile directory D the compiler stores $PWD/D as part of
     // the profile filename so we need to include the same information in the
     // hash.
-    const fs::path profile_path =
-      ctx.args_info.profile_path.is_absolute()
-        ? ctx.args_info.profile_path
-        : ctx.apparent_cwd / ctx.args_info.profile_path;
-    LOG("Adding profile directory {} to our hash", profile_path);
+    fs::path profile_path = ctx.args_info.profile_path.is_absolute()
+                              ? ctx.args_info.profile_path
+                              : ctx.apparent_cwd / ctx.args_info.profile_path;
+
+    if (!ctx.args_info.coverage_compilation_dir.empty()) {
+      profile_path = ctx.args_info.coverage_compilation_dir;
+    } else if (!ctx.args_info.coverage_prefix_maps.empty()) {
+      LOG("Applying coverage prefix maps to profile path '{}'", profile_path);
+      apply_prefix_remapping(ctx.args_info.coverage_prefix_maps, profile_path);
+    }
+    LOG("Adding profile directory '{}' to our hash", profile_path);
     hash.hash_delimiter("-fprofile-dir");
     hash.hash(profile_path);
   }

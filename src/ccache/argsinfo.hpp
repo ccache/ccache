@@ -163,9 +163,15 @@ struct ArgsInfo
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
 
+  // Relocating coverage info in the format old=new.
+  std::vector<std::string> coverage_prefix_maps;
+
   // Compilation directory as passed in -ffile-compilation-dir or
   // -fdebug-compilation-dir.
   std::string compilation_dir;
+
+  // Coverage compilation directory as passed in -fcoverage-compilation-dir.
+  std::string coverage_compilation_dir;
 
   // Build session file as passed in -fbuild-session-file.
   std::filesystem::path build_session_file;
