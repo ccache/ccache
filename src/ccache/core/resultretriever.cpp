@@ -209,6 +209,12 @@ ResultRetriever::get_dest_path(FileType file_type) const
       return m_ctx.args_info.output_ipa;
     }
     break;
+
+  case FileType::sarif:
+    if (m_ctx.args_info.generating_sarif) {
+      return m_ctx.args_info.output_sarif;
+    }
+    break;
   }
 
   return {};

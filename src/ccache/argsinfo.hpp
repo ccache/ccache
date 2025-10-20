@@ -62,6 +62,9 @@ struct ArgsInfo
   // Diagnostic generation information (Clang). Contains pathname if not empty.
   std::filesystem::path output_dia;
 
+  // Sarif diagnostic generation. Contains pathname if not empty.
+  std::filesystem::path output_sarif;
+
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::filesystem::path output_dwo;
 
@@ -109,6 +112,9 @@ struct ArgsInfo
   // Is the compiler being asked to generate diagnostics
   // (--serialize-diagnostics)?
   bool generating_diagnostics = false;
+
+  // Us the compiler being asked to generate sarif output files
+  bool generating_sarif = false;
 
   // Are we generating a pch file (msvc -Yc)?
   bool generating_pch = false;
