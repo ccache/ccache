@@ -88,6 +88,21 @@ std::string format_human_readable_size(uint64_t size,
 std::string format_iso8601_timestamp(const TimePoint& time,
                                      TimeZone time_zone = TimeZone::local);
 
+// Check if `ch` is alphanumeric.
+bool is_alnum(char ch);
+
+// Check if `ch` is a digit.
+bool is_digit(char ch);
+
+// Check if `ch` is a lowercase.
+bool is_lower(char ch);
+
+// Check if `ch` is a whitespace character.
+bool is_space(char ch);
+
+// Check if `ch` is a hexadecimal digit.
+bool is_xdigit(char ch);
+
 // Join stringified elements of `container` delimited by `delimiter` into a
 // string. There must exist an `std::string to_string(T::value_type)` function.
 template<typename T>
@@ -208,6 +223,9 @@ bool starts_with(std::string_view string, std::string_view prefix);
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
+// Return lowercase `ch`.
+char to_lower(char ch);
+
 // Convert a string to lowercase.
 [[nodiscard]] std::string to_lowercase(std::string_view string);
 
@@ -218,6 +236,36 @@ ends_with(const std::string_view string, const std::string_view suffix)
 {
   return string.length() >= suffix.length()
          && string.substr(string.length() - suffix.length()) == suffix;
+}
+
+inline bool
+is_alnum(char ch)
+{
+  return std::isalnum(static_cast<unsigned char>(ch));
+}
+
+inline bool
+is_digit(char ch)
+{
+  return std::isdigit(static_cast<unsigned char>(ch));
+}
+
+inline bool
+is_lower(char ch)
+{
+  return std::islower(static_cast<unsigned char>(ch));
+}
+
+inline bool
+is_space(char ch)
+{
+  return std::isspace(static_cast<unsigned char>(ch));
+}
+
+inline bool
+is_xdigit(char ch)
+{
+  return std::isxdigit(static_cast<unsigned char>(ch));
 }
 
 template<typename T>
@@ -253,6 +301,12 @@ inline bool
 starts_with(const std::string_view string, const std::string_view prefix)
 {
   return string.substr(0, prefix.size()) == prefix;
+}
+
+inline char
+to_lower(char ch)
+{
+  return std::tolower(static_cast<unsigned char>(ch));
 }
 
 } // namespace util

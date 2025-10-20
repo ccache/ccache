@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -51,7 +51,7 @@ expand_environment_variables(const std::string& str)
         ++left;
       }
       right = left;
-      while (isalnum(*right) || *right == '_') {
+      while (util::is_alnum(*right) || *right == '_') {
         ++right;
       }
       if (curly && *right != '}') {

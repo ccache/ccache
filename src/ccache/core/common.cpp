@@ -227,7 +227,7 @@ get_diagnostics_path_length(std::string_view line)
     do {
       line.remove_suffix(1);
     } while (!line.empty() && line.back() != '('
-             && (std::isdigit(line.back()) || line.back() == ','));
+             && (util::is_digit(line.back()) || line.back() == ','));
 
     if (!line.empty() && line.back() == '(') {
       path_end = line.size() - 1;

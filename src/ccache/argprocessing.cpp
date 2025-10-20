@@ -673,7 +673,7 @@ process_option_arg(const Context& ctx,
   }
 
   if (util::starts_with(arg, "-x")) {
-    if (arg.length() >= 3 && !islower(arg[2])) {
+    if (arg.length() >= 3 && !util::is_lower(arg[2])) {
       // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with
       // an uppercase letter) is an ordinary Intel compiler option, not a
       // language specification. (GCC's "-x" language argument is always

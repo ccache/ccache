@@ -150,7 +150,7 @@ tokenize(std::string_view text)
 
   while (true) {
     // Find start of next token.
-    while (i < length && text[i] != '\n' && isspace(text[i])) {
+    while (i < length && text[i] != '\n' && util::is_space(text[i])) {
       ++i;
     }
 
@@ -182,7 +182,7 @@ tokenize(std::string_view text)
     // Parse token.
     std::string token;
     while (i < length) {
-      if (text[i] == ':' && token.length() == 1 && !isspace(token[0])
+      if (text[i] == ':' && token.length() == 1 && !util::is_space(token[0])
           && i + 1 < length && (text[i + 1] == '/' || text[i + 1] == '\\')) {
         // It's a Windows path, so the colon is not a separator and instead
         // added to the token.
@@ -191,7 +191,7 @@ tokenize(std::string_view text)
         continue;
       }
 
-      if (text[i] == ':' || isspace(text[i])
+      if (text[i] == ':' || util::is_space(text[i])
           || (text[i] == '\\' && i + 1 < length && text[i + 1] == '\n')) {
         // End of token.
         break;

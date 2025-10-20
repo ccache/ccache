@@ -72,9 +72,10 @@ check_for_temporal_macros_helper(std::string_view str, size_t pos)
 
   // Check char before and after macro to verify that the found macro isn't part
   // of another identifier.
-  if ((pos == 1 || (str[pos - 2] != '_' && !isalnum(str[pos - 2])))
+  if ((pos == 1 || (str[pos - 2] != '_' && !util::is_alnum(str[pos - 2])))
       && (pos + macro_len == str.length()
-          || (str[pos + macro_len] != '_' && !isalnum(str[pos + macro_len])))) {
+          || (str[pos + macro_len] != '_'
+              && !util::is_alnum(str[pos + macro_len])))) {
     return found;
   }
 

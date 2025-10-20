@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -36,7 +36,7 @@ get_includes(std::string_view file_content, std::string_view prefix)
   for (std::string_view line : util::split_into_views(file_content, "\r\n")) {
     if (util::starts_with(line, prefix)) {
       size_t pos = prefix.size();
-      while (pos < line.size() && isspace(line[pos])) {
+      while (pos < line.size() && util::is_space(line[pos])) {
         ++pos;
       }
       std::string_view include = line.substr(pos);
