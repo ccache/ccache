@@ -1020,10 +1020,9 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
 
     By default, ccache tries to give as few false cache hits as possible.
     However, in certain situations it's possible that you know things that
-    ccache can't take for granted. This option makes it possible to tell
-    ccache to relax some checks in order to increase the hit rate. The value
-    should be a comma-separated string with one or several of the following
-    values:
+    ccache can't take for granted. This option makes it possible to tell ccache
+    to relax some checks in order to increase the hit rate. Available values
+    (separated by whitespace or comma):
 +
 --
 *clang_index_store*::
