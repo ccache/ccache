@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -136,7 +136,9 @@ Bytes::operator==(const Bytes& other) const noexcept
 {
   return this == &other
          || (m_size == other.m_size
-             && std::memcmp(m_data.get(), other.m_data.get(), m_size) == 0);
+             && (m_size == 0
+                 || std::memcmp(m_data.get(), other.m_data.get(), m_size)
+                      == 0));
 }
 
 inline bool

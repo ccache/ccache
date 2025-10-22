@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -167,6 +167,11 @@ TEST_CASE("Basics")
     Bytes bytes4("xyz", 3);
     CHECK(bytes4 != bytes1);
     CHECK(!(bytes4 == bytes1));
+
+    Bytes empty1;
+    Bytes empty2;
+    CHECK(empty1 == empty2);
+    CHECK(!(empty1 != empty2));
   }
   SUBCASE("Begin")
   {
