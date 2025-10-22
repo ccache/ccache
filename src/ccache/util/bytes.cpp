@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -37,7 +37,7 @@ Bytes::Bytes(Bytes&& other) noexcept
     m_size(other.m_size),
     m_capacity(other.m_capacity)
 {
-  other.m_data = nullptr;
+  other.m_data.reset();
   other.m_size = 0;
   other.m_capacity = 0;
 }
