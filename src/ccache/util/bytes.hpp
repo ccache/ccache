@@ -96,17 +96,13 @@ private:
 };
 
 inline Bytes::Bytes(size_t size) noexcept
-  : m_data(std::make_unique<uint8_t[]>(size)),
-    m_size(size),
-    m_capacity(size)
 {
+  resize(size);
 }
 
 inline Bytes::Bytes(const void* data, size_t size) noexcept
-  : m_data(std::make_unique<uint8_t[]>(size)),
-    m_size(size),
-    m_capacity(size)
 {
+  resize(size);
   std::memcpy(m_data.get(), data, size);
 }
 
