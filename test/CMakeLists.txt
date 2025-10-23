@@ -1,3 +1,4 @@
+add_subdirectory(storage)
 function(addtest name)
   add_test(
     NAME "test.${name}"
