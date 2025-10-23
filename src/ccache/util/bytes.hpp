@@ -86,6 +86,9 @@ public:
   void insert(const uint8_t* pos, const char* data, size_t size) noexcept;
   void insert(const uint8_t* pos, nonstd::span<const uint8_t> data) noexcept;
 
+  void erase(const uint8_t* pos, const size_t size) noexcept;
+  void erase(const uint8_t* first, const uint8_t* last) noexcept;
+
 private:
   std::unique_ptr<uint8_t[]> m_data;
   size_t m_size = 0;

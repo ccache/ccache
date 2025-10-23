@@ -397,6 +397,98 @@ TEST_CASE("Basics")
     CHECK(bytes2[1] == 'b');
     CHECK(bytes2[2] == 'c');
   }
+
+  SUBCASE("Erase with pos and size")
+  {
+    Bytes bytes2("abcdef", 6);
+
+    // Erase from beginning
+    bytes2.erase(bytes2.begin(), 2);
+    REQUIRE(bytes2.size() == 4);
+    CHECK(bytes2[0] == 'c');
+    CHECK(bytes2[1] == 'd');
+    CHECK(bytes2[2] == 'e');
+    CHECK(bytes2[3] == 'f');
+
+    // Erase from middle
+    bytes2.erase(bytes2.begin() + 1, 2);
+    REQUIRE(bytes2.size() == 2);
+    CHECK(bytes2[0] == 'c');
+    CHECK(bytes2[1] == 'f');
+
+    // Erase from end
+    bytes2.erase(bytes2.begin() + 1, 1);
+    REQUIRE(bytes2.size() == 1);
+    CHECK(bytes2[0] == 'c');
+
+    // Erase remaining
+    bytes2.erase(bytes2.begin(), 1);
+    REQUIRE(bytes2.size() == 0);
+    CHECK(bytes2.empty());
+  }
+
+  SUBCASE("Erase with first and last")
+  {
+    Bytes bytes2("0123456789", 10);
+
+    // Erase from beginning
+    bytes2.erase(bytes2.begin(), bytes2.begin() + 3);
+    REQUIRE(bytes2.size() == 7);
+    CHECK(bytes2[0] == '3');
+    CHECK(bytes2[1] == '4');
+    CHECK(bytes2[6] == '9');
+
+    // Erase from middle
+    bytes2.erase(bytes2.begin() + 2, bytes2.begin() + 5);
+    REQUIRE(bytes2.size() == 4);
+    CHECK(bytes2[0] == '3');
+    CHECK(bytes2[1] == '4');
+    CHECK(bytes2[2] == '8');
+    CHECK(bytes2[3] == '9');
+
+    // Erase from end
+    bytes2.erase(bytes2.begin() + 2, bytes2.end());
+    REQUIRE(bytes2.size() == 2);
+    CHECK(bytes2[0] == '3');
+    CHECK(bytes2[1] == '4');
+
+    // Erase all
+    bytes2.erase(bytes2.begin(), bytes2.end());
+    REQUIRE(bytes2.size() == 0);
+    CHECK(bytes2.empty());
+  }
+
+  SUBCASE("Erase zero bytes")
+  {
+    Bytes bytes2("abc", 3);
+    const uint8_t* orig_data = bytes2.data();
+
+    // Erase zero with pos and size
+    bytes2.erase(bytes2.begin(), size_t(0));
+    REQUIRE(bytes2.size() == 3);
+    CHECK(bytes2.data() == orig_data);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+
+    // Erase zero with first and last
+    bytes2.erase(bytes2.begin(), bytes2.begin());
+    REQUIRE(bytes2.size() == 3);
+    CHECK(bytes2.data() == orig_data);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
+  SUBCASE("Erase single byte")
+  {
+    Bytes bytes2("xyz", 3);
+
+    bytes2.erase(bytes2.begin() + 1, bytes2.begin() + 2);
+    REQUIRE(bytes2.size() == 2);
+    CHECK(bytes2[0] == 'x');
+    CHECK(bytes2[1] == 'z');
+  }
 }
 
 TEST_CASE("Conversion to span")

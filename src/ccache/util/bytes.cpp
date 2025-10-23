@@ -131,4 +131,25 @@ Bytes::resize(size_t size) noexcept
   m_size = size;
 }
 
+void
+Bytes::erase(const uint8_t* pos, const size_t size) noexcept
+{
+  if (size == 0) {
+    return;
+  }
+  const size_t offset = pos - m_data.get();
+  if (offset + size < m_size) {
+    std::memmove(m_data.get() + offset,
+                 m_data.get() + offset + size,
+                 m_size - offset - size);
+  }
+  m_size -= size;
+}
+
+void
+Bytes::erase(const uint8_t* first, const uint8_t* last) noexcept
+{
+  erase(first, last - first);
+}
+
 } // namespace util
