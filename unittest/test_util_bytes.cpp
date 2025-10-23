@@ -230,7 +230,7 @@ TEST_CASE("Basics")
     const uint8_t* bytes1_orig_data = bytes1.data();
     bytes1.resize(4);
     CHECK(bytes1.data() != bytes1_orig_data);
-    CHECK(bytes1.size() == 4);
+    REQUIRE(bytes1.size() == 4);
     CHECK(bytes1.capacity() == 4);
     CHECK(bytes1[0] == 'a');
     CHECK(bytes1[1] == 'b');
@@ -244,7 +244,7 @@ TEST_CASE("Basics")
     const uint8_t* bytes1_orig_data = bytes1.data();
     bytes1.resize(2);
     CHECK(bytes1.data() == bytes1_orig_data);
-    CHECK(bytes1.size() == 2);
+    REQUIRE(bytes1.size() == 2);
     CHECK(bytes1.capacity() == 3);
     CHECK(bytes1[0] == 'a');
     CHECK(bytes1[1] == 'b');
@@ -255,7 +255,7 @@ TEST_CASE("Basics")
     Bytes bytes2;
 
     bytes2.insert(bytes2.end(), bytes1.begin(), bytes1.end());
-    CHECK(bytes2.size() == 3);
+    REQUIRE(bytes2.size() == 3);
     CHECK(bytes2.capacity() == 3);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -263,7 +263,7 @@ TEST_CASE("Basics")
 
     // Insert at end, reallocating.
     bytes2.insert(bytes2.end(), bytes1.begin(), bytes1.begin() + 1);
-    CHECK(bytes2.size() == 4);
+    REQUIRE(bytes2.size() == 4);
     CHECK(bytes2.capacity() == 6);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -273,7 +273,7 @@ TEST_CASE("Basics")
     // Insert at end, not reallocating.
     Bytes bytes3("xyz", 3);
     bytes2.insert(bytes2.end(), bytes3.begin(), bytes3.begin() + 1);
-    CHECK(bytes2.size() == 5);
+    REQUIRE(bytes2.size() == 5);
     CHECK(bytes2.capacity() == 6);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -283,7 +283,7 @@ TEST_CASE("Basics")
 
     // Insert in middle, reallocating.
     bytes2.insert(bytes2.begin() + 2, bytes3.begin(), bytes3.end());
-    CHECK(bytes2.size() == 8);
+    REQUIRE(bytes2.size() == 8);
     CHECK(bytes2.capacity() == 12);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -296,7 +296,7 @@ TEST_CASE("Basics")
 
     // Insert in middle, not reallocating.
     bytes2.insert(bytes2.begin() + 1, bytes3.begin(), bytes3.begin() + 2);
-    CHECK(bytes2.size() == 10);
+    REQUIRE(bytes2.size() == 10);
     CHECK(bytes2.capacity() == 12);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'x');
@@ -311,7 +311,7 @@ TEST_CASE("Basics")
 
     // Insert at beginning, reallocating.
     bytes2.insert(bytes2.begin(), bytes3.begin(), bytes3.end());
-    CHECK(bytes2.size() == 13);
+    REQUIRE(bytes2.size() == 13);
     CHECK(bytes2.capacity() == 24);
     CHECK(bytes2[0] == 'x');
     CHECK(bytes2[1] == 'y');
@@ -329,7 +329,7 @@ TEST_CASE("Basics")
 
     // Insert at beginning, not reallocating.
     bytes2.insert(bytes2.begin(), bytes3.begin() + 2, bytes3.begin() + 3);
-    CHECK(bytes2.size() == 14);
+    REQUIRE(bytes2.size() == 14);
     CHECK(bytes2.capacity() == 24);
     CHECK(bytes2[0] == 'z');
     CHECK(bytes2[1] == 'x');
@@ -352,7 +352,7 @@ TEST_CASE("Basics")
     Bytes bytes2;
 
     bytes2.insert(bytes2.end(), bytes1.data(), bytes1.size());
-    CHECK(bytes2.size() == 3);
+    REQUIRE(bytes2.size() == 3);
     CHECK(bytes2.capacity() == 3);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -365,7 +365,7 @@ TEST_CASE("Basics")
     std::string data("abc");
 
     bytes2.insert(bytes2.end(), data.data(), data.data() + data.size());
-    CHECK(bytes2.size() == 3);
+    REQUIRE(bytes2.size() == 3);
     CHECK(bytes2.capacity() == 3);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -378,7 +378,7 @@ TEST_CASE("Basics")
     std::string data("abc");
 
     bytes2.insert(bytes2.end(), data.data(), data.size());
-    CHECK(bytes2.size() == 3);
+    REQUIRE(bytes2.size() == 3);
     CHECK(bytes2.capacity() == 3);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
@@ -391,7 +391,7 @@ TEST_CASE("Basics")
     nonstd::span<const uint8_t> span(bytes1.begin(), bytes1.end());
 
     bytes2.insert(bytes2.end(), span);
-    CHECK(bytes2.size() == 3);
+    REQUIRE(bytes2.size() == 3);
     CHECK(bytes2.capacity() == 3);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
