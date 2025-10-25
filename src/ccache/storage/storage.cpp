@@ -479,7 +479,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
     auto& value = *result;
     if (value) {
       LOG("Retrieved {} from {} ({:.2f} ms)",
-          util::format_digest(key),
+          util::format_base16(key),
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_hit);
@@ -491,7 +491,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
       }
     } else {
       LOG("No {} in {} ({:.2f} ms)",
-          util::format_digest(key),
+          util::format_base16(key),
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_miss);
@@ -506,7 +506,7 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
 {
   if (!core::CacheEntry::Header(value).self_contained) {
     LOG("Not putting {} in remote storage since it's not self-contained",
-        util::format_digest(key));
+        util::format_base16(key));
     return;
   }
 
@@ -528,7 +528,7 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
     const bool stored = *result;
     LOG("{} {} in {} ({:.2f} ms)",
         stored ? "Stored" : "Did not have to store",
-        util::format_digest(key),
+        util::format_base16(key),
         backend->url_for_logging,
         ms);
     local.increment_statistic(core::Statistic::remote_storage_write);
@@ -555,12 +555,12 @@ Storage::remove_from_remote_storage(const Hash::Digest& key)
     const bool removed = *result;
     if (removed) {
       LOG("Removed {} from {} ({:.2f} ms)",
-          util::format_digest(key),
+          util::format_base16(key),
           backend->url_for_logging,
           ms);
     } else {
       LOG("No {} to remove from {} ({:.2f} ms)",
-          util::format_digest(key),
+          util::format_base16(key),
           backend->url_for_logging,
           ms);
     }

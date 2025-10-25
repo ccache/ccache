@@ -457,7 +457,7 @@ remember_include_file(Context& ctx,
       return tl::unexpected(Statistic::bad_input_file);
     }
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
-    cpp_hash.hash(util::format_digest(file_digest));
+    cpp_hash.hash(util::format_legacy_digest(file_digest));
   }
 
   if (ctx.config.direct_mode()) {
@@ -474,7 +474,7 @@ remember_include_file(Context& ctx,
 
     if (depend_mode_hash) {
       depend_mode_hash->hash_delimiter("include");
-      depend_mode_hash->hash(util::format_digest(file_digest));
+      depend_mode_hash->hash(util::format_legacy_digest(file_digest));
     }
   }
 
@@ -917,14 +917,14 @@ update_manifest(Context& ctx,
       };
     });
   if (added) {
-    LOG("Added result key to manifest {}", util::format_digest(manifest_key));
+    LOG("Added result key to manifest {}", util::format_base16(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.put(manifest_key,
                     core::CacheEntryType::manifest,
                     core::CacheEntry::serialize(header, ctx.manifest));
   } else {
     LOG("Did not add result key to manifest {}",
-        util::format_digest(manifest_key));
+        util::format_base16(manifest_key));
   }
 }
 
@@ -1279,7 +1279,7 @@ to_cache(Context& ctx,
       ASSERT(false);
     }
     LOG_RAW("Got result key from dependency file");
-    LOG("Result key: {}", util::format_digest(*result_key));
+    LOG("Result key: {}", util::format_base16(*result_key));
   }
 
   ASSERT(result_key);
@@ -2326,7 +2326,7 @@ get_manifest_key(Context& ctx, Hash& hash)
     ctx.config.set_direct_mode(false);
     return {};
   }
-  hash.hash(util::format_digest(input_file_digest));
+  hash.hash(util::format_legacy_digest(input_file_digest));
   return hash.digest();
 }
 
@@ -2436,7 +2436,7 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
     });
   if (read_manifests > 1 && !ctx.config.remote_only()) {
     LOG("Storing merged manifest {} locally",
-        util::format_digest(manifest_key));
+        util::format_base16(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.local.put(manifest_key,
                           core::CacheEntryType::manifest,
@@ -2509,7 +2509,7 @@ calculate_result_and_manifest_key(Context& ctx,
   if (direct_mode) {
     TRY_ASSIGN(manifest_key, get_manifest_key(ctx, hash));
     if (manifest_key && !ctx.config.recache()) {
-      LOG("Manifest key: {}", util::format_digest(*manifest_key));
+      LOG("Manifest key: {}", util::format_base16(*manifest_key));
       result_key = get_result_key_from_manifest(ctx, *manifest_key);
     }
   } else if (ctx.args_info.arch_args.empty()) {
@@ -2542,7 +2542,7 @@ calculate_result_and_manifest_key(Context& ctx,
   }
 
   if (result_key) {
-    LOG("Result key: {}", util::format_digest(*result_key));
+    LOG("Result key: {}", util::format_base16(*result_key));
   }
   return std::make_pair(result_key, manifest_key);
 }
@@ -2593,12 +2593,12 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
     deserializer.visit(result_retriever);
   } catch (core::ResultRetriever::WriteError& e) {
     LOG("Write error when retrieving result from {}: {}",
-        util::format_digest(result_key),
+        util::format_base16(result_key),
         e.what());
     return tl::unexpected(Statistic::bad_output_file);
   } catch (core::Error& e) {
     LOG("Failed to get result from {}: {}",
-        util::format_digest(result_key),
+        util::format_base16(result_key),
         e.what());
     return false;
   }

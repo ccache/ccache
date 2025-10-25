@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -189,10 +189,10 @@ FileStorageBackend::get_entry_path(const Hash::Digest& key) const
 {
   switch (m_layout) {
   case Layout::flat:
-    return FMT("{}/{}", m_dir, util::format_digest(key));
+    return FMT("{}/{}", m_dir, util::format_base16(key));
 
   case Layout::subdirs: {
-    const auto key_str = util::format_digest(key);
+    const auto key_str = util::format_base16(key);
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
     return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);

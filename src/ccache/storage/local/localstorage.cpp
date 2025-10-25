@@ -502,7 +502,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
     const auto value = util::read_file<util::Bytes>(cache_file.path);
     if (value) {
       LOG("Retrieved {} from local storage ({})",
-          util::format_digest(key),
+          util::format_base16(key),
           cache_file.path);
 
       // Update modification timestamp to save file from LRU cleanup.
@@ -513,7 +513,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
       LOG("Failed to read {}: {}", cache_file.path, value.error());
     }
   } else {
-    LOG("No {} in local storage", util::format_digest(key));
+    LOG("No {} in local storage", util::format_base16(key));
   }
 
   increment_statistic(return_value ? Statistic::local_storage_read_hit
@@ -555,7 +555,7 @@ LocalStorage::put(const Hash::Digest& key,
   }
 
   LOG("Stored {} in local storage ({})",
-      util::format_digest(key),
+      util::format_base16(key),
       cache_file.path);
   m_stored_data = true;
 
@@ -588,7 +588,7 @@ LocalStorage::put(const Hash::Digest& key,
   // be done almost anywhere, but we might as well do it near the end as we save
   // the stat call if we exit early.
   util::create_cachedir_tag(
-    FMT("{}/{}", m_config.cache_dir(), util::format_digest(key)[0]));
+    FMT("{}/{}", m_config.cache_dir(), util::format_base16(key)[0]));
 }
 
 void
@@ -596,7 +596,7 @@ LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
 {
   const auto cache_file = look_up_cache_file(key, type);
   if (!cache_file.dir_entry) {
-    LOG("No {} to remove from local storage", util::format_digest(key));
+    LOG("No {} to remove from local storage", util::format_base16(key));
     return;
   }
 
@@ -611,7 +611,7 @@ LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
   }
 
   LOG("Removed {} from local storage ({})",
-      util::format_digest(key),
+      util::format_base16(key),
       cache_file.path);
   increment_files_and_size_counters(
     key, -1, -static_cast<int64_t>(cache_file.dir_entry.size_on_disk() / 1024));
@@ -1075,7 +1075,7 @@ LocalStorage::look_up_cache_file(const Hash::Digest& key,
                                  const core::CacheEntryType type) const
 {
   const auto key_string =
-    FMT("{}{}", util::format_digest(key), suffix_from_type(type));
+    FMT("{}{}", util::format_base16(key), suffix_from_type(type));
 
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
        ++level) {
@@ -1113,7 +1113,7 @@ LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
   const auto wanted_level =
     calculate_wanted_cache_level(counters.get(Statistic::files_in_cache));
   const auto wanted_path = get_path_in_cache(
-    wanted_level, util::format_digest(key) + suffix_from_type(type));
+    wanted_level, util::format_base16(key) + suffix_from_type(type));
   if (cache_file_path != wanted_path) {
     core::ensure_dir_exists(wanted_path.parent_path());
 

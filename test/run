@@ -208,6 +208,12 @@ expect_missing() {
     fi
 }
 
+expect_equal() {
+    if [ "$1" != "$2" ]; then
+        test_failed_internal "$1 != $2"
+    fi
+}
+
 expect_equal_content() {
     if [ ! -e "$1" ]; then
         test_failed_internal "expect_equal_content: $1 missing"
