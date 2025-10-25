@@ -2964,6 +2964,11 @@ do_cache_compilation(Context& ctx)
     ASSERT(result_key);
 
     if (result_key_from_manifest && result_key_from_manifest != result_key) {
+      // manifest_path is guaranteed to be set when calculate_result_name
+      // returns a non-nullopt result in direct mode, i.e. when
+      // result_name_from_manifest is set.
+      ASSERT(manifest_key);
+
       // The hash from manifest differs from the hash of the preprocessor
       // output. This could be because:
       //
@@ -2979,7 +2984,7 @@ do_cache_compilation(Context& ctx)
       LOG_RAW("Hash from manifest doesn't match preprocessor output");
       LOG_RAW("Likely reason: different CCACHE_BASEDIRs used");
       LOG_RAW("Removing manifest as a safety measure");
-      ctx.storage.remove(*result_key, core::CacheEntryType::result);
+      ctx.storage.remove(*manifest_key, core::CacheEntryType::manifest);
 
       put_result_in_manifest = true;
     }
