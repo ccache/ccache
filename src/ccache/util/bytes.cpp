@@ -22,6 +22,19 @@
 
 namespace util {
 
+namespace {
+
+void
+assign_from_data(Bytes* bytes, const void* data, size_t size) noexcept
+{
+  bytes->resize(size);
+  if (size > 0) {
+    std::memcpy(bytes->data(), data, size);
+  }
+}
+
+} // namespace
+
 Bytes::Bytes(const Bytes& other) noexcept
   : m_data(std::make_unique<uint8_t[]>(other.m_size)),
     m_size(other.m_size),
@@ -48,12 +61,7 @@ Bytes::operator=(const Bytes& other) noexcept
   if (&other == this) {
     return *this;
   }
-  m_data = std::make_unique<uint8_t[]>(other.m_size);
-  m_size = other.m_size;
-  m_capacity = other.m_size;
-  if (m_size > 0) {
-    std::memcpy(m_data.get(), other.m_data.get(), m_size);
-  }
+  assign_from_data(this, other.m_data.get(), other.m_size);
   return *this;
 }
 
@@ -69,6 +77,20 @@ Bytes::operator=(Bytes&& other) noexcept
   other.m_data.reset();
   other.m_size = 0;
   other.m_capacity = 0;
+  return *this;
+}
+
+Bytes&
+Bytes::operator=(nonstd::span<const uint8_t> data) noexcept
+{
+  assign_from_data(this, data.data(), data.size());
+  return *this;
+}
+
+Bytes&
+Bytes::operator=(std::string_view data) noexcept
+{
+  assign_from_data(this, data.data(), data.size());
   return *this;
 }
 

@@ -24,6 +24,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <memory>
+#include <string_view>
 
 namespace util {
 
@@ -40,7 +41,9 @@ public:
   explicit Bytes(size_t size) noexcept;
 
   Bytes(const void* data, size_t size) noexcept;
+  Bytes(const void* first, const void* last) noexcept;
   Bytes(nonstd::span<const uint8_t> data) noexcept;
+  Bytes(std::string_view data) noexcept;
 
   Bytes(const Bytes& other) noexcept;
   Bytes(Bytes&& other) noexcept;
@@ -51,6 +54,8 @@ public:
 
   Bytes& operator=(const Bytes& other) noexcept;
   Bytes& operator=(Bytes&& other) noexcept;
+  Bytes& operator=(nonstd::span<const uint8_t> data) noexcept;
+  Bytes& operator=(std::string_view data) noexcept;
 
   uint8_t operator[](size_t pos) const noexcept;
   uint8_t& operator[](size_t pos) noexcept;
@@ -106,13 +111,25 @@ inline Bytes::Bytes(const void* data, size_t size) noexcept
   std::memcpy(m_data.get(), data, size);
 }
 
+inline Bytes::Bytes(const void* first, const void* last) noexcept
+  : Bytes(first,
+          reinterpret_cast<const uint8_t*>(last)
+            - reinterpret_cast<const uint8_t*>(first))
+{
+}
+
 inline Bytes::Bytes(nonstd::span<const uint8_t> data) noexcept
   : Bytes(data.data(), data.size())
 {
 }
 
+inline Bytes::Bytes(std::string_view data) noexcept
+  : Bytes(data.data(), data.size())
+{
+}
+
 inline Bytes::Bytes(std::initializer_list<uint8_t> init) noexcept
-  : Bytes({init.begin(), init.end()})
+  : Bytes(init.begin(), init.end())
 {
 }
 

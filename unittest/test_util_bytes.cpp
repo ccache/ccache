@@ -71,6 +71,18 @@ TEST_CASE("Basics")
     CHECK(bytes2[2] == 'c');
   }
 
+  SUBCASE("Construction from string_view")
+  {
+    std::string s("abc");
+    Bytes bytes2(s);
+
+    CHECK(bytes2.data() != nullptr);
+    REQUIRE(bytes2.size() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
   SUBCASE("Copy construction")
   {
     const Bytes bytes2(bytes1);
@@ -132,6 +144,32 @@ TEST_CASE("Basics")
     CHECK(bytes1.size() == 0);
 
     CHECK(bytes2.data() == bytes1_orig_data);
+    REQUIRE(bytes2.size() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
+  SUBCASE("Assignment from span")
+  {
+    std::vector<uint8_t> vector{'a', 'b', 'c'};
+    Bytes bytes2;
+    bytes2 = vector;
+
+    CHECK(bytes2.data() != nullptr);
+    REQUIRE(bytes2.size() == 3);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+  }
+
+  SUBCASE("Assignment from string_view")
+  {
+    std::string s = "abc";
+    Bytes bytes2;
+    bytes2 = s;
+
+    CHECK(bytes2.data() != nullptr);
     REQUIRE(bytes2.size() == 3);
     CHECK(bytes2[0] == 'a');
     CHECK(bytes2[1] == 'b');
