@@ -907,6 +907,16 @@ file in `/etc/rsyslog.d`:
     The default prefix is "`Note: including file:`". If you use a localized
     compiler, this should be set accordingly.
 
+[#config_msvc_utf8]
+*msvc_utf8* (*CCACHE_MSVC_UTF8*)::
+
+    This option adds `/utf-8` to the msvc command line when executing the preprocessor to
+    ensure that filenames are not garbled for non-ascii characters.
+    This implicitly enables `/validate-charset` and treats the source code as utf-8 which
+    may cause compilation errors if comments in your code have characters in the [128, 255]
+    range for a given Windows system codepage which results in an invalid utf-8 sequence.
+    The default is true.
+
 [#config_namespace]
 *namespace* (*CCACHE_NAMESPACE*)::
 
@@ -1587,7 +1597,7 @@ An environment variable not supported by ccache was set.
 
 | Unsupported source encoding |
 Source file (or an included header) has unsupported encoding. ccache currently
-requires UTF-8-encoded source code for MSVC.
+requires UTF-8-encoded source code for MSVC when `msvc_utf8` is true.
 
 | Unsupported source language |
 A source language e.g. specified with `-x` was unsupported by ccache.

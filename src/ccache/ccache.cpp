@@ -1412,7 +1412,9 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     // compilers that don't exit with a proper status on write error to stdout.
     // See also <https://github.com/llvm/llvm-project/issues/56499>.
     if (ctx.config.is_compiler_group_msvc()) {
-      args.push_back("-utf-8"); // Avoid garbling filenames in output
+      if (ctx.config.msvc_utf8()) {
+        args.push_back("-utf-8"); // Avoid garbling filenames in output
+      }
       args.push_back("-P");
       args.push_back(FMT("-Fi{}", preprocessed_path));
     } else {
@@ -1441,7 +1443,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     cpp_stderr_data = result->stderr_data;
     cpp_stdout_data = result->stdout_data;
 
-    if (ctx.config.is_compiler_group_msvc()) {
+    if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
       // Check that usage of -utf-8 didn't garble the preprocessor output.
       static constexpr char warning_c4828[] =
         "warning C4828: The file contains a character starting at offset";
