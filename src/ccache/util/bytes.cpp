@@ -36,11 +36,9 @@ assign_from_data(Bytes* bytes, const void* data, size_t size) noexcept
 } // namespace
 
 Bytes::Bytes(const Bytes& other) noexcept
-  : m_data(std::make_unique<uint8_t[]>(other.m_size)),
-    m_size(other.m_size),
-    m_capacity(other.m_size)
 {
-  if (m_size > 0) {
+  if (other.m_size > 0) {
+    resize(other.m_size);
     std::memcpy(m_data.get(), other.m_data.get(), m_size);
   }
 }
@@ -98,11 +96,12 @@ void
 Bytes::reserve(size_t size) noexcept
 {
   if (size > m_capacity) {
-    auto bytes = std::make_unique<uint8_t[]>(size);
+    // In C++20, use std::make_unique_for_overwrite instead.
+    auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
     if (m_size > 0) {
-      std::memcpy(bytes.get(), m_data.get(), m_size);
+      std::memcpy(new_data.get(), m_data.get(), m_size);
     }
-    m_data = std::move(bytes);
+    m_data = std::move(new_data);
     m_capacity = size;
   }
 }
@@ -119,7 +118,8 @@ Bytes::insert(const uint8_t* pos,
   const size_t offset = pos - m_data.get();
   if (m_size + inserted_size > m_capacity) {
     m_capacity = std::max(2 * m_capacity, m_size + inserted_size);
-    auto new_data = std::make_unique<uint8_t[]>(m_capacity);
+    // In C++20, use std::make_unique_for_overwrite instead.
+    auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[m_capacity]);
     if (offset > 0) {
       std::memcpy(new_data.get(), m_data.get(), offset);
     }
@@ -141,15 +141,7 @@ Bytes::insert(const uint8_t* pos,
 void
 Bytes::resize(size_t size) noexcept
 {
-  if (size > m_capacity) {
-    // In C++20, use std::make_unique_for_overwrite instead.
-    auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
-    if (m_size > 0) {
-      std::memcpy(new_data.get(), m_data.get(), m_size);
-    }
-    m_data = std::move(new_data);
-    m_capacity = size;
-  }
+  reserve(size);
   m_size = size;
 }
 
