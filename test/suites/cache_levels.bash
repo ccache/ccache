@@ -7,15 +7,19 @@ add_fake_files_counters() {
 }
 
 expect_on_level() {
-    local type="$1"
-    local expected_level="$2"
+    local expected_level="$1"
 
-    slashes=$(find $CCACHE_DIR -name "*$type" \
-                  | sed -E -e 's!.*\.ccache/!!' -e 's![^/]*$!!' -e 's![^/]!!g')
-    actual_level=$(echo -n "$slashes" | wc -c)
-    if [ "$actual_level" -ne "$expected_level" ]; then
-        test_failed "$type file on level $actual_level, expected level $expected_level"
-    fi
+    local files=(
+        $(find_result_files "${CCACHE_DIR}")
+        $(find_manifest_files "${CCACHE_DIR}")
+    )
+    for file in "${files[@]}"; do
+        slashes=$(echo $file | sed -E -e 's!.*\.ccache/!!' -e 's![^/]*$!!' -e 's![^/]!!g')
+        actual_level=$(echo -n "$slashes" | wc -c)
+        if [ "$actual_level" -ne "$expected_level" ]; then
+            test_failed "file on level $actual_level, expected level $expected_level: $file"
+        fi
+    done
 }
 
 
@@ -32,15 +36,13 @@ SUITE_cache_levels() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_on_level R 2
-    expect_on_level M 2
+    expect_on_level 2
 
     $CCACHE_COMPILE -c test1.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_on_level R 2
-    expect_on_level M 2
+    expect_on_level 2
 
     # -------------------------------------------------------------------------
     TEST "Many files but still level 2"
@@ -52,15 +54,13 @@ SUITE_cache_levels() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 2
-    expect_on_level M 2
+    expect_on_level 2
 
     $CCACHE_COMPILE -c test1.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 2
-    expect_on_level M 2
+    expect_on_level 2
 
     # -------------------------------------------------------------------------
     TEST "Level 3"
@@ -72,15 +72,13 @@ SUITE_cache_levels() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 3
-    expect_on_level M 3
+    expect_on_level 3
 
     $CCACHE_COMPILE -c test1.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 3
-    expect_on_level M 3
+    expect_on_level 3
 
     # -------------------------------------------------------------------------
     TEST "Level 4"
@@ -92,15 +90,13 @@ SUITE_cache_levels() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 4
-    expect_on_level M 4
+    expect_on_level 4
 
     $CCACHE_COMPILE -c test1.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 4
-    expect_on_level M 4
+    expect_on_level 4
 
     # -------------------------------------------------------------------------
     TEST "No deeper than 4 levels"
@@ -112,13 +108,11 @@ SUITE_cache_levels() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 4
-    expect_on_level M 4
+    expect_on_level 4
 
     $CCACHE_COMPILE -c test1.c
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache $((files + 2))
-    expect_on_level R 4
-    expect_on_level M 4
+    expect_on_level 4
 }

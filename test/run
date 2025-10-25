@@ -99,6 +99,26 @@ find_compiler() {
         }' $name
 }
 
+_find_cache_files() {
+    local dir=$1
+    local type=$2
+    find "${dir}"/?/? -type f \! -name stats | while read path; do
+        if $CCACHE --inspect "${path}" 2>/dev/null | grep -q "Entry type: ${type}"; then
+            echo "${path}"
+        fi
+    done
+}
+
+find_result_files() {
+    local dir=$1
+    _find_cache_files "${dir}" 0
+}
+
+find_manifest_files() {
+    local dir=$1
+    _find_cache_files "${dir}" 1
+}
+
 generate_code() {
     local nlines=$1
     local outfile=$2

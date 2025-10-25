@@ -36,7 +36,7 @@ SUITE_namespace() {
     TEST "--evict-namespace + --evict-older-than"
 
     CCACHE_NAMESPACE="a" $CCACHE_COMPILE -c test1.c
-    result_file="$(find $CCACHE_DIR -name '*R')"
+    result_file="$(find_result_files "${CCACHE_DIR}")"
     backdate "$result_file"
     for ns in a b c; do
         CCACHE_NAMESPACE="$ns" $CCACHE_COMPILE -c test2.c

@@ -189,20 +189,6 @@ set_counters(const StatsFile& stats_file, const Level1Counters& level_1_cs)
   });
 }
 
-static std::string
-suffix_from_type(const core::CacheEntryType type)
-{
-  switch (type) {
-  case core::CacheEntryType::manifest:
-    return "M";
-
-  case core::CacheEntryType::result:
-    return "R";
-  }
-
-  ASSERT(false);
-}
-
 static uint8_t
 calculate_wanted_cache_level(const uint64_t files_in_level_1)
 {
@@ -315,6 +301,26 @@ ratio(T numerator, T denominator)
   }
 }
 
+static std::optional<std::string>
+result_path_from_raw_file(const std::string& path)
+{
+  if (path.length() < 3) {
+    return std::nullopt;
+  }
+
+  if (path[path.length() - 3] == '_') {
+    // raw file ends with "_nn" where nn is file number in hex form
+    return path.substr(0, path.length() - 3);
+  }
+
+  if (path[path.length() - 1] == 'W') {
+    // legacy: raw file ends with "nW" where n is file number (0-9)
+    return FMT("{}R", path.substr(0, path.length() - 2));
+  }
+
+  return std::nullopt;
+}
+
 static CleanDirResult
 clean_dir(
   const fs::path& l2_dir,
@@ -352,11 +358,11 @@ clean_dir(
       continue;
     }
 
-    if (namespace_ && file_type_from_path(file.path()) == FileType::raw) {
-      util::PathString path_str(file.path());
-      const std::string result_path =
-        FMT("{}R", path_str.str().substr(0, path_str.str().length() - 2));
-      raw_files_map[result_path].push_back(file.path());
+    if (namespace_) {
+      auto result_path = result_path_from_raw_file(util::pstr(file.path()));
+      if (result_path) {
+        raw_files_map[*result_path].push_back(file.path());
+      }
     }
 
     cache_size += file.size_on_disk();
@@ -403,12 +409,10 @@ clean_dir(
 
       // For namespace eviction we need to remove raw files based on result
       // filename since they don't have a header.
-      if (file_type_from_path(file.path()) == FileType::result) {
-        const auto entry = raw_files_map.find(util::pstr(file.path()));
-        if (entry != raw_files_map.end()) {
-          for (const auto& raw_file : entry->second) {
-            delete_file(DirEntry(raw_file), cache_size, files_in_cache);
-          }
+      const auto entry = raw_files_map.find(util::pstr(file.path()));
+      if (entry != raw_files_map.end()) {
+        for (const auto& raw_file : entry->second) {
+          delete_file(DirEntry(raw_file), cache_size, files_in_cache);
         }
       }
     }
@@ -427,21 +431,6 @@ clean_dir(
   }
 
   return {counters_before, counters_after};
-}
-
-FileType
-file_type_from_path(const fs::path& path)
-{
-  std::string filename = path.filename().string();
-  if (util::ends_with(filename, "M")) {
-    return FileType::manifest;
-  } else if (util::ends_with(filename, "R")) {
-    return FileType::result;
-  } else if (util::ends_with(filename, "W")) {
-    return FileType::raw;
-  } else {
-    return FileType::unknown;
-  }
 }
 
 LocalStorage::LocalStorage(const Config& config)
@@ -582,7 +571,7 @@ LocalStorage::put(const Hash::Digest& key,
     return;
   }
 
-  move_to_wanted_cache_level(*counters, key, type, cache_file.path);
+  move_to_wanted_cache_level(*counters, key, cache_file.path);
 
   // Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
   // be done almost anywhere, but we might as well do it near the end as we save
@@ -621,16 +610,7 @@ fs::path
 LocalStorage::get_raw_file_path(const fs::path& result_path,
                                 uint8_t file_number)
 {
-  if (file_number >= 10) {
-    // To support more entries in the future, encode to [0-9a-z]. Note that
-    // LocalStorage::evict currently assumes that the entry number is
-    // represented as one character.
-    throw core::Error(FMT("Too high raw file entry number: {}", file_number));
-  }
-
-  std::string s = result_path.string();
-  s.pop_back();
-  return FMT("{}{}W", s, file_number);
+  return FMT("{}_{:02x}", result_path, file_number);
 }
 
 fs::path
@@ -647,6 +627,12 @@ LocalStorage::put_raw_files(
   const Hash::Digest& key,
   const std::vector<core::result::Serializer::RawFile>& raw_files)
 {
+  const size_t k_max_raw_files = 256;
+  if (raw_files.size() > k_max_raw_files) {
+    throw core::Error(
+      FMT("Too many raw files: {} > {}", raw_files.size(), k_max_raw_files));
+  }
+
   const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
   core::ensure_dir_exists(cache_file.path.parent_path());
 
@@ -929,7 +915,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
         auto stats_file = get_stats_file(l1_index);
 
         for (const auto& file : files) {
-          if (file_type_from_path(file.path()) != FileType::unknown) {
+          if (!util::TemporaryFile::is_tmp_file(file.path())) {
             thread_pool.enqueue_detach([&, file, l2_index, stats_file, level] {
               try {
                 DirEntry new_dir_entry = recompressor.recompress(
@@ -964,8 +950,6 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                 incompressible_size += file.size_on_disk();
               }
             });
-          } else if (!util::TemporaryFile::is_tmp_file(file.path())) {
-            incompressible_size += file.size_on_disk();
           }
         }
 
@@ -1074,8 +1058,8 @@ LocalStorage::LookUpCacheFileResult
 LocalStorage::look_up_cache_file(const Hash::Digest& key,
                                  const core::CacheEntryType type) const
 {
-  const auto key_string =
-    FMT("{}{}", util::format_base16(key), suffix_from_type(type));
+  // Try new format first: base16 without suffix
+  const auto key_string = util::format_base16(key);
 
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
        ++level) {
@@ -1083,6 +1067,27 @@ LocalStorage::look_up_cache_file(const Hash::Digest& key,
     DirEntry dir_entry(path);
     if (dir_entry.is_regular_file()) {
       return {path, dir_entry, level};
+    }
+  }
+
+  // Try old format with R/M suffix
+  const auto old_key_string = util::format_legacy_digest(key);
+  const std::string old_suffix =
+    type == core::CacheEntryType::manifest ? "M" : "R";
+  const auto old_key_string_with_suffix = old_key_string + old_suffix;
+  for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
+       ++level) {
+    const auto path = get_path_in_cache(level, old_key_string_with_suffix);
+    DirEntry dir_entry(path);
+    if (dir_entry.is_regular_file()) {
+      const auto new_path = get_path_in_cache(level, key_string);
+      LOG("Migrating {} to {}", path, new_path);
+      if (fs::rename(path, new_path)) {
+        return {new_path, DirEntry(new_path), level};
+      } else {
+        LOG("Failed to rename {} to {}", path, new_path);
+        return {path, dir_entry, level};
+      }
     }
   }
 
@@ -1107,13 +1112,12 @@ LocalStorage::get_stats_file(uint8_t l1_index, uint8_t l2_index) const
 void
 LocalStorage::move_to_wanted_cache_level(const StatisticsCounters& counters,
                                          const Hash::Digest& key,
-                                         core::CacheEntryType type,
                                          const fs::path& cache_file_path)
 {
   const auto wanted_level =
     calculate_wanted_cache_level(counters.get(Statistic::files_in_cache));
-  const auto wanted_path = get_path_in_cache(
-    wanted_level, util::format_base16(key) + suffix_from_type(type));
+  const auto wanted_path =
+    get_path_in_cache(wanted_level, util::format_base16(key));
   if (cache_file_path != wanted_path) {
     core::ensure_dir_exists(wanted_path.parent_path());
 
