@@ -31,7 +31,7 @@ ThreadPool::ThreadPool(size_t number_of_threads, size_t task_queue_max_size)
   }
 }
 
-ThreadPool::~ThreadPool()
+ThreadPool::~ThreadPool() noexcept
 {
   shut_down();
 }
@@ -53,7 +53,7 @@ ThreadPool::enqueue(std::function<void()> function)
 }
 
 void
-ThreadPool::shut_down()
+ThreadPool::shut_down() noexcept
 {
   {
     std::unique_lock<std::mutex> lock(m_mutex);

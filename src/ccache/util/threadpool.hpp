@@ -35,10 +35,10 @@ public:
   explicit ThreadPool(
     size_t number_of_threads,
     size_t task_queue_max_size = std::numeric_limits<size_t>::max());
-  ~ThreadPool();
+  ~ThreadPool() noexcept;
 
   void enqueue(std::function<void()> function);
-  void shut_down();
+  void shut_down() noexcept;
 
 private:
   std::vector<std::thread> m_worker_threads;
