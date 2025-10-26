@@ -87,7 +87,7 @@ ThreadPool::worker_thread_main()
       m_task_queue.pop();
     }
 
-    m_task_popped_condition.notify_all();
+    m_task_popped_condition.notify_one();
     try {
       task();
     } catch (...) {
