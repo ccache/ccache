@@ -19,6 +19,7 @@
 #include "string.hpp"
 
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/bytes.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -218,6 +219,48 @@ std::string
 join_path_list(const std::vector<std::filesystem::path>& path_list)
 {
   return join(path_list, k_path_delimiter);
+}
+
+tl::expected<Bytes, std::string>
+parse_base16(std::string_view hex_string)
+{
+  if (hex_string.size() % 2 != 0) {
+    return tl::unexpected(
+      FMT("invalid hex string (odd length): \"{}\"", hex_string));
+  }
+
+  const auto from_hex_digit = [](char ch) -> std::optional<uint8_t> {
+    if (ch >= '0' && ch <= '9') {
+      return ch - '0';
+    } else if (ch >= 'a' && ch <= 'f') {
+      return ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'F') {
+      return ch - 'A' + 10;
+    } else {
+      return std::nullopt;
+    }
+  };
+
+  Bytes result;
+  result.reserve(hex_string.size() / 2);
+
+  for (size_t i = 0; i < hex_string.size(); i += 2) {
+    auto high = from_hex_digit(hex_string[i]);
+    auto low = from_hex_digit(hex_string[i + 1]);
+
+    if (!high) {
+      return tl::unexpected(
+        FMT("invalid hex character at position {}: \"{}\"", i, hex_string));
+    }
+    if (!low) {
+      return tl::unexpected(
+        FMT("invalid hex character at position {}: \"{}\"", i + 1, hex_string));
+    }
+
+    result.push_back(static_cast<uint8_t>((*high << 4) | *low));
+  }
+
+  return result;
 }
 
 tl::expected<double, std::string>

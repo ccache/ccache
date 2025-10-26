@@ -16,6 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include <ccache/util/bytes.hpp>
 #include <ccache/util/string.hpp>
 
 #include <doctest/doctest.h>
@@ -102,6 +103,88 @@ TEST_CASE("util::format_base16")
   CHECK(util::format_base16({none, 0}) == "");
   CHECK(util::format_base16({text, sizeof(text)}) == "666f6f00");
   CHECK(util::format_base16({data, sizeof(data)}) == "00010203");
+}
+
+TEST_CASE("util::parse_base16")
+{
+  SUBCASE("empty string")
+  {
+    auto result = util::parse_base16("");
+    REQUIRE(result);
+    CHECK(result->empty());
+  }
+
+  SUBCASE("valid hex strings")
+  {
+    auto result1 = util::parse_base16("666f6f00");
+    REQUIRE(result1);
+    CHECK(result1->size() == 4);
+    CHECK(result1->at(0) == 0x66);
+    CHECK(result1->at(1) == 0x6f);
+    CHECK(result1->at(2) == 0x6f);
+    CHECK(result1->at(3) == 0x00);
+
+    auto result2 = util::parse_base16("00010203");
+    REQUIRE(result2);
+    CHECK(result2->size() == 4);
+    CHECK(result2->at(0) == 0x00);
+    CHECK(result2->at(1) == 0x01);
+    CHECK(result2->at(2) == 0x02);
+    CHECK(result2->at(3) == 0x03);
+  }
+
+  SUBCASE("uppercase hex")
+  {
+    auto result = util::parse_base16("DEADBEEF");
+    REQUIRE(result);
+    CHECK(result->size() == 4);
+    CHECK(result->at(0) == 0xde);
+    CHECK(result->at(1) == 0xad);
+    CHECK(result->at(2) == 0xbe);
+    CHECK(result->at(3) == 0xef);
+  }
+
+  SUBCASE("mixed case hex")
+  {
+    auto result = util::parse_base16("DeAdBeEf");
+    REQUIRE(result);
+    CHECK(result->size() == 4);
+    CHECK(result->at(0) == 0xde);
+    CHECK(result->at(1) == 0xad);
+    CHECK(result->at(2) == 0xbe);
+    CHECK(result->at(3) == 0xef);
+  }
+
+  SUBCASE("odd length string")
+  {
+    auto result = util::parse_base16("abc");
+    REQUIRE(!result);
+    CHECK(result.error().find("odd length") != std::string::npos);
+  }
+
+  SUBCASE("invalid characters")
+  {
+    auto result1 = util::parse_base16("xyz!");
+    REQUIRE(!result1);
+    CHECK(result1.error() == "invalid hex character at position 0: \"xyz!\"");
+
+    auto result2 = util::parse_base16("12!4");
+    REQUIRE(!result2);
+    CHECK(result2.error() == "invalid hex character at position 2: \"12!4\"");
+
+    auto result3 = util::parse_base16("abcg");
+    REQUIRE(!result3);
+    CHECK(result3.error() == "invalid hex character at position 3: \"abcg\"");
+  }
+
+  SUBCASE("round trip")
+  {
+    util::Bytes original = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0};
+    auto hex = util::format_base16(original);
+    auto result = util::parse_base16(hex);
+    REQUIRE(result);
+    CHECK(*result == original);
+  }
 }
 
 TEST_CASE("util::format_base32hex")

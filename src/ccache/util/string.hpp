@@ -41,6 +41,8 @@ namespace util {
 
 // --- Interface ---
 
+class Bytes;
+
 enum class SizeUnitPrefixType { binary, decimal };
 enum class TimeZone { local, utc };
 
@@ -117,6 +119,12 @@ join(const T& begin, const T& end, const std::string_view delimiter);
 
 // Join paths into a string with system-dependent delimiter.
 std::string join_path_list(const std::vector<std::filesystem::path>& path_list);
+
+// Parse a hexadecimal string into bytes. The input string must have an even
+// length and contain only hexadecimal digits (0-9, a-f, A-F).
+//
+// Returns an error string if the input is not a valid hexadecimal string.
+tl::expected<Bytes, std::string> parse_base16(std::string_view hex_string);
 
 // Parse a string into a double.
 //
