@@ -39,9 +39,11 @@ ThreadPool::enqueue(std::function<void()> function)
 {
   {
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (m_task_queue.size() >= m_task_queue_max_size) {
-      m_task_popped_condition.wait(
-        lock, [this] { return m_task_queue.size() < m_task_queue_max_size; });
+    m_task_popped_condition.wait(lock, [this] {
+      return m_shutting_down || m_task_queue.size() < m_task_queue_max_size;
+    });
+    if (m_shutting_down) {
+      return;
     }
     m_task_queue.emplace(function);
   }
@@ -60,6 +62,7 @@ ThreadPool::shut_down()
     m_shutting_down = true;
   }
   m_task_enqueued_or_shutting_down_condition.notify_all();
+  m_task_popped_condition.notify_all();
   for (auto& thread : m_worker_threads) {
     if (thread.joinable()) {
       thread.join();
