@@ -643,7 +643,9 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EVICT_OLDER_THAN: {
-      evict_max_age = util::value_or_throw<Error>(util::parse_duration(arg));
+      auto duration = util::value_or_throw<Error>(util::parse_duration(arg));
+      evict_max_age =
+        std::chrono::duration_cast<std::chrono::seconds>(duration).count();
       break;
     }
 

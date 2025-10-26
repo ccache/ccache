@@ -404,16 +404,33 @@ TEST_CASE("util::parse_double")
 
 TEST_CASE("util::parse_duration")
 {
-  CHECK(*util::parse_duration("0s") == 0);
-  CHECK(*util::parse_duration("2s") == 2);
-  CHECK(*util::parse_duration("1d") == 3600 * 24);
-  CHECK(*util::parse_duration("2d") == 2 * 3600 * 24);
+  CHECK(*util::parse_duration("0s") == 0ms);
+  CHECK(*util::parse_duration("2s") == 2000ms);
+  CHECK(*util::parse_duration("1ms") == 1ms);
+  CHECK(*util::parse_duration("500ms") == 500ms);
+  CHECK(*util::parse_duration("1m") == 60000ms);
+  CHECK(*util::parse_duration("2m") == 120000ms);
+  CHECK(*util::parse_duration("1h") == 3600000ms);
+  CHECK(*util::parse_duration("2h") == 7200000ms);
+  CHECK(*util::parse_duration("1d") == 86400000ms);
+  CHECK(*util::parse_duration("2d") == 172800000ms);
+
+  CHECK(util::parse_duration("d").error() == "invalid unsigned integer: \"\"");
+  CHECK(util::parse_duration("xd").error()
+        == "invalid unsigned integer: \"x\"");
+  CHECK(util::parse_duration("-2d").error()
+        == "invalid unsigned integer: \"-2\"");
+
   CHECK(util::parse_duration("-2").error()
-        == "invalid suffix (supported: d (day) and s (second)): \"-2\"");
+        == "invalid suffix (supported: ms (millisecond), s (second), m "
+           "(minute), h (hour), d (day)): \"-2\"");
   CHECK(util::parse_duration("2x").error()
-        == "invalid suffix (supported: d (day) and s (second)): \"2x\"");
+        == "invalid suffix (supported: ms (millisecond), s (second), m "
+           "(minute), h (hour), d (day)): \"2x\"");
   CHECK(util::parse_duration("2").error()
-        == "invalid suffix (supported: d (day) and s (second)): \"2\"");
+        == "invalid suffix (supported: ms (millisecond), s (second), m "
+           "(minute), h (hour), d (day)): \"2\"");
+  CHECK(util::parse_duration("").error() == "invalid empty duration: \"\"");
 }
 
 TEST_CASE("util::parse_signed")
