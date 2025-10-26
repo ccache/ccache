@@ -2475,17 +2475,17 @@ Release date: 2020-10-18
   locality.
 
 - Added compression of result and manifest files using the
-  http://zstd.net[Zstandard] algorithm. Compression is enabled by default with
-  compression level 1. This makes ccache able to store more data in the cache.
-  Previously compression using Deflate (zlib) was available but disabled by
-  default. Files can be recompressed with another compression level later with
-  the `-X/--recompress` option described further below.
+  https://facebook.github.io/zstd/[Zstandard] algorithm. Compression is enabled
+  by default with compression level 1. This makes ccache able to store more data
+  in the cache. Previously compression using Deflate (zlib) was available but
+  disabled by default. Files can be recompressed with another compression level
+  later with the `-X/--recompress` option described further below.
 
 - Changed from MD4 to https://blake3.io[BLAKE3] for hashing input. This
   improves performance and reduces the risk of hash collisions.
 
 - Added checksumming of result and manifest files using the
-  http://xxhash.com[XXH3] algorithm to detect data corruption.
+  https://xxhash.com[XXH3] algorithm to detect data corruption.
 
 - Ccache now follows the
   https://specifications.freedesktop.org/basedir-spec/[XDG base directory
@@ -4263,7 +4263,7 @@ General
 - Added support for long command-line options.
 
 - A `CACHEDIR.TAG` file is now created in the cache directory. See
-  <http://www.brynosaurus.com/cachedir/>.
+  <https://bford.info/cachedir>.
 
 - Messages printed to the debug log (specified by `CCACHE_LOGFILE`) have been
   improved.

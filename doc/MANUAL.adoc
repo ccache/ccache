@@ -676,7 +676,7 @@ Semantics of *compression_level*:
     *1*.
 --
 +
-See the http://zstd.net[Zstandard documentation] for more information.
+See the https://facebook.github.io/zstd/[Zstandard documentation] for more information.
 
 [#config_cpp_extension]
 *cpp_extension* (*CCACHE_EXTENSION*)::
