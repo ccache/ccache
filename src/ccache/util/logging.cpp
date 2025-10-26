@@ -26,6 +26,7 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
 
+#include <mutex>
 #include <string>
 
 #ifdef HAVE_UNISTD_H
@@ -59,6 +60,9 @@ std::string debug_log_buffer;
 // Whether debug logging is enabled via configuration or environment variable.
 bool debug_log_enabled = false;
 
+// Mutex that serializes writes to logfile and protects debug_log_buffer.
+std::mutex log_mutex;
+
 // Print error message to stderr about failure writing to the log file and exit
 // with failure.
 [[noreturn]] void
@@ -77,25 +81,24 @@ print_fatal_error_and_exit()
 }
 
 void
-do_log(std::string_view message, bool bulk)
+format_prefix(char* buffer, size_t size)
 {
-  static char prefix[200];
+  const auto now = util::now();
+  (void)snprintf(buffer,
+                 size,
+                 "[%s.%06u %-5d] ",
+                 util::format_iso8601_timestamp(now).c_str(),
+                 static_cast<unsigned int>(util::nsec_part(now) / 1000),
+                 static_cast<int>(getpid()));
+}
 
-  if (!bulk || prefix[0] == '\0') {
-    const auto now = util::now();
-    (void)snprintf(prefix,
-                   sizeof(prefix),
-                   "[%s.%06u %-5d] ",
-                   util::format_iso8601_timestamp(now).c_str(),
-                   static_cast<unsigned int>(util::nsec_part(now) / 1000),
-                   static_cast<int>(getpid()));
-  }
-
+// Write log entry to all enabled destinations.
+//
+// Assumes log_mutex is already held and file_lock is acquired if needed.
+void
+write_log_entry(const char* prefix, std::string_view message)
+{
   if (logfile) {
-    util::FileLock lock(fileno(*logfile));
-    if (!bulk) {
-      std::ignore = lock.acquire(); // Garbled logs are better than no logs
-    }
     if (fputs(prefix, *logfile) == EOF
         || fwrite(message.data(), message.length(), 1, *logfile) != 1
         || fputc('\n', *logfile) == EOF || fflush(*logfile) == EOF) {
@@ -158,7 +161,19 @@ log(std::string_view message)
   if (!enabled()) {
     return;
   }
-  do_log(message, false);
+
+  char prefix[200];
+  format_prefix(prefix, sizeof(prefix));
+
+  std::unique_lock<std::mutex> lock(log_mutex);
+
+  std::optional<util::FileLock> file_lock;
+  if (logfile) {
+    file_lock.emplace(fileno(*logfile));
+    std::ignore = file_lock->acquire(); // Continue anyway on failure
+  }
+
+  write_log_entry(prefix, message);
 }
 
 void
@@ -167,19 +182,27 @@ dump_log(const fs::path& path)
   if (!enabled()) {
     return;
   }
+
+  std::unique_lock<std::mutex> lock(log_mutex);
   util::FileStream file(path, "w");
   if (file) {
     (void)fwrite(debug_log_buffer.data(), debug_log_buffer.length(), 1, *file);
-  } else {
-    LOG("Failed to open {}: {}", path, strerror(errno));
   }
 }
 
 BulkLogger::BulkLogger()
-  : m_file_lock(logfile ? fileno(*logfile) : -1)
 {
-  if (logfile) {
-    std::ignore = m_file_lock.acquire(); // Garbled logs are better than no logs
+  if (enabled()) {
+    // Compute and cache prefix once for all bulk logs.
+    format_prefix(m_prefix, sizeof(m_prefix));
+
+    // Acquire both locks: mutex for in-process sync, file lock for
+    // inter-process.
+    m_mutex_lock = std::unique_lock<std::mutex>(log_mutex);
+    if (logfile) {
+      m_file_lock.emplace(fileno(*logfile));
+      std::ignore = m_file_lock->acquire(); // Continue anyway on failure
+    }
   }
 }
 
@@ -189,7 +212,8 @@ BulkLogger::log(std::string_view message)
   if (!enabled()) {
     return;
   }
-  do_log(message, true);
+
+  write_log_entry(m_prefix, message);
 }
 
 } // namespace util::logging

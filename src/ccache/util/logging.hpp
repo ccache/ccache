@@ -24,6 +24,8 @@
 #include <fmt/format.h>
 
 #include <filesystem>
+#include <mutex>
+#include <optional>
 #include <string_view>
 
 // Log a raw message (plus a newline character).
@@ -68,7 +70,9 @@ public:
   void log(std::string_view message);
 
 private:
-  util::FileLock m_file_lock;
+  std::unique_lock<std::mutex> m_mutex_lock;
+  std::optional<util::FileLock> m_file_lock;
+  char m_prefix[200] = {};
 };
 
 } // namespace util::logging
