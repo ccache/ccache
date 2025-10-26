@@ -85,6 +85,8 @@ public:
   void clear() noexcept;
   void resize(size_t size) noexcept; // Note: New bytes will be uninitialized.
 
+  void push_back(uint8_t value) noexcept;
+
   void insert(const uint8_t* pos,
               const uint8_t* first,
               const uint8_t* last) noexcept;

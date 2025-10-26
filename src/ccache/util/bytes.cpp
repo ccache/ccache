@@ -159,6 +159,16 @@ Bytes::insert(const uint8_t* pos,
 }
 
 void
+Bytes::push_back(uint8_t value) noexcept
+{
+  if (m_size >= m_capacity) {
+    reserve(m_capacity == 0 ? 1 : 2 * m_capacity);
+  }
+  m_data[m_size] = value;
+  ++m_size;
+}
+
+void
 Bytes::resize(size_t size) noexcept
 {
   reserve(size);

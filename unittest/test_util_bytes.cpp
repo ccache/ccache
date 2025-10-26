@@ -551,6 +551,61 @@ TEST_CASE("Basics")
     CHECK(bytes2[0] == 'x');
     CHECK(bytes2[1] == 'z');
   }
+
+  SUBCASE("Push to back")
+  {
+    // Push to empty bytes
+    Bytes bytes2;
+    CHECK(bytes2.size() == 0);
+    CHECK(bytes2.capacity() == 0);
+
+    bytes2.push_back('a');
+    REQUIRE(bytes2.size() == 1);
+    CHECK(bytes2.capacity() == 1);
+    CHECK(bytes2[0] == 'a');
+
+    // Push to non-empty bytes without reallocation
+    bytes2.push_back('b');
+    REQUIRE(bytes2.size() == 2);
+    CHECK(bytes2.capacity() == 2);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+
+    bytes2.push_back('c');
+    REQUIRE(bytes2.size() == 3);
+    CHECK(bytes2.capacity() == 4);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+
+    // Push multiple items to trigger reallocation
+    for (uint8_t i = 0; i < 10; ++i) {
+      bytes2.push_back(i);
+    }
+    REQUIRE(bytes2.size() == 13);
+    CHECK(bytes2.capacity() == 16);
+    CHECK(bytes2[0] == 'a');
+    CHECK(bytes2[1] == 'b');
+    CHECK(bytes2[2] == 'c');
+    CHECK(bytes2[3] == 0);
+    CHECK(bytes2[4] == 1);
+    CHECK(bytes2[12] == 9);
+
+    // Push to bytes with reserved capacity
+    Bytes bytes3;
+    bytes3.reserve(10);
+    CHECK(bytes3.capacity() == 10);
+    CHECK(bytes3.size() == 0);
+
+    for (uint8_t i = 0; i < 5; ++i) {
+      bytes3.push_back(i);
+    }
+    REQUIRE(bytes3.size() == 5);
+    CHECK(bytes3.capacity() == 10); // Should not reallocate
+    for (size_t i = 0; i < 5; ++i) {
+      CHECK(bytes3[i] == i);
+    }
+  }
 }
 
 TEST_CASE("Conversion to span")
