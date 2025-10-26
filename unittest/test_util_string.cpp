@@ -105,6 +105,61 @@ TEST_CASE("util::format_base16")
   CHECK(util::format_base16({data, sizeof(data)}) == "00010203");
 }
 
+TEST_CASE("util::format_duration")
+{
+  CHECK(util::format_duration(0ms) == "0s");
+  CHECK(util::format_duration(1ms) == "1ms");
+  CHECK(util::format_duration(999ms) == "999ms");
+  CHECK(util::format_duration(1000ms) == "1s");
+  CHECK(util::format_duration(1002ms) == "1002ms");
+  CHECK(util::format_duration(7000ms) == "7s");
+
+  CHECK(util::format_duration(0s) == "0s");
+  CHECK(util::format_duration(5s) == "5s");
+  CHECK(util::format_duration(59s) == "59s");
+  CHECK(util::format_duration(60s) == "1m");
+  CHECK(util::format_duration(61s) == "61s");
+  CHECK(util::format_duration(70s) == "70s");
+  CHECK(util::format_duration(119s) == "119s");
+  CHECK(util::format_duration(120s) == "2m");
+  CHECK(util::format_duration(3599s) == "3599s");
+  CHECK(util::format_duration(3600s) == "1h");
+  CHECK(util::format_duration(3601s) == "3601s");
+  CHECK(util::format_duration(5000s) == "5000s");
+  CHECK(util::format_duration(7199s) == "7199s");
+  CHECK(util::format_duration(7200s) == "2h");
+  CHECK(util::format_duration(86399s) == "86399s");
+  CHECK(util::format_duration(86400s) == "1d");
+  CHECK(util::format_duration(86401s) == "86401s");
+  CHECK(util::format_duration(172800s) == "2d");
+
+  CHECK(util::format_duration(4min) == "4m");
+  CHECK(util::format_duration(60min) == "1h");
+  CHECK(util::format_duration(90min) == "90m");
+
+  CHECK(util::format_duration(9h) == "9h");
+  CHECK(util::format_duration(48h) == "2d");
+  CHECK(util::format_duration(49h) == "49h");
+
+  auto test_round_trip = [](std::string_view str) {
+    auto parsed = util::parse_duration(str);
+    REQUIRE(parsed);
+    CHECK(util::format_duration(*parsed) == str);
+  };
+
+  test_round_trip("0s");
+  test_round_trip("1ms");
+  test_round_trip("500ms");
+  test_round_trip("1s");
+  test_round_trip("5s");
+  test_round_trip("1m");
+  test_round_trip("30m");
+  test_round_trip("1h");
+  test_round_trip("12h");
+  test_round_trip("1d");
+  test_round_trip("7d");
+}
+
 TEST_CASE("util::parse_base16")
 {
   SUBCASE("empty string")

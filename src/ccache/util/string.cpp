@@ -174,6 +174,36 @@ format_digest(nonstd::span<const uint8_t> data)
 }
 
 std::string
+format_duration(std::chrono::milliseconds ms)
+{
+  const auto ms_count = ms.count();
+
+  if (ms_count == 0) {
+    return "0s";
+  }
+
+  // Try to express in the largest unit that divides evenly.
+  constexpr int64_t ms_per_day = 24 * 60 * 60 * 1000;
+  constexpr int64_t ms_per_hour = 60 * 60 * 1000;
+  constexpr int64_t ms_per_minute = 60 * 1000;
+  constexpr int64_t ms_per_second = 1000;
+
+  if (ms_count % ms_per_day == 0) {
+    return FMT("{}d", ms_count / ms_per_day);
+  }
+  if (ms_count % ms_per_hour == 0) {
+    return FMT("{}h", ms_count / ms_per_hour);
+  }
+  if (ms_count % ms_per_minute == 0) {
+    return FMT("{}m", ms_count / ms_per_minute);
+  }
+  if (ms_count % ms_per_second == 0) {
+    return FMT("{}s", ms_count / ms_per_second);
+  }
+  return FMT("{}ms", ms_count);
+}
+
+std::string
 format_human_readable_diff(int64_t diff, SizeUnitPrefixType prefix_type)
 {
   const char* sign = diff == 0 ? "" : (diff > 0 ? "+" : "-");
