@@ -41,7 +41,7 @@
 #include <random>
 #include <sstream>
 
-using namespace std::literals::chrono_literals;
+using namespace std::chrono_literals;
 
 namespace fs = util::filesystem;
 

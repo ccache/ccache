@@ -25,7 +25,7 @@
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <vector>
 
-using namespace std::literals::chrono_literals;
+using namespace std::chrono_literals;
 
 TEST_SUITE_BEGIN("util");
 

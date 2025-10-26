@@ -54,7 +54,7 @@
 
 namespace fs = util::filesystem;
 
-using namespace std::literals::chrono_literals;
+using namespace std::chrono_literals;
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top

@@ -38,7 +38,7 @@
 
 namespace fs = util::filesystem;
 
-using namespace std::literals::chrono_literals;
+using namespace std::chrono_literals;
 
 using TestUtil::TestContext;
 
