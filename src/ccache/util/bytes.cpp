@@ -20,6 +20,8 @@
 
 #include <ccache/util/assertions.hpp>
 
+#include <stdexcept>
+
 namespace util {
 
 namespace {
@@ -90,6 +92,24 @@ Bytes::operator=(std::string_view data) noexcept
 {
   assign_from_data(this, data.data(), data.size());
   return *this;
+}
+
+uint8_t
+Bytes::at(size_t pos) const
+{
+  if (pos >= m_size) {
+    throw std::out_of_range("Bytes::at: pos >= size()");
+  }
+  return m_data[pos];
+}
+
+uint8_t&
+Bytes::at(size_t pos)
+{
+  if (pos >= m_size) {
+    throw std::out_of_range("Bytes::at: pos >= size()");
+  }
+  return m_data[pos];
 }
 
 void

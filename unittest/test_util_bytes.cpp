@@ -189,6 +189,30 @@ TEST_CASE("Basics")
     CHECK(bytes1[1] == 'x'); // cppcheck-suppress knownConditionTrueFalse
   }
 
+  SUBCASE("at method")
+  {
+    // Const version
+    const Bytes& const_bytes = bytes1;
+    CHECK(const_bytes.at(0) == 'a');
+    CHECK(const_bytes.at(1) == 'b');
+    CHECK(const_bytes.at(2) == 'c');
+    CHECK_THROWS_AS(const_bytes.at(3), std::out_of_range);
+    CHECK_THROWS_AS(const_bytes.at(100), std::out_of_range);
+
+    // Non-const version
+    CHECK(bytes1.at(0) == 'a');
+    CHECK(bytes1.at(1) == 'b');
+    CHECK(bytes1.at(2) == 'c');
+    bytes1.at(1) = 'x';
+    CHECK(bytes1.at(1) == 'x');
+    CHECK_THROWS_AS(bytes1.at(3), std::out_of_range);
+    CHECK_THROWS_AS(bytes1.at(100), std::out_of_range);
+
+    // Empty
+    Bytes empty;
+    CHECK_THROWS_AS(empty.at(0), std::out_of_range);
+  }
+
   SUBCASE("Comparison")
   {
     CHECK(bytes1 == bytes1);

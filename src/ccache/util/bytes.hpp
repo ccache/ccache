@@ -60,6 +60,9 @@ public:
   uint8_t operator[](size_t pos) const noexcept;
   uint8_t& operator[](size_t pos) noexcept;
 
+  uint8_t at(size_t pos) const;
+  uint8_t& at(size_t pos);
+
   bool operator==(const Bytes& other) const noexcept;
   bool operator!=(const Bytes& other) const noexcept;
 
