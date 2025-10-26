@@ -910,6 +910,14 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                 try {
                   DirEntry new_dir_entry = recompressor.recompress(
                     file, level, core::FileRecompressor::KeepAtime::no);
+                  auto old_size = file.size();
+                  auto new_size = new_dir_entry.size();
+                  // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
+                  // #109241
+                  LOG_RAW(fmt::format("Recompressed {} from {} to {} bytes",
+                                      file.path(),
+                                      old_size,
+                                      new_size));
                   auto size_change_kibibyte =
                     kibibyte_size_diff(file, new_dir_entry);
                   if (size_change_kibibyte != 0) {
@@ -922,8 +930,11 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                         size_change_kibibyte);
                     });
                   }
-                } catch (core::Error&) {
-                  // Ignore for now.
+                } catch (core::Error& e) {
+                  // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
+                  // #109241
+                  LOG_RAW(fmt::format(
+                    "Error when recompressing {}: {}", file.path(), e.what()));
                   incompressible_size += file.size_on_disk();
                 }
               });

@@ -358,9 +358,17 @@ trim_dir(const std::string& dir,
         try {
           auto new_stat = recompressor.recompress(
             file, *recompress_level, core::FileRecompressor::KeepAtime::yes);
-          file = std::move(new_stat); // Remember new size, if any.
-        } catch (core::Error&) {
-          // Ignore for now.
+          auto old_size = file.size();
+          auto new_size = new_stat.size();
+          if (new_size != old_size) {
+            LOG("Recompressed {} from {} to {} bytes",
+                file.path(),
+                old_size,
+                new_size);
+            file = std::move(new_stat); // Remember for sum calculation later
+          }
+        } catch (core::Error& e) {
+          LOG("Error when recompressing {}: {}", file.path(), e.what());
           incompressible_size += file.size_on_disk();
         }
       });
