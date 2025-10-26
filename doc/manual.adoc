@@ -693,7 +693,7 @@ Semantics of *compression_level*:
     *1*.
 --
 +
-See the http://zstd.net[Zstandard documentation] for more information.
+See the https://facebook.github.io/zstd/[Zstandard documentation] for more information.
 
 [#config_cpp_extension]
 *cpp_extension* (*CCACHE_EXTENSION*)::
@@ -1602,8 +1602,9 @@ output. It works by creating a unique hash (the "`input hash`") from various
 information that affects the compilation. When the same hash is encountered
 again, ccache can supply all the correct compiler outputs from the cache.
 
-For hashing, ccache uses BLAKE3, a fast cryptographic hash algorithm. For data
-integrity, cached data is protected with XXH3 checksums to detect corruption.
+For hashing, ccache uses https://blake3.io[BLAKE3], a fast cryptographic hash
+algorithm. For data integrity, cached data is protected with
+https://xxhash.com[XXH3] checksums to detect corruption.
 
 Ccache has two strategies for gathering the information used to create cache
 lookup keys:
