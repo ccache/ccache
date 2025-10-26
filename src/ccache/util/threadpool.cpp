@@ -18,6 +18,8 @@
 
 #include "threadpool.hpp"
 
+#include <ccache/util/logging.hpp>
+
 namespace util {
 
 ThreadPool::ThreadPool(size_t number_of_threads, size_t task_queue_max_size)
@@ -90,8 +92,10 @@ ThreadPool::worker_thread_main()
     m_task_popped_condition.notify_one();
     try {
       task();
+    } catch (const std::exception& e) {
+      LOG("Thread pool task failed: {}", e.what());
     } catch (...) {
-      // We'll have to ignore it for now.
+      LOG_RAW("Thread pool task failed with unknown exception");
     }
   }
 }
