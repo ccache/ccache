@@ -20,13 +20,16 @@
 
 #include <ccache/util/logging.hpp>
 
+#include <algorithm>
+
 namespace util {
 
 ThreadPool::ThreadPool(size_t number_of_threads, size_t task_queue_max_size)
   : m_task_queue_max_size(task_queue_max_size)
 {
-  m_worker_threads.reserve(number_of_threads);
-  for (size_t i = 0; i < number_of_threads; ++i) {
+  size_t actual_threads = std::max<size_t>(1, number_of_threads);
+  m_worker_threads.reserve(actual_threads);
+  for (size_t i = 0; i < actual_threads; ++i) {
     m_worker_threads.emplace_back(&ThreadPool::worker_thread_main, this);
   }
 }
