@@ -50,7 +50,7 @@ ThreadPool::enqueue(std::function<void()> function)
     if (m_shutting_down) {
       return;
     }
-    m_task_queue.emplace(function);
+    m_task_queue.emplace(std::move(function));
   }
   m_task_enqueued_or_shutting_down_condition.notify_one();
 }
