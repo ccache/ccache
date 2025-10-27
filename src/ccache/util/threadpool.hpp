@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <ccache/util/noncopyable.hpp>
+
 #include <condition_variable>
 #include <cstddef>
 #include <functional>
@@ -29,7 +31,7 @@
 
 namespace util {
 
-class ThreadPool
+class ThreadPool : util::NonCopyable
 {
 public:
   explicit ThreadPool(
