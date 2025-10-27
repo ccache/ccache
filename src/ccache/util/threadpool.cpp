@@ -45,7 +45,7 @@ ThreadPool::enqueue(std::function<void()> function)
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     if (!m_shutting_down && m_task_queue.size() >= m_task_queue_max_size) {
-      m_task_popped_condition.wait(lock, [this] {
+      m_producer_cv.wait(lock, [this] {
         return m_shutting_down || m_task_queue.size() < m_task_queue_max_size;
       });
     }
@@ -54,7 +54,7 @@ ThreadPool::enqueue(std::function<void()> function)
     }
     m_task_queue.emplace(std::move(function));
   }
-  m_task_enqueued_or_shutting_down_condition.notify_one();
+  m_worker_cv.notify_one();
 }
 
 void
@@ -68,8 +68,8 @@ ThreadPool::shut_down() noexcept
     }
     m_shutting_down = true;
   }
-  m_task_enqueued_or_shutting_down_condition.notify_all();
-  m_task_popped_condition.notify_all();
+  m_worker_cv.notify_all();
+  m_producer_cv.notify_all();
   for (auto& thread : m_worker_threads) {
     if (thread.joinable()) {
       thread.join();
@@ -85,7 +85,7 @@ ThreadPool::worker_thread_main()
 
     {
       std::unique_lock<std::mutex> lock(m_mutex);
-      m_task_enqueued_or_shutting_down_condition.wait(
+      m_worker_cv.wait(
         lock, [this] { return m_shutting_down || !m_task_queue.empty(); });
       if (m_shutting_down && m_task_queue.empty()) {
         return;
@@ -94,7 +94,7 @@ ThreadPool::worker_thread_main()
       m_task_queue.pop();
     }
 
-    m_task_popped_condition.notify_one();
+    m_producer_cv.notify_one();
     try {
       task();
     } catch (const std::exception& e) {

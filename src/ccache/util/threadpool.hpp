@@ -48,8 +48,8 @@ private:
   size_t m_task_queue_max_size;
   bool m_shutting_down = false;
   std::mutex m_mutex;
-  std::condition_variable m_task_enqueued_or_shutting_down_condition;
-  std::condition_variable m_task_popped_condition;
+  std::condition_variable m_worker_cv;
+  std::condition_variable m_producer_cv;
 
   void worker_thread_main();
 };
