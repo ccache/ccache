@@ -32,6 +32,7 @@ set(
   test_util_path.cpp
   test_util_string.cpp
   test_util_texttable.cpp
+  test_util_threadpool.cpp
   test_util_tokenizer.cpp
   test_util_xxh3_128.cpp
   test_util_xxh3_64.cpp
