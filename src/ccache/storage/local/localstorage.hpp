@@ -126,7 +126,8 @@ public:
   // --- Compression ---
 
   CompressionStatistics
-  get_compression_statistics(const ProgressReceiver& progress_receiver) const;
+  get_compression_statistics(uint32_t threads,
+                             const ProgressReceiver& progress_receiver) const;
 
   void recompress(std::optional<int8_t> level,
                   uint32_t threads,

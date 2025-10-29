@@ -824,7 +824,7 @@ process_main_options(int argc, const char* const* argv)
       ProgressBar progress_bar("Scanning...");
       const auto compression_statistics =
         storage::local::LocalStorage(config).get_compression_statistics(
-          [&](double progress) { progress_bar.update(progress); });
+          threads, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         PRINT_RAW(stdout, "\n\n");
       }
