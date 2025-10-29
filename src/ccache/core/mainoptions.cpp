@@ -126,9 +126,6 @@ Common options:
                                default suffix: GiB
     -X, --recompress LEVEL     recompress the cache to level LEVEL (integer or
                                "uncompressed")
-        --recompress-threads THREADS
-                               use up to THREADS threads when recompressing the
-                               cache; default: number of CPUs
     -o, --set-config KEY=VALUE set configuration option KEY to value VALUE in the
                                configuration file
     -x, --show-compression     show compression statistics
@@ -139,6 +136,8 @@ Common options:
     -s, --show-stats           show summary of configuration and statistics
                                counters in human-readable format (use
                                -v/--verbose once or twice for more details)
+        --threads THREADS      use up to THREADS threads for threaded operations;
+                               default: number of CPUs
     -v, --verbose              increase verbosity
     -z, --zero-stats           zero statistics counters
 
@@ -159,9 +158,6 @@ Options for remote file-based storage:
         --trim-recompress LEVEL
                                recompress to level LEVEL (integer or
                                "uncompressed")
-        --trim-recompress-threads THREADS
-                               use up to THREADS threads when recompressing;
-                               default: number of CPUs
 
 Options for scripting or debugging:
         --checksum-file PATH   print the checksum (128 bit XXH3) of the file at
@@ -317,7 +313,7 @@ trim_dir(const std::string& dir,
          const util::SizeUnitPrefixType suffix_type,
          const bool trim_lru_mtime,
          std::optional<std::optional<int8_t>> recompress_level,
-         uint32_t recompress_threads)
+         uint32_t threads)
 {
   std::vector<DirEntry> files;
   uint64_t initial_size = 0;
@@ -347,9 +343,8 @@ trim_dir(const std::string& dir,
   int64_t recompression_diff = 0;
 
   if (recompress_level) {
-    const size_t read_ahead = std::max(
-      static_cast<size_t>(10), 2 * static_cast<size_t>(recompress_threads));
-    util::ThreadPool thread_pool(recompress_threads, read_ahead);
+    const size_t queue_size = std::max<size_t>(10, 2 * threads);
+    util::ThreadPool thread_pool(threads, queue_size);
     core::FileRecompressor recompressor;
 
     std::atomic<uint64_t> incompressible_size = 0;
@@ -444,8 +439,6 @@ get_usage_text(const std::string_view ccache_name)
 enum : uint8_t {
   CHECKSUM_FILE,
   CONFIG_PATH,
-  DUMP_MANIFEST,
-  DUMP_RESULT,
   EVICT_NAMESPACE,
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
@@ -455,54 +448,57 @@ enum : uint8_t {
   PRINT_LOG_STATS,
   PRINT_STATS,
   PRINT_VERSION,
-  RECOMPRESS_THREADS,
   SHOW_LOG_STATS,
+  THREADS,
   TRIM_DIR,
   TRIM_MAX_SIZE,
   TRIM_METHOD,
   TRIM_RECOMPRESS,
-  TRIM_RECOMP_THREADS,
 };
+
+#define REQUIRED required_argument
+#define NO_ARGUMENT no_argument
 
 const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
 const option long_options[] = {
-  {"checksum-file",           required_argument, nullptr, CHECKSUM_FILE      },
-  {"cleanup",                 no_argument,       nullptr, 'c'                },
-  {"clear",                   no_argument,       nullptr, 'C'                },
-  {"config-path",             required_argument, nullptr, CONFIG_PATH        },
-  {"dir",                     required_argument, nullptr, 'd'                },
-  {"directory",               required_argument, nullptr, 'd'                }, // bwd compat
-  {"dump-manifest",           required_argument, nullptr, DUMP_MANIFEST      }, // bwd compat
-  {"dump-result",             required_argument, nullptr, DUMP_RESULT        }, // bwd compat
-  {"evict-namespace",         required_argument, nullptr, EVICT_NAMESPACE    },
-  {"evict-older-than",        required_argument, nullptr, EVICT_OLDER_THAN   },
-  {"extract-result",          required_argument, nullptr, EXTRACT_RESULT     },
-  {"format",                  required_argument, nullptr, FORMAT             },
-  {"get-config",              required_argument, nullptr, 'k'                },
-  {"hash-file",               required_argument, nullptr, HASH_FILE          },
-  {"help",                    no_argument,       nullptr, 'h'                },
-  {"inspect",                 required_argument, nullptr, INSPECT            },
-  {"max-files",               required_argument, nullptr, 'F'                },
-  {"max-size",                required_argument, nullptr, 'M'                },
-  {"print-log-stats",         no_argument,       nullptr, PRINT_LOG_STATS    },
-  {"print-stats",             no_argument,       nullptr, PRINT_STATS        },
-  {"print-version",           no_argument,       nullptr, PRINT_VERSION      },
-  {"recompress",              required_argument, nullptr, 'X'                },
-  {"recompress-threads",      required_argument, nullptr, RECOMPRESS_THREADS },
-  {"set-config",              required_argument, nullptr, 'o'                },
-  {"show-compression",        no_argument,       nullptr, 'x'                },
-  {"show-config",             no_argument,       nullptr, 'p'                },
-  {"show-log-stats",          no_argument,       nullptr, SHOW_LOG_STATS     },
-  {"show-stats",              no_argument,       nullptr, 's'                },
-  {"trim-dir",                required_argument, nullptr, TRIM_DIR           },
-  {"trim-max-size",           required_argument, nullptr, TRIM_MAX_SIZE      },
-  {"trim-method",             required_argument, nullptr, TRIM_METHOD        },
-  {"trim-recompress",         required_argument, nullptr, TRIM_RECOMPRESS    },
-  {"trim-recompress-threads", required_argument, nullptr, TRIM_RECOMP_THREADS},
-  {"verbose",                 no_argument,       nullptr, 'v'                },
-  {"version",                 no_argument,       nullptr, 'V'                },
-  {"zero-stats",              no_argument,       nullptr, 'z'                },
-  {nullptr,                   0,                 nullptr, 0                  }
+  {"checksum-file",           REQUIRED,    nullptr, CHECKSUM_FILE   },
+  {"cleanup",                 NO_ARGUMENT, nullptr, 'c'             },
+  {"clear",                   NO_ARGUMENT, nullptr, 'C'             },
+  {"config-path",             REQUIRED,    nullptr, CONFIG_PATH     },
+  {"dir",                     REQUIRED,    nullptr, 'd'             },
+  {"directory",               REQUIRED,    nullptr, 'd'             }, // compat
+  {"dump-manifest",           REQUIRED,    nullptr, INSPECT         }, // compat
+  {"dump-result",             REQUIRED,    nullptr, INSPECT         }, // compat
+  {"evict-namespace",         REQUIRED,    nullptr, EVICT_NAMESPACE },
+  {"evict-older-than",        REQUIRED,    nullptr, EVICT_OLDER_THAN},
+  {"extract-result",          REQUIRED,    nullptr, EXTRACT_RESULT  },
+  {"format",                  REQUIRED,    nullptr, FORMAT          },
+  {"get-config",              REQUIRED,    nullptr, 'k'             },
+  {"hash-file",               REQUIRED,    nullptr, HASH_FILE       },
+  {"help",                    NO_ARGUMENT, nullptr, 'h'             },
+  {"inspect",                 REQUIRED,    nullptr, INSPECT         },
+  {"max-files",               REQUIRED,    nullptr, 'F'             },
+  {"max-size",                REQUIRED,    nullptr, 'M'             },
+  {"print-log-stats",         NO_ARGUMENT, nullptr, PRINT_LOG_STATS },
+  {"print-stats",             NO_ARGUMENT, nullptr, PRINT_STATS     },
+  {"print-version",           NO_ARGUMENT, nullptr, PRINT_VERSION   },
+  {"recompress",              REQUIRED,    nullptr, 'X'             },
+  {"recompress-threads",      REQUIRED,    nullptr, THREADS         }, // compat
+  {"set-config",              REQUIRED,    nullptr, 'o'             },
+  {"show-compression",        NO_ARGUMENT, nullptr, 'x'             },
+  {"show-config",             NO_ARGUMENT, nullptr, 'p'             },
+  {"show-log-stats",          NO_ARGUMENT, nullptr, SHOW_LOG_STATS  },
+  {"show-stats",              NO_ARGUMENT, nullptr, 's'             },
+  {"threads",                 REQUIRED,    nullptr, THREADS         },
+  {"trim-dir",                REQUIRED,    nullptr, TRIM_DIR        },
+  {"trim-max-size",           REQUIRED,    nullptr, TRIM_MAX_SIZE   },
+  {"trim-method",             REQUIRED,    nullptr, TRIM_METHOD     },
+  {"trim-recompress",         REQUIRED,    nullptr, TRIM_RECOMPRESS },
+  {"trim-recompress-threads", REQUIRED,    nullptr, THREADS         }, // compat
+  {"verbose",                 NO_ARGUMENT, nullptr, 'v'             },
+  {"version",                 NO_ARGUMENT, nullptr, 'V'             },
+  {"zero-stats",              NO_ARGUMENT, nullptr, 'z'             },
+  {nullptr,                   0,           nullptr, 0               }
 };
 
 int
@@ -513,16 +509,14 @@ process_main_options(int argc, const char* const* argv)
   uint8_t verbosity = 0;
 
   StatisticsFormat format = StatisticsFormat::Tab;
+  uint32_t threads = std::thread::hardware_concurrency();
   std::optional<uint64_t> trim_max_size;
   std::optional<util::SizeUnitPrefixType> trim_suffix_type;
   bool trim_lru_mtime = false;
   std::optional<std::optional<int8_t>> trim_recompress;
-  uint32_t trim_recompress_threads = std::thread::hardware_concurrency();
 
   std::optional<std::string> evict_namespace;
   std::optional<uint64_t> evict_max_age;
-
-  uint32_t recompress_threads = std::thread::hardware_concurrency();
 
   // First pass: Handle non-command options that affect command options.
   while ((c = getopt_long(argc,
@@ -552,8 +546,8 @@ process_main_options(int argc, const char* const* argv)
       util::setenv("CCACHE_CONFIGPATH", arg);
       break;
 
-    case RECOMPRESS_THREADS:
-      recompress_threads =
+    case THREADS:
+      threads =
         static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
           arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
       break;
@@ -572,12 +566,6 @@ process_main_options(int argc, const char* const* argv)
 
     case TRIM_RECOMPRESS:
       trim_recompress = parse_compression_level(arg);
-      break;
-
-    case TRIM_RECOMP_THREADS:
-      trim_recompress_threads =
-        static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
-          arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
       break;
 
     case 'v': // --verbose
@@ -609,11 +597,10 @@ process_main_options(int argc, const char* const* argv)
     case CONFIG_PATH:
     case 'd': // --dir
     case FORMAT:
-    case RECOMPRESS_THREADS:
+    case THREADS:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
     case TRIM_RECOMPRESS:
-    case TRIM_RECOMP_THREADS:
     case 'v': // --verbose
       // Already handled in the first pass.
       break;
@@ -687,8 +674,6 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case INSPECT:
-    case DUMP_MANIFEST: // Backward compatibility
-    case DUMP_RESULT:   // Backward compatibility
       return inspect_path(arg);
 
     case PRINT_STATS: {
@@ -820,7 +805,7 @@ process_main_options(int argc, const char* const* argv)
                *trim_suffix_type,
                trim_lru_mtime,
                trim_recompress,
-               trim_recompress_threads);
+               threads);
       break;
 
     case 'V': // --version
@@ -853,7 +838,7 @@ process_main_options(int argc, const char* const* argv)
 
       ProgressBar progress_bar("Recompressing...");
       storage::local::LocalStorage(config).recompress(
-        wanted_level, recompress_threads, [&](double progress) {
+        wanted_level, threads, [&](double progress) {
           progress_bar.update(progress);
         });
       break;

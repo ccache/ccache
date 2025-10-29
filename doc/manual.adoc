@@ -149,11 +149,6 @@ should use the normal compiler options and refer to your compiler's documentatio
     are currently compressed with a different level than _LEVEL_ will be
     recompressed.
 
-*--recompress-threads* _THREADS_::
-
-    Use up to _THREADS_ threads when recompressing the cache. The default is to
-    use one thread per CPU.
-
 *-o* _KEY=VALUE_, *--set-config* _KEY_=_VALUE_::
 
     Set configuration option _KEY_ to _VALUE_ in the configuration file. See
@@ -182,6 +177,11 @@ should use the normal compiler options and refer to your compiler's documentatio
     Print a summary of configuration and statistics counters in human-readable
     format. Use `-v`/`--verbose` once or twice for more details. See
     <<_cache_statistics,Cache statistics>> for more information.
+
+*--threads* _THREADS_::
+
+    Use up to _THREADS_ threads for threaded operations. The default is to use
+    one thread per CPU.
 
 *-v*, *--verbose*::
 
@@ -235,11 +235,6 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     long time since all files in the cache need to be visited. Only files that
     are currently compressed with a different level than _LEVEL_ will be
     recompressed.
-
-*--trim-recompress-threads* _THREADS_::
-
-    Recompress using up to _THREADS_ threads with `--trim-recompress`. The
-    default is to use one thread per CPU.
 
 
 === Options for scripting or debugging
