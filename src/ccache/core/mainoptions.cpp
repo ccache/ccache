@@ -354,7 +354,7 @@ trim_dir(const std::string& dir,
 
     std::atomic<uint64_t> incompressible_size = 0;
     for (auto& file : files) {
-      thread_pool.enqueue([&] {
+      thread_pool.enqueue_detach([&] {
         try {
           auto new_stat = recompressor.recompress(
             file, *recompress_level, core::FileRecompressor::KeepAtime::yes);

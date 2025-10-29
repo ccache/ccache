@@ -23,10 +23,14 @@
 #include <condition_variable>
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace util {
@@ -39,7 +43,14 @@ public:
     size_t task_queue_max_size = std::numeric_limits<size_t>::max());
   ~ThreadPool() noexcept;
 
-  void enqueue(std::function<void()> function);
+  void enqueue_detach(std::function<void()> function);
+
+  // Enqueue a task that returns a value. Returns a std::future that can be
+  // used to retrieve the result once the task completes.
+  template<typename F, typename... Args>
+  auto enqueue(F&& f, Args&&... args)
+    -> std::future<typename std::invoke_result<F, Args...>::type>;
+
   void shut_down() noexcept;
 
 private:
@@ -53,5 +64,22 @@ private:
 
   void worker_thread_main();
 };
+
+template<typename F, typename... Args>
+auto
+ThreadPool::enqueue(F&& f, Args&&... args)
+  -> std::future<typename std::invoke_result<F, Args...>::type>
+{
+  using return_type = typename std::invoke_result<F, Args...>::type;
+
+  auto task = std::make_shared<std::packaged_task<return_type()>>(
+    std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+
+  std::future<return_type> result = task->get_future();
+
+  enqueue_detach([task]() { (*task)(); });
+
+  return result;
+}
 
 } // namespace util

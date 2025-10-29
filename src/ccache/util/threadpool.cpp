@@ -61,7 +61,7 @@ ThreadPool::~ThreadPool() noexcept
 }
 
 void
-ThreadPool::enqueue(std::function<void()> function)
+ThreadPool::enqueue_detach(std::function<void()> function)
 {
   // Fast path for worker threads: avoid blocking on a full queue to prevent
   // deadlocks (all workers waiting inside enqueue() means no one can pop).

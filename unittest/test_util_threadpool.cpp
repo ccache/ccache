@@ -39,7 +39,7 @@ TEST_CASE("ThreadPool basic functionality")
     util::ThreadPool pool(2);
     std::atomic<int> counter{0};
 
-    pool.enqueue([&counter] { ++counter; });
+    pool.enqueue_detach([&] { ++counter; });
     pool.shut_down();
 
     CHECK(counter == 1);
@@ -52,7 +52,7 @@ TEST_CASE("ThreadPool basic functionality")
     const int num_tasks = 10;
 
     for (int i = 0; i < num_tasks; ++i) {
-      pool.enqueue([&counter] { ++counter; });
+      pool.enqueue_detach([&] { ++counter; });
     }
     pool.shut_down();
 
@@ -66,7 +66,7 @@ TEST_CASE("ThreadPool basic functionality")
     const int num_tasks = 100;
 
     for (int i = 0; i < num_tasks; ++i) {
-      pool.enqueue([&counter] { ++counter; });
+      pool.enqueue_detach([&] { ++counter; });
     }
     pool.shut_down();
 
@@ -78,7 +78,7 @@ TEST_CASE("ThreadPool basic functionality")
     util::ThreadPool pool(0); // Should create at least 1 thread
     std::atomic<bool> executed{false};
 
-    pool.enqueue([&executed] { executed = true; });
+    pool.enqueue_detach([&] { executed = true; });
     pool.shut_down();
 
     CHECK(executed);
@@ -98,20 +98,20 @@ TEST_CASE("ThreadPool task queue limits")
     std::condition_variable cv;
     bool first_task_can_finish = false;
 
-    pool.enqueue([&mutex, &cv, &first_task_can_finish] {
+    pool.enqueue_detach([&] {
       std::unique_lock<std::mutex> lock(mutex);
       cv.wait(lock, [&] { return first_task_can_finish; });
     });
 
     // Enqueue tasks to fill the queue.
     for (size_t i = 0; i < max_queue_size; ++i) {
-      pool.enqueue([&counter] { ++counter; });
+      pool.enqueue_detach([&] { ++counter; });
     }
 
     // Try to enqueue one more task in a separate thread - it should block.
     std::atomic<bool> extra_task_enqueued{false};
-    std::thread enqueue_thread([&pool, &counter, &extra_task_enqueued] {
-      pool.enqueue([&counter] { ++counter; });
+    std::thread enqueue_thread([&] {
+      pool.enqueue_detach([&] { ++counter; });
       extra_task_enqueued = true;
     });
 
@@ -143,7 +143,7 @@ TEST_CASE("ThreadPool task queue limits")
     std::condition_variable cv;
     bool can_finish = false;
 
-    pool.enqueue([&mutex, &cv, &can_finish] {
+    pool.enqueue_detach([&] {
       std::unique_lock<std::mutex> lock(mutex);
       cv.wait(lock, [&] { return can_finish; });
     });
@@ -151,7 +151,7 @@ TEST_CASE("ThreadPool task queue limits")
     // Enqueue many tasks - should not block.
     const int num_tasks = 1000;
     for (int i = 0; i < num_tasks; ++i) {
-      pool.enqueue([&counter] { ++counter; });
+      pool.enqueue_detach([&] { ++counter; });
     }
 
     {
@@ -162,6 +162,36 @@ TEST_CASE("ThreadPool task queue limits")
     pool.shut_down();
 
     CHECK(counter == num_tasks);
+  }
+}
+
+TEST_CASE("ThreadPool inline execution for worker threads")
+{
+  SUBCASE("worker thread can enqueue without deadlock when queue is full")
+  {
+    const size_t max_queue_size = 2;
+    util::ThreadPool pool(1, max_queue_size);
+    std::atomic<int> counter{0};
+    const int num_enqueues = 7;
+
+    // Use a future to wait for the outer task to complete.
+    auto outer_task_future = pool.enqueue([&]() {
+      // Fill the queue from within a worker thread. When the queue is full,
+      // tasks will execute inline.
+      for (int i = 0; i < num_enqueues; ++i) {
+        pool.enqueue_detach([&] { ++counter; });
+      }
+    });
+
+    // Wait for the outer task to complete.
+    outer_task_future.get();
+
+    pool.shut_down();
+
+    // All tasks should have executed (some inline, some from queue). The exact
+    // number executed should equal the number we enqueued.
+    int final_count = counter.load();
+    CHECK(final_count == num_enqueues);
   }
 }
 
@@ -180,7 +210,7 @@ TEST_CASE("ThreadPool shutdown behavior")
     std::atomic<int> ready_count{0};
 
     for (int i = 0; i < num_tasks; ++i) {
-      pool.enqueue([&counter, &mutex, &cv, &ready_count] {
+      pool.enqueue_detach([&] {
         // Signal that this task is running.
         ready_count++;
         cv.notify_all();
@@ -204,7 +234,7 @@ TEST_CASE("ThreadPool shutdown behavior")
 
     pool.shut_down();
 
-    pool.enqueue([&counter] { ++counter; });
+    pool.enqueue_detach([&] { ++counter; });
 
     // No need to wait - the enqueue after shutdown should be a no-op.
     CHECK(counter == 0);
@@ -215,7 +245,7 @@ TEST_CASE("ThreadPool shutdown behavior")
     util::ThreadPool pool(2);
     std::atomic<int> counter{0};
 
-    pool.enqueue([&counter] { ++counter; });
+    pool.enqueue_detach([&] { ++counter; });
 
     pool.shut_down();
     pool.shut_down(); // Should be safe to call multiple times
@@ -230,7 +260,7 @@ TEST_CASE("ThreadPool shutdown behavior")
 
     {
       util::ThreadPool pool(2);
-      pool.enqueue([&counter] { ++counter; });
+      pool.enqueue_detach([&] { ++counter; });
       // Destructor should call shut_down().
     }
 
@@ -245,10 +275,10 @@ TEST_CASE("ThreadPool exception handling")
     util::ThreadPool pool(2);
     std::atomic<int> counter{0};
 
-    pool.enqueue([] { throw std::runtime_error("Test exception"); });
+    pool.enqueue_detach([] { throw std::runtime_error("Test exception"); });
 
-    pool.enqueue([&counter] { ++counter; });
-    pool.enqueue([&counter] { ++counter; });
+    pool.enqueue_detach([&] { ++counter; });
+    pool.enqueue_detach([&] { ++counter; });
 
     pool.shut_down();
 
@@ -262,8 +292,8 @@ TEST_CASE("ThreadPool exception handling")
     std::atomic<int> counter{0};
 
     for (int i = 0; i < 5; ++i) {
-      pool.enqueue([] { throw std::runtime_error("Test exception"); });
-      pool.enqueue([&counter] { ++counter; });
+      pool.enqueue_detach([] { throw std::runtime_error("Test exception"); });
+      pool.enqueue_detach([&] { ++counter; });
     }
 
     pool.shut_down();
@@ -276,8 +306,8 @@ TEST_CASE("ThreadPool exception handling")
     util::ThreadPool pool(2);
     std::atomic<int> counter{0};
 
-    pool.enqueue([] { throw 42; });
-    pool.enqueue([&counter] { ++counter; });
+    pool.enqueue_detach([] { throw 42; });
+    pool.enqueue_detach([&] { ++counter; });
 
     pool.shut_down();
 
@@ -298,7 +328,7 @@ TEST_CASE("ThreadPool concurrent access")
     for (int i = 0; i < num_producer_threads; ++i) {
       producer_threads.emplace_back([&] {
         for (int j = 0; j < tasks_per_thread; ++j) {
-          pool.enqueue([&counter] { ++counter; });
+          pool.enqueue_detach([&] { ++counter; });
         }
       });
     }
@@ -326,7 +356,7 @@ TEST_CASE("ThreadPool task ordering")
     std::condition_variable start_cv;
     bool can_start = false;
 
-    pool.enqueue([&start_mutex, &start_cv, &can_start] {
+    pool.enqueue_detach([&] {
       std::unique_lock<std::mutex> lock(start_mutex);
       start_cv.wait(lock, [&] { return can_start; });
     });
@@ -334,7 +364,7 @@ TEST_CASE("ThreadPool task ordering")
     // Enqueue tasks in order.
     const int num_tasks = 10;
     for (int i = 0; i < num_tasks; ++i) {
-      pool.enqueue([&execution_order, &order_mutex, i] {
+      pool.enqueue_detach([&, i] {
         std::lock_guard<std::mutex> lock(order_mutex);
         execution_order.push_back(i);
       });
@@ -351,6 +381,205 @@ TEST_CASE("ThreadPool task ordering")
     for (int i = 0; i < num_tasks; ++i) {
       CHECK(execution_order[i] == i);
     }
+  }
+}
+
+TEST_CASE("ThreadPool enqueue")
+{
+  SUBCASE("simple return value")
+  {
+    util::ThreadPool pool(2);
+
+    auto future = pool.enqueue([]() { return 42; });
+
+    CHECK(future.get() == 42);
+    pool.shut_down();
+  }
+
+  SUBCASE("function with arguments")
+  {
+    util::ThreadPool pool(2);
+
+    auto future = pool.enqueue([](int a, int b) { return a + b; }, 10, 20);
+
+    CHECK(future.get() == 30);
+    pool.shut_down();
+  }
+
+  SUBCASE("string return type")
+  {
+    util::ThreadPool pool(2);
+
+    auto future = pool.enqueue([]() { return std::string("Hello, World!"); });
+
+    CHECK(future.get() == "Hello, World!");
+    pool.shut_down();
+  }
+
+  SUBCASE("multiple futures")
+  {
+    util::ThreadPool pool(4);
+
+    auto future1 = pool.enqueue([]() { return 1; });
+    auto future2 = pool.enqueue([]() { return 2; });
+    auto future3 = pool.enqueue([]() { return 3; });
+    auto future4 = pool.enqueue([]() { return 4; });
+
+    CHECK(future1.get() == 1);
+    CHECK(future2.get() == 2);
+    CHECK(future3.get() == 3);
+    CHECK(future4.get() == 4);
+
+    pool.shut_down();
+  }
+
+  SUBCASE("future with computation")
+  {
+    util::ThreadPool pool(2);
+
+    auto future = pool.enqueue([]() {
+      int sum = 0;
+      for (int i = 1; i <= 100; ++i) {
+        sum += i;
+      }
+      return sum;
+    });
+
+    CHECK(future.get() == 5050);
+    pool.shut_down();
+  }
+
+  SUBCASE("future blocks until result is ready")
+  {
+    util::ThreadPool pool(1);
+
+    // Use a condition variable to control when the task completes.
+    std::mutex mutex;
+    std::condition_variable cv;
+    bool can_finish = false;
+
+    auto future = pool.enqueue([&]() {
+      std::unique_lock<std::mutex> lock(mutex);
+      cv.wait(lock, [&] { return can_finish; });
+      return 123;
+    });
+
+    // Verify that the future is not immediately ready.
+    CHECK(future.wait_for(std::chrono::milliseconds(0))
+          == std::future_status::timeout);
+
+    // Allow the task to complete.
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      can_finish = true;
+    }
+    cv.notify_one();
+
+    // Now future.get() should succeed.
+    int result = future.get();
+    CHECK(result == 123);
+
+    pool.shut_down();
+  }
+
+  SUBCASE("exception in future task")
+  {
+    util::ThreadPool pool(2);
+
+    auto future =
+      pool.enqueue([]() -> int { throw std::runtime_error("Task failed"); });
+
+    CHECK_THROWS_AS(future.get(), std::runtime_error);
+
+    pool.shut_down();
+  }
+
+  SUBCASE("multiple futures with different types")
+  {
+    util::ThreadPool pool(3);
+
+    auto int_future = pool.enqueue([]() { return 42; });
+    auto str_future = pool.enqueue([]() { return std::string("test"); });
+    auto double_future = pool.enqueue([]() { return 3.14; });
+
+    CHECK(int_future.get() == 42);
+    CHECK(str_future.get() == "test");
+    CHECK(double_future.get() == doctest::Approx(3.14));
+
+    pool.shut_down();
+  }
+
+  SUBCASE("future with captured variables")
+  {
+    util::ThreadPool pool(2);
+
+    int x = 10;
+    int y = 20;
+
+    auto future = pool.enqueue([x, y]() { return x * y; });
+
+    CHECK(future.get() == 200);
+    pool.shut_down();
+  }
+
+  SUBCASE("void return type")
+  {
+    util::ThreadPool pool(2);
+    std::atomic<bool> executed{false};
+
+    auto future = pool.enqueue([&]() { executed = true; });
+
+    future.get(); // Should work even with void return
+    CHECK(executed);
+
+    pool.shut_down();
+  }
+
+  SUBCASE("future remains valid after shutdown")
+  {
+    util::ThreadPool pool(1);
+
+    auto future = pool.enqueue([]() { return 99; });
+
+    pool.shut_down();
+
+    // Should still be able to get the result after shutdown.
+    CHECK(future.get() == 99);
+  }
+
+  SUBCASE("parallel computation with futures")
+  {
+    util::ThreadPool pool(4);
+
+    std::vector<std::future<int>> futures;
+    const int num_tasks = 10;
+
+    for (int i = 0; i < num_tasks; ++i) {
+      futures.push_back(pool.enqueue([i]() { return i * i; }));
+    }
+
+    for (int i = 0; i < num_tasks; ++i) {
+      CHECK(futures[i].get() == i * i);
+    }
+
+    pool.shut_down();
+  }
+
+  SUBCASE("future with reference capture")
+  {
+    util::ThreadPool pool(2);
+    std::vector<int> data = {1, 2, 3, 4, 5};
+
+    auto future = pool.enqueue([&]() {
+      int sum = 0;
+      for (int val : data) {
+        sum += val;
+      }
+      return sum;
+    });
+
+    CHECK(future.get() == 15);
+    pool.shut_down();
   }
 }
 

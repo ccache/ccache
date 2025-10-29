@@ -906,38 +906,40 @@ LocalStorage::recompress(const std::optional<int8_t> level,
             const auto& file = files[i];
 
             if (file_type_from_path(file.path()) != FileType::unknown) {
-              thread_pool.enqueue([=, &recompressor, &incompressible_size] {
-                try {
-                  DirEntry new_dir_entry = recompressor.recompress(
-                    file, level, core::FileRecompressor::KeepAtime::no);
-                  auto old_size = file.size();
-                  auto new_size = new_dir_entry.size();
-                  // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
-                  // #109241
-                  LOG_RAW(fmt::format("Recompressed {} from {} to {} bytes",
-                                      file.path(),
-                                      old_size,
-                                      new_size));
-                  auto size_change_kibibyte =
-                    kibibyte_size_diff(file, new_dir_entry);
-                  if (size_change_kibibyte != 0) {
-                    StatsFile(stats_file).update([=](auto& cs) {
-                      cs.increment(Statistic::cache_size_kibibyte,
-                                   size_change_kibibyte);
-                      cs.increment_offsetted(
-                        Statistic::subdir_size_kibibyte_base,
-                        l2_index,
-                        size_change_kibibyte);
-                    });
+              thread_pool.enqueue_detach(
+                [=, &recompressor, &incompressible_size] {
+                  try {
+                    DirEntry new_dir_entry = recompressor.recompress(
+                      file, level, core::FileRecompressor::KeepAtime::no);
+                    auto old_size = file.size();
+                    auto new_size = new_dir_entry.size();
+                    // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
+                    // #109241
+                    LOG_RAW(fmt::format("Recompressed {} from {} to {} bytes",
+                                        file.path(),
+                                        old_size,
+                                        new_size));
+                    auto size_change_kibibyte =
+                      kibibyte_size_diff(file, new_dir_entry);
+                    if (size_change_kibibyte != 0) {
+                      StatsFile(stats_file).update([=](auto& cs) {
+                        cs.increment(Statistic::cache_size_kibibyte,
+                                     size_change_kibibyte);
+                        cs.increment_offsetted(
+                          Statistic::subdir_size_kibibyte_base,
+                          l2_index,
+                          size_change_kibibyte);
+                      });
+                    }
+                  } catch (core::Error& e) {
+                    // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
+                    // #109241
+                    LOG_RAW(fmt::format("Error when recompressing {}: {}",
+                                        file.path(),
+                                        e.what()));
+                    incompressible_size += file.size_on_disk();
                   }
-                } catch (core::Error& e) {
-                  // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
-                  // #109241
-                  LOG_RAW(fmt::format(
-                    "Error when recompressing {}: {}", file.path(), e.what()));
-                  incompressible_size += file.size_on_disk();
-                }
-              });
+                });
             } else if (!util::TemporaryFile::is_tmp_file(file.path())) {
               incompressible_size += file.size_on_disk();
             }
