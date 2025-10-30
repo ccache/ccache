@@ -903,84 +903,83 @@ LocalStorage::recompress(const std::optional<int8_t> level,
   core::FileRecompressor recompressor;
 
   std::atomic<uint64_t> incompressible_size = 0;
+  std::atomic<uint32_t> completed_dirs = 0;
   util::LongLivedLockFileManager lock_manager;
 
-  for_each_cache_subdir(
-    progress_receiver,
-    [&](const auto& l1_index, const auto& l1_progress_receiver) {
-      for_each_cache_subdir(
-        l1_progress_receiver,
-        [&](const auto& l2_index, const auto& l2_progress_receiver) {
-          auto l2_content_lock = get_level_2_content_lock(l1_index, l2_index);
-          l2_content_lock.make_long_lived(lock_manager);
-          if (!l2_content_lock.acquire()) {
-            // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug #109241
-            LOG_RAW(fmt::format(
-              "Failed to acquire content lock for {}/{}", l1_index, l2_index));
-            return;
-          }
+  std::vector<std::future<void>> futures;
+  futures.reserve(256);
 
-          auto l2_dir = get_subdir(l1_index, l2_index);
-          auto files = get_cache_dir_files(l2_dir);
-          l2_progress_receiver(0.1);
+  for_each_cache_subdir([&](uint8_t l1_index) {
+    for_each_cache_subdir([&](uint8_t l2_index) {
+      futures.push_back(thread_pool.enqueue([&, l1_index, l2_index, level] {
+        auto l2_content_lock = get_level_2_content_lock(l1_index, l2_index);
+        l2_content_lock.make_long_lived(lock_manager);
+        if (!l2_content_lock.acquire()) {
+          // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug #109241
+          LOG_RAW(fmt::format("Failed to acquire content lock for {:x}/{:x}",
+                              l1_index,
+                              l2_index));
+          ++completed_dirs;
+          progress_receiver(static_cast<double>(completed_dirs) / 256.0);
+          return;
+        }
 
-          auto stats_file = get_stats_file(l1_index);
+        auto l2_dir = get_subdir(l1_index, l2_index);
+        auto files = get_cache_dir_files(l2_dir);
+        auto stats_file = get_stats_file(l1_index);
 
-          for (size_t i = 0; i < files.size(); ++i) {
-            const auto& file = files[i];
-
-            if (file_type_from_path(file.path()) != FileType::unknown) {
-              thread_pool.enqueue_detach(
-                [=, &recompressor, &incompressible_size] {
-                  try {
-                    DirEntry new_dir_entry = recompressor.recompress(
-                      file, level, core::FileRecompressor::KeepAtime::no);
-                    auto old_size = file.size();
-                    auto new_size = new_dir_entry.size();
-                    // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
-                    // #109241
-                    LOG_RAW(fmt::format("Recompressed {} from {} to {} bytes",
-                                        file.path(),
-                                        old_size,
-                                        new_size));
-                    auto size_change_kibibyte =
-                      kibibyte_size_diff(file, new_dir_entry);
-                    if (size_change_kibibyte != 0) {
-                      StatsFile(stats_file).update([=](auto& cs) {
-                        cs.increment(Statistic::cache_size_kibibyte,
-                                     size_change_kibibyte);
-                        cs.increment_offsetted(
-                          Statistic::subdir_size_kibibyte_base,
-                          l2_index,
-                          size_change_kibibyte);
-                      });
-                    }
-                  } catch (core::Error& e) {
-                    // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
-                    // #109241
-                    LOG_RAW(fmt::format("Error when recompressing {}: {}",
-                                        file.path(),
-                                        e.what()));
-                    incompressible_size += file.size_on_disk();
+        for (const auto& file : files) {
+          if (file_type_from_path(file.path()) != FileType::unknown) {
+            thread_pool.enqueue_detach([&, file, l2_index, stats_file, level] {
+              try {
+                DirEntry new_dir_entry = recompressor.recompress(
+                  file, level, core::FileRecompressor::KeepAtime::no);
+                auto old_size = file.size();
+                auto new_size = new_dir_entry.size();
+                // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
+                // #109241
+                if (new_size != old_size) {
+                  LOG_RAW(fmt::format("Recompressed {} from {} to {} bytes",
+                                      file.path(),
+                                      old_size,
+                                      new_size));
+                  auto size_change_kibibyte =
+                    kibibyte_size_diff(file, new_dir_entry);
+                  if (size_change_kibibyte != 0) {
+                    StatsFile(stats_file).update([=](auto& cs) {
+                      cs.increment(Statistic::cache_size_kibibyte,
+                                   size_change_kibibyte);
+                      cs.increment_offsetted(
+                        Statistic::subdir_size_kibibyte_base,
+                        l2_index,
+                        size_change_kibibyte);
+                    });
                   }
-                });
-            } else if (!util::TemporaryFile::is_tmp_file(file.path())) {
-              incompressible_size += file.size_on_disk();
-            }
-
-            l2_progress_receiver(0.1 + 0.9 * ratio(i, files.size()));
+                }
+              } catch (core::Error& e) {
+                // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
+                // #109241
+                LOG_RAW(fmt::format(
+                  "Error when recompressing {}: {}", file.path(), e.what()));
+                incompressible_size += file.size_on_disk();
+              }
+            });
+          } else if (!util::TemporaryFile::is_tmp_file(file.path())) {
+            incompressible_size += file.size_on_disk();
           }
+        }
 
-          if (l2_dir.filename() == "f"
-              && l2_dir.parent_path().filename() == "f") {
-            // Wait here instead of after for_each_cache_subdir to avoid
-            // updating the progress bar to 100% before all work is done.
-            thread_pool.shut_down();
-          }
-        });
+        ++completed_dirs;
+        progress_receiver(static_cast<double>(completed_dirs) / 256.0);
+      }));
     });
+  });
 
-  // In case there was no f/f subdir, shut down the thread pool now.
+  // Wait for all directory scanning tasks to complete.
+  for (auto& future : futures) {
+    future.get();
+  }
+
   thread_pool.shut_down();
 
   if (isatty(STDOUT_FILENO)) {
