@@ -839,10 +839,10 @@ CompressionStatistics
 LocalStorage::get_compression_statistics(
   const uint32_t threads, const ProgressReceiver& progress_receiver) const
 {
-  std::atomic<uint64_t> content_size{0};
-  std::atomic<uint64_t> actual_size{0};
-  std::atomic<uint64_t> incompressible_size{0};
-  std::atomic<uint32_t> completed_dirs{0};
+  std::atomic<uint64_t> content_size = 0;
+  std::atomic<uint64_t> actual_size = 0;
+  std::atomic<uint64_t> incompressible_size = 0;
+  std::atomic<uint32_t> completed_dirs = 0;
 
   const size_t read_ahead =
     std::max(static_cast<size_t>(10), 2 * static_cast<size_t>(threads));

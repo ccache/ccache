@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -76,6 +76,9 @@ ProgressBar::update(double value)
   DEBUG_ASSERT(value <= 1.0);
 
   int16_t new_value = static_cast<int16_t>(1000 * value);
+
+  std::unique_lock<std::mutex> lock(m_mutex);
+
   if (new_value == m_current_value) {
     return;
   }

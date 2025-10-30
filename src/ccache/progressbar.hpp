@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string>
 
 class ProgressBar
@@ -34,6 +35,7 @@ public:
   void update(double value);
 
 private:
+  std::mutex m_mutex;
   const std::string m_header;
   const size_t m_width;
   const bool m_stdout_is_a_terminal;
