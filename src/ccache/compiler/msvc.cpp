@@ -19,6 +19,7 @@
 #include "msvc.hpp"
 
 #include <ccache/context.hpp>
+#include <ccache/util/json.hpp>
 #include <ccache/util/string.hpp>
 
 namespace compiler {
@@ -49,29 +50,11 @@ get_includes_from_msvc_show_includes(std::string_view file_content,
   return result;
 }
 
-util::Bytes
-strip_includes_from_msvc_show_includes(const Context& ctx,
-                                       util::Bytes&& stdout_data)
+tl::expected<std::vector<std::string>, std::string>
+get_includes_from_msvc_source_deps(std::string_view json_content)
 {
-  using util::Tokenizer;
-  using Mode = Tokenizer::Mode;
-  using IncludeDelimiter = Tokenizer::IncludeDelimiter;
-
-  if (stdout_data.empty() || !ctx.auto_depend_mode
-      || ctx.config.compiler_type() != CompilerType::msvc) {
-    return std::move(stdout_data);
-  }
-
-  util::Bytes new_stdout_data;
-  for (const auto line : Tokenizer(util::to_string_view(stdout_data),
-                                   "\n",
-                                   Mode::include_empty,
-                                   IncludeDelimiter::yes)) {
-    if (!util::starts_with(line, ctx.config.msvc_dep_prefix())) {
-      new_stdout_data.insert(new_stdout_data.end(), line.data(), line.size());
-    }
-  }
-  return new_stdout_data;
+  util::SimpleJsonParser parser(json_content);
+  return parser.get_string_array(".Data.Includes");
 }
 
 } // namespace compiler

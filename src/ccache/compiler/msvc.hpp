@@ -18,7 +18,10 @@
 
 #pragma once
 
+#include <ccache/core/statistic.hpp>
 #include <ccache/util/bytes.hpp>
+
+#include <tl/expected.hpp>
 
 #include <string_view>
 #include <vector>
@@ -31,7 +34,7 @@ std::vector<std::string_view>
 get_includes_from_msvc_show_includes(std::string_view file_content,
                                      std::string_view prefix);
 
-util::Bytes strip_includes_from_msvc_show_includes(const Context& ctx,
-                                                   util::Bytes&& stdout_data);
+tl::expected<std::vector<std::string>, std::string>
+get_includes_from_msvc_source_deps(std::string_view json_content);
 
 } // namespace compiler

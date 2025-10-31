@@ -72,7 +72,6 @@ TEST_CASE("Config: default values")
   CHECK(config.max_files() == 0);
   CHECK(config.max_size() == static_cast<uint64_t>(5) * 1024 * 1024 * 1024);
   CHECK(config.msvc_dep_prefix() == "Note: including file:");
-  CHECK(config.msvc_utf8());
   CHECK(config.path().empty());
   CHECK_FALSE(config.pch_external_checksum());
   CHECK(config.prefix_command().empty());
@@ -134,7 +133,6 @@ TEST_CASE("Config::update_from_file")
         "max_files = 17\n"
         "max_size = 123M\n"
         "msvc_dep_prefix = Some other prefix:\n"
-        "msvc_utf8 = false\n"
         "path = $USER.x\n"
         "pch_external_checksum = true\n"
         "prefix_command = x$USER\n"
@@ -180,7 +178,6 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.max_files() == 17);
   CHECK(config.max_size() == 123 * 1000 * 1000);
   CHECK(config.msvc_dep_prefix() == "Some other prefix:");
-  CHECK_FALSE(config.msvc_utf8());
   CHECK(config.path() == FMT("{}.x", user));
   CHECK(config.pch_external_checksum());
   CHECK(config.prefix_command() == FMT("x{}", user));
@@ -620,7 +617,6 @@ TEST_CASE("Config::visit_items")
     "max_files = 4711\n"
     "max_size = 98.7M\n"
     "msvc_dep_prefix = mdp\n"
-    "msvc_utf8 = true\n"
     "namespace = ns\n"
     "path = p\n"
     "pch_external_checksum = true\n"
@@ -684,7 +680,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) max_files = 4711",
     "(test.conf) max_size = 98.7 MB",
     "(test.conf) msvc_dep_prefix = mdp",
-    "(test.conf) msvc_utf8 = true",
     "(test.conf) namespace = ns",
     "(test.conf) path = p",
     "(test.conf) pch_external_checksum = true",

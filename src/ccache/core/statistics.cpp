@@ -263,6 +263,9 @@ const StatisticsField k_statistics_fields[] = {
         "Unsupported source language",
         FLAG_UNCACHEABLE),
 
+  // Compiler type or version was not supported.
+  FIELD(unsupported_compiler, "Unsupported compiler", FLAG_UNCACHEABLE),
+
   // subdir_files_base and subdir_size_kibibyte_base are intentionally omitted
   // since they are not interesting to show.
 };

@@ -24,7 +24,7 @@
 
 #include <doctest/doctest.h>
 
-static const std::string defaultPrefix = "Note: including file:";
+const std::string_view k_default_prefix = "Note: including file:";
 
 TEST_SUITE_BEGIN("msvc");
 
@@ -33,8 +33,8 @@ TEST_CASE("get_includes_from_msvc_show_includes")
   SUBCASE("Parse empty output")
   {
     std::string contents;
-    const auto result =
-      compiler::get_includes_from_msvc_show_includes(contents, defaultPrefix);
+    const auto result = compiler::get_includes_from_msvc_show_includes(
+      contents, k_default_prefix);
     CHECK(result.size() == 0);
   }
 
@@ -47,8 +47,8 @@ Note: including file:  F:\Projects\ccache\src\Args.hpp
 Note: including file:   F:\Projects\ccache\src\NonCopyable.hpp
 Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.33.31629\include\deque
 )";
-    const auto result =
-      compiler::get_includes_from_msvc_show_includes(contents, defaultPrefix);
+    const auto result = compiler::get_includes_from_msvc_show_includes(
+      contents, k_default_prefix);
     REQUIRE(result.size() == 5);
     CHECK(result[0] == "F:/Projects/ccache/build-msvc/config.h");
     CHECK(result[1] == R"(F:\Projects\ccache\unittest\../src/Context.hpp)");
@@ -64,8 +64,8 @@ Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\
     std::string contents =
       "Note: including file: foo\r\n"
       "Note: including file: bar\r\n";
-    const auto result =
-      compiler::get_includes_from_msvc_show_includes(contents, defaultPrefix);
+    const auto result = compiler::get_includes_from_msvc_show_includes(
+      contents, k_default_prefix);
     REQUIRE(result.size() == 2);
     CHECK(result[0] == "foo");
     CHECK(result[1] == "bar");
@@ -77,8 +77,8 @@ Note: including file:   C:\Program Files\Microsoft Visual Studio\2022\Community\
       "Note: including file: foo\n"
       "Note: including file: \n"
       "Note: including file:  bar\n";
-    const auto result =
-      compiler::get_includes_from_msvc_show_includes(contents, defaultPrefix);
+    const auto result = compiler::get_includes_from_msvc_show_includes(
+      contents, k_default_prefix);
     REQUIRE(result.size() == 2);
     CHECK(result[0] == "foo");
     CHECK(result[1] == "bar");
@@ -97,79 +97,117 @@ Just a line with custom in the middle)";
   }
 }
 
-TEST_CASE("strip_includes_from_msvc_show_includes")
+TEST_CASE("get_includes_from_msvc_source_deps")
 {
-  Context ctx;
-  const util::Bytes input = util::to_span(
-    "First\n"
-    "Note: including file: foo\n"
-    "Second\n");
-
-  SUBCASE("Empty output")
+  SUBCASE("Simple case")
   {
-    const util::Bytes result =
-      compiler::strip_includes_from_msvc_show_includes(ctx, {});
-    CHECK(result.size() == 0);
+    std::string json = R"({
+  "Version": "1.1",
+  "Data": {
+    "Source": "C:\\path\\to\\source.cpp",
+    "Includes": [
+      "C:\\path\\to\\header1.h",
+      "C:\\path\\to\\header2.h"
+    ]
+  }
+})";
+
+    auto includes_res = compiler::get_includes_from_msvc_source_deps(json);
+    REQUIRE(includes_res);
+    const auto& includes = *includes_res;
+    REQUIRE(includes.size() == 2);
+    CHECK(includes[0] == "C:\\path\\to\\header1.h");
+    CHECK(includes[1] == "C:\\path\\to\\header2.h");
   }
 
-  SUBCASE("Feature disabled")
+  SUBCASE("Empty includes array")
   {
-    const util::Bytes result =
-      compiler::strip_includes_from_msvc_show_includes(ctx, util::Bytes(input));
-    CHECK(result == input);
+    std::string json = R"({
+  "Version": "1.1",
+  "Data": {
+    "Source": "C:\\path\\to\\source.cpp",
+    "Includes": []
+  }
+})";
+
+    auto includes_res = compiler::get_includes_from_msvc_source_deps(json);
+    REQUIRE(includes_res);
+    CHECK(includes_res->empty());
   }
 
-  ctx.auto_depend_mode = true;
-
-  SUBCASE("Wrong compiler")
+  SUBCASE("Escaped paths")
   {
-    const util::Bytes result =
-      compiler::strip_includes_from_msvc_show_includes(ctx, util::Bytes(input));
-    CHECK(result == input);
+    std::string json = R"({
+  "Version": "1.1",
+  "Data": {
+    "Source": "C:\\path\\to\\source.cpp",
+    "Includes": [
+      "C:\\path\\to\\header\"with\"quotes.h",
+      "C:\\path\\to\\header\\with\\backslashes.h"
+    ]
+  }
+})";
+
+    auto includes_res = compiler::get_includes_from_msvc_source_deps(json);
+    REQUIRE(includes_res);
+    const auto& includes = *includes_res;
+    REQUIRE(includes.size() == 2);
+    CHECK(includes[0] == "C:\\path\\to\\header\"with\"quotes.h");
+    CHECK(includes[1] == "C:\\path\\to\\header\\with\\backslashes.h");
   }
 
-  ctx.config.set_compiler_type(CompilerType::msvc);
-
-  SUBCASE("Simple output")
+  SUBCASE("Minified JSON")
   {
-    const util::Bytes result =
-      compiler::strip_includes_from_msvc_show_includes(ctx, util::Bytes(input));
-    CHECK(result == util::to_span("First\nSecond\n"));
+    std::string json =
+      R"({"Version":"1.1","Data":{"Source":"C:\\source.cpp","Includes":["C:\\header1.h","C:\\header2.h"]}})";
+
+    auto includes_res = compiler::get_includes_from_msvc_source_deps(json);
+    REQUIRE(includes_res);
+    const auto& includes = *includes_res;
+    REQUIRE(includes.size() == 2);
+    CHECK(includes[0] == "C:\\header1.h");
+    CHECK(includes[1] == "C:\\header2.h");
   }
 
-  SUBCASE("Empty lines")
+  SUBCASE("UTF-8 paths")
   {
-    const util::Bytes result = compiler::strip_includes_from_msvc_show_includes(
-      ctx,
-      util::to_span("First\n"
-                    "\n"
-                    "Note: including file: foo\n"
-                    "\n"
-                    "Second\n"
-                    "\n"));
-    CHECK(result == util::to_span("First\n\n\nSecond\n\n"));
+    std::string json = R"({
+  "Version": "1.1",
+  "Data": {
+    "Source": "C:\\日本語\\source.cpp",
+    "Includes": [
+      "C:\\日本語\\header1.h",
+      "C:\\Ελληνικά\\header2.h"
+    ]
+  }
+})";
+
+    auto includes_res = compiler::get_includes_from_msvc_source_deps(json);
+    REQUIRE(includes_res);
+    const auto& includes = *includes_res;
+    REQUIRE(includes.size() == 2);
+    CHECK(includes[0] == "C:\\日本語\\header1.h");
+    CHECK(includes[1] == "C:\\Ελληνικά\\header2.h");
   }
 
-  SUBCASE("CRLF")
+  SUBCASE("Invalid JSON")
   {
-    const util::Bytes result = compiler::strip_includes_from_msvc_show_includes(
-      ctx,
-      util::to_span("First\r\n"
-                    "Note: including file: foo\r\n"
-                    "Second\r\n"));
-    CHECK(result == util::to_span("First\r\nSecond\r\n"));
+    auto includes_res =
+      compiler::get_includes_from_msvc_source_deps("not json");
+    REQUIRE(!includes_res);
+    CHECK(includes_res.error().find("Expected object") != std::string::npos);
   }
 
-  SUBCASE("Custom prefix")
+  SUBCASE("Unicode escape sequences are rejected")
   {
-    ctx.config.set_msvc_dep_prefix("custom");
-    const util::Bytes result = compiler::strip_includes_from_msvc_show_includes(
-      ctx,
-      util::to_span("First\n"
-                    "custom: including file: foo\n"
-                    "Second\n"
-                    "Third custom line\n"));
-    CHECK(result == util::to_span("First\nSecond\nThird custom line\n"));
+    std::string json = R"({
+  "Version": "1.1",
+  "Data": {
+    "Includes": ["C:\\path\\to\\\u65E5\u672C\u8A9E.h"]
+  }
+})";
+    auto includes_res = compiler::get_includes_from_msvc_source_deps(json);
+    CHECK_FALSE(includes_res);
   }
 }
 

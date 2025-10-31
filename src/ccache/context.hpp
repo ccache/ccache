@@ -111,10 +111,6 @@ public:
   // `nullopt` if there is no such configuration.
   std::optional<mode_t> original_umask;
 
-  // Whether we have added "/showIncludes" ourselves since it's missing and
-  // depend mode is enabled.
-  bool auto_depend_mode = false;
-
   // Register a temporary file to remove at program exit.
   void register_pending_tmp_file(const std::filesystem::path& path);
 
