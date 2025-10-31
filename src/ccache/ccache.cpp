@@ -1076,15 +1076,19 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
                                      Mode::include_empty,
                                      IncludeDelimiter::yes)) {
       if (util::starts_with(line, "__________")) {
+        // distcc-pump outputs lines like this:
+        //
+        //   __________Using # distcc servers in pump mode
+        //
+        // We don't want to cache those.
         core::send_to_console(ctx, line, STDOUT_FILENO);
-      }
-      // Ninja uses the lines with 'Note: including file: ' to determine the
-      // used headers. Headers within basedir need to be changed into relative
-      // paths because otherwise Ninja will use the abs path to original header
-      // to check if a file needs to be recompiled.
-      else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dirs().empty()
-               && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
+      } else if (ctx.config.compiler_type() == CompilerType::msvc
+                 && !ctx.config.base_dirs().empty()
+                 && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
+        // Ninja uses the lines with 'Note: including file: ' to determine the
+        // used headers. Headers within basedir need to be changed into relative
+        // paths because otherwise Ninja will use the abs path to original
+        // header to check if a file needs to be recompiled.
         std::string orig_line(line.data(), line.length());
         std::string abs_inc_path =
           util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
@@ -1095,11 +1099,11 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         new_stdout_data.insert(new_stdout_data.end(),
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
-      }
-      // The MSVC /FC option causes paths in diagnostics messages to become
-      // absolute. Those within basedir need to be changed into relative paths.
-      else if (ctx.config.compiler_type() == CompilerType::msvc
-               && !ctx.config.base_dirs().empty()) {
+      } else if (ctx.config.is_compiler_group_msvc()
+                 && !ctx.config.base_dirs().empty()) {
+        // The MSVC /FC option causes paths in diagnostics messages to become
+        // absolute. Those within basedir need to be changed into relative
+        // paths.
         size_t path_end = core::get_diagnostics_path_length(line);
         if (path_end != 0) {
           std::string_view abs_path = line.substr(0, path_end);
