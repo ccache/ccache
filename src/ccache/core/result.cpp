@@ -156,6 +156,9 @@ file_type_to_string(FileType type)
 
   case FileType::ipa_clones:
     return ".000i.ipa-clones";
+
+  case FileType::sarif:
+    return ".sarif";
   }
 
   return k_unknown_file_type;

@@ -475,7 +475,9 @@ process_option_arg(const Context& ctx,
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
       || util::starts_with(arg, "-MJ")
       || util::starts_with(arg, "--config-system-dir=")
-      || util::starts_with(arg, "--config-user-dir=")) {
+      || util::starts_with(arg, "--config-user-dir=")
+      || util::starts_with(arg, "-fdiagnostics-add-output=")
+      || util::starts_with(arg, "-fdiagnostics-set-output=")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
@@ -1095,6 +1097,52 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  // we don't support gcc's -fdiagnostics-add-output yet
+  if (arg == "-fdiagnostics-format=") {
+    using namespace std::string_view_literals;
+    auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
+    if (param == "sarif-file") {
+      args_info.generating_sarif = true;
+    }
+    state.add_compiler_only_arg(args[i]);
+    return Statistic::none;
+  }
+
+  const std::string_view msvc_sarif_switch = "-experimental:log";
+  if (util::starts_with(arg, msvc_sarif_switch)) {
+    state.add_compiler_only_arg(args[i]);
+    // The argument can be separated by space, but doesn't have to be.
+    std::string_view param;
+    if (arg.size() == msvc_sarif_switch.size()) {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      ++i;
+      param = args[i];
+      state.add_compiler_only_arg(args[i]);
+    } else {
+      param = std::string_view(arg).substr(msvc_sarif_switch.size());
+    }
+    args_info.generating_sarif = true;
+    // The param can be a filename or a dir (ends with '\'), both absolute or
+    // relative
+    bool was_folder = util::ends_with(param, "\\");
+    if (was_folder) {
+      args_info.output_sarif = param;
+    } else {
+      args_info.output_sarif = std::string(param) + ".sarif";
+    }
+    args_info.output_sarif =
+      core::make_relative_path(ctx, args_info.output_sarif);
+    if (was_folder) {
+      // core::make_relative_path removes the trailing '\', but we need it
+      // later. So add it back
+      args_info.output_sarif += '\\';
+    }
+    return Statistic::none;
+  }
+
   if (config.compiler_type() == CompilerType::gcc) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
@@ -1464,6 +1512,18 @@ process_args(Context& ctx)
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
         args_info.included_pch_file);
+    }
+  }
+
+  if (args_info.generating_sarif) {
+    if (ctx.config.is_compiler_group_msvc()) {
+      if (args_info.output_sarif.native().back() == '\\') {
+        args_info.output_sarif /=
+          args_info.input_file.stem().generic_string() + ".sarif";
+      }
+    } else {
+      args_info.output_sarif = args_info.input_file;
+      args_info.output_sarif.append(".sarif");
     }
   }
 
