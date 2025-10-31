@@ -482,6 +482,21 @@ remember_include_file(Context& ctx,
   return {};
 }
 
+// Check and hash a precompiled header file if it's included and not being
+// generated.
+static tl::expected<void, Failure>
+check_included_pch_file(Context& ctx, Hash& hash)
+{
+  if (!ctx.args_info.included_pch_file.empty()
+      && !ctx.args_info.generating_pch) {
+    fs::path pch_path =
+      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pch_path);
+    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
+  }
+  return {};
+}
+
 static void
 print_included_files(const Context& ctx, FILE* fp)
 {
@@ -678,13 +693,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
-  if (!ctx.args_info.included_pch_file.empty()
-      && !ctx.args_info.generating_pch) {
-    fs::path pch_path =
-      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
-  }
+  TRY(check_included_pch_file(ctx, hash));
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
@@ -729,13 +738,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
-  if (!ctx.args_info.included_pch_file.empty()
-      && !ctx.args_info.generating_pch) {
-    fs::path pch_path =
-      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
-  }
+  TRY(check_included_pch_file(ctx, hash));
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
@@ -789,13 +792,7 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 
   // Explicitly check the .pch file as it is not mentioned in the
   // includes output.
-  if (!ctx.args_info.included_pch_file.empty()
-      && !ctx.args_info.generating_pch) {
-    fs::path pch_path =
-      core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
-    TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
-  }
+  TRY(check_included_pch_file(ctx, hash));
 
   const bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
