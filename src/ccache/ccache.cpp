@@ -618,11 +618,17 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       while (!inc_path.empty() && inc_path.back() == '/') {
         inc_path.pop_back();
       }
+      fs::path inc_fs_path;
+      try {
+        inc_fs_path = inc_path;
+      } catch (const std::filesystem::filesystem_error&) {
+        return tl::unexpected(Failure(Statistic::unsupported_source_encoding));
+      }
       if (!ctx.config.base_dirs().empty()) {
         auto it = relative_inc_path_cache.find(inc_path);
         if (it == relative_inc_path_cache.end()) {
           std::string rel_inc_path =
-            util::pstr(core::make_relative_path(ctx, inc_path));
+            util::pstr(core::make_relative_path(ctx, inc_fs_path));
           relative_inc_path_cache.emplace(inc_path, rel_inc_path);
           inc_path = util::pstr(rel_inc_path);
         } else {
@@ -630,11 +636,11 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
         }
       }
 
-      if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(inc_path);
+      if (inc_fs_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
+        hash.hash(inc_fs_path);
       }
 
-      TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
+      TRY(remember_include_file(ctx, inc_fs_path, hash, system, nullptr));
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, incbin_directive, sizeof(incbin_directive)) == 0
                && ((q[7] == ' '
