@@ -175,10 +175,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
     break;
 
   case FileType::diagnostic:
-    if (m_ctx.args_info.generating_diagnostics) {
-      return m_ctx.args_info.output_dia;
-    }
-    break;
+    return m_ctx.args_info.output_dia;
 
   case FileType::dwarf_object:
     if (m_ctx.args_info.seen_split_dwarf

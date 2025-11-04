@@ -1089,8 +1089,9 @@ process_option_arg(const Context& ctx,
       LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
-    args_info.generating_diagnostics = true;
-    args_info.output_dia = core::make_relative_path(ctx, args[i + 1]);
+    state.add_compiler_only_arg(args[i]);
+    state.add_compiler_only_arg_no_hash(args[i + 1]);
+    args_info.output_dia = args[i + 1];
     i++;
     return Statistic::none;
   }

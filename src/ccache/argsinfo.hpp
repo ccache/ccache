@@ -106,10 +106,6 @@ struct ArgsInfo
   // -fcallgraph-info
   bool generating_callgraphinfo = false;
 
-  // Is the compiler being asked to generate diagnostics
-  // (--serialize-diagnostics)?
-  bool generating_diagnostics = false;
-
   // Are we generating a pch file (msvc -Yc)?
   bool generating_pch = false;
 

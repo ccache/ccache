@@ -1029,7 +1029,7 @@ write_result(Context& ctx,
     LOG("IPA clones file {} missing", ctx.args_info.output_ipa);
     return false;
   }
-  if (ctx.args_info.generating_diagnostics
+  if (!ctx.args_info.output_dia.empty()
       && !serializer.add_file(core::result::FileType::diagnostic,
                               ctx.args_info.output_dia)) {
     LOG("Diagnostics file {} missing", ctx.args_info.output_dia);
@@ -1200,11 +1200,6 @@ to_cache(Context& ctx,
     // output object file.
     std::ignore =
       util::remove_nfs_safe(ctx.args_info.output_obj, util::LogFailure::no);
-  }
-
-  if (ctx.args_info.generating_diagnostics) {
-    args.push_back("--serialize-diagnostics");
-    args.push_back(ctx.args_info.output_dia);
   }
 
   if (ctx.args_info.seen_double_dash) {
@@ -2865,7 +2860,7 @@ do_cache_compilation(Context& ctx)
   if (ctx.args_info.generating_callgraphinfo) {
     LOG("Callgraph info file: {}", ctx.args_info.output_ci);
   }
-  if (ctx.args_info.generating_diagnostics) {
+  if (!ctx.args_info.output_dia.empty()) {
     LOG("Diagnostics file: {}", ctx.args_info.output_dia);
   }
   if (!ctx.args_info.output_dwo.empty()) {
