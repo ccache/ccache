@@ -1342,6 +1342,32 @@ EOF
     expect_equal_text_content reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
+    if $COMPILER --serialize-diagnostics probe.dia -c test1.c 2>/dev/null; then
+        TEST "--serialize-diagnostics"
+
+        cat <<EOF >stderr.c
+int stderr(void)
+{
+  // Trigger warning by having no return statement.
+}
+EOF
+        $COMPILER -c -Wall -W -c stderr.c --serialize-diagnostics reference.dia 2>reference_stderr.txt
+
+        $CCACHE_COMPILE -Wall -W -c stderr.c --serialize-diagnostics test_1.dia 2>stderr_1.txt
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -Wall -W -c stderr.c --serialize-diagnostics test_2.dia 2>stderr_2.txt
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+
+        expect_equal_text_content reference_stderr.txt stderr_1.txt
+        expect_equal_text_content reference_stderr.txt stderr_2.txt
+        expect_equal_text_content reference.dia test_1.dia
+        expect_equal_text_content reference.dia test_2.dia
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Line number in compiler warning"
 
     cat <<'EOF' >hello.h
