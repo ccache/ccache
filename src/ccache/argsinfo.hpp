@@ -97,13 +97,13 @@ struct ArgsInfo
   // Is the compiler being asked to output coverage?
   bool generating_coverage = false;
 
-  // Is the compiler being asked to output stack usage?
+  // -fstack-usage specified.
   bool generating_stackusage = false;
 
-  // -fdump-ipa-clones
+  // -fdump-ipa-clones specified.
   bool generating_ipa_clones = false;
 
-  // -fcallgraph-info
+  // -fcallgraph-info specified.
   bool generating_callgraphinfo = false;
 
   // Are we generating a pch file (msvc -Yc)?
