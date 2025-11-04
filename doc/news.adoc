@@ -3720,8 +3720,8 @@ Release date: 2014-11-17
 - Compiler options `-fprofile-generate`, `-fprofile-arcs`, `-fprofile-use` and
   `-fbranch-probabilities` are now handled without bailing.
 
-- Added support for Clang's `--serialize-diagnostic` option, storing the
-  diagnostic file (`.dia`) in the cache.
+- Added support for Clang's `--serialize-diagnostics` option, storing the
+  diagnostics file (`.dia`) in the cache.
 
 - Added support for precompiled headers when using Clang.
 
