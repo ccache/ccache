@@ -1035,6 +1035,12 @@ write_result(Context& ctx,
     LOG("Diagnostics file {} missing", ctx.args_info.output_dia);
     return false;
   }
+  if (!ctx.args_info.output_sd.empty()
+      && !serializer.add_file(core::result::FileType::source_dependencies,
+                              ctx.args_info.output_sd)) {
+    LOG("Source dependencies file {} missing", ctx.args_info.output_sd);
+    return false;
+  }
   if (ctx.args_info.seen_split_dwarf
       // Only store .dwo file if it was created by the compiler (GCC and Clang
       // behave differently e.g. for "-gsplit-dwarf -g1").
@@ -2861,6 +2867,9 @@ do_cache_compilation(Context& ctx)
   }
   if (!ctx.args_info.output_dia.empty()) {
     LOG("Diagnostics file: {}", ctx.args_info.output_dia);
+  }
+  if (!ctx.args_info.output_sd.empty()) {
+    LOG("Source dependencies file: {}", ctx.args_info.output_sd);
   }
   if (!ctx.args_info.output_dwo.empty()) {
     LOG("Split dwarf file: {}", ctx.args_info.output_dwo);

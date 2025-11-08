@@ -1089,6 +1089,52 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  const std::string_view source_dep_directives_opt =
+    "-sourceDependencies:directives";
+  if (util::starts_with(arg, source_dep_directives_opt)) {
+    LOG("Compiler option {} is unsupported", args[i]);
+    return Statistic::unsupported_compiler_option;
+  }
+
+  const std::string_view source_dep_opt = "-sourceDependencies";
+  if (util::starts_with(arg, source_dep_opt)) {
+    // The generated file embeds absolute include paths resolved relative to the
+    // actual working directory even when -I uses relative paths. To avoid false
+    // positive cache hits across different working directories, bind the result
+    // key to the actual CWD.
+    //
+    // Note: A future alternative could be to instead disable direct/depend mode
+    // and let the preprocessor create the file instead.
+    LOG("Hashing current working directory since {} is used", arg);
+    state.hash_actual_cwd = true;
+
+    state.add_compiler_only_arg(args[i]);
+
+    if (arg == source_dep_opt) {
+      // /sourceDependencies FILE
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.add_compiler_only_arg_no_hash(args[i + 1]);
+      args_info.output_sd = args[i + 1];
+      ++i;
+    } else {
+      // /sourceDependenciesFILE
+      auto file = std::string_view(args[i]).substr(source_dep_opt.length());
+      if (file == "-") {
+        LOG("Compiler option {} is unsupported", args[i]);
+        return Statistic::unsupported_compiler_option;
+      }
+      if (fs::is_directory(file)) {
+        LOG("{} with directory ({}) is unsupported", args[i], file);
+        return Statistic::unsupported_compiler_option;
+      }
+      args_info.output_sd = file;
+    }
+    return Statistic::none;
+  }
+
   if (config.compiler_type() == CompilerType::gcc) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
