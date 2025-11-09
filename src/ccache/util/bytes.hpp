@@ -87,17 +87,12 @@ public:
 
   void push_back(uint8_t value) noexcept;
 
-  void insert(const uint8_t* pos,
-              const uint8_t* first,
-              const uint8_t* last) noexcept;
-  void
-  insert(const uint8_t* pos, const uint8_t* data, const size_t size) noexcept;
-  void insert(const uint8_t* pos, const char* first, const char* last) noexcept;
-  void insert(const uint8_t* pos, const char* data, size_t size) noexcept;
-  void insert(const uint8_t* pos, nonstd::span<const uint8_t> data) noexcept;
+  void insert(const void* pos, const void* first, const void* last) noexcept;
+  void insert(const void* pos, const void* data, size_t size) noexcept;
+  void insert(const void* pos, nonstd::span<const uint8_t> data) noexcept;
 
-  void erase(const uint8_t* pos, const size_t size) noexcept;
-  void erase(const uint8_t* first, const uint8_t* last) noexcept;
+  void erase(const void* pos, size_t size) noexcept;
+  void erase(const void* first, const void* last) noexcept;
 
 private:
   std::unique_ptr<uint8_t[]> m_data;
@@ -241,31 +236,26 @@ Bytes::clear() noexcept
 }
 
 inline void
-Bytes::insert(const uint8_t* pos,
-              const uint8_t* data,
-              const size_t size) noexcept
-{
-  return insert(pos, data, data + size);
-}
-
-inline void
-Bytes::insert(const uint8_t* pos, const char* first, const char* last) noexcept
+Bytes::insert(const void* pos, const void* first, const void* last) noexcept
 {
   return insert(pos,
-                reinterpret_cast<const uint8_t*>(first),
-                reinterpret_cast<const uint8_t*>(last));
+                first,
+                reinterpret_cast<const uint8_t*>(last)
+                  - reinterpret_cast<const uint8_t*>(first));
 }
 
 inline void
-Bytes::insert(const uint8_t* pos, const char* data, size_t size) noexcept
+Bytes::insert(const void* pos, nonstd::span<const uint8_t> data) noexcept
 {
-  return insert(pos, data, data + size);
+  return insert(pos, &*data.begin(), data.size());
 }
 
 inline void
-Bytes::insert(const uint8_t* pos, nonstd::span<const uint8_t> data) noexcept
+Bytes::erase(const void* first, const void* last) noexcept
 {
-  return insert(pos, &*data.begin(), &*data.end());
+  erase(first,
+        reinterpret_cast<const uint8_t*>(last)
+          - reinterpret_cast<const uint8_t*>(first));
 }
 
 } // namespace util

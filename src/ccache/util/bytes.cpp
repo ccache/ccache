@@ -127,35 +127,30 @@ Bytes::reserve(size_t size) noexcept
 }
 
 void
-Bytes::insert(const uint8_t* pos,
-              const uint8_t* first,
-              const uint8_t* last) noexcept
+Bytes::insert(const void* pos, const void* data, size_t size) noexcept
 {
-  const size_t inserted_size = last - first;
-  if (inserted_size == 0) {
+  if (size == 0) {
     return;
   }
-  const size_t offset = pos - m_data.get();
-  if (m_size + inserted_size > m_capacity) {
-    m_capacity = std::max(2 * m_capacity, m_size + inserted_size);
+  const size_t offset = reinterpret_cast<const uint8_t*>(pos) - m_data.get();
+  if (m_size + size > m_capacity) {
+    m_capacity = std::max(2 * m_capacity, m_size + size);
     // In C++20, use std::make_unique_for_overwrite instead.
     auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[m_capacity]);
     if (offset > 0) {
       std::memcpy(new_data.get(), m_data.get(), offset);
     }
     if (m_size > offset) {
-      std::memcpy(new_data.get() + offset + inserted_size,
-                  m_data.get() + offset,
-                  m_size - offset);
+      std::memcpy(
+        new_data.get() + offset + size, m_data.get() + offset, m_size - offset);
     }
     m_data = std::move(new_data);
   } else if (m_size > offset) {
-    std::memmove(m_data.get() + offset + inserted_size,
-                 m_data.get() + offset,
-                 m_size - offset);
+    std::memmove(
+      m_data.get() + offset + size, m_data.get() + offset, m_size - offset);
   }
-  std::memcpy(m_data.get() + offset, first, inserted_size);
-  m_size += inserted_size;
+  std::memcpy(m_data.get() + offset, data, size);
+  m_size += size;
 }
 
 void
@@ -176,24 +171,18 @@ Bytes::resize(size_t size) noexcept
 }
 
 void
-Bytes::erase(const uint8_t* pos, const size_t size) noexcept
+Bytes::erase(const void* pos, const size_t size) noexcept
 {
   if (size == 0) {
     return;
   }
-  const size_t offset = pos - m_data.get();
+  const size_t offset = reinterpret_cast<const uint8_t*>(pos) - m_data.get();
   if (offset + size < m_size) {
     std::memmove(m_data.get() + offset,
                  m_data.get() + offset + size,
                  m_size - offset - size);
   }
   m_size -= size;
-}
-
-void
-Bytes::erase(const uint8_t* first, const uint8_t* last) noexcept
-{
-  erase(first, last - first);
 }
 
 } // namespace util
