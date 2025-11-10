@@ -1225,7 +1225,6 @@ to_cache(Context& ctx,
 
   tl::expected<DoExecuteResult, Failure> result;
   result = do_execute(ctx, args);
-  args.pop_back(3);
 
   if (!result) {
     return tl::unexpected(result.error());
