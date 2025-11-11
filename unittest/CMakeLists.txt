@@ -28,6 +28,7 @@ set(
   test_util_exec.cpp
   test_util_expected.cpp
   test_util_file.cpp
+  test_util_json.cpp
   test_util_lockfile.cpp
   test_util_path.cpp
   test_util_string.cpp
