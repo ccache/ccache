@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,13 +18,20 @@
 
 #pragma once
 
-#include <filesystem>
-#include <string>
+#include <ccache/util/bytes.hpp>
+
+#include <string_view>
 #include <vector>
 
-namespace util {
+class Context;
 
-std::vector<std::string>
-split_preprocessed_file_from_clang_cuda(const std::filesystem::path& path);
+namespace compiler {
 
-} // namespace util
+std::vector<std::string_view>
+get_includes_from_msvc_show_includes(std::string_view file_content,
+                                     std::string_view prefix);
+
+util::Bytes strip_includes_from_msvc_show_includes(const Context& ctx,
+                                                   util::Bytes&& stdout_data);
+
+} // namespace compiler

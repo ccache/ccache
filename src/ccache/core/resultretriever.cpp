@@ -21,7 +21,6 @@
 #include <ccache/context.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
-#include <ccache/core/msvcshowincludesoutput.hpp>
 #include <ccache/depfile.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/expected.hpp>
@@ -70,7 +69,8 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
   if (file_type == FileType::stdout_output) {
     core::send_to_console(
       m_ctx,
-      util::to_string_view(MsvcShowIncludesOutput::strip_includes(m_ctx, data)),
+      util::to_string_view(
+        compiler::strip_includes_from_msvc_show_includes(m_ctx, data)),
       STDOUT_FILENO);
   } else if (file_type == FileType::stderr_output) {
     core::send_to_console(m_ctx, util::to_string_view(data), STDERR_FILENO);

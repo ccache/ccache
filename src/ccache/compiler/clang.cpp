@@ -28,7 +28,7 @@
 
 namespace fs = util::filesystem;
 
-namespace util {
+namespace compiler {
 
 std::vector<std::string>
 split_preprocessed_file_from_clang_cuda(const fs::path& path)
@@ -65,4 +65,4 @@ split_preprocessed_file_from_clang_cuda(const fs::path& path)
   return chunks;
 }
 
-} // namespace util
+} // namespace compiler

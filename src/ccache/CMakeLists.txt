@@ -79,6 +79,7 @@ endif()
 add_executable(test-lockfile test_lockfile.cpp)
 target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
 
+add_subdirectory(compiler)
 add_subdirectory(core)
 add_subdirectory(storage)
 add_subdirectory(util)

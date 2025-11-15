@@ -6,7 +6,6 @@ set(
   filerecompressor.cpp
   mainoptions.cpp
   manifest.cpp
-  msvcshowincludesoutput.cpp
   result.cpp
   resultextractor.cpp
   resultinspector.cpp

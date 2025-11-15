@@ -21,6 +21,8 @@
 
 #include <ccache/argprocessing.hpp>
 #include <ccache/argsinfo.hpp>
+#include <ccache/compiler/clang.hpp>
+#include <ccache/compiler/msvc.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/cacheentry.hpp>
@@ -28,7 +30,6 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/core/mainoptions.hpp>
 #include <ccache/core/manifest.hpp>
-#include <ccache/core/msvcshowincludesoutput.hpp>
 #include <ccache/core/result.hpp>
 #include <ccache/core/resultretriever.hpp>
 #include <ccache/core/sloppiness.hpp>
@@ -46,7 +47,6 @@
 #include <ccache/util/args.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
-#include <ccache/util/clang.hpp>
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
@@ -790,7 +790,8 @@ struct DoExecuteResult
 static tl::expected<Hash::Digest, Failure>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
-  for (std::string_view include : core::MsvcShowIncludesOutput::get_includes(
+  for (std::string_view include :
+       compiler::get_includes_from_msvc_show_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
     const fs::path path = core::make_relative_path(ctx, include);
     TRY(remember_include_file(ctx, path, hash, false, &hash));
@@ -1255,7 +1256,7 @@ to_cache(Context& ctx,
       ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
     core::send_to_console(
       ctx,
-      util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
+      util::to_string_view(compiler::strip_includes_from_msvc_show_includes(
         ctx, std::move(result->stdout_data))),
       STDOUT_FILENO);
 
@@ -1326,7 +1327,7 @@ to_cache(Context& ctx,
   // Send stdout after stderr, it makes the output clearer with MSVC.
   core::send_to_console(
     ctx,
-    util::to_string_view(core::MsvcShowIncludesOutput::strip_includes(
+    util::to_string_view(compiler::strip_includes_from_msvc_show_includes(
       ctx, std::move(result->stdout_data))),
     STDOUT_FILENO);
 
@@ -1468,7 +1469,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
       return tl::unexpected(Statistic::internal_error);
     }
     auto chunks =
-      util::split_preprocessed_file_from_clang_cuda(preprocessed_path);
+      compiler::split_preprocessed_file_from_clang_cuda(preprocessed_path);
     for (size_t i = 0; i < chunks.size(); ++i) {
       TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
     }

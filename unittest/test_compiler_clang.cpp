@@ -18,7 +18,7 @@
 
 #include "testutil.hpp"
 
-#include <ccache/util/clang.hpp>
+#include <ccache/compiler/clang.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 
@@ -30,9 +30,9 @@ namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
 
-TEST_SUITE_BEGIN("util");
+TEST_SUITE_BEGIN("clang");
 
-TEST_CASE("util::split_preprocessed_file_from_clang_cuda")
+TEST_CASE("compiler::split_preprocessed_file_from_clang_cuda")
 {
   TestContext test_context;
 
@@ -50,7 +50,7 @@ void caller() {
 # 1 "<built-in>" 3
 )"));
 
-    auto result = util::split_preprocessed_file_from_clang_cuda(filename);
+    auto result = compiler::split_preprocessed_file_from_clang_cuda(filename);
 
     REQUIRE(result.size() == 2);
     CHECK(result[0] == R"(# 1 "test_cuda.cu"
@@ -69,7 +69,7 @@ void caller() {
   SUBCASE("non-existent file")
   {
     fs::path filename = "nonexistent_file.txt";
-    CHECK(util::split_preprocessed_file_from_clang_cuda(filename).empty());
+    CHECK(compiler::split_preprocessed_file_from_clang_cuda(filename).empty());
   }
 
   SUBCASE("empty file")
@@ -77,7 +77,7 @@ void caller() {
     fs::path filename = "test_empty.txt";
     REQUIRE(util::write_file(filename, ""));
 
-    CHECK(util::split_preprocessed_file_from_clang_cuda(filename).empty());
+    CHECK(compiler::split_preprocessed_file_from_clang_cuda(filename).empty());
   }
 }
 

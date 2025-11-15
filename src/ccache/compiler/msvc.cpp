@@ -16,15 +16,16 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "msvcshowincludesoutput.hpp"
+#include "msvc.hpp"
 
 #include <ccache/context.hpp>
 #include <ccache/util/string.hpp>
 
-namespace core::MsvcShowIncludesOutput {
+namespace compiler {
 
 std::vector<std::string_view>
-get_includes(std::string_view file_content, std::string_view prefix)
+get_includes_from_msvc_show_includes(std::string_view file_content,
+                                     std::string_view prefix)
 {
   // /showIncludes output is written to stdout together with other messages.
   // Every line of it is "<prefix> <spaces> <file>" where the prefix is "Note:
@@ -49,7 +50,8 @@ get_includes(std::string_view file_content, std::string_view prefix)
 }
 
 util::Bytes
-strip_includes(const Context& ctx, util::Bytes&& stdout_data)
+strip_includes_from_msvc_show_includes(const Context& ctx,
+                                       util::Bytes&& stdout_data)
 {
   using util::Tokenizer;
   using Mode = Tokenizer::Mode;
@@ -72,4 +74,4 @@ strip_includes(const Context& ctx, util::Bytes&& stdout_data)
   return new_stdout_data;
 }
 
-} // namespace core::MsvcShowIncludesOutput
+} // namespace compiler

@@ -3,7 +3,6 @@ set(
   args.cpp
   assertions.cpp
   bytes.cpp
-  clang.cpp
   configreader.cpp
   cpu.cpp
   direntry.cpp
