@@ -97,9 +97,6 @@ public:
   // Is the dependency file set via -Wp,-M[M]D,target or -MFtarget?
   OutputDepOrigin output_dep_origin = OutputDepOrigin::none;
 
-  // Is the compiler being asked to output debug info on level 3?
-  bool generating_debuginfo_level_3 = false;
-
   // Arguments classified as input files.
   std::vector<fs::path> input_files;
 
@@ -791,12 +788,8 @@ process_option_arg(const Context& ctx,
     if (last_char == '0') {
       // "-g0", "-ggdb0" or similar: All debug information disabled.
       args_info.generating_debuginfo = false;
-      state.generating_debuginfo_level_3 = false;
     } else {
       args_info.generating_debuginfo = true;
-      if (last_char == '3') {
-        state.generating_debuginfo_level_3 = true;
-      }
       if (arg == "-gsplit-dwarf") {
         args_info.seen_split_dwarf = true;
       }
