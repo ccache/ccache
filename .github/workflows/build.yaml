@@ -418,6 +418,35 @@ jobs:
           path: install/bin/ccache.exe
           retention-days: 3
 
+  windows_tests:
+    timeout-minutes: 30
+    name: Windows integration tests
+    runs-on: windows-2022
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Build ccache
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -S . -B build-win64 -G Ninja -DCMAKE_BUILD_TYPE=Release
+          ninja -C build-win64 ccache
+
+      - name: Run MSVC integration tests
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          pytest test/msvc/ --ccache "%GITHUB_WORKSPACE%/build-win64/ccache.exe" -v
+
   specific_tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
