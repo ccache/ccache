@@ -1628,7 +1628,7 @@ static tl::expected<void, Failure>
 hash_compiler(const Context& ctx,
               Hash& hash,
               const DirEntry& dir_entry,
-              const std::string& path,
+              const fs::path& path,
               bool allow_command)
 {
   if (ctx.config.compiler_check() == "none") {
@@ -1733,6 +1733,53 @@ apply_prefix_remapping(const std::vector<std::string>& maps, fs::path& path)
   }
 }
 
+#ifdef __APPLE__
+static fs::path
+find_xcode_compiler(const fs::path& compiler_name)
+{
+  // Find the real compiler binary that /usr/bin/clang(++) invokes on macOS. The
+  // /usr/bin/clang(++) executables are shims that redirect to different
+  // compilers based on DEVELOPER_DIR or xcode-select configuration.
+  //
+  // Priority order, which mimics xcrun behavior:
+  //
+  // 1. Xcode toolchain installation
+  // 2. Command Line Tools (CLT)
+  //
+  // If not found, fall back to /usr/bin/<compiler_name>.
+
+  std::optional<fs::path> developer_dir = util::getenv_path("DEVELOPER_DIR");
+  if (!developer_dir) {
+    const fs::path xcode_select_link = "/var/db/xcode_select_link";
+    if (fs::exists(xcode_select_link)) {
+      auto content = util::read_file<std::string>(xcode_select_link);
+      if (content) {
+        developer_dir = util::strip_whitespace(*content);
+      }
+    }
+  }
+
+  if (developer_dir && fs::is_directory(*developer_dir)) {
+    // Try Xcode toolchain installation
+    const fs::path xcode_compiler =
+      *developer_dir / "Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      / compiler_name;
+    if (fs::is_regular_file(xcode_compiler)) {
+      return xcode_compiler;
+    }
+
+    // Try Command Line Tools (CLT) installation
+    const fs::path clt_compiler = *developer_dir / "usr/bin" / compiler_name;
+    if (fs::is_regular_file(clt_compiler)) {
+      return clt_compiler;
+    }
+  }
+
+  // Fall back to the shim itself (shouldn't normally happen).
+  return fs::path("/usr/bin") / compiler_name;
+}
+#endif
+
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
 hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
@@ -1750,9 +1797,15 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   hash.hash(ctx.config.cpp_extension());
 
 #ifdef _WIN32
-  const std::string compiler_path = util::add_exe_suffix(args[0]);
+  const fs::path compiler_path = util::add_exe_suffix(args[0]);
+#elif defined(__APPLE__)
+  // Try to find the real compiler that /usr/bin/clang(++) runs.
+  const fs::path compiler_path =
+    args[0] == "/usr/bin/clang" || args[0] == "/usr/bin/clang++"
+      ? find_xcode_compiler(fs::path(args[0]).filename())
+      : fs::path(args[0]);
 #else
-  const std::string& compiler_path = args[0];
+  const fs::path compiler_path = args[0];
 #endif
 
   DirEntry dir_entry(compiler_path, DirEntry::LogOnError::yes);
