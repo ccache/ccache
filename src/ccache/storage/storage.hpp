@@ -36,7 +36,7 @@
 
 namespace storage {
 
-constexpr auto k_redacted_password = "********";
+constexpr auto k_redacted_secret = "********";
 
 std::vector<std::string> get_features();
 

@@ -310,12 +310,12 @@ RedisStorageBackend::authenticate(const Url& url)
   if (password) {
     if (user) {
       // redis://user:password@host
-      LOG("Redis AUTH {} {}", *user, storage::k_redacted_password);
+      LOG("Redis AUTH {} {}", *user, storage::k_redacted_secret);
       util::value_or_throw<Failed>(
         redis_command("AUTH %s %s", user->c_str(), password->c_str()));
     } else {
       // redis://password@host
-      LOG("Redis AUTH {}", storage::k_redacted_password);
+      LOG("Redis AUTH {}", storage::k_redacted_secret);
       util::value_or_throw<Failed>(redis_command("AUTH %s", password->c_str()));
     }
   }

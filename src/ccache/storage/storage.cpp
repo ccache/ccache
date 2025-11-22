@@ -250,7 +250,7 @@ get_redacted_url_str_for_logging(const Url& url)
 {
   Url redacted_url(url);
   if (!url.user_info().empty()) {
-    redacted_url.user_info(k_redacted_password);
+    redacted_url.user_info(k_redacted_secret);
   }
   return redacted_url.str();
 }

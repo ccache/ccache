@@ -321,8 +321,8 @@ HttpStorage::redact_secrets(std::vector<Backend::Attribute>& attributes) const
       return attr.key == "bearer-token";
     });
   if (bearer_token_attribute != attributes.end()) {
-    bearer_token_attribute->value = storage::k_redacted_password;
-    bearer_token_attribute->raw_value = storage::k_redacted_password;
+    bearer_token_attribute->value = storage::k_redacted_secret;
+    bearer_token_attribute->raw_value = storage::k_redacted_secret;
   }
 }
 
