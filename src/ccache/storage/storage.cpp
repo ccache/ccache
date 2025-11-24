@@ -468,7 +468,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
       continue;
     }
 
-    Timer timer;
+    util::Timer timer;
     auto result = backend->impl->get(key);
     const auto ms = timer.measure_ms();
     if (!result) {
@@ -516,7 +516,7 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
       continue;
     }
 
-    Timer timer;
+    util::Timer timer;
     const auto result = backend->impl->put(key, value, overwrite);
     const auto ms = timer.measure_ms();
     if (!result) {
@@ -544,7 +544,7 @@ Storage::remove_from_remote_storage(const Hash::Digest& key)
       continue;
     }
 
-    Timer timer;
+    util::Timer timer;
     const auto result = backend->impl->remove(key);
     const auto ms = timer.measure_ms();
     if (!result) {

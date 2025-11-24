@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,6 +20,8 @@
 
 #include <chrono>
 #include <string>
+
+namespace util {
 
 class Timer
 {
@@ -50,3 +52,5 @@ Timer::measure_ms() const
 {
   return measure_s() * 1000;
 }
+
+} // namespace util
