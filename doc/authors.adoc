@@ -18,6 +18,7 @@ Ccache is a collective work with contributions from many people, including:
 * Andrea Bittau
 * Andreas Huber
 * Andreas Reischuck
+* Andrej Zhilenkov
 * André Klitzing
 * Andrew Boie
 * Andrew Hardin
@@ -48,6 +49,7 @@ Ccache is a collective work with contributions from many people, including:
 * Enrico Sorichetti
 * Erik Flodin
 * Evangelos Foutras
+* Evgeniy Isaev
 * Florin Trofin
 * Francois Marier
 * Gabriel Scherer
@@ -70,6 +72,7 @@ Ccache is a collective work with contributions from many people, including:
 * Jiri Hörner
 * Jiri Slaby
 * Jiulong Wang
+* J. Neuschäfer
 * Joel Galenson
 * Joel Rosdahl
 * John Basila
