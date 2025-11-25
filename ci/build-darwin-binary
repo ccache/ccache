@@ -26,8 +26,8 @@ for i in "$@"; do
     FILES="${FILES} build_$i/ccache"
 done
 
-mkdir -p install/bin
-lipo -create $FILES -output install/bin/ccache
-lipo -info install/bin/ccache
+mkdir -p install
+lipo -create $FILES -output install/ccache
+lipo -info install/ccache
 
 find install -ls

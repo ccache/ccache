@@ -32,8 +32,8 @@ prepare_posix_binary_release() {
     chmod +x "${name}/ccache"
     cp misc/Makefile.posix-binary-release "${name}/Makefile"
     cp GPL-3.0.txt README.md "${name}"
-    cp docs/install/share/doc/ccache/* "${name}"
-    cp docs/install/share/man/man1/ccache.1 "${name}"
+    cp docs/install/usr/local/share/doc/ccache/* "${name}"
+    cp docs/install/usr/local/share/man/man1/ccache.1 "${name}"
     tar -caf "release/${name}.tar.${compression}" "${name}"
 }
 
@@ -59,7 +59,7 @@ prepare_windows_binary_release() {
     local name="ccache-${VERSION}-${arch}"
     mkdir "${name}"
     cp "${arch}-binary/ccache.exe" "${name}"
-    cp docs/install/share/doc/ccache/* "${name}"
+    cp "docs/install/usr/local/share/doc/ccache"/* "${name}"
     zip -r "release/${name}.zip" "${name}"
 }
 

@@ -16,4 +16,5 @@ cmake --build .
 DESTDIR=$(pwd)/../install cmake --install . --strip
 
 cd ..
+find install -name 'ccache*' -type f -exec mv '{}' install ';'
 find install -ls

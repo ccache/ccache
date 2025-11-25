@@ -304,7 +304,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-aarch64-binary
-          path: install/bin/ccache
+          path: install/ccache
           retention-days: 3
 
   build_linux_x86_64_binary:
@@ -342,7 +342,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64-binary
-          path: install/bin/ccache
+          path: install/ccache
           retention-days: 3
 
   build_darwin_binary:
@@ -360,7 +360,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: darwin-binary
-          path: install/bin/ccache
+          path: install/ccache
           retention-days: 3
 
   build_windows_binary:
@@ -411,7 +411,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}-binary
-          path: install/bin/ccache.exe
+          path: install/ccache.exe
           retention-days: 3
 
   specific_tests:
