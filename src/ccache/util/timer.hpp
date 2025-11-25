@@ -31,13 +31,15 @@ public:
   double measure_s() const;
   double measure_ms() const;
 
+  void reset();
+
 private:
   std::chrono::steady_clock::time_point m_start;
 };
 
 inline Timer::Timer()
-  : m_start(std::chrono::steady_clock::now())
 {
+  reset();
 }
 
 inline double
@@ -51,6 +53,12 @@ inline double
 Timer::measure_ms() const
 {
   return measure_s() * 1000;
+}
+
+inline void
+Timer::reset()
+{
+  m_start = std::chrono::steady_clock::now();
 }
 
 } // namespace util
