@@ -10,11 +10,10 @@ cmake \
     -D CMAKE_BUILD_TYPE=Release \
     -D DEPS=DOWNLOAD \
     -D ENABLE_TESTING=OFF \
-    -D CMAKE_INSTALL_PREFIX=$(pwd)/../install \
     ${CMAKE_PARAMS} \
     ..
 cmake --build .
-cmake --install . --strip
+DESTDIR=$(pwd)/../install cmake --install . --strip
 
 cd ..
 find install -ls
