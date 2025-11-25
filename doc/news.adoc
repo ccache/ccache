@@ -1,5 +1,60 @@
 = Ccache news
 
+== Ccache 4.12.2
+
+Release date: 2025-11-26
+
+=== Bug fixes
+
+- Improved robustness against filesystem path encoding problems on Windows. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed removal of mismatching manifest file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build fixes
+
+- Fixed build of BLAKE3 for little-endian aarch64 with CMake 3.18/3.19. +
+  [small]#_[contributed by J. Neuschäfer]_#
+
+- Added linking with libsocket on SunOS/Illumos. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Fixed profiling_clang test. +
+  [small]#_[contributed by Evgeniy Isaev]_#
+
+
+=== Documentation improvements
+
+- Reconciled max-size suffixes in documentation. +
+  [small]#_[contributed by Andrej Zhilenkov]_#
+
+- Improved documentation on statistics counters and --zero-stats. +
+  [small]#_[contributed by Joel Rosdahl and Otto Kekäläinen]_#
+
+- Added note that sloppiness values can be whitespace-separated. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Updated URLs in manual and news. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Other
+
+- Fixed default sysconf dir in Linux binary releases. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed typo in CcacheVersion.cmake. +
+  [small]#_[contributed by Andrej Zhilenkov]_#
+
+- Updated C++ standard in .clang-format. +
+  [small]#_[contributed by Evgeniy Isaev]_#
+
+
 == Ccache 4.12.1
 
 Release date: 2025-10-01
