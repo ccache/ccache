@@ -735,6 +735,16 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg.starts_with("-fthinlto-index=")) {
+    std::string thinlto_index = arg.substr(arg.find('=') + 1);
+    args_info.thinlto_index_path = thinlto_index;
+    // Thinlto backend phase, the extension of input file is .o but the file is
+    // IR. So treat it as assembler file.
+    args_info.actual_language = "assembler";
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   if (arg.starts_with("-fdebug-compilation-dir")
       || arg.starts_with("-ffile-compilation-dir")) {
     std::string compilation_dir;

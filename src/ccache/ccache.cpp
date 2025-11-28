@@ -2376,6 +2376,9 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
   // For profile usage (-fprofile(-instr|-sample)-use, -fbranch-probabilities):
   // - hash profile data
   //
+  // For distributed thinlto (-fthinlto-index):
+  // - hash thinlto index data
+  //
   // -fbranch-probabilities and -fvpt usage is covered by
   // -fprofile-generate/-fprofile-use.
   //
@@ -2407,6 +2410,16 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
   if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {
     LOG_RAW("No profile data file found");
     return tl::unexpected(Statistic::no_input_file);
+  }
+
+  if (!ctx.args_info.thinlto_index_path.empty()) {
+    LOG("Adding thinlto index '{}' to our hash",
+        ctx.args_info.thinlto_index_path);
+    hash.hash_delimiter("-fthinlto-index");
+    if (!hash_binary_file(ctx, hash, ctx.args_info.thinlto_index_path)) {
+      LOG_RAW("No thinlto index file found");
+      return tl::unexpected(Statistic::no_input_file);
+    }
   }
 
   return {};
