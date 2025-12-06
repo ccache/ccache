@@ -21,8 +21,10 @@
 #include <ccache/util/fd.hpp>
 
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class Context;
@@ -35,13 +37,14 @@ int execute(Context& ctx,
 void execute_noreturn(const char* const* argv,
                       const std::filesystem::path& temp_dir);
 
-// Find an executable named `name` in `$PATH`. Exclude any executables that are
-// links to `exclude_path`.
-std::string find_executable(const Context& ctx,
-                            const std::string& name,
-                            const std::string& exclude_path);
+// Find an executable named `name` in `$PATH` that is not a ccache executable.
+// Exclude any executables that are links to `exclude_path`.
+std::string find_non_ccache_executable(const Context& ctx,
+                                       const std::string& name,
+                                       const std::string& exclude_path);
 
 std::filesystem::path find_executable_in_path(
-  const std::string& name,
+  std::string_view name,
   const std::vector<std::filesystem::path>& path_list,
-  const std::optional<std::filesystem::path>& exclude_path = std::nullopt);
+  const std::optional<std::filesystem::path>& exclude_path = std::nullopt,
+  std::function<bool(const std::filesystem::path&)> extra_check = {});

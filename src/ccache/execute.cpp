@@ -364,9 +364,9 @@ execute_noreturn(const char* const* argv, const fs::path& /*temp_dir*/)
 #endif
 
 std::string
-find_executable(const Context& ctx,
-                const std::string& name,
-                const std::string& exclude_path)
+find_non_ccache_executable(const Context& ctx,
+                           const std::string& name,
+                           const std::string& exclude_path)
 {
   if (fs::path(name).is_absolute()) {
     return name;
@@ -381,13 +381,15 @@ find_executable(const Context& ctx,
     return {};
   }
 
-  return find_executable_in_path(name, path_list, exclude_path).string();
+  auto check = [](const fs::path& path) { return !is_ccache_executable(path); };
+  return find_executable_in_path(name, path_list, exclude_path, check).string();
 }
 
 fs::path
-find_executable_in_path(const std::string& name,
+find_executable_in_path(std::string_view name,
                         const std::vector<fs::path>& path_list,
-                        const std::optional<fs::path>& exclude_path)
+                        const std::optional<fs::path>& exclude_path,
+                        std::function<bool(const fs::path&)> extra_check)
 {
   if (path_list.empty()) {
     return {};
@@ -425,7 +427,7 @@ find_executable_in_path(const std::string& name,
       if (candidate_exists) {
         auto real_candidate = fs::canonical(candidate);
         if (real_candidate && *real_candidate != real_exclude_path
-            && !is_ccache_executable(*real_candidate)) {
+            && (!extra_check || extra_check(*real_candidate))) {
           return candidate;
         }
       }

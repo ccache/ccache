@@ -189,7 +189,8 @@ add_prefix(const Context& ctx,
   }
 
   if (!prefixes.empty() && !util::is_full_path(prefixes[0])) {
-    std::string path = find_executable(ctx, prefixes[0], ctx.orig_args[0]);
+    std::string path =
+      find_non_ccache_executable(ctx, prefixes[0], ctx.orig_args[0]);
     if (path.empty()) {
       throw core::Fatal(FMT("{}: {}", prefixes[0], strerror(errno)));
     }
@@ -1693,7 +1694,8 @@ hash_nvcc_host_compiler(const Context& ctx,
           TRY(hash_compiler(ctx, hash, de, path, false));
         }
       } else {
-        std::string path = find_executable(ctx, compiler, ctx.orig_args[0]);
+        std::string path =
+          find_non_ccache_executable(ctx, compiler, ctx.orig_args[0]);
         if (!path.empty()) {
           DirEntry de(path, DirEntry::LogOnError::yes);
           TRY(hash_compiler(ctx, hash, de, ccbin, false));
@@ -2782,7 +2784,7 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
 
   ctx.storage.initialize();
 
-  find_compiler(ctx, &find_executable, masquerading_as_compiler);
+  find_compiler(ctx, &find_non_ccache_executable, masquerading_as_compiler);
 
   // Guess compiler after logging the config value in order to be able to
   // display "compiler_type = auto" before overwriting the value with the
