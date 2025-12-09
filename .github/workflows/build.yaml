@@ -36,20 +36,8 @@ jobs:
             version: "11"
 
           - os: ubuntu-22.04
-            compiler: gcc
-            version: "12"
-
-          - os: ubuntu-22.04
-            compiler: clang
-            version: "13"
-
-          - os: ubuntu-22.04
             compiler: clang
             version: "14"
-
-          - os: ubuntu-22.04
-            compiler: clang
-            version: "15"
 
           - os: ubuntu-22.04-arm
             compiler: gcc
@@ -62,14 +50,6 @@ jobs:
           - os: ubuntu-24.04
             compiler: gcc
             version: "14"
-
-          - os: ubuntu-24.04
-            compiler: clang
-            version: "16"
-
-          - os: ubuntu-24.04
-            compiler: clang
-            version: "17"
 
           - os: ubuntu-24.04
             compiler: clang
@@ -489,17 +469,7 @@ jobs:
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
-          - name: Windows VS2022 32-bit Ninja
-            os: windows-2022
-            msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
-            TEST_CC: clang -target i686-pc-windows-msvc
-
-          - name: Windows VS2022 32-bit MSBuild
+          - name: Windows VS2022 32-bit
             os: windows-2022
             msvc_arch: x64_x86
             allow_test_failures: true  # For now, don't fail the build on failure
@@ -509,17 +479,7 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A Win32
             TEST_CC: clang -target i686-pc-windows-msvc
 
-          - name: Windows VS2022 64-bit Ninja
-            os: windows-2022
-            msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
-            TEST_CC: clang -target x86_64-pc-windows-msvc
-
-          - name: Windows VS2022 64-bit MSBuild
+          - name: Windows VS2022 64-bit
             os: windows-2022
             msvc_arch: x64
             allow_test_failures: true  # For now, don't fail the build on failure
@@ -529,7 +489,7 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -A x64
             TEST_CC: clang -target x86_64-pc-windows-msvc
 
-          - name: Windows VS2022 ARM64 MSBuild
+          - name: Windows VS2022 ARM64
             os: windows-11-arm
             msvc_arch: ARM64
             allow_test_failures: true  # For now, don't fail the build on failure
