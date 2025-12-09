@@ -501,10 +501,10 @@ export LC_ALL=C
 
 trap terminate_all_children EXIT # also clean up after exceptional code flow
 
-if pwd | grep '[^A-Za-z0-9/.,=_%+-]' >/dev/null 2>&1; then
+if pwd | grep '[^A-Za-z0-9/.,=_:%+-]' >/dev/null 2>&1; then
     cat <<EOF
 Error: The test suite doesn't work in directories with whitespace or other
-funny characters in the name. Sorry.
+funny characters in the name, sorry. CWD: [$(pwd)]
 EOF
     exit 1
 fi
