@@ -1661,19 +1661,25 @@ EOF
     # -------------------------------------------------------------------------
     TEST "-march=native, GCC"
 
-    CC1_ARGS=one $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    if $HOST_OS_WINDOWS; then
+        compiler="$TEST_BASE_DIR/fake-compilers/gcc-march-native-win.sh"
+    else
+        compiler="$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh"
+    fi
+
+    CC1_ARGS=one $CCACHE "${compiler}" -march=native -c test1.c
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    CC1_ARGS=one $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    CC1_ARGS=one $CCACHE "${compiler}" -march=native -c test1.c
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
-    CC1_ARGS=two $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    CC1_ARGS=two $CCACHE "${compiler}" -march=native -c test1.c
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 2
 
-    CC1_ARGS=two $CCACHE "$TEST_BASE_DIR/fake-compilers/gcc-march-native.sh" -march=native -c test1.c
+    CC1_ARGS=two $CCACHE "${compiler}" -march=native -c test1.c
     expect_stat preprocessed_cache_hit 2
     expect_stat cache_miss 2
 
