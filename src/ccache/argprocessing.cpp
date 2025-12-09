@@ -75,6 +75,7 @@ class ArgumentProcessingState
 public:
   std::optional<std::string> found_c_opt;
   std::optional<std::string> found_dc_opt;
+  bool found_E_opt = false;
   bool found_S_opt = false;
   bool found_analyze_opt = false;
   bool found_pch = false;
@@ -412,7 +413,13 @@ process_option_arg(const Context& ctx,
 
   // Special case for -E.
   if (arg == "-E") {
-    return Statistic::called_for_preprocessing;
+    // -E can only be cached efficiently in direct mode or depend mode, since
+    // otherwise we'd have to run the preprocessor just to compute the hash.
+    if (!ctx.config.direct_mode() && !ctx.config.depend_mode()) {
+      return Statistic::called_for_preprocessing;
+    }
+    state.found_E_opt = true;
+    return Statistic::none;
   }
   // MSVC -P is -E with output to a file.
   if (arg == "-P" && ctx.config.is_compiler_group_msvc()) {
@@ -1408,9 +1415,9 @@ process_args(Context& ctx)
   std::reverse(args_info.coverage_prefix_maps.begin(),
                args_info.coverage_prefix_maps.end());
 
-  const bool is_link =
-    !(state.found_c_opt || state.found_dc_opt || state.found_S_opt
-      || state.found_syntax_only || state.found_analyze_opt);
+  const bool is_link = !(state.found_c_opt || state.found_E_opt
+                         || state.found_dc_opt || state.found_S_opt
+                         || state.found_syntax_only || state.found_analyze_opt);
 
   if (state.input_files.empty()) {
     LOG_RAW("No input file found");
@@ -1473,6 +1480,8 @@ process_args(Context& ctx)
     std::string_view extension;
     if (state.found_analyze_opt) {
       extension = ".plist";
+    } else if (state.found_E_opt) {
+      extension = ".i";
     } else if (state.found_S_opt) {
       extension = ".s";
     } else {
@@ -1761,6 +1770,10 @@ process_args(Context& ctx)
 
   if (state.found_c_opt) {
     state.add_compiler_only_arg_no_hash(*state.found_c_opt);
+  }
+
+  if (state.found_E_opt) {
+    state.add_compiler_only_arg_no_hash("-E");
   }
 
   if (state.found_dc_opt) {
