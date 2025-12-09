@@ -7,7 +7,7 @@ if [ "$1" = "-###" ]; then
 ...
 InstalledDir: /usr/bin
  (in-process)
- "/example/bin/clang" "-cc1" $CC1_ARGS
+ "/example/bin/clang" "-cc1" "-target-cpu" "$CC1_ARGS"
 EOF
     echo "bin/cc1"
 elif [ "$1" = "-E" ]; then

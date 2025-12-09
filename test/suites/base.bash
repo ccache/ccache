@@ -1677,6 +1677,23 @@ EOF
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
+    if $COMPILER -march=native -c test1.c 2>/dev/null; then
+        TEST "-march=native, no CWD in input hash"
+        mkdir a b
+        cp test1.c a
+        cp test1.c b
+        cd a
+        $CCACHE_COMPILE -march=native -c test1.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        cd ../b
+        $CCACHE_COMPILE -march=native -c test1.c
+        cd ..
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Handling of compiler-only arguments"
 
     cat >compiler.sh <<EOF
