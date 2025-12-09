@@ -2045,10 +2045,34 @@ hash_native_args(Context& ctx, const util::Args& native_args, Hash& hash)
 
   hash.hash_delimiter(native_args.to_string());
 
-  // We could potentially work out exactly which options -m*=native expand to
-  // and hash only those, but to keep things simple we include the full line
-  // where cc1 was found for now.
-  hash.hash(*line_to_hash);
+  if (ctx.config.is_compiler_group_clang()) {
+    // For Clang, extract and hash only architecture-related options to avoid
+    // hashing CWD-dependent paths like -fdebug-compilation-dir and
+    // -fcoverage-compilation-dir which cause cache misses when compiling from
+    // different directories.
+    //
+    // We specifically look for:
+    //
+    // - "-target-cpu" followed by CPU name (e.g., "alderlake")
+    // - "-tune-cpu" followed by CPU name
+    // - "-target-feature" followed by feature flag (e.g., "+avx2", "-avx512f")
+    bool hash_value = false;
+    for (const auto token : util::Tokenizer(*line_to_hash, " ")) {
+      if (hash_value) {
+        hash.hash(' ');
+        hash.hash(token);
+        hash_value = false;
+      } else if (token == "\"-target-cpu\"" || token == "\"-tune-cpu\""
+                 || token == "\"-target-feature\"") {
+        hash.hash(token);
+        hash_value = true;
+      }
+    }
+  } else {
+    // For GCC, the full line should be safe to hash as it doesn't contain
+    // CWD-dependent paths.
+    hash.hash(*line_to_hash);
+  }
 
   return {};
 }
