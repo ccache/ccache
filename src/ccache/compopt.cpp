@@ -148,7 +148,7 @@ const CompOpt compopts[] = {
   {"-install_name",           TAKES_ARG                                              }, // Darwin linker option
   {"-iprefix",                AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-iquote",                 AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
-  {"-isysroot",               AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+  {"-isysroot",               AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG             }, // no TAKES_PATH
   {"-isystem",                AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-ivfsoverlay",            TAKES_ARG | TAKES_PATH                                 },
   {"-ivfsstatcache",          TAKES_ARG                                              },

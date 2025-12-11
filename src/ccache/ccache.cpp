@@ -2194,6 +2194,18 @@ hash_argument(const Context& ctx,
     return {};
   }
 
+  // -isysroot should not be rewritten to a relative path since Clang
+  // does not resolve it and uses it literally (e.g., for --relocatable-pch).
+  // But we hash relative path (with basedir) to allow cache sharing
+  // across different build directories.
+  if (const auto [option, path] = get_option_and_value("-isysroot", args, i);
+      option) {
+    hash.hash_delimiter("arg");
+    hash.hash("-isysroot");
+    hash.hash(core::make_relative_path(ctx, *path));
+    return {};
+  }
+
   if (util::starts_with(args[i], "-frandom-seed=")
       && ctx.config.sloppiness().contains(core::Sloppy::random_seed)) {
     LOG("Ignoring {} since random_seed sloppiness is requested", args[i]);
