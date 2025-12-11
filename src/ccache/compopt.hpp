@@ -28,6 +28,7 @@ bool compopt_affects_compiler_output(std::string_view option);
 bool compopt_too_hard(std::string_view option);
 bool compopt_too_hard_for_direct_mode(std::string_view option);
 bool compopt_takes_path(std::string_view option);
+bool compopt_takes_path_abs(std::string_view option);
 bool compopt_takes_arg(std::string_view option);
 bool compopt_takes_concat_arg(std::string_view option);
 bool compopt_prefix_affects_cpp_output(std::string_view option);

@@ -74,6 +74,12 @@ TEST_CASE("compopt_takes_path")
   CHECK(!compopt_takes_path("-L"));
 }
 
+TEST_CASE("compopt_takes_path_abs")
+{
+  CHECK(compopt_takes_path_abs("-isysroot"));
+  CHECK(!compopt_takes_path_abs("-I"));
+}
+
 TEST_CASE("compopt_takes_arg")
 {
   CHECK(compopt_takes_arg("-Xlinker"));
