@@ -31,7 +31,7 @@ EOF
     cat <<EOF >pch2.c
 int main()
 {
-  void *p = NULL;
+  void *p = 0;
   return 0;
 }
 EOF
@@ -49,6 +49,7 @@ SUITE_pch() {
     #   -fpch-preprocess and does not output pragma GCC pch_preprocess.
     # - Clang has -include-pch to directly include a PCH file without any magic
     #   of searching for a .gch file.
+    # - Clang has --relocatable-pch which requires special handling
     #
     # Put tests that work with both compilers in pch_suite_common and put
     # compiler-specific tests in pch_suite_clang/pch_suite_gcc.
@@ -857,4 +858,32 @@ EOF
     expect_stat direct_cache_hit 2
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "Use relocatable pch with basedir and -isysroot to cache between different directories"
+
+    mkdir -p dir1/sysroot dir2/sysroot
+    cp pch2.c dir1/
+    cp pch2.c dir2/
+
+    cd dir1
+    CCACHE_DEBUG=1 CCACHE_BASEDIR="$(pwd)" CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" \
+        $CCACHE_COMPILE --relocatable-pch -isysroot "$(pwd)/sysroot" -c pch2.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+if  $HOST_OS_WINDOWS; then
+    dir1_pwd=$(cygpath -m $(pwd))
+else
+    dir1_pwd=$(pwd)
+fi
+    # Check that the absolute path is passed to the compiler
+    if ! grep -q "Executing.*-isysroot ${dir1_pwd}/sysroot" pch2.o.*.ccache-log; then
+        test_failed "absolute -isysroot path does not appear in ccache logs"
+    fi
+
+    cd ../dir2
+    CCACHE_BASEDIR="$(pwd)" CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" \
+        $CCACHE_COMPILE --relocatable-pch -isysroot "$(pwd)/sysroot" -c pch2.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
 }

@@ -150,6 +150,9 @@ struct ArgsInfo
   // header it generates.
   bool fno_pch_timestamp = false;
 
+  // Whether Clang is given the relocatable pch argument.
+  bool relocatable_pch = false;
+
   // Files referenced by -fsanitize-blacklist options.
   std::vector<std::filesystem::path> sanitize_blacklists;
 

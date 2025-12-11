@@ -2194,6 +2194,18 @@ hash_argument(const Context& ctx,
     return {};
   }
 
+  // When invoked with --relocatable-pch, rewrite "-isysroot" entry in cache
+  // to be relative.
+  if (ctx.args_info.relocatable_pch) {
+    if (const auto [option, path] = get_option_and_value("-isysroot", args, i);
+        option && path) {
+      hash.hash_delimiter("arg");
+      hash.hash("-isysroot");
+      hash.hash(core::make_relative_path(ctx, *path));
+      return {};
+    }
+  }
+
   if (util::starts_with(args[i], "-frandom-seed=")
       && ctx.config.sloppiness().contains(core::Sloppy::random_seed)) {
     LOG("Ignoring {} since random_seed sloppiness is requested", args[i]);

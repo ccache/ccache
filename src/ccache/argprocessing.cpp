@@ -1193,6 +1193,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg == "--relocatable-pch") {
+    args_info.relocatable_pch = true;
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   if (arg == "-fpch-preprocess") {
     state.found_fpch_preprocess = true;
     state.add_common_arg(args[i]);
