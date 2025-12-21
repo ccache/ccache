@@ -818,18 +818,26 @@ process_option_arg(const Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if ((arg == "-MD" || arg == "-MMD") && !config.is_compiler_group_msvc()) {
+  if (!config.is_compiler_group_msvc()
+      && (arg == "-MD"
+          || arg == "-MMD"
+          // nvcc -MD:
+          || arg == "--generate-dependencies-with-compile"
+          // nvcc -MMD:
+          || arg == "--generate-nonsystem-dependencies-with-compile")) {
     state.found_md_or_mmd_opt = true;
     args_info.generating_dependencies = true;
     state.add_compiler_only_arg(args[i]);
     return Statistic::none;
   }
 
-  if (util::starts_with(arg, "-MF")) {
+  if (util::starts_with(arg, "-MF")
+      // nvcc -MF:
+      || arg == "--dependency-output") {
     state.found_mf_opt = true;
 
     std::string dep_file;
-    bool separate_argument = (arg.size() == 3);
+    bool separate_argument = (arg.size() == 3 || arg == "--dependency-output");
     if (separate_argument) {
       // -MF arg
       if (i == args.size() - 1) {
@@ -857,12 +865,15 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if ((util::starts_with(arg, "-MQ") || util::starts_with(arg, "-MT"))
-      && !config.is_compiler_group_msvc()) {
+  if (!config.is_compiler_group_msvc()
+      && (util::starts_with(arg, "-MQ")
+          || util::starts_with(arg, "-MT")
+          // nvcc -MT:
+          || arg == "--dependency-target-name")) {
     const bool is_mq = arg[2] == 'Q';
 
     std::string_view dep_target;
-    if (arg.size() == 3) {
+    if (arg.size() == 3 || arg == "--dependency-target-name") {
       // -MQ arg or -MT arg
       if (i == args.size() - 1) {
         LOG("Missing argument to {}", args[i]);
@@ -1067,7 +1078,9 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (arg == "-MP") {
+  if (arg == "-MP"
+      // nvcc -MP:
+      || arg == "--generate-dependency-targets") {
     state.add_compiler_only_arg(args[i]);
     return Statistic::none;
   }

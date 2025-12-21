@@ -49,6 +49,7 @@ struct CompOpt
   int type;
 };
 
+// clang-format off
 const CompOpt compopts[] = {
   {"--Werror",                TAKES_ARG | AFFECTS_COMP                               }, // nvcc
   {"--analyzer-output",       TOO_HARD                                               }, // Clang
@@ -57,6 +58,8 @@ const CompOpt compopts[] = {
   {"--config",                TAKES_ARG                                              }, // Clang
   {"--em-config",             TAKES_ARG                                              }, // emcc
   {"--gcc-toolchain=",        TAKES_CONCAT_ARG | TAKES_PATH                          }, // Clang
+  {"--generate-dependencies", TOO_HARD                                               }, // nvcc (-M)
+  {"--generate-nonsystem-dependencies", TOO_HARD                                     }, // nvcc (-MM)
   {"--include",               AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"--libdevice-directory",   AFFECTS_CPP | TAKES_ARG                                }, // nvcc
   {"--offload-compress",      AFFECTS_COMP                                           }, // Clang
@@ -177,6 +180,7 @@ const CompOpt compopts[] = {
   {"-wrapper",                TAKES_ARG | TOO_HARD                                   },
   {"-z",                      TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP            },
 };
+// clang-format on
 
 static int
 compare_compopts(const void* key1, const void* key2)
