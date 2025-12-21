@@ -2046,9 +2046,6 @@ hash_argument(const Context& ctx,
   }
 
   if (ctx.args_info.generating_dependencies) {
-    std::optional<std::string_view> option;
-    std::optional<std::string_view> value;
-
     if (util::starts_with(args[i], "-Wp,")) {
       // Skip the dependency filename since it doesn't impact the output.
       if (util::starts_with(args[i], "-Wp,-MD,")
@@ -2060,23 +2057,21 @@ hash_argument(const Context& ctx,
         hash.hash(args[i].data(), 9);
         return {};
       }
-    } else if (std::tie(option, value) = get_option_and_value("-MF", args, i);
-               option) {
-      // Skip the dependency filename since it doesn't impact the output.
-      hash.hash(*option);
-      return {};
-    } else if (std::tie(option, value) = get_option_and_value("-MQ", args, i);
-               option) {
-      hash.hash(*option);
-      // No need to hash the dependency target since we always calculate it on
-      // a cache hit.
-      return {};
-    } else if (std::tie(option, value) = get_option_and_value("-MT", args, i);
-               option) {
-      hash.hash(*option);
-      // No need to hash the dependency target since we always calculate it on
-      // a cache hit.
-      return {};
+    } else {
+      static std::array skip_options = {
+        "-MF",                 // dependency filename doesn't impact the output
+        "-MQ",                 // dependency target is calculated on cache hit
+        "-MT",                 // dependency target is calculated on cache hit
+        "--dependency-output", // nvcc version of -MF
+        "--dependency-target-name", // nvcc version of -MT
+      };
+      for (auto opt : skip_options) {
+        if (const auto [option, _value] = get_option_and_value(opt, args, i);
+            option) {
+          hash.hash(*option);
+          return {};
+        }
+      }
     }
   }
 
