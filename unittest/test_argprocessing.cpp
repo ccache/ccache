@@ -207,6 +207,53 @@ TEST_CASE(
   CHECK(result->preprocessor_args[2] == "foo");
 }
 
+TEST_CASE("isysroot_should_not_be_rewritten_if_basedir_is_used")
+{
+  TestContext test_context;
+
+  Context ctx;
+
+  REQUIRE(util::write_file("foo.c", ""));
+  ctx.config.set_base_dir("/");
+  std::string arg_string =
+    FMT("clang -isysroot{} -c foo.c", ctx.actual_cwd / "foo");
+  ctx.orig_args = Args::from_string(arg_string);
+
+  const auto result = process_args(ctx);
+  CHECK(result);
+#ifdef _WIN32
+  CHECK(result->preprocessor_args[1]
+        == FMT("-isysroot{}\\foo", ctx.actual_cwd));
+#else
+  CHECK(result->preprocessor_args[1] == FMT("-isysroot{}/foo", ctx.actual_cwd));
+#endif
+  CHECK(result->extra_args_to_hash.empty());
+}
+
+TEST_CASE(
+  "isysroot_with_separate_arg_should_not_be_rewritten_if_basedir_is_used")
+{
+  TestContext test_context;
+
+  Context ctx;
+
+  REQUIRE(util::write_file("foo.c", ""));
+  ctx.config.set_base_dir(get_root());
+  std::string arg_string =
+    FMT("clang -isysroot {} -c foo.c", ctx.actual_cwd / "foo" / "bar");
+  ctx.orig_args = Args::from_string(arg_string);
+
+  const auto result = process_args(ctx);
+  CHECK(result);
+  CHECK(result->preprocessor_args[1] == "-isysroot");
+#ifdef _WIN32
+  CHECK(result->preprocessor_args[2] == FMT("{}\\foo\\bar", ctx.actual_cwd));
+#else
+  CHECK(result->preprocessor_args[2] == FMT("{}/foo/bar", ctx.actual_cwd));
+#endif
+  CHECK(result->extra_args_to_hash.empty());
+}
+
 TEST_CASE("fbuild_session_file_should_be_rewritten_if_basedir_is_used")
 {
   TestContext test_context;
