@@ -2,7 +2,7 @@ SUITE_pch_PROBE() {
     touch pch.h empty.c
     mkdir dir
 
-    if ! $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
+    if ! $COMPILER $SYSROOT -fpch-preprocess pch.h -o pch.h.gch 2>/dev/null \
             || [ ! -f pch.h.gch ]; then
         echo "compiler ($($COMPILER --version | head -n 1)) doesn't support precompiled headers"
     fi
@@ -246,7 +246,7 @@ fi
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include, PCH_EXTSUM=1"
 
-    $COMPILER $SYSROOT -c pch.h
+    $COMPILER $SYSROOT -c pch.h -o pch.h.gch
     backdate pch.h.gch
 
     echo "original checksum" > pch.h.gch.sum
