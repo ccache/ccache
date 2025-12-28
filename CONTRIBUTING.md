@@ -10,7 +10,6 @@ There are several options:
    [discussions](https://github.com/ccache/ccache/issues/discussions).
 2. Post your question to the [mailing
    list](https://lists.samba.org/mailman/listinfo/ccache/).
-3. Chat in the [Gitter room](https://gitter.im/ccache/ccache).
 
 ## Reporting an issue?
 
@@ -34,11 +33,11 @@ proposal(s) on [GitHub](https://github.com/ccache/ccache).
 Here are some hints to make the process smoother:
 
 * Have a look in `ARCHITECTURE.md` for an overview of the source code tree.
-* If you plan to implement major changes it is wise to open an issue on GitHub
-  (or ask in the Gitter room, or send a mail to the mailing list) asking for
-  comments on your plans before doing the bulk of the work. That way you can
-  avoid potentially wasting time on doing something that may need major rework
-  to be accepted, or maybe doesn't end up being accepted at all.
+* If you plan to implement major changes it is wise to open a discussion or an
+  issue on GitHub (or send a mail to the mailing list) asking for comments on
+  your plans before doing the bulk of the work. That way you can avoid
+  potentially wasting time on doing something that may need major rework to be
+  accepted, or maybe doesn't end up being accepted at all.
 * Is your pull request "work in progress", i.e. you don't think that it's ready
   for merging yet but you want early comments and CI test results? Then create a
   draft pull request as described in [this Github blog
