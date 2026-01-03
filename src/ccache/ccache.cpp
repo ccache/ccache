@@ -357,6 +357,12 @@ guess_compiler(const fs::path& path)
 #endif
 }
 
+static tl::expected<void, Failure>
+scan_and_remember_embed_files(Context& ctx,
+                              const fs::path& source_path,
+                              Hash& cpp_hash,
+                              Hash* depend_mode_hash);
+
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
 [[nodiscard]] tl::expected<void, Failure>
@@ -479,6 +485,11 @@ remember_include_file(Context& ctx,
   }
 
   ctx.included_files.emplace(util::pstr(path2), file_digest);
+
+  // Scan for C23 #embed directives in this header.
+  if (ctx.config.direct_mode() && !is_pch) {
+    TRY(scan_and_remember_embed_files(ctx, path2, cpp_hash, depend_mode_hash));
+  }
 
   return {};
 }
