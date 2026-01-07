@@ -25,6 +25,7 @@ endforeach()
 
 include(CheckFunctionExists)
 set(functions
+    copy_file_range
     getopt_long
     getpwuid
     localtime_r
