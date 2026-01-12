@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2026 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -286,6 +286,16 @@ execute(Context& ctx,
         util::Fd&& fd_err)
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
+
+  // Make a copy of stderr that will not be cached, so things like distcc can
+  // send networking errors to it.
+  util::Fd uncached_fd(dup(STDERR_FILENO));
+  if (uncached_fd) {
+    util::setenv("UNCACHED_ERR_FD", std::to_string(*uncached_fd));
+  } else {
+    LOG("Failed to dup(2) stderr: {}", strerror(errno));
+  }
+  DEFER(util::unsetenv("UNCACHED_ERR_FD"));
 
   util::Fd out(std::move(fd_out));
   util::Fd err(std::move(fd_err));

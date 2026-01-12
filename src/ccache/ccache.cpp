@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2026 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -2607,22 +2607,6 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
   LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
 }
 
-// Make a copy of stderr that will not be cached, so things like distcc can
-// send networking errors to it.
-static tl::expected<void, Failure>
-set_up_uncached_err()
-{
-  int uncached_fd =
-    dup(STDERR_FILENO); // The file descriptor is intentionally leaked.
-  if (uncached_fd == -1) {
-    LOG("dup(2) failed: {}", strerror(errno));
-    return tl::unexpected(Statistic::internal_error);
-  }
-
-  util::setenv("UNCACHED_ERR_FD", FMT("{}", uncached_fd));
-  return {};
-}
-
 static int cache_compilation(int argc, const char* const* argv);
 
 static tl::expected<core::StatisticsCounters, Failure>
@@ -2809,7 +2793,6 @@ do_cache_compilation(Context& ctx)
   util::setenv("CCACHE_DISABLE", "1");
 
   TRY_ASSIGN(auto processed_args, process_args(ctx));
-  TRY(set_up_uncached_err());
 
   // VS_UNICODE_OUTPUT prevents capturing stdout/stderr, as the output is sent
   // directly to Visual Studio.
