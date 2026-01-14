@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025-2026 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -43,16 +43,16 @@ DLLIMPORT extern char** environ;
 
 namespace fs = util::filesystem;
 
-// Call a libc-style function (returns 0 on success and sets errno) and return
-// tl::unexpected on error.
+// Call a function that returns 0 on success and either an error code or -1 (and
+// sets errno) on failure.
 #define CHECK_LIB_CALL(function, ...)                                          \
-  {                                                                            \
+  do {                                                                         \
     int _result = function(__VA_ARGS__);                                       \
     if (_result != 0) {                                                        \
-      return tl::unexpected(FMT(#function " failed: {}", strerror(_result)));  \
+      return tl::unexpected(FMT(#function " failed: {}",                       \
+                                strerror(_result == -1 ? errno : _result)));   \
     }                                                                          \
-  }                                                                            \
-  static_assert(true) /* allow semicolon after macro */
+  } while (false)
 
 namespace util {
 
