@@ -57,16 +57,16 @@
 #  include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
 #endif
 
-// Call a libc-style function (returns 0 on success and sets errno) and throw
-// Fatal on error.
+// Call a function that returns 0 on success and either an error code or -1 (and
+// sets errno) on failure.
 #define CHECK_LIB_CALL(function, ...)                                          \
-  {                                                                            \
+  do {                                                                         \
     int _result = function(__VA_ARGS__);                                       \
     if (_result != 0) {                                                        \
-      throw core::Fatal(FMT(#function " failed: {}", strerror(_result)));      \
+      throw core::Fatal(FMT(#function " failed: {}",                           \
+                            strerror(_result == -1 ? errno : _result)));       \
     }                                                                          \
-  }                                                                            \
-  static_assert(true) /* allow semicolon after macro */
+  } while (false)
 
 namespace fs = util::filesystem;
 
