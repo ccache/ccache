@@ -158,7 +158,7 @@ HttpStorageBackend::HttpStorageBackend(
       } else {
         LOG("Incomplete header specification: {}", attr.value);
       }
-    } else if (!is_framework_attribute(attr.key)) {
+    } else {
       LOG("Unknown attribute: {}", attr.key);
     }
   }
@@ -310,19 +310,6 @@ HttpStorage::create_backend(
   const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
   return std::make_unique<HttpStorageBackend>(url, attributes);
-}
-
-void
-HttpStorage::redact_secrets(std::vector<Backend::Attribute>& attributes) const
-{
-  auto bearer_token_attribute =
-    std::find_if(attributes.begin(), attributes.end(), [&](const auto& attr) {
-      return attr.key == "bearer-token";
-    });
-  if (bearer_token_attribute != attributes.end()) {
-    bearer_token_attribute->value = storage::k_redacted_secret;
-    bearer_token_attribute->raw_value = storage::k_redacted_secret;
-  }
 }
 
 } // namespace storage::remote

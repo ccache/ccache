@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -22,12 +22,6 @@
 #include <ccache/util/string.hpp>
 
 namespace storage::remote {
-
-bool
-RemoteStorage::Backend::is_framework_attribute(const std::string& name)
-{
-  return name == "read-only" || name == "shards";
-}
 
 std::chrono::milliseconds
 RemoteStorage::Backend::parse_timeout_attribute(const std::string& value)

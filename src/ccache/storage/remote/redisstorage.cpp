@@ -138,7 +138,7 @@ RedisStorageBackend::RedisStorageBackend(
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
-    } else if (!is_framework_attribute(attr.key)) {
+    } else {
       LOG("Unknown attribute: {}", attr.key);
     }
   }

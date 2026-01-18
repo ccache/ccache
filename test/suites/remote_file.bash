@@ -9,7 +9,7 @@ SUITE_remote_file_PROBE() {
 
 SUITE_remote_file_SETUP() {
     unset CCACHE_NODIRECT
-    export CCACHE_REMOTE_STORAGE="file:$PWD/remote"
+    export CCACHE_REMOTE_STORAGE="file:$PWD/remote helper=_builtin_"
 
     touch test.h
     echo '#include "test.h"' >test.c
@@ -101,7 +101,7 @@ SUITE_remote_file() {
     # -------------------------------------------------------------------------
     TEST "Flat layout"
 
-    CCACHE_REMOTE_STORAGE+="|layout=flat"
+    CCACHE_REMOTE_STORAGE+=" @layout=flat"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -133,7 +133,7 @@ SUITE_remote_file() {
     # -------------------------------------------------------------------------
     TEST "Two directories"
 
-    CCACHE_REMOTE_STORAGE+=" file://$PWD/remote_2"
+    CCACHE_REMOTE_STORAGE+=" file://$PWD/remote_2 helper=_builtin_"
     mkdir remote_2
 
     $CCACHE_COMPILE -c test.c
@@ -181,7 +181,7 @@ SUITE_remote_file() {
     expect_stat files_in_cache 0
     expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
 
-    CCACHE_REMOTE_STORAGE+="|read-only"
+    CCACHE_REMOTE_STORAGE+=" read-only"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 1
@@ -272,7 +272,7 @@ SUITE_remote_file() {
     TEST "umask"
 
     export CCACHE_UMASK=042
-    CCACHE_REMOTE_STORAGE="file://$PWD/remote|umask=024"
+    CCACHE_REMOTE_STORAGE="file://$PWD/remote helper=_builtin_ @umask=024"
 
     # local -> remote, cache miss
     $CCACHE_COMPILE -c test.c
@@ -283,7 +283,7 @@ SUITE_remote_file() {
     expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
     # local -> remote, local cache hit
-    CCACHE_REMOTE_STORAGE="file://$PWD/remote|umask=026"
+    CCACHE_REMOTE_STORAGE="file://$PWD/remote helper=_builtin_ @umask=026"
     $CCACHE -C >/dev/null
     rm -rf remote
     $CCACHE_COMPILE -c test.c
@@ -305,7 +305,7 @@ SUITE_remote_file() {
     # -------------------------------------------------------------------------
     TEST "Sharding"
 
-    CCACHE_REMOTE_STORAGE="file://$PWD/remote/*|shards=a,b(2)"
+    CCACHE_REMOTE_STORAGE="file://$PWD/remote/* helper=_builtin_ shards=a,b(2)"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -318,7 +318,7 @@ SUITE_remote_file() {
     $CCACHE -Cz >/dev/null
     rm -rf remote
 
-    CCACHE_REMOTE_STORAGE="*|shards=file://$PWD/remote/a,file://$PWD/remote/b"
+    CCACHE_REMOTE_STORAGE="* helper=_builtin_ shards=file://$PWD/remote/a,file://$PWD/remote/b"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0

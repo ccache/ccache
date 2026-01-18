@@ -108,7 +108,7 @@ FileStorageBackend::FileStorageBackend(
         util::value_or_throw<core::Fatal>(util::parse_umask(attr.value));
     } else if (attr.key == "update-mtime") {
       m_update_mtime = attr.value == "true";
-    } else if (!is_framework_attribute(attr.key)) {
+    } else {
       LOG("Unknown attribute: {}", attr.key);
     }
   }

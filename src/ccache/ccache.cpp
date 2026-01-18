@@ -2671,8 +2671,6 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
     }
   }
 
-  ctx.storage.initialize();
-
   find_compiler(ctx, &find_non_ccache_executable, masquerading_as_compiler);
 
   // Guess compiler after logging the config value in order to be able to
@@ -2786,7 +2784,15 @@ cache_compilation(int argc, const char* const* argv)
   }
 
   {
-    Context ctx;
+    fs::path argv0 =
+#ifdef _WIN32
+      util::add_exe_suffix(argv[0]);
+#else
+      argv[0];
+#endif
+    const auto ccache_exe_dir =
+      fs::canonical(argv0).value_or(argv0).parent_path();
+    Context ctx(ccache_exe_dir);
     ctx.initialize(std::move(argv_parts.compiler_and_args),
                    argv_parts.config_settings);
     SignalHandler signal_handler(ctx);
@@ -2803,7 +2809,7 @@ cache_compilation(int argc, const char* const* argv)
       if (!ctx.config.remote_only()) {
         ctx.storage.local.increment_statistic(Statistic::local_storage_miss);
       }
-      if (ctx.storage.has_remote_storage()) {
+      if (!ctx.config.remote_storage().empty()) {
         ctx.storage.local.increment_statistic(Statistic::remote_storage_miss);
       }
     } else if ((counters.get(Statistic::direct_cache_hit) > 0
@@ -2903,7 +2909,7 @@ do_cache_compilation(Context& ctx)
     ctx.config.set_depend_mode(false);
   }
 
-  if (ctx.storage.has_remote_storage()) {
+  if (!ctx.config.remote_storage().empty()) {
     if (ctx.config.file_clone()) {
       LOG_RAW("Disabling file clone mode since remote storage is enabled");
       ctx.config.set_file_clone(false);

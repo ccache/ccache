@@ -39,10 +39,10 @@
 
 namespace fs = util::filesystem;
 
-Context::Context()
+Context::Context(const fs::path& ccache_exe_dir)
   : actual_cwd(fs::current_path().value_or("")),
     apparent_cwd(util::apparent_cwd(actual_cwd)),
-    storage(config),
+    storage(config, ccache_exe_dir),
 #ifdef INODE_CACHE_SUPPORTED
     inode_cache(config),
 #endif

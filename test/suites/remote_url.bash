@@ -4,20 +4,6 @@ SUITE_remote_url_SETUP() {
 
 SUITE_remote_url() {
     # -------------------------------------------------------------------------
-    TEST "Reject empty url (without config attributes)"
-
-    export CCACHE_REMOTE_STORAGE="|"
-    $CCACHE_COMPILE -c test.c 2>stderr.log
-    expect_contains stderr.log "must provide a URL"
-
-    # -------------------------------------------------------------------------
-    TEST "Reject empty url (but with config attributes)"
-
-    export CCACHE_REMOTE_STORAGE="|key=value"
-    $CCACHE_COMPILE -c test.c 2>stderr.log
-    expect_contains stderr.log "must provide a URL"
-
-    # -------------------------------------------------------------------------
     TEST "Reject invalid url"
 
     export CCACHE_REMOTE_STORAGE="://qwerty"

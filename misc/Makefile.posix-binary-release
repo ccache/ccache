@@ -3,11 +3,11 @@ exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 datarootdir = $(prefix)/share
 docdir = $(datarootdir)/doc/ccache
+libexecdir = $(exec_prefix)/libexec
 mandir = $(datarootdir)/man
 man1dir = $(mandir)/man1
 sysconfdir = $(prefix)/etc
 
-default_sysconfdir = /usr/local/etc
 doc_files = \
     GPL-3.0.txt \
     LICENSE.html \
@@ -29,7 +29,7 @@ all:
 
 install:
 	mkdir -p "$(DESTDIR)$(bindir)"
-	$(PYTHON) -c 'import sys; sysconfdir = b"$(sysconfdir)"; default_sysconfdir = b"$(default_sysconfdir)"; sys.stdout.buffer.write(sys.stdin.buffer.read().replace(default_sysconfdir + b"\x00" * (4096 - len(default_sysconfdir)), sysconfdir + b"\x00" * (4096 - len(sysconfdir))))' <ccache >"$(DESTDIR)$(bindir)/ccache"
+	$(PYTHON) patch-binary.py "$(libexecdir)" "$(sysconfdir)" <ccache >"$(DESTDIR)$(bindir)/ccache"
 	chmod +x "$(DESTDIR)$(bindir)/ccache"
 
 	mkdir -p "$(DESTDIR)$(docdir)"

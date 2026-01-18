@@ -47,7 +47,7 @@ class SignalHandler;
 class Context : util::NonCopyable
 {
 public:
-  Context();
+  Context(const std::filesystem::path& ccache_exe_dir = {});
   ~Context();
 
   // Read configuration, initialize logging, etc. Typically not called from unit

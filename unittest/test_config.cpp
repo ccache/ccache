@@ -616,6 +616,7 @@ TEST_CASE("Config::visit_items")
     "ignore_options = -a=* -b\n"
     "inode_cache = false\n"
     "keep_comments_cpp = true\n"
+    "libexec_dirs = led\n"
     "log_file = lf\n"
     "max_files = 4711\n"
     "max_size = 98.7M\n"
@@ -680,6 +681,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) ignore_options = -a=* -b",
     "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
+    "(test.conf) libexec_dirs = led",
     "(test.conf) log_file = lf",
     "(test.conf) max_files = 4711",
     "(test.conf) max_size = 98.7 MB",

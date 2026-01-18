@@ -57,6 +57,9 @@ public:
 
   void read(const std::vector<std::string>& cmdline_config_settings = {});
 
+  static const char* libexec_dir();
+  static const char* sysconf_dir();
+
   bool absolute_paths_in_stderr() const;
   util::Args::ResponseFileFormat response_file_format() const;
   const std::vector<std::filesystem::path>& base_dirs() const;
@@ -81,6 +84,7 @@ public:
   const std::string& ignore_options() const;
   bool inode_cache() const;
   bool keep_comments_cpp() const;
+  const std::vector<std::filesystem::path>& libexec_dirs() const;
   const std::filesystem::path& log_file() const;
   uint64_t max_files() const;
   uint64_t max_size() const;
@@ -206,6 +210,7 @@ private:
 #endif
   bool m_keep_comments_cpp = false;
   std::filesystem::path m_log_file;
+  std::vector<std::filesystem::path> m_libexec_dirs{libexec_dir()};
   uint64_t m_max_files = 0;
   uint64_t m_max_size = 5ULL * 1024 * 1024 * 1024;
   std::string m_msvc_dep_prefix = "Note: including file:";
@@ -409,6 +414,12 @@ inline bool
 Config::keep_comments_cpp() const
 {
   return m_keep_comments_cpp;
+}
+
+inline const std::vector<std::filesystem::path>&
+Config::libexec_dirs() const
+{
+  return m_libexec_dirs;
 }
 
 inline const std::filesystem::path&

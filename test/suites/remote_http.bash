@@ -43,7 +43,7 @@ SUITE_remote_http() {
     TEST "Subdirs layout"
 
     start_http_server 12780 remote
-    export CCACHE_REMOTE_STORAGE="http://localhost:12780"
+    export CCACHE_REMOTE_STORAGE="http://localhost:12780 helper=_builtin_"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -75,7 +75,7 @@ SUITE_remote_http() {
     TEST "Flat layout"
 
     start_http_server 12780 remote
-    export CCACHE_REMOTE_STORAGE="http://localhost:12780|layout=flat"
+    export CCACHE_REMOTE_STORAGE="http://localhost:12780 helper=_builtin_ @layout=flat"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -108,7 +108,7 @@ SUITE_remote_http() {
 
     start_http_server 12780 remote
     mkdir remote/ac
-    export CCACHE_REMOTE_STORAGE="http://localhost:12780|layout=bazel"
+    export CCACHE_REMOTE_STORAGE="http://localhost:12780 helper=_builtin_ @layout=bazel"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -139,7 +139,7 @@ SUITE_remote_http() {
     TEST "Basic auth"
 
     start_http_server 12780 remote "somebody:secret123"
-    export CCACHE_REMOTE_STORAGE="http://somebody:secret123@localhost:12780"
+    export CCACHE_REMOTE_STORAGE="http://somebody:secret123@localhost:12780 helper=_builtin_"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -158,7 +158,7 @@ if $RUN_WIN_XFAIL; then
 
     start_http_server 12780 remote "somebody:secret123"
     # no authentication configured on client
-    export CCACHE_REMOTE_STORAGE="http://localhost:12780"
+    export CCACHE_REMOTE_STORAGE="http://localhost:12780 helper=_builtin_"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -177,7 +177,7 @@ if $RUN_WIN_XFAIL; then
     TEST "Basic auth failed"
 
     start_http_server 12780 remote "somebody:secret123"
-    export CCACHE_REMOTE_STORAGE="http://somebody:wrong@localhost:12780"
+    export CCACHE_REMOTE_STORAGE="http://somebody:wrong@localhost:12780 helper=_builtin_"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -192,7 +192,7 @@ fi
     TEST "Port sharding"
 
     start_http_server 12780 remote
-    export CCACHE_REMOTE_STORAGE="http://localhost:*|shards=12780"
+    export CCACHE_REMOTE_STORAGE="http://localhost:*|shards=12780 helper=_builtin_"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -214,7 +214,7 @@ fi
     TEST "IPv6 address"
 
     if maybe_start_ipv6_http_server 12780 remote; then
-        export CCACHE_REMOTE_STORAGE="http://[::1]:12780"
+        export CCACHE_REMOTE_STORAGE="http://[::1]:12780 helper=_builtin_"
 
         $CCACHE_COMPILE -c test.c
         expect_stat direct_cache_hit 0
