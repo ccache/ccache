@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -33,7 +33,7 @@ namespace util {
 // --- Interface ---
 
 // Add ".exe" suffix to `program` if it doesn't already have an extension.
-std::string add_exe_suffix(const std::string& program);
+std::filesystem::path add_exe_suffix(const std::filesystem::path& program);
 
 // Return a new path with `extension` added to `path` (keeping any existing
 // extension).

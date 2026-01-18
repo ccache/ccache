@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -33,10 +33,11 @@ namespace fs = util::filesystem;
 
 namespace util {
 
-std::string
-add_exe_suffix(const std::string& program)
+fs::path
+add_exe_suffix(const fs::path& program)
 {
-  return fs::path(program).has_extension() ? program : program + ".exe";
+  return program.has_extension() ? program
+                                 : util::with_extension(program, ".exe");
 }
 
 fs::path
