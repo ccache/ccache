@@ -87,11 +87,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
 #include <initializer_list>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
-
 namespace fs = util::filesystem;
 
 using namespace std::chrono_literals;
@@ -3274,6 +3274,40 @@ file_path_matches_dir_prefix_or_file(const fs::path& dir_prefix_or_file,
   return end == dir_prefix_or_file.end() || end->empty();
 }
 
+inline int64_t
+record_and_compute_saved_compile_time(const char* path)
+{
+  static util::TimePoint start = util::now();
+  util::TimePoint end = util::now();
+
+  const int64_t current_nsec = util::nsec_tot(end) - util::nsec_tot(start);
+
+  int64_t previous_nsec = -1;
+
+  // read previous value
+  int fd = open(path, O_RDONLY);
+  if (fd >= 0) {
+    char buf[64] = {};
+    ssize_t n = read(fd, buf, sizeof(buf) - 1);
+    if (n > 0) {
+      previous_nsec = std::strtoll(buf, nullptr, 10);
+    }
+    close(fd);
+  }
+
+  // write current value
+  fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd >= 0) {
+    char buf[64];
+    int len = snprintf(
+      buf, sizeof(buf), "%lld\n", static_cast<long long>(current_nsec));
+    write(fd, buf, len);
+    close(fd);
+  }
+
+  return previous_nsec > current_nsec ? (previous_nsec - current_nsec) : 0;
+}
+
 int
 ccache_main(int argc, const char* const* argv)
 {
@@ -3292,7 +3326,17 @@ ccache_main(int argc, const char* const* argv)
       }
     }
 
-    return cache_compilation(argc, argv);
+    int compilation_return_code = cache_compilation(argc, argv);
+    
+    // log the time of the operation to generate a difference of
+    // compilation time
+
+    int64_t saved_nsec =
+      record_and_compute_saved_compile_time(".ccache_compile_time");
+
+    PRINT(stdout, "CCACHE Saved: {} nsec\n", saved_nsec);
+
+    return compilation_return_code;
   } catch (const core::ErrorBase& e) {
     PRINT(stderr, "ccache: error: {}\n", e.what());
     return EXIT_FAILURE;
