@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -1244,17 +1244,23 @@ Config::check_key_tables_consistency()
 fs::path
 Config::default_temporary_dir() const
 {
-  static const fs::path run_user_tmp_dir = [] {
-#ifndef _WIN32
-    const char* const xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
-    if (xdg_runtime_dir && DirEntry(xdg_runtime_dir).is_directory()) {
-      fs::path dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
-      if (fs::create_directories(dir) && access(dir.c_str(), W_OK) == 0) {
-        return dir;
-      }
+  const auto dir = get_xdg_runtime_tmp_dir();
+  return !dir.empty() ? dir : m_cache_dir / "tmp";
+}
+
+std::filesystem::path
+Config::get_xdg_runtime_tmp_dir()
+{
+#ifdef _WIN32
+  return {};
+#else
+  const char* const xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
+  if (xdg_runtime_dir && DirEntry(xdg_runtime_dir).is_directory()) {
+    fs::path dir = FMT("{}/ccache-tmp", xdg_runtime_dir);
+    if (fs::create_directories(dir) && access(dir.c_str(), W_OK) == 0) {
+      return dir;
     }
+  }
+  return {};
 #endif
-    return fs::path();
-  }();
-  return !run_user_tmp_dir.empty() ? run_user_tmp_dir : m_cache_dir / "tmp";
 }

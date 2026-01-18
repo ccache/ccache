@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -110,6 +110,7 @@ public:
 
   util::SizeUnitPrefixType size_unit_prefix_type() const;
   std::filesystem::path default_temporary_dir() const;
+  static std::filesystem::path get_xdg_runtime_tmp_dir();
 
   void set_base_dir(const std::filesystem::path& value);
   void set_base_dirs(const std::vector<std::filesystem::path>& value);

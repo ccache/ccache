@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -266,6 +266,7 @@ InodeCache::mmap_file(const fs::path& path)
     LOG("Failed to open inode cache {}: {}", path, strerror(errno));
     return false;
   }
+  util::set_cloexec_flag(*m_fd);
   if (!fd_is_on_known_to_work_file_system(*m_fd)) {
     return false;
   }
