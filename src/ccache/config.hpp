@@ -85,6 +85,7 @@ public:
   uint64_t max_files() const;
   uint64_t max_size() const;
   const std::string& msvc_dep_prefix() const;
+  bool msvc_utf8() const;
   const std::string& path() const;
   bool pch_external_checksum() const;
   const std::string& prefix_command() const;
@@ -127,6 +128,7 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
+  void set_msvc_utf8(bool value);
   void set_temporary_dir(const std::filesystem::path& value);
 
   // Where to write configuration changes.
@@ -207,6 +209,7 @@ private:
   uint64_t m_max_files = 0;
   uint64_t m_max_size = 5ULL * 1024 * 1024 * 1024;
   std::string m_msvc_dep_prefix = "Note: including file:";
+  bool m_msvc_utf8 = true;
   std::string m_path;
   bool m_pch_external_checksum = false;
   std::string m_prefix_command;
@@ -432,6 +435,12 @@ Config::msvc_dep_prefix() const
   return m_msvc_dep_prefix;
 }
 
+inline bool
+Config::msvc_utf8() const
+{
+  return m_msvc_utf8;
+}
+
 inline const std::string&
 Config::path() const
 {
@@ -628,6 +637,12 @@ inline void
 Config::set_msvc_dep_prefix(const std::string& value)
 {
   m_msvc_dep_prefix = value;
+}
+
+inline void
+Config::set_msvc_utf8(bool value)
+{
+  m_msvc_utf8 = value;
 }
 
 inline void

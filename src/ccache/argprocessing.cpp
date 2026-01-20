@@ -27,7 +27,6 @@
 #include <ccache/util/args.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/direntry.hpp>
-#include <ccache/util/expected.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
@@ -1770,6 +1769,13 @@ process_args(Context& ctx)
 
   if (diagnostics_color_arg) {
     state.add_compiler_only_arg_no_hash(*diagnostics_color_arg);
+  }
+
+  if (ctx.config.depend_mode() && !args_info.generating_includes
+      && ctx.config.compiler_type() == CompilerType::msvc) {
+    ctx.auto_depend_mode = true;
+    args_info.generating_includes = true;
+    state.add_compiler_only_arg_no_hash("/showIncludes");
   }
 
   if (state.found_c_opt) {

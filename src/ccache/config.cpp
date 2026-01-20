@@ -101,6 +101,7 @@ enum class ConfigItem : uint8_t {
   max_files,
   max_size,
   msvc_dep_prefix,
+  msvc_utf8,
   namespace_,
   path,
   pch_external_checksum,
@@ -157,6 +158,7 @@ const std::unordered_map<std::string_view, ConfigKeyTableEntry>
     {"max_files",                  {ConfigItem::max_files}                       },
     {"max_size",                   {ConfigItem::max_size}                        },
     {"msvc_dep_prefix",            {ConfigItem::msvc_dep_prefix}                 },
+    {"msvc_utf8",                  {ConfigItem::msvc_utf8}                       },
     {"namespace",                  {ConfigItem::namespace_}                      },
     {"path",                       {ConfigItem::path}                            },
     {"pch_external_checksum",      {ConfigItem::pch_external_checksum}           },
@@ -207,6 +209,7 @@ const std::unordered_map<std::string_view, std::string_view>
     {"MAXFILES",             "max_files"                 },
     {"MAXSIZE",              "max_size"                  },
     {"MSVC_DEP_PREFIX",      "msvc_dep_prefix"           },
+    {"MSVC_UTF8",            "msvc_utf8"                 },
     {"NAMESPACE",            "namespace"                 },
     {"PATH",                 "path"                      },
     {"PCH_EXTSUM",           "pch_external_checksum"     },
@@ -871,6 +874,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::msvc_dep_prefix:
     return m_msvc_dep_prefix;
 
+  case ConfigItem::msvc_utf8:
+    return format_bool(m_msvc_utf8);
+
   case ConfigItem::namespace_:
     return m_namespace;
 
@@ -1147,6 +1153,10 @@ Config::set_item(const std::string_view& key,
 
   case ConfigItem::msvc_dep_prefix:
     m_msvc_dep_prefix = value;
+    break;
+
+  case ConfigItem::msvc_utf8:
+    m_msvc_utf8 = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::namespace_:

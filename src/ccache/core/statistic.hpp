@@ -82,9 +82,8 @@ enum class Statistic {
   bad_input_file = 82,
   modified_input_file = 83,
   unsupported_source_encoding = 84,
-  unsupported_compiler = 85,
 
-  END = 86,
+  END = 85,
 };
 
 enum class StatisticsFormat {

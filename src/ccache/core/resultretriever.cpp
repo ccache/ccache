@@ -18,6 +18,7 @@
 
 #include "resultretriever.hpp"
 
+#include <ccache/compiler/msvc.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -67,7 +68,11 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       data.size());
 
   if (file_type == FileType::stdout_output) {
-    core::send_to_console(m_ctx, util::to_string_view(data), STDOUT_FILENO);
+    core::send_to_console(
+      m_ctx,
+      util::to_string_view(
+        compiler::strip_includes_from_msvc_show_includes(m_ctx, data)),
+      STDOUT_FILENO);
   } else if (file_type == FileType::stderr_output) {
     core::send_to_console(m_ctx, util::to_string_view(data), STDERR_FILENO);
   } else {
