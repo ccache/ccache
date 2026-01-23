@@ -80,7 +80,9 @@ TEST_CASE("core::rewrite_stderr_to_absolute_paths")
     "In module imported at \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
     "In module imported at \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
     "imported at \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K: foo\n"
-    "imported at \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n";
+    "imported at \x1b[01m\x1b[Kexisting:47:11:\x1b[m\x1b[K: foo\n"
+    "    inlined from foo at \x1b[01m\x1b[Kexisting:\x1b[m\x1b[K\n"
+    "    inlined from foo at \x1b[01m\x1b[Kexisting:47:11,\x1b[m\x1b[K\n";
   std::string expected = FMT(
     "a:1:2\n"
     "a(3):\n"
@@ -109,7 +111,9 @@ TEST_CASE("core::rewrite_stderr_to_absolute_paths")
     "In module imported at \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
     "In module imported at \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
     "imported at \x1b[01m\x1b[K{0}:\x1b[m\x1b[K: foo\n"
-    "imported at \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n",
+    "imported at \x1b[01m\x1b[K{0}:47:11:\x1b[m\x1b[K: foo\n"
+    "    inlined from foo at \x1b[01m\x1b[K{0}:\x1b[m\x1b[K\n"
+    "    inlined from foo at \x1b[01m\x1b[K{0}:47:11,\x1b[m\x1b[K\n",
     *fs::canonical("existing"));
   CHECK(core::rewrite_stderr_to_absolute_paths(input) == expected);
 }
