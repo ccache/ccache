@@ -42,8 +42,8 @@ build alma-9       clang  clang++ clang   -D DEPS=DOWNLOAD
 build alma-10      gcc    g++     gcc     -D DEPS=DOWNLOAD
 build alma-10      clang  clang++ clang   -D DEPS=DOWNLOAD
 
-build alpine-3.21  gcc    g++     gcc     -D DEPS=DOWNLOAD
-build alpine-3.21  clang  clang++ clang   -D DEPS=DOWNLOAD
+build alpine-3.23  gcc    g++     gcc
+build alpine-3.23  clang  clang++ clang   -D DEPS=DOWNLOAD
 
 build debian-11    gcc    g++     gcc     -D DEPS=DOWNLOAD
 build debian-11    clang  clang++ clang   -D DEPS=DOWNLOAD

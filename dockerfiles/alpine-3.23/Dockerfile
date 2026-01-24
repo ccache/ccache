@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=alpine:3.21
+ARG BASE_IMAGE=alpine:3.23
 FROM ${BASE_IMAGE} AS build
 
 RUN apk add --no-cache \
@@ -6,15 +6,16 @@ RUN apk add --no-cache \
         ccache \
         clang \
         cmake \
+        doctest-dev \
         elfutils \
         g++ \
         gcc \
         hiredis-dev \
-        libc-dev \
         make \
         perl \
         python3 \
         redis \
+        xxhash-dev \
         zstd-dev
 
 # Redirect all compilers to ccache.
