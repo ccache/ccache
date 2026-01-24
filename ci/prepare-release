@@ -68,13 +68,16 @@ mkdir release
 prepare_source_release
 
 prepare_posix_binary_release darwin gz
-prepare_posix_binary_release linux-aarch64 xz
-prepare_posix_binary_release linux-x86_64 xz
+prepare_posix_binary_release linux-aarch64-glibc xz
+prepare_posix_binary_release linux-aarch64-musl-static xz
+prepare_posix_binary_release linux-x86_64-glibc xz
+prepare_posix_binary_release linux-x86_64-musl-static xz
 
 prepare_windows_binary_release windows-aarch64
 prepare_windows_binary_release windows-i686
 prepare_windows_binary_release windows-x86_64
 
-test_posix_binary_release linux-x86_64 xz
+test_posix_binary_release linux-x86_64-glibc xz
+test_posix_binary_release linux-x86_64-musl-static xz
 
 ls -l . release

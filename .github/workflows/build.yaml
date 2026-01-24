@@ -260,9 +260,9 @@ jobs:
             install
             README.md
 
-  build_linux_aarch64_binary:
+  build_linux_aarch64_binary_glibc:
     timeout-minutes: 30
-    name: Linux aarch64 binary
+    name: Linux aarch64 binary (glibc)
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -283,13 +283,13 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: linux-aarch64-binary
+          name: linux-aarch64-glibc-binary
           path: install/ccache
           retention-days: 3
 
-  build_linux_x86_64_binary:
+  build_linux_x86_64_binary_glibc:
     timeout-minutes: 30
-    name: Linux x86_64 binary
+    name: Linux x86_64 binary (glibc)
     runs-on: ubuntu-22.04
     container:
       image: almalinux:8
@@ -321,7 +321,39 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x86_64-binary
+          name: linux-x86_64-glibc-binary
+          path: install/ccache
+          retention-days: 3
+
+  build_linux_musl_static_binary:
+    timeout-minutes: 30
+    name: Linux ${{ matrix.arch }} binary (musl static)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+          - arch: x86_64
+            runner: ubuntu-22.04
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build in Alpine container
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work \
+            -e GITHUB_REF \
+            -e GITHUB_REF_NAME \
+            -e GITHUB_SHA \
+            alpine:3.23 sh -c '
+              apk add --no-cache bash cmake g++ gcc git hiredis-dev make ninja xxhash-dev zstd-dev
+              CMAKE_GENERATOR=Ninja CMAKE_PARAMS="-D CMAKE_EXE_LINKER_FLAGS_INIT=-static" ci/build-binary
+          '
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}-musl-static-binary
           path: install/ccache
           retention-days: 3
 
@@ -618,8 +650,9 @@ jobs:
     needs:
       - build_darwin_binary
       - build_documentation
-      - build_linux_aarch64_binary
-      - build_linux_x86_64_binary
+      - build_linux_aarch64_binary_glibc
+      - build_linux_musl_static_binary
+      - build_linux_x86_64_binary_glibc
       - build_windows_binary
     runs-on: ubuntu-24.04
     steps:
