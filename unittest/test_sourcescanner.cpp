@@ -22,6 +22,7 @@
 
 #include <string>
 
+using sourcescanner::contains_incbin_directive;
 using sourcescanner::EmbedDirective;
 using sourcescanner::scan_for_embed_directives;
 
@@ -175,6 +176,34 @@ TEST_CASE("scan_for_embed_directives: mixed includes and embeds")
   CHECK(result[0].path == "binary.dat");
   CHECK(result[1].path == "sys/resource.bin");
   CHECK(result[2].path == "conditional.bin");
+}
+
+TEST_CASE("contains_incbin_directive: empty source")
+{
+  CHECK(contains_incbin_directive("") == false);
+}
+
+TEST_CASE("contains_incbin_directive: no incbin directive")
+{
+  CHECK(contains_incbin_directive(R"(
+    #include <stdio.h>
+    .incbin data.bin
+  )") == false);
+}
+
+TEST_CASE("contains_incbin_directive: simple incbin")
+{
+  CHECK(contains_incbin_directive(".incbin \"data.bin\"\n") == true);
+}
+
+TEST_CASE("contains_incbin_directive: incbin without space")
+{
+  CHECK(contains_incbin_directive(".incbin\"data.bin\"\n") == true);
+}
+
+TEST_CASE("contains_incbin_directive: escaped quote")
+{
+  CHECK(contains_incbin_directive(".incbin \\\"data.bin\\\"\n") == true);
 }
 
 TEST_SUITE_END();

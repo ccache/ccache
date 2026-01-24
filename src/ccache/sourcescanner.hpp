@@ -36,4 +36,7 @@ struct EmbedDirective
 // false positives are acceptable for dependency tracking purposes.
 std::vector<EmbedDirective> scan_for_embed_directives(std::string_view source);
 
+// Scan source code for an assembler .incbin directive.
+bool contains_incbin_directive(std::string_view source);
+
 } // namespace sourcescanner
