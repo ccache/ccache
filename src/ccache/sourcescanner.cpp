@@ -146,4 +146,24 @@ scan_for_embed_directives(std::string_view source)
   return result;
 }
 
+bool
+contains_incbin_directive(std::string_view source)
+{
+  const char* begin = source.data();
+  const char* const end = begin + source.size();
+  static constexpr std::string_view incbin_directive = ".incbin";
+  size_t pos = 0;
+  while ((pos = source.find(incbin_directive, pos)) != std::string_view::npos) {
+    const char* next = begin + pos + incbin_directive.size();
+    const char* i = skip_horizontal_whitespace(next, end);
+    if (i < end
+        && (i[0] == '"' || (i[0] == '\\' && i + 1 < end && i[1] == '"'))) {
+      return true;
+    }
+    pos += incbin_directive.size();
+  }
+
+  return false;
+}
+
 } // namespace sourcescanner

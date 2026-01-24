@@ -43,7 +43,6 @@
 #include <ccache/hash.hpp>
 #include <ccache/hashutil.hpp>
 #include <ccache/signalhandler.hpp>
-#include <ccache/sourcescanner.hpp>
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/args.hpp>
 #include <ccache/util/assertions.hpp>
@@ -357,12 +356,6 @@ guess_compiler(const fs::path& path)
 #endif
 }
 
-static tl::expected<void, Failure>
-scan_and_remember_embed_files(Context& ctx,
-                              const fs::path& source_path,
-                              Hash& cpp_hash,
-                              Hash* depend_mode_hash);
-
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
 [[nodiscard]] tl::expected<void, Failure>
@@ -472,7 +465,9 @@ remember_include_file(Context& ctx,
       if (ret.contains(HashSourceCode::error)) {
         return tl::unexpected(Statistic::bad_input_file);
       }
-      if (ret.contains(HashSourceCode::found_time)) {
+      if (ret.contains(HashSourceCode::found_time)
+          || ret.contains(HashSourceCode::found_embed)
+          || ret.contains(HashSourceCode::found_incbin)) {
         LOG("Disabling direct mode");
         ctx.config.set_direct_mode(false);
       }
@@ -485,59 +480,6 @@ remember_include_file(Context& ctx,
   }
 
   ctx.included_files.emplace(util::pstr(path2), file_digest);
-
-  // Scan for C23 #embed directives in this header.
-  if (ctx.config.direct_mode() && !is_pch) {
-    TRY(scan_and_remember_embed_files(ctx, path2, cpp_hash, depend_mode_hash));
-  }
-
-  return {};
-}
-
-// Scan source file for C23 #embed directives and track embedded files for
-// cache invalidation in direct mode.
-static tl::expected<void, Failure>
-scan_and_remember_embed_files(Context& ctx,
-                              const fs::path& source_path,
-                              Hash& cpp_hash,
-                              Hash* depend_mode_hash)
-{
-  auto content = util::read_file<std::string>(source_path);
-  if (!content) {
-    LOG("Failed to read source file for #embed scanning: {}", source_path);
-    return {};
-  }
-
-  auto embed_directives = sourcescanner::scan_for_embed_directives(*content);
-  if (embed_directives.empty()) {
-    return {};
-  }
-
-  LOG(
-    "Found {} #embed directive(s) in {}", embed_directives.size(), source_path);
-
-  fs::path source_dir = source_path.parent_path();
-  if (source_dir.empty()) {
-    source_dir = ".";
-  }
-
-  for (const auto& embed : embed_directives) {
-    if (embed.is_system) {
-      // System includes (<...>) require resolving paths through compiler
-      // include paths (-I, -isystem, etc.) which we don't have access to here.
-      // These are uncommon in practice and would need more complex resolution.
-      LOG("Skipping system #embed <{}>", embed.path);
-      continue;
-    }
-
-    fs::path embed_path = source_dir / embed.path;
-    fs::path canonical_path =
-      fs::weakly_canonical(embed_path).value_or(embed_path);
-
-    LOG("Remembering #embed file: {}", canonical_path);
-    TRY(remember_include_file(
-      ctx, canonical_path, cpp_hash, false, depend_mode_hash));
-  }
 
   return {};
 }
@@ -2387,17 +2329,14 @@ get_manifest_key(Context& ctx, Hash& hash)
   if (ret.contains(HashSourceCode::error)) {
     return tl::unexpected(Statistic::internal_error);
   }
-  if (ret.contains(HashSourceCode::found_time)) {
+  if (ret.contains(HashSourceCode::found_time)
+      || ret.contains(HashSourceCode::found_embed)
+      || ret.contains(HashSourceCode::found_incbin)) {
     LOG("Disabling direct mode");
     ctx.config.set_direct_mode(false);
     return {};
   }
   hash.hash(util::format_legacy_digest(input_file_digest));
-
-  // Scan for C23 #embed directives and remember embedded files.
-  // This ensures cache invalidation when embedded files change.
-  TRY(scan_and_remember_embed_files(
-    ctx, ctx.args_info.input_file, hash, nullptr));
 
   return hash.digest();
 }
