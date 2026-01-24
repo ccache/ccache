@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -1203,15 +1203,25 @@ process_option_arg(const Context& ctx,
     args_info.build_session_file = arg.substr(arg.find('=') + 1);
   }
 
-  if (config.sloppiness().contains(core::Sloppy::clang_index_store)
-      && arg == "-index-store-path") {
-    // Xcode 9 or later calls Clang with this option. The given path includes a
-    // UUID that might lead to cache misses, especially when cache is shared
-    // among multiple users.
-    i++;
-    if (i <= args.size() - 1) {
-      LOG("Skipping argument -index-store-path {}", args[i]);
+  if (arg == "-index-store-path" || arg == "-index-unit-output-path") {
+    if (i == args.size() - 1) {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
     }
+
+    // Xcode 9 or later calls Clang with -index-store-path. The given path
+    // includes a UUID that might lead to cache misses, especially when the
+    // cache is shared among multiple users.
+    //
+    // Newer Xcode versions use -index-unit-output-path which we can't cache.
+    if (!config.sloppiness().contains(core::Sloppy::clang_index_store)) {
+      LOG("Option {} is unsupported without clang_index_store sloppiness",
+          args[i]);
+      return Statistic::unsupported_compiler_option;
+    }
+
+    LOG("Skipping {} {}", args[i], args[i + 1]);
+    i++;
     return Statistic::none;
   }
 

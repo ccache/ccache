@@ -1054,8 +1054,9 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
 *clang_index_store*::
 
     *Use case*: Xcode projects with varying index store paths. +
-    *Effect*: Ignores the `-index-store-path` option when hashing. +
-    *Trade-off*: Index store won't update correctly on cache hits.
+    *Effect*: Ignores the `-index-store-path` and `-index-unit-output-path`
+     options when hashing. +
+    *Trade-off*: Index won't update correctly on cache hits.
 
 *file_stat_matches*::
 
