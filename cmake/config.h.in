@@ -209,6 +209,7 @@ typedef int pid_t;
 #  define ESTALE -1
 #endif
 
+#define LIBEXECDIR "@CONFIG_LIBEXECDIR_C_ESCAPED@"
 #define SYSCONFDIR "@CONFIG_SYSCONFDIR_C_ESCAPED@"
 
 #cmakedefine INODE_CACHE_SUPPORTED

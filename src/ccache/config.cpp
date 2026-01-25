@@ -63,6 +63,8 @@ DLLIMPORT extern char** environ;
 // Make room for binary patching at install time. The extra pointer to a buffer
 // is needed to prevent the compiler from assuming too much about the string,
 // such as its actual length.
+const char k_libexecdir_array[4096 + 1] = LIBEXECDIR;
+const char* k_libexecdir = k_libexecdir_array;
 const char k_sysconfdir_array[4096 + 1] = SYSCONFDIR;
 const char* k_sysconfdir = k_sysconfdir_array;
 
@@ -97,6 +99,7 @@ enum class ConfigItem : uint8_t {
   ignore_options,
   inode_cache,
   keep_comments_cpp,
+  libexec_dirs,
   log_file,
   max_files,
   max_size,
@@ -154,6 +157,7 @@ const std::unordered_map<std::string_view, ConfigKeyTableEntry>
     {"ignore_options",             {ConfigItem::ignore_options}                  },
     {"inode_cache",                {ConfigItem::inode_cache}                     },
     {"keep_comments_cpp",          {ConfigItem::keep_comments_cpp}               },
+    {"libexec_dirs",               {ConfigItem::libexec_dirs}                    },
     {"log_file",                   {ConfigItem::log_file}                        },
     {"max_files",                  {ConfigItem::max_files}                       },
     {"max_size",                   {ConfigItem::max_size}                        },
@@ -205,6 +209,7 @@ const std::unordered_map<std::string_view, std::string_view>
     {"IGNOREHEADERS",        "ignore_headers_in_manifest"},
     {"IGNOREOPTIONS",        "ignore_options"            },
     {"INODECACHE",           "inode_cache"               },
+    {"LIBEXEC_DIRS",         "libexec_dirs"              },
     {"LOGFILE",              "log_file"                  },
     {"MAXFILES",             "max_files"                 },
     {"MAXSIZE",              "max_size"                  },
@@ -669,6 +674,18 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
   // system config).
 }
 
+const char*
+Config::libexec_dir()
+{
+  return k_libexecdir;
+}
+
+const char*
+Config::sysconf_dir()
+{
+  return k_sysconfdir;
+}
+
 const fs::path&
 Config::config_path() const
 {
@@ -854,6 +871,9 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::keep_comments_cpp:
     return format_bool(m_keep_comments_cpp);
+
+  case ConfigItem::libexec_dirs:
+    return util::join_path_list(m_libexec_dirs);
 
   case ConfigItem::log_file:
     return m_log_file.string();
@@ -1132,6 +1152,10 @@ Config::set_item(const std::string_view& key,
 
   case ConfigItem::keep_comments_cpp:
     m_keep_comments_cpp = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::libexec_dirs:
+    m_libexec_dirs = util::split_path_list(value);
     break;
 
   case ConfigItem::log_file:

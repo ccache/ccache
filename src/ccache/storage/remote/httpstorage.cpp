@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -158,7 +158,7 @@ HttpStorageBackend::HttpStorageBackend(
       } else {
         LOG("Incomplete header specification: {}", attr.value);
       }
-    } else if (!is_framework_attribute(attr.key)) {
+    } else {
       LOG("Unknown attribute: {}", attr.key);
     }
   }
@@ -282,19 +282,18 @@ HttpStorageBackend::get_entry_path(const Hash::Digest& key) const
     const auto sha256_hex_size = 64;
     static_assert(std::tuple_size<Hash::Digest>() == 20,
                   "Update below if digest size changes");
-    std::string hex_digits = util::format_base16(key);
-    hex_digits.append(hex_digits.data(), sha256_hex_size - hex_digits.size());
-    LOG("Translated key {} to Bazel layout ac/{}",
-        util::format_digest(key),
-        hex_digits);
-    return FMT("{}ac/{}", m_url_path, hex_digits);
+    std::string hex_key = util::format_base16(key);
+    std::string bazel_key =
+      FMT("ac/{}{:.{}}", hex_key, hex_key, sha256_hex_size - hex_key.size());
+    LOG("Translated key {} to Bazel layout {}", hex_key, bazel_key);
+    return FMT("{}{}", m_url_path, bazel_key);
   }
 
   case Layout::flat:
-    return m_url_path + util::format_digest(key);
+    return m_url_path + util::format_base16(key);
 
   case Layout::subdirs: {
-    const auto key_str = util::format_digest(key);
+    const auto key_str = util::format_base16(key);
     const uint8_t digits = 2;
     ASSERT(key_str.length() > digits);
     return FMT("{}{:.{}}/{}", m_url_path, key_str, digits, &key_str[digits]);
@@ -311,19 +310,6 @@ HttpStorage::create_backend(
   const Url& url, const std::vector<Backend::Attribute>& attributes) const
 {
   return std::make_unique<HttpStorageBackend>(url, attributes);
-}
-
-void
-HttpStorage::redact_secrets(std::vector<Backend::Attribute>& attributes) const
-{
-  auto bearer_token_attribute =
-    std::find_if(attributes.begin(), attributes.end(), [&](const auto& attr) {
-      return attr.key == "bearer-token";
-    });
-  if (bearer_token_attribute != attributes.end()) {
-    bearer_token_attribute->value = storage::k_redacted_secret;
-    bearer_token_attribute->raw_value = storage::k_redacted_secret;
-  }
 }
 
 } // namespace storage::remote

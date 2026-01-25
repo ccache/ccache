@@ -164,7 +164,7 @@ format_base32hex(nonstd::span<const uint8_t> data)
 }
 
 std::string
-format_digest(nonstd::span<const uint8_t> data)
+format_legacy_digest(nonstd::span<const uint8_t> data)
 {
   const size_t base16_bytes = 2;
   ASSERT(data.size() >= base16_bytes);

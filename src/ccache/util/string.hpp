@@ -70,20 +70,20 @@ std::string format_base16(nonstd::span<const uint8_t> data);
 // characters will be added.
 std::string format_base32hex(nonstd::span<const uint8_t> data);
 
-// Format a hash digest representing `data`.
-//
-// The first two bytes are encoded as four lowercase base16 digits to maintain
-// compatibility with the cleanup algorithm in older ccache versions and to
-// allow for up to four uniform cache levels. The rest are encoded as lowercase
-// base32hex digits without padding characters.
-std::string format_digest(nonstd::span<const uint8_t> data);
-
 // Format `ms` as a duration string.
 std::string format_duration(std::chrono::milliseconds ms);
 
 // Format `diff` as a human-readable string.
 std::string format_human_readable_diff(int64_t diff,
                                        SizeUnitPrefixType prefix_type);
+
+// Format a hash digest representing `data`.
+//
+// The first two bytes are encoded as four lowercase base16 digits to maintain
+// compatibility with the cleanup algorithm in older ccache versions and to
+// allow for up to four uniform cache levels. The rest are encoded as lowercase
+// base32hex digits without padding characters.
+std::string format_legacy_digest(nonstd::span<const uint8_t> data);
 
 // Format `size` as a human-readable string.
 std::string format_human_readable_size(uint64_t size,

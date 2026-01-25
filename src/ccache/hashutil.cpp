@@ -256,7 +256,7 @@ hash_source_code_file(const Context& ctx,
   // macro expansions.
 
   Hash hash;
-  hash.hash(util::format_digest(digest));
+  hash.hash(util::format_legacy_digest(digest));
 
   if (result.contains(HashSourceCode::found_date)) {
     LOG("Found __DATE__ in {}", path);
@@ -320,7 +320,7 @@ hash_binary_file(const Context& ctx, Hash& hash, const fs::path& path)
   Hash::Digest digest;
   const bool success = hash_binary_file(ctx, digest, path);
   if (success) {
-    hash.hash(util::format_digest(digest));
+    hash.hash(util::format_legacy_digest(digest));
   }
   return success;
 }

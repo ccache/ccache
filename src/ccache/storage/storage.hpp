@@ -28,11 +28,14 @@
 #include <nonstd/span.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
+
+class Config;
 
 namespace storage {
 
@@ -48,10 +51,9 @@ std::string get_redacted_url_str_for_logging(const Url& url);
 class Storage
 {
 public:
-  Storage(const Config& config);
+  Storage(const Config& config, const std::filesystem::path& ccache_exe_dir);
   ~Storage();
 
-  void initialize();
   void finalize();
 
   local::LocalStorage local;
@@ -68,14 +70,16 @@ public:
 
   void remove(const Hash::Digest& key, core::CacheEntryType type);
 
-  bool has_remote_storage() const;
+  void stop_remote_storage_helpers();
+
   std::string get_remote_storage_config_for_logging() const;
 
 private:
   const Config& m_config;
+  const std::filesystem::path& m_ccache_exe_dir;
   std::vector<std::unique_ptr<RemoteStorageEntry>> m_remote_storages;
 
-  void add_remote_storages();
+  void init_remote_storage();
 
   void mark_backend_as_failed(RemoteStorageBackendEntry& backend_entry,
                               remote::RemoteStorage::Backend::Failure failure);

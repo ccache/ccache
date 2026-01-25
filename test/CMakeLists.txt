@@ -1,3 +1,4 @@
+add_subdirectory(storage)
 function(addtest name)
   add_test(
     NAME "test.${name}"
@@ -57,6 +58,7 @@ addtest(profiling_hip_clang)
 addtest(readonly)
 addtest(readonly_direct)
 addtest(remote_file)
+addtest(remote_helper)
 if(HTTP_STORAGE_BACKEND)
   addtest(remote_http)
 endif()

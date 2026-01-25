@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -138,7 +138,7 @@ RedisStorageBackend::RedisStorageBackend(
       connect_timeout = parse_timeout_attribute(attr.value);
     } else if (attr.key == "operation-timeout") {
       operation_timeout = parse_timeout_attribute(attr.value);
-    } else if (!is_framework_attribute(attr.key)) {
+    } else {
       LOG("Unknown attribute: {}", attr.key);
     }
   }
@@ -344,7 +344,7 @@ RedisStorageBackend::redis_command(const char* format, ...)
 std::string
 RedisStorageBackend::get_key_string(const Hash::Digest& digest) const
 {
-  return FMT("{}:{}", m_prefix, util::format_digest(digest));
+  return FMT("{}:{}", m_prefix, util::format_base16(digest));
 }
 
 } // namespace

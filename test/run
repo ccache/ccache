@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2025 Joel Rosdahl and other contributors
+# Copyright (C) 2009-2026 Joel Rosdahl and other contributors
 #
 # See doc/authors.adoc for a complete list of contributors.
 #
@@ -97,6 +97,26 @@ find_compiler() {
                 exit;
             }
         }' $name
+}
+
+_find_cache_files() {
+    local dir=$1
+    local type=$2
+    find "${dir}"/?/? -type f \! -name stats | while read path; do
+        if $CCACHE --inspect "${path}" 2>/dev/null | grep -q "Entry type: ${type}"; then
+            echo "${path}"
+        fi
+    done
+}
+
+find_result_files() {
+    local dir=$1
+    _find_cache_files "${dir}" 0
+}
+
+find_manifest_files() {
+    local dir=$1
+    _find_cache_files "${dir}" 1
 }
 
 generate_code() {
@@ -205,6 +225,12 @@ expect_exists() {
 expect_missing() {
     if [ -e "$1" ]; then
         test_failed_internal "Expected $1 to be missing, but it exists"
+    fi
+}
+
+expect_equal() {
+    if [ "$1" != "$2" ]; then
+        test_failed_internal "$1 != $2"
     fi
 }
 
@@ -539,6 +565,8 @@ COMPILER_USES_MSVC=false
 ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
 readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
 readonly HTTP_SERVER="${ABS_ROOT_DIR}/http-server"
+readonly STORAGE_TEST_HELPER="$(pwd)/test/storage/helper/ccache-storage-test"
+readonly STORAGE_TEST_CLIENT="$(pwd)/test/storage/client/storage-test-client"
 
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false

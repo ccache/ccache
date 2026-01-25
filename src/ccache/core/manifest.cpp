@@ -166,7 +166,7 @@ Manifest::look_up_result_digest(const Context& ctx) const
     const auto& result = m_results[i - 1];
     LOG("Considering result entry {} ({})",
         i - 1,
-        util::format_digest(result.key));
+        util::format_base16(result.key));
     if (result_matches(ctx, result, stated_files, hashed_files)) {
       LOG("Result entry {} matched in manifest", i - 1);
       return result.key;
@@ -438,8 +438,8 @@ Manifest::result_matches(
     if (hashed_files_iter->second != fi.digest) {
       LOG("Mismatch for {}: hash {} != {}",
           path,
-          util::format_digest(hashed_files_iter->second),
-          util::format_digest(fi.digest));
+          util::format_base16(hashed_files_iter->second),
+          util::format_base16(fi.digest));
       return false;
     }
   }
@@ -462,7 +462,7 @@ Manifest::inspect(FILE* const stream) const
     PRINT(stream, "  {}:\n", i);
     PRINT(stream, "    Path index: {}\n", m_file_infos[i].index);
     PRINT(
-      stream, "    Hash: {}\n", util::format_digest(m_file_infos[i].digest));
+      stream, "    Hash: {}\n", util::format_base16(m_file_infos[i].digest));
     PRINT(stream, "    File size: {}\n", m_file_infos[i].fsize);
     if (m_file_infos[i].mtime == util::TimePoint()) {
       PRINT_RAW(stream, "    Mtime: -\n");
@@ -490,7 +490,7 @@ Manifest::inspect(FILE* const stream) const
       PRINT(stream, " {}", file_info_index);
     }
     PRINT_RAW(stream, "\n");
-    PRINT(stream, "    Key: {}\n", util::format_digest(m_results[i].key));
+    PRINT(stream, "    Key: {}\n", util::format_base16(m_results[i].key));
   }
 }
 

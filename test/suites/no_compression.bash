@@ -27,7 +27,7 @@ SUITE_no_compression() {
     TEST "Result file is uncompressed"
 
     $CCACHE_COMPILE -c test.c
-    result_file=$(find $CCACHE_DIR -name '*R')
+    result_file=$(find_result_files "${CCACHE_DIR}")
     if ! $CCACHE --inspect $result_file | grep 'Compression type: none' >/dev/null 2>&1; then
         test_failed "Result file not uncompressed according to metadata"
     fi
@@ -65,7 +65,7 @@ SUITE_no_compression() {
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
 
-    result_file=$(find $CCACHE_DIR -name '*R')
+    result_file=$(find_result_files "${CCACHE_DIR}")
     # Write BAD at byte 300.
     printf BAD | dd of=$result_file bs=3 count=1 seek=100 conv=notrunc >&/dev/null
 

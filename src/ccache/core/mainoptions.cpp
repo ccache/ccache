@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -171,6 +171,7 @@ Options for scripting or debugging:
                                PATH
         --inspect PATH         print result/manifest file at PATH in
                                human-readable format
+        --stop-storage-helpers stop running storage helper(s), if any
         --print-log-stats      print statistics counter IDs and corresponding
                                values from the stats log in machine-parsable
                                format
@@ -449,6 +450,7 @@ enum : uint8_t {
   PRINT_STATS,
   PRINT_VERSION,
   SHOW_LOG_STATS,
+  STOP_STORAGE_HELPERS,
   THREADS,
   TRIM_DIR,
   TRIM_MAX_SIZE,
@@ -461,44 +463,45 @@ enum : uint8_t {
 
 const char options_string[] = "cCd:k:hF:M:po:svVxX:z";
 const option long_options[] = {
-  {"checksum-file",           REQUIRED,    nullptr, CHECKSUM_FILE   },
-  {"cleanup",                 NO_ARGUMENT, nullptr, 'c'             },
-  {"clear",                   NO_ARGUMENT, nullptr, 'C'             },
-  {"config-path",             REQUIRED,    nullptr, CONFIG_PATH     },
-  {"dir",                     REQUIRED,    nullptr, 'd'             },
-  {"directory",               REQUIRED,    nullptr, 'd'             }, // compat
-  {"dump-manifest",           REQUIRED,    nullptr, INSPECT         }, // compat
-  {"dump-result",             REQUIRED,    nullptr, INSPECT         }, // compat
-  {"evict-namespace",         REQUIRED,    nullptr, EVICT_NAMESPACE },
-  {"evict-older-than",        REQUIRED,    nullptr, EVICT_OLDER_THAN},
-  {"extract-result",          REQUIRED,    nullptr, EXTRACT_RESULT  },
-  {"format",                  REQUIRED,    nullptr, FORMAT          },
-  {"get-config",              REQUIRED,    nullptr, 'k'             },
-  {"hash-file",               REQUIRED,    nullptr, HASH_FILE       },
-  {"help",                    NO_ARGUMENT, nullptr, 'h'             },
-  {"inspect",                 REQUIRED,    nullptr, INSPECT         },
-  {"max-files",               REQUIRED,    nullptr, 'F'             },
-  {"max-size",                REQUIRED,    nullptr, 'M'             },
-  {"print-log-stats",         NO_ARGUMENT, nullptr, PRINT_LOG_STATS },
-  {"print-stats",             NO_ARGUMENT, nullptr, PRINT_STATS     },
-  {"print-version",           NO_ARGUMENT, nullptr, PRINT_VERSION   },
-  {"recompress",              REQUIRED,    nullptr, 'X'             },
-  {"recompress-threads",      REQUIRED,    nullptr, THREADS         }, // compat
-  {"set-config",              REQUIRED,    nullptr, 'o'             },
-  {"show-compression",        NO_ARGUMENT, nullptr, 'x'             },
-  {"show-config",             NO_ARGUMENT, nullptr, 'p'             },
-  {"show-log-stats",          NO_ARGUMENT, nullptr, SHOW_LOG_STATS  },
-  {"show-stats",              NO_ARGUMENT, nullptr, 's'             },
-  {"threads",                 REQUIRED,    nullptr, THREADS         },
-  {"trim-dir",                REQUIRED,    nullptr, TRIM_DIR        },
-  {"trim-max-size",           REQUIRED,    nullptr, TRIM_MAX_SIZE   },
-  {"trim-method",             REQUIRED,    nullptr, TRIM_METHOD     },
-  {"trim-recompress",         REQUIRED,    nullptr, TRIM_RECOMPRESS },
-  {"trim-recompress-threads", REQUIRED,    nullptr, THREADS         }, // compat
-  {"verbose",                 NO_ARGUMENT, nullptr, 'v'             },
-  {"version",                 NO_ARGUMENT, nullptr, 'V'             },
-  {"zero-stats",              NO_ARGUMENT, nullptr, 'z'             },
-  {nullptr,                   0,           nullptr, 0               }
+  {"checksum-file",           REQUIRED,    nullptr, CHECKSUM_FILE       },
+  {"cleanup",                 NO_ARGUMENT, nullptr, 'c'                 },
+  {"clear",                   NO_ARGUMENT, nullptr, 'C'                 },
+  {"config-path",             REQUIRED,    nullptr, CONFIG_PATH         },
+  {"dir",                     REQUIRED,    nullptr, 'd'                 },
+  {"directory",               REQUIRED,    nullptr, 'd'                 }, // compat
+  {"dump-manifest",           REQUIRED,    nullptr, INSPECT             }, // compat
+  {"dump-result",             REQUIRED,    nullptr, INSPECT             }, // compat
+  {"evict-namespace",         REQUIRED,    nullptr, EVICT_NAMESPACE     },
+  {"evict-older-than",        REQUIRED,    nullptr, EVICT_OLDER_THAN    },
+  {"extract-result",          REQUIRED,    nullptr, EXTRACT_RESULT      },
+  {"format",                  REQUIRED,    nullptr, FORMAT              },
+  {"get-config",              REQUIRED,    nullptr, 'k'                 },
+  {"hash-file",               REQUIRED,    nullptr, HASH_FILE           },
+  {"help",                    NO_ARGUMENT, nullptr, 'h'                 },
+  {"inspect",                 REQUIRED,    nullptr, INSPECT             },
+  {"max-files",               REQUIRED,    nullptr, 'F'                 },
+  {"max-size",                REQUIRED,    nullptr, 'M'                 },
+  {"print-log-stats",         NO_ARGUMENT, nullptr, PRINT_LOG_STATS     },
+  {"print-stats",             NO_ARGUMENT, nullptr, PRINT_STATS         },
+  {"print-version",           NO_ARGUMENT, nullptr, PRINT_VERSION       },
+  {"recompress",              REQUIRED,    nullptr, 'X'                 },
+  {"recompress-threads",      REQUIRED,    nullptr, THREADS             }, // compat
+  {"set-config",              REQUIRED,    nullptr, 'o'                 },
+  {"show-compression",        NO_ARGUMENT, nullptr, 'x'                 },
+  {"show-config",             NO_ARGUMENT, nullptr, 'p'                 },
+  {"show-log-stats",          NO_ARGUMENT, nullptr, SHOW_LOG_STATS      },
+  {"show-stats",              NO_ARGUMENT, nullptr, 's'                 },
+  {"stop-storage-helpers",    NO_ARGUMENT, nullptr, STOP_STORAGE_HELPERS},
+  {"threads",                 REQUIRED,    nullptr, THREADS             },
+  {"trim-dir",                REQUIRED,    nullptr, TRIM_DIR            },
+  {"trim-max-size",           REQUIRED,    nullptr, TRIM_MAX_SIZE       },
+  {"trim-method",             REQUIRED,    nullptr, TRIM_METHOD         },
+  {"trim-recompress",         REQUIRED,    nullptr, TRIM_RECOMPRESS     },
+  {"trim-recompress-threads", REQUIRED,    nullptr, THREADS             }, // compat
+  {"verbose",                 NO_ARGUMENT, nullptr, 'v'                 },
+  {"version",                 NO_ARGUMENT, nullptr, 'V'                 },
+  {"zero-stats",              NO_ARGUMENT, nullptr, 'z'                 },
+  {nullptr,                   0,           nullptr, 0                   }
 };
 
 int
@@ -665,7 +668,7 @@ process_main_options(int argc, const char* const* argv)
       const auto result =
         arg == "-" ? hash.hash_fd(STDIN_FILENO) : hash.hash_file(arg);
       if (result) {
-        PRINT(stdout, "{}\n", util::format_digest(hash.digest()));
+        PRINT(stdout, "{}\n", util::format_base16(hash.digest()));
       } else {
         PRINT(stderr, "Error: Failed to hash {}: {}\n", arg, result.error());
         return EXIT_FAILURE;
@@ -793,6 +796,12 @@ process_main_options(int argc, const char* const* argv)
       PRINT_RAW(stdout,
                 statistics.format_human_readable(
                   config, last_updated, verbosity, false));
+      break;
+    }
+
+    case STOP_STORAGE_HELPERS: {
+      storage::Storage storage(config, fs::path(argv[0]).parent_path());
+      storage.stop_remote_storage_helpers();
       break;
     }
 

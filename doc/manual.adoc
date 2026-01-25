@@ -178,6 +178,11 @@ should use the normal compiler options and refer to your compiler's documentatio
     format. Use `-v`/`--verbose` once or twice for more details. See
     <<_cache_statistics,Cache statistics>> for more information.
 
+*--stop-storage-helpers*::
+
+    Storage helpers normally stop after a period of client inactivity, but this
+    option can be used to stop any running helpers immediately.
+
 *--threads* _THREADS_::
 
     Use up to _THREADS_ threads for threaded operations. The default is to use
@@ -864,6 +869,13 @@ the default is false.
     output. The default is false. This can be used to check documentation with
     `-Wdocumentation`.
 
+[#config_libexec_dir]
+*libexec_dirs* (*CCACHE_LIBEXEC_DIRS*)::
+
+    If set, ccache will look for helper programs in these directories instead of
+    the default. The list separator is semicolon on Windows systems and colon on
+    other systems.
+
 [#config_log_file]
 *log_file* (*CCACHE_LOGFILE*)::
 
@@ -1007,7 +1019,7 @@ Examples:
 ----
 remote_storage = file:/shared/nfs/directory+`
 remote_storage =
-  file:///shared/nfs/one|read-only
+  file:///shared/nfs/one read-only
   file:///shared/nfs/two
 remote_storage = file:///Z:/example/windows/folder
 remote_storage = http://example.com/cache
@@ -1207,18 +1219,46 @@ true to disable local storage. Note that cache statistics counters will still be
 kept in the local cache directory -- remote storage backends only store
 compilation results and manifests.
 
-A remote storage backend is specified with a URL, optionally followed by a pipe
-(`|`) and a pipe-separated list of attributes. An attribute is _key_=_value_ or
-just _key_ as a short form of _key_=*true*. Attribute values must be
+=== Storage helper process
+
+ccache can spawn a long-lived local storage helper process (installed
+separately) to handle communication with the remote storage. Storage helpers
+keep remote connections up for efficiency and terminate after a while on
+inactivity.
+
+The storage helper program is called `ccache-storage-<scheme>`, where `<scheme>`
+is the scheme part of a URL, e.g. `https`. The program can be placed in these
+locations (in priority order):
+
+1. In a location specified by the *helper* property (see below).
+2. In `$PATH`.
+3. Next to the ccache executable.
+4. In ccache's <<config_libexec_dirs,libexec directory>>.
+
+If the program is not found, ccache falls back to one of the builtin backends if
+available, otherwise ccache exits with an error.
+
+=== Configuration syntax
+
+A remote storage backend is specified by a URL and can be followed by a
+whitespace-separated list of properties (`_key_=_value_`) and custom attributes
+(`@_key_=_value_`). A missing `=_value_` is shorthand for setting the value to
+*true*. Values must be
 https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
-percent, pipe or space characters.
+`%`, `|` or whitespace characters. For compatibility with older ccache versions,
+`|` characters are treated as spaces.
 
-=== Common attributes
+==== Properties
 
-These optional attributes are available for all remote storage backends:
-
+* *data-timeout*: Timeout for send/receive data transfer. Resets whenever data
+  is received or can be sent. Default: 1s.
+* *helper*: Override which storage helper to spawn (either a filename or a full
+  path). This is mainly useful when developing or testing new helpers.
+* *idle-timeout*: Timeout for the helper process to wait before exiting after
+  client inactivity (0s: stay up indefinitely). Default: 10m.
 * *read-only*: If *true*, only read from this backend, don't write. The default
   is *false*.
+* *request-timeout*: Timeout for the whole request. Default: 10s.
 * *shards*: A comma-separated list of names for sharding (partitioning) the
   cache entries using
   https://en.wikipedia.org/wiki/Rendezvous_hashing[Rendezvous hashing],
@@ -1231,17 +1271,28 @@ These optional attributes are available for all remote storage backends:
   to represent the available memory for a memory cache on a specific server. The
   default weight is *1*.
 +
+Timeouts can be specified with an ms (milliseconds), s (seconds), m (minutes), h
+(hours) or d (days) suffix.
++
 Examples:
 +
 --
-* `+redis://cache-*.example.com|shards=a(3),b(1),c(1.5)+` will put 55% (3/5.5)
-  of the cache on `+redis://cache-a.example.com+`, 18% (1/5.5) on
-  `+redis://cache-b.example.com+` and 27% (1.5/5.5) on
-  `+redis://cache-c.example.com+`.
-* `+http://example.com/*|shards=alpha,beta+` will put 50% of the cache on
+* `+http://cache-*.example.com shards=a(3),b(1),c(1.5)+` will put 55% (3/5.5)
+  of the cache on `+http://cache-a.example.com+`, 18% (1/5.5) on
+  `+http://cache-b.example.com+` and 27% (1.5/5.5) on
+  `+http://cache-c.example.com+`.
+* `+http://example.com/* shards=alpha,beta+` will put 50% of the cache on
   `+http://example.com/alpha+` and 50% on `+http://example.com/beta+`.
 --
 
+==== Custom attributes
+
+Custom attributes on the form `_@key_=_value_` are specific to each storage
+helper implementation. See the backend's documentation for which attributes are
+available. Examples:
+
+* `+file:///example/directory @umask=002 @update-mtime=true+`
+* `+https://example.com/path @bearer-token=deadbeef+`
 
 === Storage interaction
 
@@ -1259,7 +1310,7 @@ the default):
 
 |==============================================================================
 
-^[1]^ Unless remote storage has attribute `read-only=true`. +
+^[1]^ Unless remote storage has property `read-only=true`. +
 ^[2]^ Unless local storage is set to share its cache hits with the
 <<config_reshare,*reshare*>> option.
 
@@ -1291,13 +1342,13 @@ done by other means, for instance by running `ccache --trim-dir` periodically.
 Examples:
 
 * `+file:/shared/nfs/directory+`
-* `+file:///shared/nfs/directory|umask=002|update-mtime=true+`
+* `+file:///shared/nfs/directory @umask=002 @update-mtime=true+`
 * `+file:///Z:/example/windows/folder+`
 * `+file://example.com/shared/ccache%20folder+`
 
 Optional attributes:
 
-* *layout*: How to store file under the cache directory. Available values:
+* *@layout*: How to store file under the cache directory. Available values:
 +
 --
 * *flat*: Store all files directly under the cache directory.
@@ -1305,13 +1356,32 @@ Optional attributes:
 --
 +
 The default is *subdirs*.
-* *umask*: This attribute (an octal integer) overrides the umask to use for
+* *@umask*: This attribute (an octal integer) overrides the umask to use for
   files and directories in the cache directory.
-* *update-mtime*: If *true*, update the modification time (mtime) of cache
+* *@update-mtime*: If *true*, update the modification time (mtime) of cache
   entries that are read. The default is *false*.
 
 
+=== CRSH storage backend
+
+URL format: `+crsh:IPC_ENDPOINT+`
+
+This backend connects to an already running <<Storage helper process,ccache
+storage helper>> (CRSH) process listening on `IPC_ENDPOINT` (Unix socket path or
+Windows named pipe). The use case for this is mainly when developing or
+debugging a storage helper, or in special setups where the helper program is
+started and managed externally.
+
+Examples:
+
+* `+crsh:/path/to/your.sock+` (Unix socket)
+* `+crsh:name-of-your-pipe+` (Windows named pipe)
+
+
 === HTTP storage backend
+
+WARNING: Built-in support for the HTTP protocol will likely be removed in a
+future ccache release.
 
 URL format: `+http://HOST[:PORT][/PATH]+`
 
@@ -1330,15 +1400,14 @@ Examples:
 
 * `+http://localhost+`
 * `+http://someusername:p4ssw0rd@example.com/cache/+`
-* `+http://localhost:8080|layout=bazel|connect-timeout=50+`
+* `+http://localhost:8080 @layout=bazel+`
 
 Optional attributes:
 
-* *bearer-token*: Bearer token used to authorize the HTTP requests.
-* *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
-* *keep-alive*: If *true*, keep the HTTP connection to the storage server open
+* *@bearer-token*: Bearer token used to authorize the HTTP requests.
+* *@keep-alive*: If *true*, keep the HTTP connection to the storage server open
   to avoid reconnects. The default is *true*.
-* *layout*: How to map key names to the path part of the URL. Available values:
+* *@layout*: How to map key names to the path part of the URL. Available values:
 +
 --
 * *bazel*: Store values in a format compatible with the Bazel HTTP caching
@@ -1356,13 +1425,14 @@ values.
 --
 +
 The default is *subdirs*.
-* *header*: Add the key=value pair to the HTTP headers of the request. For example:
-   `+header=Content-Type=application/octet-stream+` adds
-   "Content-Type: application/octet-stream" to the http headers of the request.
-* *operation-timeout*: Timeout (in ms) for HTTP requests. The default is 10000.
-
+* *@header*: Add the key=value pair to the HTTP headers of the request. For
+   example: `+@header=Content-Type=application/octet-stream+` adds
+   "Content-Type: application/octet-stream" to the HTTP headers of the request.
 
 === Redis storage backend
+
+WARNING: Built-in support for the Redis protocol will likely be removed in a
+future ccache release.
 
 URL formats:
 
@@ -1380,22 +1450,16 @@ https://redis.io/topics/lru-cache[configure LRU eviction].
 TIP: See https://ccache.dev/howto/redis-storage.html[How to set up Redis
 storage] for hints on setting up a Redis server for use with ccache.
 
-TIP: You can set up a cluster of Redis servers using the `shards` attribute
+TIP: You can set up a cluster of Redis servers using the `shards` property
 described in _<<Remote storage backends>>_.
 
 Examples:
 
 * `+redis://localhost+`
-* `+redis://p4ssw0rd@cache.example.com:6379/0|connect-timeout=50+`
+* `+redis://p4ssw0rd@cache.example.com:6379/0+`
 * `+redis+unix:/run/redis.sock+`
 * `+redis+unix:///run/redis.sock+`
 * `+redis+unix://p4ssw0rd@localhost/run/redis.sock?db=0+`
-
-Optional attributes:
-
-* *connect-timeout*: Timeout (in ms) for network connection. The default is 100.
-* *operation-timeout*: Timeout (in ms) for Redis commands. The default is 10000.
-
 
 == Cache size management
 

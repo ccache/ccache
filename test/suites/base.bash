@@ -366,7 +366,7 @@ EOF
     TEST "Result file is compressed"
 
     $CCACHE_COMPILE -c test1.c
-    result_file=$(find $CCACHE_DIR -name '*R')
+    result_file=$(find_result_files "${CCACHE_DIR}")
     if ! $CCACHE --inspect $result_file | grep 'Compression type: zstd' >/dev/null 2>&1; then
         test_failed "Result file not uncompressed according to metadata"
     fi
@@ -387,7 +387,7 @@ EOF
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
 
-    result_file=$(find $CCACHE_DIR -name '*R')
+    result_file=$(find_result_files "${CCACHE_DIR}")
     printf foo | dd of=$result_file bs=3 count=1 seek=20 conv=notrunc >&/dev/null
 
     $CCACHE_COMPILE -c test1.c
@@ -1156,7 +1156,7 @@ EOF
     $CCACHE_COMPILE -MMD -c test.c
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
-    result_file=$(find "$CCACHE_DIR" -name '*R')
+    result_file=$(find_result_files "${CCACHE_DIR}")
     level_2_dir=$(dirname "$result_file")
     level_1_dir=$(dirname $(dirname "$result_file"))
     expect_perm test.o -rw-r--r--
@@ -1907,18 +1907,8 @@ fi
     # -------------------------------------------------------------------------
     TEST "--hash-file"
 
-    $CCACHE --hash-file /dev/null > hash.out
-    printf "a" | $CCACHE --hash-file - >> hash.out
-
-    hash_0='af1396svbud1kqg40jfa6reciicrpcisi'
-    hash_1='17765vetiqd4ae95qpbhfb1ut8gj42r6m'
-
-    if grep "$hash_0" hash.out >/dev/null 2>&1 && \
-       grep "$hash_1" hash.out >/dev/null 2>&1; then
-        : OK
-    else
-        test_failed "Unexpected output of --hash-file"
-    fi
+    expect_equal $($CCACHE --hash-file /dev/null) af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9
+    expect_equal $(printf a | $CCACHE --hash-file -) 17762fddd969a453925d65717ac3eea21320b66b
 }
 
 # =============================================================================

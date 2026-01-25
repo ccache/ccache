@@ -60,8 +60,6 @@ struct CompressionStatistics
 
 enum class FileType { result, manifest, raw, unknown };
 
-FileType file_type_from_path(const std::filesystem::path& path);
-
 class LocalStorage
 {
 public:
@@ -166,7 +164,6 @@ private:
 
   void move_to_wanted_cache_level(const core::StatisticsCounters& counters,
                                   const Hash::Digest& key,
-                                  core::CacheEntryType type,
                                   const std::filesystem::path& cache_file_path);
 
   void recount_level_1_dir(util::LongLivedLockFileManager& lock_manager,

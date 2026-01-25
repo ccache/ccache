@@ -1,6 +1,8 @@
 set(
   sources
+  client.cpp
   filestorage.cpp
+  helper.cpp
   remotestorage.cpp
 )
 
