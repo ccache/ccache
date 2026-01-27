@@ -1192,6 +1192,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg == "--relocatable-pch") {
+    args_info.relocatable_pch = true;
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   if (arg == "-fpch-preprocess") {
     state.found_fpch_preprocess = true;
     state.add_common_arg(args[i]);
@@ -1262,12 +1268,18 @@ process_option_arg(const Context& ctx,
     // Potentially rewrite path argument to relative path to get better hit
     // rate. A secondary effect is that paths in the standard error output
     // produced by the compiler will be normalized.
-    fs::path relpath = core::make_relative_path(ctx, args[i + next]);
+    fs::path rewritten_path;
+    if (compopt_takes_path_abs(arg)) {
+      // some paths should not be made relative (eg -isysroot)
+      rewritten_path = args[i + next];
+    } else {
+      rewritten_path = core::make_relative_path(ctx, args[i + next]);
+    }
     state.add_common_arg(args[i]);
     if (next == 2) {
       state.add_common_arg(args[i + 1]);
     }
-    state.add_common_arg(relpath);
+    state.add_common_arg(rewritten_path);
 
     i += next;
     return Statistic::none;
@@ -1292,8 +1304,14 @@ process_option_arg(const Context& ctx,
     const auto [option, path] = util::split_option_with_concat_path(arg);
     if (path && compopt_takes_concat_arg(option)
         && compopt_takes_path(option)) {
-      const auto relpath = core::make_relative_path(ctx, *path);
-      std::string new_option = FMT("{}{}", option, relpath);
+      fs::path rewritten_path;
+      if (compopt_takes_path_abs(option)) {
+        // some paths should not be made relative (eg -isysroot)
+        rewritten_path = *path;
+      } else {
+        rewritten_path = core::make_relative_path(ctx, *path);
+      }
+      std::string new_option = FMT("{}{}", option, rewritten_path);
       if (compopt_affects_cpp_output(option)) {
         state.add_common_arg(std::move(new_option));
       } else {
