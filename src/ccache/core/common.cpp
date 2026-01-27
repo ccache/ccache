@@ -90,8 +90,32 @@ make_relative_path(const Context& ctx, const fs::path& path)
   }
 }
 
-std::string
-rewrite_stderr_to_absolute_paths(std::string_view text)
+inline bool
+parse_inlined_from_msg(std::string_view& line, std::string& result)
+{
+  // Reference for GCC: <https://github.com/gcc-mirror/gcc/blob/
+  // c7507e395f096240ffa8fa5dfcbfcfd8c5e23bb8/gcc/langhooks.cc#L450-L467>
+  static const std::string_view inlined_from_msg = "    inlined from ";
+  static const std::string_view inlined_from_msg_separator = " at ";
+
+  if (!util::starts_with(line, inlined_from_msg)) {
+    return false;
+  }
+
+  size_t signature_end = line.find(inlined_from_msg_separator);
+  if (signature_end == std::string_view::npos) {
+    return false;
+  }
+
+  signature_end += inlined_from_msg_separator.size();
+  result.append(line.data(), signature_end);
+  line = line.substr(signature_end);
+
+  return true;
+}
+
+inline bool
+parse_in_file_included_from_msg(std::string_view& line, std::string& result)
 {
   // Line prefixes from GCC plus extra space at the end. Reference:
   // <https://gcc.gnu.org/git?p=gcc.git;a=blob;f=gcc/diagnostic-format-text.cc;
@@ -106,18 +130,28 @@ rewrite_stderr_to_absolute_paths(std::string_view text)
     "imported at ",
   };
 
+  for (const auto& in_file_included_from : in_file_included_from_msgs) {
+    if (util::starts_with(line, in_file_included_from)) {
+      result += in_file_included_from;
+      line = line.substr(in_file_included_from.length());
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::string
+rewrite_stderr_to_absolute_paths(std::string_view text)
+{
   std::string result;
   using util::Tokenizer;
   for (auto line : Tokenizer(text,
                              "\n",
                              Tokenizer::Mode::include_empty,
                              Tokenizer::IncludeDelimiter::yes)) {
-    for (const auto& in_file_included_from : in_file_included_from_msgs) {
-      if (util::starts_with(line, in_file_included_from)) {
-        result += in_file_included_from;
-        line = line.substr(in_file_included_from.length());
-        break;
-      }
+    if (!parse_inlined_from_msg(line, result)) {
+      parse_in_file_included_from_msg(line, result);
     }
     while (!line.empty() && line[0] == 0x1b) {
       auto csi_seq = find_first_ansi_csi_seq(line);
