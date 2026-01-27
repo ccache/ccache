@@ -1,0 +1,82 @@
+name: ⚠️ Problem report
+description: Report a problem (e.g. bug or incompatibility) with existing behavior
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for wanting to improve ccache! If you are unsure if what you're experiencing is a real problem, consider using the [discussion forum](https://github.com/ccache/ccache/discussions/categories/support) for support questions.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: A concise description of what the problem is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce-behavior
+    attributes:
+      label: How to reproduce the problem
+      description: Steps to reproduce the existing behavior.
+      placeholder: |
+        1. Do this...
+        2. Do that...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: What happened after the reproduction steps.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen after the reproduction steps.
+    validations:
+      required: true
+
+  - type: input
+    id: ccache-version
+    attributes:
+      label: Ccache version
+      description: Which ccache version did you use?
+      placeholder: 1.2.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: Which operating system did you use?
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Other (please specify in Environment below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: If applicable, details about the environment (compiler, OS, file system, etc).
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: If applicable, add logs from ccache's [log mode](https://ccache.dev/manual/latest.html#config_log_file) or [debug mode](https://ccache.dev/manual/latest.html#config_debug).
+      render: shell
+    validations:
+      required: false

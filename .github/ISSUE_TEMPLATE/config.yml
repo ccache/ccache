@@ -1,4 +1,4 @@
 contact_links:
-  - name: 🤔 Question or discussion
+  - name: 🤔 Question, support or discussion
     url: https://github.com/ccache/ccache/discussions
-    about: Please go to https://github.com/ccache/ccache/discussions
+    about: Ask questions and discuss ccache

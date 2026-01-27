@@ -1,11 +1,10 @@
 ---
-name: 📈 Improvement
-about: Suggest an improvement that is neither a bug fix nor a new feature
+name: 🛠️ Improvement
+about: Suggest an improvement of an existing feature
 title: ''
-labels: improvement
+labels: ["issue: improvement"]
 assignees: ''
 
 ---
-### Description ###
 <!-- Please describe your improvement suggestion below: -->
 
