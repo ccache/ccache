@@ -161,6 +161,28 @@ copy_file_impl(const fs::path& src,
       FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
   }
   return {};
+#  elif defined(HAVE_COPY_FILE_RANGE)
+  DirEntry dir_entry(src, *src_fd);
+  if (!dir_entry) {
+    return tl::unexpected(FMT("Failed to stat {}: {}", src, strerror(errno)));
+  }
+  ssize_t bytes_left = dir_entry.size();
+  while (bytes_left > 0) {
+    ssize_t n =
+      copy_file_range(*src_fd, nullptr, *dst_fd, nullptr, bytes_left, 0);
+    if (n < 0) {
+      switch (errno) {
+      case EINVAL:
+      case EXDEV:
+        return copy_fd(*src_fd, *dst_fd);
+      default:
+        return tl::unexpected(
+          FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
+      }
+    }
+    bytes_left -= n;
+  }
+  return {};
 #  elif defined(HAVE_SYS_SENDFILE_H)
   DirEntry dir_entry(src, *src_fd);
   if (!dir_entry) {
