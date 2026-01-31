@@ -113,6 +113,9 @@
 
 // === Functions ===
 
+// Define if you have the "copy_file_range" function.
+#cmakedefine HAVE_COPY_FILE_RANGE
+
 // Define if you have the "getopt_long" function.
 #cmakedefine HAVE_GETOPT_LONG
 

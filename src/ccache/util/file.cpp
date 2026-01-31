@@ -161,17 +161,23 @@ copy_file_impl(const fs::path& src,
       FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
   }
   return {};
-#  elif defined(HAVE_SYS_SENDFILE_H)
+#  elif defined(HAVE_COPY_FILE_RANGE) || defined(HAVE_SYS_SENDFILE_H)
   DirEntry dir_entry(src, *src_fd);
   if (!dir_entry) {
     return tl::unexpected(FMT("Failed to stat {}: {}", src, strerror(errno)));
   }
   ssize_t bytes_left = dir_entry.size();
   while (bytes_left > 0) {
+#    if defined(HAVE_SYS_SENDFILE_H)
     ssize_t n = sendfile(*dst_fd, *src_fd, nullptr, bytes_left);
+#    elif defined(HAVE_COPY_FILE_RANGE)
+    ssize_t n =
+      copy_file_range(*src_fd, nullptr, *dst_fd, nullptr, bytes_left, 0);
+#    endif
     if (n < 0) {
       switch (errno) {
       case EINVAL:
+      case EXDEV:
       case ENOSYS:
         return copy_fd(*src_fd, *dst_fd);
       default:
