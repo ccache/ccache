@@ -36,14 +36,14 @@ LongLivedLockFileManager::~LongLivedLockFileManager()
 {
 #ifndef _WIN32
   if (m_thread.joinable()) {
-    LOG_RAW("Stopping keep-alive thread");
+    LOG("Stopping keep-alive thread");
     {
       std::unique_lock<std::mutex> lock(m_mutex);
       m_stop = true;
     }
     m_stop_condition.notify_one();
     m_thread.join();
-    LOG_RAW("Stopped keep-alive thread");
+    LOG("Stopped keep-alive thread");
   }
 #endif
 }
@@ -75,7 +75,7 @@ LongLivedLockFileManager::deregister_alive_file(
 void
 LongLivedLockFileManager::start_thread()
 {
-  LOG_RAW("Starting keep-alive thread");
+  LOG("Starting keep-alive thread");
   m_thread = std::thread([&] {
     auto awake_time = std::chrono::steady_clock::now();
     while (true) {
@@ -90,7 +90,7 @@ LongLivedLockFileManager::start_thread()
       awake_time += k_keep_alive_interval;
     }
   });
-  LOG_RAW("Started keep-alive thread");
+  LOG("Started keep-alive thread");
 }
 #endif
 

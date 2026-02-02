@@ -28,6 +28,7 @@ Checks: '
   -clang-analyzer-optin.performance.Padding,
   -clang-analyzer-valist.Uninitialized,
   clang-diagnostic-*,
+  -clang-diagnostic-gnu-zero-variadic-macro-arguments,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-c-arrays,
   -cppcoreguidelines-avoid-do-while,

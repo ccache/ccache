@@ -78,7 +78,7 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
   } else {
     const auto dest_path = get_dest_path(file_type);
     if (dest_path.empty()) {
-      LOG_RAW("Not writing");
+      LOG("Not writing");
     } else if (util::is_dev_null_path(dest_path)) {
       LOG("Not writing to {}", dest_path);
     } else {

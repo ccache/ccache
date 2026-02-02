@@ -222,7 +222,7 @@ Manifest::add_result(
     auto index = get_file_info_index(
       path, digest, mf_files, mf_file_infos, stat_file_function);
     if (!index) {
-      LOG_RAW("Index overflow in manifest");
+      LOG("Index overflow in manifest");
       return false;
     }
     file_info_indexes.push_back(*index);

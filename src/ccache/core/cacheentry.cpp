@@ -98,7 +98,7 @@ CacheEntry::Header::Header(const Config& config,
     entry_size(0)
 {
   if (compression_type == CompressionType::none) {
-    LOG_RAW("Using no compression");
+    LOG("Using no compression");
   } else if (compression_level == 0) {
     compression_level = default_compression_level;
     LOG("Using Zstandard with default compression level {}", compression_level);

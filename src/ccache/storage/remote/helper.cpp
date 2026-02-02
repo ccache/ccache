@@ -447,7 +447,7 @@ HelperBackend::finalize_connection()
   }
 
   if (!m_client.has_capability(Client::Capability::get_put_remove_stop)) {
-    LOG_RAW("Remote storage helper does not support capability 0");
+    LOG("Remote storage helper does not support capability 0");
     return tl::unexpected(Failure::error);
   }
 
@@ -490,7 +490,7 @@ HelperBackend::ensure_connected(bool spawn)
   // processes from spawning simultaneously.
   util::LockFile spawn_lock(m_endpoint_lock_path);
   if (!spawn_lock.acquire()) {
-    LOG_RAW("Failed to acquire spawn lock");
+    LOG("Failed to acquire spawn lock");
     return tl::unexpected(Failure::error);
   }
 
@@ -600,7 +600,7 @@ void
 HelperBackend::stop()
 {
   if (auto r = ensure_connected(false); !r) {
-    LOG_RAW("Failed to connect to remote storage helper");
+    LOG("Failed to connect to remote storage helper");
     return;
   }
   if (!m_connected) {

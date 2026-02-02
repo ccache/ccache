@@ -274,7 +274,7 @@ RedisStorageBackend::connect(const Url& url,
     throw Failed("Failed to set operation timeout");
   }
 
-  LOG_RAW("Redis connection OK");
+  LOG("Redis connection OK");
 }
 
 void

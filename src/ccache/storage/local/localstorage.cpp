@@ -901,10 +901,13 @@ LocalStorage::recompress(const std::optional<int8_t> level,
         auto l2_content_lock = get_level_2_content_lock(l1_index, l2_index);
         l2_content_lock.make_long_lived(lock_manager);
         if (!l2_content_lock.acquire()) {
-          // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug #109241
-          LOG_RAW(fmt::format("Failed to acquire content lock for {:x}/{:x}",
-                              l1_index,
-                              l2_index));
+          // Not using LOG here due to GCC 12.3 bug #109241.
+          if (util::logging::enabled()) {
+            util::logging::log(
+              FMT("Failed to acquire content lock for {:x}/{:x}",
+                  l1_index,
+                  l2_index));
+          }
           ++completed_dirs;
           progress_receiver(static_cast<double>(completed_dirs) / 256.0);
           return;
@@ -922,13 +925,15 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                   file, level, core::FileRecompressor::KeepAtime::no);
                 auto old_size = file.size();
                 auto new_size = new_dir_entry.size();
-                // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
-                // #109241
+                // Not using LOG here due to GCC 12.3 bug #109241.
                 if (new_size != old_size) {
-                  LOG_RAW(fmt::format("Recompressed {} from {} to {} bytes",
-                                      file.path(),
-                                      old_size,
-                                      new_size));
+                  if (util::logging::enabled()) {
+                    util::logging::log(
+                      FMT("Recompressed {} from {} to {} bytes",
+                          file.path(),
+                          old_size,
+                          new_size));
+                  }
                   auto size_change_kibibyte =
                     kibibyte_size_diff(file, new_dir_entry);
                   if (size_change_kibibyte != 0) {
@@ -943,10 +948,11 @@ LocalStorage::recompress(const std::optional<int8_t> level,
                   }
                 }
               } catch (core::Error& e) {
-                // LOG_RAW+fmt::format instead of LOG due to GCC 12.3 bug
-                // #109241
-                LOG_RAW(fmt::format(
-                  "Error when recompressing {}: {}", file.path(), e.what()));
+                // Not using LOG here due to GCC 12.3 bug #109241.
+                if (util::logging::enabled()) {
+                  util::logging::log(FMT(
+                    "Error when recompressing {}: {}", file.path(), e.what()));
+                }
                 incompressible_size += file.size_on_disk();
               }
             });

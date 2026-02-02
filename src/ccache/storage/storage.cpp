@@ -377,7 +377,7 @@ get_remote_storage(std::string_view scheme,
   }
 
   if (config.helper == "_builtin_" || scheme == "file") {
-    LOG_RAW("Forcing use of builtin storage backend");
+    LOG("Forcing use of builtin storage backend");
   } else {
     // Look up and use storage helper if available.
     std::string helper_name =

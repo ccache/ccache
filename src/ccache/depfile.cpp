@@ -97,7 +97,7 @@ tl::expected<void, std::string>
 make_paths_relative_in_output_dep(const Context& ctx)
 {
   if (ctx.config.base_dirs().empty()) {
-    LOG_RAW("Base dir not set, skip using relative paths");
+    LOG("Base dir not set, skip using relative paths");
     return {}; // nothing to do
   }
 

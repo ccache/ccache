@@ -387,7 +387,7 @@ find_non_ccache_executable(const Context& ctx,
     path_list = util::getenv_path_list("PATH");
   }
   if (path_list.empty()) {
-    LOG_RAW("No PATH variable");
+    LOG("No PATH variable");
     return {};
   }
 

@@ -466,7 +466,7 @@ remember_include_file(Context& ctx,
         return tl::unexpected(Statistic::bad_input_file);
       }
       if (ret.contains(HashSourceCode::found_time)) {
-        LOG_RAW("Disabling direct mode");
+        LOG("Disabling direct mode");
         ctx.config.set_direct_mode(false);
       }
     }
@@ -604,7 +604,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       }
       q++;
       if (q >= end) {
-        LOG_RAW("Failed to parse included file path");
+        LOG("Failed to parse included file path");
         return tl::unexpected(Statistic::internal_error);
       }
       // q points to the beginning of an include file path
@@ -661,7 +661,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
                     && (q[8] == '"' || (q[8] == '\\' && q[9] == '"')))
                    || q[7] == '"')) {
       if (ctx.config.sloppiness().contains(core::Sloppy::incbin)) {
-        LOG_RAW(
+        LOG(
           "Found potential unsupported .inc"
           "bin directive in source code but continuing due to enabled sloppy"
           " incbin handling");
@@ -672,7 +672,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       // part of inline assembly, refers to an external file. If the file
       // changes, the hash should change as well, but finding out what file to
       // hash is too hard for ccache, so just bail out.
-      LOG_RAW(
+      LOG(
         "Found potential unsupported .inc"
         "bin directive in source code");
       return tl::unexpected(Failure(Statistic::unsupported_code_directive));
@@ -841,7 +841,7 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
       // flag. (Note that there intentionally is no leading dash in
       // "fdiagnostics-color" since some compilers don't include the dash in the
       // error message.)
-      LOG_RAW("-fdiagnostics-color is unsupported; trying again without it");
+      LOG("-fdiagnostics-color is unsupported; trying again without it");
 
       ctx.diagnostics_color_failed = true;
       return do_execute(ctx, args, capture_stdout);
@@ -952,7 +952,7 @@ find_coverage_file(const Context& ctx)
   if (DirEntry(unmangled_form).is_regular_file()) {
     LOG("Found coverage file {}", unmangled_form);
     if (!found_file.empty()) {
-      LOG_RAW("Found two coverage files, cannot continue");
+      LOG("Found two coverage files, cannot continue");
       return {};
     }
     found_file = unmangled_form;
@@ -1002,7 +1002,7 @@ write_result(Context& ctx,
   if (ctx.args_info.generating_coverage) {
     const auto coverage_file = find_coverage_file(ctx);
     if (!coverage_file.found) {
-      LOG_RAW("Coverage file not found");
+      LOG("Coverage file not found");
       return false;
     }
     if (!serializer.add_file(coverage_file.mangled
@@ -1229,7 +1229,7 @@ to_cache(Context& ctx,
     }
   }
 
-  LOG_RAW("Running real compiler");
+  LOG("Running real compiler");
 
   tl::expected<DoExecuteResult, Failure> result;
   result = do_execute(ctx, args);
@@ -1278,7 +1278,7 @@ to_cache(Context& ctx,
     } else {
       ASSERT(false);
     }
-    LOG_RAW("Got result key from dependency file");
+    LOG("Got result key from dependency file");
     LOG("Result key: {}", util::format_base16(*result_key));
   }
 
@@ -1305,14 +1305,14 @@ to_cache(Context& ctx,
   if (!ctx.args_info.expect_output_obj) {
     // Don't probe for object file when we don't expect one since we otherwise
     // will be fooled by an already existing object file.
-    LOG_RAW("Compiler not expected to produce an object file");
+    LOG("Compiler not expected to produce an object file");
   } else {
     DirEntry dir_entry(ctx.args_info.output_obj);
     if (!dir_entry.is_regular_file()) {
-      LOG_RAW("Compiler didn't produce an object file");
+      LOG("Compiler didn't produce an object file");
       return tl::unexpected(Statistic::compiler_produced_no_output);
     } else if (dir_entry.size() == 0) {
-      LOG_RAW("Compiler produced an empty object file");
+      LOG("Compiler produced an empty object file");
       return tl::unexpected(Statistic::compiler_produced_empty_output);
     }
   }
@@ -1437,7 +1437,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
       FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
-    LOG_RAW("Running preprocessor");
+    LOG("Running preprocessor");
     const auto result = do_execute(ctx, args, capture_stdout);
     args.pop_back(args.size() - orig_args_size);
 
@@ -1457,7 +1457,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
         "warning C4828: The file contains a character starting at offset";
       if (util::to_string_view(cpp_stderr_data).find(warning_c4828)
           != std::string_view::npos) {
-        LOG_RAW("Non-UTF-8 source code unsupported in preprocessor mode");
+        LOG("Non-UTF-8 source code unsupported in preprocessor mode");
         return tl::unexpected(Statistic::unsupported_source_encoding);
       }
     }
@@ -1760,7 +1760,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     // corresponding .dwo file based on the target object filename, so hashing
     // the object file path will do it, although just hashing the object file
     // base name would be enough.
-    LOG_RAW("Hashing object filename due to -gsplit-dwarf");
+    LOG("Hashing object filename due to -gsplit-dwarf");
     hash.hash_delimiter("object file");
     hash.hash(util::pstr(ctx.args_info.output_obj.filename()));
   }
@@ -1773,7 +1773,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     fs::path apparent_absolute_path =
       ctx.apparent_cwd / ctx.args_info.output_obj;
     if (ctx.args_info.profile_prefix_path.empty()) {
-      LOG_RAW("Hashing absolute object filename due to -fprofile-arcs");
+      LOG("Hashing absolute object filename due to -fprofile-arcs");
       hash.hash_delimiter("Absolute object file path");
       // -fprofile-arcs stores "apparent absolute path" for .gcda file
       // names/paths.
@@ -1781,7 +1781,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     } else {
       if (util::path_starts_with(apparent_absolute_path,
                                  ctx.args_info.profile_prefix_path)) {
-        LOG_RAW(
+        LOG(
           "Hashing trimmed absolute object filename due to -fprofile-arcs and "
           "-fprofile-prefix-path=path");
         std::string trimmed_absolute_path = apparent_absolute_path.string();
@@ -1793,7 +1793,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
         hash.hash_delimiter("Trimmed absolute object file path");
         hash.hash(trimmed_absolute_path);
       } else {
-        LOG_RAW(
+        LOG(
           "Hashing absolute object filename due to -fprofile-arcs and "
           "-fprofile-prefix-path=path not being a prefix to the absolute "
           "filename.");
@@ -1808,7 +1808,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     // GCC 9+ includes $PWD in the .gcno file. Since we don't have knowledge
     // about compiler version we always (unless sloppiness is wanted) include
     // the directory in the hash for now.
-    LOG_RAW("Hashing apparent CWD due to generating a .gcno file");
+    LOG("Hashing apparent CWD due to generating a .gcno file");
     hash.hash_delimiter("CWD in .gcno");
     hash.hash(ctx.apparent_cwd);
   }
@@ -2321,7 +2321,7 @@ get_manifest_key(Context& ctx, Hash& hash)
     return tl::unexpected(Statistic::internal_error);
   }
   if (ret.contains(HashSourceCode::found_time)) {
-    LOG_RAW("Disabling direct mode");
+    LOG("Disabling direct mode");
     ctx.config.set_direct_mode(false);
     return {};
   }
@@ -2407,7 +2407,7 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
   }
 
   if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {
-    LOG_RAW("No profile data file found");
+    LOG("No profile data file found");
     return tl::unexpected(Statistic::no_input_file);
   }
 
@@ -2416,7 +2416,7 @@ hash_profiling_related_data(const Context& ctx, Hash& hash)
         ctx.args_info.thinlto_index_path);
     hash.hash_delimiter("-fthinlto-index");
     if (!hash_binary_file(ctx, hash, ctx.args_info.thinlto_index_path)) {
-      LOG_RAW("No thinlto index file found");
+      LOG("No thinlto index file found");
       return tl::unexpected(Statistic::no_input_file);
     }
   }
@@ -2439,10 +2439,10 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
         LOG("Failed to look up result key in manifest: {}", e.what());
       }
       if (result_key) {
-        LOG_RAW("Got result key from manifest");
+        LOG("Got result key from manifest");
         return true;
       } else {
-        LOG_RAW("Did not find result key in manifest");
+        LOG("Did not find result key in manifest");
         return false;
       }
     });
@@ -2527,7 +2527,7 @@ calculate_result_and_manifest_key(Context& ctx,
   } else if (ctx.args_info.arch_args.empty()) {
     TRY_ASSIGN(result_key,
                get_result_key_from_cpp(ctx, *preprocessor_args, hash));
-    LOG_RAW("Got result key from preprocessor");
+    LOG("Got result key from preprocessor");
   } else {
     preprocessor_args->push_back("-arch");
     for (size_t i = 0; i < ctx.args_info.arch_args.size(); ++i) {
@@ -2581,7 +2581,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
        || ctx.config.compiler_type() == CompilerType::other)
       && ctx.args_info.output_is_precompiled_header
       && mode == FromCacheCallMode::cpp) {
-    LOG_RAW("Not considering cached precompiled header in preprocessor mode");
+    LOG("Not considering cached precompiled header in preprocessor mode");
     return false;
   }
 
@@ -2615,7 +2615,7 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
     return false;
   }
 
-  LOG_RAW("Succeeded getting cached result");
+  LOG("Succeeded getting cached result");
   return true;
 }
 
@@ -2738,7 +2738,7 @@ finalize_at_exit(Context& ctx)
   try {
     if (ctx.config.disable()) {
       // Just log result, don't update statistics.
-      LOG_RAW("Result: disabled");
+      LOG("Result: disabled");
       return;
     }
 
@@ -2846,7 +2846,7 @@ cache_compilation(int argc, const char* const* argv)
       ctx.orig_args.erase_with_prefix("--ccache-");
       add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
-      LOG_RAW("Failed; falling back to running the real compiler");
+      LOG("Failed; falling back to running the real compiler");
 
       saved_temp_dir = ctx.config.temporary_dir();
       saved_orig_args = std::move(ctx.orig_args);
@@ -2867,7 +2867,7 @@ cache_compilation(int argc, const char* const* argv)
       FMT("execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno)));
   }
 
-  LOG_RAW("=== CCACHE DONE ===");
+  LOG("=== CCACHE DONE ===");
   return EXIT_SUCCESS;
 }
 
@@ -2875,7 +2875,7 @@ static tl::expected<core::StatisticsCounters, Failure>
 do_cache_compilation(Context& ctx)
 {
   if (ctx.config.disable()) {
-    LOG_RAW("ccache is disabled");
+    LOG("ccache is disabled");
     return tl::unexpected(Statistic::none);
   }
 
@@ -2917,17 +2917,17 @@ do_cache_compilation(Context& ctx)
   if (ctx.config.depend_mode()
       && !(ctx.args_info.generating_dependencies
            || ctx.args_info.generating_includes)) {
-    LOG_RAW("Disabling depend mode");
+    LOG("Disabling depend mode");
     ctx.config.set_depend_mode(false);
   }
 
   if (!ctx.config.remote_storage().empty()) {
     if (ctx.config.file_clone()) {
-      LOG_RAW("Disabling file clone mode since remote storage is enabled");
+      LOG("Disabling file clone mode since remote storage is enabled");
       ctx.config.set_file_clone(false);
     }
     if (ctx.config.hard_link()) {
-      LOG_RAW("Disabling hard link mode since remote storage is enabled");
+      LOG("Disabling hard link mode since remote storage is enabled");
       ctx.config.set_hard_link(false);
     }
   }
@@ -2937,7 +2937,7 @@ do_cache_compilation(Context& ctx)
     LOG("Dependency file: {}", ctx.args_info.output_dep);
   }
   if (ctx.args_info.generating_coverage) {
-    LOG_RAW("Coverage file is being generated");
+    LOG("Coverage file is being generated");
   }
   if (ctx.args_info.generating_stackusage) {
     LOG("Stack usage file: {}", ctx.args_info.output_su);
@@ -3006,7 +3006,7 @@ do_cache_compilation(Context& ctx)
   std::optional<Hash::Digest> manifest_key;
 
   if (ctx.config.direct_mode()) {
-    LOG_RAW("Trying direct lookup");
+    LOG("Trying direct lookup");
     TRY_ASSIGN(const auto result_and_manifest_key,
                calculate_result_and_manifest_key(
                  ctx, args_to_hash, direct_hash, nullptr));
@@ -3035,7 +3035,7 @@ do_cache_compilation(Context& ctx)
   }
 
   if (ctx.config.read_only_direct()) {
-    LOG_RAW("Read-only direct mode; running real compiler");
+    LOG("Read-only direct mode; running real compiler");
     return tl::unexpected(Statistic::cache_miss);
   }
 
@@ -3073,9 +3073,9 @@ do_cache_compilation(Context& ctx)
       // The best thing here would probably be to remove the hash entry from
       // the manifest. For now, we use a simpler method: just remove the
       // manifest file.
-      LOG_RAW("Hash from manifest doesn't match preprocessor output");
-      LOG_RAW("Likely reason: different CCACHE_BASEDIRs used");
-      LOG_RAW("Removing manifest as a safety measure");
+      LOG("Hash from manifest doesn't match preprocessor output");
+      LOG("Likely reason: different CCACHE_BASEDIRs used");
+      LOG("Removing manifest as a safety measure");
       ctx.storage.remove(*manifest_key, core::CacheEntryType::manifest);
 
       put_result_in_manifest = true;
@@ -3096,7 +3096,7 @@ do_cache_compilation(Context& ctx)
   }
 
   if (ctx.config.read_only()) {
-    LOG_RAW("Read-only mode; running real compiler");
+    LOG("Read-only mode; running real compiler");
     return tl::unexpected(Statistic::cache_miss);
   }
 

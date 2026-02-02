@@ -323,7 +323,7 @@ process_profiling_option(const Context& ctx,
 
   if (new_profile_use) {
     if (args_info.profile_use) {
-      LOG_RAW("Multiple profiling options not supported");
+      LOG("Multiple profiling options not supported");
       return false;
     }
     args_info.profile_use = true;
@@ -336,7 +336,7 @@ process_profiling_option(const Context& ctx,
 
   if (args_info.profile_generate && args_info.profile_use) {
     // Too hard to figure out what the compiler will do.
-    LOG_RAW("Both generating and using profile info, giving up");
+    LOG("Both generating and using profile info, giving up");
     return false;
   }
 
@@ -384,7 +384,7 @@ process_option_arg(const Context& ctx,
   if (args[i] == "--ccache-skip") {
     i++;
     if (i == args.size()) {
-      LOG_RAW("--ccache-skip lacks an argument");
+      LOG("--ccache-skip lacks an argument");
       return Statistic::bad_compiler_arguments;
     }
     state.add_common_arg(args[i]);
@@ -402,7 +402,7 @@ process_option_arg(const Context& ctx,
 
   if (arg == "-ivfsoverlay"
       && !(config.sloppiness().contains(core::Sloppy::ivfsoverlay))) {
-    LOG_RAW(
+    LOG(
       "You have to specify \"ivfsoverlay\" sloppiness when using"
       " -ivfsoverlay to get hits");
     ++i;
@@ -545,8 +545,7 @@ process_option_arg(const Context& ctx,
     for (const auto part : util::Tokenizer(&arg[4], ",")) {
       if (part.starts_with("-a")) {
         if (state.found_Wa_a_opt) {
-          LOG_RAW(
-            "Multiple assembler listing options (-Wa,-a) are not supported");
+          LOG("Multiple assembler listing options (-Wa,-a) are not supported");
           return Statistic::unsupported_compiler_option;
         }
         state.found_Wa_a_opt = true;
@@ -607,7 +606,7 @@ process_option_arg(const Context& ctx,
           args[i]);
       return Statistic::could_not_use_modules;
     } else if (!(config.sloppiness().contains(core::Sloppy::modules))) {
-      LOG_RAW(
+      LOG(
         "You have to specify \"modules\" sloppiness when using"
         " -fmodules to get hits");
       return Statistic::could_not_use_modules;
@@ -1232,7 +1231,7 @@ process_option_arg(const Context& ctx,
 
   if (arg == "-frecord-gcc-switches") {
     state.hash_full_command_line = true;
-    LOG_RAW(
+    LOG(
       "Found -frecord-gcc-switches, hashing original command line unmodified");
   }
 
@@ -1440,19 +1439,19 @@ process_args(Context& ctx)
       || state.found_syntax_only || state.found_analyze_opt);
 
   if (state.input_files.empty()) {
-    LOG_RAW("No input file found");
+    LOG("No input file found");
     return tl::unexpected(Statistic::no_input_file);
   }
   if (state.input_files.size() > 1) {
     if (is_link) {
-      LOG_RAW("Called for link");
+      LOG("Called for link");
       return tl::unexpected(
         util::pstr(state.input_files.front()).str().find("conftest.")
             != std::string::npos
           ? Statistic::autoconf_test
           : Statistic::called_for_link);
     } else {
-      LOG_RAW("Multiple input files");
+      LOG("Multiple input files");
       return tl::unexpected(Statistic::multiple_source_files);
     }
   }
@@ -1468,7 +1467,7 @@ process_args(Context& ctx)
     // are used: GCC writes to wp.d but Clang writes to mf.d. We could
     // potentially support this by behaving differently depending on the
     // compiler type, but let's just bail out for now.
-    LOG_RAW("-Wp,-M[M]D in combination with -MF is not supported");
+    LOG("-Wp,-M[M]D in combination with -MF is not supported");
     return tl::unexpected(Statistic::unsupported_compiler_option);
   }
 
@@ -1482,7 +1481,7 @@ process_args(Context& ctx)
 
   // Don't try to second guess the compiler's heuristics for stdout handling.
   if (args_info.output_obj == "-") {
-    LOG_RAW("Output file is -");
+    LOG("Output file is -");
     return tl::unexpected(Statistic::output_to_stdout);
   }
 
@@ -1547,10 +1546,10 @@ process_args(Context& ctx)
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
     if (!(config.sloppiness().contains(core::Sloppy::time_macros))) {
-      LOG_RAW(
+      LOG(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
-      LOG_RAW("Disabling direct mode");
+      LOG("Disabling direct mode");
       return tl::unexpected(Statistic::could_not_use_precompiled_header);
     }
   }
@@ -1586,7 +1585,7 @@ process_args(Context& ctx)
 
   if (args_info.output_is_precompiled_header
       && !(config.sloppiness().contains(core::Sloppy::pch_defines))) {
-    LOG_RAW(
+    LOG(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
     return tl::unexpected(Statistic::could_not_use_precompiled_header);
@@ -1596,7 +1595,7 @@ process_args(Context& ctx)
     if (args_info.output_is_precompiled_header) {
       state.add_common_arg("-c");
     } else {
-      LOG_RAW("No -c option found");
+      LOG("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
       // the dominant form of "called for link" in many cases.
       return tl::unexpected(
@@ -1719,7 +1718,7 @@ process_args(Context& ctx)
                                  get_default_object_file_extension(ctx.config));
         } else {
           // How other compilers behave is currently unknown, so bail out.
-          LOG_RAW(
+          LOG(
             "-Wp,-M[M]D with -o without -MMD, -MQ or -MT is only supported for"
             " GCC or Clang");
           return tl::unexpected(Statistic::unsupported_compiler_option);
@@ -1750,11 +1749,11 @@ process_args(Context& ctx)
 
   if (state.xarch_args.size() > 1) {
     if (state.xarch_args.contains("host")) {
-      LOG_RAW("-Xarch_host in combination with other -Xarch_* is too hard");
+      LOG("-Xarch_host in combination with other -Xarch_* is too hard");
       return tl::unexpected(Statistic::unsupported_compiler_option);
     }
     if (state.xarch_args.contains("device")) {
-      LOG_RAW("-Xarch_device in combination with other -Xarch_* is too hard");
+      LOG("-Xarch_device in combination with other -Xarch_* is too hard");
       return tl::unexpected(Statistic::unsupported_compiler_option);
     }
   }

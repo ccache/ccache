@@ -28,22 +28,18 @@
 #include <optional>
 #include <string_view>
 
-// Log a raw message (plus a newline character).
-#define LOG_RAW(message_)                                                      \
+// Log a message (plus a newline character).
+#define LOG(format_, ...)                                                      \
   do {                                                                         \
     if (util::logging::enabled()) {                                            \
-      util::logging::log(std::string_view(message_));                          \
+      util::logging::log(fmt::format(format_ __VA_OPT__(, ) __VA_ARGS__));     \
     }                                                                          \
   } while (false)
 
-// Log a message (plus a newline character) described by a format string with at
-// least one placeholder.
-#define LOG(format_, ...) LOG_RAW(fmt::format(format_, __VA_ARGS__))
-
-// Log a message (plus a newline character) described by a format string with at
-// least one placeholder without flushing and with a reused timestamp.
+// Log a message (plus a newline character) without flushing and with a reused
+// timestamp.
 #define BULK_LOG(logger_, format_, ...)                                        \
-  logger_.log(fmt::format(format_, __VA_ARGS__))
+  logger_.log(fmt::format(format_ __VA_OPT__(, ) __VA_ARGS__))
 
 namespace util::logging {
 
