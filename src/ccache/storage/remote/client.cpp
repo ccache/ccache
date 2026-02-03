@@ -115,7 +115,7 @@ Client::has_capability(Capability cap) const
 }
 
 tl::expected<std::optional<util::Bytes>, Client::Error>
-Client::get(nonstd::span<const uint8_t> key)
+Client::get(std::span<const uint8_t> key)
 {
   if (!m_connected) {
     return tl::unexpected(Error(Failure::error, "Not connected"));
@@ -135,8 +135,8 @@ Client::get(nonstd::span<const uint8_t> key)
 }
 
 tl::expected<bool, Client::Error>
-Client::put(nonstd::span<const uint8_t> key,
-            nonstd::span<const uint8_t> value,
+Client::put(std::span<const uint8_t> key,
+            std::span<const uint8_t> value,
             PutFlags flags)
 {
   if (!m_connected) {
@@ -159,7 +159,7 @@ Client::put(nonstd::span<const uint8_t> key,
 }
 
 tl::expected<bool, Client::Error>
-Client::remove(nonstd::span<const uint8_t> key)
+Client::remove(std::span<const uint8_t> key)
 {
   if (!m_connected) {
     return tl::unexpected(Error(Failure::error, "Not connected"));
@@ -223,7 +223,7 @@ Client::read_greeting()
 }
 
 tl::expected<void, Client::Error>
-Client::send_bytes(nonstd::span<const uint8_t> data)
+Client::send_bytes(std::span<const uint8_t> data)
 {
   auto timeout = calculate_timeout();
   auto result = m_channel.send(data, timeout);
@@ -240,8 +240,8 @@ Client::receive_bytes(size_t count)
   size_t total_received = 0;
 
   while (total_received < count) {
-    nonstd::span<uint8_t> buffer(result.data() + total_received,
-                                 count - total_received);
+    std::span<uint8_t> buffer(result.data() + total_received,
+                              count - total_received);
     auto timeout = calculate_timeout();
     auto recv_result = m_channel.receive(buffer, timeout);
     if (!recv_result) {
@@ -290,7 +290,7 @@ Client::send_u64(uint64_t value)
 }
 
 tl::expected<void, Client::Error>
-Client::send_key(nonstd::span<const uint8_t> key)
+Client::send_key(std::span<const uint8_t> key)
 {
   DEBUG_ASSERT(key.size() < 256);
   auto key_len = static_cast<uint8_t>(key.size());
@@ -300,7 +300,7 @@ Client::send_key(nonstd::span<const uint8_t> key)
 }
 
 tl::expected<void, Client::Error>
-Client::send_value(nonstd::span<const uint8_t> value)
+Client::send_value(std::span<const uint8_t> value)
 {
   TRY(send_u64(value.size()));
   TRY(send_bytes(value));

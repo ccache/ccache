@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -25,12 +25,11 @@
 #include <ccache/storage/types.hpp>
 #include <ccache/util/bytes.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -66,7 +65,7 @@ public:
 
   void put(const Hash::Digest& key,
            core::CacheEntryType type,
-           nonstd::span<const uint8_t> value);
+           std::span<const uint8_t> value);
 
   void remove(const Hash::Digest& key, core::CacheEntryType type);
 
@@ -94,7 +93,7 @@ private:
                                const EntryReceiver& entry_receiver);
 
   void put_in_remote_storage(const Hash::Digest& key,
-                             nonstd::span<const uint8_t> value,
+                             std::span<const uint8_t> value,
                              Overwrite overwrite);
 
   void remove_from_remote_storage(const Hash::Digest& key);

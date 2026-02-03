@@ -68,6 +68,8 @@
 #include <ccache/util/umaskscope.hpp>
 #include <ccache/util/wincompat.hpp>
 
+#include <tl/expected.hpp>
+
 #include <fcntl.h>
 
 #include <optional>
@@ -77,9 +79,6 @@
 #  include <unistd.h>
 #endif
 
-#include <nonstd/span.hpp>
-#include <tl/expected.hpp>
-
 #include <algorithm>
 #include <cerrno>
 #include <cstdint>
@@ -88,6 +87,7 @@
 #include <cstring>
 #include <ctime>
 #include <initializer_list>
+#include <span>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -872,7 +872,7 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
 }
 
 static void
-read_manifest(Context& ctx, nonstd::span<const uint8_t> cache_entry_data)
+read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
 {
   try {
     core::CacheEntry cache_entry(cache_entry_data);

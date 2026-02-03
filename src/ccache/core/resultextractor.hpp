@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,12 +20,11 @@
 
 #include <ccache/core/result.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace core {
@@ -44,7 +43,7 @@ public:
 
   void on_embedded_file(uint8_t file_number,
                         result::FileType file_type,
-                        nonstd::span<const uint8_t> data) override;
+                        std::span<const uint8_t> data) override;
   void on_raw_file(uint8_t file_number,
                    result::FileType file_type,
                    uint64_t file_size) override;

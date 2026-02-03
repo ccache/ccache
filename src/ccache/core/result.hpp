@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -21,10 +21,9 @@
 #include <ccache/core/serializer.hpp>
 #include <ccache/util/bytes.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <variant>
 #include <vector>
@@ -108,7 +107,7 @@ class Deserializer
 {
 public:
   // Read a result from `data`.
-  Deserializer(nonstd::span<const uint8_t> data);
+  Deserializer(std::span<const uint8_t> data);
 
   struct Header
   {
@@ -125,7 +124,7 @@ public:
 
     virtual void on_embedded_file(uint8_t file_number,
                                   FileType file_type,
-                                  nonstd::span<const uint8_t> data) = 0;
+                                  std::span<const uint8_t> data) = 0;
     virtual void on_raw_file(uint8_t file_number,
                              FileType file_type,
                              uint64_t file_size) = 0;
@@ -135,7 +134,7 @@ public:
   void visit(Visitor& visitor) const;
 
 private:
-  nonstd::span<const uint8_t> m_data;
+  std::span<const uint8_t> m_data;
 
   void parse_file_entry(CacheEntryDataParser& parser,
                         uint8_t file_number) const;
@@ -154,7 +153,7 @@ public:
 
   // Register data to include in the result. The data must live until
   // serialize() has been called.
-  void add_data(FileType file_type, nonstd::span<const uint8_t> data);
+  void add_data(FileType file_type, std::span<const uint8_t> data);
 
   // Register a file path whose content should be included in the result.
   [[nodiscard]] bool add_file(FileType file_type,
@@ -182,7 +181,7 @@ private:
   struct FileEntry
   {
     FileType file_type;
-    std::variant<nonstd::span<const uint8_t>, std::string> data;
+    std::variant<std::span<const uint8_t>, std::string> data;
   };
   std::vector<FileEntry> m_file_entries;
 

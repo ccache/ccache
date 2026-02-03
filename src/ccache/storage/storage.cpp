@@ -460,7 +460,7 @@ Storage::get(const Hash::Hash::Digest& key,
 void
 Storage::put(const Hash::Digest& key,
              const core::CacheEntryType type,
-             nonstd::span<const uint8_t> value)
+             std::span<const uint8_t> value)
 {
   if (!m_config.remote_only()) {
     local.put(key, type, value, Overwrite::yes);
@@ -666,7 +666,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
 
 void
 Storage::put_in_remote_storage(const Hash::Digest& key,
-                               nonstd::span<const uint8_t> value,
+                               std::span<const uint8_t> value,
                                Overwrite overwrite)
 {
   if (!core::CacheEntry::Header(value).self_contained) {

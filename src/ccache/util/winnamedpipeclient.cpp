@@ -99,7 +99,7 @@ WinNamedPipeClient::connect(const std::string& endpoint,
 }
 
 tl::expected<void, IpcError>
-WinNamedPipeClient::send(nonstd::span<const uint8_t> data,
+WinNamedPipeClient::send(std::span<const uint8_t> data,
                          const std::chrono::milliseconds& timeout)
 {
   if (m_handle == INVALID_HANDLE_VALUE) {
@@ -191,7 +191,7 @@ WinNamedPipeClient::send(nonstd::span<const uint8_t> data,
 }
 
 tl::expected<size_t, IpcError>
-WinNamedPipeClient::receive(nonstd::span<uint8_t> buffer,
+WinNamedPipeClient::receive(std::span<uint8_t> buffer,
                             const std::chrono::milliseconds& timeout)
 {
   if (m_handle == INVALID_HANDLE_VALUE) {

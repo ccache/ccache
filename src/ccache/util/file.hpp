@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -23,7 +23,6 @@
 #include <ccache/util/time.hpp>
 #include <ccache/util/types.hpp>
 
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <cstddef>
@@ -31,6 +30,7 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -144,7 +144,7 @@ write_file(const std::filesystem::path& path,
 // Write binary `data` to `path`.
 tl::expected<void, std::string>
 write_file(const std::filesystem::path& path,
-           nonstd::span<const uint8_t> data,
+           std::span<const uint8_t> data,
            WriteFileMode mode = WriteFileMode::unlink);
 
 // --- Inline implementations ---

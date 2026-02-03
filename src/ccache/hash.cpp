@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -79,7 +79,7 @@ Hash::hash_delimiter(std::string_view type)
 }
 
 Hash&
-Hash::hash(nonstd::span<const uint8_t> data)
+Hash::hash(std::span<const uint8_t> data)
 {
   hash_buffer(data);
   add_debug_text(data);
@@ -114,7 +114,7 @@ Hash::hash_file(const fs::path& path)
 }
 
 void
-Hash::hash_buffer(nonstd::span<const uint8_t> buffer)
+Hash::hash_buffer(std::span<const uint8_t> buffer)
 {
   blake3_hasher_update(&m_hasher, buffer.data(), buffer.size());
   if (!buffer.empty() && m_debug_binary) {
@@ -129,7 +129,7 @@ Hash::hash_buffer(std::string_view buffer)
 }
 
 void
-Hash::add_debug_text(nonstd::span<const uint8_t> text)
+Hash::add_debug_text(std::span<const uint8_t> text)
 {
   if (!text.empty() && m_debug_text) {
     (void)fwrite(text.data(), 1, text.size(), m_debug_text);

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -58,7 +58,7 @@ AtomicFile::write(std::string_view data)
 }
 
 void
-AtomicFile::write(nonstd::span<const uint8_t> data)
+AtomicFile::write(std::span<const uint8_t> data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(

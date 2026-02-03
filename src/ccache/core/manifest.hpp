@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -23,12 +23,11 @@
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/time.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <cstdio>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -53,7 +52,7 @@ public:
 
   Manifest() = default;
 
-  void read(nonstd::span<const uint8_t> data);
+  void read(std::span<const uint8_t> data);
 
   std::optional<Hash::Digest> look_up_result_digest(const Context& ctx) const;
 

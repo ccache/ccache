@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -127,7 +127,7 @@ format_argv_for_logging(const char* const* argv)
 }
 
 std::string
-format_base16(nonstd::span<const uint8_t> data)
+format_base16(std::span<const uint8_t> data)
 {
   static const char digits[] = "0123456789abcdef";
   std::string result;
@@ -140,7 +140,7 @@ format_base16(nonstd::span<const uint8_t> data)
 }
 
 std::string
-format_base32hex(nonstd::span<const uint8_t> data)
+format_base32hex(std::span<const uint8_t> data)
 {
   static const char digits[] = "0123456789abcdefghijklmnopqrstuv";
   std::string result;
@@ -164,7 +164,7 @@ format_base32hex(nonstd::span<const uint8_t> data)
 }
 
 std::string
-format_legacy_digest(nonstd::span<const uint8_t> data)
+format_legacy_digest(std::span<const uint8_t> data)
 {
   const size_t base16_bytes = 2;
   ASSERT(data.size() >= base16_bytes);

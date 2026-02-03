@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -22,7 +22,6 @@
 #include <ccache/util/time.hpp>
 #include <ccache/util/tokenizer.hpp>
 
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <sys/stat.h> // for mode_t
@@ -32,6 +31,7 @@
 #include <cstring>
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -64,11 +64,11 @@ std::string format_argv_for_logging(const char* const* argv);
 
 // Format a hexadecimal string representing `data`. The returned string will be
 // `2 * data.size()` long.
-std::string format_base16(nonstd::span<const uint8_t> data);
+std::string format_base16(std::span<const uint8_t> data);
 
 // Format a lowercase base32hex string representing `data`. No padding
 // characters will be added.
-std::string format_base32hex(nonstd::span<const uint8_t> data);
+std::string format_base32hex(std::span<const uint8_t> data);
 
 // Format `ms` as a duration string.
 std::string format_duration(std::chrono::milliseconds ms);
@@ -83,7 +83,7 @@ std::string format_human_readable_diff(int64_t diff,
 // compatibility with the cleanup algorithm in older ccache versions and to
 // allow for up to four uniform cache levels. The rest are encoded as lowercase
 // base32hex digits without padding characters.
-std::string format_legacy_digest(nonstd::span<const uint8_t> data);
+std::string format_legacy_digest(std::span<const uint8_t> data);
 
 // Format `size` as a human-readable string.
 std::string format_human_readable_size(uint64_t size,

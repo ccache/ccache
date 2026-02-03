@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -107,7 +107,7 @@ static tl::expected<void, std::string>
 copy_fd(int src_fd, int dst_fd)
 {
   std::optional<std::string> write_error;
-  auto read_result = read_fd(src_fd, [&](nonstd::span<const uint8_t> data) {
+  auto read_result = read_fd(src_fd, [&](std::span<const uint8_t> data) {
     auto result = write_fd(dst_fd, data.data(), data.size());
     if (!result) {
       write_error = result.error();
@@ -697,7 +697,7 @@ write_file(const fs::path& path, std::string_view data, WriteFileMode mode)
 
 tl::expected<void, std::string>
 write_file(const fs::path& path,
-           nonstd::span<const uint8_t> data,
+           std::span<const uint8_t> data,
            WriteFileMode mode)
 {
   util::PathString path_str(path);

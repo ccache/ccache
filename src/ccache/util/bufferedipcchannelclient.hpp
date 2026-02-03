@@ -46,14 +46,14 @@ public:
   }
 
   tl::expected<void, IpcError>
-  send(nonstd::span<const uint8_t> data,
+  send(std::span<const uint8_t> data,
        const std::chrono::milliseconds& timeout) override
   {
     return m_transport.send(data, timeout);
   }
 
   tl::expected<size_t, IpcError>
-  receive(nonstd::span<uint8_t> buffer,
+  receive(std::span<uint8_t> buffer,
           const std::chrono::milliseconds& timeout) override
   {
     if (buffer.empty()) {

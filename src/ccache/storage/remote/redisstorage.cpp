@@ -72,7 +72,7 @@ public:
   get(const Hash::Digest& key) override;
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
-                                  nonstd::span<const uint8_t> value,
+                                  std::span<const uint8_t> value,
                                   Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
@@ -186,7 +186,7 @@ RedisStorageBackend::get(const Hash::Digest& key)
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
 RedisStorageBackend::put(const Hash::Digest& key,
-                         nonstd::span<const uint8_t> value,
+                         std::span<const uint8_t> value,
                          Overwrite overwrite)
 {
   const auto key_string = get_key_string(key);

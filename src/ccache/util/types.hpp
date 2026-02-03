@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,13 +18,12 @@
 
 #pragma once
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <functional>
+#include <span>
 
 namespace util {
 
-using DataReceiver = std::function<void(nonstd::span<const uint8_t> data)>;
+using DataReceiver = std::function<void(std::span<const uint8_t> data)>;
 
 } // namespace util

@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -23,9 +23,8 @@
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstddef>
+#include <span>
 #include <string_view>
 
 namespace core {
@@ -33,14 +32,14 @@ namespace core {
 class CacheEntryDataReader
 {
 public:
-  CacheEntryDataReader(nonstd::span<const uint8_t> data);
+  CacheEntryDataReader(std::span<const uint8_t> data);
 
   // Read `size` bytes. Throws `core::Error` on failure.
-  nonstd::span<const uint8_t> read_bytes(size_t size);
+  std::span<const uint8_t> read_bytes(size_t size);
 
   // Read and copy `buffer.size()` bytes into `buffer`. Throws `core::Error` on
   // failure.
-  void read_and_copy_bytes(nonstd::span<uint8_t> buffer);
+  void read_and_copy_bytes(std::span<uint8_t> buffer);
 
   // Read a string of length `length`. Throws `core::Error` on failure.
   std::string_view read_str(size_t length);
@@ -52,16 +51,15 @@ public:
   template<typename T> void read_int(T& value);
 
 private:
-  nonstd::span<const uint8_t> m_data;
+  std::span<const uint8_t> m_data;
 };
 
-inline CacheEntryDataReader::CacheEntryDataReader(
-  nonstd::span<const uint8_t> data)
+inline CacheEntryDataReader::CacheEntryDataReader(std::span<const uint8_t> data)
   : m_data(data)
 {
 }
 
-inline nonstd::span<const uint8_t>
+inline std::span<const uint8_t>
 CacheEntryDataReader::read_bytes(size_t size)
 {
   if (size > m_data.size()) {
@@ -74,7 +72,7 @@ CacheEntryDataReader::read_bytes(size_t size)
 }
 
 inline void
-CacheEntryDataReader::read_and_copy_bytes(nonstd::span<uint8_t> buffer)
+CacheEntryDataReader::read_and_copy_bytes(std::span<uint8_t> buffer)
 {
   const auto span = read_bytes(buffer.size());
   memcpy(buffer.data(), span.data(), span.size());

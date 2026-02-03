@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -107,7 +107,7 @@ CacheEntry::Header::Header(const Config& config,
   }
 }
 
-CacheEntry::Header::Header(nonstd::span<const uint8_t> data)
+CacheEntry::Header::Header(std::span<const uint8_t> data)
 {
   parse(data);
 }
@@ -138,7 +138,7 @@ CacheEntry::Header::inspect() const
 }
 
 void
-CacheEntry::Header::parse(nonstd::span<const uint8_t> data)
+CacheEntry::Header::parse(std::span<const uint8_t> data)
 {
   CacheEntryDataReader reader(data);
   reader.read_int(magic);
@@ -194,7 +194,7 @@ CacheEntry::Header::uncompressed_payload_size() const
                                - k_epilogue_fields_size);
 }
 
-CacheEntry::CacheEntry(nonstd::span<const uint8_t> data)
+CacheEntry::CacheEntry(std::span<const uint8_t> data)
   : m_header(data)
 {
   const size_t non_payload_size =
@@ -244,12 +244,12 @@ CacheEntry::header() const
   return m_header;
 }
 
-nonstd::span<const uint8_t>
+std::span<const uint8_t>
 CacheEntry::payload() const
 {
   return m_header.compression_type == CompressionType::none
            ? m_payload
-           : nonstd::span<const uint8_t>(m_uncompressed_payload);
+           : std::span<const uint8_t>(m_uncompressed_payload);
 }
 
 util::Bytes
@@ -278,7 +278,7 @@ CacheEntry::serialize(const CacheEntry::Header& header,
 
 util::Bytes
 CacheEntry::serialize(const CacheEntry::Header& header,
-                      nonstd::span<const uint8_t> payload)
+                      std::span<const uint8_t> payload)
 {
   return do_serialize(
     header,

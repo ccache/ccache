@@ -18,10 +18,10 @@
 
 #pragma once
 
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <chrono>
+#include <span>
 #include <string>
 
 namespace util {
@@ -54,11 +54,11 @@ public:
           const std::chrono::milliseconds& timeout) = 0;
 
   virtual tl::expected<void, IpcError>
-  send(nonstd::span<const uint8_t> data,
+  send(std::span<const uint8_t> data,
        const std::chrono::milliseconds& timeout) = 0;
 
   virtual tl::expected<size_t, IpcError>
-  receive(nonstd::span<uint8_t> buffer,
+  receive(std::span<uint8_t> buffer,
           const std::chrono::milliseconds& timeout) = 0;
 
   virtual void close() = 0;

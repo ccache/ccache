@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -131,8 +131,7 @@ TEST_CASE("util::to_string")
 
   CHECK(util::to_string(std::string(str)) == std::string(str));
   CHECK(util::to_string(std::string_view(str)) == std::string(str));
-  CHECK(util::to_string(nonstd::span<const uint8_t>(bytes))
-        == std::string(str));
+  CHECK(util::to_string(std::span<const uint8_t>(bytes)) == std::string(str));
   CHECK(util::to_string(util::Bytes(bytes, 3)) == std::string(str));
   CHECK(util::to_string(fs::path("foo/bar")) == std::string("foo/bar"));
 }
@@ -142,7 +141,7 @@ TEST_CASE("util::to_string_view")
   uint8_t bytes[] = {'f', 'o', 'o'};
   char str[] = "foo";
 
-  CHECK(util::to_string_view(nonstd::span(bytes)) == std::string(str));
+  CHECK(util::to_string_view(std::span(bytes)) == std::string(str));
 }
 
 TEST_SUITE_END();

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -23,12 +23,12 @@
 #include <ccache/util/bytes.hpp>
 
 #include <cxxurl/url.hpp>
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -83,7 +83,7 @@ public:
     // Put `value` associated to `key` in the storage. Returns true if the entry
     // was stored, otherwise false.
     virtual tl::expected<bool, Failure> put(const Hash::Digest& key,
-                                            nonstd::span<const uint8_t> value,
+                                            std::span<const uint8_t> value,
                                             Overwrite overwrite) = 0;
 
     // Remove `key` and its associated value. Returns true if the entry was

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -179,7 +179,7 @@ gcno_file_in_unmangled_form(const Context& ctx)
   return util::with_extension(ctx.args_info.output_obj, ".gcno");
 }
 
-Deserializer::Deserializer(nonstd::span<const uint8_t> data)
+Deserializer::Deserializer(std::span<const uint8_t> data)
   : m_data(data)
 {
 }
@@ -246,7 +246,7 @@ Serializer::Serializer(const Config& config)
 }
 
 void
-Serializer::add_data(const FileType file_type, nonstd::span<const uint8_t> data)
+Serializer::add_data(const FileType file_type, std::span<const uint8_t> data)
 {
   m_serialized_size += 1 + 1 + 8; // marker + file_type + file_size
   m_serialized_size += data.size();
@@ -298,7 +298,7 @@ Serializer::serialize(util::Bytes& output)
       is_file_entry
         ? DirEntry(std::get<std::string>(entry.data), DirEntry::LogOnError::yes)
             .size()
-        : std::get<nonstd::span<const uint8_t>>(entry.data).size();
+        : std::get<std::span<const uint8_t>>(entry.data).size();
 
     LOG("Storing {} entry #{} {} ({} bytes){}",
         store_raw ? "raw" : "embedded",
@@ -322,7 +322,7 @@ Serializer::serialize(util::Bytes& output)
         util::read_file<util::Bytes>(path), FMT("Failed to read {}: ", path));
       writer.write_bytes(data);
     } else {
-      writer.write_bytes(std::get<nonstd::span<const uint8_t>>(entry.data));
+      writer.write_bytes(std::get<std::span<const uint8_t>>(entry.data));
     }
 
     ++file_number;

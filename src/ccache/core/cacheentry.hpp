@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -22,11 +22,10 @@
 #include <ccache/core/types.hpp>
 #include <ccache/util/bytes.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <span>
 #include <string>
 
 // Cache entry format
@@ -73,7 +72,7 @@ public:
   {
   public:
     Header(const Config& config, CacheEntryType entry_type);
-    explicit Header(nonstd::span<const uint8_t> data);
+    explicit Header(std::span<const uint8_t> data);
     explicit Header(const std::filesystem::path& path);
 
     std::string inspect() const;
@@ -94,25 +93,25 @@ public:
     uint32_t uncompressed_payload_size() const;
 
   private:
-    void parse(nonstd::span<const uint8_t> data);
+    void parse(std::span<const uint8_t> data);
   };
 
-  explicit CacheEntry(nonstd::span<const uint8_t> data);
+  explicit CacheEntry(std::span<const uint8_t> data);
 
   void verify_checksum() const;
   const Header& header() const;
 
   // Return uncompressed payload.
-  nonstd::span<const uint8_t> payload() const;
+  std::span<const uint8_t> payload() const;
 
   static util::Bytes serialize(const Header& header,
                                Serializer& payload_serializer);
   static util::Bytes serialize(const Header& header,
-                               nonstd::span<const uint8_t> payload);
+                               std::span<const uint8_t> payload);
 
 private:
   Header m_header;
-  nonstd::span<const uint8_t> m_payload; // Potentially compressed
+  std::span<const uint8_t> m_payload; // Potentially compressed
   util::Bytes m_checksum;
 
   mutable util::Bytes m_uncompressed_payload;

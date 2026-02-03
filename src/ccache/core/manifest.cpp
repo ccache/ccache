@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -86,7 +86,7 @@ namespace core {
 const uint8_t Manifest::k_format_version = 1;
 
 void
-Manifest::read(nonstd::span<const uint8_t> data)
+Manifest::read(std::span<const uint8_t> data)
 {
   std::vector<std::string> files;
   std::vector<FileInfo> file_infos;

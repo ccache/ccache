@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -81,7 +81,7 @@ Bytes::operator=(Bytes&& other) noexcept
 }
 
 Bytes&
-Bytes::operator=(nonstd::span<const uint8_t> data) noexcept
+Bytes::operator=(std::span<const uint8_t> data) noexcept
 {
   assign_from_data(this, data.data(), data.size());
   return *this;

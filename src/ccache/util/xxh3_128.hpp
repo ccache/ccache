@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -21,7 +21,6 @@
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/conversion.hpp>
 
-#include <nonstd/span.hpp>
 #ifdef USE_XXH_DISPATCH
 #  include <xxh_x86dispatch.h>
 #else
@@ -30,6 +29,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <span>
 
 namespace util {
 
@@ -42,7 +42,7 @@ public:
   ~XXH3_128();
 
   void reset();
-  void update(nonstd::span<const uint8_t> data);
+  void update(std::span<const uint8_t> data);
   Bytes digest() const;
 
 private:
@@ -67,7 +67,7 @@ XXH3_128::reset()
 }
 
 inline void
-XXH3_128::update(nonstd::span<const uint8_t> data)
+XXH3_128::update(std::span<const uint8_t> data)
 {
   XXH3_128bits_update(m_state, data.data(), data.size());
 }

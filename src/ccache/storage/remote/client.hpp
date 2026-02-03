@@ -29,12 +29,12 @@
 #  include <ccache/util/unixsocketclient.hpp>
 #endif
 
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -89,11 +89,11 @@ public:
   bool has_capability(Capability cap) const;
 
   tl::expected<std::optional<util::Bytes>, Error>
-  get(nonstd::span<const uint8_t> key);
-  tl::expected<bool, Error> put(nonstd::span<const uint8_t> key,
-                                nonstd::span<const uint8_t> value,
+  get(std::span<const uint8_t> key);
+  tl::expected<bool, Error> put(std::span<const uint8_t> key,
+                                std::span<const uint8_t> value,
                                 PutFlags flags);
-  tl::expected<bool, Error> remove(nonstd::span<const uint8_t> key);
+  tl::expected<bool, Error> remove(std::span<const uint8_t> key);
   tl::expected<void, Error> stop();
 
   void close();
@@ -114,14 +114,14 @@ private:
   std::chrono::milliseconds calculate_timeout() const;
 
   tl::expected<void, Error> read_greeting();
-  tl::expected<void, Error> send_bytes(nonstd::span<const uint8_t> data);
+  tl::expected<void, Error> send_bytes(std::span<const uint8_t> data);
   tl::expected<util::Bytes, Error> receive_bytes(size_t count);
   tl::expected<uint8_t, Error> receive_u8();
   tl::expected<uint64_t, Error> receive_u64();
   tl::expected<void, Error> send_u8(uint8_t value);
   tl::expected<void, Error> send_u64(uint64_t value);
-  tl::expected<void, Error> send_key(nonstd::span<const uint8_t> key);
-  tl::expected<void, Error> send_value(nonstd::span<const uint8_t> value);
+  tl::expected<void, Error> send_key(std::span<const uint8_t> key);
+  tl::expected<void, Error> send_value(std::span<const uint8_t> value);
   tl::expected<std::optional<util::Bytes>, Error> receive_response_get();
   tl::expected<bool, Error> receive_response_bool();
   tl::expected<void, Error> receive_response_void();

@@ -129,7 +129,7 @@ UnixSocketClient::connect(const std::string& endpoint,
 }
 
 tl::expected<void, IpcError>
-UnixSocketClient::send(nonstd::span<const uint8_t> data,
+UnixSocketClient::send(std::span<const uint8_t> data,
                        const std::chrono::milliseconds& timeout)
 {
   if (m_fd == -1) {
@@ -188,7 +188,7 @@ UnixSocketClient::send(nonstd::span<const uint8_t> data,
 }
 
 tl::expected<size_t, IpcError>
-UnixSocketClient::receive(nonstd::span<uint8_t> buffer,
+UnixSocketClient::receive(std::span<uint8_t> buffer,
                           const std::chrono::milliseconds& timeout)
 {
   if (m_fd == -1) {

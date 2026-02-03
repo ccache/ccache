@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,10 +20,9 @@
 
 #include <ccache/util/bytes.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -45,18 +44,18 @@ template<typename T> void big_endian_to_int(const uint8_t* buffer, T& value);
 // - buffer: Buffer to write bytes to.
 template<typename T> void int_to_big_endian(T value, uint8_t* buffer);
 
-// Convert `data` to a `nonstd::span<const uint8_t>`.
-nonstd::span<const uint8_t> to_span(const void* data, size_t size);
+// Convert `data` to a `std::span<const uint8_t>`.
+std::span<const uint8_t> to_span(const void* data, size_t size);
 
-// Convert `value` to a `nonstd::span<const uint8_t>`.
-nonstd::span<const uint8_t> to_span(std::string_view value);
+// Convert `value` to a `std::span<const uint8_t>`.
+std::span<const uint8_t> to_span(std::string_view value);
 
 // Convert `value` to a string. This function is used when joining
 // `std::string`s with `util::join`.
 template<typename T> std::string to_string(const T& value);
 
 // Convert `data` to a `std::string_view`.
-std::string_view to_string_view(nonstd::span<const uint8_t> data);
+std::string_view to_string_view(std::span<const uint8_t> data);
 
 // --- Inline implementations ---
 
@@ -109,13 +108,13 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
   buffer[0] = value;
 }
 
-inline nonstd::span<const uint8_t>
+inline std::span<const uint8_t>
 to_span(const void* data, size_t size)
 {
   return {reinterpret_cast<const uint8_t*>(data), size};
 }
 
-inline nonstd::span<const uint8_t>
+inline std::span<const uint8_t>
 to_span(std::string_view data)
 {
   return to_span(data.data(), data.size());
@@ -145,7 +144,7 @@ to_string(const std::string_view& sv)
 
 template<>
 inline std::string
-to_string(const nonstd::span<const uint8_t>& bytes)
+to_string(const std::span<const uint8_t>& bytes)
 {
   return std::string(to_string_view(bytes));
 }
@@ -165,7 +164,7 @@ to_string(const std::filesystem::path& path)
 }
 
 inline std::string_view
-to_string_view(nonstd::span<const uint8_t> data)
+to_string_view(std::span<const uint8_t> data)
 {
   return std::string_view(reinterpret_cast<const char*>(data.data()),
                           data.size());

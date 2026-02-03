@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,21 +20,21 @@
 
 #include <ccache/util/bytes.hpp>
 
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <tuple>
 
 namespace util {
 
 [[nodiscard]] tl::expected<void, std::string> zstd_compress(
-  nonstd::span<const uint8_t> input, Bytes& output, int8_t compression_level);
+  std::span<const uint8_t> input, Bytes& output, int8_t compression_level);
 
 [[nodiscard]] tl::expected<void, std::string> zstd_decompress(
-  nonstd::span<const uint8_t> input, Bytes& output, size_t original_size);
+  std::span<const uint8_t> input, Bytes& output, size_t original_size);
 
 size_t zstd_compress_bound(size_t input_size);
 

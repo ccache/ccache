@@ -46,7 +46,6 @@ target_link_libraries(
     dep_blake3
     dep_cxxurl
     dep_fmt
-    dep_nonstdspan
     dep_tlexpected
     dep_xxhash
   PRIVATE

@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -23,10 +23,9 @@
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
 
-#include <nonstd/span.hpp>
-
 #include <cstddef>
 #include <cstring>
+#include <span>
 #include <string_view>
 
 namespace core {
@@ -37,7 +36,7 @@ public:
   CacheEntryDataWriter(util::Bytes& output);
 
   // Write `data`. Throws `core::Error` on failure.
-  void write_bytes(nonstd::span<const uint8_t> data);
+  void write_bytes(std::span<const uint8_t> data);
 
   // Write `data`. Throws `core::Error` on failure.
   void write_str(std::string_view data);
@@ -55,7 +54,7 @@ inline CacheEntryDataWriter::CacheEntryDataWriter(util::Bytes& output)
 }
 
 inline void
-CacheEntryDataWriter::write_bytes(nonstd::span<const uint8_t> data)
+CacheEntryDataWriter::write_bytes(std::span<const uint8_t> data)
 {
   m_output.insert(m_output.end(), data);
 }

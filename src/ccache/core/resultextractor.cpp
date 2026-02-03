@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -50,7 +50,7 @@ ResultExtractor::ResultExtractor(
 void
 ResultExtractor::on_embedded_file(uint8_t /*file_number*/,
                                   result::FileType file_type,
-                                  nonstd::span<const uint8_t> data)
+                                  std::span<const uint8_t> data)
 {
   std::string suffix = result::file_type_to_string(file_type);
   if (suffix == result::k_unknown_file_type) {

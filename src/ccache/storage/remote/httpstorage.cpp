@@ -48,7 +48,7 @@ public:
   get(const Hash::Digest& key) override;
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
-                                  nonstd::span<const uint8_t> value,
+                                  std::span<const uint8_t> value,
                                   Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
@@ -195,7 +195,7 @@ HttpStorageBackend::get(const Hash::Digest& key)
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
 HttpStorageBackend::put(const Hash::Digest& key,
-                        const nonstd::span<const uint8_t> value,
+                        const std::span<const uint8_t> value,
                         const Overwrite overwrite)
 {
   const auto url_path = get_entry_path(key);

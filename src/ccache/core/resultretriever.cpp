@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -60,7 +60,7 @@ ResultRetriever::ResultRetriever(const Context& ctx,
 void
 ResultRetriever::on_embedded_file(uint8_t file_number,
                                   FileType file_type,
-                                  nonstd::span<const uint8_t> data)
+                                  std::span<const uint8_t> data)
 {
   LOG("Reading embedded entry #{} {} ({} bytes)",
       file_number,
@@ -218,7 +218,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
 void
 ResultRetriever::write_dependency_file(const fs::path& path,
-                                       nonstd::span<const uint8_t> data)
+                                       std::span<const uint8_t> data)
 {
   ASSERT(m_ctx.args_info.dependency_target);
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -517,7 +517,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 void
 LocalStorage::put(const Hash::Digest& key,
                   const core::CacheEntryType type,
-                  nonstd::span<const uint8_t> value,
+                  std::span<const uint8_t> value,
                   Overwrite overwrite)
 {
   const auto cache_file = look_up_cache_file(key, type);

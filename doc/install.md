@@ -44,7 +44,6 @@ should be located or retrieved:
 
 - [BLAKE3](https://github.com/BLAKE3-team/BLAKE3)[^1]
 - [fmt](https://fmt.dev)[^1]
-- [span-lite](https://github.com/martinmoene/span-lite)[^1]
 - [tl-expected](https://github.com/TartanLlama/expected)[^1]
 - [xxhash](https://github.com/Cyan4973/xxHash)[^2]
 - [Zstandard](https://github.com/facebook/zstd)[^2]

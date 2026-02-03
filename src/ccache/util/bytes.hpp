@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2022-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,12 +18,11 @@
 
 #pragma once
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
 #include <memory>
+#include <span>
 #include <string_view>
 
 namespace util {
@@ -32,7 +31,7 @@ namespace util {
 //
 // The primary motivation for this class instead of just using
 // std::vector<uint8_t> is to make zero copying without zero-filling possible
-// when retrieving data from syscalls like read(2), i.e, when
+// when retrieving data from syscalls like read(2), i.e., when
 // std::vector::insert cannot be used.
 class Bytes
 {
@@ -42,7 +41,7 @@ public:
 
   Bytes(const void* data, size_t size) noexcept;
   Bytes(const void* first, const void* last) noexcept;
-  Bytes(nonstd::span<const uint8_t> data) noexcept;
+  Bytes(std::span<const uint8_t> data) noexcept;
   Bytes(std::string_view data) noexcept;
 
   Bytes(const Bytes& other) noexcept;
@@ -54,7 +53,7 @@ public:
 
   Bytes& operator=(const Bytes& other) noexcept;
   Bytes& operator=(Bytes&& other) noexcept;
-  Bytes& operator=(nonstd::span<const uint8_t> data) noexcept;
+  Bytes& operator=(std::span<const uint8_t> data) noexcept;
   Bytes& operator=(std::string_view data) noexcept;
 
   uint8_t operator[](size_t pos) const noexcept;
@@ -89,7 +88,7 @@ public:
 
   void insert(const void* pos, const void* first, const void* last) noexcept;
   void insert(const void* pos, const void* data, size_t size) noexcept;
-  void insert(const void* pos, nonstd::span<const uint8_t> data) noexcept;
+  void insert(const void* pos, std::span<const uint8_t> data) noexcept;
 
   void erase(const void* pos, size_t size) noexcept;
   void erase(const void* first, const void* last) noexcept;
@@ -118,7 +117,7 @@ inline Bytes::Bytes(const void* first, const void* last) noexcept
 {
 }
 
-inline Bytes::Bytes(nonstd::span<const uint8_t> data) noexcept
+inline Bytes::Bytes(std::span<const uint8_t> data) noexcept
   : Bytes(data.data(), data.size())
 {
 }
@@ -245,7 +244,7 @@ Bytes::insert(const void* pos, const void* first, const void* last) noexcept
 }
 
 inline void
-Bytes::insert(const void* pos, nonstd::span<const uint8_t> data) noexcept
+Bytes::insert(const void* pos, std::span<const uint8_t> data) noexcept
 {
   return insert(pos, &*data.begin(), data.size());
 }

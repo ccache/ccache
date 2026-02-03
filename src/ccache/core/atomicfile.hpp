@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,11 +18,10 @@
 
 #pragma once
 
-#include <nonstd/span.hpp>
-
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <span>
 #include <string_view>
 
 namespace core {
@@ -40,7 +39,7 @@ public:
   FILE* stream();
 
   void write(std::string_view data);
-  void write(nonstd::span<const uint8_t> data);
+  void write(std::span<const uint8_t> data);
   void flush();
 
   // Close the temporary file and rename it to the destination file. Note: The

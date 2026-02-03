@@ -376,7 +376,7 @@ public:
   get(const Hash::Digest& key) override;
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
-                                  nonstd::span<const uint8_t> value,
+                                  std::span<const uint8_t> value,
                                   Overwrite overwrite) override;
 
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
@@ -557,7 +557,7 @@ HelperBackend::get(const Hash::Digest& key)
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
 HelperBackend::put(const Hash::Digest& key,
-                   nonstd::span<const uint8_t> value,
+                   std::span<const uint8_t> value,
                    Overwrite overwrite)
 {
   TRY(ensure_connected());

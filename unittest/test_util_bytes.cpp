@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -19,8 +19,8 @@
 #include <ccache/util/bytes.hpp>
 
 #include <doctest/doctest.h>
-#include <nonstd/span.hpp>
 
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -452,7 +452,7 @@ TEST_CASE("Basics")
   SUBCASE("Insert span")
   {
     Bytes bytes2;
-    nonstd::span<const uint8_t> span(bytes1.begin(), bytes1.end());
+    std::span<const uint8_t> span(bytes1.begin(), bytes1.end());
 
     bytes2.insert(bytes2.end(), span);
     REQUIRE(bytes2.size() == 3);
@@ -617,14 +617,14 @@ TEST_CASE("Conversion to span")
 
   SUBCASE("Const span")
   {
-    nonstd::span<const uint8_t> span(bytes);
+    std::span<const uint8_t> span(bytes);
     CHECK(span.data() == bytes.data());
     CHECK(span.size() == bytes.size());
   }
 
   SUBCASE("Non-const span")
   {
-    nonstd::span<uint8_t> span(bytes);
+    std::span<uint8_t> span(bytes);
     CHECK(span.data() == bytes.data());
     CHECK(span.size() == bytes.size());
     span[1] = 'x';

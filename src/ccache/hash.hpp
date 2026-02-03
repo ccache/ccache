@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -22,13 +22,13 @@
 #include <ccache/util/path.hpp>
 
 #include <blake3.h>
-#include <nonstd/span.hpp>
 #include <tl/expected.hpp>
 
 #include <array>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -65,7 +65,7 @@ public:
   //
   // If hash debugging is enabled the bytes will be written verbatim to the text
   // input file, plus a final newline character.
-  Hash& hash(nonstd::span<const uint8_t> data);
+  Hash& hash(std::span<const uint8_t> data);
   Hash& hash(const char* data, size_t size);
   Hash& hash(const char* data);
   Hash& hash(std::string_view data);
@@ -95,10 +95,10 @@ private:
   FILE* m_debug_binary = nullptr;
   FILE* m_debug_text = nullptr;
 
-  void hash_buffer(nonstd::span<const uint8_t> buffer);
+  void hash_buffer(std::span<const uint8_t> buffer);
   void hash_buffer(std::string_view buffer);
 
-  void add_debug_text(nonstd::span<const uint8_t> text);
+  void add_debug_text(std::span<const uint8_t> text);
   void add_debug_text(std::string_view text);
 };
 

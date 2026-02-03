@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -39,7 +39,7 @@ ResultInspector::on_header(const result::Deserializer::Header& header)
 void
 ResultInspector::on_embedded_file(uint8_t file_number,
                                   result::FileType file_type,
-                                  nonstd::span<const uint8_t> data)
+                                  std::span<const uint8_t> data)
 {
   PRINT(m_stream,
         "Embedded file #{}: {} ({} bytes)\n",
