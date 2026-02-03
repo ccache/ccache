@@ -21,6 +21,8 @@
 #include <doctest/doctest.h>
 #include <nonstd/span.hpp>
 
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 TEST_SUITE_BEGIN("util::Bytes");
