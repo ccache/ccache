@@ -23,6 +23,7 @@ shift
 
 top_dir="$(dirname "$(realpath "$0")")/.."
 tag="ccache-build:$name"
+launcher="${LAUNCHER:-}"
 command="${COMMAND:-/source/ci/build}"
 interactive="${INTERACTIVE:+--interactive --tty}"
 nocache="${NOCACHE:+--no-cache}"
@@ -57,4 +58,4 @@ docker run \
     --env VERBOSE="${VERBOSE:-}" \
     $interactive \
     "$tag" \
-    "$command" "$@"
+    sh -c "$launcher $command" "$@"

@@ -10,7 +10,7 @@ if(ENABLE_CPPCHECK)
         -q
         --enable=all
         --force
-        --std=c++17
+        --std=c++20
         -I ${CMAKE_SOURCE_DIR}
         --template="cppcheck: warning: {id}:{file}:{line}: {message}"
         -i src/third_party)

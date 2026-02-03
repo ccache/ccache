@@ -5,7 +5,7 @@
 **Required:**
 
 - CMake 3.15 or newer
-- A C++17 compiler (see [Supported platforms, compilers and
+- A C++20 compiler (see [Supported platforms, compilers and
   languages](https://ccache.dev/platform-compiler-language-support.html) for
   details)
 - A C99 compiler

@@ -13,8 +13,8 @@ build() {
     local cc=$2
     local cxx=$3
     local test_cc=$4
-    shift 4
-    local cmake_params="$*"
+    local cmake_params=${5:-}
+    local launcher=${6:-}
 
     echo "======================================================================"
     echo "=== ${name} ${cc} ${cxx} ${test_cc} ${cmake_params}"
@@ -25,42 +25,43 @@ build() {
     fi
 
     if command -v >/dev/null ccache; then
-        cmake_params="${cmake_params} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+        cmake_params="${cmake_params} -DCMAKE_C_COMPILER_LAUNCHERER=ccache -DCMAKE_CXX_COMPILER_LAUNCHERER=ccache"
     fi
     echo "Build in Docker: $name CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS=\"$*\""
-    ASM=$cc CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS="${cmake_params}" $build_in_docker $name
+    ASM=$cc CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS="${cmake_params}" LAUNCHER="${launcher}"\
+      bash -x $build_in_docker $name
 }
 
 #     NAME         CC     CXX     TEST_CC CMAKE_PARAMS
 
-build alma-8       gcc    g++     gcc     -D DEPS=DOWNLOAD
-build alma-8       clang  clang++ clang   -D DEPS=DOWNLOAD
+build alma-8       gcc    g++     gcc     "-D DEPS=DOWNLOAD" "scl enable gcc-toolset-11"
+build alma-8       clang  clang++ clang   "-D DEPS=DOWNLOAD" "scl enable gcc-toolset-11"
 
-build alma-9       gcc    g++     gcc     -D DEPS=DOWNLOAD
-build alma-9       clang  clang++ clang   -D DEPS=DOWNLOAD
+build alma-9       gcc    g++     gcc     "-D DEPS=DOWNLOAD"
+build alma-9       clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
-build alma-10      gcc    g++     gcc     -D DEPS=DOWNLOAD
-build alma-10      clang  clang++ clang   -D DEPS=DOWNLOAD
+build alma-10      gcc    g++     gcc     "-D DEPS=DOWNLOAD"
+build alma-10      clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
 build alpine-3.23  gcc    g++     gcc
-build alpine-3.23  clang  clang++ clang   -D DEPS=DOWNLOAD
+build alpine-3.23  clang  clang++ clang   "-D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF" # doctest issue #900
 
-build debian-11    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build debian-11    clang  clang++ clang   -D DEPS=DOWNLOAD
+build debian-11    gcc    g++     gcc     "-D DEPS=DOWNLOAD"
+build debian-11    clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
-build debian-12    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build debian-12    clang  clang++ clang   -D DEPS=DOWNLOAD
+build debian-12    gcc    g++     gcc     "-D DEPS=DOWNLOAD"
+build debian-12    clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
-build debian-13    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build debian-13    clang  clang++ clang   -D DEPS=DOWNLOAD
+build debian-13    gcc    g++     gcc     "-D DEPS=DOWNLOAD"
+build debian-13    clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
-build fedora-42    gcc    g++     gcc     -D DEPS=DOWNLOAD
-build fedora-42    clang  clang++ clang   -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF # doctest issue #900
+build fedora-42    gcc    g++     gcc     "-D DEPS=DOWNLOAD"
+build fedora-42    clang  clang++ clang   "-D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF" # doctest issue #900
 
-build ubuntu-22.04 gcc-11 g++-11  gcc     -D DEPS=DOWNLOAD
-build ubuntu-22.04 gcc-12 g++-12  gcc     -D DEPS=DOWNLOAD
-build ubuntu-22.04 clang  clang++ clang   -D DEPS=DOWNLOAD
+build ubuntu-22.04 gcc-11 g++-11  gcc     "-D DEPS=DOWNLOAD"
+build ubuntu-22.04 gcc-12 g++-12  gcc     "-D DEPS=DOWNLOAD"
+build ubuntu-22.04 clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
-build ubuntu-24.04 gcc-13 g++-13  gcc     -D DEPS=DOWNLOAD
-build ubuntu-24.04 gcc-14 g++-14  gcc     -D DEPS=DOWNLOAD
-build ubuntu-24.04 clang  clang++ clang   -D DEPS=DOWNLOAD
+build ubuntu-24.04 gcc-13 g++-13  gcc     "-D DEPS=DOWNLOAD"
+build ubuntu-24.04 gcc-14 g++-14  gcc     "-D DEPS=DOWNLOAD"
+build ubuntu-24.04 clang  clang++ clang   "-D DEPS=DOWNLOAD"
