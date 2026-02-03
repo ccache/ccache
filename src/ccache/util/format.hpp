@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -25,14 +25,11 @@
 #include <string_view>
 #include <system_error>
 
-// Convenience macro for calling `fmt::format` with `FMT_STRING` around the
-// format string literal.
-#define FMT(format_, ...) fmt::format(FMT_STRING(format_), __VA_ARGS__)
+// Convenience macro for `fmt::format`.
+#define FMT(format_, ...) fmt::format(format_, __VA_ARGS__)
 
-// Convenience macro for calling `fmt::print` with `FMT_STRING` around the
-// format string literal.
-#define PRINT(stream_, format_, ...)                                           \
-  fmt::print(stream_, FMT_STRING(format_), __VA_ARGS__)
+// Convenience macro for `fmt::print`.
+#define PRINT(stream_, format_, ...) fmt::print(stream_, format_, __VA_ARGS__)
 
 // Convenience macro for calling `fmt::print` with a message that is not a
 // format string.
