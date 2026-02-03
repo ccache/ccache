@@ -102,13 +102,6 @@ jobs:
               # The -multilib packages are only available on x86.
               sudo apt-get install -y g++-${{ matrix.version }}-multilib
             fi
-            if [ "${{ matrix.version }}" = 8 ]; then
-              # The compilation test in StdFilesystem.cmake doesn't work when
-              # GCC 9 is installed as well, so need to force linking with
-              # libstdc++fs for GCC 8. Note: This requires using -fuse-ld=lld to
-              # work.
-              echo "LDFLAGS=-lstdc++fs" >> $GITHUB_ENV
-            fi
           else
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV

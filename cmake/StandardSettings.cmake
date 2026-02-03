@@ -58,7 +58,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$" AND NOT MSVC)
   endforeach()
 
   include(StdAtomic)
-  include(StdFilesystem)
 elseif(MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(standard_settings INTERFACE
       /Zc:__cplusplus
