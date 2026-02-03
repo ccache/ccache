@@ -564,11 +564,11 @@ jobs:
 
           - name: Clang-Tidy
             os: ubuntu-22.04
-            CC: clang-12
-            CXX: clang++-12
+            CC: clang-13
+            CXX: clang++-13
             RUN_TESTS: none
-            CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON -DCLANGTIDY=/usr/bin/clang-tidy-12
-            apt_get: libzstd-dev libhiredis-dev clang-12 clang-tidy-12
+            CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON -DCLANGTIDY=/usr/bin/clang-tidy-13
+            apt_get: libzstd-dev libhiredis-dev clang-13 clang-tidy-13
 
     steps:
       - name: Get source
