@@ -1739,11 +1739,11 @@ process_args(Context& ctx)
   }
 
   if (state.xarch_args.size() > 1) {
-    if (state.xarch_args.find("host") != state.xarch_args.end()) {
+    if (state.xarch_args.contains("host")) {
       LOG_RAW("-Xarch_host in combination with other -Xarch_* is too hard");
       return tl::unexpected(Statistic::unsupported_compiler_option);
     }
-    if (state.xarch_args.find("device") != state.xarch_args.end()) {
+    if (state.xarch_args.contains("device")) {
       LOG_RAW("-Xarch_device in combination with other -Xarch_* is too hard");
       return tl::unexpected(Statistic::unsupported_compiler_option);
     }

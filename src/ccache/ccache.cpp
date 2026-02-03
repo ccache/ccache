@@ -383,7 +383,7 @@ remember_include_file(Context& ctx,
     return {};
   }
 
-  if (ctx.included_files.find(path_str) != ctx.included_files.end()) {
+  if (ctx.included_files.contains(path_str)) {
     // Already known include file.
     return {};
   }
