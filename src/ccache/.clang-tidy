@@ -51,6 +51,7 @@ Checks: '
   -cppcoreguidelines-special-member-functions,
   modernize-*,
   -modernize-avoid-c-arrays,
+  -modernize-loop-convert,
   -modernize-pass-by-value,
   -modernize-return-braced-init-list,
   -modernize-use-auto,
