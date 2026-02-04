@@ -690,8 +690,7 @@ TEST_CASE("-x")
 // MSVC's /U option, so disable the test case there. This will be possible to
 // improve when/if a compiler abstraction is introduced (issue #956).
 TEST_CASE("MSVC options"
-          * doctest::skip(util::starts_with(fs::current_path()->string(),
-                                            "/U")))
+          * doctest::skip(fs::current_path()->string().starts_with("/U")))
 {
   TestContext test_context;
   Context ctx;

@@ -67,7 +67,8 @@ format_argv_as_win32_command_string(const char* const* argv,
   }
 
   std::string result;
-  if (getenv("_CCACHE_TEST") && argv[0] && util::ends_with(argv[0], ".sh")) {
+  if (getenv("_CCACHE_TEST") && argv[0]
+      && std::string_view(argv[0]).ends_with(".sh")) {
     result += "sh.exe ";
   }
 
@@ -453,7 +454,7 @@ parse_unsigned(std::string_view value,
   size_t end = 0;
   unsigned long long result = 0;
   bool failed = false;
-  if (starts_with(stripped_value, "-")) {
+  if (stripped_value.starts_with("-")) {
     failed = true;
   } else {
     try {

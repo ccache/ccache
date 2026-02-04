@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -253,24 +253,6 @@ TEST_CASE("util::format_base32hex")
   CHECK(util::format_base32hex({input, 4}) == "cpnmuog");
   CHECK(util::format_base32hex({input, 5}) == "cpnmuoj1");
   CHECK(util::format_base32hex({input, 6}) == "cpnmuoj1e8");
-}
-
-TEST_CASE("util::ends_with")
-{
-  CHECK(util::ends_with("", ""));
-  CHECK(util::ends_with("x", ""));
-  CHECK(util::ends_with("x", "x"));
-  CHECK(util::ends_with("xy", ""));
-  CHECK(util::ends_with("xy", "y"));
-  CHECK(util::ends_with("xy", "xy"));
-  CHECK(util::ends_with("xyz", ""));
-  CHECK(util::ends_with("xyz", "z"));
-  CHECK(util::ends_with("xyz", "yz"));
-  CHECK(util::ends_with("xyz", "xyz"));
-
-  CHECK_FALSE(util::ends_with("", "x"));
-  CHECK_FALSE(util::ends_with("x", "y"));
-  CHECK_FALSE(util::ends_with("x", "xy"));
 }
 
 TEST_CASE("util::format_human_readable_diff")
@@ -770,41 +752,6 @@ TEST_CASE("util::split_path_list")
     CHECK(v[0] == "a/b");
     CHECK(v[1] == "c");
   }
-}
-
-TEST_CASE("util::starts_with")
-{
-  // starts_with(const char*, string_view)
-  CHECK(util::starts_with("", ""));
-  CHECK(util::starts_with("x", ""));
-  CHECK(util::starts_with("x", "x"));
-  CHECK(util::starts_with("xy", ""));
-  CHECK(util::starts_with("xy", "x"));
-  CHECK(util::starts_with("xy", "xy"));
-  CHECK(util::starts_with("xyz", ""));
-  CHECK(util::starts_with("xyz", "x"));
-  CHECK(util::starts_with("xyz", "xy"));
-  CHECK(util::starts_with("xyz", "xyz"));
-
-  CHECK_FALSE(util::starts_with("", "x"));
-  CHECK_FALSE(util::starts_with("x", "y"));
-  CHECK_FALSE(util::starts_with("x", "xy"));
-
-  // starts_with(string_view, string_view)
-  CHECK(util::starts_with(std::string(""), ""));
-  CHECK(util::starts_with(std::string("x"), ""));
-  CHECK(util::starts_with(std::string("x"), "x"));
-  CHECK(util::starts_with(std::string("xy"), ""));
-  CHECK(util::starts_with(std::string("xy"), "x"));
-  CHECK(util::starts_with(std::string("xy"), "xy"));
-  CHECK(util::starts_with(std::string("xyz"), ""));
-  CHECK(util::starts_with(std::string("xyz"), "x"));
-  CHECK(util::starts_with(std::string("xyz"), "xy"));
-  CHECK(util::starts_with(std::string("xyz"), "xyz"));
-
-  CHECK_FALSE(util::starts_with(std::string(""), "x"));
-  CHECK_FALSE(util::starts_with(std::string("x"), "y"));
-  CHECK_FALSE(util::starts_with(std::string("x"), "xy"));
 }
 
 TEST_CASE("util::strip_whitespace")

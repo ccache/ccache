@@ -763,7 +763,7 @@ Config::update_from_environment()
   for (char** env = environ; *env; ++env) {
     std::string setting = *env;
     const std::string prefix = "CCACHE_";
-    if (!util::starts_with(setting, prefix)) {
+    if (!setting.starts_with(prefix)) {
       continue;
     }
     size_t equal_pos = setting.find('=');
@@ -773,7 +773,7 @@ Config::update_from_environment()
 
     std::string key = setting.substr(prefix.size(), equal_pos - prefix.size());
     std::string value = setting.substr(equal_pos + 1);
-    bool negate = util::starts_with(key, "NO");
+    bool negate = key.starts_with("NO");
     if (negate) {
       key = key.substr(2);
     }
@@ -884,7 +884,7 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::max_size: {
     auto result =
       util::format_human_readable_size(m_max_size, m_size_prefix_type);
-    if (util::ends_with(result, " bytes")) {
+    if (result.ends_with(" bytes")) {
       // Special case to make the output parsable by util::parse_size.
       result.resize(result.size() - 6);
     }

@@ -35,7 +35,7 @@ get_includes_from_msvc_show_includes(std::string_view file_content,
   // This will split at each \r or \n, but that simply means there will be empty
   // "lines".
   for (std::string_view line : util::split_into_views(file_content, "\r\n")) {
-    if (util::starts_with(line, prefix)) {
+    if (line.starts_with(prefix)) {
       size_t pos = prefix.size();
       while (pos < line.size() && util::is_space(line[pos])) {
         ++pos;
@@ -67,7 +67,7 @@ strip_includes_from_msvc_show_includes(const Context& ctx,
                                    "\n",
                                    Mode::include_empty,
                                    IncludeDelimiter::yes)) {
-    if (!util::starts_with(line, ctx.config.msvc_dep_prefix())) {
+    if (!line.starts_with(ctx.config.msvc_dep_prefix())) {
       new_stdout_data.insert(new_stdout_data.end(), line.data(), line.size());
     }
   }

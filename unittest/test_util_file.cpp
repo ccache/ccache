@@ -181,8 +181,8 @@ TEST_CASE("util::read_file<std::string> with UTF-16 little endian encoding")
   CHECK(util::write_file("test", data));
   read_data = util::read_file<std::string>("test");
   REQUIRE(!read_data);
-  REQUIRE(util::starts_with(read_data.error(),
-                            "Failed to convert test from UTF-16LE to UTF-8:"));
+  REQUIRE(read_data.error().starts_with(
+    "Failed to convert test from UTF-16LE to UTF-8:"));
 }
 #endif
 

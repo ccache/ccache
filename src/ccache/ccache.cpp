@@ -421,8 +421,7 @@ remember_include_file(Context& ctx,
   if (!ctx.ignore_header_paths.empty()) {
     // Canonicalize path for comparison; Clang uses ./header.h.
     const std::string& canonical_path_str =
-      util::starts_with(path_str.str(), "./") ? path_str.str().substr(2)
-                                              : path_str;
+      path_str.str().starts_with("./") ? path_str.str().substr(2) : path_str;
     for (const auto& ignore_header_path : ctx.ignore_header_paths) {
       if (file_path_matches_dir_prefix_or_file(ignore_header_path,
                                                canonical_path_str)) {
@@ -566,14 +565,14 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
-            || util::starts_with(&q[1], pragma_gcc_pch_preprocess)
+            || std::string_view(&q[1]).starts_with(pragma_gcc_pch_preprocess)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
         && (q == data.data() || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
-        if (util::starts_with(q, hash_31_command_line_newline)) {
+        if (std::string_view(q).starts_with(hash_31_command_line_newline)) {
           // Bogus extra line with #31, after the regular #1: Ignore the whole
           // line, and continue parsing.
           hash.hash(p, q - p);
@@ -583,7 +582,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
           q++;
           p = q;
           continue;
-        } else if (util::starts_with(q, hash_32_command_line_2_newline)) {
+        } else if (std::string_view(q).starts_with(
+                     hash_32_command_line_2_newline)) {
           // Bogus wrong line with #32, instead of regular #1: Replace the line
           // number with the usual one.
           hash.hash(p, q - p);
@@ -1086,7 +1086,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
                                      "\n",
                                      Mode::include_empty,
                                      IncludeDelimiter::yes)) {
-      if (util::starts_with(line, "__________")) {
+      if (line.starts_with("__________")) {
         // distcc-pump outputs lines like this:
         //
         //   __________Using # distcc servers in pump mode
@@ -1095,7 +1095,7 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         core::send_to_console(ctx, line, STDOUT_FILENO);
       } else if (ctx.config.compiler_type() == CompilerType::msvc
                  && !ctx.config.base_dirs().empty()
-                 && util::starts_with(line, ctx.config.msvc_dep_prefix())) {
+                 && line.starts_with(ctx.config.msvc_dep_prefix())) {
         // Ninja uses the lines with 'Note: including file: ' to determine the
         // used headers. Headers within basedir need to be changed into relative
         // paths because otherwise Ninja will use the abs path to original
@@ -1504,7 +1504,7 @@ hash_compiler(const Context& ctx,
     hash.hash_delimiter("cc_mtime");
     hash.hash(dir_entry.size());
     hash.hash(util::nsec_tot(dir_entry.mtime()));
-  } else if (util::starts_with(ctx.config.compiler_check(), "string:")) {
+  } else if (ctx.config.compiler_check().starts_with("string:")) {
     hash.hash_delimiter("cc_hash");
     hash.hash(&ctx.config.compiler_check()[7]);
   } else if (ctx.config.compiler_check() == "content" || !allow_command) {
@@ -1586,7 +1586,7 @@ apply_prefix_remapping(const std::vector<std::string>& maps, fs::path& path)
 
     const std::string old_prefix{map.substr(0, sep_pos)};
     const std::string new_prefix{map.substr(sep_pos + 1)};
-    if (!util::starts_with(util::pstr(path).str(), old_prefix)) {
+    if (!util::pstr(path).str().starts_with(old_prefix)) {
       continue;
     }
 
@@ -1954,7 +1954,7 @@ get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
     } else {
       return {std::nullopt, std::nullopt};
     }
-  } else if (util::starts_with(args[i], option)) {
+  } else if (args[i].starts_with(option)) {
     return {option, std::string_view(args[i]).substr(option.length())};
   } else {
     return {std::nullopt, std::nullopt};
@@ -1985,16 +1985,16 @@ hash_argument(const Context& ctx,
     i++;
     return {};
   }
-  if (util::starts_with(args[i], "-L") && !is_clang) {
+  if (args[i].starts_with("-L") && !is_clang) {
     return {};
   }
 
   // -Wl,... doesn't affect compilation (except for clang).
-  if (util::starts_with(args[i], "-Wl,") && !is_clang) {
+  if (args[i].starts_with("-Wl,") && !is_clang) {
     return {};
   }
 
-  if (util::starts_with(args[i], "-Wa,")) {
+  if (args[i].starts_with("-Wa,")) {
     // We have to distinguish between three cases:
     //
     // Case 1: -Wa,-a      (write to stdout)
@@ -2013,7 +2013,7 @@ hash_argument(const Context& ctx,
       } else {
         hash.hash(",");
       }
-      if (util::starts_with(part, "-a")) {
+      if (part.starts_with("-a")) {
         const auto eq_pos = part.find('=');
         if (eq_pos < part.size() - 1) {
           // Case 3:
@@ -2032,35 +2032,35 @@ hash_argument(const Context& ctx,
   // CCACHE_BASEDIR to reuse results across different directories. Skip using
   // the value of the option from hashing but still hash the existence of the
   // option.
-  if (util::starts_with(args[i], "-fdebug-prefix-map=")) {
+  if (args[i].starts_with("-fdebug-prefix-map=")) {
     hash.hash_delimiter("arg");
     hash.hash("-fdebug-prefix-map=");
     return {};
   }
-  if (util::starts_with(args[i], "-ffile-prefix-map=")) {
+  if (args[i].starts_with("-ffile-prefix-map=")) {
     hash.hash_delimiter("arg");
     hash.hash("-ffile-prefix-map=");
     return {};
   }
-  if (util::starts_with(args[i], "-fmacro-prefix-map=")) {
+  if (args[i].starts_with("-fmacro-prefix-map=")) {
     hash.hash_delimiter("arg");
     hash.hash("-fmacro-prefix-map=");
     return {};
   }
   // -fprofile-prefix-path can also be used to reuse ccache results
   // across different directories
-  if (util::starts_with(args[i], "-fprofile-prefix-path=")) {
+  if (args[i].starts_with("-fprofile-prefix-path=")) {
     hash.hash_delimiter("arg");
     hash.hash("-fprofile-prefix-path=");
     return {};
   }
-  if (util::starts_with(args[i], "-fcoverage-prefix-map=")) {
+  if (args[i].starts_with("-fcoverage-prefix-map=")) {
     hash.hash_delimiter("arg");
     hash.hash("-fcoverage-prefix-map=");
     return {};
   }
 
-  if (util::starts_with(args[i], "-frandom-seed=")
+  if (args[i].starts_with("-frandom-seed=")
       && ctx.config.sloppiness().contains(core::Sloppy::random_seed)) {
     LOG("Ignoring {} since random_seed sloppiness is requested", args[i]);
     return {};
@@ -2068,7 +2068,7 @@ hash_argument(const Context& ctx,
 
   static const std::string_view frandomize_layout_seed_file =
     "-frandomize-layout-seed-file=";
-  if (util::starts_with(args[i], frandomize_layout_seed_file)) {
+  if (args[i].starts_with(frandomize_layout_seed_file)) {
     hash.hash_delimiter(frandomize_layout_seed_file);
     auto file = args[i].substr(frandomize_layout_seed_file.length());
     if (!hash_binary_file(ctx, hash, file)) {
@@ -2120,13 +2120,13 @@ hash_argument(const Context& ctx,
   }
 
   if (ctx.args_info.generating_dependencies) {
-    if (util::starts_with(args[i], "-Wp,")) {
+    if (args[i].starts_with("-Wp,")) {
       // Skip the dependency filename since it doesn't impact the output.
-      if (util::starts_with(args[i], "-Wp,-MD,")
+      if (args[i].starts_with("-Wp,-MD,")
           && args[i].find(',', 8) == std::string::npos) {
         hash.hash(args[i].data(), 8);
         return {};
-      } else if (util::starts_with(args[i], "-Wp,-MMD,")
+      } else if (args[i].starts_with("-Wp,-MMD,")
                  && args[i].find(',', 9) == std::string::npos) {
         hash.hash(args[i].data(), 9);
         return {};
@@ -2149,8 +2149,8 @@ hash_argument(const Context& ctx,
     }
   }
 
-  if (util::starts_with(args[i], "-specs=") || args[i] == "-specs"
-      || util::starts_with(args[i], "--specs=") || args[i] == "--specs") {
+  if (args[i].starts_with("-specs=") || args[i] == "-specs"
+      || args[i].starts_with("--specs=") || args[i] == "--specs") {
     auto [_option, specs] = util::split_once_into_views(args[i], '=');
     if (!specs) {
       if (i + 1 >= args.size()) {
@@ -2163,7 +2163,7 @@ hash_argument(const Context& ctx,
 
     if (ctx.config.is_compiler_group_clang()) {
       // Clang accepts -specs but ignores it.
-      if (!util::ends_with(args[i], "=")) {
+      if (!args[i].ends_with("=")) {
         hash.hash_delimiter("arg");
         hash.hash(args[i - 1]);
       }
@@ -2188,7 +2188,7 @@ hash_argument(const Context& ctx,
     return {};
   }
 
-  if (args[i] == "--config" || util::starts_with(args[i], "--config=")) {
+  if (args[i] == "--config" || args[i].starts_with("--config=")) {
     // Clang's --config(=)name option behaves like this:
     //
     // --config foo     -> read /usr/lib/llvm-$ver/bin/foo.cfg (ver < 16)
@@ -2228,7 +2228,7 @@ hash_argument(const Context& ctx,
     return {};
   }
 
-  if (util::starts_with(args[i], "-fplugin=")) {
+  if (args[i].starts_with("-fplugin=")) {
     DirEntry dir_entry(&args[i][9], DirEntry::LogOnError::yes);
     if (dir_entry.is_regular_file()) {
       hash.hash_delimiter("plugin");
@@ -3112,7 +3112,7 @@ is_ccache_executable(const fs::path& path)
 #ifdef _WIN32
   name = util::to_lowercase(name);
 #endif
-  return util::starts_with(name, "ccache");
+  return name.starts_with("ccache");
 }
 
 bool

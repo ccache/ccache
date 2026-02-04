@@ -46,9 +46,6 @@ class Bytes;
 enum class SizeUnitPrefixType { binary, decimal };
 enum class TimeZone { local, utc };
 
-// Return true if `suffix` is a suffix of `string`.
-bool ends_with(std::string_view string, std::string_view suffix);
-
 // Recreate a Windows command line string based on `argv`. If `prefix` is
 // non-empty, add it as the first argument. If `escape_backslashes` is true,
 // emit an additional backslash for each backslash that is not preceding '"' and
@@ -226,12 +223,6 @@ split_option_with_concat_path(std::string_view string);
 // %PATH% on Windows platforms) into paths.
 std::vector<std::filesystem::path> split_path_list(std::string_view path_list);
 
-// Return true if `prefix` is a prefix of `string`.
-bool starts_with(const char* string, std::string_view prefix);
-
-// Return true if `prefix` is a prefix of `string`.
-bool starts_with(std::string_view string, std::string_view prefix);
-
 // Strip whitespace from left and right side of a string.
 [[nodiscard]] std::string strip_whitespace(std::string_view string);
 
@@ -242,13 +233,6 @@ char to_lower(char ch);
 [[nodiscard]] std::string to_lowercase(std::string_view string);
 
 // --- Inline implementations ---
-
-inline bool
-ends_with(const std::string_view string, const std::string_view suffix)
-{
-  return string.length() >= suffix.length()
-         && string.substr(string.length() - suffix.length()) == suffix;
-}
 
 inline bool
 is_alnum(char ch)
@@ -299,20 +283,6 @@ join(const T& begin, const T& end, const std::string_view delimiter)
     result += to_string(*it);
   }
   return result;
-}
-
-inline bool
-starts_with(const char* const string, const std::string_view prefix)
-{
-  // Optimized version of starts_with(string_view, string_view): avoid computing
-  // the length of the string argument.
-  return std::strncmp(string, prefix.data(), prefix.length()) == 0;
-}
-
-inline bool
-starts_with(const std::string_view string, const std::string_view prefix)
-{
-  return string.substr(0, prefix.size()) == prefix;
 }
 
 inline char

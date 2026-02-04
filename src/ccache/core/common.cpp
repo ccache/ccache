@@ -98,7 +98,7 @@ parse_inlined_from_msg(std::string_view& line, std::string& result)
   static const std::string_view inlined_from_msg = "    inlined from ";
   static const std::string_view inlined_from_msg_separator = " at ";
 
-  if (!util::starts_with(line, inlined_from_msg)) {
+  if (!line.starts_with(inlined_from_msg)) {
     return false;
   }
 
@@ -131,7 +131,7 @@ parse_in_file_included_from_msg(std::string_view& line, std::string& result)
   };
 
   for (const auto& in_file_included_from : in_file_included_from_msgs) {
-    if (util::starts_with(line, in_file_included_from)) {
+    if (line.starts_with(in_file_included_from)) {
       result += in_file_included_from;
       line = line.substr(in_file_included_from.length());
       return true;

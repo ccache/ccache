@@ -79,7 +79,7 @@ get_cache_dir_files(const fs::path& dir)
     util::traverse_directory(dir, [&](const auto& de) {
       std::string name = util::pstr(de.path().filename());
       if (name == "CACHEDIR.TAG" || name == "stats"
-          || util::starts_with(name, ".nfs")) {
+          || name.starts_with(".nfs")) {
         return;
       }
 

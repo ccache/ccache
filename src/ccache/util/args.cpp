@@ -224,8 +224,8 @@ Args::erase_last(std::string_view arg)
 void
 Args::erase_with_prefix(std::string_view prefix)
 {
-  std::erase_if(
-    m_args, [&prefix](const auto& s) { return util::starts_with(s, prefix); });
+  std::erase_if(m_args,
+                [&prefix](const auto& s) { return s.starts_with(prefix); });
 }
 
 void

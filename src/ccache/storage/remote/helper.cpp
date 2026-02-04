@@ -184,8 +184,8 @@ is_ccache_crsh_var(std::string_view entry)
 
   return name == "CRSH_IPC_ENDPOINT" || name == "CRSH_URL"
          || name == "CRSH_IDLE_TIMEOUT" || name == "CRSH_NUM_ATTR"
-         || util::starts_with(name, "CRSH_ATTR_KEY_")
-         || util::starts_with(name, "CRSH_ATTR_VALUE_");
+         || name.starts_with("CRSH_ATTR_KEY_")
+         || name.starts_with("CRSH_ATTR_VALUE_");
 }
 
 #ifndef _WIN32
@@ -248,7 +248,7 @@ spawn_helper(const fs::path& helper_path,
 
 #ifdef _WIN32
   // Don't pass \\.\pipe\ prefix on Windows.
-  DEBUG_ASSERT(util::starts_with(endpoint, k_named_pipe_prefix));
+  DEBUG_ASSERT(endpoint.starts_with(k_named_pipe_prefix));
   auto ipc_endpoint = endpoint.substr(k_named_pipe_prefix.length());
 #else
   const auto& ipc_endpoint = endpoint;
