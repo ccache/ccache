@@ -36,12 +36,16 @@ int TAKES_CONCAT_ARG = 1 << 3;
 // used.
 int TAKES_PATH = 1 << 4;
 
+// The argument to the option is a path that should not be rewritten if
+// base_dir is used.
+int TAKES_PATH_ABS = 1 << 5;
+
 // The option only affects preprocessing; not included in the input hash in
 // preprocessor mode.
-int AFFECTS_CPP = 1 << 5;
+int AFFECTS_CPP = 1 << 6;
 
 // The option only affects compilation; not passed to the preprocessor.
-int AFFECTS_COMP = 1 << 6;
+int AFFECTS_COMP = 1 << 7;
 
 struct CompOpt
 {
@@ -151,7 +155,8 @@ const CompOpt compopts[] = {
   {"-install_name",           TAKES_ARG                                              }, // Darwin linker option
   {"-iprefix",                AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-iquote",                 AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
-  {"-isysroot",               AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+  {"-isysroot",
+   AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH | TAKES_PATH_ABS          },
   {"-isystem",                AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-ivfsoverlay",            TAKES_ARG | TAKES_PATH                                 },
   {"-ivfsstatcache",          TAKES_ARG                                              },
@@ -282,6 +287,13 @@ compopt_takes_path(std::string_view option)
 {
   const CompOpt* co = find(option);
   return co && (co->type & TAKES_PATH);
+}
+
+bool
+compopt_takes_path_abs(std::string_view option)
+{
+  const CompOpt* co = find(option);
+  return co && (co->type & TAKES_PATH_ABS);
 }
 
 bool

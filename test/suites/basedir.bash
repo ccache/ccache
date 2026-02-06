@@ -493,4 +493,25 @@ fi
     expect_stat cache_miss 1
     expect_contains test.d test.o:
     expect_content_pattern test.d "test.o:*"
+
+    # -------------------------------------------------------------------------
+    TEST "-isysroot with basedir"
+
+    mkdir -p dir1/sysroot dir2/sysroot
+
+    cd dir1
+    CCACHE_DEBUG=1 CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -isysroot "$(pwd)/sysroot" -I"$(pwd)/include" -c src/test.c
+    expect_stat direct_cache_hit 0
+    expect_stat direct_cache_miss 1
+    # Check that the absolute path is passed to the compiler (not rewritten to relative)
+    if ! grep -q "Executing.*-isysroot $(pwd)/sysroot" test.o.*.ccache-log; then
+        test_failed "-isysroot path was rewritten to relative (should stay absolute)"
+    fi
+
+    # Check that we do not get a cache hit: -isysroot is different
+    # Note: see similar test in pch.bash, we cache relative -isysroot when using --relocatable-pch
+    cd ../dir2
+    CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -isysroot "$(pwd)/sysroot" -I"$(pwd)/include" -c src/test.c
+    expect_stat direct_cache_hit 0
+    expect_stat direct_cache_miss 2
 }
