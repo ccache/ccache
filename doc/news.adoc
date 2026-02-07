@@ -1,8 +1,47 @@
 = Ccache news
 
+== Ccache 4.12.3
+
+Release date: 2026-02-07
+
+
+=== Bug fixes
+
+- Fixed hashing of CWD parts of `-march=native` expansion for Clang. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed lookup of `-march=native` expansion line for GCC on Windows. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed rewriting of "`inlined from`" messages when `absolute_paths_in_stderr`
+  is enabled. +
+  [small]#_[contributed by Enrico Seiler]_#
+
+- Added support for NVCC long option alternatives to
+  `-M`/`-MD`/`-MF`/`-MM`/`-MMD`/`-MT`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed setting of `UNCACHED_ERR_FD` environment variable so that it is only set
+  when executing the compiler. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed leaking of inode cache file descriptor to executed programs. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed errno check for some system calls. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Fixed links to installation guide in README. +
+  [small]#_[contributed by Evgeniy Isaev]_#
+
+
 == Ccache 4.12.2
 
 Release date: 2025-11-26
+
 
 === Bug fixes
 
