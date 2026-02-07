@@ -3148,8 +3148,9 @@ ccache_main(int argc, const char* const* argv)
   try {
     if (is_ccache_executable(argv[0])) {
       if (argc < 2) {
-        PRINT_RAW(
+        PRINT(
           stderr,
+          "{}",
           core::get_usage_text(util::pstr(fs::path(argv[0]).filename()).str()));
         exit(EXIT_FAILURE);
       }

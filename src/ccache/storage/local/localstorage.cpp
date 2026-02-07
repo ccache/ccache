@@ -973,7 +973,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
   thread_pool.shut_down();
 
   if (isatty(STDOUT_FILENO)) {
-    PRINT_RAW(stdout, "\n\n");
+    PRINT(stdout, "\n\n");
   }
 
   const double old_ratio =
@@ -1043,7 +1043,7 @@ LocalStorage::recompress(const std::optional<int8_t> level,
     *size_diff_unit,
   });
 
-  PRINT_RAW(stdout, table.render());
+  PRINT(stdout, "{}", table.render());
 }
 
 // Private methods

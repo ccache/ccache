@@ -31,9 +31,9 @@ int
 main(int argc, char** argv)
 {
   if (argc != 5) {
-    PRINT_RAW(stderr,
-              "Usage: test-lockfile PATH SECONDS <short|long>"
-              " <blocking|non-blocking>\n");
+    PRINT(stderr,
+          "Usage: test-lockfile PATH SECONDS <short|long>"
+          " <blocking|non-blocking>\n");
     return 1;
   }
   Config config;
@@ -45,7 +45,7 @@ main(int argc, char** argv)
   const bool long_lived = std::string(argv[3]) == "long";
   const bool blocking = std::string(argv[4]) == "blocking";
   if (!seconds) {
-    PRINT_RAW(stderr, "Error: Failed to parse seconds\n");
+    PRINT(stderr, "Error: Failed to parse seconds\n");
     return 1;
   }
 
@@ -53,10 +53,10 @@ main(int argc, char** argv)
   util::LockFile lock(path);
   bool acquired = false;
   if (blocking) {
-    PRINT_RAW(stdout, "Acquiring\n");
+    PRINT(stdout, "Acquiring\n");
     acquired = lock.acquire();
   } else {
-    PRINT_RAW(stdout, "Trying to acquire\n");
+    PRINT(stdout, "Trying to acquire\n");
     acquired = lock.try_acquire();
   }
 
@@ -65,13 +65,13 @@ main(int argc, char** argv)
     return 1;
   }
 
-  PRINT_RAW(stdout, "Acquired\n");
+  PRINT(stdout, "Acquired\n");
   if (long_lived) {
     lock.make_long_lived(lock_manager);
   }
   PRINT(stdout, "Sleeping {} second{}\n", *seconds, *seconds == 1 ? "" : "s");
   std::this_thread::sleep_for(std::chrono::seconds{*seconds});
-  PRINT_RAW(stdout, "Releasing\n");
+  PRINT(stdout, "Releasing\n");
   lock.release();
-  PRINT_RAW(stdout, "Released\n");
+  PRINT(stdout, "Released\n");
 }

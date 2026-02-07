@@ -465,7 +465,7 @@ Manifest::inspect(FILE* const stream) const
       stream, "    Hash: {}\n", util::format_base16(m_file_infos[i].digest));
     PRINT(stream, "    File size: {}\n", m_file_infos[i].fsize);
     if (m_file_infos[i].mtime == util::TimePoint()) {
-      PRINT_RAW(stream, "    Mtime: -\n");
+      PRINT(stream, "    Mtime: -\n");
     } else {
       PRINT(stream,
             "    Mtime: {}.{:09}\n",
@@ -473,7 +473,7 @@ Manifest::inspect(FILE* const stream) const
             util::nsec_part(m_file_infos[i].mtime));
     }
     if (m_file_infos[i].ctime == util::TimePoint()) {
-      PRINT_RAW(stream, "    Ctime: -\n");
+      PRINT(stream, "    Ctime: -\n");
     } else {
       PRINT(stream,
             "    Ctime: {}.{:09}\n",
@@ -485,11 +485,11 @@ Manifest::inspect(FILE* const stream) const
   PRINT(stream, "Results ({}):\n", m_results.size());
   for (size_t i = 0; i < m_results.size(); ++i) {
     PRINT(stream, "  {}:\n", i);
-    PRINT_RAW(stream, "    File info indexes:");
+    PRINT(stream, "    File info indexes:");
     for (uint32_t file_info_index : m_results[i].file_info_indexes) {
       PRINT(stream, " {}", file_info_index);
     }
-    PRINT_RAW(stream, "\n");
+    PRINT(stream, "\n");
     PRINT(stream, "    Key: {}\n", util::format_base16(m_results[i].key));
   }
 }

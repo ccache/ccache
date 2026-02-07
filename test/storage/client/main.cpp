@@ -70,8 +70,8 @@ int
 cmd_get(storage::remote::Client& client, const std::vector<std::string>& args)
 {
   if (args.size() != 3 || args[1] != "-o") {
-    PRINT_RAW(stderr, "Error: get requires: KEY -o OUTPUT\n");
-    PRINT_RAW(stderr, "  where OUTPUT is a file path or - for stdout\n");
+    PRINT(stderr, "Error: get requires: KEY -o OUTPUT\n");
+    PRINT(stderr, "  where OUTPUT is a file path or - for stdout\n");
     return 1;
   }
 
@@ -121,10 +121,10 @@ cmd_put(storage::remote::Client& client, const std::vector<std::string>& args)
   }
 
   if (args.size() - start_idx != 3) {
-    PRINT_RAW(stderr,
-              "Error: put requires: [--overwrite] KEY -i INPUT\n"
-              "                 or: [--overwrite] KEY -v VALUE\n"
-              "  where INPUT is a file path or - for stdin\n");
+    PRINT(stderr,
+          "Error: put requires: [--overwrite] KEY -i INPUT\n"
+          "                 or: [--overwrite] KEY -v VALUE\n"
+          "  where INPUT is a file path or - for stdin\n");
     return 1;
   }
 
@@ -183,7 +183,7 @@ cmd_remove(storage::remote::Client& client,
            const std::vector<std::string>& args)
 {
   if (args.size() != 1) {
-    PRINT_RAW(stderr, "Error: remove requires exactly 1 argument: KEY\n");
+    PRINT(stderr, "Error: remove requires exactly 1 argument: KEY\n");
     return 1;
   }
 
@@ -214,7 +214,7 @@ int
 cmd_stop(storage::remote::Client& client, const std::vector<std::string>& args)
 {
   if (!args.empty()) {
-    PRINT_RAW(stderr, "Error: stop takes no arguments\n");
+    PRINT(stderr, "Error: stop takes no arguments\n");
     return 1;
   }
 
@@ -225,7 +225,7 @@ cmd_stop(storage::remote::Client& client, const std::vector<std::string>& args)
     return 1;
   }
 
-  PRINT_RAW(stdout, "Helper stopped\n");
+  PRINT(stdout, "Helper stopped\n");
   return 0;
 }
 
@@ -233,12 +233,12 @@ int
 cmd_ping(storage::remote::Client& client, const std::vector<std::string>& args)
 {
   if (!args.empty()) {
-    PRINT_RAW(stderr, "Error: ping takes no arguments\n");
+    PRINT(stderr, "Error: ping takes no arguments\n");
     return 1;
   }
 
   // Connection and protocol verification already done in main.
-  PRINT_RAW(stdout, "Helper is reachable\n");
+  PRINT(stdout, "Helper is reachable\n");
   return 0;
 }
 
@@ -291,8 +291,7 @@ main(int argc, char* argv[])
 
   if (!client.has_capability(
         storage::remote::Client::Capability::get_put_remove_stop)) {
-    PRINT_RAW(stderr,
-              "Helper does not support get/put/remove/stop operations\n");
+    PRINT(stderr, "Helper does not support get/put/remove/stop operations\n");
     return 1;
   }
 

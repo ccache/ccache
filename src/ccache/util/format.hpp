@@ -29,11 +29,8 @@
 #define FMT(format_, ...) fmt::format(format_, __VA_ARGS__)
 
 // Convenience macro for `fmt::print`.
-#define PRINT(stream_, format_, ...) fmt::print(stream_, format_, __VA_ARGS__)
-
-// Convenience macro for calling `fmt::print` with a message that is not a
-// format string.
-#define PRINT_RAW(stream_, message_) fmt::print(stream_, "{}", message_)
+#define PRINT(stream_, format_, ...)                                           \
+  fmt::print(stream_, format_ __VA_OPT__(, ) __VA_ARGS__)
 
 template<>
 struct fmt::formatter<std::filesystem::path> : fmt::formatter<std::string_view>

@@ -305,7 +305,7 @@ print_compression_statistics(const Config& config,
     *incompressible_data_unit,
   });
 
-  PRINT_RAW(stdout, table.render());
+  PRINT(stdout, "{}", table.render());
 }
 
 static void
@@ -683,9 +683,9 @@ process_main_options(int argc, const char* const* argv)
       const auto [counters, last_updated] =
         storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(
-        stdout,
-        statistics.format_machine_readable(config, last_updated, format));
+      PRINT(stdout,
+            "{}",
+            statistics.format_machine_readable(config, last_updated, format));
       break;
     }
 
@@ -695,7 +695,7 @@ process_main_options(int argc, const char* const* argv)
       storage::local::LocalStorage(config).clean_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        PRINT_RAW(stdout, "\n");
+        PRINT(stdout, "\n");
       }
       break;
     }
@@ -706,7 +706,7 @@ process_main_options(int argc, const char* const* argv)
       storage::local::LocalStorage(config).wipe_all(
         [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        PRINT_RAW(stdout, "\n");
+        PRINT(stdout, "\n");
       }
       break;
     }
@@ -724,7 +724,7 @@ process_main_options(int argc, const char* const* argv)
       config.set_value_in_file(
         util::pstr(config.config_path()), "max_files", arg);
       if (files == 0) {
-        PRINT_RAW(stdout, "Unset cache file limit\n");
+        PRINT(stdout, "Unset cache file limit\n");
       } else {
         PRINT(stdout, "Set cache file limit to {}\n", files);
       }
@@ -738,7 +738,7 @@ process_main_options(int argc, const char* const* argv)
       config.set_value_in_file(
         util::pstr(config.config_path()), "max_size", arg);
       if (max_size == 0) {
-        PRINT_RAW(stdout, "Unset cache size limit\n");
+        PRINT(stdout, "Unset cache size limit\n");
       } else {
         PRINT(stdout,
               "Set cache size limit to {}\n",
@@ -771,8 +771,9 @@ process_main_options(int argc, const char* const* argv)
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
         DirEntry(config.stats_log(), DirEntry::LogOnError::yes).mtime();
-      PRINT_RAW(
+      PRINT(
         stdout,
+        "{}",
         statistics.format_human_readable(config, timestamp, verbosity, true));
       break;
     }
@@ -784,8 +785,9 @@ process_main_options(int argc, const char* const* argv)
       Statistics statistics(StatsLog(config.stats_log()).read());
       const auto timestamp =
         DirEntry(config.stats_log(), DirEntry::LogOnError::yes).mtime();
-      PRINT_RAW(stdout,
-                statistics.format_machine_readable(config, timestamp, format));
+      PRINT(stdout,
+            "{}",
+            statistics.format_machine_readable(config, timestamp, format));
       break;
     }
 
@@ -793,9 +795,10 @@ process_main_options(int argc, const char* const* argv)
       const auto [counters, last_updated] =
         storage::local::LocalStorage(config).get_all_statistics();
       Statistics statistics(counters);
-      PRINT_RAW(stdout,
-                statistics.format_human_readable(
-                  config, last_updated, verbosity, false));
+      PRINT(stdout,
+            "{}",
+            statistics.format_human_readable(
+              config, last_updated, verbosity, false));
       break;
     }
 
@@ -819,8 +822,9 @@ process_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
     {
-      PRINT_RAW(stdout,
-                get_version_text(util::pstr(fs::path(argv[0]).stem()).str()));
+      PRINT(stdout,
+            "{}",
+            get_version_text(util::pstr(fs::path(argv[0]).stem()).str()));
       break;
     }
 
@@ -835,7 +839,7 @@ process_main_options(int argc, const char* const* argv)
         storage::local::LocalStorage(config).get_compression_statistics(
           threads, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        PRINT_RAW(stdout, "\n\n");
+        PRINT(stdout, "\n\n");
       }
       print_compression_statistics(config, compression_statistics);
       break;
@@ -855,7 +859,7 @@ process_main_options(int argc, const char* const* argv)
 
     case 'z': // --zero-stats
       storage::local::LocalStorage(config).zero_all_statistics();
-      PRINT_RAW(stdout, "Statistics zeroed\n");
+      PRINT(stdout, "Statistics zeroed\n");
       break;
 
     default:
@@ -874,7 +878,7 @@ process_main_options(int argc, const char* const* argv)
       evict_max_age,
       evict_namespace);
     if (isatty(STDOUT_FILENO)) {
-      PRINT_RAW(stdout, "\n");
+      PRINT(stdout, "\n");
     }
   }
 
