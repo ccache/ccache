@@ -46,6 +46,7 @@ Ccache is a collective work with contributions from many people, including:
 * Deepak Yadav
 * Doug Anderson
 * Edward Z. Yang
+* Enrico Seiler
 * Enrico Sorichetti
 * Erik Flodin
 * Evangelos Foutras
