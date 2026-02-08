@@ -47,7 +47,6 @@ build alpine-3.23  gcc    g++     gcc
 build alpine-3.23  clang  clang++ clang   "-D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF" # doctest issue #900
 
 build debian-11    gcc    g++     gcc     "-D DEPS=DOWNLOAD"
-build debian-11    clang  clang++ clang   "-D DEPS=DOWNLOAD"
 
 build debian-12    gcc    g++     gcc     "-D DEPS=DOWNLOAD"
 build debian-12    clang  clang++ clang   "-D DEPS=DOWNLOAD"
