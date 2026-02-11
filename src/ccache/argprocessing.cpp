@@ -739,8 +739,8 @@ process_option_arg(const Context& ctx,
     std::string thinlto_index = arg.substr(arg.find('=') + 1);
     args_info.thinlto_index_path = thinlto_index;
     // Thinlto backend phase, the extension of input file is .o but the file is
-    // IR. So treat it as assembler file.
-    args_info.actual_language = "assembler";
+    // IR.
+    args_info.actual_language = "ir";
     state.add_common_arg(args[i]);
     return Statistic::none;
   }
@@ -1612,14 +1612,19 @@ process_args(Context& ctx)
     return tl::unexpected(Statistic::unsupported_source_language);
   }
 
-  if (args_info.actual_language == "assembler") {
-    // -MD/-MMD for assembler file does not produce a dependency file.
+  if (args_info.actual_language == "assembler"
+      || args_info.actual_language == "ir") {
+    // -MD/-MMD do not produce a dependency file.
     args_info.generating_dependencies = false;
   }
 
-  args_info.direct_i_file = language_is_preprocessed(args_info.actual_language);
+  args_info.preprocess_input_file =
+    !language_is_preprocessed(args_info.actual_language);
 
-  if (config.cpp_extension().empty()) {
+  if (!args_info.preprocess_input_file) {
+    config.set_cpp_extension(
+      util::pstr(args_info.input_file.extension()).str().substr(1));
+  } else if (config.cpp_extension().empty()) {
     std::string p_language = p_language_for_language(args_info.actual_language);
     config.set_cpp_extension(extension_for_language(p_language).substr(1));
   }
