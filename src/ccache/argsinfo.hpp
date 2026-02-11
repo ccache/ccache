@@ -174,4 +174,7 @@ struct ArgsInfo
 
   // Build session file as passed in -fbuild-session-file.
   std::filesystem::path build_session_file;
+
+  // Thinlto index from -fthinlto-index=
+  std::filesystem::path thinlto_index_path;
 };
