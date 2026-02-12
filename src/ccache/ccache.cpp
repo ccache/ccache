@@ -1394,9 +1394,8 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
 
   const bool capture_stdout = is_clang_cu;
 
-  if (ctx.args_info.direct_i_file) {
-    // We are compiling a .i or .ii file - that means we can skip the cpp stage
-    // and directly form the correct i_tmpfile.
+  if (!ctx.args_info.preprocess_input_file) {
+    // We are compiling a file that should be used as is (not be preprocessed).
     preprocessed_path = ctx.args_info.input_file;
   } else {
     // Run cpp on the input file to obtain the .i.

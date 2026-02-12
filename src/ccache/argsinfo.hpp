@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -121,8 +121,9 @@ struct ArgsInfo
   // Have we seen -gsplit-dwarf?
   bool seen_split_dwarf = false;
 
-  // Are we compiling a .i or .ii file directly?
-  bool direct_i_file = false;
+  // Should we run the preprocessor on the input file? False for .i/.ii files,
+  // assembler or ThinLTO backend phase.
+  bool preprocess_input_file = true;
 
   // Whether the output is a precompiled header.
   bool output_is_precompiled_header = false;

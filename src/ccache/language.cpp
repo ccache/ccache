@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -99,6 +99,7 @@ const struct
   {"objective-c++-cpp-output", "objective-c++-cpp-output"},
   {"assembler-with-cpp",       "assembler"               },
   {"assembler",                "assembler"               },
+  {"ir",                       "ir"                      }, // Clang ThinLTO
   {nullptr,                    nullptr                   },
 };
 
