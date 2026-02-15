@@ -505,6 +505,14 @@ print_included_files(const Context& ctx, FILE* fp)
   }
 }
 
+// Like std::string(_view)::starts_with but avoids calculating size of a const
+// char* string.
+static bool
+starts_with(const char* str, std::string_view prefix)
+{
+  return strncmp(str, prefix.data(), prefix.length()) == 0;
+}
+
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
@@ -565,14 +573,14 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
-            || std::string_view(&q[1]).starts_with(pragma_gcc_pch_preprocess)
+            || starts_with(&q[1], pragma_gcc_pch_preprocess)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
         && (q == data.data() || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
-        if (std::string_view(q).starts_with(hash_31_command_line_newline)) {
+        if (starts_with(q, hash_31_command_line_newline)) {
           // Bogus extra line with #31, after the regular #1: Ignore the whole
           // line, and continue parsing.
           hash.hash(p, q - p);
@@ -582,8 +590,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
           q++;
           p = q;
           continue;
-        } else if (std::string_view(q).starts_with(
-                     hash_32_command_line_2_newline)) {
+        } else if (starts_with(q, hash_32_command_line_2_newline)) {
           // Bogus wrong line with #32, instead of regular #1: Replace the line
           // number with the usual one.
           hash.hash(p, q - p);
