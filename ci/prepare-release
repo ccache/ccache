@@ -75,7 +75,7 @@ prepare_posix_binary_release linux-x86_64-glibc xz
 prepare_posix_binary_release linux-x86_64-musl-static xz
 
 prepare_windows_binary_release windows-aarch64
-prepare_windows_binary_release windows-i686
+# prepare_windows_binary_release windows-i686
 prepare_windows_binary_release windows-x86_64
 
 test_posix_binary_release linux-x86_64-glibc xz

@@ -375,9 +375,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: i686
-            toolchain: i686-w64-mingw32-posix
-            apt_get: g++-mingw-w64-i686-posix
+          # - arch: i686
+          #   toolchain: i686-w64-mingw32-posix
+          #   apt_get: g++-mingw-w64-i686-posix
 
           - arch: x86_64
             toolchain: x86_64-w64-mingw32-posix
