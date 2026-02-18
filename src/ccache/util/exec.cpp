@@ -29,7 +29,7 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/wincompat.hpp>
 
-#ifdef HAVE_SPAWN_H
+#ifndef _WIN32
 #  include <spawn.h>
 #endif
 

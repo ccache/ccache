@@ -4,7 +4,6 @@ set(include_files
     dirent.h
     linux/fs.h
     pwd.h
-    spawn.h
     sys/clonefile.h
     sys/file.h
     sys/ioctl.h

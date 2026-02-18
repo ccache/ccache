@@ -41,7 +41,7 @@
 
 #include <vector>
 
-#ifdef HAVE_SPAWN_H
+#ifndef _WIN32
 #  include <spawn.h>
 #endif
 
