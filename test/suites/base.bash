@@ -146,9 +146,27 @@ base_tests() {
     expect_stat no_input_file 1
 
     # -------------------------------------------------------------------------
-    TEST "Called for preprocessing"
+    TEST "-E"
 
-    $CCACHE_COMPILE -E -c test1.c >/dev/null 2>&1
+    # -E caching requires direct mode or depend mode
+    unset CCACHE_NODIRECT
+
+    $CCACHE_COMPILE -E test1.c -o test1.i
+    expect_stat direct_cache_hit 0
+    expect_stat direct_cache_miss 1
+    expect_exists test1.i
+
+    $CCACHE_COMPILE -E test1.c -o test1.i
+    expect_stat direct_cache_hit 1
+    expect_stat direct_cache_miss 1
+
+    # Restore preprocessor-only mode
+    export CCACHE_NODIRECT=1
+
+    # -------------------------------------------------------------------------
+    TEST "-E without direct mode bails"
+
+    $CCACHE_COMPILE -E test1.c -o test1.i
     expect_stat called_for_preprocessing 1
 
     # -------------------------------------------------------------------------
@@ -1513,11 +1531,19 @@ EOF
     # -------------------------------------------------------------------------
     TEST "-P -E"
 
-    $CCACHE_COMPILE -P -E test1.c >/dev/null
+    # -E caching requires direct mode or depend mode
+    unset CCACHE_NODIRECT
+
+    $CCACHE_COMPILE -P -E test1.c -o test1.i
     expect_stat direct_cache_hit 0
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 0
-    expect_stat called_for_preprocessing 1
+    expect_stat direct_cache_miss 1
+
+    $CCACHE_COMPILE -P -E test1.c -o test1.i
+    expect_stat direct_cache_hit 1
+    expect_stat direct_cache_miss 1
+
+    # Restore preprocessor-only mode
+    export CCACHE_NODIRECT=1
 
     # -------------------------------------------------------------------------
     if $COMPILER -c -Wa,-a test1.c >&/dev/null; then
