@@ -276,7 +276,12 @@ hash_source_code_file(const Context& ctx,
     LOG("Found .incbin in {}", path);
   }
 
-  if (!check_temporal_macros || result.empty()) {
+  const bool contains_temporal_macro =
+    result.contains(HashSourceCode::found_time)
+    || result.contains(HashSourceCode::found_date)
+    || result.contains(HashSourceCode::found_timestamp);
+
+  if (!check_temporal_macros || !contains_temporal_macro) {
     return result;
   }
 
