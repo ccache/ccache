@@ -50,6 +50,10 @@ HashSourceCodeResult hash_source_code_file(const Context& ctx,
                                            const std::filesystem::path& path,
                                            size_t size_hint = 0);
 
+// Return true if direct mode should be disabled for this scan result.
+bool should_disable_direct_mode(const Context& ctx,
+                                const HashSourceCodeResult& result);
+
 // Hash a binary file (using the inode cache if enabled) and put its digest in
 // `digest`
 //

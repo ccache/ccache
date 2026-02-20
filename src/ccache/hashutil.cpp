@@ -346,6 +346,16 @@ hash_source_code_file(const Context& ctx,
 }
 
 bool
+should_disable_direct_mode(const Context& ctx,
+                           const HashSourceCodeResult& result)
+{
+  return result.contains(HashSourceCode::found_time)
+         || result.contains(HashSourceCode::found_embed)
+         || (result.contains(HashSourceCode::found_incbin)
+             && !ctx.config.sloppiness().contains(core::Sloppy::incbin));
+}
+
+bool
 hash_binary_file(const Context& ctx,
                  Hash::Digest& digest,
                  const fs::path& path,
