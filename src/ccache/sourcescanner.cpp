@@ -67,11 +67,9 @@ skip_whitespace_and_continuations(const char* p, const char* end)
   return p;
 }
 
-std::vector<EmbedDirective>
-scan_for_embed_directives(std::string_view source)
+bool
+contains_embed_directive(std::string_view source)
 {
-  std::vector<EmbedDirective> result;
-
   const char* p = source.data();
   const char* const end = p + source.size();
 
@@ -112,14 +110,10 @@ scan_for_embed_directives(std::string_view source)
     // See: https://en.cppreference.com/w/c/preprocessor/embed
     char open_delim = *p;
     char close_delim;
-    bool is_system;
-
     if (open_delim == '"') {
       close_delim = '"';
-      is_system = false;
     } else if (open_delim == '<') {
       close_delim = '>';
-      is_system = true;
     } else {
       p = skip_to_next_line(p, end);
       continue;
@@ -134,16 +128,15 @@ scan_for_embed_directives(std::string_view source)
     }
 
     if (p < end && *p == close_delim) {
-      std::string path(path_start, p - path_start);
-      if (!path.empty()) {
-        result.push_back({std::move(path), is_system});
+      if (p > path_start) {
+        return true;
       }
     }
 
     p = skip_to_next_line(p, end);
   }
 
-  return result;
+  return false;
 }
 
 bool

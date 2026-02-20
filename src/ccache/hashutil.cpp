@@ -173,7 +173,7 @@ check_for_source_directives(std::string_view str)
 {
   HashSourceCodeResult result;
 
-  if (!sourcescanner::scan_for_embed_directives(str).empty()) {
+  if (sourcescanner::contains_embed_directive(str)) {
     result.insert(HashSourceCode::found_embed);
   }
 

@@ -20,83 +20,63 @@
 
 #include <doctest/doctest.h>
 
-#include <string>
-
+using sourcescanner::contains_embed_directive;
 using sourcescanner::contains_incbin_directive;
-using sourcescanner::EmbedDirective;
-using sourcescanner::scan_for_embed_directives;
 
 TEST_SUITE_BEGIN("sourcescanner");
 
-TEST_CASE("scan_for_embed_directives: empty source")
+TEST_CASE("contains_embed_directive: empty source")
 {
-  auto result = scan_for_embed_directives("");
-  CHECK(result.empty());
+  CHECK_FALSE(contains_embed_directive(""));
 }
 
-TEST_CASE("scan_for_embed_directives: no embed directives")
+TEST_CASE("contains_embed_directive: no embed directives")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK_FALSE(contains_embed_directive(R"(
 #include <stdio.h>
 #include "header.h"
 int main() { return 0; }
-)");
-  CHECK(result.empty());
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: simple quoted embed")
+TEST_CASE("contains_embed_directive: simple quoted embed")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #embed "data.bin"
-)");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "data.bin");
-  CHECK(result[0].is_system == false);
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: simple system embed")
+TEST_CASE("contains_embed_directive: simple system embed")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #embed <system_data.bin>
-)");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "system_data.bin");
-  CHECK(result[0].is_system == true);
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed with path")
+TEST_CASE("contains_embed_directive: embed with path")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #embed "assets/textures/icon.png"
-)");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "assets/textures/icon.png");
-  CHECK(result[0].is_system == false);
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed with parameters")
+TEST_CASE("contains_embed_directive: embed with parameters")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #embed "data.bin" limit(100)
-)");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "data.bin");
-  CHECK(result[0].is_system == false);
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed with multiple parameters")
+TEST_CASE("contains_embed_directive: embed with multiple parameters")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #embed "data.bin" prefix(0x00,) suffix(,0x00) if_empty(0) limit(256)
-)");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "data.bin");
-  CHECK(result[0].is_system == false);
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: multiple embeds")
+TEST_CASE("contains_embed_directive: multiple embeds")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #include <stdio.h>
 #embed "file1.bin"
 int main() {
@@ -104,65 +84,49 @@ int main() {
 #embed <system.bin>
   return 0;
 }
-)");
-  REQUIRE(result.size() == 3);
-  CHECK(result[0].path == "file1.bin");
-  CHECK(result[0].is_system == false);
-  CHECK(result[1].path == "file2.bin");
-  CHECK(result[1].is_system == false);
-  CHECK(result[2].path == "system.bin");
-  CHECK(result[2].is_system == true);
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed with whitespace")
+TEST_CASE("contains_embed_directive: embed with whitespace")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #  embed   "data.bin"
-)");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "data.bin");
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed with line continuation")
+TEST_CASE("contains_embed_directive: embed with line continuation")
 {
-  auto result = scan_for_embed_directives("#embed \\\n\"data.bin\"\n");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "data.bin");
+  CHECK(contains_embed_directive(R"(#embed \
+"data.bin"
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed at start of file")
+TEST_CASE("contains_embed_directive: embed at start of file")
 {
-  auto result = scan_for_embed_directives("#embed \"first.bin\"\n");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "first.bin");
+  CHECK(contains_embed_directive("#embed \"first.bin\"\n"));
 }
 
-TEST_CASE("scan_for_embed_directives: embed at end of file without newline")
+TEST_CASE("contains_embed_directive: embed at end of file without newline")
 {
-  auto result = scan_for_embed_directives("#embed \"last.bin\"");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "last.bin");
+  CHECK(contains_embed_directive("#embed \"last.bin\""));
 }
 
-TEST_CASE("scan_for_embed_directives: ignores embedded in identifier")
+TEST_CASE("contains_embed_directive: ignores embedded in identifier")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK_FALSE(contains_embed_directive(R"(
 #embedded "not_this.bin"
 #embedx "not_this_either.bin"
-)");
-  CHECK(result.empty());
+)"));
 }
 
-TEST_CASE("scan_for_embed_directives: handles tabs")
+TEST_CASE("contains_embed_directive: handles tabs")
 {
-  auto result = scan_for_embed_directives("#\tembed\t\"data.bin\"\n");
-  REQUIRE(result.size() == 1);
-  CHECK(result[0].path == "data.bin");
+  CHECK(contains_embed_directive("#\tembed\t\"data.bin\"\n"));
 }
 
-TEST_CASE("scan_for_embed_directives: mixed includes and embeds")
+TEST_CASE("contains_embed_directive: mixed includes and embeds")
 {
-  auto result = scan_for_embed_directives(R"(
+  CHECK(contains_embed_directive(R"(
 #include <stdio.h>
 #include "local.h"
 #embed "binary.dat"
@@ -171,39 +135,35 @@ TEST_CASE("scan_for_embed_directives: mixed includes and embeds")
 #ifdef BAR
 #embed "conditional.bin"
 #endif
-)");
-  REQUIRE(result.size() == 3);
-  CHECK(result[0].path == "binary.dat");
-  CHECK(result[1].path == "sys/resource.bin");
-  CHECK(result[2].path == "conditional.bin");
+)"));
 }
 
 TEST_CASE("contains_incbin_directive: empty source")
 {
-  CHECK(contains_incbin_directive("") == false);
+  CHECK_FALSE(contains_incbin_directive(""));
 }
 
 TEST_CASE("contains_incbin_directive: no incbin directive")
 {
-  CHECK(contains_incbin_directive(R"(
+  CHECK_FALSE(contains_incbin_directive(R"(
     #include <stdio.h>
     .incbin data.bin
-  )") == false);
+  )"));
 }
 
 TEST_CASE("contains_incbin_directive: simple incbin")
 {
-  CHECK(contains_incbin_directive(".incbin \"data.bin\"\n") == true);
+  CHECK(contains_incbin_directive(".incbin \"data.bin\"\n"));
 }
 
 TEST_CASE("contains_incbin_directive: incbin without space")
 {
-  CHECK(contains_incbin_directive(".incbin\"data.bin\"\n") == true);
+  CHECK(contains_incbin_directive(".incbin\"data.bin\"\n"));
 }
 
 TEST_CASE("contains_incbin_directive: escaped quote")
 {
-  CHECK(contains_incbin_directive(".incbin \\\"data.bin\\\"\n") == true);
+  CHECK(contains_incbin_directive(".incbin \\\"data.bin\\\"\n"));
 }
 
 TEST_SUITE_END();

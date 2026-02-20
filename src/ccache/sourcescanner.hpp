@@ -18,23 +18,12 @@
 
 #pragma once
 
-#include <filesystem>
 #include <string_view>
-#include <vector>
 
 namespace sourcescanner {
 
-struct EmbedDirective
-{
-  std::string path;
-  bool is_system; // <...> vs "..."
-};
-
-// Scan source code for C23 #embed directives and return the referenced paths.
-// Handles quoted ("...") and system (<...>) includes, line continuations, and
-// embed parameters. Does not handle #embed inside comments or string literals;
-// false positives are acceptable for dependency tracking purposes.
-std::vector<EmbedDirective> scan_for_embed_directives(std::string_view source);
+// Scan source code for C23 #embed directives.
+bool contains_embed_directive(std::string_view source);
 
 // Scan source code for an assembler .incbin directive.
 bool contains_incbin_directive(std::string_view source);
