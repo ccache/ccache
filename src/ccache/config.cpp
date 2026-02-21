@@ -417,12 +417,10 @@ format_umask(std::optional<mode_t> umask)
 }
 
 void
-verify_absolute_paths(const std::vector<fs::path>& paths)
+verify_absolute_path(const fs::path& path)
 {
-  for (const auto& path : paths) {
-    if (!path.is_absolute()) {
-      throw core::Error(FMT("not an absolute path: \"{}\"", path));
-    }
+  if (!path.is_absolute()) {
+    throw core::Error(FMT("not an absolute path: \"{}\"", path));
   }
 }
 
@@ -696,6 +694,16 @@ const fs::path&
 Config::system_config_path() const
 {
   return m_system_config_path;
+}
+
+void
+Config::set_base_dirs(const std::vector<std::filesystem::path>& value)
+{
+  m_base_dirs.clear();
+  for (const auto& path : value) {
+    verify_absolute_path(path);
+    m_base_dirs.push_back(util::lexically_normal(path));
+  }
 }
 
 void
@@ -1065,7 +1073,6 @@ Config::set_item(const std::string_view& key,
 
   case ConfigItem::base_dir:
     set_base_dirs(util::split_path_list(value));
-    verify_absolute_paths(m_base_dirs);
     break;
 
   case ConfigItem::cache_dir:

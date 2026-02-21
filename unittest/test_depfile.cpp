@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -64,7 +64,11 @@ TEST_CASE("depfile::rewrite_source_paths")
 
   SUBCASE("Base directory not in dep file content")
   {
+#ifdef _WIN32
+    ctx.config.set_base_dirs({"C:/foo/bar"});
+#else
     ctx.config.set_base_dirs({"/foo/bar"});
+#endif
     CHECK(!depfile::rewrite_source_paths(ctx, ""));
     CHECK(!depfile::rewrite_source_paths(ctx, content));
   }

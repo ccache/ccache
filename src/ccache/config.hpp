@@ -561,15 +561,6 @@ Config::set_base_dir(const std::filesystem::path& value)
 }
 
 inline void
-Config::set_base_dirs(const std::vector<std::filesystem::path>& value)
-{
-  m_base_dirs.clear();
-  for (const auto& path : value) {
-    m_base_dirs.push_back(util::lexically_normal(path));
-  }
-}
-
-inline void
 Config::set_cache_dir(const std::filesystem::path& value)
 {
   m_cache_dir = util::lexically_normal(value);
