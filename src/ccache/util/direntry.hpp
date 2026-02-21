@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -105,6 +105,9 @@ public:
   dev_t device() const;
   ino_t inode() const;
   mode_t mode() const;
+#ifndef _WIN32
+  uid_t uid() const;
+#endif
   util::TimePoint atime() const;
   util::TimePoint ctime() const;
   util::TimePoint mtime() const;
@@ -207,6 +210,14 @@ DirEntry::mode() const
 {
   return do_stat().st_mode;
 }
+
+#ifndef _WIN32
+inline uid_t
+DirEntry::uid() const
+{
+  return do_stat().st_uid;
+}
+#endif
 
 inline util::TimePoint
 DirEntry::atime() const
