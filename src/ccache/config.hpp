@@ -61,7 +61,6 @@ public:
   static const char* sysconf_dir();
 
   bool absolute_paths_in_stderr() const;
-  util::Args::ResponseFileFormat response_file_format() const;
   const std::vector<std::filesystem::path>& base_dirs() const;
   const std::filesystem::path& cache_dir() const;
   const std::string& compiler() const;
@@ -100,6 +99,7 @@ public:
   bool remote_only() const;
   const std::string& remote_storage() const;
   bool reshare() const;
+  util::Args::ResponseFileFormat response_file_format() const;
   core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::filesystem::path& stats_log() const;
@@ -180,8 +180,6 @@ private:
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
-  util::Args::ResponseFileFormat m_response_file_format =
-    util::Args::ResponseFileFormat::auto_guess;
   std::vector<std::filesystem::path> m_base_dirs;
   std::filesystem::path m_cache_dir;
   std::string m_compiler;
@@ -225,6 +223,8 @@ private:
   bool m_reshare = false;
   bool m_remote_only = false;
   std::string m_remote_storage;
+  util::Args::ResponseFileFormat m_response_file_format =
+    util::Args::ResponseFileFormat::auto_guess;
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
   std::filesystem::path m_stats_log;
@@ -249,17 +249,6 @@ inline bool
 Config::absolute_paths_in_stderr() const
 {
   return m_absolute_paths_in_stderr;
-}
-
-inline util::Args::ResponseFileFormat
-Config::response_file_format() const
-{
-  if (m_response_file_format != util::Args::ResponseFileFormat::auto_guess) {
-    return m_response_file_format;
-  }
-
-  return is_compiler_group_msvc() ? util::Args::ResponseFileFormat::windows
-                                  : util::Args::ResponseFileFormat::posix;
 }
 
 inline const std::vector<std::filesystem::path>&
@@ -495,12 +484,6 @@ Config::recache() const
 }
 
 inline bool
-Config::reshare() const
-{
-  return m_reshare;
-}
-
-inline bool
 Config::remote_only() const
 {
   return m_remote_only;
@@ -510,6 +493,23 @@ inline const std::string&
 Config::remote_storage() const
 {
   return m_remote_storage;
+}
+
+inline bool
+Config::reshare() const
+{
+  return m_reshare;
+}
+
+inline util::Args::ResponseFileFormat
+Config::response_file_format() const
+{
+  if (m_response_file_format != util::Args::ResponseFileFormat::auto_guess) {
+    return m_response_file_format;
+  }
+
+  return is_compiler_group_msvc() ? util::Args::ResponseFileFormat::windows
+                                  : util::Args::ResponseFileFormat::posix;
 }
 
 inline core::Sloppiness
