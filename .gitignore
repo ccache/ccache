@@ -8,8 +8,10 @@
 # Downloaded tools
 misc/.clang-format-exe
 
-# Emacs save files
+# Emacs save/autosave/lock files
 *~
+\#*\#
+.#*
 
 # Vim save files
 .*.sw?
