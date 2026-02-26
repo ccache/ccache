@@ -75,10 +75,41 @@ using util::make_path;
 
 namespace {
 
+bool
+is_under_any_safe_dir(const fs::path& dir,
+                      const std::vector<std::filesystem::path>& safe_dirs)
+{
+  // Supported forms:
+  //
+  //   *                -> matches any directory
+  //   /abs/path        -> matches only /abs/path
+  //   /abs/path/*      -> matches subdirectories of /abs/path
+  return std::ranges::any_of(safe_dirs, [&](const auto& safe_dir) {
+    if (safe_dir == "*" || dir == safe_dir) {
+      return true;
+    }
+    if (safe_dir.filename() == "*") {
+      const fs::path prefix = safe_dir.parent_path();
+      return !prefix.empty() && util::path_starts_with(dir, prefix)
+             && dir != prefix;
+    }
+    return false;
+  });
+}
+
+bool
+is_safe_compiler_check_value(const std::string& value)
+{
+  return value == "none" || value == "mtime" || value == "content"
+         || value.starts_with("string:");
+}
+
 enum class ConfigItem : uint8_t {
   absolute_paths_in_stderr,
   base_dir,
   cache_dir,
+  ceiling_dirs,
+  ceiling_markers,
   compiler,
   compiler_check,
   compiler_type,
@@ -117,6 +148,7 @@ enum class ConfigItem : uint8_t {
   remote_storage,
   reshare,
   response_file_format,
+  safe_dirs,
   sloppiness,
   stats,
   stats_log,
@@ -124,70 +156,85 @@ enum class ConfigItem : uint8_t {
   umask,
 };
 
-enum class ConfigKeyType : uint8_t { normal, alias };
+enum class DirConfigPolicy : uint8_t {
+  allow,  // always allow
+  reject, // always reject with an error
+  unsafe, // allow if config is in directory matching safe_dirs, error otherwise
+};
 
 struct ConfigKeyTableEntry
 {
   ConfigItem item;
+  DirConfigPolicy dir_config_policy;
   std::optional<std::string_view> alias = std::nullopt;
 };
 
+using C = ConfigItem;
+using DCP = DirConfigPolicy;
+
+// clang-format off
 const std::unordered_map<std::string_view, ConfigKeyTableEntry>
   k_config_key_table = {
-    {"absolute_paths_in_stderr",   {ConfigItem::absolute_paths_in_stderr}        },
-    {"base_dir",                   {ConfigItem::base_dir}                        },
-    {"cache_dir",                  {ConfigItem::cache_dir}                       },
-    {"compiler",                   {ConfigItem::compiler}                        },
-    {"compiler_check",             {ConfigItem::compiler_check}                  },
-    {"compiler_type",              {ConfigItem::compiler_type}                   },
-    {"compression",                {ConfigItem::compression}                     },
-    {"compression_level",          {ConfigItem::compression_level}               },
-    {"cpp_extension",              {ConfigItem::cpp_extension}                   },
-    {"debug",                      {ConfigItem::debug}                           },
-    {"debug_dir",                  {ConfigItem::debug_dir}                       },
-    {"debug_level",                {ConfigItem::debug_level}                     },
-    {"depend_mode",                {ConfigItem::depend_mode}                     },
-    {"direct_mode",                {ConfigItem::direct_mode}                     },
-    {"disable",                    {ConfigItem::disable}                         },
-    {"extra_files_to_hash",        {ConfigItem::extra_files_to_hash}             },
-    {"file_clone",                 {ConfigItem::file_clone}                      },
-    {"hard_link",                  {ConfigItem::hard_link}                       },
-    {"hash_dir",                   {ConfigItem::hash_dir}                        },
-    {"ignore_headers_in_manifest", {ConfigItem::ignore_headers_in_manifest}      },
-    {"ignore_options",             {ConfigItem::ignore_options}                  },
-    {"inode_cache",                {ConfigItem::inode_cache}                     },
-    {"keep_comments_cpp",          {ConfigItem::keep_comments_cpp}               },
-    {"libexec_dirs",               {ConfigItem::libexec_dirs}                    },
-    {"log_file",                   {ConfigItem::log_file}                        },
-    {"max_files",                  {ConfigItem::max_files}                       },
-    {"max_size",                   {ConfigItem::max_size}                        },
-    {"msvc_dep_prefix",            {ConfigItem::msvc_dep_prefix}                 },
-    {"msvc_utf8",                  {ConfigItem::msvc_utf8}                       },
-    {"namespace",                  {ConfigItem::namespace_}                      },
-    {"path",                       {ConfigItem::path}                            },
-    {"pch_external_checksum",      {ConfigItem::pch_external_checksum}           },
-    {"prefix_command",             {ConfigItem::prefix_command}                  },
-    {"prefix_command_cpp",         {ConfigItem::prefix_command_cpp}              },
-    {"read_only",                  {ConfigItem::read_only}                       },
-    {"read_only_direct",           {ConfigItem::read_only_direct}                },
-    {"recache",                    {ConfigItem::recache}                         },
-    {"remote_only",                {ConfigItem::remote_only}                     },
-    {"remote_storage",             {ConfigItem::remote_storage}                  },
-    {"reshare",                    {ConfigItem::reshare}                         },
-    {"response_file_format",       {ConfigItem::response_file_format}            },
-    {"secondary_storage",          {ConfigItem::remote_storage, "remote_storage"}},
-    {"sloppiness",                 {ConfigItem::sloppiness}                      },
-    {"stats",                      {ConfigItem::stats}                           },
-    {"stats_log",                  {ConfigItem::stats_log}                       },
-    {"temporary_dir",              {ConfigItem::temporary_dir}                   },
-    {"umask",                      {ConfigItem::umask}                           },
+    {"absolute_paths_in_stderr",   {C::absolute_paths_in_stderr,   DCP::allow}},
+    {"base_dir",                   {C::base_dir,                   DCP::allow}},
+    {"cache_dir",                  {C::cache_dir,                  DCP::reject}},
+    {"ceiling_dirs",               {C::ceiling_dirs,               DCP::reject}},
+    {"ceiling_markers",            {C::ceiling_markers,            DCP::reject}},
+    {"compiler",                   {C::compiler,                   DCP::unsafe}},
+    {"compiler_check",             {C::compiler_check,             DCP::unsafe}}, // exception: some strings allowed
+    {"compiler_type",              {C::compiler_type,              DCP::allow}},
+    {"compression",                {C::compression,                DCP::allow}},
+    {"compression_level",          {C::compression_level,          DCP::allow}},
+    {"cpp_extension",              {C::cpp_extension,              DCP::allow}},
+    {"debug",                      {C::debug,                      DCP::allow}},
+    {"debug_dir",                  {C::debug_dir,                  DCP::unsafe}},
+    {"debug_level",                {C::debug_level,                DCP::allow}},
+    {"depend_mode",                {C::depend_mode,                DCP::allow}},
+    {"direct_mode",                {C::direct_mode,                DCP::allow}},
+    {"disable",                    {C::disable,                    DCP::allow}},
+    {"extra_files_to_hash",        {C::extra_files_to_hash,        DCP::allow}},
+    {"file_clone",                 {C::file_clone,                 DCP::allow}},
+    {"hard_link",                  {C::hard_link,                  DCP::allow}},
+    {"hash_dir",                   {C::hash_dir,                   DCP::allow}},
+    {"ignore_headers_in_manifest", {C::ignore_headers_in_manifest, DCP::allow}},
+    {"ignore_options",             {C::ignore_options,             DCP::allow}},
+    {"inode_cache",                {C::inode_cache,                DCP::allow}},
+    {"keep_comments_cpp",          {C::keep_comments_cpp,          DCP::allow}},
+    {"libexec_dirs",               {C::libexec_dirs,               DCP::unsafe}},
+    {"log_file",                   {C::log_file,                   DCP::unsafe}},
+    {"max_files",                  {C::max_files,                  DCP::reject}},
+    {"max_size",                   {C::max_size,                   DCP::reject}},
+    {"msvc_dep_prefix",            {C::msvc_dep_prefix,            DCP::allow}},
+    {"msvc_utf8",                  {C::msvc_utf8,                  DCP::allow}},
+    {"namespace",                  {C::namespace_,                 DCP::allow}},
+    {"path",                       {C::path,                       DCP::unsafe}},
+    {"pch_external_checksum",      {C::pch_external_checksum,      DCP::allow}},
+    {"prefix_command",             {C::prefix_command,             DCP::unsafe}},
+    {"prefix_command_cpp",         {C::prefix_command_cpp,         DCP::unsafe}},
+    {"read_only",                  {C::read_only,                  DCP::allow}},
+    {"read_only_direct",           {C::read_only_direct,           DCP::allow}},
+    {"recache",                    {C::recache,                    DCP::allow}},
+    {"remote_only",                {C::remote_only,                DCP::allow}},
+    {"remote_storage",             {C::remote_storage,             DCP::unsafe}},
+    {"reshare",                    {C::reshare,                    DCP::allow}},
+    {"response_file_format",       {C::response_file_format,       DCP::allow}},
+    {"safe_dirs",                  {C::safe_dirs,                  DCP::reject}},
+    {"secondary_storage",          {C::remote_storage,             DCP::unsafe, "remote_storage"}},
+    {"sloppiness",                 {C::sloppiness,                 DCP::allow}},
+    {"stats",                      {C::stats,                      DCP::allow}},
+    {"stats_log",                  {C::stats_log,                  DCP::unsafe}},
+    {"temporary_dir",              {C::temporary_dir,              DCP::unsafe}},
+    {"umask",                      {C::umask,                      DCP::unsafe}},
 };
+// clang-format on
 
 const std::unordered_map<std::string_view, std::string_view>
   k_env_variable_table = {
     {"ABSSTDERR",            "absolute_paths_in_stderr"  },
     {"BASEDIR",              "base_dir"                  },
     {"CC",                   "compiler"                  }, // Alias for CCACHE_COMPILER
+    {"CEILING_DIRS",         "ceiling_dirs"              },
+    {"CEILING_MARKERS",      "ceiling_markers"           },
     {"COMMENTS",             "keep_comments_cpp"         },
     {"COMPILER",             "compiler"                  },
     {"COMPILERCHECK",        "compiler_check"            },
@@ -228,6 +275,7 @@ const std::unordered_map<std::string_view, std::string_view>
     {"RESHARE",              "reshare"                   },
     {"RESPONSE_FILE_FORMAT", "response_file_format"      },
     {"SECONDARY_STORAGE",    "remote_storage"            }, // Alias for CCACHE_REMOTE_STORAGE
+    {"SAFE_DIRS",            "safe_dirs"                 },
     {"SLOPPINESS",           "sloppiness"                },
     {"STATS",                "stats"                     },
     {"STATSLOG",             "stats_log"                 },
@@ -535,6 +583,30 @@ response_file_format_to_string(
 
 } // namespace
 
+void
+Config::set_ceiling_dirs(const std::vector<std::filesystem::path>& value)
+{
+  m_ceiling_dirs.clear();
+  for (const auto& path : value) {
+    verify_absolute_path(path);
+    m_ceiling_dirs.push_back(util::lexically_normal(path));
+  }
+}
+
+void
+Config::set_safe_dirs(const std::vector<std::filesystem::path>& value)
+{
+  m_safe_dirs.clear();
+  for (const auto& path : value) {
+    if (path == "*") {
+      m_safe_dirs.push_back(path);
+    } else {
+      verify_absolute_path(path);
+      m_safe_dirs.push_back(util::lexically_normal(path));
+    }
+  }
+}
+
 std::string
 compiler_type_to_string(CompilerType compiler_type)
 {
@@ -570,6 +642,9 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
     create_cmdline_settings_map(cmdline_config_settings);
 
   const fs::path home_dir = home_directory();
+
+  set_ceiling_dirs({home_dir});
+
   const util::DirEntry legacy_ccache_dir = home_dir / ".ccache";
 #ifdef _WIN32
   auto env_appdata = util::getenv_path("APPDATA");
@@ -596,7 +671,10 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 
     set_system_config_path(env_ccache_configpath2 ? *env_ccache_configpath2
                                                   : sysconfdir / "ccache.conf");
-    // A missing config file in SYSCONFDIR is OK so don't check return value.
+    // Config priority 5: system-wide config.
+    //
+    // Note: A missing config file in SYSCONFDIR is OK so don't check return
+    // value.
     update_from_file(system_config_path());
 
     auto env_ccache_dir = util::getenv_path("CCACHE_DIR");
@@ -636,14 +714,50 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 
   const fs::path& cache_dir_before_config_file_was_read = cache_dir();
 
+  // Config priority 4: cache-specific config.
   update_from_file(config_path());
-
-  // Ignore cache_dir set in configuration file
+  // Ignore cache_dir set in cache-specific configuration file:
   set_cache_dir(cache_dir_before_config_file_was_read);
 
-  update_from_environment();
-  // (cache_dir is set above if CCACHE_DIR is set.)
+  // Config priority 3: directory-specific config.
+  //
+  // We need special handling of CCACHE_CEILING_DIRS/CCACHE_CEILING_MARKERS and
+  // ceiling_dirs/ceiling_markers from the command line since we want those
+  // settings to be applied before other settings from the directory config, but
+  // other settings in the directory config should have lower priority than
+  // those from environment and command line.
+  if (!env_ccache_configpath) {
+    auto ceiling_dirs_entry = cmdline_settings_map.find("ceiling_dirs");
+    if (ceiling_dirs_entry != cmdline_settings_map.end()) {
+      set_ceiling_dirs(util::split_path_list(ceiling_dirs_entry->second));
+    } else if (getenv("CCACHE_CEILING_DIRS")) {
+      set_ceiling_dirs(util::getenv_path_list("CCACHE_CEILING_DIRS"));
+    }
+    auto ceiling_markers_entry = cmdline_settings_map.find("ceiling_markers");
+    if (ceiling_markers_entry != cmdline_settings_map.end()) {
+      set_ceiling_markers(util::split_path_list(ceiling_markers_entry->second));
+    } else if (getenv("CCACHE_CEILING_MARKERS")) {
+      set_ceiling_markers(util::getenv_path_list("CCACHE_CEILING_MARKERS"));
+    }
 
+    auto safe_dirs_entry = cmdline_settings_map.find("safe_dirs");
+    if (safe_dirs_entry != cmdline_settings_map.end()) {
+      set_safe_dirs(util::split_path_list(safe_dirs_entry->second));
+    } else if (getenv("CCACHE_SAFE_DIRS")) {
+      set_safe_dirs(util::getenv_path_list("CCACHE_SAFE_DIRS"));
+    }
+
+    auto dir_config = find_directory_config();
+    if (dir_config) {
+      update_from_dir_config_file(*dir_config);
+      m_dir_config_path = std::move(*dir_config);
+    }
+  }
+
+  // Config priority 2: environment variables.
+  update_from_environment();
+
+  // Config priority 1: command-line settings.
   update_from_map(cmdline_settings_map);
 
   if (cache_dir().empty()) {
@@ -666,10 +780,6 @@ Config::read(const std::vector<std::string>& cmdline_config_settings)
 #endif
   }
   // else: cache_dir was set explicitly via environment or via system config.
-
-  // We have now determined config.cache_dir and populated the rest of config in
-  // prio order (1. command line, 2. environment, 3. cache-specific config, 4.
-  // system config).
 }
 
 const char*
@@ -688,6 +798,12 @@ const fs::path&
 Config::config_path() const
 {
   return m_config_path;
+}
+
+const fs::path&
+Config::dir_config_path() const
+{
+  return m_dir_config_path;
 }
 
 const fs::path&
@@ -740,6 +856,89 @@ Config::update_from_file(const fs::path& path)
     auto& item = *item_result;
     if (!item) {
       break; // EOF
+    }
+
+    try {
+      set_item(item->key, item->value, std::nullopt, false, util::pstr(path));
+    } catch (const core::Error& e) {
+      throw core::Error(FMT("{}:{}: {}", path, item->line_number, e.what()));
+    }
+  }
+
+  return true;
+}
+
+bool
+Config::update_from_dir_config_file(const fs::path& path)
+{
+  auto config_content = util::read_file<std::string>(path);
+  if (!config_content) {
+    return false;
+  }
+
+  util::ConfigReader reader(*config_content);
+
+  const fs::path dir = path.parent_path();
+  const bool allow_unsafe = is_under_any_safe_dir(dir, m_safe_dirs);
+
+  while (true) {
+    auto item_result = reader.read_next_item();
+    if (!item_result) {
+      throw core::Error(FMT("{}:{}: {}",
+                            path,
+                            item_result.error().line_number,
+                            item_result.error().message));
+    }
+
+    auto& item = *item_result;
+    if (!item) {
+      break; // EOF
+    }
+
+    const auto it = k_config_key_table.find(item->key);
+    if (it == k_config_key_table.end()) {
+      throw core::Error(FMT("{}:{}: unknown configuration option \"{}\"",
+                            path,
+                            item->line_number,
+                            item->key));
+    }
+
+    const auto policy = it->second.dir_config_policy;
+    if (policy == DirConfigPolicy::reject) {
+      throw core::Error(
+        FMT("{}:{}: configuration option \"{}\" is not allowed in directory"
+            " configuration files",
+            path,
+            item->line_number,
+            item->key));
+    }
+
+    if (policy == DirConfigPolicy::unsafe && !allow_unsafe) {
+      if (it->second.item == ConfigItem::compiler_check) {
+        // Value-dependent exception: allow compiler_check as long as it doesn't
+        // invoke a command.
+        auto expanded_value = util::expand_environment_variables(item->value);
+        if (!expanded_value) {
+          throw core::Error(
+            FMT("{}:{}: {}", path, item->line_number, expanded_value.error()));
+        }
+        if (!is_safe_compiler_check_value(*expanded_value)) {
+          throw core::Error(FMT(
+            "{}:{}: configuration option \"{}\" is considered unsafe when it"
+            " invokes a command and is only allowed in directory configuration"
+            " files located under safe_dirs",
+            path,
+            item->line_number,
+            item->key));
+        }
+      } else {
+        throw core::Error(FMT(
+          "{}:{}: configuration option \"{}\" is considered unsafe and is only"
+          " allowed in directory configuration files located under safe_dirs",
+          path,
+          item->line_number,
+          item->key));
+      }
     }
 
     try {
@@ -819,6 +1018,12 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::cache_dir:
     return m_cache_dir.string();
+
+  case ConfigItem::ceiling_dirs:
+    return util::join_path_list(m_ceiling_dirs);
+
+  case ConfigItem::ceiling_markers:
+    return util::join_path_list(m_ceiling_markers);
 
   case ConfigItem::compiler:
     return m_compiler;
@@ -940,6 +1145,9 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::response_file_format:
     return response_file_format_to_string(m_response_file_format);
+
+  case ConfigItem::safe_dirs:
+    return util::join_path_list(m_safe_dirs);
 
   case ConfigItem::sloppiness:
     return format_sloppiness(m_sloppiness);
@@ -1077,6 +1285,14 @@ Config::set_item(const std::string_view& key,
 
   case ConfigItem::cache_dir:
     set_cache_dir(value);
+    break;
+
+  case ConfigItem::ceiling_dirs:
+    set_ceiling_dirs(util::split_path_list(value));
+    break;
+
+  case ConfigItem::ceiling_markers:
+    set_ceiling_markers(util::split_path_list(value));
     break;
 
   case ConfigItem::compiler:
@@ -1238,6 +1454,10 @@ Config::set_item(const std::string_view& key,
     m_response_file_format = parse_response_file_format(value);
     break;
 
+  case ConfigItem::safe_dirs:
+    set_safe_dirs(util::split_path_list(value));
+    break;
+
   case ConfigItem::sloppiness:
     m_sloppiness = parse_sloppiness(value);
     break;
@@ -1304,4 +1524,84 @@ Config::get_xdg_runtime_tmp_dir()
   }
   return {};
 #endif
+}
+
+std::optional<std::filesystem::path>
+Config::find_directory_config() const
+{
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    return std::nullopt;
+  }
+
+  fs::path dir = util::lexically_normal(*cwd);
+
+#ifndef _WIN32
+  const uid_t euid = geteuid();
+#endif
+
+  DirEntry dir_entry(dir);
+
+  while (true) {
+    // Stop if dir is a ceiling dir (exclusive: don't check this dir).
+    for (const auto& ceiling : m_ceiling_dirs) {
+      if (dir == ceiling) {
+        return std::nullopt;
+      }
+    }
+
+    if (!dir_entry.is_directory()) {
+      return std::nullopt;
+    }
+
+#ifndef _WIN32
+    // Stop if dir is owned by another user (sanity/performance check).
+    if (dir_entry.uid() != euid) {
+      return std::nullopt;
+    }
+#endif
+
+    // Check for a directory-specific config file.
+    const fs::path candidate = dir / "ccache.conf";
+    const DirEntry candidate_entry(candidate);
+    if (candidate_entry.is_regular_file()) {
+#ifndef _WIN32
+      if (candidate_entry.uid() != euid) {
+        throw core::Error(
+          FMT("directory-specific configuration file {} owned by another user"
+              " (owner {} != uid {})",
+              candidate,
+              candidate_entry.uid(),
+              euid));
+      }
+      if (candidate_entry.mode() & S_IWOTH) {
+        throw core::Error(
+          FMT("directory-specific configuration file {} is world-writable",
+              candidate));
+      }
+#endif
+      return candidate;
+    }
+
+    // Stop if this dir contains a ceiling marker.
+    for (const auto& marker : m_ceiling_markers) {
+      if (DirEntry(dir / marker)) {
+        return std::nullopt;
+      }
+    }
+
+    // Stop at filesystem root or filesystem boundary.
+    fs::path parent = dir.parent_path();
+    if (parent == dir) {
+      return std::nullopt;
+    }
+    DirEntry parent_entry(parent);
+    if (!parent_entry.is_directory()
+        || parent_entry.device() != dir_entry.device()) {
+      return std::nullopt;
+    }
+
+    dir = std::move(parent);
+    dir_entry = std::move(parent_entry);
+  }
 }

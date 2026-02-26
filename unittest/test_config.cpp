@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -581,21 +581,25 @@ TEST_CASE("Config::get_string_value")
   }
 }
 
+#ifndef _WIN32
+#  define ROOT_DIR "/"
+#else
+#  define ROOT_DIR "C:\\"
+#endif
+
 TEST_CASE("Config::visit_items")
 {
   TestContext test_context;
 
-#ifndef _WIN32
-#  define BASE_DIR "/bd\n"
-#else
-#  define BASE_DIR "C:\\bd\n"
-#endif
-
   REQUIRE(util::write_file(
     "test.conf",
     "absolute_paths_in_stderr = true\n"
-    "base_dir = " BASE_DIR
+    "base_dir = " ROOT_DIR
+    "bd\n"
     "cache_dir = cd\n"
+    "ceiling_dirs = " ROOT_DIR
+    "cedi\n"
+    "ceiling_markers = cm\n"
     "compiler = c\n"
     "compiler_check = cc\n"
     "compiler_type = clang\n"
@@ -634,6 +638,8 @@ TEST_CASE("Config::visit_items")
     "remote_storage = rs\n"
     "reshare = true\n"
     "response_file_format = posix\n"
+    "safe_dirs = " ROOT_DIR
+    "sd\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
     " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
     " clang_index_store, ivfsoverlay, gcno_cwd \n"
@@ -641,7 +647,6 @@ TEST_CASE("Config::visit_items")
     "stats_log = sl\n"
     "temporary_dir = td\n"
     "umask = 022\n"));
-#undef BASE_DIR
 
   Config config;
   config.update_from_file("test.conf");
@@ -655,12 +660,10 @@ TEST_CASE("Config::visit_items")
 
   std::vector<std::string> expected = {
     "(test.conf) absolute_paths_in_stderr = true",
-#ifndef _WIN32
-    "(test.conf) base_dir = /bd",
-#else
-    "(test.conf) base_dir = C:\\bd",
-#endif
+    "(test.conf) base_dir = " ROOT_DIR "bd",
     "(test.conf) cache_dir = cd",
+    "(test.conf) ceiling_dirs = " ROOT_DIR "cedi",
+    "(test.conf) ceiling_markers = cm",
     "(test.conf) compiler = c",
     "(test.conf) compiler_check = cc",
     "(test.conf) compiler_type = clang",
@@ -699,6 +702,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) remote_storage = rs",
     "(test.conf) reshare = true",
     "(test.conf) response_file_format = posix",
+    "(test.conf) safe_dirs = " ROOT_DIR "sd",
     "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
     " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"
     " include_file_mtime, ivfsoverlay, pch_defines, system_headers,"
@@ -714,6 +718,8 @@ TEST_CASE("Config::visit_items")
     CHECK(received_items[i] == expected[i]);
   }
 }
+
+#undef ROOT_DIR
 
 TEST_CASE("Check key tables consistency")
 {

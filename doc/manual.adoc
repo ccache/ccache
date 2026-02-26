@@ -340,16 +340,19 @@ priority (highest first):
 ccache debug=true compiler_check="%compiler% --version" gcc -c example.c
 -------------------------------------------------------------------------------
 2. Environment variables starting with `CCACHE_`.
-3. The cache-specific configuration file (see below).
-4. The system-wide (read-only) configuration file `<sysconfdir>/ccache.conf`
+3. A <<Directory-specific configuration file,directory-specific configuration
+   file>>.
+4. The <<Cache-specific configuration file,cache-specific configuration file>>.
+5. The system-wide configuration file `<sysconfdir>/ccache.conf`
    (typically `/etc/ccache.conf` or `/usr/local/etc/ccache.conf`).
-5. Compile-time defaults.
+6. Compile-time defaults.
 
-If the environment variable `CCACHE_CONFIGPATH` is set, it specifies the
-configuration file path, and the system configuration file will be ignored.
+Exception: If the environment variable `CCACHE_CONFIGPATH` is set, it specifies
+the only configuration file that will be read (environment variables and command
+line settings still apply).
 
 
-=== Location of the configuration file
+=== Cache-specific configuration file
 
 The location of the cache-specific configuration file is determined like this on
 non-Windows systems:
@@ -384,6 +387,27 @@ On Windows, this is the method used to find the configuration file:
 
 See also the <<config_cache_dir,*cache_dir*>> configuration option for how the
 cache directory location is determined.
+
+
+=== Directory-specific configuration file
+
+Ccache searches for a `ccache.conf` file (separate from the cache-specific
+configuration file described above) in the current working directory or any
+parent directory. The found file must be owned by the effective user and must
+not be world-writable; otherwise ccache will abort with an error. The search
+stops when reaching:
+
+- a directory listed in a <<config_ceiling_dirs,"ceiling directory">> (by
+  default the user's home directory)
+- a directory that contains a <<config_ceiling_markers,"ceiling marker">> (by
+  default `.git`)
+- a directory owned by another user
+- a file system boundary (mount point)
+
+By default, the file cannot set "unsafe options", i.e. those that affect which
+commands to execute, which files to write (except cache entries) and which
+remote storage to use. It is possible to allow unsafe options by adding an entry
+to <<config_safe_dirs,*safe_dirs*>>.
 
 
 === Configuration value syntax
@@ -546,7 +570,25 @@ of the cache in domain environments and similar problems. Please check this
 directory for cache directories and either delete them or the whole directory,
 or move them to the `%LOCALAPPDATA%\ccache` directory.
 +
-See also _<<Location of the configuration file>>_.
+See also _<<Cache-specific configuration file>>_.
+
+[#config_ceiling_dirs]
+*ceiling_dirs* (*CCACHE_CEILING_DIRS*)::
+
+    This option specifies absolute directories where ccache will stop searching
+    for a <<Directory-specific configuration file,directory-specific
+    configuration file>>. You might want to set this if accessing files in
+    parent directories is too slow, e.g. on network file systems. The default is
+    to stop looking when reaching the user's home directory.
+
+[#config_ceiling_markers]
+*ceiling_markers* (*CCACHE_CEILING_MARKERS*)::
+
+    This option specifies one or more file or directory names (separated by `;`
+    on Windows, `:` on other systems). When searching for a <<Directory-specific
+    configuration file,directory-specific configuration file>>, ccache will stop
+    searching parent directories when it reaches a directory containing any of
+    the specified names. The default is `.git`.
 
 [#config_compiler]
 *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
@@ -1050,6 +1092,18 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
 *windows*::
     Windows quoting behavior.
 --
+
+[#config_safe_dirs]
+*safe_dirs* (*CCACHE_SAFE_DIRS*)::
+
+    List of trusted directories for which directory-specific configuration files
+    are allowed to set "unsafe options" (see
+    <<_directory_specific_configuration_file,Directory-specific configuration
+    file>>). The default is empty.
++
+Allowed list values: `\*` matches any directory. An absolute path ending with
+`/*` matches any subdirectory (at any depth) under that path. An absolute path
+not ending in `/*` matches only that directory.
 
 [#config_sloppiness]
 *sloppiness* (*CCACHE_SLOPPINESS*)::

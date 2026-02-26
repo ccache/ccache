@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -399,6 +399,8 @@ Statistics::format_human_readable(const Config& config,
       {"Cache directory:", C(util::pstr(config.cache_dir())).colspan(4)});
     table.add_row(
       {"Config file:", C(util::pstr(config.config_path())).colspan(4)});
+    table.add_row({"Directory config file:",
+                   C(util::pstr(config.dir_config_path())).colspan(4)});
     table.add_row({"System config file:",
                    C(util::pstr(config.system_config_path())).colspan(4)});
     table.add_row(

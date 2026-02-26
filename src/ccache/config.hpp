@@ -63,6 +63,8 @@ public:
   bool absolute_paths_in_stderr() const;
   const std::vector<std::filesystem::path>& base_dirs() const;
   const std::filesystem::path& cache_dir() const;
+  const std::vector<std::filesystem::path>& ceiling_dirs() const;
+  const std::vector<std::filesystem::path>& ceiling_markers() const;
   const std::string& compiler() const;
   const std::string& compiler_check() const;
   CompilerType compiler_type() const;
@@ -100,6 +102,7 @@ public:
   const std::string& remote_storage() const;
   bool reshare() const;
   util::Args::ResponseFileFormat response_file_format() const;
+  const std::vector<std::filesystem::path>& safe_dirs() const;
   core::Sloppiness sloppiness() const;
   bool stats() const;
   const std::filesystem::path& stats_log() const;
@@ -120,6 +123,8 @@ public:
   void set_base_dir(const std::filesystem::path& value);
   void set_base_dirs(const std::vector<std::filesystem::path>& value);
   void set_cache_dir(const std::filesystem::path& value);
+  void set_ceiling_dirs(const std::vector<std::filesystem::path>& value);
+  void set_ceiling_markers(const std::vector<std::filesystem::path>& value);
   void set_compiler(const std::string& value);
   void set_compiler_type(CompilerType value);
   void set_cpp_extension(const std::string& value);
@@ -132,11 +137,14 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
+  void set_safe_dirs(const std::vector<std::filesystem::path>& value);
   void set_msvc_utf8(bool value);
   void set_temporary_dir(const std::filesystem::path& value);
 
   // Where to write configuration changes.
   const std::filesystem::path& config_path() const;
+  // Directory-specific config (if any).
+  const std::filesystem::path& dir_config_path() const;
   // System (read-only) configuration file (if any).
   const std::filesystem::path& system_config_path() const;
 
@@ -177,11 +185,14 @@ public:
 
 private:
   std::filesystem::path m_config_path;
+  std::filesystem::path m_dir_config_path;
   std::filesystem::path m_system_config_path;
 
   bool m_absolute_paths_in_stderr = false;
   std::vector<std::filesystem::path> m_base_dirs;
   std::filesystem::path m_cache_dir;
+  std::vector<std::filesystem::path> m_ceiling_dirs;
+  std::vector<std::filesystem::path> m_ceiling_markers = {".git"};
   std::string m_compiler;
   std::string m_compiler_check = "mtime";
   CompilerType m_compiler_type = CompilerType::auto_guess;
@@ -225,6 +236,7 @@ private:
   std::string m_remote_storage;
   util::Args::ResponseFileFormat m_response_file_format =
     util::Args::ResponseFileFormat::auto_guess;
+  std::vector<std::filesystem::path> m_safe_dirs;
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
   std::filesystem::path m_stats_log;
@@ -243,6 +255,9 @@ private:
                 const std::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
+
+  std::optional<std::filesystem::path> find_directory_config() const;
+  bool update_from_dir_config_file(const std::filesystem::path& path);
 };
 
 inline bool
@@ -261,6 +276,18 @@ inline const std::filesystem::path&
 Config::cache_dir() const
 {
   return m_cache_dir;
+}
+
+inline const std::vector<std::filesystem::path>&
+Config::ceiling_dirs() const
+{
+  return m_ceiling_dirs;
+}
+
+inline const std::vector<std::filesystem::path>&
+Config::ceiling_markers() const
+{
+  return m_ceiling_markers;
 }
 
 inline const std::string&
@@ -512,6 +539,12 @@ Config::response_file_format() const
                                   : util::Args::ResponseFileFormat::posix;
 }
 
+inline const std::vector<std::filesystem::path>&
+Config::safe_dirs() const
+{
+  return m_safe_dirs;
+}
+
 inline core::Sloppiness
 Config::sloppiness() const
 {
@@ -567,6 +600,12 @@ Config::set_cache_dir(const std::filesystem::path& value)
   if (!m_temporary_dir_configured_explicitly) {
     m_temporary_dir = default_temporary_dir();
   }
+}
+
+inline void
+Config::set_ceiling_markers(const std::vector<std::filesystem::path>& value)
+{
+  m_ceiling_markers = value;
 }
 
 inline void

@@ -2670,6 +2670,8 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
              CCACHE_VERSION);
     BULK_LOG(logger, "Configuration file: {}", ctx.config.config_path());
     BULK_LOG(
+      logger, "Directory configuration file: {}", ctx.config.dir_config_path());
+    BULK_LOG(
       logger, "System configuration file: {}", ctx.config.system_config_path());
 
     ctx.config.visit_items([&](const std::string& key,
