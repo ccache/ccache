@@ -455,6 +455,9 @@ Below is a list of available configuration options. The corresponding
 environment variable name is indicated in parentheses after each configuration
 option key.
 
+Options that define a list of paths have their entries separated by `;` on
+Windows and `:` on other systems.
+
 [#config_absolute_paths_in_stderr]
 *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
 
@@ -468,8 +471,7 @@ option key.
 [#config_base_dir]
 *base_dir* (*CCACHE_BASEDIR*)::
 
-    This option specifies one or more absolute directory paths (separated by
-    semicolon on Windows, colon on other systems). When set, ccache converts
+    This option specifies a list of absolute paths. When set, ccache converts
     absolute paths to relative paths before hashing, but only for paths that
     start with one of the specified base directories.
 +
@@ -584,7 +586,7 @@ _a command string_::
     command. The string will be split on whitespace to find out the command and
     arguments to run. No other interpretation of the command string will be
     done, except that the special word *%compiler%* will be replaced with the
-    path to the compiler. Several commands can be specified with semicolon as
+    path to the compiler. Several commands can be specified with `;` as the
     separator. Examples:
 +
 ----
@@ -757,9 +759,8 @@ the string `ccache:disable` in a comment in the first 4096 bytes of the file.
 [#config_extra_files_to_hash]
 *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
 
-    This option is a list of paths to files that ccache will include in the the
-    hash sum that identifies the build. The list separator is semicolon on
-    Windows systems and colon on other systems.
+    This option is a list of paths to files that ccache will include in the hash
+    sum that identifies the build.
 
 [#config_file_clone]
 *file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see _<<Boolean values>>_ above)::
@@ -835,8 +836,7 @@ might be incorrect.
     This option is a list of paths to files (or directories with headers) that
     ccache will *not* include in the manifest list that makes up the direct
     mode. Note that this can cause stale cache hits if those headers do indeed
-    change. The list separator is semicolon on Windows systems and colon on
-    other systems.
+    change.
 
 [#config_ignore_options]
 *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
@@ -873,8 +873,7 @@ the default is false.
 *libexec_dirs* (*CCACHE_LIBEXEC_DIRS*)::
 
     If set, ccache will look for helper programs in these directories instead of
-    the default. The list separator is semicolon on Windows systems and colon on
-    other systems.
+    the default.
 
 [#config_log_file]
 *log_file* (*CCACHE_LOGFILE*)::
@@ -943,8 +942,7 @@ project.
 *path* (*CCACHE_PATH*)::
 
     If set, ccache will search directories in this list when looking for the
-    real compiler. The list separator is semicolon on Windows systems and colon
-    on other systems. If not set, ccache will look for the first executable
+    real compiler. If not set, ccache will look for the first executable
     matching the compiler name in the normal `PATH` that isn't a symbolic link
     to ccache itself.
 
@@ -2025,7 +2023,7 @@ accomplished by defining <<config_prefix_command,*prefix_command*>>, for
 example by setting the environment variable `CCACHE_PREFIX` to the name of the
 wrapper (e.g. `distcc`). Ccache will then prefix the command line with the
 specified command when running the compiler. To specify several prefix
-commands, set <<config_prefix_command,*prefix_command*>> to a colon-separated
+commands, set <<config_prefix_command,*prefix_command*>> to a space-separated
 list of commands.
 
 Unless you set <<config_compiler_check,*compiler_check*>> to a suitable command
