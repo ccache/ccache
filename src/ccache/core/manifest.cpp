@@ -427,7 +427,7 @@ Manifest::result_matches(
         LOG("Failed hashing {}", path);
         return false;
       }
-      if (ret.contains(HashSourceCode::found_time)) {
+      if (should_disable_direct_mode(ctx, ret)) {
         // hash_source_code_file has already logged.
         return false;
       }

@@ -48,6 +48,10 @@ public:
     // The file was checked for temporal macros (see check_for_temporal_macros
     // in hashutil).
     checked_for_temporal_macros = 1,
+    // The file was checked for #embed and .incbin directives.
+    checked_for_source_directives = 2,
+    // The file was checked for temporal macros as well as #embed and .incbin.
+    checked_for_temporal_macros_and_directives = 3,
   };
 
   // `min_age` specifies how old a file must be to be put in the cache. The

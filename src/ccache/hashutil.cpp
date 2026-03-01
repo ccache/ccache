@@ -23,6 +23,7 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/execute.hpp>
 #include <ccache/macroskip.hpp>
+#include <ccache/sourcescanner.hpp>
 #include <ccache/util/args.hpp>
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/direntry.hpp>
@@ -168,16 +169,41 @@ check_for_temporal_macros_avx2(std::string_view str)
 #endif
 
 HashSourceCodeResult
+check_for_source_directives(std::string_view str)
+{
+  HashSourceCodeResult result;
+
+  if (sourcescanner::contains_embed_directive(str)) {
+    result.insert(HashSourceCode::found_embed);
+  }
+
+  if (sourcescanner::contains_incbin_directive(str)) {
+    result.insert(HashSourceCode::found_incbin);
+  }
+
+  return result;
+}
+
+HashSourceCodeResult
 do_hash_file(const Context& ctx,
              Hash::Digest& digest,
              const fs::path& path,
              size_t size_hint,
-             bool check_temporal_macros)
+             bool check_temporal_macros,
+             bool check_source_directives)
 {
 #ifdef INODE_CACHE_SUPPORTED
-  const InodeCache::ContentType content_type =
-    check_temporal_macros ? InodeCache::ContentType::checked_for_temporal_macros
-                          : InodeCache::ContentType::raw;
+  InodeCache::ContentType content_type;
+  if (check_source_directives && check_temporal_macros) {
+    content_type =
+      InodeCache::ContentType::checked_for_temporal_macros_and_directives;
+  } else if (check_source_directives) {
+    content_type = InodeCache::ContentType::checked_for_source_directives;
+  } else if (check_temporal_macros) {
+    content_type = InodeCache::ContentType::checked_for_temporal_macros;
+  } else {
+    content_type = InodeCache::ContentType::raw;
+  }
   if (ctx.config.inode_cache()) {
     const auto result = ctx.inode_cache.get(path, content_type);
     if (result) {
@@ -196,8 +222,12 @@ do_hash_file(const Context& ctx,
   }
 
   HashSourceCodeResult result;
+  const auto view = util::to_string_view(*data);
   if (check_temporal_macros) {
-    result.insert(check_for_temporal_macros(util::to_string_view(*data)));
+    result.insert(check_for_temporal_macros(view));
+  }
+  if (check_source_directives) {
+    result.insert(check_for_source_directives(view));
   }
 
   Hash hash;
@@ -233,10 +263,25 @@ hash_source_code_file(const Context& ctx,
   const bool check_temporal_macros =
     !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
   auto result =
-    do_hash_file(ctx, digest, path, size_hint, check_temporal_macros);
+    do_hash_file(ctx, digest, path, size_hint, check_temporal_macros, true);
 
-  if (!check_temporal_macros || result.empty()
-      || result.contains(HashSourceCode::error)) {
+  if (result.contains(HashSourceCode::error)) {
+    return result;
+  }
+
+  if (result.contains(HashSourceCode::found_embed)) {
+    LOG("Found #embed in {}", path);
+  }
+  if (result.contains(HashSourceCode::found_incbin)) {
+    LOG("Found .incbin in {}", path);
+  }
+
+  const bool contains_temporal_macro =
+    result.contains(HashSourceCode::found_time)
+    || result.contains(HashSourceCode::found_date)
+    || result.contains(HashSourceCode::found_timestamp);
+
+  if (!check_temporal_macros || !contains_temporal_macro) {
     return result;
   }
 
@@ -306,12 +351,22 @@ hash_source_code_file(const Context& ctx,
 }
 
 bool
+should_disable_direct_mode(const Context& ctx,
+                           const HashSourceCodeResult& result)
+{
+  return result.contains(HashSourceCode::found_time)
+         || result.contains(HashSourceCode::found_embed)
+         || (result.contains(HashSourceCode::found_incbin)
+             && !ctx.config.sloppiness().contains(core::Sloppy::incbin));
+}
+
+bool
 hash_binary_file(const Context& ctx,
                  Hash::Digest& digest,
                  const fs::path& path,
                  size_t size_hint)
 {
-  return do_hash_file(ctx, digest, path, size_hint, false).empty();
+  return do_hash_file(ctx, digest, path, size_hint, false, false).empty();
 }
 
 bool

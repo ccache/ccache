@@ -11,6 +11,7 @@ set(
   hashutil.cpp
   language.cpp
   progressbar.cpp
+  sourcescanner.cpp
   version.cpp
 )
 

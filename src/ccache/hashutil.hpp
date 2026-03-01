@@ -35,11 +35,13 @@ enum class HashSourceCode {
   found_date = 1U << 1,
   found_time = 1U << 2,
   found_timestamp = 1U << 3,
+  found_embed = 1U << 4,
+  found_incbin = 1U << 5,
 };
 
 using HashSourceCodeResult = util::BitSet<HashSourceCode>;
 
-// Search for tokens (described in HashSourceCode) in `str`.
+// Search for temporal macros in `str`.
 HashSourceCodeResult check_for_temporal_macros(std::string_view str);
 
 // Hash a source code file using the inode cache if enabled.
@@ -47,6 +49,10 @@ HashSourceCodeResult hash_source_code_file(const Context& ctx,
                                            Hash::Digest& digest,
                                            const std::filesystem::path& path,
                                            size_t size_hint = 0);
+
+// Return true if direct mode should be disabled for this scan result.
+bool should_disable_direct_mode(const Context& ctx,
+                                const HashSourceCodeResult& result);
 
 // Hash a binary file (using the inode cache if enabled) and put its digest in
 // `digest`
