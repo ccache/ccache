@@ -18,6 +18,22 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 
+class UnixHTTPServer(HTTPServer):
+    address_family = socket.AF_UNIX
+
+    def server_bind(self):
+        # Remove socket file if it exists
+        socket_path = self.server_address
+        if os.path.exists(socket_path):
+            os.unlink(socket_path)
+        super().server_bind()
+
+    def get_request(self):
+        request, client_address = super().get_request()
+        # Unix sockets don't have a client address, provide a placeholder
+        return request, ("", 0)
+
+
 class AuthenticationError(Exception):
     pass
 
@@ -96,19 +112,28 @@ def _get_best_family(*address):
     return family, sockaddr
 
 
-def run(handler_class, server_class, port, bind):
+def run(handler_class, server_class, port, bind, unix_socket=None):
     handler_class.protocol_version = "HTTP/1.1"
-    server_class.address_family, addr = _get_best_family(bind, port)
 
-    with server_class(addr, handler_class) as httpd:
-        host, port = httpd.socket.getsockname()[:2]
-        url_host = f"[{host}]" if ":" in host else host
-        print(f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/) ...")
-        try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            print("\nKeyboard interrupt received, exiting.")
-            sys.exit(0)
+    if unix_socket:
+        with server_class(unix_socket, handler_class) as httpd:
+            print(f"Serving HTTP on Unix socket {unix_socket} ...")
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\nKeyboard interrupt received, exiting.")
+                sys.exit(0)
+    else:
+        server_class.address_family, addr = _get_best_family(bind, port)
+        with server_class(addr, handler_class) as httpd:
+            host, port = httpd.socket.getsockname()[:2]
+            url_host = f"[{host}]" if ":" in host else host
+            print(f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/) ...")
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\nKeyboard interrupt received, exiting.")
+                sys.exit(0)
 
 
 def on_terminate(signum, _frame):
@@ -133,6 +158,12 @@ if __name__ == "__main__":
         help="Specify alternative directory [default:current directory]",
     )
     parser.add_argument(
+        "--unix-socket",
+        "-u",
+        metavar="PATH",
+        help="Listen on a Unix socket instead of a TCP port",
+    )
+    parser.add_argument(
         "port",
         action="store",
         default=8080,
@@ -149,9 +180,18 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, on_terminate)
     signal.signal(signal.SIGTERM, on_terminate)
 
-    run(
-        handler_class=handler_class,
-        server_class=HTTPServer,
-        port=args.port,
-        bind=args.bind,
-    )
+    if args.unix_socket:
+        run(
+            handler_class=handler_class,
+            server_class=UnixHTTPServer,
+            port=None,
+            bind=None,
+            unix_socket=args.unix_socket,
+        )
+    else:
+        run(
+            handler_class=handler_class,
+            server_class=HTTPServer,
+            port=args.port,
+            bind=args.bind,
+        )

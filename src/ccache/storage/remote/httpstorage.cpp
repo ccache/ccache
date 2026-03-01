@@ -32,11 +32,23 @@
 #include <cxxurl/url.hpp>
 #include <httplib.h>
 
+#ifndef _WIN32
+#  include <sys/socket.h>
+#endif
+
 #include <string_view>
 
 namespace storage::remote {
 
 namespace {
+
+const std::string k_unix_socket_scheme = "http+unix";
+
+bool
+is_unix_socket_scheme(const Url& url)
+{
+  return url.scheme() == k_unix_socket_scheme;
+}
 
 class HttpStorageBackend : public RemoteStorage::Backend
 {
@@ -61,6 +73,7 @@ private:
   std::string m_url_path;
   httplib::Client m_http_client;
   Layout m_layout = Layout::subdirs;
+  bool m_is_unix_socket = false;
 
   std::string get_entry_path(const Hash::Digest& key) const;
 };
@@ -68,7 +81,19 @@ private:
 std::string
 get_url_path(const Url& url)
 {
-  auto path = url.path();
+  std::string path;
+  if (is_unix_socket_scheme(url)) {
+    // For http+unix, the URL path is the socket path, and the HTTP path comes
+    // from the "path" query parameter.
+    for (const auto& param : url.query()) {
+      if (param.key() == "path") {
+        path = param.val();
+        break;
+      }
+    }
+  } else {
+    path = url.path();
+  }
   if (path.empty() || path.back() != '/') {
     path += '/';
   }
@@ -90,6 +115,15 @@ get_partial_url(const Url& from_url)
 std::string
 get_url(const Url& url)
 {
+  if (is_unix_socket_scheme(url)) {
+    // For http+unix, return the socket path (which is in the URL path).
+    if (url.path().empty()) {
+      throw core::Fatal(FMT(
+        "A socket path is required in HTTP Unix socket URL \"{}\"", url.str()));
+    }
+    return url.path();
+  }
+
   if (url.host().empty()) {
     throw core::Fatal(
       FMT("A host is required in HTTP storage URL \"{}\"", url.str()));
@@ -112,8 +146,25 @@ HttpStorageBackend::HttpStorageBackend(
   : m_url(url),
     m_redacted_url(get_redacted_url_str_for_logging(url)),
     m_url_path(get_url_path(url)),
-    m_http_client(get_url(url))
+    m_http_client(get_url(url)),
+    m_is_unix_socket(is_unix_socket_scheme(url))
 {
+#ifndef _WIN32
+  if (m_is_unix_socket) {
+    if (!url.host().empty() && url.host() != "localhost") {
+      throw core::Fatal(
+        FMT("Invalid URL \"{}\": specifying a host other than localhost is not"
+            " supported for http+unix",
+            url.str()));
+    }
+    m_http_client.set_address_family(AF_UNIX);
+  }
+#else
+  if (m_is_unix_socket) {
+    throw core::Fatal("http+unix is not supported on Windows");
+  }
+#endif
+
   if (!url.user_info().empty()) {
     const auto [user, password] =
       util::split_once_into_views(url.user_info(), ':');

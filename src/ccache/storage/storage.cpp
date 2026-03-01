@@ -66,6 +66,7 @@ const std::unordered_map<std::string_view /*scheme*/,
     {"file",       std::make_shared<remote::FileStorage>() },
 #ifdef HAVE_HTTP_STORAGE_BACKEND
     {"http",       std::make_shared<remote::HttpStorage>() },
+    {"http+unix",  std::make_shared<remote::HttpStorage>() },
 #endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
     {"redis",      std::make_shared<remote::RedisStorage>()},
