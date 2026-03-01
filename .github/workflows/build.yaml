@@ -533,12 +533,12 @@ jobs:
             apt_get: elfutils libzstd-dev libhiredis-dev
 
           - name: Clang static analyzer
-            os: ubuntu-22.04
+            os: ubuntu-24.04
             CC: clang
             CXX: clang++
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
-            apt_get: libzstd-dev libhiredis-dev
+            apt_get: clang-tools libzstd-dev libhiredis-dev
 
           - name: Linux binary
             os: ubuntu-22.04
@@ -610,6 +610,7 @@ jobs:
           CFLAGS: ${{ matrix.CFLAGS }}
           CMAKE_GENERATOR: ${{ matrix.CMAKE_GENERATOR }}
           CMAKE_PARAMS: ${{ matrix.CMAKE_PARAMS }}
+          CMAKE_PREFIX: ${{ matrix.CMAKE_PREFIX }}
           CXX: ${{ matrix.CXX }}
           CXXFLAGS: ${{ matrix.CXXFLAGS }}
           EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.EXTRA_CMAKE_BUILD_FLAGS }}
