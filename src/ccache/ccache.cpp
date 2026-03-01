@@ -437,6 +437,10 @@ remember_include_file(Context& ctx,
 
   fs::path path2(path);
   if (is_pch && !ctx.args_info.generating_pch) {
+    if (ctx.config.depend_mode()) {
+      // All files are already hashed
+      return {};
+    }
     if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
     }
@@ -2485,6 +2489,12 @@ calculate_result_and_manifest_key(Context& ctx,
 
   hash.hash_delimiter("result version");
   hash.hash(core::result::k_format_version);
+
+  if (ctx.args_info.generating_pch && !ctx.config.base_dirs().empty()) {
+    hash.hash_delimiter("base_dir for pch");
+    for (auto&& entry : ctx.config.base_dirs())
+      hash.hash(entry);
+  }
 
   if (direct_mode) {
     hash.hash_delimiter("manifest version");
