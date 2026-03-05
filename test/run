@@ -555,6 +555,16 @@ if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
 
+if [ -z "$STORAGE_TEST_HELPER" ]; then
+    STORAGE_TEST_HELPER=$(pwd)/test/storage/helper/ccache-storage-test
+fi
+
+if [ -z "$STORAGE_TEST_CLIENT" ]; then
+    STORAGE_TEST_CLIENT=$(pwd)/test/storage/client/storage-test-client
+fi
+
+readonly CCACHE STORAGE_TEST_HELPER STORAGE_TEST_CLIENT
+
 COMPILER_TYPE_CLANG=false
 COMPILER_TYPE_GCC=false
 
@@ -565,8 +575,6 @@ COMPILER_USES_MSVC=false
 ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
 readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
 readonly HTTP_SERVER="${ABS_ROOT_DIR}/http-server"
-readonly STORAGE_TEST_HELPER="$(pwd)/test/storage/helper/ccache-storage-test"
-readonly STORAGE_TEST_CLIENT="$(pwd)/test/storage/client/storage-test-client"
 
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false

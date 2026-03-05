@@ -8,7 +8,7 @@ function(addtest name)
   set_tests_properties(
     "test.${name}"
     PROPERTIES
-    ENVIRONMENT "CCACHE=$<TARGET_FILE:ccache>;EXIT_IF_SKIPPED=true"
+    ENVIRONMENT "CCACHE=$<TARGET_FILE:ccache>;STORAGE_TEST_HELPER=$<TARGET_FILE:ccache-storage-test>;STORAGE_TEST_CLIENT=$<TARGET_FILE:storage-test-client>;EXIT_IF_SKIPPED=true"
     SKIP_RETURN_CODE 125)
 endfunction()
 
