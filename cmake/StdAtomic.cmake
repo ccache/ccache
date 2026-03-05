@@ -4,20 +4,26 @@ set(LIBATOMIC_STATIC_PATH "" CACHE PATH "Directory containing static libatomic.a
 
 include(CheckCXXSourceCompiles)
 
-set(
-  check_std_atomic_source_code
-  [=[
-    #include <atomic>
-    int main()
-    {
-      std::atomic<long long> x;
-      ++x;
-      (void)x.load();
-      return 0;
-    }
-  ]=])
+# On macOS, std::atomic is built-in and doesn't require -latomic
+if(APPLE)
+  set(std_atomic_without_libatomic TRUE)
+  message(STATUS "macOS detected: std::atomic is built-in")
+else()
+  set(
+    check_std_atomic_source_code
+    [=[
+      #include <atomic>
+      int main()
+      {
+        std::atomic<long long> x;
+        ++x;
+        (void)x.load();
+        return 0;
+      }
+    ]=])
 
-check_cxx_source_compiles("${check_std_atomic_source_code}" std_atomic_without_libatomic)
+  check_cxx_source_compiles("${check_std_atomic_source_code}" std_atomic_without_libatomic)
+endif()
 
 if(NOT std_atomic_without_libatomic)
   set(CMAKE_REQUIRED_LIBRARIES atomic)
