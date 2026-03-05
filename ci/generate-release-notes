@@ -35,7 +35,8 @@ for ext in "${source_extensions[@]}"; do
 done
 add "Darwin (macOS) universal binary release" "ccache-${version}-darwin.tar.gz"
 for arch in "${linux_archs[@]}"; do
-    add "Linux ${arch} binary release" "ccache-${version}-linux-${arch}.tar.xz"
+    add "Linux ${arch} binary release (glibc)" "ccache-${version}-linux-${arch}-glibc.tar.xz"
+    add "Linux ${arch} binary release (musl static)" "ccache-${version}-linux-${arch}-musl-static.tar.xz"
 done
 for arch in "${windows_archs[@]}"; do
     add "Windows ${arch} binary release" "ccache-${version}-windows-${arch}.zip"
