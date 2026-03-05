@@ -11,7 +11,7 @@ from locale import LC_ALL, setlocale, strcoll
 from pathlib import Path
 from subprocess import run
 
-ANONYMOUS = {
+PSEUDONYMOUS = {
     "6d5CfLQ3dYAb",
     "bengtj",
     "cupu",
@@ -29,7 +29,6 @@ ANONYMOUS = {
     "Mikhail B",
     "Moritz",
     "R43Qi8krC",
-    "rblx-kbuck",
     "RW",
     "senhtry",
     "vsplesk",
@@ -50,7 +49,7 @@ def main():
     git_log = git("log", "--format=%b")
     co_authors = set(re.findall(r"Co-authored-by: ([^<]+) <.*", git_log))
 
-    authors = (primary_authors | co_authors) - ANONYMOUS
+    authors = (primary_authors | co_authors) - PSEUDONYMOUS
 
     authors_lines = AUTHORS_ADOC.read_text().splitlines()
     with AUTHORS_ADOC.open("w") as f:
