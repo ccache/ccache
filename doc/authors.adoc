@@ -44,6 +44,7 @@ Ccache is a collective work with contributions from many people, including:
 * David Givone
 * Dávid Péter Jánosa
 * Deepak Yadav
+* Diego Alonso
 * Doug Anderson
 * Edward Z. Yang
 * Enrico Seiler
@@ -90,6 +91,7 @@ Ccache is a collective work with contributions from many people, including:
 * Ka Ho Ng
 * Karl Chen
 * Kaspar Schleiser
+* Keith Buck
 * Khem Raj
 * Kira Bruneau
 * Kona Blend
@@ -171,6 +173,7 @@ Ccache is a collective work with contributions from many people, including:
 * Sergey Semushin
 * Silver Zachara
 * Steffen Dettmer
+* Steffen Winter
 * Stephan Rohmen
 * Steve Mokris
 * Stuart Henderson

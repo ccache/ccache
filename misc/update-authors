@@ -32,6 +32,7 @@ PSEUDONYMOUS = {
     "RW",
     "senhtry",
     "vsplesk",
+    "zcfh",
 }
 
 AUTHORS_ADOC = Path(__file__).parents[1] / "doc/authors.adoc"
