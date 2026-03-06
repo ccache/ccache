@@ -556,9 +556,9 @@ set_timestamps(const fs::path& path,
   if (mtime) {
     atime_mtime[0].tv_sec = atime ? util::sec(*atime) : util::sec(*mtime);
     atime_mtime[0].tv_usec =
-      (atime ? atime->nsec_decimal_part() : mtime->nsec_decimal_part()) / 1000;
+      (atime ? util::nsec_part(*atime) : util::nsec_part(*mtime)) / 1000;
     atime_mtime[1].tv_sec = util::sec(*mtime);
-    atime_mtime[1].tv_usec = mtime->nsec_decimal_part() / 1000;
+    atime_mtime[1].tv_usec = util::nsec_part(*mtime) / 1000;
   }
   utimes(util::pstr(path).c_str(), mtime ? atime_mtime : nullptr);
 #else
