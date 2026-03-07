@@ -501,11 +501,11 @@ Storage::init_remote_storage()
     return;
   }
 
-  auto helper_search_dirs = util::getenv_path_list("PATH");
-  const auto& libexec_dirs = m_config.libexec_dirs();
+  auto helper_search_dirs = m_config.libexec_dirs();
   helper_search_dirs.push_back(m_ccache_exe_dir);
+  auto path_dirs = util::getenv_path_list("PATH");
   helper_search_dirs.insert(
-    helper_search_dirs.end(), libexec_dirs.begin(), libexec_dirs.end());
+    helper_search_dirs.end(), path_dirs.begin(), path_dirs.end());
 
   const auto configs =
     parse_storage_configs(m_config.remote_storage(), ForLogging::no);

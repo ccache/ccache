@@ -68,6 +68,7 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.inode_cache());
 #endif
   CHECK_FALSE(config.keep_comments_cpp());
+  CHECK(config.libexec_dirs() == std::vector<fs::path>{config.libexec_dir()});
   CHECK(config.log_file().empty());
   CHECK(config.max_files() == 0);
   CHECK(config.max_size() == static_cast<uint64_t>(5) * 1024 * 1024 * 1024);

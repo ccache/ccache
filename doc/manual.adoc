@@ -911,7 +911,7 @@ the default is false.
     output. The default is false. This can be used to check documentation with
     `-Wdocumentation`.
 
-[#config_libexec_dir]
+[#config_libexec_dirs]
 *libexec_dirs* (*CCACHE_LIBEXEC_DIRS*)::
 
     If set, ccache will look for helper programs in these directories instead of
@@ -1283,9 +1283,9 @@ is the scheme part of a URL, e.g. `https`. The program can be placed in these
 locations (in priority order):
 
 1. In a location specified by the *helper* property (see below).
-2. In `$PATH`.
+2. In a <<config_libexec_dirs,libexec directory>>.
 3. Next to the ccache executable.
-4. In ccache's <<config_libexec_dirs,libexec directory>>.
+4. In `$PATH`.
 
 If the program is not found, ccache falls back to one of the builtin backends if
 available, otherwise ccache exits with an error.
