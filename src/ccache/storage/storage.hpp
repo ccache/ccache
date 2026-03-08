@@ -75,7 +75,7 @@ public:
 
 private:
   const Config& m_config;
-  const std::filesystem::path& m_ccache_exe_dir;
+  std::filesystem::path m_ccache_exe_dir;
   std::vector<std::unique_ptr<RemoteStorageEntry>> m_remote_storages;
 
   void init_remote_storage();
