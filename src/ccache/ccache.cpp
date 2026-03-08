@@ -2805,14 +2805,20 @@ cache_compilation(int argc, const char* const* argv)
   }
 
   {
-    fs::path argv0 =
+    const auto exe_path = util::get_executable_path();
+    fs::path ccache_exe_dir;
+    if (!exe_path.empty()) {
+      ccache_exe_dir = exe_path.parent_path();
+    } else {
+      fs::path argv0 =
 #ifdef _WIN32
-      util::add_exe_suffix(argv[0]);
+        util::add_exe_suffix(argv[0]);
 #else
-      argv[0];
+        argv[0];
 #endif
-    const auto ccache_exe_dir =
-      fs::canonical(argv0).value_or(argv0).parent_path();
+      ccache_exe_dir = fs::canonical(argv0).value_or(argv0).parent_path();
+    }
+
     Context ctx(ccache_exe_dir);
     ctx.initialize(std::move(argv_parts.compiler_and_args),
                    argv_parts.config_settings);

@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,13 +18,23 @@
 
 #include "process.hpp"
 
+#include <ccache/util/filesystem.hpp>
 #include <ccache/util/wincompat.hpp>
 
-#include <cstring>
-
-#ifdef HAVE_UNISTD_H
+#ifdef _WIN32
+#  include <windows.h>
+#else
 #  include <unistd.h>
+#  ifdef __APPLE__
+#    include <mach-o/dyld.h>
+#  endif
 #endif
+
+#include <climits>
+#include <cstring>
+#include <vector>
+
+namespace fs = util::filesystem;
 
 namespace {
 
@@ -38,6 +48,43 @@ mode_t g_umask = [] {
 } // namespace
 
 namespace util {
+
+fs::path
+get_executable_path()
+{
+#ifdef _WIN32
+  std::vector<wchar_t> buf(MAX_PATH);
+  while (true) {
+    DWORD len =
+      GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
+    if (len == 0) {
+      return {};
+    }
+    if (len < static_cast<DWORD>(buf.size())) {
+      return fs::path(std::wstring(buf.data(), len));
+    }
+    buf.resize(buf.size() * 2);
+  }
+#elif defined(__APPLE__)
+  uint32_t size = PATH_MAX;
+  std::vector<char> buf(size);
+  if (_NSGetExecutablePath(buf.data(), &size) != 0) {
+    buf.resize(size);
+    if (_NSGetExecutablePath(buf.data(), &size) != 0) {
+      return {};
+    }
+  }
+  return fs::path(buf.data());
+#else
+  char buf[PATH_MAX];
+  ssize_t len = readlink("/proc/self/exe", buf, PATH_MAX - 1);
+  if (len < 0) {
+    return {};
+  }
+  buf[len] = '\0';
+  return fs::path(buf);
+#endif
+}
 
 const char*
 get_hostname()

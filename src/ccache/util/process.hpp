@@ -20,7 +20,13 @@
 
 #include <sys/stat.h>
 
+#include <filesystem>
+
 namespace util {
+
+// Return the absolute path to the current executable using OS-specific methods.
+// Returns an empty path on failure.
+std::filesystem::path get_executable_path();
 
 // Return a static string with the current hostname.
 const char* get_hostname();
