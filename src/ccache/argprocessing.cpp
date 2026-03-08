@@ -1620,9 +1620,9 @@ process_args(Context& ctx)
   args_info.preprocess_input_file =
     !language_is_preprocessed(args_info.actual_language);
 
-  if (!args_info.preprocess_input_file) {
-    config.set_cpp_extension(
-      util::pstr(args_info.input_file.extension()).str().substr(1));
+  if (!args_info.preprocess_input_file && ctx.config.cpp_extension().empty()) {
+    const auto extension = util::pstr(args_info.input_file.extension()).str();
+    config.set_cpp_extension(extension.empty() ? "i" : extension.substr(1));
   } else if (config.cpp_extension().empty()) {
     std::string p_language = p_language_for_language(args_info.actual_language);
     config.set_cpp_extension(extension_for_language(p_language).substr(1));
