@@ -858,6 +858,23 @@ fi
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
+    TEST "-x assembler with extensionless file"
+
+    $COMPILER -S -o test1asm test1.c
+
+    $CCACHE_COMPILE -x assembler -c test1asm -o test1asm.o
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_exists test1asm.o
+
+    rm test1asm.o
+
+    $CCACHE_COMPILE -x assembler -c test1asm -o test1asm.o
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_exists test1asm.o
+
+    # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS; then
     TEST "-frecord-gcc-switches"
 
