@@ -21,6 +21,7 @@
 #include <ccache/core/atomicfile.hpp>
 #include <ccache/core/cacheentry.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
@@ -42,6 +43,14 @@ FileRecompressor::recompress(const DirEntry& dir_entry,
 
   std::optional<DirEntry> new_dir_entry;
 
+  // Restore mtime/atime to keep cache LRU cleanup working as expected:
+  DEFER([&] {
+    if (keep_atime == KeepAtime::yes || new_dir_entry) {
+      util::set_timestamps(
+        dir_entry.path(), dir_entry.mtime(), dir_entry.atime());
+    }
+  });
+
   if (header.compression_level != wanted_level) {
     const auto cache_file_data = util::value_or_throw<core::Error>(
       util::read_file<util::Bytes>(dir_entry.path()),
@@ -59,12 +68,6 @@ FileRecompressor::recompress(const DirEntry& dir_entry,
       core::CacheEntry::serialize(header, cache_entry.payload()));
     new_cache_file.commit();
     new_dir_entry = DirEntry(dir_entry.path(), DirEntry::LogOnError::yes);
-  }
-
-  // Restore mtime/atime to keep cache LRU cleanup working as expected:
-  if (keep_atime == KeepAtime::yes || new_dir_entry) {
-    util::set_timestamps(
-      dir_entry.path(), dir_entry.mtime(), dir_entry.atime());
   }
 
   m_content_size += util::likely_size_on_disk(header.entry_size);
