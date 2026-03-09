@@ -628,7 +628,7 @@ EOF
 int test() { return 0; }
 EOF
 
-    if $COMPILER -c -fstack-usage -flto main.c >/dev/null 2>&1 && $COMPILER -c -fstack-usage -flto code.c >/dev/null 2>&1; then
+    if $COMPILER -c -fstack-usage -flto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto code.c
         $CCACHE_COMPILE -o output -fstack-usage -flto main.o code.o
@@ -677,7 +677,7 @@ EOF
 int test() { return 0; }
 EOF
 
-    if $COMPILER -c -fstack-usage -flto=auto main.c >/dev/null 2>&1 && $COMPILER -c -fstack-usage -flto=auto code.c >/dev/null 2>&1; then
+    if $COMPILER -c -fstack-usage -flto=auto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
         $CCACHE_COMPILE -o output -fstack-usage -flto=auto main.o code.o
@@ -772,7 +772,7 @@ EOF
 int test() { return 0; }
 EOF
 
-    if $COMPILER -c -fcallgraph-info -flto main.c >/dev/null 2>&1 && $COMPILER -c -fcallgraph-info -flto code.c >/dev/null 2>&1; then
+    if $COMPILER -c -fcallgraph-info -flto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fcallgraph-info -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto code.c
         $CCACHE_COMPILE -o output -fcallgraph-info -flto main.o code.o
@@ -814,7 +814,7 @@ EOF
 int test() { return 0; }
 EOF
 
-    if $COMPILER -c -fcallgraph-info -flto=auto main.c >/dev/null 2>&1 && $COMPILER -c -fcallgraph-info -flto=auto code.c >/dev/null 2>&1; then
+    if $COMPILER -c -fcallgraph-info -flto=auto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto code.c
         $CCACHE_COMPILE -o output -fcallgraph-info -flto=auto main.o code.o
