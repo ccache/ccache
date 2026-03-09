@@ -951,6 +951,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg == "-flto" || arg.starts_with("-flto=")) {
+    args_info.using_lto = true;
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   // -Zs is MSVC's -fsyntax-only equivalent
   if (arg == "-fsyntax-only" || arg == "-Zs") {
     args_info.expect_output_obj = false;

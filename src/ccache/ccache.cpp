@@ -1020,18 +1020,23 @@ write_result(Context& ctx,
       return false;
     }
   }
-  if (ctx.args_info.generating_stackusage
-      && !serializer.add_file(core::result::FileType::stackusage,
-                              ctx.args_info.output_su)) {
-    LOG("Stack usage file {} missing", ctx.args_info.output_su);
-    return false;
+
+  // If LTO is used, then the .su and .ci files are produced during linking.
+  if (!ctx.args_info.using_lto) {
+    if (ctx.args_info.generating_stackusage
+        && !serializer.add_file(core::result::FileType::stackusage,
+                                ctx.args_info.output_su)) {
+      LOG("Stack usage file {} missing", ctx.args_info.output_su);
+      return false;
+    }
+    if (ctx.args_info.generating_callgraphinfo
+        && !serializer.add_file(core::result::FileType::callgraph_info,
+                                ctx.args_info.output_ci)) {
+      LOG("Callgraph info file {} missing", ctx.args_info.output_ci);
+      return false;
+    }
   }
-  if (ctx.args_info.generating_callgraphinfo
-      && !serializer.add_file(core::result::FileType::callgraph_info,
-                              ctx.args_info.output_ci)) {
-    LOG("Callgraph info file {} missing", ctx.args_info.output_ci);
-    return false;
-  }
+
   if (ctx.args_info.generating_ipa_clones
       && !serializer.add_file(core::result::FileType::ipa_clones,
                               ctx.args_info.output_ipa)) {
@@ -2954,11 +2959,13 @@ do_cache_compilation(Context& ctx)
   if (ctx.args_info.generating_coverage) {
     LOG("Coverage file is being generated");
   }
-  if (ctx.args_info.generating_stackusage) {
-    LOG("Stack usage file: {}", ctx.args_info.output_su);
-  }
-  if (ctx.args_info.generating_callgraphinfo) {
-    LOG("Callgraph info file: {}", ctx.args_info.output_ci);
+  if (!ctx.args_info.using_lto) {
+    if (ctx.args_info.generating_stackusage) {
+      LOG("Stack usage file: {}", ctx.args_info.output_su);
+    }
+    if (ctx.args_info.generating_callgraphinfo) {
+      LOG("Callgraph info file: {}", ctx.args_info.output_ci);
+    }
   }
   if (!ctx.args_info.output_dia.empty()) {
     LOG("Diagnostics file: {}", ctx.args_info.output_dia);
