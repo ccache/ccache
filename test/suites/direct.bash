@@ -617,6 +617,90 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    TEST "-fstack-usage with -flto"
+
+    cat <<EOF >main.c
+extern int test();
+int main() { return test(); }
+EOF
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fstack-usage -flto main.c >/dev/null 2>&1 && $COMPILER -c -fstack-usage -flto code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fstack-usage -flto main.c
+        $CCACHE_COMPILE -c -fstack-usage -flto code.c
+        $CCACHE_COMPILE -o output -fstack-usage -flto main.o code.o
+        expect_stat called_for_link 1
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.su
+        expect_missing code.su
+        expect_exists output.ltrans0.ltrans.su
+        expect_contains output.ltrans0.ltrans.su main.c
+        expect_contains output.ltrans0.ltrans.su code.c
+
+        rm output.ltrans0.ltrans.su
+
+        $CCACHE_COMPILE -c -fstack-usage -flto main.c
+        $CCACHE_COMPILE -c -fstack-usage -flto code.c
+        $CCACHE_COMPILE -o output -fstack-usage -flto main.o code.o
+        expect_stat called_for_link 2
+        expect_stat direct_cache_hit 2
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.su
+        expect_missing code.su
+        expect_exists output.ltrans0.ltrans.su
+        expect_contains output.ltrans0.ltrans.su main.c
+        expect_contains output.ltrans0.ltrans.su code.c
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fstack-usage with -flto=auto"
+
+    cat <<EOF >main.c
+extern int test();
+int main() { return test(); }
+EOF
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fstack-usage -flto=auto main.c >/dev/null 2>&1 && $COMPILER -c -fstack-usage -flto=auto code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
+        $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
+        $CCACHE_COMPILE -o output -fstack-usage -flto=auto main.o code.o
+        expect_stat called_for_link 1
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.su
+        expect_missing code.su
+        expect_exists output.ltrans0.ltrans.su
+        expect_contains output.ltrans0.ltrans.su main.c
+        expect_contains output.ltrans0.ltrans.su code.c
+
+        rm output.ltrans0.ltrans.su
+
+        $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
+        $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
+        $CCACHE_COMPILE -o output -fstack-usage -flto=auto main.o code.o
+        expect_stat called_for_link 2
+        expect_stat direct_cache_hit 2
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.su
+        expect_missing code.su
+        expect_exists output.ltrans0.ltrans.su
+        expect_contains output.ltrans0.ltrans.su main.c
+        expect_contains output.ltrans0.ltrans.su code.c
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "-fcallgraph-info"
 
     cat <<EOF >code.c
@@ -660,6 +744,90 @@ EOF
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
         expect_exists code.ci
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fcallgraph-info with -flto"
+
+    cat <<EOF >main.c
+extern int test();
+int main() { return test(); }
+EOF
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fcallgraph-info -flto main.c >/dev/null 2>&1 && $COMPILER -c -fcallgraph-info -flto code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fcallgraph-info -flto main.c
+        $CCACHE_COMPILE -c -fcallgraph-info -flto code.c
+        $CCACHE_COMPILE -o output -fcallgraph-info -flto main.o code.o
+        expect_stat called_for_link 1
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.ci
+        expect_missing code.ci
+        expect_exists output.ltrans0.ltrans.ci
+        expect_contains output.ltrans0.ltrans.ci main.c
+        expect_contains output.ltrans0.ltrans.ci code.c
+
+        rm output.ltrans0.ltrans.ci
+
+        $CCACHE_COMPILE -c -fcallgraph-info -flto main.c
+        $CCACHE_COMPILE -c -fcallgraph-info -flto code.c
+        $CCACHE_COMPILE -o output -fcallgraph-info -flto main.o code.o
+        expect_stat called_for_link 2
+        expect_stat direct_cache_hit 2
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.ci
+        expect_missing code.ci
+        expect_exists output.ltrans0.ltrans.ci
+        expect_contains output.ltrans0.ltrans.ci main.c
+        expect_contains output.ltrans0.ltrans.ci code.c
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fcallgraph-info with -flto=auto"
+
+    cat <<EOF >main.c
+extern int test();
+int main() { return test(); }
+EOF
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER -c -fcallgraph-info -flto=auto main.c >/dev/null 2>&1 && $COMPILER -c -fcallgraph-info -flto=auto code.c >/dev/null 2>&1; then
+        $CCACHE_COMPILE -c -fcallgraph-info -flto=auto main.c
+        $CCACHE_COMPILE -c -fcallgraph-info -flto=auto code.c
+        $CCACHE_COMPILE -o output -fcallgraph-info -flto=auto main.o code.o
+        expect_stat called_for_link 1
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.ci
+        expect_missing code.ci
+        expect_exists output.ltrans0.ltrans.ci
+        expect_contains output.ltrans0.ltrans.ci main.c
+        expect_contains output.ltrans0.ltrans.ci code.c
+
+        rm output.ltrans0.ltrans.ci
+
+        $CCACHE_COMPILE -c -fcallgraph-info -flto=auto main.c
+        $CCACHE_COMPILE -c -fcallgraph-info -flto=auto code.c
+        $CCACHE_COMPILE -o output -fcallgraph-info -flto=auto main.o code.o
+        expect_stat called_for_link 2
+        expect_stat direct_cache_hit 2
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 2
+        expect_missing main.ci
+        expect_missing code.ci
+        expect_exists output.ltrans0.ltrans.ci
+        expect_contains output.ltrans0.ltrans.ci main.c
+        expect_contains output.ltrans0.ltrans.ci code.c
     fi
 
     # -------------------------------------------------------------------------

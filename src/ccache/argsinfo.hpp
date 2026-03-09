@@ -109,6 +109,9 @@ struct ArgsInfo
   // -fcallgraph-info specified.
   bool generating_callgraphinfo = false;
 
+  // -flto specified.
+  bool using_lto = false;
+
   // Are we generating a pch file (msvc -Yc)?
   bool generating_pch = false;
 
