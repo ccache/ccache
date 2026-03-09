@@ -638,11 +638,14 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-        expect_exists output.ltrans0.ltrans.su
-        expect_contains output.ltrans0.ltrans.su main.c
-        expect_contains output.ltrans0.ltrans.su code.c
 
-        rm output.ltrans0.ltrans.su
+        # clang does not produce .su files
+        if [ "$(basename "$COMPILER")" != "clang" ]; then
+            expect_exists output.ltrans0.ltrans.su
+            expect_contains output.ltrans0.ltrans.su main.c
+            expect_contains output.ltrans0.ltrans.su code.c
+            rm output.ltrans0.ltrans.su
+        fi
 
         $CCACHE_COMPILE -c -fstack-usage -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto code.c
@@ -653,9 +656,13 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-        expect_exists output.ltrans0.ltrans.su
-        expect_contains output.ltrans0.ltrans.su main.c
-        expect_contains output.ltrans0.ltrans.su code.c
+
+        # clang does not produce .su files
+        if [ "$(basename "$COMPILER")" != "clang" ]; then
+            expect_exists output.ltrans0.ltrans.su
+            expect_contains output.ltrans0.ltrans.su main.c
+            expect_contains output.ltrans0.ltrans.su code.c
+        fi
     fi
 
     # -------------------------------------------------------------------------
@@ -680,11 +687,14 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-        expect_exists output.ltrans0.ltrans.su
-        expect_contains output.ltrans0.ltrans.su main.c
-        expect_contains output.ltrans0.ltrans.su code.c
 
-        rm output.ltrans0.ltrans.su
+        # clang does not produce .su files
+        if [ "$(basename "$COMPILER")" != "clang" ]; then
+            expect_exists output.ltrans0.ltrans.su
+            expect_contains output.ltrans0.ltrans.su main.c
+            expect_contains output.ltrans0.ltrans.su code.c
+            rm output.ltrans0.ltrans.su
+        fi
 
         $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
@@ -695,9 +705,13 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-        expect_exists output.ltrans0.ltrans.su
-        expect_contains output.ltrans0.ltrans.su main.c
-        expect_contains output.ltrans0.ltrans.su code.c
+
+        # clang does not produce .su files
+        if [ "$(basename "$COMPILER")" != "clang" ]; then
+            expect_exists output.ltrans0.ltrans.su
+            expect_contains output.ltrans0.ltrans.su main.c
+            expect_contains output.ltrans0.ltrans.su code.c
+        fi
     fi
 
     # -------------------------------------------------------------------------
