@@ -12,7 +12,7 @@ unset CI
 # without resorting to setting base_dir.
 export CMAKE_GENERATOR=Ninja
 
-tmp_dir=$(mktemp -d)
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXX")
 trap "rm -rf $tmp_dir" EXIT
 
 git archive --prefix=ccache/ -o $tmp_dir/ccache.tar.gz HEAD
