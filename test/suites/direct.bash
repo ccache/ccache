@@ -640,7 +640,7 @@ EOF
         expect_missing code.su
 
         # clang does not produce .su files
-        if [ "$(basename "$COMPILER")" != "clang" ]; then
+        if [[ "$(basename "$COMPILER")" != clang* ]]; then
             expect_exists output.ltrans0.ltrans.su
             expect_contains output.ltrans0.ltrans.su main.c
             expect_contains output.ltrans0.ltrans.su code.c
@@ -658,7 +658,7 @@ EOF
         expect_missing code.su
 
         # clang does not produce .su files
-        if [ "$(basename "$COMPILER")" != "clang" ]; then
+        if [[ "$(basename "$COMPILER")" != clang* ]]; then
             expect_exists output.ltrans0.ltrans.su
             expect_contains output.ltrans0.ltrans.su main.c
             expect_contains output.ltrans0.ltrans.su code.c
@@ -689,7 +689,7 @@ EOF
         expect_missing code.su
 
         # clang does not produce .su files
-        if [ "$(basename "$COMPILER")" != "clang" ]; then
+        if [[ "$(basename "$COMPILER")" != clang* ]]; then
             expect_exists output.ltrans0.ltrans.su
             expect_contains output.ltrans0.ltrans.su main.c
             expect_contains output.ltrans0.ltrans.su code.c
@@ -707,7 +707,7 @@ EOF
         expect_missing code.su
 
         # clang does not produce .su files
-        if [ "$(basename "$COMPILER")" != "clang" ]; then
+        if [[ "$(basename "$COMPILER")" != clang* ]]; then
             expect_exists output.ltrans0.ltrans.su
             expect_contains output.ltrans0.ltrans.su main.c
             expect_contains output.ltrans0.ltrans.su code.c
