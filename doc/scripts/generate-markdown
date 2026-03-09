@@ -23,5 +23,5 @@ trap 'rm -f "${tmpfile}"' EXIT
   "${input}"
 
 # "\\-" -> "- " in tables, "-" otherwise
-pandoc -f docbook -t markdown "${tmpfile}" | \
+"${pandoc}" -f docbook -t markdown "${tmpfile}" | \
     sed -e 's/\\- /-  /' -e 's/\\-/-/' >"${output}"
