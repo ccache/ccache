@@ -61,7 +61,7 @@ SUITE_remote_redis_unix() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    socket=$(mktemp)
+    socket=$(mktemp "${TMPDIR:-/tmp}/tmp.XXXXXX")
     redis_url="redis+unix:${socket}"
     export CCACHE_REMOTE_STORAGE="${redis_url}"
 
@@ -92,7 +92,7 @@ SUITE_remote_redis_unix() {
     # -------------------------------------------------------------------------
     TEST "Password"
 
-    socket=$(mktemp)
+    socket=$(mktemp "${TMPDIR:-/tmp}/tmp.XXXXXX")
     password=secret123
     redis_url="redis+unix://${password}@localhost${socket}"
     export CCACHE_REMOTE_STORAGE="${redis_url}"

@@ -9,7 +9,7 @@ version=$4
 input=$5
 output=$6
 
-tmpfile=$(mktemp)
+tmpfile=$(mktemp "${TMPDIR:-/tmp}/tmp.XXXXXX")
 trap 'rm -f "${tmpfile}"' EXIT
 
 "${asciidoctor}" \

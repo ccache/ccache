@@ -2,7 +2,7 @@
 
 set -eu
 
-tmp_file=$(mktemp)
+tmp_file=$(mktemp "${TMPDIR:-/tmp}/tmp.XXXXXX")
 trap "rm $tmp_file" EXIT
 
 all=

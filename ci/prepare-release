@@ -44,7 +44,7 @@ test_posix_binary_release() {
 
     local name="ccache-${VERSION}-${arch}"
 
-    tmpdir=$(mktemp -d)
+    tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXX")
     tar -C "${tmpdir}" -xf "${PWD}/release/${name}.tar.${compression}"
     (
         cd "${tmpdir}/${name}"

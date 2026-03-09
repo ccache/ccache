@@ -13,7 +13,7 @@ cmake ..
 ninja -v package
 
 # Get out of git directory just to be sure.
-tmp_dir=$(mktemp -d)
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXX")
 trap "rm -rf $tmp_dir" EXIT
 
 tar -xf ccache-*.tar.xz -C $tmp_dir
