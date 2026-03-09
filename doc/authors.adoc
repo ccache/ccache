@@ -96,6 +96,7 @@ Ccache is a collective work with contributions from many people, including:
 * Kira Bruneau
 * Kona Blend
 * Kovarththanan Rajaratnam
+* Kristian Sloth Lauszus
 * Lalit Chhabra
 * Lars Gustäbel
 * Laurent Bouhier
