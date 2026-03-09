@@ -1,5 +1,48 @@
 = Ccache news
 
+== Ccache 4.13.1
+
+Release date: 2026-03-09
+
+
+=== Bug fixes and improvements
+
+- Fixed handling of extensionless input files passed with `-x assembler`
+  (regression in 4.13). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a crash when searching for a storage helper next to the ccache
+  executable. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed atime restoration when the recompressor fails to read a file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved storage helper lookup order to prefer libexec directories over
+  `PATH`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved reliability of finding the ccache executable path by using
+  OS-specific APIs instead of relying on `argv[0]`, which is not guaranteed to
+  reflect the actual executable location. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved handling of `-fstack-usage` and `-fcallgraph-info` output files when
+  LTO is used: ccache now correctly skips looking for `.su` and `.ci` files that
+  are not generated during compilation with LTO. +
+  [small]#_[contributed by Kristian Sloth Lauszus]_#
+
+
+=== Build fixes
+
+- Fixed build on systems that have `utimes(2)` but not `utimensat(2)`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed `mktemp(1)` calls in build scripts to pass a template argument for
+  portability to macOS/BSD. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.13
 
 Release date: 2026-03-05
