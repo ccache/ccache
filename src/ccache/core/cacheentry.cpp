@@ -187,11 +187,10 @@ CacheEntry::Header::serialize(util::Bytes& output) const
   writer.write_int(entry_size);
 }
 
-uint32_t
+uint64_t
 CacheEntry::Header::uncompressed_payload_size() const
 {
-  return static_cast<uint32_t>(entry_size - serialized_size()
-                               - k_epilogue_fields_size);
+  return entry_size - serialized_size() - k_epilogue_fields_size;
 }
 
 CacheEntry::CacheEntry(std::span<const uint8_t> data)
