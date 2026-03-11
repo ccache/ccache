@@ -47,8 +47,11 @@ UnixSocketClient::connect(const std::string& endpoint,
   }
 
   if (endpoint.length() >= sizeof(sockaddr_un::sun_path)) {
-    return tl::unexpected(
-      IpcError(IpcError::Failure::error, "Socket path too long"));
+    return tl::unexpected(IpcError(IpcError::Failure::error,
+                                   FMT("Socket path too long ({} >= {}): {}",
+                                       endpoint.length(),
+                                       sizeof(sockaddr_un::sun_path),
+                                       endpoint)));
   }
 
   // Create socket.
@@ -83,9 +86,9 @@ UnixSocketClient::connect(const std::string& endpoint,
     if (errno != EINPROGRESS && errno != EAGAIN) {
       int saved_errno = errno;
       close();
-      return tl::unexpected(
-        IpcError(IpcError::Failure::error,
-                 FMT("Connection failed: {}", strerror(saved_errno))));
+      return tl::unexpected(IpcError(
+        IpcError::Failure::error,
+        FMT("Connection to {} failed: {}", endpoint, strerror(saved_errno))));
     }
 
     // Connection in progress, wait for completion with timeout.
