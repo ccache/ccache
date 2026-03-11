@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -23,7 +23,7 @@
 #include <functional>
 
 #define DEFER(...)                                                             \
-  util::Deferrer UNIQUE_VARNAME(_deferrer_)([&] { (void)__VA_ARGS__; })
+  util::Deferrer UNIQUE_VARNAME(_deferrer_)([&] { __VA_ARGS__; })
 
 namespace util {
 

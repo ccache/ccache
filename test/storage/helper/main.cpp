@@ -537,11 +537,7 @@ main()
       fail(FMT("Failed to open log file {}", log_path));
     }
   }
-  DEFER([] {
-    if (g_log_file) {
-      std::fclose(g_log_file);
-    }
-  });
+  DEFER(if (g_log_file) { std::fclose(g_log_file); });
 
   const char* ipc_endpoint = std::getenv("CRSH_IPC_ENDPOINT");
   if (!ipc_endpoint) {
