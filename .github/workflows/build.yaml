@@ -61,7 +61,16 @@ jobs:
 
           - os: macOS-14
             compiler: xcode
-            version: "15.3"
+            version: "15.4"
+
+          - os: macOS-15
+            compiler: xcode
+            version: "16.4"
+
+          - os: macOS-26
+            compiler: xcode
+            version: "26.2"
+
     steps:
       - name: Install dependencies on Linux
         if: runner.os == 'Linux'
