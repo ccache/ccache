@@ -39,17 +39,17 @@ public:
   void erase(T value);
 
   template<typename U> static BitSet<T> from_bitmask(U mask);
-  typename std::underlying_type<T>::type to_bitmask() const;
+  typename std::underlying_type_t<T> to_bitmask() const;
 
 private:
-  typename std::underlying_type<T>::type m_value;
+  typename std::underlying_type_t<T> m_value;
 };
 
 // --- Inline implementations ---
 
 template<typename T>
 inline BitSet<T>::BitSet(T value)
-  : m_value(static_cast<typename std::underlying_type<T>::type>(value))
+  : m_value(static_cast<typename std::underlying_type_t<T>>(value))
 {
 }
 
@@ -71,7 +71,7 @@ template<typename T>
 inline bool
 BitSet<T>::contains(T value) const
 {
-  return m_value & static_cast<typename std::underlying_type<T>::type>(value);
+  return m_value & static_cast<typename std::underlying_type_t<T>>(value);
 }
 
 template<typename T>
@@ -85,21 +85,21 @@ template<typename T>
 inline void
 BitSet<T>::insert(T value)
 {
-  m_value |= static_cast<typename std::underlying_type<T>::type>(value);
+  m_value |= static_cast<typename std::underlying_type_t<T>>(value);
 }
 
 template<typename T>
 inline void
 BitSet<T>::insert(const BitSet& set)
 {
-  m_value |= static_cast<typename std::underlying_type<T>::type>(set.m_value);
+  m_value |= static_cast<typename std::underlying_type_t<T>>(set.m_value);
 }
 
 template<typename T>
 inline void
 BitSet<T>::erase(T value)
 {
-  m_value &= ~static_cast<typename std::underlying_type<T>::type>(value);
+  m_value &= ~static_cast<typename std::underlying_type_t<T>>(value);
 }
 
 template<typename T>
@@ -113,7 +113,7 @@ BitSet<T>::from_bitmask(U mask)
 }
 
 template<typename T>
-inline typename std::underlying_type<T>::type
+inline typename std::underlying_type_t<T>
 BitSet<T>::to_bitmask() const
 {
   return m_value;
