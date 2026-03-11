@@ -207,11 +207,8 @@ win32execute(const char* const* argv,
   std::string commandline = util::format_argv_as_win32_command_string(argv);
 
   fs::path tmp_file_path;
-  DEFER([&] {
-    if (!tmp_file_path.empty()) {
-      std::ignore = util::remove(tmp_file_path);
-    }
-  });
+  DEFER(
+    if (!tmp_file_path.empty()) { std::ignore = util::remove(tmp_file_path); });
 
   if (commandline.length() > 8192) {
     auto tmp_file = util::value_or_throw<core::Fatal>(
