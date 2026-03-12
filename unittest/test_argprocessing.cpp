@@ -1091,6 +1091,22 @@ TEST_CASE("ISPC multi-target produces suffixes")
   CHECK(ctx.args_info.ispc_target_suffixes[1] == "_sse4");
 }
 
+TEST_CASE("ISPC multi-target produces suffixes with separate --target arg")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target avx2-i32x8,sse4.2-i32x4 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
+  CHECK(ctx.args_info.ispc_target_suffixes[0] == "_avx2");
+  CHECK(ctx.args_info.ispc_target_suffixes[1] == "_sse4");
+}
+
 TEST_CASE("ISPC multi-target with avx10.2dmr dot notation")
 {
   TestContext test_context;
