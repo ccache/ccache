@@ -46,6 +46,7 @@
 #endif
 
 #include <algorithm>
+#include <limits>
 
 namespace fs = util::filesystem;
 
@@ -204,13 +205,6 @@ Deserializer::visit(Deserializer::Visitor& visitor) const
   }
 
   header.n_files = reader.read_int<uint8_t>();
-  if (header.n_files >= k_max_raw_file_entries) {
-    visitor.on_header(header);
-    throw Error(FMT("Too many raw file entries: {} > {}",
-                    header.n_files,
-                    k_max_raw_file_entries));
-  }
-
   visitor.on_header(header);
 
   uint8_t file_number;
@@ -289,6 +283,13 @@ Serializer::serialized_size() const
 void
 Serializer::serialize(util::Bytes& output)
 {
+  const auto max_file_entries = std::numeric_limits<uint8_t>::max();
+  if (m_file_entries.size() > max_file_entries) {
+    throw Error(FMT("Too many file entries: {} > {}",
+                    m_file_entries.size(),
+                    max_file_entries));
+  }
+
   CacheEntryDataWriter writer(output);
 
   writer.write_int(k_format_version);
