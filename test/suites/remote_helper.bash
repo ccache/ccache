@@ -93,7 +93,7 @@ SUITE_remote_helper() {
     # -------------------------------------------------------------------------
     TEST "Direct crsh: connection"
 
-    local endpoint="$PWD/test.sock"
+    local endpoint="test.sock"
 
     if $HOST_OS_WINDOWS; then
         endpoint="ccache-test-$$"
@@ -140,7 +140,7 @@ SUITE_remote_helper() {
     # -------------------------------------------------------------------------
     TEST "Connection failure handling"
 
-    local endpoint="$PWD/nonexistent.sock"
+    local endpoint="nonexistent.sock"
 
     if $HOST_OS_WINDOWS; then
         endpoint="ccache-nonexistent-$$"
