@@ -71,6 +71,10 @@ const struct
   {".TCC",  "c++-header"              },
   {".cu",   "cu"                      }, // Special case in language_for_file: "cuda" for Clang
   {".hip",  "hip"                     },
+  {".ispc", "ispc"                    },
+  {".isph", "ispc"                    },
+  // Preprocessed ISPC:
+  {".ispc.i", "ispc-cpp-output"       },
   {nullptr, nullptr                   },
 };
 
@@ -100,6 +104,8 @@ const struct
   {"assembler-with-cpp",       "assembler"               },
   {"assembler",                "assembler"               },
   {"ir",                       "ir"                      }, // Clang ThinLTO
+  {"ispc",                     "ispc-cpp-output"         },
+  {"ispc-cpp-output",          "ispc-cpp-output"         },
   {nullptr,                    nullptr                   },
 };
 
@@ -109,6 +115,10 @@ std::string_view
 language_for_file(const fs::path& path, CompilerType compiler_type)
 {
   const auto ext = path.extension();
+  if (ext == ".ispi" || path.generic_string().ends_with(".ispc.i")) {
+    return "ispc-cpp-output";
+  }
+
   if (ext == ".cu" && compiler_type == CompilerType::clang) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";

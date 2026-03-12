@@ -473,6 +473,15 @@ TEST_CASE("Config::response_file_format")
 
     CHECK(config.response_file_format() == ResponseFileFormat::windows);
   }
+
+  SUBCASE("guess from compiler ispc")
+  {
+    REQUIRE(util::write_file("ccache.conf", "compiler_type = ispc"));
+    CHECK(config.update_from_file("ccache.conf"));
+
+    CHECK(config.compiler_type() == CompilerType::ispc);
+    CHECK(config.response_file_format() == ResponseFileFormat::posix);
+  }
 }
 
 TEST_CASE("Config::set_value_in_file")

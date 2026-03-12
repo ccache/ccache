@@ -1061,4 +1061,198 @@ TEST_CASE("-Xarch_device with -Xarch_x86_64 is too hard")
   CHECK(result.error() == Statistic::unsupported_compiler_option);
 }
 
+TEST_CASE("ISPC basic compilation")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.ispc_target_suffixes.empty());
+}
+
+TEST_CASE("ISPC multi-target produces suffixes")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target=avx2-i32x8,sse4.2-i32x4 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
+  CHECK(ctx.args_info.ispc_target_suffixes[0] == "_avx2");
+  CHECK(ctx.args_info.ispc_target_suffixes[1] == "_sse4");
+}
+
+TEST_CASE("ISPC multi-target with avx10.2dmr dot notation")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target=avx2-i32x8,avx10.2dmr-x16 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
+  CHECK(ctx.args_info.ispc_target_suffixes[0] == "_avx2");
+  CHECK(ctx.args_info.ispc_target_suffixes[1] == "_avx10_2dmr");
+}
+
+TEST_CASE("ISPC header output")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target=avx2-i32x8 -h test_ispc.h test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.ispc_header_file == "test_ispc.h");
+}
+
+TEST_CASE("ISPC header output with equals syntax")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target=avx2-i32x8 --header-outfile=test_ispc.h "
+    "test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.ispc_header_file == "test_ispc.h");
+}
+
+TEST_CASE("ISPC outfile alias")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args =
+    Args::from_string("ispc --outfile=test.obj --target=avx2-i32x8 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.output_obj == "test.obj");
+}
+
+TEST_CASE("ISPC unsupported stub option consumes its filename")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc --dev-stub generated_stub.cpp --target=avx2-i32x8 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  REQUIRE(util::write_file("generated_stub.cpp", ""));
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("ISPC --emit-asm is unsupported")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args =
+    Args::from_string("ispc --emit-asm --target=avx2-i32x8 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("ISPC avx1 target suffix is _avx")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target=avx1-i32x8,sse2-i32x4 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
+  CHECK(ctx.args_info.ispc_target_suffixes[0] == "_avx");
+  CHECK(ctx.args_info.ispc_target_suffixes[1] == "_sse2");
+}
+
+TEST_CASE("ISPC sse4.1 and sse4.2 both map to _sse4")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.o --target=sse4.1-i32x4,avx2-i32x8 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
+  CHECK(ctx.args_info.ispc_target_suffixes[0] == "_sse4");
+  CHECK(ctx.args_info.ispc_target_suffixes[1] == "_avx2");
+}
+
+TEST_CASE("ISPC does not require -c flag")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 test.ispc");
+  REQUIRE(util::write_file("test.ispc", ""));
+  const auto result = process_args(ctx);
+
+  // ISPC doesn't require -c; should still be treated as compilation.
+  CHECK(result);
+}
+
+TEST_CASE("ISPC preprocessed input file is detected correctly")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 test.ispc.i");
+  REQUIRE(util::write_file("test.ispc.i", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.actual_language == "ispc-cpp-output");
+  CHECK_FALSE(ctx.args_info.preprocess_input_file);
+}
+
+TEST_CASE("ISPC .ispi input file is detected correctly")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 test.ispi");
+  REQUIRE(util::write_file("test.ispi", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.actual_language == "ispc-cpp-output");
+  CHECK_FALSE(ctx.args_info.preprocess_input_file);
+}
+
 TEST_SUITE_END();

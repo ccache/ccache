@@ -78,8 +78,6 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
-const uint8_t k_max_raw_file_entries = 10;
-
 bool
 should_store_raw_file(const Config& config, core::result::FileType type)
 {
@@ -103,7 +101,8 @@ should_store_raw_file(const Config& config, core::result::FileType type)
   // files that become large enough that it's of interest to clone or hard link
   // them, so we keep things simple for now. This will also save i-nodes in the
   // cache.
-  return type == core::result::FileType::object;
+  return type == core::result::FileType::object
+         || type == core::result::FileType::ispc_target_object;
 }
 
 } // namespace
@@ -159,6 +158,12 @@ file_type_to_string(FileType type)
 
   case FileType::source_dependencies:
     return ".sourcedeps.json";
+
+  case FileType::ispc_header:
+    return ".ispc.h";
+
+  case FileType::ispc_target_object:
+    return ".ispc-target.o";
   }
 
   return k_unknown_file_type;

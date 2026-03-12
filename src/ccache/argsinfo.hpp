@@ -181,4 +181,12 @@ struct ArgsInfo
 
   // Thinlto index from -fthinlto-index=
   std::filesystem::path thinlto_index_path;
+
+  // ISPC header output file specified with -h or --header-outfile.
+  std::filesystem::path ispc_header_file;
+
+  // ISPC multi-target: list of ISA suffixes for extra object files.
+  // E.g., for --target=sse4.2-i32x4,avx2-i32x8 this would be {"_sse4",
+  // "_avx2"}.
+  std::vector<std::string> ispc_target_suffixes;
 };

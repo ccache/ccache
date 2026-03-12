@@ -328,6 +328,8 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != std::string_view::npos) {
     return CompilerType::nvcc;
+  } else if (name.find("ispc") != std::string_view::npos) {
+    return CompilerType::ispc;
   } else if (name == "icl") {
     return CompilerType::icl;
   } else if (name == "icx") {
@@ -1069,6 +1071,28 @@ write_result(Context& ctx,
                               ctx.args_info.output_al)) {
     LOG("Assembler listing file {} missing", ctx.args_info.output_al);
     return false;
+  }
+
+  // ISPC header output (-h or --header-outfile).
+  if (!ctx.args_info.ispc_header_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_header,
+                              ctx.args_info.ispc_header_file)) {
+    LOG("ISPC header file {} missing", ctx.args_info.ispc_header_file);
+    return false;
+  }
+
+  // ISPC multi-target extra object files.
+  for (size_t idx = 0; idx < ctx.args_info.ispc_target_suffixes.size(); ++idx) {
+    const auto& suffix = ctx.args_info.ispc_target_suffixes[idx];
+    auto stem = ctx.args_info.output_obj.stem().string() + suffix;
+    auto ext = ctx.args_info.output_obj.extension();
+    auto extra_obj =
+      ctx.args_info.output_obj.parent_path() / (stem + ext.string());
+    auto file_type = core::result::FileType::ispc_target_object;
+    if (!serializer.add_file(file_type, extra_obj)) {
+      LOG("ISPC target object file {} missing", extra_obj);
+      return false;
+    }
   }
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);

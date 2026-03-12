@@ -95,6 +95,14 @@ enum class FileType : UnderlyingFileTypeInt {
 
   // Source dependencies file specified by MSVC /sourceDependencies.
   source_dependencies = 13,
+
+  // ISPC header file output specified by -h or --header-outfile.
+  ispc_header = 14,
+
+  // ISPC multi-target extra object file. Multiple files of this type may be
+  // present in a result entry; they are distinguished by their order, which
+  // matches the order of targets in the --target argument.
+  ispc_target_object = 15,
 };
 
 const char* file_type_to_string(FileType type);
