@@ -463,7 +463,10 @@ void
 IpcServer::run()
 {
   if (m_endpoint.length() >= sizeof(sockaddr_un::sun_path)) {
-    fail("Socket path too long");
+    fail(FMT("Socket path too long ({} >= {}): {}",
+             m_endpoint.length(),
+             sizeof(sockaddr_un::sun_path),
+             m_endpoint));
   }
 
   (void)fs::remove(m_endpoint);
