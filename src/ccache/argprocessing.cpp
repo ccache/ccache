@@ -1646,7 +1646,7 @@ std::vector<std::string>
 compute_ispc_target_suffixes(const util::Args& args)
 {
   std::vector<std::string> suffixes;
-  for (size_t i = 1; i < args.size(); i++) {
+  for (size_t i = 1; i < args.size(); ++i) {
     std::string_view arg(args[i]);
     std::string target_value;
 
@@ -1654,7 +1654,6 @@ compute_ispc_target_suffixes(const util::Args& args)
       target_value = arg.substr(9);
     } else if (arg == "--target" && i + 1 < args.size()) {
       target_value = args[i + 1];
-      i++;
     } else {
       continue;
     }
