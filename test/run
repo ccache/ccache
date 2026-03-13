@@ -53,6 +53,12 @@ test_failed_internal() {
     local line="$(caller 1)"
     line=" (line ${line%% *})"
 
+    if [ ! -z "${CI}" ]
+    then
+      dump_failure_log "CCACHE_LOGFILE" "${CCACHE_LOGFILE:-}"
+      dump_failure_log "CRSH_LOGFILE" "${CRSH_LOGFILE:-}"
+    fi
+
     echo
     red FAILED
     echo
@@ -73,6 +79,28 @@ test_failed_internal() {
     echo "Test data and log file have been left in $TESTDIR / $TEST_FAILED_SYMLINK"
     symlink_testdir_on_failure
     exit 1
+}
+
+dump_failure_log() {
+    local label="$1"
+    local path="$2"
+
+    if [ -z "$path" ]; then
+        return
+    fi
+
+    if [[ $path != /* ]]; then
+        path="$PWD/$path"
+    fi
+
+    if [ ! -f "$path" ]; then
+        return
+    fi
+
+    echo "$label ($path)"
+    echo "=========================="
+    tail -n 200 "$path"
+    echo
 }
 
 # Indirection so the line returned by `caller` is correct.
