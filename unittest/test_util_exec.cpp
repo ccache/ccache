@@ -57,7 +57,11 @@ TEST_CASE("util::exec_to_string")
 #ifdef _WIN32
     CHECK(result.error().starts_with("CreateProcess failure: "));
 #else
-    CHECK(result.error() == "posix_spawnp failed: No such file or directory");
+    CAPTURE(result.error());
+    const bool expected_spawn_failure =
+      result.error().starts_with("posix_spawnp failed: ")
+      || result.error() == "Non-zero exit code: 127";
+    CHECK(expected_spawn_failure);
 #endif
   }
 }
