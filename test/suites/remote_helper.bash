@@ -27,7 +27,10 @@ SUITE_remote_helper_PROBE() {
 SUITE_remote_helper_SETUP() {
     unset CCACHE_NODIRECT
 
-    export CRSH_IDLE_TIMEOUT="10"
+    # Keep the helper alive long enough for the whole test case. A short
+    # timeout makes the direct-connection checks flaky on slower systems since
+    # the second compile is a local hit and doesn't touch the helper.
+    export CRSH_IDLE_TIMEOUT="30"
     export CRSH_LOGFILE="ccache-storage-test.log"
     generate_code 1 test.c
 }
