@@ -49,6 +49,10 @@ zstd_decompress(std::span<const uint8_t> input,
                 Bytes& output,
                 size_t original_size)
 {
+  if (original_size == 0) {
+    return {};
+  }
+
   const size_t original_output_size = output.size();
 
   output.resize(original_output_size + original_size);
