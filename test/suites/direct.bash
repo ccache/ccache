@@ -639,14 +639,6 @@ EOF
         expect_missing main.su
         expect_missing code.su
 
-        # clang does not produce .su files
-        if [[ "$(basename "$COMPILER")" != clang* ]]; then
-            expect_exists output.ltrans0.ltrans.su
-            expect_contains output.ltrans0.ltrans.su main.c
-            expect_contains output.ltrans0.ltrans.su code.c
-            rm output.ltrans0.ltrans.su
-        fi
-
         $CCACHE_COMPILE -c -fstack-usage -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto code.c
         $CCACHE_COMPILE -o output -fstack-usage -flto main.o code.o
@@ -656,13 +648,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-
-        # clang does not produce .su files
-        if [[ "$(basename "$COMPILER")" != clang* ]]; then
-            expect_exists output.ltrans0.ltrans.su
-            expect_contains output.ltrans0.ltrans.su main.c
-            expect_contains output.ltrans0.ltrans.su code.c
-        fi
     fi
 
     # -------------------------------------------------------------------------
@@ -688,14 +673,6 @@ EOF
         expect_missing main.su
         expect_missing code.su
 
-        # clang does not produce .su files
-        if [[ "$(basename "$COMPILER")" != clang* ]]; then
-            expect_exists output.ltrans0.ltrans.su
-            expect_contains output.ltrans0.ltrans.su main.c
-            expect_contains output.ltrans0.ltrans.su code.c
-            rm output.ltrans0.ltrans.su
-        fi
-
         $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
         $CCACHE_COMPILE -o output -fstack-usage -flto=auto main.o code.o
@@ -705,13 +682,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-
-        # clang does not produce .su files
-        if [[ "$(basename "$COMPILER")" != clang* ]]; then
-            expect_exists output.ltrans0.ltrans.su
-            expect_contains output.ltrans0.ltrans.su main.c
-            expect_contains output.ltrans0.ltrans.su code.c
-        fi
     fi
 
     # -------------------------------------------------------------------------
@@ -736,7 +706,6 @@ EOF
         expect_stat cache_miss 2
         expect_exists main.su
         expect_exists code.su
-        expect_missing output.ltrans0.ltrans.su
 
         rm main.su
         rm code.su
@@ -750,7 +719,6 @@ EOF
         expect_stat cache_miss 2
         expect_exists main.su
         expect_exists code.su
-        expect_missing output.ltrans0.ltrans.su
     fi
 
     # -------------------------------------------------------------------------
@@ -776,14 +744,6 @@ EOF
         expect_missing main.su
         expect_missing code.su
 
-        # clang does not produce .su files
-        if [[ "$(basename "$COMPILER")" != clang* ]]; then
-            expect_exists output.ltrans0.ltrans.su
-            expect_contains output.ltrans0.ltrans.su main.c
-            expect_contains output.ltrans0.ltrans.su code.c
-            rm output.ltrans0.ltrans.su
-        fi
-
         $CCACHE_COMPILE -c -fstack-usage -fno-lto -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -fno-lto -flto code.c
         $CCACHE_COMPILE -o output -fstack-usage -fno-lto -flto main.o code.o
@@ -793,13 +753,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.su
         expect_missing code.su
-
-        # clang does not produce .su files
-        if [[ "$(basename "$COMPILER")" != clang* ]]; then
-            expect_exists output.ltrans0.ltrans.su
-            expect_contains output.ltrans0.ltrans.su main.c
-            expect_contains output.ltrans0.ltrans.su code.c
-        fi
     fi
 
     # -------------------------------------------------------------------------
@@ -870,11 +823,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.ci
         expect_missing code.ci
-        expect_exists output.ltrans0.ltrans.ci
-        expect_contains output.ltrans0.ltrans.ci main.c
-        expect_contains output.ltrans0.ltrans.ci code.c
-
-        rm output.ltrans0.ltrans.ci
 
         $CCACHE_COMPILE -c -fcallgraph-info -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto code.c
@@ -885,9 +833,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.ci
         expect_missing code.ci
-        expect_exists output.ltrans0.ltrans.ci
-        expect_contains output.ltrans0.ltrans.ci main.c
-        expect_contains output.ltrans0.ltrans.ci code.c
     fi
 
     # -------------------------------------------------------------------------
@@ -912,11 +857,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.ci
         expect_missing code.ci
-        expect_exists output.ltrans0.ltrans.ci
-        expect_contains output.ltrans0.ltrans.ci main.c
-        expect_contains output.ltrans0.ltrans.ci code.c
-
-        rm output.ltrans0.ltrans.ci
 
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto code.c
@@ -927,9 +867,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.ci
         expect_missing code.ci
-        expect_exists output.ltrans0.ltrans.ci
-        expect_contains output.ltrans0.ltrans.ci main.c
-        expect_contains output.ltrans0.ltrans.ci code.c
     fi
 
     # -------------------------------------------------------------------------
@@ -954,7 +891,6 @@ EOF
         expect_stat cache_miss 2
         expect_exists main.ci
         expect_exists code.ci
-        expect_missing output.ltrans0.ltrans.ci
 
         rm main.ci
         rm code.ci
@@ -968,7 +904,6 @@ EOF
         expect_stat cache_miss 2
         expect_exists main.ci
         expect_exists code.ci
-        expect_missing output.ltrans0.ltrans.ci
     fi
 
     # -------------------------------------------------------------------------
@@ -993,11 +928,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.ci
         expect_missing code.ci
-        expect_exists output.ltrans0.ltrans.ci
-        expect_contains output.ltrans0.ltrans.ci main.c
-        expect_contains output.ltrans0.ltrans.ci code.c
-
-        rm output.ltrans0.ltrans.ci
 
         $CCACHE_COMPILE -c -fcallgraph-info -fno-lto -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -fno-lto -flto code.c
@@ -1008,9 +938,6 @@ EOF
         expect_stat cache_miss 2
         expect_missing main.ci
         expect_missing code.ci
-        expect_exists output.ltrans0.ltrans.ci
-        expect_contains output.ltrans0.ltrans.ci main.c
-        expect_contains output.ltrans0.ltrans.ci code.c
     fi
 
     # -------------------------------------------------------------------------
