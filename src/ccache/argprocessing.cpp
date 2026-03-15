@@ -1248,8 +1248,16 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  // LTO can be enabled with -flto[=n]
   if (arg == "-flto" || arg.starts_with("-flto=")) {
     args_info.using_lto = true;
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
+  // LTO can be disabled with -fno-lto
+  if (arg == "-fno-lto") {
+    args_info.using_lto = false;
     state.add_common_arg(args[i]);
     return Statistic::none;
   }
