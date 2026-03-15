@@ -1530,7 +1530,7 @@ process_args(Context& ctx)
     bool included_pch_file_by_source = args_info.included_pch_file.empty();
 
     if (!included_pch_file_by_source
-        && (util::pstr(args_info.orig_included_pch_file).str().back() == '\\'
+        && (util::pstr(args_info.orig_included_pch_file).str().ends_with('\\')
             || DirEntry(args_info.orig_included_pch_file).is_directory())) {
       LOG("Unsupported folder path value for -Fp: {}",
           args_info.included_pch_file);
