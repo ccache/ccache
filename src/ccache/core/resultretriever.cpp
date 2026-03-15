@@ -240,8 +240,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
     if (idx < m_ctx.args_info.ispc_target_suffixes.size()
         && !m_ctx.args_info.ispc_header_file.empty()) {
       const auto& suffix = m_ctx.args_info.ispc_target_suffixes[idx];
-      auto stem =
-        m_ctx.args_info.ispc_header_file.stem().string() + suffix;
+      auto stem = m_ctx.args_info.ispc_header_file.stem().string() + suffix;
       auto ext = m_ctx.args_info.ispc_header_file.extension();
       return m_ctx.args_info.ispc_header_file.parent_path()
              / (stem + ext.string());

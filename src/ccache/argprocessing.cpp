@@ -516,8 +516,7 @@ process_option_arg(const Context& ctx,
       state.found_mf_opt = true;
       if (state.output_dep_origin <= OutputDepOrigin::mf) {
         state.output_dep_origin = OutputDepOrigin::mf;
-        args_info.output_dep =
-          core::make_relative_path(ctx, args[i + 1]);
+        args_info.output_dep = core::make_relative_path(ctx, args[i + 1]);
       }
       state.add_compiler_only_arg(args[i]);
       state.add_compiler_only_arg(args_info.output_dep);
@@ -621,10 +620,9 @@ process_option_arg(const Context& ctx,
         || arg.starts_with("--stack-protector=") || arg == "--nostdlib"
         || arg == "--no-pragma-once" || arg == "--include-float16-conversions"
         || arg == "--wrap-signed-int" || arg == "--no-wrap-signed-int"
-        || arg.starts_with("--addressing=")
-        || arg.starts_with("--arch=") || arg.starts_with("--cpu=")
-        || arg.starts_with("--device=") || arg.starts_with("-f")
-        || arg.starts_with("-O")) {
+        || arg.starts_with("--addressing=") || arg.starts_with("--arch=")
+        || arg.starts_with("--cpu=") || arg.starts_with("--device=")
+        || arg.starts_with("-f") || arg.starts_with("-O")) {
       state.add_common_arg(args[i]);
       return Statistic::none;
     }

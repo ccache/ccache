@@ -1124,8 +1124,7 @@ write_result(Context& ctx,
   // objects when -h is used with a multi-target --target).
   if (!ctx.args_info.ispc_header_file.empty()) {
     for (const auto& suffix : ctx.args_info.ispc_target_suffixes) {
-      auto hdr_stem =
-        ctx.args_info.ispc_header_file.stem().string() + suffix;
+      auto hdr_stem = ctx.args_info.ispc_header_file.stem().string() + suffix;
       auto hdr_ext = ctx.args_info.ispc_header_file.extension();
       auto extra_hdr = ctx.args_info.ispc_header_file.parent_path()
                        / (hdr_stem + hdr_ext.string());

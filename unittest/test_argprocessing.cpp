@@ -1186,8 +1186,8 @@ TEST_CASE("ISPC --emit-asm is supported")
   TestContext test_context;
   Context ctx;
   ctx.config.set_compiler_type(CompilerType::ispc);
-  ctx.orig_args =
-    Args::from_string("ispc -o test.s --emit-asm --target=avx2-i32x8 test.ispc");
+  ctx.orig_args = Args::from_string(
+    "ispc -o test.s --emit-asm --target=avx2-i32x8 test.ispc");
   REQUIRE(util::write_file("test.ispc", ""));
   const auto result = process_args(ctx);
 
@@ -1319,8 +1319,8 @@ TEST_CASE("ISPC -M without -MF still works")
   TestContext test_context;
   Context ctx;
   ctx.config.set_compiler_type(CompilerType::ispc);
-  ctx.orig_args = Args::from_string(
-    "ispc -o test.o --target=avx2-i32x8 -M test.ispc");
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 -M test.ispc");
   REQUIRE(util::write_file("test.ispc", ""));
   const auto result = process_args(ctx);
 
@@ -1498,8 +1498,8 @@ TEST_CASE("ISPC -MF missing argument")
   TestContext test_context;
   Context ctx;
   ctx.config.set_compiler_type(CompilerType::ispc);
-  ctx.orig_args = Args::from_string(
-    "ispc -o test.o --target=avx2-i32x8 -M test.ispc -MF");
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 -M test.ispc -MF");
   REQUIRE(util::write_file("test.ispc", ""));
   const auto result = process_args(ctx);
 
@@ -1511,8 +1511,8 @@ TEST_CASE("ISPC -MT missing argument")
   TestContext test_context;
   Context ctx;
   ctx.config.set_compiler_type(CompilerType::ispc);
-  ctx.orig_args = Args::from_string(
-    "ispc -o test.o --target=avx2-i32x8 -M test.ispc -MT");
+  ctx.orig_args =
+    Args::from_string("ispc -o test.o --target=avx2-i32x8 -M test.ispc -MT");
   REQUIRE(util::write_file("test.ispc", ""));
   const auto result = process_args(ctx);
 
