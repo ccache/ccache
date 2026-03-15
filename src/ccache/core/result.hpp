@@ -103,6 +103,20 @@ enum class FileType : UnderlyingFileTypeInt {
   // present in a result entry; they are distinguished by their order, which
   // matches the order of targets in the --target argument.
   ispc_target_object = 15,
+
+  // ISPC multi-target extra header file. Multiple files of this type may be
+  // present in a result entry; they are distinguished by their order, which
+  // matches the order of targets in the --target argument.
+  ispc_target_header = 16,
+
+  // ISPC device-side offload stub specified by --dev-stub.
+  ispc_dev_stub = 17,
+
+  // ISPC host-side offload stub specified by --host-stub.
+  ispc_host_stub = 18,
+
+  // ISPC nanobind wrapper specified by --nanobind-wrapper.
+  ispc_nanobind_wrapper = 19,
 };
 
 const char* file_type_to_string(FileType type);

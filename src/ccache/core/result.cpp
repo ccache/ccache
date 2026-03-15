@@ -165,6 +165,18 @@ file_type_to_string(FileType type)
 
   case FileType::ispc_target_object:
     return ".ispc-target.o";
+
+  case FileType::ispc_target_header:
+    return ".ispc-target.h";
+
+  case FileType::ispc_dev_stub:
+    return ".ispc-dev-stub";
+
+  case FileType::ispc_host_stub:
+    return ".ispc-host-stub";
+
+  case FileType::ispc_nanobind_wrapper:
+    return ".ispc-nanobind-wrapper";
   }
 
   return k_unknown_file_type;

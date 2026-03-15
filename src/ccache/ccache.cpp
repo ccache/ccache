@@ -1081,6 +1081,31 @@ write_result(Context& ctx,
     return false;
   }
 
+  // ISPC device-side offload stub (--dev-stub).
+  if (!ctx.args_info.ispc_dev_stub_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_dev_stub,
+                              ctx.args_info.ispc_dev_stub_file)) {
+    LOG("ISPC dev-stub file {} missing", ctx.args_info.ispc_dev_stub_file);
+    return false;
+  }
+
+  // ISPC host-side offload stub (--host-stub).
+  if (!ctx.args_info.ispc_host_stub_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_host_stub,
+                              ctx.args_info.ispc_host_stub_file)) {
+    LOG("ISPC host-stub file {} missing", ctx.args_info.ispc_host_stub_file);
+    return false;
+  }
+
+  // ISPC nanobind wrapper (--nanobind-wrapper).
+  if (!ctx.args_info.ispc_nanobind_wrapper_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_nanobind_wrapper,
+                              ctx.args_info.ispc_nanobind_wrapper_file)) {
+    LOG("ISPC nanobind-wrapper file {} missing",
+        ctx.args_info.ispc_nanobind_wrapper_file);
+    return false;
+  }
+
   // ISPC multi-target extra object files.
   for (size_t idx = 0; idx < ctx.args_info.ispc_target_suffixes.size(); ++idx) {
     const auto& suffix = ctx.args_info.ispc_target_suffixes[idx];
@@ -1092,6 +1117,23 @@ write_result(Context& ctx,
     if (!serializer.add_file(file_type, extra_obj)) {
       LOG("ISPC target object file {} missing", extra_obj);
       return false;
+    }
+  }
+
+  // ISPC multi-target extra header files (produced alongside the per-target
+  // objects when -h is used with a multi-target --target).
+  if (!ctx.args_info.ispc_header_file.empty()) {
+    for (const auto& suffix : ctx.args_info.ispc_target_suffixes) {
+      auto hdr_stem =
+        ctx.args_info.ispc_header_file.stem().string() + suffix;
+      auto hdr_ext = ctx.args_info.ispc_header_file.extension();
+      auto extra_hdr = ctx.args_info.ispc_header_file.parent_path()
+                       / (hdr_stem + hdr_ext.string());
+      if (!serializer.add_file(core::result::FileType::ispc_target_header,
+                               extra_hdr)) {
+        LOG("ISPC target header file {} missing", extra_hdr);
+        return false;
+      }
     }
   }
 

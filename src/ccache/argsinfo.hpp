@@ -185,6 +185,15 @@ struct ArgsInfo
   // ISPC header output file specified with -h or --header-outfile.
   std::filesystem::path ispc_header_file;
 
+  // ISPC device-side offload stub specified with --dev-stub.
+  std::filesystem::path ispc_dev_stub_file;
+
+  // ISPC host-side offload stub specified with --host-stub.
+  std::filesystem::path ispc_host_stub_file;
+
+  // ISPC nanobind wrapper specified with --nanobind-wrapper.
+  std::filesystem::path ispc_nanobind_wrapper_file;
+
   // ISPC multi-target: list of ISA suffixes for extra object files.
   // E.g., for --target=sse4.2-i32x4,avx2-i32x8 this would be {"_sse4",
   // "_avx2"}.
