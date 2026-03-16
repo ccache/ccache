@@ -1184,7 +1184,7 @@ process_option_arg(const Context& ctx,
   }
 
   // we don't support gcc's -fdiagnostics-add-output yet
-  if (arg == "-fdiagnostics-format=") {
+  if (arg.starts_with("-fdiagnostics-format=")) {
     using namespace std::string_view_literals;
     auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
     if (param == "sarif-file") {
@@ -1194,8 +1194,36 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if(arg.starts_with("-fdiagnostics-add-output=")
+    || arg.starts_with("-fdiagnostics-set-output=")){
+    // replace or add another diagnostic view
+    // we care for sarif only
+    /* expect -fdiagnostics-set-output=sarif:file=filename */
+    auto arg_sv = std::string_view(arg);
+    // add and set are the same length
+    auto param = arg_sv.substr(std::string_view("-fdiagnostics-add-output=").size());
+    auto sarif_pos =  param.find("sarif");
+    auto file_pos =  param.find("file=");
+    if( sarif_pos != std::string_view::npos ){
+    state.add_compiler_only_arg( args[i]);
+    args_info.generating_sarif = true;
+
+    if( file_pos != std::string_view::npos ){
+      auto file_parm = param.substr(file_pos + std::string_view("file=").size());
+      auto file_end=file_parm.find(',');
+      if ( file_end != std::string_view::npos){
+        args_info.output_sarif = core::make_relative_path(ctx, file_parm.substr(0,file_end));
+      } else {
+        args_info.output_sarif = core::make_relative_path(ctx, file_parm);
+      }
+
+    }
+  }
+  return Statistic::none;
+  }
+
   const std::string_view msvc_sarif_switch = "-experimental:log";
-  if (util::starts_with(arg, msvc_sarif_switch)) {
+  if (arg.starts_with(msvc_sarif_switch)) {
     state.add_compiler_only_arg(args[i]);
     // The argument can be separated by space, but doesn't have to be.
     std::string_view param;
@@ -1213,14 +1241,13 @@ process_option_arg(const Context& ctx,
     args_info.generating_sarif = true;
     // The param can be a filename or a dir (ends with '\'), both absolute or
     // relative
-    bool was_folder = util::ends_with(param, "\\");
+    bool was_folder = param.ends_with("\\");
     if (was_folder) {
       args_info.output_sarif = param;
     } else {
       args_info.output_sarif = std::string(param) + ".sarif";
     }
-    args_info.output_sarif =
-      core::make_relative_path(ctx, args_info.output_sarif);
+    args_info.output_sarif = core::make_relative_path(ctx, args_info.output_sarif);
     if (was_folder) {
       // core::make_relative_path removes the trailing '\', but we need it
       // later. So add it back
