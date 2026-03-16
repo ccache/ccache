@@ -328,6 +328,8 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != std::string_view::npos) {
     return CompilerType::nvcc;
+  } else if (name == "qcc" || name == "q++") {
+    return CompilerType::qcc;
   } else if (name == "icl") {
     return CompilerType::icl;
   } else if (name == "icx") {
@@ -825,7 +827,7 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
   util::UmaskScope umask_scope(ctx.original_umask);
 
   if (ctx.diagnostics_color_failed) {
-    DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
+    DEBUG_ASSERT(ctx.config.is_compiler_group_gcc());
     args.erase_last("-fdiagnostics-color");
   }
 
@@ -837,11 +839,11 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
                        std::move(tmp_stdout.fd),
                        std::move(tmp_stderr.fd));
   if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.config.compiler_type() == CompilerType::gcc) {
+      && ctx.config.is_compiler_group_gcc()) {
     const auto errors = util::read_file<std::string>(tmp_stderr.path);
     if (errors && errors->find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
-      // non-GCC compilers misclassified as CompilerType::gcc might not do it
+      // non-GCC compilers misclassified as GCC-like might not do it
       // either. We assume that if the error message contains
       // "fdiagnostics-color" then the compilation failed due to
       // -fdiagnostics-color being unsupported and we then retry without the
@@ -1870,11 +1872,23 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
-  if (ctx.config.compiler_type() == CompilerType::gcc) {
+  if (ctx.config.is_compiler_group_gcc()) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
       hash.hash(gcc_colors);
+    }
+  }
+
+  // Hash QNX-specific environment variables that affect QCC behavior.
+  if (ctx.config.compiler_type() == CompilerType::qcc) {
+    const char* qnx_env_vars[] = {"QNX_HOST", "QNX_TARGET", "QCC_CONF_PATH"};
+    for (const char* name : qnx_env_vars) {
+      const char* value = getenv(name);
+      if (value) {
+        hash.hash_delimiter(name);
+        hash.hash(value);
+      }
     }
   }
 

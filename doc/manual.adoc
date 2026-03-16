@@ -683,6 +683,8 @@ _<<Using ccache with other compiler wrappers>>_.
     Microsoft Visual C++ (MSVC).
 *nvcc*::
     NVCC (CUDA) compiler.
+*qcc*::
+    QCC (QNX) compiler.
 *other*::
     Any compiler other than the known types.
 --
