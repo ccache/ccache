@@ -471,9 +471,7 @@ process_option_arg(const Context& ctx,
   // These are always too hard.
   if (compopt_too_hard(arg) || arg.starts_with("-fdump-")
       || arg.starts_with("-MJ") || arg.starts_with("--config-system-dir=")
-      || arg.starts_with("--config-user-dir=")
-      || arg.starts_with("-fdiagnostics-add-output=")
-      || arg.starts_with("-fdiagnostics-set-output=")){
+      || arg.starts_with("--config-user-dir=")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
@@ -1168,8 +1166,8 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  // we don't support gcc's -fdiagnostics-add-output yet
   if (arg.starts_with("-fdiagnostics-format=")) {
+    LOG("-fdiagnostics-format=");
     using namespace std::string_view_literals;
     auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
     if (param == "sarif-file") {
@@ -1179,32 +1177,32 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if(arg.starts_with("-fdiagnostics-add-output=")
-    || arg.starts_with("-fdiagnostics-set-output=")){
-    // replace or add another diagnostic view
-    // we care for sarif only
-    /* expect -fdiagnostics-set-output=sarif:file=filename */
+  if (arg.starts_with("-fdiagnostics-add-output=")
+      || arg.starts_with("-fdiagnostics-set-output=")) {
+    // replace (set) or add another diagnostic view
+    // we care for sarif only as text would not produce a file
     auto arg_sv = std::string_view(arg);
     // add and set are the same length
-    auto param = arg_sv.substr(std::string_view("-fdiagnostics-add-output=").size());
-    auto sarif_pos =  param.find("sarif");
-    auto file_pos =  param.find("file=");
-    if( sarif_pos != std::string_view::npos ){
-    state.add_compiler_only_arg( args[i]);
-    args_info.generating_sarif = true;
-
-    if( file_pos != std::string_view::npos ){
-      auto file_parm = param.substr(file_pos + std::string_view("file=").size());
-      auto file_end=file_parm.find(',');
-      if ( file_end != std::string_view::npos){
-        args_info.output_sarif = core::make_relative_path(ctx, file_parm.substr(0,file_end));
-      } else {
-        args_info.output_sarif = core::make_relative_path(ctx, file_parm);
+    auto param =
+      arg_sv.substr(std::string_view("-fdiagnostics-add-output=").size());
+    auto sarif_pos = param.find("sarif");
+    auto file_pos = param.find("file=");
+    if (sarif_pos != std::string_view::npos) {
+      state.add_compiler_only_arg(args[i]);
+      args_info.generating_sarif = true;
+      if (file_pos != std::string_view::npos) {
+        auto file_param =
+          param.substr(file_pos + std::string_view("file=").size());
+        auto file_end = file_param.find(',');
+        if (file_end != std::string_view::npos) {
+          args_info.output_sarif =
+            core::make_relative_path(ctx, file_param.substr(0, file_end));
+        } else {
+          args_info.output_sarif = core::make_relative_path(ctx, file_param);
+        }
       }
-
     }
-  }
-  return Statistic::none;
+    return Statistic::none;
   }
 
   const std::string_view msvc_sarif_switch = "-experimental:log";
@@ -1232,7 +1230,8 @@ process_option_arg(const Context& ctx,
     } else {
       args_info.output_sarif = std::string(param) + ".sarif";
     }
-    args_info.output_sarif = core::make_relative_path(ctx, args_info.output_sarif);
+    args_info.output_sarif =
+      core::make_relative_path(ctx, args_info.output_sarif);
     if (was_folder) {
       // core::make_relative_path removes the trailing '\', but we need it
       // later. So add it back
@@ -1630,8 +1629,11 @@ process_args(Context& ctx)
           args_info.input_file.stem().generic_string() + ".sarif";
       }
     } else {
-      args_info.output_sarif = args_info.input_file;
-      args_info.output_sarif.append(".sarif");
+      if (args_info.output_sarif.empty()) {
+        args_info.output_sarif = args_info.input_file;
+        args_info.output_sarif.concat(".sarif");
+      }
+      // else we assume path is set by param
     }
   }
 
