@@ -3169,19 +3169,19 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  if (!ctx.config.depend_mode() && !should_skip_preprocessor_mode_for_ispc(ctx)) {
+  if (!ctx.config.depend_mode()
+      && !should_skip_preprocessor_mode_for_ispc(ctx)) {
     // Find the hash using the preprocessed output. Also updates
     // ctx.included_files.
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx, cpp_hash, 'p', "PREPROCESSOR MODE", debug_text_file);
 
-    auto preprocessor_args =
-      get_preprocessor_args_for_cache_lookup(ctx, processed_args.preprocessor_args);
+    auto preprocessor_args = get_preprocessor_args_for_cache_lookup(
+      ctx, processed_args.preprocessor_args);
 
-    TRY_ASSIGN(
-      const auto result_and_manifest_key,
-      calculate_result_and_manifest_key(
-        ctx, args_to_hash, cpp_hash, &preprocessor_args));
+    TRY_ASSIGN(const auto result_and_manifest_key,
+               calculate_result_and_manifest_key(
+                 ctx, args_to_hash, cpp_hash, &preprocessor_args));
     result_key = result_and_manifest_key.first;
 
     // calculate_result_and_manifest_key always returns a non-nullopt result_key
@@ -3227,7 +3227,9 @@ do_cache_compilation(Context& ctx)
       ctx.storage.local.increment_statistic(Statistic::preprocessed_cache_miss);
     }
   } else if (should_use_depfile_result_key_for_ispc(ctx)) {
-    LOG("Skipping ISPC preprocessor-mode result key lookup; will derive result key from dependency output after compilation");
+    LOG(
+      "Skipping ISPC preprocessor-mode result key lookup; will derive result "
+      "key from dependency output after compilation");
   }
 
   if (ctx.config.read_only()) {
