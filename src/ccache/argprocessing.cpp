@@ -1744,12 +1744,19 @@ ispc_target_suffix(const std::string& target)
   return "_" + isa_base;
 }
 
-// Parse ISPC --target argument to extract individual targets and compute
-// multi-target suffixes. Returns the list of suffixes for extra object files.
-std::vector<std::string>
-compute_ispc_target_suffixes(const util::Args& args)
+struct IspcTargetInfo
 {
   std::vector<std::string> suffixes;
+  std::string first_target;
+};
+
+// Parse ISPC --target argument to extract individual targets and compute
+// multi-target suffixes. Returns metadata for extra object files and the first
+// target in the list.
+IspcTargetInfo
+compute_ispc_target_info(const util::Args& args)
+{
+  IspcTargetInfo target_info;
   for (size_t i = 1; i < args.size(); ++i) {
     std::string_view arg(args[i]);
     std::string target_value;
@@ -1764,18 +1771,21 @@ compute_ispc_target_suffixes(const util::Args& args)
 
     // Check for multi-target (comma-separated).
     if (target_value.find(',') == std::string::npos) {
-      // Single target: no extra object files.
-      return {};
+      target_info.first_target = target_value;
+      return target_info;
     }
 
     // Multi-target: split by comma and compute suffixes.
     for (const auto token : util::Tokenizer(target_value, ",")) {
-      suffixes.push_back(ispc_target_suffix(std::string(token)));
+      if (target_info.first_target.empty()) {
+        target_info.first_target = token;
+      }
+      target_info.suffixes.push_back(ispc_target_suffix(std::string(token)));
     }
     break; // Only one --target argument is meaningful.
   }
 
-  return suffixes;
+  return target_info;
 }
 
 } // namespace
@@ -1816,7 +1826,9 @@ process_args(Context& ctx)
 
   // For ISPC, compute multi-target suffixes from the --target argument.
   if (config.compiler_type() == CompilerType::ispc) {
-    args_info.ispc_target_suffixes = compute_ispc_target_suffixes(args);
+    const auto target_info = compute_ispc_target_info(args);
+    args_info.ispc_target_suffixes = target_info.suffixes;
+    args_info.ispc_first_target = target_info.first_target;
   }
 
   if (state.input_files.empty()) {

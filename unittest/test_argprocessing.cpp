@@ -1073,6 +1073,7 @@ TEST_CASE("ISPC basic compilation")
 
   CHECK(result);
   CHECK(ctx.args_info.ispc_target_suffixes.empty());
+  CHECK(ctx.args_info.ispc_first_target == "avx2-i32x8");
 }
 
 TEST_CASE("ISPC multi-target produces suffixes")
@@ -1089,6 +1090,7 @@ TEST_CASE("ISPC multi-target produces suffixes")
   REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
   CHECK(ctx.args_info.ispc_target_suffixes[0] == "_avx2");
   CHECK(ctx.args_info.ispc_target_suffixes[1] == "_sse4");
+  CHECK(ctx.args_info.ispc_first_target == "avx2-i32x8");
 }
 
 TEST_CASE("ISPC multi-target produces suffixes with separate --target arg")
@@ -1105,6 +1107,7 @@ TEST_CASE("ISPC multi-target produces suffixes with separate --target arg")
   REQUIRE(ctx.args_info.ispc_target_suffixes.size() == 2);
   CHECK(ctx.args_info.ispc_target_suffixes[0] == "_avx2");
   CHECK(ctx.args_info.ispc_target_suffixes[1] == "_sse4");
+  CHECK(ctx.args_info.ispc_first_target == "avx2-i32x8");
 }
 
 TEST_CASE("ISPC multi-target with avx10.2dmr dot notation")

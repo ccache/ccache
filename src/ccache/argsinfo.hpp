@@ -198,4 +198,8 @@ struct ArgsInfo
   // E.g., for --target=sse4.2-i32x4,avx2-i32x8 this would be {"_sse4",
   // "_avx2"}.
   std::vector<std::string> ispc_target_suffixes;
+
+  // ISPC first target from --target, used when falling back to preprocessing
+  // a multi-target invocation via a single-target -E pass.
+  std::string ispc_first_target;
 };
