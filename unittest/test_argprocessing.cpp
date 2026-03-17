@@ -72,15 +72,17 @@ TEST_CASE("pass -fsyntax-only to compiler only")
   CHECK(result->compiler_args.to_string() == "cc -fsyntax-only -c");
 }
 
-TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
+TEST_CASE("dash_E_should_be_cacheable")
 {
   TestContext test_context;
 
   Context ctx;
-  ctx.orig_args = Args::from_string("cc -c foo.c -E");
+  ctx.orig_args = Args::from_string("cc -E foo.c -o foo.i");
 
   REQUIRE(util::write_file("foo.c", ""));
-  CHECK(process_args(ctx).error() == Statistic::called_for_preprocessing);
+  const auto result = process_args(ctx);
+  REQUIRE(result);
+  CHECK(result->compiler_args.to_string().find("-E") != std::string::npos);
 }
 
 TEST_CASE("dash_M_should_be_unsupported")
