@@ -190,6 +190,11 @@ HttpStorageBackend::get(const Hash::Digest& key)
     return std::nullopt;
   }
 
+  if (result->body.empty()) {
+    LOG("GET {}{} -> 0 bytes body, treating as miss", m_redacted_url, url_path);
+    return std::nullopt;
+  }
+
   return util::Bytes(result->body.data(), result->body.size());
 }
 
