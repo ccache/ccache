@@ -1,24 +1,4 @@
 prefix = /usr/local
-exec_prefix = $(prefix)
-bindir = $(exec_prefix)/bin
-datarootdir = $(prefix)/share
-docdir = $(datarootdir)/doc/ccache
-libexecdir = $(exec_prefix)/libexec
-mandir = $(datarootdir)/man
-man1dir = $(mandir)/man1
-sysconfdir = $(prefix)/etc
-
-doc_files = \
-    GPL-3.0.txt \
-    LICENSE.html \
-    LICENSE.md \
-    MANUAL.html \
-    MANUAL.md \
-    NEWS.html \
-    NEWS.md \
-    README.md
-
-PYTHON = python3
 
 all:
 	@echo "Available make targets:"
@@ -28,12 +8,4 @@ all:
 	@echo "Default prefix: $(prefix)"
 
 install:
-	mkdir -p "$(DESTDIR)$(bindir)"
-	$(PYTHON) patch-binary.py "$(libexecdir)" "$(sysconfdir)" <ccache >"$(DESTDIR)$(bindir)/ccache"
-	chmod +x "$(DESTDIR)$(bindir)/ccache"
-
-	mkdir -p "$(DESTDIR)$(docdir)"
-	cp $(doc_files) "$(DESTDIR)$(docdir)"
-
-	mkdir -p "$(DESTDIR)$(man1dir)"
-	cp ccache.1 "$(DESTDIR)$(man1dir)"
+	./install.sh --prefix="$(prefix)" --destdir="$(DESTDIR)"
