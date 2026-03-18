@@ -642,7 +642,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
     }
 
     auto& value = *result;
-    if (value) {
+    if (value && !value->empty()) {
       LOG("Retrieved {} from {} ({:.2f} ms)",
           util::format_base16(key),
           backend->url_for_logging,
@@ -654,6 +654,12 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
       if (entry_receiver(std::move(*value))) {
         return;
       }
+    } else if (value) {
+      LOG("Got empty entry for {} from {} ({:.2f} ms)",
+          util::format_base16(key),
+          backend->url_for_logging,
+          ms);
+      local.increment_statistic(core::Statistic::remote_storage_error);
     } else {
       LOG("No {} in {} ({:.2f} ms)",
           util::format_base16(key),
