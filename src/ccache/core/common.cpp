@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -80,14 +80,25 @@ ensure_dir_exists(const fs::path& dir)
 }
 
 fs::path
-make_relative_path(const Context& ctx, const fs::path& path)
+make_relative_path(const Context& ctx,
+                   const std::filesystem::path& path,
+                   const std::filesystem::path& dir1,
+                   const std::optional<std::filesystem::path>& dir2)
 {
+  DEBUG_ASSERT(dir1.is_absolute());
+  DEBUG_ASSERT(!dir2 || dir2->is_absolute());
   if (!ctx.config.base_dirs().empty() && path.is_absolute()
       && util::path_starts_with(path, ctx.config.base_dirs())) {
-    return util::make_relative_path(ctx.actual_cwd, ctx.apparent_cwd, path);
+    return util::make_relative_path(dir1, dir2.value_or(dir1), path);
   } else {
     return path;
   }
+}
+
+fs::path
+make_relative_path(const Context& ctx, const fs::path& path)
+{
+  return make_relative_path(ctx, path, ctx.actual_cwd, ctx.apparent_cwd);
 }
 
 inline bool
