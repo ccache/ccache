@@ -431,6 +431,301 @@ process_option_arg(const Context& ctx,
     return Statistic::called_for_preprocessing;
   }
 
+  // ISPC-specific argument handling.
+  if (config.compiler_type() == CompilerType::ispc) {
+    // ISPC --outfile is an alias for -o.
+    if (arg == "--outfile") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      args_info.output_obj = args[i + 1];
+      i++;
+      return Statistic::none;
+    }
+    if (arg.starts_with("--outfile=")) {
+      args_info.output_obj = arg.substr(10);
+      return Statistic::none;
+    }
+
+    // ISPC --emit-asm, --emit-llvm, --emit-llvm-text, --emit-spirv,
+    // --emit-zebin change the output format. The output is still written to
+    // -o, so ccache can cache it normally. Hash the flag so different modes
+    // get separate entries.
+    if (arg == "--emit-asm" || arg == "--emit-llvm" || arg == "--emit-llvm-text"
+        || arg == "--emit-spirv" || arg == "--emit-zebin") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC -h or --header-outfile specifies a header output file.
+    if (arg == "-h" || arg == "--header-outfile") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      args_info.ispc_header_file = args[i + 1];
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg_no_hash(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+    if (arg.starts_with("--header-outfile=")) {
+      args_info.ispc_header_file = arg.substr(17);
+      state.add_extra_args_to_hash("--header-outfile");
+      state.add_compiler_only_arg_no_hash(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --target specifies compilation target(s). Multi-target uses commas.
+    if (arg == "--target") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.add_common_arg(args[i]);
+      state.add_common_arg(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+    if (arg.starts_with("--target=")) {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC -MMM writes dependencies to a file (different from GCC -MMD).
+    if (arg == "-MMM") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      args_info.generating_dependencies = true;
+      args_info.output_dep = args[i + 1];
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+
+    // ISPC -M generates make-style dependencies. Unlike GCC's -M which only
+    // outputs deps without compiling, ISPC's -M works alongside --emit-obj
+    // and still produces the object file.  CMake's Ninja generator appends
+    // "-M -MT $out -MF $DEP_FILE" to every ISPC invocation.  We must handle
+    // these here before they reach the general processing where -M is marked
+    // TOO_HARD (which is correct for GCC but wrong for ISPC).
+    if (arg == "-M") {
+      args_info.generating_dependencies = true;
+      state.found_md_or_mmd_opt = true;
+      state.add_compiler_only_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC -MF specifies the dependency output file (used with -M).
+    if (arg == "-MF") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.found_mf_opt = true;
+      if (state.output_dep_origin <= OutputDepOrigin::mf) {
+        state.output_dep_origin = OutputDepOrigin::mf;
+        args_info.output_dep = core::make_relative_path(ctx, args[i + 1]);
+      }
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg(args_info.output_dep);
+      i++;
+      return Statistic::none;
+    }
+
+    // ISPC -MT changes the target of the dependency rule (used with -M).
+    if (arg == "-MT") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      std::string_view dep_target = args[i + 1];
+      if (args_info.dependency_target) {
+        args_info.dependency_target->push_back(' ');
+      } else {
+        args_info.dependency_target = "";
+      }
+      *args_info.dependency_target += dep_target;
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+
+    // ISPC --emit-obj produces object output (the default and only cacheable
+    // output mode).  Must be handled here so it doesn't fall through to the
+    // general processing as an unrecognized flag.
+    if (arg == "--emit-obj") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --dev-stub specifies a device-side offload stub output file.
+    if (arg == "--dev-stub") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      args_info.ispc_dev_stub_file = args[i + 1];
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg_no_hash(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+    if (arg.starts_with("--dev-stub=")) {
+      args_info.ispc_dev_stub_file =
+        arg.substr(std::string_view("--dev-stub=").size());
+      state.add_extra_args_to_hash("--dev-stub");
+      state.add_compiler_only_arg_no_hash(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --host-stub specifies a host-side offload stub output file.
+    if (arg == "--host-stub") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      args_info.ispc_host_stub_file = args[i + 1];
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg_no_hash(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+    if (arg.starts_with("--host-stub=")) {
+      args_info.ispc_host_stub_file =
+        arg.substr(std::string_view("--host-stub=").size());
+      state.add_extra_args_to_hash("--host-stub");
+      state.add_compiler_only_arg_no_hash(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --nanobind-wrapper specifies a nanobind wrapper output file.
+    if (arg == "--nanobind-wrapper") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      args_info.ispc_nanobind_wrapper_file = args[i + 1];
+      state.add_compiler_only_arg(args[i]);
+      state.add_compiler_only_arg_no_hash(args[i + 1]);
+      i++;
+      return Statistic::none;
+    }
+    if (arg.starts_with("--nanobind-wrapper=")) {
+      args_info.ispc_nanobind_wrapper_file =
+        arg.substr(std::string_view("--nanobind-wrapper=").size());
+      state.add_extra_args_to_hash("--nanobind-wrapper");
+      state.add_compiler_only_arg_no_hash(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC-specific options that affect compilation output.
+    if (arg.starts_with("--opt=") || arg.starts_with("--math-lib=")
+        || arg.starts_with("--mcmodel=") || arg.starts_with("--target-os=")
+        || arg == "--pic" || arg == "--PIC" || arg == "--dllexport"
+        || arg == "--vectorcall" || arg == "--no-vectorcall"
+        || arg == "--instrument" || arg == "--stack-protector"
+        || arg.starts_with("--stack-protector=") || arg == "--nostdlib"
+        || arg == "--no-pragma-once" || arg == "--include-float16-conversions"
+        || arg == "--wrap-signed-int" || arg == "--no-wrap-signed-int"
+        || arg.starts_with("--addressing=") || arg.starts_with("--arch=")
+        || arg.starts_with("--cpu=") || arg.starts_with("--device=")
+        || arg.starts_with("-f") || arg.starts_with("-O")) {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --dwarf-version and -g options.
+    if (arg.starts_with("--dwarf-version=")
+        || arg == "--sample-profiling-debug-info"
+        || arg == "--no-omit-frame-pointer") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --quiet, --woff, --werror, --wno-perf.
+    if (arg == "--quiet" || arg == "--woff" || arg == "--werror"
+        || arg == "--wno-perf") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --x86-asm-syntax.
+    if (arg.starts_with("--x86-asm-syntax=")) {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --version.
+    if (arg == "--version") {
+      LOG("ISPC option {} is unsupported", args[i]);
+      return Statistic::called_for_preprocessing;
+    }
+
+    // ISPC --support-matrix.
+    if (arg == "--support-matrix") {
+      LOG("ISPC option {} is unsupported", args[i]);
+      return Statistic::called_for_preprocessing;
+    }
+
+    // ISPC --help and --help-dev.
+    if (arg == "--help" || arg == "--help-dev") {
+      return Statistic::called_for_preprocessing;
+    }
+
+    // ISPC --profile-sample-use takes a file argument.
+    if (arg == "--profile-sample-use"
+        || arg.starts_with("--profile-sample-use=")) {
+      if (arg == "--profile-sample-use") {
+        if (i == args.size() - 1) {
+          LOG("Missing argument to {}", args[i]);
+          return Statistic::bad_compiler_arguments;
+        }
+        state.add_common_arg(args[i]);
+        state.add_common_arg(args[i + 1]);
+        i++;
+      } else {
+        state.add_common_arg(args[i]);
+      }
+      return Statistic::none;
+    }
+
+    // ISPC -dM and -dD affect preprocessor output.
+    if (arg == "-dM" || arg == "-dD") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --ignore-preprocessor-errors.
+    if (arg == "--ignore-preprocessor-errors") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --enable-llvm-intrinsics.
+    if (arg == "--enable-llvm-intrinsics") {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --error-limit.
+    if (arg.starts_with("--error-limit=")) {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+
+    // ISPC --force-alignment.
+    if (arg.starts_with("--force-alignment=")) {
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
+  }
+
   // Handle "@file" argument.
   if (arg.starts_with("@") || arg.starts_with("-@")) {
     const char* argpath = arg.c_str() + 1;
@@ -1442,6 +1737,9 @@ process_arg(const Context& ctx,
 const char*
 get_default_object_file_extension(const Config& config)
 {
+  if (config.compiler_type() == CompilerType::ispc) {
+    return ".o";
+  }
   return config.is_compiler_group_msvc() ? ".obj" : ".o";
 }
 
@@ -1449,6 +1747,79 @@ const char*
 get_default_pch_file_extension(const Config& config)
 {
   return config.is_compiler_group_msvc() ? ".pch" : ".gch";
+}
+
+// Compute the ISA suffix ISPC uses for extra target object files.
+// E.g., "avx2-i32x8" -> "_avx2", "sse4.2-i32x4" -> "_sse4",
+//       "avx1-i32x8" -> "_avx".
+std::string
+ispc_target_suffix(const std::string& target)
+{
+  // Extract the ISA base from "isa-variant" format (e.g., "avx2-i32x8" ->
+  // "avx2").
+  auto dash_pos = target.find('-');
+  std::string isa_base =
+    (dash_pos != std::string::npos) ? target.substr(0, dash_pos) : target;
+
+  // ISPC calls first-gen AVX simply "avx" in file suffixes, but "avx1" on the
+  // command line.
+  if (isa_base == "avx1") {
+    return "_avx";
+  }
+
+  // ISPC maps all sse4 sub-versions (sse4, sse4.1, sse4.2) to suffix "sse4".
+  if (isa_base.starts_with("sse4")) {
+    return "_sse4";
+  }
+
+  // For all other targets (including avx10.2dmr), dots in the ISA name become
+  // underscores in the file suffix.
+  std::replace(isa_base.begin(), isa_base.end(), '.', '_');
+  return "_" + isa_base;
+}
+
+struct IspcTargetInfo
+{
+  std::vector<std::string> suffixes;
+  std::string first_target;
+};
+
+// Parse ISPC --target argument to extract individual targets and compute
+// multi-target suffixes. Returns metadata for extra object files and the first
+// target in the list.
+IspcTargetInfo
+compute_ispc_target_info(const util::Args& args)
+{
+  IspcTargetInfo target_info;
+  for (size_t i = 1; i < args.size(); ++i) {
+    std::string_view arg(args[i]);
+    std::string target_value;
+
+    if (arg.starts_with("--target=")) {
+      target_value = arg.substr(9);
+    } else if (arg == "--target" && i + 1 < args.size()) {
+      target_value = args[i + 1];
+    } else {
+      continue;
+    }
+
+    // Check for multi-target (comma-separated).
+    if (target_value.find(',') == std::string::npos) {
+      target_info.first_target = target_value;
+      return target_info;
+    }
+
+    // Multi-target: split by comma and compute suffixes.
+    for (const auto token : util::Tokenizer(target_value, ",")) {
+      if (target_info.first_target.empty()) {
+        target_info.first_target = token;
+      }
+      target_info.suffixes.push_back(ispc_target_suffix(std::string(token)));
+    }
+    break; // Only one --target argument is meaningful.
+  }
+
+  return target_info;
 }
 
 } // namespace
@@ -1484,7 +1855,15 @@ process_args(Context& ctx)
 
   const bool is_link =
     !(state.found_c_opt || state.found_dc_opt || state.found_S_opt
-      || state.found_syntax_only || state.found_analyze_opt);
+      || state.found_syntax_only || state.found_analyze_opt
+      || config.compiler_type() == CompilerType::ispc);
+
+  // For ISPC, compute multi-target suffixes from the --target argument.
+  if (config.compiler_type() == CompilerType::ispc) {
+    const auto target_info = compute_ispc_target_info(args);
+    args_info.ispc_target_suffixes = target_info.suffixes;
+    args_info.ispc_first_target = target_info.first_target;
+  }
 
   if (state.input_files.empty()) {
     LOG("No input file found");
