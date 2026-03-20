@@ -1,5 +1,56 @@
 = Ccache news
 
+== Ccache 4.13.2
+
+Release date: 2026-03-22
+
+
+=== New deliverables
+
+- Added `tar.gz` archives for Linux binary releases. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added installation script for Linux binary releases. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Bug fixes and improvements
+
+- Fixed LTO handling when `-fno-lto` follows `-flto`: LTO is now properly
+  disabled in this case. +
+  [small]#_[contributed by Kristian Sloth Lauszus]_#
+
+- Fixed crash when using MSVC `/Yc` without `/Fp`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed rewriting of MSVC `/FI` argument to a relative path when `base_dir` is
+  set. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved robustness when parsing broken cache entry files. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed atime/mtime restoration when recompressing a file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Fixed test failures for `remote_helper` tests when `$PWD` is long. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved robustness of `remote_helper` tests on slow systems. +
+  [small]#_[contributed by Maksym Sobolyev]_#
+
+- Relaxed `util::exec_to_string` unit test for portability. +
+  [small]#_[contributed by Maksym Sobolyev]_#
+
+- Removed unnecessary, compiler-specific checks in `-flto` tests. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+= Ccache news
+
 == Ccache 4.13.1
 
 Release date: 2026-03-09
