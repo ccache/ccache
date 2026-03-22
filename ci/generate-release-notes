@@ -33,13 +33,15 @@ EOF
 cd release
 
 for ext in "${source_extensions[@]}"; do
-    add "Generic source code release (${ext})" "ccache-${version}.${ext}"
+    add "Generic source code release ${ext}" "ccache-${version}.${ext}"
 done
 add "Darwin (macOS) universal binary release" "ccache-${version}-darwin.tar.gz"
 for arch in "${linux_archs[@]}"; do
     for ext in "${linux_bin_extensions[@]}"; do
-        add "Linux ${arch} binary release (glibc)" "ccache-${version}-linux-${arch}-glibc.${ext}"
-        add "Linux ${arch} binary release (musl static)" "ccache-${version}-linux-${arch}-musl-static.${ext}"
+        add "Linux ${arch} binary release glibc ${ext}" "ccache-${version}-linux-${arch}-glibc.${ext}"
+    done
+    for ext in "${linux_bin_extensions[@]}"; do
+        add "Linux ${arch} binary release musl static ${ext}" "ccache-${version}-linux-${arch}-musl-static.${ext}"
     done
 done
 for arch in "${windows_archs[@]}"; do
