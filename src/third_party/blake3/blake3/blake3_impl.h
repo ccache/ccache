@@ -58,7 +58,7 @@ enum blake3_flags {
 #endif
 #endif
 
-#if !defined(BLAKE3_USE_NEON) 
+#if !defined(BLAKE3_USE_NEON) && !defined(BLAKE3_NO_NEON_CHECK)
   // If BLAKE3_USE_NEON not manually set, autodetect based on AArch64ness
   #if defined(IS_AARCH64)
     #if defined(__ARM_BIG_ENDIAN)
