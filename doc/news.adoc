@@ -49,8 +49,6 @@ Release date: 2026-03-22
   [small]#_[contributed by Joel Rosdahl]_#
 
 
-= Ccache news
-
 == Ccache 4.13.1
 
 Release date: 2026-03-09
