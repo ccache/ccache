@@ -358,6 +358,16 @@ guess_compiler(const fs::path& path)
 #endif
 }
 
+bool
+should_ignore_missing_include(const CompilerType compiler_type)
+{
+  // ISPC embeds built-in headers (e.g. core.isph, stdlib.isph) in its compiler
+  // binary. These appear in preprocessor output with virtual paths that don't
+  // exist on disk. Since they're part of the compiler binary (already hashed
+  // via compiler_check), safely ignore them.
+  return compiler_type == CompilerType::ispc;
+}
+
 // This function hashes an include file and stores the path and hash in
 // ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
 [[nodiscard]] tl::expected<void, Failure>
@@ -403,6 +413,10 @@ remember_include_file(Context& ctx,
 
   DirEntry dir_entry(path, DirEntry::LogOnError::yes);
   if (!dir_entry.exists()) {
+    if (should_ignore_missing_include(ctx.config.compiler_type())) {
+      LOG("Ignoring non-existent built-in include file: {}", dir_entry.path());
+      return {};
+    }
     if (ctx.config.direct_mode()) {
       LOG("Include file {} does not exist, disabling direct mode",
           dir_entry.path());
