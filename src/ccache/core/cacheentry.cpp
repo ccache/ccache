@@ -34,6 +34,7 @@
 #include <ccache/util/zstd.hpp>
 
 #include <cstring>
+#include <limits>
 
 namespace fs = util::filesystem;
 
@@ -54,6 +55,13 @@ const size_t k_static_header_fields_size =
   + 1;
 
 const size_t k_epilogue_fields_size = sizeof(uint64_t) + sizeof(uint64_t);
+
+// Sanity cap on decompressed payload size. The current Serializer interface
+// limits written payloads to uint32_t bytes (UINT32_MAX = 4 GiB - 1), so this
+// cap sits just above the maximum currently writable entry size. Raise it when
+// the Serializer interface is widened.
+const uint64_t k_max_uncompressed_payload_size =
+  std::numeric_limits<uint32_t>::max();
 
 core::CacheEntryType
 cache_entry_type_from_int(const uint8_t entry_type)
@@ -187,11 +195,10 @@ CacheEntry::Header::serialize(util::Bytes& output) const
   writer.write_int(entry_size);
 }
 
-uint32_t
+uint64_t
 CacheEntry::Header::uncompressed_payload_size() const
 {
-  return static_cast<uint32_t>(entry_size - serialized_size()
-                               - k_epilogue_fields_size);
+  return entry_size - serialized_size() - k_epilogue_fields_size;
 }
 
 CacheEntry::CacheEntry(std::span<const uint8_t> data)
@@ -201,6 +208,16 @@ CacheEntry::CacheEntry(std::span<const uint8_t> data)
     m_header.serialized_size() + k_epilogue_fields_size;
   if (data.size() <= non_payload_size) {
     throw core::Error("CacheEntry data underflow");
+  }
+  if (m_header.entry_size < non_payload_size) {
+    throw core::Error(FMT("Invalid entry_size in header: {} < {}",
+                          m_header.entry_size,
+                          non_payload_size));
+  }
+  if (m_header.uncompressed_payload_size() > k_max_uncompressed_payload_size) {
+    throw core::Error(FMT("Uncompressed payload too large: {} > {}",
+                          m_header.uncompressed_payload_size(),
+                          k_max_uncompressed_payload_size));
   }
   m_payload =
     data.subspan(m_header.serialized_size(), data.size() - non_payload_size);

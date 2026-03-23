@@ -47,6 +47,8 @@ public:
 
   static std::optional<Args> from_response_file(const std::string& filename,
                                                 ResponseFileFormat format);
+  static Args parse_response_file_content(const std::string& content,
+                                          ResponseFileFormat format);
 
   Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;

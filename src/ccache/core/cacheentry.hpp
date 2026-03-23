@@ -90,7 +90,7 @@ public:
 
     size_t serialized_size() const;
     void serialize(util::Bytes& output) const;
-    uint32_t uncompressed_payload_size() const;
+    uint64_t uncompressed_payload_size() const;
 
   private:
     void parse(std::span<const uint8_t> data);

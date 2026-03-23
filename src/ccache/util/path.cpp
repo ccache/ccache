@@ -71,12 +71,12 @@ lexically_normal(const fs::path& path)
 }
 
 fs::path
-make_relative_path(const fs::path& actual_cwd,
-                   const fs::path& apparent_cwd,
+make_relative_path(const fs::path& dir1,
+                   const fs::path& dir2,
                    const fs::path& path)
 {
-  DEBUG_ASSERT(actual_cwd.is_absolute());
-  DEBUG_ASSERT(apparent_cwd.is_absolute());
+  DEBUG_ASSERT(dir1.is_absolute());
+  DEBUG_ASSERT(dir2.is_absolute());
   DEBUG_ASSERT(path.is_absolute());
 
   fs::path normalized_path = util::lexically_normal(path);
@@ -90,13 +90,15 @@ make_relative_path(const fs::path& actual_cwd,
       path_suffix = closest_existing_path.filename() / path_suffix;
     }
     closest_existing_path = closest_existing_path.parent_path();
+    if (closest_existing_path == closest_existing_path.root_path()) {
+      break;
+    }
   }
 
-  relpath_candidates.push_back(
-    closest_existing_path.lexically_relative(actual_cwd));
-  if (apparent_cwd != actual_cwd) {
+  relpath_candidates.push_back(closest_existing_path.lexically_relative(dir1));
+  if (dir2 != dir1) {
     relpath_candidates.emplace_back(
-      closest_existing_path.lexically_relative(apparent_cwd));
+      closest_existing_path.lexically_relative(dir2));
   }
 
   // Find best (i.e. shortest existing) match:
@@ -107,7 +109,7 @@ make_relative_path(const fs::path& actual_cwd,
                      < util::pstr(path2).str().length();
             });
   for (const auto& relpath : relpath_candidates) {
-    if (fs::equivalent(relpath, closest_existing_path)) {
+    if (fs::equivalent(dir1 / relpath, closest_existing_path)) {
       return path_suffix.empty() ? relpath
                                  : (relpath / path_suffix).lexically_normal();
     }

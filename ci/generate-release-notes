@@ -7,6 +7,8 @@ u_version=$(echo "${version}" | sed 's/\./_/g')
 url_prefix="https://github.com/ccache/ccache/releases/download/v${version}"
 
 source_extensions=(tar.gz tar.xz)
+linux_bin_extensions=(tar.gz tar.xz)
+
 linux_archs=(aarch64 x86_64)
 # windows_archs=(aarch64 i686 x86_64)
 windows_archs=(aarch64 x86_64)
@@ -31,12 +33,16 @@ EOF
 cd release
 
 for ext in "${source_extensions[@]}"; do
-    add "Generic source code release (${ext})" "ccache-${version}.${ext}"
+    add "Generic source code release ${ext}" "ccache-${version}.${ext}"
 done
 add "Darwin (macOS) universal binary release" "ccache-${version}-darwin.tar.gz"
 for arch in "${linux_archs[@]}"; do
-    add "Linux ${arch} binary release (glibc)" "ccache-${version}-linux-${arch}-glibc.tar.xz"
-    add "Linux ${arch} binary release (musl static)" "ccache-${version}-linux-${arch}-musl-static.tar.xz"
+    for ext in "${linux_bin_extensions[@]}"; do
+        add "Linux ${arch} binary release glibc ${ext}" "ccache-${version}-linux-${arch}-glibc.${ext}"
+    done
+    for ext in "${linux_bin_extensions[@]}"; do
+        add "Linux ${arch} binary release musl static ${ext}" "ccache-${version}-linux-${arch}-musl-static.${ext}"
+    done
 done
 for arch in "${windows_archs[@]}"; do
     add "Windows ${arch} binary release" "ccache-${version}-windows-${arch}.zip"
