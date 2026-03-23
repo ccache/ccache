@@ -57,12 +57,10 @@ bool is_dev_null_path(const std::filesystem::path& path);
 // Return whether `path` includes at least one directory separator.
 bool is_full_path(std::string_view path);
 
-// Make a relative path from current working directory (either `actual_cwd` or
-// `apparent_cwd`) to `path` if `path` is under `base_dir`.
-std::filesystem::path
-make_relative_path(const std::filesystem::path& actual_cwd,
-                   const std::filesystem::path& apparent_cwd,
-                   const std::filesystem::path& path);
+// Make a relative path from `dir1` or `dir2` to `path`.
+std::filesystem::path make_relative_path(const std::filesystem::path& dir1,
+                                         const std::filesystem::path& dir2,
+                                         const std::filesystem::path& path);
 
 // Construct a normalized native path.
 //

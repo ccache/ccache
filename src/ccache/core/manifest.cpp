@@ -102,7 +102,7 @@ Manifest::read(std::span<const uint8_t> data)
   }
 
   const auto file_count = reader.read_int<uint32_t>();
-  files.reserve(file_count);
+  files.reserve(std::min(file_count, uint32_t{1024}));
   for (uint32_t i = 0; i < file_count; ++i) {
     files.emplace_back(reader.read_str(reader.read_int<uint16_t>()));
   }
@@ -113,6 +113,11 @@ Manifest::read(std::span<const uint8_t> data)
     auto& entry = file_infos.back();
 
     reader.read_int(entry.index);
+    if (entry.index >= files.size()) {
+      throw core::Error(FMT("Corrupt manifest: file index {} >= files size {}",
+                            entry.index,
+                            files.size()));
+    }
     reader.read_and_copy_bytes(entry.digest);
     reader.read_int(entry.fsize);
     entry.mtime =
@@ -128,7 +133,14 @@ Manifest::read(std::span<const uint8_t> data)
 
     const auto file_info_index_count = reader.read_int<uint32_t>();
     for (uint32_t j = 0; j < file_info_index_count; ++j) {
-      entry.file_info_indexes.push_back(reader.read_int<uint32_t>());
+      const auto file_info_index = reader.read_int<uint32_t>();
+      if (file_info_index >= file_infos.size()) {
+        throw core::Error(
+          FMT("Corrupt manifest: file info index {} >= file infos size {}",
+              file_info_index,
+              file_infos.size()));
+      }
+      entry.file_info_indexes.push_back(file_info_index);
     }
     reader.read_and_copy_bytes(entry.key);
   }

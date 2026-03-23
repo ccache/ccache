@@ -24,32 +24,37 @@ prepare_source_release() {
 
 prepare_posix_binary_release() {
     local arch=$1
-    local compression=$2
+
+    shift
 
     local name="ccache-${VERSION}-${arch}"
     mkdir "${name}"
     cp "${arch}-binary/ccache" "${name}"
     chmod +x "${name}/ccache"
+    cp misc/install.sh "${name}"
     cp misc/Makefile.posix-binary-release "${name}/Makefile"
     cp misc/patch-binary.py "${name}"
     cp GPL-3.0.txt README.md "${name}"
     cp docs/install/usr/local/share/doc/ccache/* "${name}"
     cp docs/install/usr/local/share/man/man1/ccache.1 "${name}"
-    tar -caf "release/${name}.tar.${compression}" "${name}"
+    for ext in $*; do
+        tar -caf "release/${name}.tar.${ext}" "${name}"
+    done
 }
 
 test_posix_binary_release() {
     local arch=$1
-    local compression=$2
 
     local name="ccache-${VERSION}-${arch}"
 
     tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXX")
-    tar -C "${tmpdir}" -xf "${PWD}/release/${name}.tar.${compression}"
+    tar -C "${tmpdir}" -xf "${PWD}/release/${name}.tar.xz"
     (
         cd "${tmpdir}/${name}"
-        make install prefix=/foo/bar DESTDIR=destdir
-        destdir/foo/bar/bin/ccache --version
+        ./install.sh --prefix /foo/bar --destdir destdir1
+        destdir1/foo/bar/bin/ccache --version -p
+        make install prefix=/foo/bar DESTDIR=destdir2
+        destdir2/foo/bar/bin/ccache --version -p
     )
     rm -r "${tmpdir}"
 }
@@ -69,16 +74,16 @@ mkdir release
 prepare_source_release
 
 prepare_posix_binary_release darwin gz
-prepare_posix_binary_release linux-aarch64-glibc xz
-prepare_posix_binary_release linux-aarch64-musl-static xz
-prepare_posix_binary_release linux-x86_64-glibc xz
-prepare_posix_binary_release linux-x86_64-musl-static xz
+prepare_posix_binary_release linux-aarch64-glibc gz xz
+prepare_posix_binary_release linux-aarch64-musl-static gz xz
+prepare_posix_binary_release linux-x86_64-glibc gz xz
+prepare_posix_binary_release linux-x86_64-musl-static gz xz
 
 prepare_windows_binary_release windows-aarch64
 # prepare_windows_binary_release windows-i686
 prepare_windows_binary_release windows-x86_64
 
-test_posix_binary_release linux-x86_64-glibc xz
-test_posix_binary_release linux-x86_64-musl-static xz
+test_posix_binary_release linux-x86_64-glibc
+test_posix_binary_release linux-x86_64-musl-static
 
 ls -l . release

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -103,7 +103,7 @@ TEST_CASE("util::make_relative_path")
   SUBCASE("Path matches neither actual nor apparent CWD")
   {
 #ifdef _WIN32
-    CHECK(make_relative_path("C:/a", "C:/b", "C:/x") == "C:/x");
+    CHECK(make_relative_path("C:/a", "D:/b", "E:/x") == "E:/x");
 #else
     CHECK(make_relative_path("/a", "/b", "/x") == "/x");
 #endif

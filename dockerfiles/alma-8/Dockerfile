@@ -20,6 +20,7 @@ RUN dnf install -y dnf-plugins-core \
         gcc-toolset-11 \
         hiredis-devel \
         less \
+        libstdc++-devel \
         libstdc++-static \
         libzstd-devel \
         make \
@@ -30,3 +31,6 @@ RUN dnf install -y dnf-plugins-core \
         xxhash-devel \
  && dnf autoremove -y \
  && dnf clean all
+
+ENV PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
+ENV LD_LIBRARY_PATH=/opt/rh/gcc-toolset-11/root/usr/lib64

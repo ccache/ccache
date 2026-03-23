@@ -89,6 +89,7 @@ public:
   bool found_wp_md_or_mmd_opt = false;
   bool found_md_or_mmd_opt = false;
   bool found_Wa_a_opt = false;
+  bool rewrite_FI_args = false;
 
   std::string explicit_language;             // As specified with -x.
   std::string input_charset_option;          // -finput-charset=...
@@ -141,6 +142,18 @@ public:
   add_native_arg(T&& arg)
   {
     m_native_args.push_back(std::forward<T>(arg));
+  }
+
+  util::Args&
+  get_preprocessor_args()
+  {
+    return m_preprocessor_args;
+  }
+
+  util::Args&
+  get_compiler_args()
+  {
+    return m_compiler_args;
   }
 
   ProcessArgsResult
@@ -1263,6 +1276,27 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (config.is_compiler_group_msvc() && arg.starts_with("-FI")
+      && !ctx.config.base_dirs().empty()) {
+    // /FI is special in that the compiler looks up a relative file relative to
+    // the source file instead of CWD, so we need to special-case it. However,
+    // to do that we need to know the source code location, so we have to
+    // rewrite the /FI argument after we have processed all arguments.
+    state.rewrite_FI_args = true;
+
+    // Need to remember the path in raw form (not rewritten relative to CWD).
+    state.add_common_arg(args[i]);
+    if (arg.length() == 3) {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.add_common_arg(args[i + 1]);
+      ++i;
+    }
+    return Statistic::none;
+  }
+
   if (compopt_takes_arg(arg) && compopt_takes_path(arg)) {
     if (i == args.size() - 1) {
       LOG("Missing argument to {}", args[i]);
@@ -1493,6 +1527,41 @@ process_args(Context& ctx)
     return tl::unexpected(Statistic::unsupported_compiler_option);
   }
 
+  // Special case: rewrite /FI arguments relative to the input file.
+  if (state.rewrite_FI_args) {
+    auto r = fs::canonical(args_info.input_file.parent_path());
+    if (!r) {
+      LOG("Failed to convert {} to absolute: {}",
+          args_info.input_file.parent_path(),
+          r.error());
+      return tl::unexpected(Statistic::internal_error);
+    }
+    const auto& abs_input_file_dir = *r;
+    auto rewrite = [&](util::Args& arglist, size_t& i) {
+      if (arglist[i].starts_with("/FI") || arglist[i].starts_with("-FI")) {
+        if (arglist[i].length() > 3) {
+          arglist[i] = FMT("{}{}",
+                           arglist[i].substr(0, 3),
+                           core::make_relative_path(
+                             ctx, arglist[i].substr(3), abs_input_file_dir));
+        } else if (i + 1 < arglist.size()) {
+          arglist[i + 1] = util::pstr(
+            core::make_relative_path(ctx, arglist[i + 1], abs_input_file_dir));
+          ++i;
+        }
+      }
+    };
+
+    auto& preprocessor_args = state.get_preprocessor_args();
+    for (size_t i = 0; i < preprocessor_args.size(); ++i) {
+      rewrite(preprocessor_args, i);
+    }
+    auto& compiler_args = state.get_compiler_args();
+    for (size_t i = 0; i < compiler_args.size(); ++i) {
+      rewrite(compiler_args, i);
+    }
+  }
+
   // Don't try to second guess the compiler's heuristics for stdout handling.
   if (args_info.output_obj == "-") {
     LOG("Output file is -");
@@ -1530,7 +1599,7 @@ process_args(Context& ctx)
     bool included_pch_file_by_source = args_info.included_pch_file.empty();
 
     if (!included_pch_file_by_source
-        && (util::pstr(args_info.orig_included_pch_file).str().back() == '\\'
+        && (util::pstr(args_info.orig_included_pch_file).str().ends_with('\\')
             || DirEntry(args_info.orig_included_pch_file).is_directory())) {
       LOG("Unsupported folder path value for -Fp: {}",
           args_info.included_pch_file);

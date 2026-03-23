@@ -66,10 +66,19 @@ Args::from_response_file(const std::string& filename, ResponseFileFormat format)
     return std::nullopt;
   }
 
+  return parse_response_file_content(*argtext, format);
+}
+
+Args
+Args::parse_response_file_content(const std::string& content,
+                                  ResponseFileFormat format)
+{
+  ASSERT(format != ResponseFileFormat::auto_guess);
+
   Args args;
-  auto pos = argtext->c_str();
+  auto pos = content.c_str();
   std::string argbuf;
-  argbuf.resize(argtext->length() + 1);
+  argbuf.resize(content.length() + 1);
   auto argpos = argbuf.data();
 
   // Used to track quoting state; if \0 we are not inside quotes. Otherwise

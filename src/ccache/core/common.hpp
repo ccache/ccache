@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -19,6 +19,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -29,7 +30,14 @@ namespace core {
 // Like std::filesystem::create_directories but throws core::Fatal on error.
 void ensure_dir_exists(const std::filesystem::path& dir);
 
-// Make a `path` relative to CWD if it's under base_dir.
+// Make a `path` relative to `dir1` or `dir2` if the path is under base_dir.
+std::filesystem::path make_relative_path(
+  const Context& ctx,
+  const std::filesystem::path& path,
+  const std::filesystem::path& dir1,
+  const std::optional<std::filesystem::path>& dir2 = std::nullopt);
+
+// Make a `path` relative to actual/apparent CWD if the path is under base_dir.
 std::filesystem::path make_relative_path(const Context& ctx,
                                          const std::filesystem::path& path);
 
