@@ -238,4 +238,33 @@ fi
         expect_stat files_in_cache 2 # fetched from remote
         expect_file_count 2 '*' remote # result + manifest
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Empty body on HTTP 2xx treated as error"
+
+    start_http_server 12780 remote
+    export CCACHE_REMOTE_STORAGE="http://localhost:12780 helper=_builtin_"
+
+    # Populate remote cache.
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_file_count 2 '*' remote # result + manifest
+
+    # Truncate all remote entries to 0 bytes. Uses '> file' redirection to
+    # open each file for writing with no input, emptying it.
+    find remote -type f -exec sh -c '> "$1"' _ {} \;
+
+    # Clear local cache.
+    $CCACHE -C >/dev/null
+    expect_stat files_in_cache 0
+
+    # Should be an error, not a hit, since remote entries are empty.
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+    expect_stat remote_storage_hit 0
+    expect_stat remote_storage_error 2 # result + manifest
+    expect_stat remote_storage_read_hit 0
 }
