@@ -49,6 +49,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     CCACHE_COMPILER_WARNINGS "-Wno-zero-as-null-pointer-constant")
   add_compile_flag_if_supported(
     CCACHE_COMPILER_WARNINGS "-Wno-undefined-func-template")
+
+  # https://github.com/doctest/doctest/issues/1042
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 22)
+    add_compile_flag_if_supported(CCACHE_COMPILER_WARNINGS "-Wno-c2y-extensions")
+  endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(
     APPEND
