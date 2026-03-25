@@ -31,6 +31,25 @@ const char k_dev_null_path[] = "/dev/null";
 
 namespace fs = util::filesystem;
 
+namespace {
+
+fs::path
+lexically_relative_case_aware(const fs::path& path, const fs::path& base)
+{
+#ifdef _WIN32
+  // Note: Case-folding might in theory lead to an incorrect path on Windows
+  // since not all filesystems are case-insensitive, but this is only done to
+  // produce a candidate path that will be verified by the caller later.
+  fs::path p = util::to_lowercase(path.string());
+  fs::path b = util::to_lowercase(base.string());
+  return p.lexically_relative(b);
+#else
+  return path.lexically_relative(base);
+#endif
+}
+
+} // namespace
+
 namespace util {
 
 fs::path
@@ -95,10 +114,11 @@ make_relative_path(const fs::path& dir1,
     }
   }
 
-  relpath_candidates.push_back(closest_existing_path.lexically_relative(dir1));
+  relpath_candidates.push_back(
+    lexically_relative_case_aware(closest_existing_path, dir1));
   if (dir2 != dir1) {
-    relpath_candidates.emplace_back(
-      closest_existing_path.lexically_relative(dir2));
+    relpath_candidates.push_back(
+      lexically_relative_case_aware(closest_existing_path, dir2));
   }
 
   // Find best (i.e. shortest existing) match:

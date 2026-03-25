@@ -22,6 +22,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
+#include <ccache/util/string.hpp>
 
 #include <doctest/doctest.h>
 
@@ -133,6 +134,40 @@ TEST_CASE("util::make_relative_path")
           == "x");
 #endif
   }
+
+#ifdef _WIN32
+  SUBCASE("Case-insensitive match on Windows")
+  {
+    REQUIRE(fs::create_directory("casedir"));
+
+    // Construct variants with guaranteed drive-letter case difference.
+    // Windows drive letters are ASCII, so to_upper/to_lower always toggles
+    // case.
+    std::string upper_drive_cwd = actual_cwd;
+    upper_drive_cwd[0] = util::to_upper(actual_cwd[0]);
+    std::string lower_drive_cwd = actual_cwd;
+    lower_drive_cwd[0] = util::to_lower(actual_cwd[0]);
+
+    // dir1/dir2 with uppercase drive letter, path with lowercase drive letter.
+    CHECK(make_relative_path(
+            upper_drive_cwd, upper_drive_cwd, lower_drive_cwd + "/casedir")
+          == "casedir");
+
+    // dir1/dir2 with lowercase drive letter, path with uppercase drive letter.
+    CHECK(make_relative_path(
+            lower_drive_cwd, lower_drive_cwd, upper_drive_cwd + "/casedir")
+          == "casedir");
+
+    // Non-existing child: relative path also returned with drive-letter
+    // mismatch.
+    CHECK(make_relative_path(
+            upper_drive_cwd, upper_drive_cwd, lower_drive_cwd + "/nonexistent")
+          == "nonexistent");
+    CHECK(make_relative_path(
+            lower_drive_cwd, lower_drive_cwd, upper_drive_cwd + "/nonexistent")
+          == "nonexistent");
+  }
+#endif
 
 #ifndef _WIN32
   SUBCASE("Match of apparent CWD")
