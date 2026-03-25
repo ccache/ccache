@@ -3,9 +3,9 @@ prefix = /usr/local
 all:
 	@echo "Available make targets:"
 	@echo
-	@echo "  install [prefix=...] [DESTDIR=...]"
+	@echo "  install [prefix=...] [sysconfdir=...] [DESTDIR=...]"
 	@echo
 	@echo "Default prefix: $(prefix)"
 
 install:
-	./install.sh --prefix="$(prefix)" --destdir="$(DESTDIR)"
+	./install.sh
