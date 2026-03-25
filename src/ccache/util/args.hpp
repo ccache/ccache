@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -55,6 +55,25 @@ public:
 
   bool operator==(const Args& other) const;
   bool operator!=(const Args& other) const;
+
+  using iterator = std::deque<std::string>::iterator;
+  using const_iterator = std::deque<std::string>::const_iterator;
+  using reverse_iterator = std::deque<std::string>::reverse_iterator;
+  using const_reverse_iterator =
+    std::deque<std::string>::const_reverse_iterator;
+
+  iterator begin();
+  iterator end();
+  const_iterator begin() const;
+  const_iterator end() const;
+  const_iterator cbegin() const;
+  const_iterator cend() const;
+  reverse_iterator rbegin();
+  reverse_iterator rend();
+  const_reverse_iterator rbegin() const;
+  const_reverse_iterator rend() const;
+  const_reverse_iterator crbegin() const;
+  const_reverse_iterator crend() const;
 
   bool empty() const;
   size_t size() const;
@@ -162,6 +181,78 @@ inline void
 Args::push_back(const std::filesystem::path& arg)
 {
   m_args.push_back(arg.string());
+}
+
+inline Args::iterator
+Args::begin()
+{
+  return m_args.begin();
+}
+
+inline Args::iterator
+Args::end()
+{
+  return m_args.end();
+}
+
+inline Args::const_iterator
+Args::begin() const
+{
+  return m_args.begin();
+}
+
+inline Args::const_iterator
+Args::end() const
+{
+  return m_args.end();
+}
+
+inline Args::const_iterator
+Args::cbegin() const
+{
+  return m_args.cbegin();
+}
+
+inline Args::const_iterator
+Args::cend() const
+{
+  return m_args.cend();
+}
+
+inline Args::reverse_iterator
+Args::rbegin()
+{
+  return m_args.rbegin();
+}
+
+inline Args::reverse_iterator
+Args::rend()
+{
+  return m_args.rend();
+}
+
+inline Args::const_reverse_iterator
+Args::rbegin() const
+{
+  return m_args.rbegin();
+}
+
+inline Args::const_reverse_iterator
+Args::rend() const
+{
+  return m_args.rend();
+}
+
+inline Args::const_reverse_iterator
+Args::crbegin() const
+{
+  return m_args.crbegin();
+}
+
+inline Args::const_reverse_iterator
+Args::crend() const
+{
+  return m_args.crend();
 }
 
 } // namespace util
