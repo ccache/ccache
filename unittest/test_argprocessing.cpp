@@ -765,6 +765,51 @@ TEST_CASE("MSVC PCH options")
   }
 }
 
+TEST_CASE("MSVC /Yc in response file disables base_dir rewriting")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_base_dir(get_root());
+  REQUIRE(util::write_file("pch.h", ""));
+  REQUIRE(util::write_file("pch.cpp", ""));
+
+  const auto pch_path = ctx.actual_cwd / "pch.cpp.pch";
+  const auto include_path = ctx.actual_cwd / "pch.h";
+  const auto output_path = ctx.actual_cwd / "pch.cpp.obj";
+  const auto source_path = ctx.actual_cwd / "pch.cpp";
+  REQUIRE(util::write_file("pch.rsp",
+                           FMT("/Yc /Fp{} /FI{} /Fo{} /c {}\n",
+                               pch_path,
+                               include_path,
+                               output_path,
+                               source_path)));
+
+  ctx.orig_args = Args::from_string("cl.exe @pch.rsp");
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.generating_pch);
+  CHECK(ctx.args_info.output_obj == output_path);
+  CHECK(result->preprocessor_args.to_string()
+        == FMT("cl.exe /Yc -Fp{} -FI{}", pch_path, include_path));
+}
+
+TEST_CASE("MSVC /Yc with base_dir preserves later argument errors")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_base_dir(get_root());
+  REQUIRE(util::write_file("pch.cpp", ""));
+
+  ctx.orig_args = Args::from_string("cl.exe /Yc /c pch.cpp /FI");
+
+  const auto result = process_args(ctx);
+
+  CHECK(result.error() == Statistic::bad_compiler_arguments);
+}
+
 TEST_CASE("MSVC PCH options with empty -Yc")
 {
   TestContext test_context;
