@@ -765,6 +765,10 @@ TEST_CASE("MSVC PCH options")
   }
 }
 
+#ifdef _WIN32
+// The test uses absolute paths and will typically fail on macOS since
+// /Users/... will then be treated as -U/... and not an input file, so just run
+// it on Windows.
 TEST_CASE("MSVC /Yc in response file disables base_dir rewriting")
 {
   TestContext test_context;
@@ -794,6 +798,7 @@ TEST_CASE("MSVC /Yc in response file disables base_dir rewriting")
   CHECK(result->preprocessor_args.to_string()
         == FMT("cl.exe /Yc -Fp{} -FI{}", pch_path, include_path));
 }
+#endif
 
 TEST_CASE("MSVC /Yc with base_dir preserves later argument errors")
 {
