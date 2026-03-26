@@ -197,6 +197,8 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler("/test/prefix/nvcc") == CompilerType::nvcc);
     CHECK(guess_compiler("/test/prefix/nvcc-10.1.243") == CompilerType::nvcc);
 
+    CHECK(guess_compiler("/test/prefix/ispc") == CompilerType::ispc);
+
     CHECK(guess_compiler("/test/prefix/x") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/cc") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/c++") == CompilerType::other);
@@ -298,6 +300,40 @@ TEST_CASE("file_path_matches_dir_prefix_or_file")
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
 #endif
+}
+
+TEST_CASE("should_ignore_missing_include")
+{
+  SUBCASE("ISPC ignores missing includes")
+  {
+    // ISPC embeds built-in headers in its compiler binary.
+    // These appear in preprocessor output with virtual paths
+    // that don't exist on disk. This is safe to ignore because:
+    //
+    // 1. The built-in headers are part of the compiler binary, which is
+    //    already captured by the compiler_check hash.
+    // 2. A truly missing user #include would cause ISPC to exit with an
+    //    error before ccache ever sees the preprocessor output, so any
+    //    non-existent path that reaches remember_include_file is guaranteed
+    //    to be a compiler-embedded built-in.
+    CHECK(should_ignore_missing_include(CompilerType::ispc));
+  }
+
+  SUBCASE("Other compilers do not ignore missing includes")
+  {
+    // GCC and Clang use angle-bracket paths (<built-in>, <command-line>) for
+    // their virtual headers, which are already filtered out earlier in
+    // remember_include_file. Their real built-in headers are actual files
+    // on disk inside the compiler installation directory.
+    // So if a path doesn't exist for these compilers, it signals a real
+    // problem and direct mode should be disabled.
+    CHECK_FALSE(should_ignore_missing_include(CompilerType::gcc));
+    CHECK_FALSE(should_ignore_missing_include(CompilerType::clang));
+    CHECK_FALSE(should_ignore_missing_include(CompilerType::msvc));
+    CHECK_FALSE(should_ignore_missing_include(CompilerType::nvcc));
+    CHECK_FALSE(should_ignore_missing_include(CompilerType::clang_cl));
+    CHECK_FALSE(should_ignore_missing_include(CompilerType::other));
+  }
 }
 
 TEST_SUITE_END();
