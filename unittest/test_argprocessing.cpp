@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -166,6 +166,20 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == "-MFpath");
   CHECK(result->compiler_args.to_string() == "cc -MFpath -c");
+}
+
+TEST_CASE("response file syntax is not recognized in option arguments")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args = Args::from_string("gcc -c foo.c -o @foo");
+
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.output_obj == "@foo");
 }
 
 TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
