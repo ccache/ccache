@@ -455,12 +455,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux GCC debug + in source
+          - name: Linux GCC debug
             os: ubuntu-22.04
             CC: gcc
             CXX: g++
-            BUILDDIR: .
-            CCACHE_LOC: .
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug
             apt_get: elfutils libhiredis-dev libzstd-dev
 
