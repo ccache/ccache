@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -65,6 +65,13 @@ main(int argc, char** argv)
   util::setenv("_CCACHE_TEST", "1");
 #endif
   util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
+
+  if (fs::exists("README.md")) {
+    PRINT(stderr,
+          "error: run the test suite from a build directory, not from the repo"
+          " top directory\n");
+    return EXIT_FAILURE;
+  }
 
   auto result = prepare_test(argc, argv);
   if (result) {
