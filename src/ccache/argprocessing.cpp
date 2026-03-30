@@ -1845,13 +1845,14 @@ process_args(Context& ctx)
   Config& config = ctx.config;
 
   ArgumentProcessingState state;
+  util::Args args;
 
   std::optional<Statistic> argument_error;
   while (true) {
     // args is a copy of the original arguments given to the compiler but where
     // arguments from @file and similar constructs will be expanded. It's only
     // used as a temporary data structure to loop over.
-    util::Args args = ctx.orig_args;
+    args = ctx.orig_args;
     args_info = {};
     state = {};
     argument_error = std::nullopt;
