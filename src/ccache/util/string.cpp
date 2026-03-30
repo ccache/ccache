@@ -647,4 +647,13 @@ to_lowercase(std::string_view string)
   return result;
 }
 
+std::string
+to_uppercase(std::string_view string)
+{
+  std::string result;
+  result.resize(string.length());
+  std::transform(string.begin(), string.end(), result.begin(), util::to_upper);
+  return result;
+}
+
 } // namespace util

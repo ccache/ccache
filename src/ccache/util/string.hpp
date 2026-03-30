@@ -229,8 +229,14 @@ std::vector<std::filesystem::path> split_path_list(std::string_view path_list);
 // Return lowercase `ch`.
 char to_lower(char ch);
 
+// Return uppercase `ch`.
+char to_upper(char ch);
+
 // Convert a string to lowercase.
 [[nodiscard]] std::string to_lowercase(std::string_view string);
+
+// Convert a string to uppercase.
+[[nodiscard]] std::string to_uppercase(std::string_view string);
 
 // --- Inline implementations ---
 
@@ -289,6 +295,12 @@ inline char
 to_lower(char ch)
 {
   return std::tolower(static_cast<unsigned char>(ch));
+}
+
+inline char
+to_upper(char ch)
+{
+  return std::toupper(static_cast<unsigned char>(ch));
 }
 
 } // namespace util

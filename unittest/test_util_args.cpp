@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -434,6 +434,49 @@ TEST_CASE("Args operations")
     args.replace(2, no_args);
     args.replace(0, more_args);
     CHECK(args == Args::from_string("x y meeny x y"));
+  }
+}
+
+TEST_CASE("Args range-based for")
+{
+  Args args{"a", "b", "c"};
+
+  SUBCASE("non-const")
+  {
+    std::string result;
+    for (auto& arg : args) {
+      result += arg;
+    }
+    CHECK(result == "abc");
+  }
+
+  SUBCASE("const")
+  {
+    const Args& const_args = args;
+    std::string result;
+    for (const auto& arg : const_args) {
+      result += arg;
+    }
+    CHECK(result == "abc");
+  }
+
+  SUBCASE("mutation via iterator")
+  {
+    for (auto& arg : args) {
+      arg = "x";
+    }
+    CHECK(args == Args{"x", "x", "x"});
+  }
+
+  SUBCASE("empty args")
+  {
+    Args empty_args;
+    int count = 0;
+    for (const auto& arg : empty_args) {
+      (void)arg;
+      ++count;
+    }
+    CHECK(count == 0);
   }
 }
 
