@@ -703,6 +703,11 @@ done
 
 # ---------------------------------------
 
+if [[ -e README.md ]]; then
+    echo "Error: Run the test suite from a build directory, not from the repo top directory" >&2
+    exit 1
+fi
+
 TESTDIR=testdir/$$
 TEST_FAILED_SYMLINK=testdir/failed
 ABS_TESTDIR=$PWD/$TESTDIR

@@ -4,16 +4,16 @@ set -eu
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 
-prefix=/usr/local
-exec_prefix=
-bindir=
-datarootdir=
-docdir=
-libexecdir=
-mandir=
-man1dir=
-sysconfdir=
-destdir=
+prefix="${prefix:-/usr/local}"
+exec_prefix="${exec_prefix:-}"
+bindir="${bindir:-}"
+datarootdir="${datarootdir:-}"
+docdir="${docdir:-}"
+libexecdir="${libexecdir:-}"
+mandir="${mandir:-}"
+man1dir="${man1dir:-}"
+sysconfdir="${sysconfdir:-}"
+destdir="${DESTDIR:-}"
 PYTHON="${PYTHON:-python3}"
 
 doc_files="

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -166,6 +166,20 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
   CHECK(result->preprocessor_args.to_string() == "cc");
   CHECK(result->extra_args_to_hash.to_string() == "-MFpath");
   CHECK(result->compiler_args.to_string() == "cc -MFpath -c");
+}
+
+TEST_CASE("response file syntax is not recognized in option arguments")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.orig_args = Args::from_string("gcc -c foo.c -o @foo");
+
+  REQUIRE(util::write_file("foo.c", ""));
+
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.output_obj == "@foo");
 }
 
 TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
@@ -749,6 +763,56 @@ TEST_CASE("MSVC PCH options")
     CHECK(result->compiler_args.to_string()
           == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h /c");
   }
+}
+
+#ifdef _WIN32
+// The test uses absolute paths and will typically fail on macOS since
+// /Users/... will then be treated as -U/... and not an input file, so just run
+// it on Windows.
+TEST_CASE("MSVC /Yc in response file disables base_dir rewriting")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_base_dir(get_root());
+  REQUIRE(util::write_file("pch.h", ""));
+  REQUIRE(util::write_file("pch.cpp", ""));
+
+  const auto pch_path = ctx.actual_cwd / "pch.cpp.pch";
+  const auto include_path = ctx.actual_cwd / "pch.h";
+  const auto output_path = ctx.actual_cwd / "pch.cpp.obj";
+  const auto source_path = ctx.actual_cwd / "pch.cpp";
+  REQUIRE(util::write_file("pch.rsp",
+                           FMT("/Yc /Fp{} /FI{} /Fo{} /c {}\n",
+                               pch_path,
+                               include_path,
+                               output_path,
+                               source_path)));
+
+  ctx.orig_args = Args::from_string("cl.exe @pch.rsp");
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.generating_pch);
+  CHECK(ctx.args_info.output_obj == output_path);
+  CHECK(result->preprocessor_args.to_string()
+        == FMT("cl.exe /Yc -Fp{} -FI{}", pch_path, include_path));
+}
+#endif
+
+TEST_CASE("MSVC /Yc with base_dir preserves later argument errors")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_base_dir(get_root());
+  REQUIRE(util::write_file("pch.cpp", ""));
+
+  ctx.orig_args = Args::from_string("cl.exe /Yc /c pch.cpp /FI");
+
+  const auto result = process_args(ctx);
+
+  CHECK(result.error() == Statistic::bad_compiler_arguments);
 }
 
 TEST_CASE("MSVC PCH options with empty -Yc")

@@ -1700,13 +1700,25 @@ process_arg(const Context& ctx,
             Config& config,
             util::Args& args,
             size_t& args_index,
-            ArgumentProcessingState& state)
+            ArgumentProcessingState& state,
+            bool& restart)
 {
-  const auto processed =
+  const auto statistic =
     process_option_arg(ctx, args_info, config, args, args_index, state);
-  if (processed) {
-    const auto& error = *processed;
-    return error;
+
+  if (statistic && *statistic != Statistic::none) {
+    return *statistic; // error found
+  }
+
+  if (state.found_Yc && config.is_compiler_group_msvc()
+      && !config.base_dirs().empty()) {
+    LOG("Creating PCH with MSVC, disabling base directory");
+    config.set_base_dirs({});
+    restart = true;
+  }
+
+  if (statistic) {
+    return *statistic; // processed option without error
   }
 
   size_t& i = args_index;
@@ -1832,19 +1844,34 @@ process_args(Context& ctx)
   ArgsInfo& args_info = ctx.args_info;
   Config& config = ctx.config;
 
-  // args is a copy of the original arguments given to the compiler but with
-  // arguments from @file and similar constructs expanded. It's only used as a
-  // temporary data structure to loop over.
-  util::Args args = ctx.orig_args;
   ArgumentProcessingState state;
 
-  state.add_common_arg(args[0]); // Compiler
-
   std::optional<Statistic> argument_error;
-  for (size_t i = 1; i < args.size(); i++) {
-    const auto error = process_arg(ctx, args_info, ctx.config, args, i, state);
-    if (error != Statistic::none && !argument_error) {
-      argument_error = error;
+  while (true) {
+    // args is a copy of the original arguments given to the compiler but where
+    // arguments from @file and similar constructs will be expanded. It's only
+    // used as a temporary data structure to loop over.
+    util::Args args = ctx.orig_args;
+    args_info = {};
+    state = {};
+    argument_error = std::nullopt;
+
+    state.add_common_arg(args[0]); // Compiler
+
+    bool restart = false;
+    for (size_t i = 1; i < args.size(); i++) {
+      const auto statistic =
+        process_arg(ctx, args_info, ctx.config, args, i, state, restart);
+      if (restart) {
+        break;
+      }
+      if (statistic != Statistic::none && !argument_error) {
+        argument_error = statistic;
+      }
+    }
+
+    if (!restart) {
+      break;
     }
   }
 

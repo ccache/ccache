@@ -773,4 +773,12 @@ TEST_CASE("util::to_lowercase")
   CHECK(util::to_lowercase(" x_X@") == " x_x@");
 }
 
+TEST_CASE("util::to_uppercase")
+{
+  CHECK(util::to_uppercase("") == "");
+  CHECK(util::to_uppercase("X") == "X");
+  CHECK(util::to_uppercase("x") == "X");
+  CHECK(util::to_uppercase(" x_X@") == " X_X@");
+}
+
 TEST_SUITE_END();
