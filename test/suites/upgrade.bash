@@ -5,6 +5,12 @@ SUITE_upgrade_PROBE() {
     fi
 }
 
+SUITE_upgrade_SETUP() {
+    # Upgrade tests unset CCACHE_CONFIGPATH, so set CCACHE_CONFIGPATH2 to avoid
+    # user's system config coming into play.
+    export CCACHE_CONFIGPATH2="${PWD}/system.conf"
+}
+
 SUITE_upgrade() {
     # -------------------------------------------------------------------------
     TEST "Default cache config/directory without XDG variables"
@@ -104,7 +110,6 @@ SUITE_upgrade() {
     # cache_dir set in the system config.
 
     unset CCACHE_CONFIGPATH
-    export CCACHE_CONFIGPATH2=$PWD/ccache.conf2
     export HOME=/home/user
     export XDG_CACHE_HOME=/somewhere/cache
     export XDG_CONFIG_HOME=/elsewhere/config
