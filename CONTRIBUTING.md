@@ -62,20 +62,20 @@ commit message subject should look like this:
 
 Here is a summary of types used for ccache:
 
-| Type         | Explanation |
-| ------------ | ----------- |
-| **build**    | A change of the build system or build configuration. |
-| **bump**     | An increase of the version of an external dependency or an update of a bundled third party package. |
-| **chore**    | A change that doesn't match any other type. |
-| **ci**       | A change of CI scripts or configuration. |
-| **docs**     | A change of documentation only. |
+| Type         | Explanation                                                                                                                                             |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **build**    | A change of the build system or build configuration.                                                                                                    |
+| **bump**     | An increase of the version of an external dependency or an update of a bundled third party package.                                                     |
+| **chore**    | A change that doesn't match any other type.                                                                                                             |
+| **ci**       | A change of CI scripts or configuration.                                                                                                                |
+| **docs**     | A change of documentation only.                                                                                                                         |
 | **enhance**  | An enhancement of the code without adding a user-visible feature, for example adding a new utility class to be used by a future feature or refactoring. |
-| **feat**     | An addition or improvement of a user-visible feature. |
-| **fix**      | A bug fix (not necessarily user-visible). |
-| **perf**     | A performance improvement. |
-| **refactor** | A restructuring of the existing code without changing its external behavior. |
-| **style**    | A change of code style. |
-| **test**     | An addition or modification of tests or test framework. |
+| **feat**     | An addition or improvement of a user-visible feature.                                                                                                   |
+| **fix**      | A bug fix (not necessarily user-visible).                                                                                                               |
+| **perf**     | A performance improvement.                                                                                                                              |
+| **refactor** | A restructuring of the existing code without changing its external behavior.                                                                            |
+| **style**    | A change of code style.                                                                                                                                 |
+| **test**     | An addition or modification of tests or test framework.                                                                                                 |
 
 ## Code style
 

@@ -50,6 +50,14 @@ body:
     validations:
       required: true
 
+  - type: textarea
+    id: ccache-config
+    attributes:
+      label: Ccache configuration
+      description: Which ccache settings do you use (other than the default)?
+    validations:
+      required: false
+
   - type: dropdown
     id: os
     attributes:

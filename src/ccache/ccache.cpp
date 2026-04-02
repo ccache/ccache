@@ -1850,6 +1850,26 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     }
   }
 
+#ifdef _WIN32
+  // On Windows an update that bumps VCToolsVersion changes the triple that gets
+  // embedded in precompiled headers. MSVC and clang-cl derive the target triple
+  // from the MSVC toolset version, so the cache must be invalidated if it
+  // changes.
+  if (ctx.config.is_compiler_group_msvc()) {
+    const char* msvc_env_vars[] = {
+      "VCToolsVersion",
+      "VCToolsInstallDir",
+    };
+    for (const char* name : msvc_env_vars) {
+      const char* value = getenv(name);
+      if (value) {
+        hash.hash_delimiter(name);
+        hash.hash(value);
+      }
+    }
+  }
+#endif
+
   if (!(ctx.config.sloppiness().contains(core::Sloppy::locale))) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
