@@ -1860,11 +1860,11 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     hash.hash(gcda_path);
   }
 
-  // Possibly hash the sanitize blacklist file path.
-  for (const auto& sanitize_blacklist : ctx.args_info.sanitize_blacklists) {
-    LOG("Hashing sanitize blacklist {}", sanitize_blacklist);
-    hash.hash_delimiter("sanitizeblacklist");
-    if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
+  // Possibly hash the sanitize ignorelist file path.
+  for (const auto& sanitize_ignorelist : ctx.args_info.sanitize_ignorelists) {
+    LOG("Hashing sanitize ignorelist {}", sanitize_ignorelist);
+    hash.hash_delimiter("sanitizeignorelist");
+    if (!hash_binary_file(ctx, hash, sanitize_ignorelist)) {
       return tl::unexpected(Statistic::error_hashing_extra_file);
     }
   }

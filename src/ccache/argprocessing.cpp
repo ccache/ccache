@@ -1014,11 +1014,13 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (arg.starts_with("-fsanitize-blacklist=")) {
-    auto path = std::string_view(args[i]).substr(21);
-    args_info.sanitize_blacklists.emplace_back(path);
-    auto relpath = core::make_relative_path(ctx, path);
-    state.add_common_arg(FMT("-fsanitize-blacklist={}", relpath));
+  if (arg.starts_with("-fsanitize-ignorelist=")
+      || arg.starts_with("-fsanitize-blacklist=")) {
+    auto [option, path] = util::split_once(args[i], '=');
+    DEBUG_ASSERT(path);
+    args_info.sanitize_ignorelists.emplace_back(*path);
+    auto relpath = core::make_relative_path(ctx, *path);
+    state.add_common_arg(FMT("{}={}", option, relpath));
     return Statistic::none;
   }
 
