@@ -1728,8 +1728,11 @@ process_args(Context& ctx)
       }
     } else {
       if (args_info.output_sarif.empty()) {
-        args_info.output_sarif = args_info.input_file;
-        args_info.output_sarif.concat(".sarif");
+        state.hash_actual_cwd = true;
+        args_info.output_sarif = ctx.apparent_cwd;
+        args_info.output_sarif /= args_info.output_obj.stem();
+        args_info.output_sarif += args_info.input_file.extension();
+        args_info.output_sarif += ".sarif";
       }
       // else we assume path is set by param
     }
