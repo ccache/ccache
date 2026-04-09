@@ -1558,14 +1558,14 @@ process_args(Context& ctx)
 
   // Special case: rewrite /FI arguments relative to the input file.
   if (state.rewrite_FI_args) {
-    auto r = fs::canonical(args_info.input_file.parent_path());
+    auto r = fs::canonical(args_info.input_file);
     if (!r) {
       LOG("Failed to convert {} to absolute: {}",
-          args_info.input_file.parent_path(),
+          args_info.input_file,
           r.error());
       return tl::unexpected(Statistic::internal_error);
     }
-    const auto& abs_input_file_dir = *r;
+    auto abs_input_file_dir = r->parent_path();
     auto rewrite = [&](util::Args& arglist, size_t& i) {
       if (arglist[i].starts_with("/FI") || arglist[i].starts_with("-FI")) {
         if (arglist[i].length() > 3) {
