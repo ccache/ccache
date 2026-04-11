@@ -41,12 +41,7 @@ for arch in "${linux_archs[@]}"; do
         add "Linux ${arch} binary release glibc ${ext}" "ccache-${version}-linux-${arch}-glibc.${ext}"
     done
     for ext in "${linux_bin_extensions[@]}"; do
-        if [ "${arch}" == "riscv64" ]; then
-            # Not available, lacking native Github-hosted runners
-            true
-        else
-            add "Linux ${arch} binary release musl static ${ext}" "ccache-${version}-linux-${arch}-musl-static.${ext}"
-        fi
+        add "Linux ${arch} binary release musl static ${ext}" "ccache-${version}-linux-${arch}-musl-static.${ext}"
     done
 done
 for arch in "${windows_archs[@]}"; do

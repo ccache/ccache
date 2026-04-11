@@ -23,9 +23,20 @@ prepare_source_release() {
 }
 
 prepare_posix_binary_release() {
+    local allow_missing=0
+    if [[ "$1" == "--allow-missing" ]]; then
+        allow_missing=1
+        shift
+    fi
+
     local arch=$1
 
     shift
+
+    if [[ ! -f "${arch}-binary/ccache" && "${allow_missing}" -eq "1" ]]; then
+        echo "::warning file=ci/prepare-release::missing file '${arch}-binary/ccache', skipping"
+        exit 0
+    fi
 
     local name="ccache-${VERSION}-${arch}"
     mkdir "${name}"
@@ -77,6 +88,7 @@ prepare_posix_binary_release darwin gz
 prepare_posix_binary_release linux-aarch64-glibc gz xz
 prepare_posix_binary_release linux-aarch64-musl-static gz xz
 prepare_posix_binary_release linux-riscv64-glibc gz xz
+prepare_posix_binary_release --allow-missing linux-riscv64-musl-static gz xz
 prepare_posix_binary_release linux-x86_64-glibc gz xz
 prepare_posix_binary_release linux-x86_64-musl-static gz xz
 
