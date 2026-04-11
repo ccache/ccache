@@ -9,7 +9,7 @@ url_prefix="https://github.com/ccache/ccache/releases/download/v${version}"
 source_extensions=(tar.gz tar.xz)
 linux_bin_extensions=(tar.gz tar.xz)
 
-linux_archs=(aarch64 x86_64)
+linux_archs=(aarch64 riscv64 x86_64)
 # windows_archs=(aarch64 i686 x86_64)
 windows_archs=(aarch64 x86_64)
 
@@ -41,7 +41,12 @@ for arch in "${linux_archs[@]}"; do
         add "Linux ${arch} binary release glibc ${ext}" "ccache-${version}-linux-${arch}-glibc.${ext}"
     done
     for ext in "${linux_bin_extensions[@]}"; do
-        add "Linux ${arch} binary release musl static ${ext}" "ccache-${version}-linux-${arch}-musl-static.${ext}"
+        if [ "${arch}" == "riscv64" ]; then
+            # Not available, lacking native Github-hosted runners
+            true
+        else
+            add "Linux ${arch} binary release musl static ${ext}" "ccache-${version}-linux-${arch}-musl-static.${ext}"
+        fi
     done
 done
 for arch in "${windows_archs[@]}"; do
