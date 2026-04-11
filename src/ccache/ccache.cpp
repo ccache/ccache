@@ -317,8 +317,14 @@ probe_generic_compiler(const fs::path& path)
 static CompilerType
 do_guess_compiler(const fs::path& path)
 {
-  const auto name = util::to_lowercase(
-    util::pstr(util::with_extension(path.filename(), "")).str());
+  const auto filename = util::to_lowercase(util::pstr(path.filename()).str());
+  std::string_view name = filename;
+#ifdef _WIN32
+  if (name.ends_with(".exe")) {
+    name.remove_suffix(4);
+  }
+#endif
+
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
