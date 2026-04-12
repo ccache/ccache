@@ -1,5 +1,55 @@
 = Ccache news
 
+== Ccache 4.13.3
+
+Release date: 2026-04-12
+
+
+=== New deliverables
+
+- Added glibc binary release for Linux riscv64. +
+  [small]#_[contributed by Ludovic Henry]_#
+
+
+=== Bug fixes and improvements
+
+- Fixed handling of empty responses from remote storage backends: a response
+  with an empty body is now treated as a storage error rather than a cache
+  miss. +
+  [small]#_[contributed by Björn Svensson]_#
+
+- Fixed PCH invalidation when the MSVC toolset is updated. +
+  [small]#_[contributed by Philipp Kolberg]_#
+
+- Fixed `base_dir` path rewriting when using MSVC's `/Yc` option: paths are no
+  longer rewritten to relative when creating a precompiled header, since MSVC
+  then does not like relative paths for the `/Yc` and `/FI` arguments. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed handling of a directory-less path to the MSVC `/FI` option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for `-fsanitize-ignorelist` (which replaced
+  `-fsanitize-blacklist` in Clang 13). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed detection of type for compiler with `.` in the name (e.g.
+  `hppa2.0-unknown-linux-gnu-gcc`). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed `install.sh` to correctly use `sysconfdir` and other configuration
+  variables from the Makefile. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Changed `cmake/FindCppHttplib.cmake` to use settings from the system's CMake
+  config if available, supporting systems where cpp-httplib is not provided as a
+  header-only library. +
+  [small]#_[contributed by Jiri Slaby]_#
+
+
 == Ccache 4.13.2
 
 Release date: 2026-03-22
