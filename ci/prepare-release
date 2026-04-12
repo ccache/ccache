@@ -76,6 +76,7 @@ prepare_source_release
 prepare_posix_binary_release darwin gz
 prepare_posix_binary_release linux-aarch64-glibc gz xz
 prepare_posix_binary_release linux-aarch64-musl-static gz xz
+prepare_posix_binary_release linux-riscv64-glibc gz xz
 prepare_posix_binary_release linux-x86_64-glibc gz xz
 prepare_posix_binary_release linux-x86_64-musl-static gz xz
 
