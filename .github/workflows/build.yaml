@@ -318,6 +318,33 @@ jobs:
           path: install/ccache
           retention-days: 3
 
+  build_linux_riscv64_binary_glibc:
+    timeout-minutes: 30
+    name: Linux riscv64 binary (glibc)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-riscv64-linux-gnu libc6-dev-arm64-cross
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: |
+            -D CMAKE_TOOLCHAIN_FILE=../toolchains/riscv64-linux-gnu.cmake
+            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-riscv64-glibc-binary
+          path: install/ccache
+          retention-days: 3
+
   build_linux_musl_static_binary:
     timeout-minutes: 30
     name: Linux ${{ matrix.arch }} binary (musl static)
@@ -644,6 +671,7 @@ jobs:
       - build_linux_aarch64_binary_glibc
       - build_linux_musl_static_binary
       - build_linux_x86_64_binary_glibc
+      - build_linux_riscv64_binary_glibc
       - build_windows_binary
     runs-on: ubuntu-24.04
     steps:
