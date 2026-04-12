@@ -18,6 +18,7 @@
 
 #include "testutil.hpp"
 
+#include <ccache/context.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/hashutil.hpp>
 #include <ccache/util/file.hpp>
@@ -278,6 +279,30 @@ TEST_CASE("check_for_temporal_macros")
   for (size_t i = 0; i < no_temporal_at_avx_boundary.size() - 8; ++i) {
     CHECK(check(no_temporal_at_avx_boundary.substr(i)).empty());
   }
+}
+
+TEST_CASE("should_disable_direct_mode")
+{
+  Context ctx;
+
+  HashSourceCodeResult result;
+  CHECK_FALSE(should_disable_direct_mode(ctx, result));
+
+  result.insert(HashSourceCode::found_time);
+  CHECK(should_disable_direct_mode(ctx, result));
+
+  result = HashSourceCodeResult();
+  result.insert(HashSourceCode::found_embed);
+  CHECK(should_disable_direct_mode(ctx, result));
+
+  result = HashSourceCodeResult();
+  result.insert(HashSourceCode::found_incbin);
+  CHECK(should_disable_direct_mode(ctx, result));
+
+  ctx.config.update_from_map({
+    {"sloppiness", "incbin"}
+  });
+  CHECK_FALSE(should_disable_direct_mode(ctx, result));
 }
 
 TEST_SUITE_END();
