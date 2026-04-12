@@ -18,7 +18,6 @@
 
 #include "client.hpp"
 
-#include <ccache/util/assertions.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/format.hpp>
 
@@ -128,8 +127,12 @@ Client::get(std::span<const uint8_t> key)
 
   m_request_start_time = std::chrono::steady_clock::now();
 
-  TRY(send_u8(k_request_get));
-  TRY(send_key(key));
+  util::Bytes msg;
+  msg.reserve(2 + key.size());
+  msg.push_back(k_request_get);
+  msg.push_back(static_cast<uint8_t>(key.size()));
+  msg.insert(msg.end(), key.data(), key.size());
+  TRY(send_bytes(msg));
 
   return receive_response_get();
 }
@@ -151,10 +154,18 @@ Client::put(std::span<const uint8_t> key,
   m_request_start_time = std::chrono::steady_clock::now();
 
   uint8_t flag_byte = flags.overwrite ? 0x01 : 0x00;
-  TRY(send_u8(k_request_put));
-  TRY(send_key(key));
-  TRY(send_u8(flag_byte));
-  TRY(send_value(value));
+  uint64_t value_len = value.size();
+  uint8_t len_bytes[sizeof(uint64_t)];
+  std::memcpy(len_bytes, &value_len, sizeof(uint64_t)); // host byte order
+  util::Bytes header;
+  header.reserve(1 + 1 + key.size() + 1 + sizeof(uint64_t));
+  header.push_back(k_request_put);
+  header.push_back(static_cast<uint8_t>(key.size()));
+  header.insert(header.end(), key.data(), key.size());
+  header.push_back(flag_byte);
+  header.insert(header.end(), len_bytes, sizeof(uint64_t));
+  TRY(send_bytes(header));
+  TRY(send_bytes(value));
   return receive_response_bool();
 }
 
@@ -172,8 +183,12 @@ Client::remove(std::span<const uint8_t> key)
 
   m_request_start_time = std::chrono::steady_clock::now();
 
-  TRY(send_u8(k_request_remove));
-  TRY(send_key(key));
+  util::Bytes msg;
+  msg.reserve(2 + key.size());
+  msg.push_back(k_request_remove);
+  msg.push_back(static_cast<uint8_t>(key.size()));
+  msg.insert(msg.end(), key.data(), key.size());
+  TRY(send_bytes(msg));
   return receive_response_bool();
 }
 
@@ -186,7 +201,8 @@ Client::stop()
 
   m_request_start_time = std::chrono::steady_clock::now();
 
-  TRY(send_u8(k_request_stop));
+  const uint8_t msg[] = {k_request_stop};
+  TRY(send_bytes(msg));
   return receive_response_void();
 }
 
@@ -273,38 +289,6 @@ Client::receive_u64()
   uint64_t value;
   std::memcpy(&value, data.data(), sizeof(uint64_t)); // host byte order
   return value;
-}
-
-tl::expected<void, Client::Error>
-Client::send_u8(uint8_t value)
-{
-  return send_bytes({&value, 1});
-}
-
-tl::expected<void, Client::Error>
-Client::send_u64(uint64_t value)
-{
-  uint8_t buffer[sizeof(uint64_t)];
-  std::memcpy(buffer, &value, sizeof(uint64_t)); // host byte order
-  return send_bytes(buffer);
-}
-
-tl::expected<void, Client::Error>
-Client::send_key(std::span<const uint8_t> key)
-{
-  DEBUG_ASSERT(key.size() < 256);
-  auto key_len = static_cast<uint8_t>(key.size());
-  TRY(send_u8(key_len));
-  TRY(send_bytes(key));
-  return {};
-}
-
-tl::expected<void, Client::Error>
-Client::send_value(std::span<const uint8_t> value)
-{
-  TRY(send_u64(value.size()));
-  TRY(send_bytes(value));
-  return {};
 }
 
 tl::expected<std::optional<util::Bytes>, Client::Error>
