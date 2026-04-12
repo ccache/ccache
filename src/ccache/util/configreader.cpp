@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -29,7 +29,7 @@ namespace {
 bool
 is_comment_or_blank(std::string_view line)
 {
-  std::string stripped = util::strip_whitespace(line);
+  std::string_view stripped = util::strip_whitespace(line);
   return stripped.empty() || stripped[0] == '#';
 }
 
@@ -148,7 +148,7 @@ ConfigReader::read_next_item()
     split_into_views(raw_value, "\n", Tokenizer::Mode::include_empty);
 
   for (auto line : value_lines) {
-    std::string stripped = util::strip_whitespace(line);
+    std::string_view stripped = util::strip_whitespace(line);
     if (!stripped.empty() && stripped[0] != '#') {
       if (!normalized_value.empty()) {
         normalized_value += ' ';

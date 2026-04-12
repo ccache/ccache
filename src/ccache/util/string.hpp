@@ -224,7 +224,7 @@ split_option_with_concat_path(std::string_view string);
 std::vector<std::filesystem::path> split_path_list(std::string_view path_list);
 
 // Strip whitespace from left and right side of a string.
-[[nodiscard]] std::string strip_whitespace(std::string_view string);
+[[nodiscard]] std::string_view strip_whitespace(std::string_view string);
 
 // Return lowercase `ch`.
 char to_lower(char ch);

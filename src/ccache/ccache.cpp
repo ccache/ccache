@@ -1121,10 +1121,12 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         std::string orig_line(line.data(), line.length());
         std::string abs_inc_path =
           util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
-        abs_inc_path = util::strip_whitespace(abs_inc_path);
-        fs::path rel_inc_path = core::make_relative_path(ctx, abs_inc_path);
+        std::string_view stripped_abs_inc_path =
+          util::strip_whitespace(abs_inc_path);
+        fs::path rel_inc_path =
+          core::make_relative_path(ctx, stripped_abs_inc_path);
         std::string line_with_rel_inc = util::replace_first(
-          orig_line, abs_inc_path, util::pstr(rel_inc_path).str());
+          orig_line, stripped_abs_inc_path, util::pstr(rel_inc_path).str());
         new_stdout_data.insert(new_stdout_data.end(),
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
