@@ -1,8 +1,4 @@
 SUITE_remote_redis_unix_PROBE() {
-    if ! $CCACHE --version | grep -Fq -- redis-storage &> /dev/null; then
-        echo "redis-storage not available"
-        return
-    fi
     if ! command -v redis-server &> /dev/null; then
         echo "redis-server not found"
         return
@@ -42,6 +38,8 @@ start_redis_unix_server() {
 
 SUITE_remote_redis_unix_SETUP() {
     unset CCACHE_NODIRECT
+
+    export CRSH_LOGFILE="ccache-storage-redis_unix.log"
 
     generate_code 1 test.c
 }
