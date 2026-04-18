@@ -88,6 +88,15 @@ public:
   // Direct mode manifest.
   core::Manifest manifest;
 
+  // Whether kernel-compilation-specific ECS behavior is enabled.
+  bool kernel_compiling = false;
+
+  // Resolved autoconf.h path for current compilation when kernel mode is active.
+  std::filesystem::path kernel_autoconf_path;
+
+  // Historical autoconf.h digest selected by ECS matching for current source.
+  std::optional<Hash::Digest> kernel_ecs_anchor_digest;
+
 #ifdef INODE_CACHE_SUPPORTED
   // InodeCache that caches source file hashes when enabled.
   mutable InodeCache inode_cache;

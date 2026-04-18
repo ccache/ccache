@@ -29,6 +29,8 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/xxh3_64.hpp>
 
+#include <algorithm>
+
 // Manifest data format
 // ====================
 //
@@ -76,6 +78,23 @@ template<> struct hash<core::Manifest::FileInfo>
 } // namespace std
 
 namespace core {
+
+namespace {
+
+bool
+is_kernel_autoconf_header(const std::string& path)
+{
+  std::string normalized = path;
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+  static const std::string suffix = "generated/autoconf.h";
+  return normalized.size() >= suffix.size()
+         && normalized.compare(normalized.size() - suffix.size(),
+                               suffix.size(),
+                               suffix)
+              == 0;
+}
+
+} // namespace
 
 // Format version history:
 //
@@ -168,7 +187,7 @@ Manifest::read(std::span<const uint8_t> data)
 }
 
 std::optional<Hash::Digest>
-Manifest::look_up_result_digest(const Context& ctx) const
+Manifest::look_up_result_digest(Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
   std::unordered_map<std::string, Hash::Digest> hashed_files;
@@ -176,11 +195,13 @@ Manifest::look_up_result_digest(const Context& ctx) const
   // Check newest result first since it's more likely to match.
   for (size_t i = m_results.size(); i > 0; i--) {
     const auto& result = m_results[i - 1];
+    std::unordered_map<std::string, Hash::Digest> matched_files;
     LOG("Considering result entry {} ({})",
         i - 1,
         util::format_base16(result.key));
-    if (result_matches(ctx, result, stated_files, hashed_files)) {
+    if (result_matches(ctx, result, stated_files, hashed_files, matched_files)) {
       LOG("Result entry {} matched in manifest", i - 1);
+      ctx.included_files = std::move(matched_files);
       return result.key;
     }
   }
@@ -371,14 +392,30 @@ Manifest::get_file_info_index(
 
 bool
 Manifest::result_matches(
-  const Context& ctx,
+  Context& ctx,
   const ResultEntry& result,
   std::unordered_map<std::string, FileStats>& stated_files,
-  std::unordered_map<std::string, Hash::Digest>& hashed_files) const
+  std::unordered_map<std::string, Hash::Digest>& hashed_files,
+  std::unordered_map<std::string, Hash::Digest>& matched_files) const
 {
+  const bool kernel_ecs_active =
+    ctx.kernel_compiling && ctx.kernel_ecs_anchor_digest.has_value();
   for (uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = m_file_infos[file_info_index];
     const auto& path = m_files[fi.index];
+
+    if (kernel_ecs_active && is_kernel_autoconf_header(path)) {
+      if (fi.digest == *ctx.kernel_ecs_anchor_digest) {
+        matched_files[path] = fi.digest;
+        continue;
+      } else {
+        LOG("Kernel ECS mismatch for {}: anchor {} != {}",
+            path,
+            util::format_base16(*ctx.kernel_ecs_anchor_digest),
+            util::format_base16(fi.digest));
+        return false;
+      }
+    }
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {
@@ -397,14 +434,15 @@ Manifest::result_matches(
     }
     const FileStats& fs = stated_files_iter->second;
 
-    if (fs.size != fi.fsize) {
+    if (!kernel_ecs_active && fs.size != fi.fsize) {
       LOG("Mismatch for {}: size {} != {}", path, fs.size, fi.fsize);
       return false;
     }
 
     // Clang stores the mtime of the included files in the precompiled header,
     // and will error out if that header is later used without rebuilding.
-    if ((ctx.config.compiler_type() == CompilerType::clang
+    if (!kernel_ecs_active
+        && (ctx.config.compiler_type() == CompilerType::clang
          || ctx.config.compiler_type() == CompilerType::other)
         && ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.fno_pch_timestamp && fi.mtime != fs.mtime) {
@@ -412,11 +450,13 @@ Manifest::result_matches(
       return false;
     }
 
-    if (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches)) {
+    if (!kernel_ecs_active
+        && ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches)) {
       if (!ctx.config.sloppiness().contains(
             core::Sloppy::file_stat_matches_ctime)) {
         if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
           LOG("mtime/ctime hit for {}", path);
+          matched_files[path] = fi.digest;
           continue;
         } else {
           LOG("mtime/ctime miss for {}", path);
@@ -424,6 +464,7 @@ Manifest::result_matches(
       } else {
         if (fi.mtime == fs.mtime) {
           LOG("mtime hit for {}", path);
+          matched_files[path] = fi.digest;
           continue;
         } else {
           LOG("mtime miss for {}", path);
@@ -454,6 +495,7 @@ Manifest::result_matches(
           util::format_base16(fi.digest));
       return false;
     }
+    matched_files[path] = fi.digest;
   }
 
   return true;
