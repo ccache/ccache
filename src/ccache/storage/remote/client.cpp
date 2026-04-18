@@ -95,9 +95,21 @@ Client::connect(const std::string& path)
 }
 
 uint8_t
-Client::protocol_version() const
+Client::greeting_format() const
 {
-  return m_protocol_version;
+  return m_greeting_format;
+}
+
+const std::string&
+Client::server_identity() const
+{
+  return m_server_identity;
+}
+
+const std::vector<std::string>&
+Client::diagnostics() const
+{
+  return m_diagnostics;
 }
 
 const std::vector<Client::Capability>&
@@ -212,19 +224,22 @@ Client::close()
   if (m_connected) {
     m_channel.close();
     m_connected = false;
-    m_protocol_version = 0;
+    m_greeting_format = 0;
     m_capabilities.clear();
+    m_server_identity.clear();
+    m_diagnostics.clear();
   }
 }
 
 tl::expected<void, Client::Error>
 Client::read_greeting()
 {
-  TRY_ASSIGN(m_protocol_version, receive_u8());
-  if (m_protocol_version != k_protocol_version) {
+  TRY_ASSIGN(m_greeting_format, receive_u8());
+  if (m_greeting_format != k_greeting_format_1
+      && m_greeting_format != k_greeting_format_2) {
     return tl::unexpected(
       Error(Failure::error,
-            FMT("Unsupported protocol version: {}", m_protocol_version)));
+            FMT("Unsupported greeting format: {}", m_greeting_format)));
   }
 
   TRY_ASSIGN(uint8_t cap_len, receive_u8());
@@ -233,6 +248,23 @@ Client::read_greeting()
   for (uint8_t i = 0; i < cap_len; ++i) {
     TRY_ASSIGN(uint8_t cap_byte, receive_u8());
     m_capabilities.push_back(static_cast<Capability>(cap_byte));
+  }
+
+  if (m_greeting_format == k_greeting_format_2) {
+    TRY_ASSIGN(uint8_t identity_len, receive_u8());
+    TRY_ASSIGN(auto identity_bytes, receive_bytes(identity_len));
+    m_server_identity.assign(
+      reinterpret_cast<const char*>(identity_bytes.data()), identity_len);
+
+    TRY_ASSIGN(uint8_t diag_num, receive_u8());
+    m_diagnostics.clear();
+    m_diagnostics.reserve(diag_num);
+    for (uint8_t i = 0; i < diag_num; ++i) {
+      TRY_ASSIGN(uint8_t msg_len, receive_u8());
+      TRY_ASSIGN(auto msg_bytes, receive_bytes(msg_len));
+      m_diagnostics.emplace_back(
+        reinterpret_cast<const char*>(msg_bytes.data()), msg_len);
+    }
   }
 
   return {};

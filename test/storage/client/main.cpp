@@ -282,13 +282,6 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  if (client.protocol_version()
-      != storage::remote::Client::k_protocol_version) {
-    PRINT(
-      stderr, "Unsupported protocol version: {}\n", client.protocol_version());
-    return 1;
-  }
-
   if (!client.has_capability(
         storage::remote::Client::Capability::get_put_remove_stop)) {
     PRINT(stderr, "Helper does not support get/put/remove/stop operations\n");

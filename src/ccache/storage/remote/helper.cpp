@@ -76,7 +76,8 @@ constexpr std::string_view k_named_pipe_prefix = "\\\\.\\pipe\\";
 std::string
 generate_endpoint_name(
   const Url& url,
-  const std::vector<RemoteStorage::Backend::Attribute>& attributes)
+  const std::vector<RemoteStorage::Backend::Attribute>& attributes,
+  uint8_t max_greeting_format)
 {
   static const uint8_t delimiter[1] = {0};
 
@@ -98,6 +99,8 @@ generate_endpoint_name(
     hash.hash(delimiter);
     hash.hash(attr.value);
   }
+  hash.hash(delimiter);
+  hash.hash(static_cast<int64_t>(max_greeting_format));
   return FMT("storage-{}-{}", url.scheme(), util::format_base16(hash.digest()));
 }
 
@@ -164,6 +167,8 @@ build_helper_env(
   env_vars.emplace_back(FMT("CRSH_URL={}", url.str()));
   env_vars.emplace_back(
     FMT("CRSH_IDLE_TIMEOUT={}", idle_timeout.count() / 1000));
+  env_vars.emplace_back(
+    FMT("CRSH_FORMAT_MAX={}", Client::k_max_greeting_format));
   env_vars.emplace_back(FMT("CRSH_NUM_ATTR={}", attributes.size()));
 
   for (size_t i = 0; i < attributes.size(); ++i) {
@@ -183,8 +188,8 @@ is_ccache_crsh_var(std::string_view entry)
   }
 
   return name == "CRSH_IPC_ENDPOINT" || name == "CRSH_URL"
-         || name == "CRSH_IDLE_TIMEOUT" || name == "CRSH_NUM_ATTR"
-         || name.starts_with("CRSH_ATTR_KEY_")
+         || name == "CRSH_IDLE_TIMEOUT" || name == "CRSH_FORMAT_MAX"
+         || name == "CRSH_NUM_ATTR" || name.starts_with("CRSH_ATTR_KEY_")
          || name.starts_with("CRSH_ATTR_VALUE_");
 }
 
@@ -420,7 +425,8 @@ HelperBackend::HelperBackend(const fs::path& helper_path,
     // No m_endpoint_lock_path needed since we won't spawn a helper.
   } else {
     // The common case:
-    auto endpoint_name = generate_endpoint_name(url, attributes);
+    auto endpoint_name =
+      generate_endpoint_name(url, attributes, Client::k_max_greeting_format);
 #ifdef _WIN32
     m_endpoint = FMT("{}ccache-{}", k_named_pipe_prefix, endpoint_name);
     m_endpoint_lock_path = FMT("{}/{}", temp_dir, endpoint_name);
@@ -439,15 +445,21 @@ HelperBackend::HelperBackend(const fs::path& helper_path,
 tl::expected<void, RemoteStorage::Backend::Failure>
 HelperBackend::finalize_connection()
 {
-  if (m_client.protocol_version() != Client::k_protocol_version) {
-    LOG("Unexpected remote storage helper protocol version: {} (!= {})",
-        m_client.protocol_version(),
-        Client::k_protocol_version);
-    return tl::unexpected(Failure::error);
+  if (util::logging::enabled()) {
+    auto capabilities = util::join(m_client.capabilities(), " ");
+    LOG("Storage helper: {} (format: {}, capabilities: {})",
+        !m_client.server_identity().empty() ? m_client.server_identity()
+                                            : "[unknown]",
+        m_client.greeting_format(),
+        capabilities);
+    for (const auto& msg : m_client.diagnostics()) {
+      LOG("Storage helper diagnostic: {}", msg);
+    }
   }
 
   if (!m_client.has_capability(Client::Capability::get_put_remove_stop)) {
-    LOG("Remote storage helper does not support capability 0");
+    LOG("Storage helper does not support capability {}",
+        static_cast<int>(Client::Capability::get_put_remove_stop));
     return tl::unexpected(Failure::error);
   }
 
