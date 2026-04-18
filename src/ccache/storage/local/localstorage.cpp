@@ -321,6 +321,32 @@ result_path_from_raw_file(const std::string& path)
   return std::nullopt;
 }
 
+static void
+migrate_legacy_raw_files(const fs::path& old_result_path,
+                         const fs::path& new_result_path)
+{
+  const auto old_result_path_string = util::pstr(old_result_path).str();
+  if (!old_result_path_string.ends_with('R')) {
+    return;
+  }
+
+  const auto old_raw_prefix =
+    old_result_path_string.substr(0, old_result_path_string.length() - 1);
+  for (uint8_t file_number = 0; file_number < 10; ++file_number) {
+    const auto old_raw_path = fs::path(FMT("{}{}W", old_raw_prefix, file_number));
+    if (!DirEntry(old_raw_path).is_regular_file()) {
+      continue;
+    }
+
+    const auto new_raw_path =
+      LocalStorage::get_raw_file_path(new_result_path, file_number);
+    LOG("Migrating {} to {}", old_raw_path, new_raw_path);
+    if (!fs::rename(old_raw_path, new_raw_path)) {
+      LOG("Failed to rename {} to {}", old_raw_path, new_raw_path);
+    }
+  }
+}
+
 static CleanDirResult
 clean_dir(
   const fs::path& l2_dir,
@@ -610,6 +636,12 @@ fs::path
 LocalStorage::get_raw_file_path(const fs::path& result_path,
                                 uint8_t file_number)
 {
+  const auto result_path_string = util::pstr(result_path).str();
+  if (result_path_string.ends_with('R') && file_number < 10) {
+    return FMT("{}{}W",
+               result_path_string.substr(0, result_path_string.length() - 1),
+               file_number);
+  }
   return FMT("{}_{:02x}", result_path, file_number);
 }
 
@@ -1089,6 +1121,9 @@ LocalStorage::look_up_cache_file(const Hash::Digest& key,
       const auto new_path = get_path_in_cache(level, key_string);
       LOG("Migrating {} to {}", path, new_path);
       if (fs::rename(path, new_path)) {
+        if (type == core::CacheEntryType::result) {
+          migrate_legacy_raw_files(path, new_path);
+        }
         return {new_path, DirEntry(new_path), level};
       } else {
         LOG("Failed to rename {} to {}", path, new_path);

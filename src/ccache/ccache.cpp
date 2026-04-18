@@ -90,7 +90,9 @@
 #include <span>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace fs = util::filesystem;
 
@@ -162,6 +164,524 @@ inline void
 Failure::set_exit_code(const int exit_code)
 {
   m_exit_code = exit_code;
+}
+
+struct KernelEcsRecord
+{
+  std::string source_digest;
+  fs::path autoconf_path;
+  std::vector<std::string> configs;
+  std::unordered_map<std::string, std::string> history;
+};
+
+static fs::path
+absolutize_path(const Context& ctx, const fs::path& path)
+{
+  return path.is_absolute() ? path : (ctx.actual_cwd / path);
+}
+
+static bool
+is_generated_autoconf_path(const fs::path& path)
+{
+  std::string normalized = util::pstr(path);
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+  static const std::string suffix = "generated/autoconf.h";
+  return normalized.size() >= suffix.size()
+         && normalized.compare(normalized.size() - suffix.size(),
+                               suffix.size(),
+                               suffix)
+              == 0;
+}
+
+static fs::path
+kernel_ecs_root(const Context& ctx)
+{
+  return ctx.config.cache_dir() / "ecs_cache";
+}
+
+static std::string
+path_key(const fs::path& path)
+{
+  Hash hash;
+  hash.hash(util::pstr(path));
+  return util::format_base16(hash.digest());
+}
+
+static std::optional<Hash::Digest>
+parse_digest_hex(std::string_view hex)
+{
+  auto bytes = util::parse_base16(hex);
+  if (!bytes || bytes->size() != std::tuple_size<Hash::Digest>()) {
+    return std::nullopt;
+  }
+  Hash::Digest digest;
+  std::copy(bytes->begin(), bytes->end(), digest.begin());
+  return digest;
+}
+
+static std::optional<std::string>
+hash_file_hex(const fs::path& path)
+{
+  auto data = util::read_file<util::Bytes>(path);
+  if (!data) {
+    return std::nullopt;
+  }
+  Hash hash;
+  hash.hash(*data);
+  return util::format_base16(hash.digest());
+}
+
+static std::unordered_map<std::string, std::string>
+parse_autoconf_values(const fs::path& autoconf_path)
+{
+  std::unordered_map<std::string, std::string> values;
+  auto content = util::read_file<std::string>(autoconf_path);
+  if (!content) {
+    return values;
+  }
+  for (const auto line :
+       util::split_into_views(*content, "\n", util::Tokenizer::Mode::skip_empty)) {
+    if (!line.starts_with("#define CONFIG_")) {
+      continue;
+    }
+    auto parts =
+      util::split_into_views(line, " \t", util::Tokenizer::Mode::skip_empty);
+    if (parts.size() >= 3) {
+      values.emplace(std::string(parts[1]), std::string(parts[2]));
+    } else if (parts.size() == 2) {
+      values.emplace(std::string(parts[1]), "1");
+    }
+  }
+  return values;
+}
+
+static void
+extract_config_tokens(std::string_view content,
+                      std::unordered_set<std::string>& out_configs)
+{
+  constexpr std::string_view token = "CONFIG_";
+  size_t pos = 0;
+  while (true) {
+    pos = content.find(token, pos);
+    if (pos == std::string_view::npos) {
+      return;
+    }
+    size_t end = pos + token.size();
+    while (end < content.size()
+           && (util::is_alnum(content[end]) || content[end] == '_')) {
+      ++end;
+    }
+    const bool boundary_before =
+      (pos == 0
+       || (!util::is_alnum(content[pos - 1]) && content[pos - 1] != '_'));
+    const bool boundary_after =
+      (end >= content.size()
+       || (!util::is_alnum(content[end]) && content[end] != '_'));
+    if (boundary_before && boundary_after && end > pos + token.size()) {
+      out_configs.emplace(content.substr(pos, end - pos));
+    }
+    pos = end;
+  }
+}
+
+static bool
+load_header_config_cache(const fs::path& cache_path,
+                         std::string_view content_digest,
+                         std::vector<std::string>& configs)
+{
+  auto text = util::read_file<std::string>(cache_path);
+  if (!text) {
+    return false;
+  }
+  bool version_ok = false;
+  bool digest_ok = false;
+  std::vector<std::string> loaded;
+  for (const auto line :
+       util::split_into_views(*text, "\n", util::Tokenizer::Mode::skip_empty)) {
+    if (line == "version 1") {
+      version_ok = true;
+      continue;
+    }
+    if (line.starts_with("content_digest ")) {
+      digest_ok = line.substr(strlen("content_digest ")) == content_digest;
+      continue;
+    }
+    if (line.starts_with("config ")) {
+      loaded.emplace_back(line.substr(strlen("config ")));
+    }
+  }
+  if (version_ok && digest_ok) {
+    configs = std::move(loaded);
+    return true;
+  }
+  return false;
+}
+
+static void
+store_header_config_cache(const fs::path& cache_path,
+                          std::string_view content_digest,
+                          const std::vector<std::string>& configs)
+{
+  std::string output;
+  output += "version 1\n";
+  output += FMT("content_digest {}\n", content_digest);
+  for (const auto& config : configs) {
+    output += FMT("config {}\n", config);
+  }
+  std::ignore = fs::create_directories(cache_path.parent_path());
+  auto result = util::write_file(cache_path, output);
+  if (!result) {
+    LOG("Failed to write kernel ECS header cache {}: {}",
+        cache_path,
+        result.error());
+  }
+}
+
+static std::vector<std::string>
+extract_configs_with_cache(const Context& ctx, const std::vector<fs::path>& files)
+{
+  std::unordered_set<std::string> all_configs;
+  const fs::path header_cache_dir = kernel_ecs_root(ctx) / "header_configs";
+
+  for (const auto& file : files) {
+    const fs::path abs_path = absolutize_path(ctx, file);
+    if (!fs::is_regular_file(abs_path)) {
+      continue;
+    }
+
+    auto content_digest = hash_file_hex(abs_path);
+    if (!content_digest) {
+      continue;
+    }
+
+    const fs::path cache_path = header_cache_dir / (path_key(abs_path) + ".txt");
+    std::vector<std::string> configs;
+    if (!load_header_config_cache(cache_path, *content_digest, configs)) {
+      auto text = util::read_file<std::string>(abs_path);
+      if (!text) {
+        continue;
+      }
+      std::unordered_set<std::string> extracted;
+      extract_config_tokens(*text, extracted);
+      configs.assign(extracted.begin(), extracted.end());
+      std::sort(configs.begin(), configs.end());
+      store_header_config_cache(cache_path, *content_digest, configs);
+    }
+    all_configs.insert(configs.begin(), configs.end());
+  }
+
+  std::vector<std::string> result(all_configs.begin(), all_configs.end());
+  std::sort(result.begin(), result.end());
+  return result;
+}
+
+static std::string
+compute_ecs_hash(const std::vector<std::string>& configs,
+                 const std::unordered_map<std::string, std::string>& autoconf_values)
+{
+  Hash hash;
+  hash.hash_delimiter("kernel-ecs-v1");
+  for (const auto& config : configs) {
+    hash.hash_delimiter(config);
+    const auto it = autoconf_values.find(config);
+    hash.hash(it == autoconf_values.end() ? "UNDEFINED" : it->second);
+  }
+  return util::format_base16(hash.digest());
+}
+
+static fs::path
+deps_record_path(const Context& ctx, const fs::path& source_abs_path)
+{
+  return kernel_ecs_root(ctx) / "deps" / (path_key(source_abs_path) + ".txt");
+}
+
+static bool
+load_kernel_ecs_record(const Context& ctx,
+                       const fs::path& source_abs_path,
+                       KernelEcsRecord& record)
+{
+  const fs::path path = deps_record_path(ctx, source_abs_path);
+  auto text = util::read_file<std::string>(path);
+  if (!text) {
+    return false;
+  }
+  KernelEcsRecord loaded;
+  bool version_ok = false;
+  for (const auto line :
+       util::split_into_views(*text, "\n", util::Tokenizer::Mode::skip_empty)) {
+    if (line == "version 1") {
+      version_ok = true;
+      continue;
+    }
+    if (line.starts_with("source_digest ")) {
+      loaded.source_digest = line.substr(strlen("source_digest "));
+      continue;
+    }
+    if (line.starts_with("autoconf_path ")) {
+      loaded.autoconf_path = std::string(line.substr(strlen("autoconf_path ")));
+      continue;
+    }
+    if (line.starts_with("config ")) {
+      loaded.configs.emplace_back(line.substr(strlen("config ")));
+      continue;
+    }
+    if (line.starts_with("history ")) {
+      auto parts = util::split_into_views(
+        line, " ", util::Tokenizer::Mode::skip_empty);
+      if (parts.size() == 3) {
+        loaded.history.emplace(std::string(parts[1]), std::string(parts[2]));
+      }
+      continue;
+    }
+  }
+  if (!version_ok || loaded.source_digest.empty()) {
+    return false;
+  }
+  std::sort(loaded.configs.begin(), loaded.configs.end());
+  record = std::move(loaded);
+  return true;
+}
+
+static void
+store_kernel_ecs_record(const Context& ctx,
+                        const fs::path& source_abs_path,
+                        const KernelEcsRecord& record)
+{
+  std::string output;
+  output += "version 1\n";
+  output += FMT("source_digest {}\n", record.source_digest);
+  output += FMT("autoconf_path {}\n", util::pstr(record.autoconf_path).str());
+  for (const auto& config : record.configs) {
+    output += FMT("config {}\n", config);
+  }
+  std::vector<std::pair<std::string, std::string>> history_items(
+    record.history.begin(), record.history.end());
+  std::sort(history_items.begin(), history_items.end());
+  for (const auto& [ecs_hash, autoconf_digest] : history_items) {
+    output += FMT("history {} {}\n", ecs_hash, autoconf_digest);
+  }
+
+  const fs::path path = deps_record_path(ctx, source_abs_path);
+  std::ignore = fs::create_directories(path.parent_path());
+  auto result = util::write_file(path, output);
+  if (!result) {
+    LOG("Failed to write kernel ECS deps cache {}: {}", path, result.error());
+  }
+}
+
+static std::optional<fs::path>
+discover_kernel_autoconf_path(const Context& ctx, const util::Args& args)
+{
+  std::vector<fs::path> include_dirs;
+  std::optional<fs::path> explicit_autoconf;
+
+  for (size_t i = 0; i < args.size(); ++i) {
+    const auto& arg = args[i];
+    if (arg == "-I" && i + 1 < args.size()) {
+      include_dirs.emplace_back(args[i + 1]);
+      ++i;
+      continue;
+    }
+    if (arg.starts_with("-I") && arg.size() > 2) {
+      include_dirs.emplace_back(arg.substr(2));
+      continue;
+    }
+    if (arg == "-include" && i + 1 < args.size()) {
+      fs::path candidate(args[i + 1]);
+      if (is_generated_autoconf_path(candidate)) {
+        explicit_autoconf = candidate;
+      }
+      ++i;
+      continue;
+    }
+    if (arg.starts_with("-include") && arg.size() > strlen("-include")) {
+      fs::path candidate(arg.substr(strlen("-include")));
+      if (is_generated_autoconf_path(candidate)) {
+        explicit_autoconf = candidate;
+      }
+    }
+  }
+
+  if (explicit_autoconf) {
+    const fs::path abs = absolutize_path(ctx, *explicit_autoconf);
+    if (fs::is_regular_file(abs)) {
+      return abs;
+    }
+  }
+
+  for (const auto& include_dir : include_dirs) {
+    fs::path candidate = absolutize_path(ctx, include_dir) / "generated"
+                         / "autoconf.h";
+    if (fs::is_regular_file(candidate)) {
+      return candidate;
+    }
+  }
+
+  for (const auto& fallback :
+       {fs::path("out/include/generated/autoconf.h"),
+        fs::path("include/generated/autoconf.h")}) {
+    fs::path candidate = absolutize_path(ctx, fallback);
+    if (fs::is_regular_file(candidate)) {
+      return candidate;
+    }
+  }
+
+  return std::nullopt;
+}
+
+static void
+prepare_kernel_ecs_state(Context& ctx, const util::Args& preprocessor_args)
+{
+  ctx.kernel_ecs_anchor_digest.reset();
+  ctx.kernel_autoconf_path.clear();
+
+  if (!ctx.kernel_compiling) {
+    return;
+  }
+
+  const fs::path source_abs_path = absolutize_path(ctx, ctx.args_info.input_file);
+  if (!fs::is_regular_file(source_abs_path)) {
+    return;
+  }
+
+  auto autoconf_path = discover_kernel_autoconf_path(ctx, preprocessor_args);
+  KernelEcsRecord record;
+  if (!autoconf_path && load_kernel_ecs_record(ctx, source_abs_path, record)
+      && fs::is_regular_file(record.autoconf_path)) {
+    autoconf_path = absolutize_path(ctx, record.autoconf_path);
+  }
+  if (!autoconf_path) {
+    return;
+  }
+  ctx.kernel_autoconf_path = *autoconf_path;
+
+  if (record.source_digest.empty()
+      && !load_kernel_ecs_record(ctx, source_abs_path, record)) {
+    return;
+  }
+  auto source_digest = hash_file_hex(source_abs_path);
+  if (!source_digest || record.source_digest != *source_digest) {
+    return;
+  }
+
+  const auto autoconf_values = parse_autoconf_values(*autoconf_path);
+  const std::string ecs_hash = compute_ecs_hash(record.configs, autoconf_values);
+  const auto it = record.history.find(ecs_hash);
+  if (it == record.history.end()) {
+    return;
+  }
+  auto digest = parse_digest_hex(it->second);
+  if (!digest) {
+    return;
+  }
+  ctx.kernel_ecs_anchor_digest = *digest;
+  LOG("Kernel ECS anchor matched for {}: {}",
+      source_abs_path,
+      util::format_base16(*digest));
+}
+
+static std::optional<std::pair<fs::path, std::string>>
+find_included_autoconf_digest(const Context& ctx)
+{
+  for (const auto& [path, digest] : ctx.included_files) {
+    if (is_generated_autoconf_path(path)) {
+      return std::make_pair(absolutize_path(ctx, path),
+                            util::format_base16(digest));
+    }
+  }
+  return std::nullopt;
+}
+
+static void
+store_autoconf_snapshot(const Context& ctx,
+                        const fs::path& autoconf_path,
+                        std::string_view autoconf_digest_hex)
+{
+  if (!fs::is_regular_file(autoconf_path)) {
+    return;
+  }
+  const fs::path stored_path = kernel_ecs_root(ctx) / "autoconf_store"
+                               / std::string(autoconf_digest_hex) / "generated"
+                               / "autoconf.h";
+  if (fs::is_regular_file(stored_path)) {
+    return;
+  }
+  std::ignore = fs::create_directories(stored_path.parent_path());
+  auto copy_result = util::copy_file(autoconf_path, stored_path);
+  if (!copy_result) {
+    LOG("Failed to store kernel ECS autoconf snapshot {} -> {}: {}",
+        autoconf_path,
+        stored_path,
+        copy_result.error());
+  }
+}
+
+static void
+learn_kernel_ecs(Context& ctx)
+{
+  if (!ctx.kernel_compiling || ctx.included_files.empty()) {
+    return;
+  }
+
+  const fs::path source_abs_path = absolutize_path(ctx, ctx.args_info.input_file);
+  if (!fs::is_regular_file(source_abs_path)) {
+    return;
+  }
+
+  const auto source_digest = hash_file_hex(source_abs_path);
+  if (!source_digest) {
+    return;
+  }
+
+  auto autoconf_data = find_included_autoconf_digest(ctx);
+  if (!autoconf_data) {
+    if (!ctx.kernel_autoconf_path.empty() && fs::is_regular_file(ctx.kernel_autoconf_path)) {
+      auto fallback_digest = hash_file_hex(ctx.kernel_autoconf_path);
+      if (fallback_digest) {
+        autoconf_data = std::make_pair(ctx.kernel_autoconf_path, *fallback_digest);
+      }
+    }
+  }
+  if (!autoconf_data) {
+    return;
+  }
+
+  const fs::path autoconf_path = autoconf_data->first;
+  const std::string autoconf_digest_hex = autoconf_data->second;
+  const auto autoconf_values = parse_autoconf_values(autoconf_path);
+  if (autoconf_values.empty()) {
+    return;
+  }
+
+  std::vector<fs::path> files_to_scan;
+  files_to_scan.push_back(source_abs_path);
+  for (const auto& [path, _digest] : ctx.included_files) {
+    if (is_generated_autoconf_path(path)) {
+      continue;
+    }
+    files_to_scan.push_back(absolutize_path(ctx, path));
+  }
+
+  std::vector<std::string> configs = extract_configs_with_cache(ctx, files_to_scan);
+  const std::string ecs_hash = compute_ecs_hash(configs, autoconf_values);
+
+  KernelEcsRecord record;
+  if (!load_kernel_ecs_record(ctx, source_abs_path, record)
+      || record.source_digest != *source_digest) {
+    record = {};
+  }
+  record.source_digest = *source_digest;
+  record.autoconf_path = autoconf_path;
+  record.configs = std::move(configs);
+  record.history[ecs_hash] = autoconf_digest_hex;
+  store_kernel_ecs_record(ctx, source_abs_path, record);
+  store_autoconf_snapshot(ctx, autoconf_path, autoconf_digest_hex);
+
+  ctx.kernel_autoconf_path = autoconf_path;
+  auto digest = parse_digest_hex(autoconf_digest_hex);
+  if (digest) {
+    ctx.kernel_ecs_anchor_digest = *digest;
+  }
 }
 
 } // namespace
@@ -939,6 +1459,8 @@ update_manifest(Context& ctx,
     LOG("Did not add result key to manifest {}",
         util::format_base16(manifest_key));
   }
+
+  learn_kernel_ecs(ctx);
 }
 
 struct FindCoverageFileResult
@@ -1517,6 +2039,9 @@ hash_compiler(const Context& ctx,
               const fs::path& path,
               bool allow_command)
 {
+  if (ctx.kernel_compiling && ctx.kernel_ecs_anchor_digest) {
+    return {};
+  }
   if (ctx.config.compiler_check() == "none") {
     // Do nothing.
   } else if (ctx.config.compiler_check() == "mtime") {
@@ -3007,6 +3532,8 @@ do_cache_compilation(Context& ctx)
 
   LOG("Object file: {}", ctx.args_info.output_obj);
 
+  prepare_kernel_ecs_state(ctx, processed_args.preprocessor_args);
+
   if (ctx.config.debug() && ctx.config.debug_level() >= 2) {
     const auto path = prepare_debug_path(ctx.apparent_cwd,
                                          ctx.config.debug_dir(),
@@ -3066,12 +3593,14 @@ do_cache_compilation(Context& ctx)
       TRY_ASSIGN(bool hit,
                  from_cache(ctx, FromCacheCallMode::direct, *result_key));
       if (hit) {
+        learn_kernel_ecs(ctx);
         return Statistic::direct_cache_hit;
       }
 
-      // Wasn't able to return from cache at this point. However, the result
-      // was already found in manifest, so don't re-add it later.
-      put_result_in_manifest = false;
+      // Wasn't able to return from cache at this point. Keep manifest update
+      // enabled so later preprocessor hit/real compilation can heal stale
+      // manifest entries that point to missing/corrupt result blobs.
+      put_result_in_manifest = true;
 
       result_key_from_manifest = result_key;
     } else {
@@ -3083,6 +3612,10 @@ do_cache_compilation(Context& ctx)
       ctx.storage.local.increment_statistic(Statistic::direct_cache_miss);
     }
   }
+
+  // In case direct-mode lookup populated include data from manifest, reset it
+  // before preprocessor/depend fallback to preserve original data flow.
+  ctx.included_files.clear();
 
   if (ctx.config.read_only_direct()) {
     LOG("Read-only direct mode; running real compiler");
@@ -3137,6 +3670,7 @@ do_cache_compilation(Context& ctx)
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest(ctx, *manifest_key, *result_key);
       }
+      learn_kernel_ecs(ctx);
       return Statistic::preprocessed_cache_hit;
     }
 
