@@ -355,7 +355,7 @@ jobs:
           retention-days: 3
 
   build_linux_musl_static_binary:
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.qemu && 60 || 30 }}
     name: Linux ${{ matrix.arch }} binary (musl static)
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -366,12 +366,42 @@ jobs:
             runner: ubuntu-22.04-arm
           - arch: x86_64
             runner: ubuntu-22.04
+          - arch: riscv64
+            runner: ubuntu-22.04
+            qemu: true
     steps:
       - name: Get source
         uses: actions/checkout@v4
-      - name: Build in Alpine container
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Trigger build
+        id: trigger
         run: |
-          docker run --rm -v "$PWD:/work" -w /work \
+          set -x
+          # If ref_type is a tag, always trigger
+          if ${{ github.ref_type == 'tag' || github.event.inputs.test_tag != '' }}; then
+            echo "trigger-build=true" >> $GITHUB_OUTPUT
+
+          # If ref_type is a branch, maybe trigger
+          elif ${{ github.ref_type == 'branch' }}; then
+            case "${{ github.ref_name }}" in
+              # If default branch, trigger
+              ${{ github.event.repository.default_branch }}) echo "trigger-build=true" >> $GITHUB_OUTPUT ;;
+              # If release branch, trigger
+              *-maint) echo "trigger-build=true" >> $GITHUB_OUTPUT ;;
+              # Unknown branch, no trigger
+              *) echo "trigger-build=false" >> $GITHUB_OUTPUT ;;
+            esac
+
+          # If ref_type is unknown, no trigger
+          else
+            echo "trigger-build=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build in Alpine container
+        if: ${{ !matrix.qemu || steps.trigger.outputs.trigger-build }}
+        run: |
+          docker run --rm  -v "$PWD:/work" -w /work \
+            ${{ matrix.qemu && format('--platform linux/{0}', matrix.arch) || '' }} \
             -e GITHUB_REF \
             -e GITHUB_REF_NAME \
             -e GITHUB_SHA \
