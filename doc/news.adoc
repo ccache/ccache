@@ -191,6 +191,8 @@ Release date: 2026-03-05
 - Added support for caching distributed ThinLTO for Clang. +
   [small]#_[contributed by GitHub user zcfh]_#
 
+- Added support for QCC (QNX) compiler.
+
 - Added support for caching MSVC `/sourceDependencies` file. +
   [small]#_[contributed by Joel Rosdahl]_#
 
