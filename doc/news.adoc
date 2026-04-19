@@ -1,5 +1,16 @@
 = Ccache news
 
+== Ccache 4.13.4
+
+Release date: 2026-04-19
+
+
+=== New deliverables
+
+- Added musl static binary release for Linux riscv64. +
+  [small]#_[contributed by Ludovic Henry]_#
+
+
 == Ccache 4.13.3
 
 Release date: 2026-04-12
