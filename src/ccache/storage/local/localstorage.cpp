@@ -333,7 +333,8 @@ migrate_legacy_raw_files(const fs::path& old_result_path,
   const auto old_raw_prefix =
     old_result_path_string.substr(0, old_result_path_string.length() - 1);
   for (uint8_t file_number = 0; file_number < 10; ++file_number) {
-    const auto old_raw_path = fs::path(FMT("{}{}W", old_raw_prefix, file_number));
+    const auto old_raw_path =
+      fs::path(FMT("{}{}W", old_raw_prefix, file_number));
     if (!DirEntry(old_raw_path).is_regular_file()) {
       continue;
     }

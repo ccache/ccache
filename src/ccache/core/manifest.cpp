@@ -88,9 +88,8 @@ is_kernel_autoconf_header(const std::string& path)
   std::replace(normalized.begin(), normalized.end(), '\\', '/');
   static const std::string suffix = "generated/autoconf.h";
   return normalized.size() >= suffix.size()
-         && normalized.compare(normalized.size() - suffix.size(),
-                               suffix.size(),
-                               suffix)
+         && normalized.compare(
+              normalized.size() - suffix.size(), suffix.size(), suffix)
               == 0;
 }
 
@@ -199,7 +198,8 @@ Manifest::look_up_result_digest(Context& ctx) const
     LOG("Considering result entry {} ({})",
         i - 1,
         util::format_base16(result.key));
-    if (result_matches(ctx, result, stated_files, hashed_files, matched_files)) {
+    if (result_matches(
+          ctx, result, stated_files, hashed_files, matched_files)) {
       LOG("Result entry {} matched in manifest", i - 1);
       ctx.included_files = std::move(matched_files);
       return result.key;
@@ -443,7 +443,7 @@ Manifest::result_matches(
     // and will error out if that header is later used without rebuilding.
     if (!kernel_ecs_active
         && (ctx.config.compiler_type() == CompilerType::clang
-         || ctx.config.compiler_type() == CompilerType::other)
+            || ctx.config.compiler_type() == CompilerType::other)
         && ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.fno_pch_timestamp && fi.mtime != fs.mtime) {
       LOG("Precompiled header includes {}, which has a new mtime", path);

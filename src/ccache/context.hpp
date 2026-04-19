@@ -91,7 +91,8 @@ public:
   // Whether kernel-compilation-specific ECS behavior is enabled.
   bool kernel_compiling = false;
 
-  // Resolved autoconf.h path for current compilation when kernel mode is active.
+  // Resolved autoconf.h path for current compilation when kernel mode is
+  // active.
   std::filesystem::path kernel_autoconf_path;
 
   // Historical autoconf.h digest selected by ECS matching for current source.
