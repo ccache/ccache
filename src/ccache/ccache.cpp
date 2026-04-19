@@ -174,32 +174,31 @@ struct KernelEcsRecord
   std::unordered_map<std::string, std::string> history;
 };
 
-static fs::path
+fs::path
 absolutize_path(const Context& ctx, const fs::path& path)
 {
   return path.is_absolute() ? path : (ctx.actual_cwd / path);
 }
 
-static bool
+bool
 is_generated_autoconf_path(const fs::path& path)
 {
   std::string normalized = util::pstr(path);
   std::replace(normalized.begin(), normalized.end(), '\\', '/');
   static const std::string suffix = "generated/autoconf.h";
   return normalized.size() >= suffix.size()
-         && normalized.compare(normalized.size() - suffix.size(),
-                               suffix.size(),
-                               suffix)
+         && normalized.compare(
+              normalized.size() - suffix.size(), suffix.size(), suffix)
               == 0;
 }
 
-static fs::path
+fs::path
 kernel_ecs_root(const Context& ctx)
 {
   return ctx.config.cache_dir() / "ecs_cache";
 }
 
-static std::string
+std::string
 path_key(const fs::path& path)
 {
   Hash hash;
@@ -207,7 +206,7 @@ path_key(const fs::path& path)
   return util::format_base16(hash.digest());
 }
 
-static std::optional<Hash::Digest>
+std::optional<Hash::Digest>
 parse_digest_hex(std::string_view hex)
 {
   auto bytes = util::parse_base16(hex);
@@ -219,7 +218,7 @@ parse_digest_hex(std::string_view hex)
   return digest;
 }
 
-static std::optional<std::string>
+std::optional<std::string>
 hash_file_hex(const fs::path& path)
 {
   auto data = util::read_file<util::Bytes>(path);
@@ -231,7 +230,7 @@ hash_file_hex(const fs::path& path)
   return util::format_base16(hash.digest());
 }
 
-static std::unordered_map<std::string, std::string>
+std::unordered_map<std::string, std::string>
 parse_autoconf_values(const fs::path& autoconf_path)
 {
   std::unordered_map<std::string, std::string> values;
@@ -239,8 +238,8 @@ parse_autoconf_values(const fs::path& autoconf_path)
   if (!content) {
     return values;
   }
-  for (const auto line :
-       util::split_into_views(*content, "\n", util::Tokenizer::Mode::skip_empty)) {
+  for (const auto line : util::split_into_views(
+         *content, "\n", util::Tokenizer::Mode::skip_empty)) {
     if (!line.starts_with("#define CONFIG_")) {
       continue;
     }
@@ -255,7 +254,7 @@ parse_autoconf_values(const fs::path& autoconf_path)
   return values;
 }
 
-static void
+void
 extract_config_tokens(std::string_view content,
                       std::unordered_set<std::string>& out_configs)
 {
@@ -284,7 +283,7 @@ extract_config_tokens(std::string_view content,
   }
 }
 
-static bool
+bool
 load_header_config_cache(const fs::path& cache_path,
                          std::string_view content_digest,
                          std::vector<std::string>& configs)
@@ -317,7 +316,7 @@ load_header_config_cache(const fs::path& cache_path,
   return false;
 }
 
-static void
+void
 store_header_config_cache(const fs::path& cache_path,
                           std::string_view content_digest,
                           const std::vector<std::string>& configs)
@@ -337,8 +336,9 @@ store_header_config_cache(const fs::path& cache_path,
   }
 }
 
-static std::vector<std::string>
-extract_configs_with_cache(const Context& ctx, const std::vector<fs::path>& files)
+std::vector<std::string>
+extract_configs_with_cache(const Context& ctx,
+                           const std::vector<fs::path>& files)
 {
   std::unordered_set<std::string> all_configs;
   const fs::path header_cache_dir = kernel_ecs_root(ctx) / "header_configs";
@@ -354,7 +354,8 @@ extract_configs_with_cache(const Context& ctx, const std::vector<fs::path>& file
       continue;
     }
 
-    const fs::path cache_path = header_cache_dir / (path_key(abs_path) + ".txt");
+    const fs::path cache_path =
+      header_cache_dir / (path_key(abs_path) + ".txt");
     std::vector<std::string> configs;
     if (!load_header_config_cache(cache_path, *content_digest, configs)) {
       auto text = util::read_file<std::string>(abs_path);
@@ -375,9 +376,10 @@ extract_configs_with_cache(const Context& ctx, const std::vector<fs::path>& file
   return result;
 }
 
-static std::string
-compute_ecs_hash(const std::vector<std::string>& configs,
-                 const std::unordered_map<std::string, std::string>& autoconf_values)
+std::string
+compute_ecs_hash(
+  const std::vector<std::string>& configs,
+  const std::unordered_map<std::string, std::string>& autoconf_values)
 {
   Hash hash;
   hash.hash_delimiter("kernel-ecs-v1");
@@ -389,13 +391,13 @@ compute_ecs_hash(const std::vector<std::string>& configs,
   return util::format_base16(hash.digest());
 }
 
-static fs::path
+fs::path
 deps_record_path(const Context& ctx, const fs::path& source_abs_path)
 {
   return kernel_ecs_root(ctx) / "deps" / (path_key(source_abs_path) + ".txt");
 }
 
-static bool
+bool
 load_kernel_ecs_record(const Context& ctx,
                        const fs::path& source_abs_path,
                        KernelEcsRecord& record)
@@ -426,8 +428,8 @@ load_kernel_ecs_record(const Context& ctx,
       continue;
     }
     if (line.starts_with("history ")) {
-      auto parts = util::split_into_views(
-        line, " ", util::Tokenizer::Mode::skip_empty);
+      auto parts =
+        util::split_into_views(line, " ", util::Tokenizer::Mode::skip_empty);
       if (parts.size() == 3) {
         loaded.history.emplace(std::string(parts[1]), std::string(parts[2]));
       }
@@ -442,7 +444,7 @@ load_kernel_ecs_record(const Context& ctx,
   return true;
 }
 
-static void
+void
 store_kernel_ecs_record(const Context& ctx,
                         const fs::path& source_abs_path,
                         const KernelEcsRecord& record)
@@ -469,7 +471,7 @@ store_kernel_ecs_record(const Context& ctx,
   }
 }
 
-static std::optional<fs::path>
+std::optional<fs::path>
 discover_kernel_autoconf_path(const Context& ctx, const util::Args& args)
 {
   std::vector<fs::path> include_dirs;
@@ -510,16 +512,15 @@ discover_kernel_autoconf_path(const Context& ctx, const util::Args& args)
   }
 
   for (const auto& include_dir : include_dirs) {
-    fs::path candidate = absolutize_path(ctx, include_dir) / "generated"
-                         / "autoconf.h";
+    fs::path candidate =
+      absolutize_path(ctx, include_dir) / "generated" / "autoconf.h";
     if (fs::is_regular_file(candidate)) {
       return candidate;
     }
   }
 
-  for (const auto& fallback :
-       {fs::path("out/include/generated/autoconf.h"),
-        fs::path("include/generated/autoconf.h")}) {
+  for (const auto& fallback : {fs::path("out/include/generated/autoconf.h"),
+                               fs::path("include/generated/autoconf.h")}) {
     fs::path candidate = absolutize_path(ctx, fallback);
     if (fs::is_regular_file(candidate)) {
       return candidate;
@@ -529,7 +530,7 @@ discover_kernel_autoconf_path(const Context& ctx, const util::Args& args)
   return std::nullopt;
 }
 
-static void
+void
 prepare_kernel_ecs_state(Context& ctx, const util::Args& preprocessor_args)
 {
   ctx.kernel_ecs_anchor_digest.reset();
@@ -539,7 +540,8 @@ prepare_kernel_ecs_state(Context& ctx, const util::Args& preprocessor_args)
     return;
   }
 
-  const fs::path source_abs_path = absolutize_path(ctx, ctx.args_info.input_file);
+  const fs::path source_abs_path =
+    absolutize_path(ctx, ctx.args_info.input_file);
   if (!fs::is_regular_file(source_abs_path)) {
     return;
   }
@@ -565,7 +567,8 @@ prepare_kernel_ecs_state(Context& ctx, const util::Args& preprocessor_args)
   }
 
   const auto autoconf_values = parse_autoconf_values(*autoconf_path);
-  const std::string ecs_hash = compute_ecs_hash(record.configs, autoconf_values);
+  const std::string ecs_hash =
+    compute_ecs_hash(record.configs, autoconf_values);
   const auto it = record.history.find(ecs_hash);
   if (it == record.history.end()) {
     return;
@@ -580,7 +583,7 @@ prepare_kernel_ecs_state(Context& ctx, const util::Args& preprocessor_args)
       util::format_base16(*digest));
 }
 
-static std::optional<std::pair<fs::path, std::string>>
+std::optional<std::pair<fs::path, std::string>>
 find_included_autoconf_digest(const Context& ctx)
 {
   for (const auto& [path, digest] : ctx.included_files) {
@@ -592,7 +595,7 @@ find_included_autoconf_digest(const Context& ctx)
   return std::nullopt;
 }
 
-static void
+void
 store_autoconf_snapshot(const Context& ctx,
                         const fs::path& autoconf_path,
                         std::string_view autoconf_digest_hex)
@@ -616,14 +619,15 @@ store_autoconf_snapshot(const Context& ctx,
   }
 }
 
-static void
+void
 learn_kernel_ecs(Context& ctx)
 {
   if (!ctx.kernel_compiling || ctx.included_files.empty()) {
     return;
   }
 
-  const fs::path source_abs_path = absolutize_path(ctx, ctx.args_info.input_file);
+  const fs::path source_abs_path =
+    absolutize_path(ctx, ctx.args_info.input_file);
   if (!fs::is_regular_file(source_abs_path)) {
     return;
   }
@@ -635,10 +639,12 @@ learn_kernel_ecs(Context& ctx)
 
   auto autoconf_data = find_included_autoconf_digest(ctx);
   if (!autoconf_data) {
-    if (!ctx.kernel_autoconf_path.empty() && fs::is_regular_file(ctx.kernel_autoconf_path)) {
+    if (!ctx.kernel_autoconf_path.empty()
+        && fs::is_regular_file(ctx.kernel_autoconf_path)) {
       auto fallback_digest = hash_file_hex(ctx.kernel_autoconf_path);
       if (fallback_digest) {
-        autoconf_data = std::make_pair(ctx.kernel_autoconf_path, *fallback_digest);
+        autoconf_data =
+          std::make_pair(ctx.kernel_autoconf_path, *fallback_digest);
       }
     }
   }
@@ -662,7 +668,8 @@ learn_kernel_ecs(Context& ctx)
     files_to_scan.push_back(absolutize_path(ctx, path));
   }
 
-  std::vector<std::string> configs = extract_configs_with_cache(ctx, files_to_scan);
+  std::vector<std::string> configs =
+    extract_configs_with_cache(ctx, files_to_scan);
   const std::string ecs_hash = compute_ecs_hash(configs, autoconf_values);
 
   KernelEcsRecord record;
