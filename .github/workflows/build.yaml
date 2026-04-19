@@ -289,6 +289,33 @@ jobs:
           path: install/ccache
           retention-days: 3
 
+  build_linux_riscv64_binary_glibc:
+    timeout-minutes: 30
+    name: Linux riscv64 binary (glibc)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-riscv64-linux-gnu libc6-dev-arm64-cross
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: |
+            -D CMAKE_TOOLCHAIN_FILE=../toolchains/riscv64-linux-gnu.cmake
+            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-riscv64-glibc-binary
+          path: install/ccache
+          retention-days: 3
+
   build_linux_x86_64_binary_glibc:
     timeout-minutes: 30
     name: Linux x86_64 binary (glibc)
@@ -327,33 +354,6 @@ jobs:
           path: install/ccache
           retention-days: 3
 
-  build_linux_riscv64_binary_glibc:
-    timeout-minutes: 30
-    name: Linux riscv64 binary (glibc)
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Prepare environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++-riscv64-linux-gnu libc6-dev-arm64-cross
-      - name: Get source
-        uses: actions/checkout@v4
-      - name: Build binary
-        env:
-          CMAKE_GENERATOR: Ninja
-          CMAKE_PARAMS: |
-            -D CMAKE_TOOLCHAIN_FILE=../toolchains/riscv64-linux-gnu.cmake
-            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
-        run: ci/build-binary
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-riscv64-glibc-binary
-          path: install/ccache
-          retention-days: 3
-
   build_linux_musl_static_binary:
     timeout-minutes: ${{ matrix.qemu && 60 || 30 }}
     name: Linux ${{ matrix.arch }} binary (musl static)
@@ -364,11 +364,11 @@ jobs:
         include:
           - arch: aarch64
             runner: ubuntu-22.04-arm
-          - arch: x86_64
-            runner: ubuntu-22.04
           - arch: riscv64
             runner: ubuntu-22.04
             qemu: true
+          - arch: x86_64
+            runner: ubuntu-22.04
     steps:
       - name: Get source
         uses: actions/checkout@v4
