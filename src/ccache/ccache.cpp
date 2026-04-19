@@ -477,11 +477,11 @@ discover_kernel_autoconf_path(const Context& ctx, const util::Args& args)
   std::vector<fs::path> include_dirs;
   std::optional<fs::path> explicit_autoconf;
 
-  for (size_t i = 0; i < args.size(); ++i) {
+  for (size_t i = 0, step = 1; i < args.size(); i += step, step = 1) {
     const auto& arg = args[i];
     if (arg == "-I" && i + 1 < args.size()) {
       include_dirs.emplace_back(args[i + 1]);
-      ++i;
+      step = 2;
       continue;
     }
     if (arg.starts_with("-I") && arg.size() > 2) {
@@ -493,7 +493,7 @@ discover_kernel_autoconf_path(const Context& ctx, const util::Args& args)
       if (is_generated_autoconf_path(candidate)) {
         explicit_autoconf = candidate;
       }
-      ++i;
+      step = 2;
       continue;
     }
     if (arg.starts_with("-include") && arg.size() > strlen("-include")) {
