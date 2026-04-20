@@ -54,4 +54,42 @@ SUITE_fileclone() {
     if grep -q 'Cloning' test.o.*.ccache-log; then
         test_failed "Tried to clone"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Split DWARF .dwo file is cloned"
+
+    # Skip if -gsplit-dwarf not supported.
+    touch test.c
+    if ! $COMPILER -c -gsplit-dwarf test.c 2>/dev/null || [ ! -e test.dwo ]; then
+        return
+    fi
+
+    generate_code 1 test.c
+
+    $COMPILER -c -gsplit-dwarf -o reference_test.o test.c
+
+    CCACHE_FILECLONE=1 $CCACHE_COMPILE -c -gsplit-dwarf test.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 3
+    expect_equal_object_files reference_test.o test.o
+
+    # Note: CCACHE_DEBUG=1 below is needed for the test case.
+    CCACHE_FILECLONE=1 CCACHE_DEBUG=1 $CCACHE_COMPILE -c -gsplit-dwarf test.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 3
+    expect_equal_object_files reference_test.o test.o
+    if ! grep -q 'Cloning.*to test.o' test.o.*.ccache-log; then
+        test_failed "Did not try to clone .o file"
+    fi
+    if ! grep -q 'Cloning.*to test.dwo' test.o.*.ccache-log; then
+        test_failed "Did not try to clone .dwo file"
+    fi
+    if grep -q 'Failed to clone' test.o.*.ccache-log; then
+        test_failed "Failed to clone"
+    fi
+    if grep -q 'Failed to clone' test.dwo.*.ccache-log; then
+        test_failed "Failed to clone"
+    fi
 }
