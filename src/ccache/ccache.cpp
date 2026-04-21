@@ -206,6 +206,29 @@ path_key(const fs::path& path)
   return util::format_base16(hash.digest());
 }
 
+std::string
+portable_path_key(const fs::path& path)
+{
+  fs::path normalized_path = util::lexically_normal(path);
+  std::string normalized = util::pstr(normalized_path).str();
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+  Hash hash;
+  hash.hash(normalized);
+  return util::format_base16(hash.digest());
+}
+
+std::string
+kernel_ecs_source_key(const Context& ctx, const fs::path& source_abs_path)
+{
+  fs::path source_identity = ctx.args_info.input_file.empty()
+                               ? core::make_relative_path(ctx, source_abs_path)
+                               : ctx.args_info.input_file;
+  Hash hash;
+  hash.hash_delimiter("kernel-ecs-source-v2");
+  hash.hash(portable_path_key(source_identity));
+  return util::format_base16(hash.digest());
+}
+
 std::optional<Hash::Digest>
 parse_digest_hex(std::string_view hex)
 {
@@ -392,9 +415,16 @@ compute_ecs_hash(
 }
 
 fs::path
-deps_record_path(const Context& ctx, const fs::path& source_abs_path)
+deps_record_path_legacy(const Context& ctx, const fs::path& source_abs_path)
 {
   return kernel_ecs_root(ctx) / "deps" / (path_key(source_abs_path) + ".txt");
+}
+
+fs::path
+deps_record_path(const Context& ctx, const fs::path& source_abs_path)
+{
+  return kernel_ecs_root(ctx) / "deps"
+         / (kernel_ecs_source_key(ctx, source_abs_path) + ".txt");
 }
 
 bool
@@ -402,8 +432,12 @@ load_kernel_ecs_record(const Context& ctx,
                        const fs::path& source_abs_path,
                        KernelEcsRecord& record)
 {
-  const fs::path path = deps_record_path(ctx, source_abs_path);
-  auto text = util::read_file<std::string>(path);
+  auto text =
+    util::read_file<std::string>(deps_record_path(ctx, source_abs_path));
+  if (!text) {
+    text = util::read_file<std::string>(
+      deps_record_path_legacy(ctx, source_abs_path));
+  }
   if (!text) {
     return false;
   }
@@ -464,10 +498,21 @@ store_kernel_ecs_record(const Context& ctx,
   }
 
   const fs::path path = deps_record_path(ctx, source_abs_path);
+  const fs::path legacy_path = deps_record_path_legacy(ctx, source_abs_path);
   std::ignore = fs::create_directories(path.parent_path());
-  auto result = util::write_file(path, output);
-  if (!result) {
-    LOG("Failed to write kernel ECS deps cache {}: {}", path, result.error());
+
+  auto write_record = [&](const fs::path& target_path) {
+    auto result = util::write_file(target_path, output);
+    if (!result) {
+      LOG("Failed to write kernel ECS deps cache {}: {}",
+          target_path,
+          result.error());
+    }
+  };
+
+  write_record(path);
+  if (legacy_path != path) {
+    write_record(legacy_path);
   }
 }
 
@@ -548,9 +593,12 @@ prepare_kernel_ecs_state(Context& ctx, const util::Args& preprocessor_args)
 
   auto autoconf_path = discover_kernel_autoconf_path(ctx, preprocessor_args);
   KernelEcsRecord record;
-  if (!autoconf_path && load_kernel_ecs_record(ctx, source_abs_path, record)
-      && fs::is_regular_file(record.autoconf_path)) {
-    autoconf_path = absolutize_path(ctx, record.autoconf_path);
+  if (!autoconf_path && load_kernel_ecs_record(ctx, source_abs_path, record)) {
+    const fs::path resolved_record_autoconf =
+      absolutize_path(ctx, record.autoconf_path);
+    if (fs::is_regular_file(resolved_record_autoconf)) {
+      autoconf_path = resolved_record_autoconf;
+    }
   }
   if (!autoconf_path) {
     return;
@@ -678,7 +726,7 @@ learn_kernel_ecs(Context& ctx)
     record = {};
   }
   record.source_digest = *source_digest;
-  record.autoconf_path = autoconf_path;
+  record.autoconf_path = core::make_relative_path(ctx, autoconf_path);
   record.configs = std::move(configs);
   record.history[ecs_hash] = autoconf_digest_hex;
   store_kernel_ecs_record(ctx, source_abs_path, record);
