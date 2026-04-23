@@ -1,3 +1,7 @@
+if(Xxhash_FOUND)
+  return()
+endif()
+
 mark_as_advanced(XXHASH_INCLUDE_DIR XXHASH_LIBRARY)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_XXHASH STREQUAL "DOWNLOAD")
@@ -66,3 +70,4 @@ if(WIN32)
 endif()
 
 register_dependency(Xxhash "${_xxhash_origin}" "${_xxhash_version_string}")
+set(Xxhash_FOUND 1)

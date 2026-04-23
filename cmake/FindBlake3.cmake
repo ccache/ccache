@@ -1,3 +1,7 @@
+if(Blake3_FOUND)
+  return()
+endif()
+
 mark_as_advanced(BLAKE3_INCLUDE_DIR)
 mark_as_advanced(BLAKE3_LIBRARY)
 
@@ -28,3 +32,5 @@ else()
     message(STATUS "Using bundled Blake3 since Blake3>=${Blake3_FIND_VERSION} was not found locally")
   endif()
 endif()
+
+set(Blake3_FOUND 1)
