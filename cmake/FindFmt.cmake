@@ -1,3 +1,7 @@
+if(Fmt_FOUND)
+  return()
+endif()
+
 mark_as_advanced(FMT_INCLUDE_DIR FMT_LIBRARY)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_FMT STREQUAL "BUNDLED")
@@ -37,3 +41,5 @@ else()
     message(STATUS "Using bundled Fmt since Fmt>=${Fmt_FIND_VERSION} was not found locally")
   endif()
 endif()
+
+set(Fmt_FOUND 1)

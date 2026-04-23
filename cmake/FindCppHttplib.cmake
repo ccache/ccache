@@ -1,3 +1,7 @@
+if(CppHttplib_FOUND)
+  return()
+endif()
+
 mark_as_advanced(CPPHTTPLIB_INCLUDE_DIR)
 mark_as_advanced(CPPHTTPLIB_LIBRARY)
 
@@ -42,3 +46,5 @@ else()
     message(STATUS "Using bundled CppHttplib since CppHttplib>=${CppHttplib_FIND_VERSION} was not found locally")
   endif()
 endif()
+
+set(CppHttplib_FOUND 1)

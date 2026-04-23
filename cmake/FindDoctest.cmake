@@ -1,3 +1,7 @@
+if(Doctest_FOUND)
+  return()
+endif()
+
 mark_as_advanced(DOCTEST_INCLUDE_DIR)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_DOCTEST STREQUAL "DOWNLOAD")
@@ -39,3 +43,4 @@ if(_download_doctest)
 endif()
 
 register_dependency(Doctest "${_doctest_origin}" "${_doctest_version_string}")
+set(Doctest_FOUND 1)
