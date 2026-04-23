@@ -296,6 +296,7 @@ spawn_helper(const fs::path& helper_path,
       FMT("{} ({})", util::win32_error_message(error), error));
   }
 
+  LOG("Spawned helper process with PID {}", pi.dwProcessId);
   CloseHandle(pi.hThread);
   CloseHandle(pi.hProcess);
 #else
