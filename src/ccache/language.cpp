@@ -89,7 +89,7 @@ const struct
   {"c++-header",               "c++-cpp-output"          },
   {"cu",                       "cpp-output"              }, // NVCC
   {"cuda",                     "cpp-output"              }, // Clang
-  {"hip",                      "cpp-output"              }, // bisheng
+  {"hip",                      "cpp-output"              }, 
   {"asc",                      "cpp-output"              },
   {"objective-c",              "objective-c-cpp-output"  },
   {"objective-c-header",       "objective-c-cpp-output"  },
