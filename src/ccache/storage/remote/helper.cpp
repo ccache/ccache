@@ -390,6 +390,7 @@ private:
   fs::path m_endpoint_lock_path; // path to lock for guarding spawn of helper
   Url m_url;
   std::vector<Backend::Attribute> m_attributes;
+  std::chrono::milliseconds m_data_timeout;
   std::chrono::milliseconds m_idle_timeout;
   Client m_client;
   bool m_connected = false;
@@ -408,6 +409,7 @@ HelperBackend::HelperBackend(const fs::path& helper_path,
   : m_helper_path(helper_path),
     m_url(url),
     m_attributes(attributes),
+    m_data_timeout(data_timeout),
     m_idle_timeout(idle_timeout),
     m_client(data_timeout, request_timeout)
 {
@@ -517,10 +519,11 @@ HelperBackend::ensure_connected(bool spawn)
   timer.reset();
 
   constexpr auto sleep_duration = 1ms;
-  constexpr double spawn_timeout_ms = 1000.0;
+  const std::chrono::milliseconds spawn_timeout_ms =
+    m_data_timeout < 10s ? 10s : m_data_timeout;
 
   timer.reset();
-  while (timer.measure_ms() < spawn_timeout_ms) {
+  while (timer.measure_ms() < spawn_timeout_ms.count()) {
     connect_result = m_client.connect(m_endpoint);
     if (connect_result) {
       LOG("Connected to newly spawned remote storage helper at {} ({:.2f} ms)",
