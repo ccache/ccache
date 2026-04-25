@@ -1303,14 +1303,14 @@ https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
 ==== Properties
 
 * *data-timeout*: Timeout for send/receive data transfer. Resets whenever data
-  is received or can be sent. Default: 1s.
+  is received or can be sent. Default: 10s.
 * *helper*: Override which storage helper to spawn (either a filename or a full
   path). This is mainly useful when developing or testing new helpers.
 * *idle-timeout*: Timeout for the helper process to wait before exiting after
   client inactivity (0s: stay up indefinitely). Default: 10m.
 * *read-only*: If *true*, only read from this backend, don't write. The default
   is *false*.
-* *request-timeout*: Timeout for the whole request. Default: 10s.
+* *request-timeout*: Timeout for the whole request. Default: 1m.
 * *shards*: A comma-separated list of names for sharding (partitioning) the
   cache entries using
   https://en.wikipedia.org/wiki/Rendezvous_hashing[Rendezvous hashing],
