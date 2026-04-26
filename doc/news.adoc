@@ -1,5 +1,41 @@
 = Ccache news
 
+== Ccache 4.13.5
+
+Release date: 2026-04-26
+
+
+=== Bug fixes and improvements
+
+- Increased default storage helper data and request timeouts to 10 seconds and 1
+  minute respectively, improving robustness on heavily loaded systems. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved robustness when connecting to newly spawned storage helpers by
+  waiting longer for them to accept connections. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Synchronized writing to the stats log file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added logging of the PID of spawned storage helpers on Windows too. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Added include guards to bundled CMake find modules, avoiding problems when
+  they are included multiple times. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Moved the description of timeout suffixes to the correct place in the
+  documentation. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.13.4
 
 Release date: 2026-04-19
