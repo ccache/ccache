@@ -211,6 +211,42 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::source_dependencies:
     return m_ctx.args_info.output_sd;
+
+  case FileType::ispc_header:
+    return m_ctx.args_info.ispc_header_file;
+
+  case FileType::ispc_dev_stub:
+    return m_ctx.args_info.ispc_dev_stub_file;
+
+  case FileType::ispc_host_stub:
+    return m_ctx.args_info.ispc_host_stub_file;
+
+  case FileType::ispc_nanobind_wrapper:
+    return m_ctx.args_info.ispc_nanobind_wrapper_file;
+
+  case FileType::ispc_target_object: {
+    auto idx = m_ispc_target_object_index++;
+    if (idx < m_ctx.args_info.ispc_target_suffixes.size()) {
+      const auto& suffix = m_ctx.args_info.ispc_target_suffixes[idx];
+      auto stem = m_ctx.args_info.output_obj.stem().string() + suffix;
+      auto ext = m_ctx.args_info.output_obj.extension();
+      return m_ctx.args_info.output_obj.parent_path() / (stem + ext.string());
+    }
+    break;
+  }
+
+  case FileType::ispc_target_header: {
+    auto idx = m_ispc_target_header_index++;
+    if (idx < m_ctx.args_info.ispc_target_suffixes.size()
+        && !m_ctx.args_info.ispc_header_file.empty()) {
+      const auto& suffix = m_ctx.args_info.ispc_target_suffixes[idx];
+      auto stem = m_ctx.args_info.ispc_header_file.stem().string() + suffix;
+      auto ext = m_ctx.args_info.ispc_header_file.extension();
+      return m_ctx.args_info.ispc_header_file.parent_path()
+             / (stem + ext.string());
+    }
+    break;
+  }
   }
 
   return {};

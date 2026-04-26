@@ -334,6 +334,8 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::gcc;
   } else if (name.find("nvcc") != std::string_view::npos) {
     return CompilerType::nvcc;
+  } else if (name.find("ispc") != std::string_view::npos) {
+    return CompilerType::ispc;
   } else if (name == "icl") {
     return CompilerType::icl;
   } else if (name == "icx") {
@@ -360,6 +362,16 @@ guess_compiler(const fs::path& path)
     return type;
   }
 #endif
+}
+
+bool
+should_ignore_missing_include(const CompilerType compiler_type)
+{
+  // ISPC embeds built-in headers (e.g. core.isph, stdlib.isph) in its compiler
+  // binary. These appear in preprocessor output with virtual paths that don't
+  // exist on disk. Since they're part of the compiler binary (already hashed
+  // via compiler_check), safely ignore them.
+  return compiler_type == CompilerType::ispc;
 }
 
 // This function hashes an include file and stores the path and hash in
@@ -407,6 +419,10 @@ remember_include_file(Context& ctx,
 
   DirEntry dir_entry(path, DirEntry::LogOnError::yes);
   if (!dir_entry.exists()) {
+    if (should_ignore_missing_include(ctx.config.compiler_type())) {
+      LOG("Ignoring non-existent built-in include file: {}", dir_entry.path());
+      return {};
+    }
     if (ctx.config.direct_mode()) {
       LOG("Include file {} does not exist, disabling direct mode",
           dir_entry.path());
@@ -1077,6 +1093,69 @@ write_result(Context& ctx,
     return false;
   }
 
+  // ISPC header output (-h or --header-outfile).
+  if (!ctx.args_info.ispc_header_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_header,
+                              ctx.args_info.ispc_header_file)) {
+    LOG("ISPC header file {} missing", ctx.args_info.ispc_header_file);
+    return false;
+  }
+
+  // ISPC device-side offload stub (--dev-stub).
+  if (!ctx.args_info.ispc_dev_stub_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_dev_stub,
+                              ctx.args_info.ispc_dev_stub_file)) {
+    LOG("ISPC dev-stub file {} missing", ctx.args_info.ispc_dev_stub_file);
+    return false;
+  }
+
+  // ISPC host-side offload stub (--host-stub).
+  if (!ctx.args_info.ispc_host_stub_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_host_stub,
+                              ctx.args_info.ispc_host_stub_file)) {
+    LOG("ISPC host-stub file {} missing", ctx.args_info.ispc_host_stub_file);
+    return false;
+  }
+
+  // ISPC nanobind wrapper (--nanobind-wrapper).
+  if (!ctx.args_info.ispc_nanobind_wrapper_file.empty()
+      && !serializer.add_file(core::result::FileType::ispc_nanobind_wrapper,
+                              ctx.args_info.ispc_nanobind_wrapper_file)) {
+    LOG("ISPC nanobind-wrapper file {} missing",
+        ctx.args_info.ispc_nanobind_wrapper_file);
+    return false;
+  }
+
+  // ISPC multi-target extra object files.
+  for (size_t idx = 0; idx < ctx.args_info.ispc_target_suffixes.size(); ++idx) {
+    const auto& suffix = ctx.args_info.ispc_target_suffixes[idx];
+    auto stem = ctx.args_info.output_obj.stem().string() + suffix;
+    auto ext = ctx.args_info.output_obj.extension();
+    auto extra_obj =
+      ctx.args_info.output_obj.parent_path() / (stem + ext.string());
+    auto file_type = core::result::FileType::ispc_target_object;
+    if (!serializer.add_file(file_type, extra_obj)) {
+      LOG("ISPC target object file {} missing", extra_obj);
+      return false;
+    }
+  }
+
+  // ISPC multi-target extra header files (produced alongside the per-target
+  // objects when -h is used with a multi-target --target).
+  if (!ctx.args_info.ispc_header_file.empty()) {
+    for (const auto& suffix : ctx.args_info.ispc_target_suffixes) {
+      auto hdr_stem = ctx.args_info.ispc_header_file.stem().string() + suffix;
+      auto hdr_ext = ctx.args_info.ispc_header_file.extension();
+      auto extra_hdr = ctx.args_info.ispc_header_file.parent_path()
+                       / (hdr_stem + hdr_ext.string());
+      if (!serializer.add_file(core::result::FileType::ispc_target_header,
+                               extra_hdr)) {
+        LOG("ISPC target header file {} missing", extra_hdr);
+        return false;
+      }
+    }
+  }
+
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
 
@@ -1286,7 +1365,7 @@ to_cache(Context& ctx,
     return tl::unexpected(failure);
   }
 
-  if (ctx.config.depend_mode()) {
+  if (depend_mode_hash) {
     ASSERT(depend_mode_hash);
     if (ctx.args_info.generating_dependencies) {
       TRY_ASSIGN(result_key, result_key_from_depfile(ctx, *depend_mode_hash));
@@ -1506,6 +1585,49 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
   ctx.i_tmpfile = preprocessed_path;
 
   return hash.digest();
+}
+
+static bool
+should_use_depfile_result_key_for_ispc(const Context& ctx)
+{
+  return ctx.config.compiler_type() == CompilerType::ispc
+         && ctx.args_info.generating_dependencies;
+}
+
+static bool
+should_skip_preprocessor_mode_for_ispc(const Context& ctx)
+{
+  return should_use_depfile_result_key_for_ispc(ctx);
+}
+
+static util::Args
+get_preprocessor_args_for_cache_lookup(const Context& ctx,
+                                       const util::Args& preprocessor_args)
+{
+  if (ctx.config.compiler_type() != CompilerType::ispc
+      || ctx.args_info.ispc_target_suffixes.empty()
+      || ctx.args_info.ispc_first_target.empty()) {
+    return preprocessor_args;
+  }
+
+  util::Args adjusted_args = preprocessor_args;
+  for (size_t i = 1; i < adjusted_args.size(); ++i) {
+    std::string_view arg(adjusted_args[i]);
+    if (arg.starts_with("--target=")) {
+      adjusted_args[i] = FMT("--target={}", ctx.args_info.ispc_first_target);
+      LOG("Using first ISPC target {} for preprocessor mode",
+          ctx.args_info.ispc_first_target);
+      break;
+    }
+    if (arg == "--target" && i + 1 < adjusted_args.size()) {
+      adjusted_args[i + 1] = ctx.args_info.ispc_first_target;
+      LOG("Using first ISPC target {} for preprocessor mode",
+          ctx.args_info.ispc_first_target);
+      break;
+    }
+  }
+
+  return adjusted_args;
 }
 
 // Hash mtime or content of a file, or the output of a command, according to
@@ -3089,16 +3211,19 @@ do_cache_compilation(Context& ctx)
     return tl::unexpected(Statistic::cache_miss);
   }
 
-  if (!ctx.config.depend_mode()) {
+  if (!ctx.config.depend_mode()
+      && !should_skip_preprocessor_mode_for_ispc(ctx)) {
     // Find the hash using the preprocessed output. Also updates
     // ctx.included_files.
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx, cpp_hash, 'p', "PREPROCESSOR MODE", debug_text_file);
 
-    TRY_ASSIGN(
-      const auto result_and_manifest_key,
-      calculate_result_and_manifest_key(
-        ctx, args_to_hash, cpp_hash, &processed_args.preprocessor_args));
+    auto preprocessor_args = get_preprocessor_args_for_cache_lookup(
+      ctx, processed_args.preprocessor_args);
+
+    TRY_ASSIGN(const auto result_and_manifest_key,
+               calculate_result_and_manifest_key(
+                 ctx, args_to_hash, cpp_hash, &preprocessor_args));
     result_key = result_and_manifest_key.first;
 
     // calculate_result_and_manifest_key always returns a non-nullopt result_key
@@ -3143,6 +3268,10 @@ do_cache_compilation(Context& ctx)
     if (!ctx.config.recache()) {
       ctx.storage.local.increment_statistic(Statistic::preprocessed_cache_miss);
     }
+  } else if (should_use_depfile_result_key_for_ispc(ctx)) {
+    LOG(
+      "Skipping ISPC preprocessor-mode result key lookup; will derive result "
+      "key from dependency output after compilation");
   }
 
   if (ctx.config.read_only()) {
@@ -3153,7 +3282,10 @@ do_cache_compilation(Context& ctx)
   add_prefix(ctx, processed_args.compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
-  Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
+  Hash* depend_mode_hash =
+    (ctx.config.depend_mode() || should_use_depfile_result_key_for_ispc(ctx))
+      ? &direct_hash
+      : nullptr;
 
   // Run real compiler, sending output to cache.
   TRY_ASSIGN(

@@ -54,6 +54,8 @@ void find_compiler(Context& ctx,
 
 CompilerType guess_compiler(const std::filesystem::path& path);
 
+bool should_ignore_missing_include(CompilerType compiler_type);
+
 bool is_ccache_executable(const std::filesystem::path& path);
 
 bool file_path_matches_dir_prefix_or_file(
