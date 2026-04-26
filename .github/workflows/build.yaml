@@ -389,7 +389,7 @@ jobs:
             echo "trigger-build=false" >> $GITHUB_OUTPUT
           fi
       - name: Build in Alpine container
-        if: ${{ !matrix.qemu || steps.trigger.outputs.trigger-build }}
+        if: ${{ !matrix.qemu || steps.trigger.outputs.trigger-build == 'true' }}
         run: |
           docker run --rm  -v "$PWD:/work" -w /work \
             ${{ matrix.qemu && format('--platform linux/{0}', matrix.arch) || '' }} \
