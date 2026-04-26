@@ -1323,9 +1323,6 @@ https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
   to represent the available memory for a memory cache on a specific server. The
   default weight is *1*.
 +
-Timeouts can be specified with an ms (milliseconds), s (seconds), m (minutes), h
-(hours) or d (days) suffix.
-+
 Examples:
 +
 --
@@ -1336,6 +1333,9 @@ Examples:
 * `+http://example.com/* shards=alpha,beta+` will put 50% of the cache on
   `+http://example.com/alpha+` and 50% on `+http://example.com/beta+`.
 --
+
+Timeouts can be specified with an ms (milliseconds), s (seconds), m (minutes), h
+(hours) or d (days) suffix.
 
 ==== Custom attributes
 
