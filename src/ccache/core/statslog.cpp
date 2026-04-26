@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -19,6 +19,7 @@
 #include "statslog.hpp"
 
 #include <ccache/core/statistics.hpp>
+#include <ccache/util/filelock.hpp>
 #include <ccache/util/filestream.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -67,10 +68,13 @@ StatsLog::log_result(const fs::path& input_file,
     return;
   }
 
+  util::FileLock file_lock(fileno(*file));
+  std::ignore = file_lock.acquire(); // Continue anyway on failure
   PRINT(*file, "# {}\n", input_file);
   for (const auto& id : result_ids) {
     PRINT(*file, "{}\n", id);
   }
+  fflush(*file); // flush before releasing lock
 }
 
 } // namespace core
