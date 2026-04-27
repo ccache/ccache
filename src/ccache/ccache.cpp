@@ -728,9 +728,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 static tl::expected<Hash::Digest, Failure>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
-  // Make sure that result hash will always be different from the manifest hash
-  // since there otherwise may a storage key collision (in case the dependency
-  // file is empty).
+  // Ensure the result hash always differs from the manifest hash to avoid
+  // storage key collisions when the dependency file is empty.
   hash.hash_delimiter("result");
 
   const auto file_content =
@@ -804,6 +803,10 @@ struct DoExecuteResult
 static tl::expected<Hash::Digest, Failure>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
+  // Ensure the result hash always differs from the manifest hash to avoid
+  // storage key collisions when there are no included files.
+  hash.hash_delimiter("result");
+
   for (std::string_view include :
        compiler::get_includes_from_msvc_show_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
