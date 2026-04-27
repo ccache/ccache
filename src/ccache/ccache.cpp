@@ -892,6 +892,12 @@ read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
 {
   try {
     core::CacheEntry cache_entry(cache_entry_data);
+    if (cache_entry.header().entry_type != core::CacheEntryType::manifest) {
+      throw core::Error(
+        FMT("expected cache entry type {} (manifest), actual {}",
+            static_cast<uint8_t>(core::CacheEntryType::manifest),
+            static_cast<uint8_t>(cache_entry.header().entry_type)));
+    }
     cache_entry.verify_checksum();
     ctx.manifest.read(cache_entry.payload());
   } catch (const core::Error& e) {
@@ -2639,6 +2645,12 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
 
   try {
     core::CacheEntry cache_entry(cache_entry_data);
+    if (cache_entry.header().entry_type != core::CacheEntryType::result) {
+      throw core::Error(
+        FMT("expected cache entry type {} (result), actual {}",
+            static_cast<uint8_t>(core::CacheEntryType::result),
+            static_cast<uint8_t>(cache_entry.header().entry_type)));
+    }
     cache_entry.verify_checksum();
     core::result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_key);
