@@ -39,4 +39,46 @@ SUITE_trim_dir() {
     if $CCACHE --trim-dir local --trim-max-size 0 &>/dev/null; then
         test_failed "Expected failure"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Trim marker file"
+
+    rm -rf remote
+
+    # Populate the remote directory with real, uncompressed cache entries so
+    # that recompression changes their size. (Dummy files can't be recompressed
+    # and wouldn't trigger a "Recompressed" log.)
+    generate_code 1000 marker_test.c
+    remote_url="file:$PWD/remote"
+    if $HOST_OS_WINDOWS; then
+        remote_url="file:///$(cygpath -m "$PWD/remote")"
+    fi
+    CCACHE_REMOTE_STORAGE="$remote_url" CCACHE_NOCOMPRESS=1 \
+        $CCACHE_COMPILE -c marker_test.c -o marker_test.o
+
+    # Make all entries older than any marker written below so that the marker
+    # cutoff can skip them on a subsequent run.
+    backdate $(find remote -type f)
+
+    expect_missing marker
+
+    # First run: marker doesn't exist, so recompress all files.
+    $CCACHE --trim-dir remote --trim-max-size 0 --trim-recompress 5 \
+            --trim-marker marker >out1
+    expect_exists marker
+    expect_content marker "5"
+    expect_contains out1 "Recompressed"
+
+    # Second run with the same level: all files are older than the marker, so
+    # recompress none.
+    $CCACHE --trim-dir remote --trim-max-size 0 --trim-recompress 5 \
+            --trim-marker marker >out2
+    expect_contains out2 "No new cache entries to recompress"
+    expect_content marker "5"
+
+    # New compression level: recompress all.
+    $CCACHE --trim-dir remote --trim-max-size 0 --trim-recompress uncompressed \
+            --trim-marker marker >out3
+    expect_contains out3 "Recompressed"
+    expect_content marker "uncompressed"
 }
