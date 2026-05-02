@@ -45,6 +45,7 @@ enum class CompilerType {
   icx_cl,
   msvc,
   nvcc,
+  qcc,
   other
 };
 
@@ -112,6 +113,9 @@ public:
 
   // Return true for Clang, clang-cl and icx (not on Windows).
   bool is_compiler_group_clang() const;
+
+  // Return true for GCC and QCC (QNX compiler, which is GCC-based).
+  bool is_compiler_group_gcc() const;
 
   // Return true for MSVC (cl.exe), clang-cl, icl, icx-cl, and icx (on Windows).
   bool is_compiler_group_msvc() const;
@@ -316,6 +320,13 @@ Config::is_compiler_group_clang() const
          || m_compiler_type == CompilerType::icx
 #endif
          || m_compiler_type == CompilerType::clang_cl;
+}
+
+inline bool
+Config::is_compiler_group_gcc() const
+{
+  return m_compiler_type == CompilerType::gcc
+         || m_compiler_type == CompilerType::qcc;
 }
 
 inline bool

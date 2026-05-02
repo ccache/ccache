@@ -1181,7 +1181,7 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.compiler_type() == CompilerType::gcc) {
+  if (config.is_compiler_group_gcc()) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
       state.add_compiler_only_arg_no_hash(args[i]);
@@ -1798,7 +1798,7 @@ process_args(Context& ctx)
     if (args_info.actual_language != "assembler") {
       diagnostics_color_arg = "-fcolor-diagnostics";
     }
-  } else if (config.compiler_type() == CompilerType::gcc) {
+  } else if (config.is_compiler_group_gcc()) {
     diagnostics_color_arg = "-fdiagnostics-color";
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
@@ -1822,9 +1822,9 @@ process_args(Context& ctx)
         if (config.compiler_type() == CompilerType::clang) {
           // Clang does the sane thing: the dependency target is the output file
           // so that the dependency file actually makes sense.
-        } else if (config.compiler_type() == CompilerType::gcc) {
-          // GCC strangely uses the base name of the source file but with a .o
-          // extension.
+        } else if (config.is_compiler_group_gcc()) {
+          // GCC (and QCC) strangely uses the base name of the source file but
+          // with a .o extension.
           dep_target =
             util::with_extension(args_info.orig_input_file.filename(),
                                  get_default_object_file_extension(ctx.config));
@@ -1832,7 +1832,7 @@ process_args(Context& ctx)
           // How other compilers behave is currently unknown, so bail out.
           LOG(
             "-Wp,-M[M]D with -o without -MMD, -MQ or -MT is only supported for"
-            " GCC or Clang");
+            " GCC-like or Clang compilers");
           return tl::unexpected(Statistic::unsupported_compiler_option);
         }
       }
