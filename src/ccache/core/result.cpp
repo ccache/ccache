@@ -87,8 +87,8 @@ should_store_raw_file(const Config& config, core::result::FileType type)
     return false;
   }
 
-  // Only store object files as raw files since there are several problems with
-  // storing other file types:
+  // Only store object and .dwo files as raw files since there are several
+  // problems with storing other file types:
   //
   // 1. The compiler unlinks object files before writing to them but it doesn't
   //    unlink .d files, so it's possible to corrupt .d files just by running
@@ -103,7 +103,9 @@ should_store_raw_file(const Config& config, core::result::FileType type)
   // files that become large enough that it's of interest to clone or hard link
   // them, so we keep things simple for now. This will also save i-nodes in the
   // cache.
-  return type == core::result::FileType::object;
+  return type == core::result::FileType::object
+
+         || type == core::result::FileType::dwarf_object;
 }
 
 } // namespace
