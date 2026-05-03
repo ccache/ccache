@@ -2366,6 +2366,14 @@ get_manifest_key(Context& ctx, Hash& hash)
     return {};
   }
   hash.hash(util::format_legacy_digest(input_file_digest));
+  if (ctx.config.debug() && ctx.config.debug_level() >= 2
+      && !ctx.hash_debug_files.empty()) {
+    // Keep the hashed direct-mode input unchanged, but expose the raw digest
+    // in debug output so it can be compared with `ccache --hash-file`.
+    PRINT(ctx.hash_debug_files.front().get(),
+          "### sourcecode hash (base16)\n{}\n",
+          util::format_base16(input_file_digest));
+  }
   return hash.digest();
 }
 

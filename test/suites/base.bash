@@ -412,6 +412,10 @@ EOF
     if ! grep -q "PREPROCESSOR MODE" test1.o.*.ccache-input-text; then
         test_failed "Unexpected data in <obj>.<timestamp>.ccache-input-text"
     fi
+    local source_digest
+    source_digest=$($CCACHE --hash-file test1.c)
+    expect_contains test1.o.*.ccache-input-text "### sourcecode hash (base16)"
+    expect_contains test1.o.*.ccache-input-text "$source_digest"
     for ext in c p d; do
         if ! [ -f test1.o.*.ccache-input-$ext ]; then
             test_failed "<obj>.ccache-input-$ext missing"
