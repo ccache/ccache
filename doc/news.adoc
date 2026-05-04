@@ -1,5 +1,28 @@
 = Ccache news
 
+== Ccache 4.13.6
+
+Release date: 2026-05-04
+
+
+=== Bug fixes and improvements
+
+- Fixed a potential manifest/result cache key collision in MSVC depend mode when
+  compiling a source file with no included files. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved robustness when parsing cache entry data structures. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Changed the `remote_helper` test suite to skip gracefully when the storage
+  test helper is unavailable, avoiding failures when testing a system-installed
+  ccache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.13.5
 
 Release date: 2026-04-26
