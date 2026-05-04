@@ -1010,7 +1010,17 @@ process_option_arg(const Context& ctx,
       // The failure is logged by process_profiling_option.
       return Statistic::unsupported_compiler_option;
     }
-    state.add_common_arg(args[i]);
+    if (arg.starts_with("-fprofile-use=")
+        || arg.starts_with("-fprofile-instr-use=")
+        || arg.starts_with("-fprofile-sample-use=")
+        || arg.starts_with("-fauto-profile=")) {
+      const auto [option, path] = util::split_once(args[i], '=');
+      DEBUG_ASSERT(path);
+      const auto relpath = core::make_relative_path(ctx, *path);
+      state.add_common_arg(FMT("{}={}", option, relpath));
+    } else {
+      state.add_common_arg(args[i]);
+    }
     return Statistic::none;
   }
 
