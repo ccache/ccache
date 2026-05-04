@@ -172,6 +172,7 @@ const CompOpt compopts[] = {
   {"-save-temps",             TOO_HARD                                               },
   {"-save-temps=cwd",         TOO_HARD                                               },
   {"-save-temps=obj",         TOO_HARD                                               },
+  {"-set-default",            TOO_HARD                                               }, // qcc
   {"-specs",                  TAKES_ARG                                              },
   {"-stdlib=",                AFFECTS_CPP | TAKES_CONCAT_ARG                         },
   {"-trigraphs",              AFFECTS_CPP                                            },
