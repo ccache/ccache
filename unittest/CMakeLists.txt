@@ -16,6 +16,7 @@ set(
   test_depfile.cpp
   test_hash.cpp
   test_hashutil.cpp
+  test_sourcescanner.cpp
   test_storage_local_statsfile.cpp
   test_storage_local_util.cpp
   test_util_args.cpp
