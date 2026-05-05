@@ -54,7 +54,7 @@ public:
 
   void read(std::span<const uint8_t> data);
 
-  std::optional<Hash::Digest> look_up_result_digest(const Context& ctx) const;
+  std::optional<Hash::Digest> look_up_result_digest(Context& ctx) const;
 
   bool add_result(
     const Hash::Digest& result_key,
@@ -103,10 +103,11 @@ private:
     const FileStater& file_state);
 
   bool result_matches(
-    const Context& ctx,
+    Context& ctx,
     const ResultEntry& result,
     std::unordered_map<std::string, FileStats>& stated_files,
-    std::unordered_map<std::string, Hash::Digest>& hashed_files) const;
+    std::unordered_map<std::string, Hash::Digest>& hashed_files,
+    std::unordered_map<std::string, Hash::Digest>& matched_files) const;
 };
 
 } // namespace core

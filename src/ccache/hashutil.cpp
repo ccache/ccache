@@ -231,7 +231,8 @@ hash_source_code_file(const Context& ctx,
                       size_t size_hint)
 {
   const bool check_temporal_macros =
-    !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
+    !(ctx.kernel_compiling && ctx.kernel_ecs_anchor_digest)
+    && !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
   auto result =
     do_hash_file(ctx, digest, path, size_hint, check_temporal_macros);
 

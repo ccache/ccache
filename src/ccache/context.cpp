@@ -34,6 +34,7 @@
 #endif
 
 #include <algorithm>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -60,6 +61,12 @@ Context::initialize(util::Args&& compiler_and_args,
   ignore_header_paths =
     util::split_path_list(config.ignore_headers_in_manifest());
   set_ignore_options(util::split_into_strings(config.ignore_options(), " "));
+  if (const char* value = getenv("CCACHE_IS_KERNEL_COMPILING")) {
+    const std::string lower = util::to_lowercase(value);
+    kernel_compiling = (lower == "true" || lower == "1" || lower == "yes");
+  } else {
+    kernel_compiling = false;
+  }
 
   // Set default umask for all files created by ccache from now on (if
   // configured to). This is intentionally done after calling Logging::init so
