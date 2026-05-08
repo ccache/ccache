@@ -364,7 +364,7 @@ parse_signed(std::string_view value,
              const std::optional<int64_t> max_value,
              const std::string_view description)
 {
-  const std::string stripped_value = strip_whitespace(value);
+  const std::string stripped_value{strip_whitespace(value)};
 
   size_t end = 0;
   long long result = 0;
@@ -449,7 +449,7 @@ parse_unsigned(std::string_view value,
                const std::string_view description,
                const int base)
 {
-  const std::string stripped_value = strip_whitespace(value);
+  const std::string stripped_value{strip_whitespace(value)};
 
   size_t end = 0;
   unsigned long long result = 0;
@@ -628,14 +628,15 @@ split_path_list(std::string_view path_list)
   return paths;
 }
 
-std::string
+std::string_view
 strip_whitespace(const std::string_view string)
 {
   const auto start =
     std::find_if_not(string.begin(), string.end(), util::is_space);
   const auto end =
     std::find_if_not(string.rbegin(), string.rend(), util::is_space).base();
-  return start < end ? std::string(start, end) : std::string();
+  return start < end ? string.substr(start - string.begin(), end - start)
+                     : std::string_view{};
 }
 
 std::string

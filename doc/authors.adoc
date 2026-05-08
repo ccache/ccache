@@ -30,6 +30,7 @@ Ccache is a collective work with contributions from many people, including:
 * Bernhard M. Wiedemann
 * Bin Li
 * Björn Jacke
+* Björn Svensson
 * Brendan Shanks
 * Breno Guimaraes
 * Byoungchan Lee
@@ -105,6 +106,7 @@ Ccache is a collective work with contributions from many people, including:
 * Loïc Yhuel
 * Louis Caron
 * Luboš Luňák
+* Ludovic Henry
 * Maarten Maathuis
 * Maksym Sobolyev
 * Marius Zwicker
@@ -155,6 +157,7 @@ Ccache is a collective work with contributions from many people, including:
 * Petr Štetiar
 * Philippe Proulx
 * Philipp Gortan
+* Philipp Kolberg
 * Philipp Storz
 * Rafael Kitover
 * Raihaan Shouhell

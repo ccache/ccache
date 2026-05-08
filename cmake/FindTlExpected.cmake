@@ -1,3 +1,7 @@
+if(TlExpected_FOUND)
+  return()
+endif()
+
 mark_as_advanced(TLEXPECTED_INCLUDE_DIR)
 
 if(DEP_TLEXPECTED STREQUAL "BUNDLED")
@@ -19,3 +23,5 @@ else()
     message(STATUS "Using bundled TlExpected since TlExpected>=${TlExpected_FIND_VERSION} was not found locally")
   endif()
 endif()
+
+set(TlExpected_FOUND 1)

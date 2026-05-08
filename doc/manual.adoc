@@ -1305,14 +1305,14 @@ https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
 ==== Properties
 
 * *data-timeout*: Timeout for send/receive data transfer. Resets whenever data
-  is received or can be sent. Default: 1s.
+  is received or can be sent. Default: 10s.
 * *helper*: Override which storage helper to spawn (either a filename or a full
   path). This is mainly useful when developing or testing new helpers.
 * *idle-timeout*: Timeout for the helper process to wait before exiting after
   client inactivity (0s: stay up indefinitely). Default: 10m.
 * *read-only*: If *true*, only read from this backend, don't write. The default
   is *false*.
-* *request-timeout*: Timeout for the whole request. Default: 10s.
+* *request-timeout*: Timeout for the whole request. Default: 1m.
 * *shards*: A comma-separated list of names for sharding (partitioning) the
   cache entries using
   https://en.wikipedia.org/wiki/Rendezvous_hashing[Rendezvous hashing],
@@ -1325,9 +1325,6 @@ https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
   to represent the available memory for a memory cache on a specific server. The
   default weight is *1*.
 +
-Timeouts can be specified with an ms (milliseconds), s (seconds), m (minutes), h
-(hours) or d (days) suffix.
-+
 Examples:
 +
 --
@@ -1338,6 +1335,9 @@ Examples:
 * `+http://example.com/* shards=alpha,beta+` will put 50% of the cache on
   `+http://example.com/alpha+` and 50% on `+http://example.com/beta+`.
 --
+
+Timeouts can be specified with an ms (milliseconds), s (seconds), m (minutes), h
+(hours) or d (days) suffix.
 
 ==== Custom attributes
 

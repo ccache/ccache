@@ -9,7 +9,7 @@ url_prefix="https://github.com/ccache/ccache/releases/download/v${version}"
 source_extensions=(tar.gz tar.xz)
 linux_bin_extensions=(tar.gz tar.xz)
 
-linux_archs=(aarch64 x86_64)
+linux_archs=(aarch64 riscv64 x86_64)
 # windows_archs=(aarch64 i686 x86_64)
 windows_archs=(aarch64 x86_64)
 

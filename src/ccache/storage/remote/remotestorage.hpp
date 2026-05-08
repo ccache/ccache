@@ -38,8 +38,8 @@ namespace storage::remote {
 const auto k_default_connect_timeout = std::chrono::milliseconds{100};
 const auto k_default_operation_timeout = std::chrono::milliseconds{10000};
 
-const auto k_default_data_timeout = std::chrono::seconds{1};
-const auto k_default_request_timeout = std::chrono::seconds{10};
+const auto k_default_data_timeout = std::chrono::seconds{10};
+const auto k_default_request_timeout = std::chrono::minutes{1};
 const auto k_default_idle_timeout = std::chrono::minutes{10};
 
 // This class defines the API that a remote storage must implement.

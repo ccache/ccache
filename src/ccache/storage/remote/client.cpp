@@ -18,7 +18,6 @@
 
 #include "client.hpp"
 
-#include <ccache/util/assertions.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/format.hpp>
 
@@ -96,9 +95,21 @@ Client::connect(const std::string& path)
 }
 
 uint8_t
-Client::protocol_version() const
+Client::greeting_format() const
 {
-  return m_protocol_version;
+  return m_greeting_format;
+}
+
+const std::string&
+Client::server_identity() const
+{
+  return m_server_identity;
+}
+
+const std::vector<std::string>&
+Client::diagnostics() const
+{
+  return m_diagnostics;
 }
 
 const std::vector<Client::Capability>&
@@ -128,8 +139,12 @@ Client::get(std::span<const uint8_t> key)
 
   m_request_start_time = std::chrono::steady_clock::now();
 
-  TRY(send_u8(k_request_get));
-  TRY(send_key(key));
+  util::Bytes msg;
+  msg.reserve(2 + key.size());
+  msg.push_back(k_request_get);
+  msg.push_back(static_cast<uint8_t>(key.size()));
+  msg.insert(msg.end(), key.data(), key.size());
+  TRY(send_bytes(msg));
 
   return receive_response_get();
 }
@@ -151,10 +166,18 @@ Client::put(std::span<const uint8_t> key,
   m_request_start_time = std::chrono::steady_clock::now();
 
   uint8_t flag_byte = flags.overwrite ? 0x01 : 0x00;
-  TRY(send_u8(k_request_put));
-  TRY(send_key(key));
-  TRY(send_u8(flag_byte));
-  TRY(send_value(value));
+  uint64_t value_len = value.size();
+  uint8_t len_bytes[sizeof(uint64_t)];
+  std::memcpy(len_bytes, &value_len, sizeof(uint64_t)); // host byte order
+  util::Bytes header;
+  header.reserve(1 + 1 + key.size() + 1 + sizeof(uint64_t));
+  header.push_back(k_request_put);
+  header.push_back(static_cast<uint8_t>(key.size()));
+  header.insert(header.end(), key.data(), key.size());
+  header.push_back(flag_byte);
+  header.insert(header.end(), len_bytes, sizeof(uint64_t));
+  TRY(send_bytes(header));
+  TRY(send_bytes(value));
   return receive_response_bool();
 }
 
@@ -172,8 +195,12 @@ Client::remove(std::span<const uint8_t> key)
 
   m_request_start_time = std::chrono::steady_clock::now();
 
-  TRY(send_u8(k_request_remove));
-  TRY(send_key(key));
+  util::Bytes msg;
+  msg.reserve(2 + key.size());
+  msg.push_back(k_request_remove);
+  msg.push_back(static_cast<uint8_t>(key.size()));
+  msg.insert(msg.end(), key.data(), key.size());
+  TRY(send_bytes(msg));
   return receive_response_bool();
 }
 
@@ -186,7 +213,8 @@ Client::stop()
 
   m_request_start_time = std::chrono::steady_clock::now();
 
-  TRY(send_u8(k_request_stop));
+  const uint8_t msg[] = {k_request_stop};
+  TRY(send_bytes(msg));
   return receive_response_void();
 }
 
@@ -196,19 +224,22 @@ Client::close()
   if (m_connected) {
     m_channel.close();
     m_connected = false;
-    m_protocol_version = 0;
+    m_greeting_format = 0;
     m_capabilities.clear();
+    m_server_identity.clear();
+    m_diagnostics.clear();
   }
 }
 
 tl::expected<void, Client::Error>
 Client::read_greeting()
 {
-  TRY_ASSIGN(m_protocol_version, receive_u8());
-  if (m_protocol_version != k_protocol_version) {
+  TRY_ASSIGN(m_greeting_format, receive_u8());
+  if (m_greeting_format != k_greeting_format_1
+      && m_greeting_format != k_greeting_format_2) {
     return tl::unexpected(
       Error(Failure::error,
-            FMT("Unsupported protocol version: {}", m_protocol_version)));
+            FMT("Unsupported greeting format: {}", m_greeting_format)));
   }
 
   TRY_ASSIGN(uint8_t cap_len, receive_u8());
@@ -217,6 +248,23 @@ Client::read_greeting()
   for (uint8_t i = 0; i < cap_len; ++i) {
     TRY_ASSIGN(uint8_t cap_byte, receive_u8());
     m_capabilities.push_back(static_cast<Capability>(cap_byte));
+  }
+
+  if (m_greeting_format == k_greeting_format_2) {
+    TRY_ASSIGN(uint8_t identity_len, receive_u8());
+    TRY_ASSIGN(auto identity_bytes, receive_bytes(identity_len));
+    m_server_identity.assign(
+      reinterpret_cast<const char*>(identity_bytes.data()), identity_len);
+
+    TRY_ASSIGN(uint8_t diag_num, receive_u8());
+    m_diagnostics.clear();
+    m_diagnostics.reserve(diag_num);
+    for (uint8_t i = 0; i < diag_num; ++i) {
+      TRY_ASSIGN(uint8_t msg_len, receive_u8());
+      TRY_ASSIGN(auto msg_bytes, receive_bytes(msg_len));
+      m_diagnostics.emplace_back(
+        reinterpret_cast<const char*>(msg_bytes.data()), msg_len);
+    }
   }
 
   return {};
@@ -273,38 +321,6 @@ Client::receive_u64()
   uint64_t value;
   std::memcpy(&value, data.data(), sizeof(uint64_t)); // host byte order
   return value;
-}
-
-tl::expected<void, Client::Error>
-Client::send_u8(uint8_t value)
-{
-  return send_bytes({&value, 1});
-}
-
-tl::expected<void, Client::Error>
-Client::send_u64(uint64_t value)
-{
-  uint8_t buffer[sizeof(uint64_t)];
-  std::memcpy(buffer, &value, sizeof(uint64_t)); // host byte order
-  return send_bytes(buffer);
-}
-
-tl::expected<void, Client::Error>
-Client::send_key(std::span<const uint8_t> key)
-{
-  DEBUG_ASSERT(key.size() < 256);
-  auto key_len = static_cast<uint8_t>(key.size());
-  TRY(send_u8(key_len));
-  TRY(send_bytes(key));
-  return {};
-}
-
-tl::expected<void, Client::Error>
-Client::send_value(std::span<const uint8_t> value)
-{
-  TRY(send_u64(value.size()));
-  TRY(send_bytes(value));
-  return {};
 }
 
 tl::expected<std::optional<util::Bytes>, Client::Error>

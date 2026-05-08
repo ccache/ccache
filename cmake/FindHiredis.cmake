@@ -1,3 +1,7 @@
+if(Hiredis_FOUND)
+  return()
+endif()
+
 mark_as_advanced(HIREDIS_INCLUDE_DIR HIREDIS_LIBRARY)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_HIREDIS STREQUAL "DOWNLOAD")
@@ -76,3 +80,5 @@ if(WIN32)
 endif()
 
 register_dependency(Hiredis "${_hiredis_origin}" "${_hiredis_version_string}")
+
+set(Hiredis_FOUND 1)

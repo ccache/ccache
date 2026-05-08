@@ -1,5 +1,125 @@
 = Ccache news
 
+== Ccache 4.13.6
+
+Release date: 2026-05-04
+
+
+=== Bug fixes and improvements
+
+- Fixed a potential manifest/result cache key collision in MSVC depend mode when
+  compiling a source file with no included files. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved robustness when parsing cache entry data structures. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Changed the `remote_helper` test suite to skip gracefully when the storage
+  test helper is unavailable, avoiding failures when testing a system-installed
+  ccache. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.13.5
+
+Release date: 2026-04-26
+
+
+=== Bug fixes and improvements
+
+- Increased default storage helper data and request timeouts to 10 seconds and 1
+  minute respectively, improving robustness on heavily loaded systems. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Improved robustness when connecting to newly spawned storage helpers by
+  waiting longer for them to accept connections. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Synchronized writing to the stats log file. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added logging of the PID of spawned storage helpers on Windows too. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Added include guards to bundled CMake find modules, avoiding problems when
+  they are included multiple times. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Moved the description of timeout suffixes to the correct place in the
+  documentation. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+== Ccache 4.13.4
+
+Release date: 2026-04-19
+
+
+=== New deliverables
+
+- Added musl static binary release for Linux riscv64. +
+  [small]#_[contributed by Ludovic Henry]_#
+
+
+== Ccache 4.13.3
+
+Release date: 2026-04-12
+
+
+=== New deliverables
+
+- Added glibc binary release for Linux riscv64. +
+  [small]#_[contributed by Ludovic Henry]_#
+
+
+=== Bug fixes and improvements
+
+- Fixed handling of empty responses from remote storage backends: a response
+  with an empty body is now treated as a storage error rather than a cache
+  miss. +
+  [small]#_[contributed by Björn Svensson]_#
+
+- Fixed PCH invalidation when the MSVC toolset is updated. +
+  [small]#_[contributed by Philipp Kolberg]_#
+
+- Fixed `base_dir` path rewriting when using MSVC's `/Yc` option: paths are no
+  longer rewritten to relative when creating a precompiled header, since MSVC
+  then does not like relative paths for the `/Yc` and `/FI` arguments. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed handling of a directory-less path to the MSVC `/FI` option. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added support for `-fsanitize-ignorelist` (which replaced
+  `-fsanitize-blacklist` in Clang 13). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed detection of type for compiler with `.` in the name (e.g.
+  `hppa2.0-unknown-linux-gnu-gcc`). +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed `install.sh` to correctly use `sysconfdir` and other configuration
+  variables from the Makefile. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Build improvements
+
+- Changed `cmake/FindCppHttplib.cmake` to use settings from the system's CMake
+  config if available, supporting systems where cpp-httplib is not provided as a
+  header-only library. +
+  [small]#_[contributed by Jiri Slaby]_#
+
+
 == Ccache 4.13.2
 
 Release date: 2026-03-22

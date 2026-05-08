@@ -1,3 +1,7 @@
+if(Zstd_FOUND)
+  return()
+endif()
+
 mark_as_advanced(ZSTD_INCLUDE_DIR ZSTD_LIBRARY)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_ZSTD STREQUAL "DOWNLOAD")
@@ -75,3 +79,4 @@ if(_download_zstd)
 endif()
 
 register_dependency(Zstd "${_zstd_origin}" "${_zstd_version_string}")
+set(Zstd_FOUND 1)

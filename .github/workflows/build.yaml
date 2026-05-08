@@ -289,6 +289,33 @@ jobs:
           path: install/ccache
           retention-days: 3
 
+  build_linux_riscv64_binary_glibc:
+    timeout-minutes: 30
+    name: Linux riscv64 binary (glibc)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-riscv64-linux-gnu libc6-dev-arm64-cross
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: |
+            -D CMAKE_TOOLCHAIN_FILE=../toolchains/riscv64-linux-gnu.cmake
+            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-riscv64-glibc-binary
+          path: install/ccache
+          retention-days: 3
+
   build_linux_x86_64_binary_glibc:
     timeout-minutes: 30
     name: Linux x86_64 binary (glibc)
@@ -328,7 +355,7 @@ jobs:
           retention-days: 3
 
   build_linux_musl_static_binary:
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.qemu && 60 || 30 }}
     name: Linux ${{ matrix.arch }} binary (musl static)
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -337,14 +364,44 @@ jobs:
         include:
           - arch: aarch64
             runner: ubuntu-22.04-arm
+          - arch: riscv64
+            runner: ubuntu-22.04
+            qemu: true
           - arch: x86_64
             runner: ubuntu-22.04
     steps:
       - name: Get source
         uses: actions/checkout@v4
-      - name: Build in Alpine container
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Trigger build
+        id: trigger
         run: |
-          docker run --rm -v "$PWD:/work" -w /work \
+          set -x
+          # If ref_type is a tag, always trigger
+          if ${{ github.ref_type == 'tag' || github.event.inputs.test_tag != '' }}; then
+            echo "trigger-build=true" >> $GITHUB_OUTPUT
+
+          # If ref_type is a branch, maybe trigger
+          elif ${{ github.ref_type == 'branch' }}; then
+            case "${{ github.ref_name }}" in
+              # If default branch, trigger
+              ${{ github.event.repository.default_branch }}) echo "trigger-build=true" >> $GITHUB_OUTPUT ;;
+              # If release branch, trigger
+              *-maint) echo "trigger-build=true" >> $GITHUB_OUTPUT ;;
+              # Unknown branch, no trigger
+              *) echo "trigger-build=false" >> $GITHUB_OUTPUT ;;
+            esac
+
+          # If ref_type is unknown, no trigger
+          else
+            echo "trigger-build=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build in Alpine container
+        if: ${{ !matrix.qemu || steps.trigger.outputs.trigger-build == 'true' }}
+        run: |
+          docker run --rm  -v "$PWD:/work" -w /work \
+            ${{ matrix.qemu && format('--platform linux/{0}', matrix.arch) || '' }} \
             -e GITHUB_REF \
             -e GITHUB_REF_NAME \
             -e GITHUB_SHA \
@@ -653,6 +710,7 @@ jobs:
       - build_linux_aarch64_binary_glibc
       - build_linux_musl_static_binary
       - build_linux_x86_64_binary_glibc
+      - build_linux_riscv64_binary_glibc
       - build_windows_binary
     runs-on: ubuntu-24.04
     steps:

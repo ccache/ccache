@@ -317,8 +317,14 @@ probe_generic_compiler(const fs::path& path)
 static CompilerType
 do_guess_compiler(const fs::path& path)
 {
-  const auto name = util::to_lowercase(
-    util::pstr(util::with_extension(path.filename(), "")).str());
+  const auto filename = util::to_lowercase(util::pstr(path.filename()).str());
+  std::string_view name = filename;
+#ifdef _WIN32
+  if (name.ends_with(".exe")) {
+    name.remove_suffix(4);
+  }
+#endif
+
   if (name.find("clang-cl") != std::string_view::npos) {
     return CompilerType::clang_cl;
   } else if (name.find("clang") != std::string_view::npos) {
@@ -738,9 +744,8 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 static tl::expected<Hash::Digest, Failure>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
-  // Make sure that result hash will always be different from the manifest hash
-  // since there otherwise may a storage key collision (in case the dependency
-  // file is empty).
+  // Ensure the result hash always differs from the manifest hash to avoid
+  // storage key collisions when the dependency file is empty.
   hash.hash_delimiter("result");
 
   const auto file_content =
@@ -814,6 +819,10 @@ struct DoExecuteResult
 static tl::expected<Hash::Digest, Failure>
 result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 {
+  // Ensure the result hash always differs from the manifest hash to avoid
+  // storage key collisions when there are no included files.
+  hash.hash_delimiter("result");
+
   for (std::string_view include :
        compiler::get_includes_from_msvc_show_includes(
          stdout_data, ctx.config.msvc_dep_prefix())) {
@@ -899,6 +908,12 @@ read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
 {
   try {
     core::CacheEntry cache_entry(cache_entry_data);
+    if (cache_entry.header().entry_type != core::CacheEntryType::manifest) {
+      throw core::Error(
+        FMT("expected cache entry type {} (manifest), actual {}",
+            static_cast<uint8_t>(core::CacheEntryType::manifest),
+            static_cast<uint8_t>(cache_entry.header().entry_type)));
+    }
     cache_entry.verify_checksum();
     ctx.manifest.read(cache_entry.payload());
   } catch (const core::Error& e) {
@@ -1194,10 +1209,12 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         std::string orig_line(line.data(), line.length());
         std::string abs_inc_path =
           util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
-        abs_inc_path = util::strip_whitespace(abs_inc_path);
-        fs::path rel_inc_path = core::make_relative_path(ctx, abs_inc_path);
+        std::string_view stripped_abs_inc_path =
+          util::strip_whitespace(abs_inc_path);
+        fs::path rel_inc_path =
+          core::make_relative_path(ctx, stripped_abs_inc_path);
         std::string line_with_rel_inc = util::replace_first(
-          orig_line, abs_inc_path, util::pstr(rel_inc_path).str());
+          orig_line, stripped_abs_inc_path, util::pstr(rel_inc_path).str());
         new_stdout_data.insert(new_stdout_data.end(),
                                line_with_rel_inc.data(),
                                line_with_rel_inc.size());
@@ -2752,6 +2769,12 @@ from_cache(Context& ctx, FromCacheCallMode mode, const Hash::Digest& result_key)
 
   try {
     core::CacheEntry cache_entry(cache_entry_data);
+    if (cache_entry.header().entry_type != core::CacheEntryType::result) {
+      throw core::Error(
+        FMT("expected cache entry type {} (result), actual {}",
+            static_cast<uint8_t>(core::CacheEntryType::result),
+            static_cast<uint8_t>(cache_entry.header().entry_type)));
+    }
     cache_entry.verify_checksum();
     core::result::Deserializer deserializer(cache_entry.payload());
     core::ResultRetriever result_retriever(ctx, result_key);

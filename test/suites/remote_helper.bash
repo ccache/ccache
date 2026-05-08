@@ -19,8 +19,8 @@ start_test_helper() {
 }
 
 SUITE_remote_helper_PROBE() {
-    if ! python3 --version >/dev/null 2>&1; then
-        echo "python3 is not available"
+    if [[ ! -f "${STORAGE_TEST_HELPER}" ]]; then
+        echo "storage test helper not available"
     fi
 }
 

@@ -1,3 +1,7 @@
+if(Doctest_FOUND)
+  return()
+endif()
+
 mark_as_advanced(DOCTEST_INCLUDE_DIR)
 
 if(DEPS STREQUAL "DOWNLOAD" OR DEP_DOCTEST STREQUAL "DOWNLOAD")
@@ -28,14 +32,15 @@ endif()
 
 if(_download_doctest)
   set(_doctest_origin DOWNLOADED)
-  set(_doctest_version_string 2.5.0)
+  set(_doctest_version_string 2.5.2)
 
   add_header_only_library(
     doctest
     URL "https://raw.githubusercontent.com/doctest/doctest/refs/tags/v${_doctest_version_string}/doctest/doctest.h"
-    SHA256 a58efc9446d70ddd5dd3b7724ebb8742882860f36f46da64d62993b02911fb6f
+    SHA256 1f2978b948f5958d5b6ee8dc16d8284317715d6e4fafb47956b1578198d19f66
     SUBDIR doctest
   )
 endif()
 
 register_dependency(Doctest "${_doctest_origin}" "${_doctest_version_string}")
+set(Doctest_FOUND 1)
