@@ -2,10 +2,6 @@ REDIS_SERVER=$(command -v redis-server || command -v valkey-server)
 REDIS_CLI=$(command -v redis-cli || command -v valkey-cli)
 
 SUITE_remote_redis_PROBE() {
-    if ! $CCACHE --version | grep -Fq -- redis-storage &> /dev/null; then
-        echo "redis-storage not available"
-        return
-    fi
     if [ -z "${REDIS_SERVER}" ]; then
         echo "neither redis-server nor valkey-server found"
         return
@@ -35,6 +31,8 @@ start_redis_server() {
 
 SUITE_remote_redis_SETUP() {
     unset CCACHE_NODIRECT
+
+    export CRSH_LOGFILE="ccache-storage-redis.log"
 
     generate_code 1 test.c
 }
