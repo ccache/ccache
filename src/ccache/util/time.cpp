@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2023-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,6 +18,8 @@
 
 #include "time.hpp"
 
+#include <mutex>
+
 namespace util {
 
 std::optional<tm>
@@ -30,6 +32,8 @@ gmtime(std::optional<TimePoint> time)
     return result;
   }
 #else
+  static std::mutex mutex;
+  std::lock_guard<std::mutex> lock(mutex);
   struct tm* result = ::gmtime(&timestamp);
   if (result) {
     return *result;
@@ -48,6 +52,8 @@ localtime(std::optional<TimePoint> time)
     return result;
   }
 #else
+  static std::mutex mutex;
+  std::lock_guard<std::mutex> lock(mutex);
   struct tm* result = ::localtime(&timestamp);
   if (result) {
     return *result;
