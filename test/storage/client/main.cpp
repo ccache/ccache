@@ -37,8 +37,8 @@ using namespace std::chrono_literals;
 
 namespace {
 
-const auto k_data_timeout = 1000ms;    // default for data-timeout property
-const auto k_request_timeout = 5000ms; // default for request-timeout property
+const auto k_data_timeout = 10s;     // default for data-timeout property
+const auto k_request_timeout = 1min; // default for request-timeout property
 
 constexpr const char USAGE_TEXT[] =
   R"(Usage: {0} IPC_ENDPOINT COMMAND [args...]
