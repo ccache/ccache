@@ -512,7 +512,7 @@ process_main_options(int argc, const char* const* argv)
   uint8_t verbosity = 0;
 
   StatisticsFormat format = StatisticsFormat::Tab;
-  uint32_t threads = std::thread::hardware_concurrency();
+  uint32_t threads = std::max<uint32_t>(2, std::thread::hardware_concurrency());
   std::optional<uint64_t> trim_max_size;
   std::optional<util::SizeUnitPrefixType> trim_suffix_type;
   bool trim_lru_mtime = false;
