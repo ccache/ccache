@@ -27,6 +27,7 @@ set(functions
     copy_file_range
     getopt_long
     getpwuid
+    gmtime_r
     localtime_r
     posix_fallocate
     setenv
