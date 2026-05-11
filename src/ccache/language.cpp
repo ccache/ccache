@@ -31,47 +31,51 @@ const struct
   const char* extension;
   const char* language;
 } k_ext_lang_table[] = {
-  {".c",    "c"                       },
-  {".C",    "c++"                     },
-  {".cc",   "c++"                     },
-  {".CC",   "c++"                     },
-  {".cp",   "c++"                     },
-  {".CP",   "c++"                     },
-  {".cpp",  "c++"                     },
-  {".CPP",  "c++"                     },
-  {".cxx",  "c++"                     },
-  {".CXX",  "c++"                     },
-  {".c++",  "c++"                     },
-  {".C++",  "c++"                     },
-  {".m",    "objective-c"             },
-  {".M",    "objective-c++"           },
-  {".mm",   "objective-c++"           },
-  {".sx",   "assembler-with-cpp"      },
-  {".S",    "assembler-with-cpp"      },
+  {".c",      "c"                       },
+  {".C",      "c++"                     },
+  {".cc",     "c++"                     },
+  {".CC",     "c++"                     },
+  {".cp",     "c++"                     },
+  {".CP",     "c++"                     },
+  {".cpp",    "c++"                     },
+  {".CPP",    "c++"                     },
+  {".cxx",    "c++"                     },
+  {".CXX",    "c++"                     },
+  {".c++",    "c++"                     },
+  {".C++",    "c++"                     },
+  {".m",      "objective-c"             },
+  {".M",      "objective-c++"           },
+  {".mm",     "objective-c++"           },
+  {".sx",     "assembler-with-cpp"      },
+  {".S",      "assembler-with-cpp"      },
   // Preprocessed:
-  {".i",    "cpp-output"              },
-  {".ii",   "c++-cpp-output"          },
-  {".mi",   "objective-c-cpp-output"  },
-  {".mii",  "objective-c++-cpp-output"},
-  {".s",    "assembler"               },
+  {".i",      "cpp-output"              },
+  {".ii",     "c++-cpp-output"          },
+  {".mi",     "objective-c-cpp-output"  },
+  {".mii",    "objective-c++-cpp-output"},
+  {".s",      "assembler"               },
   // Header file (for precompilation):
-  {".h",    "c-header"                },
-  {".H",    "c++-header"              },
-  {".h++",  "c++-header"              },
-  {".H++",  "c++-header"              },
-  {".hh",   "c++-header"              },
-  {".HH",   "c++-header"              },
-  {".hp",   "c++-header"              },
-  {".HP",   "c++-header"              },
-  {".hpp",  "c++-header"              },
-  {".HPP",  "c++-header"              },
-  {".hxx",  "c++-header"              },
-  {".HXX",  "c++-header"              },
-  {".tcc",  "c++-header"              },
-  {".TCC",  "c++-header"              },
-  {".cu",   "cu"                      }, // Special case in language_for_file: "cuda" for Clang
-  {".hip",  "hip"                     },
-  {nullptr, nullptr                   },
+  {".h",      "c-header"                },
+  {".H",      "c++-header"              },
+  {".h++",    "c++-header"              },
+  {".H++",    "c++-header"              },
+  {".hh",     "c++-header"              },
+  {".HH",     "c++-header"              },
+  {".hp",     "c++-header"              },
+  {".HP",     "c++-header"              },
+  {".hpp",    "c++-header"              },
+  {".HPP",    "c++-header"              },
+  {".hxx",    "c++-header"              },
+  {".HXX",    "c++-header"              },
+  {".tcc",    "c++-header"              },
+  {".TCC",    "c++-header"              },
+  {".cu",     "cu"                      }, // Special case in language_for_file: "cuda" for Clang
+  {".hip",    "hip"                     },
+  {".ispc",   "ispc"                    },
+  {".isph",   "ispc"                    },
+  // Preprocessed ISPC:
+  {".ispc.i", "ispc-cpp-output"         },
+  {nullptr,   nullptr                   },
 };
 
 // Supported languages and corresponding preprocessed languages.
@@ -100,6 +104,8 @@ const struct
   {"assembler-with-cpp",       "assembler"               },
   {"assembler",                "assembler"               },
   {"ir",                       "ir"                      }, // Clang ThinLTO
+  {"ispc",                     "ispc-cpp-output"         },
+  {"ispc-cpp-output",          "ispc-cpp-output"         },
   {nullptr,                    nullptr                   },
 };
 
@@ -109,6 +115,10 @@ std::string_view
 language_for_file(const fs::path& path, CompilerType compiler_type)
 {
   const auto ext = path.extension();
+  if (ext == ".ispi" || path.generic_string().ends_with(".ispc.i")) {
+    return "ispc-cpp-output";
+  }
+
   if (ext == ".cu" && compiler_type == CompilerType::clang) {
     // Special case: Clang maps .cu to cuda.
     return "cuda";
