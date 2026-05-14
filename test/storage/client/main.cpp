@@ -34,6 +34,7 @@
 #endif
 
 using namespace std::chrono_literals;
+using storage::remote::Client;
 
 namespace {
 
@@ -67,7 +68,7 @@ print_usage(FILE* stream, const char* program_name)
 }
 
 int
-cmd_get(storage::remote::Client& client, const std::vector<std::string>& args)
+cmd_get(Client& client, const std::vector<std::string>& args)
 {
   if (args.size() != 3 || args[1] != "-o") {
     PRINT(stderr, "Error: get requires: KEY -o OUTPUT\n");
@@ -110,9 +111,9 @@ cmd_get(storage::remote::Client& client, const std::vector<std::string>& args)
 }
 
 int
-cmd_put(storage::remote::Client& client, const std::vector<std::string>& args)
+cmd_put(Client& client, const std::vector<std::string>& args)
 {
-  storage::remote::Client::PutFlags flags;
+  Client::PutFlags flags;
   size_t start_idx = 0;
 
   if (!args.empty() && args[0] == "--overwrite") {
@@ -179,8 +180,7 @@ cmd_put(storage::remote::Client& client, const std::vector<std::string>& args)
 }
 
 int
-cmd_remove(storage::remote::Client& client,
-           const std::vector<std::string>& args)
+cmd_remove(Client& client, const std::vector<std::string>& args)
 {
   if (args.size() != 1) {
     PRINT(stderr, "Error: remove requires exactly 1 argument: KEY\n");
@@ -211,7 +211,7 @@ cmd_remove(storage::remote::Client& client,
 }
 
 int
-cmd_stop(storage::remote::Client& client, const std::vector<std::string>& args)
+cmd_stop(Client& client, const std::vector<std::string>& args)
 {
   if (!args.empty()) {
     PRINT(stderr, "Error: stop takes no arguments\n");
@@ -271,7 +271,7 @@ main(int argc, char* argv[])
     cmd_args.push_back(argv[i]);
   }
 
-  storage::remote::Client client(k_data_timeout, k_request_timeout);
+  Client client(k_data_timeout, k_request_timeout);
   auto connect_result = client.connect(ipc_endpoint);
 
   if (!connect_result) {
@@ -282,9 +282,10 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  if (!client.has_capability(
-        storage::remote::Client::Capability::get_put_remove_stop)) {
-    PRINT(stderr, "Helper does not support get/put/remove/stop operations\n");
+  if (!client.has_capability(Client::Capability::get_put_remove_stop)) {
+    PRINT(stderr,
+          "Helper does not support capability {}\n",
+          to_string(Client::Capability::get_put_remove_stop));
     return 1;
   }
 
