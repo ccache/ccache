@@ -230,7 +230,7 @@ cmd_stop(storage::remote::Client& client, const std::vector<std::string>& args)
 }
 
 int
-cmd_ping(storage::remote::Client& client, const std::vector<std::string>& args)
+cmd_ping(const std::vector<std::string>& args)
 {
   if (!args.empty()) {
     PRINT(stderr, "Error: ping takes no arguments\n");
@@ -289,7 +289,7 @@ main(int argc, char* argv[])
   }
 
   if (command == "ping") {
-    return cmd_ping(client, cmd_args);
+    return cmd_ping(cmd_args);
   } else if (command == "get") {
     return cmd_get(client, cmd_args);
   } else if (command == "put") {
