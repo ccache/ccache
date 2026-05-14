@@ -323,6 +323,14 @@ Client::receive_u64()
   return value;
 }
 
+tl::expected<std::string, Client::Error>
+Client::receive_error_string()
+{
+  TRY_ASSIGN(uint8_t msg_len, receive_u8());
+  TRY_ASSIGN(auto msg_bytes, receive_bytes(msg_len));
+  return std::string(msg_bytes.begin(), msg_bytes.end());
+}
+
 tl::expected<std::optional<util::Bytes>, Client::Error>
 Client::receive_response_get()
 {
@@ -340,10 +348,8 @@ Client::receive_response_get()
     return std::nullopt;
 
   case Status::error: {
-    TRY_ASSIGN(uint8_t msg_len, receive_u8());
-    TRY_ASSIGN(auto msg_bytes, receive_bytes(msg_len));
-    std::string error_msg(msg_bytes.begin(), msg_bytes.end());
-    return tl::unexpected(Error(Failure::error, error_msg));
+    TRY_ASSIGN(auto err_msg, receive_error_string());
+    return tl::unexpected(Error(Failure::error, err_msg));
   }
 
   default:
@@ -366,10 +372,8 @@ Client::receive_response_bool()
     return false;
 
   case Status::error: {
-    TRY_ASSIGN(uint8_t msg_len, receive_u8());
-    TRY_ASSIGN(auto msg_bytes, receive_bytes(msg_len));
-    std::string error_msg(msg_bytes.begin(), msg_bytes.end());
-    return tl::unexpected(Error(Failure::error, error_msg));
+    TRY_ASSIGN(auto err_msg, receive_error_string());
+    return tl::unexpected(Error(Failure::error, err_msg));
   }
 
   default:
@@ -393,10 +397,8 @@ Client::receive_response_void()
     return {};
 
   case Status::error: {
-    TRY_ASSIGN(uint8_t msg_len, receive_u8());
-    TRY_ASSIGN(auto msg_bytes, receive_bytes(msg_len));
-    std::string error_msg(msg_bytes.begin(), msg_bytes.end());
-    return tl::unexpected(Error(Failure::error, error_msg));
+    TRY_ASSIGN(auto err_msg, receive_error_string());
+    return tl::unexpected(Error(Failure::error, err_msg));
   }
 
   default:
