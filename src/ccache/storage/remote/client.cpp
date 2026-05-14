@@ -33,6 +33,7 @@ constexpr uint8_t k_request_put = 0x01;
 constexpr uint8_t k_request_remove = 0x02;
 constexpr uint8_t k_request_stop = 0x03;
 constexpr uint8_t k_request_info = 0x04;
+constexpr uint8_t k_request_exists = 0x05;
 
 } // namespace
 
@@ -133,6 +134,23 @@ Client::verify_key_size(std::span<const uint8_t> key)
   return {};
 }
 
+tl::expected<bool, Client::Error>
+Client::exists(std::span<const uint8_t> key)
+{
+  TRY(verify_connected());
+  TRY(verify_key_size(key));
+
+  m_request_start_time = std::chrono::steady_clock::now();
+
+  util::Bytes msg;
+  msg.reserve(2 + key.size());
+  msg.push_back(k_request_exists);
+  msg.push_back(static_cast<uint8_t>(key.size()));
+  msg.insert(msg.end(), key.data(), key.size());
+  TRY(send_bytes(msg));
+  return receive_response_exists();
+}
+
 tl::expected<std::optional<util::Bytes>, Client::Error>
 Client::get(std::span<const uint8_t> key)
 {
@@ -203,7 +221,7 @@ Client::put(std::span<const uint8_t> key,
   header.insert(header.end(), len_bytes, sizeof(uint64_t));
   TRY(send_bytes(header));
   TRY(send_bytes(value));
-  return receive_response_bool();
+  return receive_response_ok_noop_error();
 }
 
 tl::expected<bool, Client::Error>
@@ -220,7 +238,7 @@ Client::remove(std::span<const uint8_t> key)
   msg.push_back(static_cast<uint8_t>(key.size()));
   msg.insert(msg.end(), key.data(), key.size());
   TRY(send_bytes(msg));
-  return receive_response_bool();
+  return receive_response_ok_noop_error();
 }
 
 tl::expected<void, Client::Error>
@@ -328,6 +346,29 @@ Client::receive_error_string()
   return std::string(msg_bytes.begin(), msg_bytes.end());
 }
 
+tl::expected<bool, Client::Error>
+Client::receive_response_exists()
+{
+  TRY_ASSIGN(uint8_t status_byte, receive_u8());
+  auto status = static_cast<Status>(status_byte);
+
+  switch (status) {
+  case Status::ok: {
+    TRY_ASSIGN(uint8_t exists, receive_u8());
+    return exists;
+  }
+
+  case Status::error: {
+    TRY_ASSIGN(auto err_msg, receive_error_string());
+    return tl::unexpected(Error(Failure::error, err_msg));
+  }
+
+  default:
+    return tl::unexpected(
+      Error(Failure::error, FMT("Invalid status code: {}", status_byte)));
+  }
+}
+
 tl::expected<std::optional<util::Bytes>, Client::Error>
 Client::receive_response_get()
 {
@@ -356,7 +397,7 @@ Client::receive_response_get()
 }
 
 tl::expected<bool, Client::Error>
-Client::receive_response_bool()
+Client::receive_response_ok_noop_error()
 {
   TRY_ASSIGN(uint8_t status_byte, receive_u8());
   auto status = static_cast<Status>(status_byte);

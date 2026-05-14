@@ -59,6 +59,7 @@ namespace fs = util::filesystem;
 constexpr uint8_t PROTOCOL_VERSION = 0x01;
 constexpr uint8_t CAP_GET_PUT_REMOVE = 0x00;
 constexpr uint8_t CAP_INFO = 0x01;
+constexpr uint8_t CAP_EXISTS = 0x02;
 
 constexpr uint8_t STATUS_OK = 0x00;
 constexpr uint8_t STATUS_NOOP = 0x01;
@@ -69,8 +70,17 @@ constexpr uint8_t REQ_PUT = 0x01;
 constexpr uint8_t REQ_REMOVE = 0x02;
 constexpr uint8_t REQ_STOP = 0x03;
 constexpr uint8_t REQ_INFO = 0x04;
+constexpr uint8_t REQ_EXISTS = 0x05;
 
 constexpr uint8_t PUT_FLAG_OVERWRITE = 0x01;
+
+constexpr uint8_t GREETING[] = {
+  PROTOCOL_VERSION,
+  3,
+  CAP_GET_PUT_REMOVE,
+  CAP_INFO,
+  CAP_EXISTS,
+};
 
 #ifdef _WIN32
 using ConnHandle = HANDLE;
@@ -125,6 +135,7 @@ private:
   bool recv_exact(ConnHandle conn, uint8_t* buf, size_t count);
   void send_data(ConnHandle conn, const uint8_t* data, size_t len);
   void send_error(ConnHandle conn, const char* message);
+  void handle_exists(ConnHandle conn);
   void handle_get(ConnHandle conn);
   void handle_info(ConnHandle conn);
   void handle_put(ConnHandle conn);
@@ -218,6 +229,36 @@ IpcServer::send_error(ConnHandle conn, const char* message)
   response.insert(response.end(), message, message + len);
 
   send_data(conn, response.data(), response.size());
+}
+
+void
+IpcServer::handle_exists(ConnHandle conn)
+{
+  uint8_t key_len;
+  if (!recv_exact(conn, &key_len, 1)) {
+    return;
+  }
+
+  std::string key;
+  if (key_len > 0) {
+    key.resize(key_len);
+    if (!recv_exact(conn, reinterpret_cast<uint8_t*>(key.data()), key_len)) {
+      return;
+    }
+  }
+
+  log_msg(FMT("EXISTS: key_len={}", key_len));
+
+  auto it = m_storage.find(key);
+  if (it != m_storage.end()) {
+    static uint8_t response[] = {STATUS_OK, 0x01};
+    send_data(conn, response, sizeof(response));
+    log_msg("  -> exists");
+  } else {
+    static uint8_t response[] = {STATUS_OK, 0x00};
+    send_data(conn, response, sizeof(response));
+    log_msg("  -> does not exist");
+  }
 }
 
 void
@@ -371,8 +412,7 @@ IpcServer::handle_stop(ConnHandle conn)
 void
 IpcServer::handle_client(ConnHandle conn)
 {
-  uint8_t greeting[] = {PROTOCOL_VERSION, 2, CAP_GET_PUT_REMOVE, CAP_INFO};
-  send_data(conn, greeting, sizeof(greeting));
+  send_data(conn, GREETING, sizeof(GREETING));
 
   while (true) {
     uint8_t request_type;
@@ -383,6 +423,10 @@ IpcServer::handle_client(ConnHandle conn)
     update_activity();
 
     switch (request_type) {
+    case REQ_EXISTS:
+      handle_exists(conn);
+      break;
+
     case REQ_GET:
       handle_get(conn);
       break;

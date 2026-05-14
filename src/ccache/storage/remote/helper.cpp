@@ -579,8 +579,30 @@ HelperBackend::put(const Hash::Digest& key,
 {
   TRY(ensure_connected());
 
-  Client::PutFlags flags;
-  flags.overwrite = (overwrite == Overwrite::yes);
+  Client::PutFlags flags{.overwrite = true};
+
+  if (overwrite == Overwrite::no) {
+    if (m_client.has_capability(Client::Capability::exists)) {
+      // Prefer asking with exists instead of setting overwrite=false to avoid
+      // having to send the payload to the helper in case the key already
+      // exists.
+      auto result = m_client.exists(key);
+      if (!result) {
+        const auto& error = result.error();
+        LOG("Remote storage exists failed: {}", error.message);
+        auto failure = (error.failure == Client::Failure::timeout)
+                         ? Failure::timeout
+                         : Failure::error;
+        return tl::unexpected(failure);
+      }
+      bool exists = *result;
+      if (exists) {
+        return false;
+      }
+    } else {
+      flags.overwrite = false;
+    }
+  }
 
   auto result = m_client.put(key, value, flags);
   if (!result) {

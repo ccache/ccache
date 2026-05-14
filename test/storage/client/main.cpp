@@ -49,13 +49,15 @@ This is a CLI tool for testing ccache storage helper implementations.
 Commands:
     ping                            check if helper is reachable
     info                            print helper info
+    stop                            tell the helper to stop
+
+    exists KEY                      check if a value exists in storage
     get KEY -o FILE                 get a value and output to file
     get KEY -o -                    get a value and output to stdout
     put [--overwrite] KEY -i FILE   put a value from file
     put [--overwrite] KEY -i -      put a value from stdin
     put [--overwrite] KEY -v VALUE  put a literal value
     remove KEY                      remove a value from storage
-    stop                            tell the helper to stop
 
 Notes:
     KEY must be a hexadecimal string (0-9, a-f, A-F).
@@ -66,6 +68,36 @@ void
 print_usage(FILE* stream, const char* program_name)
 {
   PRINT(stream, USAGE_TEXT, program_name);
+}
+
+tl::expected<int, std::string>
+cmd_exists(Client& client, const std::vector<std::string>& args)
+{
+  if (args.size() != 1) {
+    return tl::unexpected("exists requires exactly 1 argument: KEY");
+  }
+
+  auto key_result = util::parse_base16(args[0]);
+  if (!key_result) {
+    PRINT(stderr, "Error: Invalid hex key: {}\n", key_result.error());
+    return 1;
+  }
+  const auto& key = *key_result;
+
+  auto result = client.exists(key);
+
+  if (!result) {
+    PRINT(stderr, "Error: {}\n", result.error().message);
+    return 1;
+  }
+
+  if (*result) {
+    PRINT(stdout, "yes\n");
+    return 0;
+  } else {
+    PRINT(stderr, "no\n");
+    return 2;
+  }
 }
 
 tl::expected<int, std::string>
@@ -264,6 +296,9 @@ handle_command(Client& client,
 
   if (command == "ping") {
     TRY_ASSIGN(result, cmd_ping(args));
+  } else if (command == "exists") {
+    TRY(require_capability(client, Client::Capability::exists));
+    TRY_ASSIGN(result, cmd_exists(client, args));
   } else if (command == "get") {
     TRY(require_capability(client, Client::Capability::get_put_remove));
     TRY_ASSIGN(result, cmd_get(client, args));
@@ -330,4 +365,6 @@ main(int argc, char* argv[])
     PRINT(stderr, "Error: {}\n", result.error());
     return 1;
   }
+
+  return 0;
 }

@@ -83,6 +83,7 @@ This is a specification of the custom binary IPC protocol between ccache
 - `<byte>`: 1 byte
 - `<u8>`: unsigned 8-bit integer (1 byte)
 - `<u64>`: unsigned 64-bit integer in host byte order (8 bytes)
+- `<bool>`: 1 byte (0x00: false, 0x01: true)
 
 ### Common types
 
@@ -108,6 +109,7 @@ This is a specification of the custom binary IPC protocol between ccache
 
 - 0x00: `get`/`put`/`remove` requests
 - 0x01: `info` request
+- 0x02: `exists` request
 
 ### Server greeting (server to client)
 
@@ -180,4 +182,14 @@ Get information about the helper.
 <diagnostics>     ::= <diag_num> <diag>* ; <diag_num> diagnostics messages
 <diag_num>        ::= <u8>
 <diag>            ::= <msg>              ; message to be logged by the client
+```
+
+#### Exists (capability 0x02)
+
+Check if remote storage has a value.
+
+```
+<exists_request>  ::= 0x05 <key>
+<exists_response> ::= <ok> <exists> | <err>
+<exists>          ::= <bool>
 ```

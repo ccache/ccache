@@ -48,8 +48,9 @@ public:
   static constexpr uint8_t k_protocol_version = 0x01;
 
   enum class Capability : uint8_t {
-    get_put_remove = 0x00, // get/put/remove operations
-    info = 0x01,           // info operation
+    get_put_remove = 0x00,
+    info = 0x01,
+    exists = 0x02,
   };
 
   enum class Status : uint8_t {
@@ -95,6 +96,8 @@ public:
   const std::vector<Capability>& capabilities() const;
   bool has_capability(Capability cap) const;
 
+  tl::expected<bool, Error> exists(std::span<const uint8_t> key);
+
   tl::expected<std::optional<util::Bytes>, Error>
   get(std::span<const uint8_t> key);
 
@@ -134,8 +137,9 @@ private:
   tl::expected<void, Error> verify_connected() const;
   static tl::expected<void, Error>
   verify_key_size(std::span<const uint8_t> key);
+  tl::expected<bool, Error> receive_response_exists();
   tl::expected<std::optional<util::Bytes>, Error> receive_response_get();
-  tl::expected<bool, Error> receive_response_bool();
+  tl::expected<bool, Error> receive_response_ok_noop_error();
   tl::expected<void, Error> receive_response_void();
 };
 
@@ -147,6 +151,8 @@ to_string(Client::Capability capability)
     return "get/put/remove";
   case Client::Capability::info:
     return "info";
+  case Client::Capability::exists:
+    return "exists";
   }
   return FMT("{}", static_cast<int>(capability));
 }
