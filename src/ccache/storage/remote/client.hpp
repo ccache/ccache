@@ -45,12 +45,11 @@ namespace storage::remote {
 class Client : util::NonCopyable
 {
 public:
-  static constexpr uint8_t k_greeting_format_1 = 0x01;
-  static constexpr uint8_t k_greeting_format_2 = 0x02;
-  static constexpr uint8_t k_max_greeting_format = k_greeting_format_2;
+  static constexpr uint8_t k_protocol_version = 0x01;
 
   enum class Capability : uint8_t {
-    get_put_remove_stop = 0x00, // get/put/remove/stop operations
+    get_put_remove = 0x00, // get/put/remove operations
+    info = 0x01,           // info operation
   };
 
   enum class Status : uint8_t {
@@ -76,6 +75,12 @@ public:
     }
   };
 
+  struct InfoResponse
+  {
+    std::string server_identity;
+    std::vector<std::string> diagnostics;
+  };
+
   struct PutFlags
   {
     bool overwrite = false; // bit 0 (LSB): overwrite existing value
@@ -86,18 +91,21 @@ public:
   ~Client();
 
   tl::expected<void, Error> connect(const std::string& path);
-  uint8_t greeting_format() const;
+  uint8_t protocol_version() const;
   const std::vector<Capability>& capabilities() const;
-  const std::string& server_identity() const;
-  const std::vector<std::string>& diagnostics() const;
   bool has_capability(Capability cap) const;
 
   tl::expected<std::optional<util::Bytes>, Error>
   get(std::span<const uint8_t> key);
+
+  tl::expected<InfoResponse, Error> info();
+
   tl::expected<bool, Error> put(std::span<const uint8_t> key,
                                 std::span<const uint8_t> value,
                                 PutFlags flags);
+
   tl::expected<bool, Error> remove(std::span<const uint8_t> key);
+
   tl::expected<void, Error> stop();
 
   void close();
@@ -108,10 +116,8 @@ private:
 #else
   util::BufferedIpcChannelClient<util::UnixSocketClient> m_channel;
 #endif
-  uint8_t m_greeting_format;
+  uint8_t m_protocol_version = 0;
   std::vector<Capability> m_capabilities;
-  std::string m_server_identity;
-  std::vector<std::string> m_diagnostics;
   bool m_connected = false;
   std::chrono::milliseconds m_data_timeout;
   std::chrono::milliseconds m_request_timeout;
@@ -134,8 +140,10 @@ inline std::string
 to_string(Client::Capability capability)
 {
   switch (capability) {
-  case Client::Capability::get_put_remove_stop:
-    return "get_put_remove_stop";
+  case Client::Capability::get_put_remove:
+    return "get/put/remove";
+  case Client::Capability::info:
+    return "info";
   }
   return FMT("{}", static_cast<int>(capability));
 }
