@@ -145,6 +145,9 @@ Put a value in remote storage.
 <put_response>    ::= <ok> | <noop> | <err>
 ```
 
+An unset overwrite flag is only a performance hint; it is OK if the value is
+sometimes or always overwritten anyway.
+
 #### Remove (capability 0x00)
 
 Remove a value from remote storage.
