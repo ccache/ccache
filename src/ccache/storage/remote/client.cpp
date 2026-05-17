@@ -114,17 +114,30 @@ Client::has_capability(Capability cap) const
          != m_capabilities.end();
 }
 
-tl::expected<std::optional<util::Bytes>, Client::Error>
-Client::get(std::span<const uint8_t> key)
+tl::expected<void, Client::Error>
+Client::verify_connected() const
 {
   if (!m_connected) {
     return tl::unexpected(Error(Failure::error, "Not connected"));
   }
+  return {};
+}
 
+tl::expected<void, Client::Error>
+Client::verify_key_size(std::span<const uint8_t> key)
+{
   if (key.size() > 255) {
     return tl::unexpected(
       Error(Failure::error, "Key too long (max 255 bytes)"));
   }
+  return {};
+}
+
+tl::expected<std::optional<util::Bytes>, Client::Error>
+Client::get(std::span<const uint8_t> key)
+{
+  TRY(verify_connected());
+  TRY(verify_key_size(key));
 
   m_request_start_time = std::chrono::steady_clock::now();
 
@@ -141,9 +154,7 @@ Client::get(std::span<const uint8_t> key)
 tl::expected<Client::InfoResponse, Client::Error>
 Client::info()
 {
-  if (!m_connected) {
-    return tl::unexpected(Error(Failure::error, "Not connected"));
-  }
+  TRY(verify_connected());
 
   m_request_start_time = std::chrono::steady_clock::now();
 
@@ -174,14 +185,8 @@ Client::put(std::span<const uint8_t> key,
             std::span<const uint8_t> value,
             PutFlags flags)
 {
-  if (!m_connected) {
-    return tl::unexpected(Error(Failure::error, "Not connected"));
-  }
-
-  if (key.size() > 255) {
-    return tl::unexpected(
-      Error(Failure::error, "Key too long (max 255 bytes)"));
-  }
+  TRY(verify_connected());
+  TRY(verify_key_size(key));
 
   m_request_start_time = std::chrono::steady_clock::now();
 
@@ -204,14 +209,8 @@ Client::put(std::span<const uint8_t> key,
 tl::expected<bool, Client::Error>
 Client::remove(std::span<const uint8_t> key)
 {
-  if (!m_connected) {
-    return tl::unexpected(Error(Failure::error, "Not connected"));
-  }
-
-  if (key.size() > 255) {
-    return tl::unexpected(
-      Error(Failure::error, "Key too long (max 255 bytes)"));
-  }
+  TRY(verify_connected());
+  TRY(verify_key_size(key));
 
   m_request_start_time = std::chrono::steady_clock::now();
 
@@ -227,9 +226,7 @@ Client::remove(std::span<const uint8_t> key)
 tl::expected<void, Client::Error>
 Client::stop()
 {
-  if (!m_connected) {
-    return tl::unexpected(Error(Failure::error, "Not connected"));
-  }
+  TRY(verify_connected());
 
   m_request_start_time = std::chrono::steady_clock::now();
 

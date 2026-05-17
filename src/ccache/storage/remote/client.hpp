@@ -131,6 +131,9 @@ private:
   tl::expected<uint8_t, Error> receive_u8();
   tl::expected<uint64_t, Error> receive_u64();
   tl::expected<std::string, Error> receive_error_string();
+  tl::expected<void, Error> verify_connected() const;
+  static tl::expected<void, Error>
+  verify_key_size(std::span<const uint8_t> key);
   tl::expected<std::optional<util::Bytes>, Error> receive_response_get();
   tl::expected<bool, Error> receive_response_bool();
   tl::expected<void, Error> receive_response_void();
