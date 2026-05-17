@@ -54,9 +54,9 @@ Commands:
     exists KEY                      check if a value exists in storage
     get KEY -o FILE                 get a value and output to file
     get KEY -o -                    get a value and output to stdout
-    put [--overwrite] KEY -i FILE   put a value from file
-    put [--overwrite] KEY -i -      put a value from stdin
-    put [--overwrite] KEY -v VALUE  put a literal value
+    put [-n] KEY -i FILE            put a value from file (-n = no overwrite)
+    put [-n] KEY -i -               put a value from stdin (-n = no overwrite)
+    put [-n] KEY -v VALUE           put a literal value (-n = no overwrite)
     remove KEY                      remove a value from storage
 
 Notes:
@@ -159,11 +159,11 @@ cmd_info(Client& client, const std::vector<std::string>& args)
 tl::expected<int, std::string>
 cmd_put(Client& client, const std::vector<std::string>& args)
 {
-  Client::PutFlags flags;
+  Client::PutFlags flags{.overwrite = true};
   size_t start_idx = 0;
 
-  if (!args.empty() && args[0] == "--overwrite") {
-    flags.overwrite = true;
+  if (!args.empty() && args[0] == "-n") {
+    flags.overwrite = false;
     start_idx = 1;
   }
 
