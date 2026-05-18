@@ -1181,6 +1181,80 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg.starts_with("-fdiagnostics-format=")) {
+    LOG("-fdiagnostics-format=");
+    using namespace std::string_view_literals;
+    auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
+    if (param == "sarif-file") {
+      args_info.generating_sarif = true;
+    }
+    state.add_compiler_only_arg(args[i]);
+    return Statistic::none;
+  }
+
+  if (arg.starts_with("-fdiagnostics-add-output=")
+      || arg.starts_with("-fdiagnostics-set-output=")) {
+    // replace (set) or add another diagnostic view
+    // we care for sarif only as text would not produce a file
+    auto arg_sv = std::string_view(arg);
+    // add and set are the same length
+    auto param =
+      arg_sv.substr(std::string_view("-fdiagnostics-add-output=").size());
+    auto sarif_pos = param.find("sarif");
+    auto file_pos = param.find("file=");
+    if (sarif_pos != std::string_view::npos) {
+      state.add_compiler_only_arg(args[i]);
+      args_info.generating_sarif = true;
+      if (file_pos != std::string_view::npos) {
+        auto file_param =
+          param.substr(file_pos + std::string_view("file=").size());
+        auto file_end = file_param.find(',');
+        if (file_end != std::string_view::npos) {
+          args_info.output_sarif =
+            core::make_relative_path(ctx, file_param.substr(0, file_end));
+        } else {
+          args_info.output_sarif = core::make_relative_path(ctx, file_param);
+        }
+      }
+    }
+    return Statistic::none;
+  }
+
+  const std::string_view msvc_sarif_switch = "-experimental:log";
+  if (arg.starts_with(msvc_sarif_switch)) {
+    state.add_compiler_only_arg(args[i]);
+    // The argument can be separated by space, but doesn't have to be.
+    std::string_view param;
+    if (arg.size() == msvc_sarif_switch.size()) {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      ++i;
+      param = args[i];
+      state.add_compiler_only_arg(args[i]);
+    } else {
+      param = std::string_view(arg).substr(msvc_sarif_switch.size());
+    }
+    args_info.generating_sarif = true;
+    // The param can be a filename or a dir (ends with '\'), both absolute or
+    // relative
+    bool was_folder = param.ends_with("\\");
+    if (was_folder) {
+      args_info.output_sarif = param;
+    } else {
+      args_info.output_sarif = std::string(param) + ".sarif";
+    }
+    args_info.output_sarif =
+      core::make_relative_path(ctx, args_info.output_sarif);
+    if (was_folder) {
+      // core::make_relative_path removes the trailing '\', but we need it
+      // later. So add it back
+      args_info.output_sarif += '\\';
+    }
+    return Statistic::none;
+  }
+
   if (config.compiler_type() == CompilerType::gcc) {
     if (arg == "-fdiagnostics-color" || arg == "-fdiagnostics-color=always") {
       state.color_diagnostics = ColorDiagnostics::always;
@@ -1643,6 +1717,24 @@ process_args(Context& ctx)
         "Setting PCH filepath from the base source file (during generating): "
         "{}",
         args_info.included_pch_file);
+    }
+  }
+
+  if (args_info.generating_sarif) {
+    if (ctx.config.is_compiler_group_msvc()) {
+      if (args_info.output_sarif.native().back() == '\\') {
+        args_info.output_sarif /=
+          args_info.input_file.stem().generic_string() + ".sarif";
+      }
+    } else {
+      if (args_info.output_sarif.empty()) {
+        state.hash_actual_cwd = true;
+        args_info.output_sarif = ctx.apparent_cwd;
+        args_info.output_sarif /= args_info.output_obj.stem();
+        args_info.output_sarif += args_info.input_file.extension();
+        args_info.output_sarif += ".sarif";
+      }
+      // else we assume path is set by param
     }
   }
 

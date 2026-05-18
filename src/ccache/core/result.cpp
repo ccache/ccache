@@ -159,6 +159,9 @@ file_type_to_string(FileType type)
 
   case FileType::source_dependencies:
     return ".sourcedeps.json";
+
+  case FileType::sarif:
+    return ".sarif";
   }
 
   return k_unknown_file_type;
