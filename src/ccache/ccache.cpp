@@ -1453,6 +1453,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
         args.push_back("-utf-8"); // Avoid garbling filenames in output
       }
       args.push_back("-P");
+      args.push_back("-EP"); // Suppress #line directives in preprocessed output
       args.push_back(FMT("-Fi{}", preprocessed_path));
     } else {
       args.push_back("-E");
