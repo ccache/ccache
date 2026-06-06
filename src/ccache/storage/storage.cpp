@@ -582,7 +582,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
                      const std::string_view operation_description,
                      const bool for_writing)
 {
-  if (for_writing && entry.config.read_only) {
+  if (for_writing && entry.config.read_only.value_or(false)) {
     LOG("Not {} {} storage since it is read-only",
         operation_description,
         entry.config.shards.front().url.scheme());
