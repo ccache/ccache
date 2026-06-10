@@ -71,6 +71,7 @@ const struct
   {".TCC",  "c++-header"              },
   {".cu",   "cu"                      }, // Special case in language_for_file: "cuda" for Clang
   {".hip",  "hip"                     },
+  {".asc",  "asc"                     },
   {nullptr, nullptr                   },
 };
 
@@ -89,6 +90,7 @@ const struct
   {"cu",                       "cpp-output"              }, // NVCC
   {"cuda",                     "cpp-output"              }, // Clang
   {"hip",                      "cpp-output"              },
+  {"asc",                      "cpp-output"              },
   {"objective-c",              "objective-c-cpp-output"  },
   {"objective-c-header",       "objective-c-cpp-output"  },
   {"objc-cpp-output",          "objective-c-cpp-output"  },
