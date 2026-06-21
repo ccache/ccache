@@ -376,6 +376,15 @@ is_msvc_z_debug_option(std::string_view arg)
          != std::end(debug_options);
 }
 
+bool
+is_msvc_show_includes_option(std::string_view arg)
+{
+  return arg == "-showIncludes"
+         || arg == "/showIncludes"
+         // clang-cl:
+         || arg == "-showIncludes:user" || arg == "/showIncludes:user";
+}
+
 // Returns std::nullopt if the option wasn't recognized, otherwise the error
 // code (with Statistic::none for "no error").
 std::optional<Statistic>
@@ -931,11 +940,19 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (arg == "-showIncludes"
-      // clang-cl:
-      || arg == "-showIncludes:user") {
+  if (is_msvc_show_includes_option(arg)) {
     args_info.generating_includes = true;
     state.add_compiler_only_arg(args[i]);
+    return Statistic::none;
+  }
+
+  if (ctx.config.compiler_type() == CompilerType::nvcc
+      && (arg == "-Xcompiler" || arg == "--compiler-options")
+      && i < args.size() - 1 && is_msvc_show_includes_option(args[i + 1])) {
+    args_info.generating_includes = true;
+    state.add_compiler_only_arg(args[i]);
+    state.add_compiler_only_arg(args[i + 1]);
+    ++i;
     return Statistic::none;
   }
 
@@ -1912,11 +1929,20 @@ process_args(Context& ctx)
     state.add_compiler_only_arg_no_hash(*diagnostics_color_arg);
   }
 
-  if (ctx.config.depend_mode() && !args_info.generating_includes
-      && ctx.config.compiler_type() == CompilerType::msvc) {
-    ctx.auto_depend_mode = true;
-    args_info.generating_includes = true;
-    state.add_compiler_only_arg_no_hash("/showIncludes");
+  if (ctx.config.depend_mode() && !args_info.generating_includes) {
+    if (ctx.config.compiler_type() == CompilerType::msvc) {
+      ctx.auto_depend_mode = true;
+      args_info.generating_includes = true;
+      state.add_compiler_only_arg_no_hash("/showIncludes");
+    }
+#ifdef _WIN32
+    else if (ctx.config.compiler_type() == CompilerType::nvcc) {
+      ctx.auto_depend_mode = true;
+      args_info.generating_includes = true;
+      state.add_compiler_only_arg_no_hash("-Xcompiler");
+      state.add_compiler_only_arg_no_hash("/showIncludes");
+    }
+#endif
   }
 
   if (state.found_c_opt) {
