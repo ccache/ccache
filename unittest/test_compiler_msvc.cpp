@@ -171,6 +171,17 @@ TEST_CASE("strip_includes_from_msvc_show_includes")
                     "Third custom line\n"));
     CHECK(result == util::to_span("First\nSecond\nThird custom line\n"));
   }
+
+  SUBCASE("NVCC depend mode")
+  {
+    ctx.auto_depend_mode = false;
+    ctx.config.set_compiler_type(CompilerType::nvcc);
+    ctx.config.set_depend_mode(true);
+    ctx.args_info.generating_includes = true;
+    const util::Bytes result =
+      compiler::strip_includes_from_msvc_show_includes(ctx, util::Bytes(input));
+    CHECK(result == util::to_span("First\nSecond\n"));
+  }
 }
 
 TEST_SUITE_END();
