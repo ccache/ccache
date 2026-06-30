@@ -71,6 +71,22 @@ public:
   std::optional<util::Bytes> get(const Hash::Digest& key,
                                  core::CacheEntryType type);
 
+  // Read-only lookup of `key`/`type` in an arbitrary cache directory (e.g. a
+  // read-only fallback cache). Unlike `get`, this does not update statistics,
+  // does not refresh timestamps and does not migrate legacy entries. Returns
+  // the entry value if found, otherwise `std::nullopt`.
+  std::optional<util::Bytes>
+  get_from_directory(const std::filesystem::path& cache_dir,
+                     const Hash::Digest& key,
+                     core::CacheEntryType type) const;
+
+  // Return the raw files belonging to result entry `key` in an arbitrary cache
+  // directory. Used to promote raw files when a result is served from a
+  // read-only fallback cache.
+  std::vector<core::result::Serializer::RawFile>
+  get_raw_files_in_directory(const std::filesystem::path& cache_dir,
+                             const Hash::Digest& key) const;
+
   void put(const Hash::Digest& key,
            core::CacheEntryType type,
            std::span<const uint8_t> value,
@@ -155,6 +171,14 @@ private:
   LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key,
                                            core::CacheEntryType type) const;
 
+  // Look up an existing cache file for `key`/`type` in `cache_dir` without
+  // migrating legacy entries. Returns the path of the first regular file found,
+  // otherwise `std::nullopt`.
+  static std::optional<std::filesystem::path>
+  look_up_existing_cache_file(const std::filesystem::path& cache_dir,
+                              const Hash::Digest& key,
+                              core::CacheEntryType type);
+
   std::filesystem::path get_subdir(uint8_t l1_index) const;
   std::filesystem::path get_subdir(uint8_t l1_index, uint8_t l2_index) const;
 
@@ -201,6 +225,10 @@ private:
   // split from the beginning of `name` before joining them all.
   std::filesystem::path get_path_in_cache(uint8_t level,
                                           std::string_view name) const;
+  static std::filesystem::path
+  get_path_in_cache(const std::filesystem::path& cache_dir,
+                    uint8_t level,
+                    std::string_view name);
 
   std::filesystem::path get_lock_path(const std::string& name) const;
 

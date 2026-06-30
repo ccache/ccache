@@ -143,6 +143,7 @@ enum class ConfigItem : uint8_t {
   prefix_command_cpp,
   read_only,
   read_only_direct,
+  read_only_dirs,
   recache,
   remote_only,
   remote_storage,
@@ -213,6 +214,7 @@ const std::unordered_map<std::string_view, ConfigKeyTableEntry>
     {"prefix_command_cpp",         {C::prefix_command_cpp,         DCP::unsafe}},
     {"read_only",                  {C::read_only,                  DCP::allow}},
     {"read_only_direct",           {C::read_only_direct,           DCP::allow}},
+    {"read_only_dirs",             {C::read_only_dirs,             DCP::reject}},
     {"recache",                    {C::recache,                    DCP::allow}},
     {"remote_only",                {C::remote_only,                DCP::allow}},
     {"remote_storage",             {C::remote_storage,             DCP::unsafe}},
@@ -269,6 +271,7 @@ const std::unordered_map<std::string_view, std::string_view>
     {"PREFIX_CPP",           "prefix_command_cpp"        },
     {"READONLY",             "read_only"                 },
     {"READONLY_DIRECT",      "read_only_direct"          },
+    {"READONLY_DIRS",        "read_only_dirs"            },
     {"RECACHE",              "recache"                   },
     {"REMOTE_ONLY",          "remote_only"               },
     {"REMOTE_STORAGE",       "remote_storage"            },
@@ -590,6 +593,16 @@ Config::set_ceiling_dirs(const std::vector<std::filesystem::path>& value)
   for (const auto& path : value) {
     verify_absolute_path(path);
     m_ceiling_dirs.push_back(util::lexically_normal(path));
+  }
+}
+
+void
+Config::set_read_only_dirs(const std::vector<std::filesystem::path>& value)
+{
+  m_read_only_dirs.clear();
+  for (const auto& path : value) {
+    verify_absolute_path(path);
+    m_read_only_dirs.push_back(util::lexically_normal(path));
   }
 }
 
@@ -1131,6 +1144,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::read_only_direct:
     return format_bool(m_read_only_direct);
 
+  case ConfigItem::read_only_dirs:
+    return util::join_path_list(m_read_only_dirs);
+
   case ConfigItem::recache:
     return format_bool(m_recache);
 
@@ -1432,6 +1448,10 @@ Config::set_item(const std::string_view& key,
 
   case ConfigItem::read_only_direct:
     m_read_only_direct = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::read_only_dirs:
+    set_read_only_dirs(util::split_path_list(value));
     break;
 
   case ConfigItem::recache:

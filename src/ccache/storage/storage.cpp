@@ -439,6 +439,23 @@ Storage::get(const Hash::Hash::Digest& key,
 {
   if (!m_config.remote_only()) {
     auto value = local.get(key, type);
+    if (!value) {
+      // Fall back to read-only cache directories (e.g. pre-populated caches in
+      // CI), promoting hits into the local cache.
+      for (const auto& dir : m_config.read_only_dirs()) {
+        value = local.get_from_directory(dir, key, type);
+        if (value) {
+          local.put(key, type, *value, Overwrite::no);
+          if (type == core::CacheEntryType::result) {
+            const auto raw_files = local.get_raw_files_in_directory(dir, key);
+            if (!raw_files.empty()) {
+              local.put_raw_files(key, raw_files);
+            }
+          }
+          break;
+        }
+      }
+    }
     if (value) {
       if (m_config.reshare()) {
         put_in_remote_storage(key, *value, Overwrite::no);
