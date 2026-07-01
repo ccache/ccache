@@ -194,7 +194,7 @@ Manifest::add_result(
   const std::unordered_map<std::string, Hash::Digest>& included_files,
   const FileStater& stat_file_function)
 {
-  if (m_results.size() > k_max_manifest_entries) {
+  if (m_results.size() >= k_max_manifest_entries) {
     // Normally, there shouldn't be many result entries in the manifest since
     // new entries are added only if an include file has changed but not the
     // source file, and you typically change source files more often than header
@@ -205,14 +205,14 @@ Manifest::add_result(
     // of solving this would be to maintain the result entries in LRU order and
     // discarding the old ones. An easy way is to throw away all entries when
     // there are too many. Let's do that for now.
-    LOG("More than {} entries in manifest file; discarding",
+    LOG("Max limit ({}) of result entries in manifest file reached; discarding",
         k_max_manifest_entries);
     clear();
-  } else if (m_file_infos.size() > k_max_manifest_file_info_entries) {
+  } else if (m_file_infos.size() >= k_max_manifest_file_info_entries) {
     // Rarely, FileInfo entries can grow large in pathological cases where many
     // included files change, but the main file does not. This also puts an
     // upper bound on the number of FileInfo entries.
-    LOG("More than {} FileInfo entries in manifest file; discarding",
+    LOG("Max limit of ({}) of FileInfo entries in manifest reached; discarding",
         k_max_manifest_file_info_entries);
     clear();
   }
