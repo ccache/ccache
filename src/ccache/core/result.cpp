@@ -78,8 +78,6 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
-const uint8_t k_max_raw_file_entries = 10;
-
 bool
 should_store_raw_file(const Config& config, core::result::FileType type)
 {
@@ -197,15 +195,7 @@ Deserializer::visit(Deserializer::Visitor& visitor) const
                     header.format_version,
                     k_format_version));
   }
-
   header.n_files = reader.read_int<uint8_t>();
-  if (header.n_files >= k_max_raw_file_entries) {
-    visitor.on_header(header);
-    throw Error(FMT("Too many raw file entries: {} > {}",
-                    header.n_files,
-                    k_max_raw_file_entries));
-  }
-
   visitor.on_header(header);
 
   uint8_t file_number;
