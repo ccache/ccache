@@ -32,6 +32,48 @@
 
 namespace util {
 
+namespace {
+
+std::chrono::milliseconds
+remaining_timeout(const std::chrono::steady_clock::time_point start_time,
+                  const std::chrono::milliseconds timeout)
+{
+  const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::steady_clock::now() - start_time);
+  return elapsed >= timeout ? std::chrono::milliseconds(0) : timeout - elapsed;
+}
+
+tl::expected<void, IpcError>
+poll_with_timeout(int fd,
+                  short events,
+                  std::chrono::milliseconds timeout,
+                  const char* action)
+{
+  const auto start_time = std::chrono::steady_clock::now();
+
+  while (true) {
+    struct pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = events;
+
+    auto remaining = remaining_timeout(start_time, timeout);
+    int poll_result = poll(&pfd, 1, static_cast<int>(remaining.count()));
+    if (poll_result > 0) {
+      return {};
+    }
+    if (poll_result == 0) {
+      return tl::unexpected(
+        IpcError(IpcError::Failure::timeout, FMT("{} timeout", action)));
+    }
+    if (errno != EINTR) {
+      return tl::unexpected(IpcError(IpcError::Failure::error,
+                                     FMT("Poll failed: {}", strerror(errno))));
+    }
+  }
+}
+
+} // namespace
+
 UnixSocketClient::~UnixSocketClient()
 {
   do_close();
@@ -83,7 +125,7 @@ UnixSocketClient::connect(const std::string& endpoint,
     ::connect(m_fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
 
   if (result == -1) {
-    if (errno != EINPROGRESS && errno != EAGAIN) {
+    if (errno != EINPROGRESS && errno != EAGAIN && errno != EINTR) {
       int saved_errno = errno;
       close();
       return tl::unexpected(IpcError(
@@ -92,23 +134,10 @@ UnixSocketClient::connect(const std::string& endpoint,
     }
 
     // Connection in progress, wait for completion with timeout.
-    struct pollfd pfd;
-    pfd.fd = m_fd;
-    pfd.events = POLLOUT;
-
-    int timeout_ms = static_cast<int>(timeout.count());
-    int poll_result = poll(&pfd, 1, timeout_ms);
-    if (poll_result <= 0) {
-      int saved_errno = errno;
+    auto poll_result = poll_with_timeout(m_fd, POLLOUT, timeout, "Connection");
+    if (!poll_result) {
       close();
-      if (poll_result == 0) {
-        return tl::unexpected(
-          IpcError(IpcError::Failure::timeout, "Connection timeout"));
-      } else {
-        return tl::unexpected(
-          IpcError(IpcError::Failure::error,
-                   FMT("Poll failed: {}", strerror(saved_errno))));
-      }
+      return tl::unexpected(poll_result.error());
     }
 
     int error;
@@ -154,6 +183,9 @@ UnixSocketClient::send(std::span<const uint8_t> data,
     if (sent > 0) {
       total_sent += sent;
     } else if (sent == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
       if (errno != EAGAIN) {
         return tl::unexpected(IpcError(
           IpcError::Failure::error, FMT("Send failed: {}", strerror(errno))));
@@ -169,20 +201,11 @@ UnixSocketClient::send(std::span<const uint8_t> data,
       }
 
       const auto remaining = timeout - elapsed_ms;
-      int remaining_ms = static_cast<int>(remaining.count());
 
       // Wait for socket to become writable.
-      struct pollfd pfd;
-      pfd.fd = m_fd;
-      pfd.events = POLLOUT;
-
-      int poll_result = poll(&pfd, 1, remaining_ms);
-      if (poll_result == 0) {
-        return tl::unexpected(
-          IpcError(IpcError::Failure::timeout, "Send timeout"));
-      } else if (poll_result == -1) {
-        return tl::unexpected(IpcError(
-          IpcError::Failure::error, FMT("Poll failed: {}", strerror(errno))));
+      auto poll_result = poll_with_timeout(m_fd, POLLOUT, remaining, "Send");
+      if (!poll_result) {
+        return tl::unexpected(poll_result.error());
       }
     }
   }
@@ -203,40 +226,35 @@ UnixSocketClient::receive(std::span<uint8_t> buffer,
     return 0;
   }
 
-  int timeout_ms = static_cast<int>(timeout.count());
-
-  // Wait for data to be available.
-  struct pollfd pfd;
-  pfd.fd = m_fd;
-  pfd.events = POLLIN;
-
-  int poll_result = poll(&pfd, 1, timeout_ms);
-  if (poll_result == 0) {
-    return tl::unexpected(
-      IpcError(IpcError::Failure::timeout, "Receive timeout"));
-  } else if (poll_result == -1) {
-    return tl::unexpected(IpcError(IpcError::Failure::error,
-                                   FMT("Poll failed: {}", strerror(errno))));
+  auto poll_result = poll_with_timeout(m_fd, POLLIN, timeout, "Receive");
+  if (!poll_result) {
+    return tl::unexpected(poll_result.error());
   }
 
   // Receive data.
-  ssize_t received = ::recv(m_fd, buffer.data(), buffer.size(), 0);
+  while (true) {
+    ssize_t received = ::recv(m_fd, buffer.data(), buffer.size(), 0);
 
-  if (received == -1) {
-    if (errno == EAGAIN) {
-      // This shouldn't happen after poll() indicates readiness, but handle it.
+    if (received == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+      if (errno == EAGAIN) {
+        // This shouldn't happen after poll() indicates readiness, but handle
+        // it.
+        return tl::unexpected(
+          IpcError(IpcError::Failure::error,
+                   "Receive would block after poll indicated readiness"));
+      }
+      return tl::unexpected(IpcError(
+        IpcError::Failure::error, FMT("Receive failed: {}", strerror(errno))));
+    } else if (received == 0) {
       return tl::unexpected(
-        IpcError(IpcError::Failure::error,
-                 "Receive would block after poll indicated readiness"));
+        IpcError(IpcError::Failure::error, "Connection closed by peer"));
     }
-    return tl::unexpected(IpcError(IpcError::Failure::error,
-                                   FMT("Receive failed: {}", strerror(errno))));
-  } else if (received == 0) {
-    return tl::unexpected(
-      IpcError(IpcError::Failure::error, "Connection closed by peer"));
-  }
 
-  return static_cast<size_t>(received);
+    return static_cast<size_t>(received);
+  }
 }
 
 void
