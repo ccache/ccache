@@ -132,14 +132,13 @@ exec_to_string(const Args& args)
   auto argv_mutable = const_cast<char* const*>(argv.data());
   int spawn_result =
     posix_spawnp(&pid, argv[0], &fa, nullptr, argv_mutable, environ);
-  int saved_errno = errno;
   posix_spawn_file_actions_destroy(&fa);
   close(pipefd[1]);
 
   if (spawn_result != 0) {
     close(pipefd[0]);
     return tl::unexpected(
-      FMT("posix_spawnp failed: {}", strerror(saved_errno)));
+      FMT("posix_spawnp failed: {}", strerror(spawn_result)));
   }
 
   auto read_result = read_fd(pipefd[0], [&](auto data) {
