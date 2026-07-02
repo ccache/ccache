@@ -21,6 +21,7 @@
 #include <ccache/config.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/core/sloppiness.hpp>
 #include <ccache/execute.hpp>
 #include <ccache/macroskip.hpp>
 #include <ccache/util/args.hpp>
@@ -167,17 +168,61 @@ check_for_temporal_macros_avx2(std::string_view str)
 }
 #endif
 
+bool
+is_embed_preprocessor_directive(std::string_view str, size_t pos)
+{
+  static const char embed_directive[] = {'#', 'e', 'm', 'b', 'e', 'd'};
+
+  while (pos < str.length() && (str[pos] == ' ' || str[pos] == '\t')) {
+    pos++;
+  }
+  if (pos + sizeof(embed_directive) > str.length()) {
+    return false;
+  }
+  if (memcmp(&str[pos], embed_directive, sizeof(embed_directive)) != 0) {
+    return false;
+  }
+  if (pos + sizeof(embed_directive) < str.length()) {
+    const char next = str[pos + sizeof(embed_directive)];
+    if (util::is_alnum(next) || next == '_') {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool
+is_incbin_directive(std::string_view str, size_t pos)
+{
+  static const char incbin_directive[] = {'.', 'i', 'n', 'c', 'b', 'i', 'n'};
+  if (pos + sizeof(incbin_directive) >= str.length()) {
+    return false;
+  }
+  if (memcmp(&str[pos], incbin_directive, sizeof(incbin_directive)) != 0) {
+    return false;
+  }
+  const char next = str[pos + sizeof(incbin_directive)];
+  return (next == ' '
+          && (str[pos + sizeof(incbin_directive) + 1] == '"'
+              || (str[pos + sizeof(incbin_directive) + 1] == '\\'
+                  && pos + sizeof(incbin_directive) + 2 < str.length()
+                  && str[pos + sizeof(incbin_directive) + 2] == '"')))
+         || next == '"';
+}
+
 HashSourceCodeResult
 do_hash_file(const Context& ctx,
              Hash::Digest& digest,
              const fs::path& path,
              size_t size_hint,
-             bool check_temporal_macros)
+             bool check_temporal_macros,
+             bool check_source_directives)
 {
 #ifdef INODE_CACHE_SUPPORTED
   const InodeCache::ContentType content_type =
-    check_temporal_macros ? InodeCache::ContentType::checked_for_temporal_macros
-                          : InodeCache::ContentType::raw;
+    check_source_directives || check_temporal_macros
+      ? InodeCache::ContentType::checked_for_source_directives
+      : InodeCache::ContentType::raw;
   if (ctx.config.inode_cache()) {
     const auto result = ctx.inode_cache.get(path, content_type);
     if (result) {
@@ -196,8 +241,14 @@ do_hash_file(const Context& ctx,
   }
 
   HashSourceCodeResult result;
+  const std::string_view data_view = util::to_string_view(*data);
   if (check_temporal_macros) {
-    result.insert(check_for_temporal_macros(util::to_string_view(*data)));
+    result.insert(check_for_temporal_macros(data_view));
+  }
+  if (check_source_directives) {
+    const bool check_incbin =
+      !ctx.config.sloppiness().contains(core::Sloppy::incbin);
+    result.insert(check_for_source_directives(data_view, check_incbin));
   }
 
   Hash hash;
@@ -212,6 +263,40 @@ do_hash_file(const Context& ctx,
 }
 
 } // namespace
+
+HashSourceCodeResult
+check_for_source_directives(std::string_view str, bool check_incbin)
+{
+  HashSourceCodeResult result;
+
+  for (size_t i = 0; i < str.length(); ++i) {
+    if (i == 0 || str[i - 1] == '\n') {
+      if (is_embed_preprocessor_directive(str, i)) {
+        result.insert(HashSourceCode::found_embed);
+        break;
+      }
+    }
+  }
+
+  if (check_incbin && !result.contains(HashSourceCode::found_embed)) {
+    for (size_t i = 0; i + 7 < str.length(); ++i) {
+      if (is_incbin_directive(str, i)) {
+        result.insert(HashSourceCode::found_incbin);
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+bool
+hash_source_code_disables_direct_mode(HashSourceCodeResult result)
+{
+  return result.contains(HashSourceCode::found_time)
+         || result.contains(HashSourceCode::found_embed)
+         || result.contains(HashSourceCode::found_incbin);
+}
 
 HashSourceCodeResult
 check_for_temporal_macros(std::string_view str)
@@ -232,11 +317,28 @@ hash_source_code_file(const Context& ctx,
 {
   const bool check_temporal_macros =
     !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
-  auto result =
-    do_hash_file(ctx, digest, path, size_hint, check_temporal_macros);
+  auto result = do_hash_file(ctx,
+                             digest,
+                             path,
+                             size_hint,
+                             check_temporal_macros,
+                             /*check_source_directives=*/true);
 
-  if (!check_temporal_macros || result.empty()
-      || result.contains(HashSourceCode::error)) {
+  if (result.contains(HashSourceCode::error)) {
+    return result;
+  }
+
+  if (result.contains(HashSourceCode::found_embed)) {
+    LOG("Found #embed in {}", path);
+    return result;
+  }
+
+  if (result.contains(HashSourceCode::found_incbin)) {
+    LOG("Found .incbin in {}", path);
+    return result;
+  }
+
+  if (!check_temporal_macros || result.empty()) {
     return result;
   }
 
@@ -311,7 +413,13 @@ hash_binary_file(const Context& ctx,
                  const fs::path& path,
                  size_t size_hint)
 {
-  return do_hash_file(ctx, digest, path, size_hint, false).empty();
+  return do_hash_file(ctx,
+                      digest,
+                      path,
+                      size_hint,
+                      /*check_temporal_macros=*/false,
+                      /*check_source_directives=*/false)
+    .empty();
 }
 
 bool

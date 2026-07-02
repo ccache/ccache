@@ -48,6 +48,9 @@ public:
     // The file was checked for temporal macros (see check_for_temporal_macros
     // in hashutil).
     checked_for_temporal_macros = 1,
+    // The file was checked for temporal macros and other source constructs
+    // that require falling back from direct mode (see hashutil).
+    checked_for_source_directives = 2,
   };
 
   // `min_age` specifies how old a file must be to be put in the cache. The

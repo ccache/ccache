@@ -280,4 +280,34 @@ TEST_CASE("check_for_temporal_macros")
   }
 }
 
+TEST_CASE("check_for_source_directives")
+{
+  const auto check = [](std::string_view str, bool check_incbin = true) {
+    return check_for_source_directives(str, check_incbin);
+  };
+
+  CHECK(check("const char x[] = {\n#embed \"file\"\n};")
+          .contains(HashSourceCode::found_embed));
+  CHECK(check("  #embed \"file\"\n").contains(HashSourceCode::found_embed));
+  CHECK(check("#embed <file>\n").contains(HashSourceCode::found_embed));
+  CHECK(check("#embeddings\n").empty());
+  CHECK(check("//#embed \"file\"\n").empty());
+  CHECK(check("not #embed \"file\"\n").empty());
+
+  CHECK(check("__asm__(\".incbin \\\"file\\\"\");")
+          .contains(HashSourceCode::found_incbin));
+  CHECK(check("__asm__(\".incbin\" \" \\\"file\\\"\");")
+          .contains(HashSourceCode::found_incbin));
+  CHECK(check(".incbin \"file\";").contains(HashSourceCode::found_incbin));
+  CHECK(check("a.incbin();", false).empty());
+  CHECK(check("a.incbin();").empty());
+  CHECK(check("__asm__(\".incbin \\\"file\\\"\");", false).empty());
+
+  CHECK(hash_source_code_disables_direct_mode(
+    HashSourceCodeResult(HashSourceCode::found_embed)));
+  CHECK(hash_source_code_disables_direct_mode(
+    HashSourceCodeResult(HashSourceCode::found_incbin)));
+  CHECK(!hash_source_code_disables_direct_mode(HashSourceCodeResult()));
+}
+
 TEST_SUITE_END();

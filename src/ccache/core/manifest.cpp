@@ -439,7 +439,7 @@ Manifest::result_matches(
         LOG("Failed hashing {}", path);
         return false;
       }
-      if (ret.contains(HashSourceCode::found_time)) {
+      if (hash_source_code_disables_direct_mode(ret)) {
         // hash_source_code_file has already logged.
         return false;
       }

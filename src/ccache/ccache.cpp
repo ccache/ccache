@@ -471,7 +471,7 @@ remember_include_file(Context& ctx,
       if (ret.contains(HashSourceCode::error)) {
         return tl::unexpected(Statistic::bad_input_file);
       }
-      if (ret.contains(HashSourceCode::found_time)) {
+      if (hash_source_code_disables_direct_mode(ret)) {
         LOG("Disabling direct mode");
         ctx.config.set_direct_mode(false);
       }
@@ -2369,7 +2369,7 @@ get_manifest_key(Context& ctx, Hash& hash)
   if (ret.contains(HashSourceCode::error)) {
     return tl::unexpected(Statistic::internal_error);
   }
-  if (ret.contains(HashSourceCode::found_time)) {
+  if (hash_source_code_disables_direct_mode(ret)) {
     LOG("Disabling direct mode");
     ctx.config.set_direct_mode(false);
     return {};
