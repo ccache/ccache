@@ -426,8 +426,12 @@ remember_include_file(Context& ctx,
 
   if (!ctx.ignore_header_paths.empty()) {
     // Canonicalize path for comparison; Clang uses ./header.h.
-    const std::string& canonical_path_str =
+    auto canonical_path_str =
       path_str.str().starts_with("./") ? path_str.str().substr(2) : path_str;
+#ifdef _WIN32
+    // Handle case-insensitive paths by converting to lowercase.
+    canonical_path_str = util::to_lowercase(canonical_path_str);
+#endif
     for (const auto& ignore_header_path : ctx.ignore_header_paths) {
       if (file_path_matches_dir_prefix_or_file(ignore_header_path,
                                                canonical_path_str)) {

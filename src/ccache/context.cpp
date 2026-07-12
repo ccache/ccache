@@ -59,6 +59,12 @@ Context::initialize(util::Args&& compiler_and_args,
   util::logging::init(config.debug(), config.log_file());
   ignore_header_paths =
     util::split_path_list(config.ignore_headers_in_manifest());
+#ifdef _WIN32
+  // Handle case-insensitive paths by converting to lowercase.
+  for (auto& path : ignore_header_paths) {
+    path = util::to_lowercase(path.string());
+  }
+#endif
   set_ignore_options(util::split_into_strings(config.ignore_options(), " "));
 
   // Set default umask for all files created by ccache from now on (if
