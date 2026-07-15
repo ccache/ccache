@@ -18,6 +18,7 @@
 
 #include "testutil.hpp"
 
+#include <ccache/context.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/hashutil.hpp>
 #include <ccache/util/cpu.hpp>
@@ -43,7 +44,7 @@ hco(Hash& hash, const std::string& command, const std::string& compiler)
 #endif
 }
 
-using SourceCodePatternChecker = HashSourceCodeResult (*)(std::string_view);
+using SourceCodePatternChecker = SourceCodeScanResult (*)(std::string_view);
 
 static void
 check_temporal_macros(SourceCodePatternChecker check)
@@ -103,62 +104,62 @@ check_temporal_macros(SourceCodePatternChecker check)
     "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
     "a__DATE__";
 
-  CHECK(check(time_start).contains(HashSourceCode::found_time));
+  CHECK(check(time_start).contains(SourceCodeScan::found_time));
   CHECK(check(time_start.substr(1)).empty());
 
-  CHECK(check(time_middle.substr(0)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(1)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(2)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(3)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(4)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(5)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(6)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(7)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(0)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(1)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(2)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(3)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(4)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(5)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(6)).contains(SourceCodeScan::found_time));
+  CHECK(check(time_middle.substr(7)).contains(SourceCodeScan::found_time));
 
-  CHECK(check(time_end).contains(HashSourceCode::found_time));
+  CHECK(check(time_end).contains(SourceCodeScan::found_time));
   CHECK(check(time_end.substr(time_end.length() - 8))
-          .contains(HashSourceCode::found_time));
+          .contains(SourceCodeScan::found_time));
   CHECK(check(time_end.substr(time_end.length() - 7)).empty());
 
-  CHECK(check(date_start).contains(HashSourceCode::found_date));
+  CHECK(check(date_start).contains(SourceCodeScan::found_date));
   CHECK(check(date_start.substr(1)).empty());
 
-  CHECK(check(date_middle.substr(0)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(1)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(2)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(3)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(4)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(5)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(6)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(7)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(0)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(1)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(2)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(3)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(4)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(5)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(6)).contains(SourceCodeScan::found_date));
+  CHECK(check(date_middle.substr(7)).contains(SourceCodeScan::found_date));
 
-  CHECK(check(date_end).contains(HashSourceCode::found_date));
+  CHECK(check(date_end).contains(SourceCodeScan::found_date));
   CHECK(check(date_end.substr(date_end.length() - 8))
-          .contains(HashSourceCode::found_date));
+          .contains(SourceCodeScan::found_date));
   CHECK(check(date_end.substr(date_end.length() - 7)).empty());
 
-  CHECK(check(timestamp_start).contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_start).contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_start.substr(1)).empty());
 
-  CHECK(check(timestamp_middle).contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle).contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(1))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(2))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(3))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(4))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(5))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(6))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_middle.substr(7))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
 
-  CHECK(check(timestamp_end).contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_end).contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_end.substr(timestamp_end.length() - 13))
-          .contains(HashSourceCode::found_timestamp));
+          .contains(SourceCodeScan::found_timestamp));
   CHECK(check(timestamp_end.substr(timestamp_end.length() - 12)).empty());
 
   CHECK(check(no_temporal.substr(0)).empty());
@@ -298,5 +299,239 @@ TEST_CASE("check_for_temporal_macros")
   }
 #endif
 }
+
+TEST_CASE("check_for_source_code_patterns: temporal macros and directives")
+{
+  TestContext test_context;
+
+  const std::string source = FMT(
+    "#em{0}bed \"first.bin\"\n"
+    "#em{0}bed RESOURCE\n"
+    ".inc{0}bin \"second.bin\"\n"
+    "const char* build_date = __DATE__;\n"
+    "const char* build_time = __TIME__;\n"
+    "const char* build_stamp = __TIMESTAMP__;\n",
+    "");
+
+  SourceCodeScanResult result;
+
+  SUBCASE("scalar")
+  {
+    result = check_for_source_code_patterns_scalar(source);
+  }
+
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    SUBCASE("avx2")
+    {
+      result = check_for_source_code_patterns_avx2(source);
+    }
+  }
+#endif
+
+  CHECK(result.contains(SourceCodeScan::found_embed));
+  CHECK(result.contains(SourceCodeScan::found_incbin));
+  CHECK(result.contains(SourceCodeScan::found_date));
+  CHECK(result.contains(SourceCodeScan::found_time));
+  CHECK(result.contains(SourceCodeScan::found_timestamp));
+}
+
+TEST_CASE("check_for_source_code_patterns: macro-expanded embed operand")
+{
+  TestContext test_context;
+
+  const std::string source = FMT("#em{}bed RESOURCE\n", "");
+  SourceCodeScanResult result;
+
+  SUBCASE("scalar")
+  {
+    result = check_for_source_code_patterns_scalar(source);
+  }
+
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    SUBCASE("avx2")
+    {
+      result = check_for_source_code_patterns_avx2(source);
+    }
+  }
+#endif
+
+  CHECK(result.contains(SourceCodeScan::found_embed));
+}
+
+#ifdef HAVE_AVX2
+
+static bool
+contains_embed_directive(std::string_view source)
+{
+  auto result = check_for_source_code_patterns_avx2(source);
+  return result.contains(SourceCodeScan::found_embed);
+}
+
+static bool
+contains_incbin_directive(std::string_view source)
+{
+  auto result = check_for_source_code_patterns_avx2(source);
+  return result.contains(SourceCodeScan::found_incbin);
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: empty source"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK_FALSE(contains_embed_directive(""));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: no embed directives"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK_FALSE(contains_embed_directive(R"(
+#include <stdio.h>
+#include "header.h"
+int main() { return 0; }
+)"));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: simple quoted embed"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("\n#em{}bed \"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: simple system embed"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("\n#em{}bed <system_data.bin>\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed with path"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(
+    FMT("\n#em{}bed \"assets/textures/icon.png\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed with parameters"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(
+    contains_embed_directive(FMT("\n#em{}bed \"data.bin\" limit(100)\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed with multiple parameters"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(
+    contains_embed_directive(FMT("\n#em{}bed \"data.bin\" prefix(0x00,)"
+                                 " suffix(,0x00) if_empty(0) limit(256)\n",
+                                 "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: multiple embeds"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(
+    contains_embed_directive(FMT("\n#include <stdio.h>\n"
+                                 "#em{0}bed \"file1.bin\"\n"
+                                 "int main() {{\n"
+                                 "#em{0}bed \"file2.bin\"\n"
+                                 "#em{0}bed <system.bin>\n"
+                                 "  return 0;\n"
+                                 "}}\n",
+                                 "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed with whitespace"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("\n#  em{}bed   \"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: indented embed"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("\n  #em{}bed \"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed after line continuation"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("#\\\nem{}bed \"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed with line continuation"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("#em{}bed \\\n\"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: embed at start of file"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("#em{}bed \"first.bin\"\n", "")));
+}
+
+TEST_CASE(
+  "check_for_source_code_patterns_avx2: embed at end of file without newline"
+  * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("#em{}bed \"last.bin\"", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: ignores embedded in identifier"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK_FALSE(
+    contains_embed_directive("#embedded \"not_this.bin\"\n"
+                             "#embedx \"not_this_either.bin\"\n"));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: handles tabs"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_embed_directive(FMT("#\tem{}bed\t\"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: mixed includes and embeds"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(
+    contains_embed_directive(FMT("#include <stdio.h>\n"
+                                 "#include \"local.h\"\n"
+                                 "#em{0}bed \"binary.dat\"\n"
+                                 "#define FOO 1\n"
+                                 "#em{0}bed <sys/resource.bin>\n"
+                                 "#ifdef BAR\n"
+                                 "#em{0}bed \"conditional.bin\"\n"
+                                 "#endif\n",
+                                 "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: no incbin directive"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK_FALSE(contains_incbin_directive(
+    FMT("\n    #include <stdio.h>\n    .inc{}bin data.bin\n  ", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: simple incbin"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_incbin_directive(FMT(".inc{}bin \"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: incbin without space"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_incbin_directive(FMT(".inc{}bin\"data.bin\"\n", "")));
+}
+
+TEST_CASE("check_for_source_code_patterns_avx2: escaped quote"
+          * doctest::skip(!util::cpu_supports_avx2()))
+{
+  CHECK(contains_incbin_directive(FMT(".inc{}bin \\\"data.bin\\\"\n", "")));
+}
+
+#endif // HAVE_AVX2
 
 TEST_SUITE_END();

@@ -76,7 +76,7 @@ namespace {
 // Note: The key is hashed using the main hash algorithm, so the version number
 // does not need to be incremented if said algorithm is changed (except if the
 // digest size changes since that affects the entry format).
-const uint32_t k_version = 2;
+const uint32_t k_version = 3;
 
 // Note: Increment the version number if constants affecting storage size are
 // changed.
@@ -104,6 +104,11 @@ static_assert(
   "Numeric value is part of key, increment version number if changed.");
 static_assert(
   static_cast<int>(InodeCache::ContentType::checked_for_temporal_macros) == 1,
+  "Numeric value is part of key, increment version number if changed.");
+static_assert(
+  static_cast<int>(
+    InodeCache::ContentType::checked_for_temporal_macros_and_directives)
+    == 2,
   "Numeric value is part of key, increment version number if changed.");
 
 bool
@@ -533,7 +538,7 @@ InodeCache::available(int fd)
   return fd_is_on_known_to_work_file_system(fd);
 }
 
-std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
+std::optional<std::pair<SourceCodeScanResult, Hash::Digest>>
 InodeCache::get(const fs::path& path, ContentType type)
 {
   if (!initialize()) {
@@ -545,7 +550,7 @@ InodeCache::get(const fs::path& path, ContentType type)
     return std::nullopt;
   }
 
-  std::optional<HashSourceCodeResult> result;
+  std::optional<SourceCodeScanResult> result;
   Hash::Digest file_digest;
   const bool success = with_bucket(key_digest, [&](const auto bucket) {
     for (uint32_t i = 0; i < k_num_entries; ++i) {
@@ -558,7 +563,7 @@ InodeCache::get(const fs::path& path, ContentType type)
 
         file_digest = bucket->entries[0].file_digest;
         result =
-          HashSourceCodeResult::from_bitmask(bucket->entries[0].return_value);
+          SourceCodeScanResult::from_bitmask(bucket->entries[0].return_value);
         break;
       }
     }
@@ -586,7 +591,7 @@ bool
 InodeCache::put(const fs::path& path,
                 ContentType type,
                 const Hash::Digest& file_digest,
-                HashSourceCodeResult return_value)
+                SourceCodeScanResult return_value)
 {
   if (!initialize()) {
     return false;

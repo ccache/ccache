@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -45,9 +45,11 @@ public:
   enum class ContentType {
     // The file was not scanned for temporal macros.
     raw = 0,
-    // The file was checked for temporal macros (see check_for_temporal_macros
-    // in hashutil).
+    // Legacy value: The file was checked for temporal macros.
     checked_for_temporal_macros = 1,
+    // The file was checked for temporal macros as well as embed and incbin
+    // directives.
+    checked_for_temporal_macros_and_directives = 2,
   };
 
   // `min_age` specifies how old a file must be to be put in the cache. The
@@ -79,7 +81,7 @@ public:
 
   // Get saved hash digest and return value from a previous call to
   // do_hash_file() in hashutil.cpp.
-  std::optional<std::pair<HashSourceCodeResult, Hash::Digest>>
+  std::optional<std::pair<SourceCodeScanResult, Hash::Digest>>
   get(const std::filesystem::path& path, ContentType type);
 
   // Put hash digest and return value from a successful call to do_hash_file()
@@ -89,7 +91,7 @@ public:
   bool put(const std::filesystem::path& path,
            ContentType type,
            const Hash::Digest& file_digest,
-           HashSourceCodeResult return_value);
+           SourceCodeScanResult return_value);
 
   // Unmaps the current cache and removes the mapped file from disk.
   //

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -67,14 +67,13 @@ init(Config& config)
 
 bool
 put(InodeCache& inode_cache,
+    InodeCache::ContentType content_type,
     const std::string& filename,
     const std::string& str,
-    HashSourceCodeResult return_value)
+    SourceCodeScanResult return_value)
 {
-  return inode_cache.put(filename,
-                         InodeCache::ContentType::checked_for_temporal_macros,
-                         Hash().hash(str).digest(),
-                         return_value);
+  return inode_cache.put(
+    filename, content_type, Hash().hash(str).digest(), return_value);
 }
 
 } // namespace
@@ -95,7 +94,7 @@ TEST_CASE("Test disabled")
   CHECK(!inode_cache.put("a",
                          InodeCache::ContentType::checked_for_temporal_macros,
                          Hash::Digest(),
-                         HashSourceCodeResult()));
+                         SourceCodeScanResult()));
   CHECK(inode_cache.get_hits() == -1);
   CHECK(inode_cache.get_misses() == -1);
   CHECK(inode_cache.get_errors() == -1);
@@ -128,15 +127,19 @@ TEST_CASE("Test put and lookup")
   InodeCache inode_cache(config, 0ns);
   REQUIRE(util::write_file("a", "a text"));
 
-  HashSourceCodeResult result;
-  result.insert(HashSourceCode::found_date);
-  CHECK(put(inode_cache, "a", "a text", result));
+  SourceCodeScanResult result;
+  result.insert(SourceCodeScan::found_date);
+  CHECK(put(inode_cache,
+            InodeCache::ContentType::checked_for_temporal_macros,
+            "a",
+            "a text",
+            result));
 
   auto return_value =
     inode_cache.get("a", InodeCache::ContentType::checked_for_temporal_macros);
   REQUIRE(return_value);
   CHECK(return_value->first.to_bitmask()
-        == static_cast<int>(HashSourceCode::found_date));
+        == static_cast<int>(SourceCodeScan::found_date));
   CHECK(return_value->second == Hash().hash("a text").digest());
   CHECK(inode_cache.get_hits() == 1);
   CHECK(inode_cache.get_misses() == 0);
@@ -151,15 +154,16 @@ TEST_CASE("Test put and lookup")
   CHECK(inode_cache.get_errors() == 0);
 
   CHECK(put(inode_cache,
+            InodeCache::ContentType::checked_for_temporal_macros,
             "a",
             "something else",
-            HashSourceCodeResult(HashSourceCode::found_time)));
+            SourceCodeScanResult(SourceCodeScan::found_time)));
 
   return_value =
     inode_cache.get("a", InodeCache::ContentType::checked_for_temporal_macros);
   REQUIRE(return_value);
   CHECK(return_value->first.to_bitmask()
-        == static_cast<int>(HashSourceCode::found_time));
+        == static_cast<int>(SourceCodeScan::found_time));
   CHECK(return_value->second == Hash().hash("something else").digest());
   CHECK(inode_cache.get_hits() == 2);
   CHECK(inode_cache.get_misses() == 1);
@@ -197,23 +201,23 @@ TEST_CASE("Test content type")
   CHECK(inode_cache.put("a",
                         InodeCache::ContentType::raw,
                         binary_digest,
-                        HashSourceCodeResult(HashSourceCode::found_date)));
+                        SourceCodeScanResult(SourceCodeScan::found_date)));
   CHECK(inode_cache.put("a",
                         InodeCache::ContentType::checked_for_temporal_macros,
                         code_digest,
-                        HashSourceCodeResult(HashSourceCode::found_time)));
+                        SourceCodeScanResult(SourceCodeScan::found_time)));
 
   auto return_value = inode_cache.get("a", InodeCache::ContentType::raw);
   REQUIRE(return_value);
   CHECK(return_value->first.to_bitmask()
-        == static_cast<int>(HashSourceCode::found_date));
+        == static_cast<int>(SourceCodeScan::found_date));
   CHECK(return_value->second == binary_digest);
 
   return_value =
     inode_cache.get("a", InodeCache::ContentType::checked_for_temporal_macros);
   REQUIRE(return_value);
   CHECK(return_value->first.to_bitmask()
-        == static_cast<int>(HashSourceCode::found_time));
+        == static_cast<int>(SourceCodeScan::found_time));
   CHECK(return_value->second == code_digest);
 }
 
