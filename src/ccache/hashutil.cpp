@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -168,6 +168,17 @@ check_for_temporal_macros_avx2(std::string_view str)
 #endif
 
 HashSourceCodeResult
+check_for_source_code_patterns(std::string_view str)
+{
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    return check_for_temporal_macros_avx2(str);
+  }
+#endif
+  return check_for_temporal_macros_bmh(str);
+}
+
+HashSourceCodeResult
 do_hash_file(const Context& ctx,
              Hash::Digest& digest,
              const fs::path& path,
@@ -197,7 +208,7 @@ do_hash_file(const Context& ctx,
 
   HashSourceCodeResult result;
   if (check_temporal_macros) {
-    result.insert(check_for_temporal_macros(util::to_string_view(*data)));
+    result.insert(check_for_source_code_patterns(util::to_string_view(*data)));
   }
 
   Hash hash;
@@ -213,14 +224,17 @@ do_hash_file(const Context& ctx,
 
 } // namespace
 
-HashSourceCodeResult
-check_for_temporal_macros(std::string_view str)
-{
 #ifdef HAVE_AVX2
-  if (util::cpu_supports_avx2()) {
-    return check_for_temporal_macros_avx2(str);
-  }
+HashSourceCodeResult
+check_for_source_code_patterns_avx2(std::string_view str)
+{
+  return check_for_temporal_macros_avx2(str);
+}
 #endif
+
+HashSourceCodeResult
+check_for_source_code_patterns_scalar(std::string_view str)
+{
   return check_for_temporal_macros_bmh(str);
 }
 

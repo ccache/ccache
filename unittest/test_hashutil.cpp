@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,6 +20,7 @@
 
 #include <ccache/hash.hpp>
 #include <ccache/hashutil.hpp>
+#include <ccache/util/cpu.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
 
@@ -40,6 +41,141 @@ hco(Hash& hash, const std::string& command, const std::string& compiler)
   chmod("command.sh", 0555);
   return hash_command_output(hash, "./command.sh", compiler);
 #endif
+}
+
+using SourceCodePatternChecker = HashSourceCodeResult (*)(std::string_view);
+
+static void
+check_temporal_macros(SourceCodePatternChecker check)
+{
+  const std::string_view time_start =
+    "__TIME__\n"
+    "int a;\n";
+  const std::string_view time_middle =
+    "#define a __TIME__\n"
+    "int a;\n";
+  const std::string_view time_end = "#define a __TIME__";
+
+  const std::string_view date_start =
+    "__DATE__\n"
+    "int ab;\n";
+  const std::string_view date_middle =
+    "#define ab __DATE__\n"
+    "int ab;\n";
+  const std::string_view date_end = "#define ab __DATE__";
+
+  const std::string_view timestamp_start =
+    "__TIMESTAMP__\n"
+    "int c;\n";
+  const std::string_view timestamp_middle =
+    "#define c __TIMESTAMP__\n"
+    "int c;\n";
+  const std::string_view timestamp_end = "#define c __TIMESTAMP__";
+
+  const std::string_view no_temporal =
+    "#define ab a__DATE__\n"
+    "#define ab  __DATE__a\n"
+    "#define ab A__DATE__\n"
+    "#define ab  __DATE__A\n"
+    "#define ab 0__DATE__\n"
+    "#define ab  __DATE__0\n"
+    "#define ab _ _DATE__\n"
+    "#define ab _ _DATE__\n"
+    "#define ab __ DATE__\n"
+    "#define ab __D ATE__\n"
+    "#define ab __DA TE__\n"
+    "#define ab __DAT E__\n"
+    "#define ab __DATE __\n"
+    "#define ab __DATE_ _\n"
+    "#define ab _ _TIME__\n"
+    "#define ab __ TIME__\n"
+    "#define ab __T IME__\n"
+    "#define ab __TI ME__\n"
+    "#define ab __TIM E__\n"
+    "#define ab __TIME __\n"
+    "#define ab __TIME_ _\n";
+
+  const std::string_view temporal_at_avx_boundary =
+    "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
+    "__DATE__";
+
+  const std::string_view no_temporal_at_avx_boundary =
+    "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
+    "a__DATE__";
+
+  CHECK(check(time_start).contains(HashSourceCode::found_time));
+  CHECK(check(time_start.substr(1)).empty());
+
+  CHECK(check(time_middle.substr(0)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(1)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(2)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(3)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(4)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(5)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(6)).contains(HashSourceCode::found_time));
+  CHECK(check(time_middle.substr(7)).contains(HashSourceCode::found_time));
+
+  CHECK(check(time_end).contains(HashSourceCode::found_time));
+  CHECK(check(time_end.substr(time_end.length() - 8))
+          .contains(HashSourceCode::found_time));
+  CHECK(check(time_end.substr(time_end.length() - 7)).empty());
+
+  CHECK(check(date_start).contains(HashSourceCode::found_date));
+  CHECK(check(date_start.substr(1)).empty());
+
+  CHECK(check(date_middle.substr(0)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(1)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(2)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(3)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(4)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(5)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(6)).contains(HashSourceCode::found_date));
+  CHECK(check(date_middle.substr(7)).contains(HashSourceCode::found_date));
+
+  CHECK(check(date_end).contains(HashSourceCode::found_date));
+  CHECK(check(date_end.substr(date_end.length() - 8))
+          .contains(HashSourceCode::found_date));
+  CHECK(check(date_end.substr(date_end.length() - 7)).empty());
+
+  CHECK(check(timestamp_start).contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_start.substr(1)).empty());
+
+  CHECK(check(timestamp_middle).contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(1))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(2))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(3))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(4))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(5))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(6))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_middle.substr(7))
+          .contains(HashSourceCode::found_timestamp));
+
+  CHECK(check(timestamp_end).contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_end.substr(timestamp_end.length() - 13))
+          .contains(HashSourceCode::found_timestamp));
+  CHECK(check(timestamp_end.substr(timestamp_end.length() - 12)).empty());
+
+  CHECK(check(no_temporal.substr(0)).empty());
+  CHECK(check(no_temporal.substr(1)).empty());
+  CHECK(check(no_temporal.substr(2)).empty());
+  CHECK(check(no_temporal.substr(3)).empty());
+  CHECK(check(no_temporal.substr(4)).empty());
+  CHECK(check(no_temporal.substr(5)).empty());
+  CHECK(check(no_temporal.substr(6)).empty());
+  CHECK(check(no_temporal.substr(7)).empty());
+
+  for (size_t i = 0; i < temporal_at_avx_boundary.size() - 8; ++i) {
+    CHECK(!check(temporal_at_avx_boundary.substr(i)).empty());
+  }
+  for (size_t i = 0; i < no_temporal_at_avx_boundary.size() - 8; ++i) {
+    CHECK(check(no_temporal_at_avx_boundary.substr(i)).empty());
+  }
 }
 
 TEST_SUITE_BEGIN("hashutil");
@@ -148,136 +284,19 @@ TEST_CASE("check_for_temporal_macros")
 {
   TestContext test_context;
 
-  const std::string_view time_start =
-    "__TIME__\n"
-    "int a;\n";
-  const std::string_view time_middle =
-    "#define a __TIME__\n"
-    "int a;\n";
-  const std::string_view time_end = "#define a __TIME__";
-
-  const std::string_view date_start =
-    "__DATE__\n"
-    "int ab;\n";
-  const std::string_view date_middle =
-    "#define ab __DATE__\n"
-    "int ab;\n";
-  const std::string_view date_end = "#define ab __DATE__";
-
-  const std::string_view timestamp_start =
-    "__TIMESTAMP__\n"
-    "int c;\n";
-  const std::string_view timestamp_middle =
-    "#define c __TIMESTAMP__\n"
-    "int c;\n";
-  const std::string_view timestamp_end = "#define c __TIMESTAMP__";
-
-  const std::string_view no_temporal =
-    "#define ab a__DATE__\n"
-    "#define ab  __DATE__a\n"
-    "#define ab A__DATE__\n"
-    "#define ab  __DATE__A\n"
-    "#define ab 0__DATE__\n"
-    "#define ab  __DATE__0\n"
-    "#define ab _ _DATE__\n"
-    "#define ab _ _DATE__\n"
-    "#define ab __ DATE__\n"
-    "#define ab __D ATE__\n"
-    "#define ab __DA TE__\n"
-    "#define ab __DAT E__\n"
-    "#define ab __DATE __\n"
-    "#define ab __DATE_ _\n"
-    "#define ab _ _TIME__\n"
-    "#define ab __ TIME__\n"
-    "#define ab __T IME__\n"
-    "#define ab __TI ME__\n"
-    "#define ab __TIM E__\n"
-    "#define ab __TIME __\n"
-    "#define ab __TIME_ _\n";
-
-  const std::string_view temporal_at_avx_boundary =
-    "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
-    "__DATE__";
-
-  const std::string_view no_temporal_at_avx_boundary =
-    "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
-    "a__DATE__";
-
-  auto check = check_for_temporal_macros;
-
-  CHECK(check(time_start).contains(HashSourceCode::found_time));
-  CHECK(check(time_start.substr(1)).empty());
-
-  CHECK(check(time_middle.substr(0)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(1)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(2)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(3)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(4)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(5)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(6)).contains(HashSourceCode::found_time));
-  CHECK(check(time_middle.substr(7)).contains(HashSourceCode::found_time));
-
-  CHECK(check(time_end).contains(HashSourceCode::found_time));
-  CHECK(check(time_end.substr(time_end.length() - 8))
-          .contains(HashSourceCode::found_time));
-  CHECK(check(time_end.substr(time_end.length() - 7)).empty());
-
-  CHECK(check(date_start).contains(HashSourceCode::found_date));
-  CHECK(check(date_start.substr(1)).empty());
-
-  CHECK(check(date_middle.substr(0)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(1)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(2)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(3)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(4)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(5)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(6)).contains(HashSourceCode::found_date));
-  CHECK(check(date_middle.substr(7)).contains(HashSourceCode::found_date));
-
-  CHECK(check(date_end).contains(HashSourceCode::found_date));
-  CHECK(check(date_end.substr(date_end.length() - 8))
-          .contains(HashSourceCode::found_date));
-  CHECK(check(date_end.substr(date_end.length() - 7)).empty());
-
-  CHECK(check(timestamp_start).contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_start.substr(1)).empty());
-
-  CHECK(check(timestamp_middle).contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(1))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(2))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(3))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(4))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(5))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(6))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_middle.substr(7))
-          .contains(HashSourceCode::found_timestamp));
-
-  CHECK(check(timestamp_end).contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_end.substr(timestamp_end.length() - 13))
-          .contains(HashSourceCode::found_timestamp));
-  CHECK(check(timestamp_end.substr(timestamp_end.length() - 12)).empty());
-
-  CHECK(check(no_temporal.substr(0)).empty());
-  CHECK(check(no_temporal.substr(1)).empty());
-  CHECK(check(no_temporal.substr(2)).empty());
-  CHECK(check(no_temporal.substr(3)).empty());
-  CHECK(check(no_temporal.substr(4)).empty());
-  CHECK(check(no_temporal.substr(5)).empty());
-  CHECK(check(no_temporal.substr(6)).empty());
-  CHECK(check(no_temporal.substr(7)).empty());
-
-  for (size_t i = 0; i < temporal_at_avx_boundary.size() - 8; ++i) {
-    CHECK(!check(temporal_at_avx_boundary.substr(i)).empty());
+  SUBCASE("scalar")
+  {
+    check_temporal_macros(check_for_source_code_patterns_scalar);
   }
-  for (size_t i = 0; i < no_temporal_at_avx_boundary.size() - 8; ++i) {
-    CHECK(check(no_temporal_at_avx_boundary.substr(i)).empty());
+
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    SUBCASE("avx2")
+    {
+      check_temporal_macros(check_for_source_code_patterns_avx2);
+    }
   }
+#endif
 }
 
 TEST_SUITE_END();

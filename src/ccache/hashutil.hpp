@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -39,8 +39,14 @@ enum class HashSourceCode {
 
 using HashSourceCodeResult = util::BitSet<HashSourceCode>;
 
-// Search for tokens (described in HashSourceCode) in `str`.
-HashSourceCodeResult check_for_temporal_macros(std::string_view str);
+#ifdef HAVE_AVX2
+// Search for source code patterns in `str`, AVX2 version.
+HashSourceCodeResult check_for_source_code_patterns_avx2(std::string_view str);
+#endif
+
+// Search for source code patterns in `str`, non-SIMD version.
+HashSourceCodeResult
+check_for_source_code_patterns_scalar(std::string_view str);
 
 // Hash a source code file using the inode cache if enabled.
 HashSourceCodeResult hash_source_code_file(const Context& ctx,
