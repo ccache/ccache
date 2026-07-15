@@ -69,6 +69,7 @@ include(EnableCcache)
 
 option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
 option(HTTP_STORAGE_BACKEND "Enable HTTP remote storage" ON)
+option(ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 option(ENABLE_TESTING "Enable tests" ON)
 
 include(InstallDirs)
@@ -149,6 +150,13 @@ if(ENABLE_TESTING)
     COMMAND ${check_command}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DEPENDS ccache unittest)
+endif()
+
+#
+# Benchmarks
+#
+if(ENABLE_BENCHMARKS)
+  add_subdirectory(benchmark)
 endif()
 
 #
