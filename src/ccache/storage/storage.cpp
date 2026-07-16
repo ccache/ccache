@@ -17,7 +17,6 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "storage.hpp"
-
 #include <ccache/config.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/cacheentry.hpp>
@@ -47,7 +46,7 @@
 #include <ccache/util/xxh3_64.hpp>
 
 #include <cxxurl/url.hpp>
-
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
