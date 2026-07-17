@@ -58,6 +58,9 @@ AtomicFile::~AtomicFile()
 void
 AtomicFile::write(std::string_view data)
 {
+  if (data.empty()) {
+    return;
+  }
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));
@@ -67,6 +70,9 @@ AtomicFile::write(std::string_view data)
 void
 AtomicFile::write(std::span<const uint8_t> data)
 {
+  if (data.empty()) {
+    return;
+  }
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));
