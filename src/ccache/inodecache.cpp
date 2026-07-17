@@ -456,7 +456,7 @@ InodeCache::initialize()
   }
 
   if (m_fd) {
-    auto now = std::chrono::time_point<std::chrono::steady_clock>();
+    auto now = std::chrono::steady_clock::now();
     if (now > m_last_fs_space_check + k_fs_space_check_valid_duration) {
       m_last_fs_space_check = now;
 
