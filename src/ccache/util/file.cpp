@@ -257,7 +257,7 @@ fallocate(int fd, size_t new_size)
     lseek(fd, saved_pos, SEEK_SET);
     return {};
   }
-  long bytes_to_write = new_size - old_size;
+  size_t bytes_to_write = new_size - static_cast<size_t>(old_size);
 
   void* buf = calloc(bytes_to_write, 1);
   if (!buf) {
