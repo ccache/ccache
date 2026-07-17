@@ -354,11 +354,11 @@ execute(Context& ctx,
     ctx.compiler_pid = 0;
   }
 
-  if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
+  if (WIFSIGNALED(status)) {
     return -1;
   }
 
-  return WEXITSTATUS(status);
+  return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }
 
 void
