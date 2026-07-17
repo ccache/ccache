@@ -426,7 +426,7 @@ hash_source_code_file(Context& ctx, const fs::path& path, size_t size_hint)
   // expansions.
 
   Hash hash;
-  hash.hash(util::format_legacy_digest(digest));
+  hash.hash(util::format_base16(digest));
 
   if (result.contains(SourceCodeScan::found_date)) {
     hash.hash_delimiter("date");
@@ -482,7 +482,7 @@ hash_binary_file(const Context& ctx, Hash& hash, const fs::path& path)
 {
   const auto result = hash_binary_file(ctx, path);
   if (result) {
-    hash.hash(util::format_legacy_digest(*result));
+    hash.hash(util::format_base16(*result));
   }
   return result.has_value();
 }

@@ -141,40 +141,6 @@ format_base16(std::span<const uint8_t> data)
 }
 
 std::string
-format_base32hex(std::span<const uint8_t> data)
-{
-  static const char digits[] = "0123456789abcdefghijklmnopqrstuv";
-  std::string result;
-  result.reserve(data.size() * 8 / 5 + 1);
-  uint8_t i = 0;
-  uint16_t bits = 0;
-  for (uint8_t b : data) {
-    bits <<= 8;
-    bits |= b;
-    i += 8;
-    while (i >= 5) {
-      result += digits[(bits >> (i - 5)) & 0x1f];
-      i -= 5;
-    }
-  }
-  if (i > 0) {
-    DEBUG_ASSERT(i < 5);
-    result += digits[(bits << (5 - i)) & 0x1f];
-  }
-  return result;
-}
-
-std::string
-format_legacy_digest(std::span<const uint8_t> data)
-{
-  const size_t base16_bytes = 2;
-  ASSERT(data.size() >= base16_bytes);
-  return format_base16({data.data(), base16_bytes})
-         + format_base32hex(
-           {data.data() + base16_bytes, data.size() - base16_bytes});
-}
-
-std::string
 format_duration(std::chrono::milliseconds ms)
 {
   const auto ms_count = ms.count();

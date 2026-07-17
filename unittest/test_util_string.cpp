@@ -242,19 +242,6 @@ TEST_CASE("util::parse_base16")
   }
 }
 
-TEST_CASE("util::format_base32hex")
-{
-  // Test vectors (without padding) from RFC 4648.
-  const uint8_t input[] = {'f', 'o', 'o', 'b', 'a', 'r'};
-  CHECK(util::format_base32hex({input, 0}) == "");
-  CHECK(util::format_base32hex({input, 1}) == "co");
-  CHECK(util::format_base32hex({input, 2}) == "cpng");
-  CHECK(util::format_base32hex({input, 3}) == "cpnmu");
-  CHECK(util::format_base32hex({input, 4}) == "cpnmuog");
-  CHECK(util::format_base32hex({input, 5}) == "cpnmuoj1");
-  CHECK(util::format_base32hex({input, 6}) == "cpnmuoj1e8");
-}
-
 TEST_CASE("util::format_human_readable_diff")
 {
   using SUPT = util::SizeUnitPrefixType;

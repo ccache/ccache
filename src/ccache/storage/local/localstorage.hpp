@@ -72,11 +72,10 @@ public:
                                  core::CacheEntryType type);
 
   void put(const Hash::Digest& key,
-           core::CacheEntryType type,
            std::span<const uint8_t> value,
            Overwrite overwrite);
 
-  void remove(const Hash::Digest& key, core::CacheEntryType type);
+  void remove(const Hash::Digest& key);
 
   static std::filesystem::path
   get_raw_file_path(const std::filesystem::path& result_path,
@@ -152,8 +151,7 @@ private:
     uint8_t level;
   };
 
-  LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key,
-                                           core::CacheEntryType type) const;
+  LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key) const;
 
   std::filesystem::path get_subdir(uint8_t l1_index) const;
   std::filesystem::path get_subdir(uint8_t l1_index, uint8_t l2_index) const;

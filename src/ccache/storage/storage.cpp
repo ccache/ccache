@@ -451,28 +451,26 @@ Storage::get(const Hash::Hash::Digest& key,
 
   get_from_remote_storage(key, type, [&](util::Bytes&& data) {
     if (!m_config.remote_only()) {
-      local.put(key, type, data, Overwrite::no);
+      local.put(key, data, Overwrite::no);
     }
     return entry_receiver(std::move(data));
   });
 }
 
 void
-Storage::put(const Hash::Digest& key,
-             const core::CacheEntryType type,
-             std::span<const uint8_t> value)
+Storage::put(const Hash::Digest& key, std::span<const uint8_t> value)
 {
   if (!m_config.remote_only()) {
-    local.put(key, type, value, Overwrite::yes);
+    local.put(key, value, Overwrite::yes);
   }
   put_in_remote_storage(key, value, Overwrite::yes);
 }
 
 void
-Storage::remove(const Hash::Digest& key, const core::CacheEntryType type)
+Storage::remove(const Hash::Digest& key)
 {
   if (!m_config.remote_only()) {
-    local.remove(key, type);
+    local.remove(key);
   }
   remove_from_remote_storage(key);
 }

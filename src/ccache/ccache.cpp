@@ -464,7 +464,7 @@ remember_include_file(Context& ctx,
     }
     file_digest = *ret;
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
-    cpp_hash.hash(util::format_legacy_digest(file_digest));
+    cpp_hash.hash(util::format_base16(file_digest));
   }
 
   if (ctx.config.direct_mode()) {
@@ -478,7 +478,7 @@ remember_include_file(Context& ctx,
 
     if (depend_mode_hash) {
       depend_mode_hash->hash_delimiter("include");
-      depend_mode_hash->hash(util::format_legacy_digest(file_digest));
+      depend_mode_hash->hash(util::format_base16(file_digest));
     }
   }
 
@@ -941,7 +941,6 @@ update_manifest(Context& ctx,
     LOG("Added result key to manifest {}", util::format_base16(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.put(manifest_key,
-                    core::CacheEntryType::manifest,
                     core::CacheEntry::serialize(header, ctx.manifest));
   } else {
     LOG("Did not add result key to manifest {}",
@@ -1095,7 +1094,7 @@ write_result(Context& ctx,
     }
   }
 
-  ctx.storage.put(result_key, core::CacheEntryType::result, cache_entry_data);
+  ctx.storage.put(result_key, cache_entry_data);
 
   return true;
 }
@@ -2370,7 +2369,7 @@ get_manifest_key(Context& ctx, Hash& hash)
     // Direct mode was disabled by hash_source_code_file.
     return {};
   }
-  hash.hash(util::format_legacy_digest(*input_file_digest));
+  hash.hash(util::format_base16(*input_file_digest));
   return hash.digest();
 }
 
@@ -2496,7 +2495,6 @@ get_result_key_from_manifest(Context& ctx, const Hash::Digest& manifest_key)
         util::format_base16(manifest_key));
     core::CacheEntry::Header header(ctx.config, core::CacheEntryType::manifest);
     ctx.storage.local.put(manifest_key,
-                          core::CacheEntryType::manifest,
                           core::CacheEntry::serialize(header, ctx.manifest),
                           storage::Overwrite::yes);
   }
@@ -3137,7 +3135,7 @@ do_cache_compilation(Context& ctx)
       LOG("Hash from manifest doesn't match preprocessor output");
       LOG("Likely reason: different CCACHE_BASEDIRs used");
       LOG("Removing manifest as a safety measure");
-      ctx.storage.remove(*manifest_key, core::CacheEntryType::manifest);
+      ctx.storage.remove(*manifest_key);
 
       put_result_in_manifest = true;
     }

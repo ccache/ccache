@@ -486,7 +486,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 {
   std::optional<util::Bytes> return_value;
 
-  const auto cache_file = look_up_cache_file(key, type);
+  const auto cache_file = look_up_cache_file(key);
   if (cache_file.dir_entry.is_regular_file()) {
     const auto value = util::read_file<util::Bytes>(cache_file.path);
     if (value) {
@@ -516,11 +516,10 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 
 void
 LocalStorage::put(const Hash::Digest& key,
-                  const core::CacheEntryType type,
                   std::span<const uint8_t> value,
                   Overwrite overwrite)
 {
-  const auto cache_file = look_up_cache_file(key, type);
+  const auto cache_file = look_up_cache_file(key);
   if (overwrite == Overwrite::no && cache_file.dir_entry.exists()) {
     LOG("Not storing {} in local storage since it already exists",
         cache_file.path);
@@ -581,9 +580,9 @@ LocalStorage::put(const Hash::Digest& key,
 }
 
 void
-LocalStorage::remove(const Hash::Digest& key, const core::CacheEntryType type)
+LocalStorage::remove(const Hash::Digest& key)
 {
-  const auto cache_file = look_up_cache_file(key, type);
+  const auto cache_file = look_up_cache_file(key);
   if (!cache_file.dir_entry) {
     LOG("No {} to remove from local storage", util::format_base16(key));
     return;
@@ -617,8 +616,7 @@ fs::path
 LocalStorage::get_raw_file_path(const Hash::Digest& result_key,
                                 uint8_t file_number) const
 {
-  const auto cache_file =
-    look_up_cache_file(result_key, core::CacheEntryType::result);
+  const auto cache_file = look_up_cache_file(result_key);
   return get_raw_file_path(cache_file.path, file_number);
 }
 
@@ -633,7 +631,7 @@ LocalStorage::put_raw_files(
       FMT("Too many raw files: {} > {}", raw_files.size(), k_max_raw_files));
   }
 
-  const auto cache_file = look_up_cache_file(key, core::CacheEntryType::result);
+  const auto cache_file = look_up_cache_file(key);
   core::ensure_dir_exists(cache_file.path.parent_path());
 
   int64_t files_change = 0;
@@ -1061,10 +1059,8 @@ LocalStorage::get_subdir(uint8_t l1_index, uint8_t l2_index) const
 }
 
 LocalStorage::LookUpCacheFileResult
-LocalStorage::look_up_cache_file(const Hash::Digest& key,
-                                 const core::CacheEntryType type) const
+LocalStorage::look_up_cache_file(const Hash::Digest& key) const
 {
-  // Try new format first: base16 without suffix
   const auto key_string = util::format_base16(key);
 
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
@@ -1073,27 +1069,6 @@ LocalStorage::look_up_cache_file(const Hash::Digest& key,
     DirEntry dir_entry(path);
     if (dir_entry.is_regular_file()) {
       return {path, dir_entry, level};
-    }
-  }
-
-  // Try old format with R/M suffix
-  const auto old_key_string = util::format_legacy_digest(key);
-  const std::string old_suffix =
-    type == core::CacheEntryType::manifest ? "M" : "R";
-  const auto old_key_string_with_suffix = old_key_string + old_suffix;
-  for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
-       ++level) {
-    const auto path = get_path_in_cache(level, old_key_string_with_suffix);
-    DirEntry dir_entry(path);
-    if (dir_entry.is_regular_file()) {
-      const auto new_path = get_path_in_cache(level, key_string);
-      LOG("Migrating {} to {}", path, new_path);
-      if (fs::rename(path, new_path)) {
-        return {new_path, DirEntry(new_path), level};
-      } else {
-        LOG("Failed to rename {} to {}", path, new_path);
-        return {path, dir_entry, level};
-      }
     }
   }
 
