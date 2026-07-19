@@ -23,45 +23,46 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 
 class Config;
 class Context;
 
-enum class HashSourceCode {
-  ok = 0,
-  error = 1U << 0,
-  found_date = 1U << 1,
-  found_time = 1U << 2,
-  found_timestamp = 1U << 3,
+// The result of scanning source code.
+//
+// Note: Probably need to bump Inode cache version if changing values or
+// semantics of this enum.
+enum class SourceCodeScan {
+  none = 0,
+  found_date = 1U << 0,
+  found_time = 1U << 1,
+  found_timestamp = 1U << 2,
+  found_embed = 1U << 3,
+  found_incbin = 1U << 4,
 };
 
-using HashSourceCodeResult = util::BitSet<HashSourceCode>;
+using SourceCodeScanResult = util::BitSet<SourceCodeScan>;
 
 #ifdef HAVE_AVX2
 // Search for source code patterns in `str`, AVX2 version.
-HashSourceCodeResult check_for_source_code_patterns_avx2(std::string_view str);
+SourceCodeScanResult check_for_source_code_patterns_avx2(std::string_view str);
 #endif
 
 // Search for source code patterns in `str`, non-SIMD version.
-HashSourceCodeResult
+SourceCodeScanResult
 check_for_source_code_patterns_scalar(std::string_view str);
 
 // Hash a source code file using the inode cache if enabled.
-HashSourceCodeResult hash_source_code_file(const Context& ctx,
-                                           Hash::Digest& digest,
-                                           const std::filesystem::path& path,
-                                           size_t size_hint = 0);
+std::optional<Hash::Digest> hash_source_code_file(
+  Context& ctx, const std::filesystem::path& path, size_t size_hint = 0);
 
 // Hash a binary file (using the inode cache if enabled) and put its digest in
 // `digest`
-//
-// Returns true on success, otherwise false.
-bool hash_binary_file(const Context& ctx,
-                      Hash::Digest& digest,
-                      const std::filesystem::path& path,
-                      size_t size_hint = 0);
+std::optional<Hash::Digest> hash_binary_file(const Context& ctx,
+                                             const std::filesystem::path& path,
+                                             size_t size_hint = 0);
 
 // Hash a binary file (using the inode cache if enabled) and hash the digest to
 // `hash`.

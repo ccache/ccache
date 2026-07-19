@@ -168,7 +168,7 @@ Manifest::read(std::span<const uint8_t> data)
 }
 
 std::optional<Hash::Digest>
-Manifest::look_up_result_digest(const Context& ctx) const
+Manifest::look_up_result_digest(Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
   std::unordered_map<std::string, Hash::Digest> hashed_files;
@@ -371,7 +371,7 @@ Manifest::get_file_info_index(
 
 bool
 Manifest::result_matches(
-  const Context& ctx,
+  Context& ctx,
   const ResultEntry& result,
   std::unordered_map<std::string, FileStats>& stated_files,
   std::unordered_map<std::string, Hash::Digest>& hashed_files) const
@@ -433,18 +433,17 @@ Manifest::result_matches(
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      Hash::Digest actual_digest;
-      auto ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
-      if (ret.contains(HashSourceCode::error)) {
+      auto actual_digest = hash_source_code_file(ctx, path, fs.size);
+      if (!actual_digest) {
         LOG("Failed hashing {}", path);
         return false;
       }
-      if (ret.contains(HashSourceCode::found_time)) {
-        // hash_source_code_file has already logged.
+      if (!ctx.config.direct_mode()) {
+        // Direct mode was disabled by hash_source_code_file.
         return false;
       }
 
-      hashed_files_iter = hashed_files.emplace(path, actual_digest).first;
+      hashed_files_iter = hashed_files.emplace(path, *actual_digest).first;
     }
 
     if (hashed_files_iter->second != fi.digest) {

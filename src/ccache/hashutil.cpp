@@ -22,7 +22,6 @@
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/execute.hpp>
-#include <ccache/macroskip.hpp>
 #include <ccache/util/args.hpp>
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/direntry.hpp>
@@ -44,30 +43,68 @@
 #  include <immintrin.h>
 #endif
 
+#include <cctype>
+#include <cstring>
+
 namespace fs = util::filesystem;
 
 namespace {
 
+const char*
+skip_horizontal_whitespace(const char* p, const char* end)
+{
+  while (p < end && (*p == ' ' || *p == '\t')) {
+    ++p;
+  }
+  return p;
+}
+
+const char*
+skip_line_continuation(const char* p, const char* end)
+{
+  if (p < end && end - p >= 2 && *p == '\\' && (p[1] == '\n' || p[1] == '\r')) {
+    p += 2;
+    if (p < end && p[-1] == '\r' && *p == '\n') {
+      ++p;
+    }
+  }
+  return p;
+}
+
+const char*
+skip_whitespace_and_continuations(const char* p, const char* end)
+{
+  while (p < end) {
+    const char* previous = p;
+    p = skip_horizontal_whitespace(p, end);
+    p = skip_line_continuation(p, end);
+    if (p == previous) {
+      break;
+    }
+  }
+  return p;
+}
+
 // Pre-condition: str[pos - 1] == '_'
-HashSourceCode
-check_for_temporal_macros_helper(std::string_view str, size_t pos)
+SourceCodeScan
+check_for_temporal_macros(std::string_view str, size_t pos)
 {
   if (pos + 7 > str.length()) {
-    return HashSourceCode::ok;
+    return SourceCodeScan::none;
   }
 
-  HashSourceCode found = HashSourceCode::ok;
+  SourceCodeScan found = SourceCodeScan::none;
   int macro_len = 7;
   if (memcmp(&str[pos], "_DATE__", 7) == 0) {
-    found = HashSourceCode::found_date;
+    found = SourceCodeScan::found_date;
   } else if (memcmp(&str[pos], "_TIME__", 7) == 0) {
-    found = HashSourceCode::found_time;
+    found = SourceCodeScan::found_time;
   } else if (pos + 12 <= str.length()
              && memcmp(&str[pos], "_TIMESTAMP__", 12) == 0) {
-    found = HashSourceCode::found_timestamp;
+    found = SourceCodeScan::found_timestamp;
     macro_len = 12;
   } else {
-    return HashSourceCode::ok;
+    return SourceCodeScan::none;
   }
 
   // Check char before and after macro to verify that the found macro isn't part
@@ -79,116 +116,107 @@ check_for_temporal_macros_helper(std::string_view str, size_t pos)
     return found;
   }
 
-  return HashSourceCode::ok;
+  return SourceCodeScan::none;
 }
 
-HashSourceCodeResult
-check_for_temporal_macros_bmh(std::string_view str, size_t start = 0)
+SourceCodeScan
+check_for_embed_directive(std::string_view str, size_t pos)
 {
-  HashSourceCodeResult result;
+  static constexpr char embed_data[] = {'e', 'm', 'b', 'e', 'd'};
+  static constexpr size_t embed_size = std::size(embed_data);
 
-  // We're using the Boyer-Moore-Horspool algorithm, which searches starting
-  // from the *end* of the needle. Our needles are 8 characters long, so i
-  // starts at 7.
-  size_t i = start + 7;
-
-  while (i < str.length()) {
-    // Check whether the substring ending at str[i] has the form "_....E..". On
-    // the assumption that 'E' is less common in source than '_', we check
-    // str[i-2] first.
-    if (str[i - 2] == 'E' && str[i - 7] == '_') {
-      result.insert(check_for_temporal_macros_helper(str, i - 6));
-    }
-
-    // macro_skip tells us how far we can skip forward upon seeing str[i] at
-    // the end of a substring.
-    i += macro_skip[(uint8_t)str[i]];
+  if (str[pos] != '#') {
+    return SourceCodeScan::none;
   }
 
-  return result;
-}
+  const char* const begin = str.data();
+  const char* const end = begin + str.size();
+  const char* p = begin + pos + 1;
+  p = skip_whitespace_and_continuations(p, end);
 
-#ifdef HAVE_AVX2
-// The following algorithm, which uses AVX2 instructions to find __DATE__,
-// __TIME__ and __TIMESTAMP__, is heavily inspired by
-// <http://0x80.pl/articles/simd-strfind.html>.
-#  ifndef _MSC_VER
-__attribute__((target("avx2")))
-#  endif
-HashSourceCodeResult
-check_for_temporal_macros_avx2(std::string_view str)
-{
-  HashSourceCodeResult result;
-
-  // Set all 32 bytes in first and last to '_' and 'E' respectively.
-  const __m256i first = _mm256_set1_epi8('_');
-  const __m256i last = _mm256_set1_epi8('E');
-
-  size_t pos = 0;
-  for (; pos + 5 + 32 <= str.length(); pos += 32) {
-    // Load 32 bytes from the current position in the input string, with
-    // block_last being offset 5 bytes (i.e. the offset of 'E' in all three
-    // macros).
-    const __m256i block_first =
-      _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos]));
-    const __m256i block_last =
-      _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos + 5]));
-
-    // For i in 0..31:
-    //   eq_X[i] = 0xFF if X[i] == block_X[i] else 0
-    const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
-    const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
-
-    // Set bit i in mask if byte i in both eq_first and eq_last has the most
-    // significant bit set.
-    uint32_t mask = _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
-
-    // A bit set in mask now indicates a possible location for a temporal macro.
-    while (mask != 0) {
-      // The start position + 1 (as we know the first char is _).
-#  ifndef _MSC_VER
-      const auto start = pos + __builtin_ctz(mask) + 1;
-#  else
-      unsigned long index;
-      _BitScanForward(&index, mask);
-      const auto start = pos + index + 1;
-#  endif
-
-      // Clear the least significant bit set.
-      mask = mask & (mask - 1);
-
-      result.insert(check_for_temporal_macros_helper(str, start));
-    }
+  if (static_cast<size_t>(end - p) < embed_size
+      || std::memcmp(p, embed_data, embed_size) != 0) {
+    return SourceCodeScan::none;
   }
 
-  result.insert(check_for_temporal_macros_bmh(str, pos));
+  const char* after_embed = p + embed_size;
+  if (after_embed < end
+      && (std::isalnum(static_cast<unsigned char>(*after_embed))
+          || *after_embed == '_')) {
+    return SourceCodeScan::none;
+  }
 
-  return result;
+  // The resource identifier may be a macro that expands to a quoted or angle
+  // bracket delimited filename, so it cannot be reliably parsed here.
+  return SourceCodeScan::found_embed;
 }
-#endif
 
-HashSourceCodeResult
+SourceCodeScan
+check_for_incbin_directive(std::string_view str, size_t pos)
+{
+  static constexpr char incbin_data[] = {'.', 'i', 'n', 'c', 'b', 'i', 'n'};
+  static constexpr size_t incbin_size = std::size(incbin_data);
+
+  if (pos + incbin_size > str.size()
+      || std::memcmp(&str[pos], incbin_data, incbin_size) != 0) {
+    return SourceCodeScan::none;
+  }
+
+  const char* const begin = str.data();
+  const char* const end = begin + str.size();
+  const char* p = begin + pos + incbin_size;
+  p = skip_horizontal_whitespace(p, end);
+
+  return p < end && (*p == '"' || (*p == '\\' && p + 1 < end && p[1] == '"'))
+           ? SourceCodeScan::found_incbin
+           : SourceCodeScan::none;
+}
+
+void
+check_for_source_code_patterns_scalar(std::string_view str,
+                                      size_t start,
+                                      SourceCodeScanResult& result)
+{
+  for (size_t i = start; i < str.size(); ++i) {
+    if (str[i] == '_') {
+      result.insert(check_for_temporal_macros(str, i + 1));
+    }
+    if (!result.contains(SourceCodeScan::found_embed) && str[i] == '#') {
+      result.insert(check_for_embed_directive(str, i));
+    }
+    if (!result.contains(SourceCodeScan::found_incbin) && str[i] == '.') {
+      result.insert(check_for_incbin_directive(str, i));
+    }
+  }
+}
+
+SourceCodeScanResult
 check_for_source_code_patterns(std::string_view str)
 {
 #ifdef HAVE_AVX2
   if (util::cpu_supports_avx2()) {
-    return check_for_temporal_macros_avx2(str);
+    return check_for_source_code_patterns_avx2(str);
   }
 #endif
-  return check_for_temporal_macros_bmh(str);
+
+  SourceCodeScanResult result;
+  check_for_source_code_patterns_scalar(str, 0, result);
+  return result;
 }
 
-HashSourceCodeResult
+std::optional<SourceCodeScanResult>
 do_hash_file(const Context& ctx,
              Hash::Digest& digest,
              const fs::path& path,
              size_t size_hint,
-             bool check_temporal_macros)
+             bool scan_source)
 {
 #ifdef INODE_CACHE_SUPPORTED
-  const InodeCache::ContentType content_type =
-    check_temporal_macros ? InodeCache::ContentType::checked_for_temporal_macros
-                          : InodeCache::ContentType::raw;
+  InodeCache::ContentType content_type =
+    scan_source
+      ? InodeCache::ContentType::checked_for_temporal_macros_and_directives
+      : InodeCache::ContentType::raw;
+
   if (ctx.config.inode_cache()) {
     const auto result = ctx.inode_cache.get(path, content_type);
     if (result) {
@@ -203,18 +231,18 @@ do_hash_file(const Context& ctx,
   const auto data = util::read_file<util::Bytes>(path, size_hint);
   if (!data) {
     LOG("Failed to read {}: {}", path, data.error());
-    return HashSourceCodeResult(HashSourceCode::error);
+    return std::nullopt;
   }
 
-  HashSourceCodeResult result;
-  if (check_temporal_macros) {
-    result.insert(check_for_source_code_patterns(util::to_string_view(*data)));
-  }
-
+  auto str = util::to_string_view(*data);
   Hash hash;
-  hash.hash(*data);
+  hash.hash(str);
   digest = hash.digest();
 
+  SourceCodeScanResult result;
+  if (scan_source) {
+    result = check_for_source_code_patterns(str);
+  }
 #ifdef INODE_CACHE_SUPPORTED
   ctx.inode_cache.put(path, content_type, digest, result);
 #endif
@@ -225,89 +253,210 @@ do_hash_file(const Context& ctx,
 } // namespace
 
 #ifdef HAVE_AVX2
-HashSourceCodeResult
+// The following is heavily inspired by
+// <http://0x80.pl/articles/simd-strfind.html>.
+#  ifndef _MSC_VER
+__attribute__((target("avx2")))
+#  endif
+SourceCodeScanResult
 check_for_source_code_patterns_avx2(std::string_view str)
 {
-  return check_for_temporal_macros_avx2(str);
+  SourceCodeScanResult result;
+
+  const __m256i underscore = _mm256_set1_epi8('_');
+  const __m256i temporal_last = _mm256_set1_epi8('E');
+  const __m256i hash_sign = _mm256_set1_epi8('#');
+  const __m256i period = _mm256_set1_epi8('.');
+  const __m256i incbin_last = _mm256_set1_epi8('n');
+
+  size_t pos = 0;
+  for (; pos + 32 <= str.length(); pos += 32) {
+    const __m256i block =
+      _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos]));
+
+    uint32_t temporal_mask = 0;
+    if (pos + 5 + 32 <= str.length()) {
+      const __m256i block_last =
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos + 5]));
+      temporal_mask = _mm256_movemask_epi8(
+        _mm256_and_si256(_mm256_cmpeq_epi8(underscore, block),
+                         _mm256_cmpeq_epi8(temporal_last, block_last)));
+    }
+
+    uint32_t embed_mask = 0;
+    if (!result.contains(SourceCodeScan::found_embed)) {
+      embed_mask = _mm256_movemask_epi8(_mm256_cmpeq_epi8(hash_sign, block));
+    }
+
+    uint32_t incbin_mask = 0;
+    if (!result.contains(SourceCodeScan::found_incbin)
+        && pos + 6 + 32 <= str.length()) {
+      const __m256i block_last =
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos + 6]));
+      incbin_mask = _mm256_movemask_epi8(
+        _mm256_and_si256(_mm256_cmpeq_epi8(period, block),
+                         _mm256_cmpeq_epi8(incbin_last, block_last)));
+    }
+
+    while (temporal_mask != 0) {
+#  ifndef _MSC_VER
+      const auto start = pos + __builtin_ctz(temporal_mask) + 1;
+#  else
+      unsigned long index;
+      _BitScanForward(&index, temporal_mask);
+      const auto start = pos + index + 1;
+#  endif
+      temporal_mask &= temporal_mask - 1;
+      result.insert(check_for_temporal_macros(str, start));
+    }
+
+    while (embed_mask != 0) {
+#  ifndef _MSC_VER
+      const auto start = pos + __builtin_ctz(embed_mask);
+#  else
+      unsigned long index;
+      _BitScanForward(&index, embed_mask);
+      const auto start = pos + index;
+#  endif
+      embed_mask &= embed_mask - 1;
+      result.insert(check_for_embed_directive(str, start));
+    }
+
+    while (incbin_mask != 0) {
+#  ifndef _MSC_VER
+      const auto start = pos + __builtin_ctz(incbin_mask);
+#  else
+      unsigned long index;
+      _BitScanForward(&index, incbin_mask);
+      const auto start = pos + index;
+#  endif
+      incbin_mask &= incbin_mask - 1;
+      result.insert(check_for_incbin_directive(str, start));
+    }
+  }
+
+  const size_t fallback_start = pos >= 32 ? pos - 32 : 0;
+  check_for_source_code_patterns_scalar(str, fallback_start, result);
+  return result;
 }
 #endif
 
-HashSourceCodeResult
+SourceCodeScanResult
 check_for_source_code_patterns_scalar(std::string_view str)
 {
-  return check_for_temporal_macros_bmh(str);
+  SourceCodeScanResult result;
+  check_for_source_code_patterns_scalar(str, 0, result);
+  return result;
 }
 
-HashSourceCodeResult
-hash_source_code_file(const Context& ctx,
-                      Hash::Digest& digest,
-                      const fs::path& path,
-                      size_t size_hint)
+std::optional<Hash::Digest>
+hash_source_code_file(Context& ctx, const fs::path& path, size_t size_hint)
 {
-  const bool check_temporal_macros =
-    !ctx.config.sloppiness().contains(core::Sloppy::time_macros);
-  auto result =
-    do_hash_file(ctx, digest, path, size_hint, check_temporal_macros);
+  Hash::Digest digest;
+  auto opt_result = do_hash_file(ctx, digest, path, size_hint, true);
+  if (!opt_result) {
+    return std::nullopt;
+  }
+  auto& result = *opt_result;
 
-  if (!check_temporal_macros || result.empty()
-      || result.contains(HashSourceCode::error)) {
-    return result;
+  if (result.contains(SourceCodeScan::found_embed)) {
+    LOG("Found #em{}bed in {}", "", path);
+  }
+  if (result.contains(SourceCodeScan::found_incbin)) {
+    std::string_view suffix;
+    if (ctx.config.sloppiness().contains(core::Sloppy::incbin)) {
+      result.erase(SourceCodeScan::found_incbin);
+      suffix = " (ignored)";
+    }
+    LOG("Found .inc{}bin in {}", "", path);
+  }
+  if (result.contains(SourceCodeScan::found_time)) {
+    std::string_view suffix;
+    if (ctx.config.sloppiness().contains(core::Sloppy::time_macros)) {
+      result.erase(SourceCodeScan::found_time);
+      suffix = " (ignored)";
+    }
+    LOG("Found __TI{}ME__ in {}{}", "", path, suffix);
+  }
+  if (result.contains(SourceCodeScan::found_date)) {
+    std::string_view suffix;
+    if (ctx.config.sloppiness().contains(core::Sloppy::time_macros)) {
+      result.erase(SourceCodeScan::found_date);
+      suffix = " (ignored)";
+    }
+    LOG("Found __DA{}TE__ in {}{}", "", path, suffix);
+  }
+  if (result.contains(SourceCodeScan::found_timestamp)) {
+    std::string_view suffix;
+    if (ctx.config.sloppiness().contains(core::Sloppy::time_macros)) {
+      result.erase(SourceCodeScan::found_timestamp);
+      suffix = " (ignored)";
+    }
+    LOG("Found __TIME{}STAMP__ in {}{}", "", path, suffix);
   }
 
-  if (result.contains(HashSourceCode::found_time)) {
-    // We don't know for sure that the program actually uses the __TIME__ macro,
-    // but we have to assume it anyway and hash the time stamp. However, that's
-    // not very useful since the chance that we get a cache hit later the same
+  if (result.contains(SourceCodeScan::found_time)
+      || result.contains(SourceCodeScan::found_embed)
+      || result.contains(SourceCodeScan::found_incbin)) {
+    LOG("Disabling direct mode");
+    ctx.config.set_direct_mode(false);
+    return digest;
+  }
+
+  const bool contains_temporal_macro =
+    result.contains(SourceCodeScan::found_time)
+    || result.contains(SourceCodeScan::found_date)
+    || result.contains(SourceCodeScan::found_timestamp);
+  if (!contains_temporal_macro) {
+    return digest;
+  }
+
+  if (result.contains(SourceCodeScan::found_time)) {
+    // We don't know for sure that the program actually uses the time macro, but
+    // we have to assume it anyway and hash the time stamp. However, that's not
+    // very useful since the chance that we get a cache hit later the same
     // second should be quite slim... So, just signal back to the caller that
-    // __TIME__ has been found so that the direct mode can be disabled.
-    LOG("Found __TIME__ in {}", path);
-    return result;
+    // the macro has been found so that the direct mode can be disabled.
+    return digest;
   }
 
-  // __DATE__ or __TIMESTAMP__ found. We now make sure that the digest changes
-  // if the (potential) expansion of those macros changes by computing a new
-  // digest comprising the file digest and time information that represents the
-  // macro expansions.
+  // Date or timestamp found. We now make sure that the digest changes if the
+  // (potential) expansion of those macros changes by computing a new digest
+  // comprising the file digest and time information that represents the macro
+  // expansions.
 
   Hash hash;
   hash.hash(util::format_legacy_digest(digest));
 
-  if (result.contains(HashSourceCode::found_date)) {
-    LOG("Found __DATE__ in {}", path);
-
+  if (result.contains(SourceCodeScan::found_date)) {
     hash.hash_delimiter("date");
     auto now = util::localtime();
     if (!now) {
-      result.insert(HashSourceCode::error);
-      return result;
+      return std::nullopt;
     }
     hash.hash(now->tm_year);
     hash.hash(now->tm_mon);
     hash.hash(now->tm_mday);
 
-    // If the compiler has support for it, the expansion of __DATE__ will change
-    // according to the value of SOURCE_DATE_EPOCH. Note: We have to hash both
-    // SOURCE_DATE_EPOCH and the current date since we can't be sure that the
-    // compiler honors SOURCE_DATE_EPOCH.
+    // If the compiler has support for it, the expansion of the date macro will
+    // change according to the value of SOURCE_DATE_EPOCH. Note: We have to hash
+    // both SOURCE_DATE_EPOCH and the current date since we can't be sure that
+    // the compiler honors SOURCE_DATE_EPOCH.
     const auto source_date_epoch = getenv("SOURCE_DATE_EPOCH");
     if (source_date_epoch) {
       hash.hash(source_date_epoch);
     }
   }
 
-  if (result.contains(HashSourceCode::found_timestamp)) {
-    LOG("Found __TIMESTAMP__ in {}", path);
-
+  if (result.contains(SourceCodeScan::found_timestamp)) {
     util::DirEntry dir_entry(path);
     if (!dir_entry.is_regular_file()) {
-      result.insert(HashSourceCode::error);
-      return result;
+      return std::nullopt;
     }
 
     auto modified_time = util::localtime(dir_entry.mtime());
     if (!modified_time) {
-      result.insert(HashSourceCode::error);
-      return result;
+      return std::nullopt;
     }
     hash.hash_delimiter("timestamp");
     char timestamp[26];
@@ -315,28 +464,27 @@ hash_source_code_file(const Context& ctx,
     hash.hash(timestamp);
   }
 
-  digest = hash.digest();
-  return result;
+  return hash.digest();
 }
 
-bool
-hash_binary_file(const Context& ctx,
-                 Hash::Digest& digest,
-                 const fs::path& path,
-                 size_t size_hint)
+std::optional<Hash::Digest>
+hash_binary_file(const Context& ctx, const fs::path& path, size_t size_hint)
 {
-  return do_hash_file(ctx, digest, path, size_hint, false).empty();
+  Hash::Digest digest;
+  if (!do_hash_file(ctx, digest, path, size_hint, false)) {
+    return std::nullopt;
+  }
+  return digest;
 }
 
 bool
 hash_binary_file(const Context& ctx, Hash& hash, const fs::path& path)
 {
-  Hash::Digest digest;
-  const bool success = hash_binary_file(ctx, digest, path);
-  if (success) {
-    hash.hash(util::format_legacy_digest(digest));
+  const auto result = hash_binary_file(ctx, path);
+  if (result) {
+    hash.hash(util::format_legacy_digest(*result));
   }
-  return success;
+  return result.has_value();
 }
 
 bool

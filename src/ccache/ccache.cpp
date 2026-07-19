@@ -458,23 +458,22 @@ remember_include_file(Context& ctx,
       }
     }
 
-    if (!hash_binary_file(ctx, file_digest, path2)) {
+    auto ret = hash_binary_file(ctx, path2);
+    if (!ret) {
       return tl::unexpected(Statistic::bad_input_file);
     }
+    file_digest = *ret;
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
     cpp_hash.hash(util::format_legacy_digest(file_digest));
   }
 
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      auto ret = hash_source_code_file(ctx, file_digest, path2);
-      if (ret.contains(HashSourceCode::error)) {
+      auto ret = hash_source_code_file(ctx, path2);
+      if (!ret) {
         return tl::unexpected(Statistic::bad_input_file);
       }
-      if (ret.contains(HashSourceCode::found_time)) {
-        LOG("Disabling direct mode");
-        ctx.config.set_direct_mode(false);
-      }
+      file_digest = *ret;
     }
 
     if (depend_mode_hash) {
@@ -2363,18 +2362,15 @@ get_manifest_key(Context& ctx, Hash& hash)
   }
 
   hash.hash_delimiter("sourcecode hash");
-  Hash::Digest input_file_digest;
-  auto ret =
-    hash_source_code_file(ctx, input_file_digest, ctx.args_info.input_file);
-  if (ret.contains(HashSourceCode::error)) {
+  auto input_file_digest = hash_source_code_file(ctx, ctx.args_info.input_file);
+  if (!input_file_digest) {
     return tl::unexpected(Statistic::internal_error);
   }
-  if (ret.contains(HashSourceCode::found_time)) {
-    LOG("Disabling direct mode");
-    ctx.config.set_direct_mode(false);
+  if (!ctx.config.direct_mode()) {
+    // Direct mode was disabled by hash_source_code_file.
     return {};
   }
-  hash.hash(util::format_legacy_digest(input_file_digest));
+  hash.hash(util::format_legacy_digest(*input_file_digest));
   return hash.digest();
 }
 
