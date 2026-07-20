@@ -1031,6 +1031,29 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
     preprocessor mode. See documentation for <<config_read_only,*read_only*>>
     regarding using a read-only ccache directory.
 
+[#config_read_only_dirs]
+*read_only_dirs* (*CCACHE_READONLY_DIRS*)::
+
+    This option specifies one or more additional local cache directories
+    (separated by `;` on Windows and `:` on other systems) to use as read-only
+    fallback caches. When a result is not found in the local
+    <<config_cache_dir,*cache_dir*>>, the read-only directories are searched in
+    order. A hit in a read-only directory is promoted (copied) into the local
+    cache directory so that subsequent lookups are served locally, unless
+    <<config_remote_only,*remote_only*>> is true.
++
+The directories must have the same on-disk layout as a normal ccache directory
+(they are typically populated by pointing *cache_dir* at them in another build).
+ccache never writes to or cleans up the read-only directories.
++
+This is useful in CI environments where an ephemeral, writable local cache can
+be combined with one or more pre-populated caches, for example built from the
+main or development branch:
++
+----
+read_only_dirs = /ci/caches/main:/ci/caches/develop
+----
+
 [#config_recache]
 *recache* (*CCACHE_RECACHE* or *CCACHE_NORECACHE*, see _<<Boolean values>>_ above)::
 

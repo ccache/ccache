@@ -514,6 +514,57 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
   return return_value;
 }
 
+std::optional<util::Bytes>
+LocalStorage::get_from_directory(const fs::path& cache_dir,
+                                 const Hash::Digest& key,
+                                 const core::CacheEntryType type) const
+{
+  const auto path = look_up_existing_cache_file(cache_dir, key, type);
+  if (!path) {
+    LOG("No {} in read-only cache directory {}",
+        util::format_base16(key),
+        cache_dir);
+    return std::nullopt;
+  }
+
+  const auto value = util::read_file<util::Bytes>(*path);
+  if (!value) {
+    LOG("Failed to read {}: {}", *path, value.error());
+    return std::nullopt;
+  }
+
+  LOG("Retrieved {} from read-only cache directory ({})",
+      util::format_base16(key),
+      *path);
+  return *value;
+}
+
+std::vector<core::result::Serializer::RawFile>
+LocalStorage::get_raw_files_in_directory(const fs::path& cache_dir,
+                                         const Hash::Digest& key) const
+{
+  std::vector<core::result::Serializer::RawFile> raw_files;
+
+  const auto result_path =
+    look_up_existing_cache_file(cache_dir, key, core::CacheEntryType::result);
+  if (!result_path) {
+    return raw_files;
+  }
+
+  // Raw files are stored as sibling files named "<result_path>_<NN>" with file
+  // numbers assigned sequentially starting from 0, so stop at the first gap.
+  for (int i = 0; i <= UINT8_MAX; ++i) {
+    const auto file_number = static_cast<uint8_t>(i);
+    auto raw_path = get_raw_file_path(*result_path, file_number);
+    if (!DirEntry(raw_path).is_regular_file()) {
+      break;
+    }
+    raw_files.push_back({file_number, std::move(raw_path)});
+  }
+
+  return raw_files;
+}
+
 void
 LocalStorage::put(const Hash::Digest& key,
                   std::span<const uint8_t> value,
@@ -1077,6 +1128,39 @@ LocalStorage::look_up_cache_file(const Hash::Digest& key) const
   return {shallowest_path, DirEntry(), k_min_cache_levels};
 }
 
+std::optional<fs::path>
+LocalStorage::look_up_existing_cache_file(const fs::path& cache_dir,
+                                          const Hash::Digest& key,
+                                          const core::CacheEntryType type)
+{
+  // Try new format first: base16 without suffix.
+  const auto key_string = util::format_base16(key);
+  for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
+       ++level) {
+    const auto path = get_path_in_cache(cache_dir, level, key_string);
+    if (DirEntry(path).is_regular_file()) {
+      return path;
+    }
+  }
+
+  // Try old format with R/M suffix. Unlike look_up_cache_file, no migration is
+  // performed since the directory is treated as read-only.
+  const auto old_key_string = util::format_legacy_digest(key);
+  const std::string old_suffix =
+    type == core::CacheEntryType::manifest ? "M" : "R";
+  const auto old_key_string_with_suffix = old_key_string + old_suffix;
+  for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
+       ++level) {
+    const auto path =
+      get_path_in_cache(cache_dir, level, old_key_string_with_suffix);
+    if (DirEntry(path).is_regular_file()) {
+      return path;
+    }
+  }
+
+  return std::nullopt;
+}
+
 StatsFile
 LocalStorage::get_stats_file(uint8_t l1_index) const
 {
@@ -1514,10 +1598,18 @@ fs::path
 LocalStorage::get_path_in_cache(const uint8_t level,
                                 const std::string_view name) const
 {
+  return get_path_in_cache(m_config.cache_dir(), level, name);
+}
+
+fs::path
+LocalStorage::get_path_in_cache(const fs::path& cache_dir,
+                                const uint8_t level,
+                                const std::string_view name)
+{
   ASSERT(level >= 1 && level <= 8);
   ASSERT(name.length() >= level);
 
-  fs::path path(m_config.cache_dir());
+  fs::path path(cache_dir);
   for (uint8_t i = 0; i < level; ++i) {
     path /= std::string(1, name.at(i));
   }

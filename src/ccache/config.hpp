@@ -97,6 +97,7 @@ public:
   const std::string& prefix_command_cpp() const;
   bool read_only() const;
   bool read_only_direct() const;
+  const std::vector<std::filesystem::path>& read_only_dirs() const;
   bool recache() const;
   bool remote_only() const;
   const std::string& remote_storage() const;
@@ -137,6 +138,7 @@ public:
   void set_inode_cache(bool value);
   void set_max_files(uint64_t value);
   void set_msvc_dep_prefix(const std::string& value);
+  void set_read_only_dirs(const std::vector<std::filesystem::path>& value);
   void set_safe_dirs(const std::vector<std::filesystem::path>& value);
   void set_msvc_utf8(bool value);
   void set_temporary_dir(const std::filesystem::path& value);
@@ -230,6 +232,7 @@ private:
   std::string m_prefix_command_cpp;
   bool m_read_only = false;
   bool m_read_only_direct = false;
+  std::vector<std::filesystem::path> m_read_only_dirs;
   bool m_recache = false;
   bool m_reshare = false;
   bool m_remote_only = false;
@@ -502,6 +505,12 @@ inline bool
 Config::read_only_direct() const
 {
   return m_read_only_direct;
+}
+
+inline const std::vector<std::filesystem::path>&
+Config::read_only_dirs() const
+{
+  return m_read_only_dirs;
 }
 
 inline bool

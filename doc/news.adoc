@@ -254,6 +254,13 @@ Release date: 2026-03-05
   cache-specific config file. +
   [small]#_[contributed by Joel Rosdahl]_#
 
+- Added the `read_only_dirs` (`CCACHE_READONLY_DIRS`) config option for
+  specifying one or more read-only fallback cache directories. Results not found
+  in the local cache are looked up in the read-only directories and promoted
+  into the local cache on a hit. This is useful in CI environments for combining
+  an ephemeral writable cache with pre-populated caches. +
+  [small]#_[contributed by Thorsten Klein]_#
+
 - Added `msvc_utf8` config option to allow disabling `/utf-8` for MSVC when
   using the fallback method of parsing preprocessed output. +
   [small]#_[contributed by Max Winkler]_#
