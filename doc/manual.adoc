@@ -675,6 +675,8 @@ _<<Using ccache with other compiler wrappers>>_.
     GCC-based compiler.
 *icl*::
     Intel compiler on Windows.
+*ispc*::
+    Intel SPMD Program Compiler (ISPC).
 *icx*::
     Intel LLVM-based compiler.
 *icx-cl*::

@@ -46,6 +46,7 @@
 #endif
 
 #include <algorithm>
+#include <limits>
 
 namespace fs = util::filesystem;
 
@@ -101,7 +102,8 @@ should_store_raw_file(const Config& config, core::result::FileType type)
   // files that become large enough that it's of interest to clone or hard link
   // them, so we keep things simple for now. This will also save i-nodes in the
   // cache.
-  return type == core::result::FileType::object;
+  return type == core::result::FileType::object
+         || type == core::result::FileType::ispc_target_object;
 }
 
 } // namespace
@@ -157,6 +159,24 @@ file_type_to_string(FileType type)
 
   case FileType::source_dependencies:
     return ".sourcedeps.json";
+
+  case FileType::ispc_header:
+    return ".ispc.h";
+
+  case FileType::ispc_target_object:
+    return ".ispc-target.o";
+
+  case FileType::ispc_target_header:
+    return ".ispc-target.h";
+
+  case FileType::ispc_dev_stub:
+    return ".ispc-dev-stub";
+
+  case FileType::ispc_host_stub:
+    return ".ispc-host-stub";
+
+  case FileType::ispc_nanobind_wrapper:
+    return ".ispc-nanobind-wrapper";
   }
 
   return k_unknown_file_type;
@@ -274,6 +294,13 @@ Serializer::serialized_size() const
 void
 Serializer::serialize(util::Bytes& output)
 {
+  const auto max_file_entries = std::numeric_limits<uint8_t>::max();
+  if (m_file_entries.size() > max_file_entries) {
+    throw Error(FMT("Too many file entries: {} > {}",
+                    m_file_entries.size(),
+                    max_file_entries));
+  }
+
   CacheEntryDataWriter writer(output);
 
   writer.write_int(k_format_version);
