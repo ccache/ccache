@@ -665,7 +665,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
       }
 
       if (inc_fs_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(inc_fs_path);
+        hash.hash(inc_path);
       }
 
       TRY(remember_include_file(ctx, inc_fs_path, hash, system, nullptr));
