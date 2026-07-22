@@ -1183,17 +1183,23 @@ process_option_arg(const Context& ctx,
 
   if (arg.starts_with("-fdiagnostics-format=")) {
     LOG("-fdiagnostics-format=");
+    state.add_compiler_only_arg(args[i]);
     using namespace std::string_view_literals;
     auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
     if (param == "sarif-file") {
-      args_info.generating_sarif = true;
+      if(!args_info.generating_sarif)
+        args_info.generating_sarif = true;
+      else {
+        LOG("no support for multiple sarif files");
+        return Statistic::unsupported_compiler_option;
+      }
     }
-    state.add_compiler_only_arg(args[i]);
     return Statistic::none;
   }
 
   if (arg.starts_with("-fdiagnostics-add-output=")
       || arg.starts_with("-fdiagnostics-set-output=")) {
+    state.add_compiler_only_arg(args[i]);
     // replace (set) or add another diagnostic view
     // we care for sarif only as text would not produce a file
     auto arg_sv = std::string_view(arg);
@@ -1203,8 +1209,12 @@ process_option_arg(const Context& ctx,
     auto sarif_pos = param.find("sarif");
     auto file_pos = param.find("file=");
     if (sarif_pos != std::string_view::npos) {
-      state.add_compiler_only_arg(args[i]);
-      args_info.generating_sarif = true;
+      if (!args_info.generating_sarif)
+        args_info.generating_sarif = true;
+      else {
+        LOG("no support for multiple sarif files");
+        return Statistic::unsupported_compiler_option;
+      }
       if (file_pos != std::string_view::npos) {
         auto file_param =
           param.substr(file_pos + std::string_view("file=").size());
@@ -1216,6 +1226,7 @@ process_option_arg(const Context& ctx,
           args_info.output_sarif = core::make_relative_path(ctx, file_param);
         }
       }
+      //else if no file= found unset -> default path is used see process_args()
     }
     return Statistic::none;
   }
@@ -1723,10 +1734,11 @@ process_args(Context& ctx)
   if (args_info.generating_sarif) {
     if (ctx.config.is_compiler_group_msvc()) {
       if (args_info.output_sarif.native().back() == '\\') {
+        // if a directory name
         args_info.output_sarif /=
           args_info.input_file.stem().generic_string() + ".sarif";
       }
-    } else {
+    } else { //non msvc
       if (args_info.output_sarif.empty()) {
         state.hash_actual_cwd = true;
         args_info.output_sarif = ctx.apparent_cwd;
