@@ -115,7 +115,7 @@ struct ArgsInfo
   // -flto specified.
   bool using_lto = false;
 
-  // Us the compiler being asked to generate sarif output files
+  // Is the compiler being asked to generate sarif output files
   bool generating_sarif = false;
 
   // Are we generating a pch file (msvc -Yc)?
