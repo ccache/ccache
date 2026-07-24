@@ -1187,9 +1187,9 @@ process_option_arg(const Context& ctx,
     using namespace std::string_view_literals;
     auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
     if (param == "sarif-file") {
-      if(!args_info.generating_sarif)
+      if (!args_info.generating_sarif) {
         args_info.generating_sarif = true;
-      else {
+      } else {
         LOG("no support for multiple sarif files");
         return Statistic::unsupported_compiler_option;
       }
@@ -1209,9 +1209,9 @@ process_option_arg(const Context& ctx,
     auto sarif_pos = param.find("sarif");
     auto file_pos = param.find("file=");
     if (sarif_pos != std::string_view::npos) {
-      if (!args_info.generating_sarif)
+      if (!args_info.generating_sarif) {
         args_info.generating_sarif = true;
-      else {
+      } else {
         LOG("no support for multiple sarif files");
         return Statistic::unsupported_compiler_option;
       }
@@ -1226,7 +1226,7 @@ process_option_arg(const Context& ctx,
           args_info.output_sarif = core::make_relative_path(ctx, file_param);
         }
       }
-      //else if no file= found unset -> default path is used see process_args()
+      // else if no file= found unset -> default path is used see process_args()
     }
     return Statistic::none;
   }
@@ -1738,7 +1738,7 @@ process_args(Context& ctx)
         args_info.output_sarif /=
           args_info.input_file.stem().generic_string() + ".sarif";
       }
-    } else { //non msvc
+    } else { // non msvc
       if (args_info.output_sarif.empty()) {
         state.hash_actual_cwd = true;
         args_info.output_sarif = ctx.apparent_cwd;
