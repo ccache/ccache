@@ -1194,8 +1194,21 @@ process_option_arg(const Context& ctx,
   if (arg.starts_with("-fdiagnostics-format=")) {
     LOG("-fdiagnostics-format=");
     state.add_compiler_only_arg(args[i]);
-    using namespace std::string_view_literals;
-    auto param = std::string_view(arg).substr("-fdiagnostics-format="sv.size());
+    // since handling of multiple option of this kind is unclear
+    // fall back to compiler
+    if (!args_info.diagnostics_output.empty()) {
+      args_info.diagnostics_output = arg;
+    } else {
+      LOG(
+        "no support for multiple -diagnostics-add/set-output or "
+        "-diagnostics-format this {} previous {}",
+        arg,
+        args_info.diagnostics_output);
+      return Statistic::unsupported_compiler_option;
+    }
+    auto arg_sv = std::string_view(arg);
+    auto param =
+      arg_sv.substr(std::string_view("-fdiagnostics-format=").size());
     if (param == "sarif-file") {
       if (!args_info.generating_sarif) {
         args_info.generating_sarif = true;
@@ -1210,6 +1223,19 @@ process_option_arg(const Context& ctx,
   if (arg.starts_with("-fdiagnostics-add-output=")
       || arg.starts_with("-fdiagnostics-set-output=")) {
     state.add_compiler_only_arg(args[i]);
+    // since handling of multiple option of this kind is unclear
+    // fall back to compiler
+    if (args_info.diagnostics_output.empty()) {
+      args_info.diagnostics_output = arg;
+    } else {
+      LOG(
+        "no support for multiple -diagnostics-add/set-output or "
+        "-diagnostics-format this {} previous {}",
+        arg,
+        args_info.diagnostics_output);
+      return Statistic::unsupported_compiler_option;
+    }
+
     // replace (set) or add another diagnostic view
     // we care for sarif only as text would not produce a file
     auto arg_sv = std::string_view(arg);
@@ -1244,6 +1270,13 @@ process_option_arg(const Context& ctx,
   const std::string_view msvc_sarif_switch = "-experimental:log";
   if (arg.starts_with(msvc_sarif_switch)) {
     state.add_compiler_only_arg(args[i]);
+    if (args_info.diagnostics_output.empty()) {
+      args_info.diagnostics_output = arg;
+    } else {
+      LOG("no support for multiple -experimental:log");
+      return Statistic::unsupported_compiler_option;
+    }
+
     // The argument can be separated by space, but doesn't have to be.
     std::string_view param;
     if (arg.size() == msvc_sarif_switch.size()) {

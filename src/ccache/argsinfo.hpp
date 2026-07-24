@@ -68,6 +68,9 @@ struct ArgsInfo
   // Sarif diagnostic generation. Contains pathname if not empty.
   std::filesystem::path output_sarif;
 
+  // diagnostic output command line option if set else empty.
+  std::string diagnostics_output;
+
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::filesystem::path output_dwo;
 
