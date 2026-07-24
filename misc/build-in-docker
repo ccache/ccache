@@ -43,14 +43,15 @@ docker run \
     --tmpfs /builddir:rw,exec \
     --workdir /builddir \
     --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
-    --env EXTRA_CMAKE_BUILD_FLAGS="${EXTRA_CMAKE_BUILD_FLAGS:-}" \
     --env CC="${CC:-}" \
     --env CCACHE_DIR=/ccache \
     --env CCACHE_LOC="/source" \
     --env CFLAGS="${CFLAGS:-}" \
     --env CMAKE_PARAMS="${CMAKE_PARAMS:-}" \
+    --env CMAKE_PREFIX="${CMAKE_PREFIX:-}" \
     --env CXX="${CXX:-}" \
     --env CXXFLAGS="${CXXFLAGS:-}" \
+    --env EXTRA_CMAKE_BUILD_FLAGS="${EXTRA_CMAKE_BUILD_FLAGS:-}" \
     --env LDFLAGS="${LDFLAGS:-}" \
     --env NO_TEST="${NO_TEST:-}" \
     --env SCAN_BUILD="${SCAN_BUILD:-}" \
