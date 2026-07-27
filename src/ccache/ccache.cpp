@@ -2160,9 +2160,9 @@ hash_argument(const Context& ctx,
   }
 
   // Optionally map and hash include paths.
-  // There may be more than these three include flags to look out for.
+  // There may be more than these include flags to look out for.
   // If needed, a separate PR can add more.
-  for (const auto prefix : {"-I", "-imsvc", "-isystem"}) {
+  for (const auto prefix : {"-I", "-imsvc", "-isystem", "-external:I"}) {
     if (!args[i].starts_with(prefix)) {
       continue;
     }
