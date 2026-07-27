@@ -658,7 +658,8 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       inc_path_str.clear(); // inc_path is used from now on
 
       if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(inc_path);
+        hash.hash(
+          util::perform_path_mapping(inc_path, ctx.config.path_mapping()));
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
@@ -2148,14 +2149,37 @@ hash_argument(const Context& ctx,
     if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
       path = args[i + 1];
     } else {
-      auto p = compopt_prefix_takes_path(args[i]);
-      if (p) {
-        path = *p;
-      }
+      path = compopt_prefix_takes_path(args[i]);
     }
     if (path) {
+      const auto fsp =
+        util::perform_path_mapping(*path, ctx.config.path_mapping());
       hash.hash_delimiter("path exists");
-      hash.hash(FMT("{} {}", *path, fs::exists(*path) ? "1" : "0"));
+      hash.hash(FMT("{} {}", fsp, fs::exists(fsp) ? "1" : "0"));
+    }
+  }
+
+  // Optionally map and hash include paths.
+  // There may be more than these three include flags to look out for.
+  // If needed, a separate PR can add more.
+  for (const auto prefix : {"-I", "-imsvc", "-isystem"}) {
+    if (!args[i].starts_with(prefix)) {
+      continue;
+    }
+    std::optional<std::string_view> path;
+    bool space_in_between = false;
+    if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
+      path = args[i + 1];
+      space_in_between = true;
+    } else {
+      path = compopt_prefix_takes_path(args[i]);
+    }
+    if (path) {
+      const auto fsp =
+        util::perform_path_mapping(*path, ctx.config.path_mapping());
+      hash.hash_delimiter("arg");
+      hash.hash(FMT("{}{}{}", prefix, space_in_between ? " " : "", fsp));
+      return {};
     }
   }
 
@@ -2360,7 +2384,8 @@ get_manifest_key(Context& ctx, Hash& hash)
   //     share manifests and a/r.h exists.
   // * The expansion of __FILE__ may be incorrect.
   hash.hash_delimiter("inputfile");
-  hash.hash(ctx.args_info.input_file);
+  hash.hash(util::perform_path_mapping(ctx.args_info.input_file,
+                                       ctx.config.path_mapping()));
 
   if (!ctx.args_info.input_file_prefix.empty()) {
     hash.hash_delimiter("inputfile prefix");
