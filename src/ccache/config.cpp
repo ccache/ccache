@@ -137,6 +137,7 @@ enum class ConfigItem : uint8_t {
   msvc_utf8,
   namespace_,
   path,
+  path_mapping,
   pch_external_checksum,
   prefix_command,
   prefix_command_cpp,
@@ -206,6 +207,7 @@ const std::unordered_map<std::string_view, ConfigKeyTableEntry>
     {"msvc_utf8",                  {C::msvc_utf8,                  DCP::allow}},
     {"namespace",                  {C::namespace_,                 DCP::allow}},
     {"path",                       {C::path,                       DCP::unsafe}},
+    {"path_mapping",               {C::path_mapping,               DCP::allow}},
     {"pch_external_checksum",      {C::pch_external_checksum,      DCP::allow}},
     {"prefix_command",             {C::prefix_command,             DCP::unsafe}},
     {"prefix_command_cpp",         {C::prefix_command_cpp,         DCP::unsafe}},
@@ -261,6 +263,7 @@ const std::unordered_map<std::string_view, std::string_view>
     {"MSVC_UTF8",            "msvc_utf8"                 },
     {"NAMESPACE",            "namespace"                 },
     {"PATH",                 "path"                      },
+    {"PATH_MAPPING",         "path_mapping"              },
     {"PCH_EXTSUM",           "pch_external_checksum"     },
     {"PREFIX",               "prefix_command"            },
     {"PREFIX_CPP",           "prefix_command_cpp"        },
@@ -578,6 +581,56 @@ response_file_format_to_string(
   }
 
   ASSERT(false);
+}
+
+#ifdef _WIN32
+const char k_path_delimiter[] = ";";
+#else
+const char k_path_delimiter[] = ":";
+#endif
+
+std::vector<std::pair<fs::path, fs::path>>
+parse_path_mapping(const std::string_view& path_mapping_string)
+{
+  std::vector<std::pair<fs::path, fs::path>> result;
+
+  // Split by path delimiter (platform-specific)
+  auto mappings = util::split_into_views(path_mapping_string, k_path_delimiter);
+
+  for (const auto& mapping : mappings) {
+    // Split each mapping by '='
+    auto [key, value] = util::split_once_into_views(mapping, '=');
+    if (!value) {
+      // Skip invalid entries without '='
+      continue;
+    }
+
+    // Strip whitespace from both key and value
+    std::string_view key_stripped = util::strip_whitespace(key);
+    std::string_view value_stripped = util::strip_whitespace(*value);
+
+    if (!key_stripped.empty() && !value_stripped.empty()) {
+      result.emplace_back(key_stripped, value_stripped);
+    }
+  }
+
+  return result;
+}
+
+std::string
+format_path_mapping(
+  const std::vector<std::pair<fs::path, fs::path>>& path_mapping)
+{
+  if (path_mapping.empty()) {
+    return {};
+  }
+  std::ostringstream ss;
+  for (size_t i = 0; i < path_mapping.size() - 1; ++i) {
+    ss << path_mapping[i].first << '=' << path_mapping[i].second
+       << k_path_delimiter;
+  }
+  ss << path_mapping.back().first << '=' << path_mapping.back().second;
+  return ss.str();
 }
 
 } // namespace
@@ -1113,6 +1166,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::path:
     return m_path;
 
+  case ConfigItem::path_mapping:
+    return format_path_mapping(m_path_mapping);
+
   case ConfigItem::pch_external_checksum:
     return format_bool(m_pch_external_checksum);
 
@@ -1407,6 +1463,10 @@ Config::set_item(const std::string_view& key,
     m_path = value;
     break;
 
+  case ConfigItem::path_mapping:
+    m_path_mapping = parse_path_mapping(value);
+    break;
+
   case ConfigItem::pch_external_checksum:
     m_pch_external_checksum = parse_bool(value, env_var_key, negate);
     break;
@@ -1597,4 +1657,10 @@ Config::find_directory_config() const
     dir = std::move(parent);
     dir_entry = std::move(parent_entry);
   }
+}
+
+const std::vector<std::pair<fs::path, fs::path>>&
+Config::path_mapping() const
+{
+  return m_path_mapping;
 }
