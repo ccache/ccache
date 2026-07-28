@@ -128,8 +128,6 @@ const CompOpt compopts[] = {
   {"-external:I",
    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH                           }, // msvc
   {"-fbuild-session-file=",   TAKES_CONCAT_ARG | TAKES_PATH                          },
-  {"-fdiagnostics-add-output=", TAKES_CONCAT_ARG | TAKES_PATH                        },
-  {"-fdiagnostics-set-output=", TAKES_CONCAT_ARG | TAKES_PATH                        },
   {"-fmodule-header",         TOO_HARD                                               },
   {"-fmodule-map-file=",      TAKES_CONCAT_ARG | TAKES_PATH                          },
   {"-fmodules-cache-path=",   TAKES_CONCAT_ARG | TAKES_PATH                          },
