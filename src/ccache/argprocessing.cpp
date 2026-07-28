@@ -90,6 +90,8 @@ public:
   bool found_md_or_mmd_opt = false;
   bool found_Wa_a_opt = false;
   bool rewrite_FI_args = false;
+  bool found_fdiagnostics_set_output = false;
+  bool found_fdiagnostics_add_output = false;
 
   std::string explicit_language;             // As specified with -x.
   std::string input_charset_option;          // -finput-charset=...
@@ -1194,6 +1196,17 @@ process_option_arg(const Context& ctx,
   if (arg.starts_with("-fdiagnostics-format=")) {
     LOG("-fdiagnostics-format=");
     state.add_compiler_only_arg(args[i]);
+    if (state.found_fdiagnostics_set_output
+        || state.found_fdiagnostics_add_output) {
+      LOG(
+        "no support for combination of -diagnostics-format and another "
+        "-diagnostics-add/set-output or -diagnostics-format");
+      // set this  even in case of early return
+      state.found_fdiagnostics_set_output = true;
+      return Statistic::unsupported_compiler_option;
+    }
+    // "-fdiagnostics-format=" replaces the default -> behaves like set
+    state.found_fdiagnostics_set_output = true;
     // since handling of multiple option of this kind is unclear
     // fall back to compiler
     auto arg_sv = std::string_view(arg);
@@ -1202,94 +1215,98 @@ process_option_arg(const Context& ctx,
     if (param == "sarif-file") {
       LOG("no support for sarif file default location");
       return Statistic::unsupported_compiler_option;
-    } else {
-      if (args_info.diagnostics_output.empty()) {
-        args_info.diagnostics_output += "set:";
-        args_info.diagnostics_output += param;
-        args_info.diagnostics_output += ",";
-      } else {
-        LOG(
-          "no support for combination of -diagnostics-format and another "
-          "-diagnostics-add/set-output or -diagnostics-format");
-        LOG("diagnostics output: {}", args_info.diagnostics_output);
-        return Statistic::unsupported_compiler_option;
-      }
     }
     return Statistic::none;
   }
 
-  if (arg.starts_with("-fdiagnostics-add-output=")
-      || arg.starts_with("-fdiagnostics-set-output=")) {
+  if (arg.starts_with("-fdiagnostics-set-output=")) {
     state.add_compiler_only_arg(args[i]);
-    // since handling of multiple option of this kind is unclear
-    // fall back to compiler
+    // replace set a diagnostic output we support one of these
+    if (state.found_fdiagnostics_set_output
+        || state.found_fdiagnostics_add_output) {
+      LOG(
+        "no support for combination of -diagnostics-set-output and another "
+        "-diagnostics-add/set-output or -diagnostics-format");
+      // set this  even in case of early return
+      state.found_fdiagnostics_set_output = true;
+      return Statistic::unsupported_compiler_option;
+    }
+    state.found_fdiagnostics_set_output = true;
+
     auto arg_sv = std::string_view(arg);
     auto param =
-      arg_sv.substr(std::string_view("-fdiagnostics-add-output=").size());
-
-    if (arg.starts_with("-fdiagnostics-set-output=")) {
-      if (args_info.diagnostics_output.empty()) {
-        args_info.diagnostics_output += "set:";
-        args_info.diagnostics_output += param;
-        args_info.diagnostics_output += ",";
-      } else {
-        LOG(
-          "no support for combination of -diagnostics-set-output and another "
-          "-diagnostics-add/set-output or -diagnostics-format");
-        LOG("current arg: {}\n diagnostics output: {}",
-            arg,
-            args_info.diagnostics_output);
-        return Statistic::unsupported_compiler_option;
-      }
-    }
-    if (arg.starts_with("-fdiagnostics-add-output=")) {
-      if (args_info.diagnostics_output.find("set") == std::string_view::npos) {
-        if (args_info.diagnostics_output.find(param)
-            == std::string_view::npos) {
-          args_info.diagnostics_output += "add:";
-          args_info.diagnostics_output += param;
-          args_info.diagnostics_output += ",";
-        } else {
-          LOG("no support for mutiple same type diagnostic output");
-          LOG("current arg: {}\n diagnostics output: {}",
-              arg,
-              args_info.diagnostics_output);
-          return Statistic::unsupported_compiler_option;
-        }
-      } else {
-        LOG(
-          "no support for combination of --diagnostics-add-output and another "
-          "-diagnostics-set-output or -diagnostics-format");
-        LOG("current arg: {}\n diagnostics output: {}",
-            arg,
-            args_info.diagnostics_output);
-        return Statistic::unsupported_compiler_option;
-      }
-    }
-    // replace (set) or add another diagnostic view
-    // we care for sarif only as text would not produce a file
-    // add and set are the same length
+      arg_sv.substr(std::string_view("-fdiagnostics-set-output=").size());
+    // we care for sarif only
     auto sarif_pos = param.find("sarif");
+    if (sarif_pos == std::string_view::npos) {
+      return Statistic::none;
+    }
+    // we need a sarif file parameter
     auto file_pos = param.find("file=");
-    if (sarif_pos != std::string_view::npos) {
+    if (file_pos != std::string_view::npos) {
+      // check if sarif is allready active
       if (!args_info.generating_sarif) {
         args_info.generating_sarif = true;
       } else {
         LOG("no support for multiple sarif files");
         return Statistic::unsupported_compiler_option;
       }
-      if (file_pos != std::string_view::npos) {
-        auto file_param =
-          param.substr(file_pos + std::string_view("file=").size());
-        auto file_end = file_param.find(',');
-        if (file_end != std::string_view::npos) {
-          args_info.output_sarif =
-            core::make_relative_path(ctx, file_param.substr(0, file_end));
-        } else {
-          args_info.output_sarif = core::make_relative_path(ctx, file_param);
-        }
+      auto file_param =
+        param.substr(file_pos + std::string_view("file=").size());
+      auto file_end = file_param.find(',');
+      if (file_end != std::string_view::npos) {
+        args_info.output_sarif =
+          core::make_relative_path(ctx, file_param.substr(0, file_end));
+      } else {
+        args_info.output_sarif = core::make_relative_path(ctx, file_param);
       }
-      // else if no file= found unset -> default path is used see process_args()
+    } else {
+      LOG("no support for sarif file default location");
+      return Statistic::unsupported_compiler_option;
+    }
+    return Statistic::none;
+  }
+
+  if (arg.starts_with("-fdiagnostics-add-output=")) {
+    state.add_compiler_only_arg(args[i]);
+    // add a diagnostic output we support multiple of these but not set
+    if (state.found_fdiagnostics_set_output) {
+      LOG(
+        "no support for combination of -diagnostics-set-output and another "
+        "-diagnostics-add/set-output or -diagnostics-format");
+      // set this  even in case of early return
+      state.found_fdiagnostics_add_output = true;
+      return Statistic::unsupported_compiler_option;
+    }
+
+    state.found_fdiagnostics_add_output = true;
+    auto arg_sv = std::string_view(arg);
+    auto param =
+      arg_sv.substr(std::string_view("-fdiagnostics-add-output=").size());
+    // we care for sarif only
+    auto sarif_pos = param.find("sarif");
+    if (sarif_pos == std::string_view::npos) {
+      return Statistic::none;
+    }
+    // we need a sarif file parameter
+    auto file_pos = param.find("file=");
+    if (file_pos != std::string_view::npos) {
+      // check if sarif is already active we support one sarif output
+      if (!args_info.generating_sarif) {
+        args_info.generating_sarif = true;
+      } else {
+        LOG("no support for multiple sarif files");
+        return Statistic::unsupported_compiler_option;
+      }
+      auto file_param =
+        param.substr(file_pos + std::string_view("file=").size());
+      auto file_end = file_param.find(',');
+      if (file_end != std::string_view::npos) {
+        args_info.output_sarif =
+          core::make_relative_path(ctx, file_param.substr(0, file_end));
+      } else {
+        args_info.output_sarif = core::make_relative_path(ctx, file_param);
+      }
     } else {
       LOG("no support for sarif file default location");
       return Statistic::unsupported_compiler_option;
