@@ -182,6 +182,8 @@ constexpr CompOpt compopts[] = {
   {"-v",                      AFFECTS_COMP                                           },
   {"-wrapper",                TAKES_ARG | TOO_HARD                                   },
   {"-z",                      TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP            },
+  {"/external:I",
+   AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH                           }, // msvc
 };
 // clang-format on
 
