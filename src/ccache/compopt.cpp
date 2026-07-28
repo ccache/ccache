@@ -180,6 +180,8 @@ const CompOpt compopts[] = {
   {"-v",                      AFFECTS_COMP                                           },
   {"-wrapper",                TAKES_ARG | TOO_HARD                                   },
   {"-z",                      TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP            },
+  {"/external:I",
+   AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH                           }, // msvc
 };
 // clang-format on
 
@@ -189,14 +191,6 @@ compare_compopts(const void* key1, const void* key2)
   const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
   const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
   return opt1->name.compare(opt2->name);
-}
-
-static int
-compare_prefix_compopts(const void* key1, const void* key2)
-{
-  const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
-  const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
-  return opt1->name.substr(0, opt2->name.length()).compare(opt2->name);
 }
 
 static const CompOpt*
@@ -211,13 +205,15 @@ find(std::string_view option)
 static const CompOpt*
 find_prefix(std::string_view option)
 {
-  CompOpt key{option, 0};
-  void* result = bsearch(&key,
-                         compopts,
-                         std::size(compopts),
-                         sizeof(compopts[0]),
-                         compare_prefix_compopts);
-  return static_cast<CompOpt*>(result);
+  const CompOpt* max_co{};
+  for (const auto &co : compopts) {
+    const auto prefix_matches = option.starts_with(co.name);
+    const auto length_larger = (!max_co || co.name.length() > max_co->name.length());
+    if (prefix_matches && length_larger) {
+      max_co = &co;
+    }
+  }
+  return max_co;
 }
 
 // Used by unittest/test_compopt.cpp.

@@ -499,7 +499,7 @@ check_included_pch_file(Context& ctx, Hash& hash)
       && !ctx.args_info.generating_pch) {
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
+    hash.hash(util::perform_path_mapping(pch_path, ctx.config.path_mapping()));
     TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
   return {};
@@ -2144,41 +2144,35 @@ hash_argument(const Context& ctx,
   // directories and similar input paths exist. Note that this is not 100%
   // waterproof since it only detects newly appearing directories and not newly
   // appearing header files.
-  if (direct_mode) {
-    std::optional<std::string_view> path;
-    if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
-      path = args[i + 1];
-    } else {
-      path = compopt_prefix_takes_path(args[i]);
-    }
-    if (path) {
-      const auto fsp =
-        util::perform_path_mapping(*path, ctx.config.path_mapping());
-      hash.hash_delimiter("path exists");
-      hash.hash(FMT("{} {}", fsp, fs::exists(fsp) ? "1" : "0"));
-    }
-  }
-
-  // Optionally map and hash include paths.
-  // There may be more than these include flags to look out for.
-  // If needed, a separate PR can add more.
-  for (const auto prefix : {"-I", "-imsvc", "-isystem", "-external:I"}) {
-    if (!args[i].starts_with(prefix)) {
-      continue;
-    }
+  {
     std::optional<std::string_view> path;
     bool space_in_between = false;
+    std::string compopt;
     if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
-      path = args[i + 1];
+      compopt = args[i];
+      path = args[++i]; // Consume both prefix & path
       space_in_between = true;
     } else {
       path = compopt_prefix_takes_path(args[i]);
+      if (path) {
+        compopt = args[i].substr(0, args[i].length() - path->length());
+      }
     }
     if (path) {
-      const auto fsp =
+      const auto mapped_path =
         util::perform_path_mapping(*path, ctx.config.path_mapping());
-      hash.hash_delimiter("arg");
-      hash.hash(FMT("{}{}{}", prefix, space_in_between ? " " : "", fsp));
+      hash.hash_delimiter("path exists");
+      hash.hash(FMT("{} {}", mapped_path, fs::exists(*path) ? "1" : "0"));
+      if (space_in_between) {
+        // Emulate the behavior at the end of this function
+        hash.hash_delimiter("arg");
+        hash.hash(compopt);
+        hash.hash_delimiter("arg");
+        hash.hash(mapped_path);
+      } else {
+        hash.hash_delimiter("arg");
+        hash.hash(FMT("{}{}", compopt, mapped_path));
+      }
       return {};
     }
   }
