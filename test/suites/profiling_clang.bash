@@ -101,6 +101,68 @@ SUITE_profiling_clang() {
     expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
+    TEST "-fprofile-instr-use=file with absolute path and base_dir"
+
+    $CCACHE_COMPILE -fprofile-instr-generate=foo.profraw -c test.c
+    $COMPILER -fprofile-instr-generate=foo.profraw test.o -o test
+    ./test
+    llvm-profdata$CLANG_VERSION_SUFFIX merge -output foo.profdata foo.profraw
+
+    mkdir -p ws1/build ws2/build
+    echo 'int main(void) { return 0; }' >ws1/test.c
+    echo 'int main(void) { return 0; }' >ws2/test.c
+    cp foo.profdata ws1/foo.profdata
+    cp foo.profdata ws2/foo.profdata
+
+    ws1_abs="$(cd ws1 && pwd)"
+    ws2_abs="$(cd ws2 && pwd)"
+
+    cd ws1/build
+    CCACHE_BASEDIR="$ws1_abs" $CCACHE_COMPILE \
+        -fprofile-instr-use="$ws1_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+
+    cd ../../ws2/build
+    CCACHE_BASEDIR="$ws2_abs" $CCACHE_COMPILE \
+        -fprofile-instr-use="$ws2_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    cd ../../ws1/build
+    CCACHE_BASEDIR="$ws1_abs" $CCACHE_COMPILE \
+        -fprofile-use="$ws1_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
+
+    cd ../../ws2/build
+    CCACHE_BASEDIR="$ws2_abs" $CCACHE_COMPILE \
+        -fprofile-use="$ws2_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
+
+    cd ../../ws1/build
+    CCACHE_BASEDIR="$ws1_abs" $CCACHE_COMPILE \
+        -fprofile-sample-use="$ws1_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 4
+
+    cd ../../ws2/build
+    CCACHE_BASEDIR="$ws2_abs" $CCACHE_COMPILE \
+        -fprofile-sample-use="$ws2_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 4
+
+    echo >>"$ws2_abs/foo.profdata"
+
+    CCACHE_BASEDIR="$ws2_abs" $CCACHE_COMPILE \
+        -fprofile-instr-use="$ws2_abs/foo.profdata" -c ../test.c
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 5
+
+    cd ../..
+
+    # -------------------------------------------------------------------------
     TEST "-fprofile-sample-use"
 
     echo 'main:1:1' > sample.prof
