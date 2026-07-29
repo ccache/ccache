@@ -57,8 +57,12 @@ strip_includes_from_msvc_show_includes(const Context& ctx,
   using Mode = Tokenizer::Mode;
   using IncludeDelimiter = Tokenizer::IncludeDelimiter;
 
-  if (stdout_data.empty() || !ctx.auto_depend_mode
-      || ctx.config.compiler_type() != CompilerType::msvc) {
+  const bool strip_auto_includes =
+    ctx.auto_depend_mode
+    && (ctx.config.compiler_type() == CompilerType::msvc
+        || ctx.config.compiler_type() == CompilerType::nvcc);
+
+  if (stdout_data.empty() || !strip_auto_includes) {
     return std::move(stdout_data);
   }
 

@@ -590,6 +590,51 @@ TEST_CASE("nvcc_warning_flags_long")
         == "nvcc --Werror all-warnings -Xcompiler -Werror -c");
 }
 
+TEST_CASE("nvcc_show_includes_via_host_compiler_option")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_depend_mode(true);
+  ctx.orig_args = Args::from_string("nvcc -c foo.cu -Xcompiler /showIncludes");
+  REQUIRE(util::write_file("foo.cu", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.generating_includes);
+  CHECK(result->preprocessor_args.to_string() == "nvcc");
+  CHECK(result->extra_args_to_hash.to_string() == "-Xcompiler /showIncludes");
+  CHECK(result->compiler_args.to_string()
+        == "nvcc -Xcompiler /showIncludes -c");
+}
+
+TEST_CASE("nvcc_auto_depend_mode")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_depend_mode(true);
+  ctx.orig_args = Args::from_string("nvcc -c foo.cu");
+  REQUIRE(util::write_file("foo.cu", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+#ifdef _WIN32
+  CHECK(ctx.auto_depend_mode);
+  CHECK(ctx.args_info.generating_includes);
+  CHECK(result->preprocessor_args.to_string() == "nvcc");
+  CHECK(result->extra_args_to_hash.to_string() == "");
+  CHECK(result->compiler_args.to_string()
+        == "nvcc -Xcompiler /showIncludes -c");
+#else
+  CHECK(!ctx.auto_depend_mode);
+  CHECK(!ctx.args_info.generating_includes);
+  CHECK(result->preprocessor_args.to_string() == "nvcc");
+  CHECK(result->extra_args_to_hash.to_string() == "");
+  CHECK(result->compiler_args.to_string() == "nvcc -c");
+#endif
+}
+
 TEST_CASE("-Xclang")
 {
   TestContext test_context;
