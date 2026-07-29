@@ -697,14 +697,18 @@ fi
 export TEST_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 all_suites="$(sed -En 's/^ *addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
+load_ok=true
 for suite in $all_suites; do
     suite_path="${TEST_BASE_DIR}/suites/${suite}.bash"
     . "${suite_path}"
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to load ${suite_path}"
-        exit 1
+        echo "Error: Failed to load ${suite_path}" >&2
+        load_ok=false
     fi
 done
+if ! $load_ok; then
+    exit 1
+fi
 
 # ---------------------------------------
 
