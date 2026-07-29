@@ -1,6 +1,9 @@
 # Typical build directories
 /build*/
 
+# Typical cache directory
+/.cache/
+
 # CLion
 /.idea/
 /cmake-build-*/
