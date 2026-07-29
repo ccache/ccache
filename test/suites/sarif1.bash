@@ -22,7 +22,7 @@ SUITE_sarif() {
     expect_stat cache_miss 0
     expect_stat files_in_cache 0
     # check the two default locations
-    if [ -e output.x.b.sarif ] then
+    if [ -e output.x.b.sarif ]; then
         expect_exist output.x.b.sarif
     else
         expect_exist obj/output.x.b.sarif
