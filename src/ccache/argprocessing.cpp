@@ -1213,6 +1213,7 @@ process_option_arg(const Context& ctx,
     auto param =
       arg_sv.substr(std::string_view("-fdiagnostics-format=").size());
     if (param == "sarif-file") {
+      args_info.output_sarif = std::filesystem::path(".") / "";
       LOG("no support for sarif file default location");
       return Statistic::unsupported_compiler_option;
     }
@@ -1264,10 +1265,8 @@ process_option_arg(const Context& ctx,
     // we need a sarif file parameter
     auto file_pos = param.find("file=");
     if (file_pos != std::string_view::npos) {
-      // check if sarif is allready active
-      if (!args_info.generating_sarif) {
-        args_info.generating_sarif = true;
-      } else {
+      // check if sarif is already active
+      if (!ctx.args_info.output_sarif.empty()) {
         LOG("no support for multiple sarif files");
         return Statistic::unsupported_compiler_option;
       }
@@ -1281,6 +1280,9 @@ process_option_arg(const Context& ctx,
         args_info.output_sarif = core::make_relative_path(ctx, file_param);
       }
     } else {
+      // this append the '.' directory so output sarif is not empty but also has
+      // no filename
+      args_info.output_sarif = std::filesystem::path(".") / "";
       LOG("no support for sarif file default location");
       return Statistic::unsupported_compiler_option;
     }
@@ -1310,7 +1312,6 @@ process_option_arg(const Context& ctx,
     } else {
       param = std::string_view(arg).substr(msvc_sarif_switch.size());
     }
-    args_info.generating_sarif = true;
     // The param can be a filename or a dir (ends with '\'), both absolute or
     // relative
     bool was_folder = param.ends_with("\\");
@@ -1324,7 +1325,7 @@ process_option_arg(const Context& ctx,
     if (was_folder) {
       // core::make_relative_path removes the trailing '\', but we need it
       // later. So add it back
-      args_info.output_sarif += '\\';
+      args_info.output_sarif /= "";
     }
     return Statistic::none;
   }
@@ -1794,23 +1795,14 @@ process_args(Context& ctx)
     }
   }
 
-  if (args_info.generating_sarif) {
-    if (ctx.config.is_compiler_group_msvc()) {
-      if (args_info.output_sarif.native().back() == '\\') {
-        // if a directory name
-        args_info.output_sarif /=
-          args_info.input_file.stem().generic_string() + ".sarif";
-      }
-    } else { // non msvc
-      if (args_info.output_sarif.empty()) {
-        state.hash_actual_cwd = true;
-        args_info.output_sarif = ctx.apparent_cwd;
-        args_info.output_sarif /= args_info.output_obj.stem();
-        args_info.output_sarif += args_info.input_file.extension();
-        args_info.output_sarif += ".sarif";
-      }
-      // else we assume path is set by param
-    }
+  // for msvc a directory is extend to a file
+  // for gcc thing filename and location is version dependent and cannot be
+  // generated
+  if (ctx.config.is_compiler_group_msvc() && !args_info.output_sarif.empty()
+      && !args_info.output_sarif.has_filename()) {
+    // if a directory (not has_filename) generate and append filename
+    args_info.output_sarif /=
+      args_info.input_file.stem().generic_string() + ".sarif";
   }
 
   // Determine output dependency file.
