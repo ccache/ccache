@@ -1,17 +1,17 @@
-SUITE_sarif_PROBE() {
+SUITE_sarif1_PROBE() {
     touch test.c
     if ! $COMPILER -c -fdiagnostics-format=sarif-file test.c 2>/dev/null; then
         echo "-fdiagnostics-format=sarif-file not supported by compiler"
     fi
 }
 
-SUITE_sarif_SETUP() {
+SUITE_sarif1_SETUP() {
     mkdir -p src
     mkdir -p obj
     generate_code 1 src/input.a.b
 }
 
-SUITE_sarif() {
+SUITE_sarif1() {
     # -------------------------------------------------------------------------
     TEST "Sarif diagnostics 1"
 
