@@ -2284,6 +2284,7 @@ hash_argument(const Context& ctx,
     hash.hash_delimiter("config");
     if (auto r = hash.hash_file(path); !r) {
       LOG("Failed to hash option file {}: {}", path, r.error());
+      return tl::unexpected(Statistic::bad_input_file);
     }
     return {};
   }
