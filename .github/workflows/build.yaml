@@ -59,6 +59,10 @@ jobs:
             compiler: clang
             version: "18"
 
+          - os: ubuntu-26.04
+            compiler: clang
+            version: "22"
+
           - os: ubuntu-24.04-arm
             compiler: gcc
             version: "13"
