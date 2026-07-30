@@ -1774,6 +1774,40 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    # Clang 22+'s --warning-suppression-mappings
+    if $COMPILER -c -Wstrict-prototypes --warning-suppression-mappings=/dev/null -x c /dev/null 2>/dev/null; then
+        TEST "--warning-suppression-mappings"
+
+        cat >map.c <<EOF
+int main() {}
+EOF
+        cat >mappings.txt <<EOF
+[strict-prototypes]
+src:map.c
+EOF
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+
+        cp /dev/null mappings.txt
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c 2>stderr.txt
+        expect_contains stderr.txt -Wstrict-prototypes
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c 2>stderr.txt
+        expect_contains stderr.txt -Wstrict-prototypes
+        expect_stat preprocessed_cache_hit 2
+        expect_stat cache_miss 2
+    fi
+
+    # -------------------------------------------------------------------------
 if ! $COMPILER_USES_MSVC; then
     for src in test1.c build/test1.c; do
         for obj in test1.o build/test1.o; do

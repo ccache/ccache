@@ -95,6 +95,7 @@
 namespace fs = util::filesystem;
 
 using namespace std::chrono_literals;
+using namespace std::string_view_literals;
 
 using core::Statistic;
 using util::DirEntry;
@@ -2319,6 +2320,18 @@ hash_argument(const Context& ctx,
       i++;
       return {};
     }
+  }
+
+  static constexpr auto warning_suppression_mappings =
+    "--warning-suppression-mappings="sv;
+  if (args[i].starts_with(warning_suppression_mappings)) {
+    auto [_option, path] = util::split_once_into_views(args[i], '=');
+    hash.hash_delimiter(warning_suppression_mappings);
+    if (auto r = hash.hash_file(*path); !r) {
+      LOG("Failed to hash {}: {}", *path, r.error());
+      return tl::unexpected(Statistic::bad_input_file);
+    }
+    return {};
   }
 
   // All other arguments are included in the hash.
