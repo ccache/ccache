@@ -23,10 +23,21 @@ SUITE_sarif() {
     expect_stat files_in_cache 0
     # check the two default locations
     if [ -e output.x.b.sarif ]; then
-        expect_exist output.x.b.sarif
+        expect_exists output.x.b.sarif
     else
-        expect_exist obj/output.x.b.sarif
+        expect_exists obj/output.x.b.sarif
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "compiler -fdiagnostics-set-output=sarif support"
+    if ! $COMPILER -c -fdiagnostics-set-output=sarif -c src/input.a.b -o obj/output.x.y 2>/dev/null
+    then
+        printf "\nINFO: compiler does not support -fdiagnostics-set/add-output; skipping tests\n"
+        # early return
+        return 0
+    fi
+    # This test does not expect anything.
+    # It just skips the rest of the tests that focus on add and set.
 
     # -------------------------------------------------------------------------
     TEST "Sarif default location -fdiagnostics-set-output=sarif fallback"
@@ -39,9 +50,9 @@ SUITE_sarif() {
     expect_stat files_in_cache 0
     # check the two default locations
     if [ -e output.x.b.sarif ]; then
-        expect_exist output.x.b.sarif
+        expect_exists output.x.b.sarif
     else
-        expect_exist obj/output.x.b.sarif
+        expect_exists obj/output.x.b.sarif
     fi
 
     # -------------------------------------------------------------------------
