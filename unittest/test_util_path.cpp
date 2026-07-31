@@ -211,3 +211,25 @@ TEST_CASE("util::with_extension")
   CHECK(util::with_extension("foo.x", "") == "foo");
   CHECK(util::with_extension("foo.x", ".y") == "foo.y");
 }
+
+TEST_CASE("util::perform_path_mapping")
+{
+  CHECK(util::perform_path_mapping("", {{"/foo", "/bar"}}) == "");
+  CHECK(util::perform_path_mapping("/", {{"/foo", "/bar"}}) == "/");
+  CHECK(util::perform_path_mapping("/foo/bar", {{"/foo", "/bar"}}) == "/bar/bar");
+  CHECK(util::perform_path_mapping("/foo/bar", {{"/bar", "/foo"}}) == "/foo/bar");
+  CHECK(util::perform_path_mapping("/bar/foo", {{"/bar", "/foo"}}) == "/foo/foo");
+  CHECK(util::perform_path_mapping("/bar/foo", {{"/foo", "/bar"}}) == "/bar/foo");
+#ifdef _WIN32
+  CHECK(util::perform_path_mapping("D:/path", {{"D:/path", "/new-path"}}) == "/new-path");
+  CHECK(util::perform_path_mapping("D:\\path", {{"D:/path", "/new-path"}}) == "/new-path");
+  CHECK(util::perform_path_mapping("D:/path", {{"D:/path", "\\new-path"}}) == "\\new-path");
+
+  CHECK(util::perform_path_mapping("D:/path/to", {{"D:/path", "/new-path"}}) == "/new-path/to");
+  CHECK(util::perform_path_mapping("D:\\path/to", {{"D:/path", "/new-path"}}) == "/new-path/to");
+  CHECK(util::perform_path_mapping("D:\\path\\to", {{"D:/path", "/new-path"}}) == "/new-path\\to");
+  CHECK(util::perform_path_mapping("D:\\path\\to", {{"D:/path", "\\new-path"}}) == "\\new-path\\to");
+
+  CHECK(util::perform_path_mapping("C:/path", {{"D:/path", "/new-path"}}) == "C:/path");
+#endif
+}

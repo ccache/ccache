@@ -196,16 +196,16 @@ path_starts_with(const std::filesystem::path& path,
 
 fs::path
 perform_path_mapping(
-  fs::path path, const std::vector<std::pair<fs::path, fs::path>>& path_mapping)
+  const fs::path& path,
+  const std::vector<std::pair<fs::path, fs::path>>& path_mapping)
 {
-  // relative_path() removes the root-path: '/' on POSIX, 'C:/' on Win32
-  path = path.relative_path();
-  for (const auto& mapping : path_mapping) {
-    const auto key = mapping.first.relative_path();
-    if (path_starts_with(path, key)) {
-      return mapping.second
-             / remove_leading_components(path, std::ranges::distance(key));
+  for (const auto& [key, value] : path_mapping) {
+    if (!path_starts_with(path, key)) {
+      continue;
     }
+    const auto& suffix =
+      remove_leading_components(path, std::ranges::distance(key));
+    return suffix.empty() ? value : (value / suffix);
   }
   return path;
 }

@@ -93,8 +93,10 @@ using pstr = PathString;
 std::filesystem::path with_extension(const std::filesystem::path& path,
                                      std::string_view extension);
 
+// Transform a prefix of `path` using the mappings in `path_mapping`.
+// If no mapping occurred, returns `path`.
 std::filesystem::path perform_path_mapping(
-  std::filesystem::path path,
+  const std::filesystem::path& path,
   const std::vector<std::pair<std::filesystem::path, std::filesystem::path>>&
     path_mapping);
 
