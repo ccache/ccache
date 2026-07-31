@@ -60,8 +60,9 @@ public:
   };
 
   enum class Failure {
-    error,   // Operation error (protocol error, connection failure, etc.)
-    timeout, // Timeout (data timeout or request timeout exceeded)
+    error,             // Operation error (protocol/connection error, etc.)
+    permission_denied, // IPC operation prohibited by the operating system
+    timeout,           // Timeout (data timeout or request timeout exceeded)
   };
 
   struct Error

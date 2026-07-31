@@ -34,6 +34,14 @@ namespace util {
 
 namespace {
 
+IpcError::Failure
+failure_from_errno(int error_number)
+{
+  return error_number == EACCES || error_number == EPERM
+           ? IpcError::Failure::permission_denied
+           : IpcError::Failure::error;
+}
+
 std::chrono::milliseconds
 remaining_timeout(const std::chrono::steady_clock::time_point start_time,
                   const std::chrono::milliseconds timeout)
@@ -66,7 +74,7 @@ poll_with_timeout(int fd,
         IpcError(IpcError::Failure::timeout, FMT("{} timeout", action)));
     }
     if (errno != EINTR) {
-      return tl::unexpected(IpcError(IpcError::Failure::error,
+      return tl::unexpected(IpcError(failure_from_errno(errno),
                                      FMT("Poll failed: {}", strerror(errno))));
     }
   }
@@ -100,7 +108,7 @@ UnixSocketClient::connect(const std::string& endpoint,
   m_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (m_fd == -1) {
     return tl::unexpected(
-      IpcError(IpcError::Failure::error,
+      IpcError(failure_from_errno(errno),
                FMT("Failed to create socket: {}", strerror(errno))));
   }
 
@@ -110,7 +118,7 @@ UnixSocketClient::connect(const std::string& endpoint,
     int saved_errno = errno;
     close();
     return tl::unexpected(IpcError(
-      IpcError::Failure::error,
+      failure_from_errno(saved_errno),
       FMT("Failed to set socket non-blocking: {}", strerror(saved_errno))));
   }
 
@@ -129,7 +137,7 @@ UnixSocketClient::connect(const std::string& endpoint,
       int saved_errno = errno;
       close();
       return tl::unexpected(IpcError(
-        IpcError::Failure::error,
+        failure_from_errno(saved_errno),
         FMT("Connection to {} failed: {}", endpoint, strerror(saved_errno))));
     }
 
@@ -146,13 +154,13 @@ UnixSocketClient::connect(const std::string& endpoint,
       int saved_errno = errno;
       close();
       return tl::unexpected(
-        IpcError(IpcError::Failure::error,
+        IpcError(failure_from_errno(saved_errno),
                  FMT("Failed to get socket error: {}", strerror(saved_errno))));
     }
     if (error != 0) {
       close();
       return tl::unexpected(
-        IpcError(IpcError::Failure::error,
+        IpcError(failure_from_errno(error),
                  FMT("Connection failed: {}", strerror(error))));
     }
   }

@@ -493,6 +493,11 @@ HelperBackend::ensure_connected(bool spawn)
     connect_result.error().message,
     timer.measure_ms());
 
+  if (connect_result.error().failure == Client::Failure::permission_denied) {
+    LOG("Not spawning remote storage helper since IPC access was denied");
+    return tl::unexpected(Failure::error);
+  }
+
   if (!spawn) {
     return {};
   }
@@ -512,12 +517,17 @@ HelperBackend::ensure_connected(bool spawn)
 
   // We have the lock. Check again if another process spawned while we waited.
   timer.reset();
-  if (m_client.connect(m_endpoint)) {
+  connect_result = m_client.connect(m_endpoint);
+  if (connect_result) {
     LOG(
       "Connected to remote storage helper spawned by another process ({:.2f}"
       " ms)",
       timer.measure_ms());
     return finalize_connection();
+  }
+  if (connect_result.error().failure == Client::Failure::permission_denied) {
+    LOG("Not spawning remote storage helper since IPC access was denied");
+    return tl::unexpected(Failure::error);
   }
 
   // No helper exists, spawn it now.
@@ -543,6 +553,13 @@ HelperBackend::ensure_connected(bool spawn)
           m_endpoint,
           timer.measure_ms());
       return finalize_connection();
+    }
+
+    if (connect_result.error().failure == Client::Failure::permission_denied) {
+      LOG(
+        "Giving up connecting to spawned remote storage helper since IPC"
+        " access was denied");
+      return tl::unexpected(Failure::error);
     }
 
     std::this_thread::sleep_for(sleep_duration);

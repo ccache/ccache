@@ -40,10 +40,16 @@ constexpr uint8_t k_request_exists = 0x05;
 static Client::Error
 make_error(const util::IpcError& ipc_error)
 {
-  auto failure = (ipc_error.failure == util::IpcError::Failure::timeout)
-                   ? Client::Failure::timeout
-                   : Client::Failure::error;
-  return Client::Error(failure, ipc_error.message);
+  switch (ipc_error.failure) {
+  case util::IpcError::Failure::error:
+    return Client::Error(Client::Failure::error, ipc_error.message);
+  case util::IpcError::Failure::permission_denied:
+    return Client::Error(Client::Failure::permission_denied, ipc_error.message);
+  case util::IpcError::Failure::timeout:
+    return Client::Error(Client::Failure::timeout, ipc_error.message);
+  default:
+    return Client::Error(Client::Failure::error, "internal error");
+  }
 }
 
 Client::Client(std::chrono::milliseconds data_timeout,
