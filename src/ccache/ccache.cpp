@@ -526,7 +526,7 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
 {
   ASSERT(!data.empty());
 
-  std::unordered_map<std::string, std::string> relative_inc_path_cache;
+  std::unordered_map<std::string, fs::path> relative_inc_path_cache;
 
   // Bytes between p and q are pending to be hashed.
   char* q = reinterpret_cast<char*>(data.data());
@@ -633,33 +633,35 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       }
 
       // p and q span the include file path.
-      std::string inc_path(p, q - p);
-      while (!inc_path.empty() && inc_path.back() == '/') {
-        inc_path.pop_back();
+      std::string inc_path_str(p, q - p);
+      while (!inc_path_str.empty() && inc_path_str.back() == '/') {
+        inc_path_str.pop_back();
       }
-      fs::path inc_fs_path;
+
+      fs::path inc_path;
       try {
-        inc_fs_path = inc_path;
+        inc_path = inc_path_str;
       } catch (const std::filesystem::filesystem_error&) {
         return tl::unexpected(Failure(Statistic::unsupported_source_encoding));
       }
+
       if (!ctx.config.base_dirs().empty()) {
-        auto it = relative_inc_path_cache.find(inc_path);
+        auto it = relative_inc_path_cache.find(inc_path_str);
         if (it == relative_inc_path_cache.end()) {
-          std::string rel_inc_path =
-            util::pstr(core::make_relative_path(ctx, inc_fs_path));
-          relative_inc_path_cache.emplace(inc_path, rel_inc_path);
-          inc_path = util::pstr(rel_inc_path);
+          fs::path rel_inc_path = core::make_relative_path(ctx, inc_path);
+          relative_inc_path_cache.emplace(inc_path_str, rel_inc_path);
+          inc_path = rel_inc_path;
         } else {
           inc_path = it->second;
         }
       }
+      inc_path_str.clear(); // inc_path is used from now on
 
-      if (inc_fs_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(inc_fs_path);
+      if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
+        hash.hash(inc_path);
       }
 
-      TRY(remember_include_file(ctx, inc_fs_path, hash, system, nullptr));
+      TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, incbin_directive, sizeof(incbin_directive)) == 0
                && ((q[7] == ' '

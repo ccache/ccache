@@ -41,6 +41,25 @@ SUITE_basedir() {
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
+    TEST "Enabled CCACHE_BASEDIR in preprocessor mode"
+
+    cat <<EOF >compiler
+#!/bin/sh
+exec "$COMPILER" -I"\$PWD/include" "\$@"
+EOF
+    chmod +x compiler
+
+    cd dir1
+    CCACHE_COMPILERCHECK=none CCACHE_COMPILERTYPE=gcc CCACHE_NODIRECT=1 CCACHE_BASEDIR="`pwd`" $CCACHE ../compiler -c src/test.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    cd ../dir2
+    CCACHE_COMPILERCHECK=none CCACHE_COMPILERTYPE=gcc CCACHE_NODIRECT=1 CCACHE_BASEDIR="`pwd`" $CCACHE ../compiler -c src/test.c
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
     TEST "Disabled (default) CCACHE_BASEDIR"
 
     cd dir1
