@@ -74,33 +74,33 @@ const struct
   {nullptr, nullptr                   },
 };
 
-// Supported languages and corresponding preprocessed languages.
+// Supported languages and their properties.
 const struct
 {
   const char* language;
-  const char* p_language;
-} k_lang_p_lang_table[] = {
-  {"c",                        "cpp-output"              },
-  {"cpp-output",               "cpp-output"              },
-  {"c-header",                 "cpp-output"              },
-  {"c++",                      "c++-cpp-output"          },
-  {"c++-cpp-output",           "c++-cpp-output"          },
-  {"c++-header",               "c++-cpp-output"          },
-  {"cu",                       "cpp-output"              }, // NVCC
-  {"cuda",                     "cpp-output"              }, // Clang
-  {"hip",                      "cpp-output"              },
-  {"objective-c",              "objective-c-cpp-output"  },
-  {"objective-c-header",       "objective-c-cpp-output"  },
-  {"objc-cpp-output",          "objective-c-cpp-output"  },
-  {"objective-c-cpp-output",   "objective-c-cpp-output"  },
-  {"objective-c++",            "objective-c++-cpp-output"},
-  {"objc++-cpp-output",        "objective-c++-cpp-output"},
-  {"objective-c++-header",     "objective-c++-cpp-output"},
-  {"objective-c++-cpp-output", "objective-c++-cpp-output"},
-  {"assembler-with-cpp",       "assembler"               },
-  {"assembler",                "assembler"               },
-  {"ir",                       "ir"                      }, // Clang ThinLTO
-  {nullptr,                    nullptr                   },
+  LanguageInfo info;
+} k_language_info_table[] = {
+  {"c",                        {.preprocessed = false}},
+  {"cpp-output",               {.preprocessed = true} },
+  {"c-header",                 {.preprocessed = false}},
+  {"c++",                      {.preprocessed = false}},
+  {"c++-cpp-output",           {.preprocessed = true} },
+  {"c++-header",               {.preprocessed = false}},
+  {"cu",                       {.preprocessed = false}}, // NVCC
+  {"cuda",                     {.preprocessed = false}}, // Clang
+  {"hip",                      {.preprocessed = false}},
+  {"objective-c",              {.preprocessed = false}},
+  {"objective-c-header",       {.preprocessed = false}},
+  {"objc-cpp-output",          {.preprocessed = true} },
+  {"objective-c-cpp-output",   {.preprocessed = true} },
+  {"objective-c++",            {.preprocessed = false}},
+  {"objc++-cpp-output",        {.preprocessed = true} },
+  {"objective-c++-header",     {.preprocessed = false}},
+  {"objective-c++-cpp-output", {.preprocessed = true} },
+  {"assembler-with-cpp",       {.preprocessed = false}},
+  {"assembler",                {.preprocessed = true} },
+  {"ir",                       {.preprocessed = true} }, // Clang ThinLTO
+  {nullptr,                    {}                     },
 };
 
 } // namespace
@@ -121,36 +121,13 @@ language_for_file(const fs::path& path, CompilerType compiler_type)
   return {};
 }
 
-std::string
-p_language_for_language(const std::string& language)
+const LanguageInfo*
+language_info_for_language(std::string_view language)
 {
-  for (size_t i = 0; k_lang_p_lang_table[i].language; ++i) {
-    if (language == k_lang_p_lang_table[i].language) {
-      return k_lang_p_lang_table[i].p_language;
+  for (size_t i = 0; k_language_info_table[i].language; ++i) {
+    if (language == k_language_info_table[i].language) {
+      return &k_language_info_table[i].info;
     }
   }
-  return {};
-}
-
-std::string
-extension_for_language(const std::string& language)
-{
-  for (size_t i = 0; k_ext_lang_table[i].extension; i++) {
-    if (language == k_ext_lang_table[i].language) {
-      return k_ext_lang_table[i].extension;
-    }
-  }
-  return {};
-}
-
-bool
-language_is_supported(const std::string& language)
-{
-  return !p_language_for_language(language).empty();
-}
-
-bool
-language_is_preprocessed(const std::string& language)
-{
-  return language == p_language_for_language(language);
+  return nullptr;
 }

@@ -71,7 +71,6 @@ public:
   CompilerType compiler_type() const;
   bool compression() const;
   int8_t compression_level() const;
-  const std::string& cpp_extension() const;
   bool debug() const;
   const std::filesystem::path& debug_dir() const;
   uint8_t debug_level() const;
@@ -131,7 +130,6 @@ public:
   void set_ceiling_markers(const std::vector<std::filesystem::path>& value);
   void set_compiler(const std::string& value);
   void set_compiler_type(CompilerType value);
-  void set_cpp_extension(const std::string& value);
   void set_debug(bool value);
   void set_depend_mode(bool value);
   void set_direct_mode(bool value);
@@ -202,7 +200,6 @@ private:
   CompilerType m_compiler_type = CompilerType::auto_guess;
   bool m_compression = true;
   int8_t m_compression_level = 0; // Use default level
-  std::string m_cpp_extension;
   bool m_debug = false;
   std::filesystem::path m_debug_dir;
   uint8_t m_debug_level = 2;
@@ -351,12 +348,6 @@ inline int8_t
 Config::compression_level() const
 {
   return m_compression_level;
-}
-
-inline const std::string&
-Config::cpp_extension() const
-{
-  return m_cpp_extension;
 }
 
 inline bool
@@ -617,12 +608,6 @@ inline void
 Config::set_ceiling_markers(const std::vector<std::filesystem::path>& value)
 {
   m_ceiling_markers = value;
-}
-
-inline void
-Config::set_cpp_extension(const std::string& value)
-{
-  m_cpp_extension = value;
 }
 
 inline void

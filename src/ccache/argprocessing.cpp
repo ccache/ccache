@@ -1700,8 +1700,10 @@ process_args(Context& ctx)
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
     state.explicit_language.clear();
   }
+  const LanguageInfo* language_info = nullptr;
   if (!state.explicit_language.empty()) {
-    if (!language_is_supported(state.explicit_language)) {
+    language_info = language_info_for_language(state.explicit_language);
+    if (!language_info) {
       LOG("Unsupported language: {}", state.explicit_language);
       return tl::unexpected(Statistic::unsupported_source_language);
     }
@@ -1750,22 +1752,21 @@ process_args(Context& ctx)
     return tl::unexpected(Statistic::unsupported_source_language);
   }
 
+  if (!language_info) {
+    language_info = language_info_for_language(args_info.actual_language);
+  }
+  if (!language_info) {
+    LOG("Unsupported language: {}", args_info.actual_language);
+    return tl::unexpected(Statistic::unsupported_source_language);
+  }
+
   if (args_info.actual_language == "assembler"
       || args_info.actual_language == "ir") {
     // -MD/-MMD do not produce a dependency file.
     args_info.generating_dependencies = false;
   }
 
-  args_info.preprocess_input_file =
-    !language_is_preprocessed(args_info.actual_language);
-
-  if (!args_info.preprocess_input_file && ctx.config.cpp_extension().empty()) {
-    const auto extension = util::pstr(args_info.input_file.extension()).str();
-    config.set_cpp_extension(extension.empty() ? "i" : extension.substr(1));
-  } else if (config.cpp_extension().empty()) {
-    std::string p_language = p_language_for_language(args_info.actual_language);
-    config.set_cpp_extension(extension_for_language(p_language).substr(1));
-  }
+  args_info.preprocess_input_file = !language_info->preprocessed;
 
   if (args_info.seen_split_dwarf) {
     if (util::is_dev_null_path(args_info.output_obj)) {

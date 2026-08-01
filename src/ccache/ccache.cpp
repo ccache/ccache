@@ -521,32 +521,22 @@ starts_with(const char* str, std::string_view prefix)
   return strncmp(str, prefix.data(), prefix.length()) == 0;
 }
 
-// This function reads and hashes a file. While doing this, it also does these
-// things:
-//
-// - Makes include file paths for which the base directory is a prefix relative
-//   when computing the hash sum.
-// - Stores the paths and hashes of included files in ctx.included_files.
 static tl::expected<void, Failure>
-process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
+do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
 {
-  auto content = util::read_file<std::string>(path);
-  if (!content) {
-    LOG("Failed to read {}: {}", path, content.error());
-    return tl::unexpected(Statistic::internal_error);
-  }
+  ASSERT(!data.empty());
 
   std::unordered_map<std::string, std::string> relative_inc_path_cache;
 
   // Bytes between p and q are pending to be hashed.
-  std::string& data = *content;
-  char* q = data.data();
+  char* q = reinterpret_cast<char*>(data.data());
   const char* p = q;
-  const char* end = p + data.length();
+  const char* const begin = q;
+  const char* end = p + data.size();
 
   // There must be at least 7 characters (# 1 "x") left to potentially find an
   // include file path.
-  while (q < end - 7) {
+  while (data.size() > 7 && q < end - 7) {
     static const std::string_view pragma_gcc_pch_preprocess =
       "pragma GCC pch_preprocess ";
     static const std::string_view hash_31_command_line_newline =
@@ -585,7 +575,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
-        && (q == data.data() || q[-1] == '\n')) {
+        && (q == begin || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
         if (starts_with(q, hash_31_command_line_newline)) {
@@ -692,7 +682,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
         "bin directive in source code");
       return tl::unexpected(Failure(Statistic::unsupported_code_directive));
     } else if (strncmp(q, "___________", 10) == 0
-               && (q == data.data() || q[-1] == '\n')) {
+               && (q == begin || q[-1] == '\n')) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
       // __________Using # distcc servers in pump mode
@@ -713,6 +703,22 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 
   hash.hash(p, (end - p));
 
+  return {};
+}
+
+// This function hashes preprocessed data. While doing this, it also does these
+// things:
+//
+// - Makes include file paths for which the base directory is a prefix relative
+//   when computing the hash sum.
+// - Stores the paths and hashes of included files in ctx.included_files.
+static tl::expected<void, Failure>
+process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
+{
+  if (!data.empty()) {
+    TRY(do_process_preprocessed_data(ctx, hash, std::move(data)));
+  }
+
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
   TRY(check_included_pch_file(ctx, hash));
@@ -723,6 +729,17 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
   }
 
   return {};
+}
+
+static tl::expected<void, Failure>
+process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
+{
+  auto data = util::read_file<util::Bytes>(path);
+  if (!data) {
+    LOG("Failed to read {}: {}", path, data.error());
+    return tl::unexpected(Statistic::internal_error);
+  }
+  return process_preprocessed_data(ctx, hash, std::move(*data));
 }
 
 // Extract the used includes from the dependency file. Note that we cannot
@@ -833,8 +850,6 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 static tl::expected<DoExecuteResult, Failure>
 do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
 {
-  util::UmaskScope umask_scope(ctx.original_umask);
-
   if (ctx.diagnostics_color_failed) {
     DEBUG_ASSERT(ctx.config.is_compiler_group_gcc());
     args.erase_last("-fdiagnostics-color");
@@ -843,10 +858,14 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
   auto tmp_stdout = get_tmp_fd(ctx, "stdout", capture_stdout);
   auto tmp_stderr = get_tmp_fd(ctx, "stderr", true);
 
-  int status = execute(ctx,
-                       args.to_argv().data(),
-                       std::move(tmp_stdout.fd),
-                       std::move(tmp_stderr.fd));
+  int status;
+  {
+    util::UmaskScope umask_scope(ctx.original_umask);
+    status = execute(ctx,
+                     args.to_argv().data(),
+                     std::move(tmp_stdout.fd),
+                     std::move(tmp_stderr.fd));
+  }
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.config.is_compiler_group_gcc()) {
     const auto errors = util::read_file<std::string>(tmp_stderr.path);
@@ -1369,25 +1388,11 @@ to_cache(Context& ctx,
 static tl::expected<void, Failure>
 process_cuda_chunk(Context& ctx,
                    Hash& hash,
-                   const std::string& chunk,
+                   std::string_view chunk,
                    size_t index)
 {
-  auto tmp_result = util::TemporaryFile::create(
-    FMT("{}/cuda_tmp_{}", ctx.config.temporary_dir(), index),
-    FMT(".{}", ctx.config.cpp_extension()));
-  if (!tmp_result) {
-    return tl::unexpected(Statistic::internal_error);
-  }
-
-  const auto& chunk_path = tmp_result->path;
-  tmp_result->fd.close(); // we only need the path, not the open fd
-
-  if (!util::write_file(chunk_path, chunk)) {
-    return tl::unexpected(Statistic::internal_error);
-  }
-  ctx.register_pending_tmp_file(chunk_path);
   hash.hash_delimiter(FMT("cu_{}", index));
-  TRY(process_preprocessed_file(ctx, hash, chunk_path));
+  TRY(process_preprocessed_data(ctx, hash, util::Bytes(chunk)));
 
   return {};
 }
@@ -1409,9 +1414,7 @@ get_clang_cu_enable_verbose_mode(const util::Args& args)
 static tl::expected<Hash::Digest, Failure>
 get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
 {
-  fs::path preprocessed_path;
   util::Bytes cpp_stderr_data;
-  util::Bytes cpp_stdout_data;
 
   // When Clang runs in verbose mode, it outputs command details to stdout,
   // which can corrupt the output of precompiled CUDA files. Therefore, caching
@@ -1422,53 +1425,35 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
                                || ctx.args_info.actual_language == "cuda")
                            && !get_clang_cu_enable_verbose_mode(args);
 
-  const bool capture_stdout = is_clang_cu;
-
   if (!ctx.args_info.preprocess_input_file) {
     // We are compiling a file that should be used as is (not be preprocessed).
-    preprocessed_path = ctx.args_info.input_file;
+    hash.hash_delimiter("cpp");
+    TRY(process_preprocessed_file(ctx, hash, ctx.args_info.input_file));
   } else {
-    // Run cpp on the input file to obtain the .i.
-
-    // preprocessed_path needs the proper cpp_extension for the compiler to do
-    // its thing correctly.
-    auto tmp_stdout =
-      util::value_or_throw<core::Fatal>(util::TemporaryFile::create(
-        FMT("{}/cpp_stdout", ctx.config.temporary_dir()),
-        FMT(".{}", ctx.config.cpp_extension())));
-    preprocessed_path = tmp_stdout.path;
-    tmp_stdout.fd.close(); // We're only using the path.
-    ctx.register_pending_tmp_file(preprocessed_path);
-
     const size_t orig_args_size = args.size();
 
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
     }
 
-    // Send preprocessor output to a file instead of stdout to work around
-    // compilers that don't exit with a proper status on write error to stdout.
-    // See also <https://github.com/llvm/llvm-project/issues/56499>.
-    if (ctx.config.is_compiler_group_msvc()) {
-      if (ctx.config.msvc_utf8()) {
-        args.push_back("-utf-8"); // Avoid garbling filenames in output
-      }
-      args.push_back("-P");
-      args.push_back(FMT("-Fi{}", preprocessed_path));
-    } else {
-      args.push_back("-E");
-      if (!is_clang_cu) {
-        args.push_back("-o");
-        args.push_back(preprocessed_path);
-      }
+    if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
+      args.push_back("-utf-8"); // Avoid garbling filenames in output
     }
+
+    // Preprocess, intentionally including line markers so that we can pick up
+    // which files were included (needed for direct mode).
+    //
+    // In the future we could potentially use -EP for MSVC if we set up
+    // extraction of direct mode headers via /showIncludes, similar to how it's
+    // done for the depend mode.
+    args.push_back("-E");
 
     args.push_back(
       FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     LOG("Running preprocessor");
-    const auto result = do_execute(ctx, args, capture_stdout);
+    auto result = do_execute(ctx, args);
     args.pop_back(args.size() - orig_args_size);
 
     if (!result) {
@@ -1478,8 +1463,7 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
       return tl::unexpected(Statistic::preprocessor_error);
     }
 
-    cpp_stderr_data = result->stderr_data;
-    cpp_stdout_data = result->stdout_data;
+    cpp_stderr_data = std::move(result->stderr_data);
 
     if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
       // Check that usage of -utf-8 didn't garble the preprocessor output.
@@ -1491,29 +1475,22 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
         return tl::unexpected(Statistic::unsupported_source_encoding);
       }
     }
-  }
 
-  if (is_clang_cu) {
-    if (auto r = util::write_file(preprocessed_path, cpp_stdout_data); !r) {
-      LOG("Failed to write {}: {}", preprocessed_path, r.error());
-      return tl::unexpected(Statistic::internal_error);
+    if (is_clang_cu) {
+      auto chunks = compiler::split_preprocessed_output_from_clang_cuda(
+        util::to_string_view(result->stdout_data));
+      for (size_t i = 0; i < chunks.size(); ++i) {
+        TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
+      }
+    } else {
+      hash.hash_delimiter("cpp");
+
+      TRY(process_preprocessed_data(ctx, hash, std::move(result->stdout_data)));
     }
-    auto chunks =
-      compiler::split_preprocessed_file_from_clang_cuda(preprocessed_path);
-    for (size_t i = 0; i < chunks.size(); ++i) {
-      TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
-    }
-
-  } else {
-    hash.hash_delimiter("cpp");
-
-    TRY(process_preprocessed_file(ctx, hash, preprocessed_path));
   }
 
   hash.hash_delimiter("cppstderr");
   hash.hash(util::to_string_view(cpp_stderr_data));
-
-  ctx.i_tmpfile = preprocessed_path;
 
   return hash.digest();
 }
@@ -1688,10 +1665,10 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     hash.hash(ctx.config.namespace_());
   }
 
-  // We have to hash the extension, as a .i file isn't treated the same by the
-  // compiler as a .ii file.
-  hash.hash_delimiter("ext");
-  hash.hash(ctx.config.cpp_extension());
+  // The same preprocessed output can produce different results depending on the
+  // source language.
+  hash.hash_delimiter("language");
+  hash.hash(ctx.args_info.actual_language);
 
 #ifdef _WIN32
   const fs::path compiler_path = util::add_exe_suffix(args[0]);

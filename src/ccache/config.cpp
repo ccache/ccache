@@ -115,7 +115,6 @@ enum class ConfigItem : uint8_t {
   compiler_type,
   compression,
   compression_level,
-  cpp_extension,
   debug,
   debug_dir,
   debug_level,
@@ -185,7 +184,6 @@ const std::unordered_map<std::string_view, ConfigKeyTableEntry>
     {"compiler_type",              {C::compiler_type,              DCP::allow}},
     {"compression",                {C::compression,                DCP::allow}},
     {"compression_level",          {C::compression_level,          DCP::allow}},
-    {"cpp_extension",              {C::cpp_extension,              DCP::allow}},
     {"debug",                      {C::debug,                      DCP::allow}},
     {"debug_dir",                  {C::debug_dir,                  DCP::unsafe}},
     {"debug_level",                {C::debug_level,                DCP::allow}},
@@ -248,7 +246,6 @@ const std::unordered_map<std::string_view, std::string_view>
     {"DIR",                  "cache_dir"                 },
     {"DIRECT",               "direct_mode"               },
     {"DISABLE",              "disable"                   },
-    {"EXTENSION",            "cpp_extension"             },
     {"EXTRAFILES",           "extra_files_to_hash"       },
     {"FILECLONE",            "file_clone"                },
     {"HARDLINK",             "hard_link"                 },
@@ -1043,9 +1040,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::compression_level:
     return FMT("{}", m_compression_level);
 
-  case ConfigItem::cpp_extension:
-    return m_cpp_extension;
-
   case ConfigItem::debug:
     return format_bool(m_debug);
 
@@ -1317,10 +1311,6 @@ Config::set_item(const std::string_view& key,
   case ConfigItem::compression_level:
     m_compression_level = static_cast<int8_t>(util::value_or_throw<core::Error>(
       util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level")));
-    break;
-
-  case ConfigItem::cpp_extension:
-    m_cpp_extension = value;
     break;
 
   case ConfigItem::debug:

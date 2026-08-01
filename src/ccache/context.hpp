@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -72,9 +72,6 @@ public:
 
   // Have we tried and failed to get colored diagnostics?
   bool diagnostics_color_failed = false;
-
-  // The name of the temporary preprocessed file.
-  std::filesystem::path i_tmpfile;
 
   // The preprocessor's stderr output.
   util::Bytes cpp_stderr_data;

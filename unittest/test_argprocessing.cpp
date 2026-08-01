@@ -710,6 +710,17 @@ TEST_CASE("-x")
     CHECK(result->compiler_args.to_string() == "gcc -x c++ -c");
   }
 
+  SUBCASE("compile preprocessed Objective-C with an alias")
+  {
+    REQUIRE(util::write_file("foo.i", ""));
+    ctx.orig_args = Args::from_string("gcc -x objc-cpp-output -c foo.i");
+
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "objc-cpp-output");
+    CHECK_FALSE(ctx.args_info.preprocess_input_file);
+  }
+
   SUBCASE("compile .c as c++ (file first, no effect)")
   {
     ctx.orig_args = Args::from_string("gcc -c foo.c -x c++");

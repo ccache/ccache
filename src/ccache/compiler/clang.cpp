@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,49 +18,39 @@
 
 #include "clang.hpp"
 
-#include <ccache/util/filesystem.hpp>
-#include <ccache/util/format.hpp>
-#include <ccache/util/logging.hpp>
-
-#include <cerrno>
-#include <fstream>
-#include <iostream>
-
-namespace fs = util::filesystem;
-
 namespace compiler {
 
 std::vector<std::string>
-split_preprocessed_file_from_clang_cuda(const fs::path& path)
+split_preprocessed_output_from_clang_cuda(std::string_view output)
 {
-  std::ifstream infile(path);
   std::vector<std::string> chunks;
-
-  if (!infile) {
-    LOG("Failed to open {}: {}", path, strerror(errno));
+  if (output.empty()) {
     return chunks;
   }
 
-  std::string delimiter;
-  if (!std::getline(infile, delimiter)) {
-    return chunks;
-  }
+  const size_t first_newline = output.find('\n');
+  const std::string_view delimiter = output.substr(0, first_newline);
+  size_t position =
+    first_newline == std::string_view::npos ? output.size() : first_newline + 1;
 
-  std::string current_part = delimiter + "\n";
-  std::string line;
+  std::string current_part(delimiter);
+  current_part += '\n';
 
-  while (std::getline(infile, line)) {
+  while (position < output.size()) {
+    const size_t newline = output.find('\n', position);
+    const std::string_view line = output.substr(position, newline - position);
     if (line == delimiter) {
       chunks.push_back(current_part);
-      current_part = delimiter + "\n";
+      current_part = delimiter;
+      current_part += '\n';
     } else {
-      current_part += line + "\n";
+      current_part.append(line);
+      current_part += '\n';
     }
+    position = newline == std::string_view::npos ? output.size() : newline + 1;
   }
 
-  if (!current_part.empty()) {
-    chunks.push_back(current_part);
-  }
+  chunks.push_back(current_part);
 
   return chunks;
 }

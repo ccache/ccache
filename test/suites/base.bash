@@ -767,8 +767,22 @@ b"
 
     $COMPILER -c test1.c -E >test1.i
     $CCACHE_COMPILE -c test1.i
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c test1.i
     expect_stat preprocessed_cache_hit 1
-    expect_stat cache_miss 1
+    expect_stat cache_miss 2
+
+    cp test1.i test1.ii
+
+    $CCACHE_COMPILE -c test1.ii
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 3
+
+    $CCACHE_COMPILE -c test1.ii
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
     TEST "-x c"
@@ -1741,14 +1755,14 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_content_pattern compiler.args "(-E -o * test1.c)(-c -o test1.o test1.c)"
+    expect_content_pattern compiler.args "(-E test1.c)(-c -o test1.o test1.c)"
     rm compiler.args
 
     $CCACHE ./compiler.sh -c test1.c
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_content_pattern compiler.args "(-E -o * test1.c)"
+    expect_content_pattern compiler.args "(-E test1.c)"
     rm compiler.args
 
     # Even though -Werror is not passed to the preprocessor, it should be part
@@ -1757,7 +1771,7 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 2
     expect_stat files_in_cache 2
-    expect_content_pattern compiler.args "(-E -o * test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
+    expect_content_pattern compiler.args "(-E test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
     rm compiler.args
 
     # -------------------------------------------------------------------------

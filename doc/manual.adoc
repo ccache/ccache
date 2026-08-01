@@ -741,15 +741,6 @@ Semantics of *compression_level*:
 +
 See the https://facebook.github.io/zstd/[Zstandard documentation] for more information.
 
-[#config_cpp_extension]
-*cpp_extension* (*CCACHE_EXTENSION*)::
-
-    This option can be used to force a certain extension for the intermediate
-    preprocessed file. The default is to automatically determine the extension
-    to use for intermediate preprocessor files based on the type of file being
-    compiled, but that sometimes doesn't work. For example, when using the
-    "`aCC`" compiler on HP-UX, set the cpp extension to *i*.
-
 [#config_debug]
 *debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see _<<Boolean values>>_ above)::
 
