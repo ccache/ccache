@@ -1866,6 +1866,16 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     }
   }
 
+  // Hash the contents of explicitly imported module files (-fmodule-file=).
+  // The pcm content is not visible in the preprocessed output
+  for (const auto& module_file : ctx.args_info.module_files) {
+    LOG("Hashing module file {}", module_file);
+    hash.hash_delimiter("modulefile");
+    if (!hash_binary_file(ctx, hash, module_file)) {
+      return tl::unexpected(Statistic::error_hashing_extra_file);
+    }
+  }
+
   if (!(ctx.args_info.build_session_file.empty())) {
     // When using -fbuild-session-file, the actual mtime needs to be
     // added to the hash to prevent false positive cache hits if the

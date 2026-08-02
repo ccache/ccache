@@ -157,6 +157,9 @@ struct ArgsInfo
   // Files referenced by -fsanitize-ignorelist/-fsanitize-blacklist options.
   std::vector<std::filesystem::path> sanitize_ignorelists;
 
+  // Files referenced by -fmodule-file=<name>=<path> (explicit C++ modules).
+  std::vector<std::filesystem::path> module_files;
+
   // Architectures from -arch options.
   std::vector<std::string> arch_args;
 
