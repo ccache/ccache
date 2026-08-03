@@ -206,9 +206,10 @@ static const CompOpt*
 find_prefix(std::string_view option)
 {
   const CompOpt* max_co{};
-  for (const auto &co : compopts) {
+  for (const auto& co : compopts) {
     const auto prefix_matches = option.starts_with(co.name);
-    const auto length_larger = (!max_co || co.name.length() > max_co->name.length());
+    const auto length_larger =
+      (!max_co || co.name.length() > max_co->name.length());
     if (prefix_matches && length_larger) {
       max_co = &co;
     }

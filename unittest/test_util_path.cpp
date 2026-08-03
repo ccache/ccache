@@ -214,6 +214,7 @@ TEST_CASE("util::with_extension")
 
 TEST_CASE("util::perform_path_mapping")
 {
+  // clang-format off
   CHECK(util::perform_path_mapping("", {{"/foo", "/bar"}}) == "");
   CHECK(util::perform_path_mapping("/", {{"/foo", "/bar"}}) == "/");
   CHECK(util::perform_path_mapping("/foo/bar", {{"/foo", "/bar"}}) == "/bar/bar");
@@ -232,4 +233,5 @@ TEST_CASE("util::perform_path_mapping")
 
   CHECK(util::perform_path_mapping("C:/path", {{"D:/path", "/new-path"}}) == "C:/path");
 #endif
+  // clang-format on
 }
