@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -24,6 +24,8 @@
 class Config;
 
 namespace core {
+
+enum class DryRun { yes, no };
 
 enum class CacheEntryType : uint8_t { result = 0, manifest = 1 };
 

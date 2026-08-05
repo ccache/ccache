@@ -111,11 +111,13 @@ public:
 
   // --- Cleanup ---
 
-  void evict(const ProgressReceiver& progress_receiver,
+  void evict(core::DryRun dry_run,
+             const ProgressReceiver& progress_receiver,
              std::optional<uint64_t> max_age,
              std::optional<std::string> namespace_);
 
-  void clean_all(const ProgressReceiver& progress_receiver);
+  void clean_all(core::DryRun dry_run,
+                 const ProgressReceiver& progress_receiver);
 
   void wipe_all(const ProgressReceiver& progress_receiver);
 
@@ -173,7 +175,8 @@ private:
 
   void perform_automatic_cleanup();
 
-  void do_clean_all(const ProgressReceiver& progress_receiver,
+  void do_clean_all(core::DryRun dry_run,
+                    const ProgressReceiver& progress_receiver,
                     uint64_t max_size,
                     uint64_t max_files,
                     std::optional<uint64_t> max_age,

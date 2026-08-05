@@ -109,6 +109,10 @@ should use the normal compiler options and refer to your compiler's documentatio
     has the same effect as setting the environment variable `CCACHE_DIR`
     temporarily.
 
+*--dry-run*::
+
+    Do not perform any write operations.
+
 *--evict-namespace* _NAMESPACE_::
 
     Remove files created in the given <<config_namespace,*namespace*>> from the
