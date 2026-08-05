@@ -877,9 +877,6 @@ process_main_options(int argc, const char* const* argv)
       [&](double progress) { progress_bar.update(progress); },
       evict_max_age,
       evict_namespace);
-    if (isatty(STDOUT_FILENO)) {
-      PRINT(stdout, "\n");
-    }
   }
 
   return EXIT_SUCCESS;

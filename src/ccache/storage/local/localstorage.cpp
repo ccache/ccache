@@ -1305,13 +1305,14 @@ LocalStorage::do_clean_all(const ProgressReceiver& progress_receiver,
 
   uint64_t current_size = 0;
   uint64_t current_files = 0;
-  if (max_size > 0 || max_files > 0) {
-    for_each_cache_subdir([&](uint8_t i) {
-      auto counters = get_stats_file(i).read();
-      current_size += 1024 * counters.get(Statistic::cache_size_kibibyte);
-      current_files += counters.get(Statistic::files_in_cache);
-    });
-  }
+  for_each_cache_subdir([&](uint8_t i) {
+    auto counters = get_stats_file(i).read();
+    current_size += 1024 * counters.get(Statistic::cache_size_kibibyte);
+    current_files += counters.get(Statistic::files_in_cache);
+  });
+
+  uint64_t total_removed_size = 0;
+  uint64_t total_removed_files = 0;
 
   for_each_cache_subdir(
     progress_receiver, [&](uint8_t l1_index, const auto& l1_progress_receiver) {
@@ -1337,6 +1338,9 @@ LocalStorage::do_clean_all(const ProgressReceiver& progress_receiver,
           uint64_t removed_files =
             clean_dir_result.before.files - clean_dir_result.after.files;
 
+          total_removed_size += removed_size;
+          total_removed_files += removed_files;
+
           // removed_size/remove_files should never be larger than
           // current_size/current_files, but in case there's some error we
           // certainly don't want to underflow, so better safe than sorry.
@@ -1361,6 +1365,27 @@ LocalStorage::do_clean_all(const ProgressReceiver& progress_receiver,
 
       set_counters(get_stats_file(l1_index), level_1_counters);
     });
+
+  if (isatty(STDOUT_FILENO)) {
+    PRINT(stdout, "\n\n");
+  }
+
+  auto human_readable = [&](uint64_t size) {
+    return util::format_human_readable_size(size,
+                                            m_config.size_unit_prefix_type());
+  };
+
+  const auto [removed_size_quantity, removed_size_unit] =
+    util::split_once(human_readable(total_removed_size), ' ');
+  ASSERT(removed_size_unit);
+
+  using C = util::TextTable::Cell;
+  util::TextTable table;
+  table.add_row({"Removed data:",
+                 C(removed_size_quantity).right_align(),
+                 *removed_size_unit});
+  table.add_row({"Removed files:", C(total_removed_files)});
+  PRINT(stdout, "{}", table.render());
 }
 
 std::optional<LocalStorage::EvaluateCleanupResult>
