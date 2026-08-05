@@ -500,8 +500,10 @@ Windows and `:` on other systems.
 *base_dir* (*CCACHE_BASEDIR*)::
 
     This option specifies a list of absolute paths. When set, ccache converts
-    absolute paths to relative paths before hashing, but only for paths that
-    start with one of the specified base directories.
+    absolute paths to relative paths before sending them to the compiler (or
+    including them in the input hash), but only for paths that start with one of
+    the specified base directories. "Relative" here means "relative to the
+    current working directory".
 +
 This enables cache sharing between compilations in different directories, even
 when the project uses absolute paths. See
