@@ -1754,7 +1754,6 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   if (ctx.config.is_compiler_group_msvc()) {
     const char* msvc_env_vars[] = {
       "VCToolsVersion",
-      "VCToolsInstallDir",
     };
     for (const char* name : msvc_env_vars) {
       const char* value = getenv(name);
