@@ -525,13 +525,13 @@ Here is what ccache will actually execute for different *base_dir* settings:
 -------------------------------------------------------------------------------
 # Current working directory: /home/alice/project1/build
 
-# With base_dir = /:
+# With "base_dir = /":
 gcc -I../../../../usr/include/example -I../../project2/include -c ../src/example.c
 
-# With base_dir = /home or /home/alice:
+# With "base_dir = /home" or "base_dir = /home/alice":
 gcc -I/usr/include/example -I../../project2/include -c ../src/example.c
 
-# With base_dir = /home/alice/project1 or /home/alice/project1/src:
+# With "base_dir = /home/alice/project1" or "base_dir = /home/alice/project1/src":
 gcc -I/usr/include/example -I/home/alice/project2/include -c ../src/example.c
 -------------------------------------------------------------------------------
 +
@@ -542,7 +542,7 @@ rewritten command lines will be identical:
 -------------------------------------------------------------------------------
 # Current working directory: /home/bob/stuff/project1/build
 
-# With base_dir = /home or /home/bob:
+# With "base_dir = /home" or "base_dir = /home/bob":
 gcc -I/usr/include/example -I../../project2/include -c ../src/example.c
 -------------------------------------------------------------------------------
 +
