@@ -477,14 +477,17 @@ Each boolean environment variable also has a negated form starting with
 `CCACHE_NOCOMPRESS` can be set to force no compression.
 
 
+=== Path lists
+
+Options that define a list of paths have their entries separated by `;` on
+Windows and `:` on other systems.
+
+
 === Configuration options
 
 Below is a list of available configuration options. The corresponding
 environment variable name is indicated in parentheses after each configuration
 option key.
-
-Options that define a list of paths have their entries separated by `;` on
-Windows and `:` on other systems.
 
 [#config_absolute_paths_in_stderr]
 *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
@@ -499,11 +502,11 @@ Windows and `:` on other systems.
 [#config_base_dir]
 *base_dir* (*CCACHE_BASEDIR*)::
 
-    This option specifies a list of absolute paths. When set, ccache converts
-    absolute paths to relative paths before sending them to the compiler (or
-    including them in the input hash), but only for paths that start with one of
-    the specified base directories. "Relative" here means "relative to the
-    current working directory".
+    This option specifies a <<Path lists,list of absolute paths>>. When set,
+    ccache converts absolute paths to relative paths before sending them to the
+    compiler (or including them in the input hash), but only for paths that
+    start with one of the specified base directories. "Relative" here means
+    "relative to the current working directory".
 +
 This enables cache sharing between compilations in different directories, even
 when the project uses absolute paths. See
@@ -800,8 +803,8 @@ the string `ccache:disable` in a comment in the first 4096 bytes of the file.
 [#config_extra_files_to_hash]
 *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
 
-    This option is a list of paths to files that ccache will include in the hash
-    sum that identifies the build.
+    This option is a <<Path lists,list of paths>> to files that ccache will
+    include in the hash sum that identifies the build.
 
 [#config_file_clone]
 *file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see _<<Boolean values>>_ above)::
@@ -874,10 +877,10 @@ might be incorrect.
 [#config_ignore_headers_in_manifest]
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
-    This option is a list of paths to files (or directories with headers) that
-    ccache will *not* include in the manifest list that makes up the direct
-    mode. Note that this can cause stale cache hits if those headers do indeed
-    change.
+    This option is a <<Path lists,list of paths>> to files (or directories with
+    headers) that ccache will *not* include in the manifest list that makes up
+    the direct mode. Note that this can cause stale cache hits if those headers
+    do indeed change.
 
 [#config_ignore_options]
 *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
