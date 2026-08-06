@@ -1740,7 +1740,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       const char* value = getenv(name);
       if (value) {
         hash.hash_delimiter(name);
-        hash.hash(value);
+        hash.hash(util::perform_path_mapping(value, ctx.config.path_mapping()));
       }
     }
   }
@@ -2361,8 +2361,12 @@ get_manifest_key(Context& ctx, Hash& hash)
   for (const char* name : envvars) {
     const char* v = getenv(name);
     if (v) {
+      auto paths = util::split_path_list(v);
+      for (auto& path : paths) {
+        path = util::perform_path_mapping(path, ctx.config.path_mapping());
+      }
       hash.hash_delimiter(name);
-      hash.hash(v);
+      hash.hash(util::join_path_list(paths));
     }
   }
 
