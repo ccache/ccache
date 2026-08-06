@@ -594,23 +594,20 @@ parse_path_mapping(const std::string_view& path_mapping_string)
 {
   std::vector<std::pair<fs::path, fs::path>> result;
 
-  // Split by path delimiter (platform-specific)
-  auto mappings = util::split_into_views(path_mapping_string, k_path_delimiter);
+  const auto mappings =
+    util::split_into_views(path_mapping_string, k_path_delimiter);
 
   for (const auto& mapping : mappings) {
-    // Split each mapping by '='
     auto [key, value] = util::split_once_into_views(mapping, '=');
     if (!value) {
-      // Skip invalid entries without '='
       continue;
     }
 
-    // Strip whitespace from both key and value
-    std::string_view key_stripped = util::strip_whitespace(key);
-    std::string_view value_stripped = util::strip_whitespace(*value);
+    key = util::strip_whitespace(key);
+    value = util::strip_whitespace(*value);
 
-    if (!key_stripped.empty() && !value_stripped.empty()) {
-      result.emplace_back(key_stripped, value_stripped);
+    if (!key.empty() && !value->empty()) {
+      result.emplace_back(key, *value);
     }
   }
 
