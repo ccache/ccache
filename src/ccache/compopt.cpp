@@ -217,7 +217,20 @@ find_prefix(std::string_view option)
                          std::size(compopts),
                          sizeof(compopts[0]),
                          compare_prefix_compopts);
-  return static_cast<CompOpt*>(result);
+  if (!result) {
+    return {};
+  }
+  // It's possible that option starts with "-FI" and result is "-F".
+  // Search forward for a longer match until prefixes stop matching.
+  auto max_co = static_cast<const CompOpt*>(result);
+  for (auto co = max_co + 1;
+       co < std::end(compopts) && option.starts_with(co->name);
+       ++co) {
+    if (co->name.length() > max_co->name.length()) {
+      max_co = co;
+    }
+  }
+  return max_co;
 }
 
 // Used by unittest/test_compopt.cpp.
