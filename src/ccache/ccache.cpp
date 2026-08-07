@@ -1070,7 +1070,7 @@ write_result(Context& ctx,
     LOG("Source dependencies file {} missing", ctx.args_info.output_sd);
     return false;
   }
-  if (ctx.args_info.output_sarif.has_filename()
+  if (!ctx.args_info.output_sarif.empty()
       && !serializer.add_file(core::result::FileType::sarif,
                               ctx.args_info.output_sarif)) {
     LOG("Sarif file {} missing", ctx.args_info.output_sarif);
@@ -3030,7 +3030,7 @@ do_cache_compilation(Context& ctx)
   if (!ctx.args_info.output_sd.empty()) {
     LOG("Source dependencies file: {}", ctx.args_info.output_sd);
   }
-  if (ctx.args_info.output_sarif.has_filename()) {
+  if (!ctx.args_info.output_sarif.empty()) {
     LOG("Sarif file: {}", ctx.args_info.output_sarif);
   }
   if (!ctx.args_info.output_dwo.empty()) {

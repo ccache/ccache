@@ -1258,44 +1258,46 @@ process_option_arg(const Context& ctx,
     auto param =
       arg_sv.substr(std::string_view("-fdiagnostics-set-output=").size());
     // we care for sarif only
-    auto sarif_pos = param.find("sarif");
-    if (sarif_pos == std::string_view::npos) {
-      return Statistic::none;
-    }
-    // we need a sarif file parameter
-    auto file_pos = param.find("file=");
-    if (file_pos != std::string_view::npos) {
-      // check if sarif is already active
-      if (!ctx.args_info.output_sarif.empty()) {
-        LOG("no support for multiple sarif files");
-        return Statistic::unsupported_compiler_option;
-      }
-      auto file_param =
-        param.substr(file_pos + std::string_view("file=").size());
-      auto file_end = file_param.find(',');
-      if (file_end != std::string_view::npos) {
-        args_info.output_sarif =
-          core::make_relative_path(ctx, file_param.substr(0, file_end));
-      } else {
-        args_info.output_sarif = core::make_relative_path(ctx, file_param);
-      }
-    } else {
-      // this append the '.' directory so output sarif is not empty but also has
-      // no filename
+    if (param == "sarif") {
+      // just "sarif" indicate default location which is unsupported we need a
+      // file name -> "sarif:"
       args_info.output_sarif = std::filesystem::path(".") / "";
-      LOG("no support for sarif file default location");
+      LOG("No support for sarif without file key");
       return Statistic::unsupported_compiler_option;
     }
+    if (!param.starts_with("sarif:")) {
+      return Statistic::none;
+    }
+
+    if (!ctx.args_info.output_sarif.empty()) {
+      LOG("No support for multiple sarif files");
+      return Statistic::unsupported_compiler_option;
+    }
+
+    auto par_keys = param.substr(std::string_view("sarif:").size());
+
+    for (auto key : util::split_into_views(par_keys, ",")) {
+      if (key.starts_with("file=")) {
+        auto file = key.substr(std::string_view("file=").size());
+        args_info.output_sarif = core::make_relative_path(ctx, file);
+      }
+    }
+
+    if (ctx.args_info.output_sarif.empty()) {
+      args_info.output_sarif = std::filesystem::path(".") / "";
+      LOG("No support for sarif file default location");
+      return Statistic::unsupported_compiler_option;
+    }
+
     return Statistic::none;
   }
 
   const std::string_view msvc_sarif_switch = "-experimental:log";
-  if (arg.starts_with(msvc_sarif_switch)) {
+  if (config.is_compiler_group_msvc() && arg.starts_with(msvc_sarif_switch)) {
     state.add_compiler_only_arg(args[i]);
-    if (args_info.diagnostics_output.empty()) {
-      args_info.diagnostics_output = arg;
-    } else {
-      LOG("no support for multiple -experimental:log");
+
+    if (!args_info.output_sarif.empty()) {
+      LOG("No support for multiple -experimental:log");
       return Statistic::unsupported_compiler_option;
     }
 
@@ -1801,8 +1803,14 @@ process_args(Context& ctx)
   if (ctx.config.is_compiler_group_msvc() && !args_info.output_sarif.empty()
       && !args_info.output_sarif.has_filename()) {
     // if a directory (not has_filename) generate and append filename
-    args_info.output_sarif /=
+    args_info.output_sarif +=
       args_info.input_file.stem().generic_string() + ".sarif";
+  }
+
+  // if output_sarif there is still no filename but its not empty empty it
+  // too reduce special cases in in other functions
+  if ( !args_info.output_sarif.empty() && !args_info.output_sarif.has_filename() ) {
+    args_info.output_sarif = "";
   }
 
   // Determine output dependency file.

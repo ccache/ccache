@@ -213,9 +213,7 @@ ResultRetriever::get_dest_path(FileType file_type) const
     return m_ctx.args_info.output_sd;
 
   case FileType::sarif:
-    if (m_ctx.args_info.output_sarif.has_filename()) {
-      return m_ctx.args_info.output_sarif;
-    }
+    return m_ctx.args_info.output_sarif;
     break;
   }
 
