@@ -17,6 +17,7 @@ set_property(
   ADDITIONAL_CLEAN_FILES "${CMAKE_BINARY_DIR}/testdir")
 
 addtest(base)
+addtest(fmodule_file)
 addtest(basedir)
 addtest(cache_levels)
 addtest(clang_cu)

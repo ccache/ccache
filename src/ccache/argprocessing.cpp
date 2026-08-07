@@ -1051,6 +1051,19 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (arg.starts_with("-fmodule-file=")) {
+    // -fmodule-file=<name>=<path> or -fmodule-file=<path> for explicit C++
+    // module imports.
+    constexpr std::string_view module_file_flag = "-fmodule-file=";
+    auto value = std::string_view(arg).substr(module_file_flag.size());
+    if (auto sep = value.find('='); sep != std::string_view::npos) {
+      value = value.substr(sep + 1); // drop the optional "<name>=" prefix
+    }
+    args_info.module_files.emplace_back(value);
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   if (arg.starts_with("--sysroot=")) {
     auto path = std::string_view(arg).substr(10);
     auto relpath = core::make_relative_path(ctx, path);
