@@ -1798,7 +1798,7 @@ process_args(Context& ctx)
   }
 
   // for msvc a directory is extend to a file
-  // for gcc thing filename and location is version dependent and cannot be
+  // for gcc the filename and location is version dependent and cannot be
   // generated
   if (ctx.config.is_compiler_group_msvc() && !args_info.output_sarif.empty()
       && !args_info.output_sarif.has_filename()) {
@@ -1807,9 +1807,10 @@ process_args(Context& ctx)
       args_info.input_file.stem().generic_string() + ".sarif";
   }
 
-  // if output_sarif there is still no filename but its not empty empty it
+  // if output_sarif still has no filename but is not empty, empty it
   // too reduce special cases in in other functions
-  if ( !args_info.output_sarif.empty() && !args_info.output_sarif.has_filename() ) {
+  if (!args_info.output_sarif.empty()
+      && !args_info.output_sarif.has_filename()) {
     args_info.output_sarif = "";
   }
 
