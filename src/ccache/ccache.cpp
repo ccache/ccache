@@ -1862,7 +1862,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     LOG("Hashing sanitize ignorelist {}", sanitize_ignorelist);
     hash.hash_delimiter("sanitizeignorelist");
     if (!hash_binary_file(ctx, hash, sanitize_ignorelist)) {
-      return tl::unexpected(Statistic::error_hashing_extra_file);
+      return tl::unexpected(Statistic::bad_input_file);
     }
   }
 
@@ -1872,7 +1872,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     LOG("Hashing module file {}", module_file);
     hash.hash_delimiter("modulefile");
     if (!hash_binary_file(ctx, hash, module_file)) {
-      return tl::unexpected(Statistic::error_hashing_extra_file);
+      return tl::unexpected(Statistic::bad_input_file);
     }
   }
 
