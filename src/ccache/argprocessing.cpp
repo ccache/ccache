@@ -1199,8 +1199,8 @@ process_option_arg(const Context& ctx,
     if (state.found_fdiagnostics_set_output
         || state.found_fdiagnostics_add_output) {
       LOG(
-        "no support for combination of -diagnostics-format and another "
-        "-diagnostics-add/set-output or -diagnostics-format");
+        "No support for combination of -fdiagnostics-format and another"
+        " -fdiagnostics-add/set-output or -fdiagnostics-format");
       // set this  even in case of early return
       state.found_fdiagnostics_set_output = true;
       return Statistic::unsupported_compiler_option;
@@ -1227,8 +1227,8 @@ process_option_arg(const Context& ctx,
     if (state.found_fdiagnostics_set_output
         || state.found_fdiagnostics_add_output) {
       LOG(
-        "no support for combination of -diagnostics-set-output and another "
-        "-diagnostics-add/set-output or -diagnostics-format");
+        "No support for combination of -fdiagnostics-set-output and another"
+        " -fdiagnostics-add/set-output or -fdiagnostics-format");
       // set this  even in case of early return
       state.found_fdiagnostics_set_output = true;
       return Statistic::unsupported_compiler_option;
@@ -1242,8 +1242,8 @@ process_option_arg(const Context& ctx,
     // add a diagnostic output we support multiple of these but not set
     if (state.found_fdiagnostics_set_output) {
       LOG(
-        "no support for combination of -diagnostics-add-output and another "
-        "-diagnostics-set-output or -diagnostics-format");
+        "No support for combination of -fdiagnostics-add-output and another"
+        " -fdiagnostics-set-output or -fdiagnostics-format");
       // set this  even in case of early return
       state.found_fdiagnostics_add_output = true;
       return Statistic::unsupported_compiler_option;
