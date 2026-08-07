@@ -98,6 +98,7 @@ TEST_CASE("prefix_takes_path")
 {
   CHECK(compopt_prefix_takes_path("-Dfoo") == std::nullopt);
   CHECK(*compopt_prefix_takes_path("-Ifoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-FIfoo") == "foo");
 }
 
 TEST_SUITE_END();
