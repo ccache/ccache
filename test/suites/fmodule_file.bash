@@ -2,9 +2,9 @@
 # are part of the hash, so that changes to a module (e.g. template function
 # bodies) invalidate cached consumer object files.
 #
-# A precompiled module file (pcm) is not part of the preprocessed
-# output of a consumer translation unit, so without explicit hashing the consumer
-# gets a false cache hit after the module changes and silently runs stale code.
+# A precompiled module file (pcm) is not part of the preprocessed output of a
+# consumer translation unit, so without explicit hashing the consumer gets a
+# false cache hit after the module changes and silently runs stale code.
 
 SUITE_fmodule_file_PROBE() {
     if ! $COMPILER_TYPE_CLANG || $COMPILER_USES_MSVC; then
