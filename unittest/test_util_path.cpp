@@ -221,6 +221,7 @@ TEST_CASE("util::perform_path_mapping")
   CHECK(util::perform_path_mapping("/foo/bar", {{"/bar", "/foo"}}) == "/foo/bar");
   CHECK(util::perform_path_mapping("/bar/foo", {{"/bar", "/foo"}}) == "/foo/foo");
   CHECK(util::perform_path_mapping("/bar/foo", {{"/foo", "/bar"}}) == "/bar/foo");
+  CHECK(util::perform_path_mapping("/bar/foo", {{"/foo", "/bar"}}, true) == "/foo/foo");
 #ifdef _WIN32
   CHECK(util::perform_path_mapping("D:/path", {{"D:/path", "/new-path"}}) == "/new-path");
   CHECK(util::perform_path_mapping("D:\\path", {{"D:/path", "/new-path"}}) == "/new-path");
@@ -232,6 +233,7 @@ TEST_CASE("util::perform_path_mapping")
   CHECK(util::perform_path_mapping("D:\\path\\to", {{"D:/path", "\\new-path"}}) == "\\new-path\\to");
 
   CHECK(util::perform_path_mapping("C:/path", {{"D:/path", "/new-path"}}) == "C:/path");
+  CHECK(util::perform_path_mapping("C:/path", {{"D:/path", "C:/path"}}, true) == "D:/path");
 #endif
   // clang-format on
 }

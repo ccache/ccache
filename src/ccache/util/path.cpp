@@ -197,15 +197,18 @@ path_starts_with(const std::filesystem::path& path,
 fs::path
 perform_path_mapping(
   const fs::path& path,
-  const std::vector<std::pair<fs::path, fs::path>>& path_mapping)
+  const std::vector<std::pair<fs::path, fs::path>>& path_mapping,
+  bool reverse)
 {
   for (const auto& [key, value] : path_mapping) {
-    if (!path_starts_with(path, key)) {
+    const auto& from = reverse ? value : key;
+    const auto& to = reverse ? key : value;
+    if (!path_starts_with(path, from)) {
       continue;
     }
     const auto& suffix =
-      remove_leading_components(path, std::ranges::distance(key));
-    return suffix.empty() ? value : (value / suffix);
+      remove_leading_components(path, std::ranges::distance(from));
+    return suffix.empty() ? to : (to / suffix);
   }
   return path;
 }
