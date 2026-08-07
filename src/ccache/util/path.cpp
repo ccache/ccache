@@ -18,12 +18,14 @@
 
 #include "path.hpp"
 
+#include <ccache/util/assertions.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
-#include <ccache/util/string.hpp>
+#include <ccache/util/wincompat.hpp>
 
 #include <algorithm>
+#include <utility>
 
 #ifdef _WIN32
 const char k_dev_null_path[] = "nul:";
@@ -39,12 +41,46 @@ fs::path
 lexically_relative_case_aware(const fs::path& path, const fs::path& base)
 {
 #ifdef _WIN32
-  // Note: Case-folding might in theory lead to an incorrect path on Windows
-  // since not all filesystems are case-insensitive, but this is only done to
-  // produce a candidate path that will be verified by the caller later.
-  fs::path p = util::to_lowercase(path.string());
-  fs::path b = util::to_lowercase(base.string());
-  return p.lexically_relative(b);
+  // Note: Case-insensitive comparison might in theory lead to an incorrect path
+  // on Windows since not all filesystems are case-insensitive, but this is only
+  // done to produce a candidate path that will be verified by the caller later.
+  if (!util::path_components_equal_case_aware(path.root_name(),
+                                              base.root_name())
+      || path.is_absolute() != base.is_absolute()
+      || (!path.has_root_directory() && base.has_root_directory())) {
+    return {};
+  }
+
+  auto [path_it, base_it] =
+    std::mismatch(path.begin(),
+                  path.end(),
+                  base.begin(),
+                  base.end(),
+                  util::path_components_equal_case_aware);
+  if (path_it == path.end() && base_it == base.end()) {
+    return ".";
+  }
+
+  int num_parents = 0;
+  for (; base_it != base.end(); ++base_it) {
+    if (*base_it == "..") {
+      --num_parents;
+    } else if (*base_it != "." && !base_it->empty()) {
+      ++num_parents;
+    }
+  }
+  if (num_parents < 0) {
+    return {};
+  }
+
+  fs::path result;
+  for (int i = 0; i < num_parents; ++i) {
+    result /= "..";
+  }
+  for (; path_it != path.end(); ++path_it) {
+    result /= *path_it;
+  }
+  return result;
 #else
   return path.lexically_relative(base);
 #endif
@@ -142,14 +178,66 @@ make_relative_path(const fs::path& dir1,
 }
 
 bool
+path_components_equal_case_aware(const fs::path& component1,
+                                 const fs::path& component2)
+{
+#ifdef _WIN32
+  const auto& string1 = component1.native();
+  const auto& string2 = component2.native();
+  if (string1.empty() || string2.empty()) {
+    return string1.empty() && string2.empty();
+  }
+  if (!std::in_range<int>(string1.size())
+      || !std::in_range<int>(string2.size())) {
+    return false;
+  }
+  return CompareStringOrdinal(string1.data(),
+                              static_cast<int>(string1.size()),
+                              string2.data(),
+                              static_cast<int>(string2.size()),
+                              TRUE)
+         == CSTR_EQUAL;
+#else
+  return component1.native() == component2.native();
+#endif
+}
+
+bool
+path_component_starts_with_case_aware(const fs::path& component,
+                                      const fs::path& prefix)
+{
+  const auto& string = component.native();
+  const auto& prefix_string = prefix.native();
+  if (prefix_string.size() > string.size()) {
+    return false;
+  }
+#ifdef _WIN32
+  if (prefix_string.empty()) {
+    return true;
+  }
+  if (!std::in_range<int>(prefix_string.size())) {
+    return false;
+  }
+  return CompareStringOrdinal(string.data(),
+                              static_cast<int>(prefix_string.size()),
+                              prefix_string.data(),
+                              static_cast<int>(prefix_string.size()),
+                              TRUE)
+         == CSTR_EQUAL;
+#else
+  return string.starts_with(prefix_string);
+#endif
+}
+
+bool
 path_starts_with(const fs::path& path, const fs::path& prefix)
 {
 #ifdef _WIN32
   // Note: Not all paths on Windows are case insensitive, but for our purposes
   // (checking whether a path is below the base directory) users will expect
   // them to be.
-  fs::path p1 = util::to_lowercase(util::lexically_normal(path).string());
-  fs::path p2 = util::to_lowercase(util::lexically_normal(prefix).string());
+  fs::path p1 = util::lexically_normal(path);
+  fs::path p2 = util::lexically_normal(prefix);
 #else
   const fs::path& p1 = path;
   const fs::path& p2 = prefix;
@@ -164,7 +252,12 @@ path_starts_with(const fs::path& path, const fs::path& prefix)
     }
   }
 
-  return std::mismatch(p1.begin(), p1.end(), p2.begin(), p2_end).second
+  return std::mismatch(p1.begin(),
+                       p1.end(),
+                       p2.begin(),
+                       p2_end,
+                       util::path_components_equal_case_aware)
+           .second
          == p2_end;
 }
 

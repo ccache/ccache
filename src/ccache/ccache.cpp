@@ -429,12 +429,8 @@ remember_include_file(Context& ctx,
 
   if (!ctx.ignore_header_paths.empty()) {
     // Canonicalize path for comparison; Clang uses ./header.h.
-    auto canonical_path_str =
+    const std::string& canonical_path_str =
       path_str.str().starts_with("./") ? path_str.str().substr(2) : path_str;
-#ifdef _WIN32
-    // Handle case-insensitive paths by converting to lowercase.
-    canonical_path_str = util::to_lowercase(canonical_path_str);
-#endif
     for (const auto& ignore_header_path : ctx.ignore_header_paths) {
       if (file_path_matches_dir_prefix_or_file(ignore_header_path,
                                                canonical_path_str)) {
@@ -3200,11 +3196,7 @@ do_cache_compilation(Context& ctx)
 bool
 is_ccache_executable(const fs::path& path)
 {
-  std::string name = path.filename().string();
-#ifdef _WIN32
-  name = util::to_lowercase(name);
-#endif
-  return name.starts_with("ccache");
+  return util::path_component_starts_with_case_aware(path.filename(), "ccache");
 }
 
 bool
@@ -3217,7 +3209,8 @@ file_path_matches_dir_prefix_or_file(const fs::path& dir_prefix_or_file,
   auto end = std::mismatch(dir_prefix_or_file.begin(),
                            dir_prefix_or_file.end(),
                            file_path.begin(),
-                           file_path.end())
+                           file_path.end(),
+                           util::path_components_equal_case_aware)
                .first;
   return end == dir_prefix_or_file.end() || end->empty();
 }
