@@ -1,7 +1,7 @@
 # Typical build directories
 /build*/
 
-# Typical cache directory
+# Typical cache directory e.g.: clangd
 /.cache/
 
 # CLion
