@@ -503,7 +503,7 @@ check_included_pch_file(Context& ctx, Hash& hash)
       && !ctx.args_info.generating_pch) {
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
+    hash.hash(util::perform_path_mapping(pch_path, ctx.config.path_mapping()));
     TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
   return {};
@@ -662,7 +662,8 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       inc_path_str.clear(); // inc_path is used from now on
 
       if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(inc_path);
+        hash.hash(
+          util::perform_path_mapping(inc_path, ctx.config.path_mapping()));
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
@@ -1743,7 +1744,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       const char* value = getenv(name);
       if (value) {
         hash.hash_delimiter(name);
-        hash.hash(value);
+        hash.hash(util::perform_path_mapping(value, ctx.config.path_mapping()));
       }
     }
   }
@@ -1987,19 +1988,27 @@ hash_native_args(Context& ctx, const util::Args& native_args, Hash& hash)
   return {};
 }
 
-static std::tuple<std::optional<std::string_view>,
-                  std::optional<std::string_view>>
+static std::tuple<std::optional<std::string_view>, std::optional<std::string>>
 get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
 {
-  if (args[i] == option) {
+  // Handle MSVC and clang-cl quirks
+  auto arg = args[i];
+  if (arg.starts_with('/')) {
+    arg[0] = '-';
+  }
+  if (arg.starts_with("-clang:")) {
+    arg = arg.substr(7);
+  }
+
+  if (arg == option) {
     if (i + 1 < args.size()) {
       ++i;
-      return {option, args[i]};
+      return {option, arg};
     } else {
       return {std::nullopt, std::nullopt};
     }
-  } else if (args[i].starts_with(option)) {
-    return {option, std::string_view(args[i]).substr(option.length())};
+  } else if (arg.starts_with(option)) {
+    return {option, arg.substr(option.length())};
   } else {
     return {std::nullopt, std::nullopt};
   }
@@ -2147,19 +2156,36 @@ hash_argument(const Context& ctx,
   // directories and similar input paths exist. Note that this is not 100%
   // waterproof since it only detects newly appearing directories and not newly
   // appearing header files.
-  if (direct_mode) {
+  {
     std::optional<std::string_view> path;
+    bool space_in_between = false;
+    std::string compopt;
     if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
-      path = args[i + 1];
+      compopt = args[i];
+      path = args[++i]; // Consume both prefix & path
+      space_in_between = true;
     } else {
-      auto p = compopt_prefix_takes_path(args[i]);
-      if (p) {
-        path = *p;
+      path = compopt_prefix_takes_path(args[i]);
+      if (path) {
+        compopt = args[i].substr(0, args[i].length() - path->length());
       }
     }
     if (path) {
+      const auto mapped_path =
+        util::perform_path_mapping(*path, ctx.config.path_mapping());
       hash.hash_delimiter("path exists");
-      hash.hash(FMT("{} {}", *path, fs::exists(*path) ? "1" : "0"));
+      hash.hash(FMT("{} {}", mapped_path, fs::exists(*path) ? "1" : "0"));
+      if (space_in_between) {
+        // Emulate the behavior at the end of this function
+        hash.hash_delimiter("arg");
+        hash.hash(compopt);
+        hash.hash_delimiter("arg");
+        hash.hash(mapped_path);
+      } else {
+        hash.hash_delimiter("arg");
+        hash.hash(FMT("{}{}", compopt, mapped_path));
+      }
+      return {};
     }
   }
 
@@ -2347,8 +2373,12 @@ get_manifest_key(Context& ctx, Hash& hash)
   for (const char* name : envvars) {
     const char* v = getenv(name);
     if (v) {
+      auto paths = util::split_path_list(v);
+      for (auto& path : paths) {
+        path = util::perform_path_mapping(path, ctx.config.path_mapping());
+      }
       hash.hash_delimiter(name);
-      hash.hash(v);
+      hash.hash(util::join_path_list(paths));
     }
   }
 
@@ -2364,7 +2394,8 @@ get_manifest_key(Context& ctx, Hash& hash)
   //     share manifests and a/r.h exists.
   // * The expansion of __FILE__ may be incorrect.
   hash.hash_delimiter("inputfile");
-  hash.hash(ctx.args_info.input_file);
+  hash.hash(util::perform_path_mapping(ctx.args_info.input_file,
+                                       ctx.config.path_mapping()));
 
   if (!ctx.args_info.input_file_prefix.empty()) {
     hash.hash_delimiter("inputfile prefix");

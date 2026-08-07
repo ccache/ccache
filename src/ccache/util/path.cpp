@@ -50,6 +50,22 @@ lexically_relative_case_aware(const fs::path& path, const fs::path& base)
 #endif
 }
 
+fs::path
+remove_leading_components(const fs::path& p, const std::size_t count)
+{
+  fs::path result;
+  std::size_t current = 0;
+
+  for (const auto& element : p) {
+    if (current >= count) {
+      result /= element;
+    }
+    current++;
+  }
+
+  return result;
+}
+
 } // namespace
 
 namespace util {
@@ -176,6 +192,25 @@ path_starts_with(const std::filesystem::path& path,
     std::begin(prefixes), std::end(prefixes), [&](const fs::path& prefix) {
       return path_starts_with(path, prefix);
     });
+}
+
+fs::path
+perform_path_mapping(
+  const fs::path& path,
+  const std::vector<std::pair<fs::path, fs::path>>& path_mapping,
+  bool reverse)
+{
+  for (const auto& [key, value] : path_mapping) {
+    const auto& from = reverse ? value : key;
+    const auto& to = reverse ? key : value;
+    if (!path_starts_with(path, from)) {
+      continue;
+    }
+    const auto& suffix =
+      remove_leading_components(path, std::ranges::distance(from));
+    return suffix.empty() ? to : (to / suffix);
+  }
+  return path;
 }
 
 } // namespace util
