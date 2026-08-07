@@ -125,6 +125,13 @@ public:
     m_extra_args_to_hash.push_back(std::forward<T>(arg));
   }
 
+  void
+  drop_compiler_only_arg()
+  {
+    m_compiler_args.pop_back();
+    m_extra_args_to_hash.pop_back();
+  }
+
   template<typename T>
   void
   add_compiler_only_arg_no_hash(T&& arg)
@@ -1253,6 +1260,12 @@ process_option_arg(const Context& ctx,
   }
 
   if (arg_is_diagnostics_set_add_output) {
+    auto reassembled_arg = std::string("");
+    if (arg.starts_with("-fdiagnostics-set-output=")) {
+      reassembled_arg += "-fdiagnostics-set-output=";
+    } else {
+      reassembled_arg += "-fdiagnostics-add-output=";
+    }
     auto arg_sv = std::string_view(arg);
     // "set" and "add" an the same length
     auto param =
@@ -1268,18 +1281,27 @@ process_option_arg(const Context& ctx,
     if (!param.starts_with("sarif:")) {
       return Statistic::none;
     }
-
     if (!ctx.args_info.output_sarif.empty()) {
       LOG("No support for multiple sarif files");
       return Statistic::unsupported_compiler_option;
     }
+    reassembled_arg += "sarif:";
 
     auto par_keys = param.substr(std::string_view("sarif:").size());
-
+    bool first_key = true;
     for (auto key : util::split_into_views(par_keys, ",")) {
+      if (!first_key) {
+        first_key = false;
+        reassembled_arg += ",";
+      }
       if (key.starts_with("file=")) {
         auto file = key.substr(std::string_view("file=").size());
         args_info.output_sarif = core::make_relative_path(ctx, file);
+        reassembled_arg += "file=";
+        reassembled_arg += args_info.output_sarif;
+      } else {
+        // just copy any non file key
+        reassembled_arg += key;
       }
     }
 
@@ -1288,7 +1310,10 @@ process_option_arg(const Context& ctx,
       LOG("No support for sarif file default location");
       return Statistic::unsupported_compiler_option;
     }
-
+    // now we are sure we want to replace the least recently added
+    // compiler_only_arg -> drop it and add the reassembled one
+    state.drop_compiler_only_arg();
+    state.add_compiler_only_arg(reassembled_arg);
     return Statistic::none;
   }
 
