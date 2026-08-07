@@ -29,6 +29,10 @@ maybe_start_ipv6_http_server() {
 SUITE_remote_http_PROBE() {
     if ! "${HTTP_SERVER}" --help >/dev/null 2>&1; then
         echo "cannot execute ${HTTP_SERVER} - Python 3 might be missing"
+        return
+    fi
+    if ! probe_tcp_server_socket; then
+        echo "creating a local TCP server socket is not permitted"
     fi
 }
 

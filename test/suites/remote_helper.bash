@@ -21,6 +21,10 @@ start_test_helper() {
 SUITE_remote_helper_PROBE() {
     if [[ ! -f "${STORAGE_TEST_HELPER}" ]]; then
         echo "storage test helper not available"
+        return
+    fi
+    if ! $HOST_OS_WINDOWS && ! probe_unix_server_socket; then
+        echo "creating a local Unix server socket is not permitted"
     fi
 }
 

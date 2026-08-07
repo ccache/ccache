@@ -21,6 +21,9 @@ SUITE_remote_redis_unix_PROBE() {
         echo "redis-cli without socket"
         return
     fi
+    if ! probe_unix_server_socket; then
+        echo "creating a local Unix server socket is not permitted"
+    fi
 }
 
 start_redis_unix_server() {

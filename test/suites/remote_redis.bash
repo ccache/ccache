@@ -14,6 +14,9 @@ SUITE_remote_redis_PROBE() {
         echo "neither redis-cli nor valkey-cli found"
         return
     fi
+    if ! probe_tcp_server_socket; then
+        echo "creating a local TCP server socket is not permitted"
+    fi
 }
 
 start_redis_server() {

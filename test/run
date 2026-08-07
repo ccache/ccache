@@ -445,6 +445,29 @@ expect_perm() {
     fi
 }
 
+probe_tcp_server_socket() {
+    python3 -c '
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(1)
+' >/dev/null 2>&1
+}
+
+probe_unix_server_socket() {
+    python3 -c '
+import os
+import socket
+import tempfile
+
+with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR", "/tmp")) as tmpdir:
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        sock.bind(f"{tmpdir}/socket")
+        sock.listen(1)
+' >/dev/null 2>&1
+}
+
 reset_environment() {
     while IFS= read -r name; do
         if [[ $name =~ ^CCACHE_[A-Z0-9_]*$ ]]; then
