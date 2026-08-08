@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -20,28 +20,30 @@
 
 #include <ccache/util/format.hpp>
 
+#include <algorithm>
+
 // The option it too hard to handle at all.
-int TOO_HARD = 1 << 0;
+constexpr int TOO_HARD = 1 << 0;
 
 // The option it too hard for the direct mode.
-int TOO_HARD_DIRECT = 1 << 1;
+constexpr int TOO_HARD_DIRECT = 1 << 1;
 
 // The option takes a separate argument, e.g. "-D FOO=1".
-int TAKES_ARG = 1 << 2;
+constexpr int TAKES_ARG = 1 << 2;
 
 // The option takes a concatenated argument, e.g. "-DFOO=1".
-int TAKES_CONCAT_ARG = 1 << 3;
+constexpr int TAKES_CONCAT_ARG = 1 << 3;
 
 // The argument to the option is a path that may be rewritten if base_dir is
 // used.
-int TAKES_PATH = 1 << 4;
+constexpr int TAKES_PATH = 1 << 4;
 
 // The option only affects preprocessing; not included in the input hash in
 // preprocessor mode.
-int AFFECTS_CPP = 1 << 5;
+constexpr int AFFECTS_CPP = 1 << 5;
 
 // The option only affects compilation; not passed to the preprocessor.
-int AFFECTS_COMP = 1 << 6;
+constexpr int AFFECTS_COMP = 1 << 6;
 
 struct CompOpt
 {
@@ -50,7 +52,7 @@ struct CompOpt
 };
 
 // clang-format off
-const CompOpt compopts[] = {
+constexpr CompOpt compopts[] = {
   {"--Werror",                TAKES_ARG | AFFECTS_COMP                               }, // nvcc
   {"--analyzer-output",       TOO_HARD                                               }, // Clang
   {"--compiler-bindir",       AFFECTS_CPP | TAKES_ARG                                }, // nvcc
@@ -183,20 +185,20 @@ const CompOpt compopts[] = {
 };
 // clang-format on
 
+constexpr size_t k_min_compopt_length = [] {
+  size_t result = compopts[0].name.length();
+  for (const auto& compopt : compopts) {
+    result = std::min(result, compopt.name.length());
+  }
+  return result;
+}();
+
 static int
 compare_compopts(const void* key1, const void* key2)
 {
   const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
   const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
   return opt1->name.compare(opt2->name);
-}
-
-static int
-compare_prefix_compopts(const void* key1, const void* key2)
-{
-  const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
-  const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
-  return opt1->name.substr(0, opt2->name.length()).compare(opt2->name);
 }
 
 static const CompOpt*
@@ -211,13 +213,32 @@ find(std::string_view option)
 static const CompOpt*
 find_prefix(std::string_view option)
 {
-  CompOpt key{option, 0};
-  void* result = bsearch(&key,
-                         compopts,
-                         std::size(compopts),
-                         sizeof(compopts[0]),
-                         compare_prefix_compopts);
-  return static_cast<CompOpt*>(result);
+  if (option.length() < k_min_compopt_length) {
+    return nullptr;
+  }
+
+  auto it =
+    std::lower_bound(std::begin(compopts),
+                     std::end(compopts),
+                     option,
+                     [](const CompOpt& compopt, std::string_view value) {
+                       return compopt.name < value;
+                     });
+  if (it != std::end(compopts) && it->name == option) {
+    return it;
+  }
+
+  const auto min_prefix = option.substr(0, k_min_compopt_length);
+  while (it != std::begin(compopts)) {
+    --it;
+    if (!it->name.starts_with(min_prefix)) {
+      return nullptr;
+    }
+    if (option.starts_with(it->name)) {
+      return it;
+    }
+  }
+  return nullptr;
 }
 
 // Used by unittest/test_compopt.cpp.

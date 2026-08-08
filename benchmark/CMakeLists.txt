@@ -22,6 +22,7 @@ register_dependency(GoogleBenchmark DOWNLOADED "${_benchmark_version_string}")
 set(
   source_files
   main.cpp
+  benchmark_compopt.cpp
   benchmark_hashutil.cpp
 )
 
