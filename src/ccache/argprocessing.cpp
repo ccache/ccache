@@ -1297,8 +1297,7 @@ process_option_arg(const Context& ctx,
       if (key.starts_with("file=")) {
         auto file = key.substr(std::string_view("file=").size());
         args_info.output_sarif = core::make_relative_path(ctx, file);
-        reassembled_arg += "file=";
-        reassembled_arg += args_info.output_sarif;
+        reassembled_arg += FMT("file={}",args_info.output_sarif);
       } else {
         // just copy any non file key
         reassembled_arg += key;
