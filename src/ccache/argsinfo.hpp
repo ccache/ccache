@@ -70,7 +70,7 @@ struct ArgsInfo
   // empty: no sarif output was activated.
   // no filename but not empty in case of msvc this might be a directory
   // which will be extended to a file in process_args.
-  // "./" for non msvc indicated default file location (unsuported).
+  // "./" for non msvc indicated default file location (unsupported).
   // after process_args this has filename or is empty.
   std::filesystem::path output_sarif;
 

@@ -1351,7 +1351,7 @@ process_option_arg(const Context& ctx,
     state.add_compiler_only_arg(msvc_sarif_switch);
 
     // add the made relative path to compiler arg as another argument
-    // "-experimental:logABS_PATH\sarif_dir\"  (withou space) will become
+    // "-experimental:logABS_PATH\sarif_dir\"  (without space) will become
     // "-experimental:log sarif_dir\" (with space, separate args)
     state.add_compiler_only_arg(FMT("{}", args_info.output_sarif));
     // if it is a folder output_sarif will have a filename added later
