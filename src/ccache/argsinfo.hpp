@@ -65,6 +65,15 @@ struct ArgsInfo
   // Source dependencies output file (MSVC). Contains pathname if not empty.
   std::filesystem::path output_sd;
 
+  // Sarif diagnostic generation.
+  // Contains path if not empty.
+  // empty: no sarif output was activated.
+  // no filename but not empty in case of msvc this might be a directory
+  // which will be extended to a file in process_args.
+  // "./" for non msvc indicated default file location (unsupported).
+  // after process_args this has filename or is empty.
+  std::filesystem::path output_sarif;
+
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
   std::filesystem::path output_dwo;
 
