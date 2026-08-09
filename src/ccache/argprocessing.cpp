@@ -184,6 +184,18 @@ color_output_possible()
 }
 
 bool
+is_wp_macro_option_list(std::string_view options)
+{
+  for (const auto option :
+       util::Tokenizer(options, ",", util::Tokenizer::Mode::include_empty)) {
+    if (!option.starts_with("-D") && !option.starts_with("-U")) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool
 detect_pch(const std::string& option,
            const std::string& arg,
            ArgsInfo& args_info,
@@ -1128,8 +1140,7 @@ process_option_arg(const Context& ctx,
       }
       state.add_compiler_only_arg(args[i]);
       return Statistic::none;
-    } else if ((arg.starts_with("-Wp,-D") || arg.starts_with("-Wp,-U"))
-               && arg.find(',', 6) == std::string::npos) {
+    } else if (is_wp_macro_option_list(arg.substr(4))) {
       state.add_common_arg(args[i]);
       return Statistic::none;
     } else if (arg == "-Wp,-MP"
