@@ -2013,7 +2013,16 @@ static std::tuple<std::optional<std::string_view>,
                   std::optional<std::string_view>>
 get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
 {
-  if (args[i] == option) {
+  // Handle MSVC slash and clang-cl passthrough options
+  auto arg = args[i];
+  if (arg.starts_with('/')) {
+    arg[0] = '-';
+  }
+  if (arg.starts_with("-clang:")) {
+    arg = arg.substr(7);
+  }
+
+  if (arg == option) {
     if (i + 1 < args.size()) {
       ++i;
       return {option, args[i]};

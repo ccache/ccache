@@ -97,19 +97,42 @@ TEST_CASE("dash_M_should_be_unsupported")
 TEST_CASE("dependency_args_to_compiler")
 {
   TestContext test_context;
-  const std::string dep_args =
-    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
-    " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
   Context ctx;
-  ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
   REQUIRE(util::write_file("foo.c", ""));
 
-  const auto result = process_args(ctx);
+  SUBCASE("non_clang_cl")
+  {
+    const std::string dep_args =
+      "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MP"
+      " -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf";
+    ctx.orig_args = Args::from_string("cc " + dep_args + " -c foo.c -o foo.o");
+    const auto result = process_args(ctx);
 
-  CHECK(result);
-  CHECK(result->preprocessor_args.to_string() == "cc");
-  CHECK(result->extra_args_to_hash.to_string() == dep_args);
-  CHECK(result->compiler_args.to_string() == "cc " + dep_args + " -c");
+    CHECK(result);
+    CHECK(result->preprocessor_args.to_string() == "cc");
+    CHECK(result->extra_args_to_hash.to_string() == dep_args);
+    CHECK(result->compiler_args.to_string() == "cc " + dep_args + " -c");
+  }
+
+  SUBCASE("clang_cl")
+  {
+    const std::string dep_args =
+      "-clang:-MD -clang:-MMD -clang:-MP -clang:-MF foo.d -clang:-MT mt1 "
+      "-clang:-MT mt2 -clang:-MQ mq1 -clang:-MQ mq2 -clang:-Wp,-MP "
+      "-clang:-Wp,-MT,wpmt -clang:-Wp,-MQ,wpmq -clang:-Wp,-MF,wpf";
+    ctx.orig_args =
+      Args::from_string("clang-cl.exe " + dep_args + " -c foo.c -o foo.o");
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    const auto result = process_args(ctx);
+
+    CHECK(result);
+    CHECK(result->preprocessor_args.to_string() == "clang-cl.exe");
+    CHECK(result->extra_args_to_hash.to_string() == dep_args);
+    // -fcolor-diagnostics is here because it's added by process_args when
+    // the compiler is clang-like.
+    CHECK(result->compiler_args.to_string()
+          == "clang-cl.exe " + dep_args + " -fcolor-diagnostics -c");
+  }
 }
 
 TEST_CASE("cpp_only_args_to_preprocessor_and_compiler")
