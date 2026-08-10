@@ -2059,27 +2059,19 @@ hash_native_args(Context& ctx, const util::Args& native_args, Hash& hash)
   return {};
 }
 
-static std::tuple<std::optional<std::string_view>, std::optional<std::string>>
+static std::tuple<std::optional<std::string_view>,
+                  std::optional<std::string_view>>
 get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
 {
-  // Handle MSVC and clang-cl quirks
-  auto arg = args[i];
-  if (arg.starts_with('/')) {
-    arg[0] = '-';
-  }
-  if (arg.starts_with("-clang:")) {
-    arg = arg.substr(7);
-  }
-
-  if (arg == option) {
+  if (args[i] == option) {
     if (i + 1 < args.size()) {
       ++i;
-      return {option, arg};
+      return {option, args[i]};
     } else {
       return {std::nullopt, std::nullopt};
     }
-  } else if (arg.starts_with(option)) {
-    return {option, arg.substr(option.length())};
+  } else if (args[i].starts_with(option)) {
+    return {option, std::string_view(args[i]).substr(option.length())};
   } else {
     return {std::nullopt, std::nullopt};
   }
