@@ -316,8 +316,18 @@ perform_path_mapping(
     if (!path_starts_with(path, from)) {
       continue;
     }
+
+    // Skip empty part at the end that originates from a trailing slash.
+    auto from_end = from.end();
+    if (!from.empty()) {
+      --from_end;
+      if (!from_end->empty()) {
+        ++from_end;
+      }
+    }
+
     const auto& suffix =
-      remove_leading_components(path, std::ranges::distance(from));
+      remove_leading_components(path, std::distance(from.begin(), from_end));
     return suffix.empty() ? to : (to / suffix);
   }
   return path;

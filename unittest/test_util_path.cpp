@@ -255,25 +255,54 @@ TEST_CASE("util::with_extension")
 TEST_CASE("util::perform_path_mapping")
 {
   // clang-format off
+
+  // Edge cases
   CHECK(util::perform_path_mapping("", {{"/foo", "/bar"}}) == "");
   CHECK(util::perform_path_mapping("/", {{"/foo", "/bar"}}) == "/");
+
+  // Simple mappings
   CHECK(util::perform_path_mapping("/foo/bar", {{"/foo", "/bar"}}) == "/bar/bar");
-  CHECK(util::perform_path_mapping("/foo/bar", {{"/bar", "/foo"}}) == "/foo/bar");
   CHECK(util::perform_path_mapping("/bar/foo", {{"/bar", "/foo"}}) == "/foo/foo");
+
+  // Original path is returned if no mapping occurred
+  CHECK(util::perform_path_mapping("/foo/bar", {{"/bar", "/foo"}}) == "/foo/bar");
   CHECK(util::perform_path_mapping("/bar/foo", {{"/foo", "/bar"}}) == "/bar/foo");
+
+  // Reverse mapping
   CHECK(util::perform_path_mapping("/bar/foo", {{"/foo", "/bar"}}, true) == "/foo/foo");
+
 #ifdef _WIN32
+  // Simple mappings
   CHECK(util::perform_path_mapping("D:/path", {{"D:/path", "/new-path"}}) == "/new-path");
+
+  // Slashes are just component separators when matching,
+  // but are still in the underlying strings when mapping.
   CHECK(util::perform_path_mapping("D:\\path", {{"D:/path", "/new-path"}}) == "/new-path");
   CHECK(util::perform_path_mapping("D:/path", {{"D:/path", "\\new-path"}}) == "\\new-path");
 
+  // Only the prefix gets mapped
   CHECK(util::perform_path_mapping("D:/path/to", {{"D:/path", "/new-path"}}) == "/new-path/to");
   CHECK(util::perform_path_mapping("D:\\path/to", {{"D:/path", "/new-path"}}) == "/new-path/to");
   CHECK(util::perform_path_mapping("D:\\path\\to", {{"D:/path", "/new-path"}}) == "/new-path\\to");
   CHECK(util::perform_path_mapping("D:\\path\\to", {{"D:/path", "\\new-path"}}) == "\\new-path\\to");
 
+  // Drive letters are part of the prefix to match
   CHECK(util::perform_path_mapping("C:/path", {{"D:/path", "/new-path"}}) == "C:/path");
+
+  // Reverse mapping
   CHECK(util::perform_path_mapping("C:/path", {{"D:/path", "C:/path"}}, true) == "D:/path");
+
+  // Trailing slash in mapping key should be ignored
+  CHECK(util::perform_path_mapping("X:/path/to/file", {{"X:/path/", "C:/new-path"}}) == "C:/new-path/to/file");
+
+  { // Realistic test: mapping prefix of VCToolsInstallDir (which has trailing slash) both ways
+    const auto concrete = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\VC\\Tools";
+    const auto abstract = "/vs\\VC\\Tools";
+    const std::pair<fs::path, fs::path> mapping =
+      {"C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\", "/vs"};
+    CHECK(util::perform_path_mapping(concrete, {mapping}) == abstract);
+    CHECK(util::perform_path_mapping(abstract, {mapping}, true) == concrete);
+  }
 #endif
   // clang-format on
 }
