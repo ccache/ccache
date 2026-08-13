@@ -21,6 +21,7 @@
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/defer.hpp>
+#include <ccache/util/error.hpp>
 #include <ccache/util/expected.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
@@ -175,6 +176,28 @@ parse_erase_line_mode(std::string_view parameters)
   }
   return mode;
 }
+
+// Convert `text` to UTF-16. Returns std::nullopt if `text` is not valid UTF-8,
+// in which case it should be written as is.
+std::optional<std::wstring>
+utf8_to_utf16(std::string_view text)
+{
+  const int utf8_size = static_cast<int>(text.size());
+  const int utf16_size = MultiByteToWideChar(
+    CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), utf8_size, nullptr, 0);
+  if (utf16_size <= 0) {
+    return std::nullopt;
+  }
+
+  std::wstring result(utf16_size, L'\0');
+  MultiByteToWideChar(CP_UTF8,
+                      MB_ERR_INVALID_CHARS,
+                      text.data(),
+                      utf8_size,
+                      result.data(),
+                      utf16_size);
+  return result;
+}
 #endif
 
 // Search for the first match of the following regular expression:
@@ -213,6 +236,29 @@ find_first_ansi_csi_seq(std::string_view string)
 void
 write_console_data(int fd, std::string_view data)
 {
+  HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+  DWORD mode;
+  if (GetConsoleMode(handle, &mode)) {
+    if (auto utf16 = utf8_to_utf16(data)) {
+      size_t pos = 0;
+      while (pos < utf16->size()) {
+        DWORD written;
+        if (!WriteConsoleW(handle,
+                           utf16->data() + pos,
+                           static_cast<DWORD>(utf16->size() - pos),
+                           &written,
+                           nullptr)
+            || written == 0) {
+          throw core::Error(FMT("Failed to write to fd {}: {}",
+                                fd,
+                                util::win32_error_message(GetLastError())));
+        }
+        pos += written;
+      }
+      return;
+    }
+  }
+
   util::throw_on_error<core::Error>(
     util::write_fd(fd, data.data(), data.length()),
     FMT("Failed to write to fd {}: ", fd));
@@ -432,13 +478,14 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
     ;
   if (translate_colors) {
     translate_ansi_to_console(text_to_send, fd);
-    return;
+  } else {
+    write_console_data(fd, text_to_send);
   }
-#endif
-
+#else
   util::throw_on_error<core::Error>(
     util::write_fd(fd, text_to_send.data(), text_to_send.length()),
     FMT("Failed to write to fd {}: ", fd));
+#endif
 }
 
 std::string

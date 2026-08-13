@@ -56,7 +56,8 @@ std::string rewrite_stderr_to_absolute_paths(std::string_view text);
 // translating them to Win32 console operations if
 // `ctx.args_info.translate_diagnostics_colors` is true and `fd` refers to a
 // console without virtual terminal processing), and rewriting paths to
-// absolute if `ctx.config.absolute_paths_in_stderr()` is true. Throws
+// absolute if `ctx.config.absolute_paths_in_stderr()` is true. On Windows,
+// valid UTF-8 text is converted to UTF-16 for native console output. Throws
 // `core::Error` on error.
 void send_to_console(const Context& ctx, std::string_view text, int fd);
 
