@@ -306,10 +306,11 @@ path_starts_with(const std::filesystem::path& path,
 
 fs::path
 perform_path_mapping(
-  const fs::path& path,
+  fs::path path,
   const std::vector<std::pair<fs::path, fs::path>>& path_mapping,
   bool reverse)
 {
+  path = lexically_normal(path);
   for (const auto& [key, value] : path_mapping) {
     const auto& from = reverse ? value : key;
     const auto& to = reverse ? key : value;
