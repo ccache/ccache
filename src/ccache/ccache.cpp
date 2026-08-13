@@ -485,7 +485,8 @@ remember_include_file(Context& ctx,
     }
   }
 
-  ctx.included_files.emplace(util::pstr(core::make_relative_path(ctx, path2)), file_digest);
+  ctx.included_files.emplace(util::pstr(core::make_relative_path(ctx, path2)),
+                             file_digest);
 
   return {};
 }
