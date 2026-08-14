@@ -177,6 +177,16 @@ make_relative_path(const fs::path& dir1,
   return path;
 }
 
+#ifdef _WIN32
+static constexpr bool
+is_directory_separator(const std::wstring& s)
+{
+  // directory-separators can contain any number of slashes.
+  constexpr auto is_slash = [](auto c) { return c == '/' || c == '\\'; };
+  return std::ranges::all_of(s, is_slash);
+}
+#endif
+
 bool
 path_components_equal_case_aware(const fs::path& component1,
                                  const fs::path& component2)
@@ -186,6 +196,12 @@ path_components_equal_case_aware(const fs::path& component1,
   const auto& string2 = component2.native();
   if (string1.empty() || string2.empty()) {
     return string1.empty() && string2.empty();
+  }
+  // https://en.cppreference.com/cpp/filesystem/path#:~:text=root%2Ddirectory
+  // root-directory, although being a directory-separator, is treated as a
+  // distinct component when iterating a path object.
+  if (is_directory_separator(string1) && is_directory_separator(string2)) {
+    return true;
   }
   if (!std::in_range<int>(string1.size())
       || !std::in_range<int>(string2.size())) {

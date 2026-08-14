@@ -300,6 +300,8 @@ TEST_CASE("file_path_matches_dir_prefix_or_file")
   CHECK(file_path_matches_dir_prefix_or_file(
     fs::path(L"C:\\\u00c5ngstr\u00f6m"),
     fs::path(L"c:\\\u00e5NGSTR\u00d6M\\header.h")));
+  CHECK(file_path_matches_dir_prefix_or_file("\\aa", "/aa/bb"));
+  CHECK(file_path_matches_dir_prefix_or_file("/aa", "\\aa\\bb"));
 #else
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
