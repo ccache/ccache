@@ -641,7 +641,12 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       }
       // Look for preprocessor flags, after the "filename".
       bool system = false;
+      bool line_directive = false;
       const char* r = q + 1;
+      if (r < end && *r == '\n') {
+        // No flags: this linemarker must be a #line directive.
+        line_directive = true;
+      }
       while (r < end && *r != '\n') {
         if (*r == '3') { // System header.
           system = true;
@@ -678,7 +683,10 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
         hash.hash(inc_path);
       }
 
-      TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
+      std::error_code ec;
+      if (!line_directive || std::filesystem::exists(inc_path, ec)) {
+        TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
+      }
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, "___________", 10) == 0
                && (q == begin || q[-1] == '\n')) {
