@@ -643,7 +643,7 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       bool system = false;
       bool line_directive = false;
       const char* r = q + 1;
-      if (r < end && *r == '\n') {
+      if (r < end && (*r == '\n' || *r == '\r')) {
         // No flags: this linemarker must be a #line directive.
         line_directive = true;
       }
