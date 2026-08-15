@@ -186,13 +186,12 @@ color_output_possible()
 bool
 is_wp_macro_option_list(std::string_view options)
 {
-  for (const auto option :
-       util::Tokenizer(options, ",", util::Tokenizer::Mode::include_empty)) {
-    if (!option.starts_with("-D") && !option.starts_with("-U")) {
-      return false;
-    }
-  }
-  return true;
+  const auto is_macro_option = [](const auto option) {
+    return option.starts_with("-D") || option.starts_with("-U");
+  };
+  return std::ranges::all_of(
+    util::Tokenizer(options, ",", util::Tokenizer::Mode::include_empty),
+    is_macro_option);
 }
 
 bool
