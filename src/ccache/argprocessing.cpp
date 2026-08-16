@@ -187,12 +187,46 @@ private:
   util::Args m_native_args;
 };
 
+#ifdef _WIN32
+bool
+stderr_is_console()
+{
+  DWORD mode;
+  return GetConsoleMode(reinterpret_cast<HANDLE>(_get_osfhandle(STDERR_FILENO)),
+                        &mode);
+}
+
+// Try to enable virtual terminal processing for the console attached to stderr.
+// Returns true if the console supports virtual terminal sequences afterwards.
+bool
+enable_virtual_terminal_processing()
+{
+#  ifdef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+  HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(STDERR_FILENO));
+  DWORD mode;
+  if (!GetConsoleMode(handle, &mode)) {
+    return false;
+  }
+  return (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+         || SetConsoleMode(handle,
+                           mode | ENABLE_PROCESSED_OUTPUT
+                             | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+#  else
+  return false;
+#  endif
+}
+#endif
+
 bool
 color_output_possible()
 {
+#ifdef _WIN32
+  return stderr_is_console();
+#else
   const char* term_env = getenv("TERM");
   return isatty(STDERR_FILENO) && term_env
          && util::to_lowercase(term_env) != "dumb";
+#endif
 }
 
 bool
@@ -2132,10 +2166,11 @@ process_args(Context& ctx)
     state.add_common_arg(state.explicit_language);
   }
 
-  args_info.strip_diagnostics_colors =
+  const bool colors_enabled =
     state.color_diagnostics != ColorDiagnostics::automatic
-      ? state.color_diagnostics == ColorDiagnostics::never
-      : !color_output_possible();
+      ? state.color_diagnostics == ColorDiagnostics::always
+      : color_output_possible();
+  args_info.strip_diagnostics_colors = !colors_enabled;
 
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
@@ -2152,6 +2187,15 @@ process_args(Context& ctx)
     // Other compilers shouldn't output color, so no need to strip it.
     args_info.strip_diagnostics_colors = false;
   }
+
+#ifdef _WIN32
+  if (diagnostics_color_arg && colors_enabled && stderr_is_console()) {
+    // Fall back to translating colors to Win32 console operations if the
+    // console doesn't support virtual terminal sequences.
+    args_info.translate_diagnostics_colors =
+      !enable_virtual_terminal_processing();
+  }
+#endif
 
   if (args_info.generating_dependencies) {
     if (state.output_dep_origin == OutputDepOrigin::none) {
