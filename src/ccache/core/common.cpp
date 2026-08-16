@@ -28,11 +28,154 @@
 #include <ccache/util/path.hpp>
 #include <ccache/util/tokenizer.hpp>
 
+#include <charconv>
+#include <cstdint>
+
 using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
 
 namespace fs = util::filesystem;
 
 namespace {
+
+#ifdef _WIN32
+// SGR and EL handling below is based on GCC's MinGW console translator.
+struct ConsoleAttributes
+{
+  std::uint16_t add = 0;
+  std::uint16_t remove = 0;
+};
+
+ConsoleAttributes
+parse_sgr_for_console(std::string_view parameters)
+{
+  ConsoleAttributes attributes;
+
+  size_t pos = 0;
+  do {
+    size_t end = parameters.find(';', pos);
+    auto parameter =
+      parameters.substr(pos, end == std::string_view::npos ? end : end - pos);
+    int value = 0;
+    if (!parameter.empty()) {
+      auto result = std::from_chars(
+        parameter.data(), parameter.data() + parameter.size(), value);
+      if (result.ec != std::errc()
+          || result.ptr != parameter.data() + parameter.size()) {
+        break;
+      }
+    }
+
+    switch (value) {
+    case 0:
+      attributes.add |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+      attributes.remove = static_cast<std::uint16_t>(-1);
+      break;
+    case 1:
+      attributes.add |= FOREGROUND_INTENSITY;
+      break;
+    case 4:
+      attributes.add |= COMMON_LVB_UNDERSCORE;
+      break;
+    case 5:
+      attributes.add |= BACKGROUND_INTENSITY;
+      break;
+    case 7:
+      attributes.add |= COMMON_LVB_REVERSE_VIDEO;
+      break;
+    case 22:
+      attributes.add &= ~FOREGROUND_INTENSITY;
+      attributes.remove |= FOREGROUND_INTENSITY;
+      break;
+    case 24:
+      attributes.add &= ~COMMON_LVB_UNDERSCORE;
+      attributes.remove |= COMMON_LVB_UNDERSCORE;
+      break;
+    case 25:
+      attributes.add &= ~BACKGROUND_INTENSITY;
+      attributes.remove |= BACKGROUND_INTENSITY;
+      break;
+    case 27:
+      attributes.add &= ~COMMON_LVB_REVERSE_VIDEO;
+      attributes.remove |= COMMON_LVB_REVERSE_VIDEO;
+      break;
+    case 30:
+    case 31:
+    case 32:
+    case 33:
+    case 34:
+    case 35:
+    case 36:
+    case 37: {
+      constexpr std::uint16_t foreground =
+        FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+      attributes.add &= ~foreground;
+      int color = value - 30;
+      if (color & 1)
+        attributes.add |= FOREGROUND_RED;
+      if (color & 2)
+        attributes.add |= FOREGROUND_GREEN;
+      if (color & 4)
+        attributes.add |= FOREGROUND_BLUE;
+      attributes.remove |= foreground;
+      break;
+    }
+    case 38:
+    case 48:
+      return attributes;
+    case 39:
+      attributes.add |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+      attributes.remove |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+      break;
+    case 40:
+    case 41:
+    case 42:
+    case 43:
+    case 44:
+    case 45:
+    case 46:
+    case 47: {
+      constexpr std::uint16_t background =
+        BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
+      attributes.add &= ~background;
+      int color = value - 40;
+      if (color & 1)
+        attributes.add |= BACKGROUND_RED;
+      if (color & 2)
+        attributes.add |= BACKGROUND_GREEN;
+      if (color & 4)
+        attributes.add |= BACKGROUND_BLUE;
+      attributes.remove |= background;
+      break;
+    }
+    case 49:
+      attributes.add &= ~(BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE);
+      attributes.remove |= BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
+      break;
+    }
+
+    if (end == std::string_view::npos)
+      break;
+    pos = end + 1;
+  } while (pos <= parameters.size());
+
+  return attributes;
+}
+
+std::optional<int>
+parse_erase_line_mode(std::string_view parameters)
+{
+  if (parameters.empty())
+    return 0;
+  int mode;
+  auto result = std::from_chars(
+    parameters.data(), parameters.data() + parameters.size(), mode);
+  if (result.ec != std::errc()
+      || result.ptr != parameters.data() + parameters.size()) {
+    return std::nullopt;
+  }
+  return mode;
+}
+#endif
 
 // Search for the first match of the following regular expression:
 //
@@ -65,6 +208,77 @@ find_first_ansi_csi_seq(std::string_view string)
     return {};
   }
 }
+
+#ifdef _WIN32
+void
+write_console_data(int fd, std::string_view data)
+{
+  util::throw_on_error<core::Error>(
+    util::write_fd(fd, data.data(), data.length()),
+    FMT("Failed to write to fd {}: ", fd));
+}
+
+void
+apply_sgr(HANDLE handle, std::string_view parameters)
+{
+  auto attributes = parse_sgr_for_console(parameters);
+
+  CONSOLE_SCREEN_BUFFER_INFO info;
+  if (attributes.remove != static_cast<WORD>(-1)
+      && GetConsoleScreenBufferInfo(handle, &info)) {
+    attributes.add |= info.wAttributes & ~attributes.remove;
+  }
+  if (attributes.add & COMMON_LVB_REVERSE_VIDEO) {
+    attributes.add = static_cast<WORD>((attributes.add & 0xff00)
+                                       | ((attributes.add & 0x00f0) >> 4)
+                                       | ((attributes.add & 0x000f) << 4));
+    attributes.add &= ~COMMON_LVB_REVERSE_VIDEO;
+  }
+  SetConsoleTextAttribute(handle, attributes.add);
+}
+
+void
+translate_ansi_to_console(std::string_view text, int fd)
+{
+  HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+  size_t pos = 0;
+  while (pos < text.size()) {
+    auto sequence = find_first_ansi_csi_seq(text.substr(pos));
+    if (sequence.empty()) {
+      write_console_data(fd, text.substr(pos));
+      break;
+    }
+
+    size_t sequence_pos = sequence.data() - text.data();
+    write_console_data(fd, text.substr(pos, sequence_pos - pos));
+    auto parameters = sequence.substr(2, sequence.size() - 3);
+    if (sequence.back() == 'm') {
+      apply_sgr(handle, parameters);
+    } else if (sequence.back() == 'K') {
+      CONSOLE_SCREEN_BUFFER_INFO info;
+      auto mode = parse_erase_line_mode(parameters);
+      if (mode && GetConsoleScreenBufferInfo(handle, &info)) {
+        COORD start = info.dwCursorPosition;
+        DWORD count;
+        if (*mode == 0) {
+          count = info.dwSize.X - info.dwCursorPosition.X;
+        } else if (*mode == 1) {
+          start.X = 0;
+          count = info.dwCursorPosition.X + 1;
+        } else {
+          start.X = 0;
+          count = info.dwSize.X;
+        }
+        DWORD written;
+        FillConsoleOutputCharacterW(handle, L' ', count, start, &written);
+        FillConsoleOutputAttribute(
+          handle, info.wAttributes, count, start, &written);
+      }
+    }
+    pos = sequence_pos + sequence.size();
+  }
+}
+#endif
 
 } // namespace
 
@@ -205,6 +419,22 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
     modified_text = rewrite_stderr_to_absolute_paths(text_to_send);
     text_to_send = modified_text;
   }
+
+#ifdef _WIN32
+  DWORD console_mode;
+  HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+  const bool translate_colors =
+    ctx.args_info.translate_diagnostics_colors
+    && GetConsoleMode(handle, &console_mode)
+#  ifdef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    && !(console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+#  endif
+    ;
+  if (translate_colors) {
+    translate_ansi_to_console(text_to_send, fd);
+    return;
+  }
+#endif
 
   util::throw_on_error<core::Error>(
     util::write_fd(fd, text_to_send.data(), text_to_send.length()),
