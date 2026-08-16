@@ -51,10 +51,12 @@ std::filesystem::path make_relative_path(const Context& ctx,
 // See get_diagnostics_path_length().
 std::string rewrite_stderr_to_absolute_paths(std::string_view text);
 
-// Send `text` to file descriptor `fd` (typically stdout or stderr, which
-// potentially is connected to a console), optionally stripping ANSI color
-// sequences if `ctx.args_info.strip_diagnostics_colors` is true and rewriting
-// paths to absolute if `ctx.config.absolute_paths_in_stderr()` is true. Throws
+// Send `text` to file descriptor `fd` (typically stdout or stderr, which may
+// be connected to a console), optionally stripping ANSI color sequences (or
+// translating them to Win32 console operations if
+// `ctx.args_info.translate_diagnostics_colors` is true and `fd` refers to a
+// console without virtual terminal processing), and rewriting paths to
+// absolute if `ctx.config.absolute_paths_in_stderr()` is true. Throws
 // `core::Error` on error.
 void send_to_console(const Context& ctx, std::string_view text, int fd);
 

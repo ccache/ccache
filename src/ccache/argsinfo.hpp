@@ -122,6 +122,9 @@ struct ArgsInfo
   // Whether to strip color codes from diagnostic messages on output.
   bool strip_diagnostics_colors = false;
 
+  // Whether to translate color codes to Windows console operations on output.
+  bool translate_diagnostics_colors = false;
+
   // Have we seen --?
   bool seen_double_dash = false;
 
