@@ -102,4 +102,34 @@ SUITE_profiling_gcc_10+() {
     expect_stat cache_miss 2
 
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS_OLD"
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-use=dir with object file in subdirectory"
+    # GCC >=9 mangles the whole aux path (cwd + relative object path) into the
+    # .gcda file name, so the profile data must be found and hashed also when
+    # the object file is not in the current directory.
+
+    mkdir data obj
+
+    $CCACHE_COMPILE -fprofile-generate=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $COMPILER -fprofile-generate=$(pwd)/data obj/test.o -o test
+
+    ./test
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    ./test
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
 }
