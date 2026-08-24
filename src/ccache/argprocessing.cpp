@@ -296,6 +296,7 @@ process_profiling_option(const Context& ctx,
 {
   static const std::vector<std::string> known_simple_options = {
     "-fprofile-correction",
+    "-fprofile-partial-training",
     "-fprofile-reorder-functions",
     "-fprofile-sample-accurate",
     "-fprofile-values",
