@@ -26,12 +26,9 @@
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/error.hpp>
-#include <ccache/util/file.hpp>
-#include <ccache/util/filelock.hpp>
-#include <ccache/util/filestream.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/lockfile.hpp>
 #include <ccache/util/logging.hpp>
-#include <ccache/util/path.hpp>
 #include <ccache/util/process.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/timer.hpp>
@@ -510,32 +507,16 @@ HelperBackend::ensure_connected(bool spawn)
     return tl::unexpected(Failure::error);
   }
 
-  // No existing helper, spawn a new one. Use a lock file to prevent multiple
-  // processes from spawning simultaneously. The lock file is intentionally
-  // never removed since removing it would let another process lock a new file
-  // with the same path.
-  const fs::path lock_path = util::pstr(m_endpoint_lock_path).str() + ".lock";
-  util::FileStream lock_file(lock_path, "ab");
-  if (!lock_file) {
-    // The directory may not exist yet.
-    if (auto r = fs::create_directories(lock_path.parent_path()); !r) {
-      LOG("Failed to create {}: {}", lock_path.parent_path(), r.error());
-    }
-    lock_file.open(lock_path, "ab");
-  }
-  if (!lock_file) {
-    LOG("Failed to open spawn lock file {}: {}", lock_path, strerror(errno));
-    return tl::unexpected(Failure::error);
-  }
-  util::set_cloexec_flag(fileno(*lock_file));
-
-  LOG("Acquiring spawn lock {}", lock_path);
-  util::FileLock spawn_lock(fileno(*lock_file));
+  // No existing helper, spawn a new one. Use a long-lived lock file to prevent
+  // multiple processes from spawning simultaneously even if starting the
+  // helper takes more than the normal lock staleness limit.
+  util::LongLivedLockFileManager lock_manager;
+  util::LockFile spawn_lock(m_endpoint_lock_path);
+  spawn_lock.make_long_lived(lock_manager);
   if (!spawn_lock.acquire()) {
-    LOG("Failed to acquire spawn lock {}", lock_path);
+    LOG("Failed to acquire spawn lock");
     return tl::unexpected(Failure::error);
   }
-  LOG("Acquired spawn lock {}", lock_path);
 
   // We have the lock. Check again if another process spawned while we waited.
   timer.reset();
