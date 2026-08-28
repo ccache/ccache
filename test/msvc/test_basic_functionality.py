@@ -72,3 +72,49 @@ def test_basedir_normalizes_paths(ccache_test):
     stats_2 = ccache_test.stats()
     assert stats_2["miss"] == 1
     assert stats_2["total_hit"] == 1
+
+
+def test_basedir_normalizes_msvc_environment_paths(ccache_test):
+    ccache_test.env["CCACHE_NOHASHDIR"] = "1"
+    ccache_test.env["CCACHE_BASEDIR"] = str(ccache_test.workdir)
+
+    original_include = ccache_test.env.get("INCLUDE")
+    original_external_include = ccache_test.env.get("EXTERNAL_INCLUDE")
+
+    dirs = []
+    for name in ["dir1", "dir2"]:
+        d = ccache_test.workdir / name
+        d.mkdir()
+
+        for subdir in ["include1", "include2", "external1", "external2", "toolchain"]:
+            (d / subdir).mkdir()
+
+        (d / "include2" / "test.h").write_text("#define VALUE 42\n")
+        (d / "test.c").write_text("#include <test.h>\nint x = VALUE;\n")
+        dirs.append(d)
+
+    def set_msvc_environment(d):
+        ccache_test.env["VCToolsInstallDir"] = str(d / "toolchain")
+
+        include = [str(d / "include1"), str(d / "include2")]
+        if original_include:
+            include.append(original_include)
+        ccache_test.env["INCLUDE"] = ";".join(include)
+
+        external_include = [str(d / "external1"), str(d / "external2")]
+        if original_external_include:
+            external_include.append(original_external_include)
+        ccache_test.env["EXTERNAL_INCLUDE"] = ";".join(external_include)
+
+    set_msvc_environment(dirs[0])
+    ccache_test.compile(["/c", "test.c"], cwd=dirs[0])
+    stats_1 = ccache_test.stats()
+    assert stats_1["miss"] == 1
+    assert stats_1["total_hit"] == 0
+
+    set_msvc_environment(dirs[1])
+    ccache_test.compile(["/c", "test.c"], cwd=dirs[1])
+    stats_2 = ccache_test.stats()
+    assert stats_2["miss"] == 1
+    assert stats_2["direct_hit"] == 1
+    assert stats_2["total_hit"] == 1

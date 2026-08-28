@@ -1680,6 +1680,42 @@ find_xcode_compiler(const fs::path& compiler_name)
 }
 #endif
 
+#ifdef _WIN32
+static void
+hash_path_with_base_dir(const Context& ctx, Hash& hash, std::string_view value)
+{
+  try {
+    const fs::path path(value);
+    const fs::path relative_path = core::make_relative_path(ctx, path);
+
+    // Preserve the original representation if base_dir does not apply.
+    if (relative_path == path) {
+      hash.hash(value);
+    } else {
+      hash.hash(relative_path);
+    }
+  } catch (const std::filesystem::filesystem_error&) {
+    hash.hash(value);
+  }
+}
+
+static void
+hash_path_list_with_base_dir(const Context& ctx,
+                             Hash& hash,
+                             std::string_view value)
+{
+  bool first = true;
+  for (const auto path :
+       util::Tokenizer(value, ";", util::Tokenizer::Mode::include_empty)) {
+    if (!first) {
+      hash.hash(";");
+    }
+    first = false;
+    hash_path_with_base_dir(ctx, hash, path);
+  }
+}
+#endif
+
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
 hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
@@ -1755,16 +1791,13 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   // from the MSVC toolset version, so the cache must be invalidated if it
   // changes.
   if (ctx.config.is_compiler_group_msvc()) {
-    const char* msvc_env_vars[] = {
-      "VCToolsVersion",
-      "VCToolsInstallDir",
-    };
-    for (const char* name : msvc_env_vars) {
-      const char* value = getenv(name);
-      if (value) {
-        hash.hash_delimiter(name);
-        hash.hash(value);
-      }
+    if (const char* value = getenv("VCToolsVersion")) {
+      hash.hash_delimiter("VCToolsVersion");
+      hash.hash(value);
+    }
+    if (const char* value = getenv("VCToolsInstallDir")) {
+      hash.hash_delimiter("VCToolsInstallDir");
+      hash_path_with_base_dir(ctx, hash, value);
     }
   }
 #endif
@@ -2371,14 +2404,27 @@ get_manifest_key(Context& ctx, Hash& hash)
     "OBJCPLUS_INCLUDE_PATH",        // Clang
     "CLANG_CONFIG_FILE_SYSTEM_DIR", // Clang
     "CLANG_CONFIG_FILE_USER_DIR",   // Clang
-    "INCLUDE",                      // MSVC
-    "EXTERNAL_INCLUDE",             // MSVC
   };
   for (const char* name : envvars) {
     const char* v = getenv(name);
     if (v) {
       hash.hash_delimiter(name);
       hash.hash(v);
+    }
+  }
+
+  for (const char* name : {"INCLUDE", "EXTERNAL_INCLUDE"}) {
+    if (const char* value = getenv(name)) {
+      hash.hash_delimiter(name);
+#ifdef _WIN32
+      if (ctx.config.is_compiler_group_msvc()) {
+        hash_path_list_with_base_dir(ctx, hash, value);
+      } else {
+        hash.hash(value);
+      }
+#else
+      hash.hash(value);
+#endif
     }
   }
 
