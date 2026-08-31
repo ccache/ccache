@@ -324,6 +324,33 @@ jobs:
           path: install/ccache
           retention-days: 3
 
+  build_linux_s390x_binary_glibc:
+    timeout-minutes: 30
+    name: Linux s390x binary (glibc)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-s390x-linux-gnu libc6-dev-arm64-cross
+      - name: Get source
+        uses: actions/checkout@v6
+      - name: Build binary
+        env:
+          CMAKE_GENERATOR: Ninja
+          CMAKE_PARAMS: |
+            -D CMAKE_TOOLCHAIN_FILE=../toolchains/s390x-linux-gnu.cmake
+            -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
+        run: ci/build-binary
+      - name: Upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-s390x-glibc-binary
+          path: install/ccache
+          retention-days: 3
+
   build_linux_x86_64_binary_glibc:
     timeout-minutes: 30
     name: Linux x86_64 binary (glibc)
@@ -373,6 +400,9 @@ jobs:
           - arch: aarch64
             runner: ubuntu-22.04-arm
           - arch: riscv64
+            runner: ubuntu-22.04
+            qemu: true
+          - arch: s390x
             runner: ubuntu-22.04
             qemu: true
           - arch: x86_64
@@ -719,6 +749,7 @@ jobs:
       - build_linux_musl_static_binary
       - build_linux_x86_64_binary_glibc
       - build_linux_riscv64_binary_glibc
+      - build_linux_s390x_binary_glibc
       - build_windows_binary
     runs-on: ubuntu-24.04
     steps:
