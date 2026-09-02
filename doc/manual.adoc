@@ -513,6 +513,11 @@ when the project uses absolute paths. See
 <<Compiling in different directories>>_ for more details. When empty (the
 default), no path rewriting occurs.
 +
+The paths that the compiler writes into the dependency file, and into the file
+produced by MSVC's `/sourceDependencies` option, are made relative in the same
+way. A program that reads one of those files from another directory therefore
+has to resolve the relative paths itself.
++
 Avoid using `/` as the base directory as this will also rewrite system header
 paths, which is usually counterproductive.
 +
