@@ -3102,8 +3102,10 @@ do_cache_compilation(Context& ctx)
   TRY(hash_native_args(ctx, processed_args.native_args, common_hash));
 
   if (processed_args.hash_actual_cwd) {
+    const auto actual_cwd = core::make_relative_path(ctx, ctx.actual_cwd);
+    LOG("Hashing actual CWD {}", actual_cwd);
     common_hash.hash_delimiter("actual_cwd");
-    common_hash.hash(ctx.actual_cwd);
+    common_hash.hash(actual_cwd);
   }
 
   // Try to find the hash using the manifest.
