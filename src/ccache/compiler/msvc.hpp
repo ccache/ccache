@@ -20,6 +20,10 @@
 
 #include <ccache/util/bytes.hpp>
 
+#include <tl/expected.hpp>
+
+#include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -33,5 +37,15 @@ get_includes_from_msvc_show_includes(std::string_view file_content,
 
 util::Bytes strip_includes_from_msvc_show_includes(const Context& ctx,
                                                    util::Bytes&& stdout_data);
+
+// Rewrite the paths below base_dir in the JSON file that /sourceDependencies
+// produces so that they are relative to the working directory. Returns nothing
+// when no path was rewritten.
+std::optional<std::string>
+rewrite_paths_in_source_dependencies(const Context& ctx,
+                                     std::string_view file_content);
+
+tl::expected<void, std::string>
+make_paths_relative_in_source_dependencies(const Context& ctx);
 
 } // namespace compiler
