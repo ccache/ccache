@@ -1101,6 +1101,14 @@ NOTE: In previous ccache versions this option was called *secondary_storage*
     Windows quoting behavior.
 --
 
+[#config_safe_direct_mode]
+*safe_direct_mode* (*CCACHE_SAFEDIRECT* or *CCACHE_NOSAFEDIRECT*, see _<<Boolean values>>_ above)::
+
+    If true, the direct mode also detects header files that appear in
+    directories searched before the one where an included header was found
+    (see _<<The direct mode>>_). Only GCC and Clang are supported. The default
+    is false.
+
 [#config_safe_dirs]
 *safe_dirs* (*CCACHE_SAFE_DIRS*)::
 

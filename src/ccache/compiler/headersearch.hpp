@@ -1,0 +1,36 @@
+// Copyright (C) 2026 Joel Rosdahl and other contributors
+//
+// See doc/authors.adoc for a complete list of contributors.
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+#pragma once
+
+#include <string>
+#include <string_view>
+
+namespace compiler {
+
+struct HeaderSearchOutput
+{
+  // The stderr data without the report lines.
+  std::string remaining_stderr;
+};
+
+// Remove the header search directory report that GCC and Clang print to stderr
+// when the preprocessor runs in verbose mode (-Wp,-v). Other lines are kept.
+HeaderSearchOutput parse_header_search_output(std::string_view stderr_data);
+
+} // namespace compiler
