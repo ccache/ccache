@@ -1898,4 +1898,68 @@ EOF
     expect_contains main.o content_src
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 3
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of appearing header file probed with __has_include"
+
+    mkdir inc
+    cat <<EOF >main.c
+#if __has_include("opt.h")
+#include "opt.h"
+#else
+char x[] = "content_none";
+#endif
+EOF
+    backdate main.c
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_contains main.o content_none
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    cat <<EOF >inc/opt.h
+char x[] = "content_opt";
+EOF
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_contains main.o content_opt
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+
+    rm inc/opt.h
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_contains main.o content_none
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "__has_include with macro operand disables direct mode"
+
+    cat <<EOF >main.c
+#define OPT_H "opt.h"
+#if __has_include(OPT_H)
+#error unexpected
+#endif
+int x;
+EOF
+    backdate main.c
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
 }

@@ -1815,10 +1815,11 @@ compilation. For GCC and Clang (but not for MSVC-compatible drivers like
 clang-cl), ccache also asks the preprocessor for its header search directories
 and records, for each include file, where a file with the same name would have
 been found in the directories searched before the one the include file was found
-in, including the directory of the including file. A result is only used if none
-of those paths exist. Still, ccache can't check with 100% accuracy if the
-existence of a new header file should invalidate a result. In practice, the
-direct mode is safe to use in the absolute majority of cases.
+in, including the directory of the including file. Header names probed with
+`+__has_include+` are treated the same way. A result is only used if none of
+those paths exist. Still, ccache can't check with 100% accuracy if the existence
+of a new header file should invalidate a result. In practice, the direct mode is
+safe to use in the absolute majority of cases.
 
 The direct mode will be disabled if any of the following holds:
 
@@ -1830,6 +1831,8 @@ The direct mode will be disabled if any of the following holds:
    `-Wp,-D<macro[=defn]>` or `-Wp,-U<macro>`
 ** most uses of `-Xpreprocessor`
 * the string `+__TIME__+` is present in the source code
+* `+__has_include+` or `+__has_include_next+` with a macro operand is present in
+  the source code
 
 
 === The depend mode

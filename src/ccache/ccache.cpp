@@ -975,8 +975,9 @@ read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
 
 // Return the paths that must stay absent for the result to remain valid (see
 // compiler::find_shadow_paths), made relative like the include file paths.
+// Returns nullopt if a file found by a __has_include probe can't be tracked.
 static std::optional<std::vector<std::string>>
-get_shadow_paths(const Context& ctx)
+get_shadow_paths(Context& ctx)
 {
   std::vector<std::string> shadow_paths;
   if (!ctx.header_search_paths) {
@@ -992,12 +993,29 @@ get_shadow_paths(const Context& ctx)
        it == ctx.includer_dirs.end() ? std::vector<fs::path>{} : it->second});
   }
 
-  for (const auto& path : compiler::find_shadow_paths(
-         *ctx.header_search_paths,
-         ctx.actual_cwd,
-         included_files,
-         [](const fs::path& p) { return DirEntry(p).exists(); },
-         [](const fs::path& p) { return fs::canonical(p).value_or(p); })) {
+  const auto result = compiler::find_shadow_paths(
+    *ctx.header_search_paths,
+    ctx.actual_cwd,
+    included_files,
+    ctx.has_include_probes,
+    [](const fs::path& path) {
+      DirEntry entry(path);
+      return !entry.exists()        ? compiler::PathKind::missing
+             : entry.is_directory() ? compiler::PathKind::directory
+                                    : compiler::PathKind::file;
+    },
+    [](const fs::path& p) { return fs::canonical(p).value_or(p); });
+
+  Hash unused_hash;
+  for (const auto& path : result.probed_files) {
+    if (!remember_include_file(
+          ctx, core::make_relative_path(ctx, path), unused_hash, false, nullptr)
+        || !ctx.config.direct_mode()) {
+      return std::nullopt;
+    }
+  }
+
+  for (const auto& path : result.paths) {
     const fs::path relative_path = core::make_relative_path(ctx, path);
     const bool ignored =
       std::any_of(ctx.ignore_header_paths.begin(),
@@ -1036,6 +1054,12 @@ update_manifest(Context& ctx,
     (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
+  if (!ctx.shadow_paths) {
+    LOG(
+      "Not adding result key to manifest since a probed header file can't be"
+      " tracked");
+    return;
+  }
   // The shadow paths were computed right after preprocessing; anything that
   // exists now appeared during the compilation.
   for (const auto& path : *ctx.shadow_paths) {

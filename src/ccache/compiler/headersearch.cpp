@@ -19,6 +19,7 @@
 #include "headersearch.hpp"
 
 #include <ccache/util/path.hpp>
+#include <ccache/util/string.hpp>
 
 #include <optional>
 #include <set>
@@ -150,25 +151,90 @@ parse_header_search_output(std::string_view stderr_data)
   return output;
 }
 
-std::vector<fs::path>
+HasIncludeOperands
+find_has_include_operands(std::string_view source)
+{
+  static constexpr std::string_view has_include = "__has_include";
+  static constexpr std::string_view next = "_next";
+
+  auto is_identifier_char = [](char c) {
+    return c == '_' || util::is_alnum(c);
+  };
+  auto skip_space = [&](size_t pos) {
+    while (pos < source.size()) {
+      if (source[pos] == ' ' || source[pos] == '\t') {
+        ++pos;
+      } else if (source[pos] == '\\' && pos + 1 < source.size()
+                 && (source[pos + 1] == '\n' || source[pos + 1] == '\r')) {
+        pos += 2;
+        if (pos < source.size() && source[pos - 1] == '\r'
+            && source[pos] == '\n') {
+          ++pos;
+        }
+      } else {
+        break;
+      }
+    }
+    return pos;
+  };
+
+  HasIncludeOperands operands;
+  for (size_t pos = source.find(has_include); pos != std::string_view::npos;
+       pos = source.find(has_include, pos + 1)) {
+    if (pos > 0 && is_identifier_char(source[pos - 1])) {
+      continue;
+    }
+    size_t p = pos + has_include.size();
+    if (source.substr(p, next.size()) == next) {
+      p += next.size();
+    }
+    if (p < source.size() && is_identifier_char(source[p])) {
+      continue;
+    }
+    p = skip_space(p);
+    if (p >= source.size() || source[p] != '(') {
+      continue;
+    }
+    p = skip_space(p + 1);
+    if (p >= source.size() || (source[p] != '<' && source[p] != '"')) {
+      operands.macro_operand = true;
+      continue;
+    }
+    const bool quoted = source[p] == '"';
+    const size_t end = source.find(quoted ? '"' : '>', p + 1);
+    const size_t newline = source.find('\n', p + 1);
+    if (end == std::string_view::npos || end > newline) {
+      continue;
+    }
+    operands.literals.push_back(
+      {std::string(source.substr(p + 1, end - p - 1)), quoted});
+  }
+  return operands;
+}
+
+ShadowPaths
 find_shadow_paths(const HeaderSearchPaths& paths,
                   const fs::path& cwd,
                   const std::vector<IncludedFile>& included_files,
-                  const std::function<bool(const fs::path&)>& exists,
+                  const std::vector<HasIncludeProbe>& probes,
+                  const std::function<PathKind(const fs::path&)>& stat,
                   const std::function<fs::path(const fs::path&)>& canonical)
 {
   auto absolute = [&](const fs::path& path) {
     return util::lexically_normal(path.is_absolute() ? path : cwd / path);
   };
 
-  std::unordered_map<std::string, bool> exists_cache;
-  auto cached_exists = [&](const fs::path& path) {
+  std::unordered_map<std::string, PathKind> stat_cache;
+  auto cached_stat = [&](const fs::path& path) {
     const std::string key = util::pstr(path).str();
-    auto it = exists_cache.find(key);
-    if (it == exists_cache.end()) {
-      it = exists_cache.emplace(key, exists(path)).first;
+    auto it = stat_cache.find(key);
+    if (it == stat_cache.end()) {
+      it = stat_cache.emplace(key, stat(path)).first;
     }
     return it->second;
+  };
+  auto exists = [&](const fs::path& path) {
+    return cached_stat(path) != PathKind::missing;
   };
 
   // A directory as printed by the preprocessor (used for the result), as an
@@ -192,21 +258,27 @@ find_shadow_paths(const HeaderSearchPaths& paths,
       dirs.push_back(make_dir(dir));
     }
   }
+  const size_t quote_dir_count = paths.quote_dirs.size();
 
-  std::unordered_map<std::string, Dir> includer_dirs;
-  auto includer_dir = [&](const fs::path& dir) -> const Dir& {
+  std::unordered_map<std::string, Dir> other_dirs;
+  auto dir_for = [&](const fs::path& dir) -> const Dir& {
     const std::string key = util::pstr(dir).str();
-    auto it = includer_dirs.find(key);
-    if (it == includer_dirs.end()) {
-      it = includer_dirs.emplace(key, make_dir(dir)).first;
+    auto it = other_dirs.find(key);
+    if (it == other_dirs.end()) {
+      it = other_dirs.emplace(key, make_dir(dir)).first;
     }
     return it->second;
   };
+  auto includer_dir = [&](const fs::path& includer) -> const Dir& {
+    const fs::path dir = includer.parent_path();
+    return dir_for(dir.empty() ? fs::path(".") : dir);
+  };
 
   std::set<std::string> result;
+  std::set<std::string> probed_files;
   for (const auto& dir : paths.nonexistent_dirs) {
     // Clang also reports files given to -I as nonexistent directories.
-    if (!cached_exists(absolute(dir))) {
+    if (!exists(absolute(dir))) {
       result.insert(util::pstr(util::lexically_normal(dir)).str());
     }
   }
@@ -222,10 +294,10 @@ find_shadow_paths(const HeaderSearchPaths& paths,
       candidate /= component;
       absolute_candidate /= component;
       has_dot_components |= component == "." || component == "..";
-      const bool exists = cached_exists(
-        has_dot_components ? util::lexically_normal(absolute_candidate)
-                           : absolute_candidate);
-      if (!exists) {
+      const bool candidate_exists =
+        exists(has_dot_components ? util::lexically_normal(absolute_candidate)
+                                  : absolute_candidate);
+      if (!candidate_exists) {
         result.insert(util::pstr(util::lexically_normal(candidate)).str());
         return;
       }
@@ -263,7 +335,7 @@ find_shadow_paths(const HeaderSearchPaths& paths,
       }
       for (const auto& rel : relatives) {
         for (const auto& dir : file.includer_dirs) {
-          add_shadow_path(includer_dir(dir), rel);
+          add_shadow_path(dir_for(dir), rel);
         }
         for (size_t j = 0; j < i; ++j) {
           if (dirs[j].canonical != dirs[i].canonical) {
@@ -274,12 +346,37 @@ find_shadow_paths(const HeaderSearchPaths& paths,
     }
   }
 
-  std::vector<fs::path> paths_result;
-  paths_result.reserve(result.size());
-  for (const auto& path : result) {
-    paths_result.emplace_back(path);
+  // A probe searches the same directories as an include of the spelling from
+  // the probing file: the file's directory (for "..."), the quote directories
+  // (for "...") and the angle directories. Directories before the first one
+  // where the spelling exists become shadow paths.
+  for (const auto& probe : probes) {
+    const fs::path spelling(probe.spelling);
+    std::vector<const Dir*> chain;
+    if (probe.quoted) {
+      chain.push_back(&includer_dir(probe.includer));
+      for (size_t i = 0; i < quote_dir_count; ++i) {
+        chain.push_back(&dirs[i]);
+      }
+    }
+    for (size_t i = quote_dir_count; i < dirs.size(); ++i) {
+      chain.push_back(&dirs[i]);
+    }
+    for (const Dir* dir : chain) {
+      if (cached_stat(util::lexically_normal(dir->absolute / spelling))
+          == PathKind::file) {
+        probed_files.insert(
+          util::pstr(util::lexically_normal(dir->as_printed / spelling)).str());
+        break;
+      }
+      add_shadow_path(*dir, spelling);
+    }
   }
-  return paths_result;
+
+  ShadowPaths shadow_paths;
+  shadow_paths.paths.assign(result.begin(), result.end());
+  shadow_paths.probed_files.assign(probed_files.begin(), probed_files.end());
+  return shadow_paths;
 }
 
 } // namespace compiler

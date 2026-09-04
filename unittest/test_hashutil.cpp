@@ -281,6 +281,37 @@ TEST_CASE("hash_multicommand_output_error_handling")
   CHECK(!hash_multicommand_output(h2, "false; true", "not used"));
 }
 
+static void
+check_has_include(SourceCodePatternChecker check)
+{
+  CHECK(check("#if __has_include(<a.h>)")
+          .contains(SourceCodeScan::found_has_include));
+  CHECK(check("#if __has_include_next(<a.h>)")
+          .contains(SourceCodeScan::found_has_include));
+  CHECK(check("#define alphabet abcdefghijklmnopqrstuvwxyz\n__has_include(")
+          .contains(SourceCodeScan::found_has_include));
+  CHECK(check("x__has_include(<a.h>)").empty());
+  CHECK(check("__has_includes(<a.h>)").empty());
+  CHECK(check("__has_includ").empty());
+}
+
+TEST_CASE("check_for_has_include")
+{
+  SUBCASE("scalar")
+  {
+    check_has_include(check_for_source_code_patterns_scalar);
+  }
+
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    SUBCASE("avx2")
+    {
+      check_has_include(check_for_source_code_patterns_avx2);
+    }
+  }
+#endif
+}
+
 TEST_CASE("check_for_temporal_macros")
 {
   TestContext test_context;
