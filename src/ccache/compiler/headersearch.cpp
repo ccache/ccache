@@ -18,7 +18,13 @@
 
 #include "headersearch.hpp"
 
+#include <ccache/util/path.hpp>
+
+#include <algorithm>
 #include <cstdint>
+#include <optional>
+#include <set>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
@@ -144,6 +150,210 @@ parse_header_search_output(std::string_view stderr_data)
   }
 
   return output;
+}
+
+namespace {
+
+using StatFn = std::function<PathKind(const std::filesystem::path&)>;
+using CanonicalFn =
+  std::function<std::filesystem::path(const std::filesystem::path&)>;
+
+// A search directory in three forms:
+//
+// - as_printed: exactly as the preprocessor printed it (possibly relative).
+//   Recorded in the manifest so a relative directory tracks the compiler's
+//   actual lookup and survives the tree being moved or a symlink repointed.
+// - absolute: as_printed resolved against cwd and normalized, but with symlinks
+//   left intact. Used to match an included header against this directory when
+//   the header was printed with symlinks intact (clang, and gcc for -I/quoted
+//   includes).
+// - canonical: absolute with symlinks resolved. Used to match when the header
+//   was printed with symlinks resolved (gcc reports system headers found via a
+//   symlinked search directory by their real path, which does not lexically
+//   start with the directory as printed) and to tell two directories that
+//   resolve to the same location apart. Only directories are canonicalized,
+//   never the headers: resolving a header that is itself a symlink would point
+//   it outside its search directory, and there are far more headers than
+//   directories.
+struct Dir
+{
+  fs::path as_printed;
+  fs::path absolute;
+  fs::path canonical;
+};
+
+// Resolves and caches the path forms needed for shadow-path computation.
+// `stat` and `canonical` are the injected filesystem operations.
+class PathResolver
+{
+public:
+  PathResolver(fs::path cwd, StatFn stat, CanonicalFn canonical)
+    : m_cwd(std::move(cwd)),
+      m_stat(std::move(stat)),
+      m_canonical(std::move(canonical))
+  {
+  }
+
+  fs::path
+  absolute(const fs::path& path) const
+  {
+    return util::lexically_normal(path.is_absolute() ? path : m_cwd / path);
+  }
+
+  PathKind
+  kind(const fs::path& path)
+  {
+    const std::string key = util::pstr(path).str();
+    auto it = m_stat_cache.find(key);
+    if (it == m_stat_cache.end()) {
+      it = m_stat_cache.emplace(key, m_stat(path)).first;
+    }
+    return it->second;
+  }
+
+  bool
+  exists(const fs::path& path)
+  {
+    return kind(path) != PathKind::missing;
+  }
+
+  const Dir&
+  dir_for(const fs::path& dir)
+  {
+    const std::string key = util::pstr(dir).str();
+    auto it = m_dir_cache.find(key);
+    if (it == m_dir_cache.end()) {
+      const fs::path absolute_dir = absolute(dir);
+      it = m_dir_cache
+             .emplace(key,
+                      Dir{.as_printed = util::lexically_normal(dir),
+                          .absolute = absolute_dir,
+                          .canonical =
+                            util::lexically_normal(m_canonical(absolute_dir))})
+             .first;
+    }
+    return it->second;
+  }
+
+private:
+  fs::path m_cwd;
+  StatFn m_stat;
+  CanonicalFn m_canonical;
+  std::unordered_map<std::string, PathKind> m_stat_cache;
+  std::unordered_map<std::string, Dir> m_dir_cache;
+};
+
+// Like util::path_starts_with but without normalizing on Windows, so that a
+// ".." component in the printed include path is matched literally. `prefix` is
+// expected to be normalized (no trailing separator).
+bool
+starts_with_literally(const fs::path& path, const fs::path& prefix)
+{
+  return std::mismatch(path.begin(),
+                       path.end(),
+                       prefix.begin(),
+                       prefix.end(),
+                       util::path_components_equal_case_aware)
+           .second
+         == prefix.end();
+}
+
+// Return `file` relative to `dir` if it's inside `dir`. The path as printed is
+// tried before the normalized one so that ".." in #include "../foo.h" keeps the
+// association with the search directory, and the canonical directory is tried
+// since GCC prints system header paths with symlinks resolved.
+std::optional<fs::path>
+relative_to(const Dir& dir, const fs::path& printed, const fs::path& normalized)
+{
+  for (const fs::path* file : {&printed, &normalized}) {
+    for (const fs::path* d : {&dir.absolute, &dir.canonical}) {
+      if (*file != *d && starts_with_literally(*file, *d)) {
+        return file->lexically_relative(*d);
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+// Record the first missing component of `relative` below `dir` in `result`:
+// nothing below a missing directory can appear without the directory appearing
+// first.
+void
+add_shadow_path(std::set<std::string>& result,
+                PathResolver& resolver,
+                const Dir& dir,
+                const fs::path& relative)
+{
+  fs::path candidate = dir.as_printed;
+  fs::path absolute_candidate = dir.absolute;
+  for (const auto& component : relative) {
+    candidate /= component;
+    absolute_candidate /= component;
+    if (!resolver.exists(util::lexically_normal(absolute_candidate))) {
+      result.insert(util::pstr(util::lexically_normal(candidate)).str());
+      return;
+    }
+  }
+}
+
+} // namespace
+
+ShadowPaths
+find_shadow_paths(const HeaderSearchPaths& paths,
+                  const fs::path& cwd,
+                  const std::vector<IncludedFile>& included_files,
+                  const StatFn& stat,
+                  const CanonicalFn& canonical)
+{
+  PathResolver resolver(cwd, stat, canonical);
+
+  std::vector<Dir> dirs;
+  for (const auto* list : {&paths.quote_dirs, &paths.angle_dirs}) {
+    for (const auto& dir : *list) {
+      dirs.push_back(resolver.dir_for(dir));
+    }
+  }
+  std::set<std::string> result;
+
+  // Clang also reports files given to -I as nonexistent directories.
+  for (const auto& dir : paths.nonexistent_dirs) {
+    if (!resolver.exists(resolver.absolute(dir))) {
+      result.insert(util::pstr(util::lexically_normal(dir)).str());
+    }
+  }
+
+  for (const auto& file : included_files) {
+    const fs::path printed =
+      file.path.is_absolute() ? file.path : cwd / file.path;
+    const fs::path normalized = util::lexically_normal(printed);
+    for (size_t i = 0; i < dirs.size(); ++i) {
+      const auto relative = relative_to(dirs[i], printed, normalized);
+      if (!relative) {
+        continue;
+      }
+      // GCC uses foo.h.gch in a directory before foo.h in later ones, but also
+      // foo.h in an earlier directory before foo.h.gch in a later one.
+      std::vector<fs::path> spellings = {*relative};
+      const auto extension = relative->extension();
+      if (extension == ".gch" || extension == ".pch" || extension == ".pth") {
+        spellings.push_back(relative->parent_path() / relative->stem());
+      }
+      for (const auto& spelling : spellings) {
+        for (const auto& dir : file.includer_dirs) {
+          add_shadow_path(result, resolver, resolver.dir_for(dir), spelling);
+        }
+        for (size_t j = 0; j < i; ++j) {
+          if (dirs[j].canonical != dirs[i].canonical) {
+            add_shadow_path(result, resolver, dirs[j], spelling);
+          }
+        }
+      }
+    }
+  }
+
+  ShadowPaths shadow_paths;
+  shadow_paths.paths.assign(result.begin(), result.end());
+  return shadow_paths;
 }
 
 } // namespace compiler

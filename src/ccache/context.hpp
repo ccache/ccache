@@ -74,6 +74,15 @@ public:
   // Header search directories reported by the preprocessor, if available.
   std::optional<compiler::HeaderSearchPaths> header_search_paths;
 
+  // Directories of the files that included each file in included_files (same
+  // keys).
+  std::unordered_map<std::string, std::vector<std::filesystem::path>>
+    includer_dirs;
+
+  // Paths that must stay absent for the result to be valid, computed after
+  // preprocessing.
+  std::vector<std::string> shadow_paths;
+
   // Have we tried and failed to get colored diagnostics?
   bool diagnostics_color_failed = false;
 
