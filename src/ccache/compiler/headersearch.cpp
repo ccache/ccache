@@ -18,6 +18,8 @@
 
 #include "headersearch.hpp"
 
+namespace fs = std::filesystem;
+
 namespace compiler {
 
 namespace {
@@ -26,14 +28,18 @@ namespace {
 const std::string_view k_quote_marker = "#include \"...\" search starts here:";
 const std::string_view k_angle_marker = "#include <...> search starts here:";
 const std::string_view k_end_marker = "End of search list.";
+const std::string_view k_embed_marker = "#embed <...> search starts here:";
+const std::string_view k_embed_end_marker = "End of #embed search list.";
 const std::string_view k_nonexistent_prefix =
   "ignoring nonexistent directory \"";
 const std::string_view k_duplicate_prefix = "ignoring duplicate directory \"";
 const std::string_view k_duplicate_reason =
   "  as it is a non-system directory that duplicates a system directory";
 const std::string_view k_clang_version_prefix = "clang -cc1 version ";
+const std::string_view k_framework_suffix = " (framework directory)";
+const std::string_view k_headermap_suffix = " (headermap)";
 
-enum class Section { outside, quote, angle };
+enum class Section { outside, quote, angle, embed };
 
 std::string_view
 strip_line_ending(std::string_view line)
@@ -47,14 +53,32 @@ strip_line_ending(std::string_view line)
   return line;
 }
 
+// Return false if `dir` can't be represented as a path.
+bool
+add_dir(std::vector<fs::path>& dirs, std::string_view dir)
+{
+  if (dir.empty()) {
+    return true;
+  }
+  try {
+    dirs.emplace_back(std::string(dir));
+    return true;
+  } catch (const fs::filesystem_error&) {
+    return false;
+  }
+}
+
 } // namespace
 
-std::string
-strip_header_search_output(std::string_view stderr_data)
+HeaderSearchOutput
+parse_header_search_output(std::string_view stderr_data)
 {
-  std::string result;
-  result.reserve(stderr_data.size());
+  HeaderSearchOutput output;
+  output.remaining_stderr.reserve(stderr_data.size());
 
+  HeaderSearchPaths paths;
+  bool found_search_list = false;
+  bool valid_paths = true;
   Section section = Section::outside;
   bool previous_was_duplicate = false;
 
@@ -73,27 +97,51 @@ strip_header_search_output(std::string_view stderr_data)
     bool report_line = true;
     if (line == k_quote_marker) {
       section = Section::quote;
+      found_search_list = true;
     } else if (line == k_angle_marker) {
       section = Section::angle;
-    } else if (line == k_end_marker) {
+      found_search_list = true;
+    } else if (line == k_embed_marker) {
+      section = Section::embed;
+    } else if (line == k_end_marker || line == k_embed_end_marker) {
       section = Section::outside;
-    } else if (section == Section::outside || !line.starts_with(' ')) {
+    } else if (section != Section::outside && line.starts_with(' ')) {
+      std::string_view dir = line.substr(1);
+      if (section != Section::embed && !dir.ends_with(k_headermap_suffix)) {
+        if (dir.ends_with(k_framework_suffix)) {
+          dir.remove_suffix(k_framework_suffix.size());
+        }
+        auto& dirs =
+          section == Section::quote ? paths.quote_dirs : paths.angle_dirs;
+        valid_paths = add_dir(dirs, dir) && valid_paths;
+      }
+    } else {
       // Directories in the search list are indented; anything else means that
       // the list has ended (also if the end marker is missing).
       section = Section::outside;
-      report_line =
-        (line.starts_with(k_nonexistent_prefix) && line.ends_with('"'))
-        || previous_was_duplicate
-        || (follows_duplicate && line == k_duplicate_reason)
-        || line.starts_with(k_clang_version_prefix);
+      if (line.starts_with(k_nonexistent_prefix) && line.ends_with('"')
+          && line.size() > k_nonexistent_prefix.size()) {
+        const std::string_view dir =
+          line.substr(k_nonexistent_prefix.size(),
+                      line.size() - k_nonexistent_prefix.size() - 1);
+        valid_paths = add_dir(paths.nonexistent_dirs, dir) && valid_paths;
+      } else {
+        report_line = previous_was_duplicate
+                      || (follows_duplicate && line == k_duplicate_reason)
+                      || line.starts_with(k_clang_version_prefix);
+      }
     }
 
     if (!report_line) {
-      result.append(raw_line);
+      output.remaining_stderr.append(raw_line);
     }
   }
 
-  return result;
+  if (found_search_list && valid_paths) {
+    output.paths = std::move(paths);
+  }
+
+  return output;
 }
 
 } // namespace compiler

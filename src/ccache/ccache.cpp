@@ -1476,8 +1476,8 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     args.push_back("-E");
 
     // Let GCC and Clang report the header search directories on stderr. The
-    // report is removed from the stderr data below so that it doesn't affect
-    // the result key.
+    // report is parsed and removed from the stderr data below so that it
+    // doesn't affect the result key.
     const bool report_header_search_paths =
       ctx.config.direct_mode()
       && (ctx.config.is_compiler_group_gcc()
@@ -1504,9 +1504,20 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
 
     cpp_stderr_data = std::move(result->stderr_data);
     if (report_header_search_paths) {
-      const std::string stripped = compiler::strip_header_search_output(
+      auto output = compiler::parse_header_search_output(
         util::to_string_view(cpp_stderr_data));
-      cpp_stderr_data = std::string_view(stripped);
+      cpp_stderr_data = std::string_view(output.remaining_stderr);
+      if (output.paths) {
+        LOG(
+          "Preprocessor reported {} quote, {} angle and {} nonexistent"
+          " header search directories",
+          output.paths->quote_dirs.size(),
+          output.paths->angle_dirs.size(),
+          output.paths->nonexistent_dirs.size());
+        ctx.header_search_paths = std::move(output.paths);
+      } else {
+        LOG("Preprocessor did not report header search directories");
+      }
     }
 
     if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
