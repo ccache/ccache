@@ -549,6 +549,7 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
   ASSERT(!data.empty());
 
   std::unordered_map<std::string, fs::path> relative_inc_path_cache;
+  fs::path current_file;
 
   // Bytes between p and q are pending to be hashed.
   char* q = reinterpret_cast<char*>(data.data());
@@ -585,11 +586,13 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
     //
     // Note that there may be other lines starting with '#' left after
     // preprocessing as well, for instance "#    pragma".
+    const bool pch_pragma =
+      q[0] == '#' && starts_with(&q[1], pragma_gcc_pch_preprocess);
     if (q[0] == '#'
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
-            || starts_with(&q[1], pragma_gcc_pch_preprocess)
+            || pch_pragma
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
@@ -641,10 +644,13 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
         continue;
       }
       // Look for preprocessor flags, after the "filename".
+      bool entering_file = false;
       bool system = false;
       const char* r = q + 1;
       while (r < end && *r != '\n') {
-        if (*r == '3') { // System header.
+        if (*r == '1') { // Start of a new file.
+          entering_file = true;
+        } else if (*r == '3') { // System header.
           system = true;
         }
         r++;
@@ -680,6 +686,26 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
+
+      // Remember which directory the file was included from since that is
+      // searched first for #include "...". Files given with -include are
+      // entered from <command-line> (GCC) or <built-in> (Clang) and are looked
+      // up in the working directory first.
+      if (entering_file && !current_file.empty()) {
+        fs::path includer_dir = util::pstr(current_file).str().starts_with('<')
+                                  ? fs::path()
+                                  : current_file.parent_path();
+        if (includer_dir.empty()) {
+          includer_dir = ".";
+        }
+        auto& dirs = ctx.includer_dirs[util::pstr(inc_path).str()];
+        if (std::find(dirs.begin(), dirs.end(), includer_dir) == dirs.end()) {
+          dirs.push_back(includer_dir);
+        }
+      }
+      if (!pch_pragma) {
+        current_file = inc_path;
+      }
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, "___________", 10) == 0
                && (q == begin || q[-1] == '\n')) {
@@ -947,6 +973,48 @@ read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
   }
 }
 
+// Return the paths that must stay absent for the result to remain valid (see
+// compiler::find_shadow_paths), made relative like the include file paths.
+static std::optional<std::vector<std::string>>
+get_shadow_paths(const Context& ctx)
+{
+  std::vector<std::string> shadow_paths;
+  if (!ctx.header_search_paths) {
+    return shadow_paths;
+  }
+
+  std::vector<compiler::IncludedFile> included_files;
+  included_files.reserve(ctx.included_files.size());
+  for (const auto& [path, digest] : ctx.included_files) {
+    const auto it = ctx.includer_dirs.find(path);
+    included_files.push_back(
+      {path,
+       it == ctx.includer_dirs.end() ? std::vector<fs::path>{} : it->second});
+  }
+
+  for (const auto& path : compiler::find_shadow_paths(
+         *ctx.header_search_paths,
+         ctx.actual_cwd,
+         included_files,
+         [](const fs::path& p) { return DirEntry(p).exists(); },
+         [](const fs::path& p) { return fs::canonical(p).value_or(p); })) {
+    const fs::path relative_path = core::make_relative_path(ctx, path);
+    const bool ignored =
+      std::any_of(ctx.ignore_header_paths.begin(),
+                  ctx.ignore_header_paths.end(),
+                  [&](const fs::path& ignore_header_path) {
+                    return file_path_matches_dir_prefix_or_file(
+                      ignore_header_path, relative_path);
+                  });
+    if (!ignored) {
+      shadow_paths.push_back(util::pstr(relative_path).str());
+    }
+  }
+
+  LOG("Found {} shadow paths", shadow_paths.size());
+  return shadow_paths;
+}
+
 static void
 update_manifest(Context& ctx,
                 const Hash::Digest& manifest_key,
@@ -968,8 +1036,23 @@ update_manifest(Context& ctx,
     (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
+  // The shadow paths were computed right after preprocessing; anything that
+  // exists now appeared during the compilation.
+  for (const auto& path : *ctx.shadow_paths) {
+    if (DirEntry(path).exists()) {
+      LOG(
+        "Not adding result key to manifest since {} appeared during"
+        " compilation",
+        path);
+      return;
+    }
+  }
+
   const bool added = ctx.manifest.add_result(
-    result_key, ctx.included_files, [&](const std::string& path) {
+    result_key,
+    ctx.included_files,
+    *ctx.shadow_paths,
+    [&](const std::string& path) {
       DirEntry de(path, DirEntry::LogOnError::yes);
       bool cache_time =
         save_timestamp
@@ -1514,7 +1597,18 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
           output.paths->quote_dirs.size(),
           output.paths->angle_dirs.size(),
           output.paths->nonexistent_dirs.size());
-        ctx.header_search_paths = std::move(output.paths);
+        if (ctx.header_search_paths) {
+          // Several preprocessor runs (one per -arch); use the union.
+          auto append = [](auto& dst, auto& src) {
+            dst.insert(dst.end(), src.begin(), src.end());
+          };
+          append(ctx.header_search_paths->quote_dirs, output.paths->quote_dirs);
+          append(ctx.header_search_paths->angle_dirs, output.paths->angle_dirs);
+          append(ctx.header_search_paths->nonexistent_dirs,
+                 output.paths->nonexistent_dirs);
+        } else {
+          ctx.header_search_paths = std::move(output.paths);
+        }
       } else {
         LOG("Preprocessor did not report header search directories");
       }
@@ -1542,6 +1636,10 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
 
       TRY(process_preprocessed_data(ctx, hash, std::move(result->stdout_data)));
     }
+  }
+
+  if (ctx.config.direct_mode()) {
+    ctx.shadow_paths = get_shadow_paths(ctx);
   }
 
   hash.hash_delimiter("cppstderr");

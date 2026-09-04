@@ -18,6 +18,12 @@
 
 #include "headersearch.hpp"
 
+#include <ccache/util/path.hpp>
+
+#include <optional>
+#include <set>
+#include <unordered_map>
+
 namespace fs = std::filesystem;
 
 namespace compiler {
@@ -142,6 +148,138 @@ parse_header_search_output(std::string_view stderr_data)
   }
 
   return output;
+}
+
+std::vector<fs::path>
+find_shadow_paths(const HeaderSearchPaths& paths,
+                  const fs::path& cwd,
+                  const std::vector<IncludedFile>& included_files,
+                  const std::function<bool(const fs::path&)>& exists,
+                  const std::function<fs::path(const fs::path&)>& canonical)
+{
+  auto absolute = [&](const fs::path& path) {
+    return util::lexically_normal(path.is_absolute() ? path : cwd / path);
+  };
+
+  std::unordered_map<std::string, bool> exists_cache;
+  auto cached_exists = [&](const fs::path& path) {
+    const std::string key = util::pstr(path).str();
+    auto it = exists_cache.find(key);
+    if (it == exists_cache.end()) {
+      it = exists_cache.emplace(key, exists(path)).first;
+    }
+    return it->second;
+  };
+
+  // A directory as printed by the preprocessor (used for the result), as an
+  // absolute path and in canonical form (used for matching).
+  struct Dir
+  {
+    fs::path as_printed;
+    fs::path absolute;
+    fs::path canonical;
+  };
+  auto make_dir = [&](const fs::path& dir) {
+    const fs::path absolute_dir = absolute(dir);
+    return Dir{util::lexically_normal(dir),
+               absolute_dir,
+               util::lexically_normal(canonical(absolute_dir))};
+  };
+
+  std::vector<Dir> dirs;
+  for (const auto* list : {&paths.quote_dirs, &paths.angle_dirs}) {
+    for (const auto& dir : *list) {
+      dirs.push_back(make_dir(dir));
+    }
+  }
+
+  std::unordered_map<std::string, Dir> includer_dirs;
+  auto includer_dir = [&](const fs::path& dir) -> const Dir& {
+    const std::string key = util::pstr(dir).str();
+    auto it = includer_dirs.find(key);
+    if (it == includer_dirs.end()) {
+      it = includer_dirs.emplace(key, make_dir(dir)).first;
+    }
+    return it->second;
+  };
+
+  std::set<std::string> result;
+  for (const auto& dir : paths.nonexistent_dirs) {
+    // Clang also reports files given to -I as nonexistent directories.
+    if (!cached_exists(absolute(dir))) {
+      result.insert(util::pstr(util::lexically_normal(dir)).str());
+    }
+  }
+
+  // Record the first missing component of `relative` below `dir`: nothing
+  // below a missing directory can appear without the directory appearing
+  // first.
+  auto add_shadow_path = [&](const Dir& dir, const fs::path& relative) {
+    fs::path candidate = dir.as_printed;
+    fs::path absolute_candidate = dir.absolute;
+    bool has_dot_components = false;
+    for (const auto& component : relative) {
+      candidate /= component;
+      absolute_candidate /= component;
+      has_dot_components |= component == "." || component == "..";
+      const bool exists = cached_exists(
+        has_dot_components ? util::lexically_normal(absolute_candidate)
+                           : absolute_candidate);
+      if (!exists) {
+        result.insert(util::pstr(util::lexically_normal(candidate)).str());
+        return;
+      }
+    }
+  };
+
+  for (const auto& file : included_files) {
+    // Match the path as printed before the normalized path so that ".." in
+    // #include "../foo.h" keeps the association with the search directory.
+    const fs::path printed_file =
+      file.path.is_absolute() ? file.path : cwd / file.path;
+    const fs::path normalized_file = util::lexically_normal(printed_file);
+    for (size_t i = 0; i < dirs.size(); ++i) {
+      std::optional<fs::path> relative;
+      for (const fs::path* f : {&printed_file, &normalized_file}) {
+        for (const fs::path* d : {&dirs[i].absolute, &dirs[i].canonical}) {
+          if (*f != *d && util::path_starts_with(*f, *d)) {
+            relative = f->lexically_relative(*d);
+            break;
+          }
+        }
+        if (relative) {
+          break;
+        }
+      }
+      if (!relative) {
+        continue;
+      }
+      // GCC uses foo.h.gch in a directory before foo.h in later ones, but also
+      // foo.h in an earlier directory before foo.h.gch in a later one.
+      std::vector<fs::path> relatives = {*relative};
+      const auto extension = relative->extension();
+      if (extension == ".gch" || extension == ".pch" || extension == ".pth") {
+        relatives.push_back(relative->parent_path() / relative->stem());
+      }
+      for (const auto& rel : relatives) {
+        for (const auto& dir : file.includer_dirs) {
+          add_shadow_path(includer_dir(dir), rel);
+        }
+        for (size_t j = 0; j < i; ++j) {
+          if (dirs[j].canonical != dirs[i].canonical) {
+            add_shadow_path(dirs[j], rel);
+          }
+        }
+      }
+    }
+  }
+
+  std::vector<fs::path> paths_result;
+  paths_result.reserve(result.size());
+  for (const auto& path : result) {
+    paths_result.emplace_back(path);
+  }
+  return paths_result;
 }
 
 } // namespace compiler

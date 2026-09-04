@@ -19,6 +19,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -59,5 +60,31 @@ struct HeaderSearchOutput
 // parsed. Directories from multiple reports (e.g. CUDA host and device
 // compilation) are concatenated.
 HeaderSearchOutput parse_header_search_output(std::string_view stderr_data);
+
+struct IncludedFile
+{
+  std::filesystem::path path;
+
+  // Directories of the files that included it. They are searched first for
+  // #include "..." without being header search directories.
+  std::vector<std::filesystem::path> includer_dirs;
+};
+
+// Return paths that don't exist but would make the preprocessor find another
+// file for one of `included_files` if they did: for each include file found in
+// a search directory, the same relative path in every directory searched before
+// it and in the directories of the files that included it (or the first missing
+// parent directory of that path), plus the nonexistent search directories.
+// Relative paths are relative to `cwd`. `exists` and `canonical` (which should
+// return the path itself on failure) are called with absolute paths; include
+// files are matched against the search directories both as printed and in
+// canonical form since GCC prints system header paths with symlinks resolved.
+std::vector<std::filesystem::path> find_shadow_paths(
+  const HeaderSearchPaths& paths,
+  const std::filesystem::path& cwd,
+  const std::vector<IncludedFile>& included_files,
+  const std::function<bool(const std::filesystem::path&)>& exists,
+  const std::function<std::filesystem::path(const std::filesystem::path&)>&
+    canonical);
 
 } // namespace compiler
