@@ -22,6 +22,7 @@
 #include <ccache/argprocessing.hpp>
 #include <ccache/argsinfo.hpp>
 #include <ccache/compiler/clang.hpp>
+#include <ccache/compiler/headersearch.hpp>
 #include <ccache/compiler/msvc.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
@@ -1474,6 +1475,18 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     // done for the depend mode.
     args.push_back("-E");
 
+    // Let GCC and Clang report the header search directories on stderr. The
+    // report is removed from the stderr data below so that it doesn't affect
+    // the result key.
+    const bool report_header_search_paths =
+      ctx.config.direct_mode()
+      && (ctx.config.is_compiler_group_gcc()
+          || ctx.config.is_compiler_group_clang())
+      && !ctx.config.is_compiler_group_msvc();
+    if (report_header_search_paths) {
+      args.push_back("-Wp,-v");
+    }
+
     args.push_back(
       FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
@@ -1490,6 +1503,11 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     }
 
     cpp_stderr_data = std::move(result->stderr_data);
+    if (report_header_search_paths) {
+      const std::string stripped = compiler::strip_header_search_output(
+        util::to_string_view(cpp_stderr_data));
+      cpp_stderr_data = std::string_view(stripped);
+    }
 
     if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
       // Check that usage of -utf-8 didn't garble the preprocessor output.

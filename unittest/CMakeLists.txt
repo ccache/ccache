@@ -4,6 +4,7 @@ set(
   test_argprocessing.cpp
   test_ccache.cpp
   test_compiler_clang.cpp
+  test_compiler_headersearch.cpp
   test_compiler_msvc.cpp
   test_compopt.cpp
   test_compression_types.cpp

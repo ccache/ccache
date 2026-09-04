@@ -1174,6 +1174,18 @@ EOF
     expect_content stderr-mf.txt "`cat stderr-orig.txt`"
 
     # -------------------------------------------------------------------------
+    TEST "Header search report in preprocessor stderr doesn't affect result key"
+
+    CCACHE_NODIRECT=1 $CCACHE_COMPILE -c -Inonexistent_dir test.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Inonexistent_dir test.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
     TEST "Empty source file"
 
     touch empty.c
