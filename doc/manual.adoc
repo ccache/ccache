@@ -1841,6 +1841,7 @@ The direct mode will be disabled if any of the following holds:
 * the string `+__TIME__+` is present in the source code
 * `+__has_include+` or `+__has_include_next+` with a macro operand is present in
   the source code
+* `#embed` or `+__has_embed+` is present in the source code
 
 
 === The depend mode

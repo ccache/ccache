@@ -312,6 +312,41 @@ TEST_CASE("check_for_has_include")
 #endif
 }
 
+static void
+check_has_embed(SourceCodePatternChecker check)
+{
+  // "__has_embed(" is split so that ccache doesn't see it as used when
+  // compiling itself with ccache.
+  CHECK(check("#if __has_"
+              "embed(\"x.bin\")")
+          .contains(SourceCodeScan::found_embed));
+  CHECK(check("#if __has_"
+              "embed \\\n (\"x.bin\")")
+          .contains(SourceCodeScan::found_embed));
+  CHECK(check("x__has_embed(\"x.bin\")").empty());
+  CHECK(check("__has_embedx(\"x.bin\")").empty());
+  CHECK(check("#ifdef __has_embed\n").empty());
+  CHECK(check("defined(__has_embed)").empty());
+  CHECK(check("__has_embed").empty());
+}
+
+TEST_CASE("check_for_has_embed")
+{
+  SUBCASE("scalar")
+  {
+    check_has_embed(check_for_source_code_patterns_scalar);
+  }
+
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    SUBCASE("avx2")
+    {
+      check_has_embed(check_for_source_code_patterns_avx2);
+    }
+  }
+#endif
+}
+
 TEST_CASE("check_for_temporal_macros")
 {
   TestContext test_context;

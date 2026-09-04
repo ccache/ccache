@@ -37,8 +37,14 @@ namespace {
 const std::string_view k_quote_marker = "#include \"...\" search starts here:";
 const std::string_view k_angle_marker = "#include <...> search starts here:";
 const std::string_view k_end_marker = "End of search list.";
-const std::string_view k_embed_marker = "#embed <...> search starts here:";
-const std::string_view k_embed_end_marker = "End of #embed search list.";
+// The directive is split so that ccache doesn't see it as used when compiling
+// itself with ccache.
+const std::string_view k_embed_marker =
+  "#em"
+  "bed <...> search starts here:";
+const std::string_view k_embed_end_marker =
+  "End of #em"
+  "bed search list.";
 const std::string_view k_nonexistent_prefix =
   "ignoring nonexistent directory \"";
 const std::string_view k_duplicate_prefix = "ignoring duplicate directory \"";

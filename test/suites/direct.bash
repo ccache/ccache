@@ -1957,4 +1957,27 @@ EOF
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "__has_embed disables direct mode"
+
+    cat <<EOF >main.c
+#ifdef __has_embed
+#if __has_embed("x.bin")
+#error unexpected
+#endif
+#endif
+int x;
+EOF
+    backdate main.c
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
 }
