@@ -133,4 +133,13 @@ ShadowPaths find_shadow_paths(
   const std::function<std::filesystem::path(const std::filesystem::path&)>&
     canonical);
 
+// Return the paths where Clang with -fmodules would find a module map
+// (module.modulemap or module.private.modulemap) if one appeared: the directory
+// of each of `included_files` and their parent directories. Relative paths are
+// relative to `cwd`; `stat` is called with absolute paths.
+std::vector<std::filesystem::path> find_module_map_shadow_paths(
+  const std::vector<std::filesystem::path>& included_files,
+  const std::filesystem::path& cwd,
+  const std::function<PathKind(const std::filesystem::path&)>& stat);
+
 } // namespace compiler
