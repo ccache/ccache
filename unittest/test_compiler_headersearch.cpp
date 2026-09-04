@@ -74,9 +74,13 @@ TEST_CASE("compiler::parse_header_search_output")
       " /usr/lib/gcc/x86_64-linux-gnu/13/include\n"
       " /usr/include\n"
       "End of search list.\n"
-      "#embed <...> search starts here:\n"
+      // Split so that ccache doesn't see the directive as used when compiling
+      // itself with ccache.
+      "#em"
+      "bed <...> search starts here:\n"
       " /usr/share/embed\n"
-      "End of #embed search list.\n"
+      "End of #em"
+      "bed search list.\n"
       "test.c:2:10: fatal error: q.h: No such file or directory\n"
       "    2 | #include \"q.h\"\n"
       "      |          ^~~~~\n"

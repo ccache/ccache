@@ -174,6 +174,17 @@ check_for_has_include(std::string_view str, size_t pos)
            : SourceCodeScan::none;
 }
 
+// Pre-condition: str[pos] == '_'
+SourceCodeScan
+check_for_has_embed(std::string_view str, size_t pos)
+{
+  // The operand is a resource file probed like an embed directive, so it is
+  // treated the same way.
+  return is_builtin_invocation(str, pos, "__has_embed")
+           ? SourceCodeScan::found_embed
+           : SourceCodeScan::none;
+}
+
 // Remember the literal __has_include operands in `path` for
 // compiler::find_shadow_paths. `content` is the file content if it was read,
 // else empty (served from the inode cache). Return whether an operand is a
@@ -269,6 +280,9 @@ check_for_source_code_patterns_scalar(std::string_view str,
       result.insert(check_for_temporal_macros(str, i + 1));
       if (!result.contains(SourceCodeScan::found_has_include)) {
         result.insert(check_for_has_include(str, i));
+      }
+      if (!result.contains(SourceCodeScan::found_embed)) {
+        result.insert(check_for_has_embed(str, i));
       }
     }
     if (!result.contains(SourceCodeScan::found_embed) && str[i] == '#') {
@@ -379,11 +393,12 @@ check_for_source_code_patterns_avx2(std::string_view str)
       const __m256i underscore_mask = _mm256_cmpeq_epi8(underscore, block);
       temporal_mask = _mm256_movemask_epi8(_mm256_and_si256(
         underscore_mask, _mm256_cmpeq_epi8(temporal_last, block_last)));
-      if (!result.contains(SourceCodeScan::found_has_include)) {
-        // Candidate positions for "__has_include": as for the temporal
-        // macros, two bytes are matched in parallel ("_" at offset 0 and, as
-        // in "__has_", at offset 5) and check_for_has_include verifies the
-        // rest.
+      if (!result.contains(SourceCodeScan::found_has_include)
+          || !result.contains(SourceCodeScan::found_embed)) {
+        // Candidate positions for "__has_include" and "__has_embed": as for
+        // the temporal macros, two bytes are matched in parallel ("_" at
+        // offset 0 and, as in "__has_", at offset 5) and the check functions
+        // verify the rest.
         has_include_mask = _mm256_movemask_epi8(_mm256_and_si256(
           underscore_mask, _mm256_cmpeq_epi8(underscore, block_last)));
       }
@@ -426,6 +441,7 @@ check_for_source_code_patterns_avx2(std::string_view str)
 #  endif
       has_include_mask &= has_include_mask - 1;
       result.insert(check_for_has_include(str, start));
+      result.insert(check_for_has_embed(str, start));
     }
 
     while (embed_mask != 0) {
@@ -479,7 +495,7 @@ hash_source_code_file(Context& ctx, const fs::path& path, size_t size_hint)
   auto& result = *opt_result;
 
   if (result.contains(SourceCodeScan::found_embed)) {
-    LOG("Found #em{}bed in {}", "", path);
+    LOG("Found #em{}bed or __has_embed in {}", "", path);
   }
   bool has_include_macro_operand = false;
   if (result.contains(SourceCodeScan::found_has_include)

@@ -59,7 +59,7 @@ struct HeaderSearchOutput
 // Parse and remove the header search directory report that GCC and Clang print
 // to stderr when the preprocessor runs in verbose mode (-Wp,-v). Other lines
 // are kept. Header maps are skipped since they aren't directories, framework
-// directories are included and GCC's #embed search list is removed but not
+// directories are included and GCC's embed search list is removed but not
 // parsed. Directories from multiple reports (e.g. CUDA host and device
 // compilation) are concatenated.
 HeaderSearchOutput parse_header_search_output(std::string_view stderr_data);
