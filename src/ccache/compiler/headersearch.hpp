@@ -73,25 +73,62 @@ struct IncludedFile
   std::vector<std::filesystem::path> includer_dirs;
 };
 
+struct HasIncludeOperand
+{
+  std::string spelling;
+  bool quoted; // "..." rather than <...>
+
+  bool operator==(const HasIncludeOperand&) const = default;
+};
+
+struct HasIncludeOperands
+{
+  std::vector<HasIncludeOperand> literals;
+
+  // Whether an operand is a macro, which can't be resolved.
+  bool macro_operand = false;
+};
+
+// Return the operands of __has_include and __has_include_next in `source`.
+HasIncludeOperands find_has_include_operands(std::string_view source);
+
+// A __has_include operand and the file it was found in.
+struct HasIncludeProbe
+{
+  std::filesystem::path includer;
+  std::string spelling;
+  bool quoted;
+
+  bool operator==(const HasIncludeProbe&) const = default;
+};
+
 enum class PathKind : uint8_t { missing, file, directory };
 
 struct ShadowPaths
 {
   // Paths that must stay absent for the result to stay valid.
   std::vector<std::filesystem::path> paths;
+
+  // Existing files found by __has_include probes. They must be tracked like
+  // include files.
+  std::vector<std::filesystem::path> probed_files;
 };
 
 // Return paths that don't exist but would make the preprocessor find another
-// file for one of `included_files` if they did: for each include file found in
-// a search directory, the same relative path in every directory searched before
-// it and in the directories of the files that included it (or the first missing
-// parent directory of that path), plus the nonexistent search directories.
-// Relative paths are relative to `cwd`. `stat` and `canonical` (which should
-// return the path itself on failure) are called with absolute paths.
+// file for one of `included_files` or `probes` if they did: for each include
+// file found in a search directory, the same relative path in every directory
+// searched before it and in the directories of the files that included it (or
+// the first missing parent directory of that path), plus the nonexistent search
+// directories. A __has_include operand is treated like an include of that
+// spelling from the probing file, with the file it resolves to (if any)
+// returned in `probed_files`. Relative paths are relative to `cwd`. `stat` and
+// `canonical` (which should return the path itself on failure) are called with
+// absolute paths.
 ShadowPaths find_shadow_paths(
   const HeaderSearchPaths& paths,
   const std::filesystem::path& cwd,
   const std::vector<IncludedFile>& included_files,
+  const std::vector<HasIncludeProbe>& probes,
   const std::function<PathKind(const std::filesystem::path&)>& stat,
   const std::function<std::filesystem::path(const std::filesystem::path&)>&
     canonical);

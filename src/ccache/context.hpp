@@ -79,6 +79,9 @@ public:
   std::unordered_map<std::string, std::vector<std::filesystem::path>>
     includer_dirs;
 
+  // __has_include operands found in the source and include files.
+  std::vector<compiler::HasIncludeProbe> has_include_probes;
+
   // Paths that must stay absent for the result to be valid, computed after
   // preprocessing.
   std::vector<std::string> shadow_paths;

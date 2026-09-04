@@ -19,6 +19,7 @@
 #include "headersearch.hpp"
 
 #include <ccache/util/path.hpp>
+#include <ccache/util/string.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -150,6 +151,52 @@ parse_header_search_output(std::string_view stderr_data)
   }
 
   return output;
+}
+
+HasIncludeOperands
+find_has_include_operands(std::string_view source)
+{
+  static constexpr std::string_view has_include = "__has_include";
+  static constexpr std::string_view next = "_next";
+  static constexpr std::string_view space = " \t\\\r\n";
+
+  auto is_identifier_char = [](char c) {
+    return c == '_' || util::is_alnum(c);
+  };
+
+  HasIncludeOperands operands;
+  for (size_t pos = source.find(has_include); pos != std::string_view::npos;
+       pos = source.find(has_include, pos + 1)) {
+    if (pos > 0 && is_identifier_char(source[pos - 1])) {
+      continue;
+    }
+    size_t p = pos + has_include.size();
+    if (source.substr(p, next.size()) == next) {
+      p += next.size();
+    }
+    if (p < source.size() && is_identifier_char(source[p])) {
+      continue;
+    }
+    // Only __has_include followed by "(" is a lookup; "#ifdef __has_include"
+    // and "defined(__has_include)" are not.
+    p = source.find_first_not_of(space, p);
+    if (p == std::string_view::npos || source[p] != '(') {
+      continue;
+    }
+    p = source.find_first_not_of(space, p + 1);
+    if (p == std::string_view::npos || (source[p] != '<' && source[p] != '"')) {
+      operands.macro_operand = true;
+      continue;
+    }
+    const bool quoted = source[p] == '"';
+    const size_t end = source.find(quoted ? '"' : '>', p + 1);
+    if (end == std::string_view::npos || end > source.find('\n', p + 1)) {
+      continue;
+    }
+    operands.literals.push_back(
+      {std::string(source.substr(p + 1, end - p - 1)), quoted});
+  }
+  return operands;
 }
 
 namespace {
@@ -302,6 +349,7 @@ ShadowPaths
 find_shadow_paths(const HeaderSearchPaths& paths,
                   const fs::path& cwd,
                   const std::vector<IncludedFile>& included_files,
+                  const std::vector<HasIncludeProbe>& probes,
                   const StatFn& stat,
                   const CanonicalFn& canonical)
 {
@@ -313,7 +361,10 @@ find_shadow_paths(const HeaderSearchPaths& paths,
       dirs.push_back(resolver.dir_for(dir));
     }
   }
+  const size_t quote_dir_count = paths.quote_dirs.size();
+
   std::set<std::string> result;
+  std::set<std::string> probed_files;
 
   // Clang also reports files given to -I as nonexistent directories.
   for (const auto& dir : paths.nonexistent_dirs) {
@@ -351,8 +402,37 @@ find_shadow_paths(const HeaderSearchPaths& paths,
     }
   }
 
+  // A probe searches the same directories as an include of the spelling from
+  // the probing file: the file's directory and the quote directories (for
+  // "...") and the angle directories. Directories before the first one where
+  // the spelling exists become shadow paths.
+  for (const auto& probe : probes) {
+    const fs::path spelling(probe.spelling);
+    std::vector<const Dir*> chain;
+    if (probe.quoted) {
+      const fs::path dir = probe.includer.parent_path();
+      chain.push_back(&resolver.dir_for(dir.empty() ? fs::path(".") : dir));
+      for (size_t i = 0; i < quote_dir_count; ++i) {
+        chain.push_back(&dirs[i]);
+      }
+    }
+    for (size_t i = quote_dir_count; i < dirs.size(); ++i) {
+      chain.push_back(&dirs[i]);
+    }
+    for (const Dir* dir : chain) {
+      if (resolver.kind(util::lexically_normal(dir->absolute / spelling))
+          == PathKind::file) {
+        probed_files.insert(
+          util::pstr(util::lexically_normal(dir->as_printed / spelling)).str());
+        break;
+      }
+      add_shadow_path(result, resolver, *dir, spelling);
+    }
+  }
+
   ShadowPaths shadow_paths;
   shadow_paths.paths.assign(result.begin(), result.end());
+  shadow_paths.probed_files.assign(probed_files.begin(), probed_files.end());
   return shadow_paths;
 }
 

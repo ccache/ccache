@@ -19,7 +19,6 @@
 
 #include "ccache.hpp"
 
-#include <algorithm>
 #include <ccache/argprocessing.hpp>
 #include <ccache/argsinfo.hpp>
 #include <ccache/compiler/clang.hpp>
@@ -74,6 +73,7 @@
 
 #include <fcntl.h>
 
+#include <algorithm>
 #include <optional>
 #include <string_view>
 
@@ -978,7 +978,7 @@ read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
 // Return the paths that must stay absent for the result to remain valid (see
 // compiler::find_shadow_paths), made relative like the include file paths.
 static std::vector<std::string>
-get_shadow_paths(const Context& ctx)
+get_shadow_paths(Context& ctx)
 {
   std::vector<std::string> shadow_paths;
   if (!ctx.header_search_paths) {
@@ -1000,6 +1000,7 @@ get_shadow_paths(const Context& ctx)
     *ctx.header_search_paths,
     ctx.actual_cwd,
     included_files,
+    ctx.has_include_probes,
     [](const fs::path& path) {
       DirEntry entry(path);
       return !entry.exists()        ? compiler::PathKind::missing
@@ -1008,14 +1009,29 @@ get_shadow_paths(const Context& ctx)
     },
     [](const fs::path& p) { return fs::canonical(p).value_or(p); });
 
+  // A file found by a __has_include probe is tracked like an include file so
+  // that its disappearance or modification is noticed. If it can't be tracked
+  // (e.g. not a regular file), the result can't be validated in direct mode.
+  Hash unused_hash;
+  for (const auto& path : result.probed_files) {
+    if (!remember_include_file(ctx,
+                               core::make_relative_path(ctx, path),
+                               unused_hash,
+                               false,
+                               nullptr)) {
+      LOG("Disabling direct mode since probed file {} can't be tracked", path);
+      ctx.config.set_direct_mode(false);
+      return {};
+    }
+  }
+
   for (const auto& path : result.paths) {
     const fs::path relative_path = core::make_relative_path(ctx, path);
-    const bool ignored =
-      std::ranges::any_of(ctx.ignore_header_paths,
-                  [&](const fs::path& ignore_header_path) {
-                    return file_path_matches_dir_prefix_or_file(
-                      ignore_header_path, relative_path);
-                  });
+    const bool ignored = std::ranges::any_of(
+      ctx.ignore_header_paths, [&](const fs::path& ignore_header_path) {
+        return file_path_matches_dir_prefix_or_file(ignore_header_path,
+                                                    relative_path);
+      });
     if (!ignored) {
       shadow_paths.push_back(util::pstr(relative_path).str());
     }

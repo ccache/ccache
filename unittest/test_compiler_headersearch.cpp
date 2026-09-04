@@ -237,9 +237,11 @@ TEST_CASE("compiler::find_shadow_paths")
 #endif
 
   std::set<fs::path> existing;
+  std::set<fs::path> existing_files;
   auto stat = [&](const fs::path& path) {
-    return existing.contains(path) ? compiler::PathKind::directory
-                                   : compiler::PathKind::missing;
+    return existing_files.contains(path) ? compiler::PathKind::file
+           : existing.contains(path)     ? compiler::PathKind::directory
+                                         : compiler::PathKind::missing;
   };
   std::map<fs::path, fs::path> links;
   auto canonical = [&](const fs::path& path) {
@@ -252,7 +254,7 @@ TEST_CASE("compiler::find_shadow_paths")
       included_files.push_back({file, {}});
     }
     return compiler::find_shadow_paths(
-             paths, cwd, included_files, stat, canonical)
+             paths, cwd, included_files, {}, stat, canonical)
       .paths;
   };
 
@@ -372,10 +374,34 @@ TEST_CASE("compiler::find_shadow_paths")
       {"include/foo.h", {"src", "."}},
       {"other/bar.h",   {"include"} },
     };
-    CHECK(
-      compiler::find_shadow_paths(paths, cwd, included_files, stat, canonical)
-        .paths
-      == Dirs{"foo.h", "include/bar.h", "other/foo.h", "src/foo.h"});
+    CHECK(compiler::find_shadow_paths(
+            paths, cwd, included_files, {}, stat, canonical)
+            .paths
+          == Dirs{"foo.h", "include/bar.h", "other/foo.h", "src/foo.h"});
+  }
+
+  SUBCASE("__has_include probes")
+  {
+    paths.quote_dirs = {"q"};
+    paths.angle_dirs = {"inc1", "inc2"};
+    existing = {cwd / "src", cwd / "q", cwd / "inc1", cwd / "inc2"};
+    existing_files = {cwd / "inc2/found.h"};
+    const std::vector<compiler::HasIncludeProbe> probes = {
+      {"src/main.c", "missing.h",   true },
+      {"src/main.c", "found.h",     false},
+      {"inc1/x.h",   "sub/other.h", false},
+    };
+    const auto result =
+      compiler::find_shadow_paths(paths, cwd, {}, probes, stat, canonical);
+    CHECK(result.paths
+          == Dirs{"inc1/found.h",
+                  "inc1/missing.h",
+                  "inc1/sub",
+                  "inc2/missing.h",
+                  "inc2/sub",
+                  "q/missing.h",
+                  "src/missing.h"});
+    CHECK(result.probed_files == Dirs{"inc2/found.h"});
   }
 
   SUBCASE("nonexistent directories")
@@ -407,6 +433,43 @@ TEST_CASE("compiler::find_shadow_paths")
       abs / "link/include", abs / "real/include", abs / "real/include/foo.h"};
     CHECK(find(paths, {abs / "real/include/foo.h"}).empty());
   }
+}
+
+TEST_CASE("compiler::find_has_include_operands")
+{
+  using Operands = std::vector<compiler::HasIncludeOperand>;
+
+  CHECK(compiler::find_has_include_operands("").literals.empty());
+  CHECK(!compiler::find_has_include_operands("").macro_operand);
+
+  auto operands = compiler::find_has_include_operands(
+    "#if __has_include(<foo/bar.h>)\n#if __has_include ( \"baz.h\" )\n"
+    "#if __has_include_next(<stdint.h>)\n#if __has_include \\\n(<a.h>)\n");
+  CHECK(operands.literals
+        == Operands{
+          {"foo/bar.h", false},
+          {"baz.h",     true },
+          {"stdint.h",  false},
+          {"a.h",       false}
+  });
+  CHECK(!operands.macro_operand);
+
+  operands = compiler::find_has_include_operands(
+    "#ifdef __has_include\n#if defined(__has_include)\n"
+    "#if x__has_include(<a.h>)\n#if __has_includes(<a.h>)\n"
+    "#if __has_include(<a.h\n>)\n");
+  CHECK(operands.literals.empty());
+  CHECK(!operands.macro_operand);
+
+  operands = compiler::find_has_include_operands(
+    "#if __has_include(<a.h>) && __has_include(HEADER)\n");
+  CHECK(operands.literals
+        == Operands{
+          {"a.h", false}
+  });
+  CHECK(operands.macro_operand);
+  CHECK(compiler::find_has_include_operands("#if __has_include_next(HEADER)")
+          .macro_operand);
 }
 
 TEST_SUITE_END();
