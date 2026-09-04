@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/argsinfo.hpp>
+#include <ccache/compiler/headersearch.hpp>
 #include <ccache/config.hpp>
 #include <ccache/core/manifest.hpp>
 #include <ccache/hash.hpp>
@@ -69,6 +70,9 @@ public:
 
   // Files included by the preprocessor and their hashes.
   std::unordered_map<std::string, Hash::Digest> included_files;
+
+  // Header search directories reported by the preprocessor, if available.
+  std::optional<compiler::HeaderSearchPaths> header_search_paths;
 
   // Have we tried and failed to get colored diagnostics?
   bool diagnostics_color_failed = false;

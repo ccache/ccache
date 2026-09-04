@@ -22,6 +22,8 @@
 
 #include <string>
 
+using compiler::Dirs;
+
 TEST_SUITE_BEGIN("headersearch");
 
 TEST_CASE("compiler::parse_header_search_output")
@@ -29,6 +31,10 @@ TEST_CASE("compiler::parse_header_search_output")
   SUBCASE("empty")
   {
     const auto output = compiler::parse_header_search_output("");
+    REQUIRE(output.paths);
+    CHECK(output.paths->quote_dirs.empty());
+    CHECK(output.paths->angle_dirs.empty());
+    CHECK(output.paths->nonexistent_dirs.empty());
     CHECK(output.remaining_stderr == "");
   }
 
@@ -38,6 +44,10 @@ TEST_CASE("compiler::parse_header_search_output")
       "test.c:3:10: warning: extra tokens at end of #endif directive\n"
       " indented line outside a search list\n";
     const auto output = compiler::parse_header_search_output(stderr_data);
+    REQUIRE(output.paths);
+    CHECK(output.paths->quote_dirs.empty());
+    CHECK(output.paths->angle_dirs.empty());
+    CHECK(output.paths->nonexistent_dirs.empty());
     CHECK(output.remaining_stderr == stderr_data);
   }
 
@@ -59,11 +69,22 @@ TEST_CASE("compiler::parse_header_search_output")
       " /usr/lib/gcc/x86_64-linux-gnu/13/include\n"
       " /usr/include\n"
       "End of search list.\n"
+      "#embed <...> search starts here:\n"
+      " /usr/share/embed\n"
+      "End of #embed search list.\n"
       "test.c:2:10: fatal error: q.h: No such file or directory\n"
       "    2 | #include \"q.h\"\n"
       "      |          ^~~~~\n"
       "compilation terminated.\n";
     const auto output = compiler::parse_header_search_output(stderr_data);
+    REQUIRE(output.paths);
+    CHECK(output.paths->quote_dirs == Dirs{"q"});
+    CHECK(output.paths->angle_dirs
+          == Dirs{"inc2",
+                  "/usr/lib/gcc/x86_64-linux-gnu/13/include",
+                  "/usr/include"});
+    CHECK(output.paths->nonexistent_dirs
+          == Dirs{"/usr/local/include/x86_64-linux-gnu", "inc1"});
     CHECK(output.remaining_stderr
           == "cc1: warning: command-line option '-std=c++17' is valid for"
              " C++/ObjC++ but not for C\n"
@@ -92,6 +113,17 @@ TEST_CASE("compiler::parse_header_search_output")
       "End of search list.\n"
       "test.c:1:2: warning: foo [-W#warnings]\n";
     const auto output = compiler::parse_header_search_output(stderr_data);
+    REQUIRE(output.paths);
+    CHECK(output.paths->quote_dirs.empty());
+    CHECK(output.paths->angle_dirs
+          == Dirs{"inc2", "/usr/lib/clang/21/include", "/Library/Frameworks"});
+    CHECK(output.paths->nonexistent_dirs == Dirs{"inc1"});
+    CHECK(output.remaining_stderr
+          == "clang: warning: -lfoo: 'linker' input unused"
+             " [-Wunused-command-line-argument]\n"
+             "clang -cc1 version 21.1.8 based upon LLVM 21.1.8 default target"
+             " x86_64-unknown-linux-gnu\n"
+             "test.c:1:2: warning: foo [-W#warnings]\n");
   }
 
   SUBCASE("CRLF")
@@ -105,6 +137,11 @@ TEST_CASE("compiler::parse_header_search_output")
       "End of search list.\r\n"
       "warning: something\r\n";
     const auto output = compiler::parse_header_search_output(stderr_data);
+    REQUIRE(output.paths);
+    CHECK(output.paths->quote_dirs == Dirs{"q"});
+    CHECK(output.paths->angle_dirs == Dirs{"inc2"});
+    CHECK(output.paths->nonexistent_dirs == Dirs{"inc1"});
+    CHECK(output.remaining_stderr == "warning: something\r\n");
   }
 
   SUBCASE("Multiple reports (e.g. CUDA host and device compilation)")
@@ -124,6 +161,9 @@ TEST_CASE("compiler::parse_header_search_output")
       " /usr/include\n"
       "End of search list.\n";
     const auto output = compiler::parse_header_search_output(stderr_data);
+    REQUIRE(output.paths);
+    CHECK(output.paths->angle_dirs
+          == Dirs{"/usr/include", "/usr/local/cuda/include", "/usr/include"});
     CHECK(output.remaining_stderr
           == "clang -cc1 version 21.1.8 based upon LLVM 21.1.8 default target"
              " x86_64-unknown-linux-gnu\n"
@@ -139,12 +179,21 @@ TEST_CASE("compiler::parse_header_search_output")
       "test.c:2:10: error: foo\n"
       "    2 | int x = foo;\n";
     const auto output = compiler::parse_header_search_output(stderr_data);
+    REQUIRE(output.paths);
+    CHECK(output.paths->angle_dirs == Dirs{"/usr/include"});
+    CHECK(output.remaining_stderr
+          == "test.c:2:10: error: foo\n"
+             "    2 | int x = foo;\n");
   }
 
   SUBCASE("Nonexistent directories without search list")
   {
     const auto output = compiler::parse_header_search_output(
       "ignoring nonexistent directory \"inc1\"\nwarning: foo\n");
+    REQUIRE(output.paths);
+    CHECK(output.paths->nonexistent_dirs == Dirs{"inc1"});
+    CHECK(output.paths->quote_dirs.empty());
+    CHECK(output.paths->angle_dirs.empty());
     CHECK(output.remaining_stderr == "warning: foo\n");
   }
 

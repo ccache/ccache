@@ -20,6 +20,8 @@
 
 #include <cstdint>
 
+namespace fs = std::filesystem;
+
 namespace compiler {
 
 namespace {
@@ -28,6 +30,8 @@ namespace {
 const std::string_view k_quote_marker = "#include \"...\" search starts here:";
 const std::string_view k_angle_marker = "#include <...> search starts here:";
 const std::string_view k_end_marker = "End of search list.";
+const std::string_view k_embed_marker = "#embed <...> search starts here:";
+const std::string_view k_embed_end_marker = "End of #embed search list.";
 const std::string_view k_nonexistent_prefix =
   "ignoring nonexistent directory \"";
 const std::string_view k_duplicate_prefix = "ignoring duplicate directory \"";
@@ -35,8 +39,13 @@ const std::string_view k_duplicate_prefix = "ignoring duplicate directory \"";
 // directory duplicates a built-in system directory.
 const std::string_view k_duplicate_reason =
   "  as it is a non-system directory that duplicates a system directory";
+// Directories in the search list are printed with a single space of
+// indentation.
+const std::string_view k_search_dir_prefix = " ";
+const std::string_view k_framework_suffix = " (framework directory)";
+const std::string_view k_headermap_suffix = " (headermap)";
 
-enum class Section : uint8_t { outside, quote, angle };
+enum class Section : uint8_t { outside, quote, angle, embed };
 
 std::string_view
 strip_line_ending(std::string_view line)
@@ -47,6 +56,21 @@ strip_line_ending(std::string_view line)
   return line;
 }
 
+// Return false if `dir` can't be represented as a path.
+bool
+add_dir(Dirs& dirs, std::string_view dir)
+{
+  if (dir.empty()) {
+    return true;
+  }
+  try {
+    dirs.emplace_back(std::string(dir));
+    return true;
+  } catch (const fs::filesystem_error&) {
+    return false;
+  }
+}
+
 } // namespace
 
 HeaderSearchOutput
@@ -55,6 +79,8 @@ parse_header_search_output(std::string_view stderr_data)
   HeaderSearchOutput output;
   output.remaining_stderr.reserve(stderr_data.size());
 
+  HeaderSearchPaths paths;
+  bool valid_paths = true;
   Section section = Section::outside;
   bool previous_was_duplicate = false;
 
@@ -75,21 +101,46 @@ parse_header_search_output(std::string_view stderr_data)
       section = Section::quote;
     } else if (line == k_angle_marker) {
       section = Section::angle;
-    } else if (line == k_end_marker) {
+    } else if (line == k_embed_marker) {
+      section = Section::embed;
+    } else if (line == k_end_marker || line == k_embed_end_marker) {
       section = Section::outside;
-    } else if (section == Section::outside || !line.starts_with(' ')) {
+    } else if (section != Section::outside
+               && line.starts_with(k_search_dir_prefix)) {
+      std::string_view dir = line.substr(k_search_dir_prefix.size());
+      if (section != Section::embed && !dir.ends_with(k_headermap_suffix)) {
+        if (dir.ends_with(k_framework_suffix)) {
+          dir.remove_suffix(k_framework_suffix.size());
+        }
+        auto& dirs =
+          section == Section::quote ? paths.quote_dirs : paths.angle_dirs;
+        valid_paths = add_dir(dirs, dir) && valid_paths;
+      }
+    } else {
       // Directories in the search list are indented; anything else means that
       // the list has ended (also if the end marker is missing).
       section = Section::outside;
-      report_line =
-        (line.starts_with(k_nonexistent_prefix) && line.ends_with('"'))
-        || previous_was_duplicate
-        || (follows_duplicate && line == k_duplicate_reason);
+      if (line.starts_with(k_nonexistent_prefix) && line.ends_with('"')
+          && line.size() > k_nonexistent_prefix.size()) {
+        const std::string_view dir =
+          line.substr(k_nonexistent_prefix.size(),
+                      line.size() - k_nonexistent_prefix.size() - 1);
+        valid_paths = add_dir(paths.nonexistent_dirs, dir) && valid_paths;
+      } else {
+        report_line = previous_was_duplicate
+                      || (follows_duplicate && line == k_duplicate_reason);
+      }
     }
 
     if (!report_line) {
       output.remaining_stderr.append(raw_line);
     }
+  }
+
+  // Only trust the report if every directory in it decoded; otherwise fall
+  // back to plain direct mode for this compilation.
+  if (valid_paths) {
+    output.paths = std::move(paths);
   }
 
   return output;
