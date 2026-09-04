@@ -476,4 +476,37 @@ TEST_CASE("compiler::find_has_include_operands")
           .macro_operand);
 }
 
+TEST_CASE("compiler::find_module_map_shadow_paths")
+{
+#ifdef _WIN32
+  const fs::path cwd = "C:/cwd";
+  const fs::path abs = "C:/abs";
+#else
+  const fs::path cwd = "/cwd";
+  const fs::path abs = "/abs";
+#endif
+  const fs::path root = abs.root_path();
+
+  std::set<fs::path> existing_files = {cwd / "inc/module.modulemap"};
+  auto stat = [&](const fs::path& path) {
+    return existing_files.contains(path) ? compiler::PathKind::file
+                                         : compiler::PathKind::missing;
+  };
+
+  const auto result = compiler::find_module_map_shadow_paths(
+    {"inc/sub/a.h", "inc/b.h", abs / "usr/c.h"}, cwd, stat);
+  CHECK(std::set<fs::path>(result.begin(), result.end())
+        == std::set<fs::path>{"inc/sub/module.modulemap",
+                              "inc/sub/module.private.modulemap",
+                              "inc/module.private.modulemap",
+                              "module.modulemap",
+                              "module.private.modulemap",
+                              abs / "usr/module.modulemap",
+                              abs / "usr/module.private.modulemap",
+                              abs / "module.modulemap",
+                              abs / "module.private.modulemap",
+                              root / "module.modulemap",
+                              root / "module.private.modulemap"});
+}
+
 TEST_SUITE_END();

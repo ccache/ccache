@@ -768,6 +768,7 @@ process_option_arg(const Context& ctx,
         " -fmodules to get hits");
       return Statistic::could_not_use_modules;
     }
+    args_info.using_modules = true;
   }
 
   if (arg == "-c" || arg == "--compile") { // --compile is NVCC

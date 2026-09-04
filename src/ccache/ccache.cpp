@@ -81,7 +81,6 @@
 #  include <unistd.h>
 #endif
 
-#include <algorithm>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -790,6 +789,56 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
   return process_preprocessed_data(ctx, hash, std::move(*data));
 }
 
+static compiler::PathKind
+path_kind(const fs::path& path)
+{
+  DirEntry entry(path);
+  return !entry.exists()        ? compiler::PathKind::missing
+         : entry.is_directory() ? compiler::PathKind::directory
+                                : compiler::PathKind::file;
+}
+
+// Make shadow paths relative like include file paths and drop those under
+// ignore_headers_in_manifest.
+static std::vector<std::string>
+shadow_paths_for_manifest(const Context& ctx,
+                          const std::vector<fs::path>& paths)
+{
+  std::vector<std::string> shadow_paths;
+  for (const auto& path : paths) {
+    const fs::path relative_path = core::make_relative_path(ctx, path);
+    const bool ignored = std::ranges::any_of(
+      ctx.ignore_header_paths, [&](const fs::path& ignore_header_path) {
+        return file_path_matches_dir_prefix_or_file(ignore_header_path,
+                                                    relative_path);
+      });
+    if (!ignored) {
+      shadow_paths.push_back(util::pstr(relative_path).str());
+    }
+  }
+  return shadow_paths;
+}
+
+// Clang with -fmodules reads module maps found next to or above included
+// headers, so one appearing there must invalidate the result. -fmodules is only
+// cached in depend mode, where there is no preprocessor report to derive
+// shadow paths from, so this is the only check made for it.
+static std::vector<std::string>
+get_module_map_shadow_paths(const Context& ctx)
+{
+  std::vector<fs::path> included_files;
+  included_files.reserve(ctx.included_files.size());
+  for (const auto& [path, digest] : ctx.included_files) {
+    included_files.emplace_back(path);
+  }
+  auto shadow_paths =
+    shadow_paths_for_manifest(ctx,
+                              compiler::find_module_map_shadow_paths(
+                                included_files, ctx.actual_cwd, path_kind));
+  LOG("Found {} module map shadow paths", shadow_paths.size());
+  return shadow_paths;
+}
+
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static tl::expected<Hash::Digest, Failure>
@@ -829,6 +878,11 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
     print_included_files(ctx, stdout);
+  }
+
+  if (ctx.config.direct_mode() && ctx.config.safe_direct_mode()
+      && ctx.args_info.using_modules) {
+    ctx.shadow_paths = get_module_map_shadow_paths(ctx);
   }
 
   return hash.digest();
@@ -1000,12 +1054,7 @@ get_shadow_paths(Context& ctx)
     ctx.actual_cwd,
     included_files,
     ctx.has_include_probes,
-    [](const fs::path& path) {
-      DirEntry entry(path);
-      return !entry.exists()        ? compiler::PathKind::missing
-             : entry.is_directory() ? compiler::PathKind::directory
-                                    : compiler::PathKind::file;
-    },
+    path_kind,
     [](const fs::path& p) { return fs::canonical(p).value_or(p); });
 
   // A file found by a __has_include probe is tracked like an include file so
@@ -1024,18 +1073,7 @@ get_shadow_paths(Context& ctx)
     }
   }
 
-  for (const auto& path : result.paths) {
-    const fs::path relative_path = core::make_relative_path(ctx, path);
-    const bool ignored = std::ranges::any_of(
-      ctx.ignore_header_paths, [&](const fs::path& ignore_header_path) {
-        return file_path_matches_dir_prefix_or_file(ignore_header_path,
-                                                    relative_path);
-      });
-    if (!ignored) {
-      shadow_paths.push_back(util::pstr(relative_path).str());
-    }
-  }
-
+  shadow_paths = shadow_paths_for_manifest(ctx, result.paths);
   LOG("Found {} shadow paths", shadow_paths.size());
   return shadow_paths;
 }

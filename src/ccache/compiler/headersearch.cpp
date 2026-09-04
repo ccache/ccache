@@ -442,4 +442,41 @@ find_shadow_paths(const HeaderSearchPaths& paths,
   return shadow_paths;
 }
 
+std::vector<fs::path>
+find_module_map_shadow_paths(
+  const std::vector<fs::path>& included_files,
+  const fs::path& cwd,
+  const std::function<PathKind(const fs::path&)>& stat)
+{
+  static constexpr std::string_view module_map_names[] = {
+    "module.modulemap", "module.private.modulemap"};
+
+  std::set<std::string> result;
+  std::set<std::string> seen_dirs;
+  for (const auto& file : included_files) {
+    fs::path dir = util::lexically_normal(file).parent_path();
+    while (true) {
+      if (seen_dirs.insert(util::pstr(dir).str()).second) {
+        for (const auto name : module_map_names) {
+          const fs::path candidate = dir / name;
+          const fs::path absolute = util::lexically_normal(
+            candidate.is_absolute() ? candidate : cwd / candidate);
+          if (stat(absolute) == PathKind::missing) {
+            result.insert(util::pstr(candidate).str());
+          }
+        }
+      }
+      const fs::path parent = dir.parent_path();
+      if (parent == dir) {
+        break;
+      }
+      dir = parent;
+    }
+  }
+
+  std::vector<fs::path> paths;
+  paths.assign(result.begin(), result.end());
+  return paths;
+}
+
 } // namespace compiler

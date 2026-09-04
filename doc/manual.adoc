@@ -2032,6 +2032,9 @@ This is how it works:
   cache.
 * This works because identical `module.modulemap` files should produce
   compatible cached results.
+* With <<config_safe_direct_mode,*safe_direct_mode*>>, ccache also notices a
+  `module.modulemap` or `module.private.modulemap` file appearing in the
+  directory of an included header or one of its parent directories.
 
 NOTE: The preprocessor mode doesn't provide enough information for module
 support <<The depend mode,*depend mode*>>. When using <<The preprocessor
