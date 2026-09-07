@@ -59,6 +59,31 @@ Ccache is a collective work with contributions from many people, including:
 * Gabriel Scherer
 * Geert Bosch
 * Geert Kloosterman
+* GitHub user 6d5CfLQ3dYAb
+* GitHub user bengtj
+* GitHub user cupu
+* GitHub user DarkShadow44
+* GitHub user Delgan
+* GitHub user Desour
+* GitHub user Doekin
+* GitHub user dsilakov
+* GitHub user dsrowell
+* GitHub user gitmodimo
+* GitHub user kingiler
+* GitHub user Kreijstal
+* GitHub user kzlar
+* GitHub user LinuxUserGD
+* GitHub user luzpaz
+* GitHub user markyang92
+* GitHub user Mikhail B
+* GitHub user Moritz
+* GitHub user RedNicStone
+* GitHub user subotac
+* GitHub user ThisIsFineTM
+* GitHub user trustytrojan
+* GitHub user vsplesk
+* GitHub user w169q169
+* GitHub user zcfh
 * Gregor Jasny
 * Grigory Entin
 * Haaris Rahman
@@ -172,6 +197,7 @@ Ccache is a collective work with contributions from many people, including:
 * Romain Geissler
 * Rosen Penev
 * R. Voggenauer
+* RW
 * Ryan Brown
 * Ryan Burns
 * Ryan Egesdahl

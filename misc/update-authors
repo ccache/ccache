@@ -11,36 +11,6 @@ from locale import LC_ALL, setlocale, strcoll
 from pathlib import Path
 from subprocess import run
 
-PSEUDONYMOUS = {
-    "6d5CfLQ3dYAb",
-    "bengtj",
-    "cupu",
-    "DarkShadow44",
-    "Delgan",
-    "Doekin",
-    "DS",
-    "dsilakov",
-    "dsrowell",
-    "gitmodimo",
-    "kingiler",
-    "Kreijstal",
-    "kzlar",
-    "Linux User",
-    "luzpaz",
-    "markyang92",
-    "Mikhail B",
-    "Moritz",
-    "R43Qi8krC",
-    "RW",
-    "senhtry",
-    "vsplesk",
-    "zcfh",
-    "RedNicStone",
-    "subotac",
-    "ThisIsFineTM",
-    "trustytrojan",
-}
-
 AUTHORS_ADOC = Path(__file__).parents[1] / "doc/authors.adoc"
 
 
@@ -56,7 +26,7 @@ def main():
     git_log = git("log", "--format=%b")
     co_authors = set(re.findall(r"Co-authored-by: ([^<]+) <.*", git_log))
 
-    authors = (primary_authors | co_authors) - PSEUDONYMOUS
+    authors = primary_authors | co_authors
 
     authors_lines = AUTHORS_ADOC.read_text().splitlines()
     with AUTHORS_ADOC.open("w") as f:
