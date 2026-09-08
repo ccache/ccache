@@ -33,8 +33,6 @@ class CcacheTest:
         self.env["CCACHE_DIR"] = str(self.cache_dir)
         self.env["CCACHE_LOGFILE"] = str(self.log_file)
 
-        self.reset_stats()
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
