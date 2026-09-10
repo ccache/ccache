@@ -252,13 +252,14 @@ TEST_CASE("compiler::find_shadow_paths")
     const auto it = links.find(path);
     return it == links.end() ? path : it->second;
   };
+  bool gcc_pch = true;
   auto find = [&](const compiler::HeaderSearchPaths& paths, const Dirs& files) {
     std::vector<compiler::IncludedFile> included_files;
     for (const auto& file : files) {
       included_files.push_back({file, {}});
     }
     return compiler::find_shadow_paths(
-             paths, cwd, included_files, {}, stat, canonical)
+             paths, cwd, included_files, {}, gcc_pch, stat, canonical)
       .paths;
   };
 
@@ -268,21 +269,22 @@ TEST_CASE("compiler::find_shadow_paths")
   {
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {cwd / "inc1", cwd / "inc2", cwd / "inc2/hello.h"};
-    CHECK(find(paths, {"inc2/hello.h"}) == Dirs{"inc1/hello.h"});
+    CHECK(find(paths, {"inc2/hello.h"})
+          == Dirs{"inc1/hello.h", "inc1/hello.h.gch", "inc2/hello.h.gch"});
   }
 
   SUBCASE("include file in first directory")
   {
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {cwd / "inc1", cwd / "inc2", cwd / "inc1/hello.h"};
-    CHECK(find(paths, {"inc1/hello.h"}).empty());
+    CHECK(find(paths, {"inc1/hello.h"}) == Dirs{"inc1/hello.h.gch"});
   }
 
   SUBCASE("include file outside search directories")
   {
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {cwd / "inc1", cwd / "inc2", cwd / "hello.h"};
-    CHECK(find(paths, {"hello.h"}).empty());
+    CHECK(find(paths, {"hello.h"}) == Dirs{"hello.h.gch"});
   }
 
   SUBCASE("quote directories are searched first")
@@ -290,21 +292,31 @@ TEST_CASE("compiler::find_shadow_paths")
     paths.quote_dirs = {"q"};
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {cwd / "q", cwd / "inc1", cwd / "inc2", cwd / "inc2/hello.h"};
-    CHECK(find(paths, {"inc2/hello.h"}) == Dirs{"inc1/hello.h", "q/hello.h"});
+    CHECK(find(paths, {"inc2/hello.h"})
+          == Dirs{"inc1/hello.h",
+                  "inc1/hello.h.gch",
+                  "inc2/hello.h.gch",
+                  "q/hello.h",
+                  "q/hello.h.gch"});
   }
 
   SUBCASE("absolute directories")
   {
     paths.angle_dirs = {abs / "inc1", abs / "inc2"};
     existing = {abs / "inc1", abs / "inc2", abs / "inc2/hello.h"};
-    CHECK(find(paths, {abs / "inc2/hello.h"}) == Dirs{abs / "inc1/hello.h"});
+    CHECK(find(paths, {abs / "inc2/hello.h"})
+          == Dirs{abs / "inc1/hello.h",
+                  abs / "inc1/hello.h.gch",
+                  abs / "inc2/hello.h.gch"});
   }
 
   SUBCASE("absolute include file in relative directory")
   {
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {cwd / "inc1", cwd / "inc2", cwd / "inc2/hello.h"};
-    CHECK(find(paths, {cwd / "inc2/hello.h"}) == Dirs{"inc1/hello.h"});
+    CHECK(
+      find(paths, {cwd / "inc2/hello.h"})
+      == Dirs{cwd / "inc2/hello.h.gch", "inc1/hello.h", "inc1/hello.h.gch"});
   }
 
   SUBCASE("existing file is not a shadow path")
@@ -312,7 +324,8 @@ TEST_CASE("compiler::find_shadow_paths")
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {
       cwd / "inc1", cwd / "inc2", cwd / "inc1/hello.h", cwd / "inc2/hello.h"};
-    CHECK(find(paths, {"inc2/hello.h"}).empty());
+    CHECK(find(paths, {"inc2/hello.h"})
+          == Dirs{"inc1/hello.h.gch", "inc2/hello.h.gch"});
   }
 
   SUBCASE("first missing parent directory")
@@ -323,47 +336,81 @@ TEST_CASE("compiler::find_shadow_paths")
                 cwd / "sys/bits",
                 cwd / "sys/bits/a.h",
                 cwd / "sys/bits/b.h"};
-    CHECK(find(paths, {"sys/bits/a.h", "sys/bits/b.h"}) == Dirs{"inc1/bits"});
+    CHECK(find(paths, {"sys/bits/a.h", "sys/bits/b.h"})
+          == Dirs{"inc1/bits", "sys/bits/a.h.gch", "sys/bits/b.h.gch"});
 
     existing.insert(cwd / "inc1/bits");
     CHECK(find(paths, {"sys/bits/a.h", "sys/bits/b.h"})
-          == Dirs{"inc1/bits/a.h", "inc1/bits/b.h"});
+          == Dirs{"inc1/bits/a.h",
+                  "inc1/bits/a.h.gch",
+                  "inc1/bits/b.h",
+                  "inc1/bits/b.h.gch",
+                  "sys/bits/a.h.gch",
+                  "sys/bits/b.h.gch"});
   }
 
   SUBCASE("nested directories")
   {
     paths.angle_dirs = {"a", "a/b"};
     existing = {cwd / "a", cwd / "a/b", cwd / "a/b/c.h"};
-    CHECK(find(paths, {"a/b/c.h"}) == Dirs{"a/c.h"});
+    CHECK(find(paths, {"a/b/c.h"})
+          == Dirs{"a/b/c.h.gch", "a/c.h", "a/c.h.gch"});
   }
 
   SUBCASE("duplicate directories")
   {
     paths.angle_dirs = {"inc1", "inc2", "inc1", "inc2"};
     existing = {cwd / "inc1", cwd / "inc2", cwd / "inc2/hello.h"};
-    CHECK(find(paths, {"inc2/hello.h"}) == Dirs{"inc1/hello.h"});
+    CHECK(find(paths, {"inc2/hello.h"})
+          == Dirs{"inc1/hello.h", "inc1/hello.h.gch", "inc2/hello.h.gch"});
   }
 
   SUBCASE("unnormalized directories")
   {
     paths.angle_dirs = {"./inc1/", abs / "lib/../include"};
     existing = {cwd / "inc1", abs / "include", abs / "include/stdio.h"};
-    CHECK(find(paths, {abs / "include/stdio.h"}) == Dirs{"inc1/stdio.h"});
+    CHECK(
+      find(paths, {abs / "include/stdio.h"})
+      == Dirs{abs / "include/stdio.h.gch", "inc1/stdio.h", "inc1/stdio.h.gch"});
   }
 
   SUBCASE("parent-relative include")
   {
     paths.angle_dirs = {"x/a", "b"};
     existing = {cwd / "x", cwd / "x/a", cwd / "b", cwd / "foo.h"};
-    CHECK(find(paths, {"b/../foo.h"}) == Dirs{"x/foo.h"});
+    CHECK(find(paths, {"b/../foo.h"})
+          == Dirs{"foo.h.gch", "x/foo.h", "x/foo.h.gch"});
   }
 
-  SUBCASE("precompiled header")
+  SUBCASE("precompiled header found")
   {
     paths.angle_dirs = {"inc1", "inc2"};
     existing = {cwd / "inc1", cwd / "inc2", cwd / "inc2/foo.h.gch"};
+    // foo.h next to the found foo.h.gch doesn't shadow it.
     CHECK(find(paths, {"inc2/foo.h.gch"})
           == Dirs{"inc1/foo.h", "inc1/foo.h.gch"});
+    CHECK(find(paths, {"inc2/foo.h.pch"})
+          == Dirs{"inc1/foo.h", "inc1/foo.h.pch"});
+  }
+
+  SUBCASE("precompiled header lookup disabled")
+  {
+    gcc_pch = false;
+    paths.angle_dirs = {"inc1", "inc2"};
+    existing = {cwd / "inc1", cwd / "inc2", cwd / "inc2/hello.h"};
+    CHECK(find(paths, {"inc2/hello.h"}) == Dirs{"inc1/hello.h"});
+  }
+
+  SUBCASE("precompiled header appearing next to found header")
+  {
+    paths.angle_dirs = {"inc1", "inc2"};
+    existing = {cwd / "inc1", cwd / "inc2", cwd / "inc2/foo.h"};
+    CHECK(find(paths, {"inc2/foo.h"})
+          == Dirs{"inc1/foo.h", "inc1/foo.h.gch", "inc2/foo.h.gch"});
+
+    // An existing foo.h.gch (as file or directory) is not a shadow path.
+    existing.insert(cwd / "inc2/foo.h.gch");
+    CHECK(find(paths, {"inc2/foo.h"}) == Dirs{"inc1/foo.h", "inc1/foo.h.gch"});
   }
 
   SUBCASE("directory of including file")
@@ -379,9 +426,18 @@ TEST_CASE("compiler::find_shadow_paths")
       {"other/bar.h",   {"include"} },
     };
     CHECK(compiler::find_shadow_paths(
-            paths, cwd, included_files, {}, stat, canonical)
+            paths, cwd, included_files, {}, true, stat, canonical)
             .paths
-          == Dirs{"foo.h", "include/bar.h", "other/foo.h", "src/foo.h"});
+          == Dirs{"foo.h",
+                  "foo.h.gch",
+                  "include/bar.h",
+                  "include/bar.h.gch",
+                  "include/foo.h.gch",
+                  "other/bar.h.gch",
+                  "other/foo.h",
+                  "other/foo.h.gch",
+                  "src/foo.h",
+                  "src/foo.h.gch"});
   }
 
   SUBCASE("__has_include probes")
@@ -395,8 +451,8 @@ TEST_CASE("compiler::find_shadow_paths")
       {"src/main.c", "found.h",     false},
       {"inc1/x.h",   "sub/other.h", false},
     };
-    const auto result =
-      compiler::find_shadow_paths(paths, cwd, {}, probes, stat, canonical);
+    const auto result = compiler::find_shadow_paths(
+      paths, cwd, {}, probes, true, stat, canonical);
     CHECK(result.paths
           == Dirs{"inc1/found.h",
                   "inc1/missing.h",
@@ -424,7 +480,9 @@ TEST_CASE("compiler::find_shadow_paths")
       {abs / "link/include", abs / "real/include"}
     };
     existing = {cwd / "inc1", abs / "link/include", abs / "real/include/foo.h"};
-    CHECK(find(paths, {abs / "real/include/foo.h"}) == Dirs{"inc1/foo.h"});
+    CHECK(
+      find(paths, {abs / "real/include/foo.h"})
+      == Dirs{abs / "real/include/foo.h.gch", "inc1/foo.h", "inc1/foo.h.gch"});
   }
 
   SUBCASE("same directory via different symlinks")
@@ -435,7 +493,8 @@ TEST_CASE("compiler::find_shadow_paths")
     };
     existing = {
       abs / "link/include", abs / "real/include", abs / "real/include/foo.h"};
-    CHECK(find(paths, {abs / "real/include/foo.h"}).empty());
+    CHECK(find(paths, {abs / "real/include/foo.h"})
+          == Dirs{abs / "real/include/foo.h.gch"});
   }
 }
 

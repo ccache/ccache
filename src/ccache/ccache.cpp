@@ -1054,6 +1054,7 @@ get_shadow_paths(Context& ctx)
     ctx.actual_cwd,
     included_files,
     ctx.has_include_probes,
+    ctx.config.is_compiler_group_gcc(),
     path_kind,
     [](const fs::path& p) { return fs::canonical(p).value_or(p); });
 

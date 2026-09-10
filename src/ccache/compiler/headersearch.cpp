@@ -296,6 +296,20 @@ private:
   std::unordered_map<std::string, Dir> m_dir_cache;
 };
 
+bool
+has_precompiled_header_extension(const fs::path& path)
+{
+  const auto ext = path.extension();
+  return ext == ".gch" || ext == ".pch" || ext == ".pth";
+}
+
+fs::path
+with_gch_suffix(fs::path path)
+{
+  path += ".gch";
+  return path;
+}
+
 // Like util::path_starts_with but without normalizing on Windows, so that a
 // ".." component in the printed include path is matched literally. `prefix` is
 // expected to be normalized (no trailing separator).
@@ -356,6 +370,7 @@ find_shadow_paths(const HeaderSearchPaths& paths,
                   const fs::path& cwd,
                   const std::vector<IncludedFile>& included_files,
                   const std::vector<HasIncludeProbe>& probes,
+                  const bool gcc_pch,
                   const StatFn& stat,
                   const CanonicalFn& canonical)
 {
@@ -383,6 +398,15 @@ find_shadow_paths(const HeaderSearchPaths& paths,
     const fs::path printed =
       file.path.is_absolute() ? file.path : cwd / file.path;
     const fs::path normalized = util::lexically_normal(printed);
+    const bool is_pch = has_precompiled_header_extension(file.path);
+    if (gcc_pch && !is_pch) {
+      // GCC uses foo.h.gch before foo.h in the same directory.
+      const fs::path dir = file.path.parent_path();
+      add_shadow_path(result,
+                      resolver,
+                      resolver.dir_for(dir.empty() ? fs::path(".") : dir),
+                      with_gch_suffix(file.path.filename()));
+    }
     for (size_t i = 0; i < dirs.size(); ++i) {
       const auto relative = relative_to(dirs[i], printed, normalized);
       if (!relative) {
@@ -391,9 +415,10 @@ find_shadow_paths(const HeaderSearchPaths& paths,
       // GCC uses foo.h.gch in a directory before foo.h in later ones, but also
       // foo.h in an earlier directory before foo.h.gch in a later one.
       std::vector<fs::path> spellings = {*relative};
-      const auto extension = relative->extension();
-      if (extension == ".gch" || extension == ".pch" || extension == ".pth") {
+      if (is_pch) {
         spellings.push_back(relative->parent_path() / relative->stem());
+      } else if (gcc_pch) {
+        spellings.push_back(with_gch_suffix(*relative));
       }
       for (const auto& spelling : spellings) {
         for (const auto& dir : file.includer_dirs) {

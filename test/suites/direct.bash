@@ -1893,6 +1893,48 @@ EOF
     expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_GCC; then
+        TEST "Detection of appearing precompiled header next to included header"
+        export CCACHE_SAFEDIRECT=1
+
+        mkdir inc
+        cat <<EOF >main.c
+#include "foo.h"
+EOF
+        cat <<EOF >inc/foo.h
+char x[] = "content_h";
+EOF
+        backdate main.c inc/foo.h
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_h
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_h
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # GCC uses inc/foo.h.gch instead of inc/foo.h now that it exists.
+        cat <<EOF >pch.h
+char x[] = "content_gch";
+EOF
+        $REAL_COMPILER -x c-header pch.h -o inc/foo.h.gch
+        backdate inc/foo.h.gch
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_gch
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_gch
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Detection of appearing header file probed with __has_include"
     export CCACHE_SAFEDIRECT=1
 
