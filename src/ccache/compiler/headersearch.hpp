@@ -121,14 +121,16 @@ struct ShadowPaths
 // the first missing parent directory of that path), plus the nonexistent search
 // directories. A __has_include operand is treated like an include of that
 // spelling from the probing file, with the file it resolves to (if any)
-// returned in `probed_files`. Relative paths are relative to `cwd`. `stat` and
-// `canonical` (which should return the path itself on failure) are called with
-// absolute paths.
+// returned in `probed_files`. If `gcc_pch` is true, a precompiled header
+// (foo.h.gch) that would be used instead of a found foo.h is a shadow path too.
+// Relative paths are relative to `cwd`. `stat` and `canonical` (which should
+// return the path itself on failure) are called with absolute paths.
 ShadowPaths find_shadow_paths(
   const HeaderSearchPaths& paths,
   const std::filesystem::path& cwd,
   const std::vector<IncludedFile>& included_files,
   const std::vector<HasIncludeProbe>& probes,
+  bool gcc_pch,
   const std::function<PathKind(const std::filesystem::path&)>& stat,
   const std::function<std::filesystem::path(const std::filesystem::path&)>&
     canonical);
