@@ -55,6 +55,10 @@ public:
 private:
   const Context& m_ctx;
   std::optional<Hash::Digest> m_result_key;
+  // ispc_target_object/ispc_target_header entries are distinguished only by
+  // their order, which matches the order of targets in --target.
+  mutable size_t m_ispc_target_object_index = 0;
+  mutable size_t m_ispc_target_header_index = 0;
 
   std::filesystem::path get_dest_path(result::FileType file_type) const;
 
