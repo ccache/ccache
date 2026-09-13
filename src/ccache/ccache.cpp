@@ -2423,7 +2423,8 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
   std::string hashified_cwd = util::pstr(ctx.apparent_cwd);
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
   std::string hashified_base_name = base_name;
-  std::replace(hashified_base_name.begin(), hashified_base_name.end(), '/', '#');
+  std::replace(
+    hashified_base_name.begin(), hashified_base_name.end(), '/', '#');
 
   std::vector<fs::path> paths_to_try{
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC <9)
