@@ -1443,4 +1443,27 @@ TEST_CASE("-Xarch_device with -Xarch_x86_64 is too hard")
   CHECK(result.error() == Statistic::unsupported_compiler_option);
 }
 
+TEST_CASE("-clang: is too hard")
+{
+  TestContext test_context;
+  Context ctx;
+
+  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("-clang:")
+  {
+    ctx.orig_args = Args::from_string("clang -c foo.c -clang:bar");
+  }
+
+  SUBCASE("/clang:")
+  {
+    ctx.orig_args = Args::from_string("clang -c foo.c /clang:bar");
+  }
+
+  const auto result = process_args(ctx);
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
 TEST_SUITE_END();
