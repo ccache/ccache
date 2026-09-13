@@ -20,6 +20,9 @@ SUITE_profiling_gcc_10+_PROBE() {
     if ! $COMPILER --coverage -fprofile-dir=. -c test.c 2>/dev/null; then
         echo "compiler does not support -fprofile-dir=path"
     fi
+    if ! $COMPILER -fprofile-partial-training -c test.c 2>/dev/null; then
+        echo "compiler does not support -fprofile-partial-training"
+    fi
 }
 
 SUITE_profiling_gcc_10+_SETUP() {
@@ -102,4 +105,55 @@ SUITE_profiling_gcc_10+() {
     expect_stat cache_miss 2
 
     export CCACHE_SLOPPINESS="$CCACHE_SLOPPINESS_OLD"
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-use=dir with object file in subdirectory"
+    # GCC >=9 mangles the whole aux path (cwd + relative object path) into the
+    # .gcda file name, so the profile data must be found and hashed also when
+    # the object file is not in the current directory.
+
+    mkdir data obj
+
+    $CCACHE_COMPILE -fprofile-generate=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $COMPILER -fprofile-generate=$(pwd)/data obj/test.o -o test
+
+    ./test
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    ./test
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -c test.c -o obj/test.o
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 3
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-use with -fprofile-partial-training"
+
+    mkdir data
+
+    $CCACHE_COMPILE -fprofile-generate=$(pwd)/data -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $COMPILER -fprofile-generate=$(pwd)/data test.o -o test
+
+    ./test
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -fprofile-partial-training -c test.c
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -fprofile-use=$(pwd)/data -fprofile-partial-training -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
 }
