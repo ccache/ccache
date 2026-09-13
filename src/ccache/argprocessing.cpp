@@ -558,6 +558,15 @@ process_option_arg(const Context& ctx,
     return std::nullopt;
   }
 
+  if (ctx.config.compiler_type() == CompilerType::clang_cl
+      && arg.starts_with("-clang:")) {
+    // clang-cl's /clang:<arg> option forwards any arg to the clang driver.
+    // Also, they are treated as if they were passed at the end of the command
+    // line. Too hard for now.
+    LOG("Compiler option {} is unsupported", args[i]);
+    return Statistic::unsupported_compiler_option;
+  }
+
   if (arg == "-ivfsoverlay"
       && !(config.sloppiness().contains(core::Sloppy::ivfsoverlay))) {
     LOG(
