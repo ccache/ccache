@@ -73,9 +73,21 @@ TEST_CASE("make oci prefixed key and API path")
     storage::remote::detail::make_oci_storage_key(test_digest(), "team/cache");
 
   CHECK(key == "team/cache/000102030405060708090a0b0c0d0e0f10111213");
-  CHECK(storage::remote::detail::make_oci_storage_api_path("owner/name", key)
-        == "/v2/owner/name/ccache/blobs/"
-           "team/cache/000102030405060708090a0b0c0d0e0f10111213");
+  CHECK(storage::remote::detail::make_oci_manifest_tag(key)
+        == "ccache-9293f71edbcaee23409f4c45fb7ed020e15e6d10ae02e51276f215c4a2c0cb13-"
+           "000102030405060708090a0b0c0d0e0f10111213");
+  CHECK(storage::remote::detail::make_oci_manifest_path("owner/name", "ccache-tag")
+        == "/v2/owner/name/manifests/ccache-tag");
+  CHECK(storage::remote::detail::make_oci_blob_path(
+          "owner/name", "sha256:abcd")
+        == "/v2/owner/name/blobs/sha256:abcd");
+}
+
+TEST_CASE("make OCI SHA-256 blob digest")
+{
+  constexpr std::array<uint8_t, 3> value = {'a', 'b', 'c'};
+  CHECK(storage::remote::detail::make_oci_blob_digest(value)
+        == "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 }
 
 TEST_SUITE_END();

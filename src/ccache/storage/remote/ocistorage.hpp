@@ -40,6 +40,16 @@ parse_oci_storage_config(
 std::string make_oci_storage_key(const Hash::Digest& key,
                                  const std::string& prefix);
 
+std::string make_oci_manifest_tag(const std::string& key);
+
+std::string make_oci_blob_digest(std::span<const uint8_t> value);
+
+std::string make_oci_blob_path(const std::string& repository,
+                               const std::string& digest);
+
+std::string make_oci_manifest_path(const std::string& repository,
+                                   const std::string& tag_or_digest);
+
 std::string make_oci_storage_api_path(const std::string& repository,
                                       const std::string& key);
 
