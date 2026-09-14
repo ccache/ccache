@@ -540,6 +540,7 @@ parse_gha_storage_config(
   const std::vector<RemoteStorage::Backend::Attribute>& attributes)
 {
   GhaStorageConfig config;
+  config.debug = parse_bool(getenv_string("ACTIONS_STEP_DEBUG").value_or(""));
   config.results_url = getenv_string("ACTIONS_RESULTS_URL").value_or("");
   if (config.results_url.empty()) {
     config.results_url = getenv_string("ACTIONS_CACHE_URL").value_or("");

@@ -57,8 +57,10 @@ numeric hosts. Current prefixes are:
 - `CCACHE-GHA-0001` through `CCACHE-GHA-0019`
 - `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0003`
 
-Debug logging MAY be enabled with `@debug=true`. Debug logs MUST still redact
-tokens and credentials.
+Debug logging MAY be enabled with `@debug=true` or by enabling GitHub Actions
+step debugging, which sets `ACTIONS_STEP_DEBUG`. `@debug=false` MUST override
+the runtime default. Debug logs MUST still redact tokens, credentials and
+numeric hosts.
 
 ## Backfill behavior
 

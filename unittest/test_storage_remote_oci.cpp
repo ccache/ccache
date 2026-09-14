@@ -61,6 +61,17 @@ TEST_CASE("parse oci token from environment")
         == "oci://********@registry.example.invalid/ns/cache");
 }
 
+TEST_CASE("select OCI debug logging from runtime environment")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_STEP_DEBUG", "true");
+
+  const auto config = storage::remote::detail::parse_oci_storage_config(
+    Url("oci://registry.example.invalid/ns/cache"), {});
+
+  CHECK(config.debug);
+}
+
 TEST_CASE("redact OCI numeric registry host for logging")
 {
   CHECK(storage::get_redacted_url_str_for_logging(

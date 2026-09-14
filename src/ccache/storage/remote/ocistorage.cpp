@@ -522,6 +522,7 @@ parse_oci_storage_config(
   }
 
   OciStorageConfig config;
+  config.debug = parse_bool(getenv_string("ACTIONS_STEP_DEBUG").value_or(""));
   config.registry = url.host();
   if (!url.port().empty()) {
     config.registry += FMT(":{}", url.port());

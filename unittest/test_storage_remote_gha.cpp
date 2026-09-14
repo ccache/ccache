@@ -159,6 +159,19 @@ TEST_CASE("select gha v2 from runtime environment")
         == "0923af7a82378b9fbe2fcfc3bc65175ea5a8508a02410190399fa7b6e9a51891");
 }
 
+TEST_CASE("select gha debug logging from runtime environment")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_STEP_DEBUG", "true");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"token", "test-token", "test-token"}});
+
+  CHECK(config.debug);
+}
+
 TEST_CASE("override gha service version")
 {
   const auto config = storage::remote::detail::parse_gha_storage_config(
