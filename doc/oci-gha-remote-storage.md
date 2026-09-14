@@ -87,16 +87,26 @@ Local tests MUST cover:
 - Full digest key generation without truncation.
 - Read-only behavior and missing-write-permission handling.
 - Non-repeated error logging and stable error codes.
+- Redis failure fallback and OCI-to-Redis backfill.
 
 Local OCI registry integration tests MUST be preferred for required registry
 coverage. Docker Hub and GitLab registry tests MAY run only when safe secrets are
 present.
 
 Set `OCI_TEST_REGISTRY` to the host and port of an isolated local registry to
-run `test.remote_oci`. The suite MUST use `@insecure=true` only for that local
-test registry.
+run `test.remote_oci`. The suite requires `redis-server` and `redis-cli` (or
+their Valkey equivalents) for fallback and backfill coverage. It MUST use
+`@insecure=true` only for that local test registry.
 
 ## Build
 
 Release verification SHOULD use an optimized build with developer warnings as
 errors. If supported by the toolchain, `ENABLE_IPO=ON` SHOULD be used.
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON \
+  -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON \
+  -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
+cmake --build build --target ccache unittest -j12
+ctest --test-dir build --output-on-failure -R 'unittest|test.remote_oci'
+```
