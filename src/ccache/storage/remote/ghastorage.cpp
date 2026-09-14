@@ -102,30 +102,6 @@ url_path(const Url& url)
   return path;
 }
 
-std::string
-path_with_query(const Url& url)
-{
-  auto path = url.path();
-  if (path.empty()) {
-    path = "/";
-  }
-
-  const auto& query = url.query();
-  if (!query.empty()) {
-    path += '?';
-    for (size_t i = 0; i < query.size(); ++i) {
-      if (i > 0) {
-        path += '&';
-      }
-      path += httplib::detail::encode_query_param(query[i].key());
-      path += '=';
-      path += httplib::detail::encode_query_param(query[i].val());
-    }
-  }
-
-  return path;
-}
-
 class GhaStorageBackend : public RemoteStorage::Backend
 {
 public:
@@ -199,7 +175,8 @@ public:
     archive_client.set_read_timeout(m_config.operation_timeout);
     archive_client.set_write_timeout(m_config.operation_timeout);
 
-    const auto archive = archive_client.Get(path_with_query(archive_url));
+    const auto archive =
+      archive_client.Get(detail::make_gha_archive_path(*archive_location));
     if (!archive || archive.error() != httplib::Error::Success) {
       log_once(m_seen_errors,
                "CCACHE-GHA-0003",
@@ -422,6 +399,31 @@ extract_gha_archive_location(std::string_view response_body)
   }
 
   return std::nullopt;
+}
+
+std::string
+make_gha_archive_path(std::string_view archive_location)
+{
+  size_t authority_pos = archive_location.find("://");
+  if (authority_pos == std::string_view::npos) {
+    return "/";
+  }
+  authority_pos += 3;
+
+  size_t path_pos = archive_location.find('/', authority_pos);
+  if (path_pos == std::string_view::npos) {
+    path_pos = archive_location.find('?', authority_pos);
+  }
+  if (path_pos == std::string_view::npos) {
+    return "/";
+  }
+
+  size_t fragment_pos = archive_location.find('#', path_pos);
+  if (fragment_pos == std::string_view::npos) {
+    fragment_pos = archive_location.size();
+  }
+
+  return std::string(archive_location.substr(path_pos, fragment_pos - path_pos));
 }
 
 } // namespace detail

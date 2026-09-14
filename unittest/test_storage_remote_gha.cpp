@@ -127,4 +127,17 @@ TEST_CASE("reject gha lookup response without archive location")
     R"({"archiveLocation":true})"));
 }
 
+TEST_CASE("make gha archive path preserves signed query")
+{
+  CHECK(storage::remote::detail::make_gha_archive_path(
+          "https://cache.example.invalid/a/b?sig=one%2Ftwo&empty#fragment")
+        == "/a/b?sig=one%2Ftwo&empty");
+  CHECK(storage::remote::detail::make_gha_archive_path(
+          "https://cache.example.invalid?sig=one%2Ftwo")
+        == "?sig=one%2Ftwo");
+  CHECK(storage::remote::detail::make_gha_archive_path(
+          "https://cache.example.invalid")
+        == "/");
+}
+
 TEST_SUITE_END();

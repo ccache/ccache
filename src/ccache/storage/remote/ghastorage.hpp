@@ -42,6 +42,8 @@ std::string make_gha_storage_key(const Hash::Digest& key,
 std::optional<std::string>
 extract_gha_archive_location(std::string_view response_body);
 
+std::string make_gha_archive_path(std::string_view archive_location);
+
 } // namespace detail
 
 class GhaStorage : public RemoteStorage
