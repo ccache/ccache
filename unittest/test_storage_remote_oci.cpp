@@ -66,6 +66,10 @@ TEST_CASE("redact OCI numeric registry host for logging")
   CHECK(storage::get_redacted_url_str_for_logging(
           Url("oci://198.51.100.7/ns/cache"))
         == "oci://<redacted-host>/ns/cache");
+  const auto ipv6_url = storage::get_redacted_url_str_for_logging(
+    Url("oci://[2001:db8::7]/ns/cache"));
+  CHECK(ipv6_url.find("2001:db8::7") == std::string::npos);
+  CHECK(ipv6_url.find("<redacted-host>") != std::string::npos);
   CHECK(storage::get_redacted_url_str_for_logging(
           Url("oci://ghcr.io/ns/cache"))
         == "oci://ghcr.io/ns/cache");
