@@ -229,6 +229,11 @@ public:
     m_http_client.set_read_timeout(m_config.operation_timeout);
     m_http_client.set_write_timeout(m_config.operation_timeout);
     m_http_client.set_default_headers(headers);
+    if (m_config.debug) {
+      LOG("CCACHE-OCI-DEBUG: initialized {} transport={}",
+          m_redacted_url,
+          m_config.insecure ? "http" : "https");
+    }
   }
 
   tl::expected<std::optional<util::Bytes>, Failure>
