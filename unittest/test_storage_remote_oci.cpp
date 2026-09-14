@@ -33,12 +33,12 @@ test_digest()
 TEST_CASE("parse oci storage URL")
 {
   const auto config = storage::remote::detail::parse_oci_storage_config(
-    Url("oci://ghcr.io/OWNER/NAME/ccache/prod"),
+    Url("oci://ghcr.io:5443/OWNER/NAME/ccache/prod"),
     {{"token", "secret-token", "secret-token"},
      {"insecure", "true", "true"},
      {"debug", "true", "true"}});
 
-  CHECK(config.registry == "ghcr.io");
+  CHECK(config.registry == "ghcr.io:5443");
   CHECK(config.repository == "OWNER/NAME");
   CHECK(config.prefix == "prod");
   CHECK(config.token == "secret-token");
