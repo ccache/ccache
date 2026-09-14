@@ -170,6 +170,13 @@ TEST_CASE("select gha debug logging from runtime environment")
      {"token", "test-token", "test-token"}});
 
   CHECK(config.debug);
+
+  const auto disabled_config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"token", "test-token", "test-token"},
+     {"debug", "false", "false"}});
+  CHECK_FALSE(disabled_config.debug);
 }
 
 TEST_CASE("override gha service version")
