@@ -2060,7 +2060,10 @@ process_args(Context& ctx)
 
   if (args_info.generating_ipa_clones) {
     args_info.output_ipa = core::make_relative_path(
-      ctx, util::add_extension(args_info.orig_input_file, ".000i.ipa-clones"));
+      ctx,
+      args_info.output_obj.parent_path()
+        / util::add_extension(args_info.orig_input_file.filename(),
+                              ".000i.ipa-clones"));
   }
 
   if (state.xarch_args.size() > 1) {
