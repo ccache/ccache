@@ -1701,4 +1701,483 @@ EOF
     expect_contains main.o content_b
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    for include_dir_prefix in "" "$(pwd)/"; do
+        TEST "Detection of appearing header file in earlier include directory, prefix=\"${include_dir_prefix}\""
+        export CCACHE_SAFEDIRECT=1
+
+        cat <<EOF >main.c
+#include "foo.h"
+EOF
+        backdate main.c
+        mkdir a b
+        cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+        backdate b/foo.h
+
+        $CCACHE_COMPILE -c -I${include_dir_prefix}a -I${include_dir_prefix}b main.c
+        expect_contains main.o content_b
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -I${include_dir_prefix}a -I${include_dir_prefix}b main.c
+        expect_contains main.o content_b
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+
+        $CCACHE_COMPILE -c -I${include_dir_prefix}a -I${include_dir_prefix}b main.c
+        expect_contains main.o content_a
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE_COMPILE -c -I${include_dir_prefix}a -I${include_dir_prefix}b main.c
+        expect_contains main.o content_a
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+    done
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of reappearing header file in earlier include directory"
+    export CCACHE_SAFEDIRECT=1
+
+    cat <<EOF >main.c
+#include "foo.h"
+EOF
+    mkdir a b
+    cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+    cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+    backdate main.c a/foo.h b/foo.h
+
+    $CCACHE_COMPILE -c -Ia -Ib main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    mv a/foo.h a_foo.h
+    $CCACHE_COMPILE -c -Ia -Ib main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+
+    mv a_foo.h a/foo.h
+    $CCACHE_COMPILE -c -Ia -Ib main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of appearing include directory in CPATH"
+    export CCACHE_SAFEDIRECT=1
+
+    cat <<EOF >main.c
+#include "foo.h"
+EOF
+    backdate main.c
+    mkdir b
+    cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+    backdate b/foo.h
+
+    CPATH="a${PATH_DELIM}b" $CCACHE_COMPILE -c main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    CPATH="a${PATH_DELIM}b" $CCACHE_COMPILE -c main.c
+    expect_contains main.o content_b
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    mkdir a
+    cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+
+    CPATH="a${PATH_DELIM}b" $CCACHE_COMPILE -c main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "Header file moved into earlier include directory during compilation"
+    export CCACHE_SAFEDIRECT=1
+
+    cat <<EOF >main.c
+#include "sub/foo.h"
+EOF
+    mkdir -p a b/sub staging
+    cat <<EOF >b/sub/foo.h
+char x[] = "content_b";
+EOF
+    cat <<EOF >staging/foo.h
+char x[] = "content_a";
+EOF
+    backdate main.c b/sub/foo.h staging/foo.h
+    cat <<'EOF' >compile-then-move-header.sh
+#!/bin/sh
+"$@"
+status=$?
+mkdir a/sub
+mv staging/foo.h a/sub/foo.h
+exit $status
+EOF
+    chmod +x compile-then-move-header.sh
+
+    CCACHE_PREFIX=$(pwd)/compile-then-move-header.sh $CCACHE_COMPILE -c -Ia -Ib main.c
+    expect_contains main.o content_b
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Ia -Ib main.c
+    expect_contains main.o content_a
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of appearing header file in directory of including file"
+    export CCACHE_SAFEDIRECT=1
+
+    mkdir src incl other
+    cat <<EOF >src/main.c
+#include "foo.h"
+EOF
+    cat <<EOF >incl/foo.h
+#include "bar.h"
+EOF
+    cat <<EOF >other/bar.h
+char x[] = "content_other";
+EOF
+    backdate src/main.c incl/foo.h other/bar.h
+
+    $CCACHE_COMPILE -c -Iother -Iincl src/main.c -o main.o
+    expect_contains main.o content_other
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Iother -Iincl src/main.c -o main.o
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    # Found via the directory of the including header, not via -I ordering.
+    cat <<EOF >incl/bar.h
+char x[] = "content_incl";
+EOF
+
+    $CCACHE_COMPILE -c -Iother -Iincl src/main.c -o main.o
+    expect_contains main.o content_incl
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -Iother -Iincl src/main.c -o main.o
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+
+    # Found via the directory of the source file.
+    cat <<EOF >src/foo.h
+char x[] = "content_src";
+EOF
+
+    $CCACHE_COMPILE -c -Iother -Iincl src/main.c -o main.o
+    expect_contains main.o content_src
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 3
+
+    # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_GCC; then
+        TEST "Detection of appearing precompiled header next to included header"
+        export CCACHE_SAFEDIRECT=1
+
+        mkdir inc
+        cat <<EOF >main.c
+#include "foo.h"
+EOF
+        cat <<EOF >inc/foo.h
+char x[] = "content_h";
+EOF
+        backdate main.c inc/foo.h
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_h
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_h
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # GCC uses inc/foo.h.gch instead of inc/foo.h now that it exists.
+        cat <<EOF >pch.h
+char x[] = "content_gch";
+EOF
+        $REAL_COMPILER -x c-header pch.h -o inc/foo.h.gch
+        backdate inc/foo.h.gch
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_gch
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE -fpch-preprocess -c -Iinc main.c
+        expect_contains main.o content_gch
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "Detection of appearing header file probed with __has_include"
+    export CCACHE_SAFEDIRECT=1
+
+    mkdir inc
+    cat <<EOF >main.c
+#if __has_include("opt.h")
+#include "opt.h"
+#else
+char x[] = "content_none";
+#endif
+EOF
+    backdate main.c
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_contains main.o content_none
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    cat <<EOF >inc/opt.h
+char x[] = "content_opt";
+EOF
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_contains main.o content_opt
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
+
+    rm inc/opt.h
+
+    $CCACHE_COMPILE -c -Iinc main.c
+    expect_contains main.o content_none
+    expect_stat direct_cache_hit 3
+    expect_stat cache_miss 2
+
+    # -------------------------------------------------------------------------
+    TEST "__has_include with macro operand disables direct mode"
+    export CCACHE_SAFEDIRECT=1
+
+    cat <<EOF >main.c
+#define OPT_H "opt.h"
+#if __has_include(OPT_H)
+#error unexpected
+#endif
+int x;
+EOF
+    backdate main.c
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "__has_embed disables direct mode"
+
+    cat <<EOF >main.c
+#ifdef __has_embed
+#if __has_embed("x.bin")
+#error unexpected
+#endif
+#endif
+int x;
+EOF
+    backdate main.c
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    $CCACHE_COMPILE -c main.c
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_GCC; then
+        for specs_option in "" "-specs=my.specs"; do
+            TEST "Specs file found via -B, option=\"${specs_option}\""
+
+            # Without -specs, GCC implicitly reads a file named "specs" from the
+            # -B directory. With it, my.specs is looked up there as well.
+            specs_file=bdir/specs
+            [ -z "$specs_option" ] || specs_file=bdir/my.specs
+
+            mkdir a b bdir
+            cat <<EOF >main.c
+#include "foo.h"
+EOF
+            cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+            cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+            printf '*cpp:\n+ -Ib\n\n' >$specs_file
+            backdate main.c a/foo.h b/foo.h $specs_file
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_b
+            expect_stat direct_cache_hit 0
+            expect_stat cache_miss 1
+            expect_stat bad_compiler_arguments 0
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_b
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 1
+
+            # The specs file now puts a before b.
+            printf '*cpp:\n+ -Ia -Ib\n\n' >$specs_file
+            backdate $specs_file
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_a
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 2
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_a
+            expect_stat direct_cache_hit 2
+            expect_stat cache_miss 2
+        done
+
+        # -----------------------------------------------------------------------
+        TEST "Specs file including another specs file"
+
+        mkdir a b bdir
+        cat <<EOF >main.c
+#include "foo.h"
+EOF
+        cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+        cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+        # The included file is located the same way as the specs file itself.
+        printf '%%include <extra.specs>\n' >bdir/top.specs
+        printf '*cpp:\n+ -Ib\n\n' >bdir/extra.specs
+        backdate main.c a/foo.h b/foo.h bdir/top.specs bdir/extra.specs
+
+        $CCACHE_COMPILE -Bbdir -specs=top.specs -c main.c
+        expect_contains main.o content_b
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -Bbdir -specs=top.specs -c main.c
+        expect_contains main.o content_b
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # Only the included file changes.
+        printf '*cpp:\n+ -Ia -Ib\n\n' >bdir/extra.specs
+        backdate bdir/extra.specs
+
+        $CCACHE_COMPILE -Bbdir -specs=top.specs -c main.c
+        expect_contains main.o content_a
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        # -----------------------------------------------------------------------
+        TEST "Specs file in the compiler's installation directory"
+        export CCACHE_COMPILERTYPE=gcc
+
+        # A wrapper standing in for a GCC installed in $PWD/installdir. It reads
+        # installdir/specs the way GCC reads a specs file from its installation
+        # directory: without anything on the command line pointing there.
+        mkdir installdir
+        cat <<EOF >gcc-wrapper.sh
+#!/bin/sh
+case "\$*" in
+    *-print-search-dirs*) echo "install: $PWD/installdir/"; exit 0 ;;
+esac
+if [ -f "$PWD/installdir/specs" ]; then
+    set -- -specs="$PWD/installdir/specs" "\$@"
+fi
+exec $REAL_COMPILER "\$@"
+EOF
+        chmod +x gcc-wrapper.sh
+        cat <<EOF >main.c
+#if FROM_SPECS == 1
+char x[] = "content_specs1";
+#elif FROM_SPECS == 2
+char x[] = "content_specs2";
+#else
+char x[] = "content_plain";
+#endif
+EOF
+        backdate gcc-wrapper.sh main.c
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # The specs file appears.
+        printf '*cpp:\n+ -DFROM_SPECS=1\n\n' >installdir/specs
+        backdate installdir/specs
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_specs1
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_specs1
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+
+        # The specs file changes.
+        printf '*cpp:\n+ -DFROM_SPECS=2\n\n' >installdir/specs
+        backdate installdir/specs
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_specs2
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 3
+
+        # The specs file disappears: the first result is valid again.
+        rm installdir/specs
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 3
+    fi
 }

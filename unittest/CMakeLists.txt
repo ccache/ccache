@@ -4,12 +4,14 @@ set(
   test_argprocessing.cpp
   test_ccache.cpp
   test_compiler_clang.cpp
+  test_compiler_headersearch.cpp
   test_compiler_msvc.cpp
   test_compopt.cpp
   test_compression_types.cpp
   test_config.cpp
   test_core_atomicfile.cpp
   test_core_common.cpp
+  test_core_manifest.cpp
   test_core_statistics.cpp
   test_core_statisticscounters.cpp
   test_core_statslog.cpp

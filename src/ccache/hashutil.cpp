@@ -18,6 +18,7 @@
 
 #include "hashutil.hpp"
 
+#include <ccache/compiler/headersearch.hpp>
 #include <ccache/config.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -35,6 +36,8 @@
 #include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
 
+#include <algorithm>
+
 #ifdef INODE_CACHE_SUPPORTED
 #  include <ccache/inodecache.hpp>
 #endif
@@ -45,6 +48,7 @@
 
 #include <cctype>
 #include <cstring>
+#include <optional>
 
 namespace fs = util::filesystem;
 
@@ -119,6 +123,100 @@ check_for_temporal_macros(std::string_view str, size_t pos)
   return SourceCodeScan::none;
 }
 
+bool
+is_identifier_char(char ch)
+{
+  return ch == '_' || util::is_alnum(ch);
+}
+
+// Return the position just after `identifier` if it occurs at str[pos] as a
+// whole identifier, i.e. not as part of a longer one. Pre-condition: pos <=
+// str.size()
+std::optional<size_t>
+match_identifier(std::string_view str, size_t pos, std::string_view identifier)
+{
+  if (str.substr(pos, identifier.size()) != identifier
+      || (pos > 0 && is_identifier_char(str[pos - 1]))) {
+    return std::nullopt;
+  }
+  const size_t end = pos + identifier.size();
+  if (end < str.size() && is_identifier_char(str[end])) {
+    return std::nullopt;
+  }
+  return end;
+}
+
+// Return true if `name` occurs at str[pos] as a whole identifier and is
+// invoked, i.e. followed by "(" after optional whitespace and line
+// continuations. Mentions such as "#ifdef NAME" and "defined(NAME)" don't probe
+// anything, and neither does the bare identifier that GCC 15 stores in a
+// precompiled header since NAME is a builtin macro there.
+bool
+is_builtin_invocation(std::string_view str, size_t pos, std::string_view name)
+{
+  const auto end = match_identifier(str, pos, name);
+  if (!end) {
+    return false;
+  }
+  const char* const str_end = str.data() + str.size();
+  const char* p = skip_whitespace_and_continuations(str.data() + *end, str_end);
+  return p != str_end && *p == '(';
+}
+
+// Pre-condition: str[pos] == '_'
+SourceCodeScan
+check_for_has_include(std::string_view str, size_t pos)
+{
+  // The operands are extracted later by compiler::find_has_include_operands.
+  return is_builtin_invocation(str, pos, "__has_include")
+             || is_builtin_invocation(str, pos, "__has_include_next")
+           ? SourceCodeScan::found_has_include
+           : SourceCodeScan::none;
+}
+
+// Pre-condition: str[pos] == '_'
+SourceCodeScan
+check_for_has_embed(std::string_view str, size_t pos)
+{
+  // The operand is a resource file probed like an embed directive, so it is
+  // treated the same way.
+  return is_builtin_invocation(str, pos, "__has_embed")
+           ? SourceCodeScan::found_embed
+           : SourceCodeScan::none;
+}
+
+// Remember the literal __has_include operands in `path` for
+// compiler::find_shadow_paths. `content` is the file content if it was read,
+// else empty (served from the inode cache). Return whether an operand is a
+// macro.
+bool
+add_has_include_probes(Context& ctx,
+                       const fs::path& path,
+                       const util::Bytes& content)
+{
+  std::string_view source = util::to_string_view(content);
+  util::Bytes data;
+  if (content.empty()) {
+    auto read = util::read_file<util::Bytes>(path);
+    if (!read) {
+      LOG("Failed to read {}: {}", path, read.error());
+      return true;
+    }
+    data = std::move(*read);
+    source = util::to_string_view(data);
+  }
+  const auto operands = compiler::find_has_include_operands(source);
+  for (const auto& operand : operands.literals) {
+    compiler::HasIncludeProbe probe{
+      .includer = path, .spelling = operand.spelling, .quoted = operand.quoted};
+    if (std::ranges::find(ctx.has_include_probes, probe)
+        == ctx.has_include_probes.end()) {
+      ctx.has_include_probes.push_back(std::move(probe));
+    }
+  }
+  return operands.macro_operand;
+}
+
 SourceCodeScan
 check_for_embed_directive(std::string_view str, size_t pos)
 {
@@ -180,6 +278,12 @@ check_for_source_code_patterns_scalar(std::string_view str,
   for (size_t i = start; i < str.size(); ++i) {
     if (str[i] == '_') {
       result.insert(check_for_temporal_macros(str, i + 1));
+      if (!result.contains(SourceCodeScan::found_has_include)) {
+        result.insert(check_for_has_include(str, i));
+      }
+      if (!result.contains(SourceCodeScan::found_embed)) {
+        result.insert(check_for_has_embed(str, i));
+      }
     }
     if (!result.contains(SourceCodeScan::found_embed) && str[i] == '#') {
       result.insert(check_for_embed_directive(str, i));
@@ -204,12 +308,16 @@ check_for_source_code_patterns(std::string_view str)
   return result;
 }
 
+// Hash `path` into `digest` and scan it if `scan_source`. If the file was read
+// (not served from the inode cache) and `content` is non-null, the content is
+// moved into `content`.
 std::optional<SourceCodeScanResult>
 do_hash_file(const Context& ctx,
              Hash::Digest& digest,
              const fs::path& path,
              size_t size_hint,
-             bool scan_source)
+             bool scan_source,
+             util::Bytes* content = nullptr)
 {
 #ifdef INODE_CACHE_SUPPORTED
   InodeCache::ContentType content_type =
@@ -228,7 +336,7 @@ do_hash_file(const Context& ctx,
   (void)ctx;
 #endif
 
-  const auto data = util::read_file<util::Bytes>(path, size_hint);
+  auto data = util::read_file<util::Bytes>(path, size_hint);
   if (!data) {
     LOG("Failed to read {}: {}", path, data.error());
     return std::nullopt;
@@ -247,6 +355,9 @@ do_hash_file(const Context& ctx,
   ctx.inode_cache.put(path, content_type, digest, result);
 #endif
 
+  if (content) {
+    *content = std::move(*data);
+  }
   return result;
 }
 
@@ -275,12 +386,22 @@ check_for_source_code_patterns_avx2(std::string_view str)
       _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos]));
 
     uint32_t temporal_mask = 0;
+    uint32_t has_include_mask = 0;
     if (pos + 5 + 32 <= str.length()) {
       const __m256i block_last =
         _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&str[pos + 5]));
-      temporal_mask = _mm256_movemask_epi8(
-        _mm256_and_si256(_mm256_cmpeq_epi8(underscore, block),
-                         _mm256_cmpeq_epi8(temporal_last, block_last)));
+      const __m256i underscore_mask = _mm256_cmpeq_epi8(underscore, block);
+      temporal_mask = _mm256_movemask_epi8(_mm256_and_si256(
+        underscore_mask, _mm256_cmpeq_epi8(temporal_last, block_last)));
+      if (!result.contains(SourceCodeScan::found_has_include)
+          || !result.contains(SourceCodeScan::found_embed)) {
+        // Candidate positions for "__has_include" and "__has_embed": as for
+        // the temporal macros, two bytes are matched in parallel ("_" at
+        // offset 0 and, as in "__has_", at offset 5) and the check functions
+        // verify the rest.
+        has_include_mask = _mm256_movemask_epi8(_mm256_and_si256(
+          underscore_mask, _mm256_cmpeq_epi8(underscore, block_last)));
+      }
     }
 
     uint32_t embed_mask = 0;
@@ -308,6 +429,19 @@ check_for_source_code_patterns_avx2(std::string_view str)
 #  endif
       temporal_mask &= temporal_mask - 1;
       result.insert(check_for_temporal_macros(str, start));
+    }
+
+    while (has_include_mask != 0) {
+#  ifndef _MSC_VER
+      const auto start = pos + __builtin_ctz(has_include_mask);
+#  else
+      unsigned long index;
+      _BitScanForward(&index, has_include_mask);
+      const auto start = pos + index;
+#  endif
+      has_include_mask &= has_include_mask - 1;
+      result.insert(check_for_has_include(str, start));
+      result.insert(check_for_has_embed(str, start));
     }
 
     while (embed_mask != 0) {
@@ -353,14 +487,24 @@ std::optional<Hash::Digest>
 hash_source_code_file(Context& ctx, const fs::path& path, size_t size_hint)
 {
   Hash::Digest digest;
-  auto opt_result = do_hash_file(ctx, digest, path, size_hint, true);
+  util::Bytes content;
+  auto opt_result = do_hash_file(ctx, digest, path, size_hint, true, &content);
   if (!opt_result) {
     return std::nullopt;
   }
   auto& result = *opt_result;
 
   if (result.contains(SourceCodeScan::found_embed)) {
-    LOG("Found #em{}bed in {}", "", path);
+    LOG("Found #em{}bed or __has_embed in {}", "", path);
+  }
+  bool has_include_macro_operand = false;
+  if (result.contains(SourceCodeScan::found_has_include)
+      && ctx.config.safe_direct_mode()) {
+    LOG("Found __has_include in {}", path);
+    has_include_macro_operand = add_has_include_probes(ctx, path, content);
+    if (has_include_macro_operand) {
+      LOG("Found __has_include with macro operand in {}", path);
+    }
   }
   if (result.contains(SourceCodeScan::found_incbin)) {
     std::string_view suffix;
@@ -397,7 +541,8 @@ hash_source_code_file(Context& ctx, const fs::path& path, size_t size_hint)
 
   if (result.contains(SourceCodeScan::found_time)
       || result.contains(SourceCodeScan::found_embed)
-      || result.contains(SourceCodeScan::found_incbin)) {
+      || result.contains(SourceCodeScan::found_incbin)
+      || has_include_macro_operand) {
     LOG("Disabling direct mode");
     ctx.config.set_direct_mode(false);
     return digest;

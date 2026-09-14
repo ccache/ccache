@@ -102,6 +102,7 @@ public:
   const std::string& remote_storage() const;
   bool reshare() const;
   util::Args::ResponseFileFormat response_file_format() const;
+  bool safe_direct_mode() const;
   const std::vector<std::filesystem::path>& safe_dirs() const;
   core::Sloppiness sloppiness() const;
   bool stats() const;
@@ -118,6 +119,9 @@ public:
 
   // Return true for MSVC (cl.exe), clang-cl, icl, icx-cl, and icx (on Windows).
   bool is_compiler_group_msvc() const;
+
+  // Whether safe_direct_mode is supported for the compiler.
+  bool is_compiler_group_safe_direct_compatible() const;
 
   util::SizeUnitPrefixType size_unit_prefix_type() const;
   std::filesystem::path default_temporary_dir() const;
@@ -237,6 +241,7 @@ private:
   std::string m_remote_storage;
   util::Args::ResponseFileFormat m_response_file_format =
     util::Args::ResponseFileFormat::auto_guess;
+  bool m_safe_direct_mode = false;
   std::vector<std::filesystem::path> m_safe_dirs;
   core::Sloppiness m_sloppiness;
   bool m_stats = true;
@@ -336,6 +341,14 @@ Config::is_compiler_group_msvc() const
          || m_compiler_type == CompilerType::icx
 #endif
          || m_compiler_type == CompilerType::icx_cl;
+}
+
+inline bool
+Config::is_compiler_group_safe_direct_compatible() const
+{
+  // GCC and Clang accept -Wp,-v and report the header search directories.
+  return (is_compiler_group_gcc() || is_compiler_group_clang())
+         && !is_compiler_group_msvc();
 }
 
 inline bool
@@ -528,6 +541,12 @@ inline bool
 Config::reshare() const
 {
   return m_reshare;
+}
+
+inline bool
+Config::safe_direct_mode() const
+{
+  return m_safe_direct_mode;
 }
 
 inline util::Args::ResponseFileFormat

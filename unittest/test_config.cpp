@@ -83,6 +83,7 @@ TEST_CASE("Config: default values")
   CHECK_FALSE(config.remote_only());
   CHECK(config.remote_storage().empty());
   CHECK_FALSE(config.reshare());
+  CHECK_FALSE(config.safe_direct_mode());
   CHECK(config.sloppiness().to_bitmask() == 0);
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty()); // Set later
@@ -142,6 +143,7 @@ TEST_CASE("Config::update_from_file")
         "read_only_direct = true\n"
         "recache = true\n"
         "reshare = true\n"
+        "safe_direct_mode = true\n"
         "sloppiness =     time_macros   ,include_file_mtime"
         "  "
         "include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_"
@@ -187,6 +189,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.read_only_direct());
   CHECK(config.recache());
   CHECK(config.reshare());
+  CHECK(config.safe_direct_mode());
   CHECK(config.sloppiness().to_bitmask()
         == (static_cast<uint32_t>(core::Sloppy::clang_index_store)
             | static_cast<uint32_t>(core::Sloppy::file_stat_matches)
@@ -635,6 +638,7 @@ TEST_CASE("Config::visit_items")
     "remote_storage = rs\n"
     "reshare = true\n"
     "response_file_format = posix\n"
+    "safe_direct_mode = true\n"
     "safe_dirs = " ROOT_DIR
     "sd\n"
     "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
@@ -698,6 +702,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) remote_storage = rs",
     "(test.conf) reshare = true",
     "(test.conf) response_file_format = posix",
+    "(test.conf) safe_direct_mode = true",
     "(test.conf) safe_dirs = " ROOT_DIR "sd",
     "(test.conf) sloppiness = clang_index_store, file_stat_matches,"
     " file_stat_matches_ctime, gcno_cwd, include_file_ctime,"
