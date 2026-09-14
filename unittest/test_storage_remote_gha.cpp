@@ -35,6 +35,9 @@ test_digest()
 
 TEST_CASE("parse gha storage URL")
 {
+  TestUtil::TestContext test_context;
+  util::unsetenv("ACTIONS_CACHE_SERVICE_V2");
+
   const auto config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://project/cache"),
     {{"url", "https://cache.example.invalid/results/", "ignored"},
@@ -45,6 +48,7 @@ TEST_CASE("parse gha storage URL")
   CHECK(config.prefix == "project/cache");
   CHECK(config.token == "secret-token");
   CHECK(config.debug);
+  CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v1);
 }
 
 TEST_CASE("parse gha token and URL from environment")
@@ -138,6 +142,32 @@ TEST_CASE("make gha archive path preserves signed query")
   CHECK(storage::remote::detail::make_gha_archive_path(
           "https://cache.example.invalid")
         == "/");
+}
+
+TEST_CASE("select gha v2 from runtime environment")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_CACHE_SERVICE_V2", "enabled");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"token", "test-token", "test-token"}});
+
+  CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v2);
+  CHECK(storage::remote::detail::gha_cache_version(config.service_version)
+        == "0923af7a82378b9fbe2fcfc3bc65175ea5a8508a02410190399fa7b6e9a51891");
+}
+
+TEST_CASE("override gha service version")
+{
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"token", "test-token", "test-token"},
+     {"service-version", "v2", "v2"}});
+
+  CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v2);
 }
 
 TEST_SUITE_END();

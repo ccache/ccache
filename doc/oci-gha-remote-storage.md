@@ -41,6 +41,8 @@ Supported secret attributes:
 - `@token=VALUE` is supported for controlled tests only and MUST NOT be used in
   shared configuration.
 - `@url-env=NAME` is supported by `gha://` for tests and custom runners.
+- `@service-version=v1` or `@service-version=v2` selects a cache service
+  version. The default MUST select v2 when `ACTIONS_CACHE_SERVICE_V2` is set.
 
 ## Error reporting
 
@@ -49,7 +51,7 @@ Each failure message MUST include a stable error code so that the code path can
 be found from logs. Current prefixes are:
 
 - `CCACHE-OCI-0001` through `CCACHE-OCI-0009`
-- `CCACHE-GHA-0001` through `CCACHE-GHA-0009`
+- `CCACHE-GHA-0001` through `CCACHE-GHA-0019`
 - `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0002`
 
 Debug logging MAY be enabled with `@debug=true`. Debug logs MUST still redact

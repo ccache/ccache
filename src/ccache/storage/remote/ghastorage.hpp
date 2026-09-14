@@ -21,11 +21,14 @@ namespace storage::remote {
 
 namespace detail {
 
+enum class GhaServiceVersion { v1, v2 };
+
 struct GhaStorageConfig
 {
   std::string results_url;
   std::string token;
   std::string prefix;
+  GhaServiceVersion service_version = GhaServiceVersion::v1;
   bool debug = false;
   std::chrono::milliseconds connect_timeout = k_default_connect_timeout;
   std::chrono::milliseconds operation_timeout = k_default_operation_timeout;
@@ -43,6 +46,8 @@ std::optional<std::string>
 extract_gha_archive_location(std::string_view response_body);
 
 std::string make_gha_archive_path(std::string_view archive_location);
+
+std::string gha_cache_version(GhaServiceVersion service_version);
 
 } // namespace detail
 
