@@ -39,6 +39,9 @@ parse_gha_storage_config(
 std::string make_gha_storage_key(const Hash::Digest& key,
                                  const std::string& prefix);
 
+std::optional<std::string>
+extract_gha_archive_location(std::string_view response_body);
+
 } // namespace detail
 
 class GhaStorage : public RemoteStorage

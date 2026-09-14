@@ -102,6 +102,30 @@ url_path(const Url& url)
   return path;
 }
 
+std::string
+path_with_query(const Url& url)
+{
+  auto path = url.path();
+  if (path.empty()) {
+    path = "/";
+  }
+
+  const auto& query = url.query();
+  if (!query.empty()) {
+    path += '?';
+    for (size_t i = 0; i < query.size(); ++i) {
+      if (i > 0) {
+        path += '&';
+      }
+      path += httplib::detail::encode_query_param(query[i].key());
+      path += '=';
+      path += httplib::detail::encode_query_param(query[i].val());
+    }
+  }
+
+  return path;
+}
+
 class GhaStorageBackend : public RemoteStorage::Backend
 {
 public:
@@ -158,7 +182,46 @@ public:
                    result->status));
       return tl::unexpected(Failure::error);
     }
-    return util::Bytes(result->body.data(), result->body.size());
+
+    const auto archive_location =
+      detail::extract_gha_archive_location(result->body);
+    if (!archive_location) {
+      log_once(m_seen_errors,
+               "CCACHE-GHA-0004",
+               "GitHub Actions cache lookup response had no archiveLocation");
+      return tl::unexpected(Failure::error);
+    }
+
+    const Url archive_url(*archive_location);
+    httplib::Client archive_client(partial_url(archive_url).str());
+    archive_client.set_keep_alive(true);
+    archive_client.set_connection_timeout(m_config.connect_timeout);
+    archive_client.set_read_timeout(m_config.operation_timeout);
+    archive_client.set_write_timeout(m_config.operation_timeout);
+
+    const auto archive = archive_client.Get(path_with_query(archive_url));
+    if (!archive || archive.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-GHA-0003",
+               FMT("failed to download GitHub Actions cache entry {}: {}",
+                   storage::get_redacted_url_str_for_logging(archive_url),
+                   to_string(archive.error())));
+      return tl::unexpected(failure_from_httplib_error(archive.error()));
+    }
+    if (m_config.debug) {
+      LOG("CCACHE-GHA-DEBUG: DOWNLOAD {} key={} status={}",
+          storage::get_redacted_url_str_for_logging(archive_url),
+          entry_key,
+          archive->status);
+    }
+    if (archive->status < 200 || archive->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-GHA-0004",
+               FMT("GitHub Actions cache download returned status {}",
+                   archive->status));
+      return tl::unexpected(Failure::error);
+    }
+    return util::Bytes(archive->body.data(), archive->body.size());
   }
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
@@ -293,6 +356,72 @@ make_gha_storage_key(const Hash::Digest& key, const std::string& prefix)
 {
   const std::string digest = util::format_base16(key);
   return prefix.empty() ? digest : FMT("{}/{}", prefix, digest);
+}
+
+std::optional<std::string>
+extract_gha_archive_location(std::string_view response_body)
+{
+  constexpr std::string_view key = "\"archiveLocation\"";
+  const size_t key_pos = response_body.find(key);
+  if (key_pos == std::string_view::npos) {
+    return std::nullopt;
+  }
+
+  size_t pos = response_body.find(':', key_pos + key.size());
+  if (pos == std::string_view::npos) {
+    return std::nullopt;
+  }
+  ++pos;
+  while (pos < response_body.size()
+         && (response_body[pos] == ' ' || response_body[pos] == '\t'
+             || response_body[pos] == '\r' || response_body[pos] == '\n')) {
+    ++pos;
+  }
+  if (pos == response_body.size() || response_body[pos] != '"') {
+    return std::nullopt;
+  }
+  ++pos;
+
+  std::string value;
+  bool escaped = false;
+  for (; pos < response_body.size(); ++pos) {
+    const char c = response_body[pos];
+    if (escaped) {
+      switch (c) {
+      case '"':
+      case '\\':
+      case '/':
+        value.push_back(c);
+        break;
+      case 'b':
+        value.push_back('\b');
+        break;
+      case 'f':
+        value.push_back('\f');
+        break;
+      case 'n':
+        value.push_back('\n');
+        break;
+      case 'r':
+        value.push_back('\r');
+        break;
+      case 't':
+        value.push_back('\t');
+        break;
+      default:
+        return std::nullopt;
+      }
+      escaped = false;
+    } else if (c == '\\') {
+      escaped = true;
+    } else if (c == '"') {
+      return value;
+    } else {
+      value.push_back(c);
+    }
+  }
+
+  return std::nullopt;
 }
 
 } // namespace detail

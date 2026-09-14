@@ -96,4 +96,35 @@ TEST_CASE("make gha prefixed key")
         == "linux/x64/131211100f0e0d0c0b0a09080706050403020100");
 }
 
+TEST_CASE("extract gha archive location")
+{
+  const auto archive_location =
+    storage::remote::detail::extract_gha_archive_location(
+      R"({"cacheKey":"key","archiveLocation":"https://cache.example.invalid/a/b?sig=one%2Ftwo"})");
+
+  REQUIRE(archive_location);
+  CHECK(*archive_location
+        == "https://cache.example.invalid/a/b?sig=one%2Ftwo");
+}
+
+TEST_CASE("extract gha archive location with escaped slashes")
+{
+  const auto archive_location =
+    storage::remote::detail::extract_gha_archive_location(
+      R"({
+        "archiveLocation" : "https:\/\/cache.example.invalid\/entry?sig=x"
+      })");
+
+  REQUIRE(archive_location);
+  CHECK(*archive_location == "https://cache.example.invalid/entry?sig=x");
+}
+
+TEST_CASE("reject gha lookup response without archive location")
+{
+  CHECK_FALSE(storage::remote::detail::extract_gha_archive_location(
+    R"({"cacheKey":"key"})"));
+  CHECK_FALSE(storage::remote::detail::extract_gha_archive_location(
+    R"({"archiveLocation":true})"));
+}
+
 TEST_SUITE_END();
