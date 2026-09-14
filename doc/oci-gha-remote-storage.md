@@ -92,6 +92,10 @@ Local OCI registry integration tests MUST be preferred for required registry
 coverage. Docker Hub and GitLab registry tests MAY run only when safe secrets are
 present.
 
+Set `OCI_TEST_REGISTRY` to the host and port of an isolated local registry to
+run `test.remote_oci`. The suite MUST use `@insecure=true` only for that local
+test registry.
+
 ## Build
 
 Release verification SHOULD use an optimized build with developer warnings as
