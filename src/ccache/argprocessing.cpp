@@ -523,6 +523,44 @@ is_msvc_show_includes_option(std::string_view arg)
          || arg == "-showIncludes:user" || arg == "/showIncludes:user";
 }
 
+// Returns the module files in `dir` that an import can resolve to, sorted so
+// that the hash does not depend on the order the directory is read in, or an
+// error if it cannot be determined which files the compilation reads.
+tl::expected<std::vector<fs::path>, Statistic>
+find_module_files(const fs::path& dir)
+{
+  std::vector<fs::path> module_files;
+  std::error_code ec;
+  try {
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+      if (entry.path().extension() != ".pcm") {
+        continue;
+      }
+      // Anything the compiler cannot read as a module file is not an input: a
+      // directory can be named like one, and a symlink can dangle. The error
+      // code keeps the query from throwing.
+      std::error_code entry_ec;
+      if (entry.is_regular_file(entry_ec)) {
+        module_files.push_back(entry.path());
+      }
+    }
+  } catch (const std::filesystem::filesystem_error& e) {
+    // Only constructing the iterator reports a failure through ec. Advancing
+    // it throws, which would otherwise take down the whole invocation.
+    LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
+    return tl::unexpected(Statistic::could_not_use_modules);
+  }
+  // A path that is missing or is not a directory has no module files to hash.
+  // Any other error means that the files read are unknown.
+  if (ec && ec != std::errc::no_such_file_or_directory
+      && ec != std::errc::not_a_directory) {
+    LOG("Failed to read prebuilt module path {}: {}", dir, ec.message());
+    return tl::unexpected(Statistic::could_not_use_modules);
+  }
+  std::sort(module_files.begin(), module_files.end());
+  return module_files;
+}
+
 // Returns std::nullopt if the option wasn't recognized, otherwise the error
 // code (with Statistic::none for "no error").
 std::optional<Statistic>
@@ -1221,38 +1259,12 @@ process_option_arg(const Context& ctx,
     // module files there are read and have to be hashed.
     const fs::path dir(dir_arg.empty() ? std::string_view(".") : dir_arg);
 
-    std::vector<fs::path> candidates;
-    std::error_code ec;
-    try {
-      for (const auto& entry : fs::directory_iterator(dir, ec)) {
-        if (entry.path().extension() != ".pcm") {
-          continue;
-        }
-        // Anything the compiler cannot read as a module file is not an input:
-        // a directory can be named like one, and a symlink can dangle. The
-        // error code keeps the query from throwing.
-        std::error_code entry_ec;
-        if (entry.is_regular_file(entry_ec)) {
-          candidates.push_back(entry.path());
-        }
-      }
-    } catch (const std::filesystem::filesystem_error& e) {
-      // Only constructing the iterator reports a failure through ec. Advancing
-      // it throws, which would otherwise take down the whole invocation.
-      LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
-      return Statistic::could_not_use_modules;
+    auto module_files = find_module_files(dir);
+    if (!module_files) {
+      return module_files.error();
     }
-    // A path that is missing or is not a directory has no module files to
-    // hash. Any other error means that the files read are unknown.
-    if (ec && ec != std::errc::no_such_file_or_directory
-        && ec != std::errc::not_a_directory) {
-      LOG("Failed to read prebuilt module path {}: {}", dir, ec.message());
-      return Statistic::could_not_use_modules;
-    }
-    // Sort to make the hash independent of the order the directory is read in.
-    std::sort(candidates.begin(), candidates.end());
-    for (auto& candidate : candidates) {
-      args_info.searched_module_files.push_back(std::move(candidate));
+    for (auto& module_file : *module_files) {
+      args_info.searched_module_files.push_back(std::move(module_file));
     }
 
     state.add_common_arg(args[i]);
