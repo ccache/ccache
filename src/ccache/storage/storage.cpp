@@ -670,7 +670,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
       entry.backends.back().impl =
         entry.storage->create_backend(shard_url, entry.config.attributes);
     } catch (const remote::RemoteStorage::Backend::Failed& e) {
-      LOG("Failed to construct backend for {}{}",
+      LOG("CCACHE-REMOTE-0003: failed to construct backend for {}{}",
           url_str_for_logging,
           std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
@@ -678,9 +678,6 @@ Storage::get_backend(RemoteStorageEntry& entry,
     }
     return &entry.backends.back();
   } else if (backend->failed) {
-    LOG("Not {} {} since it failed earlier",
-        operation_description,
-        url_str_for_logging);
     return nullptr;
   } else {
     return &*backend;
