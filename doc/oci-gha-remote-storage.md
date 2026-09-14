@@ -14,6 +14,29 @@ GHCR MUST be treated as a regular OCI registry. Registry-specific behavior MUST
 NOT leak into the generic OCI backend unless the OCI Distribution API requires
 it.
 
+## Requirements
+
+- Redis MUST remain the fast cache level when it is configured before OCI or
+  GHA storage.
+- OCI storage MUST support a GHCR repository without GHCR-specific code paths.
+- GHA storage MUST use GitHub Actions runtime configuration and MUST NOT make a
+  compilation fail because cache upload is unavailable.
+- A hit in a later writable level SHOULD backfill earlier writable levels.
+- Failures MUST be counted, MUST have stable unique codes and MUST NOT repeat
+  within a backend instance.
+
+## Source Of Truth
+
+| Concern | Source of truth |
+| --- | --- |
+| Backend order | `remote_storage` or `CCACHE_REMOTE_STORAGE` order |
+| Default cache key | Full ccache digest in lowercase hexadecimal |
+| OCI registry protocol | OCI Distribution API manifest and blob endpoints |
+| GHA runtime endpoint and token | GitHub Actions runtime environment |
+| Write behavior | `read-only` and `backfill` configuration properties |
+| Debug behavior | `@debug` and `ACTIONS_STEP_DEBUG` |
+| Error lookup | Stable `CCACHE-OCI`, `CCACHE-GHA` and `CCACHE-REMOTE` codes |
+
 ## Configuration
 
 The `remote_storage` setting and `CCACHE_REMOTE_STORAGE` remain the ordering
