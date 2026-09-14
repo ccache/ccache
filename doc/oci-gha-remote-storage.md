@@ -50,7 +50,7 @@ Operational failures MUST be logged at most once per backend instance and run.
 Each failure message MUST include a stable error code so that the code path can
 be found from logs. Current prefixes are:
 
-- `CCACHE-OCI-0001` through `CCACHE-OCI-0009`
+- `CCACHE-OCI-0001` through `CCACHE-OCI-0031`
 - `CCACHE-GHA-0001` through `CCACHE-GHA-0019`
 - `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0002`
 

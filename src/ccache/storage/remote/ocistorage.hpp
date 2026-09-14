@@ -50,9 +50,6 @@ std::string make_oci_blob_path(const std::string& repository,
 std::string make_oci_manifest_path(const std::string& repository,
                                    const std::string& tag_or_digest);
 
-std::string make_oci_storage_api_path(const std::string& repository,
-                                      const std::string& key);
-
 } // namespace detail
 
 class OciStorage : public RemoteStorage

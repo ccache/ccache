@@ -178,6 +178,30 @@ log_once(std::set<std::string>& seen,
   }
 }
 
+std::optional<std::string>
+extract_oci_layer_digest(std::string_view manifest)
+{
+  const size_t layers_pos = manifest.find("\"layers\"");
+  if (layers_pos == std::string_view::npos) {
+    return std::nullopt;
+  }
+  const size_t digest_key_pos = manifest.find("\"digest\"", layers_pos);
+  if (digest_key_pos == std::string_view::npos) {
+    return std::nullopt;
+  }
+  const size_t value_start = manifest.find('"', digest_key_pos + 8);
+  if (value_start == std::string_view::npos) {
+    return std::nullopt;
+  }
+  const size_t value_end = manifest.find('"', value_start + 1);
+  if (value_end == std::string_view::npos) {
+    return std::nullopt;
+  }
+  const auto digest = manifest.substr(value_start + 1, value_end - value_start - 1);
+  return digest.starts_with("sha256:") ? std::optional<std::string>(digest)
+                                       : std::nullopt;
+}
+
 RemoteStorage::Backend::Failure
 failure_from_httplib_error(httplib::Error error)
 {
@@ -212,33 +236,66 @@ public:
   {
     const std::string entry_key =
       detail::make_oci_storage_key(key, m_config.prefix);
-    const std::string path =
-      detail::make_oci_storage_api_path(m_config.repository, entry_key);
-    const auto result = m_http_client.Get(path);
-    if (!result || result.error() != httplib::Error::Success) {
+    const std::string tag = detail::make_oci_manifest_tag(entry_key);
+    const std::string manifest_path =
+      detail::make_oci_manifest_path(m_config.repository, tag);
+    httplib::Headers headers;
+    headers.emplace("Accept", "application/vnd.oci.image.manifest.v1+json");
+    const auto manifest = m_http_client.Get(manifest_path, headers);
+    if (!manifest || manifest.error() != httplib::Error::Success) {
       log_once(m_seen_errors,
                "CCACHE-OCI-0001",
-               FMT("failed to get entry from OCI storage {}: {}",
+               FMT("failed to get OCI manifest from {}: {}",
                    m_redacted_url,
-                   to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
+                   to_string(manifest.error())));
+      return tl::unexpected(failure_from_httplib_error(manifest.error()));
     }
     if (m_config.debug) {
-      LOG("CCACHE-OCI-DEBUG: GET {} key={} status={}",
+      LOG("CCACHE-OCI-DEBUG: GET manifest {} key={} status={}",
           m_redacted_url,
           entry_key,
-          result->status);
+          manifest->status);
     }
-    if (result->status == 404) {
+    if (manifest->status == 404) {
       return std::nullopt;
     }
-    if (result->status < 200 || result->status >= 300) {
+    if (manifest->status < 200 || manifest->status >= 300) {
       log_once(m_seen_errors,
                "CCACHE-OCI-0002",
-               FMT("OCI storage returned status {}", result->status));
+               FMT("OCI manifest lookup returned status {}", manifest->status));
       return tl::unexpected(Failure::error);
     }
-    return util::Bytes(result->body.data(), result->body.size());
+
+    const auto blob_digest = extract_oci_layer_digest(manifest->body);
+    if (!blob_digest) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0010",
+               "OCI manifest did not contain a cache layer digest");
+      return tl::unexpected(Failure::error);
+    }
+    const auto blob = m_http_client.Get(
+      detail::make_oci_blob_path(m_config.repository, *blob_digest));
+    if (!blob || blob.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0011",
+               FMT("failed to get OCI cache blob from {}: {}",
+                   m_redacted_url,
+                   to_string(blob.error())));
+      return tl::unexpected(failure_from_httplib_error(blob.error()));
+    }
+    if (m_config.debug) {
+      LOG("CCACHE-OCI-DEBUG: GET blob {} key={} status={}",
+          m_redacted_url,
+          entry_key,
+          blob->status);
+    }
+    if (blob->status < 200 || blob->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0012",
+               FMT("OCI cache blob download returned status {}", blob->status));
+      return tl::unexpected(Failure::error);
+    }
+    return util::Bytes(blob->body.data(), blob->body.size());
   }
 
   tl::expected<bool, Failure> put(const Hash::Digest& key,
@@ -247,38 +304,57 @@ public:
   {
     const std::string entry_key =
       detail::make_oci_storage_key(key, m_config.prefix);
-    const std::string path =
-      detail::make_oci_storage_api_path(m_config.repository, entry_key);
+    const std::string tag = detail::make_oci_manifest_tag(entry_key);
+    const std::string manifest_path =
+      detail::make_oci_manifest_path(m_config.repository, tag);
     if (overwrite == Overwrite::no) {
-      const auto head = m_http_client.Head(path);
+      const auto head = m_http_client.Head(manifest_path);
       if (head && head->status >= 200 && head->status < 300) {
         return false;
       }
     }
 
-    const auto result =
-      m_http_client.Put(path,
-                        reinterpret_cast<const char*>(value.data()),
-                        value.size(),
-                        "application/vnd.ccache.entry");
+    constexpr std::array<uint8_t, 2> empty_config = {'{', '}'};
+    const std::string config_digest = detail::make_oci_blob_digest(empty_config);
+    if (const auto config = upload_blob(config_digest, empty_config); !config) {
+      return tl::unexpected(config.error());
+    }
+    const std::string blob_digest = detail::make_oci_blob_digest(value);
+    if (const auto blob = upload_blob(blob_digest, value); !blob) {
+      return tl::unexpected(blob.error());
+    }
+
+    const std::string manifest = FMT(
+      "{{\"schemaVersion\":2,\"mediaType\":"
+      "\"application/vnd.oci.image.manifest.v1+json\",\"artifactType\":"
+      "\"application/vnd.ccache.entry\",\"config\":{{\"mediaType\":"
+      "\"application/vnd.oci.empty.v1+json\",\"digest\":\"{}\","
+      "\"size\":2}},\"layers\":[{{\"mediaType\":"
+      "\"application/vnd.ccache.entry\",\"digest\":\"{}\",\"size\":{}}}]}}",
+      config_digest,
+      blob_digest,
+      value.size());
+    const auto result = m_http_client.Put(manifest_path,
+                                          manifest,
+                                          "application/vnd.oci.image.manifest.v1+json");
     if (!result || result.error() != httplib::Error::Success) {
       log_once(m_seen_errors,
-               "CCACHE-OCI-0003",
-               FMT("failed to put entry to OCI storage {}: {}",
+               "CCACHE-OCI-0027",
+               FMT("failed to publish OCI cache manifest to {}: {}",
                    m_redacted_url,
                    to_string(result.error())));
       return tl::unexpected(failure_from_httplib_error(result.error()));
     }
     if (m_config.debug) {
-      LOG("CCACHE-OCI-DEBUG: PUT {} key={} status={}",
+      LOG("CCACHE-OCI-DEBUG: PUT manifest {} key={} status={}",
           m_redacted_url,
           entry_key,
           result->status);
     }
     if (result->status < 200 || result->status >= 300) {
       log_once(m_seen_errors,
-               "CCACHE-OCI-0004",
-               FMT("OCI storage rejected upload with status {}",
+               "CCACHE-OCI-0028",
+               FMT("OCI registry rejected manifest upload with status {}",
                    result->status));
       return tl::unexpected(Failure::error);
     }
@@ -289,37 +365,141 @@ public:
   {
     const std::string entry_key =
       detail::make_oci_storage_key(key, m_config.prefix);
-    const std::string path =
-      detail::make_oci_storage_api_path(m_config.repository, entry_key);
-    const auto result = m_http_client.Delete(path);
-    if (!result || result.error() != httplib::Error::Success) {
+    const std::string tag = detail::make_oci_manifest_tag(entry_key);
+    const std::string manifest_path =
+      detail::make_oci_manifest_path(m_config.repository, tag);
+    const auto manifest = m_http_client.Head(manifest_path);
+    if (!manifest || manifest.error() != httplib::Error::Success) {
       log_once(m_seen_errors,
                "CCACHE-OCI-0005",
-               FMT("failed to delete entry from OCI storage {}: {}",
+               FMT("failed to get OCI manifest for deletion from {}: {}",
+                   m_redacted_url,
+                   to_string(manifest.error())));
+      return tl::unexpected(failure_from_httplib_error(manifest.error()));
+    }
+    if (manifest->status == 404) {
+      return false;
+    }
+    if (manifest->status < 200 || manifest->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0006",
+               FMT("OCI manifest lookup for deletion returned status {}",
+                   manifest->status));
+      return tl::unexpected(Failure::error);
+    }
+    const std::string manifest_digest =
+      manifest->get_header_value("Docker-Content-Digest");
+    if (manifest_digest.empty()) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0029",
+               "OCI manifest lookup for deletion had no content digest");
+      return tl::unexpected(Failure::error);
+    }
+    const auto result = m_http_client.Delete(
+      detail::make_oci_manifest_path(m_config.repository, manifest_digest));
+    if (!result || result.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0030",
+               FMT("failed to delete OCI manifest from {}: {}",
                    m_redacted_url,
                    to_string(result.error())));
       return tl::unexpected(failure_from_httplib_error(result.error()));
     }
     if (m_config.debug) {
-      LOG("CCACHE-OCI-DEBUG: DELETE {} key={} status={}",
+      LOG("CCACHE-OCI-DEBUG: DELETE manifest {} key={} status={}",
           m_redacted_url,
           entry_key,
           result->status);
     }
-    if (result->status == 404) {
-      return false;
-    }
     if (result->status < 200 || result->status >= 300) {
       log_once(m_seen_errors,
-               "CCACHE-OCI-0006",
-               FMT("OCI storage rejected delete with status {}",
-                   result->status));
+               "CCACHE-OCI-0031",
+               FMT("OCI manifest deletion returned status {}", result->status));
       return tl::unexpected(Failure::error);
     }
     return true;
   }
 
 private:
+  tl::expected<bool, Failure> upload_blob(const std::string& digest,
+                                          std::span<const uint8_t> value)
+  {
+    const std::string blob_path =
+      detail::make_oci_blob_path(m_config.repository, digest);
+    const auto existing = m_http_client.Head(blob_path);
+    if (!existing || existing.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0020",
+               FMT("failed to check OCI blob in {}: {}",
+                   m_redacted_url,
+                   to_string(existing.error())));
+      return tl::unexpected(failure_from_httplib_error(existing.error()));
+    }
+    if (existing->status >= 200 && existing->status < 300) {
+      return false;
+    }
+    if (existing->status != 404) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0021",
+               FMT("OCI blob check returned status {}", existing->status));
+      return tl::unexpected(Failure::error);
+    }
+
+    const auto start = m_http_client.Post(
+      FMT("/v2/{}/blobs/uploads/", m_config.repository));
+    if (!start || start.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0022",
+               FMT("failed to start OCI blob upload to {}: {}",
+                   m_redacted_url,
+                   to_string(start.error())));
+      return tl::unexpected(failure_from_httplib_error(start.error()));
+    }
+    if (start->status < 200 || start->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0023",
+               FMT("OCI blob upload start returned status {}", start->status));
+      return tl::unexpected(Failure::error);
+    }
+    const std::string location = start->get_header_value("Location");
+    if (location.empty()) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0024",
+               "OCI blob upload start response had no location");
+      return tl::unexpected(Failure::error);
+    }
+    const size_t scheme = location.find("://");
+    const size_t path_start = scheme == std::string::npos
+                                ? 0
+                                : location.find('/', scheme + 3);
+    std::string complete_path = path_start == std::string::npos
+                                  ? "/"
+                                  : location.substr(path_start);
+    complete_path += complete_path.find('?') == std::string::npos ? "?digest=" : "&digest=";
+    complete_path += digest;
+    const auto complete = m_http_client.Put(
+      complete_path,
+      reinterpret_cast<const char*>(value.data()),
+      value.size(),
+      "application/octet-stream");
+    if (!complete || complete.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0025",
+               FMT("failed to complete OCI blob upload to {}: {}",
+                   m_redacted_url,
+                   to_string(complete.error())));
+      return tl::unexpected(failure_from_httplib_error(complete.error()));
+    }
+    if (complete->status < 200 || complete->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0026",
+               FMT("OCI blob upload completion returned status {}",
+                   complete->status));
+      return tl::unexpected(Failure::error);
+    }
+    return true;
+  }
+
   detail::OciStorageConfig m_config;
   std::string m_redacted_url;
   httplib::Client m_http_client;
@@ -425,12 +605,6 @@ make_oci_manifest_path(const std::string& repository,
                        const std::string& tag_or_digest)
 {
   return FMT("/v2/{}/manifests/{}", repository, tag_or_digest);
-}
-
-std::string
-make_oci_storage_api_path(const std::string& repository, const std::string& key)
-{
-  return FMT("/v2/{}/ccache/blobs/{}", repository, key);
 }
 
 } // namespace detail
