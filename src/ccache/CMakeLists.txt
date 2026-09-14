@@ -75,6 +75,16 @@ if(HTTP_STORAGE_BACKEND)
   endif()
 endif()
 
+if(OCI_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_OCI_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
+endif()
+
+if(GHA_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_GHA_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
+endif()
+
 add_executable(test-lockfile test_lockfile.cpp)
 target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
 
