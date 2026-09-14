@@ -1594,4 +1594,21 @@ TEST_CASE("-fprebuilt-implicit-modules is uncacheable")
   CHECK(result.error() == Statistic::could_not_use_modules);
 }
 
+TEST_CASE("-fprebuilt-implicit-modules is cacheable with modules sloppiness")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.update_from_map({
+    {"sloppiness", "modules"}
+  });
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-implicit-modules -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+}
+
 TEST_SUITE_END();

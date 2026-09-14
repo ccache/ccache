@@ -187,4 +187,33 @@ EOF
     $CCACHE_COMPILE -std=gnu++23 -fprebuilt-implicit-modules \
         -fprebuilt-module-path=prebuilt -c main.cpp -o main.o
     expect_stat could_not_use_modules 1
+
+    # -------------------------------------------------------------------------
+    TEST "modules sloppiness makes an implicit prebuilt module search cacheable"
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -std=gnu++23 \
+        -fprebuilt-implicit-modules -fprebuilt-module-path=prebuilt -c main.cpp -o main.o
+    expect_stat could_not_use_modules 0
+    expect_stat cache_miss 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -std=gnu++23 \
+        -fprebuilt-implicit-modules -fprebuilt-module-path=prebuilt -c main.cpp -o main.o
+    expect_stat cache_miss 1
+    expect_stat direct_cache_hit 1
+
+    # The sloppiness does not stop the searched module files from being hashed.
+    cat <<'EOF' >module.ixx
+export module somemodule;
+export template<typename T>
+int module_test() {
+    return 2;
+}
+EOF
+    $COMPILER -std=gnu++23 -x c++-module --precompile module.ixx \
+        -o prebuilt/somemodule.pcm
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -std=gnu++23 \
+        -fprebuilt-implicit-modules -fprebuilt-module-path=prebuilt -c main.cpp -o main.o
+    expect_stat cache_miss 2
+    expect_stat direct_cache_hit 1
 }

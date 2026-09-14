@@ -1198,11 +1198,13 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (arg == "-fprebuilt-implicit-modules") {
+  if (arg == "-fprebuilt-implicit-modules"
+      && !config.sloppiness().contains(core::Sloppy::modules)) {
     // Clang looks up implicit modules in a subdirectory layout named by
     // hashes of compiler internals, so the module files read by the
     // compilation cannot be determined.
-    LOG("Cannot determine the module files read with {}", args[i]);
+    LOG("You have to specify \"modules\" sloppiness when using {} to get hits",
+        args[i]);
     return Statistic::could_not_use_modules;
   }
 

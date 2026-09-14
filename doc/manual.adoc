@@ -1181,9 +1181,11 @@ NOTE: No effect with `--coverage` (it implies `-fprofile-arcs`).
 
 *modules*::
 
-    *Use case*: Clang builds using `-fmodules`. +
+    *Use case*: Clang builds using `-fmodules` or
+    `-fprebuilt-implicit-modules`. +
     *Effect*: Allows caching when C++ modules are used. +
-    *Trade-off*: May not detect changes in module internal state.
+    *Trade-off*: May not detect changes in module internal state, or in
+    implicitly built modules.
 +
 See _<<C++ modules>>_ for details.
 
@@ -2035,10 +2037,10 @@ works for the options that tell ccache which files those are:
   compilation reads, so all of them are hashed, names as well as contents. This
   costs a hit when an unrelated module file in the same directory changes.
 
-`-fprebuilt-implicit-modules` is not supported and such compilations are
-counted as "`Could not use modules`". Clang looks up implicit modules in a
-subdirectory layout named by hashes of compiler internals, so ccache can't tell
-which files the compilation reads.
+`-fprebuilt-implicit-modules` compilations are counted as "`Could not use
+modules`" unless <<config_sloppiness,*sloppiness*>> is set to `modules`. Clang
+looks up implicit modules in a subdirectory layout named by hashes of compiler
+internals, so ccache can't tell which files the compilation reads.
 
 
 == Sharing a local cache
