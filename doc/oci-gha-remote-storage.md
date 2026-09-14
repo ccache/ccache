@@ -121,6 +121,10 @@ run `test.remote_oci`. The suite requires `redis-server` and `redis-cli` (or
 their Valkey equivalents) for fallback and backfill coverage. It MUST use
 `@insecure=true` only for that local test registry.
 
+`test.remote_gha` MUST use its local GHA v2 mock server. It covers cache entry
+creation, signed upload and download URLs, finalization and a rate-limited
+write without requiring an Actions token or external service.
+
 ## Build
 
 Release verification SHOULD use an optimized build with developer warnings as
@@ -131,5 +135,5 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON \
   -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON \
   -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
 cmake --build build --target ccache unittest -j12
-ctest --test-dir build --output-on-failure -R 'unittest|test.remote_oci'
+ctest --test-dir build --output-on-failure -R 'unittest|test.remote_(oci|gha)'
 ```
