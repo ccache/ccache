@@ -31,17 +31,6 @@ namespace storage::remote {
 
 namespace {
 
-struct OciConfig
-{
-  std::string registry;
-  std::string repository;
-  std::string prefix;
-  std::string token;
-  bool debug = false;
-  std::chrono::milliseconds connect_timeout = k_default_connect_timeout;
-  std::chrono::milliseconds operation_timeout = k_default_operation_timeout;
-};
-
 std::optional<std::string>
 getenv_string(const char* name)
 {
@@ -70,19 +59,6 @@ strip_slashes(std::string value)
   return value;
 }
 
-std::string
-object_key(const Hash::Digest& key, const std::string& prefix)
-{
-  const std::string digest = util::format_base16(key);
-  return prefix.empty() ? digest : FMT("{}/{}", prefix, digest);
-}
-
-std::string
-api_path(const std::string& repository, const std::string& key)
-{
-  return FMT("/v2/{}/ccache/blobs/{}", repository, key);
-}
-
 void
 log_once(std::set<std::string>& seen,
          const std::string& code,
@@ -101,9 +77,154 @@ failure_from_httplib_error(httplib::Error error)
            : RemoteStorage::Backend::Failure::error;
 }
 
-OciConfig
-parse_config(const Url& url,
-             const std::vector<RemoteStorage::Backend::Attribute>& attributes)
+class OciStorageBackend : public RemoteStorage::Backend
+{
+public:
+  OciStorageBackend(const Url& url,
+    const std::vector<Backend::Attribute>& attributes)
+    : m_config(detail::parse_oci_storage_config(url, attributes)),
+      m_redacted_url(storage::get_redacted_url_str_for_logging(url)),
+      m_http_client(FMT("https://{}", m_config.registry))
+  {
+    httplib::Headers headers;
+    headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
+    if (!m_config.token.empty()) {
+      headers.emplace("Authorization", FMT("Bearer {}", m_config.token));
+    }
+    m_http_client.set_keep_alive(true);
+    m_http_client.set_connection_timeout(m_config.connect_timeout);
+    m_http_client.set_read_timeout(m_config.operation_timeout);
+    m_http_client.set_write_timeout(m_config.operation_timeout);
+    m_http_client.set_default_headers(headers);
+  }
+
+  tl::expected<std::optional<util::Bytes>, Failure>
+  get(const Hash::Digest& key) override
+  {
+    const std::string entry_key =
+      detail::make_oci_storage_key(key, m_config.prefix);
+    const std::string path =
+      detail::make_oci_storage_api_path(m_config.repository, entry_key);
+    const auto result = m_http_client.Get(path);
+    if (!result || result.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0001",
+               FMT("failed to get entry from OCI storage {}: {}",
+                   m_redacted_url,
+                   to_string(result.error())));
+      return tl::unexpected(failure_from_httplib_error(result.error()));
+    }
+    if (m_config.debug) {
+      LOG("CCACHE-OCI-DEBUG: GET {} key={} status={}",
+          m_redacted_url,
+          entry_key,
+          result->status);
+    }
+    if (result->status == 404) {
+      return std::nullopt;
+    }
+    if (result->status < 200 || result->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0002",
+               FMT("OCI storage returned status {}", result->status));
+      return tl::unexpected(Failure::error);
+    }
+    return util::Bytes(result->body.data(), result->body.size());
+  }
+
+  tl::expected<bool, Failure> put(const Hash::Digest& key,
+                                  std::span<const uint8_t> value,
+                                  Overwrite overwrite) override
+  {
+    const std::string entry_key =
+      detail::make_oci_storage_key(key, m_config.prefix);
+    const std::string path =
+      detail::make_oci_storage_api_path(m_config.repository, entry_key);
+    if (overwrite == Overwrite::no) {
+      const auto head = m_http_client.Head(path);
+      if (head && head->status >= 200 && head->status < 300) {
+        return false;
+      }
+    }
+
+    const auto result =
+      m_http_client.Put(path,
+                        reinterpret_cast<const char*>(value.data()),
+                        value.size(),
+                        "application/vnd.ccache.entry");
+    if (!result || result.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0003",
+               FMT("failed to put entry to OCI storage {}: {}",
+                   m_redacted_url,
+                   to_string(result.error())));
+      return tl::unexpected(failure_from_httplib_error(result.error()));
+    }
+    if (m_config.debug) {
+      LOG("CCACHE-OCI-DEBUG: PUT {} key={} status={}",
+          m_redacted_url,
+          entry_key,
+          result->status);
+    }
+    if (result->status < 200 || result->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0004",
+               FMT("OCI storage rejected upload with status {}",
+                   result->status));
+      return tl::unexpected(Failure::error);
+    }
+    return true;
+  }
+
+  tl::expected<bool, Failure> remove(const Hash::Digest& key) override
+  {
+    const std::string entry_key =
+      detail::make_oci_storage_key(key, m_config.prefix);
+    const std::string path =
+      detail::make_oci_storage_api_path(m_config.repository, entry_key);
+    const auto result = m_http_client.Delete(path);
+    if (!result || result.error() != httplib::Error::Success) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0005",
+               FMT("failed to delete entry from OCI storage {}: {}",
+                   m_redacted_url,
+                   to_string(result.error())));
+      return tl::unexpected(failure_from_httplib_error(result.error()));
+    }
+    if (m_config.debug) {
+      LOG("CCACHE-OCI-DEBUG: DELETE {} key={} status={}",
+          m_redacted_url,
+          entry_key,
+          result->status);
+    }
+    if (result->status == 404) {
+      return false;
+    }
+    if (result->status < 200 || result->status >= 300) {
+      log_once(m_seen_errors,
+               "CCACHE-OCI-0006",
+               FMT("OCI storage rejected delete with status {}",
+                   result->status));
+      return tl::unexpected(Failure::error);
+    }
+    return true;
+  }
+
+private:
+  detail::OciStorageConfig m_config;
+  std::string m_redacted_url;
+  httplib::Client m_http_client;
+  std::set<std::string> m_seen_errors;
+};
+
+} // namespace
+
+namespace detail {
+
+OciStorageConfig
+parse_oci_storage_config(
+  const Url& url,
+  const std::vector<RemoteStorage::Backend::Attribute>& attributes)
 {
   if (url.host().empty()) {
     throw core::Fatal(FMT(
@@ -111,7 +232,7 @@ parse_config(const Url& url,
       storage::get_redacted_url_str_for_logging(url)));
   }
 
-  OciConfig config;
+  OciStorageConfig config;
   config.registry = url.host();
   if (!url.port().empty()) {
     config.registry += FMT(":{}", url.port());
@@ -154,141 +275,20 @@ parse_config(const Url& url,
   return config;
 }
 
-class OciStorageBackend : public RemoteStorage::Backend
+std::string
+make_oci_storage_key(const Hash::Digest& key, const std::string& prefix)
 {
-public:
-  OciStorageBackend(const Url& url,
-                    const std::vector<Backend::Attribute>& attributes)
-    : m_config(parse_config(url, attributes)),
-      m_redacted_url(storage::get_redacted_url_str_for_logging(url)),
-      m_http_client(FMT("https://{}", m_config.registry))
-  {
-    httplib::Headers headers;
-    headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
-    if (!m_config.token.empty()) {
-      headers.emplace("Authorization", FMT("Bearer {}", m_config.token));
-    }
-    m_http_client.set_keep_alive(true);
-    m_http_client.set_connection_timeout(m_config.connect_timeout);
-    m_http_client.set_read_timeout(m_config.operation_timeout);
-    m_http_client.set_write_timeout(m_config.operation_timeout);
-    m_http_client.set_default_headers(headers);
-  }
+  const std::string digest = util::format_base16(key);
+  return prefix.empty() ? digest : FMT("{}/{}", prefix, digest);
+}
 
-  tl::expected<std::optional<util::Bytes>, Failure>
-  get(const Hash::Digest& key) override
-  {
-    const std::string entry_key = object_key(key, m_config.prefix);
-    const std::string path = api_path(m_config.repository, entry_key);
-    const auto result = m_http_client.Get(path);
-    if (!result || result.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-OCI-0001",
-               FMT("failed to get entry from OCI storage {}: {}",
-                   m_redacted_url,
-                   to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
-    }
-    if (m_config.debug) {
-      LOG("CCACHE-OCI-DEBUG: GET {} key={} status={}",
-          m_redacted_url,
-          entry_key,
-          result->status);
-    }
-    if (result->status == 404) {
-      return std::nullopt;
-    }
-    if (result->status < 200 || result->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-OCI-0002",
-               FMT("OCI storage returned status {}", result->status));
-      return tl::unexpected(Failure::error);
-    }
-    return util::Bytes(result->body.data(), result->body.size());
-  }
+std::string
+make_oci_storage_api_path(const std::string& repository, const std::string& key)
+{
+  return FMT("/v2/{}/ccache/blobs/{}", repository, key);
+}
 
-  tl::expected<bool, Failure> put(const Hash::Digest& key,
-                                  std::span<const uint8_t> value,
-                                  Overwrite overwrite) override
-  {
-    const std::string entry_key = object_key(key, m_config.prefix);
-    const std::string path = api_path(m_config.repository, entry_key);
-    if (overwrite == Overwrite::no) {
-      const auto head = m_http_client.Head(path);
-      if (head && head->status >= 200 && head->status < 300) {
-        return false;
-      }
-    }
-
-    const auto result =
-      m_http_client.Put(path,
-                        reinterpret_cast<const char*>(value.data()),
-                        value.size(),
-                        "application/vnd.ccache.entry");
-    if (!result || result.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-OCI-0003",
-               FMT("failed to put entry to OCI storage {}: {}",
-                   m_redacted_url,
-                   to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
-    }
-    if (m_config.debug) {
-      LOG("CCACHE-OCI-DEBUG: PUT {} key={} status={}",
-          m_redacted_url,
-          entry_key,
-          result->status);
-    }
-    if (result->status < 200 || result->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-OCI-0004",
-               FMT("OCI storage rejected upload with status {}",
-                   result->status));
-      return tl::unexpected(Failure::error);
-    }
-    return true;
-  }
-
-  tl::expected<bool, Failure> remove(const Hash::Digest& key) override
-  {
-    const std::string entry_key = object_key(key, m_config.prefix);
-    const std::string path = api_path(m_config.repository, entry_key);
-    const auto result = m_http_client.Delete(path);
-    if (!result || result.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-OCI-0005",
-               FMT("failed to delete entry from OCI storage {}: {}",
-                   m_redacted_url,
-                   to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
-    }
-    if (m_config.debug) {
-      LOG("CCACHE-OCI-DEBUG: DELETE {} key={} status={}",
-          m_redacted_url,
-          entry_key,
-          result->status);
-    }
-    if (result->status == 404) {
-      return false;
-    }
-    if (result->status < 200 || result->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-OCI-0006",
-               FMT("OCI storage rejected delete with status {}",
-                   result->status));
-      return tl::unexpected(Failure::error);
-    }
-    return true;
-  }
-
-private:
-  OciConfig m_config;
-  std::string m_redacted_url;
-  httplib::Client m_http_client;
-  std::set<std::string> m_seen_errors;
-};
-
-} // namespace
+} // namespace detail
 
 std::unique_ptr<RemoteStorage::Backend>
 OciStorage::create_backend(

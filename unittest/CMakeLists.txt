@@ -18,6 +18,8 @@ set(
   test_hashutil.cpp
   test_storage_local_statsfile.cpp
   test_storage_local_util.cpp
+  test_storage_remote_gha.cpp
+  test_storage_remote_oci.cpp
   test_util_args.cpp
   test_util_bitset.cpp
   test_util_bytes.cpp

@@ -48,8 +48,8 @@ Operational failures MUST be logged at most once per backend instance and run.
 Each failure message MUST include a stable error code so that the code path can
 be found from logs. Current prefixes are:
 
-- `CCACHE-OCI-0001` through `CCACHE-OCI-0006`
-- `CCACHE-GHA-0001` through `CCACHE-GHA-0007`
+- `CCACHE-OCI-0001` through `CCACHE-OCI-0009`
+- `CCACHE-GHA-0001` through `CCACHE-GHA-0009`
 
 Debug logging MAY be enabled with `@debug=true`. Debug logs MUST still redact
 tokens and credentials.

@@ -14,9 +14,32 @@
 #include <cxxurl/url.hpp>
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace storage::remote {
+
+namespace detail {
+
+struct GhaStorageConfig
+{
+  std::string results_url;
+  std::string token;
+  std::string prefix;
+  bool debug = false;
+  std::chrono::milliseconds connect_timeout = k_default_connect_timeout;
+  std::chrono::milliseconds operation_timeout = k_default_operation_timeout;
+};
+
+GhaStorageConfig
+parse_gha_storage_config(
+  const Url& url,
+  const std::vector<RemoteStorage::Backend::Attribute>& attributes);
+
+std::string make_gha_storage_key(const Hash::Digest& key,
+                                 const std::string& prefix);
+
+} // namespace detail
 
 class GhaStorage : public RemoteStorage
 {

@@ -61,16 +61,6 @@ failure_from_httplib_error(httplib::Error error)
            : RemoteStorage::Backend::Failure::error;
 }
 
-struct GhaConfig
-{
-  std::string results_url;
-  std::string token;
-  std::string prefix;
-  bool debug = false;
-  std::chrono::milliseconds connect_timeout = k_default_connect_timeout;
-  std::chrono::milliseconds operation_timeout = k_default_operation_timeout;
-};
-
 bool
 parse_bool(std::string_view value)
 {
@@ -85,58 +75,6 @@ log_once(std::set<std::string>& seen,
   if (seen.insert(code).second) {
     LOG("{}: {}", code, message);
   }
-}
-
-GhaConfig
-parse_config(const Url& url,
-             const std::vector<RemoteStorage::Backend::Attribute>& attributes)
-{
-  GhaConfig config;
-  config.results_url = getenv_string("ACTIONS_RESULTS_URL").value_or("");
-  if (config.results_url.empty()) {
-    config.results_url = getenv_string("ACTIONS_CACHE_URL").value_or("");
-  }
-  config.token = getenv_string("ACTIONS_RUNTIME_TOKEN").value_or("");
-  if (config.token.empty()) {
-    config.token =
-      getenv_string("ACTIONS_ID_TOKEN_REQUEST_TOKEN").value_or("");
-  }
-  config.prefix = strip_slashes(url.host() + url.path());
-
-  for (const auto& attr : attributes) {
-    if (attr.key == "url") {
-      config.results_url = attr.value;
-    } else if (attr.key == "url-env") {
-      config.results_url = getenv_string(attr.value.c_str()).value_or("");
-    } else if (attr.key == "token") {
-      config.token = attr.value;
-    } else if (attr.key == "token-env") {
-      config.token = getenv_string(attr.value.c_str()).value_or("");
-    } else if (attr.key == "prefix") {
-      config.prefix = strip_slashes(attr.value);
-    } else if (attr.key == "debug") {
-      config.debug = parse_bool(attr.value);
-    } else if (attr.key == "connect-timeout") {
-      config.connect_timeout =
-        RemoteStorage::Backend::parse_timeout_attribute(attr.value);
-    } else if (attr.key == "operation-timeout") {
-      config.operation_timeout =
-        RemoteStorage::Backend::parse_timeout_attribute(attr.value);
-    } else {
-      LOG("CCACHE-GHA-0008: unknown GitHub Actions cache storage attribute: {}",
-          attr.key);
-    }
-  }
-
-  if (config.results_url.empty()) {
-    throw core::Fatal("CCACHE-GHA-0001: ACTIONS_RESULTS_URL or @url is"
-                      " required for gha storage");
-  }
-  if (config.token.empty()) {
-    throw core::Fatal("CCACHE-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is"
-                      " required for gha storage");
-  }
-  return config;
 }
 
 Url
@@ -164,19 +102,12 @@ url_path(const Url& url)
   return path;
 }
 
-std::string
-cache_key(const Hash::Digest& key, const std::string& prefix)
-{
-  const std::string digest = util::format_base16(key);
-  return prefix.empty() ? digest : FMT("{}/{}", prefix, digest);
-}
-
 class GhaStorageBackend : public RemoteStorage::Backend
 {
 public:
   GhaStorageBackend(const Url& url,
-                    const std::vector<Backend::Attribute>& attributes)
-    : m_config(parse_config(url, attributes)),
+    const std::vector<Backend::Attribute>& attributes)
+    : m_config(detail::parse_gha_storage_config(url, attributes)),
       m_results_url(m_config.results_url),
       m_base_path(url_path(m_results_url)),
       m_redacted_url(storage::get_redacted_url_str_for_logging(m_results_url)),
@@ -196,7 +127,8 @@ public:
   tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override
   {
-    const std::string entry_key = cache_key(key, m_config.prefix);
+    const std::string entry_key =
+      detail::make_gha_storage_key(key, m_config.prefix);
     const std::string path = FMT("{}_apis/artifactcache/cache?keys={}&version="
                                  "ccache-ng-v1",
                                  m_base_path,
@@ -233,7 +165,8 @@ public:
                                   std::span<const uint8_t> value,
                                   Overwrite overwrite) override
   {
-    const std::string entry_key = cache_key(key, m_config.prefix);
+    const std::string entry_key =
+      detail::make_gha_storage_key(key, m_config.prefix);
     if (overwrite == Overwrite::no) {
       const auto existing = get(key);
       if (existing && *existing) {
@@ -290,7 +223,7 @@ public:
   }
 
 private:
-  GhaConfig m_config;
+  detail::GhaStorageConfig m_config;
   Url m_results_url;
   std::string m_base_path;
   std::string m_redacted_url;
@@ -299,6 +232,70 @@ private:
 };
 
 } // namespace
+
+namespace detail {
+
+GhaStorageConfig
+parse_gha_storage_config(
+  const Url& url,
+  const std::vector<RemoteStorage::Backend::Attribute>& attributes)
+{
+  GhaStorageConfig config;
+  config.results_url = getenv_string("ACTIONS_RESULTS_URL").value_or("");
+  if (config.results_url.empty()) {
+    config.results_url = getenv_string("ACTIONS_CACHE_URL").value_or("");
+  }
+  config.token = getenv_string("ACTIONS_RUNTIME_TOKEN").value_or("");
+  if (config.token.empty()) {
+    config.token =
+      getenv_string("ACTIONS_ID_TOKEN_REQUEST_TOKEN").value_or("");
+  }
+  config.prefix = strip_slashes(url.host() + url.path());
+
+  for (const auto& attr : attributes) {
+    if (attr.key == "url") {
+      config.results_url = attr.value;
+    } else if (attr.key == "url-env") {
+      config.results_url = getenv_string(attr.value.c_str()).value_or("");
+    } else if (attr.key == "token") {
+      config.token = attr.value;
+    } else if (attr.key == "token-env") {
+      config.token = getenv_string(attr.value.c_str()).value_or("");
+    } else if (attr.key == "prefix") {
+      config.prefix = strip_slashes(attr.value);
+    } else if (attr.key == "debug") {
+      config.debug = parse_bool(attr.value);
+    } else if (attr.key == "connect-timeout") {
+      config.connect_timeout =
+        RemoteStorage::Backend::parse_timeout_attribute(attr.value);
+    } else if (attr.key == "operation-timeout") {
+      config.operation_timeout =
+        RemoteStorage::Backend::parse_timeout_attribute(attr.value);
+    } else {
+      LOG("CCACHE-GHA-0008: unknown GitHub Actions cache storage attribute: {}",
+          attr.key);
+    }
+  }
+
+  if (config.results_url.empty()) {
+    throw core::Fatal("CCACHE-GHA-0001: ACTIONS_RESULTS_URL or @url is"
+                      " required for gha storage");
+  }
+  if (config.token.empty()) {
+    throw core::Fatal("CCACHE-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is"
+                      " required for gha storage");
+  }
+  return config;
+}
+
+std::string
+make_gha_storage_key(const Hash::Digest& key, const std::string& prefix)
+{
+  const std::string digest = util::format_base16(key);
+  return prefix.empty() ? digest : FMT("{}/{}", prefix, digest);
+}
+
+} // namespace detail
 
 std::unique_ptr<RemoteStorage::Backend>
 GhaStorage::create_backend(

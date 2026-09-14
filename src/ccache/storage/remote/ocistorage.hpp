@@ -14,9 +14,36 @@
 #include <cxxurl/url.hpp>
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace storage::remote {
+
+namespace detail {
+
+struct OciStorageConfig
+{
+  std::string registry;
+  std::string repository;
+  std::string prefix;
+  std::string token;
+  bool debug = false;
+  std::chrono::milliseconds connect_timeout = k_default_connect_timeout;
+  std::chrono::milliseconds operation_timeout = k_default_operation_timeout;
+};
+
+OciStorageConfig
+parse_oci_storage_config(
+  const Url& url,
+  const std::vector<RemoteStorage::Backend::Attribute>& attributes);
+
+std::string make_oci_storage_key(const Hash::Digest& key,
+                                 const std::string& prefix);
+
+std::string make_oci_storage_api_path(const std::string& repository,
+                                      const std::string& key);
+
+} // namespace detail
 
 class OciStorage : public RemoteStorage
 {
