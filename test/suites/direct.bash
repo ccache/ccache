@@ -1,3 +1,31 @@
+# Lay out $1 like a GCC installation root so that it can be used as
+# GCC_EXEC_PREFIX=$1/lib/gcc/. GCC derives the location of cc1 from that
+# prefix as $GCC_EXEC_PREFIX/../../libexec/gcc/<machine>/<version>/, so the
+# real cc1 is linked there; a specs file goes into $1/lib/gcc/specs.
+set_up_gcc_exec_prefix_root() {
+    local root=$1
+    # MinGW GCC ends lines with CRLF; a stray CR would make the copy below
+    # refer to a nonexistent file.
+    local cc1=$($REAL_COMPILER -print-prog-name=cc1)
+    cc1=${cc1%$'\r'}
+
+    # With GCC_EXEC_PREFIX=<root>/lib/gcc/ GCC relocates its built-in libexec
+    # directory under <root> and looks for cc1 there. That directory is
+    # <prefix>/libexec/gcc (Nix, Ubuntu 24.04+) or <prefix>/lib/gcc (Ubuntu
+    # 22.04, MSYS2) depending on GCC's --libexecdir, so mirror cc1's real
+    # path relative to the prefix rather than assuming one layout.
+    local install_dir=$($REAL_COMPILER -print-search-dirs | sed -n 's/^install: //p')
+    install_dir=${install_dir%$'\r'}
+    local prefix=${install_dir%/lib/gcc/*}
+    local cc1_rel=${cc1#"$prefix"/}
+    if [ -z "$prefix" ] || [ "$cc1_rel" = "$cc1" ]; then
+        test_failed_internal "cc1 ($cc1) is not under GCC's prefix ($prefix)"
+    fi
+
+    mkdir -p "$root/lib/gcc" "$root/$(dirname "$cc1_rel")"
+    ln -s "$cc1" "$root/$cc1_rel"
+}
+
 SUITE_direct_SETUP() {
     unset CCACHE_NODIRECT
 
@@ -2022,4 +2050,279 @@ EOF
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_GCC; then
+        TEST "Installation directory query failure keeps direct mode"
+
+        # A compiler treated as GCC that rejects -print-search-dirs (a
+        # wrapper, or a GCC-like compiler forced with compiler_type=gcc) has
+        # no installation specs files to track; that must not disable
+        # caching or direct mode.
+        cat <<EOF >wrapped-gcc
+#!/bin/sh
+if [ "\$1" = -print-search-dirs ]; then
+    echo "unrecognized option -print-search-dirs" >&2
+    exit 1
+fi
+exec $REAL_COMPILER "\$@"
+EOF
+        chmod +x wrapped-gcc
+
+        $CCACHE ./wrapped-gcc -c test.c
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+        expect_stat internal_error 0
+
+        $CCACHE ./wrapped-gcc -c test.c
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+        expect_stat internal_error 0
+
+        # ---------------------------------------------------------------------
+        for lookup in "-B" "-B dir" "-B -specs" GCC_EXEC_PREFIX LIBRARY_PATH; do
+            TEST "Specs file found via ${lookup}"
+
+            # Without -specs, GCC implicitly reads a file named "specs" from
+            # the first -B, GCC_EXEC_PREFIX or LIBRARY_PATH directory that has
+            # one. With -specs, the named file is looked up there as well.
+            specs_env=
+            specs_options=
+            case "$lookup" in
+                "-B")
+                    mkdir bdir
+                    specs_file=bdir/specs
+                    specs_options=-Bbdir
+                    ;;
+                "-B dir")
+                    # The directory as a separate argument.
+                    mkdir bdir
+                    specs_file=bdir/specs
+                    specs_options="-B bdir"
+                    ;;
+                "-B -specs")
+                    mkdir bdir
+                    specs_file=bdir/my.specs
+                    specs_options="-Bbdir -specs=my.specs"
+                    ;;
+                GCC_EXEC_PREFIX)
+                    set_up_gcc_exec_prefix_root root
+                    specs_file=root/lib/gcc/specs
+                    specs_env=GCC_EXEC_PREFIX=$PWD/root/lib/gcc/
+                    ;;
+                LIBRARY_PATH)
+                    mkdir libdir
+                    specs_file=libdir/specs
+                    specs_env=LIBRARY_PATH=$PWD/libdir
+                    ;;
+            esac
+
+            mkdir a b
+            cat <<EOF >main.c
+#include "foo.h"
+EOF
+            cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+            cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+            printf '*cpp:\n+ -Ib\n\n' >$specs_file
+            backdate main.c a/foo.h b/foo.h $specs_file
+
+            env $specs_env $CCACHE_COMPILE $specs_options -c main.c
+            expect_contains main.o content_b
+            expect_stat direct_cache_hit 0
+            expect_stat cache_miss 1
+            expect_stat bad_compiler_arguments 0
+
+            env $specs_env $CCACHE_COMPILE $specs_options -c main.c
+            expect_contains main.o content_b
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 1
+
+            # The specs file now puts a before b.
+            printf '*cpp:\n+ -Ia -Ib\n\n' >$specs_file
+            backdate $specs_file
+
+            env $specs_env $CCACHE_COMPILE $specs_options -c main.c
+            expect_contains main.o content_a
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 2
+
+            env $specs_env $CCACHE_COMPILE $specs_options -c main.c
+            expect_contains main.o content_a
+            expect_stat direct_cache_hit 2
+            expect_stat cache_miss 2
+        done
+
+        # -----------------------------------------------------------------------
+        TEST "Specs file precedence: -B, then GCC_EXEC_PREFIX, then LIBRARY_PATH"
+
+        # All three directories have a specs file. GCC reads the one from the
+        # -B directory, then from GCC_EXEC_PREFIX, then from LIBRARY_PATH, and
+        # the hash must follow the file GCC actually reads.
+        mkdir bdir libdir
+        set_up_gcc_exec_prefix_root root
+        cat <<EOF >main.c
+#if FROM_SPECS == 1
+char x[] = "content_specs1";
+#elif FROM_SPECS == 2
+char x[] = "content_specs2";
+#elif FROM_SPECS == 3
+char x[] = "content_specs3";
+#else
+char x[] = "content_plain";
+#endif
+EOF
+        printf '*cpp:\n+ -DFROM_SPECS=1\n\n' >bdir/specs
+        printf '*cpp:\n+ -DFROM_SPECS=2\n\n' >root/lib/gcc/specs
+        printf '*cpp:\n+ -DFROM_SPECS=3\n\n' >libdir/specs
+        backdate main.c bdir/specs root/lib/gcc/specs libdir/specs
+        specs_env="GCC_EXEC_PREFIX=$PWD/root/lib/gcc/ LIBRARY_PATH=$PWD/libdir"
+
+        env $specs_env $CCACHE_COMPILE -Bbdir -c main.c
+        expect_contains main.o content_specs1
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        # Without the -B specs file, the GCC_EXEC_PREFIX one is read.
+        rm bdir/specs
+
+        env $specs_env $CCACHE_COMPILE -Bbdir -c main.c
+        expect_contains main.o content_specs2
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 2
+
+        # Without that one as well, the LIBRARY_PATH one is read.
+        rm root/lib/gcc/specs
+
+        env $specs_env $CCACHE_COMPILE -Bbdir -c main.c
+        expect_contains main.o content_specs3
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 3
+
+        env $specs_env $CCACHE_COMPILE -Bbdir -c main.c
+        expect_contains main.o content_specs3
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 3
+
+        # The -B specs file is back and takes precedence again, giving the
+        # first result.
+        printf '*cpp:\n+ -DFROM_SPECS=1\n\n' >bdir/specs
+        backdate bdir/specs
+
+        env $specs_env $CCACHE_COMPILE -Bbdir -c main.c
+        expect_contains main.o content_specs1
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 3
+
+        # Without any of them, no specs file is read.
+        rm bdir/specs libdir/specs
+
+        env $specs_env $CCACHE_COMPILE -Bbdir -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 4
+
+        # -----------------------------------------------------------------------
+        TEST "Specs files in the compiler's installation directory"
+        export CCACHE_COMPILERTYPE=gcc
+
+        # A wrapper standing in for a GCC installed in $PWD/installdir, with
+        # the installation directory installdir/x86_64/13/. It reads specs
+        # files from there and from installdir/x86_64/ the way GCC does:
+        # without anything on the command line pointing there.
+        versioned=installdir/x86_64/13/specs
+        unversioned=installdir/x86_64/specs
+        mkdir -p installdir/x86_64/13
+        cat <<EOF >gcc-wrapper.sh
+#!/bin/sh
+case "\$*" in
+    *-print-search-dirs*) echo "install: $PWD/installdir/x86_64/13/"; exit 0 ;;
+esac
+for specs in "$PWD/$versioned" "$PWD/$unversioned"; do
+    if [ -f "\$specs" ]; then
+        set -- -specs="\$specs" "\$@"
+    fi
+done
+exec $REAL_COMPILER "\$@"
+EOF
+        chmod +x gcc-wrapper.sh
+        cat <<EOF >main.c
+#ifndef VERSIONED
+#define VERSIONED 0
+#endif
+#ifndef UNVERSIONED
+#define UNVERSIONED 0
+#endif
+#define STR(x) #x
+#define XSTR(x) STR(x)
+char x[] = "content_" XSTR(VERSIONED) "_" XSTR(UNVERSIONED);
+EOF
+        backdate gcc-wrapper.sh main.c
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_0_0
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_0_0
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # The specs file in the installation directory appears.
+        printf '*cpp:\n+ -DVERSIONED=1\n\n' >$versioned
+        backdate $versioned
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_1_0
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_1_0
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+
+        # The specs file in the parent directory appears as well.
+        printf '*cpp:\n+ -DUNVERSIONED=1\n\n' >$unversioned
+        backdate $unversioned
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_1_1
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 3
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_1_1
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 3
+
+        # The specs file in the parent directory changes.
+        printf '*cpp:\n+ -DUNVERSIONED=2\n\n' >$unversioned
+        backdate $unversioned
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_1_2
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 4
+
+        # The specs file in the installation directory disappears.
+        rm $versioned
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_0_2
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 5
+
+        # Both are gone: the first result is valid again.
+        rm $unversioned
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_0_0
+        expect_stat direct_cache_hit 4
+        expect_stat cache_miss 5
+    fi
 }

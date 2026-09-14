@@ -11,6 +11,12 @@ COLLECT_GCC_OPTIONS='-E' ...
 COMPILER_PATH=/example
 EOF
     echo "bin/cc1"
+elif [ "$1" = "-print-search-dirs" ]; then
+    # ccache asks for GCC's installation directory to find specs files. Say
+    # nothing, like a GCC without one, instead of falling through to the
+    # compile branch: with a single argument that indexes args[-1], which
+    # macOS's bash 3.2 rejects.
+    exit 0
 elif [ "$1" = "-E" ]; then
     echo preprocessed >"${args[$#-2]}"
 else

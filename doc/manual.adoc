@@ -1774,6 +1774,9 @@ The following information is always included in the hash:
 * the current directory (if <<config_hash_dir,*hash_dir*>> is enabled)
 * contents of files specified by
   <<config_extra_files_to_hash,*extra_files_to_hash*>> (if any)
+* the contents of GCC specs files: those given with `-specs`, the implicit
+  `specs` file GCC finds via `-B`, `GCC_EXEC_PREFIX` or `LIBRARY_PATH`, and
+  those in GCC's installation directory
 
 
 === The preprocessor mode
