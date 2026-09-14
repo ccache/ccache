@@ -43,6 +43,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <iterator>
 #include <optional>
 #include <system_error>
@@ -1220,17 +1221,24 @@ process_option_arg(const Context& ctx,
 
     std::vector<fs::path> candidates;
     std::error_code ec;
-    for (const auto& entry : fs::directory_iterator(dir, ec)) {
-      if (entry.path().extension() != ".pcm") {
-        continue;
+    try {
+      for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        if (entry.path().extension() != ".pcm") {
+          continue;
+        }
+        // Anything the compiler cannot read as a module file is not an input:
+        // a directory can be named like one, and a symlink can dangle. The
+        // error code keeps the query from throwing.
+        std::error_code entry_ec;
+        if (entry.is_regular_file(entry_ec)) {
+          candidates.push_back(entry.path());
+        }
       }
-      // Anything the compiler cannot read as a module file is not an input: a
-      // directory can be named like one, and a symlink can dangle. The error
-      // code keeps the query from throwing.
-      std::error_code entry_ec;
-      if (entry.is_regular_file(entry_ec)) {
-        candidates.push_back(entry.path());
-      }
+    } catch (const std::filesystem::filesystem_error& e) {
+      // Only constructing the iterator reports a failure through ec. Advancing
+      // it throws, which would otherwise take down the whole invocation.
+      LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
+      return Statistic::could_not_use_modules;
     }
     // A path that is missing or is not a directory has no module files to
     // hash. Any other error means that the files read are unknown.
