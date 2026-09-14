@@ -43,6 +43,8 @@ Supported secret attributes:
 - `@url-env=NAME` is supported by `gha://` for tests and custom runners.
 - `@service-version=v1` or `@service-version=v2` selects a cache service
   version. The default MUST select v2 when `ACTIONS_CACHE_SERVICE_V2` is set.
+- `@insecure=true` MAY be used only for an isolated local OCI registry test.
+  OCI registry connections MUST use HTTPS by default.
 
 ## Error reporting
 

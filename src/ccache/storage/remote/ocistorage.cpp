@@ -217,7 +217,7 @@ public:
     const std::vector<Backend::Attribute>& attributes)
     : m_config(detail::parse_oci_storage_config(url, attributes)),
       m_redacted_url(storage::get_redacted_url_str_for_logging(url)),
-      m_http_client(FMT("https://{}", m_config.registry))
+      m_http_client(FMT("{}://{}", m_config.insecure ? "http" : "https", m_config.registry))
   {
     httplib::Headers headers;
     headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
@@ -548,6 +548,8 @@ parse_oci_storage_config(
       config.token = getenv_string(attr.value.c_str()).value_or("");
     } else if (attr.key == "prefix") {
       config.prefix = strip_slashes(attr.value);
+    } else if (attr.key == "insecure") {
+      config.insecure = parse_bool(attr.value);
     } else if (attr.key == "debug") {
       config.debug = parse_bool(attr.value);
     } else if (attr.key == "connect-timeout") {

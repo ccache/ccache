@@ -27,6 +27,7 @@ struct OciStorageConfig
   std::string repository;
   std::string prefix;
   std::string token;
+  bool insecure = false;
   bool debug = false;
   std::chrono::milliseconds connect_timeout = k_default_connect_timeout;
   std::chrono::milliseconds operation_timeout = k_default_operation_timeout;
