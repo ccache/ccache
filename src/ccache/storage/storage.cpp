@@ -111,8 +111,11 @@ struct RemoteStorageShardConfig
 // Representation of one entry in the remote_storage config option.
 struct RemoteStorageConfig
 {
+  enum class BackfillPolicy { best_effort, strict, disabled };
+
   std::string url_str; // Raw URL with unexpanded "*"
 
+  BackfillPolicy backfill_policy = BackfillPolicy::best_effort; // "backfill"
   std::optional<std::chrono::milliseconds> data_timeout;    // "data-timeout"
   std::string helper;                                       // "helper"
   std::optional<std::chrono::milliseconds> idle_timeout;    // "idle-timeout"
@@ -142,10 +145,29 @@ struct RemoteStorageEntry
 };
 
 static std::string
+to_string(const storage::RemoteStorageConfig::BackfillPolicy policy)
+{
+  using BackfillPolicy = storage::RemoteStorageConfig::BackfillPolicy;
+  switch (policy) {
+  case BackfillPolicy::best_effort:
+    return "best-effort";
+  case BackfillPolicy::strict:
+    return "strict";
+  case BackfillPolicy::disabled:
+    return "disabled";
+  }
+  ASSERT(false);
+}
+
+static std::string
 to_string(const storage::RemoteStorageConfig& entry)
 {
   std::string result = entry.url_str;
 
+  if (entry.backfill_policy
+      != storage::RemoteStorageConfig::BackfillPolicy::best_effort) {
+    result += FMT(" backfill={}", to_string(entry.backfill_policy));
+  }
   if (entry.data_timeout) {
     result +=
       FMT(" data-timeout={}", util::format_duration(*entry.data_timeout));
@@ -295,6 +317,18 @@ parse_storage_config(const std::vector<std::string_view>::const_iterator& begin,
     if (!key.empty() && key.front() == '@') {
       result.attributes.push_back(
         {std::string(key.substr(1)), value, std::string(raw_value)});
+    } else if (key == "backfill") {
+      if (value == "best-effort") {
+        result.backfill_policy =
+          RemoteStorageConfig::BackfillPolicy::best_effort;
+      } else if (value == "strict") {
+        result.backfill_policy = RemoteStorageConfig::BackfillPolicy::strict;
+      } else if (value == "disabled") {
+        result.backfill_policy = RemoteStorageConfig::BackfillPolicy::disabled;
+      } else {
+        throw core::Error(
+          FMT("invalid backfill policy for remote storage: \"{}\"", value));
+      }
     } else if (key == "data-timeout") {
       result.data_timeout =
         util::value_or_throw<core::Error>(util::parse_duration(value));
@@ -652,7 +686,8 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
 {
   init_remote_storage();
 
-  for (const auto& entry : m_remote_storages) {
+  for (size_t index = 0; index < m_remote_storages.size(); ++index) {
+    const auto& entry = m_remote_storages[index];
     auto backend = get_backend(*entry, key, "getting from", false);
     if (!backend) {
       continue;
@@ -676,6 +711,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
       if (type == core::CacheEntryType::result) {
         local.increment_statistic(core::Statistic::remote_storage_hit);
       }
+      backfill_remote_storage(key, *value, index);
       if (entry_receiver(std::move(*value))) {
         return;
       }
@@ -691,6 +727,59 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_miss);
+    }
+  }
+}
+
+void
+Storage::backfill_remote_storage(const Hash::Digest& key,
+                                 std::span<const uint8_t> value,
+                                 const size_t source_index)
+{
+  if (source_index == 0) {
+    return;
+  }
+
+  for (size_t index = 0; index < source_index; ++index) {
+    auto& entry = *m_remote_storages[index];
+    if (entry.config.backfill_policy
+        == RemoteStorageConfig::BackfillPolicy::disabled) {
+      LOG("Not backfilling {} storage since backfill is disabled",
+          entry.config.shards.front().url.scheme());
+      continue;
+    }
+
+    auto backend = get_backend(entry, key, "backfilling", true);
+    if (!backend) {
+      if (entry.config.backfill_policy
+          == RemoteStorageConfig::BackfillPolicy::strict) {
+        throw core::Error(
+          "CCACHE-REMOTE-0001: strict remote storage backfill failed");
+      }
+      continue;
+    }
+
+    util::Timer timer;
+    const auto result = backend->impl->put(key, value, Overwrite::no);
+    const auto ms = timer.measure_ms();
+    if (!result) {
+      mark_backend_as_failed(*backend, result.error());
+      if (entry.config.backfill_policy
+          == RemoteStorageConfig::BackfillPolicy::strict) {
+        throw core::Error(FMT(
+          "CCACHE-REMOTE-0002: strict remote storage backfill failed for {}",
+          backend->url_for_logging));
+      }
+      continue;
+    }
+
+    LOG("{} {} in {} by backfill ({:.2f} ms)",
+        *result ? "Stored" : "Did not have to store",
+        util::format_base16(key),
+        backend->url_for_logging,
+        ms);
+    if (*result) {
+      local.increment_statistic(core::Statistic::remote_storage_write);
     }
   }
 }

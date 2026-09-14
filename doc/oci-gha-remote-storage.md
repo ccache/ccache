@@ -50,6 +50,7 @@ be found from logs. Current prefixes are:
 
 - `CCACHE-OCI-0001` through `CCACHE-OCI-0009`
 - `CCACHE-GHA-0001` through `CCACHE-GHA-0009`
+- `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0002`
 
 Debug logging MAY be enabled with `@debug=true`. Debug logs MUST still redact
 tokens and credentials.
@@ -61,7 +62,7 @@ earlier faster levels when those levels are writable. Backfill failures SHOULD b
 best effort by default and MUST NOT fail a compile while another cache level can
 serve or store the entry.
 
-Future policy values are reserved:
+Policy values are configured with `backfill=VALUE`:
 
 - `best-effort`: continue on backfill errors and count the failure.
 - `strict`: fail when backfill fails.

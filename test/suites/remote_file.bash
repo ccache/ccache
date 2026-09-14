@@ -229,8 +229,39 @@ SUITE_remote_file() {
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 1
     expect_stat files_in_cache 2 # fetched from remote_2
+    expect_file_count 3 '*' remote # CACHEDIR.TAG + backfilled result + manifest
+    expect_file_count 3 '*' remote_2 # CACHEDIR.TAG + result + manifest
+    expect_stat remote_storage_write 6 # initial writes + backfilled result + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Backfill disabled"
+
+    CCACHE_REMOTE_STORAGE+=" backfill=disabled file://$PWD/remote_2 helper=_builtin_"
+    mkdir remote_2
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 1
+    expect_file_count 3 '*' remote # CACHEDIR.TAG + result + manifest
+    expect_file_count 3 '*' remote_2 # CACHEDIR.TAG + result + manifest
+
+    $CCACHE -C >/dev/null
+    rm -r remote/??
+    expect_file_count 1 '*' remote # CACHEDIR.TAG
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2 # fetched from remote_2
     expect_file_count 1 '*' remote # CACHEDIR.TAG
     expect_file_count 3 '*' remote_2 # CACHEDIR.TAG + result + manifest
+    expect_stat remote_storage_write 4 # initial writes only
+
+    # -------------------------------------------------------------------------
+    TEST "Invalid backfill policy"
+
+    CCACHE_REMOTE_STORAGE+=" backfill=maybe"
+    $CCACHE_COMPILE -c test.c 2>stderr.log && test_failed "Expected failure"
+    expect_contains stderr.log 'invalid backfill policy for remote storage: "maybe"'
 
     # -------------------------------------------------------------------------
     TEST "Read-only"
