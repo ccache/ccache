@@ -473,7 +473,15 @@ get_redacted_url_str_for_logging(const Url& url)
   if (!url.user_info().empty()) {
     redacted_url.user_info(k_redacted_secret);
   }
-  return redacted_url.str();
+  std::string result = redacted_url.str();
+  if (url.ip_version() == 4 || url.ip_version() == 6) {
+    const std::string& host = url.host();
+    const size_t host_pos = result.find(host);
+    if (host_pos != std::string::npos) {
+      result.replace(host_pos, host.size(), "<redacted-host>");
+    }
+  }
+  return result;
 }
 
 Storage::Storage(const Config& config, const fs::path& ccache_exe_dir)

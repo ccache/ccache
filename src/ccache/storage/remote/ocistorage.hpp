@@ -38,8 +38,6 @@ parse_oci_storage_config(
   const Url& url,
   const std::vector<RemoteStorage::Backend::Attribute>& attributes);
 
-std::string redact_oci_url_for_logging(const Url& url);
-
 std::string make_oci_storage_key(const Hash::Digest& key,
                                  const std::string& prefix);
 

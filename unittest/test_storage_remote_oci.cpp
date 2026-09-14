@@ -63,10 +63,10 @@ TEST_CASE("parse oci token from environment")
 
 TEST_CASE("redact OCI numeric registry host for logging")
 {
-  CHECK(storage::remote::detail::redact_oci_url_for_logging(
+  CHECK(storage::get_redacted_url_str_for_logging(
           Url("oci://198.51.100.7/ns/cache"))
         == "oci://<redacted-host>/ns/cache");
-  CHECK(storage::remote::detail::redact_oci_url_for_logging(
+  CHECK(storage::get_redacted_url_str_for_logging(
           Url("oci://ghcr.io/ns/cache"))
         == "oci://ghcr.io/ns/cache");
 }
