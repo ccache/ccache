@@ -62,6 +62,14 @@ strip_slashes(std::string value)
   return value;
 }
 
+bool
+is_ip_literal(std::string_view host)
+{
+  return !host.empty()
+         && host.find_first_not_of("0123456789abcdefABCDEF:.")
+              == std::string_view::npos;
+}
+
 uint32_t
 rotate_right(const uint32_t value, const uint32_t bits)
 {
@@ -216,7 +224,7 @@ public:
   OciStorageBackend(const Url& url,
     const std::vector<Backend::Attribute>& attributes)
     : m_config(detail::parse_oci_storage_config(url, attributes)),
-      m_redacted_url(storage::get_redacted_url_str_for_logging(url)),
+      m_redacted_url(detail::redact_oci_url_for_logging(url)),
       m_http_client(FMT("{}://{}", m_config.insecure ? "http" : "https", m_config.registry))
   {
     httplib::Headers headers;
@@ -510,6 +518,20 @@ private:
 
 namespace detail {
 
+std::string
+redact_oci_url_for_logging(const Url& url)
+{
+  std::string result = storage::get_redacted_url_str_for_logging(url);
+  const std::string host = url.host();
+  if (is_ip_literal(host)) {
+    const size_t host_pos = result.find(host);
+    if (host_pos != std::string::npos) {
+      result.replace(host_pos, host.size(), "<redacted-host>");
+    }
+  }
+  return result;
+}
+
 OciStorageConfig
 parse_oci_storage_config(
   const Url& url,
@@ -518,7 +540,7 @@ parse_oci_storage_config(
   if (url.host().empty()) {
     throw core::Fatal(FMT(
       "CCACHE-OCI-0007: registry host is required in OCI storage URL \"{}\"",
-      storage::get_redacted_url_str_for_logging(url)));
+      redact_oci_url_for_logging(url)));
   }
 
   OciStorageConfig config;
@@ -538,7 +560,7 @@ parse_oci_storage_config(
   if (config.repository.empty()) {
     throw core::Fatal(FMT(
       "CCACHE-OCI-0008: repository path is required in OCI storage URL \"{}\"",
-      storage::get_redacted_url_str_for_logging(url)));
+      redact_oci_url_for_logging(url)));
   }
 
   for (const auto& attr : attributes) {

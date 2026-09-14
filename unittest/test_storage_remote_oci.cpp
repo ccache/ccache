@@ -61,6 +61,16 @@ TEST_CASE("parse oci token from environment")
         == "oci://********@registry.example.invalid/ns/cache");
 }
 
+TEST_CASE("redact OCI numeric registry host for logging")
+{
+  CHECK(storage::remote::detail::redact_oci_url_for_logging(
+          Url("oci://198.51.100.7/ns/cache"))
+        == "oci://<redacted-host>/ns/cache");
+  CHECK(storage::remote::detail::redact_oci_url_for_logging(
+          Url("oci://ghcr.io/ns/cache"))
+        == "oci://ghcr.io/ns/cache");
+}
+
 TEST_CASE("make oci key from full digest")
 {
   const auto key =
