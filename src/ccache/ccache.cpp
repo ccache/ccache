@@ -841,6 +841,56 @@ get_module_map_shadow_paths(const Context& ctx)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
+// Return GCC's installation directory as reported by -print-search-dirs, or
+// std::nullopt if the compiler doesn't report one.
+static tl::expected<std::optional<fs::path>, Failure>
+find_gcc_installation_dir(const util::Args& args)
+{
+  util::Args query = args;
+  query.push_back("-print-search-dirs");
+  auto output = util::exec_to_string(query);
+  if (!output) {
+    LOG("Failed to query installation directory: {}", output.error());
+    return tl::unexpected(Statistic::internal_error);
+  }
+  for (const auto line : util::split_into_views(*output, "\n")) {
+    if (line.starts_with("install: ")) {
+      return fs::path(util::strip_whitespace(line.substr(9)));
+    }
+  }
+  return std::nullopt;
+}
+
+// GCC reads a specs file from its installation directory if there is one,
+// with nothing on the command line or in the environment pointing there.
+// Finding the directory costs a compiler invocation, so it's done here on a
+// cache miss, and the file is then tracked like an include file: an existing
+// file is hashed into the result key and recorded in the manifest, a missing
+// one becomes a shadow path so that its appearance invalidates the result.
+static tl::expected<void, Failure>
+track_installation_specs_file(Context& ctx, Hash& hash, Hash* depend_mode_hash)
+{
+  if (ctx.config.compiler_type() != CompilerType::gcc) {
+    return {};
+  }
+  TRY_ASSIGN(const auto install_dir, find_gcc_installation_dir(ctx.orig_args));
+  if (!install_dir) {
+    LOG("Could not determine the installation directory");
+    return {};
+  }
+  const fs::path specs_path =
+    core::make_relative_path(ctx, *install_dir / "specs");
+  if (DirEntry(specs_path).is_regular_file()) {
+    LOG("Tracking installation specs file {}", specs_path);
+    hash.hash_delimiter("installation specs");
+    TRY(remember_include_file(ctx, specs_path, hash, false, depend_mode_hash));
+  } else if (ctx.config.direct_mode()) {
+    LOG("Tracking absent installation specs file {}", specs_path);
+    ctx.shadow_paths.push_back(util::pstr(specs_path).str());
+  }
+  return {};
+}
+
 static tl::expected<Hash::Digest, Failure>
 result_key_from_depfile(Context& ctx, Hash& hash)
 {
@@ -884,6 +934,8 @@ result_key_from_depfile(Context& ctx, Hash& hash)
       && ctx.args_info.using_modules) {
     ctx.shadow_paths = get_module_map_shadow_paths(ctx);
   }
+
+  TRY(track_installation_specs_file(ctx, hash, &hash));
 
   return hash.digest();
 }
@@ -1704,6 +1756,8 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     ctx.shadow_paths = get_shadow_paths(ctx);
   }
 
+  TRY(track_installation_specs_file(ctx, hash, nullptr));
+
   hash.hash_delimiter("cppstderr");
   hash.hash(util::to_string_view(cpp_stderr_data));
 
@@ -1868,6 +1922,102 @@ find_xcode_compiler(const fs::path& compiler_name)
   return fs::path("/usr/bin") / compiler_name;
 }
 #endif
+
+// Ask GCC where it finds `name` (e.g. a specs file). `args` is the compiler
+// command line, so -B options, GCC_EXEC_PREFIX and LIBRARY_PATH are taken into
+// account the same way as in the real compilation; GCC answers the query
+// before doing anything else. Returns std::nullopt if the file isn't found, in
+// which case -print-file-name echoes the name unchanged.
+static tl::expected<std::optional<fs::path>, Failure>
+find_compiler_file(const util::Args& args, std::string_view name)
+{
+  util::Args query = args;
+  query.push_back(FMT("-print-file-name={}", name));
+  auto output = util::exec_to_string(query);
+  if (!output) {
+    LOG("Failed to query location of {}: {}", name, output.error());
+    return tl::unexpected(Statistic::internal_error);
+  }
+  const std::string path(util::strip_whitespace(*output));
+  if (path == name) {
+    return std::nullopt;
+  }
+  return fs::path(path);
+}
+
+// Return the file named by a "%include <file>" or "%include_noerr <file>"
+// specs directive, or std::nullopt if `line` is not such a directive. The
+// second element is true for %include_noerr.
+static std::optional<std::pair<std::string_view, bool>>
+parse_specs_include_directive(std::string_view line)
+{
+  line = util::strip_whitespace(line);
+  bool noerr = false;
+  if (line.starts_with("%include_noerr")) {
+    line.remove_prefix(std::strlen("%include_noerr"));
+    noerr = true;
+  } else if (line.starts_with("%include")) {
+    line.remove_prefix(std::strlen("%include"));
+  } else {
+    return std::nullopt;
+  }
+  if (line.empty() || (line[0] != ' ' && line[0] != '\t')) {
+    return std::nullopt;
+  }
+  line = util::strip_whitespace(line);
+  if (line.size() < 2 || line.front() != '<' || line.back() != '>') {
+    return std::nullopt;
+  }
+  return std::pair{line.substr(1, line.size() - 2), noerr};
+}
+
+// Hash the specs file `path` and, recursively, the files it pulls in with
+// %include directives. GCC locates an included file like a -specs file: via its
+// search directories, falling back to the name as written (or skipping it for
+// %include_noerr). `visited` guards against include cycles.
+static tl::expected<void, Failure>
+hash_specs_file(const util::Args& args,
+                Hash& hash,
+                const fs::path& path,
+                std::vector<std::string>& visited)
+{
+  const std::string path_str = util::pstr(path).str();
+  if (std::ranges::find(visited, path_str) != visited.end()) {
+    return {};
+  }
+  visited.push_back(path_str);
+
+  LOG("Hashing specs file {}", path);
+  auto content = util::read_file<std::string>(path);
+  if (!content) {
+    LOG("Failed to read specs file {}: {}", path, content.error());
+    return tl::unexpected(Statistic::bad_compiler_arguments);
+  }
+  hash.hash_delimiter("specs");
+  hash.hash(*content);
+
+  for (const auto line : util::split_into_views(*content, "\n")) {
+    const auto directive = parse_specs_include_directive(line);
+    if (!directive) {
+      continue;
+    }
+    const auto& [name, noerr] = *directive;
+    TRY_ASSIGN(const auto found_path, find_compiler_file(args, name));
+    if (found_path) {
+      TRY(hash_specs_file(args, hash, *found_path, visited));
+    } else if (!noerr) {
+      TRY(hash_specs_file(args, hash, fs::path(name), visited));
+    }
+  }
+  return {};
+}
+
+static tl::expected<void, Failure>
+hash_specs_file(const util::Args& args, Hash& hash, const fs::path& path)
+{
+  std::vector<std::string> visited;
+  return hash_specs_file(args, hash, path, visited);
+}
 
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
@@ -2115,6 +2265,23 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
       hash.hash(gcc_colors);
+    }
+  }
+
+  // GCC reads a file named "specs" from the first -B, GCC_EXEC_PREFIX or
+  // LIBRARY_PATH directory (or the installation directory) that has one. It
+  // can change options for the preprocessor and the compiler proper, so its
+  // content must be part of the hash. The compiler is only asked when one of
+  // those directories is given since the query costs a compiler invocation and
+  // the installation directory rarely changes.
+  const bool has_prefix_option = std::ranges::any_of(
+    args, [](const std::string& arg) { return arg.starts_with("-B"); });
+  if (ctx.config.compiler_type() == CompilerType::gcc
+      && (has_prefix_option || getenv("GCC_EXEC_PREFIX")
+          || getenv("LIBRARY_PATH"))) {
+    TRY_ASSIGN(const auto specs_path, find_compiler_file(args, "specs"));
+    if (specs_path) {
+      TRY(hash_specs_file(args, hash, *specs_path));
     }
   }
 
@@ -2435,19 +2602,10 @@ hash_argument(const Context& ctx,
       return {};
     }
 
-    auto output = util::exec_to_string(
-      {ctx.orig_args[0], FMT("-print-file-name={}", *specs)});
-    if (!output) {
-      LOG("Failed to query specs location: {}", output.error());
-      return tl::unexpected(Statistic::internal_error);
-    }
-    auto path = util::strip_whitespace(*output);
-    LOG("Hashing specs file {}", path);
-    hash.hash_delimiter("specs");
-    if (auto r = hash.hash_file(path); !r) {
-      LOG("Failed to hash specs file {}: {}", path, r.error());
-      return tl::unexpected(Statistic::bad_compiler_arguments);
-    }
+    // GCC reads the file relative to the current directory if it isn't found
+    // in any of its search directories.
+    TRY_ASSIGN(const auto found_path, find_compiler_file(args, *specs));
+    TRY(hash_specs_file(args, hash, found_path.value_or(fs::path(*specs))));
     return {};
   }
 

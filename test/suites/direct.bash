@@ -2022,4 +2022,162 @@ EOF
     expect_stat direct_cache_hit 0
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_GCC; then
+        for specs_option in "" "-specs=my.specs"; do
+            TEST "Specs file found via -B, option=\"${specs_option}\""
+
+            # Without -specs, GCC implicitly reads a file named "specs" from the
+            # -B directory. With it, my.specs is looked up there as well.
+            specs_file=bdir/specs
+            [ -z "$specs_option" ] || specs_file=bdir/my.specs
+
+            mkdir a b bdir
+            cat <<EOF >main.c
+#include "foo.h"
+EOF
+            cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+            cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+            printf '*cpp:\n+ -Ib\n\n' >$specs_file
+            backdate main.c a/foo.h b/foo.h $specs_file
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_b
+            expect_stat direct_cache_hit 0
+            expect_stat cache_miss 1
+            expect_stat bad_compiler_arguments 0
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_b
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 1
+
+            # The specs file now puts a before b.
+            printf '*cpp:\n+ -Ia -Ib\n\n' >$specs_file
+            backdate $specs_file
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_a
+            expect_stat direct_cache_hit 1
+            expect_stat cache_miss 2
+
+            $CCACHE_COMPILE -Bbdir $specs_option -c main.c
+            expect_contains main.o content_a
+            expect_stat direct_cache_hit 2
+            expect_stat cache_miss 2
+        done
+
+        # -----------------------------------------------------------------------
+        TEST "Specs file including another specs file"
+
+        mkdir a b bdir
+        cat <<EOF >main.c
+#include "foo.h"
+EOF
+        cat <<EOF >a/foo.h
+char x[] = "content_a";
+EOF
+        cat <<EOF >b/foo.h
+char x[] = "content_b";
+EOF
+        # The included file is located the same way as the specs file itself.
+        printf '%%include <extra.specs>\n' >bdir/top.specs
+        printf '*cpp:\n+ -Ib\n\n' >bdir/extra.specs
+        backdate main.c a/foo.h b/foo.h bdir/top.specs bdir/extra.specs
+
+        $CCACHE_COMPILE -Bbdir -specs=top.specs -c main.c
+        expect_contains main.o content_b
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -Bbdir -specs=top.specs -c main.c
+        expect_contains main.o content_b
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # Only the included file changes.
+        printf '*cpp:\n+ -Ia -Ib\n\n' >bdir/extra.specs
+        backdate bdir/extra.specs
+
+        $CCACHE_COMPILE -Bbdir -specs=top.specs -c main.c
+        expect_contains main.o content_a
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        # -----------------------------------------------------------------------
+        TEST "Specs file in the compiler's installation directory"
+        export CCACHE_COMPILERTYPE=gcc
+
+        # A wrapper standing in for a GCC installed in $PWD/installdir. It reads
+        # installdir/specs the way GCC reads a specs file from its installation
+        # directory: without anything on the command line pointing there.
+        mkdir installdir
+        cat <<EOF >gcc-wrapper.sh
+#!/bin/sh
+case "\$*" in
+    *-print-search-dirs*) echo "install: $PWD/installdir/"; exit 0 ;;
+esac
+if [ -f "$PWD/installdir/specs" ]; then
+    set -- -specs="$PWD/installdir/specs" "\$@"
+fi
+exec $REAL_COMPILER "\$@"
+EOF
+        chmod +x gcc-wrapper.sh
+        cat <<EOF >main.c
+#if FROM_SPECS == 1
+char x[] = "content_specs1";
+#elif FROM_SPECS == 2
+char x[] = "content_specs2";
+#else
+char x[] = "content_plain";
+#endif
+EOF
+        backdate gcc-wrapper.sh main.c
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 1
+
+        # The specs file appears.
+        printf '*cpp:\n+ -DFROM_SPECS=1\n\n' >installdir/specs
+        backdate installdir/specs
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_specs1
+        expect_stat direct_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_specs1
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 2
+
+        # The specs file changes.
+        printf '*cpp:\n+ -DFROM_SPECS=2\n\n' >installdir/specs
+        backdate installdir/specs
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_specs2
+        expect_stat direct_cache_hit 2
+        expect_stat cache_miss 3
+
+        # The specs file disappears: the first result is valid again.
+        rm installdir/specs
+
+        $CCACHE ./gcc-wrapper.sh -c main.c
+        expect_contains main.o content_plain
+        expect_stat direct_cache_hit 3
+        expect_stat cache_miss 3
+    fi
 }
