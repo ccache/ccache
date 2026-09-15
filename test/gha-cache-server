@@ -51,7 +51,7 @@ class CacheHandler(BaseHTTPRequestHandler):
                 self._json(HTTPStatus.OK, {"ok": False})
         elif path.endswith("CreateCacheEntry"):
             if key.startswith("rate-limited/"):
-                self.rate_limited_reserves += 1
+                type(self).rate_limited_reserves += 1
                 self._json(HTTPStatus.TOO_MANY_REQUESTS, {"ok": False})
             else:
                 self._json(
@@ -75,7 +75,10 @@ class CacheHandler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
         path = urlparse(self.path).path
         if path == "/stats":
-            self._json(HTTPStatus.OK, {"rate_limited_reserves": self.rate_limited_reserves})
+            self._json(
+                HTTPStatus.OK,
+                {"rate_limited_reserves": type(self).rate_limited_reserves},
+            )
             return
         if not path.startswith("/archive/"):
             self._bytes(HTTPStatus.NOT_FOUND, b"")

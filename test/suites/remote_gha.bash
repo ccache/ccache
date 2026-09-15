@@ -20,7 +20,7 @@ start_gha_cache_server() {
 
     python3 "${GHA_CACHE_SERVER}" "${port}" >gha-cache-server.log 2>&1 &
     for ((i = 0; i < 100; i++)); do
-        if python3 -c "import socket; socket.create_connection(('localhost', ${port}), 1).close()"; then
+        if python3 -c "import socket; socket.create_connection(('localhost', ${port}), 1).close()" >/dev/null 2>&1; then
             return
         fi
         sleep 0.1
