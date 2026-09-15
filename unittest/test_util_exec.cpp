@@ -64,4 +64,16 @@ TEST_CASE("util::exec_to_string")
     CHECK(expected_spawn_failure);
 #endif
   }
+
+  SUBCASE("stdin")
+  {
+#ifdef _WIN32
+    util::Args args{"cmd", "/c", "more"};
+#else
+    util::Args args{"cat"};
+#endif
+    auto result = exec_to_string(args, "fisk\\n");
+    REQUIRE(result);
+    CHECK(*result == "fisk\\n");
+  }
 }
