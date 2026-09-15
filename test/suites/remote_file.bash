@@ -257,6 +257,22 @@ SUITE_remote_file() {
     expect_stat remote_storage_write 4 # initial writes only
 
     # -------------------------------------------------------------------------
+    TEST "Strict backfill"
+
+    rm -rf remote remote_2
+    mkdir remote remote_2
+    CCACHE_REMOTE_STORAGE="file://$PWD/remote read-only=true backfill=strict file://$PWD/remote_2 helper=_builtin_"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 1
+    expect_file_count 0 '*' remote
+    expect_file_count 3 '*' remote_2 # CACHEDIR.TAG + result + manifest
+
+    $CCACHE -C >/dev/null
+    $CCACHE_COMPILE -c test.c 2>stderr.log && test_failed "Expected strict backfill failure"
+    expect_contains stderr.log 'CCACHE_NG-ERROR-REMOTE-0001: strict remote storage backfill failed'
+
+    # -------------------------------------------------------------------------
     TEST "Invalid backfill policy"
 
     CCACHE_REMOTE_STORAGE+=" backfill=maybe"
