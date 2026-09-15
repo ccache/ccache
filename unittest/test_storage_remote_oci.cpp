@@ -53,6 +53,13 @@ TEST_CASE("parse oci storage URL")
   CHECK(config.debug);
 }
 
+TEST_CASE("create HTTPS OCI storage backend")
+{
+  storage::remote::OciStorage storage;
+  CHECK_NOTHROW(storage.create_backend(
+    Url("oci://registry.example.invalid/ns/cache"), {}, {{}}));
+}
+
 TEST_CASE("reject OCI token configuration")
 {
   CHECK_THROWS_AS(storage::remote::detail::parse_oci_storage_config(

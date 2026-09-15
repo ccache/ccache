@@ -51,6 +51,18 @@ TEST_CASE("parse gha storage URL")
   CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v1);
 }
 
+TEST_CASE("create HTTPS GHA storage backend")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
+
+  storage::remote::GhaStorage storage;
+  CHECK_NOTHROW(storage.create_backend(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"}},
+    {{}}));
+}
+
 TEST_CASE("parse gha runtime token and URL from environment")
 {
   TestUtil::TestContext test_context;

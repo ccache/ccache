@@ -76,6 +76,7 @@ const std::unordered_map<std::string_view /*scheme*/,
 #endif
 #ifdef HAVE_HTTP_STORAGE_BACKEND
     {"http",       std::make_shared<remote::HttpStorage>() },
+    {"https",      std::make_shared<remote::HttpStorage>() },
 #endif
 #ifdef HAVE_OCI_STORAGE_BACKEND
     {"oci",        std::make_shared<remote::OciStorage>()  },

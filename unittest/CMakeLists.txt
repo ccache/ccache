@@ -44,6 +44,10 @@ set(
   testutil.cpp
 )
 
+if(HTTP_STORAGE_BACKEND)
+  list(APPEND source_files test_storage_remote_http.cpp)
+endif()
+
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_inodecache.cpp)
 endif()

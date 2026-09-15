@@ -1452,7 +1452,7 @@ WARNING: Built-in support for the HTTP protocol is deprecated and will be
 removed in the next non-bug-fix ccache version. Use a <<Storage helper
 process,remote storage helper>> instead.
 
-URL format: `+http://HOST[:PORT][/PATH]+`
+URL format: `+http[s]://HOST[:PORT][/PATH]+`
 
 This backend stores data in an HTTP-compatible server. The required HTTP methods
 are `GET`, `PUT` and `DELETE`.
@@ -1460,7 +1460,7 @@ are `GET`, `PUT` and `DELETE`.
 IMPORTANT: ccache will not perform any cleanup of the storage -- that has to be
 done by other means, for instance by running `ccache --trim-dir` periodically.
 
-NOTE: HTTPS is not supported.
+NOTE: HTTPS support requires OpenSSL 3 when configuring ccache.
 
 TIP: See https://ccache.dev/howto/http-storage.html[How to set up HTTP storage]
 for hints on how to set up an HTTP server for use with ccache.
@@ -1468,6 +1468,7 @@ for hints on how to set up an HTTP server for use with ccache.
 Examples:
 
 * `+http://localhost+`
+* `+https://cache.example.com+`
 * `+http://someusername:p4ssw0rd@example.com/cache/+`
 * `+http://localhost:8080 @layout=bazel+`
 
