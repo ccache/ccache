@@ -15,6 +15,11 @@ on:
         description: Non-secret identifier shared by the paired write and read runs.
         required: true
         type: string
+      remote_debug:
+        description: Enable redacted GHA backend diagnostics.
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -28,94 +33,9 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build g++
 
-      - name: Build ccache with strict release settings
-        run: |
-          set -euo pipefail
-          cmake -S . -B build-gha-proof -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCCACHE_DEV_MODE=ON \
-            -DWARNINGS_AS_ERRORS=ON \
-            -DENABLE_IPO=ON \
-            -DGHA_STORAGE_BACKEND=ON \
-            -DOCI_STORAGE_BACKEND=ON
-          cmake --build build-gha-proof --target ccache -j12
-
       - name: Run selected GHA cache phase
-        uses: actions/github-script@v8
         env:
           GHA_PROOF_PHASE: ${{ inputs.phase }}
           GHA_PROOF_ID: ${{ inputs.proof_id }}
-        with:
-          script: |
-            const childProcess = require("child_process");
-            const fs = require("fs");
-            const path = require("path");
-
-            const phase = process.env.GHA_PROOF_PHASE;
-            const proofId = process.env.GHA_PROOF_ID;
-
-            if (!new Set(["write", "read"]).has(phase)) {
-              throw new Error("GHA_PROOF_PHASE must be write or read");
-            }
-            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(proofId || "")) {
-              throw new Error("GHA_PROOF_ID must be 1-64 safe identifier characters");
-            }
-
-            if (!(process.env.ACTIONS_RESULTS_URL || process.env.ACTIONS_CACHE_URL)) {
-              throw new Error("No GitHub Actions cache endpoint is available");
-            }
-            if (!process.env.ACTIONS_RUNTIME_TOKEN) {
-              throw new Error("ACTIONS_RUNTIME_TOKEN is unavailable");
-            }
-
-            const proofRoot = path.join(process.env.RUNNER_TEMP, "ccache-ng-gha-proof-work");
-            const cacheDir = path.join(process.env.RUNNER_TEMP, "ccache-ng-gha-proof");
-            const ccache = path.join(process.env.GITHUB_WORKSPACE, "build-gha-proof", "ccache");
-            const source = path.join(process.env.GITHUB_WORKSPACE, "test", "ccache_cache_test", "proof.c");
-            const environment = {
-              ...process.env,
-              CCACHE_DIR: cacheDir,
-              CCACHE_BASEDIR: process.env.GITHUB_WORKSPACE,
-              CCACHE_REMOTE_STORAGE: `gha://workflow-proof @prefix=${proofId} @service-version=v2 @debug=false`,
-            };
-            const run = (file, args) => childProcess.execFileSync(file, args, {
-              cwd: process.env.GITHUB_WORKSPACE,
-              env: environment,
-              stdio: "inherit",
-            });
-            const stat = (name) => childProcess.execFileSync(ccache, ["--print-stats"], {
-              encoding: "utf8",
-              env: environment,
-            }).split("\n").find((line) => line.startsWith(`${name} `))?.split(/\s+/)[1];
-            const requirePositive = (name, value) => {
-              if (!/^[1-9][0-9]*$/.test(value || "")) {
-                throw new Error(`${name} must be positive`);
-              }
-            };
-            const requireZero = (name, value) => {
-              if (value !== "0") {
-                throw new Error(`${name} must be zero`);
-              }
-            };
-
-            try {
-              fs.rmSync(cacheDir, {recursive: true, force: true});
-              fs.mkdirSync(proofRoot, {recursive: true});
-              fs.mkdirSync(cacheDir, {recursive: true});
-              run(ccache, ["--zero-stats"]);
-              run(ccache, ["gcc", "-c", source, "-o", path.join(proofRoot, `${phase}.o`)]);
-              const writes = stat("remote_storage_write");
-              const hits = stat("remote_storage_hit");
-              if (phase === "write") {
-                requirePositive("write remote storage writes", writes);
-              } else {
-                requirePositive("read remote storage hits", hits);
-                requireZero("read remote storage writes", writes);
-              }
-              await core.summary.addRaw(
-                `GHA_REMOTE_PROOF phase=${phase} proof_id=${proofId} run_id=${context.runId} remote_storage_write=${writes} remote_storage_hit=${hits} local_cache_cleared=yes\n`
-              ).write();
-            } finally {
-              fs.rmSync(cacheDir, {recursive: true, force: true});
-              fs.rmSync(proofRoot, {recursive: true, force: true});
-            }
+          GHA_PROOF_REMOTE_DEBUG: ${{ inputs.remote_debug }}
+        run: bash scripts/ci/ci.sh gha-remote-storage

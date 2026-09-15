@@ -17,7 +17,7 @@ An item is not externally validated unless this document says so explicitly.
 | Redis, OCI and backfill | Existing generic storage implementation | Linux integration test exists | Not run here |
 | Docker credential helper | Implemented | JSON and configuration unit tests | Not run with a real helper or registry |
 | systemd credential | Implemented on Linux | Linux unit test | Not run in a systemd service |
-| Manual GitHub workflow | Present, manual dispatch only | Static review only | No run ID |
+| Manual GitHub workflow | Present, manual dispatch only | Bash syntax and credential preflight | No run ID |
 
 The GitHub Actions run ID list is empty. No GitHub workflow, cache UI or REST
 cache list was accessed while preparing this document. No external GHCR entry
@@ -147,8 +147,10 @@ it was not run on this Windows host.
 
 Secrets must not be placed in shell history, `GITHUB_ENV`, `remote_storage`,
 logs or this document. The manual GHA workflow keeps runtime values in the
-`github-script` process and its child processes; it does not export them to
-`GITHUB_ENV`.
+`scripts/ci/ci.bats` process and its ccache child process; it does not export
+them to `GITHUB_ENV`. Its `remote_debug` input selects `@debug=true` or
+`@debug=false`. Debug output contains only the redacted URL, cache digest,
+operation and HTTP status.
 
 URLs are redacted for logging. Debug output reports operations and status but
 not request or response bodies. The shared helpers centralize non-empty
@@ -174,9 +176,10 @@ remain separate.
 ## Local audit
 
 Search scope: `src/ccache/storage/storage.cpp`, the built-in remote backends,
-their tests and the GHA workflow. The audit found identical GHA/OCI helpers for
-environment lookup, boolean parsing, slash normalization and diagnostic
-formatting. They now live in `remoteconfig.hpp` and
+their tests, `scripts/ci/ci.sh`, `scripts/ci/ci.bats` and the GHA workflow. The
+audit found identical GHA/OCI helpers for environment lookup, boolean parsing,
+slash normalization and diagnostic formatting. They now live in
+`remoteconfig.hpp` and
 `remotediagnostics.hpp`. Shared HTTP URL and transport primitives live in
 `httptransport.hpp`; JSON string parsing and Docker helper parsing live in
 `credentials.cpp`. This is a statement about that inspected remote-storage
@@ -267,10 +270,11 @@ result. Do not replace these commands with a wrapper-script claim.
 
 ## External acceptance still required
 
-1. Dispatch workflow phase `write` with a new non-secret `proof_id`; it stores
-   `test/ccache_cache_test/proof.c` through GHA. Dispatch phase `read` with
-   the same `proof_id`; it starts with an empty named local cache, proves a
-   remote hit and rejects any remote write.
+1. Dispatch workflow phase `write` with a new non-secret `proof_id` and
+   `remote_debug=false`; it stores `test/ccache_cache_test/proof.c` through
+   GHA. Dispatch phase `read` with the same `proof_id`; it starts with an empty
+   named local cache, proves a remote hit and rejects any remote write. Set
+   `remote_debug=true` only when redacted backend diagnostics are needed.
 2. Record both GitHub run IDs. Inspect the Actions cache UI and REST cache list.
 3. Run the missing-GHA-token counter test: local compile exit 0,
    `CCACHE_NG-ERROR-GHA-0002` and exactly zero HTTP requests.
