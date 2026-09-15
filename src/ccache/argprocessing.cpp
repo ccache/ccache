@@ -43,8 +43,10 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <iterator>
 #include <optional>
+#include <system_error>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -519,6 +521,44 @@ is_msvc_show_includes_option(std::string_view arg)
          || arg == "/showIncludes"
          // clang-cl:
          || arg == "-showIncludes:user" || arg == "/showIncludes:user";
+}
+
+// Returns the module files in `dir` that an import can resolve to, sorted so
+// that the hash does not depend on the order the directory is read in, or an
+// error if it cannot be determined which files the compilation reads.
+tl::expected<std::vector<fs::path>, Statistic>
+find_module_files(const fs::path& dir)
+{
+  std::vector<fs::path> module_files;
+  std::error_code ec;
+  try {
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+      if (entry.path().extension() != ".pcm") {
+        continue;
+      }
+      // Anything the compiler cannot read as a module file is not an input: a
+      // directory can be named like one, and a symlink can dangle. The error
+      // code keeps the query from throwing.
+      std::error_code entry_ec;
+      if (entry.is_regular_file(entry_ec)) {
+        module_files.push_back(entry.path());
+      }
+    }
+  } catch (const std::filesystem::filesystem_error& e) {
+    // Only constructing the iterator reports a failure through ec. Advancing
+    // it throws, which would otherwise take down the whole invocation.
+    LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
+    return tl::unexpected(Statistic::could_not_use_modules);
+  }
+  // A path that is missing or is not a directory has no module files to hash.
+  // Any other error means that the files read are unknown.
+  if (ec && ec != std::errc::no_such_file_or_directory
+      && ec != std::errc::not_a_directory) {
+    LOG("Failed to read prebuilt module path {}: {}", dir, ec.message());
+    return tl::unexpected(Statistic::could_not_use_modules);
+  }
+  std::sort(module_files.begin(), module_files.end());
+  return module_files;
 }
 
 // Returns std::nullopt if the option wasn't recognized, otherwise the error
@@ -1193,6 +1233,41 @@ process_option_arg(const Context& ctx,
     args_info.sanitize_ignorelists.emplace_back(*path);
     auto relpath = core::make_relative_path(ctx, *path);
     state.add_common_arg(FMT("{}={}", option, relpath));
+    return Statistic::none;
+  }
+
+  if (arg == "-fprebuilt-implicit-modules"
+      && !config.sloppiness().contains(core::Sloppy::modules)) {
+    // Clang looks up implicit modules in a subdirectory layout named by
+    // hashes of compiler internals, so the module files read by the
+    // compilation cannot be determined.
+    LOG("You have to specify \"modules\" sloppiness when using {} to get hits",
+        args[i]);
+    return Statistic::could_not_use_modules;
+  }
+
+  if (arg.starts_with("-fprebuilt-module-path=")) {
+    // Clang resolves an import by looking for <dir>/<module-name>.pcm, not
+    // descending into subdirectories. The command line does not say which of
+    // those files the compilation reads, so all of them are hashed. This costs
+    // a hit when an unrelated module file in the same directory changes.
+    constexpr std::string_view prebuilt_module_path_flag =
+      "-fprebuilt-module-path=";
+    const std::string_view dir_arg =
+      std::string_view(arg).substr(prebuilt_module_path_flag.size());
+    // Clang resolves an empty value against the working directory, so the
+    // module files there are read and have to be hashed.
+    const fs::path dir(dir_arg.empty() ? std::string_view(".") : dir_arg);
+
+    auto module_files = find_module_files(dir);
+    if (!module_files) {
+      return module_files.error();
+    }
+    for (auto& module_file : *module_files) {
+      args_info.searched_module_files.push_back(std::move(module_file));
+    }
+
+    state.add_common_arg(args[i]);
     return Statistic::none;
   }
 
