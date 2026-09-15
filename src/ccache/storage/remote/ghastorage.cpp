@@ -12,6 +12,8 @@
 #include "credentials.hpp"
 #include "ghacooldown.hpp"
 #include "httptransport.hpp"
+#include "remoteconfig.hpp"
+#include "remotediagnostics.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -25,7 +27,6 @@
 #include <cxxurl/url.hpp>
 #include <httplib.h>
 
-#include <cstdlib>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -37,40 +38,10 @@ namespace {
 using detail::http_base_url;
 using detail::http_failure_from_httplib_error;
 using detail::http_url_path;
-
-std::optional<std::string>
-getenv_string(const char* name)
-{
-  const char* value = std::getenv(name);
-  if (value && *value) {
-    return value;
-  }
-  return std::nullopt;
-}
-
-std::string
-strip_slashes(std::string value)
-{
-  while (!value.empty() && value.front() == '/') {
-    value.erase(value.begin());
-  }
-  while (!value.empty() && value.back() == '/') {
-    value.pop_back();
-  }
-  return value;
-}
-
-bool
-parse_bool(std::string_view value)
-{
-  return value == "1" || value == "true" || value == "yes" || value == "on";
-}
-
-void
-log_diagnostic(const std::string& code, const std::string& message)
-{
-  LOG("{}: {}", code, message);
-}
+using detail::getenv_string;
+using detail::log_diagnostic;
+using detail::parse_bool;
+using detail::strip_slashes;
 
 std::string
 json_quote(std::string_view value)

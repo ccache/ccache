@@ -11,6 +11,8 @@
 
 #include "credentials.hpp"
 #include "httptransport.hpp"
+#include "remoteconfig.hpp"
+#include "remotediagnostics.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -24,7 +26,6 @@
 #include <cxxurl/url.hpp>
 #include <httplib.h>
 
-#include <cstdlib>
 #include <array>
 #include <cstdint>
 #include <fstream>
@@ -44,34 +45,10 @@ namespace storage::remote {
 namespace {
 
 using detail::http_failure_from_httplib_error;
-
-std::optional<std::string>
-getenv_string(const char* name)
-{
-  const char* value = std::getenv(name);
-  if (value && *value) {
-    return value;
-  }
-  return std::nullopt;
-}
-
-bool
-parse_bool(std::string_view value)
-{
-  return value == "1" || value == "true" || value == "yes" || value == "on";
-}
-
-std::string
-strip_slashes(std::string value)
-{
-  while (!value.empty() && value.front() == '/') {
-    value.erase(value.begin());
-  }
-  while (!value.empty() && value.back() == '/') {
-    value.pop_back();
-  }
-  return value;
-}
+using detail::getenv_string;
+using detail::log_diagnostic;
+using detail::parse_bool;
+using detail::strip_slashes;
 
 std::string
 read_credential_file(const std::string& path)
@@ -233,12 +210,6 @@ sha256_hex(std::span<const uint8_t> value)
     }
   }
   return result;
-}
-
-void
-log_diagnostic(const std::string& code, const std::string& message)
-{
-  LOG("{}: {}", code, message);
 }
 
 std::optional<std::string>
