@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+APACHE_VERSION="${APACHE_VERSION:-2.4.68}"
+APACHE_SOURCE_URL="${APACHE_SOURCE_URL:-https://downloads.apache.org/httpd/httpd-${APACHE_VERSION}.tar.gz}"
+APACHE_SOURCE_SHA256="${APACHE_SOURCE_SHA256:-ed9a9d4500fb48bb28eaffb3ba71d06ccf86d498fa13ab9f781da010cc488498}"
+BUILD_JOBS="${BUILD_JOBS:-12}"
+CCACHE_BINARY="${CCACHE_BINARY:?CCACHE_BINARY must name the built ccache executable}"
+TEST_ROOT="$(mktemp -d)"
+SERVER_PID=""
+
+cleanup() {
+  if [[ -n "${SERVER_PID}" ]]; then
+    kill "${SERVER_PID}" 2>/dev/null || true
+  fi
+  rm -rf "${TEST_ROOT}"
+}
+trap cleanup EXIT
+
+fail_with_log() {
+  local log_file="$1"
+  tail -n 100 "${log_file}" >&2 || true
+  exit 1
+}
+
+stat_value() {
+  "${CCACHE_BINARY}" --print-stats | awk -v key="$1" '$1 == key { print $2; exit }'
+}
+
+require_positive_stat() {
+  local label="$1"
+  local value="$2"
+  if [[ ! "${value}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "${label} must be positive, got ${value:-missing}" >&2
+    exit 1
+  fi
+}
+
+"${CCACHE_BINARY}" --version | grep -Fq -- gha-storage
+
+export CCACHE_DIR="${TEST_ROOT}/ccache"
+export CCACHE_BASEDIR="${TEST_ROOT}/httpd-${APACHE_VERSION}"
+
+curl --fail --location --silent --show-error --output "${TEST_ROOT}/httpd.tar.gz" "${APACHE_SOURCE_URL}"
+echo "${APACHE_SOURCE_SHA256}  ${TEST_ROOT}/httpd.tar.gz" | sha256sum --check --status
+tar -xzf "${TEST_ROOT}/httpd.tar.gz" -C "${TEST_ROOT}"
+
+httpd_dir="${TEST_ROOT}/httpd-${APACHE_VERSION}"
+CC="${CCACHE_BINARY} gcc" CXX="${CCACHE_BINARY} g++" \
+  "${httpd_dir}/configure" --prefix="${TEST_ROOT}/install" --enable-mods-shared=none \
+  >"${TEST_ROOT}/configure.log" 2>&1 || fail_with_log "${TEST_ROOT}/configure.log"
+
+# Remove configure probes so the first measured build is cold.
+"${CCACHE_BINARY}" --clear
+"${CCACHE_BINARY}" --zero-stats
+export CCACHE_REMOTE_STORAGE="gha://apache-smoke @url=http://localhost:12783/runtime/ @token=test-token @service-version=v2"
+python3 "${GHA_CACHE_SERVER:?GHA_CACHE_SERVER must name the local GHA mock}" 12783 \
+  >"${TEST_ROOT}/gha-cache-server.log" 2>&1 &
+SERVER_PID="$!"
+
+for _ in $(seq 1 100); do
+  if python3 -c "import socket; socket.create_connection(('localhost', 12783), 1).close()" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+
+make -C "${httpd_dir}" -j"${BUILD_JOBS}" >"${TEST_ROOT}/cold-build.log" 2>&1 \
+  || fail_with_log "${TEST_ROOT}/cold-build.log"
+cold_writes="$(stat_value remote_storage_write)"
+cold_hits="$(stat_value remote_storage_hit)"
+require_positive_stat "cold remote_storage_write" "${cold_writes}"
+
+"${CCACHE_BINARY}" --clear
+"${CCACHE_BINARY}" --zero-stats
+make -C "${httpd_dir}" clean >"${TEST_ROOT}/clean.log" 2>&1 \
+  || fail_with_log "${TEST_ROOT}/clean.log"
+make -C "${httpd_dir}" -j"${BUILD_JOBS}" >"${TEST_ROOT}/warm-build.log" 2>&1 \
+  || fail_with_log "${TEST_ROOT}/warm-build.log"
+warm_writes="$(stat_value remote_storage_write)"
+warm_hits="$(stat_value remote_storage_hit)"
+require_positive_stat "warm remote_storage_hit" "${warm_hits}"
+
+printf 'APACHE_GHA_PROOF apache=%s cold_remote_writes=%s cold_remote_hits=%s warm_remote_writes=%s warm_remote_hits=%s local_cache_cleared=yes\n' \
+  "${APACHE_VERSION}" "${cold_writes}" "${cold_hits}" "${warm_writes}" "${warm_hits}"
