@@ -8,6 +8,7 @@
 // any later version.
 
 #include "ocistorage.hpp"
+#include "remoteutils.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -21,7 +22,6 @@
 #include <cxxurl/url.hpp>
 #include <httplib.h>
 
-#include <cstdlib>
 #include <array>
 #include <cstdint>
 #include <fstream>
@@ -40,33 +40,11 @@ namespace storage::remote {
 
 namespace {
 
-std::optional<std::string>
-getenv_string(const char* name)
-{
-  const char* value = std::getenv(name);
-  if (value && *value) {
-    return value;
-  }
-  return std::nullopt;
-}
-
-bool
-parse_bool(std::string_view value)
-{
-  return value == "1" || value == "true" || value == "yes" || value == "on";
-}
-
-std::string
-strip_slashes(std::string value)
-{
-  while (!value.empty() && value.front() == '/') {
-    value.erase(value.begin());
-  }
-  while (!value.empty() && value.back() == '/') {
-    value.pop_back();
-  }
-  return value;
-}
+using detail::failure_from_httplib_error;
+using detail::getenv_string;
+using detail::log_diagnostic;
+using detail::parse_bool;
+using detail::strip_slashes;
 
 std::string
 read_token_file(const std::string& path)
@@ -205,12 +183,6 @@ sha256_hex(std::span<const uint8_t> value)
   return result;
 }
 
-void
-log_diagnostic(const std::string& code, const std::string& message)
-{
-  LOG("{}: {}", code, message);
-}
-
 std::optional<std::string>
 extract_oci_layer_digest(std::string_view manifest)
 {
@@ -233,14 +205,6 @@ extract_oci_layer_digest(std::string_view manifest)
   const auto digest = manifest.substr(value_start + 1, value_end - value_start - 1);
   return digest.starts_with("sha256:") ? std::optional<std::string>(digest)
                                        : std::nullopt;
-}
-
-RemoteStorage::Backend::Failure
-failure_from_httplib_error(httplib::Error error)
-{
-  return error == httplib::Error::ConnectionTimeout
-           ? RemoteStorage::Backend::Failure::timeout
-           : RemoteStorage::Backend::Failure::error;
 }
 
 class OciStorageBackend : public RemoteStorage::Backend

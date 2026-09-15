@@ -4,6 +4,7 @@ set(
   filestorage.cpp
   helper.cpp
   remotestorage.cpp
+  remoteutils.hpp
 )
 
 if(REDIS_STORAGE_BACKEND)
