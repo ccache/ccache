@@ -12,9 +12,14 @@
 #include <ccache/storage/remote/ocistorage.hpp>
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/environment.hpp>
+#include <ccache/util/file.hpp>
 
 #include <cxxurl/url.hpp>
 #include <doctest/doctest.h>
+
+#ifndef _WIN32
+#  include <sys/stat.h>
+#endif
 
 TEST_SUITE_BEGIN("storage::remote::OciStorage");
 
@@ -60,6 +65,36 @@ TEST_CASE("parse oci token from environment")
           Url("oci://user:secret@registry.example.invalid/ns/cache"))
         == "oci://********@registry.example.invalid/ns/cache");
 }
+
+TEST_CASE("parse OCI token from a private file")
+{
+  TestUtil::TestContext test_context;
+  REQUIRE(util::write_file("oci-token", "secret-from-file\n"));
+#ifndef _WIN32
+  REQUIRE(chmod("oci-token", S_IRUSR | S_IWUSR) == 0);
+#endif
+  util::setenv("CCACHE_TEST_OCI_TOKEN_FILE", "oci-token");
+
+  const auto config = storage::remote::detail::parse_oci_storage_config(
+    Url("oci://registry.example.invalid/ns/cache"),
+    {{"token-file-env", "CCACHE_TEST_OCI_TOKEN_FILE", "CCACHE_TEST_OCI_TOKEN_FILE"}});
+
+  CHECK(config.token == "secret-from-file");
+}
+
+#ifndef _WIN32
+TEST_CASE("reject OCI token file readable by other users")
+{
+  TestUtil::TestContext test_context;
+  REQUIRE(util::write_file("oci-token", "secret-from-file\n"));
+  REQUIRE(chmod("oci-token", S_IRUSR | S_IWUSR | S_IRGRP) == 0);
+
+  CHECK_THROWS_AS(storage::remote::detail::parse_oci_storage_config(
+                    Url("oci://registry.example.invalid/ns/cache"),
+                    {{"token-file", "oci-token", "oci-token"}}),
+                  core::Fatal);
+}
+#endif
 
 TEST_CASE("select OCI debug logging from runtime environment")
 {

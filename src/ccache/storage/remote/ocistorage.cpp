@@ -24,10 +24,17 @@
 #include <cstdlib>
 #include <array>
 #include <cstdint>
+#include <fstream>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#ifndef _WIN32
+#  include <sys/stat.h>
+#  include <unistd.h>
+#endif
 
 namespace storage::remote {
 
@@ -59,6 +66,37 @@ strip_slashes(std::string value)
     value.pop_back();
   }
   return value;
+}
+
+std::string
+read_token_file(const std::string& path)
+{
+#ifndef _WIN32
+  struct stat file_status = {};
+  if (stat(path.c_str(), &file_status) != 0 || !S_ISREG(file_status.st_mode)) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+  }
+  if ((file_status.st_mode & (S_IRWXG | S_IRWXO)) != 0
+      || (file_status.st_uid != geteuid() && file_status.st_uid != 0)) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0033: OCI token file is not private");
+  }
+#endif
+
+  std::ifstream input(path, std::ios::binary);
+  if (!input) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+  }
+  std::string token(std::istreambuf_iterator<char>(input), {});
+  if (input.bad()) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+  }
+  while (!token.empty() && (token.back() == '\n' || token.back() == '\r')) {
+    token.pop_back();
+  }
+  if (token.empty()) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0034: OCI token file is empty");
+  }
+  return token;
 }
 
 uint32_t
@@ -546,6 +584,14 @@ parse_oci_storage_config(
       config.token = attr.value;
     } else if (attr.key == "token-env") {
       config.token = getenv_string(attr.value.c_str()).value_or("");
+    } else if (attr.key == "token-file") {
+      config.token = read_token_file(attr.value);
+    } else if (attr.key == "token-file-env") {
+      const auto path = getenv_string(attr.value.c_str());
+      if (!path) {
+        throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+      }
+      config.token = read_token_file(*path);
     } else if (attr.key == "prefix") {
       config.prefix = strip_slashes(attr.value);
     } else if (attr.key == "insecure") {
