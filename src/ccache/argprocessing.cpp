@@ -767,6 +767,12 @@ process_option_arg(const Context& ctx,
     }
   }
 
+  if (config.is_compiler_group_msvc()
+      && (arg.starts_with("-FA") || arg.starts_with("-Fa"))) {
+    LOG("Compiler option {} is not supported", args[i]);
+    return Statistic::unsupported_compiler_option;
+  }
+
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_compiler_output(arg)
       || (i + 1 < args.size() && arg == "-Xclang"
