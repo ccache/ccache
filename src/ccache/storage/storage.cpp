@@ -327,7 +327,8 @@ parse_storage_config(const std::vector<std::string_view>::const_iterator& begin,
         result.backfill_policy = RemoteStorageConfig::BackfillPolicy::disabled;
       } else {
         throw core::Error(
-          FMT("invalid backfill policy for remote storage: \"{}\"", value));
+          FMT("CCACHE-REMOTE-0004: invalid backfill policy for remote storage: \"{}\"",
+              value));
       }
     } else if (key == "data-timeout") {
       result.data_timeout =

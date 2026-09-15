@@ -78,7 +78,7 @@ numeric hosts. Current prefixes are:
 
 - `CCACHE-OCI-0001` through `CCACHE-OCI-0031`
 - `CCACHE-GHA-0001` through `CCACHE-GHA-0019`
-- `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0003`
+- `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0004`
 
 Debug logging MAY be enabled with `@debug=true` or by enabling GitHub Actions
 step debugging, which sets `ACTIONS_STEP_DEBUG`. `@debug=false` MUST override
