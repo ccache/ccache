@@ -138,7 +138,7 @@ TEST_CASE("make gha archive path preserves signed query")
         == "/a/b?sig=one%2Ftwo&empty");
   CHECK(storage::remote::detail::make_gha_archive_path(
           "https://cache.example.invalid?sig=one%2Ftwo")
-        == "?sig=one%2Ftwo");
+        == "/?sig=one%2Ftwo");
   CHECK(storage::remote::detail::make_gha_archive_path(
           "https://cache.example.invalid")
         == "/");

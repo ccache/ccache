@@ -635,7 +635,8 @@ make_gha_archive_path(std::string_view archive_location)
     fragment_pos = archive_location.size();
   }
 
-  return std::string(archive_location.substr(path_pos, fragment_pos - path_pos));
+  const auto path = archive_location.substr(path_pos, fragment_pos - path_pos);
+  return path.front() == '?' ? FMT("/{}", path) : std::string(path);
 }
 
 std::string
