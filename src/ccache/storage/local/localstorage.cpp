@@ -96,7 +96,7 @@ namespace storage::local {
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
-const auto k_tempdir_cleanup_interval = 2 * 24 * 60 * 60s; // C++20: 2d
+const auto k_tempdir_cleanup_interval = std::chrono::days{2};
 
 // Maximum files per cache directory. This constant is somewhat arbitrarily
 // chosen to be large enough to avoid unnecessary cache levels but small enough

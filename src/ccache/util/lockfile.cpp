@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -297,6 +297,15 @@ LockFile::do_acquire(const bool blocking)
       if (content_path.error() == std::errc::no_such_file_or_directory) {
         // The symlink was removed after the symlink() call above, so retry
         // acquiring it.
+        continue;
+      } else if (content_path.error() == std::errc::invalid_argument
+                 && fs::is_regular_file(m_lock_file)) {
+        LOG("Removing regular lock file {}", m_lock_file);
+        if (auto r = fs::remove(m_lock_file);
+            !r && r.error() != std::errc::no_such_file_or_directory) {
+          LOG("Failed to remove {}: {}", m_lock_file, r.error());
+          return false;
+        }
         continue;
       } else {
         LOG("Could not read symlink {}: {}",

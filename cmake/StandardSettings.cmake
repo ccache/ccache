@@ -7,8 +7,8 @@ if(MSVC)
   target_compile_options(
     standard_settings
     INTERFACE
-      $<$<COMPILE_LANGUAGE:C>:-include /FI${CMAKE_BINARY_DIR}/config.h>
-      $<$<COMPILE_LANGUAGE:CXX>:-include /FI${CMAKE_BINARY_DIR}/config.h>
+      $<$<COMPILE_LANGUAGE:C>:/FI${CMAKE_BINARY_DIR}/config.h>
+      $<$<COMPILE_LANGUAGE:CXX>:/FI${CMAKE_BINARY_DIR}/config.h>
   )
 else()
   target_compile_options(

@@ -296,6 +296,7 @@ process_profiling_option(const Context& ctx,
 {
   static const std::vector<std::string> known_simple_options = {
     "-fprofile-correction",
+    "-fprofile-partial-training",
     "-fprofile-reorder-functions",
     "-fprofile-sample-accurate",
     "-fprofile-values",
@@ -555,6 +556,15 @@ process_option_arg(const Context& ctx,
   // Exit early if we notice a non-option argument right away.
   if (arg.empty() || (arg[0] != '-' && arg[0] != '@')) {
     return std::nullopt;
+  }
+
+  if (ctx.config.compiler_type() == CompilerType::clang_cl
+      && arg.starts_with("-clang:")) {
+    // clang-cl's /clang:<arg> option forwards any arg to the clang driver.
+    // Also, they are treated as if they were passed at the end of the command
+    // line. Too hard for now.
+    LOG("Compiler option {} is unsupported", args[i]);
+    return Statistic::unsupported_compiler_option;
   }
 
   if (arg == "-ivfsoverlay"
@@ -2360,7 +2370,10 @@ process_args(Context& ctx)
 
   if (args_info.generating_ipa_clones) {
     args_info.output_ipa = core::make_relative_path(
-      ctx, util::add_extension(args_info.orig_input_file, ".000i.ipa-clones"));
+      ctx,
+      args_info.output_obj.parent_path()
+        / util::add_extension(args_info.orig_input_file.filename(),
+                              ".000i.ipa-clones"));
   }
 
   if (state.xarch_args.size() > 1) {

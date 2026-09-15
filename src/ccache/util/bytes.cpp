@@ -116,8 +116,7 @@ void
 Bytes::reserve(size_t size) noexcept
 {
   if (size > m_capacity) {
-    // In C++20, use std::make_unique_for_overwrite instead.
-    auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+    auto new_data = std::make_unique_for_overwrite<uint8_t[]>(size);
     if (m_size > 0) {
       std::memcpy(new_data.get(), m_data.get(), m_size);
     }
@@ -135,8 +134,7 @@ Bytes::insert(const void* pos, const void* data, size_t size) noexcept
   const size_t offset = reinterpret_cast<const uint8_t*>(pos) - m_data.get();
   if (m_size + size > m_capacity) {
     m_capacity = std::max(2 * m_capacity, m_size + size);
-    // In C++20, use std::make_unique_for_overwrite instead.
-    auto new_data = std::unique_ptr<uint8_t[]>(new uint8_t[m_capacity]);
+    auto new_data = std::make_unique_for_overwrite<uint8_t[]>(m_capacity);
     if (offset > 0) {
       std::memcpy(new_data.get(), m_data.get(), offset);
     }

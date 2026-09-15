@@ -2547,12 +2547,15 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
     util::pstr(util::with_extension(ctx.args_info.output_obj, ""));
   std::string hashified_cwd = util::pstr(ctx.apparent_cwd);
   std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
+  std::string hashified_base_name = base_name;
+  std::replace(
+    hashified_base_name.begin(), hashified_base_name.end(), '/', '#');
 
   std::vector<fs::path> paths_to_try{
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC <9)
     profile_path / FMT("{}.gcda", base_name),
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC >=9)
-    profile_path / FMT("{}#{}.gcda", hashified_cwd, base_name),
+    profile_path / FMT("{}#{}.gcda", hashified_cwd, hashified_base_name),
     // -fprofile(-instr|-sample)-use=file (Clang), -fauto-profile=file (GCC >=5)
     profile_path,
     // -fprofile(-instr|-sample)-use=dir (Clang)
