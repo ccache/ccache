@@ -203,31 +203,61 @@ only on non-Windows. They remain required before external acceptance.
 
 These are individual commands for a Linux acceptance host. They are a test
 plan, not a recorded result. Run them only after approving the external GHA or
-registry test. Every command must exit 0; print only the stated safe output.
+registry test. Run each action line separately; the following `printf` reports
+that action's exit code, which must be 0. The output is limited to safe status
+and statistics data. Start in the feature worktree.
 
 ```sh
+export CCACHE_NG_SOURCE="$(pwd)"
+printf 'set ccache source directory exit=%s\n' "$?"
+test -f "$CCACHE_NG_SOURCE/CMakeLists.txt"
+printf 'verify ccache source directory exit=%s\n' "$?"
 mkdir -p /tmp/ccache-ng-apache-2.4.68
+printf 'create test directory exit=%s\n' "$?"
 cd /tmp/ccache-ng-apache-2.4.68
-curl --fail --location --output httpd-2.4.68.tar.bz2 https://downloads.apache.org/httpd/httpd-2.4.68.tar.bz2
-curl --fail --location --output httpd-2.4.68.tar.bz2.sha256 https://downloads.apache.org/httpd/httpd-2.4.68.tar.bz2.sha256
+printf 'enter test directory exit=%s\n' "$?"
+curl --fail --location --silent --show-error --output httpd-2.4.68.tar.bz2 https://downloads.apache.org/httpd/httpd-2.4.68.tar.bz2
+printf 'download archive exit=%s\n' "$?"
+curl --fail --location --silent --show-error --output httpd-2.4.68.tar.bz2.sha256 https://downloads.apache.org/httpd/httpd-2.4.68.tar.bz2.sha256
+printf 'download checksum exit=%s\n' "$?"
 sha256sum --check httpd-2.4.68.tar.bz2.sha256
+printf 'verify checksum exit=%s\n' "$?"
 tar --extract --bzip2 --file httpd-2.4.68.tar.bz2
+printf 'extract archive exit=%s\n' "$?"
 cd httpd-2.4.68
+printf 'enter Apache source exit=%s\n' "$?"
 ./configure --enable-mods-shared=none
-cmake -S /path/to/ccache-ng -B /tmp/ccache-ng-apache-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
+printf 'configure Apache exit=%s\n' "$?"
+cmake -S "$CCACHE_NG_SOURCE" -B /tmp/ccache-ng-apache-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
+printf 'configure ccache exit=%s\n' "$?"
 cmake --build /tmp/ccache-ng-apache-build --target ccache -j 8
+printf 'build ccache exit=%s\n' "$?"
 export CCACHE_DIR=/tmp/ccache-ng-apache-cache
+printf 'set local cache directory exit=%s\n' "$?"
 export CCACHE_REMOTE_STORAGE='gha://apache-acceptance @service-version=v2 @debug=false'
+printf 'set remote storage exit=%s\n' "$?"
 /tmp/ccache-ng-apache-build/ccache --clear
+printf 'clear local cache exit=%s\n' "$?"
 /tmp/ccache-ng-apache-build/ccache --zero-stats
+printf 'zero statistics exit=%s\n' "$?"
 make -j 8 CC=/tmp/ccache-ng-apache-build/ccache
+printf 'cold build exit=%s\n' "$?"
 /tmp/ccache-ng-apache-build/ccache --show-stats
+printf 'cold statistics exit=%s\n' "$?"
 /tmp/ccache-ng-apache-build/ccache --clear
+printf 'clear local cache before warm build exit=%s\n' "$?"
 make clean
+printf 'clean Apache build exit=%s\n' "$?"
 make -j 8 CC=/tmp/ccache-ng-apache-build/ccache
+printf 'warm build exit=%s\n' "$?"
 /tmp/ccache-ng-apache-build/ccache --show-stats
+printf 'warm statistics exit=%s\n' "$?"
 test "$(/tmp/ccache-ng-apache-build/ccache --show-stats | awk '$1 == "remote_storage_hit" { print $2 }')" -gt 0
-rm -rf /tmp/ccache-ng-apache-cache /tmp/ccache-ng-apache-build /tmp/ccache-ng-apache-2.4.68
+printf 'verify warm remote hit exit=%s\n' "$?"
+test -d /tmp/ccache-ng-apache-cache -a -d /tmp/ccache-ng-apache-build -a -d /tmp/ccache-ng-apache-2.4.68
+printf 'verify named cleanup targets exit=%s\n' "$?"
+rm -rf -- /tmp/ccache-ng-apache-cache /tmp/ccache-ng-apache-build /tmp/ccache-ng-apache-2.4.68
+printf 'remove named test data exit=%s\n' "$?"
 ```
 
 The download and checksum files come from the Apache HTTP Server distribution.
