@@ -1377,6 +1377,16 @@ to_cache(Context& ctx,
     }
   }
 
+  if (!ctx.args_info.output_sd.empty()) {
+    if (auto r = compiler::make_paths_relative_in_source_dependencies(ctx);
+        !r) {
+      LOG("Failed to make paths relative in {}: {}",
+          ctx.args_info.output_sd,
+          r.error());
+      return tl::unexpected(Statistic::internal_error);
+    }
+  }
+
   if (!ctx.args_info.expect_output_obj) {
     // Don't probe for object file when we don't expect one since we otherwise
     // will be fooled by an already existing object file.
@@ -3095,8 +3105,10 @@ do_cache_compilation(Context& ctx)
   TRY(hash_native_args(ctx, processed_args.native_args, common_hash));
 
   if (processed_args.hash_actual_cwd) {
+    const auto actual_cwd = core::make_relative_path(ctx, ctx.actual_cwd);
+    LOG("Hashing actual CWD {}", actual_cwd);
     common_hash.hash_delimiter("actual_cwd");
-    common_hash.hash(ctx.actual_cwd);
+    common_hash.hash(actual_cwd);
   }
 
   // Try to find the hash using the manifest.
