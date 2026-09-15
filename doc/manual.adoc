@@ -2023,6 +2023,24 @@ mode,the preprocessor mode>> Clang does not provide enough information to allow
 hashing of `module.modulemap` files.
 
 
+=== Explicit module files
+
+Regardless of the above, ccache hashes the module files that a compilation
+reads, so that a consumer is recompiled when a module it imports changes. This
+works for the options that tell ccache which files those are:
+
+* `-fmodule-file=`, which gives the path directly.
+* `-fprebuilt-module-path=`, whose directory Clang searches for
+  `<module-name>.pcm`. The command line doesn't say which of those files the
+  compilation reads, so all of them are hashed, names as well as contents. This
+  costs a hit when an unrelated module file in the same directory changes.
+
+`-fprebuilt-implicit-modules` is not supported and such compilations are
+counted as "`Could not use modules`". Clang looks up implicit modules in a
+subdirectory layout named by hashes of compiler internals, so ccache can't tell
+which files the compilation reads.
+
+
 == Sharing a local cache
 
 A group of developers can increase the cache hit rate by sharing a local cache

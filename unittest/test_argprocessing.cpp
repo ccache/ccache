@@ -33,6 +33,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <vector>
 
 namespace fs = util::filesystem;
 
@@ -1464,6 +1465,133 @@ TEST_CASE("-clang: is too hard")
   const auto result = process_args(ctx);
   REQUIRE(!result);
   CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("-fprebuilt-module-path= hashes the module files in the directory")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/b.pcm", ""));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  REQUIRE(util::write_file("pm/notes.txt", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  // Sorted, so that the hash does not depend on the order the directory is
+  // read in.
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.pcm", "pm/b.pcm"});
+}
+
+TEST_CASE("-fprebuilt-module-path= ignores a .pcm directory")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  REQUIRE(fs::create_directory("pm/sub.pcm"));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.pcm"});
+}
+
+TEST_CASE("-fprebuilt-module-path= without a directory searches the CWD")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(util::write_file("a.pcm", ""));
+
+  // Clang resolves an empty value against the working directory.
+  ctx.orig_args = Args::from_string("clang -fprebuilt-module-path= -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"./a.pcm"});
+}
+
+TEST_CASE("-fprebuilt-module-path= for a missing directory has no inputs")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=absent -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files.empty());
+}
+
+TEST_CASE("-fprebuilt-module-path= naming a file has no inputs")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(util::write_file("notadir", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=notadir -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files.empty());
+}
+
+#ifndef _WIN32
+TEST_CASE("-fprebuilt-module-path= ignores an unreadable module file")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  // The compiler cannot read a dangling symlink either, so it is not an input
+  // and must not make the compilation uncacheable.
+  REQUIRE(fs::create_symlink("missing", "pm/b.pcm"));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.pcm"});
+}
+#endif
+
+TEST_CASE("-fprebuilt-implicit-modules is uncacheable")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-implicit-modules -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::could_not_use_modules);
 }
 
 TEST_SUITE_END();
