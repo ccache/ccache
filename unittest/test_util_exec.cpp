@@ -72,8 +72,10 @@ TEST_CASE("util::exec_to_string")
 #else
     util::Args args{"cat"};
 #endif
-    auto result = exec_to_string(args, "fisk\\n");
-    REQUIRE(result);
-    CHECK(*result == "fisk\\n");
+    auto result = exec_to_string(args, "fisk\n");
+    if (!result) {
+      FAIL(result.error());
+    }
+    CHECK(*result == "fisk\n");
   }
 }
