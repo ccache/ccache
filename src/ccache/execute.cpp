@@ -39,6 +39,7 @@
 #include <ccache/util/temporaryfile.hpp>
 #include <ccache/util/wincompat.hpp>
 
+#include <optional>
 #include <vector>
 
 #ifndef _WIN32
@@ -71,37 +72,12 @@
 namespace fs = util::filesystem;
 
 #ifdef _WIN32
-static int win32execute(const char* const* argv,
-                        int doreturn,
-                        int fd_stdout,
-                        int fd_stderr,
-                        const std::string& temp_dir);
 
-int
-execute(Context& ctx,
-        const char* const* argv,
-        util::Fd&& fd_out,
-        util::Fd&& fd_err)
-{
-  return win32execute(argv,
-                      1,
-                      fd_out.release(),
-                      fd_err.release(),
-                      util::pstr(ctx.config.temporary_dir()));
-}
-
-void
-execute_noreturn(const char* const* argv, const fs::path& temp_dir)
-{
-  win32execute(argv, 0, -1, -1, util::pstr(temp_dir).c_str());
-}
-
-int
+static std::optional<int>
 win32execute(const char* const* argv,
-             int doreturn,
              int fd_stdout,
              int fd_stderr,
-             const std::string& temp_dir)
+             const fs::path& temp_dir)
 {
   LOG("Executing {}", util::format_argv_for_logging(argv));
 
@@ -116,7 +92,7 @@ win32execute(const char* const* argv,
       LOG("Failed to IsProcessInJob: {} ({})",
           util::win32_error_message(error),
           error);
-      return 0;
+      return std::nullopt;
     }
     if (is_process_in_job) {
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = {};
@@ -131,7 +107,7 @@ win32execute(const char* const* argv,
         LOG("Failed to QueryInformationJobObject: {} ({})",
             util::win32_error_message(error),
             error);
-        return 0;
+        return std::nullopt;
       }
 
       const auto& limit_flags = jobInfo.BasicLimitInformation.LimitFlags;
@@ -154,7 +130,7 @@ win32execute(const char* const* argv,
       LOG("Failed to CreateJobObject: {} ({})",
           util::win32_error_message(error),
           error);
-      return -1;
+      return std::nullopt;
     }
 
     {
@@ -171,7 +147,7 @@ win32execute(const char* const* argv,
         LOG("Failed to JobObjectExtendedLimitInformation: {} ({})",
             util::win32_error_message(error),
             error);
-        return -1;
+        return std::nullopt;
       }
     }
   }
@@ -190,7 +166,7 @@ win32execute(const char* const* argv,
     si.dwFlags = STARTF_USESTDHANDLES;
     if (si.hStdOutput == INVALID_HANDLE_VALUE
         || si.hStdError == INVALID_HANDLE_VALUE) {
-      return -1;
+      return std::nullopt;
     }
   } else {
     // Redirect subprocess stdout, stderr into current process.
@@ -200,7 +176,7 @@ win32execute(const char* const* argv,
     si.dwFlags = STARTF_USESTDHANDLES;
     if (si.hStdOutput == INVALID_HANDLE_VALUE
         || si.hStdError == INVALID_HANDLE_VALUE) {
-      return -1;
+      return std::nullopt;
     }
   }
 
@@ -219,7 +195,7 @@ win32execute(const char* const* argv,
           *tmp_file.fd, commandline.data(), commandline.length());
         !r) {
       LOG("Failed to write {}: {}", tmp_file.path, r.error());
-      return -1;
+      return std::nullopt;
     }
     commandline = FMT(R"("{}" "@{}")", argv[0], tmp_file.path);
     tmp_file_path = tmp_file.path;
@@ -243,7 +219,7 @@ win32execute(const char* const* argv,
     DWORD error = GetLastError();
     LOG(
       "CreateProcess failed: {} ({})", util::win32_error_message(error), error);
-    return -1;
+    return std::nullopt;
   }
   if (job) {
     BOOL assign_success = AssignProcessToJobObject(job, pi.hProcess);
@@ -255,7 +231,7 @@ win32execute(const char* const* argv,
           argv[0],
           util::win32_error_message(error),
           error);
-      return -1;
+      return std::nullopt;
     }
     ResumeThread(pi.hThread);
   }
@@ -266,10 +242,27 @@ win32execute(const char* const* argv,
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
   CloseHandle(job);
-  if (!doreturn) {
-    exit(exitcode);
-  }
   return exitcode;
+}
+
+void
+execute_noreturn(const char* const* argv, const fs::path& temp_dir)
+{
+  auto exit_code = win32execute(argv, -1, -1, temp_dir);
+  if (exit_code) {
+    exit(*exit_code);
+  }
+}
+
+int
+execute(Context& ctx,
+        const char* const* argv,
+        util::Fd&& fd_out,
+        util::Fd&& fd_err)
+{
+  return win32execute(
+           argv, fd_out.release(), fd_err.release(), ctx.config.temporary_dir())
+    .value_or(-1);
 }
 
 #else
