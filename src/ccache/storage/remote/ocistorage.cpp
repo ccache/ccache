@@ -109,6 +109,26 @@ read_credential_file(const std::string& path)
   return credential;
 }
 
+std::string
+read_systemd_credential(const std::string& name)
+{
+#ifdef _WIN32
+  static_cast<void>(name);
+  throw core::Fatal(
+    "CCACHE_NG-ERROR-OCI-0038: systemd credentials are only available on Linux");
+#else
+  if (name.empty() || name.find_first_of("/\\") != std::string::npos) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0039: invalid systemd credential name");
+  }
+  const auto directory = getenv_string("CREDENTIALS_DIRECTORY");
+  if (!directory) {
+    throw core::Fatal(
+      "CCACHE_NG-ERROR-OCI-0038: CREDENTIALS_DIRECTORY is required for systemd credentials");
+  }
+  return read_credential_file(FMT("{}/{}", *directory, name));
+#endif
+}
+
 uint32_t
 rotate_right(const uint32_t value, const uint32_t bits)
 {
@@ -590,22 +610,36 @@ parse_oci_storage_config(
       storage::get_redacted_url_str_for_logging(url)));
   }
 
+  const auto set_credential = [&](std::string credential) {
+    if (!config.credential.empty() || !config.credential_helper.empty()) {
+      throw core::Fatal(
+        "CCACHE_NG-ERROR-OCI-0036: exactly one OCI credential source may be configured");
+    }
+    config.credential = std::move(credential);
+  };
+
   for (const auto& attr : attributes) {
     if (attr.key == "token" || attr.key == "token-env"
         || attr.key == "token-file" || attr.key == "token-file-env") {
       throw core::Fatal(
         "CCACHE_NG-ERROR-OCI-0037: OCI tokens must use a credential helper or credential file");
     } else if (attr.key == "credential-helper") {
+      if (!config.credential.empty() || !config.credential_helper.empty()) {
+        throw core::Fatal(
+          "CCACHE_NG-ERROR-OCI-0036: exactly one OCI credential source may be configured");
+      }
       config.credential_helper = attr.value;
     } else if (attr.key == "credential-file") {
-      config.credential = read_credential_file(attr.value);
+      set_credential(read_credential_file(attr.value));
     } else if (attr.key == "credential-file-env") {
       const auto credential_path = getenv_string(attr.value.c_str());
       if (!credential_path) {
         throw core::Fatal(
           "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
       }
-      config.credential = read_credential_file(*credential_path);
+      set_credential(read_credential_file(*credential_path));
+    } else if (attr.key == "systemd-credential") {
+      set_credential(read_systemd_credential(attr.value));
     } else if (attr.key == "prefix") {
       config.prefix = strip_slashes(attr.value);
     } else if (attr.key == "insecure") {
@@ -621,11 +655,6 @@ parse_oci_storage_config(
     } else {
       LOG("CCACHE_NG-WARN-OCI-0009: unknown OCI storage attribute: {}", attr.key);
     }
-  }
-
-  if (!config.credential_helper.empty() && !config.credential.empty()) {
-    throw core::Fatal(
-      "CCACHE_NG-ERROR-OCI-0036: OCI credential helper and credential file are mutually exclusive");
   }
 
   return config;

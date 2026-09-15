@@ -111,6 +111,33 @@ TEST_CASE("reject OCI credential helper and file together")
                   core::Fatal);
 }
 
+#ifndef _WIN32
+TEST_CASE("parse OCI systemd credential")
+{
+  TestUtil::TestContext test_context;
+  REQUIRE(util::write_file("oci-credential", "secret-from-systemd\n"));
+  REQUIRE(chmod("oci-credential", S_IRUSR | S_IWUSR) == 0);
+  util::setenv("CREDENTIALS_DIRECTORY", ".");
+
+  const auto config = storage::remote::detail::parse_oci_storage_config(
+    Url("oci://registry.example.invalid/ns/cache"),
+    {{"systemd-credential", "oci-credential", "oci-credential"}});
+
+  CHECK(config.credential == "secret-from-systemd");
+}
+
+TEST_CASE("reject OCI systemd credential path")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("CREDENTIALS_DIRECTORY", ".");
+
+  CHECK_THROWS_AS(storage::remote::detail::parse_oci_storage_config(
+                    Url("oci://registry.example.invalid/ns/cache"),
+                    {{"systemd-credential", "../credential", "../credential"}}),
+                  core::Fatal);
+}
+#endif
+
 TEST_CASE("select OCI debug logging from runtime environment")
 {
   TestUtil::TestContext test_context;
