@@ -329,7 +329,9 @@ public:
     upload_client.set_read_timeout(m_config.operation_timeout);
     upload_client.set_write_timeout(m_config.operation_timeout);
     httplib::Headers upload_headers;
-    if (!v2) {
+    if (v2) {
+      upload_headers.emplace("x-ms-blob-type", "BlockBlob");
+    } else {
       upload_headers.emplace("Authorization", FMT("Bearer {}", m_config.token));
       upload_headers.emplace(
         "Content-Range", FMT("bytes 0-{}/*", value.size() - 1));

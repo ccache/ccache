@@ -71,6 +71,9 @@ class CacheHandler(BaseHTTPRequestHandler):
         if not path.startswith("/upload/"):
             self._bytes(HTTPStatus.NOT_FOUND, b"")
             return
+        if self.headers.get("x-ms-blob-type") != "BlockBlob":
+            self._bytes(HTTPStatus.BAD_REQUEST, b"")
+            return
         self.uploads[unquote(path[len("/upload/") :])] = self._body()
         self._bytes(HTTPStatus.OK, b"")
 
