@@ -587,11 +587,11 @@ parse_oci_storage_config(
     } else if (attr.key == "token-file") {
       config.token = read_token_file(attr.value);
     } else if (attr.key == "token-file-env") {
-      const auto path = getenv_string(attr.value.c_str());
-      if (!path) {
+      const auto token_path = getenv_string(attr.value.c_str());
+      if (!token_path) {
         throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
       }
-      config.token = read_token_file(*path);
+      config.token = read_token_file(*token_path);
     } else if (attr.key == "prefix") {
       config.prefix = strip_slashes(attr.value);
     } else if (attr.key == "insecure") {
