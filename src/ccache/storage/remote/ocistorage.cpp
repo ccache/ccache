@@ -8,6 +8,8 @@
 // any later version.
 
 #include "ocistorage.hpp"
+
+#include "credentials.hpp"
 #include "httptransport.hpp"
 
 #include <ccache/ccache.hpp>
@@ -72,34 +74,39 @@ strip_slashes(std::string value)
 }
 
 std::string
-read_token_file(const std::string& path)
+read_credential_file(const std::string& path)
 {
 #ifndef _WIN32
   struct stat file_status = {};
   if (stat(path.c_str(), &file_status) != 0 || !S_ISREG(file_status.st_mode)) {
-    throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+    throw core::Fatal(
+      "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
   }
   if ((file_status.st_mode & (S_IRWXG | S_IRWXO)) != 0
       || (file_status.st_uid != geteuid() && file_status.st_uid != 0)) {
-    throw core::Fatal("CCACHE_NG-ERROR-OCI-0033: OCI token file is not private");
+    throw core::Fatal(
+      "CCACHE_NG-ERROR-OCI-0033: OCI credential file is not private");
   }
 #endif
 
   std::ifstream input(path, std::ios::binary);
   if (!input) {
-    throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+    throw core::Fatal(
+      "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
   }
-  std::string token(std::istreambuf_iterator<char>(input), {});
+  std::string credential(std::istreambuf_iterator<char>(input), {});
   if (input.bad()) {
-    throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+    throw core::Fatal(
+      "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
   }
-  while (!token.empty() && (token.back() == '\n' || token.back() == '\r')) {
-    token.pop_back();
+  while (!credential.empty()
+         && (credential.back() == '\n' || credential.back() == '\r')) {
+    credential.pop_back();
   }
-  if (token.empty()) {
-    throw core::Fatal("CCACHE_NG-ERROR-OCI-0034: OCI token file is empty");
+  if (credential.empty()) {
+    throw core::Fatal("CCACHE_NG-ERROR-OCI-0034: OCI credential file is empty");
   }
-  return token;
+  return credential;
 }
 
 uint32_t
@@ -247,10 +254,19 @@ public:
       m_redacted_url(storage::get_redacted_url_str_for_logging(url)),
       m_http_client(FMT("{}://{}", m_config.insecure ? "http" : "https", m_config.registry))
   {
+    if (!m_config.credential_helper.empty()) {
+      const auto credential = detail::get_docker_credential_secret(
+        m_config.credential_helper, m_config.registry);
+      if (!credential) {
+        throw Failed("CCACHE_NG-ERROR-OCI-0035: Docker credential helper failed");
+      }
+      m_config.credential = *credential;
+    }
+
     httplib::Headers headers;
     headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
-    if (!m_config.token.empty()) {
-      headers.emplace("Authorization", FMT("Bearer {}", m_config.token));
+    if (!m_config.credential.empty()) {
+      headers.emplace("Authorization", FMT("Bearer {}", m_config.credential));
     }
     m_http_client.set_keep_alive(true);
     m_http_client.set_connection_timeout(m_config.connect_timeout);
@@ -575,18 +591,21 @@ parse_oci_storage_config(
   }
 
   for (const auto& attr : attributes) {
-    if (attr.key == "token") {
-      config.token = attr.value;
-    } else if (attr.key == "token-env") {
-      config.token = getenv_string(attr.value.c_str()).value_or("");
-    } else if (attr.key == "token-file") {
-      config.token = read_token_file(attr.value);
-    } else if (attr.key == "token-file-env") {
-      const auto token_path = getenv_string(attr.value.c_str());
-      if (!token_path) {
-        throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI token file");
+    if (attr.key == "token" || attr.key == "token-env"
+        || attr.key == "token-file" || attr.key == "token-file-env") {
+      throw core::Fatal(
+        "CCACHE_NG-ERROR-OCI-0037: OCI tokens must use a credential helper or credential file");
+    } else if (attr.key == "credential-helper") {
+      config.credential_helper = attr.value;
+    } else if (attr.key == "credential-file") {
+      config.credential = read_credential_file(attr.value);
+    } else if (attr.key == "credential-file-env") {
+      const auto credential_path = getenv_string(attr.value.c_str());
+      if (!credential_path) {
+        throw core::Fatal(
+          "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
       }
-      config.token = read_token_file(*token_path);
+      config.credential = read_credential_file(*credential_path);
     } else if (attr.key == "prefix") {
       config.prefix = strip_slashes(attr.value);
     } else if (attr.key == "insecure") {
@@ -602,6 +621,11 @@ parse_oci_storage_config(
     } else {
       LOG("CCACHE_NG-WARN-OCI-0009: unknown OCI storage attribute: {}", attr.key);
     }
+  }
+
+  if (!config.credential_helper.empty() && !config.credential.empty()) {
+    throw core::Fatal(
+      "CCACHE_NG-ERROR-OCI-0036: OCI credential helper and credential file are mutually exclusive");
   }
 
   return config;

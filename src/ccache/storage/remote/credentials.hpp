@@ -1,0 +1,27 @@
+// Copyright (C) 2026 Joel Rosdahl and other contributors
+//
+// See doc/authors.adoc for a complete list of contributors.
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+
+#pragma once
+
+#include <tl/expected.hpp>
+
+#include <optional>
+#include <string>
+#include <string_view>
+
+namespace storage::remote::detail {
+
+std::optional<std::string> extract_json_string(std::string_view json,
+                                               std::string_view key);
+
+tl::expected<std::string, std::string>
+get_docker_credential_secret(std::string_view helper,
+                             std::string_view registry);
+
+} // namespace storage::remote::detail

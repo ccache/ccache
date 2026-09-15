@@ -9,6 +9,7 @@
 
 #include "testutil.hpp"
 
+#include <ccache/core/exceptions.hpp>
 #include <ccache/storage/remote/ocistorage.hpp>
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/environment.hpp>
@@ -39,62 +40,76 @@ TEST_CASE("parse oci storage URL")
 {
   const auto config = storage::remote::detail::parse_oci_storage_config(
     Url("oci://ghcr.io:5443/OWNER/NAME/ccache/prod"),
-    {{"token", "secret-token", "secret-token"},
+    {{"credential-helper", "pass", "pass"},
      {"insecure", "true", "true"},
      {"debug", "true", "true"}});
 
   CHECK(config.registry == "ghcr.io:5443");
   CHECK(config.repository == "OWNER/NAME");
   CHECK(config.prefix == "prod");
-  CHECK(config.token == "secret-token");
+  CHECK(config.credential.empty());
+  CHECK(config.credential_helper == "pass");
   CHECK(config.insecure);
   CHECK(config.debug);
 }
 
-TEST_CASE("parse oci token from environment")
+TEST_CASE("reject OCI token configuration")
 {
-  TestUtil::TestContext test_context;
-  util::setenv("CCACHE_TEST_OCI_TOKEN", "secret-from-env");
-
-  const auto config = storage::remote::detail::parse_oci_storage_config(
-    Url("oci://registry.example.invalid/ns/cache"),
-    {{"token-env", "CCACHE_TEST_OCI_TOKEN", "CCACHE_TEST_OCI_TOKEN"}});
-
-  CHECK(config.token == "secret-from-env");
+  CHECK_THROWS_AS(storage::remote::detail::parse_oci_storage_config(
+                    Url("oci://registry.example.invalid/ns/cache"),
+                    {{"token", "secret-token", "secret-token"}}),
+                  core::Fatal);
   CHECK(storage::get_redacted_url_str_for_logging(
           Url("oci://user:secret@registry.example.invalid/ns/cache"))
         == "oci://********@registry.example.invalid/ns/cache");
 }
 
-TEST_CASE("parse OCI token from a private file")
+TEST_CASE("parse OCI credential from a private file")
 {
   TestUtil::TestContext test_context;
-  REQUIRE(util::write_file("oci-token", "secret-from-file\n"));
+  REQUIRE(util::write_file("oci-credential", "secret-from-file\n"));
 #ifndef _WIN32
-  REQUIRE(chmod("oci-token", S_IRUSR | S_IWUSR) == 0);
+  REQUIRE(chmod("oci-credential", S_IRUSR | S_IWUSR) == 0);
 #endif
-  util::setenv("CCACHE_TEST_OCI_TOKEN_FILE", "oci-token");
+  util::setenv("CCACHE_TEST_OCI_CREDENTIAL_FILE", "oci-credential");
 
   const auto config = storage::remote::detail::parse_oci_storage_config(
     Url("oci://registry.example.invalid/ns/cache"),
-    {{"token-file-env", "CCACHE_TEST_OCI_TOKEN_FILE", "CCACHE_TEST_OCI_TOKEN_FILE"}});
+    {{"credential-file-env",
+      "CCACHE_TEST_OCI_CREDENTIAL_FILE",
+      "CCACHE_TEST_OCI_CREDENTIAL_FILE"}});
 
-  CHECK(config.token == "secret-from-file");
+  CHECK(config.credential == "secret-from-file");
 }
 
 #ifndef _WIN32
-TEST_CASE("reject OCI token file readable by other users")
+TEST_CASE("reject OCI credential file readable by other users")
 {
   TestUtil::TestContext test_context;
-  REQUIRE(util::write_file("oci-token", "secret-from-file\n"));
-  REQUIRE(chmod("oci-token", S_IRUSR | S_IWUSR | S_IRGRP) == 0);
+  REQUIRE(util::write_file("oci-credential", "secret-from-file\n"));
+  REQUIRE(chmod("oci-credential", S_IRUSR | S_IWUSR | S_IRGRP) == 0);
 
   CHECK_THROWS_AS(storage::remote::detail::parse_oci_storage_config(
                     Url("oci://registry.example.invalid/ns/cache"),
-                    {{"token-file", "oci-token", "oci-token"}}),
+                    {{"credential-file", "oci-credential", "oci-credential"}}),
                   core::Fatal);
 }
 #endif
+
+TEST_CASE("reject OCI credential helper and file together")
+{
+  TestUtil::TestContext test_context;
+  REQUIRE(util::write_file("oci-credential", "secret-from-file\n"));
+#ifndef _WIN32
+  REQUIRE(chmod("oci-credential", S_IRUSR | S_IWUSR) == 0);
+#endif
+
+  CHECK_THROWS_AS(storage::remote::detail::parse_oci_storage_config(
+                    Url("oci://registry.example.invalid/ns/cache"),
+                    {{"credential-helper", "pass", "pass"},
+                     {"credential-file", "oci-credential", "oci-credential"}}),
+                  core::Fatal);
+}
 
 TEST_CASE("select OCI debug logging from runtime environment")
 {

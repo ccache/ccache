@@ -8,6 +8,8 @@
 // any later version.
 
 #include "ghastorage.hpp"
+
+#include "credentials.hpp"
 #include "httptransport.hpp"
 
 #include <ccache/ccache.hpp>
@@ -103,72 +105,6 @@ json_quote(std::string_view value)
   }
   result += '"';
   return result;
-}
-
-std::optional<std::string>
-extract_json_string(std::string_view response_body, std::string_view key)
-{
-  const std::string quoted_key = FMT("\"{}\"", key);
-  const size_t key_pos = response_body.find(quoted_key);
-  if (key_pos == std::string_view::npos) {
-    return std::nullopt;
-  }
-
-  size_t pos = response_body.find(':', key_pos + quoted_key.size());
-  if (pos == std::string_view::npos) {
-    return std::nullopt;
-  }
-  ++pos;
-  while (pos < response_body.size()
-         && (response_body[pos] == ' ' || response_body[pos] == '\t'
-             || response_body[pos] == '\r' || response_body[pos] == '\n')) {
-    ++pos;
-  }
-  if (pos == response_body.size() || response_body[pos] != '"') {
-    return std::nullopt;
-  }
-  ++pos;
-
-  std::string value;
-  bool escaped = false;
-  for (; pos < response_body.size(); ++pos) {
-    const char c = response_body[pos];
-    if (escaped) {
-      switch (c) {
-      case '"':
-      case '\\':
-      case '/':
-        value.push_back(c);
-        break;
-      case 'b':
-        value.push_back('\b');
-        break;
-      case 'f':
-        value.push_back('\f');
-        break;
-      case 'n':
-        value.push_back('\n');
-        break;
-      case 'r':
-        value.push_back('\r');
-        break;
-      case 't':
-        value.push_back('\t');
-        break;
-      default:
-        return std::nullopt;
-      }
-      escaped = false;
-    } else if (c == '\\') {
-      escaped = true;
-    } else if (c == '"') {
-      return value;
-    } else {
-      value.push_back(c);
-    }
-  }
-
-  return std::nullopt;
 }
 
 bool
@@ -282,8 +218,8 @@ public:
     }
 
     const auto archive_location = v2
-                                    ? extract_json_string(result->body,
-                                                          "signed_download_url")
+                                    ? detail::extract_json_string(
+                                        result->body, "signed_download_url")
                                     : detail::extract_gha_archive_location(
                                         result->body);
     if (v2 && !extract_json_true(result->body, "ok")) {
@@ -395,7 +331,7 @@ public:
     }
 
     const auto upload_location =
-      v2 ? extract_json_string(reserve->body, "signed_upload_url")
+      v2 ? detail::extract_json_string(reserve->body, "signed_upload_url")
          : extract_json_number(reserve->body, "cacheId");
     if ((v2 && !extract_json_true(reserve->body, "ok")) || !upload_location) {
       log_diagnostic(
@@ -585,7 +521,7 @@ make_gha_storage_key(const Hash::Digest& key, const std::string& prefix)
 std::optional<std::string>
 extract_gha_archive_location(std::string_view response_body)
 {
-  return extract_json_string(response_body, "archiveLocation");
+  return detail::extract_json_string(response_body, "archiveLocation");
 }
 
 std::string

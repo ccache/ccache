@@ -1,6 +1,7 @@
 set(
   sources
   client.cpp
+  credentials.cpp
   filestorage.cpp
   helper.cpp
   httptransport.hpp
