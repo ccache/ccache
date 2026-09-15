@@ -194,10 +194,12 @@ ctest --test-dir build-remote-storage-audit --output-on-failure -R "^unittest$"
 ```
 
 The build uses warnings-as-errors and IPO. The latest unit run completed 273
-test cases successfully. `git diff --check` passed and tracked files had no
-CRLF or mixed line endings. The project format target could not run on this
-host because its shell launcher requires a Linux Bash environment that is not
-available here; it is not claimed as passed.
+test cases successfully. `git diff --check` passed and the audited remote-
+storage files had LF line endings. `git ls-files --eol` reports six
+pre-existing CRLF worktree files outside that scope; they were not changed.
+The project format target could not run on this host because its shell launcher
+requires a Linux Bash environment that is not available here; it is not
+claimed as passed.
 
 The focused Linux suites `test.remote_gha` and `test.remote_oci` are registered
 only on non-Windows. They remain required before external acceptance.
