@@ -68,7 +68,9 @@ TEST_CASE("util::exec_to_string")
   SUBCASE("stdin")
   {
 #ifdef _WIN32
-    util::Args args{"cmd", "/c", "more"};
+    REQUIRE(util::write_file("command.bat",
+                             "@echo off\r\nset /p value=\r\necho %value%"));
+    util::Args args{"command.bat"};
 #else
     util::Args args{"cat"};
 #endif
@@ -76,6 +78,10 @@ TEST_CASE("util::exec_to_string")
     if (!result) {
       FAIL(result.error());
     }
+#ifdef _WIN32
+    CHECK(*result == "fisk\r\n");
+#else
     CHECK(*result == "fisk\n");
+#endif
   }
 }
