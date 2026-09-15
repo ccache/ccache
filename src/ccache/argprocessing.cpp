@@ -91,12 +91,16 @@ public:
   bool found_wp_md_or_mmd_opt = false;
   bool found_md_or_mmd_opt = false;
   bool found_Wa_a_opt = false;
+  bool found_msvc_assembler_listing_opt = false;
+  bool msvc_assembler_listing_path_is_directory = false;
   bool rewrite_FI_args = false;
   bool output_sarif_is_directory = false;
 
   std::string explicit_language;             // As specified with -x.
   std::string input_charset_option;          // -finput-charset=...
   std::string last_seen_msvc_z_debug_option; // /Z7, /Zi or /ZI
+  std::string msvc_assembler_listing_extension;
+  fs::path msvc_assembler_listing_path;
 
   // Option that determines diagnostics format/output (-fdiagnostics-format=,
   // -fdiagnostics-add-output= or -fdiagnostics-set-output=). We currently
@@ -765,12 +769,48 @@ process_option_arg(const Context& ctx,
         }
       }
     }
+    if (state.found_Wa_a_opt && state.found_msvc_assembler_listing_opt) {
+      LOG("Multiple assembler listing options are not supported");
+      return Statistic::unsupported_compiler_option;
+    }
   }
 
-  if (config.is_compiler_group_msvc()
-      && (arg.starts_with("-FA") || arg.starts_with("-Fa"))) {
-    LOG("Compiler option {} is not supported", args[i]);
-    return Statistic::unsupported_compiler_option;
+  if (config.is_compiler_group_msvc() && arg.starts_with("-FA")) {
+    if (state.found_Wa_a_opt) {
+      LOG("Multiple assembler listing options are not supported");
+      return Statistic::unsupported_compiler_option;
+    }
+    state.found_msvc_assembler_listing_opt = true;
+    state.msvc_assembler_listing_extension =
+      config.compiler_type() == CompilerType::msvc
+          && arg.substr(3).find('c') != std::string_view::npos
+        ? ".cod"
+        : ".asm";
+    state.add_compiler_only_arg(args[i]);
+    return Statistic::none;
+  }
+
+  if (config.is_compiler_group_msvc() && arg.starts_with("-Fa")) {
+    if (state.found_Wa_a_opt) {
+      LOG("Multiple assembler listing options are not supported");
+      return Statistic::unsupported_compiler_option;
+    }
+    state.found_msvc_assembler_listing_opt = true;
+
+    const std::string_view path = std::string_view(arg).substr(3);
+    state.msvc_assembler_listing_path_is_directory =
+      path.ends_with('/') || path.ends_with('\\');
+    state.msvc_assembler_listing_path =
+      path.empty() ? fs::path{} : core::make_relative_path(ctx, path);
+
+    std::string rewritten_path = util::pstr(state.msvc_assembler_listing_path);
+    if (state.msvc_assembler_listing_path_is_directory
+        && !rewritten_path.ends_with('/') && !rewritten_path.ends_with('\\')) {
+      rewritten_path += path.back();
+    }
+    state.add_compiler_only_arg_no_hash(
+      FMT("{}{}", std::string_view(args[i]).substr(0, 3), rewritten_path));
+    return Statistic::none;
   }
 
   // Handle options that should not be passed to the preprocessor.
@@ -1903,6 +1943,26 @@ process_args(Context& ctx)
 
   args_info.orig_output_obj = args_info.output_obj;
   args_info.output_obj = core::make_relative_path(ctx, args_info.output_obj);
+
+  if (state.found_msvc_assembler_listing_opt) {
+    args_info.output_al = state.msvc_assembler_listing_path;
+    const bool output_al_by_source =
+      args_info.output_al.empty()
+      || state.msvc_assembler_listing_path_is_directory;
+    if (output_al_by_source) {
+      args_info.output_al /= args_info.input_file.filename();
+    }
+    const std::string_view extension =
+      state.msvc_assembler_listing_extension.empty()
+        ? std::string_view{".asm"}
+        : std::string_view{state.msvc_assembler_listing_extension};
+    if (output_al_by_source) {
+      args_info.output_al =
+        util::with_extension(args_info.output_al, extension);
+    } else if (!args_info.output_al.has_extension()) {
+      args_info.output_al = util::add_extension(args_info.output_al, extension);
+    }
+  }
 
   if (state.output_sarif_is_directory) {
     args_info.output_sarif /=

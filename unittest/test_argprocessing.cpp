@@ -991,6 +991,114 @@ TEST_CASE("clang-cl /experimental:log")
         == "clang-cl.exe /experimental:log report -fcolor-diagnostics /c");
 }
 
+TEST_CASE("MSVC assembler listing options")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("MSVC default output")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FA /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.asm");
+    CHECK(result->preprocessor_args.to_string() == "cl.exe");
+    CHECK(result->compiler_args.to_string() == "cl.exe /FA /c");
+    CHECK(result->extra_args_to_hash.to_string() == "/FA");
+  }
+
+  SUBCASE("MSVC machine code output")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FAcsu /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.cod");
+  }
+
+  SUBCASE("clang-cl machine code output")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args = Args::from_string("clang-cl.exe /FAcsu /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.asm");
+  }
+
+  SUBCASE("Explicit output enables listing and is not hashed")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /Fafoo /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.asm");
+    CHECK(result->compiler_args.to_string() == "cl.exe /Fafoo /c");
+    CHECK(result->extra_args_to_hash.to_string().empty());
+  }
+
+  SUBCASE("Custom extension")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FAc /Fafoo.lst /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.lst");
+  }
+
+  SUBCASE("Output directory")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FA /Falistings/ /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "listings/foo.asm");
+    CHECK(result->compiler_args.to_string() == "cl.exe /FA /Falistings/ /c");
+  }
+
+  SUBCASE("Last options win")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args =
+      Args::from_string("cl.exe /FAc /FAs /Fafirst.asm /Fasecond /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "second.asm");
+    CHECK(result->extra_args_to_hash.to_string() == "/FAc /FAs");
+  }
+
+  SUBCASE("MSVC option before assembler option")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args =
+      Args::from_string("clang-cl.exe /FA -Wa,-a=file.lst /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Assembler option before MSVC option")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args =
+      Args::from_string("clang-cl.exe -Wa,-a=file.lst /FA /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+}
+
 TEST_CASE("MSVC PCH options")
 {
   TestContext test_context;
