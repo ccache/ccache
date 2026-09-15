@@ -1,224 +1,259 @@
-# OCI and GitHub Actions remote storage
+# OCI/GHCR and GitHub Actions remote storage
 
-This document is the single source of truth for the OCI/GHCR and GitHub
-Actions cache remote-storage module. It distinguishes implemented behavior,
-automated coverage, integration evidence and work that remains unproven.
+This is the single source of truth for the `oci://` and `gha://` remote
+storage backends. It separates code, local checks and external acceptance.
+An item is not externally validated unless this document says so explicitly.
 
-The normative terms MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are used as
-defined by RFC 2119.
+## Status
 
-## Scope and requirements
+| Area | Code | Local evidence | External evidence |
+| --- | --- | --- | --- |
+| Full digest keys and prefixes | Implemented | Unit tests | Not required |
+| GHA v1 read/write | Implemented | Unit configuration tests | Not run against GitHub |
+| GHA v2 read/write | Implemented | Local mock test is Linux-only | Not run against GitHub |
+| GHA no credentials | Implemented | Windows compile: exit 0, `CCACHE_NG-ERROR-GHA-0002`, 0 requests | Not run in GitHub |
+| GHA persistent write cooldown | Implemented | Unit test; Linux mock test added | Linux mock test not run here |
+| OCI blob and manifest read/write/delete | Implemented | Unit tests | Not run against GHCR |
+| Redis, OCI and backfill | Existing generic storage implementation | Linux integration test exists | Not run here |
+| Docker credential helper | Implemented | JSON and configuration unit tests | Not run with a real helper or registry |
+| systemd credential | Implemented on Linux | Linux unit test | Not run in a systemd service |
+| Manual GitHub workflow | Present, manual dispatch only | Static review only | No run ID |
 
-The module provides these remote-storage schemes:
+The GitHub Actions run ID list is empty. No GitHub workflow, cache UI or REST
+cache list was accessed while preparing this document. No external GHCR entry
+was created, read or deleted.
 
-- `oci://REGISTRY/REPOSITORY[/ccache/PREFIX]` for OCI-compatible registries.
-- `gha://[PREFIX]` for the GitHub Actions cache data service.
+## Feature matrix
 
-GHCR MUST be treated as a regular OCI registry. Registry-specific code MUST
-NOT be added unless required by the OCI Distribution API. `remote_storage` and
-`CCACHE_REMOTE_STORAGE` remain the ordering source of truth: entries MUST be
-listed from the fastest backend to the slowest backend.
+| Feature | `gha://` | `oci://` |
+| --- | --- | --- |
+| Default transport | GitHub-provided HTTPS endpoint | HTTPS |
+| Read | v1 and v2 cache APIs | OCI manifest, then cache blob |
+| Write | v1 and v2 reserve, upload and finalize | Blob upload, then manifest publish |
+| Delete | Not supported; returns `CCACHE_NG-ERROR-GHA-0009` | Resolves manifest digest and deletes the manifest |
+| Cache key | Full ccache digest, lower-case hexadecimal | Full ccache digest, lower-case hexadecimal |
+| Prefix | URL path or `@prefix` | `/ccache/PREFIX` URL part or `@prefix` |
+| Read-only | Generic `read-only` storage option | Generic `read-only` storage option |
+| Debug | Status, operation and redacted URL | Status, operation and redacted URL |
+| Credentials | Runtime values supplied by GitHub Actions | Docker helper, private file or Linux systemd credential |
 
-The local ccache is consulted before remote storage unless ccache is configured
-as remote-only. A slower remote hit SHOULD backfill an earlier, writable remote
-backend. A remote cache failure MUST NOT make compilation fail when local cache
-or a later remote backend can serve the operation, except when an operator
-selects strict backfill.
+The digest is not truncated. The implementation does not add repository,
+branch, hostname, user name or address information to it.
 
-## Implemented behavior
+## Configuration
 
-### Cache keys and privacy
-
-The default key is the complete ccache digest in lowercase base-16. It MUST NOT
-be truncated and MUST NOT automatically add repository, branch, runner, user,
-hostname or address information. An operator MAY add a deliberate prefix using
-`@prefix=VALUE`.
-
-Tokens MUST be supplied through environment variables, repository variables or
-secrets. Documentation, tests, errors and debug logs MUST NOT expose tokens,
-credentials, response bodies, private addresses or private paths. `@token=...`
-is available for isolated tests only and MUST NOT be used in shared
-configuration.
-
-### OCI protocol
-
-For an OCI entry, the backend retrieves an OCI manifest and then the manifest's
-cache-data blob. To store an entry it uploads the zero-byte config and cache
-blob, then publishes an OCI manifest with artifact type
-`application/vnd.ccache.entry`. Removal resolves the manifest digest and sends
-an OCI manifest deletion request.
-
-OCI connections MUST use HTTPS unless `@insecure=true` is deliberately selected
-for an isolated local registry test. Supported OCI attributes are `@token`,
-`@token-env`, `@prefix`, `@insecure`, `@debug`, `@connect-timeout` and
-`@operation-timeout`.
-
-### GitHub Actions cache protocol
-
-The `gha://` adapter obtains its endpoint from `ACTIONS_RESULTS_URL`, falling
-back to `ACTIONS_CACHE_URL`, and obtains its bearer credential from
-`ACTIONS_RUNTIME_TOKEN`, falling back to `ACTIONS_ID_TOKEN_REQUEST_TOKEN`.
-`@url`, `@url-env`, `@token` and `@token-env` explicitly override those values.
-The endpoint and token are required; missing values produce
-`CCACHE_NG-ERROR-GHA-0001` or `CCACHE_NG-ERROR-GHA-0002`.
-
-When v2 is selected by `ACTIONS_CACHE_SERVICE_V2` or `@service-version=v2`, the
-adapter performs this sequence:
-
-1. `GetCacheEntryDownloadURL` with the complete cache key and cache version.
-2. On a hit, downloads the returned signed URL.
-3. On a store, calls `CreateCacheEntry` with the key and version.
-4. Uploads the cache bytes to the returned signed URL.
-5. Calls `FinalizeCacheEntryUpload` with key, byte count and version.
-
-The legacy v1 path remains selectable with `@service-version=v1`. The supported
-GHA attributes are `@url`, `@url-env`, `@token`, `@token-env`, `@prefix`,
-`@service-version`, `@debug`, `@connect-timeout` and `@operation-timeout`.
-
-`gha://` is designed for a GitHub Actions job where the runner provides its
-runtime endpoint and short-lived runtime token. A normal personal access token,
-GitHub App token or `gh` login MUST NOT be documented as a substitute: GitHub's
-documented REST cache API is a management API, not the cache data upload and
-download protocol. Therefore a durable direct local-machine connection to the
-hosted GitHub Actions cache is NOT YET PROVEN and is not claimed by this module.
-For a cross-machine durable cache, OCI/GHCR is the implemented storage option.
-
-### Rate limits and failure behavior
-
-Every module diagnostic MUST use the format
-`CCACHE_NG-<SEVERITY>-<SERVICE>-<NUMBER>`. The code identifies the relevant
-failure path; the same code MAY appear again when an operation is attempted
-again. This is intentional and MUST NOT be replaced with blanket log-once
-suppression.
-
-GHA debug output is enabled by `@debug=true` or `ACTIONS_STEP_DEBUG`; an
-explicit `@debug=false` overrides the environment. Debug messages report the
-operation, status and redacted URL, but MUST NOT report a token or response
-body.
-
-After a `403` or `429` from GHA cache-entry creation or finalization, the
-backend emits `CCACHE_NG-WARN-GHA-0006` or `CCACHE_NG-WARN-GHA-0019`, disables
-further GHA writes for that backend instance and returns without aborting the
-compile. Reads and later configured backends MAY continue. This prevents a
-rate-limited backend from receiving repeated write attempts.
-
-## Multi-level policy
-
-`backfill=best-effort`, `backfill=strict` and `backfill=disabled` control
-write-back from a later hit to preceding remote backends. The default MUST be
-`best-effort`:
-
-- `best-effort` records the failure and continues.
-- `strict` fails the cache operation when the backfill fails.
-- `disabled` does not write back.
-
-`read-only` backends MAY be read but MUST NOT be written. A backend marked as
-failed is skipped for the remaining ccache process; this avoids repeated
-transport calls after a confirmed backend failure without suppressing unrelated
-operation diagnostics.
-
-## Configuration examples
-
-The examples use placeholders only. They MUST NOT be copied with real secrets
-into version-controlled files.
+`remote_storage` is ordered from fastest to slowest backend. A typical order
+is Redis, OCI/GHCR, then GHA:
 
 ```ini
-# Fast Redis, durable OCI/GHCR, then the Actions job cache.
-remote_storage = redis://cache.example.invalid:6379 oci://ghcr.io/OWNER/REPOSITORY/ccache/team @token-env=CCACHE_OCI_TOKEN gha://team @service-version=v2 @debug=false
+remote_storage = redis://cache.example.invalid:6379 oci://ghcr.io/OWNER/REPOSITORY/ccache/team @credential-helper=pass gha://team @service-version=v2 @debug=false
 ```
 
-```sh
-# The Actions runner normally provides both values. This is an isolated test
-# configuration, not a substitute for GitHub-issued runtime credentials.
-export CCACHE_REMOTE_STORAGE='gha://example @url-env=TEST_GHA_URL @token-env=TEST_GHA_TOKEN @service-version=v2'
-```
+The example contains no secret. `pass` is only the Docker credential-helper
+name; ccache invokes `docker-credential-pass get` and sends the registry name
+on standard input. The helper response is read in memory and its `Secret`
+field is never logged.
 
-## Evidence and traceability
+OCI attributes:
 
-| Claim | Status | Authoritative evidence |
-| --- | --- | --- |
-| `gha://` parses endpoint, token, prefix, version, debug and timeout attributes. | Automated | `src/ccache/storage/remote/ghastorage.cpp`; `test/suites/remote_gha.bash` |
-| GHA v2 performs lookup, signed download, create, signed upload and finalize. | Automated | `src/ccache/storage/remote/ghastorage.cpp`; local v2 mock in `test/gha-cache-server` |
-| GHA `403` and `429` stop further writes for the backend instance. | Automated | `test/suites/remote_gha.bash`; mock reserve-request counter |
-| GHA diagnostics use stable, redacted identifiers. | Automated | `src/ccache/storage/remote/ghastorage.cpp`; unit tests for redaction and configuration |
-| OCI and Redis fallback/backfill operate against an isolated local registry. | Automated integration | `test/suites/remote_oci.bash` |
-| Apache source compiles through `gha://`, writes cold entries, clears local ccache and receives warm remote hits. | Integration | `test/run-gha-apache-smoke`, `test/run-gha-apache-container`, recorded result below |
-| Hosted GitHub Actions runtime accepts this adapter in a workflow. | Not yet validated | Requires a real workflow run with its ephemeral runtime credential. |
-| A local Linux machine can use hosted GHA cache with a durable non-runtime credential. | Not supported claim | GitHub's documented REST cache endpoints manage caches but do not expose cache-data upload/download. |
-| GHCR, Docker Hub or GitLab Registry have been validated against external services. | Not yet validated | No external registry credentials or services were used for this evidence set. |
+| Attribute | Meaning |
+| --- | --- |
+| `@credential-helper=NAME` | Docker credential helper name. Only letters, digits, `_` and `-` are accepted. |
+| `@credential-file=PATH` | Private credential file. On Unix it must be a regular file owned by the effective user or root and have no group or other permissions. |
+| `@credential-file-env=NAME` | Environment variable containing only the path to a private credential file. |
+| `@systemd-credential=NAME` | Linux only. Reads `NAME` below `CREDENTIALS_DIRECTORY`; path separators are rejected. |
+| `@prefix=VALUE` | Explicit cache-key prefix. |
+| `@insecure=true` | Uses HTTP. Intended only for an isolated local registry test. |
+| `@debug=true` | Enables redacted diagnostics. |
+| `@connect-timeout=TIME` and `@operation-timeout=TIME` | Transport timeouts. |
 
-## Apache GHA integration record
+Exactly one OCI credential source may be configured. The former OCI
+`@token`, `@token-env`, `@token-file` and `@token-file-env` attributes are
+rejected with `CCACHE_NG-ERROR-OCI-0037`.
 
-The integration runner fetches Apache httpd `2.4.68` from the official Apache
-download location and verifies this SHA-256 before extraction:
+GHA attributes:
+
+| Attribute | Meaning |
+| --- | --- |
+| `@url=URL` or `@url-env=NAME` | Explicit endpoint for an isolated test. Production runners normally provide the endpoint. |
+| `@prefix=VALUE` | Explicit cache-key prefix. |
+| `@service-version=v1` or `v2` | Selects the API version. The runtime v2 marker selects v2 by default. |
+| `@debug=true` | Enables redacted diagnostics. |
+| `@connect-timeout=TIME` and `@operation-timeout=TIME` | Transport timeouts. |
+
+GHA credentials are read only from `ACTIONS_RUNTIME_TOKEN`, with
+`ACTIONS_ID_TOKEN_REQUEST_TOKEN` as the existing fallback. `@token` and
+`@token-env` are rejected with `CCACHE_NG-ERROR-GHA-0021`. Missing endpoint or
+runtime credential prevents backend construction before an HTTP request and
+uses `CCACHE_NG-ERROR-GHA-0001` or `CCACHE_NG-ERROR-GHA-0002`.
+
+## Protocol flows
+
+### OCI
+
+Read:
+
+1. Get the OCI manifest for the full-digest tag.
+2. Read the cache-layer digest from that manifest.
+3. Get the referenced blob.
+
+Write:
+
+1. Check whether the empty config blob and cache-data blob already exist.
+2. Start and complete uploads for missing blobs.
+3. Publish an OCI image manifest with artifact type
+   `application/vnd.ccache.entry`.
+
+Delete:
+
+1. Get the manifest headers.
+2. Read `Docker-Content-Digest`.
+3. Delete that manifest digest.
+
+Only the manifest is deleted. The backend does not claim OCI blob garbage
+collection; that remains a registry policy.
+
+### GitHub Actions cache
+
+For v2, read calls `GetCacheEntryDownloadURL` and downloads the returned signed
+URL. Write calls `CreateCacheEntry`, uploads to the returned signed URL and
+calls `FinalizeCacheEntryUpload`.
+
+For v1, read uses the legacy artifact-cache lookup. Write reserves a cache,
+patches the archive and finalizes it. The v1 and v2 request layouts are kept
+separate in the backend.
+
+After a write-side HTTP 403 or 429, ccache stores only an expiry time below
+`$CCACHE_DIR/remote-storage/`. The filename is a hash of endpoint and prefix;
+it contains neither a token nor the endpoint itself. `Retry-After` seconds are
+used when supplied. Invalid or missing values use a 60-second fallback. A new
+compiler invocation reads the same state and skips writes until expiry. Reads
+continue.
+
+## Multi-level behavior
+
+The generic storage layer checks local ccache first unless `remote_only` is
+set. It then visits `remote_storage` entries in their configured order.
+
+`backfill=best-effort` is the default. A hit in a later backend is written to
+earlier writable backends. `backfill=strict` turns a failed backfill into a
+cache-operation failure. `backfill=disabled` performs no backfill.
+
+`read-only` prevents writes to that backend but still permits reads. The Linux
+OCI suite contains the intended Redis-to-OCI fallback and Redis backfill case;
+it was not run on this Windows host.
+
+## Security and diagnostics
+
+Secrets must not be placed in shell history, `GITHUB_ENV`, `remote_storage`,
+logs or this document. The manual GHA workflow keeps runtime values in the
+`github-script` process and its child processes; it does not export them to
+`GITHUB_ENV`.
+
+URLs are redacted for logging. Debug output reports operations and status but
+not request or response bodies. The shared helpers centralize non-empty
+environment lookup, boolean parsing, slash normalization, JSON string parsing,
+HTTP URL primitives and diagnostic formatting. OCI and GHA protocol requests
+remain separate.
+
+| Code | Meaning |
+| --- | --- |
+| `CCACHE_NG-ERROR-GHA-0001` | No GHA endpoint before backend construction. |
+| `CCACHE_NG-ERROR-GHA-0002` | No GHA runtime credential before backend construction. |
+| `CCACHE_NG-ERROR-GHA-0021` | Direct GHA token configuration was rejected. |
+| `CCACHE_NG-WARN-GHA-0006` | Write reserve received 403 or 429. |
+| `CCACHE_NG-WARN-GHA-0019` | Write finalize received 403 or 429. |
+| `CCACHE_NG-WARN-GHA-0020` | Cooldown state could not be persisted. |
+| `CCACHE_NG-ERROR-OCI-0035` | Docker credential helper failed without exposing its output. |
+| `CCACHE_NG-ERROR-OCI-0036` | More than one OCI credential source was configured. |
+| `CCACHE_NG-ERROR-OCI-0037` | Direct OCI token configuration was rejected. |
+| `CCACHE_NG-ERROR-OCI-0038` | systemd credential support is unavailable or not configured. |
+| `CCACHE_NG-ERROR-OCI-0039` | systemd credential name is invalid. |
+
+## Local audit
+
+Search scope: `src/ccache/storage/storage.cpp`, the built-in remote backends,
+their tests and the GHA workflow. The audit found identical GHA/OCI helpers for
+environment lookup, boolean parsing, slash normalization and diagnostic
+formatting. They now live in `remoteconfig.hpp` and
+`remotediagnostics.hpp`. Shared HTTP URL and transport primitives live in
+`httptransport.hpp`; JSON string parsing and Docker helper parsing live in
+`credentials.cpp`. This is a statement about that inspected remote-storage
+scope, not the whole repository.
+
+Local Windows evidence on 2026-09-15:
 
 ```text
-ed9a9d4500fb48bb28eaffb3ba71d06ccf86d498fa13ab9f781da010cc488498
+cmake -S . -B build-remote-storage-audit -G Ninja -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
+cmake --build build-remote-storage-audit --target unittest -j 8
+ctest --test-dir build-remote-storage-audit --output-on-failure -R "^unittest$"
 ```
 
-It configures Apache with `--enable-mods-shared=none`, so this is a real Apache
-source build but not a claim that every optional Apache module was built. The
-runner builds ccache in Release mode with explicit `-O3 -DNDEBUG`, development
-warnings as errors and IPO enabled. It builds using `-j12`.
+The build uses warnings-as-errors and IPO. The latest unit run completed 273
+test cases successfully. `git diff --check` passed and tracked files had no
+CRLF or mixed line endings. The project format target could not run on this
+host because its shell launcher requires a Linux Bash environment that is not
+available here; it is not claimed as passed.
 
-The runner then:
+The focused Linux suites `test.remote_gha` and `test.remote_oci` are registered
+only on non-Windows. They remain required before external acceptance.
 
-1. Starts an isolated local GHA v2 mock.
-2. Compiles the configured Apache source using ccache and records cold remote
-   writes.
-3. Clears only that test's `CCACHE_DIR`, zeros statistics and cleans Apache
-   objects.
-4. Compiles Apache again and requires a positive `remote_storage_hit` count.
-5. Removes the temporary test directory and mock process through an EXIT trap.
+## Apache acceptance commands
 
-The recorded successful result was:
-
-```text
-CCACHE_DEV_MODE:UNINITIALIZED=ON
-CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
-CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
-WARNINGS_AS_ERRORS:BOOL=ON
--Werror
--flto
-APACHE_SOURCE_SHA256=ed9a9d4500fb48bb28eaffb3ba71d06ccf86d498fa13ab9f781da010cc488498
-Statistics zeroed
-Statistics zeroed
-APACHE_GHA_PROOF apache=2.4.68 cold_remote_writes=419 cold_remote_hits=0 warm_remote_writes=1 warm_remote_hits=209 local_cache_cleared=yes
-
---- Apache GHA proof status: 0 ---
-```
-
-This proves the test's GHA v2 data-path sequence and local-cache clearing
-behavior. It MUST NOT be read as evidence of a hosted GitHub cache entry,
-GitHub cache retention, GitHub cache scope, or production authentication.
-
-## Reproducible validation
-
-On a Linux Docker host, create a byte-preserving source archive of this
-worktree, transfer it without text conversion, and invoke:
+These are individual commands for a Linux acceptance host. They are a test
+plan, not a recorded result. Run them only after approving the external GHA or
+registry test. Every command must exit 0; print only the stated safe output.
 
 ```sh
-bash test/run-gha-apache-remote-proof SOURCE_ARCHIVE PROOF_LOG STATUS_FILE
+mkdir -p /tmp/ccache-ng-apache-2.4.68
+cd /tmp/ccache-ng-apache-2.4.68
+curl --fail --location --output httpd-2.4.68.tar.bz2 https://downloads.apache.org/httpd/httpd-2.4.68.tar.bz2
+curl --fail --location --output httpd-2.4.68.tar.bz2.sha256 https://downloads.apache.org/httpd/httpd-2.4.68.tar.bz2.sha256
+sha256sum --check httpd-2.4.68.tar.bz2.sha256
+tar --extract --bzip2 --file httpd-2.4.68.tar.bz2
+cd httpd-2.4.68
+./configure --enable-mods-shared=none
+cmake -S /path/to/ccache-ng -B /tmp/ccache-ng-apache-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
+cmake --build /tmp/ccache-ng-apache-build --target ccache -j 8
+export CCACHE_DIR=/tmp/ccache-ng-apache-cache
+export CCACHE_REMOTE_STORAGE='gha://apache-acceptance @service-version=v2 @debug=false'
+/tmp/ccache-ng-apache-build/ccache --clear
+/tmp/ccache-ng-apache-build/ccache --zero-stats
+make -j 8 CC=/tmp/ccache-ng-apache-build/ccache
+/tmp/ccache-ng-apache-build/ccache --show-stats
+/tmp/ccache-ng-apache-build/ccache --clear
+make clean
+make -j 8 CC=/tmp/ccache-ng-apache-build/ccache
+/tmp/ccache-ng-apache-build/ccache --show-stats
+test "$(/tmp/ccache-ng-apache-build/ccache --show-stats | awk '$1 == "remote_storage_hit" { print $2 }')" -gt 0
+rm -rf /tmp/ccache-ng-apache-cache /tmp/ccache-ng-apache-build /tmp/ccache-ng-apache-2.4.68
 ```
 
-The runner uses one explicitly named, `--rm` container and fails when download,
-checksum, configuration, build, cold-write assertion, warm-hit assertion or
-container execution fails. Its exit status is written to `STATUS_FILE`; command
-output remains in `PROOF_LOG` for inspection. It MUST NOT be used to inspect,
-stop or remove unrelated containers.
+The download and checksum files come from the Apache HTTP Server distribution.
+The test must record each command's exit code, cold `remote_storage_write`,
+warm `remote_storage_hit`, the GitHub run ID and the cache UI/REST inspection
+result. Do not replace these commands with a wrapper-script claim.
 
-Focused automated verification uses:
+## External acceptance still required
 
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_DEV_MODE=ON \
-  -DWARNINGS_AS_ERRORS=ON -DENABLE_IPO=ON \
-  -DOCI_STORAGE_BACKEND=ON -DGHA_STORAGE_BACKEND=ON
-cmake --build build --target ccache unittest -j12
-ctest --test-dir build --output-on-failure -R 'unittest|test.remote_(oci|gha)'
-```
+1. Run A stores `test/ccache_cache_test` through GHA; Run B starts with a
+   cleared local cache and proves remote hits before a new write.
+2. Record both GitHub run IDs. Inspect the Actions cache UI and REST cache list.
+3. Run the missing-GHA-token counter test: local compile exit 0,
+   `CCACHE_NG-ERROR-GHA-0002` and exactly zero HTTP requests.
+4. Run GHCR with a short-lived `GITHUB_TOKEN` and the Linux systemd credential
+   store. Each path must read an entry made by the other.
+5. Run Redis plus a local OCI registry: cold write, OCI remote hit, Redis
+   outage, OCI fallback, Redis backfill and read-only behavior.
+6. Remove only the named test caches, test packages and registry entries after
+   checking that they exist.
 
-The project also follows the upstream ccache remote-storage grammar and
-ordering rules described in the [ccache manual](https://ccache.dev/manual/latest.html).
-GitHub's cache access and management boundaries are described in the
-[GitHub Actions cache documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching)
-and the [REST cache API documentation](https://docs.github.com/en/rest/actions/cache).
+## Limits
+
+- GHA delete is unsupported by the cache protocol backend.
+- HTTP-date forms of `Retry-After` are not parsed; they use the 60-second
+  cooldown fallback.
+- Registry-specific authentication exchanges and registry blob garbage
+  collection are outside this backend.
+- This document does not claim complete platform coverage, a bug-free result,
+  successful GitHub execution or successful GHCR execution.
