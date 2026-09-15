@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "httpstorage.hpp"
+#include "httptransport.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -37,6 +38,10 @@
 namespace storage::remote {
 
 namespace {
+
+using detail::http_base_url;
+using detail::http_failure_from_httplib_error;
+using detail::http_url_path;
 
 class HttpStorageBackend : public RemoteStorage::Backend
 {
@@ -66,28 +71,6 @@ private:
 };
 
 std::string
-get_url_path(const Url& url)
-{
-  auto path = url.path();
-  if (path.empty() || path.back() != '/') {
-    path += '/';
-  }
-  return path;
-}
-
-Url
-get_partial_url(const Url& from_url)
-{
-  Url url;
-  url.scheme(from_url.scheme());
-  url.host(from_url.host(), from_url.ip_version());
-  if (!from_url.port().empty()) {
-    url.port(from_url.port());
-  }
-  return url;
-}
-
-std::string
 get_url(const Url& url)
 {
   if (url.host().empty()) {
@@ -96,22 +79,14 @@ get_url(const Url& url)
   }
 
   // httplib requires a partial URL with just scheme, host and port.
-  return get_partial_url(url).str();
-}
-
-RemoteStorage::Backend::Failure
-failure_from_httplib_error(httplib::Error error)
-{
-  return error == httplib::Error::ConnectionTimeout
-           ? RemoteStorage::Backend::Failure::timeout
-           : RemoteStorage::Backend::Failure::error;
+  return http_base_url(url).str();
 }
 
 HttpStorageBackend::HttpStorageBackend(
   const Url& url, const std::vector<Backend::Attribute>& attributes)
   : m_url(url),
     m_redacted_url(get_redacted_url_str_for_logging(url)),
-    m_url_path(get_url_path(url)),
+    m_url_path(http_url_path(url)),
     m_http_client(get_url(url))
 {
   if (!url.user_info().empty()) {
@@ -180,7 +155,7 @@ HttpStorageBackend::get(const Hash::Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return tl::unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(http_failure_from_httplib_error(result.error()));
   }
 
   LOG("GET {}{} -> {}", m_redacted_url, url_path, result->status);
@@ -207,7 +182,7 @@ HttpStorageBackend::put(const Hash::Digest& key,
           url_path,
           to_string(result.error()),
           static_cast<int>(result.error()));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
+      return tl::unexpected(http_failure_from_httplib_error(result.error()));
     }
 
     LOG("HEAD {}{} -> {}", m_redacted_url, url_path, result->status);
@@ -232,7 +207,7 @@ HttpStorageBackend::put(const Hash::Digest& key,
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return tl::unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(http_failure_from_httplib_error(result.error()));
   }
 
   LOG("PUT {}{} -> {}", m_redacted_url, url_path, result->status);
@@ -241,7 +216,7 @@ HttpStorageBackend::put(const Hash::Digest& key,
     LOG("Failed to put {} to http storage: status code: {}",
         url_path,
         result->status);
-    return tl::unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(http_failure_from_httplib_error(result.error()));
   }
 
   return true;
@@ -258,7 +233,7 @@ HttpStorageBackend::remove(const Hash::Digest& key)
         url_path,
         to_string(result.error()),
         static_cast<int>(result.error()));
-    return tl::unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(http_failure_from_httplib_error(result.error()));
   }
 
   LOG("DELETE {}{} -> {}", m_redacted_url, url_path, result->status);
@@ -267,7 +242,7 @@ HttpStorageBackend::remove(const Hash::Digest& key)
     LOG("Failed to delete {} from http storage: status code: {}",
         url_path,
         result->status);
-    return tl::unexpected(failure_from_httplib_error(result.error()));
+    return tl::unexpected(http_failure_from_httplib_error(result.error()));
   }
 
   return true;

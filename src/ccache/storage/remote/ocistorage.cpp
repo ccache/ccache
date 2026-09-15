@@ -8,6 +8,7 @@
 // any later version.
 
 #include "ocistorage.hpp"
+#include "httptransport.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -39,6 +40,8 @@
 namespace storage::remote {
 
 namespace {
+
+using detail::http_failure_from_httplib_error;
 
 std::optional<std::string>
 getenv_string(const char* name)
@@ -235,14 +238,6 @@ extract_oci_layer_digest(std::string_view manifest)
                                        : std::nullopt;
 }
 
-RemoteStorage::Backend::Failure
-failure_from_httplib_error(httplib::Error error)
-{
-  return error == httplib::Error::ConnectionTimeout
-           ? RemoteStorage::Backend::Failure::timeout
-           : RemoteStorage::Backend::Failure::error;
-}
-
 class OciStorageBackend : public RemoteStorage::Backend
 {
 public:
@@ -286,7 +281,7 @@ public:
                FMT("failed to get OCI manifest from {}: {}",
                    m_redacted_url,
                    to_string(manifest.error())));
-      return tl::unexpected(failure_from_httplib_error(manifest.error()));
+      return tl::unexpected(http_failure_from_httplib_error(manifest.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-OCI-9002: GET manifest {} key={} status={}",
@@ -319,7 +314,7 @@ public:
                FMT("failed to get OCI cache blob from {}: {}",
                    m_redacted_url,
                    to_string(blob.error())));
-      return tl::unexpected(failure_from_httplib_error(blob.error()));
+      return tl::unexpected(http_failure_from_httplib_error(blob.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-OCI-9003: GET blob {} key={} status={}",
@@ -381,7 +376,7 @@ public:
                FMT("failed to publish OCI cache manifest to {}: {}",
                    m_redacted_url,
                    to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
+      return tl::unexpected(http_failure_from_httplib_error(result.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-OCI-9004: PUT manifest {} key={} status={}",
@@ -413,7 +408,7 @@ public:
                FMT("failed to get OCI manifest for deletion from {}: {}",
                    m_redacted_url,
                    to_string(manifest.error())));
-      return tl::unexpected(failure_from_httplib_error(manifest.error()));
+      return tl::unexpected(http_failure_from_httplib_error(manifest.error()));
     }
     if (manifest->status == 404) {
       return false;
@@ -441,7 +436,7 @@ public:
                FMT("failed to delete OCI manifest from {}: {}",
                    m_redacted_url,
                    to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
+      return tl::unexpected(http_failure_from_httplib_error(result.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-OCI-9005: DELETE manifest {} key={} status={}",
@@ -471,7 +466,7 @@ private:
                FMT("failed to check OCI blob in {}: {}",
                    m_redacted_url,
                    to_string(existing.error())));
-      return tl::unexpected(failure_from_httplib_error(existing.error()));
+      return tl::unexpected(http_failure_from_httplib_error(existing.error()));
     }
     if (existing->status >= 200 && existing->status < 300) {
       return false;
@@ -491,7 +486,7 @@ private:
                FMT("failed to start OCI blob upload to {}: {}",
                    m_redacted_url,
                    to_string(start.error())));
-      return tl::unexpected(failure_from_httplib_error(start.error()));
+      return tl::unexpected(http_failure_from_httplib_error(start.error()));
     }
     if (start->status < 200 || start->status >= 300) {
       log_diagnostic(
@@ -526,7 +521,7 @@ private:
                FMT("failed to complete OCI blob upload to {}: {}",
                    m_redacted_url,
                    to_string(complete.error())));
-      return tl::unexpected(failure_from_httplib_error(complete.error()));
+      return tl::unexpected(http_failure_from_httplib_error(complete.error()));
     }
     if (complete->status < 200 || complete->status >= 300) {
       log_diagnostic(

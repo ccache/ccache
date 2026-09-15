@@ -8,6 +8,7 @@
 // any later version.
 
 #include "ghastorage.hpp"
+#include "httptransport.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -29,6 +30,10 @@
 namespace storage::remote {
 
 namespace {
+
+using detail::http_base_url;
+using detail::http_failure_from_httplib_error;
+using detail::http_url_path;
 
 std::optional<std::string>
 getenv_string(const char* name)
@@ -52,14 +57,6 @@ strip_slashes(std::string value)
   return value;
 }
 
-RemoteStorage::Backend::Failure
-failure_from_httplib_error(httplib::Error error)
-{
-  return error == httplib::Error::ConnectionTimeout
-           ? RemoteStorage::Backend::Failure::timeout
-           : RemoteStorage::Backend::Failure::error;
-}
-
 bool
 parse_bool(std::string_view value)
 {
@@ -70,31 +67,6 @@ void
 log_diagnostic(const std::string& code, const std::string& message)
 {
   LOG("{}: {}", code, message);
-}
-
-Url
-partial_url(const Url& url)
-{
-  Url partial;
-  partial.scheme(url.scheme());
-  partial.host(url.host(), url.ip_version());
-  if (!url.port().empty()) {
-    partial.port(url.port());
-  }
-  return partial;
-}
-
-std::string
-url_path(const Url& url)
-{
-  auto path = url.path();
-  if (path.empty()) {
-    return "/";
-  }
-  if (path.back() != '/') {
-    path += '/';
-  }
-  return path;
 }
 
 std::string
@@ -245,9 +217,9 @@ public:
     const std::vector<Backend::Attribute>& attributes)
     : m_config(detail::parse_gha_storage_config(url, attributes)),
       m_results_url(m_config.results_url),
-      m_base_path(url_path(m_results_url)),
+      m_base_path(http_url_path(m_results_url)),
       m_redacted_url(storage::get_redacted_url_str_for_logging(m_results_url)),
-      m_http_client(partial_url(m_results_url).str())
+      m_http_client(http_base_url(m_results_url).str())
   {
     httplib::Headers headers;
     headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
@@ -290,7 +262,7 @@ public:
                FMT("failed to query GitHub Actions cache {}: {}",
                    m_redacted_url,
                    to_string(result.error())));
-      return tl::unexpected(failure_from_httplib_error(result.error()));
+      return tl::unexpected(http_failure_from_httplib_error(result.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-GHA-9001: GET {} key={} status={}",
@@ -325,7 +297,7 @@ public:
     }
 
     const Url archive_url(*archive_location);
-    httplib::Client archive_client(partial_url(archive_url).str());
+    httplib::Client archive_client(http_base_url(archive_url).str());
     archive_client.set_keep_alive(true);
     archive_client.set_connection_timeout(m_config.connect_timeout);
     archive_client.set_read_timeout(m_config.operation_timeout);
@@ -339,7 +311,7 @@ public:
                FMT("failed to download GitHub Actions cache entry {}: {}",
                    storage::get_redacted_url_str_for_logging(archive_url),
                    to_string(archive.error())));
-      return tl::unexpected(failure_from_httplib_error(archive.error()));
+      return tl::unexpected(http_failure_from_httplib_error(archive.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-GHA-9002: DOWNLOAD {} key={} status={}",
@@ -398,7 +370,7 @@ public:
                FMT("failed to reserve GitHub Actions cache entry {}: {}",
                    m_redacted_url,
                    to_string(reserve.error())));
-      return tl::unexpected(failure_from_httplib_error(reserve.error()));
+      return tl::unexpected(http_failure_from_httplib_error(reserve.error()));
     }
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-GHA-9003: RESERVE {} key={} status={}",
@@ -437,7 +409,7 @@ public:
       v2 ? detail::make_gha_archive_path(*upload_location)
          : FMT("{}_apis/artifactcache/caches/{}", m_base_path, *upload_location);
     Url upload_url = v2 ? Url(*upload_location) : m_results_url;
-    httplib::Client upload_client(partial_url(upload_url).str());
+    httplib::Client upload_client(http_base_url(upload_url).str());
     upload_client.set_keep_alive(true);
     upload_client.set_connection_timeout(m_config.connect_timeout);
     upload_client.set_read_timeout(m_config.operation_timeout);
@@ -466,7 +438,7 @@ public:
                FMT("failed to upload GitHub Actions cache entry {}: {}",
                    storage::get_redacted_url_str_for_logging(upload_url),
                    to_string(upload.error())));
-      return tl::unexpected(failure_from_httplib_error(upload.error()));
+      return tl::unexpected(http_failure_from_httplib_error(upload.error()));
     }
     if (upload->status < 200 || upload->status >= 300) {
       log_diagnostic(
@@ -495,7 +467,7 @@ public:
                FMT("failed to finalize GitHub Actions cache entry {}: {}",
                    m_redacted_url,
                    to_string(finalize.error())));
-      return tl::unexpected(failure_from_httplib_error(finalize.error()));
+      return tl::unexpected(http_failure_from_httplib_error(finalize.error()));
     }
     if (finalize->status == 403 || finalize->status == 429) {
       m_writes_disabled = true;

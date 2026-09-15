@@ -3,6 +3,7 @@ set(
   client.cpp
   filestorage.cpp
   helper.cpp
+  httptransport.hpp
   remotestorage.cpp
 )
 
