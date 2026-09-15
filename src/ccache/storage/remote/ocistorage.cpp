@@ -678,7 +678,9 @@ make_oci_manifest_path(const std::string& repository,
 
 std::unique_ptr<RemoteStorage::Backend>
 OciStorage::create_backend(
-  const Url& url, const std::vector<Backend::Attribute>& attributes) const
+  const Url& url,
+  const std::vector<Backend::Attribute>& attributes,
+  const BackendContext&) const
 {
   return std::make_unique<OciStorageBackend>(url, attributes);
 }

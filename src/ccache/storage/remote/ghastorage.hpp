@@ -56,7 +56,8 @@ class GhaStorage : public RemoteStorage
 public:
   std::unique_ptr<Backend> create_backend(
     const Url& url,
-    const std::vector<Backend::Attribute>& attributes) const override;
+    const std::vector<Backend::Attribute>& attributes,
+    const BackendContext& context) const override;
 };
 
 } // namespace storage::remote

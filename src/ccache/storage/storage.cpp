@@ -669,7 +669,8 @@ Storage::get_backend(RemoteStorageEntry& entry,
     entry.backends.push_back({shard_url, url_str_for_logging, {}, false});
     try {
       entry.backends.back().impl =
-        entry.storage->create_backend(shard_url, entry.config.attributes);
+        entry.storage->create_backend(
+          shard_url, entry.config.attributes, {m_config.cache_dir()});
     } catch (const remote::RemoteStorage::Backend::Failed& e) {
       LOG("CCACHE_NG-ERROR-REMOTE-0003: failed to construct backend for {}{}",
           url_str_for_logging,
@@ -874,7 +875,9 @@ Storage::stop_remote_storage_helpers()
   for (const auto& entry : m_remote_storages) {
     const auto& config = entry->config;
     for (const auto& shard : config.shards) {
-      entry->storage->create_backend(shard.url, config.attributes)->stop();
+      entry->storage
+        ->create_backend(shard.url, config.attributes, {m_config.cache_dir()})
+        ->stop();
     }
   }
 }

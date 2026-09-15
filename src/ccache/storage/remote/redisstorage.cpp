@@ -351,7 +351,9 @@ RedisStorageBackend::get_key_string(const Hash::Digest& digest) const
 
 std::unique_ptr<RemoteStorage::Backend>
 RedisStorage::create_backend(
-  const Url& url, const std::vector<Backend::Attribute>& attributes) const
+  const Url& url,
+  const std::vector<Backend::Attribute>& attributes,
+  const BackendContext&) const
 {
   return std::make_unique<RedisStorageBackend>(url, attributes);
 }

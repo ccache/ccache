@@ -26,6 +26,7 @@
 #include <tl/expected.hpp>
 
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
@@ -46,6 +47,11 @@ const auto k_default_idle_timeout = std::chrono::minutes{10};
 class RemoteStorage
 {
 public:
+  struct BackendContext
+  {
+    std::filesystem::path cache_dir;
+  };
+
   class Backend
   {
   public:
@@ -107,7 +113,8 @@ public:
   // connection error or timeout.
   virtual std::unique_ptr<Backend>
   create_backend(const Url& url,
-                 const std::vector<Backend::Attribute>& attributes) const = 0;
+                 const std::vector<Backend::Attribute>& attributes,
+                 const BackendContext& context) const = 0;
 };
 
 // --- Inline implementations ---
