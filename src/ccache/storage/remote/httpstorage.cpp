@@ -17,7 +17,6 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "httpstorage.hpp"
-#include "remoteutils.hpp"
 
 #include <ccache/ccache.hpp>
 #include <ccache/core/exceptions.hpp>
@@ -38,10 +37,6 @@
 namespace storage::remote {
 
 namespace {
-
-using detail::failure_from_httplib_error;
-using detail::partial_url;
-using detail::url_path;
 
 class HttpStorageBackend : public RemoteStorage::Backend
 {
@@ -71,6 +66,28 @@ private:
 };
 
 std::string
+get_url_path(const Url& url)
+{
+  auto path = url.path();
+  if (path.empty() || path.back() != '/') {
+    path += '/';
+  }
+  return path;
+}
+
+Url
+get_partial_url(const Url& from_url)
+{
+  Url url;
+  url.scheme(from_url.scheme());
+  url.host(from_url.host(), from_url.ip_version());
+  if (!from_url.port().empty()) {
+    url.port(from_url.port());
+  }
+  return url;
+}
+
+std::string
 get_url(const Url& url)
 {
   if (url.host().empty()) {
@@ -79,14 +96,22 @@ get_url(const Url& url)
   }
 
   // httplib requires a partial URL with just scheme, host and port.
-  return partial_url(url).str();
+  return get_partial_url(url).str();
+}
+
+RemoteStorage::Backend::Failure
+failure_from_httplib_error(httplib::Error error)
+{
+  return error == httplib::Error::ConnectionTimeout
+           ? RemoteStorage::Backend::Failure::timeout
+           : RemoteStorage::Backend::Failure::error;
 }
 
 HttpStorageBackend::HttpStorageBackend(
   const Url& url, const std::vector<Backend::Attribute>& attributes)
   : m_url(url),
     m_redacted_url(get_redacted_url_str_for_logging(url)),
-    m_url_path(url_path(url)),
+    m_url_path(get_url_path(url)),
     m_http_client(get_url(url))
 {
   if (!url.user_info().empty()) {
