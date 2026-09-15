@@ -53,9 +53,11 @@ printf 'APACHE_SOURCE_SHA256=%s\n' "${APACHE_SOURCE_SHA256}"
 tar -xzf "${TEST_ROOT}/httpd.tar.gz" -C "${TEST_ROOT}"
 
 httpd_dir="${TEST_ROOT}/httpd-${APACHE_VERSION}"
-CC="${CCACHE_BINARY} gcc" CXX="${CCACHE_BINARY} g++" \
-  "${httpd_dir}/configure" --prefix="${TEST_ROOT}/install" --enable-mods-shared=none \
-  >"${TEST_ROOT}/configure.log" 2>&1 || fail_with_log "${TEST_ROOT}/configure.log"
+(
+  cd "${httpd_dir}"
+  CC="${CCACHE_BINARY} gcc" CXX="${CCACHE_BINARY} g++" \
+    ./configure --prefix="${TEST_ROOT}/install" --enable-mods-shared=none
+) >"${TEST_ROOT}/configure.log" 2>&1 || fail_with_log "${TEST_ROOT}/configure.log"
 
 # Remove configure probes so the first measured build is cold.
 "${CCACHE_BINARY}" --clear
