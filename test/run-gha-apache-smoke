@@ -38,6 +38,11 @@ require_positive_stat() {
 }
 
 "${CCACHE_BINARY}" --version | grep -Fq -- gha-storage
+command -v curl >/dev/null
+command -v make >/dev/null
+command -v python3 >/dev/null
+command -v sha256sum >/dev/null
+command -v tar >/dev/null
 
 export CCACHE_DIR="${TEST_ROOT}/ccache"
 export CCACHE_BASEDIR="${TEST_ROOT}/httpd-${APACHE_VERSION}"
