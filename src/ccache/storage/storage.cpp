@@ -327,7 +327,7 @@ parse_storage_config(const std::vector<std::string_view>::const_iterator& begin,
         result.backfill_policy = RemoteStorageConfig::BackfillPolicy::disabled;
       } else {
         throw core::Error(
-          FMT("CCACHE-REMOTE-0004: invalid backfill policy for remote storage: \"{}\"",
+          FMT("CCACHE_NG-ERROR-REMOTE-0004: invalid backfill policy for remote storage: \"{}\"",
               value));
       }
     } else if (key == "data-timeout") {
@@ -596,7 +596,7 @@ Storage::mark_backend_as_failed(
   const remote::RemoteStorage::Backend::Failure failure)
 {
   // The backend is expected to log details about the error.
-  LOG("Marking remote storage backend for {} as failed",
+  LOG("CCACHE_NG-INFO-REMOTE-9001: marking remote storage backend for {} as failed",
       backend_entry.url.scheme());
   backend_entry.failed = true;
   local.increment_statistic(
@@ -671,7 +671,7 @@ Storage::get_backend(RemoteStorageEntry& entry,
       entry.backends.back().impl =
         entry.storage->create_backend(shard_url, entry.config.attributes);
     } catch (const remote::RemoteStorage::Backend::Failed& e) {
-      LOG("CCACHE-REMOTE-0003: failed to construct backend for {}{}",
+      LOG("CCACHE_NG-ERROR-REMOTE-0003: failed to construct backend for {}{}",
           url_str_for_logging,
           std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
@@ -750,7 +750,7 @@ Storage::backfill_remote_storage(const Hash::Digest& key,
     auto& entry = *m_remote_storages[index];
     if (entry.config.backfill_policy
         == RemoteStorageConfig::BackfillPolicy::disabled) {
-      LOG("Not backfilling {} storage since backfill is disabled",
+      LOG("CCACHE_NG-INFO-REMOTE-9002: not backfilling {} storage since backfill is disabled",
           entry.config.shards.front().url.scheme());
       continue;
     }
@@ -760,7 +760,7 @@ Storage::backfill_remote_storage(const Hash::Digest& key,
       if (entry.config.backfill_policy
           == RemoteStorageConfig::BackfillPolicy::strict) {
         throw core::Error(
-          "CCACHE-REMOTE-0001: strict remote storage backfill failed");
+          "CCACHE_NG-ERROR-REMOTE-0001: strict remote storage backfill failed");
       }
       continue;
     }
@@ -773,7 +773,7 @@ Storage::backfill_remote_storage(const Hash::Digest& key,
       if (entry.config.backfill_policy
           == RemoteStorageConfig::BackfillPolicy::strict) {
         throw core::Error(FMT(
-          "CCACHE-REMOTE-0002: strict remote storage backfill failed for {}",
+          "CCACHE_NG-ERROR-REMOTE-0002: strict remote storage backfill failed for {}",
           backend->url_for_logging));
       }
       continue;

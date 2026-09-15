@@ -23,7 +23,6 @@
 
 #include <cstdlib>
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
 
@@ -68,13 +67,9 @@ parse_bool(std::string_view value)
 }
 
 void
-log_once(std::set<std::string>& seen,
-         const std::string& code,
-         const std::string& message)
+log_diagnostic(const std::string& code, const std::string& message)
 {
-  if (seen.insert(code).second) {
-    LOG("{}: {}", code, message);
-  }
+  LOG("{}: {}", code, message);
 }
 
 Url
@@ -290,15 +285,15 @@ public:
                               "application/json")
                           : m_http_client.Get(path);
     if (!result || result.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0003",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0003",
                FMT("failed to query GitHub Actions cache {}: {}",
                    m_redacted_url,
                    to_string(result.error())));
       return tl::unexpected(failure_from_httplib_error(result.error()));
     }
     if (m_config.debug) {
-      LOG("CCACHE-GHA-DEBUG: GET {} key={} status={}",
+      LOG("CCACHE_NG-DEBUG-GHA-9001: GET {} key={} status={}",
           m_redacted_url,
           entry_key,
           result->status);
@@ -307,8 +302,8 @@ public:
       return std::nullopt;
     }
     if (result->status < 200 || result->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0004",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0004",
                FMT("GitHub Actions cache lookup returned status {}",
                    result->status));
       return tl::unexpected(Failure::error);
@@ -323,8 +318,8 @@ public:
       return std::nullopt;
     }
     if (!archive_location) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0016",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0016",
                "GitHub Actions cache lookup response had no download location");
       return tl::unexpected(Failure::error);
     }
@@ -339,22 +334,22 @@ public:
     const auto archive =
       archive_client.Get(detail::make_gha_archive_path(*archive_location));
     if (!archive || archive.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0017",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0017",
                FMT("failed to download GitHub Actions cache entry {}: {}",
                    storage::get_redacted_url_str_for_logging(archive_url),
                    to_string(archive.error())));
       return tl::unexpected(failure_from_httplib_error(archive.error()));
     }
     if (m_config.debug) {
-      LOG("CCACHE-GHA-DEBUG: DOWNLOAD {} key={} status={}",
+      LOG("CCACHE_NG-DEBUG-GHA-9002: DOWNLOAD {} key={} status={}",
           storage::get_redacted_url_str_for_logging(archive_url),
           entry_key,
           archive->status);
     }
     if (archive->status < 200 || archive->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0018",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0018",
                FMT("GitHub Actions cache download returned status {}",
                    archive->status));
       return tl::unexpected(Failure::error);
@@ -366,6 +361,10 @@ public:
                                   std::span<const uint8_t> value,
                                   Overwrite overwrite) override
   {
+    if (m_writes_disabled) {
+      return false;
+    }
+
     const std::string entry_key =
       detail::make_gha_storage_key(key, m_config.prefix);
     if (overwrite == Overwrite::no
@@ -394,28 +393,30 @@ public:
     const auto reserve =
       m_http_client.Post(reserve_path, reserve_body, "application/json");
     if (!reserve || reserve.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0005",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0005",
                FMT("failed to reserve GitHub Actions cache entry {}: {}",
                    m_redacted_url,
                    to_string(reserve.error())));
       return tl::unexpected(failure_from_httplib_error(reserve.error()));
     }
     if (m_config.debug) {
-      LOG("CCACHE-GHA-DEBUG: RESERVE {} key={} status={}",
+      LOG("CCACHE_NG-DEBUG-GHA-9003: RESERVE {} key={} status={}",
           m_redacted_url,
           entry_key,
           reserve->status);
     }
     if (reserve->status == 403 || reserve->status == 429) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0006",
-               "GitHub Actions cache write was skipped by service policy");
+      m_writes_disabled = true;
+      log_diagnostic(
+               "CCACHE_NG-WARN-GHA-0006",
+               FMT("GitHub Actions cache write was disabled for this run after status {}",
+                   reserve->status));
       return false;
     }
     if (reserve->status < 200 || reserve->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0007",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0007",
                FMT("GitHub Actions cache reserve returned status {}",
                    reserve->status));
       return tl::unexpected(Failure::error);
@@ -425,8 +426,8 @@ public:
       v2 ? extract_json_string(reserve->body, "signed_upload_url")
          : extract_json_number(reserve->body, "cacheId");
     if ((v2 && !extract_json_true(reserve->body, "ok")) || !upload_location) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0010",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0010",
                "GitHub Actions cache reserve response was incomplete");
       return v2 ? tl::expected<bool, Failure>(false)
                 : tl::unexpected(Failure::error);
@@ -460,16 +461,16 @@ public:
                               value.size(),
                               "application/octet-stream");
     if (!upload || upload.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0011",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0011",
                FMT("failed to upload GitHub Actions cache entry {}: {}",
                    storage::get_redacted_url_str_for_logging(upload_url),
                    to_string(upload.error())));
       return tl::unexpected(failure_from_httplib_error(upload.error()));
     }
     if (upload->status < 200 || upload->status >= 300) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0012",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0012",
                FMT("GitHub Actions cache upload returned status {}", upload->status));
       return tl::unexpected(Failure::error);
     }
@@ -489,23 +490,25 @@ public:
     const auto finalize =
       m_http_client.Post(finalize_path, finalize_body, "application/json");
     if (!finalize || finalize.error() != httplib::Error::Success) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0013",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0013",
                FMT("failed to finalize GitHub Actions cache entry {}: {}",
                    m_redacted_url,
                    to_string(finalize.error())));
       return tl::unexpected(failure_from_httplib_error(finalize.error()));
     }
     if (finalize->status == 403 || finalize->status == 429) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0019",
-               "GitHub Actions cache write was skipped by service policy");
+      m_writes_disabled = true;
+      log_diagnostic(
+               "CCACHE_NG-WARN-GHA-0019",
+               FMT("GitHub Actions cache write was disabled for this run after status {}",
+                   finalize->status));
       return false;
     }
     if (finalize->status < 200 || finalize->status >= 300
         || (v2 && !extract_json_true(finalize->body, "ok"))) {
-      log_once(m_seen_errors,
-               "CCACHE-GHA-0014",
+      log_diagnostic(
+               "CCACHE_NG-ERROR-GHA-0014",
                FMT("GitHub Actions cache finalize returned status {}",
                    finalize->status));
       return tl::unexpected(Failure::error);
@@ -515,8 +518,8 @@ public:
 
   tl::expected<bool, Failure> remove(const Hash::Digest&) override
   {
-    log_once(m_seen_errors,
-             "CCACHE-GHA-0009",
+    log_diagnostic(
+             "CCACHE_NG-ERROR-GHA-0009",
              "GitHub Actions cache storage does not support deleting entries");
     return false;
   }
@@ -527,7 +530,7 @@ private:
   std::string m_base_path;
   std::string m_redacted_url;
   httplib::Client m_http_client;
-  std::set<std::string> m_seen_errors;
+  bool m_writes_disabled = false;
 };
 
 } // namespace
@@ -573,7 +576,7 @@ parse_gha_storage_config(
         config.service_version = GhaServiceVersion::v2;
       } else {
         throw core::Fatal(
-          "CCACHE-GHA-0015: service-version must be v1 or v2 for gha storage");
+          "CCACHE_NG-ERROR-GHA-0015: service-version must be v1 or v2 for gha storage");
       }
     } else if (attr.key == "debug") {
       config.debug = parse_bool(attr.value);
@@ -584,17 +587,17 @@ parse_gha_storage_config(
       config.operation_timeout =
         RemoteStorage::Backend::parse_timeout_attribute(attr.value);
     } else {
-      LOG("CCACHE-GHA-0008: unknown GitHub Actions cache storage attribute: {}",
+      LOG("CCACHE_NG-WARN-GHA-0008: unknown GitHub Actions cache storage attribute: {}",
           attr.key);
     }
   }
 
   if (config.results_url.empty()) {
-    throw core::Fatal("CCACHE-GHA-0001: ACTIONS_RESULTS_URL or @url is"
+    throw core::Fatal("CCACHE_NG-ERROR-GHA-0001: ACTIONS_RESULTS_URL or @url is"
                       " required for gha storage");
   }
   if (config.token.empty()) {
-    throw core::Fatal("CCACHE-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is"
+    throw core::Fatal("CCACHE_NG-ERROR-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is"
                       " required for gha storage");
   }
   return config;

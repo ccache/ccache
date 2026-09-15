@@ -71,14 +71,26 @@ Supported secret attributes:
 
 ## Error reporting
 
-Operational failures MUST be logged at most once per backend instance and run.
 Each failure message MUST include a stable error code so that the code path can
-be found from logs. URLs in errors and debug output MUST redact credentials and
-numeric hosts. Current prefixes are:
+be found from logs. The same code MAY be logged again when the same operation
+fails again. URLs in errors and debug output MUST redact credentials and
+numeric hosts. Current error prefixes are:
 
-- `CCACHE-OCI-0001` through `CCACHE-OCI-0031`
-- `CCACHE-GHA-0001` through `CCACHE-GHA-0019`
-- `CCACHE-REMOTE-0001` through `CCACHE-REMOTE-0004`
+- `CCACHE_NG-ERROR-OCI-0001` through `CCACHE_NG-ERROR-OCI-0031`
+- `CCACHE_NG-ERROR-GHA-0001` through `CCACHE_NG-ERROR-GHA-0019`
+- `CCACHE_NG-ERROR-REMOTE-0001` through `CCACHE_NG-ERROR-REMOTE-0004`
+
+Every diagnostic added by the OCI, GHA and backfill-policy module MUST use
+`CCACHE_NG-<SEVERITY>-<SERVICE>-<NUMBER>`. Error numbers identify the source
+location; the same code MAY occur again when the same operation fails again.
+`ERROR` diagnostics include the transport error name where available. `DEBUG`
+diagnostics include the HTTP status and a redacted URL. They MUST NOT include
+response bodies, tokens, credentials or private addresses.
+
+After a GHA write receives `403` or `429`, ccache MUST emit a `WARN`
+diagnostic and MUST NOT make another GHA write request through that backend in
+the current run. Reads and later configured remote levels MAY still serve the
+compile.
 
 Debug logging MAY be enabled with `@debug=true` or by enabling GitHub Actions
 step debugging, which sets `ACTIONS_STEP_DEBUG`. `@debug=false` MUST override
@@ -109,7 +121,7 @@ Local tests MUST cover:
 - URL, attribute and error redaction.
 - Full digest key generation without truncation.
 - Read-only behavior and missing-write-permission handling.
-- Non-repeated error logging and stable error codes.
+- Repeated-operation diagnostics and stable error codes.
 - Redis failure fallback and OCI-to-Redis backfill.
 
 Local OCI registry integration tests MUST be preferred for required registry
@@ -123,7 +135,8 @@ their Valkey equivalents) for fallback and backfill coverage. It MUST use
 
 `test.remote_gha` MUST use its local GHA v2 mock server. It covers cache entry
 creation, signed upload and download URLs, finalization and a rate-limited
-write without requiring an Actions token or external service.
+write without requiring an Actions token or external service. The rate-limit
+case MUST prove that only one reserve request reached the mock server.
 
 ## Build
 
