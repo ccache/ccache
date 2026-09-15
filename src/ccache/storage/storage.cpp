@@ -823,7 +823,9 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
         util::format_base16(key),
         backend->url_for_logging,
         ms);
-    local.increment_statistic(core::Statistic::remote_storage_write);
+    if (stored) {
+      local.increment_statistic(core::Statistic::remote_storage_write);
+    }
   }
 }
 
