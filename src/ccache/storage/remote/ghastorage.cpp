@@ -593,12 +593,12 @@ parse_gha_storage_config(
   }
 
   if (config.results_url.empty()) {
-    throw core::Fatal("CCACHE_NG-ERROR-GHA-0001: ACTIONS_RESULTS_URL or @url is"
-                      " required for gha storage");
+    throw RemoteStorage::Backend::Failed(
+      "CCACHE_NG-ERROR-GHA-0001: ACTIONS_RESULTS_URL or @url is required for gha storage");
   }
   if (config.token.empty()) {
-    throw core::Fatal("CCACHE_NG-ERROR-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is"
-                      " required for gha storage");
+    throw RemoteStorage::Backend::Failed(
+      "CCACHE_NG-ERROR-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is required for gha storage");
   }
   return config;
 }

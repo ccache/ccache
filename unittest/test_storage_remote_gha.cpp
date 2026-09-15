@@ -82,7 +82,7 @@ TEST_CASE("reject gha storage without runtime configuration")
   CHECK_THROWS_WITH_AS(
     storage::remote::detail::parse_gha_storage_config(Url("gha://"), {}),
     doctest::Contains("CCACHE_NG-ERROR-GHA-0001"),
-    core::Fatal);
+    storage::remote::RemoteStorage::Backend::Failed);
 }
 
 TEST_CASE("make gha key from full digest")
