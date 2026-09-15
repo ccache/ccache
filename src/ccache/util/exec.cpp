@@ -184,10 +184,12 @@ exec_to_string(const Args& args, const std::string_view standard_input)
     const auto written = write(input_pipefd[1],
                                standard_input.data() + input_offset,
                                standard_input.size() - input_offset);
-    if (written < 0) {
+    if (written <= 0) {
       close(input_pipefd[1]);
       close(output_pipefd[0]);
-      return tl::unexpected(FMT("write failed: {}", strerror(errno)));
+      return tl::unexpected(
+        written == 0 ? "write failed: no bytes written"
+                     : FMT("write failed: {}", strerror(errno)));
     }
     input_offset += static_cast<size_t>(written);
   }
