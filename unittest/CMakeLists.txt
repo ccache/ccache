@@ -19,6 +19,7 @@ set(
   test_storage_local_statsfile.cpp
   test_storage_local_util.cpp
   test_storage_remote_credentials.cpp
+  test_storage_remote_gha_cooldown.cpp
   test_storage_remote_gha.cpp
   test_storage_remote_oci.cpp
   test_util_args.cpp

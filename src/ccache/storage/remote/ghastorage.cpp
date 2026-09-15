@@ -10,6 +10,7 @@
 #include "ghastorage.hpp"
 
 #include "credentials.hpp"
+#include "ghacooldown.hpp"
 #include "httptransport.hpp"
 
 #include <ccache/ccache.hpp>
@@ -150,12 +151,15 @@ class GhaStorageBackend : public RemoteStorage::Backend
 {
 public:
   GhaStorageBackend(const Url& url,
-    const std::vector<Backend::Attribute>& attributes)
+    const std::vector<Backend::Attribute>& attributes,
+    const RemoteStorage::BackendContext& context)
     : m_config(detail::parse_gha_storage_config(url, attributes)),
       m_results_url(m_config.results_url),
       m_base_path(http_url_path(m_results_url)),
       m_redacted_url(storage::get_redacted_url_str_for_logging(m_results_url)),
-      m_http_client(http_base_url(m_results_url).str())
+      m_http_client(http_base_url(m_results_url).str()),
+      m_write_cooldown(
+        context.cache_dir, FMT("{}\n{}", m_results_url.str(), m_config.prefix))
   {
     httplib::Headers headers;
     headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
@@ -269,7 +273,8 @@ public:
                                   std::span<const uint8_t> value,
                                   Overwrite overwrite) override
   {
-    if (m_writes_disabled) {
+    if (m_writes_disabled || m_write_cooldown.is_active()) {
+      // Skip writes until the server retry window expires.
       return false;
     }
 
@@ -316,6 +321,8 @@ public:
     }
     if (reserve->status == 403 || reserve->status == 429) {
       m_writes_disabled = true;
+      m_write_cooldown.set(detail::gha_write_cooldown_duration(
+        reserve->get_header_value("Retry-After")));
       log_diagnostic(
                "CCACHE_NG-WARN-GHA-0006",
                FMT("GitHub Actions cache write was disabled for this run after status {}",
@@ -407,6 +414,8 @@ public:
     }
     if (finalize->status == 403 || finalize->status == 429) {
       m_writes_disabled = true;
+      m_write_cooldown.set(detail::gha_write_cooldown_duration(
+        finalize->get_header_value("Retry-After")));
       log_diagnostic(
                "CCACHE_NG-WARN-GHA-0019",
                FMT("GitHub Actions cache write was disabled for this run after status {}",
@@ -438,6 +447,7 @@ private:
   std::string m_base_path;
   std::string m_redacted_url;
   httplib::Client m_http_client;
+  detail::GhaWriteCooldown m_write_cooldown;
   bool m_writes_disabled = false;
 };
 
@@ -564,9 +574,9 @@ std::unique_ptr<RemoteStorage::Backend>
 GhaStorage::create_backend(
   const Url& url,
   const std::vector<Backend::Attribute>& attributes,
-  const BackendContext&) const
+  const BackendContext& context) const
 {
-  return std::make_unique<GhaStorageBackend>(url, attributes);
+  return std::make_unique<GhaStorageBackend>(url, attributes, context);
 }
 
 } // namespace storage::remote

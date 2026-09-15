@@ -3,6 +3,7 @@ set(
   client.cpp
   credentials.cpp
   filestorage.cpp
+  ghacooldown.cpp
   helper.cpp
   httptransport.hpp
   remotestorage.cpp

@@ -58,6 +58,10 @@ SUITE_remote_gha() {
     $CCACHE_COMPILE -c test.c
     expect_stat cache_miss 1
     expect_stat remote_storage_write 0
+    generate_code 2 test.c
+    $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 2
+    expect_stat remote_storage_write 0
     python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:${port}/stats').read().decode())" >gha-stats.log
     expect_contains gha-stats.log '"rate_limited_reserves": 1'
 }
