@@ -184,9 +184,43 @@ private:
 bool
 color_output_possible()
 {
+#ifdef _WIN32
+  DWORD mode;
+  HANDLE stderr_handle =
+    reinterpret_cast<HANDLE>(_get_osfhandle(STDERR_FILENO));
+  return GetConsoleMode(stderr_handle, &mode);
+#else
   const char* term_env = getenv("TERM");
   return isatty(STDERR_FILENO) && term_env
          && util::to_lowercase(term_env) != "dumb";
+#endif
+}
+
+bool
+windows_console_needs_color_translation()
+{
+#ifdef _WIN32
+  DWORD mode;
+  HANDLE stderr_handle =
+    reinterpret_cast<HANDLE>(_get_osfhandle(STDERR_FILENO));
+  if (!GetConsoleMode(stderr_handle, &mode)) {
+    return false;
+  }
+
+#  ifdef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+  if (!(mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
+    mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(stderr_handle, mode)) {
+      return true;
+    }
+  }
+  return false;
+#  else
+  return true;
+#  endif
+#else
+  return false;
+#endif
 }
 
 bool
@@ -1988,10 +2022,11 @@ process_args(Context& ctx)
     state.add_common_arg(state.explicit_language);
   }
 
-  args_info.strip_diagnostics_colors =
+  const bool colors_enabled =
     state.color_diagnostics != ColorDiagnostics::automatic
-      ? state.color_diagnostics == ColorDiagnostics::never
-      : !color_output_possible();
+      ? state.color_diagnostics == ColorDiagnostics::always
+      : color_output_possible();
+  args_info.strip_diagnostics_colors = !colors_enabled;
 
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
@@ -2007,6 +2042,12 @@ process_args(Context& ctx)
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
     args_info.strip_diagnostics_colors = false;
+    args_info.translate_diagnostics_colors = false;
+  }
+
+  if (diagnostics_color_arg) {
+    args_info.translate_diagnostics_colors =
+      colors_enabled && windows_console_needs_color_translation();
   }
 
   if (args_info.generating_dependencies) {
