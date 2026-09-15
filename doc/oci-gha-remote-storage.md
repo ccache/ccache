@@ -167,8 +167,9 @@ remain separate.
 | `CCACHE_NG-ERROR-OCI-0035` | Docker credential helper failed without exposing its output. |
 | `CCACHE_NG-ERROR-OCI-0036` | More than one OCI credential source was configured. |
 | `CCACHE_NG-ERROR-OCI-0037` | Direct OCI token configuration was rejected. |
-| `CCACHE_NG-ERROR-OCI-0038` | systemd credential support is unavailable or not configured. |
+| `CCACHE_NG-ERROR-OCI-0038` | systemd credential support is unavailable on this platform. |
 | `CCACHE_NG-ERROR-OCI-0039` | systemd credential name is invalid. |
+| `CCACHE_NG-ERROR-OCI-0040` | `CREDENTIALS_DIRECTORY` is not set for a systemd credential. |
 
 ## Local audit
 

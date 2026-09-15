@@ -50,14 +50,19 @@ using detail::log_diagnostic;
 using detail::parse_bool;
 using detail::strip_slashes;
 
+[[noreturn]] void
+throw_credential_file_read_error()
+{
+  throw core::Fatal("CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
+}
+
 std::string
 read_credential_file(const std::string& path)
 {
 #ifndef _WIN32
   struct stat file_status = {};
   if (stat(path.c_str(), &file_status) != 0 || !S_ISREG(file_status.st_mode)) {
-    throw core::Fatal(
-      "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
+    throw_credential_file_read_error();
   }
   if ((file_status.st_mode & (S_IRWXG | S_IRWXO)) != 0
       || (file_status.st_uid != geteuid() && file_status.st_uid != 0)) {
@@ -68,13 +73,11 @@ read_credential_file(const std::string& path)
 
   std::ifstream input(path, std::ios::binary);
   if (!input) {
-    throw core::Fatal(
-      "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
+    throw_credential_file_read_error();
   }
   std::string credential(std::istreambuf_iterator<char>(input), {});
   if (input.bad()) {
-    throw core::Fatal(
-      "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
+    throw_credential_file_read_error();
   }
   while (!credential.empty()
          && (credential.back() == '\n' || credential.back() == '\r')) {
@@ -100,7 +103,7 @@ read_systemd_credential(const std::string& name)
   const auto directory = getenv_string("CREDENTIALS_DIRECTORY");
   if (!directory) {
     throw core::Fatal(
-      "CCACHE_NG-ERROR-OCI-0038: CREDENTIALS_DIRECTORY is required for systemd credentials");
+      "CCACHE_NG-ERROR-OCI-0040: CREDENTIALS_DIRECTORY is required for systemd credentials");
   }
   return read_credential_file(FMT("{}/{}", *directory, name));
 #endif
@@ -581,11 +584,15 @@ parse_oci_storage_config(
       storage::get_redacted_url_str_for_logging(url)));
   }
 
-  const auto set_credential = [&](std::string credential) {
+  const auto ensure_credential_source_is_unset = [&] {
     if (!config.credential.empty() || !config.credential_helper.empty()) {
       throw core::Fatal(
         "CCACHE_NG-ERROR-OCI-0036: exactly one OCI credential source may be configured");
     }
+  };
+
+  const auto set_credential = [&](std::string credential) {
+    ensure_credential_source_is_unset();
     config.credential = std::move(credential);
   };
 
@@ -595,18 +602,14 @@ parse_oci_storage_config(
       throw core::Fatal(
         "CCACHE_NG-ERROR-OCI-0037: OCI tokens must use a credential helper or credential file");
     } else if (attr.key == "credential-helper") {
-      if (!config.credential.empty() || !config.credential_helper.empty()) {
-        throw core::Fatal(
-          "CCACHE_NG-ERROR-OCI-0036: exactly one OCI credential source may be configured");
-      }
+      ensure_credential_source_is_unset();
       config.credential_helper = attr.value;
     } else if (attr.key == "credential-file") {
       set_credential(read_credential_file(attr.value));
     } else if (attr.key == "credential-file-env") {
       const auto credential_path = getenv_string(attr.value.c_str());
       if (!credential_path) {
-        throw core::Fatal(
-          "CCACHE_NG-ERROR-OCI-0032: unable to read OCI credential file");
+        throw_credential_file_read_error();
       }
       set_credential(read_credential_file(*credential_path));
     } else if (attr.key == "systemd-credential") {
