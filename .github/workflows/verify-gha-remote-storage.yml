@@ -2,6 +2,19 @@ name: Verify GHA Remote Storage
 
 on:
   workflow_dispatch:
+    inputs:
+      phase:
+        description: Run A writes a cache entry; Run B reads the same entry.
+        required: true
+        default: write
+        type: choice
+        options:
+          - write
+          - read
+      proof_id:
+        description: Non-secret identifier shared by the paired write and read runs.
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -27,13 +40,26 @@ jobs:
             -DOCI_STORAGE_BACKEND=ON
           cmake --build build-gha-proof --target ccache -j12
 
-      - name: Prove cold write and warm remote hit
+      - name: Run selected GHA cache phase
         uses: actions/github-script@v8
+        env:
+          GHA_PROOF_PHASE: ${{ inputs.phase }}
+          GHA_PROOF_ID: ${{ inputs.proof_id }}
         with:
           script: |
             const childProcess = require("child_process");
             const fs = require("fs");
             const path = require("path");
+
+            const phase = process.env.GHA_PROOF_PHASE;
+            const proofId = process.env.GHA_PROOF_ID;
+
+            if (!new Set(["write", "read"]).has(phase)) {
+              throw new Error("GHA_PROOF_PHASE must be write or read");
+            }
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(proofId || "")) {
+              throw new Error("GHA_PROOF_ID must be 1-64 safe identifier characters");
+            }
 
             if (!(process.env.ACTIONS_RESULTS_URL || process.env.ACTIONS_CACHE_URL)) {
               throw new Error("No GitHub Actions cache endpoint is available");
@@ -45,11 +71,12 @@ jobs:
             const proofRoot = path.join(process.env.RUNNER_TEMP, "ccache-ng-gha-proof-work");
             const cacheDir = path.join(process.env.RUNNER_TEMP, "ccache-ng-gha-proof");
             const ccache = path.join(process.env.GITHUB_WORKSPACE, "build-gha-proof", "ccache");
+            const source = path.join(process.env.GITHUB_WORKSPACE, "test", "ccache_cache_test", "proof.c");
             const environment = {
               ...process.env,
               CCACHE_DIR: cacheDir,
-              CCACHE_BASEDIR: proofRoot,
-              CCACHE_REMOTE_STORAGE: "gha://workflow-proof @service-version=v2 @debug=false",
+              CCACHE_BASEDIR: process.env.GITHUB_WORKSPACE,
+              CCACHE_REMOTE_STORAGE: `gha://workflow-proof @prefix=${proofId} @service-version=v2 @debug=false`,
             };
             const run = (file, args) => childProcess.execFileSync(file, args, {
               cwd: process.env.GITHUB_WORKSPACE,
@@ -65,24 +92,28 @@ jobs:
                 throw new Error(`${name} must be positive`);
               }
             };
+            const requireZero = (name, value) => {
+              if (value !== "0") {
+                throw new Error(`${name} must be zero`);
+              }
+            };
 
             try {
+              fs.rmSync(cacheDir, {recursive: true, force: true});
               fs.mkdirSync(proofRoot, {recursive: true});
-              fs.writeFileSync(path.join(proofRoot, "proof.c"), "int main(void) { return 0; }\n");
-              run(ccache, ["--clear"]);
+              fs.mkdirSync(cacheDir, {recursive: true});
               run(ccache, ["--zero-stats"]);
-              run(ccache, ["gcc", "-c", path.join(proofRoot, "proof.c"), "-o", path.join(proofRoot, "cold.o")]);
-              const coldWrites = stat("remote_storage_write");
-              requirePositive("cold remote storage writes", coldWrites);
-
-              run(ccache, ["--clear"]);
-              run(ccache, ["--zero-stats"]);
-              fs.rmSync(path.join(proofRoot, "cold.o"), {force: true});
-              run(ccache, ["gcc", "-c", path.join(proofRoot, "proof.c"), "-o", path.join(proofRoot, "warm.o")]);
-              const warmHits = stat("remote_storage_hit");
-              requirePositive("warm remote storage hits", warmHits);
+              run(ccache, ["gcc", "-c", source, "-o", path.join(proofRoot, `${phase}.o`)]);
+              const writes = stat("remote_storage_write");
+              const hits = stat("remote_storage_hit");
+              if (phase === "write") {
+                requirePositive("write remote storage writes", writes);
+              } else {
+                requirePositive("read remote storage hits", hits);
+                requireZero("read remote storage writes", writes);
+              }
               await core.summary.addRaw(
-                `GHA_REMOTE_PROOF cold_remote_writes=${coldWrites} warm_remote_hits=${warmHits} local_cache_cleared=yes\n`
+                `GHA_REMOTE_PROOF phase=${phase} proof_id=${proofId} run_id=${context.runId} remote_storage_write=${writes} remote_storage_hit=${hits} local_cache_cleared=yes\n`
               ).write();
             } finally {
               fs.rmSync(cacheDir, {recursive: true, force: true});

@@ -237,8 +237,10 @@ result. Do not replace these commands with a wrapper-script claim.
 
 ## External acceptance still required
 
-1. Run A stores `test/ccache_cache_test` through GHA; Run B starts with a
-   cleared local cache and proves remote hits before a new write.
+1. Dispatch workflow phase `write` with a new non-secret `proof_id`; it stores
+   `test/ccache_cache_test/proof.c` through GHA. Dispatch phase `read` with
+   the same `proof_id`; it starts with an empty named local cache, proves a
+   remote hit and rejects any remote write.
 2. Record both GitHub run IDs. Inspect the Actions cache UI and REST cache list.
 3. Run the missing-GHA-token counter test: local compile exit 0,
    `CCACHE_NG-ERROR-GHA-0002` and exactly zero HTTP requests.
