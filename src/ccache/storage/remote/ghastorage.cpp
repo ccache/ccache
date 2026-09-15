@@ -481,10 +481,9 @@ parse_gha_storage_config(
       config.results_url = attr.value;
     } else if (attr.key == "url-env") {
       config.results_url = getenv_string(attr.value.c_str()).value_or("");
-    } else if (attr.key == "token") {
-      config.token = attr.value;
-    } else if (attr.key == "token-env") {
-      config.token = getenv_string(attr.value.c_str()).value_or("");
+    } else if (attr.key == "token" || attr.key == "token-env") {
+      throw core::Fatal(
+        "CCACHE_NG-ERROR-GHA-0021: GHA tokens must be supplied by the runtime environment");
     } else if (attr.key == "prefix") {
       config.prefix = strip_slashes(attr.value);
     } else if (attr.key == "service-version") {
@@ -516,7 +515,7 @@ parse_gha_storage_config(
   }
   if (config.token.empty()) {
     throw RemoteStorage::Backend::Failed(
-      "CCACHE_NG-ERROR-GHA-0002: ACTIONS_RUNTIME_TOKEN or @token is required for gha storage");
+      "CCACHE_NG-ERROR-GHA-0002: ACTIONS_RUNTIME_TOKEN is required for gha storage");
   }
   return config;
 }

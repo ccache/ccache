@@ -30,6 +30,7 @@ start_gha_cache_server() {
 
 SUITE_remote_gha_SETUP() {
     unset CCACHE_NODIRECT
+    export ACTIONS_RUNTIME_TOKEN=integration-token
     generate_code 1 test.c
 }
 
@@ -38,7 +39,7 @@ SUITE_remote_gha() {
 
     port=12782
     start_gha_cache_server "${port}"
-    export CCACHE_REMOTE_STORAGE="gha://integration @url=http://localhost:${port}/runtime/ @token=test-token @service-version=v2"
+    export CCACHE_REMOTE_STORAGE="gha://integration @url=http://localhost:${port}/runtime/ @service-version=v2"
 
     $CCACHE_COMPILE -c test.c
     expect_stat cache_miss 1
@@ -53,7 +54,7 @@ SUITE_remote_gha() {
 
     port=12782
     start_gha_cache_server "${port}"
-    export CCACHE_REMOTE_STORAGE="gha://rate-limited @url=http://localhost:${port}/runtime/ @token=test-token @service-version=v2"
+    export CCACHE_REMOTE_STORAGE="gha://rate-limited @url=http://localhost:${port}/runtime/ @service-version=v2"
 
     $CCACHE_COMPILE -c test.c
     expect_stat cache_miss 1

@@ -37,30 +37,29 @@ TEST_CASE("parse gha storage URL")
 {
   TestUtil::TestContext test_context;
   util::unsetenv("ACTIONS_CACHE_SERVICE_V2");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "secret-from-runtime");
 
   const auto config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://project/cache"),
     {{"url", "https://cache.example.invalid/results/", "ignored"},
-     {"token", "secret-token", "secret-token"},
      {"debug", "true", "true"}});
 
   CHECK(config.results_url == "https://cache.example.invalid/results/");
   CHECK(config.prefix == "project/cache");
-  CHECK(config.token == "secret-token");
+  CHECK(config.token == "secret-from-runtime");
   CHECK(config.debug);
   CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v1);
 }
 
-TEST_CASE("parse gha token and URL from environment")
+TEST_CASE("parse gha runtime token and URL from environment")
 {
   TestUtil::TestContext test_context;
   util::setenv("CCACHE_TEST_GHA_URL", "https://cache.example.invalid/runtime/");
-  util::setenv("CCACHE_TEST_GHA_TOKEN", "secret-from-env");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "secret-from-env");
 
   const auto config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://"),
     {{"url-env", "CCACHE_TEST_GHA_URL", "CCACHE_TEST_GHA_URL"},
-     {"token-env", "CCACHE_TEST_GHA_TOKEN", "CCACHE_TEST_GHA_TOKEN"},
      {"prefix", "manual", "manual"}});
 
   CHECK(config.results_url == "https://cache.example.invalid/runtime/");
@@ -69,6 +68,18 @@ TEST_CASE("parse gha token and URL from environment")
   CHECK(storage::get_redacted_url_str_for_logging(
           Url("https://user:secret@cache.example.invalid/runtime/"))
         == "https://********@cache.example.invalid/runtime/");
+}
+
+TEST_CASE("reject direct gha token configuration")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "secret-from-runtime");
+
+  CHECK_THROWS_AS(storage::remote::detail::parse_gha_storage_config(
+                    Url("gha://"),
+                    {{"url", "https://cache.example.invalid/runtime/", "ignored"},
+                     {"token", "secret-token", "secret-token"}}),
+                  core::Fatal);
 }
 
 TEST_CASE("reject gha storage without runtime configuration")
@@ -148,11 +159,11 @@ TEST_CASE("select gha v2 from runtime environment")
 {
   TestUtil::TestContext test_context;
   util::setenv("ACTIONS_CACHE_SERVICE_V2", "enabled");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
 
   const auto config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://"),
-    {{"url", "https://cache.example.invalid/results/", "ignored"},
-     {"token", "test-token", "test-token"}});
+    {{"url", "https://cache.example.invalid/results/", "ignored"}});
 
   CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v2);
   CHECK(storage::remote::detail::gha_cache_version(config.service_version)
@@ -163,28 +174,29 @@ TEST_CASE("select gha debug logging from runtime environment")
 {
   TestUtil::TestContext test_context;
   util::setenv("ACTIONS_STEP_DEBUG", "true");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
 
   const auto config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://"),
-    {{"url", "https://cache.example.invalid/results/", "ignored"},
-     {"token", "test-token", "test-token"}});
+    {{"url", "https://cache.example.invalid/results/", "ignored"}});
 
   CHECK(config.debug);
 
   const auto disabled_config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://"),
     {{"url", "https://cache.example.invalid/results/", "ignored"},
-     {"token", "test-token", "test-token"},
      {"debug", "false", "false"}});
   CHECK_FALSE(disabled_config.debug);
 }
 
 TEST_CASE("override gha service version")
 {
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
+
   const auto config = storage::remote::detail::parse_gha_storage_config(
     Url("gha://"),
     {{"url", "https://cache.example.invalid/results/", "ignored"},
-     {"token", "test-token", "test-token"},
      {"service-version", "v2", "v2"}});
 
   CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v2);
