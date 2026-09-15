@@ -1,0 +1,95 @@
+name: Verify GHA Remote Storage
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    cache-mode: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Expose Actions cache runtime to the verification step
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const names = [
+              "ACTIONS_RESULTS_URL",
+              "ACTIONS_CACHE_URL",
+              "ACTIONS_RUNTIME_TOKEN",
+              "ACTIONS_CACHE_SERVICE_V2",
+            ];
+            const required = ["ACTIONS_RUNTIME_TOKEN"];
+            if (!names.some((name) => process.env[name])) {
+              throw new Error("No GitHub Actions cache endpoint is available");
+            }
+            for (const name of required) {
+              if (!process.env[name]) {
+                throw new Error(`Required GitHub Actions runtime value is unavailable: ${name}`);
+              }
+            }
+            for (const name of names) {
+              if (process.env[name]) {
+                fs.appendFileSync(process.env.GITHUB_ENV, `${name}=${process.env[name]}\n`);
+              }
+            }
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build g++
+
+      - name: Build ccache with strict release settings
+        run: |
+          set -euo pipefail
+          cmake -S . -B build-gha-proof -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_FLAGS_RELEASE='-O3 -DNDEBUG' \
+            -DCMAKE_CXX_FLAGS_RELEASE='-O3 -DNDEBUG' \
+            -DCCACHE_DEV_MODE=ON \
+            -DWARNINGS_AS_ERRORS=ON \
+            -DENABLE_IPO=ON \
+            -DGHA_STORAGE_BACKEND=ON \
+            -DOCI_STORAGE_BACKEND=ON
+          cmake --build build-gha-proof --target ccache -j12
+
+      - name: Prove cold write and warm remote hit
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache-ng-gha-proof
+          CCACHE_BASEDIR: ${{ runner.temp }}/ccache-ng-gha-proof-work
+          CCACHE_REMOTE_STORAGE: gha://workflow-proof @service-version=v2 @debug=false
+        run: |
+          set -euo pipefail
+          ccache_binary="$GITHUB_WORKSPACE/build-gha-proof/ccache"
+          proof_root="$RUNNER_TEMP/ccache-ng-gha-proof-work"
+          mkdir -p "$proof_root"
+          printf '%s\n' 'int main(void) { return 0; }' >"$proof_root/proof.c"
+
+          stat_value() {
+            "$ccache_binary" --print-stats | awk -v key="$1" '$1 == key { print $2; exit }'
+          }
+
+          require_positive() {
+            case "$2" in
+              ''|*[!0-9]*|0) echo "$1 must be positive" >&2; exit 1 ;;
+            esac
+          }
+
+          "$ccache_binary" --clear
+          "$ccache_binary" --zero-stats
+          "$ccache_binary" gcc -c "$proof_root/proof.c" -o "$proof_root/cold.o"
+          cold_writes="$(stat_value remote_storage_write)"
+          require_positive 'cold remote storage writes' "$cold_writes"
+
+          "$ccache_binary" --clear
+          "$ccache_binary" --zero-stats
+          rm -f "$proof_root/cold.o"
+          "$ccache_binary" gcc -c "$proof_root/proof.c" -o "$proof_root/warm.o"
+          warm_hits="$(stat_value remote_storage_hit)"
+          require_positive 'warm remote storage hits' "$warm_hits"
+
+          printf 'GHA_REMOTE_PROOF cold_remote_writes=%s warm_remote_hits=%s local_cache_cleared=yes\n' \
+            "$cold_writes" "$warm_hits" >>"$GITHUB_STEP_SUMMARY"
