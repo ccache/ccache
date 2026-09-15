@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+bash -n /src/test/run-gha-apache-smoke
+cmake -S /src -B /tmp/ccache-ng-build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" \
+  -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" \
+  -DCCACHE_DEV_MODE=ON \
+  -DWARNINGS_AS_ERRORS=ON \
+  -DENABLE_IPO=ON \
+  -DDEPS=LOCAL \
+  -DENABLE_DOCUMENTATION=OFF \
+  -DREDIS_STORAGE_BACKEND=OFF \
+  -DHTTP_STORAGE_BACKEND=ON \
+  -DOCI_STORAGE_BACKEND=ON \
+  -DGHA_STORAGE_BACKEND=ON \
+  >/tmp/ccache-configure.log 2>&1 || { cat /tmp/ccache-configure.log; exit 1; }
+cmake --build /tmp/ccache-ng-build --target ccache -j12 \
+  >/tmp/ccache-build.log 2>&1 || { tail -n 150 /tmp/ccache-build.log; exit 1; }
+grep -E "^CMAKE_(C|CXX)_FLAGS_RELEASE:|^CMAKE_INTERPROCEDURAL_OPTIMIZATION:|^WARNINGS_AS_ERRORS:|^CCACHE_DEV_MODE:" \
+  /tmp/ccache-ng-build/CMakeCache.txt
+grep -m 1 -o -- -Werror /tmp/ccache-ng-build/compile_commands.json
+grep -m 1 -o -- -flto /tmp/ccache-ng-build/compile_commands.json
+CCACHE_BINARY=/tmp/ccache-ng-build/ccache \
+  GHA_CACHE_SERVER=/src/test/gha-cache-server \
+  BUILD_JOBS=12 \
+  /src/test/run-gha-apache-smoke

@@ -48,7 +48,8 @@ export CCACHE_DIR="${TEST_ROOT}/ccache"
 export CCACHE_BASEDIR="${TEST_ROOT}/httpd-${APACHE_VERSION}"
 
 curl --fail --location --silent --show-error --output "${TEST_ROOT}/httpd.tar.gz" "${APACHE_SOURCE_URL}"
-echo "${APACHE_SOURCE_SHA256}  ${TEST_ROOT}/httpd.tar.gz" | sha256sum --check --status
+echo "${APACHE_SOURCE_SHA256}  ${TEST_ROOT}/httpd.tar.gz" | sha256sum -c -s
+printf 'APACHE_SOURCE_SHA256=%s\n' "${APACHE_SOURCE_SHA256}"
 tar -xzf "${TEST_ROOT}/httpd.tar.gz" -C "${TEST_ROOT}"
 
 httpd_dir="${TEST_ROOT}/httpd-${APACHE_VERSION}"
