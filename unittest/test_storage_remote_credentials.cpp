@@ -31,4 +31,12 @@ TEST_CASE("reject missing or malformed JSON string")
     R"({"Secret":"unterminated})", "Secret"));
 }
 
+TEST_CASE("Docker credential keeps username and secret separate")
+{
+  const storage::remote::detail::DockerCredential credential{"octocat", "secret"};
+
+  CHECK(credential.username == "octocat");
+  CHECK(credential.secret == "secret");
+}
+
 TEST_SUITE_END();

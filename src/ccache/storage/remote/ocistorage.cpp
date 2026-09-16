@@ -249,12 +249,12 @@ public:
       m_http_client(FMT("{}://{}", m_config.insecure ? "http" : "https", m_config.registry))
   {
     if (!m_config.credential_helper.empty()) {
-      const auto credential = detail::get_docker_credential_secret(
+      const auto credential = detail::get_docker_credential(
         m_config.credential_helper, m_config.registry);
       if (!credential) {
         throw Failed("CCACHE_NG-ERROR-OCI-0035: Docker credential helper failed");
       }
-      m_config.credential = *credential;
+      m_config.credential = credential->secret;
     }
 
     httplib::Headers headers;

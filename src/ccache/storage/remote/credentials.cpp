@@ -105,9 +105,9 @@ extract_json_string(const std::string_view json, const std::string_view key)
   return find_json_string(json, key);
 }
 
-tl::expected<std::string, std::string>
-get_docker_credential_secret(const std::string_view helper,
-                             const std::string_view registry)
+tl::expected<DockerCredential, std::string>
+get_docker_credential(const std::string_view helper,
+                      const std::string_view registry)
 {
   if (!is_helper_name(helper)) {
     return tl::unexpected("invalid Docker credential helper name");
@@ -119,11 +119,12 @@ get_docker_credential_secret(const std::string_view helper,
     return tl::unexpected("Docker credential helper failed");
   }
 
+  const auto username = extract_json_string(*output, "Username");
   const auto secret = extract_json_string(*output, "Secret");
-  if (!secret || secret->empty()) {
-    return tl::unexpected("Docker credential helper returned no secret");
+  if (!username || username->empty() || !secret || secret->empty()) {
+    return tl::unexpected("Docker credential helper returned incomplete credentials");
   }
-  return *secret;
+  return DockerCredential{*username, *secret};
 }
 
 } // namespace storage::remote::detail

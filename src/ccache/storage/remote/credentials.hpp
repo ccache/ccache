@@ -17,11 +17,16 @@
 
 namespace storage::remote::detail {
 
+struct DockerCredential
+{
+  std::string username;
+  std::string secret;
+};
+
 std::optional<std::string> extract_json_string(std::string_view json,
                                                std::string_view key);
 
-tl::expected<std::string, std::string>
-get_docker_credential_secret(std::string_view helper,
-                             std::string_view registry);
+tl::expected<DockerCredential, std::string>
+get_docker_credential(std::string_view helper, std::string_view registry);
 
 } // namespace storage::remote::detail
