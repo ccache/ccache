@@ -254,6 +254,7 @@ public:
       if (!credential) {
         throw Failed("CCACHE_NG-ERROR-OCI-0035: Docker credential helper failed");
       }
+      m_config.credential_username = credential->username;
       m_config.credential = credential->secret;
     }
 
@@ -593,6 +594,17 @@ parse_oci_storage_config(
 
   const auto set_credential = [&](std::string credential) {
     ensure_credential_source_is_unset();
+    if (credential.starts_with('{')) {
+      const auto username = detail::extract_json_string(credential, "Username");
+      const auto secret = detail::extract_json_string(credential, "Secret");
+      if (!username || username->empty() || !secret || secret->empty()) {
+        throw core::Fatal(
+          "CCACHE_NG-ERROR-OCI-0041: OCI credential JSON is incomplete");
+      }
+      config.credential_username = *username;
+      config.credential = *secret;
+      return;
+    }
     config.credential = std::move(credential);
   };
 

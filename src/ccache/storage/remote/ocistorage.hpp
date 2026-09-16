@@ -27,6 +27,7 @@ struct OciStorageConfig
   std::string repository;
   std::string prefix;
   std::string credential;
+  std::string credential_username;
   std::string credential_helper;
   bool insecure = false;
   bool debug = false;

@@ -89,6 +89,23 @@ TEST_CASE("parse OCI credential from a private file")
   CHECK(config.credential == "secret-from-file");
 }
 
+TEST_CASE("parse structured OCI credential from a private file")
+{
+  TestUtil::TestContext test_context;
+  REQUIRE(util::write_file(
+    "oci-credential", R"({"Username":"octocat","Secret":"secret-from-file"})"));
+#ifndef _WIN32
+  REQUIRE(chmod("oci-credential", S_IRUSR | S_IWUSR) == 0);
+#endif
+
+  const auto config = storage::remote::detail::parse_oci_storage_config(
+    Url("oci://registry.example.invalid/ns/cache"),
+    {{"credential-file", "oci-credential", "oci-credential"}});
+
+  CHECK(config.credential_username == "octocat");
+  CHECK(config.credential == "secret-from-file");
+}
+
 #ifndef _WIN32
 TEST_CASE("reject OCI credential file readable by other users")
 {
