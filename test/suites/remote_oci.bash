@@ -78,4 +78,29 @@ SUITE_remote_oci() {
     $CCACHE_COMPILE -c test.c
     expect_stat remote_storage_error 1
     expect_stat remote_storage_hit 2
+
+    # -------------------------------------------------------------------------
+    TEST "OCI storage through systemd credential directory"
+
+    credential_dir="$PWD/oci-systemd-credentials"
+    mkdir -p "${credential_dir}"
+    chmod 700 "${credential_dir}"
+    printf 'local-oci-test-credential\n' > "${credential_dir}/oci-token"
+    chmod 600 "${credential_dir}/oci-token"
+    generate_code 3 test.c
+
+    CREDENTIALS_DIRECTORY="${credential_dir}" \
+    CCACHE_REMOTE_STORAGE="oci://${OCI_TEST_REGISTRY}/ccache-ng/integration @insecure=true @systemd-credential=oci-token" \
+      $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 1
+    expect_stat remote_storage_write 2 # result + manifest
+
+    $CCACHE -C >/dev/null
+    CREDENTIALS_DIRECTORY="${credential_dir}" \
+    CCACHE_REMOTE_STORAGE="oci://${OCI_TEST_REGISTRY}/ccache-ng/integration @insecure=true @systemd-credential=oci-token" \
+      $CCACHE_COMPILE -c test.c
+    expect_stat remote_storage_hit 3
+
+    rm -f -- "${credential_dir}/oci-token"
+    rmdir "${credential_dir}"
 }
