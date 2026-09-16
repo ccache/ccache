@@ -339,6 +339,7 @@ public:
     const auto upload = v2
                           ? upload_client.Put(
                               upload_path,
+                              upload_headers,
                               reinterpret_cast<const char*>(value.data()),
                               value.size(),
                               "application/octet-stream")
