@@ -109,6 +109,40 @@ read_systemd_credential(const std::string& name)
 #endif
 }
 
+std::optional<std::string>
+get_registry_bearer_token(httplib::Client& registry_client,
+                          const detail::OciStorageConfig& config)
+{
+  const auto challenge_response = registry_client.Get("/v2/");
+  if (!challenge_response || challenge_response->status != 401) {
+    return std::nullopt;
+  }
+  const auto challenge = detail::parse_registry_bearer_challenge(
+    challenge_response->get_header_value("WWW-Authenticate"));
+  if (!challenge || config.credential_username.empty()) {
+    return std::nullopt;
+  }
+
+  Url token_url(challenge->realm);
+  if (!challenge->service.empty()) {
+    token_url.add_query("service", challenge->service);
+  }
+  token_url.add_query("scope", FMT("repository:{}:pull,push", config.repository));
+  const Url base_url = detail::http_base_url(token_url);
+  const std::string request_path = token_url.str().substr(base_url.str().size());
+  httplib::Client token_client(base_url.str());
+  token_client.set_basic_auth(config.credential_username, config.credential);
+  const auto token_response = token_client.Get(request_path);
+  if (!token_response || token_response->status < 200 || token_response->status >= 300) {
+    return std::nullopt;
+  }
+  auto token = detail::extract_json_string(token_response->body, "token");
+  if (!token) {
+    token = detail::extract_json_string(token_response->body, "access_token");
+  }
+  return token;
+}
+
 uint32_t
 rotate_right(const uint32_t value, const uint32_t bits)
 {
@@ -258,15 +292,23 @@ public:
       m_config.credential = credential->secret;
     }
 
-    httplib::Headers headers;
-    headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
-    if (!m_config.credential.empty()) {
-      headers.emplace("Authorization", FMT("Bearer {}", m_config.credential));
-    }
     m_http_client.set_keep_alive(true);
     m_http_client.set_connection_timeout(m_config.connect_timeout);
     m_http_client.set_read_timeout(m_config.operation_timeout);
     m_http_client.set_write_timeout(m_config.operation_timeout);
+    httplib::Headers headers;
+    headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
+    m_http_client.set_default_headers(headers);
+    if (!m_config.credential_username.empty()) {
+      const auto token = get_registry_bearer_token(m_http_client, m_config);
+      if (!token) {
+        throw Failed("CCACHE_NG-ERROR-OCI-0042: OCI registry bearer token request failed");
+      }
+      m_config.credential = *token;
+    }
+    if (!m_config.credential.empty()) {
+      headers.emplace("Authorization", FMT("Bearer {}", m_config.credential));
+    }
     m_http_client.set_default_headers(headers);
     if (m_config.debug) {
       LOG("CCACHE_NG-DEBUG-OCI-9001: initialized {} transport={}",
