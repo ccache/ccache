@@ -57,7 +57,7 @@ throw_credential_file_read_error()
 }
 
 std::string
-read_credential_file(const std::string& path)
+read_credential_file(const std::string& path, const bool allow_systemd_owner)
 {
 #ifndef _WIN32
   struct stat file_status = {};
@@ -65,7 +65,9 @@ read_credential_file(const std::string& path)
     throw_credential_file_read_error();
   }
   if ((file_status.st_mode & (S_IRWXG | S_IRWXO)) != 0
-      || (file_status.st_uid != geteuid() && file_status.st_uid != 0)) {
+      || (!allow_systemd_owner
+          && file_status.st_uid != geteuid()
+          && file_status.st_uid != 0)) {
     throw core::Fatal(
       "CCACHE_NG-ERROR-OCI-0033: OCI credential file is not private");
   }
@@ -105,7 +107,7 @@ read_systemd_credential(const std::string& name)
     throw core::Fatal(
       "CCACHE_NG-ERROR-OCI-0040: CREDENTIALS_DIRECTORY is required for systemd credentials");
   }
-  return read_credential_file(FMT("{}/{}", *directory, name));
+  return read_credential_file(FMT("{}/{}", *directory, name), true);
 #endif
 }
 
@@ -659,13 +661,13 @@ parse_oci_storage_config(
       ensure_credential_source_is_unset();
       config.credential_helper = attr.value;
     } else if (attr.key == "credential-file") {
-      set_credential(read_credential_file(attr.value));
+      set_credential(read_credential_file(attr.value, false));
     } else if (attr.key == "credential-file-env") {
       const auto credential_path = getenv_string(attr.value.c_str());
       if (!credential_path) {
         throw_credential_file_read_error();
       }
-      set_credential(read_credential_file(*credential_path));
+      set_credential(read_credential_file(*credential_path, false));
     } else if (attr.key == "systemd-credential") {
       set_credential(read_systemd_credential(attr.value));
     } else if (attr.key == "prefix") {
