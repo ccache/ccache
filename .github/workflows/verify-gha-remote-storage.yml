@@ -34,8 +34,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build g++
 
       - name: Run selected GHA cache phase
+        uses: actions/github-script@v8
         env:
           GHA_PROOF_PHASE: ${{ inputs.phase }}
           GHA_PROOF_ID: ${{ inputs.proof_id }}
           GHA_PROOF_REMOTE_DEBUG: ${{ inputs.remote_debug }}
-        run: bash scripts/ci/ci.sh gha-remote-storage
+        with:
+          script: |
+            require("child_process").execFileSync("bash", ["scripts/ci/ci.sh", "gha-remote-storage"], {stdio: "inherit"});
