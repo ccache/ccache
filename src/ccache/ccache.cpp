@@ -1900,6 +1900,18 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     }
   }
 
+  // Hash the module files found via -fprebuilt-module-path=. An import
+  // resolves to <module-name>.pcm, so the file names are hashed as well as the
+  // contents.
+  for (const auto& module_file : ctx.args_info.searched_module_files) {
+    LOG("Hashing searched module file {}", module_file);
+    hash.hash_delimiter("searchedmodulefile");
+    hash.hash(module_file.filename());
+    if (!hash_binary_file(ctx, hash, module_file)) {
+      return tl::unexpected(Statistic::bad_input_file);
+    }
+  }
+
   if (!(ctx.args_info.build_session_file.empty())) {
     // When using -fbuild-session-file, the actual mtime needs to be added to
     // the hash to prevent false positive cache hits if the mtime of the file
