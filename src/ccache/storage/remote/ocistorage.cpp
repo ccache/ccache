@@ -375,17 +375,18 @@ public:
     auto blob = m_http_client.Get(
       detail::make_oci_blob_path(m_config.repository, *blob_digest));
     if (blob && (blob->status == 307 || blob->status == 308)) {
-      const auto location = blob->get_header_value("Location");
-      if (location.empty()) {
+      const auto reject_insecure_redirect = [&]() {
         log_diagnostic("CCACHE_NG-ERROR-OCI-0013",
                        "OCI blob redirect did not use HTTPS");
         return tl::unexpected(Failure::error);
+      };
+      const auto location = blob->get_header_value("Location");
+      if (location.empty()) {
+        return reject_insecure_redirect();
       }
       Url redirect_url(location);
       if (redirect_url.scheme() != "https") {
-        log_diagnostic("CCACHE_NG-ERROR-OCI-0013",
-                       "OCI blob redirect did not use HTTPS");
-        return tl::unexpected(Failure::error);
+        return reject_insecure_redirect();
       }
       const Url redirect_base = detail::http_base_url(redirect_url);
       httplib::Client redirect_client(redirect_base.str());

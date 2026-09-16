@@ -59,6 +59,12 @@ read_expiration(const std::filesystem::path& path)
            : std::nullopt;
 }
 
+void
+log_cooldown_persistence_failure()
+{
+  LOG("CCACHE_NG-WARN-GHA-0020: unable to persist GHA write cooldown");
+}
+
 } // namespace
 
 GhaWriteCooldown::GhaWriteCooldown(const std::filesystem::path& cache_dir,
@@ -85,7 +91,7 @@ void
 GhaWriteCooldown::set(const std::chrono::seconds duration)
 {
   if (const auto result = fs::create_directories(m_path.parent_path()); !result) {
-    LOG("CCACHE_NG-WARN-GHA-0020: unable to persist GHA write cooldown");
+    log_cooldown_persistence_failure();
     return;
   }
 
@@ -94,7 +100,7 @@ GhaWriteCooldown::set(const std::chrono::seconds duration)
     file.write(FMT("{}", util::sec(util::now() + duration)));
     file.commit();
   } catch (const core::Error&) {
-    LOG("CCACHE_NG-WARN-GHA-0020: unable to persist GHA write cooldown");
+    log_cooldown_persistence_failure();
   }
 }
 
