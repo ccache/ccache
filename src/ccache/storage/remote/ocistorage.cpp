@@ -57,15 +57,18 @@ throw_credential_file_read_error()
 }
 
 std::string
-read_credential_file(const std::string& path, const bool allow_systemd_owner)
+read_credential_file(const std::string& path, const bool is_systemd_credential)
 {
 #ifndef _WIN32
   struct stat file_status = {};
   if (stat(path.c_str(), &file_status) != 0 || !S_ISREG(file_status.st_mode)) {
     throw_credential_file_read_error();
   }
-  if ((file_status.st_mode & (S_IRWXG | S_IRWXO)) != 0
-      || (!allow_systemd_owner
+  const mode_t disallowed_permissions = is_systemd_credential
+                                         ? S_IWGRP | S_IXGRP | S_IRWXO
+                                         : S_IRWXG | S_IRWXO;
+  if ((file_status.st_mode & disallowed_permissions) != 0
+      || (!is_systemd_credential
           && file_status.st_uid != geteuid()
           && file_status.st_uid != 0)) {
     throw core::Fatal(
