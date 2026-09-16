@@ -530,9 +530,8 @@ tl::expected<std::vector<fs::path>, Statistic>
 find_module_files(const fs::path& dir)
 {
   std::vector<fs::path> module_files;
-  std::error_code ec;
   try {
-    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+    for (const auto& entry : fs::directory_iterator(dir)) {
       // A case-insensitive file system serves any spelling of the extension to
       // the compiler, which looks for <dir>/<module-name>.pcm.
       if (util::to_lowercase(util::pstr(entry.path().extension()).str())
@@ -548,16 +547,16 @@ find_module_files(const fs::path& dir)
       }
     }
   } catch (const std::filesystem::filesystem_error& e) {
-    // Only constructing the iterator reports a failure through ec. Advancing
-    // it throws, which would otherwise take down the whole invocation.
+    if (e.code() == std::errc::no_such_file_or_directory
+        || e.code() == std::errc::not_a_directory) {
+      // A path that is missing or is not a directory has no module files for
+      // an import to resolve to.
+      return std::vector<fs::path>{};
+    }
+    // Any other failure, including one that ends the scan part way through,
+    // leaves it unknown which files the compilation reads. Advancing the
+    // iterator throws, which would otherwise take down the whole invocation.
     LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
-    return tl::unexpected(Statistic::could_not_use_modules);
-  }
-  // A path that is missing or is not a directory has no module files to hash.
-  // Any other error means that the files read are unknown.
-  if (ec && ec != std::errc::no_such_file_or_directory
-      && ec != std::errc::not_a_directory) {
-    LOG("Failed to read prebuilt module path {}: {}", dir, ec.message());
     return tl::unexpected(Statistic::could_not_use_modules);
   }
   std::sort(module_files.begin(), module_files.end());
