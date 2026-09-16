@@ -23,10 +23,19 @@ struct DockerCredential
   std::string secret;
 };
 
+struct RegistryBearerChallenge
+{
+  std::string realm;
+  std::string service;
+};
+
 std::optional<std::string> extract_json_string(std::string_view json,
                                                std::string_view key);
 
 tl::expected<DockerCredential, std::string>
 get_docker_credential(std::string_view helper, std::string_view registry);
+
+std::optional<RegistryBearerChallenge>
+parse_registry_bearer_challenge(std::string_view value);
 
 } // namespace storage::remote::detail

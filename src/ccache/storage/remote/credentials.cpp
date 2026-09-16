@@ -127,4 +127,45 @@ get_docker_credential(const std::string_view helper,
   return DockerCredential{*username, *secret};
 }
 
+std::optional<RegistryBearerChallenge>
+parse_registry_bearer_challenge(const std::string_view value)
+{
+  if (!value.starts_with("Bearer ")) {
+    return std::nullopt;
+  }
+
+  RegistryBearerChallenge challenge;
+  size_t pos = 7;
+  while (pos < value.size()) {
+    while (pos < value.size() && (value[pos] == ' ' || value[pos] == ',')) {
+      ++pos;
+    }
+    const size_t key_begin = pos;
+    while (pos < value.size() && value[pos] != '=') {
+      ++pos;
+    }
+    if (pos == value.size() || pos + 1 == value.size() || value[pos + 1] != '"') {
+      return std::nullopt;
+    }
+    const std::string_view key = value.substr(key_begin, pos - key_begin);
+    pos += 2;
+    const size_t value_begin = pos;
+    while (pos < value.size() && value[pos] != '"') {
+      ++pos;
+    }
+    if (pos == value.size()) {
+      return std::nullopt;
+    }
+    const std::string parsed_value(value.substr(value_begin, pos - value_begin));
+    ++pos;
+    if (key == "realm") {
+      challenge.realm = parsed_value;
+    } else if (key == "service") {
+      challenge.service = parsed_value;
+    }
+  }
+  return challenge.realm.empty() ? std::nullopt
+                                 : std::optional<RegistryBearerChallenge>(challenge);
+}
+
 } // namespace storage::remote::detail

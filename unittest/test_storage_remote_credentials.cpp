@@ -39,4 +39,15 @@ TEST_CASE("Docker credential keeps username and secret separate")
   CHECK(credential.secret == "secret");
 }
 
+TEST_CASE("parse registry bearer challenge")
+{
+  const auto challenge = storage::remote::detail::parse_registry_bearer_challenge(
+    R"(Bearer realm="https://ghcr.io/token",service="ghcr.io")");
+
+  REQUIRE(challenge);
+  CHECK(challenge->realm == "https://ghcr.io/token");
+  CHECK(challenge->service == "ghcr.io");
+  CHECK_FALSE(storage::remote::detail::parse_registry_bearer_challenge("Basic realm=\"x\""));
+}
+
 TEST_SUITE_END();
