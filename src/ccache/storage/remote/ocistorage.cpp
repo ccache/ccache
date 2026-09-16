@@ -114,6 +114,15 @@ read_systemd_credential(const std::string& name)
 #endif
 }
 
+void
+set_oci_http_timeouts(httplib::Client& client,
+                      const detail::OciStorageConfig& config)
+{
+  client.set_connection_timeout(config.connect_timeout);
+  client.set_read_timeout(config.operation_timeout);
+  client.set_write_timeout(config.operation_timeout);
+}
+
 std::optional<std::string>
 get_registry_bearer_token(httplib::Client& registry_client,
                           const detail::OciStorageConfig& config)
@@ -136,6 +145,7 @@ get_registry_bearer_token(httplib::Client& registry_client,
   const Url base_url = detail::http_base_url(token_url);
   const std::string request_path = token_url.str().substr(base_url.str().size());
   httplib::Client token_client(base_url.str());
+  set_oci_http_timeouts(token_client, config);
   token_client.set_basic_auth(config.credential_username, config.credential);
   const auto token_response = token_client.Get(request_path);
   if (!token_response || token_response->status < 200 || token_response->status >= 300) {
@@ -298,9 +308,7 @@ public:
     }
 
     m_http_client.set_keep_alive(true);
-    m_http_client.set_connection_timeout(m_config.connect_timeout);
-    m_http_client.set_read_timeout(m_config.operation_timeout);
-    m_http_client.set_write_timeout(m_config.operation_timeout);
+    set_oci_http_timeouts(m_http_client, m_config);
     httplib::Headers headers;
     headers.emplace("User-Agent", FMT("ccache/{}", CCACHE_VERSION));
     m_http_client.set_default_headers(headers);
@@ -364,8 +372,27 @@ public:
                "OCI manifest did not contain a cache layer digest");
       return tl::unexpected(Failure::error);
     }
-    const auto blob = m_http_client.Get(
+    auto blob = m_http_client.Get(
       detail::make_oci_blob_path(m_config.repository, *blob_digest));
+    if (blob && (blob->status == 307 || blob->status == 308)) {
+      const auto location = blob->get_header_value("Location");
+      if (location.empty()) {
+        log_diagnostic("CCACHE_NG-ERROR-OCI-0013",
+                       "OCI blob redirect did not use HTTPS");
+        return tl::unexpected(Failure::error);
+      }
+      Url redirect_url(location);
+      if (redirect_url.scheme() != "https") {
+        log_diagnostic("CCACHE_NG-ERROR-OCI-0013",
+                       "OCI blob redirect did not use HTTPS");
+        return tl::unexpected(Failure::error);
+      }
+      const Url redirect_base = detail::http_base_url(redirect_url);
+      httplib::Client redirect_client(redirect_base.str());
+      set_oci_http_timeouts(redirect_client, m_config);
+      blob = redirect_client.Get(
+        redirect_url.str().substr(redirect_base.str().size()));
+    }
     if (!blob || blob.error() != httplib::Error::Success) {
       log_diagnostic(
                "CCACHE_NG-ERROR-OCI-0011",
