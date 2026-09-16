@@ -1,0 +1,5 @@
+name: GHA proof support
+description: Starts the GHA cache proof with the runtime credentials supplied to JavaScript actions.
+runs:
+  using: node24
+  main: index.js
