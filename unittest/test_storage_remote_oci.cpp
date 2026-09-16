@@ -10,7 +10,7 @@
 #include "testutil.hpp"
 
 #include <ccache/core/exceptions.hpp>
-#include <ccache/storage/remote/httptransport.hpp>
+#include <ccache/storage/remote/httpurl.hpp>
 #include <ccache/storage/remote/ocistorage.hpp>
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/environment.hpp>

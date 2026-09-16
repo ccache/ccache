@@ -9,21 +9,35 @@
 
 #pragma once
 
-#include "httpurl.hpp"
+#include <cxxurl/url.hpp>
 
-#include <ccache/storage/remote/remotestorage.hpp>
-#include <ccache/util/wincompat.hpp>
-
-#include <httplib.h>
+#include <string>
 
 namespace storage::remote::detail {
 
-inline RemoteStorage::Backend::Failure
-http_failure_from_httplib_error(httplib::Error error)
+inline Url
+http_base_url(const Url& url)
 {
-  return error == httplib::Error::ConnectionTimeout
-           ? RemoteStorage::Backend::Failure::timeout
-           : RemoteStorage::Backend::Failure::error;
+  Url base;
+  base.scheme(url.scheme());
+  base.host(url.host(), url.ip_version());
+  if (!url.port().empty()) {
+    base.port(url.port());
+  }
+  return base;
+}
+
+inline std::string
+http_url_path(const Url& url)
+{
+  auto path = url.path();
+  if (path.empty()) {
+    return "/";
+  }
+  if (path.back() != '/') {
+    path += '/';
+  }
+  return path;
 }
 
 } // namespace storage::remote::detail
