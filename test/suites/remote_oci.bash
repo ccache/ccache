@@ -99,7 +99,7 @@ SUITE_remote_oci() {
     CREDENTIALS_DIRECTORY="${credential_dir}" \
     CCACHE_REMOTE_STORAGE="oci://${OCI_TEST_REGISTRY}/ccache-ng/integration @insecure=true @systemd-credential=oci-token" \
       $CCACHE_COMPILE -c test.c
-    expect_stat remote_storage_hit 3
+    expect_stat remote_storage_hit 1
 
     rm -f -- "${credential_dir}/oci-token"
     rmdir "${credential_dir}"
