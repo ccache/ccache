@@ -10,6 +10,7 @@
 #include "testutil.hpp"
 
 #include <ccache/core/exceptions.hpp>
+#include <ccache/storage/remote/httptransport.hpp>
 #include <ccache/storage/remote/ocistorage.hpp>
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/environment.hpp>
@@ -58,6 +59,16 @@ TEST_CASE("create HTTPS OCI storage backend")
   storage::remote::OciStorage storage;
   CHECK_NOTHROW(storage.create_backend(
     Url("oci://registry.example.invalid/ns/cache"), {}, {{}}));
+}
+
+TEST_CASE("preserve HTTPS redirect transport")
+{
+  const Url redirect_url("https://blob.example.invalid:5443/cache/blob");
+  const Url redirect_base = storage::remote::detail::http_base_url(redirect_url);
+
+  CHECK(redirect_base.scheme() == "https");
+  CHECK(redirect_base.host() == "blob.example.invalid");
+  CHECK(redirect_base.port() == "5443");
 }
 
 TEST_CASE("reject OCI token configuration")
