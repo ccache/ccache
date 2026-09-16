@@ -1577,6 +1577,32 @@ TEST_CASE("-fprebuilt-module-path= naming a file has no inputs")
 }
 
 #ifndef _WIN32
+TEST_CASE("-fprebuilt-module-path= for an unreadable directory is uncacheable")
+{
+  if (geteuid() == 0) {
+    // Root reads the directory regardless of its permissions.
+    return;
+  }
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  REQUIRE(chmod("pm", 0000) == 0);
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  // Which module files the compilation reads cannot be determined, so caching
+  // it could give a hit for a changed input.
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::could_not_use_modules);
+
+  REQUIRE(chmod("pm", 0700) == 0);
+}
+
 TEST_CASE("-fprebuilt-module-path= ignores an unreadable module file")
 {
   TestContext test_context;
