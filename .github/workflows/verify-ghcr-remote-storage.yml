@@ -1,6 +1,14 @@
 name: Verify GHCR Remote Storage
 
 on:
+  pull_request:
+    paths:
+      - .github/actions/ghcr-proof-support/**
+      - .github/workflows/verify-ghcr-remote-storage.yml
+      - scripts/ci/ci.sh
+      - src/ccache/storage/**
+      - src/ccache/util/exec.*
+      - test/ccache_cache_test/proof.c
   workflow_dispatch:
 
 permissions:
