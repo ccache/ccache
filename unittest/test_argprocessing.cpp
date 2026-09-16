@@ -1489,6 +1489,26 @@ TEST_CASE("-fprebuilt-module-path= hashes the module files in the directory")
         == std::vector<fs::path>{"pm/a.pcm", "pm/b.pcm"});
 }
 
+TEST_CASE("-fprebuilt-module-path= hashes an uppercase module file extension")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.PCM", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  // On a case-insensitive file system the compiler looking for pm/a.pcm reads
+  // this file.
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.PCM"});
+}
+
 TEST_CASE("-fprebuilt-module-path= ignores a .pcm directory")
 {
   TestContext test_context;

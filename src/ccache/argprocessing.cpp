@@ -533,7 +533,10 @@ find_module_files(const fs::path& dir)
   std::error_code ec;
   try {
     for (const auto& entry : fs::directory_iterator(dir, ec)) {
-      if (entry.path().extension() != ".pcm") {
+      // A case-insensitive file system serves any spelling of the extension to
+      // the compiler, which looks for <dir>/<module-name>.pcm.
+      if (util::to_lowercase(util::pstr(entry.path().extension()).str())
+          != ".pcm") {
         continue;
       }
       // Anything the compiler cannot read as a module file is not an input: a
