@@ -99,6 +99,28 @@ enum class FileType : UnderlyingFileTypeInt {
   // sarif output files produced by MSVC /experimental:log or GCC
   // -fdiagnostics-{add,set}-output=sarif:file=...
   sarif = 14,
+
+  // ISPC header file output specified by -h or --header-outfile.
+  ispc_header = 15,
+
+  // ISPC multi-target extra object file. Multiple files of this type may be
+  // present in a result entry; they are distinguished by their order, which
+  // matches the order of targets in the --target argument.
+  ispc_target_object = 16,
+
+  // ISPC multi-target extra header file. Multiple files of this type may be
+  // present in a result entry; they are distinguished by their order, which
+  // matches the order of targets in the --target argument.
+  ispc_target_header = 17,
+
+  // ISPC device-side offload stub specified by --dev-stub.
+  ispc_dev_stub = 18,
+
+  // ISPC host-side offload stub specified by --host-stub.
+  ispc_host_stub = 19,
+
+  // ISPC nanobind wrapper specified by --nanobind-wrapper.
+  ispc_nanobind_wrapper = 20,
 };
 
 const char* file_type_to_string(FileType type);

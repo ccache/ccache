@@ -684,6 +684,11 @@ _<<Using ccache with other compiler wrappers>>_.
     GCC-based compiler.
 *icl*::
     Intel compiler on Windows.
+*ispc*::
+    Intel SPMD Program Compiler (ISPC). Multi-target builds using an
+    `avx10.2` target require ISPC 1.30 or newer, which renamed the ISA
+    component of the per-target output files from `avx10.2*` to
+    `avx10_2*`; everything else works with ISPC 1.25 and newer.
 *icx*::
     Intel LLVM-based compiler.
 *icx-cl*::
