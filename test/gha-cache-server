@@ -73,7 +73,7 @@ class CacheHandler(BaseHTTPRequestHandler):
             type(self).next_legacy_cache_id += 1
             type(self).legacy_cache_keys[str(cache_id)] = key
             self._json(HTTPStatus.CREATED, {"cacheId": cache_id})
-        elif path.startswith("/_apis/artifactcache/caches/"):
+        elif "/_apis/artifactcache/caches/" in path:
             cache_id = path.rsplit("/", 1)[1]
             key = type(self).legacy_cache_keys.get(cache_id)
             if key is None or cache_id not in type(self).legacy_uploads:
@@ -99,7 +99,7 @@ class CacheHandler(BaseHTTPRequestHandler):
     def do_PATCH(self):  # noqa: N802
         type(self).request_count += 1
         path = urlparse(self.path).path
-        if not path.startswith("/_apis/artifactcache/caches/"):
+        if "/_apis/artifactcache/caches/" not in path:
             self._bytes(HTTPStatus.NOT_FOUND, b"")
             return
         cache_id = path.rsplit("/", 1)[1]
@@ -121,7 +121,7 @@ class CacheHandler(BaseHTTPRequestHandler):
             )
             return
         type(self).request_count += 1
-        if path == "/_apis/artifactcache/cache":
+        if path.endswith("/_apis/artifactcache/cache"):
             key = parse_qs(urlparse(self.path).query).get("keys", [""])[0]
             if key not in type(self).cache:
                 self._bytes(HTTPStatus.NO_CONTENT, b"")
