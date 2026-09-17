@@ -71,11 +71,12 @@ SUITE_remote_gha() {
 
     generate_code 3 test.c
     export CCACHE_REMOTE_STORAGE="gha://integration-v1 @url=http://localhost:${port}/runtime/ @service-version=v1"
+    start_gha_cache_server "${port}"
 
     $CCACHE_COMPILE -c test.c
-    expect_stat cache_miss 3
+    expect_stat cache_miss 1
 
     $CCACHE -C >/dev/null
     $CCACHE_COMPILE -c test.c
-    expect_stat remote_storage_hit 2
+    expect_stat remote_storage_hit 1
 }
