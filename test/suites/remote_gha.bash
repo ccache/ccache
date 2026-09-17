@@ -65,4 +65,17 @@ SUITE_remote_gha() {
     expect_stat remote_storage_write 0
     python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:${port}/stats').read().decode())" >gha-stats.log
     expect_contains gha-stats.log '"rate_limited_reserves": 1'
+
+    # -------------------------------------------------------------------------
+    TEST "Store and retrieve v1"
+
+    generate_code 3 test.c
+    export CCACHE_REMOTE_STORAGE="gha://integration-v1 @url=http://localhost:${port}/runtime/ @service-version=v1"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 3
+
+    $CCACHE -C >/dev/null
+    $CCACHE_COMPILE -c test.c
+    expect_stat remote_storage_hit 2
 }
