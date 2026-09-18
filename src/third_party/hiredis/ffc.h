@@ -3448,4 +3448,3 @@ ffc_result ffc_parse_json_number(const char *start, const char *end,
 #endif
 
 #endif /* FFC_H */
-
