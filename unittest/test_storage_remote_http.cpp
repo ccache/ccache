@@ -14,11 +14,13 @@
 
 TEST_SUITE_BEGIN("storage::remote::HttpStorage");
 
+#ifdef HAVE_HTTPS_STORAGE_BACKEND
 TEST_CASE("create HTTPS HTTP storage backend")
 {
   storage::remote::HttpStorage storage;
   CHECK_NOTHROW(storage.create_backend(
     Url("https://cache.example.invalid/cache"), {}, {{}}));
 }
+#endif
 
 TEST_SUITE_END();

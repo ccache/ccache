@@ -56,7 +56,8 @@ SUITE_remote_http_PROBE() {
     if ! probe_tcp_server_socket; then
         echo "creating a local TCP server socket is not permitted"
     fi
-    if ! openssl version >/dev/null 2>&1; then
+    if [ "${CCACHE_HTTP_STORAGE_HTTPS}" = "ON" ] \
+        && ! openssl version >/dev/null 2>&1; then
         echo "openssl not found"
         return
     fi
@@ -69,18 +70,20 @@ SUITE_remote_http_SETUP() {
 }
 
 SUITE_remote_http() {
-    # -------------------------------------------------------------------------
-    TEST "HTTPS storage"
+    if [ "${CCACHE_HTTP_STORAGE_HTTPS}" = "ON" ]; then
+        # ---------------------------------------------------------------------
+        TEST "HTTPS storage"
 
-    start_https_server 12779 remote
-    export CCACHE_REMOTE_STORAGE="https://127.0.0.1:12779 helper=_builtin_"
-    SSL_CERT_FILE="$PWD/https-cert.pem" $CCACHE_COMPILE -c test.c
-    expect_stat cache_miss 1
-    expect_stat remote_storage_write 2 # result + manifest
+        start_https_server 12779 remote
+        export CCACHE_REMOTE_STORAGE="https://127.0.0.1:12779 helper=_builtin_"
+        SSL_CERT_FILE="$PWD/https-cert.pem" $CCACHE_COMPILE -c test.c
+        expect_stat cache_miss 1
+        expect_stat remote_storage_write 2 # result + manifest
 
-    $CCACHE -C >/dev/null
-    SSL_CERT_FILE="$PWD/https-cert.pem" $CCACHE_COMPILE -c test.c
-    expect_stat remote_storage_hit 1
+        $CCACHE -C >/dev/null
+        SSL_CERT_FILE="$PWD/https-cert.pem" $CCACHE_COMPILE -c test.c
+        expect_stat remote_storage_hit 1
+    fi
 
     # -------------------------------------------------------------------------
     TEST "Subdirs layout"

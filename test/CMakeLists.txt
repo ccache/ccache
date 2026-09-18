@@ -61,6 +61,9 @@ addtest(remote_file)
 addtest(remote_helper)
 if(HTTP_STORAGE_BACKEND)
   addtest(remote_http)
+  set_property(
+    TEST "test.remote_http"
+    APPEND PROPERTY ENVIRONMENT "CCACHE_HTTP_STORAGE_HTTPS=${HTTPS_STORAGE_BACKEND}")
 endif()
 addtest(remote_only)
 if(OCI_STORAGE_BACKEND AND NOT WIN32)

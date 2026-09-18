@@ -1484,7 +1484,8 @@ are `GET`, `PUT` and `DELETE`.
 IMPORTANT: ccache will not perform any cleanup of the storage -- that has to be
 done by other means, for instance by running `ccache --trim-dir` periodically.
 
-NOTE: HTTPS support requires OpenSSL 3 when configuring ccache.
+NOTE: HTTPS support requires configuring ccache with
+`+-DHTTPS_STORAGE_BACKEND=ON+`; this requires OpenSSL 3.
 
 TIP: See https://ccache.dev/howto/http-storage.html[How to set up HTTP storage]
 for hints on how to set up an HTTP server for use with ccache.
@@ -1531,6 +1532,9 @@ This built-in backend stores ccache entries in the GitHub Actions cache for the
 current workflow. It is intended for cache sharing between jobs and runs of a
 GitHub Actions workflow; use OCI storage for a cache shared outside that
 runtime.
+
+NOTE: Build ccache with `+-DGHA_STORAGE_BACKEND=ON+` to enable this backend.
+OpenSSL 3 is required for that build option.
 
 The GitHub Actions runner supplies the endpoint and runtime credential. ccache
 reads `ACTIONS_RESULTS_URL` (or the older `ACTIONS_CACHE_URL`) and
@@ -1614,6 +1618,9 @@ suitable for registries such as GHCR. HTTPS is used by default. The optional
 `/ccache/PREFIX` part separates the repository path from a cache-key prefix.
 Each entry uses the complete lower-case hexadecimal ccache digest, optionally
 with that prefix.
+
+NOTE: Build ccache with `+-DOCI_STORAGE_BACKEND=ON+` to enable this backend.
+OpenSSL 3 is required for that build option.
 
 For a read, ccache gets an OCI manifest and then its cache-layer blob. For a
 write, it uploads missing blobs and publishes an OCI manifest with the
