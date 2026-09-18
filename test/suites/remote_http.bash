@@ -21,7 +21,7 @@ start_https_server() {
         -subj '/CN=127.0.0.1' -addext 'subjectAltName=IP:127.0.0.1' \
         -keyout https-key.pem -out https-cert.pem >/dev/null 2>&1
     "${HTTP_SERVER}" --bind 127.0.0.1 --directory "${cache_dir}" \
-        --tls-cert https-cert.pem --tls-key https-key.pem "${port}" \
+        --tls-cert "$PWD/https-cert.pem" --tls-key "$PWD/https-key.pem" "${port}" \
         &>https-server.log &
     for _ in $(seq 1 20); do
         if printf 'HEAD / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n' \
