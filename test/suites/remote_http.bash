@@ -25,7 +25,7 @@ start_https_server() {
         &>https-server.log &
     for _ in $(seq 1 20); do
         if openssl s_client -connect "localhost:${port}" -servername localhost \
-            -CAfile https-cert.pem </dev/null 2>&1 | grep -Fq 'Verify return code: 0 (ok)'; then
+            -CAfile https-cert.pem </dev/null >/dev/null 2>&1; then
             return
         fi
         sleep 0.1
