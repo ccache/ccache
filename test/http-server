@@ -109,7 +109,10 @@ def run(handler_class, server_class, port, bind, tls_cert=None, tls_key=None):
         host, port = httpd.socket.getsockname()[:2]
         url_host = f"[{host}]" if ":" in host else host
         scheme = "https" if tls_cert else "http"
-        print(f"Serving HTTP on {host} port {port} ({scheme}://{url_host}:{port}/) ...")
+        print(
+            f"Serving HTTP on {host} port {port} ({scheme}://{url_host}:{port}/) ...",
+            flush=True,
+        )
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
