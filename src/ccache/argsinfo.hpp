@@ -116,6 +116,9 @@ struct ArgsInfo
   // -flto specified.
   bool using_lto = false;
 
+  // -fmodules specified (Clang).
+  bool using_modules = false;
+
   // Are we generating a pch file (msvc -Yc)?
   bool generating_pch = false;
 

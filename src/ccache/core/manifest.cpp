@@ -51,9 +51,13 @@
 // <ctime>         ::= int64_t ; status change time (ns), 0 = not recorded
 // <results>       ::= <n_results> <result>*
 // <n_results>     ::= uint32_t
-// <result>        ::= <n_indexes> <include_index>* <key>
+// <result>        ::= <n_indexes> <include_index>* <n_shadow_paths>
+//                     <shadow_path_index>* <key>
 // <n_indexes>     ::= uint32_t
 // <include_index> ::= uint32_t
+// <n_shadow_paths> ::= uint32_t
+// <shadow_path_index> ::= uint32_t ; index into <paths> of a path that must
+//                                  ; not exist for the result to be valid
 // <result_key>    ::= Hash::Digest::size() bytes
 
 const uint32_t k_max_manifest_entries = 100;
@@ -83,7 +87,11 @@ namespace core {
 //   - First version.
 // Version 1:
 //   - mtime and ctime are now stored with nanoseconds resolution.
-const uint8_t Manifest::k_format_version = 1;
+// Version 2:
+//   - Results have a list of shadow paths: paths that didn't exist when the
+//     result was stored and that would have made an include file resolve
+//     differently if they had.
+const uint8_t Manifest::k_format_version = 2;
 
 void
 Manifest::read(std::span<const uint8_t> data)
@@ -142,6 +150,17 @@ Manifest::read(std::span<const uint8_t> data)
       }
       entry.file_info_indexes.push_back(file_info_index);
     }
+    const auto shadow_path_count = reader.read_int<uint32_t>();
+    for (uint32_t j = 0; j < shadow_path_count; ++j) {
+      const auto file_index = reader.read_int<uint32_t>();
+      if (file_index >= files.size()) {
+        throw core::Error(
+          FMT("Corrupt manifest: shadow path index {} >= files size {}",
+              file_index,
+              files.size()));
+      }
+      entry.shadow_path_indexes.push_back(file_index);
+    }
     reader.read_and_copy_bytes(entry.key);
   }
 
@@ -160,9 +179,15 @@ Manifest::read(std::span<const uint8_t> data)
           files[file_info.index],
           FileStats{file_info.fsize, file_info.mtime, file_info.ctime});
       }
-      add_result(result.key, included_files, [&](const std::string& path) {
-        return included_files_stats[path];
-      });
+      std::vector<std::string> shadow_paths;
+      shadow_paths.reserve(result.shadow_path_indexes.size());
+      for (auto file_index : result.shadow_path_indexes) {
+        shadow_paths.push_back(files[file_index]);
+      }
+      add_result(
+        result.key, included_files, shadow_paths, [&](const std::string& path) {
+          return included_files_stats[path];
+        });
     }
   }
 }
@@ -172,6 +197,7 @@ Manifest::look_up_result_digest(Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
   std::unordered_map<std::string, Hash::Digest> hashed_files;
+  std::unordered_map<std::string, bool> existing_shadow_paths;
 
   // Check newest result first since it's more likely to match.
   for (size_t i = m_results.size(); i > 0; i--) {
@@ -179,7 +205,8 @@ Manifest::look_up_result_digest(Context& ctx) const
     LOG("Considering result entry {} ({})",
         i - 1,
         util::format_base16(result.key));
-    if (result_matches(ctx, result, stated_files, hashed_files)) {
+    if (result_matches(
+          ctx, result, stated_files, hashed_files, existing_shadow_paths)) {
       LOG("Result entry {} matched in manifest", i - 1);
       return result.key;
     }
@@ -192,6 +219,7 @@ bool
 Manifest::add_result(
   const Hash::Digest& result_key,
   const std::unordered_map<std::string, Hash::Digest>& included_files,
+  const std::vector<std::string>& shadow_paths,
   const FileStater& stat_file_function)
 {
   if (m_results.size() >= k_max_manifest_entries) {
@@ -240,7 +268,21 @@ Manifest::add_result(
     file_info_indexes.push_back(*index);
   }
 
-  ResultEntry entry{std::move(file_info_indexes), result_key};
+  // Shadow paths are stored by index into m_files, like include file paths.
+  std::vector<uint32_t> shadow_path_indexes;
+  shadow_path_indexes.reserve(shadow_paths.size());
+
+  for (const auto& path : shadow_paths) {
+    auto index = get_file_index(path, mf_files);
+    if (!index) {
+      LOG("Index overflow in manifest");
+      return false;
+    }
+    shadow_path_indexes.push_back(*index);
+  }
+
+  ResultEntry entry{
+    std::move(file_info_indexes), std::move(shadow_path_indexes), result_key};
   if (std::find(m_results.begin(), m_results.end(), entry) == m_results.end()) {
     m_results.push_back(std::move(entry));
     return true;
@@ -266,6 +308,8 @@ Manifest::serialized_size() const
   for (const auto& result : m_results) {
     size += 4; // n_file_info_indexes
     size += result.file_info_indexes.size() * 4;
+    size += 4;                                     // n_shadow_paths
+    size += result.shadow_path_indexes.size() * 4; // shadow_path_index
     size += std::tuple_size<Hash::Digest>();
   }
 
@@ -306,6 +350,10 @@ Manifest::serialize(util::Bytes& output)
     for (auto index : result.file_info_indexes) {
       writer.write_int(index);
     }
+    writer.write_int(static_cast<uint32_t>(result.shadow_path_indexes.size()));
+    for (auto index : result.shadow_path_indexes) {
+      writer.write_int(index);
+    }
     writer.write_bytes(result.key);
   }
 }
@@ -320,7 +368,9 @@ Manifest::FileInfo::operator==(const FileInfo& other) const
 bool
 Manifest::ResultEntry::operator==(const ResultEntry& other) const
 {
-  return file_info_indexes == other.file_info_indexes && key == other.key;
+  return file_info_indexes == other.file_info_indexes
+         && shadow_path_indexes == other.shadow_path_indexes
+         && key == other.key;
 }
 
 void
@@ -331,25 +381,40 @@ Manifest::clear()
   m_results.clear();
 }
 
+// Return the index of `path` in m_files, adding it if missing. `mf_files` maps
+// the paths in m_files to their indexes and is kept in sync.
+std::optional<uint32_t>
+Manifest::get_file_index(const std::string& path,
+                         std::unordered_map<std::string, uint32_t>& mf_files)
+{
+  const auto it = mf_files.find(path);
+  if (it != mf_files.end()) {
+    return it->second;
+  } else if (m_files.size() > UINT32_MAX) {
+    return std::nullopt;
+  } else {
+    m_files.push_back(path);
+    const auto index = static_cast<uint32_t>(m_files.size() - 1);
+    mf_files.emplace(path, index);
+    return index;
+  }
+}
+
 std::optional<uint32_t>
 Manifest::get_file_info_index(
   const std::string& path,
   const Hash::Digest& digest,
-  const std::unordered_map<std::string, uint32_t>& mf_files,
+  std::unordered_map<std::string, uint32_t>& mf_files,
   const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
   const FileStater& file_stater)
 {
   FileInfo fi;
 
-  const auto f_it = mf_files.find(path);
-  if (f_it != mf_files.end()) {
-    fi.index = f_it->second;
-  } else if (m_files.size() > UINT32_MAX) {
+  const auto file_index = get_file_index(path, mf_files);
+  if (!file_index) {
     return std::nullopt;
-  } else {
-    m_files.push_back(path);
-    fi.index = static_cast<uint32_t>(m_files.size() - 1);
   }
+  fi.index = *file_index;
 
   fi.digest = digest;
 
@@ -374,8 +439,22 @@ Manifest::result_matches(
   Context& ctx,
   const ResultEntry& result,
   std::unordered_map<std::string, FileStats>& stated_files,
-  std::unordered_map<std::string, Hash::Digest>& hashed_files) const
+  std::unordered_map<std::string, Hash::Digest>& hashed_files,
+  std::unordered_map<std::string, bool>& existing_shadow_paths) const
 {
+  for (uint32_t file_index : result.shadow_path_indexes) {
+    const auto& path = m_files[file_index];
+    auto it = existing_shadow_paths.find(path);
+    if (it == existing_shadow_paths.end()) {
+      it = existing_shadow_paths.emplace(path, util::DirEntry(path).exists())
+             .first;
+    }
+    if (it->second) {
+      LOG("{} exists now but didn't when the result was stored", path);
+      return false;
+    }
+  }
+
   for (uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = m_file_infos[file_info_index];
     const auto& path = m_files[fi.index];
@@ -499,6 +578,11 @@ Manifest::inspect(FILE* const stream) const
     PRINT(stream, "    File info indexes:");
     for (uint32_t file_info_index : m_results[i].file_info_indexes) {
       PRINT(stream, " {}", file_info_index);
+    }
+    PRINT(stream, "\n");
+    PRINT(stream, "    Shadow path indexes:");
+    for (uint32_t file_index : m_results[i].shadow_path_indexes) {
+      PRINT(stream, " {}", file_index);
     }
     PRINT(stream, "\n");
     PRINT(stream, "    Key: {}\n", util::format_base16(m_results[i].key));

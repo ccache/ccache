@@ -22,6 +22,7 @@
 #include <ccache/argprocessing.hpp>
 #include <ccache/argsinfo.hpp>
 #include <ccache/compiler/clang.hpp>
+#include <ccache/compiler/headersearch.hpp>
 #include <ccache/compiler/msvc.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
@@ -72,6 +73,7 @@
 
 #include <fcntl.h>
 
+#include <algorithm>
 #include <optional>
 #include <string_view>
 
@@ -79,7 +81,6 @@
 #  include <unistd.h>
 #endif
 
-#include <algorithm>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -548,6 +549,7 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
   ASSERT(!data.empty());
 
   std::unordered_map<std::string, fs::path> relative_inc_path_cache;
+  fs::path current_file;
 
   // Bytes between p and q are pending to be hashed.
   char* q = reinterpret_cast<char*>(data.data());
@@ -584,11 +586,13 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
     //
     // Note that there may be other lines starting with '#' left after
     // preprocessing as well, for instance "#    pragma".
+    const bool pch_pragma =
+      q[0] == '#' && starts_with(&q[1], pragma_gcc_pch_preprocess);
     if (q[0] == '#'
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
-            || starts_with(&q[1], pragma_gcc_pch_preprocess)
+            || pch_pragma
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
@@ -640,10 +644,13 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
         continue;
       }
       // Look for preprocessor flags, after the "filename".
+      bool entering_file = false;
       bool system = false;
       const char* r = q + 1;
       while (r < end && *r != '\n') {
-        if (*r == '3') { // System header.
+        if (*r == '1') { // Start of a new file.
+          entering_file = true;
+        } else if (*r == '3') { // System header.
           system = true;
         }
         r++;
@@ -679,6 +686,26 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
+
+      // Remember which directory the file was included from since that is
+      // searched first for #include "...". Files given with -include are
+      // entered from <command-line> (GCC) or <built-in> (Clang) and are looked
+      // up in the working directory first.
+      if (entering_file && !current_file.empty()) {
+        fs::path includer_dir = util::pstr(current_file).str().starts_with('<')
+                                  ? fs::path()
+                                  : current_file.parent_path();
+        if (includer_dir.empty()) {
+          includer_dir = ".";
+        }
+        auto& dirs = ctx.includer_dirs[util::pstr(inc_path).str()];
+        if (std::ranges::find(dirs, includer_dir) == dirs.end()) {
+          dirs.push_back(includer_dir);
+        }
+      }
+      if (!pch_pragma) {
+        current_file = inc_path;
+      }
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (strncmp(q, "___________", 10) == 0
                && (q == begin || q[-1] == '\n')) {
@@ -762,6 +789,138 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
   return process_preprocessed_data(ctx, hash, std::move(*data));
 }
 
+static compiler::PathKind
+path_kind(const fs::path& path)
+{
+  DirEntry entry(path);
+  return !entry.exists()        ? compiler::PathKind::missing
+         : entry.is_directory() ? compiler::PathKind::directory
+                                : compiler::PathKind::file;
+}
+
+// Make shadow paths relative like include file paths and drop those under
+// ignore_headers_in_manifest.
+static std::vector<std::string>
+shadow_paths_for_manifest(const Context& ctx,
+                          const std::vector<fs::path>& paths)
+{
+  std::vector<std::string> shadow_paths;
+  for (const auto& path : paths) {
+    const fs::path relative_path = core::make_relative_path(ctx, path);
+    const bool ignored = std::ranges::any_of(
+      ctx.ignore_header_paths, [&](const fs::path& ignore_header_path) {
+        return file_path_matches_dir_prefix_or_file(ignore_header_path,
+                                                    relative_path);
+      });
+    if (!ignored) {
+      shadow_paths.push_back(util::pstr(relative_path).str());
+    }
+  }
+  return shadow_paths;
+}
+
+// Clang with -fmodules reads module maps found next to or above included
+// headers, so one appearing there must invalidate the result. -fmodules is only
+// cached in depend mode, where there is no preprocessor report to derive
+// shadow paths from, so this is the only check made for it.
+static std::vector<std::string>
+get_module_map_shadow_paths(const Context& ctx)
+{
+  std::vector<fs::path> included_files;
+  included_files.reserve(ctx.included_files.size());
+  for (const auto& [path, digest] : ctx.included_files) {
+    included_files.emplace_back(path);
+  }
+  auto shadow_paths =
+    shadow_paths_for_manifest(ctx,
+                              compiler::find_module_map_shadow_paths(
+                                included_files, ctx.actual_cwd, path_kind));
+  LOG("Found {} module map shadow paths", shadow_paths.size());
+  return shadow_paths;
+}
+
+// Return GCC's installation directory as reported by -print-search-dirs, or
+// std::nullopt if the compiler doesn't report one. The directory doesn't
+// depend on any option, so only the compiler is passed: a query must never
+// carry the input file since a GCC-like wrapper that doesn't recognize the
+// query option would treat the command as an ordinary compilation.
+//
+// A failed query is not an error: a compiler treated as GCC that rejects the
+// option is either not GCC underneath (a GCC-like compiler forced with
+// compiler_type=gcc) and so has no installation specs files, or a wrapper
+// hiding GCC's installation, in which case the files can't be found any more
+// than they could before ccache tracked them at all.
+static std::optional<fs::path>
+find_gcc_installation_dir(const util::Args& args)
+{
+  const util::Args query = {args[0], "-print-search-dirs"};
+  auto output = util::exec_to_string(query);
+  if (!output) {
+    LOG("Failed to query installation directory: {}", output.error());
+    return std::nullopt;
+  }
+  for (const auto line : util::split_into_views(*output, "\n")) {
+    if (line.starts_with("install: ")) {
+      // The directory is reported with a trailing separator, which would make
+      // parent_path() return the directory itself.
+      std::string dir(util::strip_whitespace(line.substr(9)));
+      while (dir.size() > 1 && (dir.back() == '/' || dir.back() == '\\')) {
+        dir.pop_back();
+      }
+      return fs::path(dir);
+    }
+  }
+  return std::nullopt;
+}
+
+// Return the specs files GCC reads from its installation, with nothing on the
+// command line or in the environment pointing there. The installation
+// directory reported by -print-search-dirs is <exec prefix>/<target>/<version>
+// and GCC reads "specs" both there and in <exec prefix>/<target>. The second
+// file is read from the built-in exec prefix even when GCC_EXEC_PREFIX
+// replaces the prefix in the reported directory, so it's only derived when the
+// variable is unset.
+static std::vector<fs::path>
+installation_specs_files(const fs::path& install_dir)
+{
+  std::vector<fs::path> paths = {install_dir / "specs"};
+  if (!getenv("GCC_EXEC_PREFIX") && install_dir.has_parent_path()) {
+    paths.push_back(install_dir.parent_path() / "specs");
+  }
+  return paths;
+}
+
+// Finding the installation directory costs a compiler invocation, so it's
+// done here on a cache miss, and the specs files are then tracked like
+// include files: an existing file is hashed into the result key and recorded
+// in the manifest, a missing one becomes a shadow path so that its appearance
+// invalidates the result.
+static tl::expected<void, Failure>
+track_installation_specs_files(Context& ctx, Hash& hash, Hash* depend_mode_hash)
+{
+  if (ctx.config.compiler_type() != CompilerType::gcc) {
+    return {};
+  }
+  const auto install_dir = find_gcc_installation_dir(ctx.orig_args);
+  if (!install_dir) {
+    LOG("No installation directory to track specs files in");
+    return {};
+  }
+  for (const fs::path& path : installation_specs_files(*install_dir)) {
+    const fs::path specs_path = core::make_relative_path(ctx, path);
+    if (DirEntry(specs_path).is_regular_file()) {
+      LOG("Tracking installation specs file {}", specs_path);
+      hash.hash_delimiter("installation specs");
+      TRY(
+        remember_include_file(ctx, specs_path, hash, false, depend_mode_hash));
+    } else if (ctx.config.direct_mode()) {
+      LOG("Tracking absent installation specs file {}", specs_path);
+      ctx.shadow_paths.push_back(util::pstr(specs_path).str());
+    }
+  }
+  return {};
+}
+
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static tl::expected<Hash::Digest, Failure>
@@ -802,6 +961,13 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   if (debug_included) {
     print_included_files(ctx, stdout);
   }
+
+  if (ctx.config.direct_mode() && ctx.config.safe_direct_mode()
+      && ctx.args_info.using_modules) {
+    ctx.shadow_paths = get_module_map_shadow_paths(ctx);
+  }
+
+  TRY(track_installation_specs_files(ctx, hash, &hash));
 
   return hash.digest();
 }
@@ -946,6 +1112,57 @@ read_manifest(Context& ctx, std::span<const uint8_t> cache_entry_data)
   }
 }
 
+// Return the paths that must stay absent for the result to remain valid (see
+// compiler::find_shadow_paths), made relative like the include file paths.
+static std::vector<std::string>
+get_shadow_paths(Context& ctx)
+{
+  std::vector<std::string> shadow_paths;
+  if (!ctx.header_search_paths) {
+    // No report from the preprocessor (safe direct mode disabled, unsupported
+    // compiler or depend mode), so nothing can be checked.
+    return shadow_paths;
+  }
+
+  std::vector<compiler::IncludedFile> included_files;
+  included_files.reserve(ctx.included_files.size());
+  for (const auto& [path, digest] : ctx.included_files) {
+    const auto it = ctx.includer_dirs.find(path);
+    included_files.push_back(
+      {path,
+       it == ctx.includer_dirs.end() ? std::vector<fs::path>{} : it->second});
+  }
+
+  const auto result = compiler::find_shadow_paths(
+    *ctx.header_search_paths,
+    ctx.actual_cwd,
+    included_files,
+    ctx.has_include_probes,
+    ctx.config.is_compiler_group_gcc(),
+    path_kind,
+    [](const fs::path& p) { return fs::canonical(p).value_or(p); });
+
+  // A file found by a __has_include probe is tracked like an include file so
+  // that its disappearance or modification is noticed. If it can't be tracked
+  // (e.g. not a regular file), the result can't be validated in direct mode.
+  Hash unused_hash;
+  for (const auto& path : result.probed_files) {
+    if (!remember_include_file(ctx,
+                               core::make_relative_path(ctx, path),
+                               unused_hash,
+                               false,
+                               nullptr)) {
+      LOG("Disabling direct mode since probed file {} can't be tracked", path);
+      ctx.config.set_direct_mode(false);
+      return {};
+    }
+  }
+
+  shadow_paths = shadow_paths_for_manifest(ctx, result.paths);
+  LOG("Found {} shadow paths", shadow_paths.size());
+  return shadow_paths;
+}
+
 static void
 update_manifest(Context& ctx,
                 const Hash::Digest& manifest_key,
@@ -967,8 +1184,23 @@ update_manifest(Context& ctx,
     (ctx.config.sloppiness().contains(core::Sloppy::file_stat_matches))
     || ctx.args_info.output_is_precompiled_header;
 
+  // The shadow paths were computed right after preprocessing; anything that
+  // exists now appeared during the compilation.
+  for (const auto& path : ctx.shadow_paths) {
+    if (DirEntry(path).exists()) {
+      LOG(
+        "Not adding result key to manifest since {} appeared during"
+        " compilation",
+        path);
+      return;
+    }
+  }
+
   const bool added = ctx.manifest.add_result(
-    result_key, ctx.included_files, [&](const std::string& path) {
+    result_key,
+    ctx.included_files,
+    ctx.shadow_paths,
+    [&](const std::string& path) {
       DirEntry de(path, DirEntry::LogOnError::yes);
       bool cache_time =
         save_timestamp
@@ -1474,6 +1706,16 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     // done for the depend mode.
     args.push_back("-E");
 
+    // In safe direct mode, let GCC and Clang report the header search
+    // directories on stderr. The report is parsed and removed from the stderr
+    // data below so that it doesn't affect the result key.
+    const bool report_header_search_paths =
+      ctx.config.direct_mode() && ctx.config.safe_direct_mode()
+      && ctx.config.is_compiler_group_safe_direct_compatible();
+    if (report_header_search_paths) {
+      args.push_back("-Wp,-v");
+    }
+
     args.push_back(
       FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
@@ -1490,6 +1732,33 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     }
 
     cpp_stderr_data = std::move(result->stderr_data);
+    if (report_header_search_paths) {
+      auto output = compiler::parse_header_search_output(
+        util::to_string_view(cpp_stderr_data));
+      cpp_stderr_data = std::string_view(output.remaining_stderr);
+      if (output.paths) {
+        LOG(
+          "Preprocessor reported {} quote, {} angle and {} nonexistent"
+          " header search directories",
+          output.paths->quote_dirs.size(),
+          output.paths->angle_dirs.size(),
+          output.paths->nonexistent_dirs.size());
+        if (ctx.header_search_paths) {
+          // Several preprocessor runs (one per -arch); use the union.
+          auto append = [](auto& dst, auto& src) {
+            dst.insert(dst.end(), src.begin(), src.end());
+          };
+          append(ctx.header_search_paths->quote_dirs, output.paths->quote_dirs);
+          append(ctx.header_search_paths->angle_dirs, output.paths->angle_dirs);
+          append(ctx.header_search_paths->nonexistent_dirs,
+                 output.paths->nonexistent_dirs);
+        } else {
+          ctx.header_search_paths = std::move(output.paths);
+        }
+      } else {
+        LOG("Preprocessor did not report header search directories");
+      }
+    }
 
     if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
       // Check that usage of -utf-8 didn't garble the preprocessor output.
@@ -1514,6 +1783,12 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
       TRY(process_preprocessed_data(ctx, hash, std::move(result->stdout_data)));
     }
   }
+
+  if (ctx.config.direct_mode()) {
+    ctx.shadow_paths = get_shadow_paths(ctx);
+  }
+
+  TRY(track_installation_specs_files(ctx, hash, nullptr));
 
   hash.hash_delimiter("cppstderr");
   hash.hash(util::to_string_view(cpp_stderr_data));
@@ -1679,6 +1954,62 @@ find_xcode_compiler(const fs::path& compiler_name)
   return fs::path("/usr/bin") / compiler_name;
 }
 #endif
+
+// Return the compiler followed by the -B options from `args`, in both the
+// "-Bdir" and "-B dir" forms. Those are the only options that affect where GCC
+// looks for files; GCC_EXEC_PREFIX and LIBRARY_PATH are inherited from the
+// environment.
+static util::Args
+compiler_with_prefix_options(const util::Args& args)
+{
+  util::Args result = {args[0]};
+  bool expect_prefix_dir = false; // Previous argument was a bare -B.
+  for (size_t i = 1; i < args.size(); ++i) {
+    if (expect_prefix_dir) {
+      result.push_back(args[i]);
+      expect_prefix_dir = false;
+    } else if (args[i].starts_with("-B")) {
+      result.push_back(args[i]);
+      expect_prefix_dir = args[i] == "-B";
+    }
+  }
+  return result;
+}
+
+// Ask GCC where it finds `name` (e.g. a specs file). The -B options from
+// `args` are passed so that the lookup matches the real compilation, but
+// nothing else: a GCC-like wrapper that doesn't recognize the query option
+// would treat a command carrying the input file as an ordinary compilation.
+// Returns std::nullopt if the file isn't found, in which case -print-file-name
+// echoes the name unchanged.
+static tl::expected<std::optional<fs::path>, Failure>
+find_compiler_file(const util::Args& args, std::string_view name)
+{
+  util::Args query = compiler_with_prefix_options(args);
+  query.push_back(FMT("-print-file-name={}", name));
+  auto output = util::exec_to_string(query);
+  if (!output) {
+    LOG("Failed to query location of {}: {}", name, output.error());
+    return tl::unexpected(Statistic::internal_error);
+  }
+  const std::string path(util::strip_whitespace(*output));
+  if (path == name) {
+    return std::nullopt;
+  }
+  return fs::path(path);
+}
+
+static tl::expected<void, Failure>
+hash_specs_file(Hash& hash, const fs::path& path)
+{
+  LOG("Hashing specs file {}", path);
+  hash.hash_delimiter("specs");
+  if (auto r = hash.hash_file(path); !r) {
+    LOG("Failed to hash specs file {}: {}", path, r.error());
+    return tl::unexpected(Statistic::bad_compiler_arguments);
+  }
+  return {};
+}
 
 // update a hash with information common for the direct and preprocessor modes.
 static tl::expected<void, Failure>
@@ -1938,6 +2269,23 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
       hash.hash(gcc_colors);
+    }
+  }
+
+  // GCC reads a file named "specs" from the first -B, GCC_EXEC_PREFIX or
+  // LIBRARY_PATH directory (or the installation directory) that has one. It
+  // can change options for the preprocessor and the compiler proper, so its
+  // content must be part of the hash. The compiler is only asked when one of
+  // those directories is given since the query costs a compiler invocation and
+  // the installation directory rarely changes.
+  const bool has_prefix_option = std::ranges::any_of(
+    args, [](const std::string& arg) { return arg.starts_with("-B"); });
+  if (ctx.config.compiler_type() == CompilerType::gcc
+      && (has_prefix_option || getenv("GCC_EXEC_PREFIX")
+          || getenv("LIBRARY_PATH"))) {
+    TRY_ASSIGN(const auto specs_path, find_compiler_file(args, "specs"));
+    if (specs_path) {
+      TRY(hash_specs_file(hash, *specs_path));
     }
   }
 
@@ -2258,19 +2606,10 @@ hash_argument(const Context& ctx,
       return {};
     }
 
-    auto output = util::exec_to_string(
-      {ctx.orig_args[0], FMT("-print-file-name={}", *specs)});
-    if (!output) {
-      LOG("Failed to query specs location: {}", output.error());
-      return tl::unexpected(Statistic::internal_error);
-    }
-    auto path = util::strip_whitespace(*output);
-    LOG("Hashing specs file {}", path);
-    hash.hash_delimiter("specs");
-    if (auto r = hash.hash_file(path); !r) {
-      LOG("Failed to hash specs file {}: {}", path, r.error());
-      return tl::unexpected(Statistic::bad_compiler_arguments);
-    }
+    // GCC reads the file relative to the current directory if it isn't found
+    // in any of its search directories.
+    TRY_ASSIGN(const auto found_path, find_compiler_file(args, *specs));
+    TRY(hash_specs_file(hash, found_path.value_or(fs::path(*specs))));
     return {};
   }
 
