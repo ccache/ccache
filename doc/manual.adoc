@@ -1356,11 +1356,11 @@ Timeouts can be specified with an ms (milliseconds), s (seconds), m (minutes), h
 ==== Custom attributes
 
 Custom attributes on the form `_@key_=_value_` are specific to each storage
-helper implementation. See the backend's documentation for which attributes are
-available. Examples:
+backend. See the backend's documentation for which attributes are available.
+Examples:
 
 * `+file:///example/directory @umask=002 @update-mtime=true+`
-* `+https://example.com/path @bearer-token=deadbeef+`
+* `+https://example.com/path @header=Content-Type=application/octet-stream+`
 
 === Storage interaction
 
@@ -1396,6 +1396,21 @@ If <<config_remote_only,*remote_only*>> is true:
 Use `ccache --show-stats` to inspect the *Remote storage* section. A successful
 remote result increments the remote hit count; writes, errors and timeouts are
 reported separately.
+
+With more than one remote backend, ccache checks entries from left to right.
+When a later backend has an entry, ccache can copy it to earlier writable
+backends according to their *backfill* property. For example, the following
+uses Redis as the fast cache, OCI as the shared cache and GHA as the
+workflow-local cache:
+
+----
+remote_storage = redis://cache.example.com oci://registry.example.com/team/ccache/shared @credential-helper=pass gha://build
+----
+
+The example contains no credential. Set *read-only* on a backend that must not
+receive writes. Use `ccache --print-stats` for the machine-readable
+`remote_storage_hit`, `remote_storage_write`, `remote_storage_error` and
+`remote_storage_timeout` counters.
 
 === File storage backend
 
@@ -1523,6 +1538,11 @@ reads `ACTIONS_RESULTS_URL` (or the older `ACTIONS_CACHE_URL`) and
 created, and no HTTP request is made, if either value is missing. Do not put a
 token in `ccache.conf`, `CCACHE_REMOTE_STORAGE` or a workflow environment file.
 
+Each entry uses the complete lower-case hexadecimal ccache digest, optionally
+prefixed by the URL or *@prefix* value. ccache supports the current v2 cache API
+and the legacy v1 API. The API version affects the requests made to GitHub, not
+the ccache digest or the prefix.
+
 Examples:
 
 * `+gha://project-build+`
@@ -1543,7 +1563,13 @@ Optional attributes:
 
 The backend supports reads and writes. Cache deletion is not supported by this
 backend. After a write-side HTTP 403 or 429, ccache temporarily skips writes
-until the server retry window expires; reads continue.
+until the server retry window expires; reads continue. The expiry is persisted
+under `$CCACHE_DIR/remote-storage` so later compiler processes honor it. That
+state contains no credential or endpoint. A numeric `Retry-After` value sets
+the delay; an absent or invalid value uses 60 seconds.
+
+Debug output contains the operation, HTTP status, cache digest and redacted
+URL. It does not contain credentials or request and response bodies.
 
 === Redis storage backend
 
@@ -1586,6 +1612,13 @@ URL format: `+oci://REGISTRY/REPOSITORY[/ccache/PREFIX]+`
 This built-in backend stores ccache entries as OCI manifests and blobs. It is
 suitable for registries such as GHCR. HTTPS is used by default. The optional
 `/ccache/PREFIX` part separates the repository path from a cache-key prefix.
+Each entry uses the complete lower-case hexadecimal ccache digest, optionally
+with that prefix.
+
+For a read, ccache gets an OCI manifest and then its cache-layer blob. For a
+write, it uploads missing blobs and publishes an OCI manifest with the
+`application/vnd.ccache.entry` artifact type. A delete removes the manifest,
+but registry garbage collection decides when unreferenced blobs are removed.
 
 Use a Docker credential helper as the normal credential source. ccache invokes
 `docker-credential-NAME get` and keeps the returned credential in memory. A
@@ -1614,9 +1647,16 @@ Optional attributes:
 * *@debug*, *@connect-timeout* and *@operation-timeout*: Have the same purpose
   as for the GitHub Actions cache backend.
 
-OCI storage supports reads, writes and manifest deletion. Deleting a manifest
-does not guarantee that the registry will immediately garbage-collect its
-blobs; that is controlled by the registry.
+On Unix, a credential file must be regular, owned by the effective user or root
+and unreadable by group and others. A systemd credential may be group-readable
+but must not be group-writable or accessible by others. Credential data is not
+logged. Docker credential helpers provide the same interface for the platform's
+native credential store.
+
+OCI storage supports reads, writes and manifest deletion. Signed blob redirects
+must use HTTPS. ccache follows such redirects without forwarding the registry
+Bearer token. Debug output contains only the operation, HTTP status, cache
+digest and redacted URL.
 
 == Cache size management
 
