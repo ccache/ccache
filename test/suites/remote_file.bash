@@ -197,7 +197,7 @@ SUITE_remote_file() {
     TEST "Two directories"
 
     remote_2_url=$(file_storage_url "$PWD/remote_2")
-    CCACHE_REMOTE_STORAGE+=" $remote_2_url helper=_builtin_"
+    CCACHE_REMOTE_STORAGE+=" $remote_2_url helper=_builtin_ backfill=best-effort"
     mkdir remote_2
 
     $CCACHE_COMPILE -c test.c
@@ -234,9 +234,9 @@ SUITE_remote_file() {
     expect_stat remote_storage_write 6 # initial writes + backfilled result + manifest
 
     # -------------------------------------------------------------------------
-    TEST "Backfill disabled"
+    TEST "Backfill disabled by default"
 
-    CCACHE_REMOTE_STORAGE+=" backfill=disabled file://$PWD/remote_2 helper=_builtin_"
+    CCACHE_REMOTE_STORAGE="file://$PWD/remote helper=_builtin_ file://$PWD/remote_2 helper=_builtin_"
     mkdir remote_2
 
     $CCACHE_COMPILE -c test.c

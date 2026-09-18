@@ -1314,8 +1314,8 @@ https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
 ==== Properties
 
 * *backfill*: Controls whether a result found in a later remote storage backend
-  is copied to earlier writable backends. Available values are *best-effort*
-  (the default), *strict* and *disabled*. With *strict*, a failed backfill is a
+  is copied to earlier writable backends. Available values are *best-effort*,
+  *strict* and *disabled* (the default). With *strict*, a failed backfill is a
   cache operation failure. With *disabled*, ccache does not backfill that
   backend.
 * *data-timeout*: Timeout for send/receive data transfer. Resets whenever data
@@ -1404,7 +1404,7 @@ uses Redis as the fast cache, OCI as the shared cache and GHA as the
 workflow-local cache:
 
 ----
-remote_storage = redis://cache.example.com oci://registry.example.com/team/ccache/shared @credential-helper=pass gha://build
+remote_storage = redis://cache.example.com backfill=best-effort oci://registry.example.com/team/ccache/shared @credential-helper=pass gha://build
 ----
 
 The example contains no credential. Set *read-only* on a backend that must not

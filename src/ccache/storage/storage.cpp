@@ -118,7 +118,7 @@ struct RemoteStorageConfig
 
   std::string url_str; // Raw URL with unexpanded "*"
 
-  BackfillPolicy backfill_policy = BackfillPolicy::best_effort; // "backfill"
+  BackfillPolicy backfill_policy = BackfillPolicy::disabled; // "backfill"
   std::optional<std::chrono::milliseconds> data_timeout;    // "data-timeout"
   std::string helper;                                       // "helper"
   std::optional<std::chrono::milliseconds> idle_timeout;    // "idle-timeout"
@@ -168,7 +168,7 @@ to_string(const storage::RemoteStorageConfig& entry)
   std::string result = entry.url_str;
 
   if (entry.backfill_policy
-      != storage::RemoteStorageConfig::BackfillPolicy::best_effort) {
+      != storage::RemoteStorageConfig::BackfillPolicy::disabled) {
     result += FMT(" backfill={}", to_string(entry.backfill_policy));
   }
   if (entry.data_timeout) {

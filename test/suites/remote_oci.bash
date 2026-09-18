@@ -65,7 +65,7 @@ SUITE_remote_oci() {
 
     port=7788
     start_oci_test_redis "${port}"
-    export CCACHE_REMOTE_STORAGE="redis://localhost:${port} helper=_builtin_ oci://${OCI_TEST_REGISTRY}/ccache-ng/integration @insecure=true"
+    export CCACHE_REMOTE_STORAGE="redis://localhost:${port} helper=_builtin_ backfill=best-effort oci://${OCI_TEST_REGISTRY}/ccache-ng/integration @insecure=true"
 
     $CCACHE_COMPILE -c test.c
     expect_stat remote_storage_hit 1
