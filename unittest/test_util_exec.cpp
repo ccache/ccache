@@ -74,7 +74,7 @@ TEST_CASE("util::exec_to_string")
 #else
     util::Args args{"cat"};
 #endif
-    auto result = exec_to_string(args, "fisk\n");
+    auto result = util::exec_credential_helper_to_string(args, "fisk\n");
     if (!result) {
       FAIL(result.error());
     }

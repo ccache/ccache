@@ -31,9 +31,9 @@ namespace util {
 // similar to execvp(2)/popen(3).
 tl::expected<std::string, std::string> exec_to_string(const Args& args);
 
-// Execute command in `args`, send `standard_input` to its stdin and capture
-// stdout and stderr combined.
+// Execute a credential helper in `args`, send `standard_input` to its stdin and
+// capture stdout and stderr combined.
 tl::expected<std::string, std::string>
-exec_to_string(const Args& args, std::string_view standard_input);
+exec_credential_helper_to_string(const Args& args, std::string_view standard_input);
 
 } // namespace util

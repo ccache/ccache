@@ -114,7 +114,8 @@ get_docker_credential(const std::string_view helper,
   }
 
   const util::Args args{FMT("docker-credential-{}", helper), "get"};
-  const auto output = util::exec_to_string(args, FMT("{}\n", registry));
+  const auto output =
+    util::exec_credential_helper_to_string(args, FMT("{}\n", registry));
   if (!output) {
     return tl::unexpected("Docker credential helper failed");
   }
