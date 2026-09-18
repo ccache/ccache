@@ -24,8 +24,9 @@ start_https_server() {
         --tls-cert https-cert.pem --tls-key https-key.pem "${port}" \
         &>https-server.log &
     for _ in $(seq 1 20); do
-        if openssl s_client -connect "127.0.0.1:${port}" -servername 127.0.0.1 \
-            -CAfile https-cert.pem </dev/null >/dev/null 2>&1; then
+        if printf 'HEAD / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n' \
+            | openssl s_client -connect "127.0.0.1:${port}" -servername 127.0.0.1 \
+                -CAfile https-cert.pem >/dev/null 2>&1; then
             return
         fi
         sleep 0.1
