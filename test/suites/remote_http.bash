@@ -12,6 +12,27 @@ start_http_server() {
         || test_failed_internal "Cannot connect to server"
 }
 
+start_https_server() {
+    local port="$1"
+    local cache_dir="$2"
+
+    mkdir -p "${cache_dir}"
+    openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+        -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost' \
+        -keyout https-key.pem -out https-cert.pem >/dev/null 2>&1
+    "${HTTP_SERVER}" --bind localhost --directory "${cache_dir}" \
+        --tls-cert https-cert.pem --tls-key https-key.pem "${port}" \
+        &>https-server.log &
+    for _ in $(seq 1 20); do
+        if openssl s_client -connect "localhost:${port}" -servername localhost \
+            -CAfile https-cert.pem </dev/null 2>&1 | grep -Fq 'Verify return code: 0 (ok)'; then
+            return
+        fi
+        sleep 0.1
+    done
+    test_failed_internal "Cannot connect to HTTPS server"
+}
+
 maybe_start_ipv6_http_server() {
     local port="$1"
     local cache_dir="$2"
@@ -34,6 +55,10 @@ SUITE_remote_http_PROBE() {
     if ! probe_tcp_server_socket; then
         echo "creating a local TCP server socket is not permitted"
     fi
+    if ! openssl version >/dev/null 2>&1; then
+        echo "openssl not found"
+        return
+    fi
 }
 
 SUITE_remote_http_SETUP() {
@@ -43,6 +68,19 @@ SUITE_remote_http_SETUP() {
 }
 
 SUITE_remote_http() {
+    # -------------------------------------------------------------------------
+    TEST "HTTPS storage"
+
+    start_https_server 12779 remote
+    export CCACHE_REMOTE_STORAGE="https://localhost:12779 helper=_builtin_"
+    SSL_CERT_FILE="$PWD/https-cert.pem" $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 1
+    expect_stat remote_storage_write 2 # result + manifest
+
+    $CCACHE -C >/dev/null
+    SSL_CERT_FILE="$PWD/https-cert.pem" $CCACHE_COMPILE -c test.c
+    expect_stat remote_storage_hit 1
+
     # -------------------------------------------------------------------------
     TEST "Subdirs layout"
 

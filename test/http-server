@@ -11,6 +11,7 @@ import base64
 import os
 import signal
 import socket
+import ssl
 import sys
 from functools import partial
 from http import HTTPStatus
@@ -96,14 +97,19 @@ def _get_best_family(*address):
     return family, sockaddr
 
 
-def run(handler_class, server_class, port, bind):
+def run(handler_class, server_class, port, bind, tls_cert=None, tls_key=None):
     handler_class.protocol_version = "HTTP/1.1"
     server_class.address_family, addr = _get_best_family(bind, port)
 
     with server_class(addr, handler_class) as httpd:
+        if tls_cert:
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(tls_cert, tls_key)
+            httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
         host, port = httpd.socket.getsockname()[:2]
         url_host = f"[{host}]" if ":" in host else host
-        print(f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/) ...")
+        scheme = "https" if tls_cert else "http"
+        print(f"Serving HTTP on {host} port {port} ({scheme}://{url_host}:{port}/) ...")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
@@ -132,6 +138,8 @@ if __name__ == "__main__":
         default=Path.cwd(),
         help="Specify alternative directory [default:current directory]",
     )
+    parser.add_argument("--tls-cert", help="TLS certificate path")
+    parser.add_argument("--tls-key", help="TLS private key path")
     parser.add_argument(
         "port",
         action="store",
@@ -141,6 +149,8 @@ if __name__ == "__main__":
         help="Specify alternate port [default: 8080]",
     )
     args = parser.parse_args()
+    if bool(args.tls_cert) != bool(args.tls_key):
+        parser.error("--tls-cert and --tls-key must be used together")
 
     handler_class = partial(PUTEnabledHTTPRequestHandler, basic_auth=args.basic_auth)
 
@@ -154,4 +164,6 @@ if __name__ == "__main__":
         server_class=HTTPServer,
         port=args.port,
         bind=args.bind,
+        tls_cert=args.tls_cert,
+        tls_key=args.tls_key,
     )
