@@ -1313,6 +1313,11 @@ https://en.wikipedia.org/wiki/Percent-encoding[percent-encoded] if they contain
 
 ==== Properties
 
+* *backfill*: Controls whether a result found in a later remote storage backend
+  is copied to earlier writable backends. Available values are *best-effort*
+  (the default), *strict* and *disabled*. With *strict*, a failed backfill is a
+  cache operation failure. With *disabled*, ccache does not backfill that
+  backend.
 * *data-timeout*: Timeout for send/receive data transfer. Resets whenever data
   is received or can be sent. Default: 10s.
 * *helper*: Override which storage helper to spawn (either a filename or a full
@@ -1387,6 +1392,10 @@ If <<config_remote_only,*remote_only*>> is true:
 | - | hit  | Read from remote, don't write to local
 
 |==============================================================================
+
+Use `ccache --show-stats` to inspect the *Remote storage* section. A successful
+remote result increments the remote hit count; writes, errors and timeouts are
+reported separately.
 
 === File storage backend
 
@@ -1499,6 +1508,43 @@ The default is *subdirs*.
    example: `+@header=Content-Type=application/octet-stream+` adds
    "Content-Type: application/octet-stream" to the HTTP headers of the request.
 
+=== GitHub Actions cache storage backend
+
+URL format: `+gha://[PREFIX]+`
+
+This built-in backend stores ccache entries in the GitHub Actions cache for the
+current workflow. It is intended for cache sharing between jobs and runs of a
+GitHub Actions workflow; use OCI storage for a cache shared outside that
+runtime.
+
+The GitHub Actions runner supplies the endpoint and runtime credential. ccache
+reads `ACTIONS_RESULTS_URL` (or the older `ACTIONS_CACHE_URL`) and
+`ACTIONS_RUNTIME_TOKEN` from its process environment. The backend is not
+created, and no HTTP request is made, if either value is missing. Do not put a
+token in `ccache.conf`, `CCACHE_REMOTE_STORAGE` or a workflow environment file.
+
+Examples:
+
+* `+gha://project-build+`
+* `+gha://project-build @prefix=release+`
+* `+gha://project-build @service-version=v2 @debug=true+`
+
+Optional attributes:
+
+* *@prefix*: Cache-key prefix. The URL path is used when it is not set.
+* *@service-version*: Select the cache API version: *v1* or *v2*. The runner's
+  v2 marker selects v2 by default. Use *v1* only for legacy compatibility.
+* *@debug*: If *true*, log the operation, HTTP status and a redacted URL. The
+  default follows `ACTIONS_STEP_DEBUG`.
+* *@connect-timeout*: Timeout for establishing an HTTP connection.
+* *@operation-timeout*: Timeout for one HTTP operation.
+* *@url* and *@url-env*: Override the endpoint. They are for isolated protocol
+  tests; production workflows normally use the runner-provided endpoint.
+
+The backend supports reads and writes. Cache deletion is not supported by this
+backend. After a write-side HTTP 403 or 429, ccache temporarily skips writes
+until the server retry window expires; reads continue.
+
 === Redis storage backend
 
 WARNING: Built-in support for the Redis protocol is deprecated and will be
@@ -1531,6 +1577,46 @@ Examples:
 * `+redis+unix:/run/redis.sock+`
 * `+redis+unix:///run/redis.sock+`
 * `+redis+unix://p4ssw0rd@localhost/run/redis.sock?db=0+`
+
+
+=== OCI storage backend
+
+URL format: `+oci://REGISTRY/REPOSITORY[/ccache/PREFIX]+`
+
+This built-in backend stores ccache entries as OCI manifests and blobs. It is
+suitable for registries such as GHCR. HTTPS is used by default. The optional
+`/ccache/PREFIX` part separates the repository path from a cache-key prefix.
+
+Use a Docker credential helper as the normal credential source. ccache invokes
+`docker-credential-NAME get` and keeps the returned credential in memory. A
+private credential file and a Linux systemd credential are alternatives for
+environments where a credential helper is not available. Exactly one credential
+source may be configured. Direct token attributes are rejected.
+
+Examples:
+
+* `+oci://ghcr.io/OWNER/REPOSITORY/ccache/project @credential-helper=pass+`
+* `+oci://registry.example.com/team/ccache/release @prefix=builds+`
+* `+oci://registry.example.com/team/cache read-only+`
+
+Optional attributes:
+
+* *@credential-helper*: Docker credential-helper name. For example, *pass*
+  selects `docker-credential-pass`.
+* *@credential-file*: Path to a private credential file.
+* *@credential-file-env*: Name of an environment variable containing the path
+  to a private credential file.
+* *@systemd-credential*: Linux systemd credential name. The credential is read
+  below `CREDENTIALS_DIRECTORY`.
+* *@prefix*: Cache-key prefix. It overrides a prefix in the URL.
+* *@insecure*: If *true*, use HTTP. Use this only for an isolated local registry
+  test.
+* *@debug*, *@connect-timeout* and *@operation-timeout*: Have the same purpose
+  as for the GitHub Actions cache backend.
+
+OCI storage supports reads, writes and manifest deletion. Deleting a manifest
+does not guarantee that the registry will immediately garbage-collect its
+blobs; that is controlled by the registry.
 
 == Cache size management
 
