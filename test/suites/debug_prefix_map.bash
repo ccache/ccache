@@ -5,7 +5,7 @@ SUITE_debug_prefix_map_PROBE() {
     fi
 
     if ! $RUN_WIN_XFAIL; then
-        echo "debug_prefix_map tests are broken on Windows."
+        echo "this test suite does not work on Windows"
         return
     fi
 }

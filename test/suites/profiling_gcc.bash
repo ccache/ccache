@@ -3,7 +3,7 @@ SUITE_profiling_gcc_PROBE() {
         echo "compiler is not GCC"
     fi
     if ! $RUN_WIN_XFAIL; then
-        echo "this suite does not work on Windows"
+        echo "this test suite does not work on Windows"
     fi
 }
 
