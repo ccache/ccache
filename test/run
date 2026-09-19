@@ -158,6 +158,14 @@ generate_code() {
     done
 }
 
+file_storage_url() {
+    if $HOST_OS_WINDOWS; then
+        echo "file:///$(cygpath -m "$1")"
+    else
+        echo "file:$1"
+    fi
+}
+
 remove_cache() {
     if [ -d $CCACHE_DIR ]; then
         chmod -R +w $CCACHE_DIR

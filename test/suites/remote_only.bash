@@ -1,12 +1,6 @@
-SUITE_remote_only_PROBE() {
-    if ! $RUN_WIN_XFAIL; then
-        echo "remote file is broken on windows."
-    fi
-}
-
 SUITE_remote_only_SETUP() {
     unset CCACHE_NODIRECT
-    export CCACHE_REMOTE_STORAGE="file:$PWD/remote"
+    export CCACHE_REMOTE_STORAGE="$(file_storage_url "$PWD/remote")"
     export CCACHE_REMOTE_ONLY=1
 
     generate_code 1 test.c

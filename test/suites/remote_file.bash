@@ -1,15 +1,10 @@
-# This test suite verified both the file storage backend and the remote
+# This test suite verifies both the file storage backend and the remote
 # storage framework itself.
-
-SUITE_remote_file_PROBE() {
-    if ! $RUN_WIN_XFAIL; then
-        echo "remote file is broken on windows."
-    fi
-}
 
 SUITE_remote_file_SETUP() {
     unset CCACHE_NODIRECT
-    export CCACHE_REMOTE_STORAGE="file:$PWD/remote helper=_builtin_"
+    remote_url=$(file_storage_url "$PWD/remote")
+    export CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_"
 
     touch test.h
     echo '#include "test.h"' >test.c
@@ -156,7 +151,7 @@ SUITE_remote_file() {
     $CCACHE -C >/dev/null
     $CCACHE -z >/dev/null
 
-    CCACHE_REMOTE_STORAGE="file:$PWD/remote helper=_builtin_ @layout=local"
+    CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @layout=local"
     $CCACHE_COMPILE -c test.c
     $CCACHE_COMPILE -c test_level_3.c
     $CCACHE_COMPILE -c test_level_4.c
@@ -193,7 +188,7 @@ SUITE_remote_file() {
     TEST "Invalid layout"
 
     for layout in '' '*' a/b; do
-        CCACHE_REMOTE_STORAGE="file:$PWD/remote helper=_builtin_ @layout=$layout"
+        CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @layout=$layout"
         $CCACHE_COMPILE -c test.c 2>stderr.log
         expect_contains stderr.log "invalid file storage layout: \"$layout\""
     done
@@ -201,7 +196,8 @@ SUITE_remote_file() {
     # -------------------------------------------------------------------------
     TEST "Two directories"
 
-    CCACHE_REMOTE_STORAGE+=" file://$PWD/remote_2 helper=_builtin_"
+    remote_2_url=$(file_storage_url "$PWD/remote_2")
+    CCACHE_REMOTE_STORAGE+=" $remote_2_url helper=_builtin_"
     mkdir remote_2
 
     $CCACHE_COMPILE -c test.c
@@ -336,44 +332,46 @@ SUITE_remote_file() {
     expect_stat remote_storage_read_miss 1 # original manifest didn't match -> no read
     expect_stat remote_storage_write 4
 
-    # -------------------------------------------------------------------------
-    TEST "umask"
+    if ! $HOST_OS_WINDOWS; then
+        # ---------------------------------------------------------------------
+        TEST "umask"
 
-    export CCACHE_UMASK=042
-    CCACHE_REMOTE_STORAGE="file://$PWD/remote helper=_builtin_ @umask=024"
+        export CCACHE_UMASK=042
+        CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @umask=024"
 
-    # local -> remote, cache miss
-    $CCACHE_COMPILE -c test.c
-    expect_perm remote drwxr-x-wx # 777 & 024
-    expect_perm remote/CACHEDIR.TAG -rw-r---w- # 666 & 024
-    result_file=$(find_result_files "${CCACHE_DIR}")
-    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
-    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
+        # local -> remote, cache miss
+        $CCACHE_COMPILE -c test.c
+        expect_perm remote drwxr-x-wx # 777 & 024
+        expect_perm remote/CACHEDIR.TAG -rw-r---w- # 666 & 024
+        result_file=$(find_result_files "${CCACHE_DIR}")
+        expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+        expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
-    # local -> remote, local cache hit
-    CCACHE_REMOTE_STORAGE="file://$PWD/remote helper=_builtin_ @umask=026"
-    $CCACHE -C >/dev/null
-    rm -rf remote
-    $CCACHE_COMPILE -c test.c
-    expect_perm remote drwxr-x--x # 777 & 026
-    expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
-    result_file=$(find_result_files "${CCACHE_DIR}")
-    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
-    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
+        # local -> remote, local cache hit
+        CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @umask=026"
+        $CCACHE -C >/dev/null
+        rm -rf remote
+        $CCACHE_COMPILE -c test.c
+        expect_perm remote drwxr-x--x # 777 & 026
+        expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
+        result_file=$(find_result_files "${CCACHE_DIR}")
+        expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+        expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
-    # remote -> local, remote cache hit
-    $CCACHE -C >/dev/null
-    $CCACHE_COMPILE -c test.c
-    expect_perm remote drwxr-x--x # 777 & 026
-    expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
-    result_file=$(find_result_files "${CCACHE_DIR}")
-    expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
-    expect_perm "${result_file}" -rw--w-r-- # 666 & 042
+        # remote -> local, remote cache hit
+        $CCACHE -C >/dev/null
+        $CCACHE_COMPILE -c test.c
+        expect_perm remote drwxr-x--x # 777 & 026
+        expect_perm remote/CACHEDIR.TAG -rw-r----- # 666 & 026
+        result_file=$(find_result_files "${CCACHE_DIR}")
+        expect_perm "$(dirname "${result_file}")" drwx-wxr-x # 777 & 042
+        expect_perm "${result_file}" -rw--w-r-- # 666 & 042
+    fi
 
     # -------------------------------------------------------------------------
     TEST "Sharding"
 
-    CCACHE_REMOTE_STORAGE="file://$PWD/remote/* helper=_builtin_ shards=a,b(2)"
+    CCACHE_REMOTE_STORAGE="$remote_url/* helper=_builtin_ shards=a,b(2)"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -386,7 +384,9 @@ SUITE_remote_file() {
     $CCACHE -Cz >/dev/null
     rm -rf remote
 
-    CCACHE_REMOTE_STORAGE="* helper=_builtin_ shards=file://$PWD/remote/a,file://$PWD/remote/b"
+    remote_a_url=$(file_storage_url "$PWD/remote/a")
+    remote_b_url=$(file_storage_url "$PWD/remote/b")
+    CCACHE_REMOTE_STORAGE="* helper=_builtin_ shards=$remote_a_url,$remote_b_url"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0

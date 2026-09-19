@@ -49,10 +49,7 @@ SUITE_trim_dir() {
     # that recompression changes their size. (Dummy files can't be recompressed
     # and wouldn't trigger a "Recompressed" log.)
     generate_code 1000 marker_test.c
-    remote_url="file:$PWD/remote"
-    if $HOST_OS_WINDOWS; then
-        remote_url="file:///$(cygpath -m "$PWD/remote")"
-    fi
+    remote_url=$(file_storage_url "$PWD/remote")
     CCACHE_REMOTE_STORAGE="$remote_url" CCACHE_NOCOMPRESS=1 \
         $CCACHE_COMPILE -c marker_test.c -o marker_test.o
 
