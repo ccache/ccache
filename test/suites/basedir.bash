@@ -1,6 +1,6 @@
 SUITE_basedir_PROBE() {
     if ! $RUN_WIN_XFAIL; then
-        echo "CCACHE_BASEDIR is broken on windows."
+        echo "this test suite does not work on Windows"
     fi
 }
 

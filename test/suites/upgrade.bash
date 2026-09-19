@@ -1,6 +1,6 @@
 SUITE_upgrade_PROBE() {
     if ! $RUN_WIN_XFAIL; then
-        echo "upgrade tests are broken on Windows. (mix between windows and posix path)"
+        echo "this test suite does not work on Windows"
         return
     fi
 }
