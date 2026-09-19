@@ -625,6 +625,7 @@ TEST_CASE("Config::visit_items")
     "msvc_utf8 = true\n"
     "namespace = ns\n"
     "path = p\n"
+    "path_mapping = /123=/456\n"
     "pch_external_checksum = true\n"
     "prefix_command = pc\n"
     "prefix_command_cpp = pcc\n"
@@ -688,6 +689,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) msvc_utf8 = true",
     "(test.conf) namespace = ns",
     "(test.conf) path = p",
+    "(test.conf) path_mapping = \"/123\"=\"/456\"",
     "(test.conf) pch_external_checksum = true",
     "(test.conf) prefix_command = pc",
     "(test.conf) prefix_command_cpp = pcc",
