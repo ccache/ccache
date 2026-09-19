@@ -77,10 +77,10 @@ exec_to_string_impl(const Args& args,
 
   si.cb = sizeof(STARTUPINFO);
 
-  HANDLE output_read_handle;
-  HANDLE output_write_handle;
-  HANDLE input_read_handle;
-  HANDLE input_write_handle;
+  HANDLE output_read_handle = nullptr;
+  HANDLE output_write_handle = nullptr;
+  HANDLE input_read_handle = nullptr;
+  HANDLE input_write_handle = nullptr;
   SECURITY_ATTRIBUTES sa = {sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE};
   if (!CreatePipe(&output_read_handle, &output_write_handle, &sa, 0)
       || !SetHandleInformation(output_read_handle, HANDLE_FLAG_INHERIT, 0)

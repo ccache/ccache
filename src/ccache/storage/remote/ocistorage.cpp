@@ -59,7 +59,9 @@ throw_credential_file_read_error()
 std::string
 read_credential_file(const std::string& path, const bool is_systemd_credential)
 {
-#ifndef _WIN32
+#ifdef _WIN32
+  static_cast<void>(is_systemd_credential);
+#else
   struct stat file_status = {};
   if (stat(path.c_str(), &file_status) != 0 || !S_ISREG(file_status.st_mode)) {
     throw_credential_file_read_error();
