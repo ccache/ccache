@@ -502,10 +502,17 @@ std::string
 make_dash_option(const Config& config, const std::string& arg)
 {
   std::string new_arg = arg;
-  if (config.is_compiler_group_msvc() && arg.starts_with("/")) {
+  if (config.is_compiler_group_msvc() && new_arg.starts_with("/")) {
     // MSVC understands both /option and -option, so convert all /option to
     // -option to simplify our handling.
     new_arg[0] = '-';
+  }
+  if (config.compiler_type() == CompilerType::clang_cl
+      && new_arg.starts_with("-clang:")) {
+    // Strip the "-clang:" so that the option is detected as a Clang option.
+    // This does mean that any ArgumentProcessingState::add_*_arg() method
+    // needs to be passed the original argument(s) from the util::Args object.
+    new_arg = new_arg.substr(7);
   }
   return new_arg;
 }
@@ -598,6 +605,10 @@ process_option_arg(const Context& ctx,
   // arg should only be used when detecting options. It should not be added to
   // state.*_args since it's potentially != args[i].
   std::string arg = make_dash_option(ctx.config, args[i]);
+
+  const auto is_clang_cl_passthru =
+    config.compiler_type() == CompilerType::clang_cl
+    && args[i].starts_with("-clang:");
 
   // Exit early if we notice a non-option argument right away.
   if (arg.empty() || (arg[0] != '-' && arg[0] != '@')) {
@@ -1071,7 +1082,7 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
-  if (config.is_compiler_group_msvc()
+  if (config.is_compiler_group_msvc() && !is_clang_cl_passthru
       && (arg.starts_with("-MP") || arg == "-FS")) {
     state.add_compiler_only_arg_no_hash(args[i]);
     return Statistic::none;
@@ -1079,7 +1090,7 @@ process_option_arg(const Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if (!config.is_compiler_group_msvc()
+  if ((!config.is_compiler_group_msvc() || is_clang_cl_passthru)
       && (arg == "-MD"
           || arg == "-MMD"
           // nvcc -MD:
@@ -1118,15 +1129,19 @@ process_option_arg(const Context& ctx,
     }
     // Keep the format of the args the same.
     if (separate_argument) {
-      state.add_compiler_only_arg("-MF");
+      // Because `i` was incremented, and `args[i - 1]` could possibly start
+      // with "-clang:".
+      state.add_compiler_only_arg(args[i - 1]);
       state.add_compiler_only_arg(args_info.output_dep);
     } else {
-      state.add_compiler_only_arg(FMT("-MF{}", args_info.output_dep));
+      state.add_compiler_only_arg(FMT("{}-MF{}",
+                                      is_clang_cl_passthru ? "-clang:" : "",
+                                      args_info.output_dep));
     }
     return Statistic::none;
   }
 
-  if (!config.is_compiler_group_msvc()
+  if ((!config.is_compiler_group_msvc() || is_clang_cl_passthru)
       && (arg.starts_with("-MQ")
           || arg.starts_with("-MT")
           // nvcc -MT:
@@ -1149,7 +1164,8 @@ process_option_arg(const Context& ctx,
       const std::string_view arg_view(arg);
       const auto arg_opt = arg_view.substr(0, 3);
       dep_target = arg_view.substr(3);
-      state.add_compiler_only_arg(FMT("{}{}", arg_opt, dep_target));
+      state.add_compiler_only_arg(FMT(
+        "{}{}{}", is_clang_cl_passthru ? "-clang:" : "", arg_opt, dep_target));
     }
 
     if (args_info.dependency_target) {
@@ -1335,7 +1351,8 @@ process_option_arg(const Context& ctx,
   if (arg.starts_with("--sysroot=")) {
     auto path = std::string_view(arg).substr(10);
     auto relpath = core::make_relative_path(ctx, path);
-    state.add_common_arg(FMT("--sysroot={}", relpath));
+    state.add_common_arg(
+      FMT("{}--sysroot={}", is_clang_cl_passthru ? "-clang:" : "", relpath));
     return Statistic::none;
   }
 
