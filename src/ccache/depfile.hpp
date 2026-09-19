@@ -31,6 +31,9 @@ namespace depfile {
 
 std::string escape_filename(std::string_view filename);
 
+std::string
+map_paths(const Context& ctx, std::string_view content, bool reverse);
+
 std::optional<std::string> rewrite_source_paths(const Context& ctx,
                                                 std::string_view file_content);
 
