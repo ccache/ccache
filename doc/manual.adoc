@@ -1281,6 +1281,11 @@ true to disable local storage. Note that cache statistics counters will still be
 kept in the local cache directory -- remote storage backends only store
 compilation results and manifests.
 
+The built-in backends available in a ccache binary depend on its build
+configuration. `ccache --version` lists them as, for example, `https-storage`,
+`oci-storage` and `gha-storage`. HTTP storage is enabled by default; HTTPS, OCI
+and GitHub Actions storage must be enabled explicitly when configuring ccache.
+
 === Storage helper process
 
 ccache can spawn a long-lived local storage helper process (installed
@@ -1418,6 +1423,10 @@ the example belongs to Redis: a hit in OCI or GHA can then refill Redis. Set
 Use `ccache --show-stats` to see the result. `remote_storage_hit` means that a
 result was read from remote storage; `remote_storage_write`,
 `remote_storage_error` and `remote_storage_timeout` show writes and problems.
+`remote_storage_miss` counts result lookups that missed. The
+`remote_storage_read_hit` and `remote_storage_read_miss` counters also include
+individual manifest and result-file reads, so they can be higher than the result
+hit and miss counters.
 
 === File storage backend
 
@@ -1493,6 +1502,7 @@ done by other means, for instance by running `ccache --trim-dir` periodically.
 
 NOTE: HTTPS support requires configuring ccache with
 `+-DHTTPS_STORAGE_BACKEND=ON+`; this requires OpenSSL 3.
+`+HTTP_STORAGE_BACKEND+` must also be enabled (it is enabled by default).
 
 TIP: See https://ccache.dev/howto/http-storage.html[How to set up HTTP storage]
 for hints on how to set up an HTTP server for use with ccache.
@@ -1530,10 +1540,21 @@ The default is *subdirs*.
 * *@header*: Add the key=value pair to the HTTP headers of the request. For
    example: `+@header=Content-Type=application/octet-stream+` adds
    "Content-Type: application/octet-stream" to the HTTP headers of the request.
+* *@connect-timeout*: Connection timeout in milliseconds. Default: *100*.
+* *@operation-timeout*: Read and write timeout in milliseconds. Default: *10000*.
+
+The HTTP backend does not follow HTTP redirects. Configure the final HTTP or
+HTTPS endpoint directly.
 
 === GitHub Actions cache storage backend
 
 URL format: `+gha://[PREFIX]+`
+
+Everything after `+gha://+` is an optional, arbitrary cache-key prefix; it is
+not a GitHub repository name or URL. Slashes may be used, so
+`+gha://project/build+` uses `+project/build+` as one prefix. Leading and
+trailing slashes are ignored. Use either this URL prefix or *@prefix* to keep
+independent caches apart.
 
 This built-in backend stores ccache entries in the GitHub Actions cache for the
 current workflow. It is intended for cache sharing between jobs and runs of a
@@ -1545,9 +1566,10 @@ OpenSSL 3 is required for that build option.
 
 The GitHub Actions runner supplies the endpoint and runtime credential. ccache
 reads `ACTIONS_RESULTS_URL` (or the older `ACTIONS_CACHE_URL`) and
-`ACTIONS_RUNTIME_TOKEN` from its process environment. The backend is not
-created, and no HTTP request is made, if either value is missing. Do not put a
-token in `ccache.conf`, `CCACHE_REMOTE_STORAGE` or a workflow environment file.
+`ACTIONS_RUNTIME_TOKEN` (or `ACTIONS_ID_TOKEN_REQUEST_TOKEN`) from its process
+environment. The backend is not created, and no HTTP request is made, if either
+value is missing. Do not put a token in `ccache.conf`, `CCACHE_REMOTE_STORAGE`
+or a workflow environment file.
 The compilation continues in that case. Unless
 <<config_remote_only,*remote_only*>> is set, ccache then uses the local cache.
 
@@ -1568,13 +1590,16 @@ Examples:
 
 Optional attributes:
 
-* *@prefix*: Cache-key prefix. The URL path is used when it is not set.
+* *@prefix*: Cache-key prefix. It overrides the prefix from the complete URL
+  part after `+gha://+`.
 * *@service-version*: Select the cache API version: *v1* or *v2*. The runner's
   v2 marker selects v2 by default. Use *v1* only for legacy compatibility.
 * *@debug*: If *true*, log the operation, HTTP status and a redacted URL. The
   default follows `ACTIONS_STEP_DEBUG`.
-* *@connect-timeout*: Timeout for establishing an HTTP connection.
-* *@operation-timeout*: Timeout for one HTTP operation.
+* *@connect-timeout*: Timeout for establishing an HTTP connection, in
+  milliseconds. Default: *100*.
+* *@operation-timeout*: Timeout for one HTTP operation, in milliseconds.
+  Default: *10000*.
 * *@url* and *@url-env*: Override the endpoint. They are for isolated protocol
   tests; production workflows normally use the runner-provided endpoint.
 
@@ -1624,13 +1649,14 @@ Examples:
 
 === OCI storage backend
 
-URL format: `+oci://REGISTRY/REPOSITORY[/ccache/PREFIX]+`
+URL format: `+oci://REGISTRY[:PORT]/REPOSITORY[/ccache/PREFIX]+`
 
 This built-in backend stores ccache entries as OCI manifests and blobs. It is
 suitable for registries such as GHCR. HTTPS is used by default. The optional
 `/ccache/PREFIX` part separates the repository path from a cache-key prefix.
 Each entry uses the complete lower-case hexadecimal ccache digest, optionally
-with that prefix.
+with that prefix. The first `/ccache/` in the URL has this special meaning, so
+a repository path cannot itself contain that exact path segment.
 
 NOTE: Build ccache with `+-DOCI_STORAGE_BACKEND=ON+` to enable this backend.
 OpenSSL 3 is required for that build option.
@@ -1644,7 +1670,8 @@ Use a Docker credential helper as the normal credential source. ccache invokes
 `docker-credential-NAME get` and keeps the returned credential in memory. A
 private credential file and a Linux systemd credential are alternatives for
 environments where a credential helper is not available. Exactly one credential
-source may be configured. Direct token attributes are rejected.
+source may be configured. Direct token attributes are rejected. No credential is
+needed for a registry and repository that allow anonymous access.
 
 For example, `@credential-helper=pass` invokes `docker-credential-pass`.
 Use the helper that is installed for the platform's credential store, such as
@@ -1684,10 +1711,15 @@ the `Username` and `Secret` fields. For systemd, use the credential name rather
 than a path, for example `@systemd-credential=ccache-ghcr`. Do not put either
 form of credential in `ccache.conf` or `CCACHE_REMOTE_STORAGE`.
 
+When a credential helper or JSON credential supplies both a user name and a
+secret, ccache follows the registry's Bearer challenge and keeps the resulting
+registry token only in memory.
+
 OCI storage supports reads, writes and manifest deletion. Signed blob redirects
 must use HTTPS. ccache follows such redirects without forwarding the registry
 Bearer token. Debug output contains only the operation, HTTP status, cache
-digest and redacted URL.
+digest and redacted URL. *@connect-timeout* and *@operation-timeout* are in
+milliseconds and default to *100* and *10000*, respectively.
 
 == Cache size management
 
