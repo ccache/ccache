@@ -1404,13 +1404,20 @@ uses Redis as the fast cache, OCI as the shared cache and GHA as the
 workflow-local cache:
 
 ----
-remote_storage = redis://cache.example.com backfill=best-effort oci://registry.example.com/team/ccache/shared @credential-helper=pass gha://build
+remote_storage =
+  redis://cache.example.com backfill=best-effort
+  oci://registry.example.com/team/ccache/shared @credential-helper=pass
+  gha://build
 ----
 
-The example contains no credential. Set *read-only* on a backend that must not
-receive writes. Use `ccache --print-stats` for the machine-readable
-`remote_storage_hit`, `remote_storage_write`, `remote_storage_error` and
-`remote_storage_timeout` counters.
+Put this in `ccache.conf` or set the same value with
+<<config_remote_storage,*CCACHE_REMOTE_STORAGE*>>. The `backfill` property in
+the example belongs to Redis: a hit in OCI or GHA can then refill Redis. Set
+*read-only* on a backend that must not receive writes.
+
+Use `ccache --show-stats` to see the result. `remote_storage_hit` means that a
+result was read from remote storage; `remote_storage_write`,
+`remote_storage_error` and `remote_storage_timeout` show writes and problems.
 
 === File storage backend
 
@@ -1541,6 +1548,12 @@ reads `ACTIONS_RESULTS_URL` (or the older `ACTIONS_CACHE_URL`) and
 `ACTIONS_RUNTIME_TOKEN` from its process environment. The backend is not
 created, and no HTTP request is made, if either value is missing. Do not put a
 token in `ccache.conf`, `CCACHE_REMOTE_STORAGE` or a workflow environment file.
+The compilation continues in that case. Unless
+<<config_remote_only,*remote_only*>> is set, ccache then uses the local cache.
+
+For a normal GitHub Actions job, configuring `remote_storage = gha://project`
+is enough. The runner supplies the endpoint and credential; `project` separates
+this cache from other uses in the same repository.
 
 Each entry uses the complete lower-case hexadecimal ccache digest, optionally
 prefixed by the URL or *@prefix* value. ccache supports the current v2 cache API
@@ -1633,6 +1646,12 @@ private credential file and a Linux systemd credential are alternatives for
 environments where a credential helper is not available. Exactly one credential
 source may be configured. Direct token attributes are rejected.
 
+For example, `@credential-helper=pass` invokes `docker-credential-pass`.
+Use the helper that is installed for the platform's credential store, such as
+*pass* or *secretservice* on Linux, *osxkeychain* on macOS or *wincred* on
+Windows. The credential itself stays in that store, not in ccache
+configuration.
+
 Examples:
 
 * `+oci://ghcr.io/OWNER/REPOSITORY/ccache/project @credential-helper=pass+`
@@ -1659,6 +1678,11 @@ and unreadable by group and others. A systemd credential may be group-readable
 but must not be group-writable or accessible by others. Credential data is not
 logged. Docker credential helpers provide the same interface for the platform's
 native credential store.
+
+A credential file contains either a single secret or Docker-helper JSON with
+the `Username` and `Secret` fields. For systemd, use the credential name rather
+than a path, for example `@systemd-credential=ccache-ghcr`. Do not put either
+form of credential in `ccache.conf` or `CCACHE_REMOTE_STORAGE`.
 
 OCI storage supports reads, writes and manifest deletion. Signed blob redirects
 must use HTTPS. ccache follows such redirects without forwarding the registry
