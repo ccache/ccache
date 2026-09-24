@@ -1065,7 +1065,7 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
 Examples:
 +
 ----
-remote_storage = file:/shared/nfs/directory+`
+remote_storage = file:/shared/nfs/directory
 remote_storage =
   file:///shared/nfs/one read-only
   file:///shared/nfs/two
@@ -1286,6 +1286,31 @@ configuration. `ccache --version` lists them as, for example, `https-storage`,
 `oci-storage` and `gha-storage`. HTTP storage is enabled by default; HTTPS, OCI
 and GitHub Actions storage must be enabled explicitly when configuring ccache.
 
+=== Getting started
+
+Configure remote storage once in `ccache.conf`, then invoke ccache normally,
+for example `ccache gcc -c example.c`. ccache checks the local cache first and
+then the configured remote storage. Use `ccache --show-stats` after a build to
+see remote hits, writes and problems.
+
+For a GitHub Actions job, this is enough:
+
+----
+# Share entries within this GitHub Actions workflow.
+remote_storage = gha://build
+----
+
+For an OCI registry, configure the repository and a credential helper:
+
+----
+# Store entries in this OCI repository.
+remote_storage = oci://ghcr.io/OWNER/REPOSITORY @credential-helper=wincred
+----
+
+The value after `+gha://+` and the optional OCI *@prefix* attribute add a name
+in front of each cache key. Use them only when you want to keep otherwise
+compatible caches separate.
+
 === Storage helper process
 
 ccache can spawn a long-lived local storage helper process (installed
@@ -1377,7 +1402,7 @@ the default):
 |==============================================================================
 | *Local storage* | *Remote storage* | *What happens*
 
-| miss | miss | Compile, write to local, write to remote^[1]^
+| miss | miss | Compile, write to local, write to every writable remote backend^[1]^
 | miss | hit  | Read from remote, write to local
 | hit  | -    | Read from local, don't write to remote^[2]^
 
@@ -1386,6 +1411,11 @@ the default):
 ^[1]^ Unless remote storage has property `read-only=true`. +
 ^[2]^ Unless local storage is set to share its cache hits with the
 <<config_reshare,*reshare*>> option.
+
+On a local cache hit, ccache normally does not write to remote storage. Set
+<<config_reshare,*reshare*>> to copy a local entry to writable remote backends.
+ccache only uploads entries that can be used without local cache files; other
+entries remain local.
 
 If <<config_remote_only,*remote_only*>> is true:
 
@@ -1397,6 +1427,10 @@ If <<config_remote_only,*remote_only*>> is true:
 | - | hit  | Read from remote, don't write to local
 
 |==============================================================================
+
+With `remote_only=true`, ccache does not read or write the local cache. If all
+remote backends miss or are unavailable, the compiler still runs, but no local
+cache entry is created.
 
 Use `ccache --show-stats` to inspect the *Remote storage* section. A successful
 remote result increments the remote hit count; writes, errors and timeouts are
@@ -1410,8 +1444,11 @@ workflow-local cache:
 
 ----
 remote_storage =
+  # Fast first remote cache.
   redis://cache.example.com backfill=best-effort
-  oci://registry.example.com/team/ccache/shared @credential-helper=pass
+  # Shared cache for builds outside GitHub Actions.
+  oci://registry.example.com/team/cache @prefix=shared @credential-helper=pass
+  # Cache for this GitHub Actions workflow.
   gha://build
 ----
 
@@ -1420,13 +1457,24 @@ Put this in `ccache.conf` or set the same value with
 the example belongs to Redis: a hit in OCI or GHA can then refill Redis. Set
 *read-only* on a backend that must not receive writes.
 
+On a complete miss, ccache compiles and writes to every writable remote backend.
+If Redis misses and OCI or GHA has an entry, ccache uses that entry and can
+refill Redis. *best-effort* keeps the cache hit usable if the refill fails;
+*strict* turns a failed refill into a cache operation failure; *disabled* does
+not attempt a refill.
+
+If a remote backend fails, ccache records an error or timeout, skips that backend
+for the rest of the compiler call and continues with later backends. This does
+not apply to a failed *strict* backfill.
+
 Use `ccache --show-stats` to see the result. `remote_storage_hit` means that a
 result was read from remote storage; `remote_storage_write`,
 `remote_storage_error` and `remote_storage_timeout` show writes and problems.
 `remote_storage_miss` counts result lookups that missed. The
 `remote_storage_read_hit` and `remote_storage_read_miss` counters also include
 individual manifest and result-file reads, so they can be higher than the result
-hit and miss counters.
+hit and miss counters. A successful compile commonly writes both a manifest and
+a result file, so `remote_storage_write` can increase by two.
 
 === File storage backend
 
@@ -1577,6 +1625,9 @@ For a normal GitHub Actions job, configuring `remote_storage = gha://project`
 is enough. The runner supplies the endpoint and credential; `project` separates
 this cache from other uses in the same repository.
 
+After a cacheable compile misses all caches, ccache writes the new entry to GHA
+itself. Do not add a separate `actions/cache` step for this storage backend.
+
 Each entry uses the complete lower-case hexadecimal ccache digest, optionally
 prefixed by the URL or *@prefix* value. ccache supports the current v2 cache API
 and the legacy v1 API. The API version affects the requests made to GitHub, not
@@ -1649,14 +1700,12 @@ Examples:
 
 === OCI storage backend
 
-URL format: `+oci://REGISTRY[:PORT]/REPOSITORY[/ccache/PREFIX]+`
+URL format: `+oci://REGISTRY[:PORT]/REPOSITORY+`
 
 This built-in backend stores ccache entries as OCI manifests and blobs. It is
-suitable for registries such as GHCR. HTTPS is used by default. The optional
-`/ccache/PREFIX` part separates the repository path from a cache-key prefix.
-Each entry uses the complete lower-case hexadecimal ccache digest, optionally
-with that prefix. The first `/ccache/` in the URL has this special meaning, so
-a repository path cannot itself contain that exact path segment.
+suitable for registries such as GHCR. HTTPS is used by default. Each entry uses
+the complete lower-case hexadecimal ccache digest. Use *@prefix* when a cache
+namespace is needed.
 
 NOTE: Build ccache with `+-DOCI_STORAGE_BACKEND=ON+` to enable this backend.
 OpenSSL 3 is required for that build option.
@@ -1666,12 +1715,14 @@ write, it uploads missing blobs and publishes an OCI manifest with the
 `application/vnd.ccache.entry` artifact type. A delete removes the manifest,
 but registry garbage collection decides when unreferenced blobs are removed.
 
-Use a Docker credential helper as the normal credential source. ccache invokes
-`docker-credential-NAME get` and keeps the returned credential in memory. A
-private credential file and a Linux systemd credential are alternatives for
-environments where a credential helper is not available. Exactly one credential
-source may be configured. Direct token attributes are rejected. No credential is
-needed for a registry and repository that allow anonymous access.
+Use a Docker credential helper as the normal credential source. Configure the
+helper with Docker before using ccache; its credential must have permission to
+read and write the target repository. ccache invokes `docker-credential-NAME
+get` and keeps the returned credential in memory. A private credential file and
+a Linux systemd credential are alternatives for environments where a credential
+helper is not available. Exactly one credential source may be configured. Direct
+token attributes are rejected. No credential is needed for a registry and
+repository that allow anonymous access.
 
 For example, `@credential-helper=pass` invokes `docker-credential-pass`.
 Use the helper that is installed for the platform's credential store, such as
@@ -1681,8 +1732,8 @@ configuration.
 
 Examples:
 
-* `+oci://ghcr.io/OWNER/REPOSITORY/ccache/project @credential-helper=pass+`
-* `+oci://registry.example.com/team/ccache/release @prefix=builds+`
+* `+oci://ghcr.io/OWNER/REPOSITORY @credential-helper=pass+`
+* `+oci://registry.example.com/team/cache @prefix=builds+`
 * `+oci://registry.example.com/team/cache read-only+`
 
 Optional attributes:
