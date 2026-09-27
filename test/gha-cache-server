@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+from http import HTTPStatus
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import parse_qs, quote, unquote, urlparse
+
+
+class CacheHandler(BaseHTTPRequestHandler):
+    cache = {}
+    uploads = {}
+    legacy_cache_keys = {}
+    legacy_uploads = {}
+    next_legacy_cache_id = 1
+    rate_limited_reserves = 0
+    request_count = 0
+
+    def _body(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        return self.rfile.read(length)
+
+    def _json_body(self):
+        return json.loads(self._body())
+
+    def _json(self, status, value, retry_after=None):
+        body = json.dumps(value).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        if retry_after is not None:
+            self.send_header("Retry-After", str(retry_after))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _bytes(self, status, value):
+        self.send_response(status)
+        self.send_header("Content-Length", str(len(value)))
+        self.end_headers()
+        self.wfile.write(value)
+
+    def _entry_url(self, kind, key):
+        host, port = self.server.server_address[:2]
+        return f"http://{host}:{port}/{kind}/{quote(key, safe='')}?signature=test"
+
+    def do_POST(self):  # noqa: N802
+        type(self).request_count += 1
+        path = urlparse(self.path).path
+        request = self._json_body()
+        key = request.get("key", "")
+        if path.endswith("GetCacheEntryDownloadURL"):
+            if key in self.cache:
+                self._json(
+                    HTTPStatus.OK,
+                    {"ok": True, "signed_download_url": self._entry_url("archive", key)},
+                )
+            else:
+                self._json(HTTPStatus.OK, {"ok": False})
+        elif path.endswith("CreateCacheEntry"):
+            if key.startswith("rate-limited/"):
+                type(self).rate_limited_reserves += 1
+                self._json(HTTPStatus.TOO_MANY_REQUESTS, {"ok": False}, 60)
+            else:
+                self._json(
+                    HTTPStatus.OK,
+                    {"ok": True, "signed_upload_url": self._entry_url("upload", key)},
+                )
+        elif path.endswith("FinalizeCacheEntryUpload"):
+            self.cache[key] = self.uploads.pop(key)
+            self._json(HTTPStatus.OK, {"ok": True})
+        elif path.endswith("/_apis/artifactcache/caches"):
+            cache_id = type(self).next_legacy_cache_id
+            type(self).next_legacy_cache_id += 1
+            type(self).legacy_cache_keys[str(cache_id)] = key
+            self._json(HTTPStatus.CREATED, {"cacheId": cache_id})
+        elif "/_apis/artifactcache/caches/" in path:
+            cache_id = path.rsplit("/", 1)[1]
+            key = type(self).legacy_cache_keys.get(cache_id)
+            if key is None or cache_id not in type(self).legacy_uploads:
+                self._json(HTTPStatus.NOT_FOUND, {"ok": False})
+            else:
+                type(self).cache[key] = type(self).legacy_uploads.pop(cache_id)
+                self._json(HTTPStatus.OK, {"ok": True})
+        else:
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False})
+
+    def do_PUT(self):  # noqa: N802
+        type(self).request_count += 1
+        path = urlparse(self.path).path
+        if not path.startswith("/upload/"):
+            self._bytes(HTTPStatus.NOT_FOUND, b"")
+            return
+        if self.headers.get("x-ms-blob-type") != "BlockBlob":
+            self._bytes(HTTPStatus.BAD_REQUEST, b"")
+            return
+        self.uploads[unquote(path[len("/upload/") :])] = self._body()
+        self._bytes(HTTPStatus.OK, b"")
+
+    def do_PATCH(self):  # noqa: N802
+        type(self).request_count += 1
+        path = urlparse(self.path).path
+        if "/_apis/artifactcache/caches/" not in path:
+            self._bytes(HTTPStatus.NOT_FOUND, b"")
+            return
+        cache_id = path.rsplit("/", 1)[1]
+        if cache_id not in type(self).legacy_cache_keys:
+            self._bytes(HTTPStatus.NOT_FOUND, b"")
+            return
+        type(self).legacy_uploads[cache_id] = self._body()
+        self._bytes(HTTPStatus.OK, b"")
+
+    def do_GET(self):  # noqa: N802
+        path = urlparse(self.path).path
+        if path == "/stats":
+            self._json(
+                HTTPStatus.OK,
+                {
+                    "rate_limited_reserves": type(self).rate_limited_reserves,
+                    "requests": type(self).request_count,
+                },
+            )
+            return
+        type(self).request_count += 1
+        if path.endswith("/_apis/artifactcache/cache"):
+            key = parse_qs(urlparse(self.path).query).get("keys", [""])[0]
+            if key not in type(self).cache:
+                self._bytes(HTTPStatus.NO_CONTENT, b"")
+            else:
+                self._json(
+                    HTTPStatus.OK,
+                    {"archiveLocation": self._entry_url("archive", key)},
+                )
+            return
+        if not path.startswith("/archive/"):
+            self._bytes(HTTPStatus.NOT_FOUND, b"")
+            return
+        key = unquote(path[len("/archive/") :])
+        self._bytes(
+            HTTPStatus.OK if key in self.cache else HTTPStatus.NOT_FOUND,
+            self.cache.get(key, b""),
+        )
+
+    def log_message(self, _format, *_args):
+        pass
+
+
+if __name__ == "__main__":
+    HTTPServer(("localhost", int(sys.argv[1])), CacheHandler).serve_forever()

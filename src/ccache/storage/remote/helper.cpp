@@ -699,7 +699,8 @@ Helper::Helper(std::chrono::milliseconds data_timeout,
 
 std::unique_ptr<RemoteStorage::Backend>
 Helper::create_backend(const Url& url,
-                       const std::vector<Backend::Attribute>& attributes) const
+                       const std::vector<Backend::Attribute>& attributes,
+                       const BackendContext&) const
 {
   return std::make_unique<HelperBackend>(m_helper_path,
                                          m_temp_dir,

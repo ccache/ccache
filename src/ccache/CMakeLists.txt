@@ -75,6 +75,28 @@ if(HTTP_STORAGE_BACKEND)
   endif()
 endif()
 
+if(HTTPS_STORAGE_BACKEND)
+  if(NOT HTTP_STORAGE_BACKEND)
+    message(FATAL_ERROR "HTTPS_STORAGE_BACKEND requires HTTP_STORAGE_BACKEND")
+  endif()
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_HTTPS_STORAGE_BACKEND)
+endif()
+
+if(OCI_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_OCI_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
+endif()
+
+if(GHA_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PUBLIC -DHAVE_GHA_STORAGE_BACKEND)
+  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
+endif()
+
+if(HTTPS_STORAGE_BACKEND OR OCI_STORAGE_BACKEND OR GHA_STORAGE_BACKEND)
+  target_compile_definitions(ccache_framework PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
+  target_link_libraries(ccache_framework PRIVATE OpenSSL::SSL)
+endif()
+
 add_executable(test-lockfile test_lockfile.cpp)
 target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
 

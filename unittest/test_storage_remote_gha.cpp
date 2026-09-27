@@ -1,0 +1,217 @@
+// Copyright (C) 2026 Joel Rosdahl and other contributors
+//
+// See doc/authors.adoc for a complete list of contributors.
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+
+#include "testutil.hpp"
+
+#include <ccache/core/exceptions.hpp>
+#include <ccache/storage/remote/ghastorage.hpp>
+#include <ccache/storage/storage.hpp>
+#include <ccache/util/environment.hpp>
+
+#include <cxxurl/url.hpp>
+#include <doctest/doctest.h>
+
+#include <string>
+
+TEST_SUITE_BEGIN("storage::remote::GhaStorage");
+
+namespace {
+
+Hash::Digest
+test_digest()
+{
+  return {0x13, 0x12, 0x11, 0x10, 0x0f, 0x0e, 0x0d,
+          0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06,
+          0x05, 0x04, 0x03, 0x02, 0x01, 0x00};
+}
+
+} // namespace
+
+TEST_CASE("parse gha storage URL")
+{
+  TestUtil::TestContext test_context;
+  util::unsetenv("ACTIONS_CACHE_SERVICE_V2");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "secret-from-runtime");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://project/cache"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"debug", "true", "true"}});
+
+  CHECK(config.results_url == "https://cache.example.invalid/results/");
+  CHECK(config.prefix == "project/cache");
+  CHECK(config.token == "secret-from-runtime");
+  CHECK(config.debug);
+  CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v1);
+}
+
+TEST_CASE("create HTTPS GHA storage backend")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
+
+  storage::remote::GhaStorage storage;
+  CHECK_NOTHROW(storage.create_backend(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"}},
+    {{}}));
+}
+
+TEST_CASE("parse gha runtime token and URL from environment")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("CCACHE_TEST_GHA_URL", "https://cache.example.invalid/runtime/");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "secret-from-env");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url-env", "CCACHE_TEST_GHA_URL", "CCACHE_TEST_GHA_URL"},
+     {"prefix", "manual", "manual"}});
+
+  CHECK(config.results_url == "https://cache.example.invalid/runtime/");
+  CHECK(config.prefix == "manual");
+  CHECK(config.token == "secret-from-env");
+  CHECK(storage::get_redacted_url_str_for_logging(
+          Url("https://user:secret@cache.example.invalid/runtime/"))
+        == "https://********@cache.example.invalid/runtime/");
+}
+
+TEST_CASE("reject direct gha token configuration")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "secret-from-runtime");
+
+  CHECK_THROWS_AS(storage::remote::detail::parse_gha_storage_config(
+                    Url("gha://"),
+                    {{"url", "https://cache.example.invalid/runtime/", "ignored"},
+                     {"token", "secret-token", "secret-token"}}),
+                  core::Fatal);
+}
+
+TEST_CASE("reject gha storage without runtime configuration")
+{
+  TestUtil::TestContext test_context;
+  util::unsetenv("ACTIONS_RESULTS_URL");
+  util::unsetenv("ACTIONS_CACHE_URL");
+  util::unsetenv("ACTIONS_RUNTIME_TOKEN");
+  util::unsetenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN");
+
+  CHECK_THROWS_WITH_AS(
+    storage::remote::detail::parse_gha_storage_config(Url("gha://"), {}),
+    doctest::Contains("CCACHE_NG-ERROR-GHA-0001"),
+    storage::remote::RemoteStorage::Backend::Failed);
+}
+
+TEST_CASE("make gha key from full digest")
+{
+  const auto key =
+    storage::remote::detail::make_gha_storage_key(test_digest(), "");
+
+  CHECK(key == "131211100f0e0d0c0b0a09080706050403020100");
+  CHECK(key.size() == 40);
+}
+
+TEST_CASE("make gha prefixed key")
+{
+  CHECK(storage::remote::detail::make_gha_storage_key(test_digest(), "linux/x64")
+        == "linux/x64/131211100f0e0d0c0b0a09080706050403020100");
+}
+
+TEST_CASE("extract gha archive location")
+{
+  const auto archive_location =
+    storage::remote::detail::extract_gha_archive_location(
+      R"({"cacheKey":"key","archiveLocation":"https://cache.example.invalid/a/b?sig=one%2Ftwo"})");
+
+  REQUIRE(archive_location);
+  CHECK(*archive_location
+        == "https://cache.example.invalid/a/b?sig=one%2Ftwo");
+}
+
+TEST_CASE("extract gha archive location with escaped slashes")
+{
+  const auto archive_location =
+    storage::remote::detail::extract_gha_archive_location(
+      R"({
+        "archiveLocation" : "https:\/\/cache.example.invalid\/entry?sig=x"
+      })");
+
+  REQUIRE(archive_location);
+  CHECK(*archive_location == "https://cache.example.invalid/entry?sig=x");
+}
+
+TEST_CASE("reject gha lookup response without archive location")
+{
+  CHECK_FALSE(storage::remote::detail::extract_gha_archive_location(
+    R"({"cacheKey":"key"})"));
+  CHECK_FALSE(storage::remote::detail::extract_gha_archive_location(
+    R"({"archiveLocation":true})"));
+}
+
+TEST_CASE("make gha archive path preserves signed query")
+{
+  CHECK(storage::remote::detail::make_gha_archive_path(
+          "https://cache.example.invalid/a/b?sig=one%2Ftwo&empty#fragment")
+        == "/a/b?sig=one%2Ftwo&empty");
+  CHECK(storage::remote::detail::make_gha_archive_path(
+          "https://cache.example.invalid?sig=one%2Ftwo")
+        == "/?sig=one%2Ftwo");
+  CHECK(storage::remote::detail::make_gha_archive_path(
+          "https://cache.example.invalid")
+        == "/");
+}
+
+TEST_CASE("select gha v2 from runtime environment")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_CACHE_SERVICE_V2", "enabled");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"}});
+
+  CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v2);
+  CHECK(storage::remote::detail::gha_cache_version(config.service_version)
+        == "0923af7a82378b9fbe2fcfc3bc65175ea5a8508a02410190399fa7b6e9a51891");
+}
+
+TEST_CASE("select gha debug logging from runtime environment")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_STEP_DEBUG", "true");
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"}});
+
+  CHECK(config.debug);
+
+  const auto disabled_config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"debug", "false", "false"}});
+  CHECK_FALSE(disabled_config.debug);
+}
+
+TEST_CASE("override gha service version")
+{
+  TestUtil::TestContext test_context;
+  util::setenv("ACTIONS_RUNTIME_TOKEN", "test-token");
+
+  const auto config = storage::remote::detail::parse_gha_storage_config(
+    Url("gha://"),
+    {{"url", "https://cache.example.invalid/results/", "ignored"},
+     {"service-version", "v2", "v2"}});
+
+  CHECK(config.service_version == storage::remote::detail::GhaServiceVersion::v2);
+}
+
+TEST_SUITE_END();

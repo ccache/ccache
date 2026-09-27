@@ -1,8 +1,11 @@
 set(
   sources
   client.cpp
+  credentials.cpp
   filestorage.cpp
+  ghacooldown.cpp
   helper.cpp
+  httptransport.hpp
   remotestorage.cpp
 )
 
@@ -12,6 +15,14 @@ endif()
 
 if(HTTP_STORAGE_BACKEND)
   list(APPEND sources httpstorage.cpp)
+endif()
+
+if(OCI_STORAGE_BACKEND)
+  list(APPEND sources ocistorage.cpp)
+endif()
+
+if(GHA_STORAGE_BACKEND)
+  list(APPEND sources ghastorage.cpp)
 endif()
 
 file(GLOB headers *.hpp)

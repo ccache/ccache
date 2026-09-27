@@ -90,6 +90,10 @@ private:
                                core::CacheEntryType type,
                                const EntryReceiver& entry_receiver);
 
+  void backfill_remote_storage(const Hash::Digest& key,
+                               std::span<const uint8_t> value,
+                               size_t source_index);
+
   void put_in_remote_storage(const Hash::Digest& key,
                              std::span<const uint8_t> value,
                              Overwrite overwrite);

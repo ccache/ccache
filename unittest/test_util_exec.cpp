@@ -64,4 +64,24 @@ TEST_CASE("util::exec_to_string")
     CHECK(expected_spawn_failure);
 #endif
   }
+
+  SUBCASE("stdin")
+  {
+#ifdef _WIN32
+    REQUIRE(util::write_file("command.bat",
+                             "@echo off\r\nset /p value=\r\necho %value%"));
+    util::Args args{"command.bat"};
+#else
+    util::Args args{"cat"};
+#endif
+    auto result = util::exec_credential_helper_to_string(args, "fisk\n");
+    if (!result) {
+      FAIL(result.error());
+    }
+#ifdef _WIN32
+    CHECK(*result == "fisk\r\n");
+#else
+    CHECK(*result == "fisk\n");
+#endif
+  }
 }

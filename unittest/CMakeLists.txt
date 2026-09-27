@@ -18,6 +18,8 @@ set(
   test_hashutil.cpp
   test_storage_local_statsfile.cpp
   test_storage_local_util.cpp
+  test_storage_remote_credentials.cpp
+  test_storage_remote_gha_cooldown.cpp
   test_util_args.cpp
   test_util_bitset.cpp
   test_util_bytes.cpp
@@ -39,6 +41,18 @@ set(
   test_util_zstd.cpp
   testutil.cpp
 )
+
+if(HTTP_STORAGE_BACKEND)
+  list(APPEND source_files test_storage_remote_http.cpp)
+endif()
+
+if(GHA_STORAGE_BACKEND)
+  list(APPEND source_files test_storage_remote_gha.cpp)
+endif()
+
+if(OCI_STORAGE_BACKEND)
+  list(APPEND source_files test_storage_remote_oci.cpp)
+endif()
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_inodecache.cpp)

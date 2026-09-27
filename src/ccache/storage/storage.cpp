@@ -24,9 +24,15 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/core/statistic.hpp>
 #include <ccache/storage/remote/filestorage.hpp>
+#ifdef HAVE_GHA_STORAGE_BACKEND
+#  include <ccache/storage/remote/ghastorage.hpp>
+#endif
 #include <ccache/storage/remote/helper.hpp>
 #ifdef HAVE_HTTP_STORAGE_BACKEND
 #  include <ccache/storage/remote/httpstorage.hpp>
+#endif
+#ifdef HAVE_OCI_STORAGE_BACKEND
+#  include <ccache/storage/remote/ocistorage.hpp>
 #endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
 #  include <ccache/storage/remote/redisstorage.hpp>
@@ -65,8 +71,17 @@ const std::unordered_map<std::string_view /*scheme*/,
                          std::shared_ptr<remote::RemoteStorage>>
   k_builtin_remote_storage_implementations = {
     {"file",       std::make_shared<remote::FileStorage>() },
+#ifdef HAVE_GHA_STORAGE_BACKEND
+    {"gha",        std::make_shared<remote::GhaStorage>()  },
+#endif
 #ifdef HAVE_HTTP_STORAGE_BACKEND
     {"http",       std::make_shared<remote::HttpStorage>() },
+#  ifdef HAVE_HTTPS_STORAGE_BACKEND
+    {"https",      std::make_shared<remote::HttpStorage>() },
+#  endif
+#endif
+#ifdef HAVE_OCI_STORAGE_BACKEND
+    {"oci",        std::make_shared<remote::OciStorage>()  },
 #endif
 #ifdef HAVE_REDIS_STORAGE_BACKEND
     {"redis",      std::make_shared<remote::RedisStorage>()},
@@ -99,8 +114,11 @@ struct RemoteStorageShardConfig
 // Representation of one entry in the remote_storage config option.
 struct RemoteStorageConfig
 {
+  enum class BackfillPolicy { best_effort, strict, disabled };
+
   std::string url_str; // Raw URL with unexpanded "*"
 
+  BackfillPolicy backfill_policy = BackfillPolicy::disabled; // "backfill"
   std::optional<std::chrono::milliseconds> data_timeout;    // "data-timeout"
   std::string helper;                                       // "helper"
   std::optional<std::chrono::milliseconds> idle_timeout;    // "idle-timeout"
@@ -130,10 +148,29 @@ struct RemoteStorageEntry
 };
 
 static std::string
+to_string(const storage::RemoteStorageConfig::BackfillPolicy policy)
+{
+  using BackfillPolicy = storage::RemoteStorageConfig::BackfillPolicy;
+  switch (policy) {
+  case BackfillPolicy::best_effort:
+    return "best-effort";
+  case BackfillPolicy::strict:
+    return "strict";
+  case BackfillPolicy::disabled:
+    return "disabled";
+  }
+  ASSERT(false);
+}
+
+static std::string
 to_string(const storage::RemoteStorageConfig& entry)
 {
   std::string result = entry.url_str;
 
+  if (entry.backfill_policy
+      != storage::RemoteStorageConfig::BackfillPolicy::disabled) {
+    result += FMT(" backfill={}", to_string(entry.backfill_policy));
+  }
   if (entry.data_timeout) {
     result +=
       FMT(" data-timeout={}", util::format_duration(*entry.data_timeout));
@@ -283,6 +320,19 @@ parse_storage_config(const std::vector<std::string_view>::const_iterator& begin,
     if (!key.empty() && key.front() == '@') {
       result.attributes.push_back(
         {std::string(key.substr(1)), value, std::string(raw_value)});
+    } else if (key == "backfill") {
+      if (value == "best-effort") {
+        result.backfill_policy =
+          RemoteStorageConfig::BackfillPolicy::best_effort;
+      } else if (value == "strict") {
+        result.backfill_policy = RemoteStorageConfig::BackfillPolicy::strict;
+      } else if (value == "disabled") {
+        result.backfill_policy = RemoteStorageConfig::BackfillPolicy::disabled;
+      } else {
+        throw core::Error(
+          FMT("CCACHE_NG-ERROR-REMOTE-0004: invalid backfill policy for remote storage: \"{}\"",
+              value));
+      }
     } else if (key == "data-timeout") {
       result.data_timeout =
         util::value_or_throw<core::Error>(util::parse_duration(value));
@@ -427,7 +477,15 @@ get_redacted_url_str_for_logging(const Url& url)
   if (!url.user_info().empty()) {
     redacted_url.user_info(k_redacted_secret);
   }
-  return redacted_url.str();
+  std::string result = redacted_url.str();
+  if (url.ip_version() == 4 || url.ip_version() == 6) {
+    const std::string& host = url.host();
+    const size_t host_pos = result.find(host);
+    if (host_pos != std::string::npos) {
+      result.replace(host_pos, host.size(), "<redacted-host>");
+    }
+  }
+  return result;
 }
 
 Storage::Storage(const Config& config, const fs::path& ccache_exe_dir)
@@ -541,7 +599,7 @@ Storage::mark_backend_as_failed(
   const remote::RemoteStorage::Backend::Failure failure)
 {
   // The backend is expected to log details about the error.
-  LOG("Marking remote storage backend for {} as failed",
+  LOG("CCACHE_NG-INFO-REMOTE-9001: marking remote storage backend for {} as failed",
       backend_entry.url.scheme());
   backend_entry.failed = true;
   local.increment_statistic(
@@ -614,9 +672,10 @@ Storage::get_backend(RemoteStorageEntry& entry,
     entry.backends.push_back({shard_url, url_str_for_logging, {}, false});
     try {
       entry.backends.back().impl =
-        entry.storage->create_backend(shard_url, entry.config.attributes);
+        entry.storage->create_backend(
+          shard_url, entry.config.attributes, {m_config.cache_dir()});
     } catch (const remote::RemoteStorage::Backend::Failed& e) {
-      LOG("Failed to construct backend for {}{}",
+      LOG("CCACHE_NG-ERROR-REMOTE-0003: failed to construct backend for {}{}",
           url_str_for_logging,
           std::string_view(e.what()).empty() ? "" : FMT(": {}", e.what()));
       mark_backend_as_failed(entry.backends.back(), e.failure());
@@ -624,9 +683,6 @@ Storage::get_backend(RemoteStorageEntry& entry,
     }
     return &entry.backends.back();
   } else if (backend->failed) {
-    LOG("Not {} {} since it failed earlier",
-        operation_description,
-        url_str_for_logging);
     return nullptr;
   } else {
     return &*backend;
@@ -640,7 +696,8 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
 {
   init_remote_storage();
 
-  for (const auto& entry : m_remote_storages) {
+  for (size_t index = 0; index < m_remote_storages.size(); ++index) {
+    const auto& entry = m_remote_storages[index];
     auto backend = get_backend(*entry, key, "getting from", false);
     if (!backend) {
       continue;
@@ -664,6 +721,7 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
       if (type == core::CacheEntryType::result) {
         local.increment_statistic(core::Statistic::remote_storage_hit);
       }
+      backfill_remote_storage(key, *value, index);
       if (entry_receiver(std::move(*value))) {
         return;
       }
@@ -679,6 +737,59 @@ Storage::get_from_remote_storage(const Hash::Digest& key,
           backend->url_for_logging,
           ms);
       local.increment_statistic(core::Statistic::remote_storage_read_miss);
+    }
+  }
+}
+
+void
+Storage::backfill_remote_storage(const Hash::Digest& key,
+                                 std::span<const uint8_t> value,
+                                 const size_t source_index)
+{
+  if (source_index == 0) {
+    return;
+  }
+
+  for (size_t index = 0; index < source_index; ++index) {
+    auto& entry = *m_remote_storages[index];
+    if (entry.config.backfill_policy
+        == RemoteStorageConfig::BackfillPolicy::disabled) {
+      LOG("CCACHE_NG-INFO-REMOTE-9002: not backfilling {} storage since backfill is disabled",
+          entry.config.shards.front().url.scheme());
+      continue;
+    }
+
+    auto backend = get_backend(entry, key, "backfilling", true);
+    if (!backend) {
+      if (entry.config.backfill_policy
+          == RemoteStorageConfig::BackfillPolicy::strict) {
+        throw core::Error(
+          "CCACHE_NG-ERROR-REMOTE-0001: strict remote storage backfill failed");
+      }
+      continue;
+    }
+
+    util::Timer timer;
+    const auto result = backend->impl->put(key, value, Overwrite::no);
+    const auto ms = timer.measure_ms();
+    if (!result) {
+      mark_backend_as_failed(*backend, result.error());
+      if (entry.config.backfill_policy
+          == RemoteStorageConfig::BackfillPolicy::strict) {
+        throw core::Error(FMT(
+          "CCACHE_NG-ERROR-REMOTE-0002: strict remote storage backfill failed for {}",
+          backend->url_for_logging));
+      }
+      continue;
+    }
+
+    LOG("{} {} in {} by backfill ({:.2f} ms)",
+        *result ? "Stored" : "Did not have to store",
+        util::format_base16(key),
+        backend->url_for_logging,
+        ms);
+    if (*result) {
+      local.increment_statistic(core::Statistic::remote_storage_write);
     }
   }
 }
@@ -717,7 +828,9 @@ Storage::put_in_remote_storage(const Hash::Digest& key,
         util::format_base16(key),
         backend->url_for_logging,
         ms);
-    local.increment_statistic(core::Statistic::remote_storage_write);
+    if (stored) {
+      local.increment_statistic(core::Statistic::remote_storage_write);
+    }
   }
 }
 
@@ -765,7 +878,9 @@ Storage::stop_remote_storage_helpers()
   for (const auto& entry : m_remote_storages) {
     const auto& config = entry->config;
     for (const auto& shard : config.shards) {
-      entry->storage->create_backend(shard.url, config.attributes)->stop();
+      entry->storage
+        ->create_backend(shard.url, config.attributes, {m_config.cache_dir()})
+        ->stop();
     }
   }
 }
