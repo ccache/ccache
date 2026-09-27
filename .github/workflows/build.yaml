@@ -599,7 +599,7 @@ jobs:
           - name: Windows VS2022 32-bit
             os: windows-2022
             msvc_arch: x64_x86
-            allow_test_failures: true  # For now, don't fail the build on failure
+            # allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
@@ -609,7 +609,7 @@ jobs:
           - name: Windows VS2022 64-bit
             os: windows-2022
             msvc_arch: x64
-            allow_test_failures: true  # For now, don't fail the build on failure
+            # allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 17 2022
@@ -619,7 +619,7 @@ jobs:
           - name: Windows VS2026 ARM64
             os: windows-11-vs2026-arm
             msvc_arch: ARM64
-            allow_test_failures: true  # For now, don't fail the build on failure
+            # allow_test_failures: true  # For now, don't fail the build on failure
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 18 2026
