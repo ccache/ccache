@@ -47,7 +47,7 @@ else
 
     case "${RUN_TESTS:-all}" in
         all)
-            CC="${TEST_CC}" ctest --output-on-failure -j"${JOBS}" ${CTEST_CONFIG_PARAMS} "$@"
+            CC="${TEST_CC}" ctest --output-on-failure -j"${JOBS}" --timeout 60 ${CTEST_CONFIG_PARAMS} "$@"
             ;;
         unittest-in-wine)
             wine unittest/unittest.exe
