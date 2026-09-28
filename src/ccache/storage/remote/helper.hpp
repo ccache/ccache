@@ -23,6 +23,7 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace storage::remote {
@@ -30,7 +31,8 @@ namespace storage::remote {
 class Helper : public RemoteStorage
 {
 public:
-  Helper(const std::filesystem::path& helper_path,
+  Helper(const std::string& helper_name,
+         const std::vector<std::filesystem::path>& helper_search_dirs,
          const std::filesystem::path& temp_dir,
          std::chrono::milliseconds data_timeout,
          std::chrono::milliseconds request_timeout,
@@ -45,7 +47,8 @@ public:
     const std::vector<Backend::Attribute>& attributes) const override;
 
 private:
-  std::filesystem::path m_helper_path; // empty -> connect to existing socket
+  std::string m_helper_name; // empty -> connect to existing socket
+  std::vector<std::filesystem::path> m_helper_search_dirs;
   std::filesystem::path m_temp_dir;
   std::chrono::milliseconds m_data_timeout;
   std::chrono::milliseconds m_request_timeout;

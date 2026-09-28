@@ -4,7 +4,7 @@
 SUITE_remote_file_SETUP() {
     unset CCACHE_NODIRECT
     remote_url=$(file_storage_url "$PWD/remote")
-    export CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_"
+    export CCACHE_REMOTE_STORAGE="$remote_url"
 
     touch test.h
     echo '#include "test.h"' >test.c
@@ -151,7 +151,7 @@ SUITE_remote_file() {
     $CCACHE -C >/dev/null
     $CCACHE -z >/dev/null
 
-    CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @layout=local"
+    CCACHE_REMOTE_STORAGE="$remote_url @layout=local"
     $CCACHE_COMPILE -c test.c
     $CCACHE_COMPILE -c test_level_3.c
     $CCACHE_COMPILE -c test_level_4.c
@@ -188,7 +188,7 @@ SUITE_remote_file() {
     TEST "Invalid layout"
 
     for layout in '' '*' a/b; do
-        CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @layout=$layout"
+        CCACHE_REMOTE_STORAGE="$remote_url @layout=$layout"
         $CCACHE_COMPILE -c test.c 2>stderr.log
         expect_contains stderr.log "invalid file storage layout: \"$layout\""
     done
@@ -197,7 +197,7 @@ SUITE_remote_file() {
     TEST "Two directories"
 
     remote_2_url=$(file_storage_url "$PWD/remote_2")
-    CCACHE_REMOTE_STORAGE+=" $remote_2_url helper=_builtin_"
+    CCACHE_REMOTE_STORAGE+=" $remote_2_url"
     mkdir remote_2
 
     $CCACHE_COMPILE -c test.c
@@ -337,7 +337,7 @@ SUITE_remote_file() {
         TEST "umask"
 
         export CCACHE_UMASK=042
-        CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @umask=024"
+        CCACHE_REMOTE_STORAGE="$remote_url @umask=024"
 
         # local -> remote, cache miss
         $CCACHE_COMPILE -c test.c
@@ -348,7 +348,7 @@ SUITE_remote_file() {
         expect_perm "${result_file}" -rw--w-r-- # 666 & 042
 
         # local -> remote, local cache hit
-        CCACHE_REMOTE_STORAGE="$remote_url helper=_builtin_ @umask=026"
+        CCACHE_REMOTE_STORAGE="$remote_url @umask=026"
         $CCACHE -C >/dev/null
         rm -rf remote
         $CCACHE_COMPILE -c test.c
@@ -371,7 +371,7 @@ SUITE_remote_file() {
     # -------------------------------------------------------------------------
     TEST "Sharding"
 
-    CCACHE_REMOTE_STORAGE="$remote_url/* helper=_builtin_ shards=a,b(2)"
+    CCACHE_REMOTE_STORAGE="$remote_url/* shards=a,b(2)"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0
@@ -386,7 +386,7 @@ SUITE_remote_file() {
 
     remote_a_url=$(file_storage_url "$PWD/remote/a")
     remote_b_url=$(file_storage_url "$PWD/remote/b")
-    CCACHE_REMOTE_STORAGE="* helper=_builtin_ shards=$remote_a_url,$remote_b_url"
+    CCACHE_REMOTE_STORAGE="* shards=$remote_a_url,$remote_b_url"
 
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 0

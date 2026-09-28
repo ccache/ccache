@@ -7,7 +7,6 @@ RUN dnf install -y \
         ccache \
         clang \
         cmake \
-        cpp-httplib-devel \
         diffutils \
         doctest-devel \
         elfutils \
@@ -17,12 +16,10 @@ RUN dnf install -y \
         gcc \
         gcc-c++ \
         libstdc++-static \
-        hiredis-devel \
         less \
         libzstd-devel \
         ninja-build \
         perl \
         python3 \
-        redis \
         xxhash-devel \
  && dnf clean all

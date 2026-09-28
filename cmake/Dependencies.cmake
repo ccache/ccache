@@ -21,9 +21,6 @@ if(FETCHCONTENT_FULLY_DISCONNECTED)
 endif()
 
 find_package(Blake3 1.4.0 MODULE REQUIRED)
-if(HTTP_STORAGE_BACKEND)
-  find_package(CppHttplib 0.10.6 MODULE REQUIRED)
-endif()
 find_package(Fmt 8.0.0 MODULE REQUIRED)
 find_package(TlExpected 1.1.0 MODULE REQUIRED)
 find_package(Xxhash 0.8.0 MODULE REQUIRED)
@@ -31,8 +28,4 @@ find_package(Zstd 1.3.4 MODULE REQUIRED)
 
 if(ENABLE_TESTING)
   find_package(Doctest 2.4.6 MODULE REQUIRED)
-endif()
-
-if(REDIS_STORAGE_BACKEND)
-  find_package(Hiredis 0.13.3 MODULE REQUIRED)
 endif()

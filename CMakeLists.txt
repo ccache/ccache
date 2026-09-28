@@ -67,8 +67,6 @@ include(EnableCcache)
 # Configuration
 #
 
-option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
-option(HTTP_STORAGE_BACKEND "Enable HTTP remote storage" ON)
 option(ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 option(ENABLE_TESTING "Enable tests" ON)
 
@@ -182,10 +180,6 @@ add_custom_target(
 
 message(STATUS)
 message(STATUS "Configuration summary:")
-message(STATUS "  Storage backends:")
-message(STATUS "    file  ON")
-message(STATUS "    http  ${HTTP_STORAGE_BACKEND}")
-message(STATUS "    redis ${REDIS_STORAGE_BACKEND}")
 message(STATUS "  Dependencies:")
 print_dependency_summary("    ")
 message(STATUS)

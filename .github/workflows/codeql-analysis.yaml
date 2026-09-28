@@ -38,7 +38,7 @@ jobs:
         fetch-depth: 2
 
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install ninja-build elfutils libzstd-dev pkg-config libhiredis-dev
+      run: sudo apt-get update && sudo apt-get install ninja-build elfutils libzstd-dev pkg-config
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3

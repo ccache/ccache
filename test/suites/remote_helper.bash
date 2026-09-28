@@ -41,9 +41,10 @@ SUITE_remote_helper_SETUP() {
 
 SUITE_remote_helper() {
     # -------------------------------------------------------------------------
-    TEST "Helper auto-spawn and basic operations"
+    TEST "Helper auto-discovery, spawn and basic operations"
 
-    export CCACHE_REMOTE_STORAGE="test://dummy helper=${STORAGE_TEST_HELPER}"
+    export CCACHE_LIBEXEC_DIRS="$(dirname "${STORAGE_TEST_HELPER}")"
+    export CCACHE_REMOTE_STORAGE="test://dummy"
 
     # First compilation: miss, ccache spawns helper and stores
     $CCACHE_COMPILE -c test.c
@@ -68,6 +69,10 @@ SUITE_remote_helper() {
     $CCACHE -C >/dev/null
     expect_stat files_in_cache 0
 
+    # Make the helper program undiscoverable to verify that ccache connects to
+    # the already running helper before searching for the program.
+    export CCACHE_LIBEXEC_DIRS="$PWD/willneverexist"
+
     # Third compilation: remote hit from spawned helper
     $CCACHE_COMPILE -c test.c
     expect_stat direct_cache_hit 2
@@ -80,6 +85,15 @@ SUITE_remote_helper() {
     expect_stat remote_storage_write 2
 
     $CCACHE --stop-storage-helpers
+
+    # -------------------------------------------------------------------------
+    TEST "Missing helper"
+
+    export CCACHE_REMOTE_STORAGE="willneverexist://dummy"
+    $CCACHE_COMPILE -c test.c
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+    expect_stat remote_storage_error 1
 
     # -------------------------------------------------------------------------
     TEST "Helper reuse across compilations"

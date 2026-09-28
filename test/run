@@ -631,10 +631,6 @@ COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
 COMPILER_USES_MSVC=false
 
-ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
-readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
-readonly HTTP_SERVER="${ABS_ROOT_DIR}/http-server"
-
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false
 HOST_OS_FREEBSD=false

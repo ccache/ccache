@@ -88,11 +88,8 @@ jobs:
           cmake_params=(-D CMAKE_BUILD_TYPE=CI)
           packages=(
             elfutils
-            libhiredis-dev
             libzstd-dev
             python3
-            redis-server
-            redis-tools
           )
           # Install ld.gold (binutils) and ld.lld (lld) on different runs.
           if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
@@ -138,9 +135,6 @@ jobs:
       - name: Install dependencies on macOS
         if: runner.os == 'macOS'
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
-            brew install hiredis redis
-
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
@@ -207,7 +201,6 @@ jobs:
             toolchain:p
             cmake:p
             ninja:p
-            hiredis:p
             lld:p
             ${{matrix.compiler}}:p
 
@@ -444,7 +437,7 @@ jobs:
             -e GITHUB_REF_NAME \
             -e GITHUB_SHA \
             alpine:3.23 sh -c '
-              apk add --no-cache bash cmake g++ gcc git hiredis-dev make ninja xxhash-dev zstd-dev
+              apk add --no-cache bash cmake g++ gcc git make ninja xxhash-dev zstd-dev
               CMAKE_GENERATOR=Ninja CMAKE_PARAMS="-D CMAKE_EXE_LINKER_FLAGS_INIT=-static" ci/build-binary
           '
       - name: Upload binary
@@ -564,7 +557,7 @@ jobs:
             CC: gcc
             CXX: g++
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug
-            apt_get: elfutils libhiredis-dev libzstd-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Linux GCC 32-bit
             os: ubuntu-22.04
@@ -582,7 +575,7 @@ jobs:
             CXX: g++
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
             CUDA: 11.7.0-1
-            apt_get: elfutils libhiredis-dev libzstd-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Linux MinGW 32-bit
             os: ubuntu-24.04
@@ -623,7 +616,7 @@ jobs:
             CC: cl
             CXX: cl
             CMAKE_GENERATOR: Visual Studio 18 2026
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON -A ARM64
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON -A ARM64
             TEST_CC: clang -target aarch64-pc-windows-msvc
 
           - name: Clang address & UB sanitizer
@@ -632,7 +625,7 @@ jobs:
             CXX: clang++
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_ADDRESS=ON -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
             ASAN_OPTIONS: detect_leaks=0
-            apt_get: elfutils libzstd-dev libhiredis-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Clang static analyzer
             os: ubuntu-22.04
@@ -640,7 +633,7 @@ jobs:
             CXX: clang++
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
-            apt_get: libzstd-dev libhiredis-dev
+            apt_get: libzstd-dev
 
           - name: Linux binary
             os: ubuntu-22.04
@@ -648,14 +641,14 @@ jobs:
             CXX: g++
             SPECIAL: build-and-verify-package
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
-            apt_get: elfutils libzstd-dev libhiredis-dev
+            apt_get: elfutils libzstd-dev
 
           - name: Source package
             os: ubuntu-22.04
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev libhiredis-dev asciidoctor
+            apt_get: elfutils libzstd-dev asciidoctor
 
           - name: Clang-Tidy
             os: ubuntu-22.04
@@ -663,7 +656,7 @@ jobs:
             CXX: clang++-13
             RUN_TESTS: none
             CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON -DCLANGTIDY=/usr/bin/clang-tidy-13
-            apt_get: libzstd-dev libhiredis-dev clang-13 clang-tidy-13
+            apt_get: libzstd-dev clang-13 clang-tidy-13
 
     steps:
       - name: Get source

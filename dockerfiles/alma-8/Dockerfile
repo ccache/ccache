@@ -9,7 +9,6 @@ RUN dnf install -y dnf-plugins-core \
         ccache \
         clang \
         cmake \
-        cpp-httplib-devel \
         diffutils \
         doctest-devel \
         elfutils \
@@ -18,7 +17,6 @@ RUN dnf install -y dnf-plugins-core \
         gcc \
         gcc-c++ \
         gcc-toolset-11 \
-        hiredis-devel \
         less \
         libstdc++-devel \
         libstdc++-static \
@@ -27,7 +25,6 @@ RUN dnf install -y dnf-plugins-core \
         ninja-build \
         perl \
         python3 \
-        redis \
         xxhash-devel \
  && dnf autoremove -y \
  && dnf clean all

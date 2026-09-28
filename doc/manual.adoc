@@ -1281,6 +1281,9 @@ true to disable local storage. Note that cache statistics counters will still be
 kept in the local cache directory -- remote storage backends only store
 compilation results and manifests.
 
+The `file` and `crsh` schemes are handled by built-in backends. All other
+schemes require a storage helper program.
+
 === Storage helper process
 
 ccache can spawn a long-lived local storage helper process (installed
@@ -1298,8 +1301,8 @@ locations (in priority order):
 3. Next to the ccache executable.
 4. In `$PATH`.
 
-If the program is not found, ccache falls back to one of the builtin backends if
-available, otherwise ccache exits with an error.
+If no helper is running and the helper program cannot be found, the remote
+storage backend is marked as failed.
 
 === Configuration syntax
 
@@ -1445,91 +1448,6 @@ Examples:
 * `+crsh:/path/to/your.sock+` (Unix socket)
 * `+crsh:name-of-your-pipe+` (Windows named pipe)
 
-
-=== HTTP storage backend
-
-WARNING: Built-in support for the HTTP protocol is deprecated and will be
-removed in the next non-bug-fix ccache version. Use a <<Storage helper
-process,remote storage helper>> instead.
-
-URL format: `+http://HOST[:PORT][/PATH]+`
-
-This backend stores data in an HTTP-compatible server. The required HTTP methods
-are `GET`, `PUT` and `DELETE`.
-
-IMPORTANT: ccache will not perform any cleanup of the storage -- that has to be
-done by other means, for instance by running `ccache --trim-dir` periodically.
-
-NOTE: HTTPS is not supported.
-
-TIP: See https://ccache.dev/howto/http-storage.html[How to set up HTTP storage]
-for hints on how to set up an HTTP server for use with ccache.
-
-Examples:
-
-* `+http://localhost+`
-* `+http://someusername:p4ssw0rd@example.com/cache/+`
-* `+http://localhost:8080 @layout=bazel+`
-
-Optional attributes:
-
-* *@bearer-token*: Bearer token used to authorize the HTTP requests.
-* *@keep-alive*: If *true*, keep the HTTP connection to the storage server open
-  to avoid reconnects. The default is *true*.
-* *@layout*: How to map key names to the path part of the URL. Available values:
-+
---
-* *bazel*: Store values in a format compatible with the Bazel HTTP caching
-   protocol. More specifically, the entries will be stored as 64 hex digits
-   under the `/ac/` part of the cache.
-+
-NOTE: You may have to disable verification of action cache values in the server
-for this to work since ccache entries are not valid action result metadata
-values.
-* *flat*: Append the key directly to the path part of the URL (with a leading
-   slash if needed).
-* *subdirs*: Append the first two characters of the key to the URL (with a
-  leading slash if needed), followed by a slash and the rest of the key. This
-  divides the entries into 256 buckets.
---
-+
-The default is *subdirs*.
-* *@header*: Add the key=value pair to the HTTP headers of the request. For
-   example: `+@header=Content-Type=application/octet-stream+` adds
-   "Content-Type: application/octet-stream" to the HTTP headers of the request.
-
-=== Redis storage backend
-
-WARNING: Built-in support for the Redis protocol is deprecated and will be
-removed in the next non-bug-fix ccache version. Use a <<Storage helper
-process,remote storage helper>> instead.
-
-URL formats:
-
-`+redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]+` +
-`+redis+unix:SOCKET_PATH[?db=DBNUMBER]+` +
-`+redis+unix://[[USERNAME:]PASSWORD@localhost]SOCKET_PATH[?db=DBNUMBER]+`
-
-This backend stores data in a https://redis.io[Redis] (or Redis-compatible)
-server. There are implementations for both memory-based and disk-based storage.
-*PORT* defaults to *6379* and *DBNUMBER* defaults to *0*.
-
-NOTE: ccache will not perform any cleanup of the Redis storage, but you can
-https://redis.io/topics/lru-cache[configure LRU eviction].
-
-TIP: See https://ccache.dev/howto/redis-storage.html[How to set up Redis
-storage] for hints on setting up a Redis server for use with ccache.
-
-TIP: You can set up a cluster of Redis servers using the `shards` property
-described in _<<Remote storage backends>>_.
-
-Examples:
-
-* `+redis://localhost+`
-* `+redis://p4ssw0rd@cache.example.com:6379/0+`
-* `+redis+unix:/run/redis.sock+`
-* `+redis+unix:///run/redis.sock+`
-* `+redis+unix://p4ssw0rd@localhost/run/redis.sock?db=0+`
 
 == Cache size management
 

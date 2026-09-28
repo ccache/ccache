@@ -50,14 +50,10 @@ should be located or retrieved:
 
 **Optional libraries:**
 
-- [cpp-httplib](https://github.com/yhirose/cpp-httplib)[^1] (disable with `-D
-  HTTP_STORAGE_BACKEND=OFF`)
 - [doctest](https://github.com/doctest/doctest)[^2] (disable with `-D
   ENABLE_TESTING=OFF`)
 - [Google Benchmark](https://github.com/google/benchmark)[^2] (enable with `-D
   ENABLE_BENCHMARKS=ON`)
-- [hiredis](https://github.com/redis/hiredis)[^2] (disable with `-D
-  REDIS_STORAGE_BACKEND=OFF`)
 
 [^1]: A bundled version will be used if missing locally.
 [^2]: A downloaded version will be used if missing locally.

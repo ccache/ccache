@@ -62,19 +62,6 @@ endif()
 get_filename_component(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(ccache_framework PUBLIC ${CMAKE_BINARY_DIR} ${SRC_DIR})
 
-if(REDIS_STORAGE_BACKEND)
-  target_compile_definitions(ccache_framework PUBLIC -DHAVE_REDIS_STORAGE_BACKEND)
-  target_link_libraries(ccache_framework PRIVATE dep_hiredis)
-endif()
-
-if(HTTP_STORAGE_BACKEND)
-  target_compile_definitions(ccache_framework PUBLIC -DHAVE_HTTP_STORAGE_BACKEND)
-  target_link_libraries(ccache_framework PRIVATE dep_cpphttplib)
-  if(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
-    target_link_libraries(ccache_framework PRIVATE socket)
-  endif()
-endif()
-
 add_executable(test-lockfile test_lockfile.cpp)
 target_link_libraries(test-lockfile PRIVATE standard_settings standard_warnings ccache_framework)
 
