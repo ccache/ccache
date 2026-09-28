@@ -35,6 +35,10 @@
 #include <algorithm>
 #include <vector>
 
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
+
 namespace fs = util::filesystem;
 
 using core::Statistic;
