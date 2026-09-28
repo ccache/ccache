@@ -281,6 +281,16 @@ TEST_CASE("hash_multicommand_output_error_handling")
   CHECK(!hash_multicommand_output(h2, "false; true", "not used"));
 }
 
+TEST_CASE("find_clang_cc1_triple")
+{
+  CHECK(find_clang_cc1_triple(
+          " \"clang-cl.exe\" \"-cc1\" \"-triple\" "
+          "\"x86_64-pc-windows-msvc19.44.35229\" \"-emit-pch\"\n")
+        == "x86_64-pc-windows-msvc19.44.35229");
+  CHECK(find_clang_cc1_triple("clang version 19.1.7\n").empty());
+  CHECK(find_clang_cc1_triple(" \"-cc1\" \"-triple\" \"x86_64").empty());
+}
+
 TEST_CASE("check_for_temporal_macros")
 {
   TestContext test_context;
