@@ -58,6 +58,10 @@ check_for_source_code_patterns_scalar(std::string_view str);
 // `std::string_view::npos` if not found.
 size_t find_incbin_directive(std::string_view str, size_t start = 0);
 
+// Return the value of the first "-triple" argument in `-###` output from a
+// Clang driver or an empty string if not found.
+std::string_view find_clang_cc1_triple(std::string_view driver_output);
+
 // Hash a source code file using the inode cache if enabled.
 std::optional<Hash::Digest> hash_source_code_file(
   Context& ctx, const std::filesystem::path& path, size_t size_hint = 0);
