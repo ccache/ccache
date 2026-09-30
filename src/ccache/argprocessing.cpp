@@ -529,6 +529,12 @@ is_msvc_show_includes_option(std::string_view arg)
 tl::expected<std::vector<fs::path>, Statistic>
 find_module_files(const fs::path& dir)
 {
+  // A path that is missing or is not a directory has no module files for an
+  // import to resolve to.
+  if (!fs::is_directory(dir)) {
+    return std::vector<fs::path>{};
+  }
+
   std::vector<fs::path> module_files;
   try {
     for (const auto& entry : fs::directory_iterator(dir)) {
@@ -547,15 +553,10 @@ find_module_files(const fs::path& dir)
       }
     }
   } catch (const std::filesystem::filesystem_error& e) {
-    if (e.code() == std::errc::no_such_file_or_directory
-        || e.code() == std::errc::not_a_directory) {
-      // A path that is missing or is not a directory has no module files for
-      // an import to resolve to.
-      return std::vector<fs::path>{};
-    }
-    // Any other failure, including one that ends the scan part way through,
-    // leaves it unknown which files the compilation reads. Advancing the
-    // iterator throws, which would otherwise take down the whole invocation.
+    // Any failure while iterating, including one that ends the scan part way
+    // through, leaves it unknown which files the compilation reads. Advancing
+    // the iterator throws, which would otherwise take down the whole
+    // invocation.
     LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
     return tl::unexpected(Statistic::could_not_use_modules);
   }
