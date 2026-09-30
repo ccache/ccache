@@ -311,7 +311,7 @@ expect_different_content() {
 }
 
 is_equal_object_files() {
-    if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
+    if $HOST_OS_LINUX; then
         if ! command -v eu-elfcmp >/dev/null; then
             test_failed_internal "Please install elfutils to get eu-elfcmp"
         fi
