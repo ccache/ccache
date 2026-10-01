@@ -56,9 +56,13 @@ public:
 
   std::optional<Hash::Digest> look_up_result_digest(Context& ctx) const;
 
+  // `shadow_paths` are paths that don't exist but would make an include file
+  // resolve differently if they did, so the result is only valid as long as
+  // they are absent.
   bool add_result(
     const Hash::Digest& result_key,
     const std::unordered_map<std::string, Hash::Digest>& included_files,
+    const std::vector<std::string>& shadow_paths,
     const FileStater& stat_file);
 
   // core::Serializer
@@ -83,22 +87,27 @@ private:
 
   struct ResultEntry
   {
-    std::vector<uint32_t> file_info_indexes; // Indexes to m_file_infos.
-    Hash::Digest key;                        // Key of the result.
+    std::vector<uint32_t> file_info_indexes;   // Indexes to m_file_infos.
+    std::vector<uint32_t> shadow_path_indexes; // Indexes to m_files.
+    Hash::Digest key;                          // Key of the result.
 
     bool operator==(const ResultEntry& other) const;
   };
 
-  std::vector<std::string> m_files;   // Names of referenced include files.
+  std::vector<std::string> m_files; // Paths of include files and shadow paths.
   std::vector<FileInfo> m_file_infos; // Info about referenced include files.
   std::vector<ResultEntry> m_results;
 
   void clear();
 
+  std::optional<uint32_t>
+  get_file_index(const std::string& path,
+                 std::unordered_map<std::string, uint32_t>& mf_files);
+
   std::optional<uint32_t> get_file_info_index(
     const std::string& path,
     const Hash::Digest& digest,
-    const std::unordered_map<std::string, uint32_t>& mf_files,
+    std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
     const FileStater& file_state);
 
@@ -106,7 +115,8 @@ private:
     Context& ctx,
     const ResultEntry& result,
     std::unordered_map<std::string, FileStats>& stated_files,
-    std::unordered_map<std::string, Hash::Digest>& hashed_files) const;
+    std::unordered_map<std::string, Hash::Digest>& hashed_files,
+    std::unordered_map<std::string, bool>& existing_shadow_paths) const;
 };
 
 } // namespace core
