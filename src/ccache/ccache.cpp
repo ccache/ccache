@@ -1921,6 +1921,28 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       util::nsec_tot(DirEntry(ctx.args_info.build_session_file).mtime()));
   }
 
+  // The compiler reads SDKSettings.json from the SDK (e.g. to embed the SDK
+  // version in object files) but that is not visible in the preprocessed
+  // output, so hash it to avoid false positive hits after an SDK upgrade.
+  {
+    fs::path sysroot = ctx.args_info.isysroot;
+    if (sysroot.empty()) {
+      if (const auto sdkroot = util::getenv_path("SDKROOT")) {
+        sysroot = *sdkroot;
+      }
+    }
+    if (!sysroot.empty()) {
+      const fs::path sdk_settings = sysroot / "SDKSettings.json";
+      if (fs::is_regular_file(sdk_settings)) {
+        LOG("Hashing SDK settings {}", sdk_settings);
+        hash.hash_delimiter("sdksettings");
+        if (!hash_binary_file(ctx, hash, sdk_settings)) {
+          return tl::unexpected(Statistic::bad_input_file);
+        }
+      }
+    }
+  }
+
   if (!ctx.config.extra_files_to_hash().empty()) {
     for (const auto& path :
          util::split_path_list(ctx.config.extra_files_to_hash())) {
