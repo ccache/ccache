@@ -53,6 +53,7 @@ inode_cache_available()
     return false;
   }
   bool available = tmp_file->fd && InodeCache::available(*tmp_file->fd);
+  tmp_file->fd.close();
   std::ignore = fs::remove(tmp_file->path);
   return available;
 }
