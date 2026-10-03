@@ -103,8 +103,10 @@ win32_file_information_to_stat(const BY_HANDLE_FILE_INFORMATION& file_info,
                                util::DirEntry::stat_t* st)
 {
   st->st_dev = file_info.dwVolumeSerialNumber;
-  st->st_ino = (static_cast<uint64_t>(file_info.nFileIndexHigh) << 32)
-               | file_info.nFileIndexLow;
+  const uint64_t file_index =
+    (static_cast<uint64_t>(file_info.nFileIndexHigh) << 32)
+    | file_info.nFileIndexLow;
+  memcpy(st->st_ino.data(), &file_index, sizeof(file_index));
   st->st_mode = win32_file_attributes_to_stat_mode(file_info.dwFileAttributes);
   st->st_nlink = file_info.nNumberOfLinks;
   st->st_size = (static_cast<uint64_t>(file_info.nFileSizeHigh) << 32)
@@ -189,6 +191,14 @@ win32_stat_impl(const char* path,
     BY_HANDLE_FILE_INFORMATION file_info = {};
     if (GetFileInformationByHandle(handle, &file_info)) {
       win32_file_information_to_stat(file_info, reparse_info, path, st);
+      FILE_ID_INFO id_info = {};
+      if (GetFileInformationByHandleEx(
+            handle, FileIdInfo, &id_info, sizeof(id_info))) {
+        st->st_dev = id_info.VolumeSerialNumber;
+        memcpy(st->st_ino.data(),
+               id_info.FileId.Identifier,
+               sizeof(id_info.FileId.Identifier));
+      }
     } else if (GetLastError() == ERROR_INVALID_FUNCTION) {
       st->st_mode |= S_IFBLK;
     } else {
