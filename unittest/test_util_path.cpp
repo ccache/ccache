@@ -70,6 +70,35 @@ TEST_CASE("util::is_dev_null_path")
 #endif
 }
 
+TEST_CASE("util::path_components_equal_case_aware")
+{
+  CHECK(util::path_components_equal_case_aware("", ""));
+  CHECK(util::path_components_equal_case_aware("foo", "foo"));
+  CHECK(!util::path_components_equal_case_aware("foo", "bar"));
+#ifdef _WIN32
+  CHECK(util::path_components_equal_case_aware("FOO", "foo"));
+  CHECK(util::path_components_equal_case_aware(fs::path(L"\u00c5"),
+                                               fs::path(L"\u00e5")));
+#else
+  CHECK(!util::path_components_equal_case_aware("FOO", "foo"));
+#endif
+}
+
+TEST_CASE("util::path_component_starts_with_case_aware")
+{
+  CHECK(util::path_component_starts_with_case_aware("foo", ""));
+  CHECK(util::path_component_starts_with_case_aware("foobar", "foo"));
+  CHECK(!util::path_component_starts_with_case_aware("foo", "foobar"));
+  CHECK(!util::path_component_starts_with_case_aware("foobar", "bar"));
+#ifdef _WIN32
+  CHECK(util::path_component_starts_with_case_aware("FOOBAR", "foo"));
+  CHECK(util::path_component_starts_with_case_aware(
+    fs::path(L"\u00c5ngstr\u00f6m"), fs::path(L"\u00e5NG")));
+#else
+  CHECK(!util::path_component_starts_with_case_aware("FOOBAR", "foo"));
+#endif
+}
+
 TEST_CASE("util::lexically_normal")
 {
   CHECK(util::lexically_normal("") == "");
@@ -166,6 +195,15 @@ TEST_CASE("util::make_relative_path")
     CHECK(make_relative_path(
             lower_drive_cwd, lower_drive_cwd, upper_drive_cwd + "/nonexistent")
           == "nonexistent");
+
+    const fs::path unicode_dir = fs::path(L"\u00c5ngstr\u00f6m");
+    const fs::path unicode_dir_case_variant = fs::path(L"\u00e5NGSTR\u00d6M");
+    REQUIRE(fs::create_directory(unicode_dir));
+    CHECK(make_relative_path(fs::path(actual_cwd) / unicode_dir,
+                             fs::path(actual_cwd) / unicode_dir,
+                             fs::path(actual_cwd) / unicode_dir_case_variant
+                               / "nonexistent")
+          == "nonexistent");
   }
 #endif
 
@@ -199,6 +237,8 @@ TEST_CASE("util::path_starts_with")
   CHECK(util::path_starts_with("c:/foo/bar", "C:\\FOO"));
   CHECK(util::path_starts_with("c:/foo/bar/", "C:\\FOO"));
   CHECK(util::path_starts_with("c:/foo/bar", "C:\\FOO\\"));
+  CHECK(util::path_starts_with(fs::path(L"C:\\\u00c5ngstr\u00f6m\\bar"),
+                               fs::path(L"c:/\u00e5NGSTR\u00d6M")));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "/foo/baz"));
   CHECK(!util::path_starts_with("C:\\foo\\bar", "C:/foo/baz"));
   CHECK(!util::path_starts_with("C:\\beh\\foo", "/foo"));

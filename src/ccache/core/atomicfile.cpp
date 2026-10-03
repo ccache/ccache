@@ -35,7 +35,14 @@ AtomicFile::AtomicFile(const fs::path& path, Mode mode)
 {
   auto tmp_file =
     util::value_or_throw<core::Error>(util::TemporaryFile::create(path));
-  m_stream = fdopen(tmp_file.fd.release(), mode == Mode::binary ? "w+b" : "w+");
+  m_stream = fdopen(*tmp_file.fd, mode == Mode::binary ? "w+b" : "w+");
+  if (!m_stream) {
+    const std::string error = strerror(errno);
+    std::ignore = util::remove(tmp_file.path);
+    throw core::Error(
+      FMT("failed to open stream for {}: {}", tmp_file.path, error));
+  }
+  tmp_file.fd.release(); // Ownership transferred to m_stream
   m_tmp_path = std::move(tmp_file.path);
 }
 
@@ -51,6 +58,9 @@ AtomicFile::~AtomicFile()
 void
 AtomicFile::write(std::string_view data)
 {
+  if (data.empty()) {
+    return;
+  }
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));
@@ -60,6 +70,9 @@ AtomicFile::write(std::string_view data)
 void
 AtomicFile::write(std::span<const uint8_t> data)
 {
+  if (data.empty()) {
+    return;
+  }
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw core::Error(
       FMT("failed to write data to {}: {}", m_path, strerror(errno)));

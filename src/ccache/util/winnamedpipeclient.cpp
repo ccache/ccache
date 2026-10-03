@@ -64,7 +64,10 @@ WinNamedPipeClient::connect(const std::string& endpoint,
 
     DWORD error = GetLastError();
     if (error != ERROR_PIPE_BUSY) {
-      return tl::unexpected(IpcError(IpcError::Failure::error,
+      const auto failure = error == ERROR_ACCESS_DENIED
+                             ? IpcError::Failure::permission_denied
+                             : IpcError::Failure::error;
+      return tl::unexpected(IpcError(failure,
                                      FMT("Failed to connect to pipe {}: {}",
                                          endpoint,
                                          util::win32_error_message(error))));

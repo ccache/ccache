@@ -19,9 +19,6 @@
 #pragma once
 
 #include <ccache/util/pathstring.hpp>
-#ifdef _WIN32
-#  include <ccache/util/string.hpp>
-#endif
 
 #include <filesystem>
 #include <string>
@@ -74,6 +71,17 @@ make_path(const T&... args)
   return (std::filesystem::path{} / ... / args).lexically_normal();
 }
 
+// Return whether `component1` and `component2` are equal. Comparison is case
+// insensitive on Windows and case sensitive on other platforms.
+bool path_components_equal_case_aware(const std::filesystem::path& component1,
+                                      const std::filesystem::path& component2);
+
+// Return whether `component` starts with `prefix`. Comparison is case
+// insensitive on Windows and case sensitive on other platforms.
+bool
+path_component_starts_with_case_aware(const std::filesystem::path& component,
+                                      const std::filesystem::path& prefix);
+
 // Return whether `path` starts with `prefix` considering path specifics on
 // Windows.
 bool path_starts_with(const std::filesystem::path& path,
@@ -108,7 +116,7 @@ is_dev_null_path(const std::filesystem::path& path)
 {
   return path == "/dev/null"
 #ifdef _WIN32
-         || util::to_lowercase(path.string()) == "nul"
+         || path_components_equal_case_aware(path, "nul")
 #endif
     ;
 }

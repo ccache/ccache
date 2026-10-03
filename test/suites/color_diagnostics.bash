@@ -13,7 +13,7 @@ SUITE_color_diagnostics_PROBE() {
     fi
 
     if ! $RUN_WIN_XFAIL; then
-        echo "color_diagnostics tests are broken on Windows."
+        echo "this test suite does not work on Windows"
         return
     fi
 

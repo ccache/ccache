@@ -17,11 +17,8 @@ RUN apt-get update \
         ${GCC_APT} \
         g++-13 \
         g++-14 \
-        libhiredis-dev \
         libzstd-dev \
         python3 \
-        redis-server \
-        redis-tools \
  && rm -rf /var/lib/apt/lists/*
 
 # Redirect all compilers to ccache.

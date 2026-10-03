@@ -767,8 +767,22 @@ b"
 
     $COMPILER -c test1.c -E >test1.i
     $CCACHE_COMPILE -c test1.i
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 2
+
+    $CCACHE_COMPILE -c test1.i
     expect_stat preprocessed_cache_hit 1
-    expect_stat cache_miss 1
+    expect_stat cache_miss 2
+
+    cp test1.i test1.ii
+
+    $CCACHE_COMPILE -c test1.ii
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 3
+
+    $CCACHE_COMPILE -c test1.ii
+    expect_stat preprocessed_cache_hit 2
+    expect_stat cache_miss 3
 
     # -------------------------------------------------------------------------
     TEST "-x c"
@@ -1741,14 +1755,14 @@ EOF
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_content_pattern compiler.args "(-E -o * test1.c)(-c -o test1.o test1.c)"
+    expect_content_pattern compiler.args "(-E test1.c)(-c -o test1.o test1.c)"
     rm compiler.args
 
     $CCACHE ./compiler.sh -c test1.c
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
-    expect_content_pattern compiler.args "(-E -o * test1.c)"
+    expect_content_pattern compiler.args "(-E test1.c)"
     rm compiler.args
 
     # Even though -Werror is not passed to the preprocessor, it should be part
@@ -1757,7 +1771,7 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 2
     expect_stat files_in_cache 2
-    expect_content_pattern compiler.args "(-E -o * test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
+    expect_content_pattern compiler.args "(-E test1.c)(-Werror -rdynamic -c -o test1.o test1.c)"
     rm compiler.args
 
     # -------------------------------------------------------------------------
@@ -1771,6 +1785,40 @@ EOF
         if ! $CCACHE_COMPILE -Wdelete-non-virtual-dtor -Werror -c test1.c 2>stderr.txt; then
             test_failed "-Wdelete-non-virtual-dtor -Werror resulted in an error; stderr: [$(<stderr.txt)]"
         fi
+    fi
+
+    # -------------------------------------------------------------------------
+    # Clang 22+'s --warning-suppression-mappings
+    if $COMPILER -c -Wstrict-prototypes --warning-suppression-mappings=/dev/null -x c /dev/null 2>/dev/null; then
+        TEST "--warning-suppression-mappings"
+
+        cat >map.c <<EOF
+int main() {}
+EOF
+        cat >mappings.txt <<EOF
+[strict-prototypes]
+src:map.c
+EOF
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 1
+
+        cp /dev/null mappings.txt
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c 2>stderr.txt
+        expect_contains stderr.txt -Wstrict-prototypes
+        expect_stat preprocessed_cache_hit 1
+        expect_stat cache_miss 2
+
+        $CCACHE_COMPILE -c -Wstrict-prototypes --warning-suppression-mappings=mappings.txt map.c 2>stderr.txt
+        expect_contains stderr.txt -Wstrict-prototypes
+        expect_stat preprocessed_cache_hit 2
+        expect_stat cache_miss 2
     fi
 
     # -------------------------------------------------------------------------
@@ -1817,8 +1865,9 @@ EOF
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 fi
+
     # -------------------------------------------------------------------------
-    TEST ".incbin"
+    TEST ".incbin in .c"
 
     touch empty.bin
 
@@ -1840,6 +1889,36 @@ EOF
     expect_stat cache_miss 0
     expect_stat unsupported_code_directive 2
 
+    cat <<EOF >incbin.c
+__asm__(".incbin    \"empty.bin\"");
+EOF
+
+    $CCACHE_COMPILE -c incbin.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat unsupported_code_directive 3
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin in .h"
+
+    touch empty.bin
+
+    cat <<EOF >incbin.h
+__asm__(".incbin \"empty.bin\"");
+EOF
+
+    cat <<EOF >incbin.c
+#include "incbin.h"
+EOF
+
+    $CCACHE_COMPILE -c incbin.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat unsupported_code_directive 1
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin in .s"
+
     cat <<EOF >incbin.s
 .incbin "empty.bin";
 EOF
@@ -1847,7 +1926,10 @@ EOF
     $CCACHE_COMPILE -c incbin.s
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 0
-    expect_stat unsupported_code_directive 3
+    expect_stat unsupported_code_directive 1
+
+    # -------------------------------------------------------------------------
+    TEST "incbin method in .cpp"
 
     cat <<EOF >incbin.cpp
       struct A {
@@ -1862,8 +1944,54 @@ EOF
     if $CCACHE_COMPILE -x c++ -c incbin.cpp 2>/dev/null; then
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 1
-        expect_stat unsupported_code_directive 3
+        expect_stat unsupported_code_directive 0
     fi
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin in source file name"
+
+    echo "int x;" >source.incbin
+
+    $CCACHE_COMPILE -x c -c source.incbin
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat unsupported_code_directive 0
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin in .c, direct mode"
+
+    unset CCACHE_NODIRECT
+
+    touch empty.bin
+
+    cat <<EOF >incbin.c
+__asm__(".incbin \"empty.bin\"");
+EOF
+
+    $CCACHE_COMPILE -c incbin.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat unsupported_code_directive 1
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin in .h, direct mode"
+
+    unset CCACHE_NODIRECT
+
+    touch empty.bin
+
+    cat <<EOF >incbin.h
+__asm__(".incbin \"empty.bin\"");
+EOF
+
+    cat <<EOF >incbin.c
+#include "incbin.h"
+EOF
+
+    $CCACHE_COMPILE -c incbin.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat unsupported_code_directive 1
 
     # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS; then

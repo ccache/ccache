@@ -168,7 +168,7 @@ Manifest::read(std::span<const uint8_t> data)
 }
 
 std::optional<Hash::Digest>
-Manifest::look_up_result_digest(const Context& ctx) const
+Manifest::look_up_result_digest(Context& ctx) const
 {
   std::unordered_map<std::string, FileStats> stated_files;
   std::unordered_map<std::string, Hash::Digest> hashed_files;
@@ -194,7 +194,7 @@ Manifest::add_result(
   const std::unordered_map<std::string, Hash::Digest>& included_files,
   const FileStater& stat_file_function)
 {
-  if (m_results.size() > k_max_manifest_entries) {
+  if (m_results.size() >= k_max_manifest_entries) {
     // Normally, there shouldn't be many result entries in the manifest since
     // new entries are added only if an include file has changed but not the
     // source file, and you typically change source files more often than header
@@ -205,14 +205,14 @@ Manifest::add_result(
     // of solving this would be to maintain the result entries in LRU order and
     // discarding the old ones. An easy way is to throw away all entries when
     // there are too many. Let's do that for now.
-    LOG("More than {} entries in manifest file; discarding",
+    LOG("Max limit ({}) of result entries in manifest file reached; discarding",
         k_max_manifest_entries);
     clear();
-  } else if (m_file_infos.size() > k_max_manifest_file_info_entries) {
+  } else if (m_file_infos.size() >= k_max_manifest_file_info_entries) {
     // Rarely, FileInfo entries can grow large in pathological cases where many
     // included files change, but the main file does not. This also puts an
     // upper bound on the number of FileInfo entries.
-    LOG("More than {} FileInfo entries in manifest file; discarding",
+    LOG("Max limit of ({}) of FileInfo entries in manifest reached; discarding",
         k_max_manifest_file_info_entries);
     clear();
   }
@@ -371,7 +371,7 @@ Manifest::get_file_info_index(
 
 bool
 Manifest::result_matches(
-  const Context& ctx,
+  Context& ctx,
   const ResultEntry& result,
   std::unordered_map<std::string, FileStats>& stated_files,
   std::unordered_map<std::string, Hash::Digest>& hashed_files) const
@@ -433,18 +433,17 @@ Manifest::result_matches(
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      Hash::Digest actual_digest;
-      auto ret = hash_source_code_file(ctx, actual_digest, path, fs.size);
-      if (ret.contains(HashSourceCode::error)) {
+      auto actual_digest = hash_source_code_file(ctx, path, fs.size);
+      if (!actual_digest) {
         LOG("Failed hashing {}", path);
         return false;
       }
-      if (ret.contains(HashSourceCode::found_time)) {
-        // hash_source_code_file has already logged.
+      if (!ctx.config.direct_mode()) {
+        // Direct mode was disabled by hash_source_code_file.
         return false;
       }
 
-      hashed_files_iter = hashed_files.emplace(path, actual_digest).first;
+      hashed_files_iter = hashed_files.emplace(path, *actual_digest).first;
     }
 
     if (hashed_files_iter->second != fi.digest) {

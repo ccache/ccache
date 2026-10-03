@@ -30,8 +30,9 @@ namespace util {
 struct IpcError
 {
   enum class Failure {
-    error,   // Permanent error (connection refused, invalid state, etc.)
-    timeout, // Transient timeout (may succeed on retry)
+    error,             // Permanent error (connection refused, etc.)
+    permission_denied, // IPC operation prohibited by the operating system
+    timeout,           // Transient timeout (may succeed on retry)
   };
 
   Failure failure;

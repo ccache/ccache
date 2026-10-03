@@ -38,13 +38,13 @@ endif()
 
 if(_download_xxhash)
   set(_xxhash_origin DOWNLOADED)
-  set(_xxhash_version_string 0.8.3)
+  set(_xxhash_version_string 0.8.4)
 
   include(FetchContent)
   FetchContent_Declare(
     Xxhash
     URL "https://github.com/Cyan4973/xxhash/archive/refs/tags/v${_xxhash_version_string}.tar.gz"
-    URL_HASH SHA256=aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80
+    URL_HASH SHA256=5738270935e7c3d38a79b3adf7c9692566ce7895a25f67de43ad52ab504acd32
   )
   FetchContent_MakeAvailable(Xxhash)
 

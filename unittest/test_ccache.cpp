@@ -197,6 +197,9 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler("/test/prefix/nvcc") == CompilerType::nvcc);
     CHECK(guess_compiler("/test/prefix/nvcc-10.1.243") == CompilerType::nvcc);
 
+    CHECK(guess_compiler("/test/prefix/qcc") == CompilerType::qcc);
+    CHECK(guess_compiler("/test/prefix/q++") == CompilerType::qcc);
+
     CHECK(guess_compiler("/test/prefix/x") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/cc") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/c++") == CompilerType::other);
@@ -294,6 +297,11 @@ TEST_CASE("file_path_matches_dir_prefix_or_file")
 #ifdef _WIN32
   CHECK(file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
   CHECK(file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
+  CHECK(file_path_matches_dir_prefix_or_file(
+    fs::path(L"C:\\\u00c5ngstr\u00f6m"),
+    fs::path(L"c:\\\u00e5NGSTR\u00d6M\\header.h")));
+  CHECK(file_path_matches_dir_prefix_or_file("\\aa", "/aa/bb"));
+  CHECK(file_path_matches_dir_prefix_or_file("/aa", "\\aa\\bb"));
 #else
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));

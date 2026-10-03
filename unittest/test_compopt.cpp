@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -98,6 +98,12 @@ TEST_CASE("prefix_takes_path")
 {
   CHECK(compopt_prefix_takes_path("-Dfoo") == std::nullopt);
   CHECK(*compopt_prefix_takes_path("-Ifoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-Ffoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-FIfoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-FUfoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-includefoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-include-pchfoo") == "foo");
+  CHECK(*compopt_prefix_takes_path("-include-pthfoo") == "foo");
 }
 
 TEST_SUITE_END();

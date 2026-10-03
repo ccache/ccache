@@ -115,7 +115,7 @@ SUITE_sanitize_ignorelist() {
         test_failed "Expected an error compiling test1.c"
     fi
 
-    expect_stat error_hashing_extra_file 1
+    expect_stat bad_input_file 1
 
     # -------------------------------------------------------------------------
     TEST "Multiple -fsanitize-ignorelist"

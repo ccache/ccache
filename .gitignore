@@ -1,6 +1,9 @@
 # Typical build directories
 /build*/
 
+# Cache directory, e.g. used by clangd
+/.cache/
+
 # CLion
 /.idea/
 /cmake-build-*/
@@ -26,5 +29,3 @@ misc/.clang-format-exe
 
 # macOS custom attributes
 .DS_Store/
-
-/.github/copilot-instructions.md

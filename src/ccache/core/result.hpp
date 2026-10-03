@@ -95,6 +95,10 @@ enum class FileType : UnderlyingFileTypeInt {
 
   // Source dependencies file specified by MSVC /sourceDependencies.
   source_dependencies = 13,
+
+  // sarif output files produced by MSVC /experimental:log or GCC
+  // -fdiagnostics-{add,set}-output=sarif:file=...
+  sarif = 14,
 };
 
 const char* file_type_to_string(FileType type);

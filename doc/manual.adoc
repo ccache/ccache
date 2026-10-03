@@ -109,6 +109,10 @@ should use the normal compiler options and refer to your compiler's documentatio
     has the same effect as setting the environment variable `CCACHE_DIR`
     temporarily.
 
+*--dry-run*::
+
+    Do not perform any write operations.
+
 *--evict-namespace* _NAMESPACE_::
 
     Remove files created in the given <<config_namespace,*namespace*>> from the
@@ -230,6 +234,11 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     LRU (least recently used) using the file modification timestamp.
 --
 
+*--trim-marker* _PATH_::
+
+    Speed up repeated `--trim-recompress` runs by skipping files whose
+    modification time is older than the marker file at _PATH_.
+
 *--trim-recompress* _LEVEL_::
 
     Recompress to level _LEVEL_ using the Zstandard algorithm when using
@@ -239,7 +248,8 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     _<<Cache compression>>_ for more information. This can potentially take a
     long time since all files in the cache need to be visited. Only files that
     are currently compressed with a different level than _LEVEL_ will be
-    recompressed.
+    recompressed. To avoid revisiting unchanged files on subsequent runs, see
+    `--trim-marker`.
 
 
 === Options for scripting or debugging
@@ -473,14 +483,17 @@ Each boolean environment variable also has a negated form starting with
 `CCACHE_NOCOMPRESS` can be set to force no compression.
 
 
+=== Path lists
+
+Options that define a list of paths have their entries separated by `;` on
+Windows and `:` on other systems.
+
+
 === Configuration options
 
 Below is a list of available configuration options. The corresponding
 environment variable name is indicated in parentheses after each configuration
 option key.
-
-Options that define a list of paths have their entries separated by `;` on
-Windows and `:` on other systems.
 
 [#config_absolute_paths_in_stderr]
 *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
@@ -495,9 +508,11 @@ Windows and `:` on other systems.
 [#config_base_dir]
 *base_dir* (*CCACHE_BASEDIR*)::
 
-    This option specifies a list of absolute paths. When set, ccache converts
-    absolute paths to relative paths before hashing, but only for paths that
-    start with one of the specified base directories.
+    This option specifies a <<Path lists,list of absolute paths>>. When set,
+    ccache converts absolute paths to relative paths before sending them to the
+    compiler (or including them in the input hash), but only for paths that
+    start with one of the specified base directories. "Relative" here means
+    "relative to the current working directory".
 +
 This enables cache sharing between compilations in different directories, even
 when the project uses absolute paths. See
@@ -519,13 +534,13 @@ Here is what ccache will actually execute for different *base_dir* settings:
 -------------------------------------------------------------------------------
 # Current working directory: /home/alice/project1/build
 
-# With base_dir = /:
+# With "base_dir = /":
 gcc -I../../../../usr/include/example -I../../project2/include -c ../src/example.c
 
-# With base_dir = /home or /home/alice:
+# With "base_dir = /home" or "base_dir = /home/alice":
 gcc -I/usr/include/example -I../../project2/include -c ../src/example.c
 
-# With base_dir = /home/alice/project1 or /home/alice/project1/src:
+# With "base_dir = /home/alice/project1" or "base_dir = /home/alice/project1/src":
 gcc -I/usr/include/example -I/home/alice/project2/include -c ../src/example.c
 -------------------------------------------------------------------------------
 +
@@ -536,7 +551,7 @@ rewritten command lines will be identical:
 -------------------------------------------------------------------------------
 # Current working directory: /home/bob/stuff/project1/build
 
-# With base_dir = /home or /home/bob:
+# With "base_dir = /home" or "base_dir = /home/bob":
 gcc -I/usr/include/example -I../../project2/include -c ../src/example.c
 -------------------------------------------------------------------------------
 +
@@ -683,6 +698,8 @@ _<<Using ccache with other compiler wrappers>>_.
     Microsoft Visual C++ (MSVC).
 *nvcc*::
     NVCC (CUDA) compiler.
+*qcc*::
+    QCC (QNX) compiler.
 *other*::
     Any compiler other than the known types.
 --
@@ -739,15 +756,6 @@ Semantics of *compression_level*:
 +
 See the https://facebook.github.io/zstd/[Zstandard documentation] for more information.
 
-[#config_cpp_extension]
-*cpp_extension* (*CCACHE_EXTENSION*)::
-
-    This option can be used to force a certain extension for the intermediate
-    preprocessed file. The default is to automatically determine the extension
-    to use for intermediate preprocessor files based on the type of file being
-    compiled, but that sometimes doesn't work. For example, when using the
-    "`aCC`" compiler on HP-UX, set the cpp extension to *i*.
-
 [#config_debug]
 *debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see _<<Boolean values>>_ above)::
 
@@ -801,8 +809,8 @@ the string `ccache:disable` in a comment in the first 4096 bytes of the file.
 [#config_extra_files_to_hash]
 *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
 
-    This option is a list of paths to files that ccache will include in the hash
-    sum that identifies the build.
+    This option is a <<Path lists,list of paths>> to files that ccache will
+    include in the hash sum that identifies the build.
 
 [#config_file_clone]
 *file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see _<<Boolean values>>_ above)::
@@ -875,10 +883,10 @@ might be incorrect.
 [#config_ignore_headers_in_manifest]
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
-    This option is a list of paths to files (or directories with headers) that
-    ccache will *not* include in the manifest list that makes up the direct
-    mode. Note that this can cause stale cache hits if those headers do indeed
-    change.
+    This option is a <<Path lists,list of paths>> to files (or directories with
+    headers) that ccache will *not* include in the manifest list that makes up
+    the direct mode. Note that this can cause stale cache hits if those headers
+    do indeed change.
 
 [#config_ignore_options]
 *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
@@ -1179,9 +1187,11 @@ NOTE: No effect with `--coverage` (it implies `-fprofile-arcs`).
 
 *modules*::
 
-    *Use case*: Clang builds using `-fmodules`. +
+    *Use case*: Clang builds using `-fmodules` or
+    `-fprebuilt-implicit-modules`. +
     *Effect*: Allows caching when C++ modules are used. +
-    *Trade-off*: May not detect changes in module internal state.
+    *Trade-off*: May not detect changes in module internal state, or in
+    implicitly built modules.
 +
 See _<<C++ modules>>_ for details.
 
@@ -1271,12 +1281,16 @@ true to disable local storage. Note that cache statistics counters will still be
 kept in the local cache directory -- remote storage backends only store
 compilation results and manifests.
 
+The `file` and `crsh` schemes are handled by built-in backends. All other
+schemes require a storage helper program.
+
 === Storage helper process
 
 ccache can spawn a long-lived local storage helper process (installed
 separately) to handle communication with the remote storage. Storage helpers
 keep remote connections up for efficiency and terminate after a while on
-inactivity.
+inactivity. See https://ccache.dev/storage-helpers.html[Storage helpers] for a
+list of known helpers.
 
 The storage helper program is called `ccache-storage-<scheme>`, where `<scheme>`
 is the scheme part of a URL, e.g. `https`. The program can be placed in these
@@ -1287,8 +1301,8 @@ locations (in priority order):
 3. Next to the ccache executable.
 4. In `$PATH`.
 
-If the program is not found, ccache falls back to one of the builtin backends if
-available, otherwise ccache exits with an error.
+If no helper is running and the helper program cannot be found, the remote
+storage backend is marked as failed.
 
 === Configuration syntax
 
@@ -1400,10 +1414,15 @@ Examples:
 
 Optional attributes:
 
-* *@layout*: How to store file under the cache directory. Available values:
+* *@layout*: How to store files under the cache directory. Available values:
 +
 --
 * *flat*: Store all files directly under the cache directory.
+* *local*: Read files using the dynamic directory layout of the local cache.
+  This layout is intended for a one-way copy or read-only mount of a local cache
+  directory and makes the file storage backend read-only. The directory must
+  contain self-contained entries (<<config_file_clone,*file_clone*>> or
+  <<config_hard_link,*hard_link*>> are not supported).
 * *subdirs*: Store files in 256 subdirectories of the cache directory.
 --
 +
@@ -1429,89 +1448,6 @@ Examples:
 * `+crsh:/path/to/your.sock+` (Unix socket)
 * `+crsh:name-of-your-pipe+` (Windows named pipe)
 
-
-=== HTTP storage backend
-
-WARNING: Built-in support for the HTTP protocol will likely be removed in a
-future ccache release.
-
-URL format: `+http://HOST[:PORT][/PATH]+`
-
-This backend stores data in an HTTP-compatible server. The required HTTP methods
-are `GET`, `PUT` and `DELETE`.
-
-IMPORTANT: ccache will not perform any cleanup of the storage -- that has to be
-done by other means, for instance by running `ccache --trim-dir` periodically.
-
-NOTE: HTTPS is not supported.
-
-TIP: See https://ccache.dev/howto/http-storage.html[How to set up HTTP storage]
-for hints on how to set up an HTTP server for use with ccache.
-
-Examples:
-
-* `+http://localhost+`
-* `+http://someusername:p4ssw0rd@example.com/cache/+`
-* `+http://localhost:8080 @layout=bazel+`
-
-Optional attributes:
-
-* *@bearer-token*: Bearer token used to authorize the HTTP requests.
-* *@keep-alive*: If *true*, keep the HTTP connection to the storage server open
-  to avoid reconnects. The default is *true*.
-* *@layout*: How to map key names to the path part of the URL. Available values:
-+
---
-* *bazel*: Store values in a format compatible with the Bazel HTTP caching
-   protocol. More specifically, the entries will be stored as 64 hex digits
-   under the `/ac/` part of the cache.
-+
-NOTE: You may have to disable verification of action cache values in the server
-for this to work since ccache entries are not valid action result metadata
-values.
-* *flat*: Append the key directly to the path part of the URL (with a leading
-   slash if needed).
-* *subdirs*: Append the first two characters of the key to the URL (with a
-  leading slash if needed), followed by a slash and the rest of the key. This
-  divides the entries into 256 buckets.
---
-+
-The default is *subdirs*.
-* *@header*: Add the key=value pair to the HTTP headers of the request. For
-   example: `+@header=Content-Type=application/octet-stream+` adds
-   "Content-Type: application/octet-stream" to the HTTP headers of the request.
-
-=== Redis storage backend
-
-WARNING: Built-in support for the Redis protocol will likely be removed in a
-future ccache release.
-
-URL formats:
-
-`+redis://[[USERNAME:]PASSWORD@]HOST[:PORT][/DBNUMBER]+` +
-`+redis+unix:SOCKET_PATH[?db=DBNUMBER]+` +
-`+redis+unix://[[USERNAME:]PASSWORD@localhost]SOCKET_PATH[?db=DBNUMBER]+`
-
-This backend stores data in a https://redis.io[Redis] (or Redis-compatible)
-server. There are implementations for both memory-based and disk-based storage.
-*PORT* defaults to *6379* and *DBNUMBER* defaults to *0*.
-
-NOTE: ccache will not perform any cleanup of the Redis storage, but you can
-https://redis.io/topics/lru-cache[configure LRU eviction].
-
-TIP: See https://ccache.dev/howto/redis-storage.html[How to set up Redis
-storage] for hints on setting up a Redis server for use with ccache.
-
-TIP: You can set up a cluster of Redis servers using the `shards` property
-described in _<<Remote storage backends>>_.
-
-Examples:
-
-* `+redis://localhost+`
-* `+redis://p4ssw0rd@cache.example.com:6379/0+`
-* `+redis+unix:/run/redis.sock+`
-* `+redis+unix:///run/redis.sock+`
-* `+redis+unix://p4ssw0rd@localhost/run/redis.sock?db=0+`
 
 == Cache size management
 
@@ -2011,6 +1947,24 @@ NOTE: The preprocessor mode doesn't provide enough information for module
 support <<The depend mode,*depend mode*>>. When using <<The preprocessor
 mode,the preprocessor mode>> Clang does not provide enough information to allow
 hashing of `module.modulemap` files.
+
+
+=== Explicit module files
+
+Regardless of the above, ccache hashes the module files that a compilation
+reads, so that a consumer is recompiled when a module it imports changes. This
+works for the options that tell ccache which files those are:
+
+* `-fmodule-file=`, which gives the path directly.
+* `-fprebuilt-module-path=`, whose directory Clang searches for
+  `<module-name>.pcm`. The command line doesn't say which of those files the
+  compilation reads, so all of them are hashed, names as well as contents. This
+  costs a hit when an unrelated module file in the same directory changes.
+
+`-fprebuilt-implicit-modules` compilations are counted as "`Could not use
+modules`" unless <<config_sloppiness,*sloppiness*>> is set to `modules`. Clang
+looks up implicit modules in a subdirectory layout named by hashes of compiler
+internals, so ccache can't tell which files the compilation reads.
 
 
 == Sharing a local cache

@@ -20,6 +20,7 @@
 
 #include <ccache/config.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/execute.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/storage/remote/client.hpp>
 #include <ccache/util/defer.hpp>
@@ -237,6 +238,30 @@ get_fds_to_close()
 }
 #endif
 
+fs::path
+find_helper(std::string_view name, const std::vector<fs::path>& search_dirs)
+{
+  const bool bare_helper_name =
+#ifdef _WIN32
+    name.find('\\') == std::string::npos &&
+#endif
+    name.find('/') == std::string::npos;
+  fs::path path = bare_helper_name ? find_executable_in_path(name, search_dirs)
+#ifdef _WIN32
+                                   : util::add_exe_suffix(name);
+#else
+                                   : name;
+#endif
+
+  if (!path.empty() && fs::exists(path)) {
+    LOG("Found remote storage helper {}", path);
+    return path;
+  }
+
+  LOG("Could not find remote storage helper program \"{}\"", name);
+  return {};
+}
+
 tl::expected<void, std::string>
 spawn_helper(const fs::path& helper_path,
              std::string_view endpoint,
@@ -361,17 +386,23 @@ spawn_helper(const fs::path& helper_path,
   return {};
 }
 
+struct HelperTimeouts
+{
+  std::chrono::milliseconds data;
+  std::chrono::milliseconds request;
+  std::chrono::milliseconds idle;
+};
+
 // Backend implementation that communicates with a helper process.
 class HelperBackend : public RemoteStorage::Backend
 {
 public:
-  HelperBackend(const fs::path& helper_path,
+  HelperBackend(const std::string& helper_name,
+                const std::vector<fs::path>& helper_search_dirs,
                 const fs::path& temp_dir,
                 const Url& url,
                 const std::vector<Backend::Attribute>& attributes,
-                std::chrono::milliseconds data_timeout,
-                std::chrono::milliseconds request_timeout,
-                std::chrono::milliseconds idle_timeout);
+                HelperTimeouts timeouts);
 
   tl::expected<std::optional<util::Bytes>, Failure>
   get(const Hash::Digest& key) override;
@@ -385,7 +416,8 @@ public:
   void stop() override;
 
 private:
-  fs::path m_helper_path;
+  std::string m_helper_name;
+  std::vector<fs::path> m_helper_search_dirs;
   std::string m_endpoint;        // Unix socket on POSIX, pipe name on Windows
   fs::path m_endpoint_lock_path; // path to lock for guarding spawn of helper
   Url m_url;
@@ -399,21 +431,21 @@ private:
   tl::expected<void, Failure> finalize_connection();
 };
 
-HelperBackend::HelperBackend(const fs::path& helper_path,
+HelperBackend::HelperBackend(const std::string& helper_name,
+                             const std::vector<fs::path>& helper_search_dirs,
                              const fs::path& temp_dir,
                              const Url& url,
                              const std::vector<Backend::Attribute>& attributes,
-                             std::chrono::milliseconds data_timeout,
-                             std::chrono::milliseconds request_timeout,
-                             std::chrono::milliseconds idle_timeout)
-  : m_helper_path(helper_path),
+                             HelperTimeouts timeouts)
+  : m_helper_name(helper_name),
+    m_helper_search_dirs(helper_search_dirs),
     m_url(url),
     m_attributes(attributes),
-    m_data_timeout(data_timeout),
-    m_idle_timeout(idle_timeout),
-    m_client(data_timeout, request_timeout)
+    m_data_timeout(timeouts.data),
+    m_idle_timeout(timeouts.idle),
+    m_client(timeouts.data, timeouts.request)
 {
-  if (m_helper_path.empty()) {
+  if (m_helper_name.empty()) {
     // The "crsh:" URL case:
 #ifdef _WIN32
     m_endpoint = FMT("{}{}", k_named_pipe_prefix, url.path());
@@ -493,18 +525,31 @@ HelperBackend::ensure_connected(bool spawn)
     connect_result.error().message,
     timer.measure_ms());
 
+  if (connect_result.error().failure == Client::Failure::permission_denied) {
+    LOG("Not spawning remote storage helper since IPC access was denied");
+    return tl::unexpected(Failure::error);
+  }
+
   if (!spawn) {
     return {};
   }
 
-  if (m_helper_path.empty()) {
+  if (m_helper_name.empty()) {
     // Could not connect to "crsh:" endpoint, so just fail.
     return tl::unexpected(Failure::error);
   }
 
-  // No existing helper, spawn a new one. Use a lock file to prevent multiple
-  // processes from spawning simultaneously.
+  const auto helper_path = find_helper(m_helper_name, m_helper_search_dirs);
+  if (helper_path.empty()) {
+    return tl::unexpected(Failure::error);
+  }
+
+  // No existing helper, spawn a new one. Use a long-lived lock file to prevent
+  // multiple processes from spawning simultaneously even if starting the
+  // helper takes more than the normal lock staleness limit.
+  util::LongLivedLockFileManager lock_manager;
   util::LockFile spawn_lock(m_endpoint_lock_path);
+  spawn_lock.make_long_lived(lock_manager);
   if (!spawn_lock.acquire()) {
     LOG("Failed to acquire spawn lock");
     return tl::unexpected(Failure::error);
@@ -512,18 +557,23 @@ HelperBackend::ensure_connected(bool spawn)
 
   // We have the lock. Check again if another process spawned while we waited.
   timer.reset();
-  if (m_client.connect(m_endpoint)) {
+  connect_result = m_client.connect(m_endpoint);
+  if (connect_result) {
     LOG(
       "Connected to remote storage helper spawned by another process ({:.2f}"
       " ms)",
       timer.measure_ms());
     return finalize_connection();
   }
+  if (connect_result.error().failure == Client::Failure::permission_denied) {
+    LOG("Not spawning remote storage helper since IPC access was denied");
+    return tl::unexpected(Failure::error);
+  }
 
   // No helper exists, spawn it now.
   timer.reset();
-  auto spawn_result = spawn_helper(
-    m_helper_path, m_endpoint, m_url, m_idle_timeout, m_attributes);
+  auto spawn_result =
+    spawn_helper(helper_path, m_endpoint, m_url, m_idle_timeout, m_attributes);
   if (!spawn_result) {
     LOG("Failed to spawn helper: {}", spawn_result.error());
     return tl::unexpected(Failure::error);
@@ -543,6 +593,13 @@ HelperBackend::ensure_connected(bool spawn)
           m_endpoint,
           timer.measure_ms());
       return finalize_connection();
+    }
+
+    if (connect_result.error().failure == Client::Failure::permission_denied) {
+      LOG(
+        "Giving up connecting to spawned remote storage helper since IPC"
+        " access was denied");
+      return tl::unexpected(Failure::error);
     }
 
     std::this_thread::sleep_for(sleep_duration);
@@ -657,12 +714,14 @@ HelperBackend::stop()
 
 } // namespace
 
-Helper::Helper(const std::filesystem::path& helper_path,
+Helper::Helper(const std::string& helper_name,
+               const std::vector<std::filesystem::path>& helper_search_dirs,
                const fs::path& temp_dir,
                std::chrono::milliseconds data_timeout,
                std::chrono::milliseconds request_timeout,
                std::chrono::milliseconds idle_timeout)
-  : m_helper_path(helper_path),
+  : m_helper_name(helper_name),
+    m_helper_search_dirs(helper_search_dirs),
     m_temp_dir(temp_dir),
     m_data_timeout(data_timeout),
     m_request_timeout(request_timeout),
@@ -681,13 +740,13 @@ std::unique_ptr<RemoteStorage::Backend>
 Helper::create_backend(const Url& url,
                        const std::vector<Backend::Attribute>& attributes) const
 {
-  return std::make_unique<HelperBackend>(m_helper_path,
-                                         m_temp_dir,
-                                         url,
-                                         attributes,
-                                         m_data_timeout,
-                                         m_request_timeout,
-                                         m_idle_timeout);
+  return std::make_unique<HelperBackend>(
+    m_helper_name,
+    m_helper_search_dirs,
+    m_temp_dir,
+    url,
+    attributes,
+    HelperTimeouts{m_data_timeout, m_request_timeout, m_idle_timeout});
 }
 
 } // namespace storage::remote

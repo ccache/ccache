@@ -1,6 +1,6 @@
 SUITE_basedir_PROBE() {
     if ! $RUN_WIN_XFAIL; then
-        echo "CCACHE_BASEDIR is broken on windows."
+        echo "this test suite does not work on Windows"
     fi
 }
 
@@ -34,10 +34,35 @@ SUITE_basedir() {
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    cd ../dir2
+    cd ..
+    rm -r dir1
+
+    cd dir2
     CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
     expect_stat direct_cache_hit 1
     expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
+    TEST "Enabled CCACHE_BASEDIR in preprocessor mode"
+
+    cat <<EOF >compiler
+#!/bin/sh
+exec "$COMPILER" -I"\$PWD/include" "\$@"
+EOF
+    chmod +x compiler
+
+    cd dir1
+    CCACHE_COMPILERCHECK=none CCACHE_COMPILERTYPE=gcc CCACHE_NODIRECT=1 CCACHE_BASEDIR="`pwd`" $CCACHE ../compiler -c src/test.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+
+    cd ..
+    rm -r dir1
+
+    cd dir2
+    CCACHE_COMPILERCHECK=none CCACHE_COMPILERTYPE=gcc CCACHE_NODIRECT=1 CCACHE_BASEDIR="`pwd`" $CCACHE ../compiler -c src/test.c
+    expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------

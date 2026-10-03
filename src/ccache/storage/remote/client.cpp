@@ -40,10 +40,16 @@ constexpr uint8_t k_request_exists = 0x05;
 static Client::Error
 make_error(const util::IpcError& ipc_error)
 {
-  auto failure = (ipc_error.failure == util::IpcError::Failure::timeout)
-                   ? Client::Failure::timeout
-                   : Client::Failure::error;
-  return Client::Error(failure, ipc_error.message);
+  switch (ipc_error.failure) {
+  case util::IpcError::Failure::error:
+    return Client::Error(Client::Failure::error, ipc_error.message);
+  case util::IpcError::Failure::permission_denied:
+    return Client::Error(Client::Failure::permission_denied, ipc_error.message);
+  case util::IpcError::Failure::timeout:
+    return Client::Error(Client::Failure::timeout, ipc_error.message);
+  default:
+    return Client::Error(Client::Failure::error, "internal error");
+  }
 }
 
 Client::Client(std::chrono::milliseconds data_timeout,
@@ -90,7 +96,12 @@ Client::connect(const std::string& path)
     return tl::unexpected(make_error(result.error()));
   }
 
-  TRY(read_greeting());
+  if (auto greeting_result = read_greeting(); !greeting_result) {
+    // Don't leave the channel connected, otherwise a later connect attempt
+    // would fail since the transport is still in use.
+    close();
+    return tl::unexpected(greeting_result.error());
+  }
 
   m_connected = true;
   return {};
@@ -256,12 +267,10 @@ Client::stop()
 void
 Client::close()
 {
-  if (m_connected) {
-    m_channel.close();
-    m_connected = false;
-    m_protocol_version = 0;
-    m_capabilities.clear();
-  }
+  m_channel.close();
+  m_connected = false;
+  m_protocol_version = 0;
+  m_capabilities.clear();
 }
 
 tl::expected<void, Client::Error>

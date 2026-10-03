@@ -27,7 +27,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 #
 
 if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12)
-   OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+   OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
    OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10))
   message(
     FATAL_ERROR
@@ -67,8 +67,7 @@ include(EnableCcache)
 # Configuration
 #
 
-option(REDIS_STORAGE_BACKEND "Enable Redis remote storage" ON)
-option(HTTP_STORAGE_BACKEND "Enable HTTP remote storage" ON)
+option(ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 option(ENABLE_TESTING "Enable tests" ON)
 
 include(InstallDirs)
@@ -152,6 +151,13 @@ if(ENABLE_TESTING)
 endif()
 
 #
+# Benchmarks
+#
+if(ENABLE_BENCHMARKS)
+  add_subdirectory(benchmark)
+endif()
+
+#
 # Special formatting targets
 #
 add_custom_target(
@@ -174,10 +180,6 @@ add_custom_target(
 
 message(STATUS)
 message(STATUS "Configuration summary:")
-message(STATUS "  Storage backends:")
-message(STATUS "    file  ON")
-message(STATUS "    http  ${HTTP_STORAGE_BACKEND}")
-message(STATUS "    redis ${REDIS_STORAGE_BACKEND}")
 message(STATUS "  Dependencies:")
 print_dependency_summary("    ")
 message(STATUS)

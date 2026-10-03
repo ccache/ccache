@@ -22,6 +22,7 @@ class CcacheTest:
         self.log_file = None
         self.workdir = None
         self.env = None
+        self.test_failed = False
 
     def __enter__(self):
         self.cache_dir = Path(tempfile.mkdtemp(prefix="ccache_", dir=self.tmpdir))
@@ -33,8 +34,6 @@ class CcacheTest:
         self.env["CCACHE_DIR"] = str(self.cache_dir)
         self.env["CCACHE_LOGFILE"] = str(self.log_file)
 
-        self.reset_stats()
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -43,7 +42,7 @@ class CcacheTest:
         assert self.log_file
 
         # Print log on failure for debugging
-        if exc_type is not None and self.log_file.exists():
+        if (exc_type is not None or self.test_failed) and self.log_file.exists():
             print(f"\n--- CCACHE_LOGFILE content ({self.log_file}) ---")
             print(self.log_file.read_text(errors="replace"))
             print("--- End of CCACHE_LOGFILE ---\n")
@@ -100,6 +99,14 @@ def pytest_addoption(parser):
     )
 
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):  # noqa: ARG001
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "call":
+        item.rep_call = report
+
+
 @pytest.fixture(scope="session")
 def ccache_exe(request):
     ccache_path = request.config.getoption("--ccache")
@@ -118,6 +125,8 @@ def verify_cl_available():
 
 
 @pytest.fixture
-def ccache_test(ccache_exe, verify_cl_available):  # noqa: ARG001
+def ccache_test(request, ccache_exe, verify_cl_available):  # noqa: ARG001
     with CcacheTest(ccache_exe) as test:
         yield test
+        report = getattr(request.node, "rep_call", None)
+        test.test_failed = report is not None and report.failed

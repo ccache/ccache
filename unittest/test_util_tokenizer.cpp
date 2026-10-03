@@ -20,6 +20,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <ostream> // https://github.com/doctest/doctest/issues/618
 #include <string>
 #include <vector>
@@ -28,6 +29,13 @@ TEST_CASE("util::Tokenizer")
 {
   using Mode = util::Tokenizer::Mode;
   using IncludeDelimiter = util::Tokenizer::IncludeDelimiter;
+
+  SUBCASE("C++20 range")
+  {
+    const std::vector<std::string> expected{"a", "b", "c"};
+    CHECK(std::ranges::equal(util::Tokenizer("a,b,c", ","), expected));
+  }
+
   struct SplitTest
   {
     SplitTest(Mode mode,

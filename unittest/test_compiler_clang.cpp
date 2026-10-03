@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Joel Rosdahl and other contributors
+// Copyright (C) 2025-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -16,30 +16,19 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "testutil.hpp"
-
 #include <ccache/compiler/clang.hpp>
-#include <ccache/util/file.hpp>
-#include <ccache/util/filesystem.hpp>
 
 #include <doctest/doctest.h>
 
 #include <string>
 
-namespace fs = util::filesystem;
-
-using TestUtil::TestContext;
-
 TEST_SUITE_BEGIN("clang");
 
-TEST_CASE("compiler::split_preprocessed_file_from_clang_cuda")
+TEST_CASE("compiler::split_preprocessed_output_from_clang_cuda")
 {
-  TestContext test_context;
-
   SUBCASE("normal")
   {
-    fs::path filename = "test_normal.txt";
-    REQUIRE(util::write_file(filename, R"(# 1 "test_cuda.cu"
+    const std::string output = R"(# 1 "test_cuda.cu"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
 void caller() {
@@ -48,9 +37,9 @@ void caller() {
 # 1 "test_cuda.cu"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
-)"));
+)";
 
-    auto result = compiler::split_preprocessed_file_from_clang_cuda(filename);
+    auto result = compiler::split_preprocessed_output_from_clang_cuda(output);
 
     REQUIRE(result.size() == 2);
     CHECK(result[0] == R"(# 1 "test_cuda.cu"
@@ -66,18 +55,9 @@ void caller() {
 )");
   }
 
-  SUBCASE("non-existent file")
+  SUBCASE("empty output")
   {
-    fs::path filename = "nonexistent_file.txt";
-    CHECK(compiler::split_preprocessed_file_from_clang_cuda(filename).empty());
-  }
-
-  SUBCASE("empty file")
-  {
-    fs::path filename = "test_empty.txt";
-    REQUIRE(util::write_file(filename, ""));
-
-    CHECK(compiler::split_preprocessed_file_from_clang_cuda(filename).empty());
+    CHECK(compiler::split_preprocessed_output_from_clang_cuda("").empty());
   }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
+// Copyright (C) 2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -16,23 +16,6 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include <benchmark/benchmark.h>
 
-#include <ccache/storage/remote/remotestorage.hpp>
-
-#include <cxxurl/url.hpp>
-
-#include <memory>
-#include <vector>
-
-namespace storage::remote {
-
-class HttpStorage : public RemoteStorage
-{
-public:
-  std::unique_ptr<Backend> create_backend(
-    const Url& url,
-    const std::vector<Backend::Attribute>& attributes) const override;
-};
-
-} // namespace storage::remote
+BENCHMARK_MAIN();

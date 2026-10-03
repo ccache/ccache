@@ -99,6 +99,27 @@ SUITE_cleanup() {
     expect_stat files_in_cache 2560
 
     # -------------------------------------------------------------------------
+    TEST "Dry-run eviction of tmp file"
+
+    $CCACHE -C >/dev/null
+    mkdir -p $CCACHE_DIR/a/a
+    printf x >$CCACHE_DIR/a/a/abcd.tmp.efgh
+    $CCACHE -c >/dev/null # update counters
+    expect_stat files_in_cache 1
+
+    backdate $CCACHE_DIR/a/a/abcd.tmp.efgh
+    $CCACHE --dry-run --evict-older-than 1h >dry-run.txt
+    expect_exists $CCACHE_DIR/a/a/abcd.tmp.efgh
+    expect_stat files_in_cache 1
+
+    $CCACHE --evict-older-than 1h >real-run.txt
+    expect_missing $CCACHE_DIR/a/a/abcd.tmp.efgh
+    expect_stat files_in_cache 0
+    expect_stat cache_size_kibibyte 0
+    expect_content_pattern dry-run.txt $'Would remove data: *\nWould remove files: *1'
+    expect_content_pattern real-run.txt $'Removed data: *\nRemoved files: *1'
+
+    # -------------------------------------------------------------------------
     TEST "No cleanup of .nfs* files"
 
     mkdir -p $CCACHE_DIR/a/a

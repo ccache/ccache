@@ -34,6 +34,25 @@ def test_define_change_is_miss(ccache_test):
     assert stats_2["total_hit"] == 0
 
 
+def test_header_change_is_miss(ccache_test):
+    header = ccache_test.workdir / "test.h"
+    header.write_text("#define VALUE 1\n")
+    source = ccache_test.workdir / "test.c"
+    source.write_text('#include "test.h"\nint x = VALUE;\n')
+
+    ccache_test.compile(["/c", "test.c"])
+    stats_1 = ccache_test.stats()
+    assert stats_1["miss"] == 1
+    assert stats_1["total_hit"] == 0
+
+    header.write_text("#define VALUE 2\n")
+    ccache_test.compile(["/c", "test.c"])
+    stats_2 = ccache_test.stats()
+    assert stats_2["miss"] == 2
+    assert stats_2["direct_hit"] == 0
+    assert stats_2["total_hit"] == 0
+
+
 def test_basedir_normalizes_paths(ccache_test):
     ccache_test.env["CCACHE_NOHASHDIR"] = "1"
     ccache_test.env["CCACHE_BASEDIR"] = str(ccache_test.workdir)

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -143,5 +143,25 @@ TEST_CASE("Break stale lock, non-blocking")
   CHECK(lock.acquired());
 }
 #endif // !_WIN32
+
+#if !defined(_WIN32) && !defined(__CYGWIN__)
+TEST_CASE("Recover regular lock file")
+{
+  TestContext test_context;
+
+  REQUIRE(util::write_file("test.lock", ""));
+
+  util::LockFile lock("test");
+  CHECK(lock.try_acquire());
+  CHECK(lock.acquired());
+
+  DirEntry lock_entry("test.lock");
+  CHECK(lock_entry);
+  CHECK(lock_entry.is_symlink());
+
+  lock.release();
+  CHECK(!DirEntry("test.lock"));
+}
+#endif // !_WIN32 && !__CYGWIN__
 
 TEST_SUITE_END();

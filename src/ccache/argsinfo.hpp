@@ -74,6 +74,10 @@ struct ArgsInfo
   // Assembler listing file.
   std::filesystem::path output_al;
 
+  // SARIF diagnostics file (from -fdiagnostics-{add,set}-output= or
+  // /experimental:log).
+  std::filesystem::path output_sarif;
+
   // The given PCH filepath being compiled to (by -Fp option).
   std::filesystem::path orig_included_pch_file;
 
@@ -137,9 +141,9 @@ struct ArgsInfo
   // Name of the custom profile directory or file.
   std::filesystem::path profile_path;
 
-  // Path to the root of the source tree during a profile build.
-  // This path will be stripped from the beginning of the mangled absolute paths
-  // in the gcda file name
+  // Path to the root of the source tree during a profile build. This path will
+  // be stripped from the beginning of the mangled absolute paths in the gcda
+  // file name
   std::filesystem::path profile_prefix_path;
 
   // Profile generation / usage information.
@@ -156,6 +160,12 @@ struct ArgsInfo
 
   // Files referenced by -fsanitize-ignorelist/-fsanitize-blacklist options.
   std::vector<std::filesystem::path> sanitize_ignorelists;
+
+  // Files referenced by -fmodule-file=<name>=<path> (explicit C++ modules).
+  std::vector<std::filesystem::path> module_files;
+
+  // Files found by searching the directories given by -fprebuilt-module-path=.
+  std::vector<std::filesystem::path> searched_module_files;
 
   // Architectures from -arch options.
   std::vector<std::string> arch_args;

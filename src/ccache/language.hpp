@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -21,24 +21,18 @@
 #include <ccache/config.hpp>
 
 #include <filesystem>
-#include <string>
 #include <string_view>
+
+struct LanguageInfo
+{
+  // Whether the language is already preprocessed.
+  bool preprocessed;
+};
 
 // Guess the language of `path` based on its extension and a compiler type.
 // Returns the empty string if the extension is unknown.
 std::string_view language_for_file(const std::filesystem::path& path,
                                    CompilerType compiler_type);
 
-// Return the preprocessed language for `language`, or the empty string if
-// unknown.
-std::string p_language_for_language(const std::string& language);
-
-// Return the default file extension (including dot) for `language`, or the
-// empty string if unknown.
-std::string extension_for_language(const std::string& language);
-
-// Return whether `language` is a supported language.
-bool language_is_supported(const std::string& language);
-
-// Return whether `language` is supported preprocessed language.
-bool language_is_preprocessed(const std::string& language);
+// Return information about `language`, or nullptr if it is unsupported.
+const LanguageInfo* language_info_for_language(std::string_view language);

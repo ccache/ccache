@@ -25,13 +25,6 @@
 #include <ccache/core/statistic.hpp>
 #include <ccache/storage/remote/filestorage.hpp>
 #include <ccache/storage/remote/helper.hpp>
-#ifdef HAVE_HTTP_STORAGE_BACKEND
-#  include <ccache/storage/remote/httpstorage.hpp>
-#endif
-#ifdef HAVE_REDIS_STORAGE_BACKEND
-#  include <ccache/storage/remote/redisstorage.hpp>
-#endif
-#include <ccache/execute.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/bytes.hpp>
 #include <ccache/util/conversion.hpp>
@@ -48,10 +41,10 @@
 
 #include <cxxurl/url.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 using namespace std::chrono_literals;
@@ -60,31 +53,10 @@ namespace fs = util::filesystem;
 
 namespace storage {
 
-const std::unordered_map<std::string_view /*scheme*/,
-                         std::shared_ptr<remote::RemoteStorage>>
-  k_builtin_remote_storage_implementations = {
-    {"file",       std::make_shared<remote::FileStorage>() },
-#ifdef HAVE_HTTP_STORAGE_BACKEND
-    {"http",       std::make_shared<remote::HttpStorage>() },
-#endif
-#ifdef HAVE_REDIS_STORAGE_BACKEND
-    {"redis",      std::make_shared<remote::RedisStorage>()},
-    {"redis+unix", std::make_shared<remote::RedisStorage>()},
-#endif
-};
-
 std::vector<std::string>
 get_features()
 {
-  std::vector<std::string> features;
-  features.reserve(k_builtin_remote_storage_implementations.size());
-  std::transform(k_builtin_remote_storage_implementations.begin(),
-                 k_builtin_remote_storage_implementations.end(),
-                 std::back_inserter(features),
-                 [](auto& entry) { return FMT("{}-storage", entry.first); });
-  features.emplace_back("crsh-storage");
-  features.emplace_back("remote-storage");
-  return features;
+  return {"crsh-storage", "file-storage", "remote-storage"};
 }
 
 // Representation of one shard configuration.
@@ -308,6 +280,20 @@ parse_storage_config(const std::vector<std::string_view>::const_iterator& begin,
       {"", 0.0, util::value_or_throw<core::Error>(url_from_string(url_str))});
   }
 
+  if (result.shards.front().url.scheme() == "file") {
+    const auto layout =
+      std::find_if(result.attributes.rbegin(),
+                   result.attributes.rend(),
+                   [](const auto& attr) { return attr.key == "layout"; });
+    if (layout != result.attributes.rend() && layout->value == "local") {
+      if (result.read_only == false) {
+        throw core::Error(
+          "file storage layout \"local\" is incompatible with read-only=false");
+      }
+      result.read_only = true;
+    }
+  }
+
   return result;
 }
 
@@ -338,71 +324,31 @@ parse_storage_configs(const std::string_view& config, ForLogging for_logging)
   return result;
 }
 
-static fs::path
-find_remote_storage_helper(std::string_view name,
-                           const std::vector<fs::path> search_dirs)
-{
-  bool bare_helper_name =
-#ifdef _WIN32
-    name.find('\\') == std::string::npos &&
-#endif
-    name.find('/') == std::string::npos;
-  fs::path path = bare_helper_name ? find_executable_in_path(name, search_dirs)
-#ifdef _WIN32
-                                   : util::add_exe_suffix(name);
-#else
-                                   : name;
-#endif
-
-  if (!path.empty() && fs::exists(path)) {
-    LOG("Found remote storage helper {}", path);
-    return path;
-  }
-
-  LOG("Could not find remote storage helper program \"{}\"", name);
-  return {};
-}
-
 static std::shared_ptr<remote::RemoteStorage>
 get_remote_storage(std::string_view scheme,
                    const RemoteStorageConfig& config,
                    const fs::path& temp_dir,
                    const std::vector<fs::path>& helper_search_dirs)
 {
-  // Special case: crsh scheme connects directly to storage helper socket.
+  if (scheme == "file") {
+    return std::make_shared<remote::FileStorage>();
+  }
+
   if (scheme == "crsh") {
     return std::make_shared<storage::remote::Helper>(
       config.data_timeout.value_or(remote::k_default_data_timeout),
       config.request_timeout.value_or(remote::k_default_request_timeout));
   }
 
-  if (config.helper == "_builtin_" || scheme == "file") {
-    LOG("Forcing use of builtin storage backend");
-  } else {
-    // Look up and use storage helper if available.
-    std::string helper_name =
-      !config.helper.empty() ? config.helper : FMT("ccache-storage-{}", scheme);
-    // TODO: If/when we in the future remove built-in http and redis backends,
-    // we can search for the helper program on demand instead.
-    fs::path helper_path =
-      find_remote_storage_helper(helper_name, helper_search_dirs);
-    if (!helper_path.empty()) {
-      return std::make_shared<storage::remote::Helper>(
-        helper_path,
-        temp_dir,
-        config.data_timeout.value_or(remote::k_default_data_timeout),
-        config.request_timeout.value_or(remote::k_default_request_timeout),
-        config.idle_timeout.value_or(remote::k_default_idle_timeout));
-    }
-  }
-
-  // Fall back to builtin implementation.
-  const auto it = k_builtin_remote_storage_implementations.find(scheme);
-  if (it != k_builtin_remote_storage_implementations.end()) {
-    return it->second;
-  }
-
-  return {};
+  const std::string helper_name =
+    !config.helper.empty() ? config.helper : FMT("ccache-storage-{}", scheme);
+  return std::make_shared<storage::remote::Helper>(
+    helper_name,
+    helper_search_dirs,
+    temp_dir,
+    config.data_timeout.value_or(remote::k_default_data_timeout),
+    config.request_timeout.value_or(remote::k_default_request_timeout),
+    config.idle_timeout.value_or(remote::k_default_idle_timeout));
 }
 
 std::string
@@ -451,28 +397,26 @@ Storage::get(const Hash::Hash::Digest& key,
 
   get_from_remote_storage(key, type, [&](util::Bytes&& data) {
     if (!m_config.remote_only()) {
-      local.put(key, type, data, Overwrite::no);
+      local.put(key, data, Overwrite::no);
     }
     return entry_receiver(std::move(data));
   });
 }
 
 void
-Storage::put(const Hash::Digest& key,
-             const core::CacheEntryType type,
-             std::span<const uint8_t> value)
+Storage::put(const Hash::Digest& key, std::span<const uint8_t> value)
 {
   if (!m_config.remote_only()) {
-    local.put(key, type, value, Overwrite::yes);
+    local.put(key, value, Overwrite::yes);
   }
   put_in_remote_storage(key, value, Overwrite::yes);
 }
 
 void
-Storage::remove(const Hash::Digest& key, const core::CacheEntryType type)
+Storage::remove(const Hash::Digest& key)
 {
   if (!m_config.remote_only()) {
-    local.remove(key, type);
+    local.remove(key);
   }
   remove_from_remote_storage(key);
 }
@@ -514,9 +458,7 @@ Storage::init_remote_storage()
     const std::string scheme = config.shards.front().url.scheme();
     const auto storage = get_remote_storage(
       scheme, config, m_config.temporary_dir(), helper_search_dirs);
-    if (!storage) {
-      throw core::Error(FMT("unknown remote storage scheme: {}", scheme));
-    }
+    ASSERT(storage);
     m_remote_storages.push_back(std::make_unique<RemoteStorageEntry>(
       RemoteStorageEntry{config, storage, {}}));
   }

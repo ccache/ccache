@@ -158,6 +158,14 @@ generate_code() {
     done
 }
 
+file_storage_url() {
+    if $HOST_OS_WINDOWS; then
+        echo "file:///$(cygpath -m "$1")"
+    else
+        echo "file:$1"
+    fi
+}
+
 remove_cache() {
     if [ -d $CCACHE_DIR ]; then
         chmod -R +w $CCACHE_DIR
@@ -303,7 +311,7 @@ expect_different_content() {
 }
 
 is_equal_object_files() {
-    if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
+    if $HOST_OS_LINUX; then
         if ! command -v eu-elfcmp >/dev/null; then
             test_failed_internal "Please install elfutils to get eu-elfcmp"
         fi
@@ -443,6 +451,29 @@ expect_perm() {
     if [ "$expected_perm" != "$actual_perm" ]; then
         test_failed_internal "Expected permissions for $path to be $expected_perm, actual $actual_perm"
     fi
+}
+
+probe_tcp_server_socket() {
+    python3 -c '
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(1)
+' >/dev/null 2>&1
+}
+
+probe_unix_server_socket() {
+    python3 -c '
+import os
+import socket
+import tempfile
+
+with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR", "/tmp")) as tmpdir:
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        sock.bind(f"{tmpdir}/socket")
+        sock.listen(1)
+' >/dev/null 2>&1
 }
 
 reset_environment() {
@@ -600,10 +631,6 @@ COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
 COMPILER_USES_MSVC=false
 
-ABS_ROOT_DIR="$(cd $(dirname "$0"); pwd)"
-readonly HTTP_CLIENT="${ABS_ROOT_DIR}/http-client"
-readonly HTTP_SERVER="${ABS_ROOT_DIR}/http-server"
-
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false
 HOST_OS_FREEBSD=false
@@ -697,9 +724,18 @@ fi
 export TEST_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 all_suites="$(sed -En 's/^ *addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
+load_ok=true
 for suite in $all_suites; do
-    . "$TEST_BASE_DIR"/suites/$suite.bash
+    suite_path="${TEST_BASE_DIR}/suites/${suite}.bash"
+    . "${suite_path}"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to load ${suite_path}" >&2
+        load_ok=false
+    fi
 done
+if ! $load_ok; then
+    exit 1
+fi
 
 # ---------------------------------------
 

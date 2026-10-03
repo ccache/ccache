@@ -34,6 +34,7 @@
 #include <sys/stat.h> // for mode_t
 
 #include <string_view>
+#include <vector>
 
 namespace fs = util::filesystem;
 
@@ -59,14 +60,14 @@ public:
   tl::expected<bool, Failure> remove(const Hash::Digest& key) override;
 
 private:
-  enum class Layout : uint8_t { flat, subdirs };
+  enum class Layout : uint8_t { flat, local, subdirs };
 
-  std::string m_dir;
+  fs::path m_dir;
   std::optional<mode_t> m_umask;
   bool m_update_mtime = false;
   Layout m_layout = Layout::subdirs;
 
-  std::string get_entry_path(const Hash::Digest& key) const;
+  std::vector<fs::path> get_entry_paths(const Hash::Digest& key) const;
 };
 
 FileStorageBackend::FileStorageBackend(
@@ -76,14 +77,15 @@ FileStorageBackend::FileStorageBackend(
 
   const auto& host = url.host();
 #ifdef _WIN32
-  m_dir = util::replace_all(url.path(), "/", "\\");
-  if (m_dir.length() >= 3 && m_dir[0] == '\\' && m_dir[2] == ':') {
+  std::string path = util::replace_all(url.path(), "/", "\\");
+  if (path.length() >= 3 && path[0] == '\\' && path[2] == ':') {
     // \X:\foo\bar -> X:\foo\bar according to RFC 8089 appendix E.2.
-    m_dir = m_dir.substr(1);
+    path = path.substr(1);
   }
   if (!host.empty()) {
-    m_dir = FMT("\\\\{}{}", host, m_dir);
+    path = FMT("\\\\{}{}", host, path);
   }
+  m_dir = path;
 #else
   if (!host.empty() && host != "localhost") {
     throw core::Fatal(
@@ -98,10 +100,13 @@ FileStorageBackend::FileStorageBackend(
     if (attr.key == "layout") {
       if (attr.value == "flat") {
         m_layout = Layout::flat;
+      } else if (attr.value == "local") {
+        m_layout = Layout::local;
       } else if (attr.value == "subdirs") {
         m_layout = Layout::subdirs;
       } else {
-        LOG("Unknown layout: {}", attr.value);
+        throw core::Fatal(
+          FMT("invalid file storage layout: \"{}\"", attr.value));
       }
     } else if (attr.key == "umask") {
       m_umask =
@@ -117,24 +122,26 @@ FileStorageBackend::FileStorageBackend(
 tl::expected<std::optional<util::Bytes>, RemoteStorage::Backend::Failure>
 FileStorageBackend::get(const Hash::Digest& key)
 {
-  const auto path = get_entry_path(key);
+  for (const auto& path : get_entry_paths(key)) {
+    if (!DirEntry(path).exists()) {
+      continue;
+    }
 
-  if (!DirEntry(path).exists()) {
-    // Don't log failure if the entry doesn't exist.
-    return std::nullopt;
+    if (m_update_mtime) {
+      // Update modification timestamp for potential LRU cleanup by some
+      // external mechanism.
+      util::set_timestamps(path);
+    }
+
+    return util::read_file<util::Bytes>(path).transform_error(
+      [&](const auto& error) {
+        LOG("Failed to read {}: {}", path, error);
+        return Failure::error;
+      });
   }
 
-  if (m_update_mtime) {
-    // Update modification timestamp for potential LRU cleanup by some external
-    // mechanism.
-    util::set_timestamps(path);
-  }
-
-  return util::read_file<util::Bytes>(path).transform_error(
-    [&](const auto& error) {
-      LOG("Failed to read {}: {}", path, error);
-      return Failure::error;
-    });
+  // Don't log failure if the entry doesn't exist.
+  return std::nullopt;
 }
 
 tl::expected<bool, RemoteStorage::Backend::Failure>
@@ -142,7 +149,8 @@ FileStorageBackend::put(const Hash::Digest& key,
                         const std::span<const uint8_t> value,
                         const Overwrite overwrite)
 {
-  const auto path = get_entry_path(key);
+  ASSERT(m_layout != Layout::local); // @layout=local -> read-only=true
+  const auto path = get_entry_paths(key).front();
 
   if (overwrite == Overwrite::no && DirEntry(path).exists()) {
     LOG("{} already in cache", path);
@@ -176,7 +184,8 @@ FileStorageBackend::put(const Hash::Digest& key,
 tl::expected<bool, RemoteStorage::Backend::Failure>
 FileStorageBackend::remove(const Hash::Digest& key)
 {
-  auto result = util::remove_nfs_safe(get_entry_path(key));
+  ASSERT(m_layout != Layout::local); // @layout=local -> read-only=true
+  auto result = util::remove_nfs_safe(get_entry_paths(key).front());
   if (result) {
     return *result;
   } else {
@@ -184,19 +193,31 @@ FileStorageBackend::remove(const Hash::Digest& key)
   }
 }
 
-std::string
-FileStorageBackend::get_entry_path(const Hash::Digest& key) const
+std::vector<fs::path>
+FileStorageBackend::get_entry_paths(const Hash::Digest& key) const
 {
+  const auto key_str = util::format_base16(key);
+  DEBUG_ASSERT(key_str.length() >= 4);
+
   switch (m_layout) {
   case Layout::flat:
-    return FMT("{}/{}", m_dir, util::format_base16(key));
+    return {m_dir / key_str};
 
-  case Layout::subdirs: {
-    const auto key_str = util::format_base16(key);
-    const uint8_t digits = 2;
-    ASSERT(key_str.length() > digits);
-    return FMT("{}/{:.{}}/{}", m_dir, key_str, digits, &key_str[digits]);
+  case Layout::local: {
+    std::vector<fs::path> paths;
+    for (uint8_t level = 2; level <= 4; ++level) {
+      fs::path path = m_dir;
+      for (uint8_t i = 0; i < level; ++i) {
+        path /= key_str.substr(i, 1);
+      }
+      paths.push_back(path / &key_str[level]);
+    }
+    return paths;
   }
+
+  case Layout::subdirs:
+    const uint8_t digits = 2;
+    return {m_dir / key_str.substr(0, digits) / &key_str[digits]};
   }
 
   ASSERT(false);

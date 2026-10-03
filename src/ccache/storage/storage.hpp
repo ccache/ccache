@@ -63,11 +63,9 @@ public:
            core::CacheEntryType type,
            const EntryReceiver& entry_receiver);
 
-  void put(const Hash::Digest& key,
-           core::CacheEntryType type,
-           std::span<const uint8_t> value);
+  void put(const Hash::Digest& key, std::span<const uint8_t> value);
 
-  void remove(const Hash::Digest& key, core::CacheEntryType type);
+  void remove(const Hash::Digest& key);
 
   void stop_remote_storage_helpers();
 

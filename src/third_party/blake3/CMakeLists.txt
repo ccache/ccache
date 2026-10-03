@@ -1,4 +1,4 @@
-register_dependency(Blake3 BUNDLED 1.8.2)
+register_dependency(Blake3 BUNDLED 1.8.7)
 
 add_library(
   dep_blake3 STATIC

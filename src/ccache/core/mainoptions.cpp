@@ -113,6 +113,7 @@ Common options:
                                default
     -d, --dir PATH             operate on cache directory PATH instead of the
                                default
+        --dry-run              do not perform any write operations
         --evict-namespace NAMESPACE
                                remove files created in namespace NAMESPACE
         --evict-older-than AGE remove files used less recently than AGE
@@ -149,6 +150,7 @@ Options for remote file-based storage:
                                PATH until it is at most the size specified by
                                --trim-max-size (note: don't use this option to
                                trim the local cache)
+        --trim-marker PATH     skip --trim-recompress for files older than PATH
         --trim-max-size SIZE   specify the maximum size for --trim-dir (use 0 for
                                no limit); available suffixes: kB, MB, GB, TB
                                (decimal) and KiB, MiB, GiB, TiB (binary);
@@ -308,14 +310,57 @@ print_compression_statistics(const Config& config,
   PRINT(stdout, "{}", table.render());
 }
 
-static void
-trim_dir(const std::string& dir,
-         const uint64_t trim_max_size,
-         const util::SizeUnitPrefixType suffix_type,
-         const bool trim_lru_mtime,
-         std::optional<std::optional<int8_t>> recompress_level,
-         uint32_t threads)
+static std::string
+recompress_level_to_string(const std::optional<int8_t>& level)
 {
+  return level ? std::to_string(static_cast<int>(*level)) : "uncompressed";
+}
+
+struct TrimDirOptions
+{
+  core::DryRun dry_run;
+  std::string dir;
+  std::optional<fs::path> marker_path;
+  uint64_t max_size;
+  util::SizeUnitPrefixType suffix_type;
+  bool lru_mtime;
+  std::optional<std::optional<int8_t>> recompress_level;
+  uint32_t threads;
+};
+
+static void
+trim_dir(const TrimDirOptions& options)
+{
+  const auto dry_run = options.dry_run;
+  const auto& dir = options.dir;
+  const auto& trim_marker_path = options.marker_path;
+  const auto trim_max_size = options.max_size;
+  const auto suffix_type = options.suffix_type;
+  const auto trim_lru_mtime = options.lru_mtime;
+  const auto& recompress_level = options.recompress_level;
+  const auto threads = options.threads;
+
+  ASSERT(dry_run == DryRun::no
+         || recompress_level == std::nullopt); // Verified by caller
+
+  // Note: run_start_time is captured before traversal and used as the new
+  // marker mtime (any file written concurrently with this run will have a newer
+  // mtime and be picked up by the next run).
+  util::TimePoint recompress_cutoff;
+  util::TimePoint run_start_time;
+  if (recompress_level && trim_marker_path) {
+    run_start_time = util::now();
+    DirEntry marker_entry(*trim_marker_path);
+    if (marker_entry) {
+      const auto content = util::read_file<std::string>(*trim_marker_path);
+      const auto previous_level =
+        content ? util::strip_whitespace(*content) : std::string_view();
+      if (previous_level == recompress_level_to_string(*recompress_level)) {
+        recompress_cutoff = marker_entry.mtime();
+      }
+    }
+  }
+
   std::vector<DirEntry> files;
   uint64_t initial_size = 0;
 
@@ -326,6 +371,12 @@ trim_dir(const std::string& dir,
       }
       if (!de) {
         // Probably some race, ignore.
+        return;
+      }
+      // Don't recompress or evict the marker file.
+      if (trim_marker_path
+          && de.path().filename() == trim_marker_path->filename()
+          && fs::equivalent(de.path(), *trim_marker_path)) {
         return;
       }
       initial_size += de.size_on_disk();
@@ -349,7 +400,12 @@ trim_dir(const std::string& dir,
     core::FileRecompressor recompressor;
 
     std::atomic<uint64_t> incompressible_size = 0;
+    size_t skipped_files = 0;
     for (auto& file : files) {
+      if (file.mtime() < recompress_cutoff) {
+        ++skipped_files;
+        continue;
+      }
       thread_pool.enqueue_detach([&] {
         try {
           auto new_stat = recompressor.recompress(
@@ -372,13 +428,23 @@ trim_dir(const std::string& dir,
 
     thread_pool.shut_down();
     recompression_diff = recompressor.new_size() - recompressor.old_size();
-    PRINT(stdout,
-          "Recompressed {} to {} ({})\n",
-          util::format_human_readable_size(
-            incompressible_size + recompressor.old_size(), suffix_type),
-          util::format_human_readable_size(
-            incompressible_size + recompressor.new_size(), suffix_type),
-          util::format_human_readable_diff(recompression_diff, suffix_type));
+    if (skipped_files == files.size()) {
+      PRINT(stdout, "No new cache entries to recompress\n");
+    } else {
+      PRINT(stdout,
+            "Recompressed {} to {} ({})\n",
+            util::format_human_readable_size(
+              incompressible_size + recompressor.old_size(), suffix_type),
+            util::format_human_readable_size(
+              incompressible_size + recompressor.new_size(), suffix_type),
+            util::format_human_readable_diff(recompression_diff, suffix_type));
+    }
+    if (trim_marker_path) {
+      util::throw_on_error<core::Error>(util::write_file(
+        *trim_marker_path,
+        FMT("{}\n", recompress_level_to_string(*recompress_level))));
+      util::set_timestamps(*trim_marker_path, run_start_time);
+    }
   }
 
   uint64_t size_after_recompression = initial_size + recompression_diff;
@@ -390,7 +456,7 @@ trim_dir(const std::string& dir,
       if (final_size <= trim_max_size) {
         break;
       }
-      if (util::remove(file.path())) {
+      if (dry_run == DryRun::yes || util::remove(file.path())) {
         ++removed_files;
         final_size -= file.size_on_disk();
       }
@@ -440,6 +506,7 @@ get_usage_text(const std::string_view ccache_name)
 enum : uint8_t {
   CHECKSUM_FILE,
   CONFIG_PATH,
+  DRY_RUN,
   EVICT_NAMESPACE,
   EVICT_OLDER_THAN,
   EXTRACT_RESULT,
@@ -453,6 +520,7 @@ enum : uint8_t {
   STOP_STORAGE_HELPERS,
   THREADS,
   TRIM_DIR,
+  TRIM_MARKER,
   TRIM_MAX_SIZE,
   TRIM_METHOD,
   TRIM_RECOMPRESS,
@@ -469,6 +537,7 @@ const option long_options[] = {
   {"config-path",             REQUIRED,    nullptr, CONFIG_PATH         },
   {"dir",                     REQUIRED,    nullptr, 'd'                 },
   {"directory",               REQUIRED,    nullptr, 'd'                 }, // compat
+  {"dry-run",                 NO_ARGUMENT, nullptr, DRY_RUN             },
   {"dump-manifest",           REQUIRED,    nullptr, INSPECT             }, // compat
   {"dump-result",             REQUIRED,    nullptr, INSPECT             }, // compat
   {"evict-namespace",         REQUIRED,    nullptr, EVICT_NAMESPACE     },
@@ -494,6 +563,7 @@ const option long_options[] = {
   {"stop-storage-helpers",    NO_ARGUMENT, nullptr, STOP_STORAGE_HELPERS},
   {"threads",                 REQUIRED,    nullptr, THREADS             },
   {"trim-dir",                REQUIRED,    nullptr, TRIM_DIR            },
+  {"trim-marker",             REQUIRED,    nullptr, TRIM_MARKER         },
   {"trim-max-size",           REQUIRED,    nullptr, TRIM_MAX_SIZE       },
   {"trim-method",             REQUIRED,    nullptr, TRIM_METHOD         },
   {"trim-recompress",         REQUIRED,    nullptr, TRIM_RECOMPRESS     },
@@ -517,6 +587,8 @@ process_main_options(int argc, const char* const* argv)
   std::optional<util::SizeUnitPrefixType> trim_suffix_type;
   bool trim_lru_mtime = false;
   std::optional<std::optional<int8_t>> trim_recompress;
+  core::DryRun dry_run = DryRun::no;
+  std::optional<fs::path> trim_marker;
 
   std::optional<std::string> evict_namespace;
   std::optional<uint64_t> evict_max_age;
@@ -533,6 +605,9 @@ process_main_options(int argc, const char* const* argv)
     switch (c) {
     case 'd': // --dir
       util::setenv("CCACHE_DIR", arg);
+      break;
+    case DRY_RUN:
+      dry_run = DryRun::yes;
       break;
     case FORMAT:
       if (arg == "tab") {
@@ -553,6 +628,10 @@ process_main_options(int argc, const char* const* argv)
       threads =
         static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
           arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
+      break;
+
+    case TRIM_MARKER:
+      trim_marker = arg;
       break;
 
     case TRIM_MAX_SIZE: {
@@ -599,8 +678,10 @@ process_main_options(int argc, const char* const* argv)
     switch (c) {
     case CONFIG_PATH:
     case 'd': // --dir
+    case DRY_RUN:
     case FORMAT:
     case THREADS:
+    case TRIM_MARKER:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
     case TRIM_RECOMPRESS:
@@ -640,6 +721,11 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case EXTRACT_RESULT: {
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --extract-result\n");
+        return EXIT_FAILURE;
+      }
+
       umask_scope.release(); // Use original umask for files outside cache dir
       const auto cache_entry_data = read_from_path_or_stdin(arg);
       if (!cache_entry_data) {
@@ -693,15 +779,16 @@ process_main_options(int argc, const char* const* argv)
     {
       ProgressBar progress_bar("Cleaning...");
       storage::local::LocalStorage(config).clean_all(
-        [&](double progress) { progress_bar.update(progress); });
-      if (isatty(STDOUT_FILENO)) {
-        PRINT(stdout, "\n");
-      }
+        dry_run, [&](double progress) { progress_bar.update(progress); });
       break;
     }
 
     case 'C': // --clear
     {
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --clear\n");
+        return EXIT_FAILURE;
+      }
       ProgressBar progress_bar("Clearing...");
       storage::local::LocalStorage(config).wipe_all(
         [&](double progress) { progress_bar.update(progress); });
@@ -720,6 +807,10 @@ process_main_options(int argc, const char* const* argv)
       break;
 
     case 'F': { // --max-files
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --max-files\n");
+        return EXIT_FAILURE;
+      }
       auto files = util::value_or_throw<Error>(util::parse_unsigned(arg));
       config.set_value_in_file(
         util::pstr(config.config_path()), "max_files", arg);
@@ -732,6 +823,10 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'M': { // --max-size
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --max-size\n");
+        return EXIT_FAILURE;
+      }
       auto [size, suffix_type] =
         util::value_or_throw<Error>(util::parse_size(arg));
       uint64_t max_size = size;
@@ -748,6 +843,10 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'o': { // --set-config
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --set-config\n");
+        return EXIT_FAILURE;
+      }
       // Start searching for equal sign at position 1 to improve error message
       // for the -o=K=V case (key "=K" and value "V").
       size_t eq_pos = arg.find('=', 1);
@@ -803,21 +902,32 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case STOP_STORAGE_HELPERS: {
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --stop-storage-helpers\n");
+        return EXIT_FAILURE;
+      }
       storage::Storage storage(config, fs::path(argv[0]).parent_path());
       storage.stop_remote_storage_helpers();
       break;
     }
 
     case TRIM_DIR:
+      if (dry_run == DryRun::yes && trim_recompress) {
+        PRINT(stderr, "--dry-run cannot be used with --trim-recompress\n");
+        return EXIT_FAILURE;
+      }
+
       if (!trim_max_size) {
         throw Error("please specify --trim-max-size when using --trim-dir");
       }
-      trim_dir(arg,
-               *trim_max_size,
-               *trim_suffix_type,
-               trim_lru_mtime,
-               trim_recompress,
-               threads);
+      trim_dir({.dry_run = dry_run,
+                .dir = arg,
+                .marker_path = trim_marker,
+                .max_size = *trim_max_size,
+                .suffix_type = *trim_suffix_type,
+                .lru_mtime = trim_lru_mtime,
+                .recompress_level = trim_recompress,
+                .threads = threads});
       break;
 
     case 'V': // --version
@@ -847,6 +957,10 @@ process_main_options(int argc, const char* const* argv)
 
     case 'X': // --recompress
     {
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --recompress\n");
+        return EXIT_FAILURE;
+      }
       auto wanted_level = parse_compression_level(arg);
 
       ProgressBar progress_bar("Recompressing...");
@@ -858,6 +972,10 @@ process_main_options(int argc, const char* const* argv)
     }
 
     case 'z': // --zero-stats
+      if (dry_run == DryRun::yes) {
+        PRINT(stderr, "--dry-run cannot be used with --zero-stats\n");
+        return EXIT_FAILURE;
+      }
       storage::local::LocalStorage(config).zero_all_statistics();
       PRINT(stdout, "Statistics zeroed\n");
       break;
@@ -874,12 +992,10 @@ process_main_options(int argc, const char* const* argv)
 
     ProgressBar progress_bar("Evicting...");
     storage::local::LocalStorage(config).evict(
+      dry_run,
       [&](double progress) { progress_bar.update(progress); },
       evict_max_age,
       evict_namespace);
-    if (isatty(STDOUT_FILENO)) {
-      PRINT(stdout, "\n");
-    }
   }
 
   return EXIT_SUCCESS;

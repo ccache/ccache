@@ -72,11 +72,10 @@ public:
                                  core::CacheEntryType type);
 
   void put(const Hash::Digest& key,
-           core::CacheEntryType type,
            std::span<const uint8_t> value,
            Overwrite overwrite);
 
-  void remove(const Hash::Digest& key, core::CacheEntryType type);
+  void remove(const Hash::Digest& key);
 
   static std::filesystem::path
   get_raw_file_path(const std::filesystem::path& result_path,
@@ -112,11 +111,13 @@ public:
 
   // --- Cleanup ---
 
-  void evict(const ProgressReceiver& progress_receiver,
+  void evict(core::DryRun dry_run,
+             const ProgressReceiver& progress_receiver,
              std::optional<uint64_t> max_age,
              std::optional<std::string> namespace_);
 
-  void clean_all(const ProgressReceiver& progress_receiver);
+  void clean_all(core::DryRun dry_run,
+                 const ProgressReceiver& progress_receiver);
 
   void wipe_all(const ProgressReceiver& progress_receiver);
 
@@ -152,8 +153,7 @@ private:
     uint8_t level;
   };
 
-  LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key,
-                                           core::CacheEntryType type) const;
+  LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key) const;
 
   std::filesystem::path get_subdir(uint8_t l1_index) const;
   std::filesystem::path get_subdir(uint8_t l1_index, uint8_t l2_index) const;
@@ -175,7 +175,8 @@ private:
 
   void perform_automatic_cleanup();
 
-  void do_clean_all(const ProgressReceiver& progress_receiver,
+  void do_clean_all(core::DryRun dry_run,
+                    const ProgressReceiver& progress_receiver,
                     uint64_t max_size,
                     uint64_t max_files,
                     std::optional<uint64_t> max_age,

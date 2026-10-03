@@ -45,7 +45,7 @@ enum class Sloppy : uint32_t {
   clang_index_store = 1U << 7,
   // Ignore locale settings.
   locale = 1U << 8,
-  // Allow caching even if -fmodules is used.
+  // Allow caching even if -fmodules or -fprebuilt-implicit-modules is used.
   modules = 1U << 9,
   // Ignore virtual file system (VFS) overlay file.
   ivfsoverlay = 1U << 10,

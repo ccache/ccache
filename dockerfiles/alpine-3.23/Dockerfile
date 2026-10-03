@@ -10,11 +10,9 @@ RUN apk add --no-cache \
         elfutils \
         g++ \
         gcc \
-        hiredis-dev \
         make \
         perl \
         python3 \
-        redis \
         xxhash-dev \
         zstd-dev
 

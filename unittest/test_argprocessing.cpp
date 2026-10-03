@@ -33,6 +33,11 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <vector>
+
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 namespace fs = util::filesystem;
 
@@ -590,6 +595,51 @@ TEST_CASE("nvcc_warning_flags_long")
         == "nvcc --Werror all-warnings -Xcompiler -Werror -c");
 }
 
+TEST_CASE("nvcc_show_includes_via_host_compiler_option")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_depend_mode(true);
+  ctx.orig_args = Args::from_string("nvcc -c foo.cu -Xcompiler /showIncludes");
+  REQUIRE(util::write_file("foo.cu", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+  CHECK(ctx.args_info.generating_includes);
+  CHECK(result->preprocessor_args.to_string() == "nvcc");
+  CHECK(result->extra_args_to_hash.to_string() == "-Xcompiler /showIncludes");
+  CHECK(result->compiler_args.to_string()
+        == "nvcc -Xcompiler /showIncludes -c");
+}
+
+TEST_CASE("nvcc_auto_depend_mode")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::nvcc);
+  ctx.config.set_depend_mode(true);
+  ctx.orig_args = Args::from_string("nvcc -c foo.cu");
+  REQUIRE(util::write_file("foo.cu", ""));
+  const auto result = process_args(ctx);
+
+  CHECK(result);
+#ifdef _WIN32
+  CHECK(ctx.auto_depend_mode);
+  CHECK(ctx.args_info.generating_includes);
+  CHECK(result->preprocessor_args.to_string() == "nvcc");
+  CHECK(result->extra_args_to_hash.to_string() == "");
+  CHECK(result->compiler_args.to_string()
+        == "nvcc -Xcompiler /showIncludes -c");
+#else
+  CHECK(!ctx.auto_depend_mode);
+  CHECK(!ctx.args_info.generating_includes);
+  CHECK(result->preprocessor_args.to_string() == "nvcc");
+  CHECK(result->extra_args_to_hash.to_string() == "");
+  CHECK(result->compiler_args.to_string() == "nvcc -c");
+#endif
+}
+
 TEST_CASE("-Xclang")
 {
   TestContext test_context;
@@ -665,6 +715,17 @@ TEST_CASE("-x")
     CHECK(result->compiler_args.to_string() == "gcc -x c++ -c");
   }
 
+  SUBCASE("compile preprocessed Objective-C with an alias")
+  {
+    REQUIRE(util::write_file("foo.i", ""));
+    ctx.orig_args = Args::from_string("gcc -x objc-cpp-output -c foo.i");
+
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.actual_language == "objc-cpp-output");
+    CHECK_FALSE(ctx.args_info.preprocess_input_file);
+  }
+
   SUBCASE("compile .c as c++ (file first, no effect)")
   {
     ctx.orig_args = Args::from_string("gcc -c foo.c -x c++");
@@ -700,6 +761,110 @@ TEST_CASE("-x")
   }
 }
 
+TEST_CASE("GCC diagnostics output options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::gcc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Diagnostics format")
+  {
+    ctx.orig_args = Args{"gcc", "-fdiagnostics-format=text", "-c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif.empty());
+    CHECK(result->preprocessor_args.to_string() == "gcc");
+    CHECK(result->compiler_args.to_string()
+          == "gcc -fdiagnostics-format=text -fdiagnostics-color -c");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "-fdiagnostics-format=text");
+  }
+
+  SUBCASE("SARIF stderr diagnostics format")
+  {
+    ctx.orig_args =
+      Args{"gcc", "-fdiagnostics-format=sarif-stderr", "-c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif.empty());
+    CHECK(result->preprocessor_args.to_string() == "gcc");
+    CHECK(result->compiler_args.to_string()
+          == "gcc -fdiagnostics-format=sarif-stderr -fdiagnostics-color -c");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "-fdiagnostics-format=sarif-stderr");
+  }
+
+  SUBCASE("Text output with key options")
+  {
+    ctx.orig_args =
+      Args{"gcc", "-fdiagnostics-set-output=text:color=no", "-c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif.empty());
+    CHECK(result->preprocessor_args.to_string() == "gcc");
+    CHECK(
+      result->compiler_args.to_string()
+      == "gcc -fdiagnostics-set-output=text:color=no -fdiagnostics-color -c");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "-fdiagnostics-set-output=text:color=no");
+  }
+
+  SUBCASE("SARIF output with key options")
+  {
+    ctx.orig_args = Args{
+      "gcc",
+      "-fdiagnostics-add-output=sarif:version=2.1,file=report.sarif",
+      "-c",
+      "foo.c",
+    };
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "gcc"
+             " -fdiagnostics-add-output=sarif:version=2.1,file=report.sarif"
+             " -fdiagnostics-color -c");
+  }
+
+  SUBCASE("Absolute SARIF output under base directory")
+  {
+    ctx.config.set_base_dir(get_root());
+    const auto output = ctx.actual_cwd / "report.sarif";
+    ctx.orig_args = Args{
+      "gcc",
+      FMT("-fdiagnostics-set-output=sarif:file={}", output),
+      "-c",
+      "foo.c",
+    };
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == ("gcc -fdiagnostics-set-output=sarif:file=report.sarif"
+              " -fdiagnostics-color -c"));
+  }
+
+  SUBCASE("Missing SARIF file")
+  {
+    ctx.orig_args =
+      Args{"gcc", "-fdiagnostics-set-output=sarif:version=2.1", "-c", "foo.c"};
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Multiple diagnostics output options")
+  {
+    ctx.orig_args = Args{
+      "gcc",
+      "-fdiagnostics-format=text",
+      "-fdiagnostics-add-output=text",
+      "-c",
+      "foo.c",
+    };
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+}
+
 // On macOS ctx.actual_cwd typically starts with /Users which clashes with
 // MSVC's /U option, so disable the test case there. This will be possible to
 // improve when/if a compiler abstraction is introduced (issue #956).
@@ -718,6 +883,224 @@ TEST_CASE("MSVC options"
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cl.exe /foobar");
   CHECK(result->compiler_args.to_string() == "cl.exe /foobar /c");
+}
+
+TEST_CASE("MSVC /experimental:log")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Separate filename")
+  {
+    ctx.orig_args = Args{
+      "cl.exe", "/experimental:log", "report", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->preprocessor_args.to_string() == "cl.exe");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log report /c");
+  }
+
+  SUBCASE("Attached filename")
+  {
+    ctx.orig_args =
+      Args{"cl.exe", "/experimental:logreport", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log report /c");
+  }
+
+  SUBCASE("Dash spelling")
+  {
+    ctx.orig_args =
+      Args{"cl.exe", "-experimental:logreport", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe -experimental:log report /c");
+  }
+
+  SUBCASE("Absolute filename under base directory")
+  {
+    ctx.config.set_base_dir(get_root());
+    const auto output = ctx.actual_cwd / "report";
+    ctx.orig_args = Args{
+      "cl.exe",
+      "/experimental:log",
+      util::pstr(output),
+      "/Fofoo.obj",
+      "/c",
+      "foo.c",
+    };
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log report /c");
+  }
+
+  SUBCASE("Missing argument")
+  {
+    ctx.orig_args =
+      Args{"cl.exe", "/Fofoo.obj", "/c", "foo.c", "/experimental:log"};
+    CHECK(process_args(ctx).error() == Statistic::bad_compiler_arguments);
+  }
+
+  SUBCASE("Multiple options")
+  {
+    ctx.orig_args = Args{
+      "cl.exe",
+      "/experimental:logfirst",
+      "/experimental:logsecond",
+      "/Fofoo.obj",
+      "/c",
+      "foo.c",
+    };
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+#ifdef _WIN32
+  SUBCASE("Directory")
+  {
+    ctx.orig_args = Args{
+      "cl.exe", "/experimental:log", "reports\\", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "reports/foo.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log reports\\ /c");
+  }
+#endif
+}
+
+TEST_CASE("clang-cl /experimental:log")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  ctx.orig_args = Args{
+    "clang-cl.exe", "/experimental:logreport", "/Fofoo.obj", "/c", "foo.c"};
+  const auto result = process_args(ctx);
+  REQUIRE(result);
+  CHECK(ctx.args_info.output_sarif == "report.sarif");
+  CHECK(result->compiler_args.to_string()
+        == "clang-cl.exe /experimental:log report -fcolor-diagnostics /c");
+}
+
+TEST_CASE("MSVC assembler listing options")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("MSVC default output")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FA /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.asm");
+    CHECK(result->preprocessor_args.to_string() == "cl.exe");
+    CHECK(result->compiler_args.to_string() == "cl.exe /FA /c");
+    CHECK(result->extra_args_to_hash.to_string() == "/FA");
+  }
+
+  SUBCASE("MSVC machine code output")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FAcsu /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.cod");
+  }
+
+  SUBCASE("clang-cl machine code output")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args = Args::from_string("clang-cl.exe /FAcsu /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.asm");
+  }
+
+  SUBCASE("Explicit output enables listing and is not hashed")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /Fafoo /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.asm");
+    CHECK(result->compiler_args.to_string() == "cl.exe /Fafoo /c");
+    CHECK(result->extra_args_to_hash.to_string().empty());
+  }
+
+  SUBCASE("Custom extension")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FAc /Fafoo.lst /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "foo.lst");
+  }
+
+  SUBCASE("Output directory")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args = Args::from_string("cl.exe /FA /Falistings/ /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "listings/foo.asm");
+    CHECK(result->compiler_args.to_string() == "cl.exe /FA /Falistings/ /c");
+  }
+
+  SUBCASE("Last options win")
+  {
+    ctx.config.set_compiler_type(CompilerType::msvc);
+    ctx.orig_args =
+      Args::from_string("cl.exe /FAc /FAs /Fafirst.asm /Fasecond /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_al == "second.asm");
+    CHECK(result->extra_args_to_hash.to_string() == "/FAc /FAs");
+  }
+
+  SUBCASE("MSVC option before assembler option")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args =
+      Args::from_string("clang-cl.exe /FA -Wa,-a=file.lst /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Assembler option before MSVC option")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args =
+      Args::from_string("clang-cl.exe -Wa,-a=file.lst /FA /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
 }
 
 TEST_CASE("MSVC PCH options")
@@ -766,9 +1149,10 @@ TEST_CASE("MSVC PCH options")
 }
 
 #ifdef _WIN32
-// The test uses absolute paths and will typically fail on macOS since
+// The below tests use absolute paths and will typically fail on macOS since
 // /Users/... will then be treated as -U/... and not an input file, so just run
-// it on Windows.
+// them on Windows.
+
 TEST_CASE("MSVC /Yc in response file disables base_dir rewriting")
 {
   TestContext test_context;
@@ -793,14 +1177,53 @@ TEST_CASE("MSVC /Yc in response file disables base_dir rewriting")
   const auto result = process_args(ctx);
 
   REQUIRE(result);
+  CHECK(ctx.config.base_dirs().empty());
   CHECK(ctx.args_info.generating_pch);
   CHECK(ctx.args_info.output_obj == output_path);
   CHECK(result->preprocessor_args.to_string()
         == FMT("cl.exe /Yc -Fp{} -FI{}", pch_path, include_path));
 }
+
+TEST_CASE("MSVC /Yu in response file disables base_dir rewriting")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_base_dir(get_root());
+  ctx.config.update_from_map({
+    {"sloppiness", "time_macros"}
+  });
+  REQUIRE(util::write_file("pch.h", ""));
+  REQUIRE(util::write_file("pch.cpp.pch", ""));
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  const auto pch_path = ctx.actual_cwd / "pch.cpp.pch";
+  const auto include_path = ctx.actual_cwd / "pch.h";
+  const auto output_path = ctx.actual_cwd / "foo.cpp.obj";
+  const auto source_path = ctx.actual_cwd / "foo.cpp";
+  REQUIRE(util::write_file("pch.rsp",
+                           FMT("/Yu{} /Fp{} /FI{} /Fo{} /c {}\n",
+                               include_path,
+                               pch_path,
+                               include_path,
+                               output_path,
+                               source_path)));
+
+  ctx.orig_args = Args::from_string("cl.exe @pch.rsp");
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.config.base_dirs().empty());
+  CHECK_FALSE(ctx.args_info.generating_pch);
+  CHECK(ctx.args_info.included_pch_file == pch_path);
+  CHECK(ctx.args_info.output_obj == output_path);
+  CHECK(
+    result->preprocessor_args.to_string()
+    == FMT("cl.exe -Yu{} -Fp{} -FI{}", include_path, pch_path, include_path));
+}
 #endif
 
-TEST_CASE("MSVC /Yc with base_dir preserves later argument errors")
+TEST_CASE("MSVC PCH with base_dir preserves later argument errors")
 {
   TestContext test_context;
   Context ctx;
@@ -808,7 +1231,15 @@ TEST_CASE("MSVC /Yc with base_dir preserves later argument errors")
   ctx.config.set_base_dir(get_root());
   REQUIRE(util::write_file("pch.cpp", ""));
 
-  ctx.orig_args = Args::from_string("cl.exe /Yc /c pch.cpp /FI");
+  SUBCASE("/Yc")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Yc /c pch.cpp /FI");
+  }
+
+  SUBCASE("/Yu")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /Yupch.h /c pch.cpp /FI");
+  }
 
   const auto result = process_args(ctx);
 
@@ -1123,6 +1554,219 @@ TEST_CASE("-Xarch_device with -Xarch_x86_64 is too hard")
 
   REQUIRE(!result);
   CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("-clang: is too hard")
+{
+  TestContext test_context;
+  Context ctx;
+
+  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("-clang:")
+  {
+    ctx.orig_args = Args::from_string("clang -c foo.c -clang:bar");
+  }
+
+  SUBCASE("/clang:")
+  {
+    ctx.orig_args = Args::from_string("clang -c foo.c /clang:bar");
+  }
+
+  const auto result = process_args(ctx);
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::unsupported_compiler_option);
+}
+
+TEST_CASE("-fprebuilt-module-path= hashes the module files in the directory")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/b.pcm", ""));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  REQUIRE(util::write_file("pm/notes.txt", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  // Sorted, so that the hash does not depend on the order the directory is
+  // read in.
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.pcm", "pm/b.pcm"});
+}
+
+TEST_CASE("-fprebuilt-module-path= hashes an uppercase module file extension")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.PCM", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  // On a case-insensitive file system the compiler looking for pm/a.pcm reads
+  // this file.
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.PCM"});
+}
+
+TEST_CASE("-fprebuilt-module-path= ignores a .pcm directory")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  REQUIRE(fs::create_directory("pm/sub.pcm"));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.pcm"});
+}
+
+TEST_CASE("-fprebuilt-module-path= without a directory searches the CWD")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(util::write_file("a.pcm", ""));
+
+  // Clang resolves an empty value against the working directory.
+  ctx.orig_args = Args::from_string("clang -fprebuilt-module-path= -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"./a.pcm"});
+}
+
+TEST_CASE("-fprebuilt-module-path= for a missing directory has no inputs")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=absent -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files.empty());
+}
+
+TEST_CASE("-fprebuilt-module-path= naming a file has no inputs")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(util::write_file("notadir", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=notadir -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files.empty());
+}
+
+#ifndef _WIN32
+TEST_CASE("-fprebuilt-module-path= for an unreadable directory is uncacheable")
+{
+  if (geteuid() == 0) {
+    // Root reads the directory regardless of its permissions.
+    return;
+  }
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  REQUIRE(chmod("pm", 0000) == 0);
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  // Which module files the compilation reads cannot be determined, so caching
+  // it could give a hit for a changed input.
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::could_not_use_modules);
+
+  REQUIRE(chmod("pm", 0700) == 0);
+}
+
+TEST_CASE("-fprebuilt-module-path= ignores an unreadable module file")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+  REQUIRE(fs::create_directory("pm"));
+  REQUIRE(util::write_file("pm/a.pcm", ""));
+  // The compiler cannot read a dangling symlink either, so it is not an input
+  // and must not make the compilation uncacheable.
+  REQUIRE(fs::create_symlink("missing", "pm/b.pcm"));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-module-path=pm -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(result);
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"pm/a.pcm"});
+}
+#endif
+
+TEST_CASE("-fprebuilt-implicit-modules is uncacheable")
+{
+  TestContext test_context;
+  Context ctx;
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-implicit-modules -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  REQUIRE(!result);
+  CHECK(result.error() == Statistic::could_not_use_modules);
+}
+
+TEST_CASE("-fprebuilt-implicit-modules is cacheable with modules sloppiness")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.update_from_map({
+    {"sloppiness", "modules"}
+  });
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  ctx.orig_args =
+    Args::from_string("clang -fprebuilt-implicit-modules -c foo.cpp");
+
+  const auto result = process_args(ctx);
+
+  CHECK(result);
 }
 
 TEST_SUITE_END();

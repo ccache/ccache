@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 Joel Rosdahl and other contributors
+// Copyright (C) 2021-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -21,6 +21,7 @@
 #include <ccache/util/assertions.hpp>
 
 #include <cstddef>
+#include <iterator>
 #include <string_view>
 
 namespace util {
@@ -47,22 +48,29 @@ public:
   class Iterator
   {
   public:
+    using difference_type = std::ptrdiff_t;
+    using value_type = std::string_view;
+    using iterator_concept = std::input_iterator_tag;
+    using iterator_category = std::input_iterator_tag;
+
+    Iterator() = default;
     Iterator(const Tokenizer& tokenizer, size_t start_pos);
 
-    Iterator operator++();
-    bool operator!=(const Iterator& other) const;
+    Iterator& operator++();
+    Iterator operator++(int);
+    bool operator==(const Iterator& other) const;
     std::string_view operator*() const;
 
   private:
-    const Tokenizer& m_tokenizer;
-    size_t m_left;
-    size_t m_right;
+    const Tokenizer* m_tokenizer = nullptr;
+    size_t m_left = std::string_view::npos;
+    size_t m_right = std::string_view::npos;
 
     void advance(bool initial);
   };
 
-  Iterator begin();
-  Iterator end();
+  Iterator begin() const;
+  Iterator end() const;
 
 private:
   friend Iterator;
@@ -87,7 +95,7 @@ inline Tokenizer::Tokenizer(const std::string_view string,
 
 inline Tokenizer::Iterator::Iterator(const Tokenizer& tokenizer,
                                      const size_t start_pos)
-  : m_tokenizer(tokenizer),
+  : m_tokenizer(&tokenizer),
     m_left(start_pos),
     m_right(start_pos)
 {
@@ -98,27 +106,35 @@ inline Tokenizer::Iterator::Iterator(const Tokenizer& tokenizer,
   }
 }
 
-inline Tokenizer::Iterator
+inline Tokenizer::Iterator&
 Tokenizer::Iterator::operator++()
 {
   advance(false);
   return *this;
 }
 
-inline bool
-Tokenizer::Iterator::operator!=(const Iterator& other) const
+inline Tokenizer::Iterator
+Tokenizer::Iterator::operator++(int)
 {
-  return &m_tokenizer != &other.m_tokenizer || m_left != other.m_left;
+  const auto previous = *this;
+  ++*this;
+  return previous;
+}
+
+inline bool
+Tokenizer::Iterator::operator==(const Iterator& other) const
+{
+  return m_tokenizer == other.m_tokenizer && m_left == other.m_left;
 }
 
 inline Tokenizer::Iterator
-Tokenizer::begin()
+Tokenizer::begin() const
 {
   return Iterator(*this, 0);
 }
 
 inline Tokenizer::Iterator
-Tokenizer::end()
+Tokenizer::end() const
 {
   return Iterator(*this, std::string_view::npos);
 }
