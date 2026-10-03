@@ -23,6 +23,7 @@
 
 #include <sys/stat.h>
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 
@@ -44,7 +45,7 @@ public:
   struct stat_t
   {
     uint64_t st_dev;
-    uint64_t st_ino;
+    std::array<uint8_t, 16> st_ino;
     uint16_t st_mode;
     uint16_t st_nlink;
     uint64_t st_size;

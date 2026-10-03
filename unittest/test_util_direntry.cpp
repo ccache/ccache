@@ -30,6 +30,9 @@
 
 #include <fcntl.h>
 
+#include <array>
+#include <cstring>
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
@@ -134,6 +137,26 @@ win32_get_file_info(const std::string& path, BY_HANDLE_FILE_INFORMATION* info)
   return ret;
 }
 
+bool
+win32_get_file_id_info(const std::string& path, FILE_ID_INFO* info)
+{
+  HANDLE handle =
+    CreateFileA(path.c_str(),
+                FILE_READ_ATTRIBUTES,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS,
+                nullptr);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+  BOOL ret =
+    GetFileInformationByHandleEx(handle, FileIdInfo, info, sizeof(*info));
+  CloseHandle(handle);
+  return ret;
+}
+
 struct timespec
 win32_filetime_to_timespec(FILETIME ft)
 {
@@ -160,7 +183,7 @@ TEST_CASE("Default constructor")
   CHECK(entry.error_number() == ENOENT);
   CHECK(entry.path() == "");
   CHECK(entry.device() == 0);
-  CHECK(entry.inode() == 0);
+  CHECK(entry.inode() == DirEntry::ino_t{});
   CHECK(entry.mode() == 0);
   CHECK(util::sec(entry.ctime()) == 0);
   CHECK(util::nsec_part(entry.ctime()) == 0);
@@ -186,7 +209,7 @@ TEST_CASE("Construction for missing entry")
   CHECK(entry.error_number() == ENOENT);
   CHECK(entry.path() == "does_not_exist");
   CHECK(entry.device() == 0);
-  CHECK(entry.inode() == 0);
+  CHECK(entry.inode() == DirEntry::ino_t{});
   CHECK(entry.mode() == 0);
   CHECK(util::sec(entry.ctime()) == 0);
   CHECK(util::nsec_part(entry.ctime()) == 0);
@@ -282,10 +305,20 @@ TEST_CASE("Return values when file exists")
 #ifdef _WIN32
   BY_HANDLE_FILE_INFORMATION info = {};
   CHECK(win32_get_file_info("file", &info));
-
-  CHECK(de.device() == info.dwVolumeSerialNumber);
-  CHECK((de.inode() >> 32) == info.nFileIndexHigh);
-  CHECK((de.inode() & ((1ULL << 32) - 1)) == info.nFileIndexLow);
+  FILE_ID_INFO id_info = {};
+  if (win32_get_file_id_info("file", &id_info)) {
+    CHECK(de.device() == id_info.VolumeSerialNumber);
+    CHECK(de.inode() == std::to_array(id_info.FileId.Identifier));
+  } else {
+    // It GetFileInformationByHandleEx is not supported,
+    // DirEntry should fallback on GetFileInformationByHandle
+    CHECK(de.device() == info.dwVolumeSerialNumber);
+    const uint64_t file_index =
+      (static_cast<uint64_t>(info.nFileIndexHigh) << 32) | info.nFileIndexLow;
+    DirEntry::ino_t inode = {};
+    memcpy(inode.data(), &file_index, sizeof(file_index));
+    CHECK(de.inode() == inode);
+  }
   CHECK(S_ISREG(de.mode()));
   CHECK((de.mode() & ~S_IFMT) == 0666);
 

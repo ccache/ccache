@@ -85,7 +85,7 @@ check_cxx_source_compiles(
   HAVE_AVX2)
 
 if(WIN32)
-  set(_WIN32_WINNT 0x0600)
+  set(_WIN32_WINNT 0x0602)
 endif()
 
 if(CMAKE_SYSTEM MATCHES "Darwin")
