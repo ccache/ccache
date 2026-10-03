@@ -246,7 +246,7 @@ Bytes::insert(const void* pos, const void* first, const void* last) noexcept
 inline void
 Bytes::insert(const void* pos, std::span<const uint8_t> data) noexcept
 {
-  return insert(pos, &*data.begin(), data.size());
+  return insert(pos, data.data(), data.size());
 }
 
 inline void
