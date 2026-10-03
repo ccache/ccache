@@ -60,6 +60,7 @@ public:
 
   using dev_t = decltype(stat_t{}.st_dev);
   using ino_t = decltype(stat_t{}.st_ino);
+  using off_t = decltype(stat_t{}.st_size);
 
   // Create an empty directory entry. operator bool() will return false,
   // error_number() will return ENOENT and other accessors will return false or
