@@ -76,7 +76,7 @@ namespace {
 // Note: The key is hashed using the main hash algorithm, so the version number
 // does not need to be incremented if said algorithm is changed (except if the
 // digest size changes since that affects the entry format).
-const uint32_t k_version = 3;
+const uint32_t k_version = 4;
 
 // Note: Increment the version number if constants affecting storage size are
 // changed.
@@ -231,12 +231,12 @@ spin_unlock(std::atomic<pid_t>& owner_pid)
 struct InodeCache::Key
 {
   ContentType type;
-  dev_t st_dev;
-  ino_t st_ino;
+  util::DirEntry::dev_t st_dev;
+  util::DirEntry::ino_t st_ino;
   mode_t st_mode;
   timespec st_mtim;
-  timespec st_ctim; // Included for sanity checking.
-  off_t st_size;    // Included for sanity checking.
+  timespec st_ctim;              // Included for sanity checking.
+  util::DirEntry::off_t st_size; // Included for sanity checking.
 };
 
 struct InodeCache::Entry

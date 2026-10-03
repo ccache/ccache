@@ -27,6 +27,8 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/path.hpp>
 #include <ccache/util/temporaryfile.hpp>
+#include <ccache/util/time.hpp>
+#include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
 
@@ -75,6 +77,31 @@ put(InodeCache& inode_cache,
   return inode_cache.put(
     filename, content_type, Hash().hash(str).digest(), return_value);
 }
+
+#ifdef _WIN32
+bool
+set_creation_time(const std::string& path, util::TimePoint time)
+{
+  const uint64_t intervals =
+    static_cast<uint64_t>(util::nsec_tot(time) / 100) + 116444736000000000;
+  FILETIME filetime = {static_cast<DWORD>(intervals),
+                       static_cast<DWORD>(intervals >> 32)};
+  HANDLE handle =
+    CreateFileA(path.c_str(),
+                FILE_WRITE_ATTRIBUTES,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr,
+                OPEN_EXISTING,
+                0,
+                nullptr);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+  BOOL ret = SetFileTime(handle, &filetime, nullptr, nullptr);
+  CloseHandle(handle);
+  return ret;
+}
+#endif
 
 } // namespace
 
@@ -219,6 +246,32 @@ TEST_CASE("Test content type")
   CHECK(return_value->first.to_bitmask()
         == static_cast<int>(SourceCodeScan::found_time));
   CHECK(return_value->second == code_digest);
+}
+
+TEST_CASE("Files with the same size and times have separate entries")
+{
+  TestContext test_context;
+
+  Config config;
+  init(config);
+
+  InodeCache inode_cache(config, 0ns);
+  REQUIRE(util::write_file("a", "a text"));
+  REQUIRE(util::write_file("b", "b text"));
+  const auto time = util::now();
+  util::set_timestamps("a", time);
+  util::set_timestamps("b", time);
+#ifdef _WIN32
+  REQUIRE(set_creation_time("a", time));
+  REQUIRE(set_creation_time("b", time));
+#endif
+
+  CHECK(put(inode_cache,
+            InodeCache::ContentType::raw,
+            "a",
+            "a text",
+            SourceCodeScanResult()));
+  CHECK(!inode_cache.get("b", InodeCache::ContentType::raw));
 }
 
 TEST_SUITE_END();

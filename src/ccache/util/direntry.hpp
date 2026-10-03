@@ -23,6 +23,7 @@
 
 #include <sys/stat.h>
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 
@@ -44,7 +45,7 @@ public:
   struct stat_t
   {
     uint64_t st_dev;
-    uint64_t st_ino;
+    std::array<uint8_t, 16> st_ino;
     uint16_t st_mode;
     uint16_t st_nlink;
     uint64_t st_size;
@@ -60,6 +61,7 @@ public:
 
   using dev_t = decltype(stat_t{}.st_dev);
   using ino_t = decltype(stat_t{}.st_ino);
+  using off_t = decltype(stat_t{}.st_size);
 
   // Create an empty directory entry. operator bool() will return false,
   // error_number() will return ENOENT and other accessors will return false or
