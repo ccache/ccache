@@ -1919,6 +1919,8 @@ EOF
     # -------------------------------------------------------------------------
     TEST ".incbin in .s"
 
+    touch empty.bin
+
     cat <<EOF >incbin.s
 .incbin "empty.bin";
 EOF
