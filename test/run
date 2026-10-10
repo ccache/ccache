@@ -49,9 +49,14 @@ bold() {
 }
 
 test_failed_internal() {
-    # Called from functions inside this file, so skip the first caller:
-    local line="$(caller 1)"
-    line=" (line ${line%% *})"
+    local line
+    if [[ $1 = --no-line ]]; then
+        shift
+    else
+        # Called from functions inside this file, so skip the first caller:
+        line="$(caller 1)"
+        line=" (line ${line%% *})"
+    fi
 
     if [ ! -z "${CI}" ]
     then
@@ -106,6 +111,13 @@ dump_failure_log() {
 # Indirection so the line returned by `caller` is correct.
 test_failed() {
     test_failed_internal "$@"
+}
+
+check_no_stderr() {
+    if [[ -z ${SHOW_STDERR:-} && -s $UNEXPECTED_STDERR ]]; then
+        local stderr=$(<"$UNEXPECTED_STDERR")
+        test_failed_internal --no-line "Unexpected stderr:\n$stderr"
+    fi
 }
 
 find_compiler() {
@@ -510,6 +522,7 @@ run_suite() {
     local suite_name=$1
 
     CURRENT_SUITE=$suite_name
+    CURRENT_TEST="suite setup"
 
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
@@ -522,6 +535,7 @@ run_suite() {
         local skip_reason="$(SUITE_${suite_name}_PROBE)"
         cd $ABS_TESTDIR
         rm -rf $ABS_TESTDIR/probe
+        check_no_stderr
         if [ -n "$skip_reason" ]; then
             echo "Skipped test suite $suite_name [$skip_reason]"
             if [ -n "$EXIT_IF_SKIPPED" ]; then
@@ -536,9 +550,11 @@ run_suite() {
         echo
     fi
     SUITE_$suite_name
-    echo
 
     terminate_all_children
+    check_no_stderr
+
+    echo
 
     return 0
 }
@@ -552,10 +568,12 @@ terminate_all_children() {
 }
 
 TEST() {
+    terminate_all_children
+    check_no_stderr
+
     CURRENT_TEST=$1
     CCACHE_COMPILE="$CCACHE $COMPILER"
 
-    terminate_all_children
     reset_environment
 
     if $verbose; then
@@ -753,6 +771,16 @@ ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
 mkdir -p $TESTDIR
 
+CURRENT_SUITE="test runner"
+CURRENT_TEST="global setup"
+
+# Capture stderr from test suite probes and tests
+UNEXPECTED_STDERR="$ABS_TESTDIR/unexpected-stderr"
+exec 3>&2
+if [[ -z ${SHOW_STDERR:-} ]]; then
+    exec 2>"$UNEXPECTED_STDERR"
+fi
+
 START_PWD="$PWD"
 symlink_testdir_on_failure() {
     cd "$START_PWD"
@@ -804,6 +832,8 @@ if [ -z "$suites" ]; then
     suites="$all_suites"
 fi
 
+check_no_stderr
+
 skipped=false
 for suite in $suites; do
     run_suite $suite
@@ -812,6 +842,10 @@ for suite in $suites; do
         break
     fi
 done
+
+# Restore stderr redirection
+exec 2>&3
+exec 3>&-
 
 cd /
 if [ -z "$KEEP_TESTDIR" ]; then

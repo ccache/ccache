@@ -15,11 +15,13 @@ SUITE_fdiagnostics_format() {
     # -------------------------------------------------------------------------
     TEST "-fdiagnostics-format=sarif-file unsupported"
 
-    # -fdiagnostics-format=sarif-file is unsupported due to version-dependent default file location.
-    $CCACHE_COMPILE -x c -fdiagnostics-format=sarif-file -c src/input.a.b -o obj/output.x.y
-    expect_stat unsupported_compiler_option 1
-    expect_stat preprocessed_cache_hit 0
-    expect_stat cache_miss 0
+    if $COMPILER -x c -fdiagnostics-format=sarif-file -c src/input.a.b 2>/dev/null; then
+        # -fdiagnostics-format=sarif-file is unsupported due to version-dependent default file location.
+        $CCACHE_COMPILE -x c -fdiagnostics-format=sarif-file -c src/input.a.b -o obj/output.x.y
+        expect_stat unsupported_compiler_option 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 0
+    fi
 
     # -------------------------------------------------------------------------
     TEST "-fdiagnostics-format=text"
