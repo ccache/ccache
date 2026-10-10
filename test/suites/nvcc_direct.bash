@@ -32,13 +32,13 @@ SUITE_nvcc_direct() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_equal_content reference_test1.o test_cpp.o
+    expect_equal_object_files reference_test1.o test_cpp.o
 
     $ccache_nvcc_cpp test_cpp.cu
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_equal_content reference_test1.o test_cpp.o
+    expect_equal_object_files reference_test1.o test_cpp.o
 
     # -------------------------------------------------------------------------
     TEST "Different GPU architectures"
@@ -101,7 +101,7 @@ SUITE_nvcc_direct() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_equal_content reference_test1.o test_cpp.o
+    expect_equal_object_files reference_test1.o test_cpp.o
 
     # Specified define, but unused. Can only be found by preprocessed mode.
     $ccache_nvcc_cpp -DDUMMYENV=1 test_cpp.cu
@@ -109,20 +109,20 @@ SUITE_nvcc_direct() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 3
-    expect_equal_content reference_test1.o test_cpp.o
+    expect_equal_object_files reference_test1.o test_cpp.o
 
     # Specified used define.
     $ccache_nvcc_cpp -DNUM=10 test_cpp.cu
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 2
     expect_stat files_in_cache 5
-    expect_equal_content reference_test2.o test_cpp.o
+    expect_equal_object_files reference_test2.o test_cpp.o
 
     $ccache_nvcc_cpp -DNUM=10 test_cpp.cu
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
     expect_stat files_in_cache 5
-    expect_equal_content reference_test2.o test_cpp.o
+    expect_equal_object_files reference_test2.o test_cpp.o
 
     # -------------------------------------------------------------------------
     TEST "Option file"
@@ -135,23 +135,23 @@ SUITE_nvcc_direct() {
     expect_stat direct_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_equal_content reference_test1.o test_cpp.o
+    expect_equal_object_files reference_test1.o test_cpp.o
 
     $ccache_nvcc_cpp -optf test1.optf test_cpp.cu
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 1
     expect_stat files_in_cache 2
-    expect_equal_content reference_test1.o test_cpp.o
+    expect_equal_object_files reference_test1.o test_cpp.o
 
     $ccache_nvcc_cpp -optf test2.optf test_cpp.cu
     expect_stat direct_cache_hit 1
     expect_stat cache_miss 2
     expect_stat files_in_cache 4
-    expect_equal_content reference_test2.o test_cpp.o
+    expect_equal_object_files reference_test2.o test_cpp.o
 
     $ccache_nvcc_cpp -optf test2.optf test_cpp.cu
     expect_stat direct_cache_hit 2
     expect_stat cache_miss 2
     expect_stat files_in_cache 4
-    expect_equal_content reference_test2.o test_cpp.o
+    expect_equal_object_files reference_test2.o test_cpp.o
 }

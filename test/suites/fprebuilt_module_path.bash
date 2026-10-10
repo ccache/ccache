@@ -82,7 +82,7 @@ EOF
 
     # The object file must match what the compiler produces on its own.
     $COMPILER -std=gnu++23 -fprebuilt-module-path=prebuilt -c main.cpp -o expected.o
-    expect_equal_content main.o expected.o
+    expect_equal_object_files main.o expected.o
 
     # -------------------------------------------------------------------------
     TEST "module change invalidates the consumer when no directory is given"
@@ -109,7 +109,7 @@ EOF
     expect_stat direct_cache_hit 0
 
     $COMPILER -std=gnu++23 -fprebuilt-module-path= -c main.cpp -o expected.o
-    expect_equal_content main.o expected.o
+    expect_equal_object_files main.o expected.o
 
     # -------------------------------------------------------------------------
     TEST "module file added to the searched directory invalidates the consumer"
