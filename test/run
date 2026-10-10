@@ -321,7 +321,10 @@ is_equal_object_files() {
         elfdump -a -w "$2".dump "$2"
         # these were the elfdump fields that seemed to differ (empirically)
         diff -I e_shoff -I sh_size -I st_name "$1".dump "$2".dump > /dev/null
-    elif $HOST_OS_WINDOWS && command -v dumpbin.exe >/dev/null; then
+    elif $HOST_OS_WINDOWS; then
+        if ! command -v dumpbin.exe >/dev/null; then
+            test_failed_internal "Please install dumpbin.exe"
+        fi
         # Filter out fields that are affected by compilation time or source
         # filename.
         local awk_filter='

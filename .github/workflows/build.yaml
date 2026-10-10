@@ -221,7 +221,21 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build and test
-        run: ci/build
+        run: |
+          if [ "$MSYSTEM" = MINGW64 ]; then
+            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
+            dumpbin=$("$vswhere" -latest -products '*' \
+              -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
+              -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe' \
+              | sed -n '1{s/\r$//;p;}')
+            if [ -z "$dumpbin" ]; then
+              echo 'dumpbin.exe not found by vswhere' >&2
+              exit 1
+            fi
+            export PATH="$PATH:$(dirname "$(cygpath -u "$dumpbin")")"
+            command -v dumpbin.exe
+          fi
+          ci/build
         continue-on-error: ${{ matrix.allow_test_failures == true &&
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
