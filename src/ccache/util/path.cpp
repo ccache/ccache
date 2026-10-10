@@ -97,6 +97,22 @@ lexically_relative_case_aware(const fs::path& path, const fs::path& base)
 #endif
 }
 
+fs::path
+remove_leading_components(const fs::path& p, const std::size_t count)
+{
+  fs::path result;
+  std::size_t current = 0;
+
+  for (const auto& element : p) {
+    if (current >= count) {
+      result /= element;
+    }
+    current++;
+  }
+
+  return result;
+}
+
 } // namespace
 
 namespace util {
@@ -286,6 +302,44 @@ path_starts_with(const std::filesystem::path& path,
     std::begin(prefixes), std::end(prefixes), [&](const fs::path& prefix) {
       return path_starts_with(path, prefix);
     });
+}
+
+fs::path
+perform_path_mapping(
+  fs::path path,
+  const std::vector<std::pair<fs::path, fs::path>>& path_mapping,
+  bool reverse)
+{
+  for (const auto& [key, value] : path_mapping) {
+    const auto& from = reverse ? value : key;
+    const auto& to = reverse ? key : value;
+    // Skip empty part at the end that originates from a trailing slash.
+    auto from_end = from.end();
+    if (!from.empty()) {
+      --from_end;
+      if (!from_end->empty()) {
+        ++from_end;
+      }
+    }
+
+    if (std::mismatch(path.begin(),
+                      path.end(),
+                      from.begin(),
+                      from_end,
+                      [](fs::path a, fs::path b) {
+                        return path_components_equal_case_aware(
+                          a.make_preferred(), b.make_preferred());
+                      })
+          .second
+        != from_end) {
+      continue;
+    }
+
+    const auto& suffix =
+      remove_leading_components(path, std::distance(from.begin(), from_end));
+    return suffix.empty() ? to : (to / suffix);
+  }
+  return path;
 }
 
 } // namespace util
