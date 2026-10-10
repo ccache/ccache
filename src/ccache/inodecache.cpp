@@ -76,7 +76,7 @@ namespace {
 // Note: The key is hashed using the main hash algorithm, so the version number
 // does not need to be incremented if said algorithm is changed (except if the
 // digest size changes since that affects the entry format).
-const uint32_t k_version = 3;
+const uint32_t k_version = 4;
 
 // Note: Increment the version number if constants affecting storage size are
 // changed.
