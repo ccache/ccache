@@ -1767,6 +1767,31 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       }
     }
   }
+
+  // Also hash the triple that clang-cl and icx embed in precompiled headers
+  // since the variables above are unset when the compiler finds Visual Studio
+  // on its own and don't change when cl.exe is updated in place.
+  if ((ctx.config.compiler_type() == CompilerType::clang_cl
+       || ctx.config.compiler_type() == CompilerType::icx_cl
+       || ctx.config.compiler_type() == CompilerType::icx)
+      && ctx.args_info.generating_pch) {
+    util::Args probe_args = ctx.orig_args;
+    probe_args[0] = compiler_path.string();
+    probe_args.push_back("-###");
+    const auto output = util::exec_to_string(probe_args);
+    if (!output) {
+      LOG("Failure running {} -###: {}", compiler_path, output.error());
+      return tl::unexpected(Statistic::compiler_check_failed);
+    }
+    const std::string_view triple = find_clang_cc1_triple(*output);
+    if (triple.empty()) {
+      LOG("No target triple in {} -### output", compiler_path);
+      return tl::unexpected(Statistic::compiler_check_failed);
+    }
+    LOG("Target triple: {}", triple);
+    hash.hash_delimiter("target triple");
+    hash.hash(triple);
+  }
 #endif
 
   if (!(ctx.config.sloppiness().contains(core::Sloppy::locale))) {
