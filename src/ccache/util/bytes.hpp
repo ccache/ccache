@@ -107,7 +107,9 @@ inline Bytes::Bytes(size_t size) noexcept
 inline Bytes::Bytes(const void* data, size_t size) noexcept
 {
   resize(size);
-  std::memcpy(m_data.get(), data, size);
+  if (size > 0) {
+    std::memcpy(m_data.get(), data, size);
+  }
 }
 
 inline Bytes::Bytes(const void* first, const void* last) noexcept

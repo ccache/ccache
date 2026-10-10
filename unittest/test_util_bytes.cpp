@@ -61,6 +61,15 @@ TEST_CASE("Basics")
     CHECK(bytes1[2] == 'c');
   }
 
+  SUBCASE("Construction from empty data")
+  {
+    Bytes bytes2(static_cast<const void*>(nullptr), size_t{0});
+
+    CHECK(bytes2.data() == nullptr);
+    CHECK(bytes2.size() == 0);
+    CHECK(bytes2.capacity() == 0);
+  }
+
   SUBCASE("Construction from span")
   {
     std::vector<uint8_t> vector{'a', 'b', 'c'};
