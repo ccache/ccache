@@ -765,7 +765,7 @@ b"
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
 
-    $COMPILER -c test1.c -E >test1.i
+    $COMPILER test1.c -E >test1.i
     $CCACHE_COMPILE -c test1.i
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 2
@@ -1424,7 +1424,7 @@ EOF
     $CCACHE_COMPILE -Wall -c hello.c 2>stderr_1.txt
     expect_equal_text_content stderr_1_ref.txt stderr_1.txt
 
-    sed -i 's/comment/comment\n/' hello.h
+    perl -pi -e 's/comment/comment\n/' hello.h
 
     $COMPILER -c -Wall -c hello.c 2>stderr_2_ref.txt
     $CCACHE_COMPILE -Wall -c hello.c 2>stderr_2.txt

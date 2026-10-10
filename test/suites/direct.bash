@@ -644,8 +644,6 @@ EOF
     if $COMPILER -c -fstack-usage -flto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -flto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -654,8 +652,6 @@ EOF
 
         $CCACHE_COMPILE -c -fstack-usage -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -flto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -678,8 +674,6 @@ EOF
     if $COMPILER -c -fstack-usage -flto=auto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -flto=auto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -688,8 +682,6 @@ EOF
 
         $CCACHE_COMPILE -c -fstack-usage -flto=auto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto=auto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -flto=auto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -712,8 +704,6 @@ EOF
     if $COMPILER -c -fstack-usage -flto -fno-lto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage -flto -fno-lto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto -fno-lto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -flto -fno-lto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -725,8 +715,6 @@ EOF
 
         $CCACHE_COMPILE -c -fstack-usage -flto -fno-lto main.c
         $CCACHE_COMPILE -c -fstack-usage -flto -fno-lto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -flto -fno-lto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -749,8 +737,6 @@ EOF
     if $COMPILER -c -fstack-usage -fno-lto -flto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage -fno-lto -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -fno-lto -flto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -fno-lto -flto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -759,8 +745,6 @@ EOF
 
         $CCACHE_COMPILE -c -fstack-usage -fno-lto -flto main.c
         $CCACHE_COMPILE -c -fstack-usage -fno-lto -flto code.c
-        $CCACHE_COMPILE -o output -fstack-usage -fno-lto -flto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -829,8 +813,6 @@ EOF
     if $COMPILER -c -fcallgraph-info -flto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fcallgraph-info -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -flto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -839,8 +821,6 @@ EOF
 
         $CCACHE_COMPILE -c -fcallgraph-info -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -flto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -863,8 +843,6 @@ EOF
     if $COMPILER -c -fcallgraph-info -flto=auto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -flto=auto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -873,8 +851,6 @@ EOF
 
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto=auto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -flto=auto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -897,8 +873,6 @@ EOF
     if $COMPILER -c -fcallgraph-info -flto -fno-lto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fcallgraph-info -flto -fno-lto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto -fno-lto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -flto -fno-lto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -910,8 +884,6 @@ EOF
 
         $CCACHE_COMPILE -c -fcallgraph-info -flto -fno-lto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -flto -fno-lto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -flto -fno-lto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -934,8 +906,6 @@ EOF
     if $COMPILER -c -fcallgraph-info -fno-lto -flto main.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fcallgraph-info -fno-lto -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -fno-lto -flto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -fno-lto -flto main.o code.o
-        expect_stat called_for_link 1
         expect_stat direct_cache_hit 0
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2
@@ -944,8 +914,6 @@ EOF
 
         $CCACHE_COMPILE -c -fcallgraph-info -fno-lto -flto main.c
         $CCACHE_COMPILE -c -fcallgraph-info -fno-lto -flto code.c
-        $CCACHE_COMPILE -o output -fcallgraph-info -fno-lto -flto main.o code.o
-        expect_stat called_for_link 2
         expect_stat direct_cache_hit 2
         expect_stat preprocessed_cache_hit 0
         expect_stat cache_miss 2

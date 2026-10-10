@@ -3,7 +3,7 @@ SUITE_modules_PROBE() {
         echo "-fmodules/-fcxx-modules not supported by compiler"
     else
         echo '#include <string>' >testmodules.cpp
-        $COMPILER -x c++ -fmodules testmodules.cpp -S || echo "compiler does not support modules"
+        $COMPILER -x c++ -fmodules testmodules.cpp -S 2>/dev/null || echo "compiler does not support modules"
     fi
 }
 
