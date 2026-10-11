@@ -23,9 +23,15 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace storage::remote {
+
+#ifndef _WIN32
+std::optional<std::filesystem::path>
+get_helper_ipc_dir(const std::filesystem::path& tmp_dir);
+#endif
 
 class Helper : public RemoteStorage
 {
