@@ -112,6 +112,22 @@ SUITE_remote_helper() {
     $CCACHE --stop-storage-helpers
 
     # -------------------------------------------------------------------------
+    TEST "Stopping helper redacts URL credentials"
+
+    export CCACHE_REMOTE_STORAGE="test://test-user:test-password@dummy helper=${STORAGE_TEST_HELPER}"
+
+    $CCACHE_COMPILE -c test.c
+    $CCACHE --stop-storage-helpers
+    expect_contains "${CCACHE_LOGFILE}" "Stopped remote storage helper for test://********@dummy"
+    expect_not_contains "${CCACHE_LOGFILE}" "test-user"
+    expect_not_contains "${CCACHE_LOGFILE}" "test-password"
+
+    $CCACHE --stop-storage-helpers
+    expect_contains "${CCACHE_LOGFILE}" "No need to stop remote storage helper for test://********@dummy"
+    expect_not_contains "${CCACHE_LOGFILE}" "test-user"
+    expect_not_contains "${CCACHE_LOGFILE}" "test-password"
+
+    # -------------------------------------------------------------------------
     TEST "Direct crsh: connection"
 
     local endpoint="test.sock"
