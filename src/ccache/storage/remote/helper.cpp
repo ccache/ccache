@@ -22,6 +22,7 @@
 #include <ccache/core/exceptions.hpp>
 #include <ccache/hash.hpp>
 #include <ccache/storage/remote/client.hpp>
+#include <ccache/storage/storage.hpp>
 #include <ccache/util/defer.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/environment.hpp>
@@ -662,15 +663,16 @@ HelperBackend::stop()
     LOG("Failed to connect to remote storage helper");
     return;
   }
+  const auto url_for_logging = get_redacted_url_str_for_logging(m_url);
   if (!m_connected) {
-    LOG("No need to stop remote storage helper for {}", m_url.str());
+    LOG("No need to stop remote storage helper for {}", url_for_logging);
     return;
   }
   if (auto r = m_client.stop(); r) {
-    LOG("Stopped remote storage helper for {}", m_url.str());
+    LOG("Stopped remote storage helper for {}", url_for_logging);
   } else {
     LOG("Failed to stop remote storage helper for {}: {}",
-        m_url.str(),
+        url_for_logging,
         r.error().message);
   }
 }
