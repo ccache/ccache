@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -26,10 +26,28 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <vector>
+
 namespace {
 
 SignalHandler* g_the_signal_handler = nullptr;
+
+// Cleanup signals caught by ccache. These are blocked while handling a signal
+// or starting a compiler.
 sigset_t g_fatal_signal_set;
+
+// Signals that were not originally ignored. There are reset default in spawned
+// compilers so they don't inherit ccache's signal changes (including SIGPIPE).
+sigset_t g_to_reset_signals_set;
+
+struct OriginalSignalAction
+{
+  int signum;
+  struct sigaction action;
+};
+
+std::vector<OriginalSignalAction> g_original_actions;
+const auto k_sig_ign = SIG_IGN; // NOLINT: This is no error, clang-tidy
 
 const std::vector<int> k_handled_signals = {
   SIGINT,
@@ -40,6 +58,7 @@ const std::vector<int> k_handled_signals = {
 #ifdef SIGQUIT
   SIGQUIT,
 #endif
+  SIGPIPE,
 };
 
 void
@@ -54,14 +73,6 @@ register_signal_handler(int signum)
   sigaction(signum, &act, nullptr);
 }
 
-void
-deregister_signal_handler(int signum)
-{
-  struct sigaction act = {};
-  act.sa_handler = SIG_DFL;
-  sigaction(signum, &act, nullptr);
-}
-
 } // namespace
 
 SignalHandler::SignalHandler(Context& ctx)
@@ -70,27 +81,59 @@ SignalHandler::SignalHandler(Context& ctx)
   ASSERT(!g_the_signal_handler);
   g_the_signal_handler = this;
 
+  g_original_actions.clear();
+  g_original_actions.reserve(k_handled_signals.size());
   sigemptyset(&g_fatal_signal_set);
+  sigemptyset(&g_to_reset_signals_set);
   for (int signum : k_handled_signals) {
-    sigaddset(&g_fatal_signal_set, signum);
+    struct sigaction oldact = {};
+    if (signum == SIGPIPE) {
+      // Ignore SIGPIPE so send(2) on a closed connection returns EPIPE instead
+      // of terminating ccache.
+      struct sigaction ignore_act = {};
+      ignore_act.sa_handler = k_sig_ign;
+      sigaction(signum, &ignore_act, &oldact);
+    } else {
+      sigaction(signum, nullptr, &oldact);
+    }
+    g_original_actions.push_back({signum, oldact});
+    if (oldact.sa_handler != k_sig_ign) {
+      sigaddset(&g_to_reset_signals_set, signum);
+    }
+    if (signum != SIGPIPE && oldact.sa_handler != k_sig_ign) {
+      sigaddset(&g_fatal_signal_set, signum);
+    }
   }
 
-  for (int signum : k_handled_signals) {
-    register_signal_handler(signum);
+  for (size_t i = 0; i < k_handled_signals.size(); ++i) {
+    if (k_handled_signals[i] != SIGPIPE
+        && g_original_actions[i].action.sa_handler != k_sig_ign) {
+      register_signal_handler(k_handled_signals[i]);
+    }
   }
-
-  signal(SIGPIPE, SIG_IGN); // NOLINT: This is no error, clang-tidy
 }
 
 SignalHandler::~SignalHandler()
 {
   ASSERT(g_the_signal_handler);
 
-  for (int signum : k_handled_signals) {
-    deregister_signal_handler(signum);
+  for (const auto& action : g_original_actions) {
+    sigaction(action.signum, &action.action, nullptr);
   }
 
   g_the_signal_handler = nullptr;
+}
+
+bool
+SignalHandler::is_active()
+{
+  return bool(g_the_signal_handler);
+}
+
+const sigset_t&
+SignalHandler::get_signals_to_reset()
+{
+  return g_to_reset_signals_set;
 }
 
 void
@@ -122,32 +165,17 @@ SignalHandler::on_signal(int signum)
   kill(getpid(), signum);
 }
 
-void
-SignalHandler::block_signals()
-{
-  sigprocmask(SIG_BLOCK, &g_fatal_signal_set, nullptr);
-}
-
-void
-SignalHandler::unblock_signals()
-{
-  sigset_t empty;
-  sigemptyset(&empty);
-  sigprocmask(SIG_SETMASK, &empty, nullptr);
-}
-
-const std::vector<int>&
-SignalHandler::get_handled_signals()
-{
-  return k_handled_signals;
-}
-
 SignalHandlerBlocker::SignalHandlerBlocker()
+  : m_active(SignalHandler::is_active())
 {
-  SignalHandler::block_signals();
+  if (m_active) {
+    sigprocmask(SIG_BLOCK, &g_fatal_signal_set, &m_original_mask);
+  }
 }
 
 SignalHandlerBlocker::~SignalHandlerBlocker()
 {
-  SignalHandler::unblock_signals();
+  if (m_active) {
+    sigprocmask(SIG_SETMASK, &m_original_mask, nullptr);
+  }
 }
