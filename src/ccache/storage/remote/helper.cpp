@@ -25,7 +25,6 @@
 #include <ccache/storage/remote/client.hpp>
 #include <ccache/storage/storage.hpp>
 #include <ccache/util/defer.hpp>
-#include <ccache/util/direntry.hpp>
 #include <ccache/util/environment.hpp>
 #include <ccache/util/error.hpp>
 #include <ccache/util/format.hpp>
@@ -102,57 +101,6 @@ generate_endpoint_name(
   }
   return FMT("storage-{}-{}", url.scheme(), util::format_base16(hash.digest()));
 }
-
-#ifndef _WIN32
-// Choose a short and safe base directory for Unix socket.
-//
-// Rationale:
-// - Unix socket paths have a strict length limit (sun_path).
-// - The ccache configured temporary dir can become very long (e.g. in CI).
-// - We want a directory that is private to the user to avoid other users
-//   squatting the socket name.
-std::optional<fs::path>
-get_helper_ipc_dir()
-{
-  // If XDG_RUNTIME_DIR is set, use the same location as
-  // Config::default_temporary_dir.
-  if (const auto dir = Config::get_xdg_runtime_tmp_dir(); !dir.empty()) {
-    return dir;
-  }
-
-  // Otherwise, create a per-user private directory under /tmp. We intentionally
-  // use /tmp instead of $TMPDIR to keep socket paths short.
-  fs::path dir = FMT("/tmp/ccache-tmp-{}", static_cast<uint64_t>(getuid()));
-  if (auto r = fs::create_directories(dir); !r) {
-    LOG("Failed to create helper IPC dir {}: {}", dir, r.error());
-    return std::nullopt;
-  }
-
-  // Ensure correct permissions regardless of umask.
-  if (chmod(dir.c_str(), 0700) != 0) {
-    LOG("Failed to chmod helper IPC dir {}: {}", dir, strerror(errno));
-    return std::nullopt;
-  }
-
-  util::DirEntry entry(dir);
-  if (!entry) {
-    LOG("Failed to stat helper IPC dir {}: {}",
-        dir,
-        strerror(entry.error_number()));
-    return std::nullopt;
-  }
-  if (!entry.is_directory() || entry.is_symlink()) {
-    LOG("Helper IPC dir {} is not a directory", dir);
-    return std::nullopt;
-  }
-  if ((entry.mode() & 0077) != 0) {
-    LOG("Helper IPC dir {} is not private (mode {:o})", dir, entry.mode());
-    return std::nullopt;
-  }
-
-  return dir;
-}
-#endif
 
 std::vector<std::string>
 build_helper_env(
@@ -461,7 +409,8 @@ HelperBackend::HelperBackend(const std::string& helper_name,
     m_endpoint = FMT("{}ccache-{}", k_named_pipe_prefix, endpoint_name);
     m_endpoint_lock_path = FMT("{}/{}", temp_dir, endpoint_name);
 #else
-    auto helper_ipc_dir = get_helper_ipc_dir();
+    // We intentionally use /tmp instead of $TMPDIR to keep socket paths short.
+    auto helper_ipc_dir = get_helper_ipc_dir("/tmp");
     if (!helper_ipc_dir) {
       LOG("Failed to select helper IPC dir, falling back to {}", temp_dir);
       helper_ipc_dir = temp_dir;
@@ -715,6 +664,67 @@ HelperBackend::stop()
 }
 
 } // namespace
+
+#ifndef _WIN32
+// Choose a short and safe base directory for Unix socket.
+//
+// Rationale:
+// - Unix socket paths have a strict length limit (sun_path).
+// - The ccache configured temporary dir can become very long (e.g. in CI).
+// - We want a directory that is private to the user to avoid other users
+//   squatting the socket name.
+std::optional<fs::path>
+get_helper_ipc_dir(const fs::path& tmp_dir)
+{
+  // If XDG_RUNTIME_DIR is set, use the same location as
+  // Config::default_temporary_dir.
+  if (const auto dir = Config::get_xdg_runtime_tmp_dir(); !dir.empty()) {
+    return dir;
+  }
+
+#  if !defined(O_DIRECTORY) || !defined(O_NOFOLLOW)
+  LOG(
+    "Cannot securely create helper IPC dir in {}: O_DIRECTORY or O_NOFOLLOW is"
+    " unavailable",
+    tmp_dir);
+  return std::nullopt;
+#  else
+  // Otherwise, create a private per-user directory in tmp_dir.
+  const fs::path dir =
+    tmp_dir / FMT("ccache-tmp-{}", static_cast<uint64_t>(getuid()));
+  if (mkdir(dir.c_str(), 0700) != 0 && errno != EEXIST) {
+    LOG("Failed to create helper IPC dir {}: {}", dir, strerror(errno));
+    return std::nullopt;
+  }
+
+  const int fd = open(dir.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+  if (fd < 0) {
+    LOG("Failed to open helper IPC dir {}: {}", dir, strerror(errno));
+    return std::nullopt;
+  }
+  DEFER(close(fd));
+
+  struct stat st;
+  if (fstat(fd, &st) != 0) {
+    LOG("Failed to stat helper IPC dir {}: {}", dir, strerror(errno));
+    return std::nullopt;
+  }
+  if (!S_ISDIR(st.st_mode) || st.st_uid != geteuid()) {
+    LOG("Helper IPC dir {} is not owned by the current user or not a directory",
+        dir);
+    return std::nullopt;
+  }
+
+  // Ensure correct permissions regardless of umask.
+  if ((st.st_mode & 07777) != 0700 && fchmod(fd, 0700) != 0) {
+    LOG("Failed to chmod helper IPC dir {}: {}", dir, strerror(errno));
+    return std::nullopt;
+  }
+
+  return dir;
+#  endif
+}
+#endif
 
 Helper::Helper(const std::string& helper_name,
                const std::vector<std::filesystem::path>& helper_search_dirs,

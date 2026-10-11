@@ -44,6 +44,10 @@ if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_inodecache.cpp)
 endif()
 
+if(NOT WIN32)
+  list(APPEND source_files test_storage_remote_helper.cpp)
+endif()
+
 if(WIN32)
   list(APPEND source_files test_bsdmkstemp.cpp)
 endif()
