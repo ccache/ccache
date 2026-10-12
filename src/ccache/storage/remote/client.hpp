@@ -61,6 +61,7 @@ public:
 
   enum class Failure {
     error,             // Operation error (protocol/connection error, etc.)
+    closed,            // Connection closed by server
     permission_denied, // IPC operation prohibited by the operating system
     timeout,           // Timeout (data timeout or request timeout exceeded)
   };

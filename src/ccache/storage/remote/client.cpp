@@ -43,6 +43,8 @@ make_error(const util::IpcError& ipc_error)
   switch (ipc_error.failure) {
   case util::IpcError::Failure::error:
     return Client::Error(Client::Failure::error, ipc_error.message);
+  case util::IpcError::Failure::closed:
+    return Client::Error(Client::Failure::closed, ipc_error.message);
   case util::IpcError::Failure::permission_denied:
     return Client::Error(Client::Failure::permission_denied, ipc_error.message);
   case util::IpcError::Failure::timeout:
@@ -322,7 +324,7 @@ Client::receive_bytes(size_t count)
 
     if (*recv_result == 0) {
       return tl::unexpected(
-        Error(Failure::error, "Connection closed by server"));
+        Error(Failure::closed, "Connection closed by server"));
     }
 
     total_received += *recv_result;
@@ -432,8 +434,15 @@ Client::receive_response_ok_noop_error()
 tl::expected<void, Client::Error>
 Client::receive_response_void()
 {
-  TRY_ASSIGN(uint8_t status_byte, receive_u8());
-  auto status = static_cast<Status>(status_byte);
+  auto status_byte = receive_u8();
+  if (!status_byte) {
+    // A STOP request may terminate the server before its response is read.
+    if (status_byte.error().failure == Failure::closed) {
+      return {};
+    }
+    return tl::unexpected(status_byte.error());
+  }
+  auto status = static_cast<Status>(*status_byte);
 
   switch (status) {
   case Status::ok:
@@ -450,7 +459,7 @@ Client::receive_response_void()
 
   default:
     return tl::unexpected(
-      Error(Failure::error, FMT("Invalid status code: {}", status_byte)));
+      Error(Failure::error, FMT("Invalid status code: {}", *status_byte)));
   }
 }
 

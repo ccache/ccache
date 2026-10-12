@@ -258,7 +258,7 @@ UnixSocketClient::receive(std::span<uint8_t> buffer,
         IpcError::Failure::error, FMT("Receive failed: {}", strerror(errno))));
     } else if (received == 0) {
       return tl::unexpected(
-        IpcError(IpcError::Failure::error, "Connection closed by peer"));
+        IpcError(IpcError::Failure::closed, "Connection closed by peer"));
     }
 
     return static_cast<size_t>(received);
