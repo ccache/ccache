@@ -231,9 +231,10 @@ WinNamedPipeClient::receive(std::span<uint8_t> buffer,
     DWORD error = GetLastError();
     if (error != ERROR_IO_PENDING) {
       CloseHandle(overlapped.hEvent);
-      if (error == ERROR_BROKEN_PIPE) {
+      if (error == ERROR_BROKEN_PIPE || error == ERROR_PIPE_NOT_CONNECTED
+          || error == ERROR_NO_DATA) {
         return tl::unexpected(
-          IpcError(IpcError::Failure::error, "Connection closed by peer"));
+          IpcError(IpcError::Failure::closed, "Connection closed by peer"));
       }
       return tl::unexpected(
         IpcError(IpcError::Failure::error,
@@ -256,9 +257,11 @@ WinNamedPipeClient::receive(std::span<uint8_t> buffer,
     if (!GetOverlappedResult(m_handle, &overlapped, &bytes_read, FALSE)) {
       CloseHandle(overlapped.hEvent);
       DWORD overlapped_error = GetLastError();
-      if (overlapped_error == ERROR_BROKEN_PIPE) {
+      if (overlapped_error == ERROR_BROKEN_PIPE
+          || overlapped_error == ERROR_PIPE_NOT_CONNECTED
+          || overlapped_error == ERROR_NO_DATA) {
         return tl::unexpected(
-          IpcError(IpcError::Failure::error, "Connection closed by peer"));
+          IpcError(IpcError::Failure::closed, "Connection closed by peer"));
       }
       return tl::unexpected(
         IpcError(IpcError::Failure::error,
@@ -271,7 +274,7 @@ WinNamedPipeClient::receive(std::span<uint8_t> buffer,
 
   if (bytes_read == 0) {
     return tl::unexpected(
-      IpcError(IpcError::Failure::error, "Connection closed by peer"));
+      IpcError(IpcError::Failure::closed, "Connection closed by peer"));
   }
 
   return static_cast<size_t>(bytes_read);
