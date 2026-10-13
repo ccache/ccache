@@ -300,20 +300,20 @@ execute(Context& ctx,
 
   posix_spawnattr_t attr;
   CHECK_LIB_CALL(posix_spawnattr_init, &attr);
-  CHECK_LIB_CALL(posix_spawnattr_setflags,
-                 &attr,
-                 POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK);
 
-  sigset_t sigmask;
-  CHECK_LIB_CALL(sigemptyset, &sigmask);
-  CHECK_LIB_CALL(posix_spawnattr_setsigmask, &attr, &sigmask);
+  if (SignalHandler::is_active()) {
+    CHECK_LIB_CALL(posix_spawnattr_setflags,
+                   &attr,
+                   POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK);
 
-  sigset_t sigdefault;
-  CHECK_LIB_CALL(sigemptyset, &sigdefault);
-  for (int signum : SignalHandler::get_handled_signals()) {
-    CHECK_LIB_CALL(sigaddset, &sigdefault, signum);
+    sigset_t sigmask;
+    CHECK_LIB_CALL(sigprocmask, SIG_BLOCK, nullptr, &sigmask);
+    CHECK_LIB_CALL(posix_spawnattr_setsigmask, &attr, &sigmask);
+
+    CHECK_LIB_CALL(posix_spawnattr_setsigdefault,
+                   &attr,
+                   &SignalHandler::get_signals_to_reset());
   }
-  CHECK_LIB_CALL(posix_spawnattr_setsigdefault, &attr, &sigdefault);
 
   int result;
   {

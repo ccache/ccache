@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2025 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2026 Joel Rosdahl and other contributors
 //
 // See doc/authors.adoc for a complete list of contributors.
 //
@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include <vector>
+#ifndef _WIN32
+#  include <signal.h>
+#endif
 
 class Context;
 
@@ -29,10 +31,10 @@ public:
   ~SignalHandler();
 
   static void on_signal(int signum);
-  static void block_signals();
-  static void unblock_signals();
-
-  static const std::vector<int>& get_handled_signals();
+  static bool is_active();
+#ifndef _WIN32
+  static const sigset_t& get_signals_to_reset();
+#endif
 
 private:
 #ifndef _WIN32
@@ -45,6 +47,12 @@ class SignalHandlerBlocker
 public:
   SignalHandlerBlocker();
   ~SignalHandlerBlocker();
+
+private:
+#ifndef _WIN32
+  sigset_t m_original_mask;
+  bool m_active;
+#endif
 };
 
 #ifdef _WIN32
