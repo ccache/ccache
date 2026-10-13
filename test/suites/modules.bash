@@ -82,4 +82,41 @@ EOF
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -x c++ -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat cache_miss 3
+
+    # -------------------------------------------------------------------------
+    TEST "module map appearing in header directory"
+
+    export CCACHE_SAFEDIRECT=1
+    mkdir sub
+    cat <<EOF >sub/test2.h
+int f();
+EOF
+    cat <<EOF >test2.cpp
+#include "sub/test2.h"
+int main() { return 0; }
+EOF
+    backdate sub/test2.h test2.cpp
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test2.cpp -MD
+    expect_stat direct_cache_hit 0
+    expect_stat cache_miss 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test2.cpp -MD
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 1
+
+    cat <<EOF >sub/module.modulemap
+module "Test2" {
+  header "test2.h"
+  export *
+}
+EOF
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test2.cpp -MD
+    expect_stat direct_cache_hit 1
+    expect_stat cache_miss 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -x c++ -fmodules -fcxx-modules -c test2.cpp -MD
+    expect_stat direct_cache_hit 2
+    expect_stat cache_miss 2
 }
