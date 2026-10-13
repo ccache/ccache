@@ -1777,7 +1777,8 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       && ctx.args_info.generating_pch) {
     util::Args probe_args = ctx.orig_args;
     probe_args[0] = compiler_path.string();
-    probe_args.push_back("-###");
+    probe_args.insert(1, {"-###"}); // insert before any "--" terminator
+
     const auto output = util::exec_to_string(probe_args);
     if (!output) {
       LOG("Failure running {} -###: {}", compiler_path, output.error());
