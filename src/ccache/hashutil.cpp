@@ -542,3 +542,19 @@ find_incbin_directive(std::string_view str, size_t start)
   }
   return std::string_view::npos;
 }
+
+std::string_view
+find_clang_cc1_triple(std::string_view driver_output)
+{
+  constexpr std::string_view marker = R"("-triple" ")";
+  const size_t marker_pos = driver_output.find(marker);
+  if (marker_pos == std::string_view::npos) {
+    return {};
+  }
+  const size_t start = marker_pos + marker.size();
+  const size_t end = driver_output.find('"', start);
+  if (end == std::string_view::npos) {
+    return {};
+  }
+  return driver_output.substr(start, end - start);
+}
