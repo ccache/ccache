@@ -1631,6 +1631,10 @@ process_option_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
 
+    if (arg == "-isysroot") {
+      args_info.isysroot = args[i + next];
+    }
+
     // Potentially rewrite path argument to relative path to get better hit
     // rate. A secondary effect is that paths in the standard error output
     // produced by the compiler will be normalized.
@@ -1657,6 +1661,15 @@ process_option_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
     // Fall through to the next section, so intentionally not returning here.
+  }
+
+  // Unlike split_option_with_concat_path, this also handles a concatenated
+  // relative SDK path without a directory separator (e.g. -isysrootsdk).
+  if (arg.starts_with("-isysroot") && arg.size() > 9) {
+    args_info.isysroot = arg.substr(9);
+    const auto relpath = core::make_relative_path(ctx, args_info.isysroot);
+    state.add_common_arg(FMT("-isysroot{}", relpath));
+    return Statistic::none;
   }
 
   // Potentially rewrite concatenated absolute path argument to relative.
