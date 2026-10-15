@@ -345,6 +345,8 @@ do_guess_compiler(const fs::path& path)
     return CompilerType::icx_cl;
   } else if (name == "cl") {
     return CompilerType::msvc;
+  } else if (name.find("moc") != std::string_view::npos) {
+    return CompilerType::moc;
   } else {
     return CompilerType::other;
   }

@@ -352,6 +352,8 @@ parse_compiler_type(const std::string& value)
     return CompilerType::nvcc;
   } else if (value == "qcc") {
     return CompilerType::qcc;
+  } else if (value == "moc") {
+    return CompilerType::moc;
   } else if (value == "other") {
     return CompilerType::other;
   } else {
@@ -628,6 +630,7 @@ compiler_type_to_string(CompilerType compiler_type)
     CASE(msvc);
     CASE(nvcc);
     CASE(qcc);
+    CASE(moc);
     CASE(other);
   }
 #undef CASE
