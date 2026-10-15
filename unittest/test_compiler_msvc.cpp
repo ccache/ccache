@@ -20,9 +20,16 @@
 
 #include <ccache/compiler/msvc.hpp>
 #include <ccache/context.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 
 #include <doctest/doctest.h>
+
+#include <string>
+
+namespace fs = util::filesystem;
 
 static const std::string defaultPrefix = "Note: including file:";
 
@@ -189,6 +196,95 @@ TEST_CASE("strip_includes_from_msvc_show_includes")
     const util::Bytes result =
       compiler::strip_includes_from_msvc_show_includes(ctx, util::Bytes(input));
     CHECK(result == input);
+  }
+}
+
+namespace {
+
+// A path goes into the JSON with every backslash doubled, which is how MSVC
+// writes a Windows path.
+std::string
+json_path(const fs::path& path)
+{
+  return util::replace_all(util::pstr(path).str(), "\\", "\\\\");
+}
+
+std::string
+source_dependencies(const std::string& source,
+                    const std::string& include,
+                    const std::string& other_include,
+                    const std::string& header_unit,
+                    const std::string& bmi)
+{
+  return FMT(R"({{
+    "Version": "1.2",
+    "Data": {{
+        "Source": "{}",
+        "ProvidedModule": "",
+        "Includes": [
+            "{}",
+            "{}"
+        ],
+        "ImportedHeaderUnits": [
+            {{
+                "Header": "{}",
+                "BMI": "{}"
+            }}
+        ]
+    }}
+}})",
+             source,
+             include,
+             other_include,
+             header_unit,
+             bmi);
+}
+
+} // namespace
+
+TEST_CASE("rewrite_paths_in_source_dependencies")
+{
+  Context ctx;
+
+  const fs::path cwd = ctx.actual_cwd;
+  const fs::path elsewhere = cwd.parent_path();
+
+  const auto content = source_dependencies(json_path(cwd / "test.cpp"),
+                                           json_path(cwd / "sub" / "dep.h"),
+                                           json_path(elsewhere / "other.h"),
+                                           json_path(cwd / "unit.h"),
+                                           json_path(cwd / "unit.h.ifc"));
+
+  SUBCASE("Base directory not in file content")
+  {
+#ifdef _WIN32
+    ctx.config.set_base_dirs({"C:/foo/bar"});
+#else
+    ctx.config.set_base_dirs({"/foo/bar"});
+#endif
+    CHECK(!compiler::rewrite_paths_in_source_dependencies(ctx, ""));
+    CHECK(!compiler::rewrite_paths_in_source_dependencies(ctx, content));
+  }
+
+  SUBCASE("Base directory in file content but not matching")
+  {
+    ctx.config.set_base_dirs({(elsewhere / "other").string()});
+    CHECK(!compiler::rewrite_paths_in_source_dependencies(ctx, content));
+  }
+
+  SUBCASE("Paths under the base directory become relative")
+  {
+    ctx.config.set_base_dirs({cwd.string()});
+    const auto actual =
+      compiler::rewrite_paths_in_source_dependencies(ctx, content);
+    const auto expected =
+      source_dependencies("test.cpp",
+                          json_path(fs::path("sub") / "dep.h"),
+                          json_path(elsewhere / "other.h"),
+                          "unit.h",
+                          "unit.h.ifc");
+    REQUIRE(actual);
+    CHECK(*actual == expected);
   }
 }
 
