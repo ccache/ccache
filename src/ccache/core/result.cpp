@@ -162,6 +162,9 @@ file_type_to_string(FileType type)
 
   case FileType::sarif:
     return ".sarif";
+
+  case FileType::lang_switch_options:
+    return ".lang";
   }
 
   return k_unknown_file_type;
