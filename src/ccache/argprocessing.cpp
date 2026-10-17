@@ -682,6 +682,21 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  constexpr std::string_view lang_switch_options_option =
+    "-fdump-lang-switch-options";
+  constexpr std::string_view lang_switch_options_filename_prefix =
+    "-fdump-lang-switch-options=";
+  if (arg == lang_switch_options_option
+      || arg.starts_with(lang_switch_options_filename_prefix)) {
+    args_info.generating_lang_switch_options = true;
+    if (arg.starts_with(lang_switch_options_filename_prefix)) {
+      args_info.output_lang_switch_options = core::make_relative_path(
+        ctx, fs::path(arg.substr(lang_switch_options_filename_prefix.size())));
+    }
+    state.add_common_arg(args[i]);
+    return Statistic::none;
+  }
+
   // These are always too hard.
   if (compopt_too_hard(arg) || arg.starts_with("-fdump-")
       || arg.starts_with("-MJ") || arg.starts_with("--config-system-dir=")
@@ -2208,6 +2223,14 @@ process_args(Context& ctx)
       args_info.output_obj.parent_path()
         / util::add_extension(args_info.orig_input_file.filename(),
                               ".000i.ipa-clones"));
+  }
+
+  if (args_info.generating_lang_switch_options
+      && args_info.output_lang_switch_options.empty()) {
+    args_info.output_lang_switch_options = core::make_relative_path(
+      ctx,
+      args_info.output_obj.parent_path()
+        / util::add_extension(args_info.orig_input_file.filename(), ".lang"));
   }
 
   if (state.xarch_args.size() > 1) {
