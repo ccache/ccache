@@ -71,6 +71,9 @@ struct ArgsInfo
   // The path to the ipa clones (implicit when using -fdump-ipa-clones).
   std::filesystem::path output_ipa;
 
+  // The path to the language switch options dump.
+  std::filesystem::path output_lang_switch_options;
+
   // Assembler listing file.
   std::filesystem::path output_al;
 
@@ -109,6 +112,9 @@ struct ArgsInfo
 
   // -fdump-ipa-clones specified.
   bool generating_ipa_clones = false;
+
+  // -fdump-lang-switch-options specified.
+  bool generating_lang_switch_options = false;
 
   // -fcallgraph-info specified.
   bool generating_callgraphinfo = false;

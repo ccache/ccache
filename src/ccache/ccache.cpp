@@ -1098,6 +1098,14 @@ write_result(Context& ctx,
     LOG("IPA clones file {} missing", ctx.args_info.output_ipa);
     return false;
   }
+  if (ctx.args_info.generating_lang_switch_options
+      && !serializer.add_file(
+        core::result::FileType::lang_switch_options,
+        ctx.args_info.output_lang_switch_options)) {
+    LOG("Language switch options file {} missing",
+        ctx.args_info.output_lang_switch_options);
+    return false;
+  }
   if (!ctx.args_info.output_dia.empty()
       && !serializer.add_file(core::result::FileType::diagnostic,
                               ctx.args_info.output_dia)) {
