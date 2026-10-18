@@ -973,9 +973,48 @@ jobs:
 
       - name: Prepare Windows environment (Visual Studio)
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1.13.0
-        with:
-          arch: ${{ matrix.msvc_arch }}
+        shell: powershell
+        env:
+          MSVC_ARCH: ${{ matrix.msvc_arch }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -prerelease -property installationPath
+          if (!$vs) {
+            throw 'Visual Studio installation not found'
+          }
+          $vcvars = "$vs\VC\Auxiliary\Build\vcvarsall.bat"
+          if (!(Test-Path -LiteralPath $vcvars)) {
+            throw "Visual Studio setup script not found: $vcvars"
+          }
+
+          # Separate setup diagnostics from the environment dump. vcvarsall can
+          # report errors while returning success, so check its output as well.
+          $marker = [Guid]::NewGuid().ToString()
+          # Keep && adjacent to the marker: cmd includes preceding spaces in echo output.
+          $output = @(& cmd /d /c "call `"$vcvars`" $env:MSVC_ARCH && echo $marker&& set")
+          $exitCode = $LASTEXITCODE
+          $separator = [Array]::IndexOf($output, $marker)
+          if ($separator -lt 0) {
+            $output | Write-Host
+            throw 'Failed to initialize the Visual Studio environment'
+          }
+          $diagnostics = @($output | Select-Object -First $separator)
+          $diagnostics | Write-Host
+          if ($exitCode -ne 0 -or ($diagnostics -match '^\[ERROR.*\]')) {
+            throw 'Failed to initialize the Visual Studio environment'
+          }
+          foreach ($line in ($output | Select-Object -Skip ($separator + 1))) {
+            if ($line -match '^([^=]+)=(.*)$') {
+              $name, $value = $matches[1], $matches[2]
+              if ([Environment]::GetEnvironmentVariable($name) -cne $value) {
+                if ($name -in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH')) {
+                  $value = ($value -split ';' | Select-Object -Unique) -join ';'
+                }
+                "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              }
+            }
+          }
 
       - name: Prepare Windows environment (Clang)
         if: runner.os == 'Windows'
