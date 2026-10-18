@@ -1,0 +1,43 @@
+name: Set up ccache
+description: Install ccache and persist the compilation cache
+
+inputs:
+  key:
+    description: Build environment identifier, including runner image and compiler version
+    required: true
+  platform:
+    description: Release platform override for container builds
+    default: ''
+
+outputs:
+  launcher:
+    description: Absolute path to the installed ccache executable
+    value: ${{ steps.install.outputs.launcher }}
+  cache-key:
+    description: Key for saving the updated compilation cache
+    value: ${{ steps.restore.outputs.cache-primary-key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install ccache
+      id: install
+      shell: bash
+      env:
+        CCACHE_PLATFORM: ${{ inputs.platform }}
+      run: '"$GITHUB_ACTION_PATH/install"'
+
+    - name: Restore compilation cache
+      id: restore
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ runner.temp }}/ccache-cache
+        key: ccache-v1-${{ steps.install.outputs.version }}-${{ inputs.key }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ccache-v1-${{ steps.install.outputs.version }}-${{ inputs.key }}-${{ runner.os }}-${{ runner.arch }}-
+
+    - name: Reset ccache statistics
+      shell: bash
+      env:
+        CCACHE_LAUNCHER: ${{ steps.install.outputs.launcher }}
+      run: '"$CCACHE_LAUNCHER" --zero-stats'
