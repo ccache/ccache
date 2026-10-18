@@ -87,6 +87,7 @@
 #include <cstring>
 #include <ctime>
 #include <initializer_list>
+#include <memory>
 #include <span>
 #include <tuple>
 #include <unordered_map>
@@ -2946,7 +2947,10 @@ cache_compilation(int argc, const char* const* argv)
     Context ctx(ccache_exe_dir);
     ctx.initialize(std::move(argv_parts.compiler_and_args),
                    argv_parts.config_settings);
-    SignalHandler signal_handler(ctx);
+    // The signal handler stores its address globally, so allocate it on the
+    // heap to avoid warnings from static code analyzers that don't understand
+    // the object lifetime properly.
+    auto signal_handler = std::make_unique<SignalHandler>(ctx);
     DEFER(finalize_at_exit(ctx));
 
     initialize(ctx, argv, argv_parts.masquerading_as_compiler);
