@@ -6,6 +6,7 @@ maintained by Joel Rosdahl.
 Ccache is a collective work with contributions from many people, including:
 
 * Abubakar Nur Khalil
+* Adrian Bunk
 * Aleksander Salwa
 * Alexander Falkenstern
 * Alexander Korsunsky
@@ -113,6 +114,7 @@ Ccache is a collective work with contributions from many people, including:
 * Jonny Yu
 * Jon Petrissans
 * Jørgen P. Tjernø
+* Josef Šimánek
 * Josh Soref
 * Josh Triplett
 * Joy Wang
