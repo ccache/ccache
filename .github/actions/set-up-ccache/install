@@ -1,0 +1,106 @@
+#!/bin/bash
+
+set -euo pipefail
+
+version=4.14.2
+case "${CCACHE_PLATFORM:-$RUNNER_OS/$RUNNER_ARCH}" in
+  Linux/X64)
+    platform=linux-x86_64-glibc
+    extension=tar.gz
+    checksum=b1f7fbb60ee24b80a6abae09ec4fcc6554fbf98c933c9bd25a3f53ab685fc00b
+    ;;
+  Linux/ARM64)
+    platform=linux-aarch64-glibc
+    extension=tar.gz
+    checksum=bc537a1f29232be50be3219ffe80c7c1955bc80a99c75311d7fb839828c80dd0
+    ;;
+  linux-x86_64-musl-static)
+    platform=linux-x86_64-musl-static
+    extension=tar.gz
+    checksum=d540ba01f160addbd3dd5e18eda9bd34005591b095c09ac8ae9d0a1b655e7ef5
+    ;;
+  linux-aarch64-musl-static)
+    platform=linux-aarch64-musl-static
+    extension=tar.gz
+    checksum=2be524bbccfc7e9ff0085d110da7dc9964de983bd92d29acf3b872e557194945
+    ;;
+  linux-riscv64-musl-static)
+    platform=linux-riscv64-musl-static
+    extension=tar.gz
+    checksum=990603e7b59b67dc776eddcc86e2edf5f143277579ca65efa991695d5c455270
+    ;;
+  linux-s390x-musl-static)
+    platform=linux-s390x-musl-static
+    extension=tar.gz
+    checksum=5cafd28317c0a055ed5dea5672578a16f0aa187006b7a3cc5a1776106c600859
+    ;;
+  macOS/X64|macOS/ARM64)
+    platform=darwin
+    extension=tar.gz
+    checksum=cf240009630b605b775c7c5c7b7105a3b196c79f31af322c1557969aa28003fc
+    ;;
+  Windows/X64)
+    platform=windows-x86_64
+    extension=zip
+    checksum=6993ce645e53192cec592ee23186200b574ac4c59097ecde8d9cfd681b47ae84
+    ;;
+  Windows/ARM64)
+    platform=windows-aarch64
+    extension=zip
+    checksum=47ea5a0ed661bea53962d8fb8ee9a1769092d979a6f7c73d3081499b3305b2ab
+    ;;
+  *)
+    echo "Unsupported ccache platform: ${CCACHE_PLATFORM:-$RUNNER_OS/$RUNNER_ARCH}" >&2
+    exit 1
+    ;;
+esac
+
+temp_dir=$RUNNER_TEMP
+if [ "$RUNNER_OS" = Windows ]; then
+  temp_dir=$(cygpath -u "$temp_dir")
+fi
+tool_dir=$(mktemp -d "$temp_dir/ccache-tool.XXXXXX")
+archive="ccache-$version-$platform.$extension"
+curl --fail --location --silent --show-error --retry 3 \
+  "https://github.com/ccache/ccache/releases/download/v$version/$archive" \
+  --output "$tool_dir/$archive"
+
+(
+  cd "$tool_dir"
+  if [ "$RUNNER_OS" = macOS ]; then
+    printf '%s  %s\n' "$checksum" "$archive" | shasum -a 256 --check
+  else
+    printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check
+  fi
+  if [ "$RUNNER_OS" = Windows ]; then
+    # The expressions below are expanded by PowerShell, not Bash.
+    # shellcheck disable=SC2016
+    CCACHE_ARCHIVE=$(cygpath -m "$tool_dir/$archive") \
+    CCACHE_TOOL_DIR=$(cygpath -m "$tool_dir") \
+      powershell.exe -NoProfile -NonInteractive -Command \
+        '$ErrorActionPreference = "Stop"; Expand-Archive -LiteralPath $env:CCACHE_ARCHIVE -DestinationPath $env:CCACHE_TOOL_DIR'
+  else
+    tar -xf "$archive"
+  fi
+  rm "$archive"
+)
+
+cache_dir="$temp_dir/ccache-cache"
+executable="$tool_dir/ccache-$version-$platform/ccache"
+if [ "$RUNNER_OS" = Windows ]; then
+  cache_dir=$(cygpath -m "$cache_dir")
+  executable=$(cygpath -m "$executable.exe")
+fi
+
+{
+  echo "CCACHE_DIR=$cache_dir"
+  echo 'CCACHE_MAXSIZE=500M'
+  echo 'CCACHE_COMPILERCHECK=content'
+  echo 'CCACHE_COMPRESSLEVEL=3'
+} >> "$GITHUB_ENV"
+"$executable" --version
+
+{
+  echo "version=$version"
+  echo "launcher=$executable"
+} >> "$GITHUB_OUTPUT"
