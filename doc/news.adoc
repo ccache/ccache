@@ -1,5 +1,77 @@
 = Ccache news
 
+== Ccache 4.14.2
+
+Release date: 2026-10-18
+
+
+=== Compatibility changes
+
+On Windows, ccache now requires Windows 8 or later.
+
+
+=== Bug fixes
+
+- Fixed false inode cache hits on Windows by using full 128-bit file IDs when
+  available. +
+  [small]#_[contributed by Thomas Ferrand]_#
+
+- Fixed caching of precompiled headers with clang-cl, icx-cl and icx after MSVC
+  updates by hashing the compiler's target triple. +
+  [small]#_[contributed by Josef Šimánek]_#
+
+- Fixed handling of nonexistent or non-directory `-fprebuilt-module-path`
+  arguments on Windows with Visual Studio 2026. +
+  [small]#_[contributed by Gregor Jasny]_#
+
+- Fixed preservation of inherited signal handling, including `SIGPIPE`, in
+  compiler processes. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed a symlink race when creating the fallback storage helper IPC directory
+  in `/tmp`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed logging of credentials when using `--stop-storage-helpers`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed spurious errors when a storage helper closes its connection before
+  responding to a stop request. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed undefined behavior when handling empty byte buffers. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Fixed MSVC debug iterator assertions when handling empty byte buffers. +
+  [small]#_[contributed by Thomas Ferrand]_#
+
+
+=== Build improvements
+
+- Upgraded BLAKE3 to 1.8.7, fixing build problems on Cygwin. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Added a missing `unistd.h` include for `geteuid`. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Made integration tests consistently use object file comparisons that ignore
+  irrelevant differences, requiring `eu-elfcmp` for all compilers on Linux. +
+  [small]#_[contributed by Gregor Jasny and Joel Rosdahl]_#
+
+- Fixed creation of the input file for the `.incbin` assembler test. +
+  [small]#_[contributed by Adrian Bunk]_#
+
+- Fixed a temporary file leak when running unit tests under Wine. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Made integration tests fail if they emit unexpected output on standard
+  error. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.14.1
 
 Release date: 2026-09-27
