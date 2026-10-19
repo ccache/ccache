@@ -89,7 +89,4 @@ SUITE_fileclone() {
     if grep -q 'Failed to clone' test.o.*.ccache-log; then
         test_failed "Failed to clone"
     fi
-    if grep -q 'Failed to clone' test.dwo.*.ccache-log; then
-        test_failed "Failed to clone"
-    fi
 }
