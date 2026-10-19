@@ -54,6 +54,14 @@ void find_compiler(Context& ctx,
 
 CompilerType guess_compiler(const std::filesystem::path& path);
 
+bool should_ignore_missing_include(CompilerType compiler_type);
+
+// Rewrite a multi-target ISPC --target argument to its first target, since ISPC
+// refuses to preprocess for more than one target.
+util::Args
+get_preprocessor_args_for_cache_lookup(const Context& ctx,
+                                       const util::Args& preprocessor_args);
+
 bool is_ccache_executable(const std::filesystem::path& path);
 
 bool file_path_matches_dir_prefix_or_file(
