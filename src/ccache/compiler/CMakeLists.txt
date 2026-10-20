@@ -1,6 +1,7 @@
 set(
   sources
   clang.cpp
+  headersearch.cpp
   msvc.cpp
 )
 

@@ -41,6 +41,7 @@ enum class SourceCodeScan {
   found_timestamp = 1U << 2,
   found_embed = 1U << 3,
   found_incbin = 1U << 4,
+  found_has_include = 1U << 5,
 };
 
 using SourceCodeScanResult = util::BitSet<SourceCodeScan>;

@@ -147,6 +147,7 @@ enum class ConfigItem : uint8_t {
   remote_storage,
   reshare,
   response_file_format,
+  safe_direct_mode,
   safe_dirs,
   sloppiness,
   stats,
@@ -216,6 +217,7 @@ const std::unordered_map<std::string_view, ConfigKeyTableEntry>
     {"remote_storage",             {C::remote_storage,             DCP::unsafe}},
     {"reshare",                    {C::reshare,                    DCP::allow}},
     {"response_file_format",       {C::response_file_format,       DCP::allow}},
+    {"safe_direct_mode",           {C::safe_direct_mode,           DCP::allow}},
     {"safe_dirs",                  {C::safe_dirs,                  DCP::reject}},
     {"secondary_storage",          {C::remote_storage,             DCP::unsafe, "remote_storage"}},
     {"sloppiness",                 {C::sloppiness,                 DCP::allow}},
@@ -272,6 +274,7 @@ const std::unordered_map<std::string_view, std::string_view>
     {"RESHARE",              "reshare"                   },
     {"RESPONSE_FILE_FORMAT", "response_file_format"      },
     {"SECONDARY_STORAGE",    "remote_storage"            }, // Alias for CCACHE_REMOTE_STORAGE
+    {"SAFEDIRECT",           "safe_direct_mode"          },
     {"SAFE_DIRS",            "safe_dirs"                 },
     {"SLOPPINESS",           "sloppiness"                },
     {"STATS",                "stats"                     },
@@ -1143,6 +1146,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::response_file_format:
     return response_file_format_to_string(m_response_file_format);
 
+  case ConfigItem::safe_direct_mode:
+    return format_bool(m_safe_direct_mode);
+
   case ConfigItem::safe_dirs:
     return util::join_path_list(m_safe_dirs);
 
@@ -1445,6 +1451,10 @@ Config::set_item(const std::string_view& key,
 
   case ConfigItem::response_file_format:
     m_response_file_format = parse_response_file_format(value);
+    break;
+
+  case ConfigItem::safe_direct_mode:
+    m_safe_direct_mode = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::safe_dirs:
