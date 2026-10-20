@@ -498,25 +498,6 @@ process_msvc_experimental_log_option(const Context& ctx,
   return Statistic::none;
 }
 
-std::string
-make_dash_option(const Config& config, const std::string& arg)
-{
-  std::string new_arg = arg;
-  if (config.is_compiler_group_msvc() && new_arg.starts_with("/")) {
-    // MSVC understands both /option and -option, so convert all /option to
-    // -option to simplify our handling.
-    new_arg[0] = '-';
-  }
-  if (config.compiler_type() == CompilerType::clang_cl
-      && new_arg.starts_with("-clang:")) {
-    // Strip the "-clang:" so that the option is detected as a Clang option.
-    // This does mean that any ArgumentProcessingState::add_*_arg() method
-    // needs to be passed the original argument(s) from the util::Args object.
-    new_arg = new_arg.substr(7);
-  }
-  return new_arg;
-}
-
 bool
 is_msvc_z_debug_option(std::string_view arg)
 {
@@ -609,7 +590,7 @@ process_option_arg(const Context& ctx,
 
   const auto is_clang_cl_passthru =
     config.compiler_type() == CompilerType::clang_cl
-    && args[i].starts_with("-clang:");
+    && (args[i].starts_with("-clang:") || args[i].starts_with("/clang:"));
 
   // Exit early if we notice a non-option argument right away.
   if (arg.empty() || (arg[0] != '-' && arg[0] != '@')) {
@@ -1796,6 +1777,25 @@ get_default_pch_file_extension(const Config& config)
 }
 
 } // namespace
+
+std::string
+make_dash_option(const Config& config, const std::string& arg)
+{
+  std::string new_arg = arg;
+  if (config.is_compiler_group_msvc() && new_arg.starts_with("/")) {
+    // MSVC understands both /option and -option, so convert all /option to
+    // -option to simplify our handling.
+    new_arg[0] = '-';
+  }
+  if (config.compiler_type() == CompilerType::clang_cl
+      && new_arg.starts_with("-clang:")) {
+    // Strip the "-clang:" so that the option is detected as a Clang option.
+    // This does mean that any ArgumentProcessingState::add_*_arg() method
+    // needs to be passed the original argument(s) from the util::Args object.
+    new_arg = new_arg.substr(7);
+  }
+  return new_arg;
+}
 
 tl::expected<ProcessArgsResult, core::Statistic>
 process_args(Context& ctx)
