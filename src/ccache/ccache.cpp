@@ -2056,19 +2056,27 @@ hash_native_args(Context& ctx, const util::Args& native_args, Hash& hash)
   return {};
 }
 
-static std::tuple<std::optional<std::string_view>,
-                  std::optional<std::string_view>>
+static std::tuple<std::optional<std::string_view>, std::optional<std::string>>
 get_option_and_value(std::string_view option, const util::Args& args, size_t& i)
 {
-  if (args[i] == option) {
+  // Handle MSVC slash and clang-cl passthrough options
+  auto arg = args[i];
+  if (arg.starts_with('/')) {
+    arg[0] = '-';
+  }
+  if (arg.starts_with("-clang:")) {
+    arg = arg.substr(7);
+  }
+
+  if (arg == option) {
     if (i + 1 < args.size()) {
       ++i;
-      return {option, args[i]};
+      return {option, arg};
     } else {
       return {std::nullopt, std::nullopt};
     }
-  } else if (args[i].starts_with(option)) {
-    return {option, std::string_view(args[i]).substr(option.length())};
+  } else if (arg.starts_with(option)) {
+    return {option, arg.substr(option.length())};
   } else {
     return {std::nullopt, std::nullopt};
   }
@@ -2093,21 +2101,23 @@ hash_argument(const Context& ctx,
     return {};
   }
 
+  const auto arg = make_dash_option(ctx.config, args[i]);
+
   // -L doesn't affect compilation (except for clang).
-  if (i < args.size() - 1 && args[i] == "-L" && !is_clang) {
+  if (i < args.size() - 1 && arg == "-L" && !is_clang) {
     i++;
     return {};
   }
-  if (args[i].starts_with("-L") && !is_clang) {
+  if (arg.starts_with("-L") && !is_clang) {
     return {};
   }
 
   // -Wl,... doesn't affect compilation (except for clang).
-  if (args[i].starts_with("-Wl,") && !is_clang) {
+  if (arg.starts_with("-Wl,") && !is_clang) {
     return {};
   }
 
-  if (args[i].starts_with("-Wa,")) {
+  if (arg.starts_with("-Wa,")) {
     // We have to distinguish between three cases:
     //
     // Case 1: -Wa,-a      (write to stdout)
@@ -2120,7 +2130,7 @@ hash_argument(const Context& ctx,
     hash.hash_delimiter("arg");
     bool first = true;
     for (const auto part :
-         util::Tokenizer(args[i], ",", util::Tokenizer::Mode::include_empty)) {
+         util::Tokenizer(arg, ",", util::Tokenizer::Mode::include_empty)) {
       if (first) {
         first = false;
       } else {
@@ -2145,35 +2155,35 @@ hash_argument(const Context& ctx,
   // CCACHE_BASEDIR to reuse results across different directories. Skip using
   // the value of the option from hashing but still hash the existence of the
   // option.
-  if (args[i].starts_with("-fdebug-prefix-map=")) {
+  if (arg.starts_with("-fdebug-prefix-map=")) {
     hash.hash_delimiter("arg");
-    hash.hash("-fdebug-prefix-map=");
+    hash.hash(args[i].substr(0, args[i].find('=') + 1));
     return {};
   }
-  if (args[i].starts_with("-ffile-prefix-map=")) {
+  if (arg.starts_with("-ffile-prefix-map=")) {
     hash.hash_delimiter("arg");
-    hash.hash("-ffile-prefix-map=");
+    hash.hash(args[i].substr(0, args[i].find('=') + 1));
     return {};
   }
-  if (args[i].starts_with("-fmacro-prefix-map=")) {
+  if (arg.starts_with("-fmacro-prefix-map=")) {
     hash.hash_delimiter("arg");
-    hash.hash("-fmacro-prefix-map=");
+    hash.hash(args[i].substr(0, args[i].find('=') + 1));
     return {};
   }
   // -fprofile-prefix-path can also be used to reuse ccache results
   // across different directories
-  if (args[i].starts_with("-fprofile-prefix-path=")) {
+  if (arg.starts_with("-fprofile-prefix-path=")) {
     hash.hash_delimiter("arg");
-    hash.hash("-fprofile-prefix-path=");
+    hash.hash(args[i].substr(0, args[i].find('=') + 1));
     return {};
   }
-  if (args[i].starts_with("-fcoverage-prefix-map=")) {
+  if (arg.starts_with("-fcoverage-prefix-map=")) {
     hash.hash_delimiter("arg");
-    hash.hash("-fcoverage-prefix-map=");
+    hash.hash(args[i].substr(0, args[i].find('=') + 1));
     return {};
   }
 
-  if (args[i].starts_with("-frandom-seed=")
+  if (arg.starts_with("-frandom-seed=")
       && ctx.config.sloppiness().contains(core::Sloppy::random_seed)) {
     LOG("Ignoring {} since random_seed sloppiness is requested", args[i]);
     return {};
@@ -2181,9 +2191,9 @@ hash_argument(const Context& ctx,
 
   static const std::string_view frandomize_layout_seed_file =
     "-frandomize-layout-seed-file=";
-  if (args[i].starts_with(frandomize_layout_seed_file)) {
+  if (arg.starts_with(frandomize_layout_seed_file)) {
     hash.hash_delimiter(frandomize_layout_seed_file);
-    auto file = args[i].substr(frandomize_layout_seed_file.length());
+    auto file = arg.substr(frandomize_layout_seed_file.length());
     if (!hash_binary_file(ctx, hash, file)) {
       LOG("Failed to hash {}", file);
       return tl::unexpected(Statistic::bad_input_file);
@@ -2198,13 +2208,13 @@ hash_argument(const Context& ctx,
   if (!direct_mode && !ctx.args_info.output_is_precompiled_header
       && !ctx.args_info.using_precompiled_header
       && !ctx.args_info.generating_pch) {
-    if (compopt_affects_cpp_output(args[i])) {
-      if (compopt_takes_arg(args[i])) {
+    if (compopt_affects_cpp_output(arg)) {
+      if (compopt_takes_arg(arg)) {
         i++;
       }
       return {};
     }
-    if (compopt_affects_cpp_output(args[i].substr(0, 2))) {
+    if (compopt_affects_cpp_output(arg.substr(0, 2))) {
       return {};
     }
   }
@@ -2218,10 +2228,10 @@ hash_argument(const Context& ctx,
   // appearing header files.
   if (direct_mode) {
     std::optional<std::string_view> path;
-    if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
+    if (compopt_takes_path(arg) && i + 1 < args.size()) {
       path = args[i + 1];
     } else {
-      auto p = compopt_prefix_takes_path(args[i]);
+      auto p = compopt_prefix_takes_path(arg);
       if (p) {
         path = *p;
       }
@@ -2233,14 +2243,14 @@ hash_argument(const Context& ctx,
   }
 
   if (ctx.args_info.generating_dependencies) {
-    if (args[i].starts_with("-Wp,")) {
+    if (arg.starts_with("-Wp,")) {
       // Skip the dependency filename since it doesn't impact the output.
-      if (args[i].starts_with("-Wp,-MD,")
-          && args[i].find(',', 8) == std::string::npos) {
+      if (arg.starts_with("-Wp,-MD,")
+          && arg.find(',', 8) == std::string::npos) {
         hash.hash(args[i].data(), 8);
         return {};
-      } else if (args[i].starts_with("-Wp,-MMD,")
-                 && args[i].find(',', 9) == std::string::npos) {
+      } else if (arg.starts_with("-Wp,-MMD,")
+                 && arg.find(',', 9) == std::string::npos) {
         hash.hash(args[i].data(), 9);
         return {};
       }
@@ -2262,9 +2272,9 @@ hash_argument(const Context& ctx,
     }
   }
 
-  if (args[i].starts_with("-specs=") || args[i] == "-specs"
-      || args[i].starts_with("--specs=") || args[i] == "--specs") {
-    auto [_option, specs] = util::split_once_into_views(args[i], '=');
+  if (arg.starts_with("-specs=") || arg == "-specs"
+      || arg.starts_with("--specs=") || arg == "--specs") {
+    auto [_option, specs] = util::split_once_into_views(arg, '=');
     if (!specs) {
       if (i + 1 >= args.size()) {
         LOG("Missing argument for \"{}\"", args[i]);
@@ -2276,7 +2286,7 @@ hash_argument(const Context& ctx,
 
     if (ctx.config.is_compiler_group_clang()) {
       // Clang accepts -specs but ignores it.
-      if (!args[i].ends_with("=")) {
+      if (!arg.ends_with("=")) {
         hash.hash_delimiter("arg");
         hash.hash(args[i - 1]);
       }
@@ -2301,7 +2311,7 @@ hash_argument(const Context& ctx,
     return {};
   }
 
-  if (args[i] == "--config" || args[i].starts_with("--config=")) {
+  if (arg == "--config" || arg.starts_with("--config=")) {
     // Clang's --config(=)name option behaves like this:
     //
     // --config foo     -> read /usr/lib/llvm-$ver/bin/foo.cfg (ver < 16)
@@ -2314,7 +2324,7 @@ hash_argument(const Context& ctx,
     // Since there doesn't seem to be an easy way to query which directory is
     // used we only support names with a slash for now.
 
-    auto [_option, config] = util::split_once_into_views(args[i], '=');
+    auto [_option, config] = util::split_once_into_views(arg, '=');
     if (!config) {
       if (i + 1 >= args.size()) {
         LOG("Missing argument for \"{}\"", args[i]);
@@ -2342,17 +2352,18 @@ hash_argument(const Context& ctx,
     return {};
   }
 
-  if (args[i].starts_with("-fplugin=")) {
-    DirEntry dir_entry(&args[i][9], DirEntry::LogOnError::yes);
+  if (arg.starts_with("-fplugin=")) {
+    DirEntry dir_entry(&arg[9], DirEntry::LogOnError::yes);
     if (dir_entry.is_regular_file()) {
       hash.hash_delimiter("plugin");
-      TRY(hash_compiler(ctx, hash, dir_entry, &args[i][9], false));
+      TRY(hash_compiler(ctx, hash, dir_entry, &arg[9], false));
       return {};
     }
   }
 
-  if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
-      && args[i + 2] == "-Xclang") {
+  if (arg == "-Xclang" && i + 3 < args.size()
+      && make_dash_option(ctx.config, args[i + 1]) == "-load"
+      && make_dash_option(ctx.config, args[i + 2]) == "-Xclang") {
     DirEntry dir_entry(args[i + 3], DirEntry::LogOnError::yes);
     if (dir_entry.is_regular_file()) {
       hash.hash_delimiter("plugin");
@@ -2362,8 +2373,7 @@ hash_argument(const Context& ctx,
     }
   }
 
-  if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
-      && i + 1 < args.size()) {
+  if ((arg == "-ccbin" || arg == "--compiler-bindir") && i + 1 < args.size()) {
     DirEntry dir_entry(args[i + 1]);
     if (dir_entry.exists()) {
       found_ccbin = true;
@@ -2376,8 +2386,8 @@ hash_argument(const Context& ctx,
 
   static constexpr auto warning_suppression_mappings =
     "--warning-suppression-mappings="sv;
-  if (args[i].starts_with(warning_suppression_mappings)) {
-    auto [_option, path] = util::split_once_into_views(args[i], '=');
+  if (arg.starts_with(warning_suppression_mappings)) {
+    auto [_option, path] = util::split_once_into_views(arg, '=');
     hash.hash_delimiter(warning_suppression_mappings);
     if (auto r = hash.hash_file(*path); !r) {
       LOG("Failed to hash {}: {}", *path, r.error());
@@ -2389,7 +2399,7 @@ hash_argument(const Context& ctx,
   // All other arguments are included in the hash.
   hash.hash_delimiter("arg");
   hash.hash(args[i]);
-  if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
+  if (i + 1 < args.size() && compopt_takes_arg(arg)) {
     i++;
     hash.hash_delimiter("arg");
     hash.hash(args[i]);
