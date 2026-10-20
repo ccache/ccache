@@ -814,6 +814,8 @@ the string `ccache:disable` in a comment in the first 4096 bytes of the file.
     results. *file_clone* has priority over <<config_hard_link,*hard_link*>>.
     The default is false.
 +
+This option is disabled when <<config_remote_storage,*remote_storage*>> is set.
++
 Files stored by cloning cannot be compressed, so the cache size will likely be
 significantly larger if this option is enabled. However, performance may be
 improved depending on the use case.
@@ -828,6 +830,8 @@ systems, ccache will fall back to use plain copying (or hard links if
 
     If true, ccache will attempt to use hard links to store and fetch cached
     object files. The default is false.
++
+This option is disabled when <<config_remote_storage,*remote_storage*>> is set.
 +
 Files stored via hard links cannot be compressed, so the cache size will likely
 be significantly larger if this option is enabled. However, performance may be
@@ -1055,6 +1059,9 @@ temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
     <<config_remote_only,*remote_only*>> is true). See
     _<<Remote storage backends>>_ for documentation of syntax and available
     backends.
++
+Setting this option disables <<config_file_clone,*file_clone*>> and
+<<config_hard_link,*hard_link*>> for the local cache as well.
 +
 Examples:
 +
