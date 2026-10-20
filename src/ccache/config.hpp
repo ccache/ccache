@@ -46,6 +46,7 @@ enum class CompilerType {
   msvc,
   nvcc,
   qcc,
+  moc,
   other
 };
 
