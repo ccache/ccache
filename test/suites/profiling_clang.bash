@@ -1,5 +1,5 @@
 SUITE_profiling_clang_PROBE() {
-    touch test.c
+    echo 'int main(void) { return 0; }' >test.c
     if ! $COMPILER_TYPE_CLANG; then
         echo "compiler is not Clang"
     elif ! command -v llvm-profdata$CLANG_VERSION_SUFFIX >/dev/null; then
@@ -8,6 +8,8 @@ SUITE_profiling_clang_PROBE() {
         echo "compiler does not support -fdebug-prefix-map"
     elif ! $COMPILER -c -fprofile-sample-accurate test.c 2>/dev/null; then
         echo "compiler does not support -fprofile-sample-accurate"
+    elif ! $COMPILER -fprofile-generate test.c -o test 2>/dev/null; then
+        echo "compiler has no profiling runtime for the target"
     fi
 }
 
