@@ -1966,6 +1966,12 @@ modules`" unless <<config_sloppiness,*sloppiness*>> is set to `modules`. Clang
 looks up implicit modules in a subdirectory layout named by hashes of compiler
 internals, so ccache can't tell which files the compilation reads.
 
+MSVC compilations that build or import modules or header units (options such
+as `/interface`, `/ifcOutput`, `/reference` and `/headerUnit`) are counted as
+"`Could not use modules`".
+Without `/reference`, MSVC resolves an import to an IFC file in the current
+directory, so ccache hashes all `.ifc` files there.
+
 
 == Sharing a local cache
 
