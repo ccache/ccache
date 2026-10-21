@@ -9,6 +9,16 @@ SUITE_distributed_thinlto_clang_PROBE() {
     fi
 }
 
+# Write the ThinLTO index files of the given objects, without linking.
+thinlto_index_only() {
+    # lld-link only warns about the ELF spelling of the option.
+    if $COMPILER_USES_MSVC; then
+        $COMPILER -fuse-ld=lld -Wl,/thinlto-index-only:test.rst "$@"
+    else
+        $COMPILER -fuse-ld=lld -Wl,--thinlto-index-only=test.rst "$@"
+    fi
+}
+
 SUITE_distributed_thinlto_clang_SETUP() {
     cat <<EOF >test.c
 #include <stdio.h>
@@ -29,7 +39,7 @@ EOF
     $COMPILER -flto=thin -O2 -c -o lib1.o lib1.c
     $COMPILER -flto=thin -O2 -c -o lib2.o lib2.c
     # Use compiler to generate thinlto.index.bc.
-    $COMPILER -fuse-ld=lld -Wl,--thinlto-index-only=test.rst test.o lib1.o lib2.o
+    thinlto_index_only test.o lib1.o lib2.o
     backdate *.c *.o *.bc
     unset CCACHE_NODIRECT
 }
@@ -58,7 +68,7 @@ SUITE_distributed_thinlto_clang() {
     echo 'int tmp_x;' >>lib2.c
 
     $COMPILER -O2 -flto=thin -c -o lib2.o lib2.c
-    $COMPILER -fuse-ld=lld -Wl,--thinlto-index-only=test.rst test.o lib1.o lib2.o
+    thinlto_index_only test.o lib1.o lib2.o
     backdate *.c *.o *.bc
 
     $CCACHE_COMPILE -c -fthinlto-index=lib1.o.thinlto.bc lib1.o -o lib1.native.o
