@@ -78,17 +78,28 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Debug option"
 
-    $CCACHE_COMPILE -c test1.c -g
+    # Clang's CodeView debug information records the compiler command line,
+    # which differs from a direct compilation since ccache adds
+    # -fcolor-diagnostics.
+    debug_flags=-g
+    if $COMPILER_TYPE_CLANG && $COMPILER_USES_MSVC; then
+        debug_flags="-g -gno-codeview-command-line"
+    fi
+
+    $CCACHE_COMPILE -c test1.c $debug_flags
     expect_stat preprocessed_cache_hit 0
     expect_stat cache_miss 1
     expect_stat files_in_cache 1
 
-    $CCACHE_COMPILE -c test1.c -g
+    $CCACHE_COMPILE -c test1.c $debug_flags
     expect_stat preprocessed_cache_hit 1
     expect_stat cache_miss 1
 
-    $COMPILER -c -o reference_test1.o test1.c -g
-    expect_equal_object_files reference_test1.o test1.o
+    # The debug information can record the path of the object file (e.g.
+    # CodeView's S_OBJNAME), so compile the reference object to the same path.
+    mv test1.o ccache_test1.o
+    $COMPILER -c test1.c $debug_flags
+    expect_equal_object_files ccache_test1.o test1.o
 
     # -------------------------------------------------------------------------
     TEST "Output option"
