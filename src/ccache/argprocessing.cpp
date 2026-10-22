@@ -527,11 +527,61 @@ is_msvc_show_includes_option(std::string_view arg)
          || arg == "-showIncludes:user" || arg == "/showIncludes:user";
 }
 
-// Returns the module files in `dir` that an import can resolve to, sorted so
-// that the hash does not depend on the order the directory is read in, or an
-// error if it cannot be determined which files the compilation reads.
+struct MsvcModuleOption
+{
+  std::string_view name;
+  bool takes_arg;
+};
+
+// Returns the MSVC option for building or importing C++20 modules or header
+// units that `arg` (in dash form) is, if any. An option that takes an argument
+// also matches with the argument attached.
+const MsvcModuleOption*
+find_msvc_module_option(std::string_view arg)
+{
+  static const MsvcModuleOption options[] = {
+    {"-experimental:module", false},
+    {"-exportHeader",        false},
+    {"-headerName:angle",    false},
+    {"-headerName:quote",    false},
+    {"-headerUnit",          true },
+    {"-headerUnit:angle",    true },
+    {"-headerUnit:quote",    true },
+    {"-ifcMap",              true },
+    {"-ifcOnly",             false},
+    {"-ifcOutput",           true },
+    {"-ifcSearchDir",        true },
+    {"-interface",           false},
+    {"-internalPartition",   false},
+    // Options of the experimental module support in older MSVC versions.
+    {"-module:output",       true },
+    {"-module:reference",    true },
+    {"-module:search",       true },
+    {"-module:stdIfcDir",    true },
+    {"-reference",           true },
+    {"-stdIfcDir",           true },
+    {"-translateInclude",    false},
+  };
+  const auto exact =
+    std::find_if(std::begin(options),
+                 std::end(options),
+                 [&](const auto& option) { return arg == option.name; });
+  if (exact != std::end(options)) {
+    return exact;
+  }
+  const auto attached = std::find_if(
+    std::begin(options), std::end(options), [&](const auto& option) {
+      return option.takes_arg && arg.starts_with(option.name);
+    });
+  return attached != std::end(options) ? attached : nullptr;
+}
+
+// Returns the module files with extension `extension` in `dir` that an import
+// can resolve to, sorted so that the hash does not depend on the order the
+// directory is read in, or an error if it cannot be determined which files the
+// compilation reads.
 tl::expected<std::vector<fs::path>, Statistic>
-find_module_files(const fs::path& dir)
+find_module_files(const fs::path& dir, std::string_view extension)
 {
   // A path that is missing or is not a directory has no module files for an
   // import to resolve to.
@@ -543,9 +593,9 @@ find_module_files(const fs::path& dir)
   try {
     for (const auto& entry : fs::directory_iterator(dir)) {
       // A case-insensitive file system serves any spelling of the extension to
-      // the compiler, which looks for <dir>/<module-name>.pcm.
+      // the compiler, which looks for <dir>/<module-name><extension>.
       if (util::to_lowercase(util::pstr(entry.path().extension()).str())
-          != ".pcm") {
+          != extension) {
         continue;
       }
       // Anything the compiler cannot read as a module file is not an input: a
@@ -561,7 +611,7 @@ find_module_files(const fs::path& dir)
     // through, leaves it unknown which files the compilation reads. Advancing
     // the iterator throws, which would otherwise take down the whole
     // invocation.
-    LOG("Failed to read prebuilt module path {}: {}", dir, e.what());
+    LOG("Failed to read module directory {}: {}", dir, e.what());
     return tl::unexpected(Statistic::could_not_use_modules);
   }
   std::sort(module_files.begin(), module_files.end());
@@ -846,6 +896,20 @@ process_option_arg(const Context& ctx,
     }
     state.add_compiler_only_arg(args[i]);
     return Statistic::none;
+  }
+
+  // The IFC files that MSVC writes are not stored in the cache, and the IFC
+  // files of imported modules and header units are not part of the hash.
+  if (config.compiler_type() == CompilerType::msvc) {
+    if (const auto* option = find_msvc_module_option(arg)) {
+      LOG("Compiler option {} is unsupported", args[i]);
+      // Skip the argument so that an existing IFC file is not taken as an
+      // input file.
+      if (option->takes_arg && arg == option->name) {
+        ++i;
+      }
+      return Statistic::could_not_use_modules;
+    }
   }
 
   // Modules are handled on demand as necessary in the background, so there is
@@ -1308,7 +1372,7 @@ process_option_arg(const Context& ctx,
     // module files there are read and have to be hashed.
     const fs::path dir(dir_arg.empty() ? std::string_view(".") : dir_arg);
 
-    auto module_files = find_module_files(dir);
+    auto module_files = find_module_files(dir, ".pcm");
     if (!module_files) {
       return module_files.error();
     }
@@ -2187,6 +2251,19 @@ process_args(Context& ctx)
 
       args_info.dependency_target =
         depfile::escape_filename(util::pstr(dep_target).str());
+    }
+  }
+
+  if (ctx.config.compiler_type() == CompilerType::msvc) {
+    // Without -reference, MSVC resolves an import to an IFC file in the current
+    // directory. The command line does not say which of those files the
+    // compilation reads, so all of them are hashed.
+    auto module_files = find_module_files(".", ".ifc");
+    if (!module_files) {
+      return tl::unexpected(module_files.error());
+    }
+    for (auto& module_file : *module_files) {
+      args_info.searched_module_files.push_back(std::move(module_file));
     }
   }
 
