@@ -161,6 +161,10 @@ struct ArgsInfo
   // Files referenced by -fsanitize-ignorelist/-fsanitize-blacklist options.
   std::vector<std::filesystem::path> sanitize_ignorelists;
 
+  // Sysroot given by -isysroot, if any. Its SDKSettings.json (macOS SDKs)
+  // affects the compiler output but is invisible in the preprocessed output.
+  std::filesystem::path isysroot;
+
   // Files referenced by -fmodule-file=<name>=<path> (explicit C++ modules).
   std::vector<std::filesystem::path> module_files;
 
