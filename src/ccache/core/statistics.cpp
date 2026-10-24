@@ -449,19 +449,22 @@ Statistics::format_human_readable(const Config& config,
     add_ratio_row(table, "  Preprocessed:", p_hits, p_hits + p_misses);
   }
 
-  const char* size_unit =
-    config.size_unit_prefix_type() == util::SizeUnitPrefixType::binary ? "GiB"
-                                                                       : "GB";
+  const uint64_t local_size = S(cache_size_kibibyte) * 1024;
+  const bool binary_prefix =
+    config.size_unit_prefix_type() == util::SizeUnitPrefixType::binary;
+  const uint64_t size_base = binary_prefix ? 1024 : 1000;
+  const bool use_megabytes =
+    config.max_size() != 0
+    && config.max_size() < size_base * size_base * size_base;
+  const char* size_unit = use_megabytes ? (binary_prefix ? "MiB" : "MB")
+                                        : (binary_prefix ? "GiB" : "GB");
   const uint64_t size_divider =
-    config.size_unit_prefix_type() == util::SizeUnitPrefixType::binary
-      ? 1024 * 1024 * 1024
-      : 1000 * 1000 * 1000;
+    size_base * size_base * (use_megabytes ? 1 : size_base);
   const uint64_t local_hits = S(local_storage_hit);
   const uint64_t local_misses = S(local_storage_miss);
   const uint64_t local_reads =
     S(local_storage_read_hit) + S(local_storage_read_miss);
   const uint64_t local_writes = S(local_storage_write);
-  const uint64_t local_size = S(cache_size_kibibyte) * 1024;
   const uint64_t cleanups = S(cleanups_performed);
   const uint64_t remote_hits = S(remote_storage_hit);
   const uint64_t remote_misses = S(remote_storage_miss);
