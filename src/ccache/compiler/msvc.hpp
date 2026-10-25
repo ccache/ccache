@@ -20,6 +20,7 @@
 
 #include <ccache/util/bytes.hpp>
 
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -33,5 +34,11 @@ get_includes_from_msvc_show_includes(std::string_view file_content,
 
 util::Bytes strip_includes_from_msvc_show_includes(const Context& ctx,
                                                    util::Bytes&& stdout_data);
+
+std::string rewrite_paths_in_source_dependencies(const Context& ctx,
+                                                 std::string_view file_content);
+
+std::string restore_paths_in_source_dependencies(const Context& ctx,
+                                                 std::string_view file_content);
 
 } // namespace compiler
