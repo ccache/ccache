@@ -1105,11 +1105,19 @@ write_result(Context& ctx,
     LOG("Diagnostics file {} missing", ctx.args_info.output_dia);
     return false;
   }
-  if (!ctx.args_info.output_sd.empty()
-      && !serializer.add_file(core::result::FileType::source_dependencies,
-                              ctx.args_info.output_sd)) {
-    LOG("Source dependencies file {} missing", ctx.args_info.output_sd);
-    return false;
+
+  std::string source_dependencies;
+  if (!ctx.args_info.output_sd.empty()) {
+    const auto content = util::read_file<util::Bytes>(ctx.args_info.output_sd);
+    if (!content) {
+      LOG("Failed to read {}: {}", ctx.args_info.output_sd, content.error());
+      return false;
+    }
+
+    source_dependencies = compiler::rewrite_paths_in_source_dependencies(
+      ctx, util::to_string_view(*content));
+    serializer.add_data(core::result::FileType::source_dependencies,
+                        util::to_span(source_dependencies));
   }
   if (ctx.args_info.seen_split_dwarf
       // Only store .dwo file if it was created by the compiler (GCC and Clang
