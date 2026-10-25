@@ -489,7 +489,7 @@ TEST_CASE("ThreadPool enqueue")
     auto future =
       pool.enqueue([]() -> int { throw std::runtime_error("Task failed"); });
 
-    CHECK_THROWS_AS(future.get(), std::runtime_error);
+    CHECK_THROWS_AS((void)future.get(), std::runtime_error);
 
     pool.shut_down();
   }
