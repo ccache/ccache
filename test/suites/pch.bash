@@ -417,6 +417,25 @@ fi
 
 pch_suite_gcc() {
     # -------------------------------------------------------------------------
+    TEST "Use .gch found through -I in depend mode"
+
+    mkdir inc
+    printf '#include "indirect.h"\nint value(void) { return VALUE; }\n' >pch2.c
+    backdate pch2.c
+    for value in 0 1; do
+        printf '#pragma once\n#define VALUE %s\n' "$value" >inc/indirect.h
+        backdate inc/indirect.h
+        $COMPILER $SYSROOT -c inc/indirect.h
+        backdate inc/indirect.h.gch
+
+        CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Iinc -fpch-preprocess -include indirect.h -MD -c pch2.c
+    done
+
+    $COMPILER $SYSROOT -Iinc -fpch-preprocess -include indirect.h -c pch2.c -o reference.o
+    expect_equal_object_files reference.o pch2.o
+    expect_stat could_not_use_precompiled_header 2
+
+    # -------------------------------------------------------------------------
     TEST "Use .gch, -include, remove pch.h"
 
     $COMPILER $SYSROOT -c pch.h
