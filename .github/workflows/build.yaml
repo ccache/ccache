@@ -27,6 +27,7 @@ jobs:
   build_and_test:
     timeout-minutes: 30
     env:
+      CCACHE_KEY: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}
       CMAKE_GENERATOR: Ninja
 
     name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}
@@ -158,11 +159,12 @@ jobs:
       - name: Get source
         uses: actions/checkout@v6
 
-      - name: Set up ccache
+      - &set-up-ccache
+        name: Set up ccache
         id: ccache
         uses: ./.github/actions/set-up-ccache
         with:
-          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.version }}
+          key: ${{ env.CCACHE_KEY || github.job }}
 
       - name: Build and test
         env:
@@ -170,7 +172,9 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
         run: ci/build
 
-      - name: Show ccache statistics
+      - &show-ccache-statistics
+        name: Show ccache statistics
+        shell: bash
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
           CCACHE: ${{ steps.ccache.outputs.executable }}
@@ -181,8 +185,9 @@ jobs:
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
+      - &save-compilation-cache
+        name: Save compilation cache
+        if: ${{ success() && steps.ccache.outcome == 'success' && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache-cache
@@ -200,6 +205,8 @@ jobs:
           path: testdir.tar.xz
 
   build_and_test_msys:
+    env:
+      CCACHE_KEY: msys-${{ matrix.os }}-${{ matrix.sys }}-${{ matrix.compiler }}
     timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     strategy:
@@ -258,11 +265,7 @@ jobs:
       - name: Get source
         uses: actions/checkout@v6
 
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: msys-${{ matrix.os }}-${{ matrix.sys }}-${{ matrix.compiler }}
+      - *set-up-ccache
 
       - name: Build and test
         id: build-and-test
@@ -289,24 +292,9 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           TEST_CC: ${{ matrix.compiler }}
 
-      - name: Show ccache statistics
-        shell: bash
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Collect testdir from failed tests
         if: failure()
@@ -356,11 +344,7 @@ jobs:
           sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross
       - name: Get source
         uses: actions/checkout@v6
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: build_linux_aarch64_binary_glibc
+      - *set-up-ccache
 
       - name: Build binary
         env:
@@ -371,23 +355,9 @@ jobs:
             -D CMAKE_TOOLCHAIN_FILE=../toolchains/aarch64-linux-gnu.cmake
             -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
         run: ci/build-binary
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -409,11 +379,7 @@ jobs:
           sudo apt-get install -y g++-riscv64-linux-gnu libc6-dev-arm64-cross
       - name: Get source
         uses: actions/checkout@v6
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: build_linux_riscv64_binary_glibc
+      - *set-up-ccache
 
       - name: Build binary
         env:
@@ -424,23 +390,9 @@ jobs:
             -D CMAKE_TOOLCHAIN_FILE=../toolchains/riscv64-linux-gnu.cmake
             -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
         run: ci/build-binary
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -462,11 +414,7 @@ jobs:
           sudo apt-get install -y g++-s390x-linux-gnu libc6-dev-arm64-cross
       - name: Get source
         uses: actions/checkout@v6
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: build_linux_s390x_binary_glibc
+      - *set-up-ccache
 
       - name: Build binary
         env:
@@ -477,23 +425,9 @@ jobs:
             -D CMAKE_TOOLCHAIN_FILE=../toolchains/s390x-linux-gnu.cmake
             -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
         run: ci/build-binary
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -530,11 +464,7 @@ jobs:
             tar
       - name: Get source
         uses: actions/checkout@v6
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: build_linux_x86_64_binary_glibc
+      - *set-up-ccache
 
       - name: Build binary
         env:
@@ -544,23 +474,9 @@ jobs:
           CMAKE_PARAMS: -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
         run: |
           scl enable gcc-toolset-11 ci/build-binary
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -648,23 +564,9 @@ jobs:
               apk add --no-cache bash cmake g++ gcc git hiredis-dev make ninja xxhash-dev zstd-dev
               CMAKE_GENERATOR=Ninja CMAKE_PARAMS="-D CMAKE_EXE_LINKER_FLAGS_INIT=-static" ci/build-binary
           '
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && steps.ccache.outcome == 'success' && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -682,34 +584,16 @@ jobs:
     steps:
       - name: Get source
         uses: actions/checkout@v6
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: build_darwin_binary
+      - *set-up-ccache
 
       - name: Build Darwin binary
         env:
           CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
         run: ci/build-darwin-binary
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -719,6 +603,8 @@ jobs:
           retention-days: 3
 
   build_windows_binary:
+    env:
+      CCACHE_KEY: windows-binary-${{ matrix.toolchain }}
     timeout-minutes: 30
     runs-on: ubuntu-24.04
     strategy:
@@ -758,11 +644,7 @@ jobs:
           echo /opt/llvm-mingw/bin >>${GITHUB_PATH}
       - name: Get source
         uses: actions/checkout@v6
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: windows-binary-${{ matrix.toolchain }}
+      - *set-up-ccache
 
       - name: Build binary
         env:
@@ -770,23 +652,9 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_PARAMS: -D CMAKE_TOOLCHAIN_FILE=../toolchains/${{ matrix.toolchain }}.cmake
         run: ci/build-binary
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
@@ -796,6 +664,8 @@ jobs:
           retention-days: 3
 
   windows_tests:
+    env:
+      CCACHE_KEY: windows-tests-windows-2022-msvc-x64
     timeout-minutes: 30
     name: Windows integration tests
     runs-on: windows-2022
@@ -811,11 +681,7 @@ jobs:
       - name: Install pytest
         run: pip install pytest
 
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: windows-tests-windows-2022-msvc-x64
+      - *set-up-ccache
 
       - name: Build ccache
         env:
@@ -833,25 +699,13 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           pytest test/msvc/ --ccache "%GITHUB_WORKSPACE%/build-win64/ccache.exe" -v
 
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
   specific_tests:
+    env:
+      CCACHE_KEY: specific-${{ matrix.os }}-${{ matrix.name }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -1040,11 +894,7 @@ jobs:
           "Path=${HOME}\opt\llvm\bin;${env:Path}" | `
             Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Set up ccache
-        id: ccache
-        uses: ./.github/actions/set-up-ccache
-        with:
-          key: specific-${{ matrix.os }}-${{ matrix.name }}
+      - *set-up-ccache
 
       - name: Build and test
         id: build-and-test
@@ -1088,23 +938,9 @@ jobs:
         continue-on-error: ${{ matrix.allow_test_failures == true &&
           steps.build-and-test.outputs.exit_status == 8 }}
 
-      - name: Show ccache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
-        env:
-          CCACHE: ${{ steps.ccache.outputs.executable }}
-        run: |
-          {
-            printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE" --show-stats --verbose
-            printf '```\n\n</details>\n'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - *show-ccache-statistics
 
-      - name: Save compilation cache
-        if: ${{ success() && steps.ccache.outcome == 'success' && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/ccache-cache
-          key: ${{ steps.ccache.outputs.cache-key }}
+      - *save-compilation-cache
 
       - name: Collect testdir from failed tests
         if: failure() || steps.build-and-test.outcome == 'failure'
