@@ -102,5 +102,5 @@ fi
 
 {
   echo "version=$version"
-  echo "launcher=$executable"
+  echo "executable=$executable"
 } >> "$GITHUB_OUTPUT"

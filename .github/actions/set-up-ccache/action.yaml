@@ -10,9 +10,9 @@ inputs:
     default: ''
 
 outputs:
-  launcher:
+  executable:
     description: Absolute path to the installed ccache executable
-    value: ${{ steps.install.outputs.launcher }}
+    value: ${{ steps.install.outputs.executable }}
   cache-key:
     description: Key for saving the updated compilation cache
     value: ${{ steps.restore.outputs.cache-primary-key }}
@@ -39,5 +39,5 @@ runs:
     - name: Reset ccache statistics
       shell: bash
       env:
-        CCACHE_LAUNCHER: ${{ steps.install.outputs.launcher }}
-      run: '"$CCACHE_LAUNCHER" --zero-stats'
+        CCACHE: ${{ steps.install.outputs.executable }}
+      run: '"$CCACHE" --zero-stats'
