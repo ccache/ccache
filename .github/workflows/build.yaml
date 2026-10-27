@@ -160,18 +160,18 @@ jobs:
 
       - name: Build and test
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
         run: ci/build
 
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -278,19 +278,19 @@ jobs:
           steps.build-and-test.outputs.exit_status == 8 }}
         env:
           CMAKE_GENERATOR: Ninja
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           TEST_CC: ${{ matrix.compiler }}
 
       - name: Show ccache statistics
         shell: bash
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -357,8 +357,8 @@ jobs:
 
       - name: Build binary
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_GENERATOR: Ninja
           CMAKE_PARAMS: |
             -D CMAKE_TOOLCHAIN_FILE=../toolchains/aarch64-linux-gnu.cmake
@@ -367,11 +367,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -410,8 +410,8 @@ jobs:
 
       - name: Build binary
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_GENERATOR: Ninja
           CMAKE_PARAMS: |
             -D CMAKE_TOOLCHAIN_FILE=../toolchains/riscv64-linux-gnu.cmake
@@ -420,11 +420,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -463,8 +463,8 @@ jobs:
 
       - name: Build binary
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_GENERATOR: Ninja
           CMAKE_PARAMS: |
             -D CMAKE_TOOLCHAIN_FILE=../toolchains/s390x-linux-gnu.cmake
@@ -473,11 +473,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -531,8 +531,8 @@ jobs:
 
       - name: Build binary
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_GENERATOR: Ninja
           CMAKE_PARAMS: -D CMAKE_EXE_LINKER_FLAGS_INIT=-static-libstdc++
         run: |
@@ -540,11 +540,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -619,12 +619,12 @@ jobs:
       - name: Build in Alpine container
         if: ${{ !matrix.qemu || steps.trigger.outputs.trigger-build == 'true' }}
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           mkdir -p "$CCACHE_DIR"
-          tool_dir=$(dirname "$CCACHE_LAUNCHER")
+          tool_dir=$(dirname "$CCACHE")
           docker run --rm -v "$PWD:/work" -w /work \
             -v "$tool_dir:$tool_dir:ro" \
             -v "$CCACHE_DIR:$CCACHE_DIR" \
@@ -644,11 +644,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -683,17 +683,17 @@ jobs:
 
       - name: Build Darwin binary
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
         run: ci/build-darwin-binary
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -759,18 +759,18 @@ jobs:
 
       - name: Build binary
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_PARAMS: -D CMAKE_TOOLCHAIN_FILE=../toolchains/${{ matrix.toolchain }}.cmake
         run: ci/build-binary
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -812,8 +812,8 @@ jobs:
 
       - name: Build ccache
         env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -829,11 +829,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -1048,8 +1048,8 @@ jobs:
           CCACHE_LOC: ${{ matrix.CCACHE_LOC }}
           CFLAGS: ${{ matrix.CFLAGS }}
           CMAKE_GENERATOR: ${{ matrix.CMAKE_GENERATOR }}
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.ccache.outputs.executable }}
           CMAKE_PARAMS: ${{ matrix.CMAKE_PARAMS }}
           CXX: ${{ matrix.CXX }}
           CXXFLAGS: ${{ matrix.CXXFLAGS }}
@@ -1084,11 +1084,11 @@ jobs:
       - name: Show ccache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         env:
-          CCACHE_LAUNCHER: ${{ steps.ccache.outputs.launcher }}
+          CCACHE: ${{ steps.ccache.outputs.executable }}
         run: |
           {
             printf '<details>\n<summary>Ccache statistics</summary>\n\n```text\n'
-            "$CCACHE_LAUNCHER" --show-stats --verbose
+            "$CCACHE" --show-stats --verbose
             printf '```\n\n</details>\n'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
