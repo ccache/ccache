@@ -86,13 +86,16 @@ curl --fail --location --silent --show-error --retry 3 \
 )
 
 cache_dir="$temp_dir/ccache-cache"
+base_dir=$GITHUB_WORKSPACE
 executable="$tool_dir/ccache-$version-$platform/ccache"
 if [ "$RUNNER_OS" = Windows ]; then
   cache_dir=$(cygpath -m "$cache_dir")
+  base_dir=$(cygpath -m "$base_dir")
   executable=$(cygpath -m "$executable.exe")
 fi
 
 {
+  echo "CCACHE_BASEDIR=$base_dir"
   echo "CCACHE_DIR=$cache_dir"
   echo 'CCACHE_MAXSIZE=500M'
   echo 'CCACHE_COMPILERCHECK=content'
