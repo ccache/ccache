@@ -38,7 +38,8 @@ else
     if [ -x ccache ]; then
         ./ccache --version
     elif command -v wine >/dev/null && [ -f ccache.exe ]; then
-        wine ccache.exe --version
+        # The Windows executable cannot use the host's Unix base directory.
+        CCACHE_BASEDIR= wine ccache.exe --version
     fi
 
     case "${RUN_TESTS:-all}" in
@@ -46,7 +47,7 @@ else
             CC="${TEST_CC}" ctest --output-on-failure -j"${JOBS}" "$@"
             ;;
         unittest-in-wine)
-            wine unittest/unittest.exe
+            CCACHE_BASEDIR= wine unittest/unittest.exe
             ;;
         none)
             ;;

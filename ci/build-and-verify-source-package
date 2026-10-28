@@ -8,8 +8,6 @@ set -eux
 # Unset CI variable to trigger ccache user build mode.
 unset CI
 
-# Ninja builds with relative paths so that ccache can be used to cache the build
-# without resorting to setting base_dir.
 export CMAKE_GENERATOR=Ninja
 
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXX")
@@ -19,6 +17,8 @@ git archive --prefix=ccache/ -o $tmp_dir/ccache.tar.gz HEAD
 cd $tmp_dir
 tar xf ccache.tar.gz
 cd ccache
+# This source tree is outside the checkout configured by CI.
+export CCACHE_BASEDIR="$PWD"
 mkdir build
 cd build
 cmake ..

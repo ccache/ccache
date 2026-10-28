@@ -552,9 +552,11 @@ jobs:
             -v "$tool_dir:$tool_dir:ro" \
             -v "$CCACHE_DIR:$CCACHE_DIR" \
             ${{ matrix.qemu && format('--platform linux/{0}', matrix.arch) || '' }} \
+            -e CCACHE_BASEDIR=/work \
             -e CCACHE_DIR \
             -e CCACHE_MAXSIZE \
             -e CCACHE_COMPILERCHECK \
+            -e CCACHE_COMPRESSLEVEL \
             -e CMAKE_C_COMPILER_LAUNCHER \
             -e CMAKE_CXX_COMPILER_LAUNCHER \
             -e GITHUB_REF \
