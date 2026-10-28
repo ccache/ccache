@@ -1360,6 +1360,30 @@ fi
     fi
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
+    TEST "Closed stderr pipe with SIGPIPE ignored"
+
+    echo 'int main(void) { return undefined_symbol; }' >invalid.c
+    (
+        ulimit -c 0
+        trap '' PIPE
+        exec 3> >(true)
+        wait "$!"
+        $CCACHE_COMPILE -c invalid.c >&3 2>&1
+    )
+    expect_equal "$?" 1
+
+    $CCACHE_COMPILE -c invalid.c 2>stderr.txt
+    expect_equal "$?" 1
+    expect_contains stderr.txt undefined_symbol
+
+    $CCACHE missing-compiler -c invalid.c 2>stderr.txt
+    expect_equal "$?" 1
+    echo 'ccache: error: Could not find compiler "missing-compiler" in PATH' >expected.txt
+    expect_equal_content expected.txt stderr.txt
+fi
+
+    # -------------------------------------------------------------------------
     TEST "Caching stderr"
 
     cat <<EOF >stderr.c
