@@ -1367,8 +1367,13 @@ if ! $HOST_OS_WINDOWS; then
     (
         ulimit -c 0
         trap '' PIPE
-        exec 3> >(true)
-        wait "$!"
+        # Ordinary background children can be waited for by macOS Bash 3.2.
+        mkfifo closed-stderr.fifo
+        true <closed-stderr.fifo &
+        reader_pid=$!
+        exec 3>closed-stderr.fifo
+        wait "$reader_pid"
+        rm closed-stderr.fifo
         $CCACHE_COMPILE -c invalid.c >&3 2>&1
     )
     expect_equal "$?" 1
