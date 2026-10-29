@@ -1367,11 +1367,12 @@ if ! $HOST_OS_WINDOWS; then
     (
         ulimit -c 0
         trap '' PIPE
-        # Ordinary background children can be waited for by macOS Bash 3.2.
+        # Keep the reader alive until open completes so SIGCHLD cannot interrupt it.
         mkfifo closed-stderr.fifo
-        true <closed-stderr.fifo &
+        read -r <closed-stderr.fifo &
         reader_pid=$!
         exec 3>closed-stderr.fifo
+        echo >&3
         wait "$reader_pid"
         rm closed-stderr.fifo
         $CCACHE_COMPILE -c invalid.c >&3 2>&1
