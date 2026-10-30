@@ -1360,6 +1360,36 @@ fi
     fi
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
+    TEST "Closed stderr pipe with SIGPIPE ignored"
+
+    echo 'int main(void) { return undefined_symbol; }' >invalid.c
+    (
+        ulimit -c 0
+        trap '' PIPE
+        # Keep the reader alive until open completes so SIGCHLD cannot interrupt it.
+        mkfifo closed-stderr.fifo
+        read -r <closed-stderr.fifo &
+        reader_pid=$!
+        exec 3>closed-stderr.fifo
+        echo >&3
+        wait "$reader_pid"
+        rm closed-stderr.fifo
+        $CCACHE_COMPILE -c invalid.c >&3 2>&1
+    )
+    expect_equal "$?" 1
+
+    $CCACHE_COMPILE -c invalid.c 2>stderr.txt
+    expect_equal "$?" 1
+    expect_contains stderr.txt undefined_symbol
+
+    $CCACHE missing-compiler -c invalid.c 2>stderr.txt
+    expect_equal "$?" 1
+    echo 'ccache: error: Could not find compiler "missing-compiler" in PATH' >expected.txt
+    expect_equal_content expected.txt stderr.txt
+fi
+
+    # -------------------------------------------------------------------------
     TEST "Caching stderr"
 
     cat <<EOF >stderr.c

@@ -86,6 +86,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <exception>
 #include <initializer_list>
 #include <memory>
 #include <span>
@@ -3308,7 +3309,11 @@ ccache_main(int argc, const char* const* argv)
 
     return cache_compilation(argc, argv);
   } catch (const core::ErrorBase& e) {
-    PRINT(stderr, "ccache: error: {}\n", e.what());
+    try {
+      PRINT(stderr, "ccache: error: {}\n", e.what());
+    } catch (const std::exception&) {
+      // Error reporting must not throw if stderr is no longer writable.
+    }
     return EXIT_FAILURE;
   }
 }
