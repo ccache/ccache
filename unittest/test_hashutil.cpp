@@ -24,6 +24,7 @@
 #include <ccache/util/cpu.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/format.hpp>
+#include <ccache/util/string.hpp>
 
 #include <doctest/doctest.h>
 
@@ -180,6 +181,39 @@ check_temporal_macros(SourceCodePatternChecker check)
 }
 
 TEST_SUITE_BEGIN("hashutil");
+
+TEST_CASE("hash_binary_file")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_inode_cache(false);
+
+  SUBCASE("Missing file")
+  {
+    CHECK(!hash_binary_file(ctx, "missing"));
+  }
+
+  SUBCASE("Empty file")
+  {
+    REQUIRE(util::write_file("empty", ""));
+    const auto digest = hash_binary_file(ctx, "empty");
+    REQUIRE(digest);
+    CHECK(*digest == Hash().digest());
+  }
+
+  SUBCASE("Binary data spanning multiple read buffers")
+  {
+    std::string data(2 * CCACHE_READ_BUFFER_SIZE + 17, '\0');
+    for (size_t i = 0; i < data.size(); ++i) {
+      data[i] = static_cast<char>(i % 256);
+    }
+    data.replace(100, 8, "__TIME__");
+    REQUIRE(util::write_file("binary", util::to_span(data)));
+    const auto digest = hash_binary_file(ctx, "binary");
+    REQUIRE(digest);
+    CHECK(*digest == Hash().hash(data).digest());
+  }
+}
 
 TEST_CASE("hash_command_output_simple")
 {
