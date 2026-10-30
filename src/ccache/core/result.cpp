@@ -46,6 +46,7 @@
 #endif
 
 #include <algorithm>
+#include <limits>
 
 namespace fs = util::filesystem;
 
@@ -313,9 +314,25 @@ Serializer::serialize(util::Bytes& output)
         RawFile{file_number, std::get<std::string>(entry.data)});
     } else if (is_file_entry) {
       const auto& path = std::get<std::string>(entry.data);
-      const auto data = util::value_or_throw<Error>(
-        util::read_file<util::Bytes>(path), FMT("Failed to read {}: ", path));
-      writer.write_bytes(data);
+      util::FileStream file(path, "rb");
+      if (!file) {
+        throw Error(FMT("Failed to open {}: {}", path, strerror(errno)));
+      }
+      const size_t offset = output.size();
+      if (file_size > std::numeric_limits<size_t>::max() - offset) {
+        throw Error(FMT("File too large: {}", path));
+      }
+      // Read directly into the payload to avoid a large temporary buffer.
+      output.resize(offset + file_size);
+      const auto bytes_read =
+        fread(output.data() + offset, 1, file_size, *file);
+      const auto next_byte = fgetc(*file);
+      if (ferror(*file)) {
+        throw Error(FMT("Failed to read {}: {}", path, strerror(errno)));
+      }
+      if (bytes_read != file_size || next_byte != EOF) {
+        throw Error(FMT("File size changed while reading {}", path));
+      }
     } else {
       writer.write_bytes(std::get<std::span<const uint8_t>>(entry.data));
     }
