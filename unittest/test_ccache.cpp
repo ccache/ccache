@@ -197,6 +197,8 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler("/test/prefix/nvcc") == CompilerType::nvcc);
     CHECK(guess_compiler("/test/prefix/nvcc-10.1.243") == CompilerType::nvcc);
 
+    CHECK(guess_compiler("/test/prefix/ispc") == CompilerType::ispc);
+
     CHECK(guess_compiler("/test/prefix/qcc") == CompilerType::qcc);
     CHECK(guess_compiler("/test/prefix/q++") == CompilerType::qcc);
 
@@ -306,6 +308,72 @@ TEST_CASE("file_path_matches_dir_prefix_or_file")
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
   CHECK(!file_path_matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
 #endif
+}
+
+TEST_CASE("should_ignore_missing_include")
+{
+  // ISPC embeds core.isph/stdlib.isph in the compiler binary and reports them
+  // with virtual paths. The binary itself is covered by compiler_check, and a
+  // genuinely missing user #include makes ISPC fail before ccache sees the
+  // preprocessor output.
+  CHECK(should_ignore_missing_include(CompilerType::ispc));
+
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::gcc));
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::clang));
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::clang_cl));
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::msvc));
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::nvcc));
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::qcc));
+  CHECK_FALSE(should_ignore_missing_include(CompilerType::other));
+}
+
+TEST_CASE("get_preprocessor_args_for_cache_lookup")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::ispc);
+
+  SUBCASE("multi-target --target=a,b is reduced to the first target")
+  {
+    ctx.args_info.ispc_target_suffixes = {"_avx2", "_sse4"};
+    ctx.args_info.ispc_first_target = "avx2-i32x8";
+    const Args args =
+      Args::from_string("ispc --target=avx2-i32x8,sse4.2-i32x4 -O2");
+
+    CHECK(get_preprocessor_args_for_cache_lookup(ctx, args).to_string()
+          == "ispc --target=avx2-i32x8 -O2");
+  }
+
+  SUBCASE("multi-target --target a,b is reduced to the first target")
+  {
+    ctx.args_info.ispc_target_suffixes = {"_avx2", "_sse4"};
+    ctx.args_info.ispc_first_target = "avx2-i32x8";
+    const Args args =
+      Args::from_string("ispc --target avx2-i32x8,sse4.2-i32x4 -O2");
+
+    CHECK(get_preprocessor_args_for_cache_lookup(ctx, args).to_string()
+          == "ispc --target avx2-i32x8 -O2");
+  }
+
+  SUBCASE("single-target arguments are passed through unchanged")
+  {
+    ctx.args_info.ispc_first_target = "avx2-i32x8";
+    const Args args = Args::from_string("ispc --target=avx2-i32x8 -O2");
+
+    CHECK(get_preprocessor_args_for_cache_lookup(ctx, args).to_string()
+          == args.to_string());
+  }
+
+  SUBCASE("non-ISPC arguments are passed through unchanged")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang);
+    ctx.args_info.ispc_target_suffixes = {"_avx2", "_sse4"};
+    ctx.args_info.ispc_first_target = "avx2-i32x8";
+    const Args args = Args::from_string("clang --target=x86_64-linux-gnu -O2");
+
+    CHECK(get_preprocessor_args_for_cache_lookup(ctx, args).to_string()
+          == args.to_string());
+  }
 }
 
 TEST_SUITE_END();
