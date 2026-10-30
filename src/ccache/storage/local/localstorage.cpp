@@ -507,7 +507,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 
   const auto cache_file = look_up_cache_file(key);
   if (cache_file.dir_entry.is_regular_file()) {
-    const auto value = util::read_file<util::Bytes>(cache_file.path);
+    auto value = util::read_file<util::Bytes>(cache_file.path);
     if (value) {
       LOG("Retrieved {} from local storage ({})",
           util::format_base16(key),
@@ -516,7 +516,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
       // Update modification timestamp to save file from LRU cleanup.
       util::set_timestamps(cache_file.path);
 
-      return_value = *value;
+      return_value = std::move(*value);
     } else {
       LOG("Failed to read {}: {}", cache_file.path, value.error());
     }
