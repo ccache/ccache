@@ -228,21 +228,26 @@ do_hash_file(const Context& ctx,
   (void)ctx;
 #endif
 
-  const auto data = util::read_file<util::Bytes>(path, size_hint);
-  if (!data) {
-    LOG("Failed to read {}: {}", path, data.error());
-    return std::nullopt;
-  }
-
-  auto str = util::to_string_view(*data);
   Hash hash;
-  hash.hash(str);
-  digest = hash.digest();
-
   SourceCodeScanResult result;
   if (scan_source) {
+    const auto data = util::read_file<util::Bytes>(path, size_hint);
+    if (!data) {
+      LOG("Failed to read {}: {}", path, data.error());
+      return std::nullopt;
+    }
+    const auto str = util::to_string_view(*data);
+    hash.hash(str);
     result = check_for_source_code_patterns(str);
+  } else {
+    const auto hash_result = hash.hash_file(path);
+    if (!hash_result) {
+      LOG("Failed to read {}: {}", path, hash_result.error());
+      return std::nullopt;
+    }
   }
+  digest = hash.digest();
+
 #ifdef INODE_CACHE_SUPPORTED
   ctx.inode_cache.put(path, content_type, digest, result);
 #endif
