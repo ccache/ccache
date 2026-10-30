@@ -284,6 +284,7 @@ CacheEntry::serialize(const CacheEntry::Header& header,
 
       case CompressionType::zstd:
         util::Bytes payload;
+        payload.reserve(payload_serializer.serialized_size());
         payload_serializer.serialize(payload);
         util::throw_on_error<core::Error>(
           util::zstd_compress(payload, result, hdr.compression_level),
