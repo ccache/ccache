@@ -885,6 +885,41 @@ TEST_CASE("MSVC options"
   CHECK(result->compiler_args.to_string() == "cl.exe /foobar /c");
 }
 
+TEST_CASE("MSVC C++20 module options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+
+  REQUIRE(util::write_file("foo.cppm", ""));
+  REQUIRE(util::write_file("foo.ifc", ""));
+
+  for (const auto& options : {"/interface /ifcOutput foo.ifc",
+                              "-ifcOutput foo.ifc",
+                              "/ifcOutput:foo.ifc",
+                              "/reference bar=bar.ifc",
+                              "/headerUnit:quote bar.h=bar.h.ifc",
+                              "/headerName:angle bar.h",
+                              "/exportHeader",
+                              "/ifcSearchDir ifc",
+                              "/ifcSearchDirifc",
+                              "/experimental:module",
+                              "/module:reference foo.ifc"}) {
+    CAPTURE(options);
+    ctx.orig_args =
+      Args::from_string(FMT("cl.exe /std:c++20 {} /TP /c foo.cppm", options));
+    const auto result = process_args(ctx);
+    REQUIRE(!result);
+    CHECK(result.error() == Statistic::could_not_use_modules);
+  }
+
+  ctx.orig_args = Args::from_string("cl.exe /std:c++20 /TP /c foo.cppm");
+  CHECK(process_args(ctx));
+  // MSVC resolves an import to an IFC file in the current directory.
+  CHECK(ctx.args_info.searched_module_files
+        == std::vector<fs::path>{"./foo.ifc"});
+}
+
 TEST_CASE("MSVC /experimental:log")
 {
   TestContext test_context;
