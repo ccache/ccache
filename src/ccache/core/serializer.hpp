@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <ccache/util/bytes.hpp>
+#include <ccache/util/types.hpp>
 
 #include <cstdint>
 #include <span>
@@ -30,7 +30,10 @@ class Serializer
 public:
   virtual ~Serializer() = default;
   virtual uint32_t serialized_size() const = 0;
-  virtual void serialize(util::Bytes& output) = 0;
+
+  // Pass serialized chunks to receiver synchronously. The spans are only valid
+  // during each call. Exceptions from receiver propagate to the caller.
+  virtual void serialize(const util::DataReceiver& receiver) = 0;
 };
 
 } // namespace core

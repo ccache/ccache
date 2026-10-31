@@ -19,14 +19,17 @@
 #pragma once
 
 #include <ccache/core/exceptions.hpp>
+#include <ccache/util/bytes.hpp>
 #include <ccache/util/conversion.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
+#include <ccache/util/types.hpp>
 
 #include <cstddef>
 #include <cstring>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace core {
 
@@ -34,6 +37,7 @@ class CacheEntryDataWriter
 {
 public:
   CacheEntryDataWriter(util::Bytes& output);
+  CacheEntryDataWriter(util::DataReceiver receiver);
 
   // Write `data`. Throws `core::Error` on failure.
   void write_bytes(std::span<const uint8_t> data);
@@ -45,18 +49,23 @@ public:
   template<typename T> void write_int(T value);
 
 private:
-  util::Bytes& m_output;
+  util::DataReceiver m_receiver;
 };
 
 inline CacheEntryDataWriter::CacheEntryDataWriter(util::Bytes& output)
-  : m_output(output)
+  : m_receiver([&output](auto data) { output.insert(output.end(), data); })
+{
+}
+
+inline CacheEntryDataWriter::CacheEntryDataWriter(util::DataReceiver receiver)
+  : m_receiver(std::move(receiver))
 {
 }
 
 inline void
 CacheEntryDataWriter::write_bytes(std::span<const uint8_t> data)
 {
-  m_output.insert(m_output.end(), data);
+  m_receiver(data);
 }
 
 template<typename T>

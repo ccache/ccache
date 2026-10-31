@@ -280,9 +280,9 @@ Manifest::serialized_size() const
 }
 
 void
-Manifest::serialize(util::Bytes& output)
+Manifest::serialize(const util::DataReceiver& receiver)
 {
-  core::CacheEntryDataWriter writer(output);
+  core::CacheEntryDataWriter writer(receiver);
 
   writer.write_int(k_format_version);
   writer.write_int(static_cast<uint32_t>(m_files.size()));

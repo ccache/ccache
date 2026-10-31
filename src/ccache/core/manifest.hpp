@@ -63,7 +63,7 @@ public:
 
   // core::Serializer
   uint32_t serialized_size() const override;
-  void serialize(util::Bytes& output) override;
+  void serialize(const util::DataReceiver& receiver) override;
 
   void inspect(FILE* stream) const;
 

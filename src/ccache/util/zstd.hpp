@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ccache/util/bytes.hpp>
+#include <ccache/util/noncopyable.hpp>
 
 #include <tl/expected.hpp>
 
@@ -28,7 +29,33 @@
 #include <string>
 #include <tuple>
 
+struct ZSTD_CCtx_s;
+
 namespace util {
+
+class ZstdCompressor : NonCopyable
+{
+public:
+  explicit ZstdCompressor(Bytes& output);
+  ~ZstdCompressor();
+
+  [[nodiscard]] tl::expected<void, std::string>
+  initialize(size_t input_size, int8_t compression_level);
+
+  [[nodiscard]] tl::expected<void, std::string>
+  write(std::span<const uint8_t> input);
+
+  [[nodiscard]] tl::expected<void, std::string> finish();
+
+private:
+  tl::expected<void, std::string> compress(std::span<const uint8_t> input,
+                                           bool finish);
+
+  ZSTD_CCtx_s* m_context;
+  Bytes& m_output;
+  size_t m_output_limit = 0;
+  size_t m_remaining_input = 0;
+};
 
 [[nodiscard]] tl::expected<void, std::string> zstd_compress(
   std::span<const uint8_t> input, Bytes& output, int8_t compression_level);
