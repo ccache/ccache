@@ -72,10 +72,6 @@ jobs:
             compiler: gcc
             version: "13"
 
-          - os: macOS-14
-            compiler: xcode
-            version: "15.4"
-
           - os: macOS-15
             compiler: xcode
             version: "16.4"
