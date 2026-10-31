@@ -430,12 +430,13 @@ remember_include_file(Context& ctx,
   }
 
   if (!ctx.ignore_header_paths.empty()) {
-    // Canonicalize path for comparison; Clang uses ./header.h.
-    const std::string& canonical_path_str =
-      path_str.str().starts_with("./") ? path_str.str().substr(2) : path_str;
+    // Canonicalize path for comparison; Clang uses ./header.h, or .\header.h on
+    // Windows.
+    const fs::path canonical_path =
+      *path.begin() == "." ? path.lexically_relative(".") : path;
     for (const auto& ignore_header_path : ctx.ignore_header_paths) {
       if (file_path_matches_dir_prefix_or_file(ignore_header_path,
-                                               canonical_path_str)) {
+                                               canonical_path)) {
         return {};
       }
     }
