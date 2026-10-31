@@ -423,7 +423,7 @@ pch_suite_gcc() {
     printf '#include "indirect.h"\nint value(void) { return VALUE; }\n' >pch2.c
     backdate pch2.c
     for value in 0 1; do
-        printf '#pragma once\n#define VALUE %s\n' "$value" >inc/indirect.h
+        printf '#define VALUE %s\n' "$value" >inc/indirect.h
         backdate inc/indirect.h
         $COMPILER $SYSROOT -c inc/indirect.h
         backdate inc/indirect.h.gch
