@@ -1764,7 +1764,10 @@ EOF
     expect_stat cache_miss 2
 
     # -------------------------------------------------------------------------
-    if $COMPILER -march=native -c test1.c 2>/dev/null; then
+    # Some compilers warn about the features that -march=native detects, e.g.
+    # Clang 18 on CPUs with AVX10, which the test would take as a failure. A
+    # compiler without -march=native fails with an error message.
+    if [ -z "$($COMPILER -march=native -c test1.c 2>&1)" ]; then
         TEST "-march=native, no CWD in input hash"
         CCACHE_DEBUG=1 $CCACHE_COMPILE -march=native -c test1.c
         expect_not_contains test1.o.*.ccache-input-text "$PWD"
