@@ -279,17 +279,23 @@ CacheEntry::serialize(const CacheEntry::Header& header,
     [&payload_serializer](util::Bytes& result, const CacheEntry::Header& hdr) {
       switch (hdr.compression_type) {
       case CompressionType::none:
-        payload_serializer.serialize(result);
+        payload_serializer.serialize(
+          [&result](auto data) { result.insert(result.end(), data); });
         break;
 
-      case CompressionType::zstd:
-        util::Bytes payload;
-        payload.reserve(payload_serializer.serialized_size());
-        payload_serializer.serialize(payload);
-        util::throw_on_error<core::Error>(
-          util::zstd_compress(payload, result, hdr.compression_level),
-          "Cache entry payload compression error: ");
+      case CompressionType::zstd: {
+        util::ZstdCompressor compressor(result);
+        auto check = [](auto status) {
+          util::throw_on_error<core::Error>(
+            std::move(status), "Cache entry payload compression error: ");
+        };
+        check(compressor.initialize(payload_serializer.serialized_size(),
+                                    hdr.compression_level));
+        payload_serializer.serialize(
+          [&](auto data) { check(compressor.write(data)); });
+        check(compressor.finish());
         break;
+      }
       }
     });
 }

@@ -9,6 +9,7 @@ set(
   test_compression_types.cpp
   test_config.cpp
   test_core_atomicfile.cpp
+  test_core_cacheentry.cpp
   test_core_common.cpp
   test_core_statistics.cpp
   test_core_statisticscounters.cpp

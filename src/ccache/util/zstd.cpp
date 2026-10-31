@@ -22,6 +22,76 @@
 
 namespace util {
 
+ZstdCompressor::ZstdCompressor(Bytes& output)
+  : m_context(ZSTD_createCCtx()),
+    m_output(output)
+{
+}
+
+ZstdCompressor::~ZstdCompressor()
+{
+  ZSTD_freeCCtx(m_context);
+}
+
+tl::expected<void, std::string>
+ZstdCompressor::initialize(size_t input_size, int8_t compression_level)
+{
+  if (!m_context) {
+    return tl::unexpected("Failed to create Zstd compression context");
+  }
+  const size_t result = ZSTD_initCStream(m_context, compression_level);
+  if (ZSTD_isError(result)) {
+    return tl::unexpected(ZSTD_getErrorName(result));
+  }
+  m_remaining_input = input_size;
+  m_output_limit = m_output.size() + zstd_compress_bound(input_size);
+  m_output.reserve(m_output_limit);
+  return {};
+}
+
+tl::expected<void, std::string>
+ZstdCompressor::write(std::span<const uint8_t> input)
+{
+  if (input.size() > m_remaining_input) {
+    return tl::unexpected("Input exceeds expected size");
+  }
+  m_remaining_input -= input.size();
+  return compress(input, false);
+}
+
+tl::expected<void, std::string>
+ZstdCompressor::finish()
+{
+  if (m_remaining_input != 0) {
+    return tl::unexpected("Input is smaller than expected size");
+  }
+  return compress({}, true);
+}
+
+tl::expected<void, std::string>
+ZstdCompressor::compress(std::span<const uint8_t> input, bool finish)
+{
+  ZSTD_inBuffer in{.src = input.data(), .size = input.size(), .pos = 0};
+  size_t remaining;
+  do {
+    const size_t offset = m_output.size();
+    m_output.resize(m_output_limit);
+    ZSTD_outBuffer out{
+      .dst = m_output.data(), .size = m_output_limit, .pos = offset};
+    remaining = finish ? ZSTD_endStream(m_context, &out)
+                       : ZSTD_compressStream(m_context, &out, &in);
+    m_output.resize(out.pos);
+    if (ZSTD_isError(remaining)) {
+      return tl::unexpected(ZSTD_getErrorName(remaining));
+    }
+    if (out.pos == m_output_limit
+        && (in.pos < in.size || (finish && remaining))) {
+      return tl::unexpected("Compressed output exceeds compression bound");
+    }
+  } while (in.pos < in.size || (finish && remaining != 0));
+  return {};
+}
+
 tl::expected<void, std::string>
 zstd_compress(std::span<const uint8_t> input,
               Bytes& output,

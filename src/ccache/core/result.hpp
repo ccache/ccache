@@ -165,7 +165,7 @@ public:
 
   // core::Serializer
   uint32_t serialized_size() const override;
-  void serialize(util::Bytes& output) override;
+  void serialize(const util::DataReceiver& receiver) override;
 
   static bool use_raw_files(const Config& config);
 
