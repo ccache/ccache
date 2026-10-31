@@ -81,18 +81,22 @@ TEST_CASE("ZSTD roundtrip")
 TEST_CASE("util::ZstdCompressor")
 {
   util::Bytes input;
+
   SUBCASE("Empty input")
   {
   }
+
   SUBCASE("Small input")
   {
     input = util::Bytes{'a', 'b'};
   }
+
   SUBCASE("Compressible input")
   {
     input.resize(1024 * 1024 + 17);
     std::fill(input.begin(), input.end(), 'a');
   }
+
   SUBCASE("Incompressible input")
   {
     input.resize(1024 * 1024 + 17);
@@ -101,8 +105,10 @@ TEST_CASE("util::ZstdCompressor")
       byte = static_cast<uint8_t>(random());
     }
   }
+
   for (const int8_t level : {-3, 1, 5}) {
     CAPTURE(level);
+
     util::Bytes output{'x'};
     output.reserve(1 + util::zstd_compress_bound(input.size()));
     const auto* original_buffer = output.data();
@@ -117,6 +123,7 @@ TEST_CASE("util::ZstdCompressor")
     REQUIRE(compressor.finish());
     CHECK(output.data() == original_buffer);
     CHECK(output[0] == 'x');
+
     const std::span<const uint8_t> frame(output.data() + 1, output.size() - 1);
     util::Bytes decoded;
     REQUIRE(
@@ -130,11 +137,13 @@ TEST_CASE("util::ZstdCompressor rejects input size mismatch")
   util::Bytes output;
   util::ZstdCompressor compressor(output);
   REQUIRE(compressor.initialize(2, 1));
+
   SUBCASE("Too little data")
   {
     REQUIRE(compressor.write(util::Bytes{'a'}));
     CHECK(!compressor.finish());
   }
+
   SUBCASE("Too much data")
   {
     const auto write_result = compressor.write(util::Bytes{'a', 'b', 'c'});
