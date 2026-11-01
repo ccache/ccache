@@ -164,7 +164,8 @@ struct ArgsInfo
   // Files referenced by -fmodule-file=<name>=<path> (explicit C++ modules).
   std::vector<std::filesystem::path> module_files;
 
-  // Files found by searching the directories given by -fprebuilt-module-path=.
+  // Files found by searching the directories given by -fprebuilt-module-path=,
+  // and IFC files in the current directory for MSVC.
   std::vector<std::filesystem::path> searched_module_files;
 
   // Architectures from -arch options.
