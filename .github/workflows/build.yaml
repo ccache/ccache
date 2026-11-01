@@ -609,10 +609,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - arch: i686
-          #   toolchain: i686-w64-mingw32-posix
-          #   apt_get: g++-mingw-w64-i686-posix
-
           - arch: x86_64
             toolchain: x86_64-w64-mingw32-posix
             apt_get: g++-mingw-w64-x86-64-posix
@@ -746,15 +742,6 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -D CMAKE_TOOLCHAIN_FILE=../toolchains/x86_64-w64-mingw32-posix.cmake
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
-
-          - name: Windows VS2022 32-bit
-            os: windows-2022
-            msvc_arch: x64_x86
-            CC: cl
-            CXX: cl
-            CMAKE_GENERATOR: Ninja
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_POLICY_DEFAULT_CMP0141=NEW -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
-            TEST_CC: clang -target i686-pc-windows-msvc
 
           - name: Windows VS2022 64-bit
             os: windows-2022
