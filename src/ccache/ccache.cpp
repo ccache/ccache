@@ -3066,6 +3066,16 @@ do_cache_compilation(Context& ctx)
     ctx.config.set_depend_mode(false);
   }
 
+  if (ctx.config.depend_mode() && ctx.config.is_compiler_group_gcc()
+      && ctx.args_info.using_precompiled_header
+      && ctx.args_info.included_pch_file.empty()
+      && !ctx.args_info.output_is_precompiled_header) {
+    // GCC may omit the PCH and its headers from the dependency file. Without
+    // the PCH path, depend mode cannot track all compilation inputs.
+    LOG("Cannot use depend mode without the precompiled header path");
+    return tl::unexpected(Statistic::could_not_use_precompiled_header);
+  }
+
   if (!ctx.config.remote_storage().empty()) {
     if (ctx.config.file_clone()) {
       LOG("Disabling file clone mode since remote storage is enabled");
