@@ -919,6 +919,7 @@ jobs:
             export CCC_CC="$compiler_dir/CC"
             export CCC_CXX="$compiler_dir/CXX"
             unset CMAKE_C_COMPILER_LAUNCHER CMAKE_CXX_COMPILER_LAUNCHER
+            export CMAKE_PREFIX="scan-build -v --status-bugs -o $RUNNER_TEMP/scan-build"
           fi
           rc=0
           ci/build || rc=$?
@@ -931,6 +932,13 @@ jobs:
       - *show-ccache-statistics
 
       - *save-compilation-cache
+
+      - name: Upload Clang static analyzer reports
+        if: always() && matrix.CMAKE_PREFIX == 'scan-build'
+        uses: actions/upload-artifact@v7
+        with:
+          name: clang-static-analyzer-reports
+          path: ${{ runner.temp }}/scan-build
 
       - name: Collect testdir from failed tests
         if: failure() || steps.build-and-test.outcome == 'failure'

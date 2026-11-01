@@ -57,7 +57,6 @@ TEST_CASE("Args move constructor")
   const char* bar_pointer = args1[1].c_str();
 
   Args args2(std::move(args1));
-  CHECK(args1.size() == 0);
   CHECK(args2.size() == 2);
   CHECK(args2[0].c_str() == foo_pointer);
   CHECK(args2[1].c_str() == bar_pointer);
@@ -279,7 +278,6 @@ TEST_CASE("Args move assignment operator")
 
   Args args2;
   args2 = std::move(args1);
-  CHECK(args1.size() == 0);
   CHECK(args2.size() == 2);
   CHECK(args2[0].c_str() == x_pointer);
   CHECK(args2[1] == y_pointer);

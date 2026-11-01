@@ -113,8 +113,14 @@ TEST_CASE("Basics")
     const uint8_t* bytes1_orig_data = bytes1.data();
     Bytes bytes2(std::move(bytes1));
 
-    CHECK(bytes1.data() == nullptr);
-    CHECK(bytes1.size() == 0);
+    // Bytes guarantees that the moved-from object is empty.
+#if defined(__clang_analyzer__) && __has_cpp_attribute(clang::suppress)
+    [[clang::suppress]]
+#endif
+    {
+      CHECK(bytes1.data() == nullptr);
+      CHECK(bytes1.size() == 0);
+    }
 
     CHECK(bytes2.data() != nullptr);
     CHECK(bytes2.data() == bytes1_orig_data);
@@ -151,8 +157,14 @@ TEST_CASE("Basics")
     Bytes bytes2;
     bytes2 = std::move(bytes1);
 
-    CHECK(bytes1.data() == nullptr);
-    CHECK(bytes1.size() == 0);
+    // Bytes guarantees that the moved-from object is empty.
+#if defined(__clang_analyzer__) && __has_cpp_attribute(clang::suppress)
+    [[clang::suppress]]
+#endif
+    {
+      CHECK(bytes1.data() == nullptr);
+      CHECK(bytes1.size() == 0);
+    }
 
     CHECK(bytes2.data() == bytes1_orig_data);
     REQUIRE(bytes2.size() == 3);
