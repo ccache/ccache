@@ -606,6 +606,11 @@ main()
   }
   DEFER(if (g_log_file) { std::fclose(g_log_file); });
 
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    fail(FMT("Failed to get working directory: {}", cwd.error().message()));
+  }
+
   const char* ipc_endpoint = std::getenv("CRSH_IPC_ENDPOINT");
   if (!ipc_endpoint) {
     fail("CRSH_IPC_ENDPOINT environment variable not set");
@@ -615,7 +620,7 @@ main()
 #ifdef _WIN32
   endpoint = std::string("\\\\.\\pipe\\") + ipc_endpoint;
 #else
-  endpoint = ipc_endpoint;
+  endpoint = (*cwd / ipc_endpoint).string();
 #endif
 
   const char* url = std::getenv("CRSH_URL");
@@ -637,6 +642,12 @@ main()
   log_msg(FMT("IPC endpoint: {}", endpoint));
   log_msg(FMT("URL: {}", url));
   log_msg(FMT("Idle timeout: {}", idle_timeout));
+
+  // Release the caller's working directory while the helper is running.
+  if (auto result = fs::current_path(cwd->root_path()); !result) {
+    fail(
+      FMT("Failed to change working directory: {}", result.error().message()));
+  }
 
   IpcServer helper(endpoint, std::chrono::seconds{idle_timeout});
   helper.run();
