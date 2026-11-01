@@ -203,11 +203,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - sys: mingw64
+          - sys: ucrt64
             compiler: gcc
             os: windows-2025
 
-          - sys: mingw64
+          - sys: ucrt64
             compiler: clang
             extra_cmake_params: -DCMAKE_CXX_FLAGS=-Wno-deprecated # doctest issue #900
             os: windows-2025
@@ -259,7 +259,7 @@ jobs:
       - name: Build and test
         id: build-and-test
         run: |
-          if [ "$MSYSTEM" = MINGW64 ]; then
+          if [ "$MSYSTEM" = UCRT64 ]; then
             vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
             dumpbin=$("$vswhere" -latest -products '*' \
               -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
