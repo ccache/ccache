@@ -160,6 +160,8 @@ SUITE_remote_helper() {
     expect_stat remote_storage_read_miss 2
     expect_stat remote_storage_write 2
 
+    $CCACHE --stop-storage-helpers
+
     # -------------------------------------------------------------------------
     TEST "Connection failure handling"
 
