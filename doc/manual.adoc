@@ -700,6 +700,8 @@ _<<Using ccache with other compiler wrappers>>_.
     NVCC (CUDA) compiler.
 *qcc*::
     QCC (QNX) compiler.
+*moc*::
+    QT Meta-Object (MOC) compiler.
 *other*::
     Any compiler other than the known types.
 --

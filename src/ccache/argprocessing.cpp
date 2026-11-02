@@ -2034,8 +2034,10 @@ process_args(Context& ctx)
   }
 
   args_info.output_is_precompiled_header =
-    args_info.actual_language.find("-header") != std::string::npos
-    || is_precompiled_header(args_info.output_obj);
+    // MOC compiles QT .h to .cpp
+    ctx.config.compiler_type() != CompilerType::moc
+    && (args_info.actual_language.find("-header") != std::string::npos
+        || is_precompiled_header(args_info.output_obj));
 
   if (args_info.output_is_precompiled_header && output_obj_by_source) {
     args_info.orig_output_obj = util::add_extension(
@@ -2055,7 +2057,8 @@ process_args(Context& ctx)
   if (is_link) {
     if (args_info.output_is_precompiled_header) {
       state.add_common_arg("-c");
-    } else {
+    } else if (ctx.config.compiler_type() != CompilerType::moc) {
+      // MOC does not support -c option
       LOG("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
       // the dominant form of "called for link" in many cases.
