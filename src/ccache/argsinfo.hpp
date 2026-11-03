@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <ccache/compiler/msvc.hpp>
 #include <ccache/util/args.hpp>
 
 #include <filesystem>
@@ -175,6 +176,10 @@ struct ArgsInfo
 
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
+
+  // MSVC /pathmap:<old>=<new> maps that cl applies to the paths it embeds into
+  // the object file. Only filled if cl actually applies them.
+  std::vector<compiler::MsvcPathMap> msvc_path_maps;
 
   // Relocating coverage info in the format old=new.
   std::vector<std::string> coverage_prefix_maps;

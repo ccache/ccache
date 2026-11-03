@@ -883,6 +883,12 @@ working directory in the debug info set incorrectly.
 You can disable this option to get cache hits when compiling the same source
 code in different directories if you don't mind that CWD in the debug info
 might be incorrect.
++
+For MSVC, ccache includes the directory of the object file in the hash instead
+of the CWD, also without debug info, since MSVC object files always contain the
+full path of the source file. With `/experimental:deterministic
+/pathmap:<old>=<new>`, where `<old>` uses backslashes and ends with one, ccache
+applies the same mapping to that directory before hashing it.
 
 [#config_ignore_headers_in_manifest]
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
@@ -1893,6 +1899,15 @@ To enable cache sharing across different build directories for debug builds
 `-fdebug-prefix-map=$PWD=.` (map current directory to relative) or
 `-fdebug-compilation-dir=.` (set compilation directory). Alternatively, set
 <<config_hash_dir,*hash_dir*>> to `false` (disables directory hashing).
+
+For MSVC, the equivalent is `/experimental:deterministic /pathmap:<dir>\=`,
+where `<dir>` is the root of the source tree (for example `C:\src\project`),
+together with *base_dir* (see below).
+The build directory must then be located at the same place below `<dir>` in
+every source tree. Ccache doesn't apply the mapping for compilations that create
+or use a precompiled header, since MSVC doesn't map the reference from a `/Yu`
+object file to the `/Yc` object file. With MSVC toolset 14.29, linking such
+object files with `/DEBUG` even hangs.
 
 For builds with absolute paths, set <<config_base_dir,*base_dir*>> to a common
 parent directory. Ccache will convert absolute paths under this directory to

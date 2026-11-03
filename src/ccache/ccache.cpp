@@ -1832,9 +1832,14 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     const fs::path& output_obj_dir = ctx.args_info.output_obj.is_absolute()
                                        ? ctx.args_info.output_obj.parent_path()
                                        : ctx.actual_cwd;
-    LOG("Hashing object file directory {}", output_obj_dir);
+    // With /pathmap, cl embeds the mapped paths, so hash the mapped directory.
+    const std::string dir_to_hash =
+      compiler::apply_msvc_path_maps(output_obj_dir,
+                                     ctx.args_info.msvc_path_maps)
+        .value_or(util::pstr(output_obj_dir).str());
+    LOG("Hashing object file directory {}", dir_to_hash);
     hash.hash_delimiter("source path");
-    hash.hash(output_obj_dir);
+    hash.hash(dir_to_hash);
   }
 
   if (ctx.args_info.seen_split_dwarf) {
@@ -2155,6 +2160,14 @@ hash_argument(const Context& ctx,
   if (args[i].starts_with("-ffile-prefix-map=")) {
     hash.hash_delimiter("arg");
     hash.hash("-ffile-prefix-map=");
+    return {};
+  }
+  // Same for MSVC's /pathmap (see process_option_arg).
+  if (ctx.config.is_compiler_group_msvc() && !is_clang
+      && (args[i].starts_with("/pathmap:")
+          || args[i].starts_with("-pathmap:"))) {
+    hash.hash_delimiter("arg");
+    hash.hash("-pathmap:");
     return {};
   }
   if (args[i].starts_with("-fmacro-prefix-map=")) {

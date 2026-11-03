@@ -192,4 +192,84 @@ TEST_CASE("strip_includes_from_msvc_show_includes")
   }
 }
 
+TEST_CASE("parse_msvc_path_map")
+{
+  SUBCASE("Old path with trailing backslash")
+  {
+    const auto map = compiler::parse_msvc_path_map(R"(C:\src\=X:\)");
+    REQUIRE(map);
+    CHECK(map->first == R"(C:\src\)");
+    CHECK(map->second == R"(X:\)");
+  }
+
+  SUBCASE("Empty new path")
+  {
+    const auto map = compiler::parse_msvc_path_map(R"(C:\src\=)");
+    REQUIRE(map);
+    CHECK(map->first == R"(C:\src\)");
+    CHECK(map->second.empty());
+  }
+
+  SUBCASE("Forward slashes in the new path")
+  {
+    const auto map = compiler::parse_msvc_path_map(R"(C:\src\=X:/)");
+    REQUIRE(map);
+    CHECK(map->second == "X:/");
+  }
+
+  SUBCASE("Not applied by cl")
+  {
+    // cl only matches an old path written with backslashes.
+    CHECK(!compiler::parse_msvc_path_map("C:/src/="));
+    CHECK(!compiler::parse_msvc_path_map(R"(C:\src/=)"));
+    // Without the trailing backslash, the map would also match C:\src2.
+    CHECK(!compiler::parse_msvc_path_map(R"(C:\src=)"));
+    CHECK(!compiler::parse_msvc_path_map(R"(C:\src\)"));
+    CHECK(!compiler::parse_msvc_path_map(R"(=X:\)"));
+    CHECK(!compiler::parse_msvc_path_map(""));
+  }
+}
+
+#ifdef _WIN32
+TEST_CASE("apply_msvc_path_maps")
+{
+  const std::vector<compiler::MsvcPathMap> maps{
+    {R"(C:\work\a\)", ""      },
+    {R"(C:\work\)",   R"(W:\)"},
+  };
+
+  SUBCASE("Below the first matching map")
+  {
+    CHECK(compiler::apply_msvc_path_maps(R"(C:\work\a\build\obj)", maps)
+          == R"(build\obj)");
+    CHECK(compiler::apply_msvc_path_maps(R"(C:\work\b\build)", maps)
+          == R"(W:\b\build)");
+  }
+
+  SUBCASE("Case-insensitive like cl")
+  {
+    CHECK(compiler::apply_msvc_path_maps(R"(c:\WORK\A\build)", maps)
+          == "build");
+  }
+
+  SUBCASE("The old path itself")
+  {
+    CHECK(compiler::apply_msvc_path_maps(R"(C:\work\a)", maps) == "");
+  }
+
+  SUBCASE("Whole components only")
+  {
+    CHECK(compiler::apply_msvc_path_maps(R"(C:\work2\build)", maps)
+          == std::nullopt);
+  }
+
+  SUBCASE("No map")
+  {
+    CHECK(compiler::apply_msvc_path_maps(R"(D:\build)", maps) == std::nullopt);
+    CHECK(compiler::apply_msvc_path_maps(R"(C:\work\build)", {})
+          == std::nullopt);
+  }
+}
+#endif
+
 TEST_SUITE_END();

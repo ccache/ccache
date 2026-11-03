@@ -19,7 +19,10 @@
 #include "msvc.hpp"
 
 #include <ccache/context.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
+
+namespace fs = std::filesystem;
 
 namespace compiler {
 
@@ -76,6 +79,43 @@ strip_includes_from_msvc_show_includes(const Context& ctx,
     }
   }
   return new_stdout_data;
+}
+
+std::optional<MsvcPathMap>
+parse_msvc_path_map(std::string_view value)
+{
+  const auto eq_pos = value.find('=');
+  if (eq_pos == std::string_view::npos || eq_pos == 0) {
+    return std::nullopt;
+  }
+  const auto old_path = value.substr(0, eq_pos);
+  if (old_path.find('/') != std::string_view::npos
+      || !old_path.ends_with('\\')) {
+    return std::nullopt;
+  }
+  return MsvcPathMap{fs::path(old_path), std::string(value.substr(eq_pos + 1))};
+}
+
+std::optional<std::string>
+apply_msvc_path_maps(const fs::path& path, const std::vector<MsvcPathMap>& maps)
+{
+  for (const auto& [old_path, new_path] : maps) {
+    if (!util::path_starts_with(path, old_path)) {
+      continue;
+    }
+    auto it = path.begin();
+    for (const auto& component : old_path) {
+      if (!component.empty()) { // An empty component stems from the trailing \.
+        ++it;
+      }
+    }
+    fs::path rest;
+    for (; it != path.end(); ++it) {
+      rest /= *it;
+    }
+    return new_path + util::pstr(rest).str();
+  }
+  return std::nullopt;
 }
 
 } // namespace compiler

@@ -101,6 +101,8 @@ public:
   std::string last_seen_msvc_z_debug_option; // /Z7, /Zi or /ZI
   std::string msvc_assembler_listing_extension;
   fs::path msvc_assembler_listing_path;
+  bool found_msvc_deterministic = false; // /experimental:deterministic
+  bool found_msvc_fc = false;            // /FC
 
   // Option that determines diagnostics format/output (-fdiagnostics-format=,
   // -fdiagnostics-add-output= or -fdiagnostics-set-output=). We currently
@@ -680,6 +682,23 @@ process_option_arg(const Context& ctx,
     args_info.generating_ipa_clones = true;
     state.add_common_arg(args[i]);
     return Statistic::none;
+  }
+
+  if (config.is_compiler_group_msvc() && !config.is_compiler_group_clang()) {
+    if (arg == "-experimental:deterministic") {
+      state.found_msvc_deterministic = true;
+    } else if (arg == "-FC") {
+      state.found_msvc_fc = true;
+    } else if (arg.starts_with("-pathmap:")) {
+      // Like -ffile-prefix-map: the value isn't hashed (see hash_argument), so
+      // that results can be shared between directories.
+      if (auto map = compiler::parse_msvc_path_map(std::string_view(arg).substr(
+            std::string_view("-pathmap:").size()))) {
+        args_info.msvc_path_maps.push_back(std::move(*map));
+      }
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
   }
 
   // These are always too hard.
@@ -1876,6 +1895,14 @@ process_args(Context& ctx)
     LOG("Compiler option {} is unsupported",
         state.last_seen_msvc_z_debug_option);
     return tl::unexpected(Statistic::unsupported_compiler_option);
+  }
+
+  // cl ignores /pathmap without /experimental:deterministic. With /FC, paths in
+  // diagnostics stay absolute. With /Yu, cl doesn't map the reference to the
+  // object file created with /Yc.
+  if (!state.found_msvc_deterministic || state.found_msvc_fc || state.found_Yc
+      || state.found_Yu) {
+    args_info.msvc_path_maps.clear();
   }
 
   // Special case: rewrite /FI arguments relative to the input file.

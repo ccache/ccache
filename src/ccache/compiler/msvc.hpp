@@ -20,7 +20,11 @@
 
 #include <ccache/util/bytes.hpp>
 
+#include <filesystem>
+#include <optional>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 class Context;
@@ -33,5 +37,19 @@ get_includes_from_msvc_show_includes(std::string_view file_content,
 
 util::Bytes strip_includes_from_msvc_show_includes(const Context& ctx,
                                                    util::Bytes&& stdout_data);
+
+using MsvcPathMap = std::pair<std::filesystem::path, std::string>;
+
+// Parse the value of /pathmap:<old>=<new>. Returns std::nullopt for maps that
+// cl doesn't apply to the paths it embeds: cl only matches an old path written
+// with backslashes, and a map only covers whole path components if the old path
+// ends with a backslash.
+std::optional<MsvcPathMap> parse_msvc_path_map(std::string_view value);
+
+// Return `path` with the first map in `maps` applied that matches it, the way
+// cl applies /pathmap, or std::nullopt if no map matches.
+std::optional<std::string>
+apply_msvc_path_maps(const std::filesystem::path& path,
+                     const std::vector<MsvcPathMap>& maps);
 
 } // namespace compiler
