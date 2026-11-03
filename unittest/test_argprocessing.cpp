@@ -1452,6 +1452,93 @@ TEST_CASE("MSVC debug information format options")
   }
 }
 
+TEST_CASE("MSVC /analyze")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Supported without its log file")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /analyze /analyze:autolog- /analyze:WX- /c foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(result->preprocessor_args.to_string()
+          == "cl.exe /analyze /analyze:autolog- /analyze:WX-");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /analyze /analyze:autolog- /analyze:WX- /c");
+  }
+
+  SUBCASE("Dash spelling")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe -analyze -analyze:autolog- /c foo.c");
+    CHECK(process_args(ctx));
+  }
+
+  SUBCASE("Option order")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe /analyze:autolog- /analyze /c foo.c");
+    CHECK(process_args(ctx));
+  }
+
+  SUBCASE("Unsupported with a log file")
+  {
+    for (const char* options : {
+           "/analyze",
+           "/analyze /analyze:autolog- /analyze:autolog",
+           "/analyze /analyze:autolog- /analyze:autolog:ext.xml",
+           "/analyze /analyze:autolog- /analyze:log:format:sarif",
+         }) {
+      CAPTURE(options);
+      ctx.orig_args = Args::from_string(FMT("cl.exe {} /c foo.c", options));
+      CHECK(process_args(ctx).error()
+            == Statistic::unsupported_compiler_option);
+    }
+  }
+
+  SUBCASE("Unsupported without an object file")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /analyze /analyze:autolog- /analyze:only /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Unsupported with analysis inputs that aren't hashed")
+  {
+    for (const char* option : {
+           "/analyze:rulesetfoo.ruleset",
+           "/analyze:rulesetdirectory.",
+           "/analyze:projectdirectory.",
+           "/analyze:pluginEspXEngine.dll",
+           "/analyze:external:rulesetfoo.ruleset",
+         }) {
+      CAPTURE(option);
+      ctx.orig_args = Args::from_string(
+        FMT("cl.exe /analyze /analyze:autolog- {} /c foo.c", option));
+      CHECK(process_args(ctx).error()
+            == Statistic::unsupported_compiler_option);
+    }
+  }
+
+  SUBCASE("Analysis turned off again")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /analyze /analyze- /c foo.c");
+    CHECK(process_args(ctx));
+  }
+
+  SUBCASE("Still too hard for clang-cl")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args =
+      Args::from_string("clang-cl.exe /analyze /analyze:autolog- /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+}
+
 // Check that clang-cl debug information is parsed different,
 // since for clang-cl /Zi and /Z7 is the same!
 TEST_CASE("ClangCL Debug information options")
