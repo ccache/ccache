@@ -1438,6 +1438,60 @@ get_clang_cu_enable_verbose_mode(const util::Args& args)
   return false;
 }
 
+// Run the preprocessor on the input file, with `defines` ahead of the other
+// arguments.
+static tl::expected<DoExecuteResult, Failure>
+run_preprocessor(Context& ctx,
+                 const util::Args& args,
+                 const util::Args& defines = {})
+{
+  util::Args cpp_args = args;
+  cpp_args.insert(1, defines);
+
+  if (ctx.config.keep_comments_cpp()) {
+    cpp_args.push_back("-C");
+  }
+
+  if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
+    cpp_args.push_back("-utf-8"); // Avoid garbling filenames in output
+  }
+
+  // Preprocess, intentionally including line markers so that we can pick up
+  // which files were included (needed for direct mode).
+  //
+  // In the future we could potentially use -EP for MSVC if we set up
+  // extraction of direct mode headers via /showIncludes, similar to how it's
+  // done for the depend mode.
+  cpp_args.push_back("-E");
+
+  cpp_args.push_back(
+    FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
+
+  add_prefix(ctx, cpp_args, ctx.config.prefix_command_cpp());
+  LOG("Running preprocessor");
+  auto result = do_execute(ctx, cpp_args);
+
+  if (!result) {
+    return tl::unexpected(result.error());
+  } else if (result->exit_status != 0) {
+    LOG("Preprocessor gave exit status {}", result->exit_status);
+    return tl::unexpected(Statistic::preprocessor_error);
+  }
+
+  if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
+    // Check that usage of -utf-8 didn't garble the preprocessor output.
+    static constexpr char warning_c4828[] =
+      "warning C4828: The file contains a character starting at offset";
+    if (util::to_string_view(result->stderr_data).find(warning_c4828)
+        != std::string_view::npos) {
+      LOG("Non-UTF-8 source code unsupported in preprocessor mode");
+      return tl::unexpected(Statistic::unsupported_source_encoding);
+    }
+  }
+
+  return std::move(*result);
+}
+
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
 static tl::expected<Hash::Digest, Failure>
@@ -1459,61 +1513,32 @@ get_result_key_from_cpp(Context& ctx, const util::Args& args, Hash& hash)
     hash.hash_delimiter("cpp");
     TRY(process_preprocessed_file(ctx, hash, ctx.args_info.input_file));
   } else {
-    util::Args cpp_args = args;
-
-    if (ctx.config.keep_comments_cpp()) {
-      cpp_args.push_back("-C");
-    }
-
-    if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
-      cpp_args.push_back("-utf-8"); // Avoid garbling filenames in output
-    }
-
-    // Preprocess, intentionally including line markers so that we can pick up
-    // which files were included (needed for direct mode).
-    //
-    // In the future we could potentially use -EP for MSVC if we set up
-    // extraction of direct mode headers via /showIncludes, similar to how it's
-    // done for the depend mode.
-    cpp_args.push_back("-E");
-
-    cpp_args.push_back(
-      FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
-
-    add_prefix(ctx, cpp_args, ctx.config.prefix_command_cpp());
-    LOG("Running preprocessor");
-    auto result = do_execute(ctx, cpp_args);
-
-    if (!result) {
-      return tl::unexpected(result.error());
-    } else if (result->exit_status != 0) {
-      LOG("Preprocessor gave exit status {}", result->exit_status);
-      return tl::unexpected(Statistic::preprocessor_error);
-    }
-
-    cpp_stderr_data = std::move(result->stderr_data);
-
-    if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
-      // Check that usage of -utf-8 didn't garble the preprocessor output.
-      static constexpr char warning_c4828[] =
-        "warning C4828: The file contains a character starting at offset";
-      if (util::to_string_view(cpp_stderr_data).find(warning_c4828)
-          != std::string_view::npos) {
-        LOG("Non-UTF-8 source code unsupported in preprocessor mode");
-        return tl::unexpected(Statistic::unsupported_source_encoding);
-      }
-    }
+    TRY_ASSIGN(auto result, run_preprocessor(ctx, args));
+    cpp_stderr_data = std::move(result.stderr_data);
 
     if (is_clang_cu) {
       auto chunks = compiler::split_preprocessed_output_from_clang_cuda(
-        util::to_string_view(result->stdout_data));
+        util::to_string_view(result.stdout_data));
       for (size_t i = 0; i < chunks.size(); ++i) {
         TRY(process_cuda_chunk(ctx, hash, chunks[i], i));
       }
     } else {
       hash.hash_delimiter("cpp");
 
-      TRY(process_preprocessed_data(ctx, hash, std::move(result->stdout_data)));
+      TRY(process_preprocessed_data(ctx, hash, std::move(result.stdout_data)));
+    }
+
+    if (ctx.args_info.msvc_analyze) {
+      // The analysis pass of cl defines _PREFAST_ and _AST_FE_ ahead of the
+      // other arguments, so hash that variant as well and record its include
+      // files.
+      TRY_ASSIGN(auto analysis_result,
+                 run_preprocessor(ctx, args, {"-D_PREFAST_", "-D_AST_FE_"}));
+      hash.hash_delimiter("cpp_prefast");
+      TRY(process_preprocessed_data(
+        ctx, hash, std::move(analysis_result.stdout_data)));
+      hash.hash_delimiter("cppstderr_prefast");
+      hash.hash(util::to_string_view(analysis_result.stderr_data));
     }
   }
 
@@ -1766,6 +1791,17 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       if (value) {
         hash.hash_delimiter(name);
         hash.hash(value);
+      }
+    }
+    if (ctx.args_info.msvc_analyze) {
+      // These select the checks of /analyze.
+      for (const char* name :
+           {"Esp.Extensions", "Esp.AnnotationBuildLevel", "CAExcludePath"}) {
+        const char* value = getenv(name);
+        if (value) {
+          hash.hash_delimiter(name);
+          hash.hash(value);
+        }
       }
     }
   }

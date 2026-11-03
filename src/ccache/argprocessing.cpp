@@ -101,6 +101,8 @@ public:
   std::string last_seen_msvc_z_debug_option; // /Z7, /Zi or /ZI
   std::string msvc_assembler_listing_extension;
   fs::path msvc_assembler_listing_path;
+  bool found_msvc_analyze_autolog = true; // log file next to the object file
+  bool found_msvc_analyze_log = false;    // /analyze:log...
 
   // Option that determines diagnostics format/output (-fdiagnostics-format=,
   // -fdiagnostics-add-output= or -fdiagnostics-set-output=). We currently
@@ -682,6 +684,49 @@ process_option_arg(const Context& ctx,
 
     args.replace(i, *file_args);
     i--;
+    return Statistic::none;
+  }
+
+  // MSVC code analysis (/analyze, or any /analyze:<option>, until /analyze-)
+  // adds its findings to the compiler output and also writes a log file (by
+  // default next to the object file, or as given by /analyze:log), which can't
+  // be stored in the cache. Any /analyze:autolog or /analyze:log option is
+  // conservatively taken as writing a log file; process_args checks the
+  // options once all are known.
+  if (config.compiler_type() == CompilerType::msvc
+      && arg.starts_with("-analyze")) {
+    if (arg == "-analyze:only") {
+      // No object file is produced.
+      LOG("Compiler option {} is unsupported", args[i]);
+      return Statistic::unsupported_compiler_option;
+    }
+    if (arg.starts_with("-analyze:ruleset") // also -analyze:rulesetdirectory
+        || arg.starts_with("-analyze:projectdirectory")
+        || arg.starts_with("-analyze:plugin")
+        || arg.starts_with("-analyze:external:ruleset")) {
+      // Inputs of the analysis that aren't part of the hash.
+      LOG("Compiler option {} is unsupported", args[i]);
+      return Statistic::unsupported_compiler_option;
+    }
+    args_info.msvc_analyze = arg != "-analyze-";
+    if (arg == "-analyze:autolog-") {
+      state.found_msvc_analyze_autolog = false;
+    } else if (arg.starts_with("-analyze:autolog")) {
+      state.found_msvc_analyze_autolog = true;
+    } else if (arg.starts_with("-analyze:log")) {
+      state.found_msvc_analyze_log = true;
+    }
+    state.add_common_arg(args[i]);
+    // cl also accepts the value of these options as the next argument.
+    if (arg == "-analyze:stacksize" || arg == "-analyze:max_paths"
+        || arg == "-analyze:log" || arg == "-analyze:autolog:ext") {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.add_common_arg(args[i + 1]);
+      ++i;
+    }
     return Statistic::none;
   }
 
@@ -1910,6 +1955,21 @@ process_args(Context& ctx)
     LOG("Compiler option {} is unsupported",
         state.last_seen_msvc_z_debug_option);
     return tl::unexpected(Statistic::unsupported_compiler_option);
+  }
+
+  if (args_info.msvc_analyze) {
+    if (state.found_msvc_analyze_autolog || state.found_msvc_analyze_log) {
+      LOG(
+        "/analyze is only supported together with /analyze:autolog- and"
+        " without /analyze:log");
+      return tl::unexpected(Statistic::unsupported_compiler_option);
+    }
+    // The compiler output of the analysis doesn't list the include files only
+    // included with _PREFAST_ defined (see get_result_key_from_cpp).
+    if (ctx.config.depend_mode()) {
+      LOG("Disabling depend mode for /analyze");
+      ctx.config.set_depend_mode(false);
+    }
   }
 
   // Special case: rewrite /FI arguments relative to the input file.
