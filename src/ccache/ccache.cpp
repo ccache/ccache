@@ -1761,6 +1761,9 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     const char* msvc_env_vars[] = {
       "VCToolsVersion",
       "VCToolsInstallDir",
+      // These select checks of /analyze.
+      "Esp.Extensions",
+      "CAExcludePath",
     };
     for (const char* name : msvc_env_vars) {
       const char* value = getenv(name);
