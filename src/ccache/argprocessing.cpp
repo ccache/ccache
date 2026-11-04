@@ -1453,14 +1453,18 @@ process_option_arg(const Context& ctx,
   const std::string_view source_dep_opt = "-sourceDependencies";
   if (arg.starts_with(source_dep_opt)) {
     // The generated file embeds absolute include paths resolved relative to the
-    // actual working directory even when -I uses relative paths. To avoid false
-    // positive cache hits across different working directories, bind the result
-    // key to the actual CWD.
+    // actual working directory even when -I uses relative paths. Paths below
+    // base_dir are stored relative to the CWD. When the CWD itself is outside
+    // base_dir, bind the result key to it to avoid false positive cache hits.
     //
     // Note: A future alternative could be to instead disable direct/depend mode
     // and let the preprocessor create the file instead.
-    LOG("Hashing current working directory since {} is used", arg);
-    state.hash_actual_cwd = true;
+    const bool cwd_below_base_dir =
+      util::path_starts_with(ctx.actual_cwd, config.base_dirs());
+    if (!cwd_below_base_dir) {
+      LOG("Hashing current working directory since {} is used", arg);
+      state.hash_actual_cwd = true;
+    }
 
     state.add_compiler_only_arg(args[i]);
 

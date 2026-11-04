@@ -1452,6 +1452,32 @@ TEST_CASE("MSVC debug information format options")
   }
 }
 
+TEST_CASE("MSVC /sourceDependencies")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.orig_args =
+    Args::from_string("cl.exe /c foo.c /sourceDependencies foo.json");
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("The CWD is hashed when it is outside base_dir")
+  {
+    ctx.config.set_base_dir(ctx.actual_cwd / "sub");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(result->hash_actual_cwd);
+  }
+
+  SUBCASE("The CWD is not hashed when it is below base_dir")
+  {
+    ctx.config.set_base_dir(ctx.actual_cwd);
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(!result->hash_actual_cwd);
+  }
+}
+
 // Check that clang-cl debug information is parsed different,
 // since for clang-cl /Zi and /Z7 is the same!
 TEST_CASE("ClangCL Debug information options")

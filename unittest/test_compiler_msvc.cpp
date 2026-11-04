@@ -20,11 +20,44 @@
 
 #include <ccache/compiler/msvc.hpp>
 #include <ccache/context.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
 
 #include <doctest/doctest.h>
 
+namespace fs = util::filesystem;
+
 static const std::string defaultPrefix = "Note: including file:";
+static const fs::path placeholder = "%CCACHE_CWD%";
+
+static std::string
+json_path(const fs::path& path)
+{
+  return util::replace_all(util::pstr(path).str(), "\\", "\\\\");
+}
+
+static std::string
+source_dependencies(const fs::path& source,
+                    const fs::path& include,
+                    const fs::path& outside_include)
+{
+  return FMT(R"({{
+    "Version": "1.2",
+    "Data": {{
+        "Source": "{}",
+        "ProvidedModule": "",
+        "Includes": [
+            "{}",
+            "{}"
+        ]
+    }}
+}})",
+             json_path(source),
+             json_path(include),
+             json_path(outside_include));
+}
 
 TEST_SUITE_BEGIN("msvc");
 
@@ -190,6 +223,55 @@ TEST_CASE("strip_includes_from_msvc_show_includes")
       compiler::strip_includes_from_msvc_show_includes(ctx, util::Bytes(input));
     CHECK(result == input);
   }
+}
+
+TEST_CASE("rewrite_paths_in_source_dependencies")
+{
+  Context ctx;
+  const fs::path cwd = ctx.actual_cwd;
+  const fs::path source = cwd / "main.c";
+  const fs::path include = cwd.parent_path() / "inc" / "a.h";
+  const fs::path outside_include = cwd.root_path() / "other.h";
+  const auto content = source_dependencies(source, include, outside_include);
+
+  SUBCASE("Paths are kept when base_dir is not set")
+  {
+    const auto actual =
+      compiler::rewrite_paths_in_source_dependencies(ctx, content);
+    CHECK(actual == content);
+  }
+
+  SUBCASE("Paths below base_dir start with the CWD placeholder")
+  {
+    ctx.config.set_base_dirs({cwd.parent_path().string()});
+    const fs::path stored_source = placeholder / "main.c";
+    const fs::path stored_include = placeholder / ".." / "inc" / "a.h";
+    const auto expected =
+      source_dependencies(stored_source, stored_include, outside_include);
+    const auto actual =
+      compiler::rewrite_paths_in_source_dependencies(ctx, content);
+    CHECK(actual == expected);
+  }
+}
+
+TEST_CASE("restore_paths_in_source_dependencies")
+{
+  Context ctx;
+  const fs::path cwd = ctx.actual_cwd;
+  const fs::path stored_source = placeholder / "main.c";
+  const fs::path stored_include = placeholder / ".." / "inc" / "a.h";
+  const fs::path outside_include = cwd.root_path() / "other.h";
+  const auto content =
+    source_dependencies(stored_source, stored_include, outside_include);
+
+  const fs::path restored_source = cwd / "main.c";
+  const fs::path restored_include = cwd / ".." / "inc" / "a.h";
+  const auto expected =
+    source_dependencies(restored_source, restored_include, outside_include);
+
+  const auto actual =
+    compiler::restore_paths_in_source_dependencies(ctx, content);
+  CHECK(actual == expected);
 }
 
 TEST_SUITE_END();
