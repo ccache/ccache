@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <ccache/util/args.hpp>
 #include <ccache/util/fd.hpp>
 
 #include <filesystem>
@@ -35,7 +36,8 @@ int execute(Context& ctx,
             util::Fd&& fd_err);
 
 void execute_noreturn(const char* const* argv,
-                      const std::filesystem::path& temp_dir);
+                      const std::filesystem::path& temp_dir,
+                      util::Args::ResponseFileFormat response_file_format);
 
 // Find an executable named `name` in `$PATH` that is not a ccache executable.
 // Exclude any executables that are links to `exclude_path`.
