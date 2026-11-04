@@ -1148,6 +1148,96 @@ TEST_CASE("MSVC PCH options")
   }
 }
 
+TEST_CASE("MSVC /pathmap")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Applied together with /experimental:deterministic")
+  {
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /experimental:deterministic /pathmap:C:\src\= /c foo.c)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    REQUIRE(ctx.args_info.msvc_path_maps.size() == 1);
+    CHECK(ctx.args_info.msvc_path_maps[0].first == R"(C:\src\)");
+    CHECK(ctx.args_info.msvc_path_maps[0].second.empty());
+    CHECK(result->compiler_args.to_string()
+          == R"(cl.exe /experimental:deterministic /pathmap:C:\src\= /c)");
+  }
+
+  SUBCASE("Dash spelling")
+  {
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe -experimental:deterministic -pathmap:C:\src\=X:\ /c foo.c)");
+    REQUIRE(process_args(ctx));
+    REQUIRE(ctx.args_info.msvc_path_maps.size() == 1);
+    CHECK(ctx.args_info.msvc_path_maps[0].second == R"(X:\)");
+  }
+
+  SUBCASE("Ignored by cl without /experimental:deterministic")
+  {
+    ctx.orig_args = Args::from_string(R"(cl.exe /pathmap:C:\src\= /c foo.c)");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.msvc_path_maps.empty());
+    CHECK(result->compiler_args.to_string()
+          == R"(cl.exe /pathmap:C:\src\= /c)");
+  }
+
+  SUBCASE("Not applied to diagnostics with /FC")
+  {
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /experimental:deterministic /pathmap:C:\src\= /FC /c foo.c)");
+    REQUIRE(process_args(ctx));
+    CHECK(ctx.args_info.msvc_path_maps.empty());
+  }
+
+  SUBCASE("Not applied when creating a precompiled header")
+  {
+    REQUIRE(util::write_file("pch.h", ""));
+    REQUIRE(util::write_file("pch.cpp", ""));
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /experimental:deterministic /pathmap:C:\src\= /Ycpch.h)"
+      R"( /Fppch.pch /Fopch.obj /c pch.cpp)");
+    REQUIRE(process_args(ctx));
+    CHECK(ctx.args_info.msvc_path_maps.empty());
+  }
+
+  SUBCASE("Not applied when using a precompiled header")
+  {
+    REQUIRE(util::write_file("pch.h", ""));
+    REQUIRE(util::write_file("pch.pch", ""));
+    ctx.config.update_from_map({
+      {"sloppiness", "time_macros"}
+    });
+    ctx.orig_args = Args::from_string(
+      R"(cl.exe /experimental:deterministic /pathmap:C:\src\= /Yupch.h)"
+      R"( /Fppch.pch /Fofoo.obj /c foo.c)");
+    REQUIRE(process_args(ctx));
+    CHECK(ctx.args_info.msvc_path_maps.empty());
+  }
+
+  SUBCASE("Not applied by cl with forward slashes")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /experimental:deterministic /pathmap:C:/src/= /c foo.c");
+    REQUIRE(process_args(ctx));
+    CHECK(ctx.args_info.msvc_path_maps.empty());
+  }
+
+  SUBCASE("Ignored for clang-cl")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args = Args::from_string(
+      R"(clang-cl.exe /experimental:deterministic /pathmap:C:\src\= /c foo.c)");
+    REQUIRE(process_args(ctx));
+    CHECK(ctx.args_info.msvc_path_maps.empty());
+  }
+}
+
 #ifdef _WIN32
 // The below tests use absolute paths and will typically fail on macOS since
 // /Users/... will then be treated as -U/... and not an input file, so just run
