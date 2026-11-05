@@ -92,6 +92,8 @@ public:
   const std::string& msvc_dep_prefix() const;
   bool msvc_utf8() const;
   const std::string& path() const;
+  const std::vector<std::pair<std::filesystem::path, std::filesystem::path>>&
+  path_mapping() const;
   bool pch_external_checksum() const;
   const std::string& prefix_command() const;
   const std::string& prefix_command_cpp() const;
@@ -226,6 +228,8 @@ private:
   std::string m_msvc_dep_prefix = "Note: including file:";
   bool m_msvc_utf8 = true;
   std::string m_path;
+  std::vector<std::pair<std::filesystem::path, std::filesystem::path>>
+    m_path_mapping;
   bool m_pch_external_checksum = false;
   std::string m_prefix_command;
   std::string m_prefix_command_cpp;
