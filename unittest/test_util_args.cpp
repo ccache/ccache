@@ -263,15 +263,16 @@ TEST_CASE("Args::from_response_file")
 TEST_CASE("Args::format_response_file_content")
 {
   const char* const argv[] = {
-    R"(C:\src\file.cpp)", "/d1trimfile:C:/src/", "with space", nullptr};
+    R"(C:\src\file.cpp)", R"(/d1trimfile:C:\src\)", "with space", nullptr};
   const Args expected{
-    R"(C:\src\file.cpp)", "/d1trimfile:C:/src/", "with space"};
+    R"(C:\src\file.cpp)", R"(/d1trimfile:C:\src\)", "with space"};
 
   SUBCASE("windows")
   {
     const auto content = Args::format_response_file_content(
       argv, Args::ResponseFileFormat::windows);
-    CHECK(content == R"("C:\src\file.cpp" "/d1trimfile:C:/src/" "with space")");
+    CHECK(content
+          == R"("C:\src\file.cpp" "/d1trimfile:C:\src\\" "with space")");
     CHECK(Args::parse_response_file_content(content,
                                             Args::ResponseFileFormat::windows)
           == expected);
@@ -282,7 +283,7 @@ TEST_CASE("Args::format_response_file_content")
     const auto content =
       Args::format_response_file_content(argv, Args::ResponseFileFormat::posix);
     CHECK(content
-          == R"("C:\\src\\file.cpp" "/d1trimfile:C:/src/" "with space")");
+          == R"("C:\\src\\file.cpp" "/d1trimfile:C:\\src\\" "with space")");
     CHECK(Args::parse_response_file_content(content,
                                             Args::ResponseFileFormat::posix)
           == expected);
