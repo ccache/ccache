@@ -47,6 +47,7 @@ Ccache is a collective work with contributions from many people, including:
 * Dávid Péter Jánosa
 * Deepak Yadav
 * Diego Alonso
+* Don Yin
 * Doug Anderson
 * Edward Z. Yang
 * Enrico Seiler
@@ -79,7 +80,9 @@ Ccache is a collective work with contributions from many people, including:
 * GitHub user markyang92
 * GitHub user Mikhail B
 * GitHub user Moritz
+* GitHub user Peter0x44
 * GitHub user RedNicStone
+* GitHub user Skytuhua
 * GitHub user subotac
 * GitHub user ThisIsFineTM
 * GitHub user trustytrojan
@@ -227,6 +230,7 @@ Ccache is a collective work with contributions from many people, including:
 * Tom Stellard
 * Tor Arne Vestbø
 * Vadim Petrochenkov
+* Vaibhav Awale
 * Varun Sharma
 * Viktor Szépe
 * Vili Väinölä
