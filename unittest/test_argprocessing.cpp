@@ -77,6 +77,21 @@ TEST_CASE("pass -fsyntax-only to compiler only")
   CHECK(result->compiler_args.to_string() == "cc -fsyntax-only -c");
 }
 
+TEST_CASE("record the last explicit SDK root")
+{
+  TestContext test_context;
+  REQUIRE(util::write_file("foo.c", ""));
+  for (const auto& options : {"-isysroot sdk",
+                              "-isysrootsdk",
+                              "-isysroot other -isysrootsdk",
+                              "-isysrootother -isysroot sdk"}) {
+    Context ctx;
+    ctx.orig_args = Args::from_string(FMT("cc {} -c foo.c", options));
+    REQUIRE(process_args(ctx));
+    CHECK(ctx.args_info.isysroot == "sdk");
+  }
+}
+
 TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 {
   TestContext test_context;
