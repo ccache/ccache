@@ -50,6 +50,13 @@ public:
   static Args parse_response_file_content(const std::string& content,
                                           ResponseFileFormat format);
 
+  // Format `argv` as response file content that a compiler using `format`
+  // parses back into the same arguments. MSVC parses response files like its
+  // command line, where backslashes are only special before '"', while
+  // GCC-style response files treat every backslash as an escape character.
+  static std::string format_response_file_content(const char* const* argv,
+                                                  ResponseFileFormat format);
+
   Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;
 

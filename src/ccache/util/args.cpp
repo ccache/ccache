@@ -69,6 +69,15 @@ Args::from_response_file(const std::string& filename, ResponseFileFormat format)
   return parse_response_file_content(*argtext, format);
 }
 
+std::string
+Args::format_response_file_content(const char* const* argv,
+                                   ResponseFileFormat format)
+{
+  ASSERT(format != ResponseFileFormat::auto_guess);
+  return format_argv_as_win32_command_string(
+    argv, format == ResponseFileFormat::posix);
+}
+
 Args
 Args::parse_response_file_content(const std::string& content,
                                   ResponseFileFormat format)
