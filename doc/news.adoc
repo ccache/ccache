@@ -1,5 +1,65 @@
 = Ccache news
 
+== Ccache 4.14.3
+
+Release date: 2026-11-08
+
+
+=== Bug fixes and improvements
+
+- Fixed an abort when standard error is closed. +
+  [small]#_[contributed by GitHub user Skytuhua]_#
+
+- Fixed detection of assembler `.incbin` directives with macro operands,
+  preventing false cache hits. +
+  [small]#_[contributed by Oleg Sidorkin]_#
+
+- Fixed escaping of backslashes in temporary MSVC response files for long
+  command lines, restoring correct behavior of options such as `/d1trimfile`. +
+  [small]#_[contributed by Vaibhav Awale]_#
+
+- Fixed depend mode to fall back to the compiler when a GCC precompiled header
+  cannot be located, preventing false cache hits. +
+  [small]#_[contributed by Don Yin]_#
+
+- Fixed display of diagnostic colors and Unicode text on Windows consoles. +
+  [small]#_[contributed by GitHub user Peter0x44]_#
+
+- Fixed matching of `ignore_headers_in_manifest` entries against header paths
+  starting with `.\` on Windows. +
+  [small]#_[contributed by Chris Burr]_#
+
+- Reduced memory usage and copying when reading local cache entries, hashing
+  binary files and storing compilation results. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Test improvements
+
+- Made tests skip unsupported `-march=native` and `-gz` configurations when the
+  compiler only emits a warning, and skip Clang profiling tests when the
+  profiling runtime is unavailable. +
+  [small]#_[contributed by Chris Burr]_#
+
+- Fixed ThinLTO index generation with `lld-link` and comparison of debug object
+  files containing CodeView information. +
+  [small]#_[contributed by Chris Burr]_#
+
+- Fixed storage server and helper cleanup to avoid blocking removal of test
+  directories on Windows. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+- Removed an invalid check for split DWARF debug logs. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
+=== Documentation improvements
+
+- Clarified that configuring remote storage disables `file_clone` and
+  `hard_link` for the local cache as well. +
+  [small]#_[contributed by Joel Rosdahl]_#
+
+
 == Ccache 4.14.2
 
 Release date: 2026-10-18
