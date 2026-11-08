@@ -2925,6 +2925,7 @@ cache_compilation(int argc, const char* const* argv)
   util::Args saved_orig_args;
   std::optional<uint32_t> original_umask;
   fs::path saved_temp_dir;
+  auto saved_response_file_format = util::Args::ResponseFileFormat::auto_guess;
 
   auto argv_parts = split_argv(argc, argv);
   if (argv_parts.compiler_and_args.empty()) {
@@ -2994,6 +2995,7 @@ cache_compilation(int argc, const char* const* argv)
       LOG("Failed; falling back to running the real compiler");
 
       saved_temp_dir = ctx.config.temporary_dir();
+      saved_response_file_format = ctx.config.response_file_format();
       saved_orig_args = std::move(ctx.orig_args);
       auto execv_argv = saved_orig_args.to_argv();
       LOG("Executing {}", util::format_argv_for_logging(execv_argv.data()));
@@ -3007,7 +3009,8 @@ cache_compilation(int argc, const char* const* argv)
       util::set_umask(*original_umask);
     }
     auto execv_argv = saved_orig_args.to_argv();
-    execute_noreturn(execv_argv.data(), saved_temp_dir);
+    execute_noreturn(
+      execv_argv.data(), saved_temp_dir, saved_response_file_format);
     throw core::Fatal(
       FMT("execute_noreturn of {} failed: {}", execv_argv[0], strerror(errno)));
   }
