@@ -77,6 +77,43 @@ TEST_CASE("pass -fsyntax-only to compiler only")
   CHECK(result->compiler_args.to_string() == "cc -fsyntax-only -c");
 }
 
+TEST_CASE("Supports -fdump-lang-switch-options")
+{
+  TestContext test_context;
+  REQUIRE(util::write_file("foo.cpp", ""));
+
+  SUBCASE("default filename")
+  {
+    Context ctx;
+    ctx.orig_args =
+      Args::from_string("g++ -c -fdump-lang-switch-options foo.cpp");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.generating_lang_switch_options);
+    CHECK(ctx.args_info.output_lang_switch_options == "foo.cpp.lang");
+    CHECK(result->compiler_args.to_string().find("-fdump-lang-switch-options")
+          != std::string::npos);
+  }
+
+  SUBCASE("explicit filename")
+  {
+    Context ctx;
+    ctx.orig_args = Args::from_string(
+      "g++ -c -fdump-lang-switch-options=custom.lang foo.cpp");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.generating_lang_switch_options);
+    CHECK(ctx.args_info.output_lang_switch_options == "custom.lang");
+    CHECK(result->compiler_args.to_string().find(
+            "-fdump-lang-switch-options=custom.lang")
+          != std::string::npos);
+  }
+}
+
 TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 {
   TestContext test_context;

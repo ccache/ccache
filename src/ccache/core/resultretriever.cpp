@@ -209,6 +209,12 @@ ResultRetriever::get_dest_path(FileType file_type) const
     }
     break;
 
+  case FileType::lang_switch_options:
+    if (m_ctx.args_info.generating_lang_switch_options) {
+      return m_ctx.args_info.output_lang_switch_options;
+    }
+    break;
+
   case FileType::source_dependencies:
     return m_ctx.args_info.output_sd;
 

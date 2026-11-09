@@ -799,6 +799,58 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    TEST "-fdump-lang-switch-options"
+
+    cat <<EOF >code.cpp
+int test(int value) {
+    switch (value) {
+    case 1: return 1;
+    default: return 0;
+    }
+}
+EOF
+
+    if $COMPILER -c -fdump-lang-switch-options code.cpp >/dev/null 2>&1; then
+        rm -f code.o code.cpp.lang
+
+        $CCACHE_COMPILE -c -fdump-lang-switch-options code.cpp
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.cpp.lang
+
+        rm code.cpp.lang
+
+        $CCACHE_COMPILE -c -fdump-lang-switch-options code.cpp
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists code.cpp.lang
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fdump-lang-switch-options=filename"
+
+    if $COMPILER -c -fdump-lang-switch-options=custom.lang code.cpp \
+        >/dev/null 2>&1; then
+        rm -f code.o custom.lang
+
+        $CCACHE_COMPILE -c -fdump-lang-switch-options=custom.lang code.cpp
+        expect_stat direct_cache_hit 0
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists custom.lang
+
+        rm custom.lang
+
+        $CCACHE_COMPILE -c -fdump-lang-switch-options=custom.lang code.cpp
+        expect_stat direct_cache_hit 1
+        expect_stat preprocessed_cache_hit 0
+        expect_stat cache_miss 1
+        expect_exists custom.lang
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "-fcallgraph-info with -flto"
 
     cat <<EOF >main.c
