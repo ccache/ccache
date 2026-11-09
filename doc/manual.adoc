@@ -883,6 +883,14 @@ working directory in the debug info set incorrectly.
 You can disable this option to get cache hits when compiling the same source
 code in different directories if you don't mind that CWD in the debug info
 might be incorrect.
++
+For MSVC, ccache includes the directory of the object file, or the CWD if the
+object file path is relative, in the hash instead, also without debug info,
+since MSVC object files contain the full path of the source file. With
+`/pathmap` as described under _<<Compiling in different directories>>_, ccache
+hashes the object file directory and the CWD as mapped through `/pathmap`. If
+this option is false, object directories and the CWD are shared without any
+check.
 
 [#config_ignore_headers_in_manifest]
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
@@ -1900,6 +1908,64 @@ relative paths before hashing.
 
 For example, if projects are in `/home/user/projects`, set *base_dir* to
 `/home/user/projects` or just `/home/user`.
+
+=== MSVC
+
+MSVC (cl) embeds the object file directory and, with `/Z7`, the CWD in object
+files. To share results between source trees, map the root of each tree with
+`/pathmap` and set <<config_base_dir,*base_dir*>> to that root:
+
+* Pass `/experimental:deterministic /pathmap:<root>\=<new>
+  /pathmap:<root>/=<new>` with `<root>` being *base_dir* without a trailing
+  separator and in the same case, once with backslashes only and once with
+  forward slashes only, and the same `<new>` in every tree. An empty `<new>` is
+  recommended; a `<new>` ending in `\` breaks when the build system quotes it.
+  Any other `/pathmap` option disables the relocation; one after
+  `--ccache-skip` doesn't, but is part of the hash.
+* Place the build directory and the CWD inside the root, at the same relative
+  place in every tree. Use `/Z7` for debug info. Don't use precompiled headers
+  for files that should share results.
+* The root must be ASCII and not a drive root (`C:\`), since then nearly every
+  result names it and isn't stored. Use long-name drive-letter paths shorter
+  than MAX_PATH; no 8.3 names, UNC paths, `\\?\`, `subst` drives, or junctions
+  and symbolic links that alias into a tree.
+* No path (argument, include spelling, `#line`) may go above the root, not even
+  to come back down by name (`../../proj/inc`). No absolute path into a tree in
+  sources or committed generated files, and no file outside the trees may name
+  a path in a tree.
+* No `INCLUDE` or `EXTERNAL_INCLUDE` entry may be inside the root; entries must
+  be absolute paths of the form `C:\dir` (not `\dir`, `C:dir` or `\\?\C:\dir`),
+  unquoted and without blanks.
+* With toolset 14.29, write absolute paths inside the root with backslashes
+  only and in the case of the `/pathmap` value.
+
+For example, with CMake and Ninja, configure the build directory `build` inside
+the tree, set *base_dir* to the tree root and add
+`/experimental:deterministic /pathmap:<root>\= /pathmap:<root>/=` to
+`CMAKE_C_FLAGS` and `CMAKE_CXX_FLAGS` with `-D` on the `cmake` command line
+(in a CMake file, write each `\` as `\\`). With MSBuild, add the same options
+to `AdditionalOptions` and set `SupportJustMyCode` to `false` for Debug builds.
+
+Ccache then hashes the mapped object directory and CWD (if *hash_dir* is true)
+and the `/pathmap` options without `<root>`. It doesn't relocate with `/Yc` or
+`/Yu`, SARIF output or `/external:env:`, if the CWD or the object directory is
+outside the root, or if an `INCLUDE` or `EXTERNAL_INCLUDE` entry of the form
+`C:\dir` is inside it.
+It doesn't store a result whose stdout or stderr names the root, since MSVC
+doesn't map these. Set <<config_msvc_dep_prefix,*msvc_dep_prefix*>> for
+localized toolsets, or `/showIncludes` results aren't stored.
+
+The direct and depend modes trust the include files they found: untracked or
+stale files that shadow includes differ between trees. Keep trees clean or set
+<<config_direct_mode,*direct_mode*>> to false, and don't combine this with
+`sloppiness = file_stat_matches`.
+
+Verified with toolsets 14.29.30133 and 14.51.36231, the options `/c /EHsc /Z7
+/W4 /FA /FC /showIncludes /I /FI /external:I` and the depend mode. Not
+verified, so don't share results built with: `/JMC`, `/GL`, `/fsanitize`,
+`/openmp:llvm`, `/clr`, `/ZW`, C++ modules, `/d1trimfile:`, `/doc`, and `/F*`
+outputs other than `/Fo`, `/Fd` and `/Fa`. `/sourceDependencies` results aren't
+shared.
 
 
 == Precompiled headers

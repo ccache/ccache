@@ -23,6 +23,8 @@
 #include <ccache/context.hpp>
 #include <ccache/core/statistic.hpp>
 #include <ccache/util/args.hpp>
+#include <ccache/util/defer.hpp>
+#include <ccache/util/environment.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
@@ -44,6 +46,7 @@ namespace fs = util::filesystem;
 using core::Statistic;
 using TestUtil::TestContext;
 using util::Args;
+using namespace std::string_view_literals;
 
 namespace {
 
@@ -1147,6 +1150,159 @@ TEST_CASE("MSVC PCH options")
           == "cl.exe /Yupch.h /Fppch.cpp.pch /FIpch.h /c");
   }
 }
+
+#ifdef _WIN32
+TEST_CASE("MSVC /pathmap root map")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  ctx.config.set_base_dirs({ctx.actual_cwd});
+  REQUIRE(util::write_file("foo.c", ""));
+  REQUIRE(fs::create_directory("sub"));
+
+  // The root map R=N for the current directory, with N empty.
+  const auto root =
+    util::replace_all(util::pstr(ctx.actual_cwd).str(), "/", "\\");
+  const auto back = root + "\\=";
+  const auto forward = util::replace_all(root, "\\", "/") + "/=";
+  const auto maps = FMT("/pathmap:{} /pathmap:{}", back, forward);
+  const auto deterministic_maps = FMT("/experimental:deterministic {}", maps);
+
+  // Returns whether process_args selects the root map for `options`.
+  const auto relocates = [&](std::string_view options,
+                             std::string_view output = "/Fofoo.obj"sv,
+                             std::string_view input = "foo.c"sv) {
+    ctx.args_info = {};
+    ctx.orig_args =
+      Args::from_string(FMT("cl.exe {} {} /c {}", options, output, input));
+    REQUIRE(process_args(ctx));
+    return !ctx.args_info.msvc_root_map.empty();
+  };
+
+  SUBCASE("Relocates")
+  {
+    for (const auto options : {""sv, "/FC /FS /MP /FA"sv}) {
+      CAPTURE(options);
+      CHECK(relocates(FMT("{} {}", deterministic_maps, options)));
+      CHECK(ctx.args_info.msvc_root_map == back);
+      CHECK(ctx.args_info.msvc_path_maps
+            == std::vector<std::string>{back, forward});
+    }
+    CHECK(relocates(FMT(
+      "/experimental:deterministic /pathmap:{} /pathmap:{}", forward, back)));
+    CHECK(ctx.args_info.msvc_root_map == back);
+    CHECK(relocates(FMT(
+      "-experimental:deterministic -pathmap:{} -pathmap:{}", back, forward)));
+    CHECK(ctx.args_info.msvc_root_map == back);
+  }
+
+  SUBCASE("Relocates with /pathmap in a response file")
+  {
+    REQUIRE(util::write_file("maps.rsp", maps));
+    CHECK(relocates("/experimental:deterministic @maps.rsp"));
+  }
+
+  SUBCASE("Relocates in depend mode")
+  {
+    ctx.config.set_depend_mode(true);
+    CHECK(relocates(FMT("{} /showIncludes", deterministic_maps)));
+  }
+
+  SUBCASE("Not without /experimental:deterministic")
+  {
+    CHECK(!relocates(maps));
+    CHECK(
+      !relocates(FMT("/experimental:deterministic- {}", deterministic_maps)));
+    CHECK(
+      !relocates(FMT("{} /experimental:deterministic-", deterministic_maps)));
+  }
+
+  SUBCASE("Not for clang-cl")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    CHECK(!relocates(deterministic_maps));
+  }
+
+  SUBCASE("Not with /Yc or /Yu")
+  {
+    // process_args already clears base_dir for /Yc and /Yu, so this doesn't
+    // depend on the root map's own /Yc and /Yu check.
+    REQUIRE(util::write_file("pch.h", ""));
+    REQUIRE(util::write_file("pch.pch", ""));
+    ctx.config.update_from_map({
+      {"sloppiness", "pch_defines,time_macros"}
+    });
+    CHECK(!relocates(FMT("{} /Ycpch.h /Fppch.pch", deterministic_maps)));
+    CHECK(!relocates(FMT("{} /Yupch.h /Fppch.pch", deterministic_maps)));
+  }
+
+  SUBCASE("Not with SARIF output or /external:env:")
+  {
+    CHECK(!relocates(FMT("{} /experimental:log report", deterministic_maps)));
+    CHECK(
+      !relocates(FMT("{} /external:env:EXT /external:W0", deterministic_maps)));
+  }
+
+  SUBCASE("Not with an INCLUDE entry under the root")
+  {
+    const auto parent = util::replace_all(
+      util::pstr(ctx.actual_cwd.parent_path()).str(), "/", "\\");
+    const auto leaf = util::pstr(ctx.actual_cwd.filename()).str();
+    for (const char* name : {"INCLUDE", "EXTERNAL_INCLUDE"}) {
+      CAPTURE(name);
+      const char* value = std::getenv(name);
+      const std::optional<std::string> saved =
+        value ? std::make_optional<std::string>(value) : std::nullopt;
+      DEFER(
+        if (saved) { util::setenv(name, *saved); } else {
+          util::unsetenv(name);
+        });
+      // Entries are tested like base_dir, i.e. normalized.
+      for (const auto& entry : {FMT("{}\\sub", root),
+                                FMT("{}\\x\\..\\{}\\sub", parent, leaf),
+                                FMT("{}\\\\{}\\sub", parent, leaf)}) {
+        CAPTURE(entry);
+        util::setenv(name, FMT("C:\\other;{}", entry));
+        CHECK(!relocates(deterministic_maps));
+      }
+      util::setenv(name, FMT("{}\\..\\other", root));
+      CHECK(relocates(deterministic_maps));
+      // An entry without a drive letter isn't detected; the manual requires
+      // entries of the form C:\dir.
+      util::setenv(name, FMT("{}\\sub", root.substr(root.find('\\'))));
+      CHECK(relocates(deterministic_maps));
+    }
+  }
+
+  SUBCASE("Not with the object directory outside the root")
+  {
+    CHECK(!relocates(deterministic_maps, "/Fo..\\foo.obj"sv));
+  }
+
+  SUBCASE("Not with a header input outside the root")
+  {
+    // Without /Fo, the object file becomes <input>.pch, outside the root.
+    REQUIRE(util::write_file("../pathmap_outside.h", ""));
+    REQUIRE(util::write_file("sub/inside.h", ""));
+    ctx.config.update_from_map({
+      {"sloppiness", "pch_defines,time_macros"}
+    });
+    CHECK(relocates(deterministic_maps, ""sv, "sub\\inside.h"sv));
+    CHECK(!relocates(deterministic_maps, ""sv, "..\\pathmap_outside.h"sv));
+  }
+
+  SUBCASE("Not with the cwd outside the root")
+  {
+    ctx.config.set_base_dirs({ctx.actual_cwd / "sub"});
+    CHECK(!relocates(FMT("/experimental:deterministic /pathmap:{}\\sub\\="
+                         " /pathmap:{}/sub/=",
+                         root,
+                         util::replace_all(root, "\\", "/")),
+                     "/Fosub\\foo.obj"sv));
+  }
+}
+#endif
 
 #ifdef _WIN32
 // The below tests use absolute paths and will typically fail on macOS since

@@ -1327,17 +1327,22 @@ to_cache(Context& ctx,
   result->stdout_data =
     rewrite_stdout_from_compiler(ctx, std::move(result->stdout_data));
 
-  if (result->exit_status != 0) {
-    LOG("Compiler gave exit status {}", result->exit_status);
-
-    // We can output stderr immediately instead of rerunning the compiler.
+  const auto send_output_to_console = [&] {
     core::send_to_console(
       ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
+    // Send stdout after stderr, it makes the output clearer with MSVC.
     core::send_to_console(
       ctx,
       util::to_string_view(compiler::strip_includes_from_msvc_show_includes(
         ctx, std::move(result->stdout_data))),
       STDOUT_FILENO);
+  };
+
+  if (result->exit_status != 0) {
+    LOG("Compiler gave exit status {}", result->exit_status);
+
+    // We can output stderr immediately instead of rerunning the compiler.
+    send_output_to_console();
 
     auto failure = Failure(Statistic::compile_failed);
     failure.set_exit_code(result->exit_status);
@@ -1395,20 +1400,33 @@ to_cache(Context& ctx,
     }
   }
 
+  // cl doesn't map paths in stdout and stderr, and ccache only relativizes
+  // leading ones, so a result naming the root can't be shared.
+  if (!ctx.args_info.msvc_root_map.empty()) {
+    const auto map = compiler::parse_msvc_path_map(ctx.args_info.msvc_root_map);
+    if (compiler::msvc_output_names_root(
+          map->old_path, util::to_string_view(result->stdout_data))
+        || compiler::msvc_output_names_root(
+          map->old_path, util::to_string_view(result->stderr_data))) {
+      LOG("Not storing the result since the compiler output names {}",
+          map->old_path);
+      send_output_to_console();
+      // The compilation succeeded, so exit code 0 and no fallback to the real
+      // compiler; the caller skips update_manifest since there is no result.
+      auto failure = Failure(ctx.config.recache() ? Statistic::recache
+                                                  : Statistic::cache_miss);
+      failure.set_exit_code(0);
+      return tl::unexpected(failure);
+    }
+  }
+
   if (!write_result(
         ctx, *result_key, result->stdout_data, result->stderr_data)) {
     return tl::unexpected(Statistic::compiler_produced_no_output);
   }
 
   // Everything OK.
-  core::send_to_console(
-    ctx, util::to_string_view(result->stderr_data), STDERR_FILENO);
-  // Send stdout after stderr, it makes the output clearer with MSVC.
-  core::send_to_console(
-    ctx,
-    util::to_string_view(compiler::strip_includes_from_msvc_show_includes(
-      ctx, std::move(result->stdout_data))),
-    STDOUT_FILENO);
+  send_output_to_console();
 
   return *result_key;
 }
@@ -1828,7 +1846,30 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
   // The object file produced by MSVC includes the full path to the source file
   // even without debug flags. Hashing the directory should be enough since the
   // filename is included in the hash anyway.
-  if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
+  //
+  // cl embeds the mapped object directory and, with /Z7, the mapped cwd. Both
+  // are under the root (process_args checked); if not, hash as upstream.
+  std::optional<std::string> mapped_object_dir;
+  std::optional<std::string> mapped_cwd;
+  if (!ctx.args_info.msvc_root_map.empty() && ctx.config.hash_dir()) {
+    const auto map = compiler::parse_msvc_path_map(ctx.args_info.msvc_root_map);
+    mapped_object_dir = compiler::apply_msvc_path_map(
+      *map,
+      util::pstr(
+        compiler::msvc_object_dir(ctx.actual_cwd, ctx.args_info.output_obj))
+        .str());
+    mapped_cwd =
+      compiler::apply_msvc_path_map(*map, util::pstr(ctx.actual_cwd).str());
+  }
+  if (mapped_object_dir && mapped_cwd) {
+    LOG("Hashing mapped object file directory {} and cwd {}",
+        *mapped_object_dir,
+        *mapped_cwd);
+    hash.hash_delimiter("source path");
+    hash.hash(*mapped_object_dir);
+    hash.hash_delimiter("cwd");
+    hash.hash(*mapped_cwd);
+  } else if (ctx.config.is_compiler_group_msvc() && ctx.config.hash_dir()) {
     const fs::path& output_obj_dir = ctx.args_info.output_obj.is_absolute()
                                        ? ctx.args_info.output_obj.parent_path()
                                        : ctx.actual_cwd;
@@ -2161,6 +2202,24 @@ hash_argument(const Context& ctx,
     hash.hash_delimiter("arg");
     hash.hash("-fmacro-prefix-map=");
     return {};
+  }
+  // When relocating, hash the two spellings of the root map without the old
+  // path, which differs between source trees. Any other /pathmap value (e.g.
+  // another map after --ccache-skip) is hashed as is.
+  if (!ctx.args_info.msvc_root_map.empty()
+      && (args[i].starts_with("/pathmap:")
+          || args[i].starts_with("-pathmap:"))) {
+    const auto map = compiler::parse_msvc_path_map(ctx.args_info.msvc_root_map);
+    const auto value = std::string_view(args[i]).substr(args[i].find(':') + 1);
+    if (value == ctx.args_info.msvc_root_map
+        || value
+             == FMT("{}={}",
+                    util::replace_all(map->old_path, "\\", "/"),
+                    map->new_path)) {
+      hash.hash_delimiter("arg");
+      hash.hash(FMT("-pathmap:={}", map->new_path));
+      return {};
+    }
   }
   // -fprofile-prefix-path can also be used to reuse ccache results
   // across different directories
