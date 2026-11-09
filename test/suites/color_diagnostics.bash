@@ -28,7 +28,7 @@ SUITE_color_diagnostics_PROBE() {
 }
 
 SUITE_color_diagnostics_SETUP() {
-    unset GCC_COLORS
+    unset GCC_COLORS GCC_URLS TERM_URLS COLORTERM
     export TERM=vt100
 }
 
@@ -40,6 +40,20 @@ color_diagnostics_expect_color() {
 
 color_diagnostics_expect_no_color() {
     expect_not_contains "${1:?}" $'\033['
+}
+
+color_diagnostics_expect_urls() {
+    expect_contains <(grep -F 'Wreturn-type' "${1:?}") $'\033]8;'
+}
+
+color_diagnostics_expect_no_urls() {
+    expect_not_contains "${1:?}" $'\033]8;'
+}
+
+color_diagnostics_compiler_emits_urls() {
+    echo 'int f(void) {}' \
+        | $COMPILER -fdiagnostics-urls=always -Wreturn-type -c -o /dev/null -x c - 2>&1 \
+        | grep -Fq $'\033]8;'
 }
 
 color_diagnostics_generate_code() {
@@ -75,7 +89,7 @@ color_diagnostics_generate_permutations() {
 color_diagnostics_run_on_pty() {
     # command uses bash syntax, make sure that script uses the bash shell to run
     SHELL=$BASH \
-    script --return --quiet --command "unset GCC_COLORS; CCACHE_DIR='$CCACHE_DIR' ${2:?}" /dev/null </dev/null >"${1:?}"
+    script --return --quiet --command "unset GCC_COLORS GCC_URLS TERM_URLS COLORTERM; CCACHE_DIR='$CCACHE_DIR' ${2:?}" /dev/null </dev/null >"${1:?}"
 
     # script returns early on some platforms (leaving a child process living for
     # a short while) and the output may therefore still be pending. Work around
@@ -150,6 +164,59 @@ SUITE_color_diagnostics() {
             test_failed "-fcolor-diagnostics unexpectedly accepted by GCC"
         fi
         expect_stat preprocessor_error 1
+    fi
+
+    if $COMPILER_TYPE_GCC && color_diagnostics_compiler_emits_urls; then
+        # ---------------------------------------------------------------------
+        TEST "Diagnostic URLs automatically enabled when stderr is a TTY"
+
+        color_diagnostics_generate_code test1.c
+        color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c"
+        color_diagnostics_expect_urls test1.output
+
+        # Check that subsequently running without a TTY generates a cache hit.
+        $CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
+        color_diagnostics_expect_no_urls test1.stderr
+        color_diagnostics_expect_no_color test1.stderr
+        expect_stat cache_miss 1
+        expect_stat preprocessed_cache_hit 1
+
+        # ---------------------------------------------------------------------
+        TEST "Diagnostic URLs replayed on a TTY after a miss without a TTY"
+
+        color_diagnostics_generate_code test1.c
+        $CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
+        color_diagnostics_expect_no_urls test1.stderr
+        color_diagnostics_expect_no_color test1.stderr
+
+        color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c"
+        color_diagnostics_expect_urls test1.output
+        expect_stat cache_miss 1
+        expect_stat preprocessed_cache_hit 1
+
+        # ---------------------------------------------------------------------
+        TEST "-fdiagnostics-urls=never on a TTY"
+
+        color_diagnostics_generate_code test1.c
+        color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -fdiagnostics-urls=never -Wreturn-type -c -o test1.o test1.c"
+        color_diagnostics_expect_no_urls test1.output
+        color_diagnostics_expect_color test1.output
+
+        # ---------------------------------------------------------------------
+        TEST "-fdiagnostics-urls=always without a TTY"
+
+        color_diagnostics_generate_code test1.c
+        $CCACHE_COMPILE -fdiagnostics-urls=always -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
+        color_diagnostics_expect_urls test1.stderr
+        color_diagnostics_expect_no_color test1.stderr
+
+        # ---------------------------------------------------------------------
+        TEST "-fdiagnostics-plain-output on a TTY"
+
+        color_diagnostics_generate_code test1.c
+        color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -fdiagnostics-plain-output -Wreturn-type -c -o test1.o test1.c"
+        expect_contains test1.output 'Wreturn-type'
+        expect_not_contains test1.output $'\033'
     fi
 
     if $COMPILER_TYPE_CLANG; then

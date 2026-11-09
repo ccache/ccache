@@ -877,6 +877,10 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
     DEBUG_ASSERT(ctx.config.is_compiler_group_gcc());
     args.erase_last("-fdiagnostics-color");
   }
+  if (ctx.diagnostics_urls_failed) {
+    DEBUG_ASSERT(ctx.config.is_compiler_group_gcc());
+    args.erase_last("-fdiagnostics-urls=always");
+  }
 
   auto tmp_stdout = get_tmp_fd(ctx, "stdout", capture_stdout);
   auto tmp_stderr = get_tmp_fd(ctx, "stderr", true);
@@ -889,10 +893,10 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
                      std::move(tmp_stdout.fd),
                      std::move(tmp_stderr.fd));
   }
-  if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.config.is_compiler_group_gcc()) {
+  if (status != 0 && ctx.config.is_compiler_group_gcc()) {
     const auto errors = util::read_file<std::string>(tmp_stderr.path);
-    if (errors && errors->find("fdiagnostics-color") != std::string::npos) {
+    if (errors && !ctx.diagnostics_color_failed
+        && errors->find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
       // non-GCC compilers misclassified as GCC-like might not do it
       // either. We assume that if the error message contains
@@ -904,6 +908,14 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
       LOG("-fdiagnostics-color is unsupported; trying again without it");
 
       ctx.diagnostics_color_failed = true;
+      return do_execute(ctx, args, capture_stdout);
+    }
+    if (errors && !ctx.diagnostics_urls_failed
+        && errors->find("fdiagnostics-urls") != std::string::npos) {
+      // GCC versions older than 10 don't understand -fdiagnostics-urls.
+      LOG("-fdiagnostics-urls is unsupported; trying again without it");
+
+      ctx.diagnostics_urls_failed = true;
       return do_execute(ctx, args, capture_stdout);
     }
   }
@@ -1961,12 +1973,19 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     }
   }
 
-  // Possibly hash GCC_COLORS (for color diagnostics).
+  // Possibly hash environment variables affecting GCC diagnostics.
   if (ctx.config.is_compiler_group_gcc()) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
       hash.hash(gcc_colors);
+    }
+    for (const char* name : {"GCC_URLS", "TERM_URLS"}) {
+      const char* value = getenv(name);
+      if (value) {
+        hash.hash_delimiter(name);
+        hash.hash(value);
+      }
     }
   }
 
