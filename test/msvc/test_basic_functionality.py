@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_basic_compilation(ccache_test):
     source = ccache_test.workdir / "test.c"
     source.write_text("int main() {}\n")
@@ -34,11 +37,21 @@ def test_define_change_is_miss(ccache_test):
     assert stats_2["total_hit"] == 0
 
 
-def test_header_change_is_miss(ccache_test):
+# MSVC indents the line marker of an indented #include like the directive.
+@pytest.mark.parametrize(
+    "include",
+    [
+        '#include "test.h"',
+        '    #include "test.h"',
+        '\t#include "test.h"',
+        '\f#include "test.h"',
+    ],
+)
+def test_header_change_is_miss(ccache_test, include):
     header = ccache_test.workdir / "test.h"
     header.write_text("#define VALUE 1\n")
     source = ccache_test.workdir / "test.c"
-    source.write_text('#include "test.h"\nint x = VALUE;\n')
+    source.write_text(f"{include}\nint x = VALUE;\n")
 
     ccache_test.compile(["/c", "test.c"])
     stats_1 = ccache_test.stats()
@@ -51,6 +64,18 @@ def test_header_change_is_miss(ccache_test):
     assert stats_2["miss"] == 2
     assert stats_2["direct_hit"] == 0
     assert stats_2["total_hit"] == 0
+
+
+def test_indented_line_marker_lookalike_keeps_direct_mode(ccache_test):
+    # Only the "#line" form of a line marker may be indented.
+    source = ccache_test.workdir / "test.cpp"
+    source.write_text('const char* text = R"(\n    # 1 "missing.h"\n)";\n')
+
+    ccache_test.compile(["/c", "test.cpp"])
+    ccache_test.compile(["/c", "test.cpp"])
+    stats = ccache_test.stats()
+    assert stats["miss"] == 1
+    assert stats["direct_hit"] == 1
 
 
 def test_basedir_normalizes_paths(ccache_test):
