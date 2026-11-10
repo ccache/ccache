@@ -177,6 +177,22 @@ SUITE_remote_helper() {
     $CCACHE --stop-storage-helpers
 
     # -------------------------------------------------------------------------
+    if ! $HOST_OS_WINDOWS; then
+        TEST "Direct crsh: long working directory"
+
+        local long_dir="$(printf '%120s' '' | tr ' ' x)"
+        mkdir "${long_dir}"
+        cd "${long_dir}"
+
+        start_test_helper "test.sock"
+        "${STORAGE_TEST_CLIENT}" "test.sock" stop
+        wait
+        expect_missing test.sock
+
+        cd ..
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Connection failure handling"
 
     local endpoint="nonexistent.sock"

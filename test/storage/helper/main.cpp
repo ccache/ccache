@@ -114,6 +114,21 @@ fail(const std::string& message)
   std::exit(1);
 }
 
+static void
+change_to_root_directory()
+{
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    fail(FMT("Failed to get working directory: {}", cwd.error().message()));
+  }
+  // Change to the root directory so the caller's working directory can be
+  // removed.
+  if (auto result = fs::current_path(cwd->root_path()); !result) {
+    fail(
+      FMT("Failed to change working directory: {}", result.error().message()));
+  }
+}
+
 class IpcServer
 {
 public:
@@ -475,6 +490,8 @@ IpcServer::run()
   }
   DEFER(CloseHandle(pipe));
 
+  change_to_root_directory();
+
   OVERLAPPED overlapped = {};
   overlapped.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
   if (!overlapped.hEvent) {
@@ -545,7 +562,14 @@ IpcServer::run()
   std::memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
   std::memcpy(addr.sun_path, m_endpoint.data(), m_endpoint.length());
-  DEFER((void)fs::remove(m_endpoint));
+
+  // Cleanup must still find the socket after changing the working directory.
+  auto cwd = fs::current_path();
+  if (!cwd) {
+    fail(FMT("Failed to get working directory: {}", cwd.error().message()));
+  }
+  const auto cleanup_path = *cwd / m_endpoint;
+  DEFER((void)fs::remove(cleanup_path));
 
   mode_t old_umask = umask(0077);
   int ret =
@@ -554,6 +578,8 @@ IpcServer::run()
   if (ret < 0) {
     fail("bind() failed");
   }
+
+  change_to_root_directory();
 
   if (listen(server_fd, 5) < 0) {
     fail("listen() failed");
@@ -606,11 +632,6 @@ main()
   }
   DEFER(if (g_log_file) { std::fclose(g_log_file); });
 
-  auto cwd = fs::current_path();
-  if (!cwd) {
-    fail(FMT("Failed to get working directory: {}", cwd.error().message()));
-  }
-
   const char* ipc_endpoint = std::getenv("CRSH_IPC_ENDPOINT");
   if (!ipc_endpoint) {
     fail("CRSH_IPC_ENDPOINT environment variable not set");
@@ -620,7 +641,7 @@ main()
 #ifdef _WIN32
   endpoint = std::string("\\\\.\\pipe\\") + ipc_endpoint;
 #else
-  endpoint = (*cwd / ipc_endpoint).string();
+  endpoint = ipc_endpoint;
 #endif
 
   const char* url = std::getenv("CRSH_URL");
@@ -642,12 +663,6 @@ main()
   log_msg(FMT("IPC endpoint: {}", endpoint));
   log_msg(FMT("URL: {}", url));
   log_msg(FMT("Idle timeout: {}", idle_timeout));
-
-  // Release the caller's working directory while the helper is running.
-  if (auto result = fs::current_path(cwd->root_path()); !result) {
-    fail(
-      FMT("Failed to change working directory: {}", result.error().message()));
-  }
 
   IpcServer helper(endpoint, std::chrono::seconds{idle_timeout});
   helper.run();
