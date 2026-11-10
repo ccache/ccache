@@ -55,14 +55,18 @@ std::string rewrite_stderr_to_absolute_paths(std::string_view text);
 // be connected to a console), optionally stripping ANSI color sequences (or
 // translating them to Win32 console operations if
 // `ctx.args_info.translate_diagnostics_colors` is true and `fd` refers to a
-// console without virtual terminal processing), and rewriting paths to
-// absolute if `ctx.config.absolute_paths_in_stderr()` is true. On Windows,
-// valid UTF-8 text is converted to UTF-16 for native console output. Throws
-// `core::Error` on error.
+// console without virtual terminal processing), stripping ANSI OSC 8 (URL)
+// sequences if `ctx.args_info.strip_diagnostics_urls` is true, and rewriting
+// paths to absolute if `ctx.config.absolute_paths_in_stderr()` is true. On
+// Windows, valid UTF-8 text is converted to UTF-16 for native console output.
+// Throws `core::Error` on error.
 void send_to_console(const Context& ctx, std::string_view text, int fd);
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[nodiscard]] std::string strip_ansi_csi_seqs(std::string_view string);
+
+// Returns a copy of string with ANSI OSC 8 (hyperlink) sequences removed.
+[[nodiscard]] std::string strip_ansi_osc8_seqs(std::string_view string);
 
 // Get the length of paths in compiler diagnostics messages in following forms:
 // 1. <path>:

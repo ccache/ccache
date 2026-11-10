@@ -776,7 +776,8 @@ TEST_CASE("GCC diagnostics output options")
     CHECK(ctx.args_info.output_sarif.empty());
     CHECK(result->preprocessor_args.to_string() == "gcc");
     CHECK(result->compiler_args.to_string()
-          == "gcc -fdiagnostics-format=text -fdiagnostics-color -c");
+          == "gcc -fdiagnostics-format=text -fdiagnostics-color"
+             " -fdiagnostics-urls=always -c");
     CHECK(result->extra_args_to_hash.to_string()
           == "-fdiagnostics-format=text");
   }
@@ -790,7 +791,8 @@ TEST_CASE("GCC diagnostics output options")
     CHECK(ctx.args_info.output_sarif.empty());
     CHECK(result->preprocessor_args.to_string() == "gcc");
     CHECK(result->compiler_args.to_string()
-          == "gcc -fdiagnostics-format=sarif-stderr -fdiagnostics-color -c");
+          == "gcc -fdiagnostics-format=sarif-stderr -fdiagnostics-color"
+             " -fdiagnostics-urls=always -c");
     CHECK(result->extra_args_to_hash.to_string()
           == "-fdiagnostics-format=sarif-stderr");
   }
@@ -803,9 +805,9 @@ TEST_CASE("GCC diagnostics output options")
     REQUIRE(result);
     CHECK(ctx.args_info.output_sarif.empty());
     CHECK(result->preprocessor_args.to_string() == "gcc");
-    CHECK(
-      result->compiler_args.to_string()
-      == "gcc -fdiagnostics-set-output=text:color=no -fdiagnostics-color -c");
+    CHECK(result->compiler_args.to_string()
+          == "gcc -fdiagnostics-set-output=text:color=no -fdiagnostics-color"
+             " -fdiagnostics-urls=always -c");
     CHECK(result->extra_args_to_hash.to_string()
           == "-fdiagnostics-set-output=text:color=no");
   }
@@ -824,7 +826,7 @@ TEST_CASE("GCC diagnostics output options")
     CHECK(result->compiler_args.to_string()
           == "gcc"
              " -fdiagnostics-add-output=sarif:version=2.1,file=report.sarif"
-             " -fdiagnostics-color -c");
+             " -fdiagnostics-color -fdiagnostics-urls=always -c");
   }
 
   SUBCASE("Absolute SARIF output under base directory")
@@ -842,7 +844,7 @@ TEST_CASE("GCC diagnostics output options")
     CHECK(ctx.args_info.output_sarif == "report.sarif");
     CHECK(result->compiler_args.to_string()
           == ("gcc -fdiagnostics-set-output=sarif:file=report.sarif"
-              " -fdiagnostics-color -c"));
+              " -fdiagnostics-color -fdiagnostics-urls=always -c"));
   }
 
   SUBCASE("Missing SARIF file")
