@@ -213,6 +213,24 @@ format_iso8601_timestamp(const TimePoint& time, TimeZone time_zone)
 }
 
 std::string
+format_json_string(std::string_view value)
+{
+  std::string result = "\"";
+  for (unsigned char ch : value) {
+    if (ch == '"' || ch == '\\') {
+      result += '\\';
+      result += ch;
+    } else if (ch < 0x20) {
+      result += FMT("\\u{:04x}", ch);
+    } else {
+      result += ch;
+    }
+  }
+  result += '"';
+  return result;
+}
+
+std::string
 join_path_list(const std::vector<std::filesystem::path>& path_list)
 {
   return join(path_list, k_path_delimiter);

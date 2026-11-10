@@ -381,6 +381,16 @@ TEST_CASE("util::format_iso8601_timestamp")
         == "2009-02-13T23:31:30");
 }
 
+TEST_CASE("util::format_json_string")
+{
+  CHECK(util::format_json_string("") == R"("")");
+  CHECK(util::format_json_string("a b") == R"("a b")");
+  CHECK(util::format_json_string("\"\\\t\n\r")
+        == R"("\"\\\u0009\u000a\u000d")");
+  CHECK(util::format_json_string(std::string_view("\0\x1f", 2))
+        == R"("\u0000\u001f")");
+}
+
 TEST_CASE("util::join")
 {
   {

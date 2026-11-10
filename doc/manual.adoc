@@ -234,6 +234,13 @@ directory to a certain size, use `CCACHE_MAXSIZE=_SIZE_ ccache -c`.
     LRU (least recently used) using the file modification timestamp.
 --
 
+*--trim-log* _PATH_::
+
+    Append a JSON object for each file removed by `--trim-dir` to _PATH_, one
+    object per line. Each object contains `removed_at`, `atime` and `mtime` as
+    UTC timestamps, `size` in bytes and `path`. No log is written with
+    `--dry-run`.
+
 *--trim-marker* _PATH_::
 
     Speed up repeated `--trim-recompress` runs by skipping files whose

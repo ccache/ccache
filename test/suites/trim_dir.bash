@@ -25,6 +25,25 @@ SUITE_trim_dir() {
     expect_exists remote/cc/2
 
     # -------------------------------------------------------------------------
+    TEST "Trim log"
+
+    mkdir -p remote
+    filename="entry with spaces"
+    dd if=/dev/zero of="remote/$filename" count=1 bs=8192 2>/dev/null
+    expect_exists "remote/$filename"
+    TZ=UTC0 touch -t 202001020304.05 "remote/$filename"
+
+    TZ=EST5 $CCACHE --trim-dir remote --trim-max-size 1KiB --trim-log trim.log >/dev/null
+    expect_missing "remote/$filename"
+    sed -e 's/"removed_at":"[^" ]*Z"/"removed_at":"UTC"/' \
+        -e 's/\r$//' -e 's,\\\\,/,g' trim.log >normalized.log
+    expect_content normalized.log \
+        '{"removed_at":"UTC","atime":"2020-01-02T03:04:05Z","mtime":"2020-01-02T03:04:05Z","size":8192,"path":"remote/entry with spaces"}'
+    if [ "$(wc -l <trim.log)" -ne 1 ]; then
+        test_failed "Expected one JSONL record"
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Trim local cache directory"
 
     mkdir -p local/0

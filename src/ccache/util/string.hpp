@@ -78,6 +78,9 @@ std::string format_human_readable_size(uint64_t size,
 std::string format_iso8601_timestamp(const TimePoint& time,
                                      TimeZone time_zone = TimeZone::local);
 
+// Format `value` as a quoted JSON string, escaping special characters.
+std::string format_json_string(std::string_view value);
+
 // Check if `ch` is alphanumeric.
 bool is_alnum(char ch);
 

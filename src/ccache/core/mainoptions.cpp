@@ -49,6 +49,7 @@
 #include <ccache/util/temporaryfile.hpp>
 #include <ccache/util/texttable.hpp>
 #include <ccache/util/threadpool.hpp>
+#include <ccache/util/time.hpp>
 #include <ccache/util/umaskscope.hpp>
 #include <ccache/util/xxh3_128.hpp>
 
@@ -150,6 +151,7 @@ Options for remote file-based storage:
                                PATH until it is at most the size specified by
                                --trim-max-size (note: don't use this option to
                                trim the local cache)
+        --trim-log PATH        write log of removed files to PATH
         --trim-marker PATH     skip --trim-recompress for files older than PATH
         --trim-max-size SIZE   specify the maximum size for --trim-dir (use 0 for
                                no limit); available suffixes: kB, MB, GB, TB
@@ -321,6 +323,7 @@ struct TrimDirOptions
   core::DryRun dry_run;
   std::string dir;
   std::optional<fs::path> marker_path;
+  std::optional<fs::path> trim_log_path;
   uint64_t max_size;
   util::SizeUnitPrefixType suffix_type;
   bool lru_mtime;
@@ -334,6 +337,7 @@ trim_dir(const TrimDirOptions& options)
   const auto dry_run = options.dry_run;
   const auto& dir = options.dir;
   const auto& trim_marker_path = options.marker_path;
+  const auto& trim_log_path = options.trim_log_path;
   const auto trim_max_size = options.max_size;
   const auto suffix_type = options.suffix_type;
   const auto trim_lru_mtime = options.lru_mtime;
@@ -450,6 +454,16 @@ trim_dir(const TrimDirOptions& options)
   uint64_t size_after_recompression = initial_size + recompression_diff;
   uint64_t final_size = size_after_recompression;
 
+  util::FileStream trim_log;
+  if (trim_log_path && dry_run == DryRun::no) {
+    trim_log.open(*trim_log_path, "a");
+    if (!trim_log) {
+      throw Fatal(FMT("failed to open {} for appending: {}",
+                      *trim_log_path,
+                      strerror(errno)));
+    }
+  }
+
   size_t removed_files = 0;
   if (trim_max_size > 0) {
     for (const auto& file : files) {
@@ -459,6 +473,17 @@ trim_dir(const TrimDirOptions& options)
       if (dry_run == DryRun::yes || util::remove(file.path())) {
         ++removed_files;
         final_size -= file.size_on_disk();
+        if (trim_log) {
+          PRINT(
+            *trim_log,
+            "{{\"removed_at\":\"{}Z\",\"atime\":\"{}Z\",\"mtime\":\"{}Z\","
+            "\"size\":{},\"path\":{}}}\n",
+            util::format_iso8601_timestamp(util::now(), util::TimeZone::utc),
+            util::format_iso8601_timestamp(file.atime(), util::TimeZone::utc),
+            util::format_iso8601_timestamp(file.mtime(), util::TimeZone::utc),
+            file.size(),
+            util::format_json_string(util::pstr(file.path()).str()));
+        }
       }
     }
   }
@@ -520,6 +545,7 @@ enum : uint8_t {
   STOP_STORAGE_HELPERS,
   THREADS,
   TRIM_DIR,
+  TRIM_LOG,
   TRIM_MARKER,
   TRIM_MAX_SIZE,
   TRIM_METHOD,
@@ -563,6 +589,7 @@ const option long_options[] = {
   {"stop-storage-helpers",    NO_ARGUMENT, nullptr, STOP_STORAGE_HELPERS},
   {"threads",                 REQUIRED,    nullptr, THREADS             },
   {"trim-dir",                REQUIRED,    nullptr, TRIM_DIR            },
+  {"trim-log",                REQUIRED,    nullptr, TRIM_LOG            },
   {"trim-marker",             REQUIRED,    nullptr, TRIM_MARKER         },
   {"trim-max-size",           REQUIRED,    nullptr, TRIM_MAX_SIZE       },
   {"trim-method",             REQUIRED,    nullptr, TRIM_METHOD         },
@@ -588,6 +615,7 @@ process_main_options(int argc, const char* const* argv)
   bool trim_lru_mtime = false;
   std::optional<std::optional<int8_t>> trim_recompress;
   core::DryRun dry_run = DryRun::no;
+  std::optional<fs::path> trim_log;
   std::optional<fs::path> trim_marker;
 
   std::optional<std::string> evict_namespace;
@@ -628,6 +656,10 @@ process_main_options(int argc, const char* const* argv)
       threads =
         static_cast<uint32_t>(util::value_or_throw<Error>(util::parse_unsigned(
           arg, 1, std::numeric_limits<uint32_t>::max(), "threads")));
+      break;
+
+    case TRIM_LOG:
+      trim_log = arg;
       break;
 
     case TRIM_MARKER:
@@ -681,6 +713,7 @@ process_main_options(int argc, const char* const* argv)
     case DRY_RUN:
     case FORMAT:
     case THREADS:
+    case TRIM_LOG:
     case TRIM_MARKER:
     case TRIM_MAX_SIZE:
     case TRIM_METHOD:
@@ -923,6 +956,7 @@ process_main_options(int argc, const char* const* argv)
       trim_dir({.dry_run = dry_run,
                 .dir = arg,
                 .marker_path = trim_marker,
+                .trim_log_path = trim_log,
                 .max_size = *trim_max_size,
                 .suffix_type = *trim_suffix_type,
                 .lru_mtime = trim_lru_mtime,
