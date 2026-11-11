@@ -979,6 +979,154 @@ TEST_CASE("MSVC /experimental:log")
 #endif
 }
 
+TEST_CASE("MSVC /analyze")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Supported without its log file")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /analyze /analyze:autolog- /analyze:WX- /c foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.msvc_analyze);
+    CHECK(result->preprocessor_args.to_string()
+          == "cl.exe /analyze /analyze:autolog- /analyze:WX-");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /analyze /analyze:autolog- /analyze:WX- /c");
+  }
+
+  SUBCASE("Dash spelling")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe -analyze -analyze:autolog- /c foo.c");
+    CHECK(process_args(ctx));
+    CHECK(ctx.args_info.msvc_analyze);
+  }
+
+  SUBCASE("Option order")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe /analyze:autolog- /analyze /c foo.c");
+    CHECK(process_args(ctx));
+  }
+
+  SUBCASE("Any /analyze:<option> turns analysis on")
+  {
+    for (const char* options : {
+           "/analyze:autolog-",
+           "/analyze- /analyze:autolog-",
+         }) {
+      CAPTURE(options);
+      ctx.orig_args = Args::from_string(FMT("cl.exe {} /c foo.c", options));
+      CHECK(process_args(ctx));
+      CHECK(ctx.args_info.msvc_analyze);
+    }
+  }
+
+  SUBCASE("Unsupported with a log file")
+  {
+    for (const char* options : {
+           "/analyze",
+           "/analyze:WX-",
+           "/analyze:quiet",
+           "/analyze:external-",
+           "/analyze:logfoo.xml",
+           "/analyze:autolog:ext.foo.xml",
+           "/analyze /analyze:autolog- /analyze:autolog",
+           "/analyze /analyze:autolog- /analyze:autolog:ext.xml",
+           "/analyze /analyze:autolog- /analyze:log:format:sarif",
+         }) {
+      CAPTURE(options);
+      ctx.orig_args = Args::from_string(FMT("cl.exe {} /c foo.c", options));
+      CHECK(process_args(ctx).error()
+            == Statistic::unsupported_compiler_option);
+    }
+  }
+
+  SUBCASE("Unsupported without an object file")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /analyze /analyze:autolog- /analyze:only /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Unsupported with analysis inputs that aren't hashed")
+  {
+    for (const char* option : {
+           "/analyze:rulesetfoo.ruleset",
+           "/analyze:rulesetdirectory.",
+           "/analyze:projectdirectory.",
+           "/analyze:pluginEspXEngine.dll",
+           "/analyze:external:rulesetfoo.ruleset",
+         }) {
+      CAPTURE(option);
+      ctx.orig_args = Args::from_string(
+        FMT("cl.exe /analyze /analyze:autolog- {} /c foo.c", option));
+      CHECK(process_args(ctx).error()
+            == Statistic::unsupported_compiler_option);
+    }
+  }
+
+  SUBCASE("Option value as separate argument")
+  {
+    // Not an input file even if a file with that name exists.
+    REQUIRE(util::write_file("32768", ""));
+    ctx.orig_args = Args::from_string(
+      "cl.exe /analyze /analyze:autolog- /analyze:stacksize 32768 /c foo.c");
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /analyze /analyze:autolog- /analyze:stacksize 32768 /c");
+
+    ctx.orig_args = Args::from_string(
+      "cl.exe /analyze /analyze:autolog- /analyze:log out.xml /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+
+    ctx.orig_args = Args::from_string(
+      "cl.exe /c foo.c /analyze /analyze:autolog- /analyze:stacksize");
+    CHECK(process_args(ctx).error() == Statistic::bad_compiler_arguments);
+  }
+
+  SUBCASE("Analysis turned off again")
+  {
+    for (const char* options : {
+           "/analyze /analyze-",
+           "/analyze:WX- /analyze-",
+         }) {
+      CAPTURE(options);
+      ctx.orig_args = Args::from_string(FMT("cl.exe {} /c foo.c", options));
+      CHECK(process_args(ctx));
+      CHECK(!ctx.args_info.msvc_analyze);
+    }
+  }
+
+  SUBCASE("Depend mode disabled")
+  {
+    ctx.config.set_depend_mode(true);
+    ctx.orig_args =
+      Args::from_string("cl.exe /analyze /analyze:autolog- /c foo.c");
+    CHECK(process_args(ctx));
+    CHECK(!ctx.config.depend_mode());
+  }
+
+  SUBCASE("Still too hard for other compilers of the MSVC group")
+  {
+    for (auto type :
+         {CompilerType::clang_cl, CompilerType::icl, CompilerType::icx_cl}) {
+      CAPTURE(static_cast<int>(type));
+      ctx.config.set_compiler_type(type);
+      ctx.orig_args =
+        Args::from_string("cl.exe /analyze /analyze:autolog- /c foo.c");
+      CHECK(process_args(ctx).error()
+            == Statistic::unsupported_compiler_option);
+    }
+  }
+}
+
 TEST_CASE("clang-cl /experimental:log")
 {
   TestContext test_context;

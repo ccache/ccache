@@ -161,6 +161,9 @@ struct ArgsInfo
   // header it generates.
   bool fno_pch_timestamp = false;
 
+  // Whether MSVC code analysis (/analyze) runs.
+  bool msvc_analyze = false;
+
   // Files referenced by -fsanitize-ignorelist/-fsanitize-blacklist options.
   std::vector<std::filesystem::path> sanitize_ignorelists;
 
