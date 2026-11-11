@@ -19,6 +19,7 @@
 #include "argprocessing.hpp"
 
 #include <ccache/argsinfo.hpp>
+#include <ccache/compiler/msvc.hpp>
 #include <ccache/compopt.hpp>
 #include <ccache/context.hpp>
 #include <ccache/core/common.hpp>
@@ -27,6 +28,7 @@
 #include <ccache/util/args.hpp>
 #include <ccache/util/assertions.hpp>
 #include <ccache/util/direntry.hpp>
+#include <ccache/util/environment.hpp>
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/logging.hpp>
@@ -82,6 +84,9 @@ public:
   bool found_fpch_preprocess = false;
   bool found_Yu = false;
   bool found_Yc = false;
+  bool found_msvc_deterministic = false;     // /experimental:deterministic
+  bool found_msvc_deterministic_off = false; // /experimental:deterministic-
+  bool found_msvc_external_env = false;      // /external:env:<var>
   fs::path found_Fp_file;
   bool found_valid_Fp = false;
   bool found_syntax_only = false;
@@ -708,6 +713,20 @@ process_option_arg(const Context& ctx,
     }
 
     return Statistic::none;
+  }
+
+  if (config.compiler_type() == CompilerType::msvc) {
+    if (arg == "-experimental:deterministic") {
+      state.found_msvc_deterministic = true;
+    } else if (arg == "-experimental:deterministic-") {
+      state.found_msvc_deterministic_off = true;
+    } else if (arg.starts_with("-external:env:")) {
+      state.found_msvc_external_env = true;
+    } else if (arg.starts_with("-pathmap:")) {
+      args_info.msvc_path_maps.emplace_back(arg.substr(arg.find(':') + 1));
+      state.add_common_arg(args[i]);
+      return Statistic::none;
+    }
   }
 
   if (arg == "-fdump-ipa-clones") {
@@ -1821,6 +1840,63 @@ get_default_pch_file_extension(const Config& config)
   return config.is_compiler_group_msvc() ? ".pch" : ".gch";
 }
 
+// Returns the root map R=N through which ccache relocates the hashed object
+// directory, cwd and /pathmap options and checks the compiler output, or an
+// empty string if cl may embed a path in the result that differs between source
+// trees.
+std::string
+msvc_relocation_root_map(const Context& ctx,
+                         const ArgumentProcessingState& state)
+{
+  const auto& args_info = ctx.args_info;
+  // cl applies /pathmap only with /experimental:deterministic.
+  if (!state.found_msvc_deterministic || state.found_msvc_deterministic_off) {
+    return {};
+  }
+  const auto map = compiler::select_msvc_root_map(args_info.msvc_path_maps,
+                                                  ctx.config.base_dirs());
+  if (!map) {
+    return {};
+  }
+  // With the cwd outside the root, ccache relativizes /Fo to a path leading
+  // out of the root and back by the tree name; whether cl maps that is
+  // unmeasured (M4).
+  const auto under_root = [&](const fs::path& path) {
+    return compiler::apply_msvc_path_map(*map, util::pstr(path).str())
+      .has_value();
+  };
+  if (!under_root(ctx.actual_cwd)
+      || !under_root(
+        compiler::msvc_object_dir(ctx.actual_cwd, args_info.output_obj))) {
+    LOG("Not relocating: cwd or object directory outside of base_dir");
+    return {};
+  }
+  // cl doesn't map the /Yc object reference in a /Yu object nor SARIF output.
+  // The variable of /external:env: isn't hashed. For /Yc and /Yu, process_args
+  // already clears base_dir; the check keeps them refused if that changes.
+  if (state.found_Yc || state.found_Yu || !args_info.output_sarif.empty()
+      || state.found_msvc_external_env) {
+    LOG("Not relocating: /Yc, /Yu, SARIF output or /external:env:");
+    return {};
+  }
+  // ccache records headers found through such an entry relative to base_dir,
+  // so they would resolve to the other tree's headers. The test is base_dir's
+  // own (normalized), so entries spelled with ".." or "\\" count.
+  for (const char* name : {"INCLUDE", "EXTERNAL_INCLUDE"}) {
+    const auto dirs = util::getenv_path_list(name);
+    if (std::ranges::any_of(dirs, [&](const fs::path& dir) {
+          return util::path_starts_with(dir, ctx.config.base_dirs());
+        })) {
+      LOG("Not relocating: {} has an entry under base_dir", name);
+      return {};
+    }
+  }
+  LOG("Relocating the hashed object directory via /pathmap:{}={}",
+      map->old_path,
+      map->new_path);
+  return FMT("{}={}", map->old_path, map->new_path);
+}
+
 } // namespace
 
 tl::expected<ProcessArgsResult, core::Statistic>
@@ -2076,6 +2152,10 @@ process_args(Context& ctx)
       args_info.orig_input_file, get_default_pch_file_extension(config));
     args_info.output_obj =
       core::make_relative_path(ctx, args_info.orig_output_obj);
+  }
+
+  if (ctx.config.compiler_type() == CompilerType::msvc) {
+    args_info.msvc_root_map = msvc_relocation_root_map(ctx, state);
   }
 
   if (args_info.output_is_precompiled_header

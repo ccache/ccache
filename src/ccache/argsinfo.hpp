@@ -179,6 +179,14 @@ struct ArgsInfo
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
 
+  // MSVC /pathmap values in the format old=new.
+  std::vector<std::string> msvc_path_maps;
+
+  // The root map R=N (see compiler::select_msvc_root_map) through which the
+  // hashed object directory, cwd and /pathmap options are relocated and the
+  // compiler output is checked, or empty.
+  std::string msvc_root_map;
+
   // Relocating coverage info in the format old=new.
   std::vector<std::string> coverage_prefix_maps;
 
