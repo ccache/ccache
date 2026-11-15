@@ -47,6 +47,19 @@ SUITE_multi_arch() {
     expect_stat cache_miss 4
 
     # -------------------------------------------------------------------------
+    TEST "prefix_command_cpp, multiple -arch options"
+
+    cat <<EOF >prefix.sh
+#!/bin/sh
+exec "\$@"
+EOF
+    chmod +x prefix.sh
+
+    CCACHE_NODIRECT=1 CCACHE_PREFIX_CPP=$PWD/prefix.sh $CCACHE_COMPILE -arch x86_64 -arch arm64 -c test1.c
+    expect_stat preprocessor_error 0
+    expect_stat cache_miss 1
+
+    # -------------------------------------------------------------------------
     TEST "cache hit, direct mode, multiple -Xarch_* arguments"
 
     CCACHE_DEBUG=1 $CCACHE_COMPILE -arch x86_64 -arch arm64 -Xarch_x86_64 -I. -Xarch_arm64 -I. -c test1.c

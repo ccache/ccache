@@ -1441,7 +1441,7 @@ get_clang_cu_enable_verbose_mode(const util::Args& args)
 // Find the result key by running the compiler in preprocessor mode and
 // hashing the result.
 static tl::expected<Hash::Digest, Failure>
-get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
+get_result_key_from_cpp(Context& ctx, const util::Args& args, Hash& hash)
 {
   util::Bytes cpp_stderr_data;
 
@@ -1459,14 +1459,14 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     hash.hash_delimiter("cpp");
     TRY(process_preprocessed_file(ctx, hash, ctx.args_info.input_file));
   } else {
-    const size_t orig_args_size = args.size();
+    util::Args cpp_args = args;
 
     if (ctx.config.keep_comments_cpp()) {
-      args.push_back("-C");
+      cpp_args.push_back("-C");
     }
 
     if (ctx.config.is_compiler_group_msvc() && ctx.config.msvc_utf8()) {
-      args.push_back("-utf-8"); // Avoid garbling filenames in output
+      cpp_args.push_back("-utf-8"); // Avoid garbling filenames in output
     }
 
     // Preprocess, intentionally including line markers so that we can pick up
@@ -1475,15 +1475,14 @@ get_result_key_from_cpp(Context& ctx, util::Args& args, Hash& hash)
     // In the future we could potentially use -EP for MSVC if we set up
     // extraction of direct mode headers via /showIncludes, similar to how it's
     // done for the depend mode.
-    args.push_back("-E");
+    cpp_args.push_back("-E");
 
-    args.push_back(
+    cpp_args.push_back(
       FMT("{}{}", ctx.args_info.input_file_prefix, ctx.args_info.input_file));
 
-    add_prefix(ctx, args, ctx.config.prefix_command_cpp());
+    add_prefix(ctx, cpp_args, ctx.config.prefix_command_cpp());
     LOG("Running preprocessor");
-    auto result = do_execute(ctx, args);
-    args.pop_back(args.size() - orig_args_size);
+    auto result = do_execute(ctx, cpp_args);
 
     if (!result) {
       return tl::unexpected(result.error());
