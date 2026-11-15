@@ -136,9 +136,13 @@ ResultRetriever::on_raw_file(uint8_t file_number,
                            e.what()));
     }
 
-    // Update modification timestamp to save the file from LRU cleanup (and, if
-    // hard-linked, to make the object file newer than the source file).
+    // Update modification timestamp to save the file from LRU cleanup.
     util::set_timestamps(raw_file_path);
+
+    // A copy or clone can keep the cache file's old timestamp (CopyFileExW on
+    // Windows does). Touching the cache file before restoring would round the
+    // output's timestamp to the cache file system's precision (2 s on FAT).
+    util::set_timestamps(dest_path);
   } else {
     // Should never happen.
     LOG("Did not copy {} since destination path is unknown for type {}",
