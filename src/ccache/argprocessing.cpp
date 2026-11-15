@@ -1825,7 +1825,7 @@ get_default_pch_file_extension(const Config& config)
 
 tl::expected<ProcessArgsResult, core::Statistic>
 process_args(Context& ctx)
-{
+try {
   ASSERT(!ctx.orig_args.empty());
 
   ArgsInfo& args_info = ctx.args_info;
@@ -2322,6 +2322,9 @@ process_args(Context& ctx)
   }
 
   return state.to_result();
+} catch (const std::system_error& e) {
+  LOG("Failed to process compiler arguments: {}", e.what());
+  return tl::unexpected(Statistic::bad_compiler_arguments);
 }
 
 bool
