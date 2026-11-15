@@ -533,6 +533,17 @@ is_on_preprocessor_directive_line(std::string_view data, size_t pos)
   return data[line_start] == '#';
 }
 
+// Return whether only horizontal whitespace precedes `q` on its line.
+static bool
+is_indented_line_start(const char* begin, const char* q)
+{
+  while (q > begin
+         && (q[-1] == ' ' || q[-1] == '\t' || q[-1] == '\f' || q[-1] == '\v')) {
+    --q;
+  }
+  return q == begin || q[-1] == '\n';
+}
+
 static bool
 contains_incbin_directive(std::string_view data)
 {
@@ -585,6 +596,10 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
     //   #line N "file"
     //   #line N
     //
+    // MSVC, indented like the #include directive it comes from:
+    //
+    //   #line N "file"
+    //
     // Note that there may be other lines starting with '#' left after
     // preprocessing as well, for instance "#    pragma".
     if (q[0] == '#'
@@ -595,7 +610,9 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
-        && (q == begin || q[-1] == '\n')) {
+        && (q[1] == 'l' && ctx.config.is_compiler_group_msvc()
+              ? is_indented_line_start(begin, q)
+              : q == begin || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
         if (starts_with(q, hash_31_command_line_newline)) {
