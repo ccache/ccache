@@ -93,6 +93,7 @@ public:
   bool found_Wa_a_opt = false;
   bool found_msvc_assembler_listing_opt = false;
   bool msvc_assembler_listing_path_is_directory = false;
+  bool found_msvc_dynamicdeopt_opt = false;
   bool rewrite_FI_args = false;
   bool output_sarif_is_directory = false;
 
@@ -101,6 +102,7 @@ public:
   std::string last_seen_msvc_z_debug_option; // /Z7, /Zi or /ZI
   std::string msvc_assembler_listing_extension;
   fs::path msvc_assembler_listing_path;
+  std::string msvc_dynamicdeopt_suffix = ".alt";
 
   // Option that determines diagnostics format/output (-fdiagnostics-format=,
   // -fdiagnostics-add-output= or -fdiagnostics-set-output=). We currently
@@ -900,8 +902,22 @@ process_option_arg(const Context& ctx,
 
   if (config.compiler_type() == CompilerType::msvc
       && arg.starts_with("-dynamicdeopt")) {
-    LOG("Compiler option {} is unsupported", args[i]);
-    return Statistic::unsupported_compiler_option;
+    constexpr std::string_view suffix_opt = "-dynamicdeopt:suffix";
+    state.add_compiler_only_arg(args[i]);
+    if (arg == "-dynamicdeopt" || arg == "-dynamicdeopt:sync") {
+      state.found_msvc_dynamicdeopt_opt = true;
+    } else if (arg == suffix_opt) {
+      if (i == args.size() - 1) {
+        LOG("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      state.add_compiler_only_arg(args[i + 1]);
+      state.msvc_dynamicdeopt_suffix = args[i + 1];
+      ++i;
+    } else if (arg.starts_with(suffix_opt)) {
+      state.msvc_dynamicdeopt_suffix = arg.substr(suffix_opt.length());
+    }
+    return Statistic::none;
   }
 
   // Handle options that should not be passed to the preprocessor.
@@ -1974,6 +1990,12 @@ process_args(Context& ctx)
     return tl::unexpected(Statistic::unsupported_compiler_option);
   }
 
+  if (state.found_msvc_dynamicdeopt_opt
+      && state.found_msvc_assembler_listing_opt) {
+    LOG("/dynamicdeopt in combination with /FA or /Fa is not supported");
+    return tl::unexpected(Statistic::unsupported_compiler_option);
+  }
+
   if (!state.last_seen_msvc_z_debug_option.empty()
       && state.last_seen_msvc_z_debug_option.substr(2) != "7") {
     // /Zi and /ZI are unsupported, but /Z7 is fine.
@@ -2200,6 +2222,18 @@ process_args(Context& ctx)
     } else {
       args_info.output_dwo = util::with_extension(args_info.output_obj, ".dwo");
     }
+  }
+
+  // As with the object file, expect none with /Zs. As with the .dwo, expect
+  // none with the null device, or a hit would restore a stray NUL.alt file.
+  if (state.found_msvc_dynamicdeopt_opt && args_info.expect_output_obj
+      && !util::is_dev_null_path(args_info.output_obj)) {
+    // MSVC inserts the suffix as is, without adding a dot.
+    args_info.output_alt_obj =
+      FMT("{}{}{}",
+          util::with_extension(args_info.output_obj, ""),
+          state.msvc_dynamicdeopt_suffix,
+          args_info.output_obj.extension());
   }
 
   if (!util::is_dev_null_path(args_info.output_obj)) {
