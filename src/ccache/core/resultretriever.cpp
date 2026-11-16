@@ -123,7 +123,9 @@ ResultRetriever::on_raw_file(uint8_t file_number,
   }
 
   const auto dest_path = get_dest_path(file_type);
-  if (!dest_path.empty()) {
+  if (util::is_dev_null_path(dest_path)) {
+    LOG("Not writing to {}", dest_path);
+  } else if (!dest_path.empty()) {
     try {
       m_ctx.storage.local.clone_hard_link_or_copy_file(
         raw_file_path, dest_path, false);
