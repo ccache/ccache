@@ -898,6 +898,12 @@ process_option_arg(const Context& ctx,
     return Statistic::none;
   }
 
+  if (config.compiler_type() == CompilerType::msvc
+      && arg.starts_with("-dynamicdeopt")) {
+    LOG("Compiler option {} is unsupported", args[i]);
+    return Statistic::unsupported_compiler_option;
+  }
+
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_compiler_output(arg)
       || (i + 1 < args.size() && arg == "-Xclang"
