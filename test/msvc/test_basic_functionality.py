@@ -23,6 +23,15 @@ def test_basic_compilation(ccache_test):
     assert (ccache_test.workdir / "test.obj").exists()
 
 
+def test_cl_environment_variable_runs_compiler(ccache_test):
+    source = ccache_test.workdir / "test.c"
+    source.write_text("int main() {}\n")
+    ccache_test.env["CL"] = "/W4"
+
+    ccache_test.compile(["/c", "test.c"])
+    assert (ccache_test.workdir / "test.obj").exists()
+
+
 def test_define_change_is_miss(ccache_test):
     source = ccache_test.workdir / "test.c"
     source.write_text("int x = VALUE;\n")
