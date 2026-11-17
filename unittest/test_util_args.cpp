@@ -20,9 +20,14 @@
 
 #include <ccache/config.hpp>
 #include <ccache/util/args.hpp>
+#include <ccache/util/defer.hpp>
 #include <ccache/util/file.hpp>
 
 #include <doctest/doctest.h>
+
+#ifdef _WIN32
+#  include <windows.h>
+#endif
 
 TEST_SUITE_BEGIN("Args");
 
@@ -259,6 +264,141 @@ TEST_CASE("Args::from_response_file")
     CHECK(args[11] == R"(e)");
   }
 }
+
+#ifdef _WIN32
+TEST_CASE("MSVC response decoding uses the configured system ACP")
+{
+  TestContext test_context;
+  const auto key_name =
+    L"Software\\ccache-response-test-" + std::to_wstring(GetCurrentProcessId());
+  HKEY root;
+  DWORD disposition;
+  REQUIRE(RegCreateKeyExW(HKEY_CURRENT_USER,
+                          key_name.c_str(),
+                          0,
+                          nullptr,
+                          0,
+                          KEY_ALL_ACCESS,
+                          nullptr,
+                          &root,
+                          &disposition)
+          == ERROR_SUCCESS);
+  DEFER(RegCloseKey(root); if (disposition == REG_CREATED_NEW_KEY) {
+    RegDeleteTreeW(HKEY_CURRENT_USER, key_name.c_str());
+  });
+  REQUIRE(disposition == REG_CREATED_NEW_KEY);
+  HKEY code_page_key;
+  REQUIRE(RegCreateKeyExW(root,
+                          L"SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage",
+                          0,
+                          nullptr,
+                          0,
+                          KEY_ALL_ACCESS,
+                          nullptr,
+                          &code_page_key,
+                          nullptr)
+          == ERROR_SUCCESS);
+  DEFER(RegCloseKey(code_page_key));
+
+  // Redirect HKLM reads only in this test process; real system settings stay
+  // intact.
+  REQUIRE(RegOverridePredefKey(HKEY_LOCAL_MACHINE, root) == ERROR_SUCCESS);
+  DEFER(RegOverridePredefKey(HKEY_LOCAL_MACHINE, nullptr));
+  REQUIRE(util::write_file("rsp_file", "hello"));
+  CHECK_FALSE(Args::from_response_file("rsp_file",
+                                       Args::ResponseFileFormat::windows,
+                                       Args::ResponseFileEncoding::msvc));
+
+  struct Case
+  {
+    const wchar_t* code_page;
+    std::string input;
+    std::optional<std::string> expected;
+  };
+  for (const auto& item : {
+         Case{L"1252",   "caf\xe9",  "caf\xc3\xa9" },
+         Case{L"932",    "\x82\xa0", "\xe3\x81\x82"},
+         Case{L"65001",  "\xc3\xbc", "\xc3\xbc"    },
+         Case{L"65001",  "\xfc",     std::nullopt  },
+         Case{L"bogus",  "hello",    std::nullopt  },
+         Case{L"0",      "hello",    std::nullopt  },
+         Case{L"999999", "hello",    std::nullopt  }
+  }) {
+    CAPTURE(item.input);
+    REQUIRE(RegSetValueExW(code_page_key,
+                           L"ACP",
+                           0,
+                           REG_SZ,
+                           reinterpret_cast<const BYTE*>(item.code_page),
+                           static_cast<DWORD>((wcslen(item.code_page) + 1)
+                                              * sizeof(wchar_t)))
+            == ERROR_SUCCESS);
+    REQUIRE(util::write_file("rsp_file", item.input));
+    const auto args =
+      Args::from_response_file("rsp_file",
+                               Args::ResponseFileFormat::windows,
+                               Args::ResponseFileEncoding::msvc);
+    if (item.expected) {
+      REQUIRE(args);
+      REQUIRE(args->size() == 1);
+      CHECK((*args)[0] == *item.expected);
+    } else {
+      CHECK_FALSE(args);
+    }
+  }
+}
+
+TEST_CASE("Native response reader preserves non-UTF-8 bytes")
+{
+  TestContext test_context;
+  REQUIRE(util::write_file("rsp_file", "legacy\xfc"));
+  const auto args =
+    Args::from_response_file("rsp_file", Args::ResponseFileFormat::windows);
+  REQUIRE(args);
+  REQUIRE(args->size() == 1);
+  CHECK((*args)[0] == "legacy\xfc");
+}
+
+TEST_CASE("Response file Unicode decoding")
+{
+  TestContext test_context;
+  std::string content;
+  SUBCASE("UTF-8 BOM")
+  {
+    content = "\xef\xbb\xbfhello";
+  }
+  SUBCASE("UTF-16LE BOM")
+  {
+    content = std::string("\xff\xfeh\0e\0l\0l\0o\0", 12);
+  }
+  REQUIRE(
+    util::write_file("rsp_file",
+                     std::span(reinterpret_cast<const uint8_t*>(content.data()),
+                               content.size())));
+  const auto args = Args::from_response_file("rsp_file",
+                                             Args::ResponseFileFormat::windows,
+                                             Args::ResponseFileEncoding::utf8);
+  REQUIRE(args);
+  REQUIRE(args->size() == 1);
+  CHECK((*args)[0] == "hello");
+}
+
+TEST_CASE("Reject malformed Unicode response files")
+{
+  TestContext test_context;
+  for (const auto& content : {std::string("\xff\xfeh", 3),
+                              std::string("\xff\xfe\0\xd8", 4),
+                              std::string("\xef\xbb\xbf\xfc", 4)}) {
+    REQUIRE(util::write_file(
+      "rsp_file",
+      std::span(reinterpret_cast<const uint8_t*>(content.data()),
+                content.size())));
+    CHECK_FALSE(Args::from_response_file("rsp_file",
+                                         Args::ResponseFileFormat::windows,
+                                         Args::ResponseFileEncoding::utf8));
+  }
+}
+#endif
 
 TEST_CASE("Args::format_response_file_content")
 {

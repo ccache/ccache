@@ -21,11 +21,132 @@
 #include <ccache/config.hpp>
 #include <ccache/core/exceptions.hpp>
 #include <ccache/util/assertions.hpp>
+#include <ccache/util/bytes.hpp>
 #include <ccache/util/file.hpp>
 #include <ccache/util/logging.hpp>
 #include <ccache/util/string.hpp>
 
+#include <limits>
+
+#ifdef _WIN32
+#  include <windows.h>
+#endif
+
 namespace util {
+
+#ifdef _WIN32
+namespace {
+
+std::optional<UINT>
+system_ansi_code_page()
+{
+  // GetACP() is overridden by ccache's UTF-8 manifest. Read the system setting,
+  // which also distinguishes a system-wide UTF-8 ACP from a legacy locale.
+  char value[7]{};
+  DWORD size = sizeof(value);
+  if (RegGetValueA(HKEY_LOCAL_MACHINE,
+                   "SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage",
+                   "ACP",
+                   RRF_RT_REG_SZ,
+                   nullptr,
+                   value,
+                   &size)
+      != ERROR_SUCCESS) {
+    return std::nullopt;
+  }
+  const auto parsed = util::parse_unsigned(value, 1, 65535);
+  if (!parsed || !IsValidCodePage(static_cast<UINT>(*parsed))) {
+    return std::nullopt;
+  }
+  return static_cast<UINT>(*parsed);
+}
+
+std::optional<std::string>
+decode_response_file(std::string_view text, Args::ResponseFileEncoding encoding)
+{
+  if (text.empty()) {
+    return std::string{};
+  }
+  if (text.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+    return std::nullopt;
+  }
+
+  std::wstring wide;
+  if (text.starts_with("\xff\xfe") || text.starts_with("\xfe\xff")) {
+    const bool little_endian = text.starts_with("\xff\xfe");
+    if ((!little_endian && encoding == Args::ResponseFileEncoding::msvc)
+        || text.size() % 2 != 0) {
+      return std::nullopt;
+    }
+    for (size_t i = 2; i < text.size(); i += 2) {
+      const auto first = static_cast<unsigned char>(text[i]);
+      const auto second = static_cast<unsigned char>(text[i + 1]);
+      wide.push_back(static_cast<wchar_t>(
+        little_endian ? first | (second << 8) : (first << 8) | second));
+    }
+  } else {
+    DWORD code_page = CP_UTF8;
+    if (text.starts_with("\xef\xbb\xbf")) {
+      text.remove_prefix(3);
+    } else if (encoding == Args::ResponseFileEncoding::msvc) {
+      const auto system_code_page = system_ansi_code_page();
+      if (!system_code_page) {
+        return std::nullopt;
+      }
+      code_page = *system_code_page;
+    }
+    if (!text.empty()) {
+      const int size = MultiByteToWideChar(code_page,
+                                           MB_ERR_INVALID_CHARS,
+                                           text.data(),
+                                           static_cast<int>(text.size()),
+                                           nullptr,
+                                           0);
+      if (size <= 0) {
+        return std::nullopt;
+      }
+      wide.resize(size);
+      if (!MultiByteToWideChar(code_page,
+                               MB_ERR_INVALID_CHARS,
+                               text.data(),
+                               static_cast<int>(text.size()),
+                               wide.data(),
+                               size)) {
+        return std::nullopt;
+      }
+    }
+  }
+
+  if (wide.empty()) {
+    return std::string{};
+  }
+  const int size = WideCharToMultiByte(CP_UTF8,
+                                       WC_ERR_INVALID_CHARS,
+                                       wide.data(),
+                                       static_cast<int>(wide.size()),
+                                       nullptr,
+                                       0,
+                                       nullptr,
+                                       nullptr);
+  if (size <= 0) {
+    return std::nullopt;
+  }
+  std::string result(size, '\0');
+  if (!WideCharToMultiByte(CP_UTF8,
+                           WC_ERR_INVALID_CHARS,
+                           wide.data(),
+                           static_cast<int>(wide.size()),
+                           result.data(),
+                           size,
+                           nullptr,
+                           nullptr)) {
+    return std::nullopt;
+  }
+  return result;
+}
+
+} // namespace
+#endif
 
 Args::Args(Args&& other) noexcept
   : m_args(std::move(other.m_args))
@@ -56,16 +177,37 @@ Args::from_string(std::string_view command)
 }
 
 std::optional<Args>
-Args::from_response_file(const std::string& filename, ResponseFileFormat format)
+Args::from_response_file(const std::string& filename,
+                         ResponseFileFormat format,
+                         ResponseFileEncoding encoding)
 {
   ASSERT(format != ResponseFileFormat::auto_guess);
 
+#ifdef _WIN32
+  if (encoding != ResponseFileEncoding::native) {
+    const auto bytes = util::read_file<util::Bytes>(filename);
+    if (!bytes) {
+      LOG("Failed to read response file {}: {}", filename, bytes.error());
+      return std::nullopt;
+    }
+    const auto argtext = decode_response_file(
+      std::string_view(reinterpret_cast<const char*>(bytes->data()),
+                       bytes->size()),
+      encoding);
+    if (!argtext) {
+      LOG("Failed to decode response file {}", filename);
+      return std::nullopt;
+    }
+    return parse_response_file_content(*argtext, format);
+  }
+#else
+  (void)encoding;
+#endif
   const auto argtext = util::read_file<std::string>(filename);
   if (!argtext) {
     LOG("Failed to read response file {}: {}", filename, argtext.error());
     return std::nullopt;
   }
-
   return parse_response_file_content(*argtext, format);
 }
 
