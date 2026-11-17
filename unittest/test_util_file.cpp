@@ -25,6 +25,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
+#include <ccache/util/time.hpp>
 
 #include <doctest/doctest.h>
 
@@ -250,6 +251,18 @@ TEST_CASE("util::write_file modes")
   }
 }
 #endif
+
+TEST_CASE("util::set_timestamps")
+{
+  TestContext test_context;
+
+  REQUIRE(util::write_file("test", "foo"));
+  const auto mtime = util::timepoint_from_sec_nsec(1'700'000'000, 123'456'000);
+
+  util::set_timestamps("test", mtime);
+
+  CHECK(DirEntry("test").mtime() == mtime);
+}
 
 TEST_CASE("util::traverse_directory")
 {

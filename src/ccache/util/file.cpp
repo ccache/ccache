@@ -582,6 +582,29 @@ set_timestamps(const fs::path& path,
     atime_mtime[1].tv_usec = util::nsec_part(*mtime) / 1000;
   }
   utimes(util::pstr(path).c_str(), mtime ? atime_mtime : nullptr);
+#elif defined(_WIN32)
+  // utime() only has a resolution of one second on Windows.
+  const auto to_filetime = [](TimePoint tp) {
+    // FILETIME counts 100 ns intervals since 1601-01-01.
+    const uint64_t v =
+      static_cast<uint64_t>(util::nsec_tot(tp) / 100) + 116444736000000000;
+    return FILETIME{static_cast<DWORD>(v), static_cast<DWORD>(v >> 32)};
+  };
+  const TimePoint new_mtime = mtime ? *mtime : util::now();
+  const FILETIME mtime_ft = to_filetime(new_mtime);
+  const FILETIME atime_ft = to_filetime(mtime && atime ? *atime : new_mtime);
+  HANDLE handle =
+    CreateFileW(path.c_str(),
+                FILE_WRITE_ATTRIBUTES,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS,
+                nullptr);
+  if (handle != INVALID_HANDLE_VALUE) {
+    SetFileTime(handle, nullptr, &atime_ft, &mtime_ft);
+    CloseHandle(handle);
+  }
 #else
   utimbuf atime_mtime;
   if (mtime) {
