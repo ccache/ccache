@@ -37,6 +37,10 @@ public:
     windows, // '"' quotes, '\\' escapes only '"' and '\\'
   };
 
+  // Native retains the existing reader. The other policies decode Windows
+  // compiler response files, using the BOM before the BOM-less encoding.
+  enum class ResponseFileEncoding { native, utf8, msvc };
+
   Args() = default;
   Args(std::initializer_list<std::string>) noexcept;
   Args(const Args& other) = default;
@@ -45,8 +49,10 @@ public:
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(std::string_view command);
 
-  static std::optional<Args> from_response_file(const std::string& filename,
-                                                ResponseFileFormat format);
+  static std::optional<Args> from_response_file(
+    const std::string& filename,
+    ResponseFileFormat format,
+    ResponseFileEncoding encoding = ResponseFileEncoding::native);
   static Args parse_response_file_content(const std::string& content,
                                           ResponseFileFormat format);
 

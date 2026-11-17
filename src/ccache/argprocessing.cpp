@@ -673,8 +673,14 @@ process_option_arg(const Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
-    auto file_args =
-      util::Args::from_response_file(argpath, config.response_file_format());
+    auto encoding = util::Args::ResponseFileEncoding::native;
+    if (config.compiler_type() == CompilerType::msvc) {
+      encoding = util::Args::ResponseFileEncoding::msvc;
+    } else if (config.compiler_type() == CompilerType::clang_cl) {
+      encoding = util::Args::ResponseFileEncoding::utf8;
+    }
+    auto file_args = util::Args::from_response_file(
+      argpath, config.response_file_format(), encoding);
     if (!file_args) {
       LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
@@ -1825,7 +1831,7 @@ get_default_pch_file_extension(const Config& config)
 
 tl::expected<ProcessArgsResult, core::Statistic>
 process_args(Context& ctx)
-try {
+{
   ASSERT(!ctx.orig_args.empty());
 
   ArgsInfo& args_info = ctx.args_info;
@@ -2322,9 +2328,6 @@ try {
   }
 
   return state.to_result();
-} catch (const std::system_error& e) {
-  LOG("Failed to process compiler arguments: {}", e.what());
-  return tl::unexpected(Statistic::bad_compiler_arguments);
 }
 
 bool

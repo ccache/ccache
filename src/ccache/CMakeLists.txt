@@ -28,7 +28,7 @@ list(APPEND source_files ${headers})
 add_library(ccache_framework STATIC ${source_files})
 
 if(WIN32)
-  list(APPEND CCACHE_EXTRA_LIBS psapi)
+  list(APPEND CCACHE_EXTRA_LIBS psapi advapi32)
 endif()
 
 if(CCACHE_EXTRA_LIBS)
