@@ -78,6 +78,10 @@ struct ArgsInfo
   // /experimental:log).
   std::filesystem::path output_sarif;
 
+  // Deoptimized object file (MSVC /dynamicdeopt). Contains pathname if not
+  // empty.
+  std::filesystem::path output_alt_obj;
+
   // The given PCH filepath being compiled to (by -Fp option).
   std::filesystem::path orig_included_pch_file;
 

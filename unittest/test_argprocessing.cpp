@@ -1138,6 +1138,118 @@ TEST_CASE("MSVC assembler listing options")
   }
 }
 
+TEST_CASE("MSVC /dynamicdeopt")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Default suffix")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /dynamicdeopt /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj == "foo.alt.obj");
+    CHECK(result->preprocessor_args.to_string() == "cl.exe");
+    CHECK(result->compiler_args.to_string() == "cl.exe /dynamicdeopt /c");
+    CHECK(result->extra_args_to_hash.to_string() == "/dynamicdeopt");
+  }
+
+  SUBCASE("Sync and explicit output")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe /dynamicdeopt:sync /Fobar.c.obj /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj == "bar.c.alt.obj");
+  }
+
+  SUBCASE("Separate suffix")
+  {
+    ctx.orig_args = Args::from_string(
+      "cl.exe /dynamicdeopt /dynamicdeopt:suffix .dd /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj == "foo.dd.obj");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "/dynamicdeopt /dynamicdeopt:suffix .dd");
+  }
+
+  SUBCASE("Attached suffix without dot")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe /dynamicdeopt:suffixdd /dynamicdeopt /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj == "foodd.obj");
+  }
+
+  SUBCASE("Suffix only")
+  {
+    ctx.orig_args =
+      Args::from_string("cl.exe /dynamicdeopt:suffix .dd /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj.empty());
+  }
+
+  SUBCASE("Syntax only")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /dynamicdeopt /Zs /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj.empty());
+  }
+
+#ifdef _WIN32
+  SUBCASE("Null device output")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /dynamicdeopt /Fonul /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj.empty());
+  }
+#endif
+
+  SUBCASE("Missing suffix")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /c foo.c /dynamicdeopt:suffix");
+    CHECK(process_args(ctx).error() == Statistic::bad_compiler_arguments);
+  }
+
+  SUBCASE("Assembler listing")
+  {
+    ctx.orig_args = Args::from_string("cl.exe /dynamicdeopt /FA /c foo.c");
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("clang-cl")
+  {
+    ctx.config.set_compiler_type(CompilerType::clang_cl);
+    ctx.orig_args = Args::from_string("clang-cl.exe /dynamicdeopt /c foo.c");
+
+    const auto result = process_args(ctx);
+
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_alt_obj.empty());
+  }
+}
+
 TEST_CASE("MSVC PCH options")
 {
   TestContext test_context;
