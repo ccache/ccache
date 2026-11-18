@@ -231,6 +231,27 @@ find_first_ansi_csi_seq(std::string_view string)
   return {};
 }
 
+// Search for the first OSC 8 (hyperlink) sequence, i.e. "\x1b]8;" terminated by
+// BEL ("\x07") or ST ("\x1b\\").
+std::string_view
+find_first_ansi_osc8_seq(std::string_view string)
+{
+  const size_t start = string.find("\x1b]8;");
+  if (start == std::string_view::npos) {
+    return {};
+  }
+  for (size_t pos = start + 4; pos < string.length(); ++pos) {
+    if (string[pos] == '\x07') {
+      return string.substr(start, pos + 1 - start);
+    }
+    if (string[pos] == '\x1b' && pos + 1 < string.length()
+        && string[pos + 1] == '\\') {
+      return string.substr(start, pos + 2 - start);
+    }
+  }
+  return {};
+}
+
 // Return `string` with all sequences found by `find_seq` removed.
 std::string
 strip_seqs(std::string_view string,
@@ -475,6 +496,11 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
     text_to_send = modified_text;
   }
 
+  if (ctx.args_info.strip_diagnostics_urls) {
+    modified_text = strip_ansi_osc8_seqs(text_to_send);
+    text_to_send = modified_text;
+  }
+
   if (ctx.config.absolute_paths_in_stderr()) {
     modified_text = rewrite_stderr_to_absolute_paths(text_to_send);
     text_to_send = modified_text;
@@ -491,7 +517,8 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
 #  endif
     ;
   if (translate_colors) {
-    translate_ansi_to_console(text_to_send, fd);
+    // Win32 console operations can't display URLs, so drop them.
+    translate_ansi_to_console(strip_ansi_osc8_seqs(text_to_send), fd);
   } else {
     write_console_data(fd, text_to_send);
   }
@@ -506,6 +533,12 @@ std::string
 strip_ansi_csi_seqs(std::string_view string)
 {
   return strip_seqs(string, find_first_ansi_csi_seq);
+}
+
+std::string
+strip_ansi_osc8_seqs(std::string_view string)
+{
+  return strip_seqs(string, find_first_ansi_osc8_seq);
 }
 
 std::size_t

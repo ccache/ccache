@@ -869,13 +869,17 @@ result_key_from_includes(Context& ctx, Hash& hash, std::string_view stdout_data)
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
-// colored diagnostics messages if that fails.
+// colored diagnostics messages or diagnostic URLs if that fails.
 static tl::expected<DoExecuteResult, Failure>
 do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
 {
   if (ctx.diagnostics_color_failed) {
     DEBUG_ASSERT(ctx.config.is_compiler_group_gcc());
     args.erase_last("-fdiagnostics-color");
+  }
+  if (ctx.diagnostics_urls_failed) {
+    DEBUG_ASSERT(ctx.config.is_compiler_group_gcc());
+    args.erase_last("-fdiagnostics-urls=always");
   }
 
   auto tmp_stdout = get_tmp_fd(ctx, "stdout", capture_stdout);
@@ -889,10 +893,20 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
                      std::move(tmp_stdout.fd),
                      std::move(tmp_stderr.fd));
   }
-  if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.config.is_compiler_group_gcc()) {
+  if (status != 0 && ctx.config.is_compiler_group_gcc()) {
     const auto errors = util::read_file<std::string>(tmp_stderr.path);
-    if (errors && errors->find("fdiagnostics-color") != std::string::npos) {
+    // Check -fdiagnostics-urls first since GCC versions older than 10 reject
+    // it with a "did you mean '-fdiagnostics-color=always'?" hint, which would
+    // otherwise be mistaken for -fdiagnostics-color being unsupported.
+    if (errors && !ctx.diagnostics_urls_failed
+        && errors->find("fdiagnostics-urls") != std::string::npos) {
+      LOG("-fdiagnostics-urls is unsupported; trying again without it");
+
+      ctx.diagnostics_urls_failed = true;
+      return do_execute(ctx, args, capture_stdout);
+    }
+    if (errors && !ctx.diagnostics_color_failed
+        && errors->find("fdiagnostics-color") != std::string::npos) {
       // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
       // non-GCC compilers misclassified as GCC-like might not do it
       // either. We assume that if the error message contains
@@ -1961,12 +1975,19 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     }
   }
 
-  // Possibly hash GCC_COLORS (for color diagnostics).
+  // Possibly hash environment variables affecting GCC diagnostics.
   if (ctx.config.is_compiler_group_gcc()) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
       hash.hash(gcc_colors);
+    }
+    for (const char* name : {"GCC_URLS", "TERM_URLS"}) {
+      const char* value = getenv(name);
+      if (value) {
+        hash.hash_delimiter(name);
+        hash.hash(value);
+      }
     }
   }
 
