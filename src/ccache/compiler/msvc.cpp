@@ -19,7 +19,14 @@
 #include "msvc.hpp"
 
 #include <ccache/context.hpp>
+#include <ccache/core/common.hpp>
+#include <ccache/util/filesystem.hpp>
+#include <ccache/util/path.hpp>
 #include <ccache/util/string.hpp>
+
+namespace {
+constexpr std::string_view k_cwd_placeholder = "%CCACHE_CWD%";
+} // namespace
 
 namespace compiler {
 
@@ -76,6 +83,63 @@ strip_includes_from_msvc_show_includes(const Context& ctx,
     }
   }
   return new_stdout_data;
+}
+
+std::string
+rewrite_paths_in_source_dependencies(const Context& ctx,
+                                     std::string_view file_content)
+{
+  if (ctx.config.base_dirs().empty()) {
+    return std::string(file_content);
+  }
+
+  std::string result;
+  size_t pos = 0;
+
+  while (true) {
+    // Find a double-quote '"'.
+    const size_t start = file_content.find('"', pos);
+    if (start == std::string_view::npos) {
+      break;
+    }
+
+    // Find the closing double-quote '"'.
+    const size_t end = file_content.find('"', start + 1);
+    if (end == std::string_view::npos) {
+      break;
+    }
+
+    // Absolute path (or a key).
+    result.append(file_content.substr(pos, start + 1 - pos));
+    std::string value(file_content.substr(start + 1, end - start - 1));
+    pos = end + 1;
+
+    const util::filesystem::path path(util::replace_all(value, "\\\\", "\\"));
+    const util::filesystem::path relative_path =
+      core::make_relative_path(ctx, path);
+
+    // Only an absolute path below base_dir comes back changed.
+    if (relative_path != path) {
+      const std::string placeholder_path =
+        util::pstr(util::filesystem::path(k_cwd_placeholder) / relative_path);
+      value = util::replace_all(placeholder_path, "\\", "\\\\");
+    }
+
+    result.append(value);
+    result.append("\"");
+  }
+
+  result.append(file_content.substr(pos));
+  return result;
+}
+
+std::string
+restore_paths_in_source_dependencies(const Context& ctx,
+                                     std::string_view file_content)
+{
+  const std::string cwd = util::pstr(ctx.actual_cwd);
+  const std::string escaped_cwd = util::replace_all(cwd, "\\", "\\\\");
+  return util::replace_all(file_content, k_cwd_placeholder, escaped_cwd);
 }
 
 } // namespace compiler
