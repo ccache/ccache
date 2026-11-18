@@ -237,6 +237,11 @@ ResultRetriever::write_dependency_file(const fs::path& path,
   };
 
   std::string_view str_data = util::to_string_view(data);
+  std::string mapped_data;
+  if (!m_ctx.config.path_mapping().empty()) {
+    mapped_data = depfile::map_paths(m_ctx, str_data, true);
+    str_data = mapped_data;
+  }
   size_t start_pos = 0;
   const size_t colon_pos = str_data.find(": ");
   if (colon_pos != std::string::npos) {
