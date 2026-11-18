@@ -127,6 +127,13 @@ TEST_CASE("core::strip_ansi_csi_seqs")
     " \x1B[1;32mbold green\x1B[m.\n";
 
   CHECK(core::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
+
+  SUBCASE("Sequences after other escape sequences")
+  {
+    CHECK(core::strip_ansi_csi_seqs(
+            "\x1B]8;;url\x1B\\link\x1B]8;;\x1B\\ \x1B[1mbold\x1B[m")
+          == "\x1B]8;;url\x1B\\link\x1B]8;;\x1B\\ bold");
+  }
 }
 
 TEST_CASE("core::get_diagnostics_path_length")

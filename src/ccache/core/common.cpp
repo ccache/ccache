@@ -210,26 +210,40 @@ utf8_to_utf16(std::string_view text)
 std::string_view
 find_first_ansi_csi_seq(std::string_view string)
 {
-  size_t pos = 0;
-  while (pos < string.length() && string[pos] != 0x1b) {
-    ++pos;
+  for (size_t start = string.find('\x1b'); start != std::string_view::npos;
+       start = string.find('\x1b', start + 1)) {
+    if (start + 1 >= string.length() || string[start + 1] != '[') {
+      continue;
+    }
+    size_t pos = start + 2;
+    while (pos < string.length() && string[pos] >= 0x30
+           && string[pos] <= 0x3f) {
+      ++pos;
+    }
+    while (pos < string.length() && string[pos] >= 0x20
+           && string[pos] <= 0x2f) {
+      ++pos;
+    }
+    if (pos < string.length() && (string[pos] == 'K' || string[pos] == 'm')) {
+      return string.substr(start, pos + 1 - start);
+    }
   }
-  if (pos + 1 >= string.length() || string[pos + 1] != '[') {
-    return {};
+  return {};
+}
+
+// Return `string` with all sequences found by `find_seq` removed.
+std::string
+strip_seqs(std::string_view string,
+           std::string_view (*find_seq)(std::string_view))
+{
+  std::string result;
+  for (auto seq = find_seq(string); !seq.empty(); seq = find_seq(string)) {
+    const size_t seq_pos = seq.data() - string.data();
+    result.append(string.substr(0, seq_pos));
+    string.remove_prefix(seq_pos + seq.length());
   }
-  size_t start = pos;
-  pos += 2;
-  while (pos < string.length() && string[pos] >= 0x30 && string[pos] <= 0x3f) {
-    ++pos;
-  }
-  while (pos < string.length() && string[pos] >= 0x20 && string[pos] <= 0x2f) {
-    ++pos;
-  }
-  if (pos < string.length() && (string[pos] == 'K' || string[pos] == 'm')) {
-    return string.substr(start, pos + 1 - start);
-  } else {
-    return {};
-  }
+  result.append(string);
+  return result;
 }
 
 #ifdef _WIN32
@@ -491,23 +505,7 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
 std::string
 strip_ansi_csi_seqs(std::string_view string)
 {
-  size_t pos = 0;
-  std::string result;
-
-  while (true) {
-    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
-    auto data_start = string.data() + pos;
-    auto data_length =
-      seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
-    result.append(data_start, data_length);
-    if (seq_span.empty()) {
-      // Reached tail.
-      break;
-    }
-    pos += data_length + seq_span.length();
-  }
-
-  return result;
+  return strip_seqs(string, find_first_ansi_csi_seq);
 }
 
 std::size_t
