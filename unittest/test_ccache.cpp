@@ -200,6 +200,8 @@ TEST_CASE("guess_compiler")
     CHECK(guess_compiler("/test/prefix/qcc") == CompilerType::qcc);
     CHECK(guess_compiler("/test/prefix/q++") == CompilerType::qcc);
 
+    CHECK(guess_compiler("/test/prefix/moc") == CompilerType::moc);
+
     CHECK(guess_compiler("/test/prefix/x") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/cc") == CompilerType::other);
     CHECK(guess_compiler("/test/prefix/c++") == CompilerType::other);
