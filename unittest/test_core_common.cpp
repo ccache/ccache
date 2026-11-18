@@ -127,6 +127,44 @@ TEST_CASE("core::strip_ansi_csi_seqs")
     " \x1B[1;32mbold green\x1B[m.\n";
 
   CHECK(core::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
+
+  SUBCASE("Sequences after other escape sequences")
+  {
+    CHECK(core::strip_ansi_csi_seqs(
+            "\x1B]8;;url\x1B\\link\x1B]8;;\x1B\\ \x1B[1mbold\x1B[m")
+          == "\x1B]8;;url\x1B\\link\x1B]8;;\x1B\\ bold");
+  }
+}
+
+TEST_CASE("core::strip_ansi_osc8_seqs")
+{
+  SUBCASE("ST terminator")
+  {
+    CHECK(
+      core::strip_ansi_osc8_seqs(
+        "[\x1B[1m\x1B]8;;https://gcc.gnu.org/\x1B\\-Wfoo\x1B]8;;\x1B\\\x1B[m]")
+      == "[\x1B[1m-Wfoo\x1B[m]");
+  }
+
+  SUBCASE("BEL terminator")
+  {
+    CHECK(core::strip_ansi_osc8_seqs("a\x1B]8;;https://x\x07"
+                                     "b\x1B]8;;\x07"
+                                     "c")
+          == "abc");
+  }
+
+  SUBCASE("Unterminated sequence")
+  {
+    CHECK(core::strip_ansi_osc8_seqs("a\x1B]8;;https://x")
+          == "a\x1B]8;;https://x");
+  }
+
+  SUBCASE("No sequences")
+  {
+    CHECK(core::strip_ansi_osc8_seqs("plain\n") == "plain\n");
+    CHECK(core::strip_ansi_osc8_seqs("") == "");
+  }
 }
 
 TEST_CASE("core::get_diagnostics_path_length")
