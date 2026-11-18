@@ -1541,6 +1541,11 @@ process_option_arg(const Context& ctx,
       state.color_diagnostics = ColorDiagnostics::automatic;
       state.add_compiler_only_arg_no_hash(args[i]);
       return Statistic::none;
+    } else if (arg == "-fdiagnostics-plain-output") {
+      // This implies -fdiagnostics-color=never, which the option forced by
+      // ccache would otherwise override. Don't return since the option also
+      // affects other parts of the output and therefore needs to be hashed.
+      state.color_diagnostics = ColorDiagnostics::never;
     }
   } else if (config.is_compiler_group_clang()) {
     // In the "-Xclang -fcolor-diagnostics" form, -Xclang is skipped and the

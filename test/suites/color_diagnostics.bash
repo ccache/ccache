@@ -150,6 +150,14 @@ SUITE_color_diagnostics() {
             test_failed "-fcolor-diagnostics unexpectedly accepted by GCC"
         fi
         expect_stat preprocessor_error 1
+
+        # ---------------------------------------------------------------------
+        TEST "-fdiagnostics-plain-output on a TTY"
+
+        color_diagnostics_generate_code test1.c
+        color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -fdiagnostics-plain-output -Wreturn-type -c -o test1.o test1.c"
+        expect_contains test1.output 'Wreturn-type'
+        expect_not_contains test1.output $'\033'
     fi
 
     if $COMPILER_TYPE_CLANG; then
