@@ -20,8 +20,16 @@
 
 #include <ccache/util/file.hpp>
 #include <ccache/util/filesystem.hpp>
+#include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
+
+#include <chrono>
+#include <future>
+#include <string>
+#include <thread>
+
+using namespace std::chrono_literals;
 
 namespace fs = util::filesystem;
 
@@ -38,5 +46,54 @@ TEST_CASE("util::filesystem::rename onto a directory")
   const auto result = fs::rename("src", "dest");
   REQUIRE(!result);
   CHECK(result.error() == std::errc::permission_denied);
+}
+
+TEST_CASE("util::filesystem::rename while the source or destination is open")
+{
+  TestContext test_context;
+
+  REQUIRE(util::write_file("src", "new"));
+  REQUIRE(util::write_file("dest", "old"));
+
+  // Hold a file open for a short while, like a virus scanner would.
+  const auto hold_open = [](const char* path) {
+    HANDLE handle = CreateFileA(path,
+                                GENERIC_READ,
+                                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                nullptr,
+                                OPEN_EXISTING,
+                                FILE_ATTRIBUTE_NORMAL,
+                                nullptr);
+    REQUIRE_MESSAGE(handle != INVALID_HANDLE_VALUE, "error=" << GetLastError());
+    // Wait until the thread runs. Under heavy load, it could otherwise start
+    // after all retries are done.
+    std::promise<void> running;
+    auto running_future = running.get_future();
+    std::thread thread([handle, running = std::move(running)]() mutable {
+      running.set_value();
+      std::this_thread::sleep_for(20ms);
+      CloseHandle(handle);
+    });
+    running_future.wait();
+    return thread;
+  };
+
+  std::thread closer;
+  SUBCASE("destination open")
+  {
+    // MoveFileEx fails with ERROR_ACCESS_DENIED.
+    closer = hold_open("dest");
+  }
+  SUBCASE("source open")
+  {
+    // MoveFileEx fails with ERROR_SHARING_VIOLATION.
+    closer = hold_open("src");
+  }
+
+  const auto result = fs::rename("src", "dest");
+  closer.join();
+
+  CHECK(result);
+  CHECK(util::read_file<std::string>("dest").value_or("") == "new");
 }
 #endif

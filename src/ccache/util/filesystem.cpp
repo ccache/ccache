@@ -18,11 +18,19 @@
 
 #include "filesystem.hpp"
 
+#include <ccache/util/error.hpp>
+#include <ccache/util/format.hpp>
+#include <ccache/util/logging.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #ifdef _WIN32
 #  include <win32/winerror_to_errno.h>
 #endif
+
+#include <chrono>
+#include <thread>
+
+using namespace std::chrono_literals;
 
 namespace util::filesystem {
 
@@ -40,11 +48,31 @@ rename(const fs::path& old_p, const fs::path& new_p)
 #else
   // Windows' rename() won't overwrite an existing file, so need to use
   // MoveFileEx instead.
-  if (!MoveFileExA(old_p.string().c_str(),
-                   new_p.string().c_str(),
-                   MOVEFILE_REPLACE_EXISTING)) {
-    return tl::unexpected(std::error_code(winerror_to_errno(GetLastError()),
-                                          std::generic_category()));
+  //
+  // MoveFileEx fails with ERROR_ACCESS_DENIED while another process has the
+  // destination open, and with ERROR_SHARING_VIOLATION while another process
+  // has the source open without FILE_SHARE_DELETE. Antivirus and endpoint
+  // security software often opens files briefly after they have been written,
+  // so retry a few times on those errors. (ERROR_ACCESS_DENIED can also be
+  // permanent, for instance for a read-only destination.)
+  auto delay = 1ms;
+  while (!MoveFileExA(old_p.string().c_str(),
+                      new_p.string().c_str(),
+                      MOVEFILE_REPLACE_EXISTING)) {
+    const DWORD error = GetLastError();
+    if ((error != ERROR_ACCESS_DENIED && error != ERROR_SHARING_VIOLATION)
+        || delay > 64ms) {
+      return tl::unexpected(
+        std::error_code(winerror_to_errno(error), std::generic_category()));
+    }
+    LOG("Failed to rename {} to {}: {} ({}), retrying in {} ms",
+        old_p,
+        new_p,
+        util::win32_error_message(error),
+        error,
+        delay.count());
+    std::this_thread::sleep_for(delay);
+    delay *= 2;
   }
 #endif
   return {};
