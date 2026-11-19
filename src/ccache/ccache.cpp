@@ -1172,7 +1172,14 @@ write_result(Context& ctx,
   if (!ctx.config.remote_only()) {
     const auto& raw_files = serializer.get_raw_files();
     if (!raw_files.empty()) {
-      ctx.storage.local.put_raw_files(result_key, raw_files);
+      try {
+        ctx.storage.local.put_raw_files(result_key, raw_files);
+      } catch (const core::Error& e) {
+        // Like other failures to write to the cache, this must not fail the
+        // compilation, so just don't store the result.
+        LOG("Not storing the result: {}", e.what());
+        return true;
+      }
     }
   }
 
