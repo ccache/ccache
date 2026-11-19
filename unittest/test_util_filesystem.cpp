@@ -35,7 +35,34 @@ namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
 
+TEST_CASE("util::filesystem::rename of a symlink")
+{
+  TestContext test_context;
+
+  REQUIRE(util::write_file("target", "content"));
+  if (!fs::create_symlink("target", "link") || !fs::exists("link")) {
+    // Creating symlinks on Windows requires a privilege or developer mode, and
+    // Wine 10 and older only pretends to.
+    return;
+  }
+
+  REQUIRE(fs::rename("link", "moved"));
+  CHECK(fs::read_symlink("moved").value_or("") == "target");
+  CHECK(util::read_file<std::string>("target").value_or("") == "content");
+}
+
 #ifdef _WIN32
+namespace {
+
+bool
+running_under_wine()
+{
+  return GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "wine_get_version")
+         != nullptr;
+}
+
+} // namespace
+
 TEST_CASE("util::filesystem::rename onto a directory")
 {
   TestContext test_context;
@@ -81,17 +108,43 @@ TEST_CASE("util::filesystem::rename while the source or destination is open")
   std::thread closer;
   SUBCASE("destination open")
   {
-    // MoveFileEx fails with ERROR_ACCESS_DENIED.
+    // Fails with ERROR_SHARING_VIOLATION (MoveFileEx: ERROR_ACCESS_DENIED).
     closer = hold_open("dest");
   }
   SUBCASE("source open")
   {
-    // MoveFileEx fails with ERROR_SHARING_VIOLATION.
+    // Fails with ERROR_SHARING_VIOLATION.
     closer = hold_open("src");
   }
 
   const auto result = fs::rename("src", "dest");
   closer.join();
+
+  CHECK(result);
+  CHECK(util::read_file<std::string>("dest").value_or("") == "new");
+}
+
+// Wine doesn't support renaming with POSIX semantics.
+TEST_CASE("util::filesystem::rename while the destination stays open"
+          * doctest::skip(running_under_wine()))
+{
+  TestContext test_context;
+
+  REQUIRE(util::write_file("src", "new"));
+  REQUIRE(util::write_file("dest", "old"));
+
+  // Microsoft Defender for Endpoint allows delete sharing.
+  HANDLE handle =
+    CreateFileA("dest",
+                GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                nullptr);
+  REQUIRE_MESSAGE(handle != INVALID_HANDLE_VALUE, "error=" << GetLastError());
+  const auto result = fs::rename("src", "dest");
+  CloseHandle(handle);
 
   CHECK(result);
   CHECK(util::read_file<std::string>("dest").value_or("") == "new");
