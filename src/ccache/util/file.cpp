@@ -95,8 +95,10 @@ copy_file_impl(const fs::path& src,
   }
   unlink(util::pstr(dest).c_str());
   if (!CopyFileExW(src.c_str(), dst_cstr, nullptr, nullptr, nullptr, 0)) {
-    return tl::unexpected(
-      FMT("Failed to copy {} to {}: {}", src, dest, strerror(errno)));
+    return tl::unexpected(FMT("Failed to copy {} to {}: {}",
+                              src,
+                              dest,
+                              util::win32_error_message(GetLastError())));
   }
   return {};
 }
