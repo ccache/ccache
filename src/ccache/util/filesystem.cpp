@@ -44,7 +44,7 @@ rename(const fs::path& old_p, const fs::path& new_p)
                    new_p.string().c_str(),
                    MOVEFILE_REPLACE_EXISTING)) {
     return tl::unexpected(std::error_code(winerror_to_errno(GetLastError()),
-                                          std::system_category()));
+                                          std::generic_category()));
   }
 #endif
   return {};
