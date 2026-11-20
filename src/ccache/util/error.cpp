@@ -18,6 +18,7 @@
 
 #include "error.hpp"
 
+#include <ccache/util/format.hpp>
 #include <ccache/util/wincompat.hpp>
 
 namespace util {
@@ -27,7 +28,7 @@ namespace util {
 std::string
 win32_error_message(uint32_t error_code)
 {
-  LPSTR buffer;
+  LPSTR buffer = nullptr;
   size_t size =
     FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
                      | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -37,6 +38,9 @@ win32_error_message(uint32_t error_code)
                    reinterpret_cast<LPSTR>(&buffer),
                    0,
                    nullptr);
+  if (size == 0) {
+    return FMT("Unknown error: {}", error_code);
+  }
   std::string message(buffer, size);
   while (!message.empty()
          && (message.back() == '\n' || message.back() == '\r')) {
