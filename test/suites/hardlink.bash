@@ -58,6 +58,22 @@ SUITE_hardlink() {
     expect_stat files_in_cache 2
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
+    TEST "Output to /dev/null"
+
+    generate_code 1 test1.c
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+
+    CCACHE_HARDLINK=1 CCACHE_LOGFILE=hit.log $CCACHE_COMPILE -c test1.c -o /dev/null
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_contains hit.log "Not writing to /dev/null"
+fi
+    # -------------------------------------------------------------------------
 if $RUN_WIN_XFAIL; then
     TEST "Overwrite assembler"
 
