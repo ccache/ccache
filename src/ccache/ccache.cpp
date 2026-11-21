@@ -1188,7 +1188,8 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         // We don't want to cache those.
         core::send_to_console(ctx, line, STDOUT_FILENO);
       } else if (ctx.config.compiler_type() == CompilerType::msvc
-                 && !ctx.config.base_dirs().empty()
+                 && (!ctx.config.base_dirs().empty()
+                     || !ctx.config.path_mapping().empty())
                  && line.starts_with(ctx.config.msvc_dep_prefix())) {
         // Ninja uses the lines with 'Note: including file: ' to determine the
         // used headers. Headers within basedir need to be changed into relative
@@ -1199,8 +1200,13 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
           util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
         std::string_view stripped_abs_inc_path =
           util::strip_whitespace(abs_inc_path);
-        fs::path rel_inc_path =
-          core::make_relative_path(ctx, stripped_abs_inc_path);
+        fs::path rel_inc_path;
+        if (!ctx.config.path_mapping().empty()) {
+          rel_inc_path = util::perform_path_mapping(stripped_abs_inc_path,
+                                                    ctx.config.path_mapping());
+        } else if (!ctx.config.base_dirs().empty()) {
+          rel_inc_path = core::make_relative_path(ctx, stripped_abs_inc_path);
+        }
         std::string line_with_rel_inc = util::replace_first(
           orig_line, stripped_abs_inc_path, util::pstr(rel_inc_path).str());
         new_stdout_data.insert(new_stdout_data.end(),
