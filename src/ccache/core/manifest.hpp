@@ -50,7 +50,10 @@ public:
 
   using FileStater = std::function<FileStats(std::string)>;
 
-  Manifest() = default;
+  Manifest(const Context* ctx = {})
+    : m_ctx{ctx}
+  {
+  }
 
   void read(std::span<const uint8_t> data);
 
@@ -92,6 +95,7 @@ private:
   std::vector<std::string> m_files;   // Names of referenced include files.
   std::vector<FileInfo> m_file_infos; // Info about referenced include files.
   std::vector<ResultEntry> m_results;
+  const Context* m_ctx; // To help map paths in get_file_info_index()
 
   void clear();
 

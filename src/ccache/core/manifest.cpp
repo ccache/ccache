@@ -341,22 +341,27 @@ Manifest::get_file_info_index(
 {
   FileInfo fi;
 
-  const auto f_it = mf_files.find(path);
+  const auto fs = file_stater(path);
+  fi.mtime = fs.mtime;
+  fi.ctime = fs.ctime;
+  fi.fsize = fs.size;
+
+  const auto mapped_path =
+    m_ctx
+      ? util::perform_path_mapping(path, m_ctx->config.path_mapping()).string()
+      : path;
+
+  const auto f_it = mf_files.find(mapped_path);
   if (f_it != mf_files.end()) {
     fi.index = f_it->second;
   } else if (m_files.size() > UINT32_MAX) {
     return std::nullopt;
   } else {
-    m_files.push_back(path);
+    m_files.push_back(mapped_path);
     fi.index = static_cast<uint32_t>(m_files.size() - 1);
   }
 
   fi.digest = digest;
-
-  const auto file_stat = file_stater(path);
-  fi.mtime = file_stat.mtime;
-  fi.ctime = file_stat.ctime;
-  fi.fsize = file_stat.size;
 
   const auto fi_it = mf_file_infos.find(fi);
   if (fi_it != mf_file_infos.end()) {
@@ -378,7 +383,11 @@ Manifest::result_matches(
 {
   for (uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = m_file_infos[file_info_index];
-    const auto& path = m_files[fi.index];
+
+    // Reverse the mapping that occurred in get_file_info_index()
+    const auto path = util::perform_path_mapping(
+                        m_files[fi.index], ctx.config.path_mapping(), true)
+                        .string();
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {

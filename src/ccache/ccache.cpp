@@ -502,7 +502,7 @@ check_included_pch_file(Context& ctx, Hash& hash)
       && !ctx.args_info.generating_pch) {
     fs::path pch_path =
       core::make_relative_path(ctx, ctx.args_info.included_pch_file);
-    hash.hash(pch_path);
+    hash.hash(util::perform_path_mapping(pch_path, ctx.config.path_mapping()));
     TRY(remember_include_file(ctx, pch_path, hash, false, nullptr));
   }
   return {};
@@ -695,7 +695,8 @@ do_process_preprocessed_data(Context& ctx, Hash& hash, util::Bytes&& data)
       inc_path_str.clear(); // inc_path is used from now on
 
       if (inc_path != ctx.apparent_cwd || ctx.config.hash_dir()) {
-        hash.hash(inc_path);
+        hash.hash(
+          util::perform_path_mapping(inc_path, ctx.config.path_mapping()));
       }
 
       TRY(remember_include_file(ctx, inc_path, hash, system, nullptr));
@@ -1187,7 +1188,8 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
         // We don't want to cache those.
         core::send_to_console(ctx, line, STDOUT_FILENO);
       } else if (ctx.config.compiler_type() == CompilerType::msvc
-                 && !ctx.config.base_dirs().empty()
+                 && (!ctx.config.base_dirs().empty()
+                     || !ctx.config.path_mapping().empty())
                  && line.starts_with(ctx.config.msvc_dep_prefix())) {
         // Ninja uses the lines with 'Note: including file: ' to determine the
         // used headers. Headers within basedir need to be changed into relative
@@ -1198,8 +1200,13 @@ rewrite_stdout_from_compiler(const Context& ctx, util::Bytes&& stdout_data)
           util::replace_first(orig_line, ctx.config.msvc_dep_prefix(), "");
         std::string_view stripped_abs_inc_path =
           util::strip_whitespace(abs_inc_path);
-        fs::path rel_inc_path =
-          core::make_relative_path(ctx, stripped_abs_inc_path);
+        fs::path rel_inc_path;
+        if (!ctx.config.path_mapping().empty()) {
+          rel_inc_path = util::perform_path_mapping(stripped_abs_inc_path,
+                                                    ctx.config.path_mapping());
+        } else if (!ctx.config.base_dirs().empty()) {
+          rel_inc_path = core::make_relative_path(ctx, stripped_abs_inc_path);
+        }
         std::string line_with_rel_inc = util::replace_first(
           orig_line, stripped_abs_inc_path, util::pstr(rel_inc_path).str());
         new_stdout_data.insert(new_stdout_data.end(),
@@ -1782,7 +1789,7 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
       const char* value = getenv(name);
       if (value) {
         hash.hash_delimiter(name);
-        hash.hash(value);
+        hash.hash(util::perform_path_mapping(value, ctx.config.path_mapping()));
       }
     }
   }
@@ -2234,19 +2241,36 @@ hash_argument(const Context& ctx,
   // directories and similar input paths exist. Note that this is not 100%
   // waterproof since it only detects newly appearing directories and not newly
   // appearing header files.
-  if (direct_mode) {
+  {
     std::optional<std::string_view> path;
+    bool space_in_between = false;
+    std::string compopt;
     if (compopt_takes_path(args[i]) && i + 1 < args.size()) {
-      path = args[i + 1];
+      compopt = args[i];
+      path = args[++i]; // Consume both prefix & path
+      space_in_between = true;
     } else {
-      auto p = compopt_prefix_takes_path(args[i]);
-      if (p) {
-        path = *p;
+      path = compopt_prefix_takes_path(args[i]);
+      if (path) {
+        compopt = args[i].substr(0, args[i].length() - path->length());
       }
     }
     if (path) {
+      const auto mapped_path =
+        util::perform_path_mapping(*path, ctx.config.path_mapping());
       hash.hash_delimiter("path exists");
-      hash.hash(FMT("{} {}", *path, fs::exists(*path) ? "1" : "0"));
+      hash.hash(FMT("{} {}", mapped_path, fs::exists(*path) ? "1" : "0"));
+      if (space_in_between) {
+        // Emulate the behavior at the end of this function
+        hash.hash_delimiter("arg");
+        hash.hash(compopt);
+        hash.hash_delimiter("arg");
+        hash.hash(mapped_path);
+      } else {
+        hash.hash_delimiter("arg");
+        hash.hash(FMT("{}{}", compopt, mapped_path));
+      }
+      return {};
     }
   }
 
@@ -2434,8 +2458,12 @@ get_manifest_key(Context& ctx, Hash& hash)
   for (const char* name : envvars) {
     const char* v = getenv(name);
     if (v) {
+      auto paths = util::split_path_list(v);
+      for (auto& path : paths) {
+        path = util::perform_path_mapping(path, ctx.config.path_mapping());
+      }
       hash.hash_delimiter(name);
-      hash.hash(v);
+      hash.hash(util::join_path_list(paths));
     }
   }
 
@@ -2451,7 +2479,8 @@ get_manifest_key(Context& ctx, Hash& hash)
   //     share manifests and a/r.h exists.
   // * The expansion of __FILE__ may be incorrect.
   hash.hash_delimiter("inputfile");
-  hash.hash(ctx.args_info.input_file);
+  hash.hash(util::perform_path_mapping(ctx.args_info.input_file,
+                                       ctx.config.path_mapping()));
 
   if (!ctx.args_info.input_file_prefix.empty()) {
     hash.hash_delimiter("inputfile prefix");
