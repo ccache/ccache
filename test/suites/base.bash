@@ -207,6 +207,7 @@ base_tests() {
         eval "export ${variable}=1"
         $CCACHE_COMPILE -c test1.c
         expect_stat unsupported_environment_variable 1
+        expect_exists test1.o
     done
 
     # -------------------------------------------------------------------------

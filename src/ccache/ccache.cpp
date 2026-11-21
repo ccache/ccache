@@ -3086,7 +3086,7 @@ do_cache_compilation(Context& ctx)
   for (const auto& name : {"DEPENDENCIES_OUTPUT", "SUNPRO_DEPENDENCIES"}) {
     if (getenv(name)) {
       LOG("Unsupported environment variable: {}", name);
-      return Statistic::unsupported_environment_variable;
+      return tl::unexpected(Statistic::unsupported_environment_variable);
     }
   }
 
@@ -3094,7 +3094,7 @@ do_cache_compilation(Context& ctx)
     for (const auto& name : {"CL", "_CL_"}) {
       if (getenv(name)) {
         LOG("Unsupported environment variable: {}", name);
-        return Statistic::unsupported_environment_variable;
+        return tl::unexpected(Statistic::unsupported_environment_variable);
       }
     }
   }
