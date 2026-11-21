@@ -210,26 +210,61 @@ utf8_to_utf16(std::string_view text)
 std::string_view
 find_first_ansi_csi_seq(std::string_view string)
 {
-  size_t pos = 0;
-  while (pos < string.length() && string[pos] != 0x1b) {
-    ++pos;
+  for (size_t start = string.find('\x1b'); start != std::string_view::npos;
+       start = string.find('\x1b', start + 1)) {
+    if (start + 1 >= string.length() || string[start + 1] != '[') {
+      continue;
+    }
+    size_t pos = start + 2;
+    while (pos < string.length() && string[pos] >= 0x30
+           && string[pos] <= 0x3f) {
+      ++pos;
+    }
+    while (pos < string.length() && string[pos] >= 0x20
+           && string[pos] <= 0x2f) {
+      ++pos;
+    }
+    if (pos < string.length() && (string[pos] == 'K' || string[pos] == 'm')) {
+      return string.substr(start, pos + 1 - start);
+    }
   }
-  if (pos + 1 >= string.length() || string[pos + 1] != '[') {
+  return {};
+}
+
+// Search for the first OSC 8 (hyperlink) sequence, i.e. "\x1b]8;" terminated by
+// BEL ("\x07") or ST ("\x1b\\").
+std::string_view
+find_first_ansi_osc8_seq(std::string_view string)
+{
+  const size_t start = string.find("\x1b]8;");
+  if (start == std::string_view::npos) {
     return {};
   }
-  size_t start = pos;
-  pos += 2;
-  while (pos < string.length() && string[pos] >= 0x30 && string[pos] <= 0x3f) {
-    ++pos;
+  for (size_t pos = start + 4; pos < string.length(); ++pos) {
+    if (string[pos] == '\x07') {
+      return string.substr(start, pos + 1 - start);
+    }
+    if (string[pos] == '\x1b' && pos + 1 < string.length()
+        && string[pos + 1] == '\\') {
+      return string.substr(start, pos + 2 - start);
+    }
   }
-  while (pos < string.length() && string[pos] >= 0x20 && string[pos] <= 0x2f) {
-    ++pos;
+  return {};
+}
+
+// Return `string` with all sequences found by `find_seq` removed.
+std::string
+strip_seqs(std::string_view string,
+           std::string_view (*find_seq)(std::string_view))
+{
+  std::string result;
+  for (auto seq = find_seq(string); !seq.empty(); seq = find_seq(string)) {
+    const size_t seq_pos = seq.data() - string.data();
+    result.append(string.substr(0, seq_pos));
+    string.remove_prefix(seq_pos + seq.length());
   }
-  if (pos < string.length() && (string[pos] == 'K' || string[pos] == 'm')) {
-    return string.substr(start, pos + 1 - start);
-  } else {
-    return {};
-  }
+  result.append(string);
+  return result;
 }
 
 #ifdef _WIN32
@@ -461,6 +496,11 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
     text_to_send = modified_text;
   }
 
+  if (ctx.args_info.strip_diagnostics_urls) {
+    modified_text = strip_ansi_osc8_seqs(text_to_send);
+    text_to_send = modified_text;
+  }
+
   if (ctx.config.absolute_paths_in_stderr()) {
     modified_text = rewrite_stderr_to_absolute_paths(text_to_send);
     text_to_send = modified_text;
@@ -477,7 +517,8 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
 #  endif
     ;
   if (translate_colors) {
-    translate_ansi_to_console(text_to_send, fd);
+    // Win32 console operations can't display URLs, so drop them.
+    translate_ansi_to_console(strip_ansi_osc8_seqs(text_to_send), fd);
   } else {
     write_console_data(fd, text_to_send);
   }
@@ -491,23 +532,13 @@ send_to_console(const Context& ctx, std::string_view text, int fd)
 std::string
 strip_ansi_csi_seqs(std::string_view string)
 {
-  size_t pos = 0;
-  std::string result;
+  return strip_seqs(string, find_first_ansi_csi_seq);
+}
 
-  while (true) {
-    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
-    auto data_start = string.data() + pos;
-    auto data_length =
-      seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
-    result.append(data_start, data_length);
-    if (seq_span.empty()) {
-      // Reached tail.
-      break;
-    }
-    pos += data_length + seq_span.length();
-  }
-
-  return result;
+std::string
+strip_ansi_osc8_seqs(std::string_view string)
+{
+  return strip_seqs(string, find_first_ansi_osc8_seq);
 }
 
 std::size_t
