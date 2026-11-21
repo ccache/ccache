@@ -84,6 +84,9 @@ base_tests() {
     debug_flags=-g
     if $COMPILER_TYPE_CLANG && $COMPILER_USES_MSVC; then
         debug_flags="-g -gno-codeview-command-line"
+    elif $COMPILER_TYPE_GCC; then
+        # GCC records ccache's -fdiagnostics-urls=always in DW_AT_producer.
+        debug_flags="-g -gno-record-gcc-switches"
     fi
 
     $CCACHE_COMPILE -c test1.c $debug_flags
