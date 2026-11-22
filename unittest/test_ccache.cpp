@@ -189,6 +189,10 @@ TEST_CASE("find_compiler")
 
     // No real compiler behind the masquerade name.
     CHECK_THROWS(helper(false, "./c++", "", ""));
+
+    // A configured compiler takes precedence over masquerade resolution.
+    CHECK(helper(false, "./c++", "config") == "resolved_config");
+    CHECK(helper(false, "./c++", "/abs/config") == "/abs/config");
   }
 
   SUBCASE("masquerade hard link")
