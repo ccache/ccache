@@ -51,7 +51,7 @@ if(NOT WIN32)
 endif()
 
 if(WIN32)
-  list(APPEND source_files test_bsdmkstemp.cpp)
+  list(APPEND source_files test_bsdmkstemp.cpp test_util_error.cpp)
 endif()
 
 file(GLOB headers *.hpp)
