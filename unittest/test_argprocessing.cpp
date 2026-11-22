@@ -1464,7 +1464,8 @@ TEST_CASE("-clang: is too hard")
   const auto result = process_args(ctx);
   REQUIRE(!result);
   CHECK(result.error() == Statistic::unsupported_compiler_option);
-  
+}
+
 TEST_CASE("ISPC basic compilation")
 {
   TestContext test_context;

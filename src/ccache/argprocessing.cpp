@@ -734,8 +734,7 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     }
     if (arg.starts_with("--dev-stub=")) {
-      args_info.ispc_dev_stub_file =
-        arg.substr(std::string_view("--dev-stub=").size());
+      args_info.ispc_dev_stub_file = arg.substr(arg.find('=') + 1);
       state.add_extra_args_to_hash("--dev-stub");
       state.add_compiler_only_arg_no_hash(args[i]);
       return Statistic::none;
@@ -754,8 +753,7 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     }
     if (arg.starts_with("--host-stub=")) {
-      args_info.ispc_host_stub_file =
-        arg.substr(std::string_view("--host-stub=").size());
+      args_info.ispc_host_stub_file = arg.substr(arg.find('=') + 1);
       state.add_extra_args_to_hash("--host-stub");
       state.add_compiler_only_arg_no_hash(args[i]);
       return Statistic::none;
@@ -774,8 +772,7 @@ process_option_arg(const Context& ctx,
       return Statistic::none;
     }
     if (arg.starts_with("--nanobind-wrapper=")) {
-      args_info.ispc_nanobind_wrapper_file =
-        arg.substr(std::string_view("--nanobind-wrapper=").size());
+      args_info.ispc_nanobind_wrapper_file = arg.substr(arg.find('=') + 1);
       state.add_extra_args_to_hash("--nanobind-wrapper");
       state.add_compiler_only_arg_no_hash(args[i]);
       return Statistic::none;

@@ -24,15 +24,15 @@
 #include <ccache/core/result.hpp>
 #include <ccache/core/resultretriever.hpp>
 #include <ccache/util/bytes.hpp>
+#include <ccache/util/filesystem.hpp>
 
 #include <doctest/doctest.h>
 
 #include <array>
 #include <cstdint>
-#include <filesystem>
 #include <limits>
 
-namespace fs = std::filesystem;
+namespace fs = util::filesystem;
 
 using TestUtil::TestContext;
 
@@ -182,4 +182,5 @@ TEST_CASE("ResultRetriever drops ISPC target headers when -h is absent")
   CHECK(fs::exists("test_sse4.o"));
   CHECK_FALSE(fs::exists("test_sse4.h"));
 }
+
 TEST_SUITE_END();

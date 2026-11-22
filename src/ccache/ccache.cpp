@@ -1184,14 +1184,13 @@ write_result(Context& ctx,
   }
 
   // ISPC multi-target extra object files.
-  for (size_t idx = 0; idx < ctx.args_info.ispc_target_suffixes.size(); ++idx) {
-    const auto& suffix = ctx.args_info.ispc_target_suffixes[idx];
+  for (const auto& suffix : ctx.args_info.ispc_target_suffixes) {
     auto stem = ctx.args_info.output_obj.stem().string() + suffix;
     auto ext = ctx.args_info.output_obj.extension();
     auto extra_obj =
       ctx.args_info.output_obj.parent_path() / (stem + ext.string());
-    auto file_type = core::result::FileType::ispc_target_object;
-    if (!serializer.add_file(file_type, extra_obj)) {
+    if (!serializer.add_file(core::result::FileType::ispc_target_object,
+                             extra_obj)) {
       LOG("ISPC target object file {} missing", extra_obj);
       return false;
     }
