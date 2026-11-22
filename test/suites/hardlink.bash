@@ -150,4 +150,23 @@ if $RUN_WIN_XFAIL; then
     expect_stat cache_miss 2
     expect_content test1.d "test1.o: test1.c"
 fi
+    # -------------------------------------------------------------------------
+    TEST "Failure to store raw file doesn't fail the compilation"
+
+    generate_code 1 test1.c
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
+    expect_stat cache_miss 1
+    expect_stat files_in_cache 2
+
+    # A directory in place of the raw file makes storing it fail. It must not be
+    # empty since an empty directory is removed before the hard link is made.
+    raw_file=$(find $CCACHE_DIR -name '*_[0-9a-f][0-9a-f]')
+    expect_exists "$raw_file"
+    rm -f $raw_file test1.o
+    mkdir -p $raw_file/dir
+
+    CCACHE_HARDLINK=1 CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
+    expect_stat recache 1
+    expect_exists test1.o
 }
