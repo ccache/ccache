@@ -1066,7 +1066,8 @@ find_coverage_file(const Context& ctx)
 write_result(Context& ctx,
              const Hash::Digest& result_key,
              const util::Bytes& stdout_data,
-             const util::Bytes& stderr_data)
+             const util::Bytes& stderr_data,
+             const util::TimePoint& old_alt_obj_mtime)
 {
   core::result::Serializer serializer(ctx.config);
 
@@ -1163,6 +1164,15 @@ write_result(Context& ctx,
       && !serializer.add_file(core::result::FileType::sarif,
                               ctx.args_info.output_sarif)) {
     LOG("Sarif file {} missing", ctx.args_info.output_sarif);
+    return false;
+  }
+  if (!ctx.args_info.output_alt_obj.empty()
+      // Only store the file if it was written by the compiler (e.g. the x86
+      // compiler ignores /dynamicdeopt).
+      && DirEntry(ctx.args_info.output_alt_obj).mtime() != old_alt_obj_mtime
+      && !serializer.add_file(core::result::FileType::deoptimized_object,
+                              ctx.args_info.output_alt_obj)) {
+    LOG("Deoptimized object file {} missing", ctx.args_info.output_alt_obj);
     return false;
   }
 
@@ -1345,6 +1355,13 @@ to_cache(Context& ctx,
     }
   }
 
+  // Unlike for .dwo files, don't remove an existing file since MSVC leaves it
+  // alone when it doesn't write one (e.g. on a compilation error).
+  const auto old_alt_obj_mtime =
+    ctx.args_info.output_alt_obj.empty()
+      ? util::TimePoint()
+      : DirEntry(ctx.args_info.output_alt_obj).mtime();
+
   LOG("Running real compiler");
 
   tl::expected<DoExecuteResult, Failure> result;
@@ -1433,8 +1450,11 @@ to_cache(Context& ctx,
     }
   }
 
-  if (!write_result(
-        ctx, *result_key, result->stdout_data, result->stderr_data)) {
+  if (!write_result(ctx,
+                    *result_key,
+                    result->stdout_data,
+                    result->stderr_data,
+                    old_alt_obj_mtime)) {
     return tl::unexpected(Statistic::compiler_produced_no_output);
   }
 
@@ -1882,6 +1902,11 @@ hash_common_info(const Context& ctx, const util::Args& args, Hash& hash)
     LOG("Hashing object filename due to -gsplit-dwarf");
     hash.hash_delimiter("object file");
     hash.hash(util::pstr(ctx.args_info.output_obj.filename()));
+  }
+
+  if (!ctx.args_info.output_alt_obj.empty()) {
+    // Don't hit results from older ccache versions, which lack this file.
+    hash.hash_delimiter("deoptimized object file");
   }
 
   if (ctx.args_info.profile_arcs) {
@@ -3160,6 +3185,9 @@ do_cache_compilation(Context& ctx)
   }
   if (!ctx.args_info.output_sarif.empty()) {
     LOG("Sarif file: {}", ctx.args_info.output_sarif);
+  }
+  if (!ctx.args_info.output_alt_obj.empty()) {
+    LOG("Deoptimized object file: {}", ctx.args_info.output_alt_obj);
   }
 
   LOG("Object file: {}", ctx.args_info.output_obj);

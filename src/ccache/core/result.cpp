@@ -163,6 +163,9 @@ file_type_to_string(FileType type)
 
   case FileType::sarif:
     return ".sarif";
+
+  case FileType::deoptimized_object:
+    return ".alt.o";
   }
 
   return k_unknown_file_type;

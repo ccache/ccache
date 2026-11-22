@@ -220,6 +220,9 @@ ResultRetriever::get_dest_path(FileType file_type) const
 
   case FileType::sarif:
     return m_ctx.args_info.output_sarif;
+
+  case FileType::deoptimized_object:
+    return m_ctx.args_info.output_alt_obj;
   }
 
   return {};
