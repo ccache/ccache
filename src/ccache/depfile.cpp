@@ -92,6 +92,20 @@ rewrite_source_paths(const Context& ctx, std::string_view content)
   }
 }
 
+std::string
+map_paths(const Context& ctx, std::string_view content, bool reverse)
+{
+  auto tokens = tokenize(content);
+  for (auto& token : tokens) {
+    if (!token.empty() && token != ":") {
+      token =
+        util::perform_path_mapping(token, ctx.config.path_mapping(), reverse)
+          .string();
+    }
+  }
+  return untokenize(tokens);
+}
+
 // Replace absolute paths with relative paths in the provided dependency file.
 tl::expected<void, std::string>
 make_paths_relative_in_output_dep(const Context& ctx)
