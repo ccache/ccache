@@ -86,7 +86,7 @@ public:
   storage::Storage storage;
 
   // Direct mode manifest.
-  core::Manifest manifest;
+  core::Manifest manifest{this};
 
 #ifdef INODE_CACHE_SUPPORTED
   // InodeCache that caches source file hashes when enabled.

@@ -68,11 +68,26 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       data.size());
 
   if (file_type == FileType::stdout_output) {
-    core::send_to_console(
-      m_ctx,
-      util::to_string_view(
-        compiler::strip_includes_from_msvc_show_includes(m_ctx, data)),
-      STDOUT_FILENO);
+    if (!m_ctx.config.path_mapping().empty()) {
+      const auto show_includes_sv{util::to_string_view(data)};
+      std::string show_includes_str{show_includes_sv};
+      for (const auto& include : compiler::get_includes_from_msvc_show_includes(
+             show_includes_sv, m_ctx.config.msvc_dep_prefix())) {
+        // TODO: Make more efficient
+        show_includes_str = util::replace_first(
+          show_includes_str,
+          include,
+          util::perform_path_mapping(include, m_ctx.config.path_mapping(), true)
+            .string());
+      }
+      core::send_to_console(m_ctx, show_includes_str, STDOUT_FILENO);
+    } else {
+      core::send_to_console(
+        m_ctx,
+        util::to_string_view(
+          compiler::strip_includes_from_msvc_show_includes(m_ctx, data)),
+        STDOUT_FILENO);
+    }
   } else if (file_type == FileType::stderr_output) {
     core::send_to_console(m_ctx, util::to_string_view(data), STDERR_FILENO);
   } else {
