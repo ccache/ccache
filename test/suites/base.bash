@@ -868,6 +868,27 @@ fi
     expect_stat cache_miss 1
 
     # -------------------------------------------------------------------------
+    TEST "-v"
+
+    mkdir dir1 dir2
+
+    $CCACHE_COMPILE -v -isystem dir1 -c test1.c 2>stderr.txt
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 1
+    expect_contains stderr.txt dir1
+
+    $CCACHE_COMPILE -v -isystem dir1 -c test1.c 2>stderr.txt
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 1
+    expect_contains stderr.txt dir1
+
+    # The include search list printed by -v must not come from the dir1 result.
+    $CCACHE_COMPILE -v -isystem dir2 -c test1.c 2>stderr.txt
+    expect_stat preprocessed_cache_hit 1
+    expect_stat cache_miss 2
+    expect_contains stderr.txt dir2
+
+    # -------------------------------------------------------------------------
     TEST "-S"
 
     $CCACHE_COMPILE -S test1.c
