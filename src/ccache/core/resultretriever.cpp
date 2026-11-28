@@ -85,6 +85,12 @@ ResultRetriever::on_embedded_file(uint8_t file_number,
       LOG("Writing to {}", dest_path);
       if (file_type == FileType::dependency) {
         write_dependency_file(dest_path, data);
+      } else if (file_type == FileType::source_dependencies) {
+        const auto content = compiler::restore_paths_in_source_dependencies(
+          m_ctx, util::to_string_view(data));
+        util::throw_on_error<WriteError>(
+          util::write_file(dest_path, util::to_span(content)),
+          FMT("Failed to write to {}: ", dest_path));
       } else {
         util::throw_on_error<WriteError>(
           util::write_file(dest_path, data),
