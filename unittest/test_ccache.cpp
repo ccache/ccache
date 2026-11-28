@@ -24,6 +24,7 @@
 #include <ccache/util/filesystem.hpp>
 #include <ccache/util/format.hpp>
 #include <ccache/util/path.hpp>
+#include <ccache/util/process.hpp>
 #include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
@@ -45,7 +46,7 @@ TEST_SUITE_BEGIN("ccache");
 // Wraps find_compiler in a test friendly interface.
 static std::string
 helper(bool masquerading_as_compiler,
-       const char* args,
+       std::string_view args,
        const char* config_compiler,
        const char* find_executable_return_string = nullptr)
 {
@@ -174,6 +175,46 @@ TEST_CASE("find_compiler")
     CHECK(helper(false, "rel/gcc", "config") == "resolved_config");
     CHECK(helper(false, "/abs/gcc", "config") == "resolved_config");
   }
+
+#ifndef _WIN32
+  SUBCASE("masquerade symlink")
+  {
+    TestContext test_context;
+    const auto cwd = *fs::current_path();
+    REQUIRE(util::write_file(cwd / "ccache", ""));
+    REQUIRE(fs::create_symlink("ccache", cwd / "c++"));
+
+    CHECK(helper(false, "./c++", "") == "resolved_c++");
+    CHECK(helper(false, (cwd / "c++").string(), "") == "resolved_c++");
+
+    // No real compiler behind the masquerade name.
+    CHECK_THROWS(helper(false, "./c++", "", ""));
+
+    // A configured compiler takes precedence over masquerade resolution.
+    CHECK(helper(false, "./c++", "config") == "resolved_config");
+    CHECK(helper(false, "./c++", "/abs/config") == "/abs/config");
+  }
+
+  SUBCASE("masquerade hard link")
+  {
+    TestContext test_context;
+    const auto cwd = *fs::current_path();
+    REQUIRE(fs::create_hard_link(util::get_executable_path(), cwd / "c++"));
+
+    CHECK(helper(false, "./c++", "") == "resolved_c++");
+  }
+
+  SUBCASE("compiler symlink")
+  {
+    TestContext test_context;
+    const auto cwd = *fs::current_path();
+    REQUIRE(util::write_file(cwd / "real-cc", ""));
+    REQUIRE(fs::create_symlink("real-cc", cwd / "cc"));
+
+    CHECK(helper(false, "./cc", "") == "./cc");
+    CHECK(helper(false, (cwd / "cc").string(), "") == (cwd / "cc").string());
+  }
+#endif
 }
 
 TEST_CASE("guess_compiler")

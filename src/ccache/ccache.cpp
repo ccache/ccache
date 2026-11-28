@@ -276,7 +276,8 @@ follow_symlinks(const fs::path& path)
   // Follow symlinks to the real compiler to learn its name. We're not using
   // util::real_path in order to save some unnecessary stat calls.
   fs::path p = path;
-  while (true) {
+  // Stop after 40 hops to terminate symlink cycles (Linux's limit is 40).
+  for (int i = 0; i < 40; ++i) {
     auto symlink_target = fs::read_symlink(p);
     if (!symlink_target) {
       // Not a symlink.
@@ -288,10 +289,17 @@ follow_symlinks(const fs::path& path)
       p = p.parent_path() / *symlink_target;
     }
   }
-  if (p != path) {
-    LOG("Followed symlinks from {} to {} when guessing compiler type", path, p);
-  }
   return p;
+}
+
+static bool
+resolves_to_ccache_executable(const fs::path& path)
+{
+  if (is_ccache_executable(follow_symlinks(path))) {
+    return true;
+  }
+  const fs::path own_path = util::get_executable_path();
+  return !own_path.empty() && fs::equivalent(path, own_path);
 }
 
 static fs::path
@@ -360,7 +368,13 @@ guess_compiler(const fs::path& path)
   return type;
 #else
   if (type == CompilerType::other) {
-    return do_guess_compiler(probe_generic_compiler(follow_symlinks(path)));
+    const fs::path real_path = follow_symlinks(path);
+    if (real_path != path) {
+      LOG("Followed symlinks from {} to {} when guessing compiler type",
+          path,
+          real_path);
+    }
+    return do_guess_compiler(probe_generic_compiler(real_path));
   } else {
     return type;
   }
@@ -2814,7 +2828,7 @@ find_compiler(Context& ctx,
            ? fs::path(ctx.orig_args[0]).filename().string()
            : ctx.orig_args[0]);
 
-  const std::string resolved_compiler =
+  std::string resolved_compiler =
     util::is_full_path(compiler)
       ? compiler
       : find_executable_function(ctx, compiler, ctx.orig_args[0]);
@@ -2822,6 +2836,32 @@ find_compiler(Context& ctx,
   if (resolved_compiler.empty()) {
     throw core::Fatal(FMT("Could not find compiler \"{}\" in PATH", compiler));
   }
+
+#ifndef _WIN32
+  // A compiler given as a full path may be a masquerading ccache (e.g.
+  // /usr/lib64/ccache/g++): find the real compiler behind the masquerade name.
+  if (ctx.config.compiler().empty() && !masquerading_as_compiler
+      && !is_ccache_executable(resolved_compiler)
+      && resolves_to_ccache_executable(resolved_compiler)) {
+    const std::string compiler_name =
+      fs::path(resolved_compiler).filename().string();
+    LOG(
+      "Compiler \"{}\" is a ccache masquerade; looking for the real compiler"
+      " \"{}\" in PATH",
+      resolved_compiler,
+      compiler_name);
+    const std::string real_compiler =
+      find_executable_function(ctx, compiler_name, resolved_compiler);
+    if (real_compiler.empty()) {
+      throw core::Fatal(
+        FMT("Could not find compiler \"{}\" in PATH behind ccache masquerade "
+            "\"{}\"",
+            compiler_name,
+            resolved_compiler));
+    }
+    resolved_compiler = real_compiler;
+  }
+#endif
 
   if (is_ccache_executable(resolved_compiler)) {
     throw core::Fatal("Recursive invocation of ccache");
